@@ -22,3 +22,13 @@ export const adminBtnDark =
   "inline-flex items-center justify-center gap-2 rounded-2xl bg-[#2A2620] px-4 py-2.5 text-sm font-semibold text-[#FAF7F2] shadow-md hover:bg-[#1a1814]";
 
 export const adminTableWrap = "overflow-x-auto rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95";
+
+/** Visible label for stubs / non-persisted / read-only surfaces (use next to headings or disabled controls). */
+export const adminStubBadgeClass =
+  "inline-flex items-center rounded-full border border-amber-300/90 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950";
+
+export const adminReadOnlyBadgeClass =
+  "inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-950";
+
+export const adminLocalSimBadgeClass =
+  "inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-950";

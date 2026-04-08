@@ -1,5 +1,5 @@
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
-import { adminCardBase } from "../../_components/adminTheme";
+import { adminCardBase, adminStubBadgeClass } from "../../_components/adminTheme";
 import { getTemporaryActivitySeed } from "../../_lib/activityLogSeed";
 
 export const dynamic = "force-dynamic";
@@ -9,9 +9,14 @@ export default function AdminActivityLogPage() {
 
   return (
     <div>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <span className={adminStubBadgeClass}>Datos de ejemplo</span>
+        <span className={adminStubBadgeClass}>No persistido</span>
+      </div>
       <AdminPageHeader
         title="Activity log"
         subtitle="Audit trail for admin actions. Rows below are temporary seeds until `admin_audit_log` (or similar) exists in Supabase."
+        helperText="Las filas no reflejan acciones reales; solo ilustran el diseño de la tabla."
       />
 
       <div className={`${adminCardBase} overflow-hidden`}>

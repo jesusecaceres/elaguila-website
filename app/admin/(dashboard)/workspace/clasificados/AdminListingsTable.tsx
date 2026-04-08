@@ -46,8 +46,9 @@ function formatAdminDateTime(ms: number): string {
   }
 }
 
-function enVentaVisibilityAdminLine(row: Row): string {
+function enVentaVisibilityAdminLine(row: Row, detailPairsAvailable: boolean): string {
   if ((row.category ?? "").toLowerCase() !== "en-venta") return "—";
+  if (!detailPairsAvailable) return "N/D · falta columna detail_pairs en BD";
   const plan = listingPlanFromDetailPairs(row.detail_pairs);
   const now = Date.now();
   const boostEnd = parseBoostExpiresMs(row.boost_expires);
@@ -75,7 +76,14 @@ function enVentaVisibilityAdminLine(row: Row): string {
   return `pro · ${boostPart} · ${lastPart} · ${renewPart}`;
 }
 
-export default function AdminListingsTable({ listings }: { listings: Row[] }) {
+export default function AdminListingsTable({
+  listings,
+  detailPairsAvailable = true,
+}: {
+  listings: Row[];
+  /** When false, DB has no `listings.detail_pairs` — En Venta visibility column is degraded. */
+  detailPairsAvailable?: boolean;
+}) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -127,7 +135,16 @@ export default function AdminListingsTable({ listings }: { listings: Row[] }) {
               <th className="p-3 font-semibold text-[#5C4E2E]">Estado</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">Owner</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">Fecha</th>
-              <th className="min-w-[220px] p-3 font-semibold text-[#5C4E2E]">En venta · vis.</th>
+              <th
+                className="min-w-[220px] p-3 font-semibold text-[#5C4E2E]"
+                title={
+                  detailPairsAvailable
+                    ? "Plan y visibilidad En Venta (detail_pairs + boost_expires)"
+                    : "Columna detail_pairs no disponible en esta base — aplica migración listings.detail_pairs"
+                }
+              >
+                En venta · vis.
+              </th>
               <th className="p-3 font-semibold text-[#5C4E2E]">Acciones</th>
             </tr>
           </thead>
@@ -168,8 +185,11 @@ export default function AdminListingsTable({ listings }: { listings: Row[] }) {
                   )}
                 </td>
                 <td className="p-3 text-[#7A7164]">{formatDate(row.created_at)}</td>
-                <td className="max-w-[280px] p-3 align-top text-[11px] leading-snug text-[#5C5346]" title={enVentaVisibilityAdminLine(row)}>
-                  {enVentaVisibilityAdminLine(row)}
+                <td
+                  className="max-w-[280px] p-3 align-top text-[11px] leading-snug text-[#5C5346]"
+                  title={enVentaVisibilityAdminLine(row, detailPairsAvailable)}
+                >
+                  {enVentaVisibilityAdminLine(row, detailPairsAvailable)}
                 </td>
                 <td className="p-3">
                   <Link

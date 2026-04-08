@@ -6,12 +6,16 @@ import { usePathname } from "next/navigation";
 export type WorkspaceNavItem = { href: string; label: string; hint?: string };
 
 const SECTIONS: WorkspaceNavItem[] = [
-  { href: "/admin/workspace/home", label: "Home", hint: "Ruta pública /home (revista) — no la pantalla /" },
+  { href: "/admin/workspace/home", label: "Home", hint: "Ruta pública /home (revista) — no la pantalla raíz /" },
   { href: "/admin/workspace/clasificados", label: "Clasificados", hint: "Moderación de anuncios en Supabase" },
   { href: "/admin/workspace/tienda", label: "Tienda", hint: "Vitrina /tienda + enlaces al catálogo y pedidos" },
   { href: "/admin/workspace/nosotros", label: "Nosotros", hint: "Página pública /about" },
   { href: "/admin/workspace/revista", label: "Revista", hint: "Manifiesto editions.json + notas internas" },
   { href: "/admin/workspace/contacto", label: "Contacto", hint: "Página /contacto (formulario global)" },
+  { href: "/admin/workspace/noticias", label: "Noticias", hint: "Pública /noticias — workspace esqueleto, sin CMS aún" },
+  { href: "/admin/workspace/iglesias", label: "Iglesias", hint: "Pública /iglesias — workspace esqueleto" },
+  { href: "/admin/workspace/cupones", label: "Cupones", hint: "Públicas /cupones y /coupons — sin editor aún" },
+  { href: "/admin/workspace/anunciate", label: "Anúnciate", hint: "Mapa al funnel publicar + cola Clasificados; sin CRM" },
 ];
 
 const TIENDA_CRUD_PREFIX = "/admin/tienda";

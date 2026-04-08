@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
-import { adminCardBase, adminBtnPrimary, adminBtnSecondary, adminInputClass } from "../../../_components/adminTheme";
+import { adminCardBase, adminBtnPrimary, adminBtnSecondary, adminInputClass, adminStubBadgeClass } from "../../../_components/adminTheme";
 import { getMagazineManifestForAdmin } from "../../../_lib/magazineAdminData";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type { RevistaSpotlightPayload } from "@/app/lib/siteSectionContent/payloadTypes";
@@ -91,7 +91,11 @@ export default async function AdminWorkspaceRevistaPage(props: { searchParams?: 
         </div>
 
         <div className={`${adminCardBase} p-6`}>
-          <p className="text-xs font-bold uppercase text-[#7A7164]">Subir nuevo número (esqueleto)</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs font-bold uppercase text-[#7A7164]">Subir nuevo número (esqueleto)</p>
+            <span className={adminStubBadgeClass}>Próximamente</span>
+            <span className={adminStubBadgeClass}>No persistido</span>
+          </div>
           <p className="mt-1 text-xs text-[#7A7164]">
             Conectar a Supabase Storage o API segura; luego actualizar manifiesto o fila en BD. Este formulario no guarda aún.
           </p>

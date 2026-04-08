@@ -1,3 +1,5 @@
+import { isRestauranteDisplayableImageRef } from "./restauranteMediaDisplay";
+
 /** Main gallery strip: indices into `galleryImages` plus optional video slot. */
 export type RestauranteGallerySeqEntry = number | "v";
 
@@ -106,7 +108,7 @@ export function resolveRestauranteGallerySequence(d: SeqSource): RestauranteGall
 export function computePublishGallerySequence(d: SeqSource): RestauranteGallerySeqEntry[] {
   const imgs = d.galleryImages ?? [];
   const validIdx = imgs
-    .map((u, i) => (typeof u === "string" && u.trim().length > 0 ? i : null))
+    .map((u, i) => (isRestauranteDisplayableImageRef(u) ? i : null))
     .filter((i): i is number => i !== null);
   const hasVideo = draftHasVideo(d);
   if (validIdx.length === 0 && !hasVideo) return [];

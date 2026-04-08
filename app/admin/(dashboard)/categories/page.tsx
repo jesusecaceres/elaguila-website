@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
-import { adminCardBase } from "../../_components/adminTheme";
+import { adminCardBase, adminReadOnlyBadgeClass } from "../../_components/adminTheme";
 import { getClasificadosCategoryRegistry, summarizeRegistryForDashboard } from "../../_lib/clasificadosCategoryRegistry";
 
 export const dynamic = "force-dynamic";
@@ -32,9 +32,13 @@ export default function AdminCategoriesPage() {
 
   return (
     <div>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <span className={adminReadOnlyBadgeClass}>Solo lectura</span>
+      </div>
       <AdminPageHeader
         title="Categories"
         subtitle="Clasificados control center. `en-venta` is the primary live vertical; others are staged or coming soon until activated safely."
+        helperText="El registro sale del código (categoryConfig); no se guardan cambios desde esta tabla hasta que exista persistencia en Supabase."
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">

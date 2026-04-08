@@ -13,8 +13,10 @@ import {
 import { arrayMove, SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
+import { isRestauranteDisplayableImageRef, isRestauranteLocalVideoDataUrl } from "./restauranteMediaDisplay";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
 import { readRestauranteImageAsDataUrl } from "./compressRestauranteImage";
+import type { RestauranteDraftPatch } from "./useRestauranteDraft";
 import {
   computePublishGallerySequence,
   remapSequenceAfterImageRemove,
@@ -82,20 +84,33 @@ function SortableGalleryTile({
 
 type Props = {
   draft: RestauranteListingDraft;
-  draftRef: React.MutableRefObject<RestauranteListingDraft>;
-  setDraftPatch: (p: Partial<RestauranteListingDraft>) => void;
+  setDraftPatch: (p: RestauranteDraftPatch) => void;
   uploadLabels: Record<string, string>;
   setUploadLabels: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 };
 
 export function RestaurantePublishMediaStrip({
   draft,
-  draftRef,
   setDraftPatch,
   uploadLabels,
   setUploadLabels,
 }: Props) {
-  const displaySequence = useMemo(() => computePublishGallerySequence(draft), [draft]);
+  const displaySequence = useMemo(() => {
+    const seq = computePublishGallerySequence(draft);
+    const imgs = draft.galleryImages ?? [];
+    const nShow = imgs.filter((u) => isRestauranteDisplayableImageRef(u)).length;
+    const nums = seq.filter((x): x is number => typeof x === "number");
+    const hasVid = !!(draft.videoFile?.trim() || draft.videoUrl?.trim());
+    if (nShow > 0 && nums.length !== nShow) {
+      const validIdx = imgs
+        .map((u, i) => (isRestauranteDisplayableImageRef(u) ? i : null))
+        .filter((i): i is number => i !== null);
+      const out: RestauranteGallerySeqEntry[] = [...validIdx];
+      if (hasVid) out.push("v");
+      return out;
+    }
+    return seq;
+  }, [draft]);
   const ids = useMemo(() => displaySequence.map(entryToId), [displaySequence]);
 
   const sensors = useSensors(
@@ -117,60 +132,63 @@ export function RestaurantePublishMediaStrip({
   );
 
   const removeGalleryAt = (galleryIndex: number) => {
-    const cur = draftRef.current;
-    const imgs = [...(cur.galleryImages ?? [])];
-    imgs.splice(galleryIndex, 1);
-    const prevSeq = cur.galleryMediaSequence ?? resolveRestauranteGallerySequence(cur);
-    const nextSeq = remapSequenceAfterImageRemove(prevSeq, galleryIndex);
-    setDraftPatch({
-      galleryImages: imgs,
-      galleryMediaSequence: nextSeq,
-      galleryOrder: imgs.map((_, i) => String(i)),
+    setDraftPatch((prev) => {
+      const imgs = [...(prev.galleryImages ?? [])];
+      imgs.splice(galleryIndex, 1);
+      const prevSeq = prev.galleryMediaSequence ?? resolveRestauranteGallerySequence(prev);
+      const nextSeq = remapSequenceAfterImageRemove(prevSeq, galleryIndex);
+      return {
+        galleryImages: imgs,
+        galleryMediaSequence: nextSeq.length ? nextSeq : undefined,
+        galleryOrder: imgs.map((_, i) => String(i)),
+      };
     });
   };
 
   const removeVideo = () => {
-    const cur = draftRef.current;
-    const seq = (cur.galleryMediaSequence ?? resolveRestauranteGallerySequence(cur)).filter((x) => x !== "v");
     setUploadLabels((p) => {
       const n = { ...p };
       delete n.video;
       return n;
     });
-    setDraftPatch({
-      videoFile: undefined,
-      videoUrl: undefined,
-      galleryMediaSequence: seq.length ? seq : undefined,
+    setDraftPatch((prev) => {
+      const seq = (prev.galleryMediaSequence ?? resolveRestauranteGallerySequence(prev)).filter((x) => x !== "v");
+      return {
+        videoFile: undefined,
+        videoUrl: undefined,
+        galleryMediaSequence: seq.length ? seq : undefined,
+      };
     });
   };
 
   const addGalleryFiles = async (files: FileList | null) => {
     const list = files ? Array.from(files) : [];
-    const cur = draftRef.current;
-    const prev = cur.galleryImages ?? [];
-    const room = MAX_GALLERY - prev.length;
-    const toAdd = list.slice(0, Math.max(0, room));
+    const toRead = list.slice(0, MAX_GALLERY);
     const urls: string[] = [];
-    for (const f of toAdd) {
+    for (const f of toRead) {
       const u = await readRestauranteImageAsDataUrl(f);
-      if (typeof u === "string" && u.trim().length > 0 && u.startsWith("data:image")) urls.push(u);
+      if (isRestauranteDisplayableImageRef(u)) urls.push(u.trim());
     }
     if (!urls.length) return;
-    const imgs = [...prev, ...urls];
-    const prevSeq = resolveRestauranteGallerySequence(cur);
-    const hadV = prevSeq.includes("v");
-    const withoutV: number[] = prevSeq.filter((e): e is number => e !== "v");
-    const start = prev.length;
-    for (let i = 0; i < urls.length; i++) withoutV.push(start + i);
-    const hasV =
-      (typeof cur.videoFile === "string" && cur.videoFile.trim().length > 0) ||
-      (typeof cur.videoUrl === "string" && cur.videoUrl.trim().length > 0);
-    const nextSeq: RestauranteGallerySeqEntry[] =
-      hadV || hasV ? [...withoutV, "v" as const] : withoutV;
-    setDraftPatch({
-      galleryImages: imgs,
-      galleryMediaSequence: nextSeq,
-      galleryOrder: imgs.map((_, i) => String(i)),
+    setDraftPatch((prev) => {
+      const prevImgs = prev.galleryImages ?? [];
+      const room = MAX_GALLERY - prevImgs.length;
+      const slice = urls.slice(0, Math.max(0, room));
+      if (!slice.length) return {};
+      const imgs = [...prevImgs, ...slice];
+      const prevSeq = resolveRestauranteGallerySequence(prev);
+      const hadV = prevSeq.includes("v");
+      const withoutV: number[] = prevSeq.filter((e): e is number => e !== "v");
+      const start = prevImgs.length;
+      for (let i = 0; i < slice.length; i++) withoutV.push(start + i);
+      const hasV = !!(prev.videoFile?.trim() || prev.videoUrl?.trim());
+      const nextSeq: RestauranteGallerySeqEntry[] =
+        hadV || hasV ? [...withoutV, "v" as const] : withoutV;
+      return {
+        galleryImages: imgs,
+        galleryMediaSequence: nextSeq,
+        galleryOrder: imgs.map((_, i) => String(i)),
+      };
     });
   };
 
@@ -180,12 +198,22 @@ export function RestaurantePublishMediaStrip({
       removeVideo();
       return;
     }
-    setUploadLabels((p) => ({ ...p, video: f.name }));
     const dataUrl = await readFileAsDataUrl(f);
-    const cur = draftRef.current;
-    let seq = cur.galleryMediaSequence ?? resolveRestauranteGallerySequence({ ...cur, videoFile: dataUrl });
-    if (!seq.includes("v")) seq = [...seq, "v"];
-    setDraftPatch({ videoFile: dataUrl, videoUrl: undefined, galleryMediaSequence: seq });
+    const t = typeof dataUrl === "string" ? dataUrl.trim() : "";
+    if (!t || !/^data:video/i.test(t)) {
+      setUploadLabels((p) => {
+        const n = { ...p };
+        delete n.video;
+        return n;
+      });
+      return;
+    }
+    setUploadLabels((p) => ({ ...p, video: f.name }));
+    setDraftPatch((prev) => {
+      let seq = prev.galleryMediaSequence ?? resolveRestauranteGallerySequence({ ...prev, videoFile: t });
+      if (!seq.includes("v")) seq = [...seq, "v"];
+      return { videoFile: t, videoUrl: undefined, galleryMediaSequence: seq };
+    });
   };
 
   const heroEmpty = !draft.heroImage?.trim();
@@ -201,6 +229,10 @@ export function RestaurantePublishMediaStrip({
           Cada archivo aceptado aparece como tarjeta con vista previa. Usa el control <strong>⋮⋮ Orden</strong> (o arrastra
           desde ahí) para reordenar — mismo patrón que otros rubros Leonix. La primera imagen en este orden es la portada
           sugerida si no subes una foto principal aparte.
+        </p>
+        <p className="mt-2 text-xs font-medium text-[color:var(--lx-text-2)]">
+          Video: <strong>archivo local</strong> y <strong>enlace (URL)</strong> son opciones distintas. En vista previa se
+          usa <strong>primero el archivo local</strong> si existe; si no, el enlace.
         </p>
         <div
           className="mt-3 rounded-xl border border-dashed border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/30 p-4"
@@ -250,7 +282,7 @@ export function RestaurantePublishMediaStrip({
                           onRemove={removeVideo}
                         >
                           <div className="relative aspect-square w-full">
-                            {draft.videoFile?.startsWith("data:video") ? (
+                            {isRestauranteLocalVideoDataUrl(draft.videoFile) ? (
                               <video
                                 className="absolute inset-0 h-full w-full object-cover"
                                 muted
@@ -275,15 +307,19 @@ export function RestaurantePublishMediaStrip({
                                 <span className="text-[10px] font-semibold text-white/80">Video</span>
                               </div>
                             )}
-                            <span className="absolute bottom-2 left-2 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                              Video
+                            <span className="absolute bottom-2 left-2 max-w-[calc(100%-12px)] rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold leading-tight text-white">
+                              {isRestauranteLocalVideoDataUrl(draft.videoFile)
+                                ? "Video · archivo (se usa en preview)"
+                                : draft.videoUrl?.trim()
+                                  ? "Video · enlace (preview si no hay archivo)"
+                                  : "Video"}
                             </span>
                           </div>
                         </SortableGalleryTile>
                       );
                     }
                     const url = draft.galleryImages?.[entry];
-                    if (!url) return null;
+                    if (!isRestauranteDisplayableImageRef(url)) return null;
                     const isCoverHint = heroEmpty && entry === firstImageEntry;
                     return (
                       <SortableGalleryTile

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { fetchListingsForAdminWorkspace } from "@/app/admin/_lib/listingsAdminSelect";
 import AdminListingsTable from "./AdminListingsTable";
 import { EnVentaModerationFields } from "@/app/clasificados/en-venta/admin/EnVentaModerationFields";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
@@ -35,13 +36,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   const catFilter = (sp.category ?? "").trim().toLowerCase();
   const statusFilter = (sp.status ?? "").trim().toLowerCase();
 
-  const { data: listings, error } = await supabase
-    .from("listings")
-    .select(
-      "id, title, description, city, category, price, is_free, status, owner_id, created_at, images, detail_pairs, boost_expires"
-    )
-    .order("created_at", { ascending: false })
-    .limit(300);
+  const { data: listings, error, detailPairsAvailable } = await fetchListingsForAdminWorkspace(supabase);
 
   let rows = (listings ?? []) as Row[];
   if (catFilter) rows = rows.filter((r) => (r.category ?? "").toLowerCase() === catFilter);
@@ -66,6 +61,19 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         helperText="Moderación y listados de anuncios viven aquí. Tienda (productos impresos/self-serve) es otro workspace: no mezclar flujos."
       />
 
+      {!detailPairsAvailable ? (
+        <div
+          className={`${adminCardBase} mb-4 max-w-3xl border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}
+          role="status"
+        >
+          <strong className="font-bold">Base sin columna listings.detail_pairs.</strong> La cola carga en modo reducido: la columna
+          “En venta · vis.” no puede mostrar plan / renovación hasta migrar. Aplica en Supabase la migración{" "}
+          <code className="rounded bg-white/80 px-1 text-[11px]">20250316200000_listings_detail_pairs.sql</code> o{" "}
+          <code className="rounded bg-white/80 px-1 text-[11px]">20260407140000_ensure_listings_detail_pairs.sql</code> (idempotente)
+          y vuelve a cargar.
+        </div>
+      ) : null}
+
       <div className={`${adminCardBase} mb-4 max-w-3xl p-4 text-xs text-[#5C5346]`}>
         <strong className="text-[#1E1810]">Destacados en la portada `/home`:</strong> no se generan solos desde esta cola. En{" "}
         <Link href="/admin/workspace/home/content" className="font-bold text-[#6B5B2E] underline">
@@ -78,8 +86,9 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         <Link
           href="/admin/workspace/clasificados/servicios"
           className="rounded-2xl border border-[#7A9E6F]/40 bg-[#F4FAF2] px-4 py-2 text-sm font-semibold text-[#2C4A22]"
+          title="Simulación en navegador (localStorage), no es la cola real de Supabase"
         >
-          Servicios (admin local) →
+          Servicios (simulación local) →
         </Link>
         <Link href="/admin/categories" className="rounded-2xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E]">
           Registro de categorías →
@@ -122,12 +131,12 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
       {error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error.message}</div>
       ) : (
-        <AdminListingsTable listings={rows} />
+        <AdminListingsTable listings={rows} detailPairsAvailable={detailPairsAvailable} />
       )}
 
       <AdminSectionCard
         title="En Venta — contrato de moderación"
-        subtitle="Campos y copy específicos de la vertical En Venta en vivo."
+        subtitle="Solo referencia (lista de motivos). No envía cambios a la base — documentación para el equipo."
       >
         <EnVentaModerationFields lang="es" />
       </AdminSectionCard>

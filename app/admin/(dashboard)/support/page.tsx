@@ -1,15 +1,20 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
-import { adminCardBase, adminBtnSecondary, adminInputClass } from "../../_components/adminTheme";
+import { adminCardBase, adminBtnSecondary, adminInputClass, adminReadOnlyBadgeClass, adminStubBadgeClass } from "../../_components/adminTheme";
 
 export const dynamic = "force-dynamic";
 
 export default function AdminSupportPage() {
   return (
     <div>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <span className={adminReadOnlyBadgeClass}>Parcial</span>
+        <span className={adminStubBadgeClass}>Tickets no modelados</span>
+      </div>
       <AdminPageHeader
         title="Support"
         subtitle="Operator console for user assistance. Ticket ingestion is not modeled yet — use user search + Ads/Reports for live data."
+        helperText="La búsqueda de usuario redirige a /admin/usuarios. Chips y notas internas no guardan."
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -27,7 +32,12 @@ export default function AdminSupportPage() {
 
         <div className={`${adminCardBase} p-6`}>
           <h2 className="text-sm font-bold text-[#1E1810]">Escalation tags</h2>
-          <p className="mt-1 text-xs text-[#7A7164]">For future ticket routing — chips are visual only.</p>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            <span className="mr-2 inline-block rounded-full border border-[#E8DFD0] bg-[#FFFCF7] px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C4E2E]">
+              Solo UI
+            </span>
+            For future ticket routing — chips are visual only.
+          </p>
           <div className="mt-4 flex flex-wrap gap-2">
             {["Billing", "Technical", "Fraud", "Content"].map((t) => (
               <span
@@ -44,6 +54,7 @@ export default function AdminSupportPage() {
       <div className={`${adminCardBase} mt-8 p-6`}>
         <h2 className="text-sm font-bold text-[#1E1810]">Account actions (stubs)</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
+          <span className={adminStubBadgeClass + " mr-2"}>Próximamente</span>
           Password reset and unlock require Auth Admin APIs server-side — not exposed here.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">

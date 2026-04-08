@@ -1,14 +1,19 @@
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
-import { adminCardBase, adminBtnSecondary, adminInputClass } from "../../_components/adminTheme";
+import { adminCardBase, adminBtnSecondary, adminInputClass, adminStubBadgeClass } from "../../_components/adminTheme";
 
 export const dynamic = "force-dynamic";
 
 export default function AdminPaymentsPage() {
   return (
     <div>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <span className={adminStubBadgeClass}>Próximamente</span>
+        <span className={adminStubBadgeClass}>No persistido</span>
+      </div>
       <AdminPageHeader
         title="Payments"
         subtitle="Billing health and references only. Card data is never stored or displayed in admin. Integrations are future Stripe/customer portal links."
+        helperText="Ningún dato de facturación se lee ni escribe en Supabase desde esta pantalla todavía."
       />
 
       <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950">

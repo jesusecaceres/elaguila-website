@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createEmptyRestauranteDraft } from "./createEmptyRestauranteDraft";
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
+
+export type RestauranteDraftPatch =
+  | Partial<RestauranteListingDraft>
+  | ((prev: RestauranteListingDraft) => Partial<RestauranteListingDraft>);
 import {
   clearRestauranteDraftStorage,
   loadRestauranteDraftFromStorage,
@@ -73,9 +77,10 @@ export function useRestauranteDraft() {
   }, []);
 
   const setDraftPatch = useCallback(
-    (patch: Partial<RestauranteListingDraft>) => {
+    (patch: RestauranteDraftPatch) => {
       setDraft((prev) => {
-        const merged = { ...prev, ...patch };
+        const partial = typeof patch === "function" ? patch(prev) : patch;
+        const merged = { ...prev, ...partial };
         persist(merged);
         return merged;
       });

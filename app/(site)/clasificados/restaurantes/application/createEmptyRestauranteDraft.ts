@@ -122,7 +122,12 @@ export function mergeRestauranteDraft(loaded: unknown): RestauranteListingDraft 
   merged.additionalCuisines = Array.isArray(merged.additionalCuisines) ? merged.additionalCuisines : [];
   merged.languagesSpoken = Array.isArray(merged.languagesSpoken) ? merged.languagesSpoken : [];
   merged.highlights = Array.isArray(merged.highlights) ? merged.highlights : [];
-  merged.galleryImages = Array.isArray(merged.galleryImages) ? merged.galleryImages : [];
+  const asStringList = (a: unknown): string[] =>
+    Array.isArray(a) ? a.filter((x): x is string => typeof x === "string") : [];
+  merged.galleryImages = asStringList(merged.galleryImages);
+  merged.interiorImages = asStringList(merged.interiorImages);
+  merged.foodImages = asStringList(merged.foodImages);
+  merged.exteriorImages = asStringList(merged.exteriorImages);
   merged.galleryOrder = Array.isArray(merged.galleryOrder) ? merged.galleryOrder : [];
   merged.movingVendor = merged.movingVendor === true;
   merged.galleryMediaSequence = Array.isArray(merged.galleryMediaSequence)
@@ -142,9 +147,6 @@ export function mergeRestauranteDraft(loaded: unknown): RestauranteListingDraft 
   ) {
     merged.galleryMediaSequence = undefined;
   }
-  merged.foodImages = Array.isArray(merged.foodImages) ? merged.foodImages : [];
-  merged.interiorImages = Array.isArray(merged.interiorImages) ? merged.interiorImages : [];
-  merged.exteriorImages = Array.isArray(merged.exteriorImages) ? merged.exteriorImages : [];
   merged.featuredDishes = Array.isArray(merged.featuredDishes) ? merged.featuredDishes : [];
   return merged;
 }

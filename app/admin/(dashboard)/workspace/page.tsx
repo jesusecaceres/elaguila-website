@@ -6,8 +6,8 @@ const CARDS = [
   {
     href: "/admin/workspace/home",
     title: "Home",
-    body: "Portada: hero, avisos, destacados de Clasificados en la home y módulos visibles en `/`.",
-    teach: "Empieza aquí si solo cambias la primera impresión del sitio.",
+    body: "Portada pública `/home`: hero, avisos, chips manuales y módulos visibles (no la pantalla raíz `/`).",
+    teach: "Empieza aquí si solo cambias la primera impresión de la entrada a la revista.",
   },
   {
     href: "/admin/workspace/clasificados",
@@ -38,6 +38,30 @@ const CARDS = [
     title: "Contacto",
     body: "Teléfono, correo, horarios, mapa y copy del formulario público.",
     teach: "Datos que ve el visitante; soporte interno sigue en la barra lateral.",
+  },
+  {
+    href: "/admin/workspace/noticias",
+    title: "Noticias",
+    body: "[Próximamente · no persistido] Dueño de `/noticias` hasta que exista CMS o JSON en base.",
+    teach: "Solo mapa y enlaces; sin formulario guardado.",
+  },
+  {
+    href: "/admin/workspace/iglesias",
+    title: "Iglesias",
+    body: "[Próximamente · no persistido] Sección pública `/iglesias`.",
+    teach: "Placeholder de producto; sin editor.",
+  },
+  {
+    href: "/admin/workspace/cupones",
+    title: "Cupones",
+    body: "[Próximamente · no persistido] Rutas `/cupones` y `/coupons`.",
+    teach: "Marcar dueño interno antes de cablear ofertas.",
+  },
+  {
+    href: "/admin/workspace/anunciate",
+    title: "Anúnciate",
+    body: "[Solo lectura] Mapa al funnel publicar (Clasificados) y enlaces a cola admin.",
+    teach: "No es CRM; operación real en Clasificados + auth.",
   },
 ] as const;
 

@@ -1,5 +1,5 @@
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
-import { adminCardBase, adminBtnPrimary, adminInputClass } from "../../_components/adminTheme";
+import { adminCardBase, adminBtnPrimary, adminInputClass, adminStubBadgeClass } from "../../_components/adminTheme";
 import { AdminEmptyState } from "../../_components/AdminEmptyState";
 import { getPlaceholderTeamMembers, ROLE_LABELS, type AdminPermissionKey } from "../../_lib/teamTypes";
 
@@ -25,9 +25,14 @@ export default function AdminTeamPage() {
 
   return (
     <div>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <span className={adminStubBadgeClass}>Simulación</span>
+        <span className={adminStubBadgeClass}>No persistido</span>
+      </div>
       <AdminPageHeader
         title="Team"
         subtitle="Internal workforce roles and permissions. Persistence requires Supabase `admin_team_members` (see teamTypes.ts)."
+        helperText="La tabla y los botones de ejemplo no guardan en base; el roster viene de datos placeholder en código."
       />
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">

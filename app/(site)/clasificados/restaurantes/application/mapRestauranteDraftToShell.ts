@@ -1,5 +1,6 @@
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 import { computePublishGallerySequence } from "./restauranteGalleryMediaSequence";
+import { isRestauranteLocalVideoDataUrl } from "./restauranteMediaDisplay";
 import { hasPrimaryContactPath, RESTAURANTE_SHELL_HIGHLIGHT_CAP } from "./restauranteListingApplicationModel";
 import { computeShellHoursPreview } from "./restauranteHoursPreview";
 import type { RestauranteServiceMode } from "./restauranteListingApplicationModel";
@@ -195,14 +196,13 @@ function buildGallery(d: RestauranteListingDraft): ShellGalleryItem[] {
   let galleryOrdinal = 0;
   for (const e of seq) {
     if (e === "v") {
-      if (nonEmpty(d.videoFile)) {
-        const vf = d.videoFile!;
-        const isDataVideo = vf.startsWith("data:video");
-        if (isDataVideo) {
-          out.push({ alt: "Video", category: "video", videoSrc: vf });
-        } else {
-          out.push({ imageUrl: vf, alt: "Video", category: "video", videoSrc: vf });
-        }
+      /* Precedencia: archivo local sobre URL (mismo criterio que el formulario). */
+      if (nonEmpty(d.videoFile) && isRestauranteLocalVideoDataUrl(d.videoFile)) {
+        const vf = d.videoFile!.trim();
+        out.push({ alt: "Video", category: "video", videoSrc: vf });
+      } else if (nonEmpty(d.videoFile)) {
+        const vf = d.videoFile!.trim();
+        out.push({ imageUrl: vf, alt: "Video", category: "video", videoSrc: vf });
       } else if (nonEmpty(d.videoUrl)) {
         out.push({
           alt: "Video",

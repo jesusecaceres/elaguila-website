@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { adminLocalSimBadgeClass } from "@/app/admin/_components/adminTheme";
 
 const STORAGE_KEY = "leonix_admin_servicios_listings_v1";
 
@@ -344,6 +345,16 @@ export default function AdminServiciosPage() {
 
   return (
     <div className="space-y-8">
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-violet-200 bg-violet-50/90 p-3 text-sm text-violet-950">
+        <span className={adminLocalSimBadgeClass}>Simulación local</span>
+        <span className="text-xs">
+          Los datos viven en <code className="rounded bg-white/80 px-1">localStorage</code> del navegador — no son anuncios reales en Supabase. Para moderación real usa{" "}
+          <a href="/admin/workspace/clasificados" className="font-bold underline">
+            Clasificados
+          </a>
+          .
+        </span>
+      </div>
       <h1 className="text-xl font-bold text-[#111111]">Servicios – Create listing</h1>
 
       <form onSubmit={handleSubmit} className="rounded-xl border border-black/10 bg-white p-6 space-y-4 max-w-2xl">

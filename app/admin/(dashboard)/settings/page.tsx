@@ -1,5 +1,5 @@
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
-import { adminCardBase, adminBtnPrimary, adminInputClass } from "../../_components/adminTheme";
+import { adminCardBase, adminBtnPrimary, adminInputClass, adminStubBadgeClass } from "../../_components/adminTheme";
 import { SITE_THEME_PRESETS, type SiteThemePresetId } from "../../_lib/adminSettingsTheme";
 
 export const dynamic = "force-dynamic";
@@ -7,9 +7,13 @@ export const dynamic = "force-dynamic";
 export default function AdminSettingsPage() {
   return (
     <div>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <span className={adminStubBadgeClass}>No persistido</span>
+      </div>
       <AdminPageHeader
         title="Settings"
         subtitle="Environment and future theme control. Changing presets does not alter the public site until CSS variable wiring lands."
+        helperText="Tema y campos deshabilitados: no se guardan. Para avisos globales del sitio usa Ajustes globales (/admin/site-settings)."
       />
 
       <div className={`${adminCardBase} mb-8 p-6`}>

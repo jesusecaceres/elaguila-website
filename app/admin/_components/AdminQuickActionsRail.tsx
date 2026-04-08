@@ -25,15 +25,19 @@ export function AdminQuickActionsRail() {
           <input
             id="rail-ad-q"
             name="q"
-            placeholder="Search ads (listing UUID substring)…"
+            placeholder="Fragmento de título, ciudad o ID…"
             className={adminInputClass}
+            title="Abre Clasificados con ?q=; el filtrado ocurre en la página del workspace"
           />
           <p className="text-[10px] text-[#7A7164]">
-            {/* Future: public_publish_id when added to listings — today matches title/substring filters client-side could be added */}
-            Uses list search field when wired; for now navigates with query string for future table filter.
+            Solo navega a la cola con el texto en la URL; no ejecuta búsqueda aparte. Filtra en la página de Clasificados.
           </p>
-          <button type="submit" className={`${adminBtnSecondary} w-full justify-center text-xs`}>
-            Search ads →
+          <button
+            type="submit"
+            className={`${adminBtnSecondary} w-full justify-center text-xs`}
+            title="Ir a /admin/workspace/clasificados con parámetro q"
+          >
+            Ir a cola Clasificados →
           </button>
         </form>
       </div>
@@ -58,12 +62,16 @@ export function AdminQuickActionsRail() {
         <Link
           href="/admin/workspace/clasificados"
           className={`${adminBtnSecondary} w-full justify-center text-xs`}
-          title="Workspace Clasificados — cola de anuncios"
+          title="Abre la cola de anuncios; no abre un anuncio concreto"
         >
-          ✓ Quick verify ad (open Ads)
+          Abrir cola Clasificados
         </Link>
-        <Link href="/admin/team" className={`${adminBtnDark} w-full justify-center text-xs`}>
-          + Add team member
+        <Link
+          href="/admin/team"
+          className={`${adminBtnDark} w-full justify-center text-xs`}
+          title="Página Team — invitaciones aún no persistidas"
+        >
+          Ir a Team (invitaciones stub)
         </Link>
       </div>
 

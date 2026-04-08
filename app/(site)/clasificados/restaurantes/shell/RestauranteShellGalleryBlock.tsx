@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FiVideo } from "react-icons/fi";
+import { isRestauranteLocalVideoDataUrl } from "@/app/clasificados/restaurantes/application/restauranteMediaDisplay";
 import type { ShellGalleryItem } from "./restaurantDetailShellTypes";
 
 function youtubeEmbedId(raw: string): string | null {
@@ -144,7 +145,7 @@ export function RestauranteShellGalleryBlock({
                 className="object-cover"
                 sizes="(max-width:1024px) 50vw, 25vw"
               />
-            ) : g.category === "video" && g.videoSrc?.startsWith("data:video") ? (
+            ) : g.category === "video" && g.videoSrc && isRestauranteLocalVideoDataUrl(g.videoSrc) ? (
               <video
                 className="absolute inset-0 h-full w-full object-cover"
                 muted

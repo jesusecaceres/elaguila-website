@@ -26,6 +26,7 @@ import { satisfiesRestauranteMinimumValidPreview, satisfiesRestauranteServiceMod
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
 import { readRestauranteImageAsDataUrl } from "@/app/clasificados/restaurantes/application/compressRestauranteImage";
 import { RestaurantePublishMediaStrip } from "@/app/clasificados/restaurantes/application/RestaurantePublishMediaStrip";
+import { RestauranteSubGalleryBucket } from "@/app/clasificados/restaurantes/application/RestauranteSubGalleryBucket";
 import { resolveRestauranteGallerySequence } from "@/app/clasificados/restaurantes/application/restauranteGalleryMediaSequence";
 
 const PREVIEW_HREF = "/clasificados/restaurantes/preview";
@@ -1114,66 +1115,73 @@ export default function RestauranteApplicationClient() {
             </div>
             <RestaurantePublishMediaStrip
               draft={draft}
-              draftRef={draftRef}
               setDraftPatch={setDraftPatch}
               uploadLabels={uploadLabels}
               setUploadLabels={setUploadLabels}
             />
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-3">
               {(
                 [
-                  ["interiorImages", "Interiores"] as const,
-                  ["foodImages", "Comida"] as const,
-                  ["exteriorImages", "Exteriores"] as const,
+                  ["interiorImages", "Interiores", "interiores"] as const,
+                  ["foodImages", "Comida", "comida"] as const,
+                  ["exteriorImages", "Exteriores", "exteriores"] as const,
                 ] as const
-              ).map(([field, lab]) => (
+              ).map(([field, lab, hint]) => (
                 <div key={field}>
                   <FieldLabel optional>{lab}</FieldLabel>
-                  <RestauranteUploadRow
-                    buttonLabel="Agregar fotos"
-                    helperText="Añade a la colección."
-                    accept="image/*"
-                    multiple
-                    selectedLabel={
-                      ((draft[field] as string[] | undefined) ?? []).length > 0
-                        ? `${((draft[field] as string[] | undefined) ?? []).length} foto(s)`
-                        : null
-                    }
-                    onFilesSelected={async (files) => {
-                      const list = files ? Array.from(files) : [];
-                      const urls: string[] = [];
-                      for (const f of list) urls.push(await readRestauranteImageAsDataUrl(f));
-                      if (!urls.length) return;
-                      const cur = (draft[field] as string[] | undefined) ?? [];
-                      setDraftPatch({ [field]: [...cur, ...urls] } as Partial<RestauranteListingDraft>);
-                    }}
+                  <RestauranteSubGalleryBucket
+                    field={field}
+                    emptyHintLabel={hint}
+                    draft={draft}
+                    setDraftPatch={setDraftPatch}
                   />
                 </div>
               ))}
             </div>
             <div>
-              <FieldLabel optional>Video (URL)</FieldLabel>
+              <FieldLabel optional>Video (URL externo)</FieldLabel>
+              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
+                Opcional. Si pegas un enlace, se borra cualquier video local para evitar duplicados; la vista previa usa
+                primero el archivo local cuando existe.
+              </p>
               <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                className="mt-2 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.videoUrl}
                 value={draft.videoUrl ?? ""}
                 onChange={(e) => {
-                  const v = e.target.value || undefined;
-                  const cur = draftRef.current;
-                  const hasFile = !!(cur.videoFile?.trim());
-                  let seq = cur.galleryMediaSequence ?? resolveRestauranteGallerySequence(cur);
-                  const hasVideo = hasFile || !!v?.trim();
-                  if (hasVideo) {
-                    if (!seq.includes("v")) seq = [...seq, "v"];
-                  } else {
-                    seq = seq.filter((x) => x !== "v");
-                  }
-                  setDraftPatch({
-                    videoUrl: v,
-                    galleryMediaSequence: seq.length ? seq : undefined,
+                  const raw = e.target.value;
+                  const v = raw.trim() === "" ? undefined : raw;
+                  const urlActive = !!v?.trim();
+                  setDraftPatch((prev) => {
+                    const nextFile = urlActive ? undefined : prev.videoFile;
+                    const nextUrl = v;
+                    let seq =
+                      prev.galleryMediaSequence ??
+                      resolveRestauranteGallerySequence({
+                        ...prev,
+                        videoFile: nextFile,
+                        videoUrl: nextUrl,
+                      });
+                    const hasVideo = !!(nextFile?.trim() || nextUrl?.trim());
+                    if (hasVideo) {
+                      if (!seq.includes("v")) seq = [...seq, "v"];
+                    } else {
+                      seq = seq.filter((x) => x !== "v");
+                    }
+                    return {
+                      videoUrl: nextUrl,
+                      videoFile: nextFile,
+                      galleryMediaSequence: seq.length ? seq : undefined,
+                    };
                   });
                 }}
               />
+              {draft.videoUrl?.trim() && !draft.videoFile?.trim() ? (
+                <div className="mt-2 flex items-center gap-2 rounded-xl border border-[color:var(--lx-gold-border)]/50 bg-[color:var(--lx-section)] px-3 py-2 text-xs text-[color:var(--lx-text-2)]">
+                  <span className="font-semibold text-[color:var(--lx-text)]">Enlace aceptado</span>
+                  <span className="min-w-0 truncate">{draft.videoUrl.trim()}</span>
+                </div>
+              ) : null}
             </div>
           </div>
         </section>
