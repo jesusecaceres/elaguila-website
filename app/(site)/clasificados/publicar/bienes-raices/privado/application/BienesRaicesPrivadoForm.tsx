@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { gateBienesRaicesPrivadoPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
@@ -35,7 +35,12 @@ import {
   onPhoneInputChange,
   digitsOnly,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
+import {
+  compressImageFileToJpegDataUrl,
+  readVideoFileAsDataUrlLimited,
+} from "./utils/brPrivadoMediaCompress";
 import { readFileAsDataUrl } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/readFileAsDataUrl";
+import { BR_PRIVADO_CIUDAD_ZONA_SUGGESTIONS } from "./utils/brPrivadoNorCalZones";
 import {
   COMERCIAL_DESTACADOS_DEFS,
   COMERCIAL_SUBTIPO_POR_TIPO,
@@ -56,6 +61,8 @@ import {
 } from "./utils/bienesRaicesPrivadoDraft";
 
 const MAX_PHOTOS = 8;
+/** Soft cap for draft video data URLs (sessionStorage); no Mux upload in this flow. */
+const MAX_VIDEO_BYTES = 32 * 1024 * 1024;
 
 function precioDigitsUnbounded(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "");
@@ -94,6 +101,14 @@ export function BienesRaicesPrivadoForm() {
   const [state, setState] = useState<BienesRaicesPrivadoFormState>(createEmptyBienesRaicesPrivadoFormState);
   const [hydrated, setHydrated] = useState(false);
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
+  const [localVideoFileName, setLocalVideoFileName] = useState("");
+  const [mediaNotice, setMediaNotice] = useState<string | null>(null);
+
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const photosInputRef = useRef<HTMLInputElement>(null);
+  const ownerPhotoInputRef = useRef<HTMLInputElement>(null);
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const d = loadBienesRaicesPrivadoDraft();
@@ -119,8 +134,8 @@ export function BienesRaicesPrivadoForm() {
   }, [state, hydrated]);
 
   const flushSave = useCallback(() => {
-    saveBienesRaicesPrivadoDraft(state);
-  }, [state]);
+    saveBienesRaicesPrivadoDraft(stateRef.current);
+  }, []);
 
   const previewHref = `${BR_PREVIEW_PRIVADO}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(state.categoriaPropiedad)}`;
 
@@ -133,19 +148,88 @@ export function BienesRaicesPrivadoForm() {
       const f = files[i];
       if (!f || !/^image\//.test(f.type)) continue;
       try {
-        next.push(await readFileAsDataUrl(f));
+        next.push(await compressImageFileToJpegDataUrl(f));
       } catch {
         /* ignore */
       }
     }
-    setState((s) => ({
-      ...s,
-      media: {
-        ...s.media,
-        photoDataUrls: next,
-        primaryImageIndex: Math.min(s.media.primaryImageIndex, Math.max(0, next.length - 1)),
-      },
-    }));
+    setState((s) => {
+      const primaryImageIndex = Math.min(s.media.primaryImageIndex, Math.max(0, next.length - 1));
+      const out: BienesRaicesPrivadoFormState = {
+        ...s,
+        media: {
+          ...s.media,
+          photoDataUrls: next,
+          primaryImageIndex,
+        },
+      };
+      queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
+      return out;
+    });
+    if (photosInputRef.current) photosInputRef.current.value = "";
+  };
+
+  const movePhoto = (index: number, delta: -1 | 1) => {
+    setState((s) => {
+      const urls = [...s.media.photoDataUrls];
+      const j = index + delta;
+      if (j < 0 || j >= urls.length) return s;
+      const a = urls[index];
+      const b = urls[j];
+      if (a === undefined || b === undefined) return s;
+      urls[index] = b;
+      urls[j] = a;
+      let pi = s.media.primaryImageIndex;
+      if (pi === index) pi = j;
+      else if (pi === j) pi = index;
+      const out: BienesRaicesPrivadoFormState = {
+        ...s,
+        media: { ...s.media, photoDataUrls: urls, primaryImageIndex: pi },
+      };
+      queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
+      return out;
+    });
+  };
+
+  const onVideoFile = async (files: FileList | null) => {
+    const f = files?.[0];
+    if (!f) return;
+    setMediaNotice(null);
+    try {
+      const data = await readVideoFileAsDataUrlLimited(f, MAX_VIDEO_BYTES);
+      setLocalVideoFileName(f.name);
+      setState((s) => {
+        const out: BienesRaicesPrivadoFormState = {
+          ...s,
+          media: { ...s.media, videoLocalDataUrl: data },
+        };
+        queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
+        return out;
+      });
+    } catch (e) {
+      const code = e instanceof Error ? e.message : "";
+      if (code === "video_too_large") {
+        setMediaNotice(`El video supera ${Math.round(MAX_VIDEO_BYTES / (1024 * 1024))} MB (límite para vista previa en el navegador).`);
+      } else if (code === "not_video") {
+        setMediaNotice("Elige un archivo de video válido.");
+      } else {
+        setMediaNotice("No se pudo leer el video.");
+      }
+    }
+    if (videoFileInputRef.current) videoFileInputRef.current.value = "";
+  };
+
+  const clearLocalVideo = () => {
+    setLocalVideoFileName("");
+    setMediaNotice(null);
+    setState((s) => {
+      const out: BienesRaicesPrivadoFormState = {
+        ...s,
+        media: { ...s.media, videoLocalDataUrl: "" },
+      };
+      queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
+      return out;
+    });
   };
 
   const cat = state.categoriaPropiedad;
@@ -167,7 +251,7 @@ export function BienesRaicesPrivadoForm() {
         <ClasificadosApplicationTopActions
           onPreviewValidated={() => {
             if (!confirmAll) return;
-            const g = gateBienesRaicesPrivadoPreview(state);
+            const g = gateBienesRaicesPrivadoPreview(stateRef.current);
             if (!g.ok) {
               setPreviewGateMessage(g.message);
               return;
@@ -180,6 +264,12 @@ export function BienesRaicesPrivadoForm() {
           onBeforeOpenUnvalidatedPreview={flushSave}
           disableValidatedPreview={!confirmAll}
           validationBlockedMessage={previewGateMessage ?? (!confirmAll ? CONFIRM_PREVIEW_BLOCKED[lang] : null)}
+          labels={{
+            preview: "Preparar vista previa",
+            openPreview: "Abrir vista previa ahora",
+            openPreviewTitle:
+              "Guarda el borrador en esta sesión y abre la vista previa sin pasar por la validación mínima (útil si faltan datos opcionales).",
+          }}
           onDeleteApplication={() => {
             clearBienesRaicesPrivadoDraft();
             const empty = createEmptyBienesRaicesPrivadoFormState();
@@ -195,8 +285,9 @@ export function BienesRaicesPrivadoForm() {
           deleteConfirmMessage="¿Eliminar el borrador de esta solicitud y empezar de nuevo?"
         />
         <p className="text-xs leading-relaxed text-[#5C5346]/88">
-          <strong className="text-[#1E1810]">Vista previa</strong> valida los campos mínimos del anuncio.{" "}
-          <strong className="text-[#1E1810]">Abrir vista previa</strong> guarda y abre sin esa validación.
+          <strong className="text-[#1E1810]">Preparar vista previa</strong> revisa requisitos mínimos y, si pasan, te lleva al
+          anuncio de prueba. <strong className="text-[#1E1810]">Abrir vista previa ahora</strong> guarda el borrador y abre
+          de inmediato (sin bloquear por confirmaciones o campos opcionales).
         </p>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -266,15 +357,27 @@ export function BienesRaicesPrivadoForm() {
                 ))}
               </select>
             </AiField>
-            <AiField label="Ciudad o zona">
+            <AiField
+              label="Ciudad o zona"
+              hint="Área donde está la propiedad (NorCal). Puedes elegir una sugerencia o escribir la tuya; sirve para filtros futuros."
+            >
               <input
                 className={fieldClass}
+                list="br-privado-ciudad-zona"
                 value={state.ciudad}
                 onChange={(e) => setState((s) => ({ ...s, ciudad: e.target.value }))}
                 autoComplete="address-level2"
               />
+              <datalist id="br-privado-ciudad-zona">
+                {BR_PRIVADO_CIUDAD_ZONA_SUGGESTIONS.map((z) => (
+                  <option key={z} value={z} />
+                ))}
+              </datalist>
             </AiField>
-            <AiField label="Dirección o referencia" hint="Texto corto; puedes omitir número exacto.">
+            <AiField
+              label="Dirección o referencia"
+              hint="Calle y zona aproximada, colonia o punto de referencia (esquina, cuadra). No hace falta el número exacto si prefieres mantenerlo general."
+            >
               <input
                 className={fieldClass}
                 value={state.ubicacionLinea}
@@ -302,7 +405,7 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
             </div>
             <div className="sm:col-span-2">
-              <AiField label="Descripción">
+              <AiField label="Descripción de la propiedad" hint="Qué ofrece, estado, vecindario — lo que verá el interesado en el anuncio.">
                 <textarea
                   className={textareaFieldClass}
                   rows={6}
@@ -317,22 +420,41 @@ export function BienesRaicesPrivadoForm() {
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>Fotos y video</h2>
           <p className={aiSubClass}>
-            Hasta {MAX_PHOTOS} fotos. Al menos una foto para una vista previa completa
+            Hasta {MAX_PHOTOS} fotos (se comprimen para esta sesión). Al menos una foto para una vista previa completa
             <span className="text-[#B8954A]" aria-hidden>
               {" "}
               *
             </span>
-            . Un video (enlace o archivo corto).
+            . Un video: enlace o archivo local — el archivo tiene prioridad si hay ambos. Nada se sube a servidores hasta
+            publicar; en borrador/vista previa todo queda en el navegador.
           </p>
+          {mediaNotice ? (
+            <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-950" role="status">
+              {mediaNotice}
+            </p>
+          ) : null}
           <div className="mt-4">
-            <span className={aiLabelClass}>Fotos</span>
+            <span className={aiLabelClass}>Fotos del anuncio</span>
             <input
+              ref={photosInputRef}
               type="file"
               accept="image/*"
               multiple
-              className="mt-2 block w-full text-sm text-[#5C5346]"
+              className="sr-only"
               onChange={(e) => onPhotos(e.target.files)}
             />
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#C9B46A]/70 bg-[#FFF6E7] px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
+                onClick={() => photosInputRef.current?.click()}
+              >
+                Subir fotos
+              </button>
+              <span className="self-center text-xs text-[#5C5346]">
+                {state.media.photoDataUrls.length}/{MAX_PHOTOS} seleccionadas
+              </span>
+            </div>
             {state.media.photoDataUrls.length > 0 ? (
               <ul className="mt-3 space-y-2">
                 {state.media.photoDataUrls.map((url, i) => (
@@ -342,29 +464,65 @@ export function BienesRaicesPrivadoForm() {
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={url} alt="" className="h-14 w-20 shrink-0 rounded-md object-cover" />
-                      <div className="flex min-w-0 flex-wrap gap-x-3 gap-y-1">
-                        <button
-                          type="button"
-                          className="text-left text-xs font-bold text-[#B8954A] underline"
-                          onClick={() =>
-                            setState((s) => {
-                              const urls = s.media.photoDataUrls.filter((_, j) => j !== i);
-                              let pi = s.media.primaryImageIndex;
-                              if (pi >= urls.length) pi = Math.max(0, urls.length - 1);
-                              return { ...s, media: { ...s.media, photoDataUrls: urls, primaryImageIndex: pi } };
-                            })
-                          }
-                        >
-                          Quitar
-                        </button>
-                        <button
-                          type="button"
-                          className="text-left text-xs font-bold text-[#5C5346] underline"
-                          onClick={() => setState((s) => ({ ...s, media: { ...s.media, primaryImageIndex: i } }))}
-                        >
-                          {i === state.media.primaryImageIndex ? "Portada" : "Usar como portada"}
-                        </button>
+                      <img src={url} alt="" className="h-16 w-[5.5rem] shrink-0 rounded-md object-cover" />
+                      <div className="flex min-w-0 flex-col gap-2">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className="rounded-full border border-[#E8DFD0] px-2.5 py-1 text-[11px] font-bold text-[#5C5346] disabled:opacity-40"
+                            disabled={i === 0}
+                            onClick={() => movePhoto(i, -1)}
+                            aria-label="Mover foto arriba"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-full border border-[#E8DFD0] px-2.5 py-1 text-[11px] font-bold text-[#5C5346] disabled:opacity-40"
+                            disabled={i >= state.media.photoDataUrls.length - 1}
+                            onClick={() => movePhoto(i, 1)}
+                            aria-label="Mover foto abajo"
+                          >
+                            ↓
+                          </button>
+                        </div>
+                        <div className="flex min-w-0 flex-wrap gap-x-3 gap-y-1">
+                          <button
+                            type="button"
+                            className="text-left text-xs font-bold text-[#B8954A] underline"
+                            onClick={() =>
+                              setState((s) => {
+                                const urls = s.media.photoDataUrls.filter((_, j) => j !== i);
+                                let pi = s.media.primaryImageIndex;
+                                if (pi >= urls.length) pi = Math.max(0, urls.length - 1);
+                                const out: BienesRaicesPrivadoFormState = {
+                                  ...s,
+                                  media: { ...s.media, photoDataUrls: urls, primaryImageIndex: pi },
+                                };
+                                queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
+                                return out;
+                              })
+                            }
+                          >
+                            Quitar
+                          </button>
+                          <button
+                            type="button"
+                            className="text-left text-xs font-bold text-[#5C5346] underline"
+                            onClick={() =>
+                              setState((s) => {
+                                const out: BienesRaicesPrivadoFormState = {
+                                  ...s,
+                                  media: { ...s.media, primaryImageIndex: i },
+                                };
+                                queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
+                                return out;
+                              })
+                            }
+                          >
+                            {i === state.media.primaryImageIndex ? "Portada (principal)" : "Usar como portada"}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </li>
@@ -372,16 +530,61 @@ export function BienesRaicesPrivadoForm() {
               </ul>
             ) : null}
           </div>
-          <div className="mt-4">
-            <AiField label="Video (URL)" hint="YouTube o enlace directo a mp4, etc.">
-              <input
-                className={fieldClass}
-                type="url"
-                placeholder="https://"
-                value={state.media.videoUrl}
-                onChange={(e) => setState((s) => ({ ...s, media: { ...s.media, videoUrl: e.target.value } }))}
-              />
-            </AiField>
+          <div className="mt-6 border-t border-[#E8DFD0] pt-5">
+            <span className={aiLabelClass}>Video</span>
+            <p className={aiHintClass}>
+              Enlace (YouTube, Vimeo, mp4…) o archivo desde tu equipo. Si hay archivo y enlace, se usa el archivo en la vista
+              previa.
+            </p>
+            <input
+              ref={videoFileInputRef}
+              type="file"
+              accept="video/*"
+              className="sr-only"
+              onChange={(e) => onVideoFile(e.target.files)}
+            />
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#C9B46A]/70 bg-white px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
+                onClick={() => videoFileInputRef.current?.click()}
+              >
+                Elegir video del dispositivo
+              </button>
+              {state.media.videoLocalDataUrl ? (
+                <span className="inline-flex max-w-full min-w-0 items-center gap-2 rounded-full border border-[#B8954A]/40 bg-[#FFF6E7] px-3 py-1 text-xs font-medium text-[#2C2416]">
+                  <span className="min-w-0 truncate">{localVideoFileName || "Video local (borrador)"}</span>
+                  <button
+                    type="button"
+                    className="shrink-0 font-bold text-[#B8954A] underline"
+                    onClick={clearLocalVideo}
+                  >
+                    Quitar archivo
+                  </button>
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-4">
+              <AiField label="Video por enlace (opcional)" hint="Pega URL completa o dominio; YouTube y enlaces directos funcionan en vista previa.">
+                <input
+                  className={fieldClass}
+                  type="text"
+                  inputMode="url"
+                  autoComplete="off"
+                  placeholder="https://"
+                  value={state.media.videoUrl}
+                  onChange={(e) =>
+                    setState((s) => ({
+                      ...s,
+                      media: { ...s.media, videoUrl: e.target.value },
+                    }))
+                  }
+                />
+              </AiField>
+            </div>
+            {state.media.videoLocalDataUrl && state.media.videoUrl.trim() ? (
+              <p className="mt-2 text-xs font-medium text-[#6E5418]">En vista previa se usará el video del dispositivo (prioridad sobre el enlace).</p>
+            ) : null}
           </div>
         </section>
 
@@ -402,31 +605,60 @@ export function BienesRaicesPrivadoForm() {
           </p>
           <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
             <div className="sm:col-span-2">
-              <span className={aiLabelClass}>Foto (opcional)</span>
+              <span className={aiLabelClass}>Foto del propietario (opcional)</span>
               <input
+                ref={ownerPhotoInputRef}
                 type="file"
                 accept="image/*"
-                className="mt-2 block w-full text-sm"
+                className="sr-only"
                 onChange={async (e) => {
                   const f = e.target.files?.[0];
                   if (!f) return;
                   try {
-                    const data = await readFileAsDataUrl(f);
-                    setState((s) => ({ ...s, seller: { ...s.seller, fotoDataUrl: data } }));
+                    const data = await compressImageFileToJpegDataUrl(f);
+                    setState((s) => {
+                      const out: BienesRaicesPrivadoFormState = { ...s, seller: { ...s.seller, fotoDataUrl: data } };
+                      queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
+                      return out;
+                    });
                   } catch {
                     /* ignore */
                   }
+                  if (ownerPhotoInputRef.current) ownerPhotoInputRef.current.value = "";
                 }}
               />
-              {state.seller.fotoDataUrl ? (
+              <div className="mt-2 flex flex-wrap items-start gap-3">
                 <button
                   type="button"
-                  className="mt-2 text-xs font-bold text-[#B8954A] underline"
-                  onClick={() => setState((s) => ({ ...s, seller: { ...s.seller, fotoDataUrl: "" } }))}
+                  className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-full border border-[#C9B46A]/70 bg-[#FFF6E7] px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
+                  onClick={() => ownerPhotoInputRef.current?.click()}
                 >
-                  Quitar foto
+                  Subir foto
                 </button>
-              ) : null}
+                {state.seller.fotoDataUrl ? (
+                  <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={state.seller.fotoDataUrl}
+                      alt=""
+                      className="h-16 w-16 shrink-0 rounded-full border border-[#E8DFD0] object-cover"
+                    />
+                    <button
+                      type="button"
+                      className="text-left text-xs font-bold text-[#B8954A] underline"
+                      onClick={() =>
+                        setState((s) => {
+                          const out: BienesRaicesPrivadoFormState = { ...s, seller: { ...s.seller, fotoDataUrl: "" } };
+                          queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
+                          return out;
+                        })
+                      }
+                    >
+                      Quitar foto
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </div>
             <AiField required label="Nombre completo">
               <input

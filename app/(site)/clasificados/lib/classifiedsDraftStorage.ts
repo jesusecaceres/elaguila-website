@@ -22,7 +22,10 @@ import {
   EN_VENTA_PREVIEW_RETURN_DRAFT,
   clearEnVentaPublishTempState,
 } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
-import { BR_PRIVADO_DRAFT_STORAGE_KEY } from "@/app/clasificados/publicar/bienes-raices/privado/application/utils/bienesRaicesPrivadoDraft";
+import {
+  BR_PRIVADO_DRAFT_LS_FALLBACK_KEY,
+  BR_PRIVADO_DRAFT_STORAGE_KEY,
+} from "@/app/clasificados/publicar/bienes-raices/privado/application/utils/bienesRaicesPrivadoDraft";
 import { RENTAS_PRIVADO_DRAFT_STORAGE_KEY } from "@/app/clasificados/publicar/rentas/privado/application/utils/rentasPrivadoDraft";
 import { RENTAS_NEGOCIO_DRAFT_STORAGE_KEY } from "@/app/clasificados/publicar/rentas/negocio/application/utils/rentasNegocioDraft";
 
@@ -183,6 +186,7 @@ export function clearAllClassifiedsDrafts(options?: {
       sessionStorage.removeItem(BR_PRIVADO_DRAFT_STORAGE_KEY);
       sessionStorage.removeItem(RENTAS_PRIVADO_DRAFT_STORAGE_KEY);
       localStorage.removeItem(BR_PRIVADO_DRAFT_STORAGE_KEY);
+      localStorage.removeItem(BR_PRIVADO_DRAFT_LS_FALLBACK_KEY);
       localStorage.removeItem(RENTAS_PRIVADO_DRAFT_STORAGE_KEY);
     } catch {
       /* ignore */

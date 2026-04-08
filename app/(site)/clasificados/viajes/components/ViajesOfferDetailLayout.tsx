@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import type { ViajesOfferDetailModel } from "../data/viajesOfferDetailSampleData";
 import type { ViajesUi } from "../data/viajesUiCopy";
+import { setLangOnHref } from "../lib/viajesLangHref";
 
 const ACCENT = "#D97706";
 
@@ -84,7 +85,7 @@ export function ViajesOfferDetailLayout({
 
       <div className="mx-auto max-w-7xl space-y-10 px-4 py-10 sm:px-5 lg:space-y-12 lg:px-6 lg:py-12">
         <section className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 shadow-sm sm:p-8">
-          <h2 className="text-lg font-bold text-[color:var(--lx-text)]">Qué incluye</h2>
+          <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{od.includes}</h2>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2">
             {offer.includes.map((line) => (
               <li key={line} className="flex gap-3 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
@@ -133,7 +134,7 @@ export function ViajesOfferDetailLayout({
               </a>
               {partner.secondaryCtaLabel && partner.secondaryCtaHref ? (
                 <Link
-                  href={partner.secondaryCtaHref}
+                  href={setLangOnHref(partner.secondaryCtaHref, ui.lang)}
                   className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] px-4 text-sm font-bold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
                 >
                   {partner.secondaryCtaLabel}

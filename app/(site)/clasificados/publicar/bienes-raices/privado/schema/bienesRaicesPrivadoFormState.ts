@@ -112,7 +112,13 @@ export type BienesRaicesPrivadoFormState = {
   media: {
     photoDataUrls: string[];
     primaryImageIndex: number;
+    /** External video URL (YouTube, Vimeo, direct .mp4, etc.). */
     videoUrl: string;
+    /**
+     * Local draft video as data URL (same-tab session only). Takes precedence over `videoUrl` for preview.
+     * Not uploaded to Mux until a future paid publish step.
+     */
+    videoLocalDataUrl: string;
   };
   /** Particular only: name, phones, email, optional photo — no web/social fields */
   seller: {
@@ -150,6 +156,7 @@ export function createEmptyBienesRaicesPrivadoFormState(): BienesRaicesPrivadoFo
       photoDataUrls: [],
       primaryImageIndex: 0,
       videoUrl: "",
+      videoLocalDataUrl: "",
     },
     seller: {
       fotoDataUrl: "",
@@ -239,6 +246,8 @@ export function mergePartialBienesRaicesPrivadoState(
       photoDataUrls,
       primaryImageIndex,
       videoUrl: typeof mediaIn?.videoUrl === "string" ? mediaIn.videoUrl : base.media.videoUrl,
+      videoLocalDataUrl:
+        typeof mediaIn?.videoLocalDataUrl === "string" ? mediaIn.videoLocalDataUrl : base.media.videoLocalDataUrl,
     },
     seller: {
       ...base.seller,

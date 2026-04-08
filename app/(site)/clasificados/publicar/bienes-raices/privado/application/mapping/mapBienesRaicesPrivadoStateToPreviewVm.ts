@@ -120,13 +120,16 @@ function buildMediaVm(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewMedia
   const n = urls.length;
   const pi = n === 0 ? 0 : Math.min(Math.max(0, s.media.primaryImageIndex), n - 1);
   const heroUrl = n > 0 ? urls[pi]! : null;
-  const vu = trim(s.media.videoUrl);
-  const yt = vu ? parseYoutubeId(vu) : null;
-  const hasVid = Boolean(vu);
+  const localV = trim(s.media.videoLocalDataUrl ?? "");
+  const urlV = trim(s.media.videoUrl);
+  /** Local file wins over URL for preview (draft-only; no Mux). */
+  const primaryVideo = localV || urlV;
+  const yt = !localV && urlV ? parseYoutubeId(urlV) : null;
+  const hasVid = Boolean(primaryVideo);
   const thumb0 = yt ? `https://img.youtube.com/vi/${yt}/hqdefault.jpg` : null;
-  const playback0 = hasVid ? vu : null;
+  const playback0 = hasVid ? (localV || urlV) : null;
 
-  const metaLine = n > 0 ? `${n} foto${n === 1 ? "" : "s"} en la galería` : "";
+  const metaLine = n > 0 ? `${n} foto${n === 1 ? "" : "s"} en la galería` : hasVid ? "Video en el anuncio" : "";
 
   return {
     heroUrl,
@@ -180,6 +183,7 @@ function buildResidencialQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaic
   };
   push("Recámaras", prettifyPlainNumber(r.recamaras), "bed");
   push("Baños", prettifyPlainNumber(r.banos), "bath");
+  push("Medios baños", prettifyPlainNumber(r.mediosBanos), "bath");
   push("Interior", r.interiorSqft ? prettifySqft(r.interiorSqft) : "", "ruler");
   push("Lote", r.loteSqft ? prettifySqft(r.loteSqft) : "", "pin");
   push("Estacionamiento", r.estacionamiento, "car");
@@ -194,7 +198,7 @@ function buildResidencialHighlights(s: BienesRaicesPrivadoFormState): BienesRaic
     .map((k) => {
       const label = map.get(k);
       if (!label) return null;
-      return { label: "Destacado", value: label };
+      return { label, value: "✓" };
     })
     .filter((x): x is BienesRaicesPreviewFact => x != null);
 }
@@ -243,7 +247,7 @@ function buildComercialHighlights(s: BienesRaicesPrivadoFormState): BienesRaices
     .map((id) => {
       const label = map.get(id);
       if (!label) return null;
-      return { label: "Destacado", value: label };
+      return { label, value: "✓" };
     })
     .filter((x): x is BienesRaicesPreviewFact => x != null);
 }
@@ -294,7 +298,7 @@ function buildTerrenoHighlights(s: BienesRaicesPrivadoFormState): BienesRaicesPr
     .map((id) => {
       const label = map.get(id);
       if (!label) return null;
-      return { label: "Destacado", value: label };
+      return { label, value: "✓" };
     })
     .filter((x): x is BienesRaicesPreviewFact => x != null);
 }

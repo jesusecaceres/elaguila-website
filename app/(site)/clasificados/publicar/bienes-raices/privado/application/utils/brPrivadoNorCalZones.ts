@@ -1,0 +1,35 @@
+/**
+ * NorCal-focused suggestions for "ciudad / zona" — aligns with future structured filters without enforcing yet.
+ * Users may still type freely; values are hints only.
+ */
+export const BR_PRIVADO_CIUDAD_ZONA_SUGGESTIONS: readonly string[] = [
+  "San José",
+  "Santa Clara",
+  "Sunnyvale",
+  "Mountain View",
+  "Palo Alto",
+  "Redwood City",
+  "Fremont",
+  "Hayward",
+  "Oakland",
+  "Berkeley",
+  "Walnut Creek",
+  "Concord",
+  "San Ramon",
+  "Dublin",
+  "Pleasanton",
+  "Livermore",
+  "Tracy",
+  "Stockton",
+  "Modesto",
+  "Sacramento",
+  "Roseville",
+  "Elk Grove",
+  "Napa",
+  "Santa Rosa",
+  "Vallejo",
+  "Fairfield",
+  "Vacaville",
+  "Gilroy",
+  "Morgan Hill",
+];

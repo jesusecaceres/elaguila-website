@@ -85,6 +85,9 @@ function VideoSlide({ vm, slot }: { vm: BrPrivadoLightboxVm; slot: 0 | 1 }) {
       />
     );
   }
+  if (playback && /^data:video\//i.test(playback)) {
+    return <video controls playsInline className="h-full min-h-[240px] w-full object-contain" src={playback} />;
+  }
   if (playback && /\.m3u8|\.mp4(\?|$)|blob:/i.test(playback)) {
     return playback.includes(".m3u8") || playback.startsWith("blob:") ? (
       <BrNegocioStreamableVideo url={playback} className="h-full min-h-[240px] w-full object-contain" />

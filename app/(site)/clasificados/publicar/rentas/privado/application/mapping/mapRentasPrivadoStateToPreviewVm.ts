@@ -40,7 +40,12 @@ function toBienesRaicesPrivadoShape(s: RentasPrivadoFormState): BienesRaicesPriv
     enlaceMapa: s.enlaceMapa,
     descripcion: s.descripcion,
     estadoAnuncio: s.estadoAnuncio === "rentado" ? "vendido" : s.estadoAnuncio,
-    media: s.media,
+    media: {
+      photoDataUrls: s.media.photoDataUrls,
+      primaryImageIndex: s.media.primaryImageIndex,
+      videoUrl: s.media.videoUrl,
+      videoLocalDataUrl: s.media.videoLocalDataUrl,
+    },
     seller: {
       fotoDataUrl: s.seller.fotoDataUrl,
       nombre: s.seller.nombre,

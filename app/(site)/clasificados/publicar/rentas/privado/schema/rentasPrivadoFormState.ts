@@ -46,6 +46,8 @@ export type RentasPrivadoFormState = {
     photoDataUrls: string[];
     primaryImageIndex: number;
     videoUrl: string;
+    /** Kept aligned with BR Privado draft shape; Rentas UI may omit local video for now. */
+    videoLocalDataUrl: string;
   };
   seller: {
     fotoDataUrl: string;

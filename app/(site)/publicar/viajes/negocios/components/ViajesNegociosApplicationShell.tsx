@@ -8,6 +8,7 @@ import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { ViajesLangSwitch } from "@/app/(site)/clasificados/viajes/components/ViajesLangSwitch";
+import { getPublicarViajesNegociosCopy } from "../data/publicarViajesNegociosCopy";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-5";
@@ -19,6 +20,7 @@ const GRID2 = "grid gap-4 sm:grid-cols-2";
 export function ViajesNegociosApplicationShell() {
   const sp = useSearchParams();
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  const c = getPublicarViajesNegociosCopy(lang);
 
   const [tipoOferta, setTipoOferta] = useState("");
   const [titulo, setTitulo] = useState("");
@@ -55,8 +57,8 @@ export function ViajesNegociosApplicationShell() {
   const [languages, setLanguages] = useState("");
 
   useEffect(() => {
-    document.title = lang === "en" ? "Viajes business application · Leonix" : "Solicitud negocio Viajes · Leonix";
-  }, [lang]);
+    document.title = c.documentTitle;
+  }, [c.documentTitle]);
 
   const branchHref = appendLangToPath("/publicar/viajes", lang);
   const previewHref = appendLangToPath("/clasificados/viajes/preview", lang);
@@ -67,6 +69,7 @@ export function ViajesNegociosApplicationShell() {
       {label}
     </label>
   );
+  const a = c.audience;
 
   return (
     <div
@@ -83,212 +86,206 @@ export function ViajesNegociosApplicationShell() {
       <div className="mx-auto max-w-3xl px-4 pb-8 pt-2 sm:px-6 sm:pt-4">
         <nav className="text-xs font-semibold text-[color:var(--lx-muted)]">
           <Link href={branchHref} className="hover:text-[color:var(--lx-text)]">
-            ← {lang === "en" ? "Back to Viajes publishing" : "Volver a publicar Viajes"}
+            ← {c.navBack}
           </Link>
         </nav>
         <header className="mt-4">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            {lang === "en" ? "Business Viajes offer" : "Oferta de viajes — negocio"}
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-            {lang === "en"
-              ? "Structured draft — fields will map to your public listing. Nothing is submitted yet."
-              : "Borrador estructurado — los campos mapearán a tu ficha pública. Aún no se envía nada."}
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{c.h1}</h1>
+          <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{c.intro}</p>
         </header>
 
         <form className="mt-8 space-y-6" onSubmit={(e) => e.preventDefault()}>
           <section className={CARD}>
-            <h2 className="text-base font-bold text-[color:var(--lx-text)]">1. Información principal</h2>
+            <h2 className="text-base font-bold text-[color:var(--lx-text)]">{c.sections.main}</h2>
             <div className={`mt-4 ${GRID2}`}>
               <div>
                 <label className={LABEL} htmlFor="tipoOferta">
-                  Tipo de oferta
+                  {c.offerType.label}
                 </label>
                 <select id="tipoOferta" className={INPUT} value={tipoOferta} onChange={(e) => setTipoOferta(e.target.value)}>
-                  <option value="">Selecciona…</option>
-                  <option value="paquete">Paquete</option>
-                  <option value="tour">Tour / excursión</option>
-                  <option value="crucero">Crucero</option>
-                  <option value="resort">Resort / hotel</option>
-                  <option value="escapada">Escapada</option>
+                  {(Object.keys(c.offerType.options) as Array<keyof typeof c.offerType.options>).map((key) => (
+                    <option key={String(key)} value={key}>
+                      {c.offerType.options[key]}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
                 <label className={LABEL} htmlFor="ctaType">
-                  Tipo de CTA principal
+                  {c.ctaType.label}
                 </label>
                 <select id="ctaType" className={INPUT} value={ctaType} onChange={(e) => setCtaType(e.target.value)}>
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="telefono">Teléfono</option>
-                  <option value="correo">Correo</option>
-                  <option value="sitio">Sitio web</option>
+                  {(Object.keys(c.ctaType.options) as Array<keyof typeof c.ctaType.options>).map((key) => (
+                    <option key={key} value={key}>
+                      {c.ctaType.options[key]}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
             <div className="mt-4">
               <label className={LABEL} htmlFor="titulo">
-                Título
+                {c.title.label}
               </label>
-              <input id="titulo" className={INPUT} value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ej. Riviera Maya todo incluido 5 noches" />
+              <input id="titulo" className={INPUT} value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder={c.title.placeholder} />
             </div>
             <div className={`mt-4 ${GRID2}`}>
               <div>
                 <label className={LABEL} htmlFor="destino">
-                  Destino
+                  {c.destination.label}
                 </label>
-                <input id="destino" className={INPUT} value={destino} onChange={(e) => setDestino(e.target.value)} placeholder="Ciudad, región o país" />
+                <input id="destino" className={INPUT} value={destino} onChange={(e) => setDestino(e.target.value)} placeholder={c.destination.placeholder} />
               </div>
               <div>
                 <label className={LABEL} htmlFor="ciudadSalida">
-                  Ciudad de salida
+                  {c.departureCity.label}
                 </label>
-                <input id="ciudadSalida" className={INPUT} value={ciudadSalida} onChange={(e) => setCiudadSalida(e.target.value)} placeholder="Ej. San José, SFO…" />
+                <input id="ciudadSalida" className={INPUT} value={ciudadSalida} onChange={(e) => setCiudadSalida(e.target.value)} placeholder={c.departureCity.placeholder} />
               </div>
             </div>
             <div className={`mt-4 ${GRID2}`}>
               <div>
                 <label className={LABEL} htmlFor="precio">
-                  Precio / precio desde
+                  {c.price.label}
                 </label>
-                <input id="precio" className={INPUT} value={precio} onChange={(e) => setPrecio(e.target.value)} placeholder="USD, por persona…" />
+                <input id="precio" className={INPUT} value={precio} onChange={(e) => setPrecio(e.target.value)} placeholder={c.price.placeholder} />
               </div>
               <div>
                 <label className={LABEL} htmlFor="duracion">
-                  Duración
+                  {c.duration.label}
                 </label>
-                <input id="duracion" className={INPUT} value={duracion} onChange={(e) => setDuracion(e.target.value)} placeholder="Ej. 5 días / 4 noches" />
+                <input id="duracion" className={INPUT} value={duracion} onChange={(e) => setDuracion(e.target.value)} placeholder={c.duration.placeholder} />
               </div>
             </div>
             <div className="mt-4">
               <label className={LABEL} htmlFor="fechas">
-                Fechas o rango
+                {c.dates.label}
               </label>
-              <input id="fechas" className={INPUT} value={fechas} onChange={(e) => setFechas(e.target.value)} placeholder="Temporada, meses o fechas fijas" />
+              <input id="fechas" className={INPUT} value={fechas} onChange={(e) => setFechas(e.target.value)} placeholder={c.dates.placeholder} />
             </div>
             <div className="mt-4">
               <label className={LABEL} htmlFor="descripcion">
-                Descripción corta
+                {c.shortDescription.label}
               </label>
               <textarea id="descripcion" className={`${INPUT} min-h-[88px] resize-y`} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} rows={3} />
             </div>
             <div className="mt-4">
               <label className={LABEL} htmlFor="incluye">
-                Qué incluye
+                {c.includes.label}
               </label>
-              <textarea id="incluye" className={`${INPUT} min-h-[100px] resize-y`} value={incluye} onChange={(e) => setIncluye(e.target.value)} placeholder="Un ítem por línea o párrafo breve" rows={4} />
+              <textarea id="incluye" className={`${INPUT} min-h-[100px] resize-y`} value={incluye} onChange={(e) => setIncluye(e.target.value)} placeholder={c.includes.placeholder} rows={4} />
             </div>
           </section>
 
           <section className={CARD}>
-            <h2 className="text-base font-bold text-[color:var(--lx-text)]">2. Audiencia y contexto</h2>
+            <h2 className="text-base font-bold text-[color:var(--lx-text)]">{c.sections.audience}</h2>
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              {chk("familias", familias, setFamilias, "Apto para familias")}
-              {chk("parejas", parejas, setParejas, "Para parejas")}
-              {chk("grupos", grupos, setGrupos, "Para grupos")}
-              {chk("guiaEs", guiaEspanol, setGuiaEspanol, "Guía en español")}
+              {chk("familias", familias, setFamilias, a.families)}
+              {chk("parejas", parejas, setParejas, a.couples)}
+              {chk("grupos", grupos, setGrupos, a.groups)}
+              {chk("guiaEs", guiaEspanol, setGuiaEspanol, a.spanishGuide)}
             </div>
             <div className={`mt-4 ${GRID2}`}>
               <div>
                 <label className={LABEL} htmlFor="presupuestoTag">
-                  Etiqueta de presupuesto
+                  {a.budgetTag.label}
                 </label>
                 <select id="presupuestoTag" className={INPUT} value={presupuestoTag} onChange={(e) => setPresupuestoTag(e.target.value)}>
-                  <option value="">—</option>
-                  <option value="economico">Económico</option>
-                  <option value="moderado">Moderado</option>
-                  <option value="premium">Premium</option>
+                  <option value="">{a.budgetTag.empty}</option>
+                  <option value="economico">{a.budgetTag.economy}</option>
+                  <option value="moderado">{a.budgetTag.moderate}</option>
+                  <option value="premium">{a.budgetTag.premium}</option>
                 </select>
               </div>
               <div>
                 <label className={LABEL} htmlFor="idiomaAtencion">
-                  Idioma de atención
+                  {a.serviceLanguage.label}
                 </label>
                 <input id="idiomaAtencion" className={INPUT} value={idiomaAtencion} onChange={(e) => setIdiomaAtencion(e.target.value)} />
               </div>
             </div>
             <div className="mt-4 grid gap-2 sm:grid-cols-3">
-              {chk("hotel", incluyeHotel, setIncluyeHotel, "Incluye hotel")}
-              {chk("transporte", incluyeTransporte, setIncluyeTransporte, "Incluye transporte")}
-              {chk("comida", incluyeComida, setIncluyeComida, "Incluye comida")}
+              {chk("hotel", incluyeHotel, setIncluyeHotel, a.includesHotel)}
+              {chk("transporte", incluyeTransporte, setIncluyeTransporte, a.includesTransport)}
+              {chk("comida", incluyeComida, setIncluyeComida, a.includesFood)}
             </div>
           </section>
 
           <section className={CARD}>
-            <h2 className="text-base font-bold text-[color:var(--lx-text)]">3. Multimedia</h2>
+            <h2 className="text-base font-bold text-[color:var(--lx-text)]">{c.sections.media}</h2>
             <div className="mt-4">
               <label className={LABEL} htmlFor="imgMain">
-                Imagen principal (URL de prueba)
+                {c.multimedia.heroUrl.label}
               </label>
-              <input id="imgMain" className={INPUT} value={imagenPrincipal} onChange={(e) => setImagenPrincipal(e.target.value)} placeholder="https://…" />
+              <input id="imgMain" className={INPUT} value={imagenPrincipal} onChange={(e) => setImagenPrincipal(e.target.value)} placeholder={c.multimedia.heroUrl.placeholder} />
             </div>
             <div className="mt-4">
-              <span className={LABEL}>Galería</span>
-              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">Pronto: subida múltiple. Por ahora describe o pega URLs.</p>
-              <textarea className={`${INPUT} mt-2 min-h-[72px]`} value={galeriaNota} onChange={(e) => setGaleriaNota(e.target.value)} placeholder="URLs separadas por coma o notas" />
+              <span className={LABEL}>{c.multimedia.gallery.label}</span>
+              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{c.multimedia.gallery.helper}</p>
+              <textarea className={`${INPUT} mt-2 min-h-[72px]`} value={galeriaNota} onChange={(e) => setGaleriaNota(e.target.value)} placeholder={c.multimedia.gallery.placeholder} />
             </div>
             <div className={`mt-4 ${GRID2}`}>
               <div>
                 <label className={LABEL} htmlFor="logo">
-                  Logo del negocio (URL opcional)
+                  {c.multimedia.logo.label}
                 </label>
                 <input id="logo" className={INPUT} value={logoSocio} onChange={(e) => setLogoSocio(e.target.value)} />
               </div>
               <div>
                 <label className={LABEL} htmlFor="video">
-                  Video (URL opcional)
+                  {c.multimedia.video.label}
                 </label>
-                <input id="video" className={INPUT} value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="YouTube o Vimeo" />
+                <input id="video" className={INPUT} value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder={c.multimedia.video.placeholder} />
               </div>
             </div>
           </section>
 
           <section className={CARD}>
-            <h2 className="text-base font-bold text-[color:var(--lx-text)]">4. Datos del negocio</h2>
+            <h2 className="text-base font-bold text-[color:var(--lx-text)]">{c.sections.business}</h2>
             <div className="mt-4">
               <label className={LABEL} htmlFor="biz">
-                Nombre del negocio
+                {c.business.name.label}
               </label>
               <input id="biz" className={INPUT} value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
             </div>
             <div className={`mt-4 ${GRID2}`}>
               <div>
                 <label className={LABEL} htmlFor="tel">
-                  Teléfono
+                  {c.business.phone.label}
                 </label>
                 <input id="tel" className={INPUT} value={phone} onChange={(e) => setPhone(e.target.value)} />
               </div>
               <div>
                 <label className={LABEL} htmlFor="wa">
-                  WhatsApp
+                  {c.business.whatsapp.label}
                 </label>
                 <input id="wa" className={INPUT} value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
               </div>
             </div>
             <div className="mt-4">
               <label className={LABEL} htmlFor="web">
-                Sitio web
+                {c.business.website.label}
               </label>
               <input id="web" className={INPUT} value={website} onChange={(e) => setWebsite(e.target.value)} />
             </div>
             <div className="mt-4">
               <label className={LABEL} htmlFor="socials">
-                Redes sociales
+                {c.business.socials.label}
               </label>
-              <input id="socials" className={INPUT} value={socials} onChange={(e) => setSocials(e.target.value)} placeholder="@usuario o enlaces" />
+              <input id="socials" className={INPUT} value={socials} onChange={(e) => setSocials(e.target.value)} placeholder={c.business.socials.placeholder} />
             </div>
             <div className={`mt-4 ${GRID2}`}>
               <div>
                 <label className={LABEL} htmlFor="destServed">
-                  Destinos que atienden
+                  {c.business.destinationsServed.label}
                 </label>
-                <input id="destServed" className={INPUT} value={destinationsServed} onChange={(e) => setDestinationsServed(e.target.value)} placeholder="Separados por coma" />
+                <input id="destServed" className={INPUT} value={destinationsServed} onChange={(e) => setDestinationsServed(e.target.value)} placeholder={c.business.destinationsServed.placeholder} />
               </div>
               <div>
                 <label className={LABEL} htmlFor="langs">
-                  Idiomas
+                  {c.business.languages.label}
                 </label>
-                <input id="langs" className={INPUT} value={languages} onChange={(e) => setLanguages(e.target.value)} placeholder="Ej. Español, inglés" />
+                <input id="langs" className={INPUT} value={languages} onChange={(e) => setLanguages(e.target.value)} placeholder={c.business.languages.placeholder} />
               </div>
             </div>
           </section>
@@ -298,14 +295,14 @@ export function ViajesNegociosApplicationShell() {
               href={previewHref}
               className="inline-flex min-h-[52px] flex-1 items-center justify-center rounded-xl bg-[#D97706] px-6 text-sm font-bold text-white shadow-md transition hover:brightness-105"
             >
-              {lang === "en" ? "Preview public card" : "Vista previa de la ficha"}
+              {c.previewCta}
             </Link>
             <button
               type="button"
               className="inline-flex min-h-[52px] flex-1 items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-6 text-sm font-bold text-[color:var(--lx-muted)]"
               disabled
             >
-              {lang === "en" ? "Submit (soon)" : "Enviar (próximamente)"}
+              {c.submitSoon}
             </button>
           </div>
         </form>

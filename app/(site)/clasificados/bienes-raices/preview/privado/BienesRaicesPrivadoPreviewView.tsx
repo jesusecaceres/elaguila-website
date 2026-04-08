@@ -174,6 +174,15 @@ function GalleryVideoTile({
     );
   }
 
+  /** Draft local file (data URL) — not Mux; same-tab only. */
+  if (playback && /^data:video\//i.test(playback)) {
+    return (
+      <div className={`overflow-hidden rounded-2xl border shadow-md ${aspectClass}`} style={{ borderColor: BORDER }}>
+        <video controls playsInline className="h-full w-full object-cover" src={playback} />
+      </div>
+    );
+  }
+
   if (playback && /\.m3u8|\.mp4(\?|$)|blob:/i.test(playback)) {
     return (
       <div className={`overflow-hidden rounded-2xl border shadow-md ${aspectClass}`} style={{ borderColor: BORDER }}>
