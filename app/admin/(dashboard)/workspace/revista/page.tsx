@@ -16,6 +16,7 @@ import {
   publishMagazineIssueAction,
   deleteMagazineDraftAction,
 } from "@/app/admin/magazineIssuesActions";
+import { MagazineIssueEditAssets } from "@/app/admin/_components/magazine/MagazineIssueEditAssets";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,7 @@ function IssueEditCard({ row }: { row: MagazineIssueRow }) {
           {row.status === "published" && !row.is_featured ? (
             <form action={setMagazineCurrentIssueAction}>
               <input type="hidden" name="id" value={row.id} />
-              <button type="submit" className={`${adminBtnSecondary} text-sm`}>
+              <button type="submit" className={`${adminBtnSecondary} text-sm`} title="El número que estaba en portada pasa a archivado automáticamente.">
                 Marcar como número actual
               </button>
             </form>
@@ -118,25 +119,24 @@ function IssueEditCard({ row }: { row: MagazineIssueRow }) {
         <div>
           <label className="text-xs font-semibold text-[#5C5346]">Estado</label>
           <select name="status" className={adminInputClass} defaultValue={row.status}>
-            <option value="draft">draft</option>
+            {row.status === "draft" ? <option value="draft">draft</option> : null}
             <option value="published">published</option>
             <option value="archived">archived</option>
+            {row.status === "draft" ? null : (
+              <option value="draft">draft (oculta del hub — solo si necesitas retirarlo)</option>
+            )}
           </select>
+          <p className="mt-1 text-[11px] text-[#7A7164]">
+            Borradores no salen en /magazine. Pasar un publicado a draft lo quita del manifiesto público.
+          </p>
         </div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <div>
-            <label className="text-xs font-semibold text-[#5C5346]">URL portada</label>
-            <input name="cover_url" className={adminInputClass} defaultValue={row.cover_url ?? ""} />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-[#5C5346]">URL PDF</label>
-            <input name="pdf_url" className={adminInputClass} defaultValue={row.pdf_url ?? ""} />
-          </div>
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-[#5C5346]">Flipbook URL</label>
-          <input name="flipbook_url" className={adminInputClass} defaultValue={row.flipbook_url ?? ""} />
-        </div>
+        <MagazineIssueEditAssets
+          year={row.year}
+          monthSlug={row.month_slug}
+          coverDefault={row.cover_url ?? ""}
+          pdfDefault={row.pdf_url ?? ""}
+          flipbookDefault={row.flipbook_url ?? ""}
+        />
         <div className="grid gap-2 sm:grid-cols-2">
           <div>
             <label className="text-xs font-semibold text-[#5C5346]">Publicado (ISO)</label>
@@ -186,7 +186,7 @@ export default async function AdminWorkspaceRevistaPage(props: {
         title="Revista — gestor de números"
         subtitle="La portada `/magazine` y el manifiesto público salen de Supabase cuando hay números publicados o archivados; si la tabla está vacía o falla, se usa `public/magazine/editions.json` como respaldo."
         eyebrow="Workspace · Revista"
-        helperText="Sube portada/PDF a Blob (token requerido) o pega URLs. Un solo número publicado puede ser “actual” (featured)."
+        helperText="Sube portada/PDF a Blob (requiere BLOB_READ_WRITE_TOKEN) o pega URLs. Un solo publicado es “actual”; al marcar otro, el anterior en portada se archiva automáticamente."
       />
 
       <AdminSectionOwnershipCallout
@@ -219,6 +219,16 @@ export default async function AdminWorkspaceRevistaPage(props: {
       {sp.saved === "1" ? (
         <div className={`${adminCardBase} mb-6 border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>
           Notas del workspace guardadas.
+        </div>
+      ) : null}
+      {sp.issue_saved === "1" ? (
+        <div className={`${adminCardBase} mb-6 border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>
+          Cambios de número guardados (manifiesto revalidado).
+        </div>
+      ) : null}
+      {sp.issue_error === "1" ? (
+        <div className={`${adminCardBase} mb-6 border-rose-200 bg-rose-50/90 p-4 text-sm text-rose-950`}>
+          No se pudo completar la acción (revisa estado del número o permisos Supabase).
         </div>
       ) : null}
 

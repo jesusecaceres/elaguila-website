@@ -185,8 +185,8 @@ export type CuponesPagePayload = {
 };
 
 /**
- * Planned magazine issues — DB-backed planning metadata only.
- * Public `/magazine` still reads `public/magazine/editions.json` until upload/manifest wiring ships.
+ * Planned magazine issues — optional registry payload for tooling.
+ * Public `/magazine` resolves from `magazine_issues` (published + archived) when rows exist; otherwise `public/magazine/editions.json`.
  */
 export type RevistaPlannedIssue = {
   id: string;

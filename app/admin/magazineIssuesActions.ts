@@ -94,6 +94,7 @@ export async function upsertMagazineIssueAction(formData: FormData) {
   }
 
   revalidatePath("/magazine");
+  revalidatePath("/");
   redirect("/admin/workspace/revista?issue_saved=1");
 }
 
@@ -109,6 +110,23 @@ export async function setMagazineCurrentIssueAction(formData: FormData) {
     redirect("/admin/workspace/revista?issue_error=1");
   }
 
+  const { data: prevFeatured } = await supabase
+    .from("magazine_issues")
+    .select("id")
+    .eq("is_featured", true)
+    .eq("status", "published")
+    .neq("id", id);
+
+  for (const p of prevFeatured ?? []) {
+    const pid = (p as { id?: string }).id;
+    if (!pid) continue;
+    const { error: archErr } = await supabase
+      .from("magazine_issues")
+      .update({ status: "archived", is_featured: false, updated_at: now })
+      .eq("id", pid);
+    if (archErr) throw new Error(archErr.message);
+  }
+
   await supabase.from("magazine_issues").update({ is_featured: false, updated_at: now }).eq("is_featured", true);
 
   const { error } = await supabase
@@ -118,6 +136,7 @@ export async function setMagazineCurrentIssueAction(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/magazine");
+  revalidatePath("/");
   redirect("/admin/workspace/revista?issue_saved=1");
 }
 
@@ -134,6 +153,7 @@ export async function archiveMagazineIssueAction(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/magazine");
+  revalidatePath("/");
   redirect("/admin/workspace/revista?issue_saved=1");
 }
 
@@ -155,6 +175,7 @@ export async function publishMagazineIssueAction(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/magazine");
+  revalidatePath("/");
   redirect("/admin/workspace/revista?issue_saved=1");
 }
 
@@ -171,5 +192,6 @@ export async function deleteMagazineDraftAction(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/magazine");
+  revalidatePath("/");
   redirect("/admin/workspace/revista?issue_saved=1");
 }

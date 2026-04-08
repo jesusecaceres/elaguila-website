@@ -1,6 +1,6 @@
 /**
  * Clasificados category control model — code defaults merged with optional `site_category_config` (admin).
- * Public Clasificados still reads `categoryConfig` until product wires merged registry into nav.
+ * `/clasificados/publicar` chooser uses merged visibility + order; labels still come from `categoryConfig`.
  */
 import type { CategoryKey } from "@/app/clasificados/config/categoryConfig";
 import { categoryConfig } from "@/app/clasificados/config/categoryConfig";

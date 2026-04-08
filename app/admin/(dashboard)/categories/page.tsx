@@ -70,7 +70,7 @@ export default async function AdminCategoriesPage() {
       </div>
       <AdminPageHeader
         title="Categories — operations"
-        subtitle="Los conteos y colas son lecturas reales de Supabase. Puedes persistir postura (orden, visibilidad, estado, destacado) en `site_category_config`; el sitio público de Clasificados sigue usando el código hasta que producto integre el merge en navegación."
+        subtitle="Los conteos y colas son lecturas reales de Supabase. Puedes persistir postura (orden, visibilidad, estado, destacado) en `site_category_config`. El hub `/clasificados/publicar` respeta visibilidad + orden fusionados; el resto de Clasificados sigue anclado a `categoryConfig` donde aún no se fusionó."
         helperText="Sin fila en Supabase = solo defaults de código en esta vista. Guardar crea/actualiza overlay por slug. No hay ‘toggle simulado’: el botón escribe en base de datos."
       />
 

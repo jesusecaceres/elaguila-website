@@ -68,3 +68,73 @@ export async function createTeamInviteIntentAction(formData: FormData) {
   revalidatePath("/admin/team");
   redirect("/admin/team?invite_saved=1");
 }
+
+/** Inserts a roster row — does not create a Supabase Auth user. */
+export async function createTeamMemberRecordAction(formData: FormData) {
+  await assertAdmin();
+  const email = str(formData, "email").toLowerCase();
+  const displayName = str(formData, "display_name") || null;
+  const role = str(formData, "role");
+  const notes = str(formData, "notes") || null;
+
+  if (!email || !email.includes("@")) {
+    redirect("/admin/team?member_error=1");
+  }
+  if (!ROLES.has(role)) {
+    redirect("/admin/team?member_error=1");
+  }
+
+  const supabase = getAdminSupabase();
+  const now = new Date().toISOString();
+  const { error } = await supabase.from("admin_team_members").insert({
+    email,
+    display_name: displayName,
+    role,
+    is_active: true,
+    permissions: [],
+    notes,
+    updated_at: now,
+  });
+
+  if (error) {
+    if (error.code === "23505") {
+      redirect("/admin/team?member_error=duplicate");
+    }
+    redirect("/admin/team?member_error=1");
+  }
+
+  await appendAdminAuditLog({
+    action: "team_member_created",
+    targetType: "admin_team_members",
+    targetId: email,
+    meta: { role },
+  });
+
+  revalidatePath("/admin/team");
+  redirect("/admin/team?member_saved=1");
+}
+
+export async function toggleTeamMemberActiveAction(formData: FormData) {
+  await assertAdmin();
+  const id = str(formData, "id");
+  const nextActive = str(formData, "next_active") === "1";
+  if (!id) redirect("/admin/team?member_error=1");
+
+  const supabase = getAdminSupabase();
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("admin_team_members")
+    .update({ is_active: nextActive, updated_at: now })
+    .eq("id", id);
+  if (error) redirect("/admin/team?member_error=1");
+
+  await appendAdminAuditLog({
+    action: nextActive ? "team_member_activated" : "team_member_deactivated",
+    targetType: "admin_team_members",
+    targetId: id,
+    meta: {},
+  });
+
+  revalidatePath("/admin/team");
+  redirect("/admin/team?member_saved=1");
+}

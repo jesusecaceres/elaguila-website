@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
 import {
   adminCardBase,
@@ -7,24 +8,71 @@ import {
   adminReadOnlyBadgeClass,
   adminStubBadgeClass,
   adminCtaChipSecondary,
+  adminBtnPrimary,
 } from "../../_components/adminTheme";
 import { getSupabaseAuthUsersDashboardUrl } from "../../_lib/supabaseDashboardLinks";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { createSupportTicketRecordAction } from "../../supportTicketActions";
 
 export const dynamic = "force-dynamic";
 
-export default function AdminSupportPage() {
+type TicketRow = {
+  id: string;
+  subject: string;
+  body: string;
+  status: string;
+  created_at: string;
+};
+
+async function fetchSupportTickets(): Promise<{ rows: TicketRow[]; unavailable: boolean }> {
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("support_tickets")
+      .select("id, subject, body, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(30);
+    if (error) return { rows: [], unavailable: true };
+    return { rows: (data ?? []) as TicketRow[], unavailable: false };
+  } catch {
+    return { rows: [], unavailable: true };
+  }
+}
+
+async function SupportTicketsSection(props: {
+  searchParams?: Promise<{ ticket_saved?: string; ticket_error?: string }>;
+}) {
+  const sp = props.searchParams ? await props.searchParams : {};
+  const { rows: tickets, unavailable } = await fetchSupportTickets();
   const authDashboardUrl = getSupabaseAuthUsersDashboardUrl();
 
   return (
-    <div>
+    <>
+      {sp.ticket_saved === "1" ? (
+        <div className={`${adminCardBase} mb-4 border-emerald-200 bg-emerald-50/90 p-3 text-sm text-emerald-950`}>
+          Ticket interno guardado.
+        </div>
+      ) : null}
+      {sp.ticket_error === "1" ? (
+        <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
+          No se pudo guardar — aplica migración <code className="rounded bg-white/80 px-1">20260408183000_control_center_extensions.sql</code> o revisa Supabase.
+        </div>
+      ) : null}
+
       <div className="mb-3 flex flex-wrap gap-2">
-        <span className={adminReadOnlyBadgeClass}>Parcial</span>
-        <span className={adminStubBadgeClass}>Tickets no modelados</span>
+        <span className={adminReadOnlyBadgeClass}>Operador</span>
+        {unavailable ? (
+          <span className={adminStubBadgeClass}>Tickets: tabla no disponible</span>
+        ) : (
+          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-900">
+            Tickets: support_tickets
+          </span>
+        )}
       </div>
       <AdminPageHeader
         title="Support"
-        subtitle="Consola de operador: búsqueda y colas reales viven en Users, Ops y Reportes. Los tickets formales aún no tienen tabla."
-        helperText="Habilitar/deshabilitar cuenta: Users → ficha → Habilitar/Deshabilitar (Supabase `profiles.is_disabled`). Contraseña: solo vía Supabase Auth o flujo seguro, no desde este panel."
+        subtitle="Búsqueda de cuentas y colas reales: Users, Ops y Reportes. Los tickets aquí son un log interno mínimo — no sustituyen un helpdesk público."
+        helperText="Habilitar/deshabilitar cuenta: Users → ficha. Contraseña: solo vía Supabase Auth o flujo seguro, no desde este panel."
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -53,6 +101,73 @@ export default function AdminSupportPage() {
             Open in Users →
           </button>
         </form>
+
+        <div className={`${adminCardBase} p-6 lg:col-span-2`}>
+          <h2 className="text-sm font-bold text-[#1E1810]">Log interno de tickets</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Registro mínimo en base para seguimiento del equipo — sin portal para usuarios finales.
+          </p>
+          {unavailable ? (
+            <p className="mt-3 text-sm text-amber-900">
+              Tabla <code className="rounded bg-white/80 px-1">support_tickets</code> no disponible.
+            </p>
+          ) : (
+            <form action={createSupportTicketRecordAction} className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className="text-xs font-semibold text-[#5C5346]" htmlFor="ticket-subject">
+                  Asunto
+                </label>
+                <input id="ticket-subject" name="subject" required className={`${adminInputClass} mt-1`} />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-xs font-semibold text-[#5C5346]" htmlFor="ticket-body">
+                  Detalle
+                </label>
+                <textarea id="ticket-body" name="body" required rows={4} className={`${adminInputClass} mt-1`} />
+              </div>
+              <div className="sm:col-span-2">
+                <button type="submit" className={`${adminBtnPrimary} w-full justify-center sm:w-auto`}>
+                  Guardar ticket interno
+                </button>
+              </div>
+            </form>
+          )}
+
+          {!unavailable && tickets.length > 0 ? (
+            <div className={`${adminCardBase} mt-6 overflow-hidden p-0`}>
+              <div className="border-b border-[#E8DFD0]/80 bg-[#FAF7F2]/90 px-4 py-2 text-xs font-semibold text-[#5C5346]">
+                Recientes
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full border-collapse text-sm">
+                  <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase text-[#7A7164]">
+                    <tr>
+                      <th className="p-3">Asunto</th>
+                      <th className="p-3">Estado</th>
+                      <th className="p-3">Fecha</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tickets.map((t) => (
+                      <tr key={t.id} className="border-t border-[#E8DFD0]/80">
+                        <td className="p-3">
+                          <p className="font-semibold text-[#1E1810]">{t.subject}</p>
+                          <p className="mt-1 line-clamp-2 text-xs text-[#7A7164]">{t.body}</p>
+                        </td>
+                        <td className="p-3 text-xs font-semibold">{t.status}</td>
+                        <td className="p-3 text-xs text-[#7A7164]">
+                          {t.created_at ? new Date(t.created_at).toLocaleString() : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : !unavailable ? (
+            <p className="mt-4 text-xs text-[#7A7164]">Aún no hay tickets en la tabla.</p>
+          ) : null}
+        </div>
 
         <div className={`${adminCardBase} p-6 lg:col-span-2`}>
           <h2 className="text-sm font-bold text-[#1E1810]">Escalation tags</h2>
@@ -128,6 +243,18 @@ export default function AdminSupportPage() {
           Open reports queue →
         </Link>
       </div>
+    </>
+  );
+}
+
+export default function AdminSupportPage(props: {
+  searchParams?: Promise<{ ticket_saved?: string; ticket_error?: string }>;
+}) {
+  return (
+    <div>
+      <Suspense fallback={<div className="p-6 text-sm text-[#5C5346]">Cargando Support…</div>}>
+        <SupportTicketsSection searchParams={props.searchParams} />
+      </Suspense>
     </div>
   );
 }
