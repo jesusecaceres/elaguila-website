@@ -2,6 +2,7 @@
 
 import { deleteMuxAssetsBestEffort } from "@/app/lib/mux/server";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
 
 export type ListingReportStatus = "pending" | "reviewed" | "dismissed";
 
@@ -50,5 +51,11 @@ export async function setUserDisabledAction(userId: string, disabled: boolean) {
     .update({ is_disabled: disabled })
     .eq("id", userId);
   if (error) throw new Error(error.message);
+  void appendAdminAuditLog({
+    action: disabled ? "profile_disabled" : "profile_enabled",
+    targetType: "profiles",
+    targetId: userId,
+    meta: { source: "setUserDisabledAction" },
+  });
   return { ok: true };
 }

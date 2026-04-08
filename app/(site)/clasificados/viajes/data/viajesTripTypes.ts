@@ -1,3 +1,7 @@
+import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+
+import { getViajesUi } from "./viajesUiCopy";
+
 /**
  * Canonical trip-type taxonomy for Viajes (URL param `t`, filters, chips).
  * Spanish-first labels; param keys are URL-stable slugs.
@@ -19,6 +23,26 @@ export const VIAJES_TRIP_TYPE_HERO_OPTIONS: { value: string; label: string }[] =
   { value: "presupuesto", label: "Ofertas por presupuesto" },
   { value: "cerca", label: "Cerca de ti" },
 ];
+
+/** Localized hero + filter trip-type options (URL values unchanged). */
+export function getViajesTripTypeHeroOptions(lang: Lang): { value: string; label: string }[] {
+  const t = getViajesUi(lang).tripTypes;
+  return [
+    { value: "", label: t.all },
+    { value: "fin-de-semana", label: t.weekend },
+    { value: "dia", label: t.day },
+    { value: "resorts", label: t.resorts },
+    { value: "hoteles", label: t.hotels },
+    { value: "tours", label: t.tours },
+    { value: "actividades", label: t.activities },
+    { value: "cruceros", label: t.cruises },
+    { value: "renta-autos", label: t.carRental },
+    { value: "transporte", label: t.transport },
+    { value: "ultimo-minuto", label: t.lastMinute },
+    { value: "presupuesto", label: t.budgetDeals },
+    { value: "cerca", label: t.nearYou },
+  ];
+}
 
 /**
  * Map URL `t` param to canonical trip-type keys stored on inventory rows.

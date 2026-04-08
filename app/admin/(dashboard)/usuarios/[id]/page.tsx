@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { requireAdminCookie, getAdminSupabase } from "@/app/lib/supabase/server";
+import { getSupabaseAuthUsersDashboardUrl } from "@/app/admin/_lib/supabaseDashboardLinks";
 import AdminUserActions from "../AdminUserActions";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { adminBtnDark, adminBtnSecondary, adminCardBase } from "../../../_components/adminTheme";
@@ -232,6 +233,8 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
   if (!clientId || !isValidUuid(clientId)) {
     redirect("/admin/usuarios");
   }
+
+  const authUsersDashboardUrl = getSupabaseAuthUsersDashboardUrl();
 
   const searchParams = props.searchParams ? await props.searchParams : {};
   const updated = searchParams.updated;
@@ -527,19 +530,33 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
       </div>
 
       <div className={`${adminCardBase} mb-6 p-5`}>
-        <h2 className="text-base font-bold text-[#1E1810]">Soporte y réplica (stubs)</h2>
+        <h2 className="text-base font-bold text-[#1E1810]">Auth y contraseña</h2>
         <p className="mt-1 text-sm text-[#5C5346]/90">
-          Reset password, réplica modo usuario y notas internas requieren integración Auth Admin / Supabase — no
-          expuestos aquí como “listos”.
+          <strong className="text-[#1E1810]">Habilitar / deshabilitar</strong> la cuenta: usa el botón arriba en esta ficha (acción
+          real en <code className="rounded bg-white/80 px-1">profiles</code>).
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button type="button" disabled className={`${adminBtnSecondary} cursor-not-allowed opacity-60`}>
-            Reset password (stub)
-          </button>
-          <button type="button" disabled className={`${adminBtnSecondary} cursor-not-allowed opacity-60`}>
-            Réplica modo (stub)
-          </button>
+        <p className="mt-2 text-sm text-[#5C5346]/90">
+          <strong className="text-[#1E1810]">Recuperación de contraseña o magic link:</strong> no se generan desde Leonix admin por
+          seguridad. Abre Supabase Auth y localiza al usuario por email.
+        </p>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          {authUsersDashboardUrl ? (
+            <a
+              href={authUsersDashboardUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={`${adminBtnSecondary} inline-flex min-h-[44px] justify-center sm:min-h-0`}
+            >
+              Abrir Supabase Auth (usuarios) ↗
+            </a>
+          ) : (
+            <p className="text-xs text-[#9A9084]">Configura NEXT_PUBLIC_SUPABASE_URL para enlazar al proyecto.</p>
+          )}
         </div>
+        <p className="mt-3 text-xs text-[#7A7164]">
+          Réplica “ver como el usuario”:{" "}
+          <span className="font-semibold text-[#5C5346]">no disponible</span> — no hay suplantación desde este panel.
+        </p>
       </div>
 
       <div className={`${adminCardBase} mb-6 p-5`}>

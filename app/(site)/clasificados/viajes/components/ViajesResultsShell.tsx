@@ -8,8 +8,10 @@ import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
+import { getViajesUi } from "../data/viajesUiCopy";
 import { VIAJES_RESULTS_SAMPLE, type ViajesResultRow } from "../data/viajesResultsSampleData";
-import { VIAJES_TRIP_TYPE_HERO_OPTIONS, viajesRowMatchesTripParam } from "../data/viajesTripTypes";
+import { getViajesTripTypeHeroOptions, viajesRowMatchesTripParam } from "../data/viajesTripTypes";
+import { ViajesLangSwitch } from "./ViajesLangSwitch";
 import { ViajesResultsAffiliateCard } from "./ViajesResultsAffiliateCard";
 import { ViajesResultsBusinessCard } from "./ViajesResultsBusinessCard";
 import {
@@ -64,6 +66,9 @@ export type ViajesSortKey = "featured" | "priceAsc" | "priceDesc";
 export function ViajesResultsShell() {
   const sp = useSearchParams();
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  const ui = getViajesUi(lang);
+  const R = ui.results;
+  const tripOptions = getViajesTripTypeHeroOptions(lang);
 
   const [filters, setFilters] = useState<ViajesResultsFiltersState>(emptyViajesResultsFilters);
   useEffect(() => {
@@ -134,6 +139,7 @@ export function ViajesResultsShell() {
       onChange={patchFilters}
       onReset={() => setFilters(emptyViajesResultsFilters())}
       idPrefix="viajes"
+      ui={ui}
     />
   );
 
@@ -144,27 +150,28 @@ export function ViajesResultsShell() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5 lg:px-6">
           <nav className="text-[11px] font-medium text-[color:var(--lx-muted)]">
             <Link href={appendLangToPath("/clasificados", L)} className="hover:text-[color:var(--lx-text)]">
-              {lang === "en" ? "Classifieds" : "Clasificados"}
+              {ui.breadcrumbClassifieds}
             </Link>
             <span className="mx-1.5 opacity-50">/</span>
             <Link href={viajesHome} className="hover:text-[color:var(--lx-text)]">
-              Viajes
+              {ui.categoryViajes}
             </Link>
             <span className="mx-1.5 opacity-50">/</span>
-            <span className="text-[color:var(--lx-text)]">{lang === "en" ? "Results" : "Resultados"}</span>
+            <span className="text-[color:var(--lx-text)]">{R.breadcrumbResults}</span>
           </nav>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <ViajesLangSwitch compact />
             <Link
               href={publicar}
               className="rounded-full bg-[color:var(--lx-cta-dark)] px-4 py-2 text-xs font-bold text-[#FFFCF7] shadow-sm transition hover:bg-[color:var(--lx-cta-dark-hover)]"
             >
-              {lang === "en" ? "Post" : "Publicar"}
+              {R.post}
             </Link>
             <Link
               href={viajesHome}
               className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-2 text-xs font-semibold transition hover:bg-[color:var(--lx-nav-hover)]"
             >
-              {lang === "en" ? "Viajes home" : "Inicio Viajes"}
+              {R.viajesHome}
             </Link>
           </div>
         </div>
@@ -172,26 +179,18 @@ export function ViajesResultsShell() {
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-5 lg:px-6 lg:py-8">
         <header className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            {lang === "en" ? "Discover trips" : "Descubre viajes"}
-          </h1>
-          <p className="mt-1 text-sm text-[color:var(--lx-muted)]">
-            {lang === "en"
-              ? "Mix of partner offers and local agencies — labels show the source."
-              : "Mezcla de ofertas de socios y agencias locales — las etiquetas indican el origen."}
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{R.title}</h1>
+          <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{R.subtitle}</p>
           <p className="mt-2 text-sm font-semibold text-[color:var(--lx-text-2)]">
-            {sorted.length} {lang === "en" ? "results" : "resultados"}
+            {sorted.length} {R.resultsWord}
           </p>
         </header>
 
         {/* Top filter / search bar */}
         <section className="mb-6 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm sm:p-5">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-12 md:items-end md:gap-3">
-            <label className="md:col-span-2">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
-                {lang === "en" ? "Destination" : "Destino"}
-              </span>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:items-end lg:gap-3">
+            <label className="sm:col-span-1 lg:col-span-2">
+              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.destination}</span>
               <input
                 className="w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
                 value={topDestination}
@@ -199,13 +198,11 @@ export function ViajesResultsShell() {
                   setTopDestination(e.target.value);
                   patchFilters({ destination: e.target.value });
                 }}
-                placeholder={lang === "en" ? "City, country…" : "Ciudad, país…"}
+                placeholder={R.destPlaceholder}
               />
             </label>
-            <label className="md:col-span-2">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
-                {lang === "en" ? "Departure city" : "Ciudad de salida"}
-              </span>
+            <label className="sm:col-span-1 lg:col-span-2">
+              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.departureCity}</span>
               <select
                 className="w-full cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
                 value={topDeparture}
@@ -214,16 +211,14 @@ export function ViajesResultsShell() {
                   patchFilters({ departureCity: e.target.value });
                 }}
               >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="">{R.any}</option>
                 <option value="san-jose">San José, CA (SJC)</option>
                 <option value="san-francisco">San Francisco (SFO)</option>
                 <option value="oakland">Oakland (OAK)</option>
               </select>
             </label>
-            <label className="md:col-span-2">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
-                {lang === "en" ? "Dates / season" : "Fechas / temporada"}
-              </span>
+            <label className="sm:col-span-1 lg:col-span-2">
+              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.datesSeason}</span>
               <select
                 className="w-full cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
                 value={topSeason}
@@ -232,17 +227,15 @@ export function ViajesResultsShell() {
                   patchFilters({ season: e.target.value });
                 }}
               >
-                <option value="">{lang === "en" ? "Flexible" : "Flexible"}</option>
-                <option value="spring">{lang === "en" ? "Spring" : "Primavera"}</option>
-                <option value="summer">{lang === "en" ? "Summer" : "Verano"}</option>
-                <option value="fall">{lang === "en" ? "Fall" : "Otoño"}</option>
-                <option value="winter">{lang === "en" ? "Winter" : "Invierno"}</option>
+                <option value="">{R.flexible}</option>
+                <option value="spring">{R.spring}</option>
+                <option value="summer">{R.summer}</option>
+                <option value="fall">{R.fall}</option>
+                <option value="winter">{R.winter}</option>
               </select>
             </label>
-            <label className="md:col-span-2">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
-                {lang === "en" ? "Trip type" : "Tipo de viaje"}
-              </span>
+            <label className="sm:col-span-1 lg:col-span-2">
+              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.tripType}</span>
               <select
                 className="w-full cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
                 value={topTripType}
@@ -251,17 +244,15 @@ export function ViajesResultsShell() {
                   patchFilters({ tripType: e.target.value });
                 }}
               >
-                {VIAJES_TRIP_TYPE_HERO_OPTIONS.map((o) => (
+                {tripOptions.map((o) => (
                   <option key={o.value || "all"} value={o.value}>
                     {o.label}
                   </option>
                 ))}
               </select>
             </label>
-            <label className="md:col-span-2">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
-                {lang === "en" ? "Budget" : "Presupuesto"}
-              </span>
+            <label className="sm:col-span-1 lg:col-span-2">
+              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.budget}</span>
               <select
                 className="w-full cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
                 value={topBudget}
@@ -270,16 +261,14 @@ export function ViajesResultsShell() {
                   patchFilters({ budget: e.target.value });
                 }}
               >
-                <option value="">{lang === "en" ? "Flexible" : "Flexible"}</option>
-                <option value="economico">{lang === "en" ? "Economy" : "Económico"}</option>
-                <option value="moderado">{lang === "en" ? "Moderate" : "Moderado"}</option>
-                <option value="premium">Premium</option>
+                <option value="">{R.flexible}</option>
+                <option value="economico">{R.economy}</option>
+                <option value="moderado">{R.moderate}</option>
+                <option value="premium">{R.premium}</option>
               </select>
             </label>
-            <label className="md:col-span-1">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
-                {lang === "en" ? "Audience" : "Público"}
-              </span>
+            <label className="sm:col-span-1 lg:col-span-1">
+              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.audience}</span>
               <select
                 className="w-full cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
                 value={topAudience}
@@ -288,24 +277,22 @@ export function ViajesResultsShell() {
                   patchFilters({ audience: e.target.value });
                 }}
               >
-                <option value="">{lang === "en" ? "All" : "Todos"}</option>
-                <option value="familias">{lang === "en" ? "Families" : "Familias"}</option>
-                <option value="parejas">{lang === "en" ? "Couples" : "Parejas"}</option>
-                <option value="grupos">{lang === "en" ? "Groups" : "Grupos"}</option>
+                <option value="">{R.audienceAll}</option>
+                <option value="familias">{R.audienceFamilies}</option>
+                <option value="parejas">{R.audienceCouples}</option>
+                <option value="grupos">{R.audienceGroups}</option>
               </select>
             </label>
-            <label className="md:col-span-1">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
-                {lang === "en" ? "Sort" : "Orden"}
-              </span>
+            <label className="sm:col-span-1 lg:col-span-1">
+              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.sort}</span>
               <select
                 className="w-full cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
                 value={sort}
                 onChange={(e) => setSort(e.target.value as ViajesSortKey)}
               >
-                <option value="featured">{lang === "en" ? "Featured" : "Destacado"}</option>
-                <option value="priceAsc">{lang === "en" ? "Price ↑" : "Precio ↑"}</option>
-                <option value="priceDesc">{lang === "en" ? "Price ↓" : "Precio ↓"}</option>
+                <option value="featured">{R.sortFeatured}</option>
+                <option value="priceAsc">{R.sortPriceAsc}</option>
+                <option value="priceDesc">{R.sortPriceDesc}</option>
               </select>
             </label>
           </div>
@@ -314,9 +301,7 @@ export function ViajesResultsShell() {
         <div className="flex gap-8 lg:gap-10">
           <aside className="hidden w-[280px] shrink-0 lg:block">
             <div className="sticky top-24 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm">
-              <p className="mb-4 text-sm font-bold text-[color:var(--lx-text)]">
-                {lang === "en" ? "Refine" : "Refinar"}
-              </p>
+              <p className="mb-4 text-sm font-bold text-[color:var(--lx-text)]">{R.refine}</p>
               {filterPanel}
             </div>
           </aside>
@@ -327,22 +312,22 @@ export function ViajesResultsShell() {
               className="mb-4 flex min-h-[44px] w-full items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] px-4 text-sm font-bold text-[color:var(--lx-text)] shadow-sm lg:hidden"
               onClick={() => setMobileFiltersOpen(true)}
             >
-              {lang === "en" ? "Filters" : "Filtros"}
+              {R.filters}
             </button>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {sorted.map((row) =>
                 row.kind === "affiliate" ? (
-                  <ViajesResultsAffiliateCard key={row.id} row={row} />
+                  <ViajesResultsAffiliateCard key={row.id} row={row} ui={ui} />
                 ) : (
-                  <ViajesResultsBusinessCard key={row.id} row={row} />
+                  <ViajesResultsBusinessCard key={row.id} row={row} ui={ui} />
                 )
               )}
             </div>
 
             {sorted.length === 0 ? (
               <p className="mt-8 rounded-2xl border border-dashed border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-10 text-center text-sm text-[color:var(--lx-muted)]">
-                {lang === "en" ? "No results for these filters." : "Sin resultados con estos filtros."}
+                {R.noResults}
               </p>
             ) : null}
           </div>
@@ -350,18 +335,18 @@ export function ViajesResultsShell() {
       </div>
 
       {mobileFiltersOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Filtros">
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label={R.filtersDialog}>
           <button
             type="button"
             className="absolute inset-0 bg-black/40"
-            aria-label="Cerrar"
+            aria-label={R.closeOverlay}
             onClick={() => setMobileFiltersOpen(false)}
           />
-          <div className="absolute right-0 top-0 flex h-full w-[min(100%,380px)] flex-col border-l border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-xl">
-            <div className="flex items-center justify-between border-b border-[color:var(--lx-nav-border)] px-4 py-3">
-              <span className="text-sm font-bold">{lang === "en" ? "Filters" : "Filtros"}</span>
+          <div className="absolute right-0 top-0 flex h-full w-[min(100%,380px)] flex-col border-l border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] pb-[env(safe-area-inset-bottom)] shadow-xl">
+            <div className="flex min-h-[52px] items-center justify-between border-b border-[color:var(--lx-nav-border)] px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+              <span className="text-sm font-bold">{R.filters}</span>
               <button type="button" className="text-sm font-semibold text-[color:var(--lx-muted)]" onClick={() => setMobileFiltersOpen(false)}>
-                {lang === "en" ? "Close" : "Cerrar"}
+                {R.close}
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4">{filterPanel}</div>

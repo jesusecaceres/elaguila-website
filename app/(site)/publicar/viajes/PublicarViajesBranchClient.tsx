@@ -8,6 +8,7 @@ import { FiArrowRight, FiBriefcase, FiLayers } from "react-icons/fi";
 import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { ViajesLangSwitch } from "@/app/(site)/clasificados/viajes/components/ViajesLangSwitch";
 
 const CARD =
   "group flex h-full flex-col rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] transition hover:border-[color:var(--lx-gold-border)] hover:shadow-[0_12px_36px_-14px_rgba(42,36,22,0.14)] sm:p-6";
@@ -65,6 +66,9 @@ export function PublicarViajesBranchClient() {
       }}
     >
       <Navbar />
+      <div className="mx-auto flex w-full min-w-0 max-w-3xl justify-end px-4 pb-2 sm:px-6">
+        <ViajesLangSwitch compact />
+      </div>
       <div className="mx-auto w-full min-w-0 max-w-3xl px-4 sm:px-6">
         <nav className="text-xs font-semibold text-[color:var(--lx-muted)]">
           <Link

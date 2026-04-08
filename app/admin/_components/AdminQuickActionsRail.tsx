@@ -2,7 +2,7 @@ import Link from "next/link";
 import { adminBtnDark, adminBtnSecondary, adminInputClass, adminCtaChipCompact } from "./adminTheme";
 
 /**
- * Dashboard-only quick actions. Reset password / replica / verify are UI stubs — no secret flows in browser.
+ * Dashboard-only quick actions. Password reset / replica require Supabase Dashboard or IdP — not in-app (see Support page).
  */
 export function AdminQuickActionsRail() {
   return (
@@ -51,22 +51,29 @@ export function AdminQuickActionsRail() {
       </div>
 
       <div className="space-y-2 border-t border-[#E8DFD0]/80 pt-4">
-        <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">Operations (stubs)</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">Auth (no en esta barra)</p>
+        <p className="text-[10px] leading-snug text-[#7A7164]">
+          Contraseña y magic link:{" "}
+          <Link href="/admin/support" className="font-bold text-[#6B5B2E] underline">
+            Support
+          </Link>{" "}
+          → enlace a Supabase Auth. Sin suplantación de usuario.
+        </p>
         <button
           type="button"
           disabled
-          className="flex min-h-[44px] w-full items-center gap-2 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFFCF7]/80 px-3 py-2 text-left text-xs font-semibold text-[#5C5346]/80 sm:min-h-0"
-          title="Requires Auth Admin API — not wired"
+          className="flex min-h-[44px] w-full cursor-not-allowed items-center gap-2 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFFCF7]/80 px-3 py-2 text-left text-xs font-semibold text-[#5C5346]/80 sm:min-h-0"
+          title="Usa Supabase Dashboard → Authentication → Users para enviar recuperación"
         >
-          🔑 Reset user password
+          🔑 Reset user password (solo vía Supabase)
         </button>
         <button
           type="button"
           disabled
-          className="flex min-h-[44px] w-full items-center gap-2 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFFCF7]/80 px-3 py-2 text-left text-xs font-semibold text-[#5C5346]/80 sm:min-h-0"
-          title="Réplica de panel de usuario no implementada en admin"
+          className="flex min-h-[44px] w-full cursor-not-allowed items-center gap-2 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFFCF7]/80 px-3 py-2 text-left text-xs font-semibold text-[#5C5346]/80 sm:min-h-0"
+          title="Réplica de sesión de usuario no está disponible por seguridad"
         >
-          🪞 Switch to user dashboard (replica)
+          🪞 Switch to user dashboard (no disponible)
         </button>
         <Link
           href="/admin/workspace/clasificados"
@@ -78,9 +85,9 @@ export function AdminQuickActionsRail() {
         <Link
           href="/admin/team"
           className={`${adminBtnDark} w-full justify-center text-xs`}
-          title="Página Team — invitaciones aún no persistidas"
+          title="Team: intención de invitación puede guardarse en admin_team_invites"
         >
-          Ir a Team (invitaciones stub)
+          Ir a Team
         </Link>
       </div>
 

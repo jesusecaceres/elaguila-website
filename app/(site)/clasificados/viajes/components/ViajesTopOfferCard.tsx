@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import type { ViajesTopOffer } from "../data/viajesLandingSampleData";
+import { type ViajesUi, viajesBadgeLabel } from "../data/viajesUiCopy";
 import { withViajesOfferBackParam } from "../lib/viajesOfferLink";
 
 const VIAJES_ACCENT = "#D97706";
@@ -17,7 +18,7 @@ function StarRow({ count }: { count: number }) {
   );
 }
 
-export function ViajesTopOfferCard({ offer, homeBackHref }: { offer: ViajesTopOffer; homeBackHref: string }) {
+export function ViajesTopOfferCard({ offer, homeBackHref, ui }: { offer: ViajesTopOffer; homeBackHref: string; ui: ViajesUi }) {
   const href =
     offer.href.includes("/oferta/") && offer.listingKind !== "editorial"
       ? withViajesOfferBackParam(offer.href, homeBackHref)
@@ -32,13 +33,15 @@ export function ViajesTopOfferCard({ offer, homeBackHref }: { offer: ViajesTopOf
 
   const sourcePill =
     offer.listingKind === "affiliate" ? (
-      <span className="rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">Socio</span>
+      <span className="rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+        {ui.cards.sourceAffiliate}
+      </span>
     ) : offer.listingKind === "business" ? (
       <span className="rounded-full bg-[color:var(--lx-section)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text-2)]">
-        Negocio
+        {ui.cards.sourceBusiness}
       </span>
     ) : (
-      <span className="rounded-full bg-[#2A2620] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#FAF7F2]">Ideas</span>
+      <span className="rounded-full bg-[#2A2620] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#FAF7F2]">{ui.cards.sourceIdeas}</span>
     );
 
   return (
@@ -55,20 +58,22 @@ export function ViajesTopOfferCard({ offer, homeBackHref }: { offer: ViajesTopOf
         />
         <div className="absolute left-3 top-3 flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-white/95 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text)] shadow-sm backdrop-blur-sm">
-            {offer.badge}
+            {viajesBadgeLabel(offer.badge, ui)}
           </span>
           {sourcePill}
         </div>
       </div>
       <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <h3 className="text-lg font-bold text-[color:var(--lx-text)]">{offer.title}</h3>
-        <p className="mt-1 text-sm text-[color:var(--lx-text-2)]">{offer.supportingLine}</p>
+        <h3 className="line-clamp-2 text-lg font-bold leading-snug text-[color:var(--lx-text)]">{offer.title}</h3>
+        <p className="mt-1 line-clamp-2 text-sm text-[color:var(--lx-text-2)]">{offer.supportingLine}</p>
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[color:var(--lx-muted)]">
           <StarRow count={offer.stars} />
           {offer.stars > 0 ? <span className="hidden sm:inline">·</span> : null}
           <span>{offer.locationLine}</span>
         </div>
-        <p className="mt-3 text-lg font-bold text-[color:var(--lx-text)]">{offer.priceFrom}</p>
+        <p className="mt-3 text-lg font-bold text-[color:var(--lx-text)]">
+          {offer.listingKind === "editorial" ? ui.cards.readFree : offer.priceFrom}
+        </p>
         <div className="mt-2 flex flex-col gap-1 text-xs text-[color:var(--lx-muted)]">
           <span className="flex items-center gap-1.5">
             <span aria-hidden>🗓️</span>
@@ -98,7 +103,7 @@ export function ViajesTopOfferCard({ offer, homeBackHref }: { offer: ViajesTopOf
             className="inline-flex min-h-[40px] items-center justify-center rounded-xl px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:brightness-105"
             style={{ backgroundColor: VIAJES_ACCENT }}
           >
-            {offer.listingKind === "editorial" ? "Explorar" : "Ver oferta"}
+            {offer.listingKind === "editorial" ? ui.cards.explore : ui.cards.viewOffer}
           </Link>
         </div>
       </div>

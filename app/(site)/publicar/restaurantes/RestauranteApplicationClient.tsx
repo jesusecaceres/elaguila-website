@@ -29,16 +29,15 @@ import { RestauranteSubGalleryBucket } from "@/app/clasificados/restaurantes/app
 import { resolveRestauranteGallerySequence } from "@/app/clasificados/restaurantes/application/restauranteGalleryMediaSequence";
 import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
 import { buildRestauranteApplicationSectionNavItems } from "./restauranteApplicationSectionModel";
-import { RestauranteApplicationSectionNav, scrollToRestauranteSection } from "./RestauranteApplicationSectionNav";
+import { RestauranteApplicationSectionNav } from "./RestauranteApplicationSectionNav";
 
 const PREVIEW_HREF = "/clasificados/restaurantes/preview";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-6";
 
-/** Anchor offset for sticky mobile bar + nav */
-const SECTION_SCROLL = "scroll-mt-24 lg:scroll-mt-28";
-const sectionSurface = `${CARD} ${SECTION_SCROLL}`;
+/** Visible step panel — one lettered section at a time (draft stays in parent; fields remount from draft). */
+const stepPanel = CARD;
 
 /** Stacks I / J / K — visually dominant vs. canonical service modes + channel rows below */
 const PRIMARY_OP_CARD =
@@ -105,18 +104,6 @@ export default function RestauranteApplicationClient() {
     [setDraftPatch]
   );
 
-  const goPreview = useCallback(() => {
-    if (!satisfiesRestauranteServiceModes(draft.serviceModes)) {
-      setServiceErr(true);
-      requestAnimationFrame(() => {
-        scrollToRestauranteSection("restaurantes-section-b");
-      });
-      return;
-    }
-    setServiceErr(false);
-    window.location.href = PREVIEW_HREF;
-  }, [draft.serviceModes]);
-
   const sectionNavItems = useMemo(() => buildRestauranteApplicationSectionNavItems(draft), [draft]);
 
   const [activeSectionId, setActiveSectionId] = useState("restaurantes-section-a");
@@ -129,27 +116,20 @@ export default function RestauranteApplicationClient() {
     });
   }, [sectionNavItems]);
 
-  useEffect(() => {
-    const update = () => {
-      if (!sectionNavItems.length) return;
-      const mid = window.scrollY + window.innerHeight * 0.2;
-      let best = sectionNavItems[0].id;
-      for (const s of sectionNavItems) {
-        const el = document.getElementById(s.id);
-        if (!el) continue;
-        const top = el.getBoundingClientRect().top + window.scrollY;
-        if (top <= mid + 80) best = s.id;
-      }
-      setActiveSectionId(best);
-    };
-    update();
-    window.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-    };
-  }, [sectionNavItems]);
+  const activeStepIndex = useMemo(() => {
+    const i = sectionNavItems.findIndex((s) => s.id === activeSectionId);
+    return i < 0 ? 0 : i;
+  }, [sectionNavItems, activeSectionId]);
+
+  const goPreview = useCallback(() => {
+    if (!satisfiesRestauranteServiceModes(draft.serviceModes)) {
+      setServiceErr(true);
+      setActiveSectionId("restaurantes-section-b");
+      return;
+    }
+    setServiceErr(false);
+    window.location.href = PREVIEW_HREF;
+  }, [draft.serviceModes]);
 
   const toggleHighlight = useCallback(
     (key: string) => {
@@ -290,9 +270,10 @@ export default function RestauranteApplicationClient() {
           </div>
         </aside>
 
-        <div className="min-w-0 flex flex-col gap-8">
+        <div className="min-w-0 flex flex-col gap-6">
         {/* A */}
-        <section id="restaurantes-section-a" className={sectionSurface}>
+        {activeSectionId === "restaurantes-section-a" ? (
+        <section id="restaurantes-section-a" className={stepPanel}>
           <SectionTitle>A · Identidad del negocio</SectionTitle>
           <div className="mt-4 grid gap-4">
             <div>
@@ -529,9 +510,11 @@ export default function RestauranteApplicationClient() {
             </div>
           </div>
         </section>
+        ) : null}
 
         {/* B */}
-        <section id="restaurantes-section-b" className={sectionSurface}>
+        {activeSectionId === "restaurantes-section-b" ? (
+        <section id="restaurantes-section-b" className={stepPanel}>
           <SectionTitle>B · Modelo de operación</SectionTitle>
           <p className="mt-2 text-xs text-[color:var(--lx-text-2)]">
             <span className="font-semibold text-red-600">*</span> Al menos un <strong>modo de servicio</strong> (abajo) para
@@ -712,9 +695,11 @@ export default function RestauranteApplicationClient() {
             ))}
           </div>
         </section>
+        ) : null}
 
         {/* C */}
-        <section id="restaurantes-section-c" className={sectionSurface}>
+        {activeSectionId === "restaurantes-section-c" ? (
+        <section id="restaurantes-section-c" className={stepPanel}>
           <SectionTitle>C · Horarios</SectionTitle>
           <p className="mt-2 text-xs text-[color:var(--lx-text-2)]">
             <span className="font-semibold text-red-600">*</span> Completa cada día (cerrado u horario) o usa nota especial /
@@ -784,9 +769,11 @@ export default function RestauranteApplicationClient() {
             </div>
           </div>
         </section>
+        ) : null}
 
         {/* D */}
-        <section id="restaurantes-section-d" className={sectionSurface}>
+        {activeSectionId === "restaurantes-section-d" ? (
+        <section id="restaurantes-section-d" className={stepPanel}>
           <SectionTitle>D · Contacto y CTAs</SectionTitle>
           <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
             <span className="text-red-600">*</span> Al menos una vía de contacto (sitio, teléfono, correo, redes, menú/archivo,
@@ -907,9 +894,11 @@ export default function RestauranteApplicationClient() {
             </label>
           </div>
         </section>
+        ) : null}
 
         {/* E */}
-        <section id="restaurantes-section-e" className={sectionSurface}>
+        {activeSectionId === "restaurantes-section-e" ? (
+        <section id="restaurantes-section-e" className={stepPanel}>
           <SectionTitle>E · Ubicación y privacidad</SectionTitle>
           <div className="mt-4 grid gap-3">
             <div>
@@ -987,9 +976,11 @@ export default function RestauranteApplicationClient() {
             </div>
           </div>
         </section>
+        ) : null}
 
         {/* F */}
-        <section id="restaurantes-section-f" className={sectionSurface}>
+        {activeSectionId === "restaurantes-section-f" ? (
+        <section id="restaurantes-section-f" className={stepPanel}>
           <SectionTitle>F · Platos destacados (máx. 4)</SectionTitle>
           <div className="mt-4 space-y-6">
             {(draft.featuredDishes ?? []).map((dish, i) => (
@@ -1070,9 +1061,11 @@ export default function RestauranteApplicationClient() {
             ) : null}
           </div>
         </section>
+        ) : null}
 
         {/* G */}
-        <section id="restaurantes-section-g" className={sectionSurface}>
+        {activeSectionId === "restaurantes-section-g" ? (
+        <section id="restaurantes-section-g" className={stepPanel}>
           <SectionTitle>G · Galería y medios</SectionTitle>
           <div className="mt-4 grid gap-4">
             <div>
@@ -1278,9 +1271,11 @@ export default function RestauranteApplicationClient() {
             </div>
           </div>
         </section>
+        ) : null}
 
         {/* H */}
-        <section id="restaurantes-section-h" className={sectionSurface}>
+        {activeSectionId === "restaurantes-section-h" ? (
+        <section id="restaurantes-section-h" className={stepPanel}>
           <SectionTitle>H · Destacados del lugar</SectionTitle>
           <p className="mt-2 text-sm text-[color:var(--lx-muted)]">En la vista previa se muestran hasta 6 en el shell.</p>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -1299,10 +1294,11 @@ export default function RestauranteApplicationClient() {
             ))}
           </div>
         </section>
+        ) : null}
 
         {/* I */}
-        {draft.movingVendor ? (
-          <section id="restaurantes-section-i" className={sectionSurface}>
+        {draft.movingVendor && activeSectionId === "restaurantes-section-i" ? (
+          <section id="restaurantes-section-i" className={stepPanel}>
             <SectionTitle>I · Ubicación móvil</SectionTitle>
             <div className="mt-4 grid gap-3">
               {(
@@ -1358,8 +1354,8 @@ export default function RestauranteApplicationClient() {
         ) : null}
 
         {/* J */}
-        {draft.homeBasedBusiness ? (
-          <section id="restaurantes-section-j" className={sectionSurface}>
+        {draft.homeBasedBusiness && activeSectionId === "restaurantes-section-j" ? (
+          <section id="restaurantes-section-j" className={stepPanel}>
             <SectionTitle>J · Negocio desde casa</SectionTitle>
             <div className="mt-4 grid gap-3">
               <div>
@@ -1435,8 +1431,8 @@ export default function RestauranteApplicationClient() {
         ) : null}
 
         {/* K */}
-        {draft.cateringAvailable || draft.eventFoodService ? (
-          <section id="restaurantes-section-k" className={sectionSurface}>
+        {(draft.cateringAvailable || draft.eventFoodService) && activeSectionId === "restaurantes-section-k" ? (
+          <section id="restaurantes-section-k" className={stepPanel}>
             <SectionTitle>K · Catering y eventos</SectionTitle>
             <div className="mt-4 grid gap-3">
               <div>
@@ -1502,7 +1498,8 @@ export default function RestauranteApplicationClient() {
         ) : null}
 
         {/* L */}
-        <section id="restaurantes-section-l" className={sectionSurface}>
+        {activeSectionId === "restaurantes-section-l" ? (
+        <section id="restaurantes-section-l" className={stepPanel}>
           <SectionTitle>L · Confianza y reputación en Leonix</SectionTitle>
           <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-muted)]">
             Aquí refuerzas la <strong className="font-medium text-[color:var(--lx-text-2)]">confianza</strong> dentro del
@@ -1584,6 +1581,32 @@ export default function RestauranteApplicationClient() {
             </label>
           </div>
         </section>
+        ) : null}
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--lx-nav-border)] pt-6">
+          <button
+            type="button"
+            className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={activeStepIndex <= 0}
+            onClick={() => {
+              const prev = sectionNavItems[activeStepIndex - 1];
+              if (prev) setActiveSectionId(prev.id);
+            }}
+          >
+            Atrás
+          </button>
+          <button
+            type="button"
+            className="rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={activeStepIndex >= sectionNavItems.length - 1}
+            onClick={() => {
+              const next = sectionNavItems[activeStepIndex + 1];
+              if (next) setActiveSectionId(next.id);
+            }}
+          >
+            Siguiente
+          </button>
+        </div>
 
         <div className="mt-4 space-y-4 border-t border-[color:var(--lx-nav-border)] pt-8">
           <ClasificadosApplicationTopActions

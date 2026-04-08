@@ -112,7 +112,7 @@ export function ViajesDestinationAutocomplete({
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-40 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] py-1 shadow-[0_16px_40px_-12px_rgba(42,36,22,0.25)]"
+          className="absolute z-[100] mt-1 max-h-[min(50svh,14rem)] w-full overflow-auto overscroll-contain rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] py-1 shadow-[0_16px_40px_-12px_rgba(42,36,22,0.25)]"
         >
           {suggestions.map((rec, idx) => (
             <li key={`${rec.destParam}-${rec.label}`} id={`${listId}-opt-${idx}`} role="option" aria-selected={idx === active}>

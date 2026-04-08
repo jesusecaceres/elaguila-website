@@ -1,8 +1,8 @@
 /**
- * Team / workforce model — UI + types now; persistence via Supabase later.
+ * Team / workforce model — roster still placeholder until `admin_team_members`.
+ * Invite **intent** can persist in `admin_team_invites` (migration `20260410120000_admin_audit_log_and_team_invites.sql`).
  *
- * Expected table shape (TODO migration):
- * - admin_team_members (id, email, display_name, role, is_active, invited_at, created_at, permissions jsonb)
+ * Future: admin_team_members (id, email, display_name, role, is_active, invited_at, created_at, permissions jsonb)
  */
 
 export type AdminTeamRole =

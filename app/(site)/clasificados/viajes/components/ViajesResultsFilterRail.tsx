@@ -1,6 +1,7 @@
 "use client";
 
-import { VIAJES_TRIP_TYPE_HERO_OPTIONS } from "../data/viajesTripTypes";
+import { getViajesTripTypeHeroOptions } from "../data/viajesTripTypes";
+import type { ViajesUi } from "../data/viajesUiCopy";
 
 export type ViajesResultsFiltersState = {
   destination: string;
@@ -17,28 +18,32 @@ type ViajesResultsFilterRailProps = {
   onChange: (patch: Partial<ViajesResultsFiltersState>) => void;
   onReset: () => void;
   idPrefix: string;
+  ui: ViajesUi;
 };
 
-export function ViajesResultsFilterRail({ value, onChange, onReset, idPrefix }: ViajesResultsFilterRailProps) {
+export function ViajesResultsFilterRail({ value, onChange, onReset, idPrefix, ui }: ViajesResultsFilterRailProps) {
   const id = (s: string) => `${idPrefix}-${s}`;
+  const f = ui.filterRail;
+  const r = ui.results;
+  const tripOptions = getViajesTripTypeHeroOptions(ui.lang);
 
   return (
     <div className="space-y-6">
       <div>
         <label htmlFor={id("dest")} className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
-          Destino
+          {f.destination}
         </label>
         <input
           id={id("dest")}
           className="mt-1.5 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
           value={value.destination}
           onChange={(e) => onChange({ destination: e.target.value })}
-          placeholder="Ciudad o país"
+          placeholder={f.destPlaceholder}
         />
       </div>
       <div>
         <label htmlFor={id("from")} className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
-          Ciudad de salida
+          {f.departureCity}
         </label>
         <select
           id={id("from")}
@@ -46,7 +51,7 @@ export function ViajesResultsFilterRail({ value, onChange, onReset, idPrefix }: 
           value={value.departureCity}
           onChange={(e) => onChange({ departureCity: e.target.value })}
         >
-          <option value="">Cualquiera</option>
+          <option value="">{r.any}</option>
           <option value="san-jose">San José, CA (SJC)</option>
           <option value="san-francisco">San Francisco (SFO)</option>
           <option value="oakland">Oakland (OAK)</option>
@@ -54,7 +59,7 @@ export function ViajesResultsFilterRail({ value, onChange, onReset, idPrefix }: 
       </div>
       <div>
         <label htmlFor={id("budget")} className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
-          Presupuesto
+          {f.budget}
         </label>
         <select
           id={id("budget")}
@@ -62,15 +67,15 @@ export function ViajesResultsFilterRail({ value, onChange, onReset, idPrefix }: 
           value={value.budget}
           onChange={(e) => onChange({ budget: e.target.value })}
         >
-          <option value="">Flexible</option>
-          <option value="economico">Económico</option>
-          <option value="moderado">Moderado</option>
-          <option value="premium">Premium</option>
+          <option value="">{r.flexible}</option>
+          <option value="economico">{r.economy}</option>
+          <option value="moderado">{r.moderate}</option>
+          <option value="premium">{r.premium}</option>
         </select>
       </div>
       <div>
         <label htmlFor={id("trip")} className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
-          Tipo de viaje
+          {f.tripType}
         </label>
         <select
           id={id("trip")}
@@ -78,7 +83,7 @@ export function ViajesResultsFilterRail({ value, onChange, onReset, idPrefix }: 
           value={value.tripType}
           onChange={(e) => onChange({ tripType: e.target.value })}
         >
-          {VIAJES_TRIP_TYPE_HERO_OPTIONS.map((o) => (
+          {tripOptions.map((o) => (
             <option key={o.value || "all"} value={o.value}>
               {o.label}
             </option>
@@ -87,7 +92,7 @@ export function ViajesResultsFilterRail({ value, onChange, onReset, idPrefix }: 
       </div>
       <div>
         <label htmlFor={id("dur")} className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
-          Duración
+          {f.duration}
         </label>
         <select
           id={id("dur")}
@@ -95,15 +100,15 @@ export function ViajesResultsFilterRail({ value, onChange, onReset, idPrefix }: 
           value={value.duration}
           onChange={(e) => onChange({ duration: e.target.value })}
         >
-          <option value="">Cualquiera</option>
-          <option value="short">1–4 noches</option>
-          <option value="week">5–7 noches</option>
-          <option value="long">8+ noches</option>
+          <option value="">{f.durationAny}</option>
+          <option value="short">{f.durationShort}</option>
+          <option value="week">{f.durationWeek}</option>
+          <option value="long">{f.durationLong}</option>
         </select>
       </div>
       <div>
         <label htmlFor={id("aud")} className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
-          Público
+          {f.audience}
         </label>
         <select
           id={id("aud")}
@@ -111,15 +116,15 @@ export function ViajesResultsFilterRail({ value, onChange, onReset, idPrefix }: 
           value={value.audience}
           onChange={(e) => onChange({ audience: e.target.value })}
         >
-          <option value="">Todos</option>
-          <option value="familias">Familias</option>
-          <option value="parejas">Parejas</option>
-          <option value="grupos">Grupos</option>
+          <option value="">{r.audienceAll}</option>
+          <option value="familias">{r.audienceFamilies}</option>
+          <option value="parejas">{r.audienceCouples}</option>
+          <option value="grupos">{r.audienceGroups}</option>
         </select>
       </div>
       <div>
         <label htmlFor={id("season")} className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
-          Fechas / temporada
+          {f.season}
         </label>
         <select
           id={id("season")}
@@ -127,12 +132,12 @@ export function ViajesResultsFilterRail({ value, onChange, onReset, idPrefix }: 
           value={value.season}
           onChange={(e) => onChange({ season: e.target.value })}
         >
-          <option value="">Flexible</option>
-          <option value="spring">Primavera</option>
-          <option value="summer">Verano</option>
-          <option value="fall">Otoño</option>
-          <option value="winter">Invierno</option>
-          <option value="holidays">Festividades</option>
+          <option value="">{r.flexible}</option>
+          <option value="spring">{r.spring}</option>
+          <option value="summer">{r.summer}</option>
+          <option value="fall">{r.fall}</option>
+          <option value="winter">{r.winter}</option>
+          <option value="holidays">{r.holidays}</option>
         </select>
       </div>
       <button
@@ -140,7 +145,7 @@ export function ViajesResultsFilterRail({ value, onChange, onReset, idPrefix }: 
         className="w-full rounded-xl border border-[color:var(--lx-nav-border)] py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
         onClick={onReset}
       >
-        Limpiar filtros
+        {f.reset}
       </button>
     </div>
   );

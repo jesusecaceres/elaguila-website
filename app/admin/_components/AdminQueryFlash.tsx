@@ -18,6 +18,8 @@ export function AdminQueryFlash() {
   const issueError = sp?.get("issue_error");
   const catSaved = sp?.get("cat_saved");
   const catError = sp?.get("cat_error");
+  const inviteSaved = sp?.get("invite_saved");
+  const inviteError = sp?.get("invite_error");
   const err = sp?.get("error");
 
   useEffect(() => {
@@ -29,12 +31,18 @@ export function AdminQueryFlash() {
       setOpen({ tone: "ok", message: "Número de revista guardado (Supabase)." });
     } else if (catSaved === "1") {
       setOpen({ tone: "ok", message: "Postura de categoría guardada en Supabase." });
+    } else if (inviteSaved === "1") {
+      setOpen({ tone: "ok", message: "Intención de invitación guardada en Supabase (Auth por separado)." });
     } else if (registryError === "1") {
       setOpen({ tone: "err", message: "No se pudo guardar el borrador (falta título o error de servidor)." });
     } else if (issueError === "1") {
       setOpen({ tone: "err", message: "No se pudo completar la acción del número de revista." });
     } else if (catError === "1") {
       setOpen({ tone: "err", message: "No se pudo guardar la categoría (datos inválidos o error de servidor)." });
+    } else if (inviteError === "duplicate") {
+      setOpen({ tone: "err", message: "Ese correo ya tiene una invitación pendiente." });
+    } else if (inviteError === "1") {
+      setOpen({ tone: "err", message: "No se pudo guardar la invitación (datos o permisos)." });
     } else if (err === "1") {
       setOpen({ tone: "err", message: "La acción falló. Revisa permisos o vuelve a intentar." });
     } else {
@@ -43,7 +51,7 @@ export function AdminQueryFlash() {
     }
     const t = window.setTimeout(() => setOpen(null), 5200);
     return () => window.clearTimeout(t);
-  }, [saved, registrySaved, registryError, issueSaved, issueError, catSaved, catError, err]);
+  }, [saved, registrySaved, registryError, issueSaved, issueError, catSaved, catError, inviteSaved, inviteError, err]);
 
   if (!open) return null;
 

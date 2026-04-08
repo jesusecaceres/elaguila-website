@@ -42,11 +42,14 @@ export default function AdminPaymentsPage() {
       <div className={`${adminCardBase} mt-8 p-6`}>
         <h2 className="text-sm font-bold text-[#1E1810]">Search references</h2>
         <p className="mt-1 text-xs text-[#7A7164]">Lookup by invoice id, subscription id, or user email once billing tables exist.</p>
-        <div className="mt-4 flex flex-wrap gap-3">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <input className={`${adminInputClass} max-w-md`} disabled placeholder="Invoice / subscription / email" />
-          <button type="button" disabled className={adminBtnSecondary}>
-            Search (stub)
-          </button>
+          <span
+            className={`${adminStubBadgeClass} inline-flex min-h-[44px] items-center sm:min-h-0`}
+            title="Sin tablas de facturación conectadas"
+          >
+            Búsqueda desactivada
+          </span>
         </div>
       </div>
 
@@ -56,8 +59,8 @@ export default function AdminPaymentsPage() {
           Send customers to hosted payment-method update (Stripe Customer Portal or equivalent). No raw card forms in Leonix
           admin.
         </p>
-        <button type="button" disabled className={`${adminBtnSecondary} mt-4`}>
-          Open processor dashboard (stub)
+        <button type="button" disabled className={`${adminBtnSecondary} mt-4 cursor-not-allowed opacity-70`} title="Conecta Stripe u otro PSP en el futuro">
+          Processor dashboard (no conectado)
         </button>
       </div>
     </div>

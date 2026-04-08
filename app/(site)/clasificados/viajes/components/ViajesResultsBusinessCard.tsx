@@ -4,12 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
+import type { ViajesUi } from "../data/viajesUiCopy";
 import type { ViajesBusinessResult } from "../data/viajesResultsSampleData";
 import { withViajesOfferBackParam } from "../lib/viajesOfferLink";
 
 const VIAJES_ACCENT = "#D97706";
 
-export function ViajesResultsBusinessCard({ row }: { row: ViajesBusinessResult }) {
+export function ViajesResultsBusinessCard({ row, ui }: { row: ViajesBusinessResult; ui: ViajesUi }) {
   const sp = useSearchParams();
   const backHref = `/clasificados/viajes/resultados${sp?.toString() ? `?${sp.toString()}` : ""}`;
   const offerHref = row.href.includes("/oferta/") ? withViajesOfferBackParam(row.href, backHref) : row.href;
@@ -19,14 +20,14 @@ export function ViajesResultsBusinessCard({ row }: { row: ViajesBusinessResult }
       <div className="relative aspect-[16/10] w-full">
         <Image src={row.imageSrc} alt={row.imageAlt} fill className="object-cover" sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw" />
         <span className="absolute left-3 top-3 rounded-full bg-[color:var(--lx-cta-dark)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#FFFCF7]">
-          Anuncio de negocio
+          {ui.cards.businessListing}
         </span>
       </div>
       <div className="flex flex-1 flex-col p-4">
         <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{row.businessName}</p>
-        <h2 className="mt-1 text-base font-bold leading-snug text-[color:var(--lx-text)]">{row.offerTitle}</h2>
-        <p className="mt-1 text-sm text-[color:var(--lx-text-2)]">
-          {row.destination} · salida {row.departureCity}
+        <h2 className="mt-1 line-clamp-2 text-base font-bold leading-snug text-[color:var(--lx-text)]">{row.offerTitle}</h2>
+        <p className="mt-1 line-clamp-2 text-sm text-[color:var(--lx-text-2)]">
+          {row.destination} · {ui.results.departurePrefix} {row.departureCity}
         </p>
         <p className="mt-3 text-lg font-bold text-[color:var(--lx-text)]">{row.price}</p>
         <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{row.includedSummary}</p>
@@ -38,7 +39,7 @@ export function ViajesResultsBusinessCard({ row }: { row: ViajesBusinessResult }
             className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm transition hover:brightness-105"
             style={{ backgroundColor: VIAJES_ACCENT }}
           >
-            Ver ficha publicada
+            {ui.cards.businessViewListing}
           </Link>
           {row.whatsapp ? (
             <a
@@ -54,7 +55,7 @@ export function ViajesResultsBusinessCard({ row }: { row: ViajesBusinessResult }
             href={offerHref}
             className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-[color:var(--lx-cta-dark)] bg-transparent text-sm font-bold text-[color:var(--lx-cta-dark)] transition hover:bg-[color:var(--lx-nav-hover)]"
           >
-            Más detalles
+            {ui.cards.businessMoreDetails}
           </Link>
         </div>
       </div>

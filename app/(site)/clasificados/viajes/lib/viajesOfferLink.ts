@@ -2,6 +2,11 @@
  * Preserve return context when opening offer detail from Viajes home vs results.
  */
 
+import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+
+import { getViajesUi } from "../data/viajesUiCopy";
+import { setLangOnHref } from "./viajesLangHref";
+
 const VIAJES_PREFIX = "/clasificados/viajes";
 
 export function isSafeViajesInternalPath(path: string): boolean {
@@ -35,10 +40,13 @@ export function parseViajesOfferBackParam(raw: string | string[] | undefined): s
 export function resolveViajesOfferBack(
   rawBack: string | string[] | undefined,
   /** When `back` query is missing or unsafe (e.g. direct entry). */
-  fallbackHref: string = "/clasificados/viajes"
+  fallbackHref: string = "/clasificados/viajes",
+  lang: Lang = "es"
 ): { href: string; label: string } {
   const parsed = parseViajesOfferBackParam(rawBack);
-  const href = parsed ?? fallbackHref;
-  const label = href.includes("/resultados") ? "Volver a resultados" : "Volver a Viajes";
+  const rawHref = parsed ?? fallbackHref;
+  const href = setLangOnHref(rawHref, lang);
+  const ui = getViajesUi(lang);
+  const label = rawHref.includes("/resultados") ? ui.backToResults : ui.backToViajesHome;
   return { href, label };
 }

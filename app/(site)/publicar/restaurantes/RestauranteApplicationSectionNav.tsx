@@ -10,13 +10,14 @@ const BTN_IDLE = "border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] 
 const BTN_ACTIVE =
   "border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] font-semibold text-[color:var(--lx-text)] shadow-sm ring-1 ring-[color:var(--lx-gold-border)]/30";
 
+/** Optional: scroll a section into view (e.g. deep links). Step flow uses `onSelect` instead. */
 export function scrollToRestauranteSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 /**
  * Desktop: vertical lettered section list. Mobile: `variant="chips"` horizontal scroll.
- * Active highlight is controlled by the parent (scroll spy).
+ * Active highlight is controlled by the parent (`activeId`).
  */
 export function RestauranteApplicationSectionNav({
   sections,
@@ -30,7 +31,6 @@ export function RestauranteApplicationSectionNav({
   onSelect?: (id: string) => void;
 }) {
   const pick = (id: string) => {
-    scrollToRestauranteSection(id);
     onSelect?.(id);
   };
 

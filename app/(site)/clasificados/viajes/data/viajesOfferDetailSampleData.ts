@@ -244,6 +244,73 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
     },
     description: "Escapada corta para desconectar: lago, senderos y fogata bajo las estrellas.",
   },
+  "los-cabos-snorkel": {
+    slug: "los-cabos-snorkel",
+    heroImageSrc: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?auto=format&fit=crop&w=2000&q=80",
+    heroImageAlt: "Arrecife y embarcación en Los Cabos",
+    title: "Los Cabos · snorkel y arco en lancha",
+    destination: "Cabo San Lucas, Baja California Sur, México",
+    priceFrom: "Desde $129 por persona",
+    duration: "Medio día (salidas AM y PM)",
+    departureCity: "Encuentro en marina (vuelo a SJD aparte · salidas comunes desde SFO/SJC)",
+    tags: ["Tour", "Pareja", "Familia"],
+    mainCtaLabel: "Reservar actividad con socio",
+    mainCtaHref: "https://example.com/cabo-snorkel",
+    includes: [
+      "Lancha compartida con guía bilingüe",
+      "Equipo de snorkel y chaleco",
+      "Bebidas sin alcohol a bordo",
+      "Parada breve en El Arco (según oleaje)",
+    ],
+    whoItsFor: [
+      "Parejas que quieren una mañana o tarde memorable sin reservar resort entero.",
+      "Familias con adolescentes cómodos en el agua.",
+    ],
+    partner: {
+      name: "Socio tours marinos Leonix",
+      isAffiliate: true,
+      affiliateDisclosure:
+        "Actividad mostrada por un socio comercial; la reserva y el pago final los gestiona el proveedor en su sitio.",
+      ctaLabel: "Ver horarios en el socio",
+      ctaHref: "https://example.com/cabo-snorkel",
+    },
+    description:
+      "Salida corta para ver el arco, fauna marina y un snorkel tranquilo en calas protegidas cuando el clima lo permite.",
+    trustNote: "Confirma edad mínima, estado del mar y política de cancelación antes de pagar.",
+  },
+  "napa-valley-escape": {
+    slug: "napa-valley-escape",
+    heroImageSrc: "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?auto=format&fit=crop&w=2000&q=80",
+    heroImageAlt: "Viñedos al atardecer en Napa",
+    title: "Napa Valley · hotel boutique y viñedos",
+    destination: "Napa & Sonoma, California",
+    priceFrom: "Desde $489 por persona",
+    duration: "3 días · 2 noches",
+    departureCity: "San José y San Francisco (por carretera)",
+    tags: ["Romántico", "Enoturismo", "Escapada"],
+    mainCtaLabel: "Ver paquete en socio",
+    mainCtaHref: "https://example.com/napa-boutique",
+    includes: [
+      "Dos noches en hotel boutique con desayuno",
+      "Degustación en viñedo seleccionado (cita previa)",
+      "Crédito spa o cena (según temporada)",
+    ],
+    whoItsFor: [
+      "Parejas que buscan calma, buena comida y paisajes de viñedo sin vuelo internacional.",
+      "Pequeños grupos que pueden coordinar salida en un solo auto.",
+    ],
+    partner: {
+      name: "Red escapadas Leonix",
+      isAffiliate: true,
+      affiliateDisclosure:
+        "Paquete de socio comercial; Leonix no procesa el cobro final. Precios sujetos a disponibilidad del hotel.",
+      ctaLabel: "Continuar al socio",
+      ctaHref: "https://example.com/napa-boutique",
+    },
+    description:
+      "Combinación de hospedaje íntimo, cata y tiempo libre para pasear pueblos del valle al ritmo de la mesa californiana.",
+    trustNote: "Revisa políticas de edad mínima para consumo de alcohol y conducción designada.",
+  },
 };
 
 export const VIAJES_OFFER_SLUGS = Object.keys(VIAJES_OFFER_DETAILS);

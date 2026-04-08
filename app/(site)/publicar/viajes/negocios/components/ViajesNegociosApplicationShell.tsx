@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { ViajesLangSwitch } from "@/app/(site)/clasificados/viajes/components/ViajesLangSwitch";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-5";
@@ -76,7 +77,10 @@ export function ViajesNegociosApplicationShell() {
       }}
     >
       <Navbar />
-      <div className="mx-auto max-w-3xl px-4 pb-8 pt-6 sm:px-6 sm:pt-8">
+      <div className="mx-auto flex max-w-3xl justify-end px-4 pb-2 pt-4 sm:px-6">
+        <ViajesLangSwitch compact />
+      </div>
+      <div className="mx-auto max-w-3xl px-4 pb-8 pt-2 sm:px-6 sm:pt-4">
         <nav className="text-xs font-semibold text-[color:var(--lx-muted)]">
           <Link href={branchHref} className="hover:text-[color:var(--lx-text)]">
             ← {lang === "en" ? "Back to Viajes publishing" : "Volver a publicar Viajes"}

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { requireAdminCookie, getAdminSupabase } from "@/app/lib/supabase/server";
+import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
 import type { TiendaOrderOpsStatus } from "@/app/lib/tienda/tiendaOrderOperations";
 import { isTiendaOrderOpsStatus } from "@/app/lib/tienda/tiendaOrderOperations";
 
@@ -25,7 +26,12 @@ export async function updateTiendaOrderStatusAction(orderUuid: string, status: s
   revalidatePath("/admin");
   revalidatePath("/admin/tienda/orders");
   revalidatePath(`/admin/tienda/orders/${orderUuid}`);
-  // TODO: write admin_audit_log (actor, action: tienda_order.status, target_id, meta) when audit table ships
+  void appendAdminAuditLog({
+    action: "tienda_order_status_updated",
+    targetType: "tienda_orders",
+    targetId: orderUuid,
+    meta: { status },
+  });
 }
 
 export async function updateTiendaOrderAdminNotesAction(orderUuid: string, formData: FormData): Promise<void> {

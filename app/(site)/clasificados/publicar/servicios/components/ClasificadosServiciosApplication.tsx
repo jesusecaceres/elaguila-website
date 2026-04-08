@@ -37,10 +37,19 @@ import type {
 } from "../lib/clasificadosServiciosApplicationTypes";
 import { LANGUAGE_OPTION_CHIPS } from "../lib/clasificadosServiciosApplicationTypes";
 import {
+  bootstrapServiciosApplicationState,
+  clearServiciosPreviewReturnHandoff,
+  saveServiciosPreviewReturnDraft,
+} from "../lib/clasificadosServiciosPreviewHandoff";
+import {
   clearClasificadosServiciosApplicationFromBrowser,
-  readClasificadosServiciosApplicationFromBrowser,
   writeClasificadosServiciosApplicationToBrowser,
 } from "../lib/clasificadosServiciosStorage";
+import {
+  getServiciosApplicationStepLabels,
+  getServiciosApplicationStepShortLabels,
+  SERVICIOS_APPLICATION_STEP_COUNT,
+} from "../lib/serviciosApplicationStepLabels";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadiness";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
@@ -110,8 +119,16 @@ export function ClasificadosServiciosApplication() {
   const copy = getClasificadosServiciosCopy(lang);
 
   const [hydrated, setHydrated] = useState(false);
+  const [step, setStep] = useState(0);
   const [previewGateError, setPreviewGateError] = useState<string | null>(null);
   const [state, setState] = useState<ClasificadosServiciosApplicationState>(() => createDefaultClasificadosServiciosState());
+
+  const stepLabels = useMemo(() => getServiciosApplicationStepLabels(lang), [lang]);
+  const stepShortLabels = useMemo(() => getServiciosApplicationStepShortLabels(lang), [lang]);
+  const totalSteps = SERVICIOS_APPLICATION_STEP_COUNT;
+  const canGoBack = step > 0;
+  const canGoNext = step < totalSteps - 1;
+  const stepLabelActive = stepLabels[step] ?? "";
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -140,9 +157,8 @@ export function ClasificadosServiciosApplication() {
     clearLeonixReturningToEditSessionFlag();
   }, []);
 
-  useEffect(() => {
-    const s = readClasificadosServiciosApplicationFromBrowser();
-    if (s) setState(s);
+  useLayoutEffect(() => {
+    setState(bootstrapServiciosApplicationState());
     setHydrated(true);
   }, []);
 
@@ -160,7 +176,9 @@ export function ClasificadosServiciosApplication() {
 
   const persistStateAndMarkOpeningPreview = useCallback(() => {
     markPublishFlowOpeningPreview();
-    writeClasificadosServiciosApplicationToBrowser(stateRef.current);
+    const snap = stateRef.current;
+    writeClasificadosServiciosApplicationToBrowser(snap);
+    saveServiciosPreviewReturnDraft(snap);
   }, []);
 
   const previewHref = `/clasificados/publicar/servicios/preview?lang=${lang}`;
@@ -170,19 +188,23 @@ export function ClasificadosServiciosApplication() {
     const r = evaluateServiciosPreviewReadiness(stateRef.current, lang);
     if (!r.ok) {
       setPreviewGateError(`${copy.previewMissingBanner} ${r.missing.map((m) => m.label).join(" · ")}`);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      document.getElementById("servicios-step-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
     setPreviewGateError(null);
     markPublishFlowOpeningPreview();
-    writeClasificadosServiciosApplicationToBrowser(stateRef.current);
+    const snap = stateRef.current;
+    writeClasificadosServiciosApplicationToBrowser(snap);
+    saveServiciosPreviewReturnDraft(snap);
     router.push(previewHref);
   }, [copy.previewMissingBanner, lang, previewHref, router]);
 
   const deleteApplicationDraft = useCallback(() => {
     if (!window.confirm(copy.deleteConfirm)) return;
+    clearServiciosPreviewReturnHandoff();
     clearClasificadosServiciosApplicationFromBrowser();
     setState(createDefaultClasificadosServiciosState());
+    setStep(0);
     setPreviewGateError(null);
   }, [copy.deleteConfirm]);
 
@@ -415,14 +437,17 @@ export function ClasificadosServiciosApplication() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#F6F0E2] text-[#3D2C12]">
-      <header className="border-b border-[#D8C79A]/60 bg-[#FFFDF7]/95 backdrop-blur">
-        <div className="mx-auto max-w-3xl px-4 py-5 sm:py-6 lg:max-w-5xl">
+      <main className="mx-auto max-w-6xl px-4 pb-36 pt-6 sm:pb-32 sm:pt-8">
+        <div className="mb-6 rounded-2xl border border-[#D8C79A]/60 bg-[#FFFDF7]/95 p-4 shadow-sm sm:p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#8a7a62]">Leonix Clasificados</p>
           <h1 className="mt-2 text-xl font-extrabold tracking-tight text-[#3D2C12] sm:text-2xl">{copy.pageTitle}</h1>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#5D4A25]/90">{copy.pageSubtitle}</p>
           <Link
             href={publicarHref}
-            onClick={() => clearClasificadosServiciosApplicationFromBrowser()}
+            onClick={() => {
+              clearServiciosPreviewReturnHandoff();
+              clearClasificadosServiciosApplicationFromBrowser();
+            }}
             className="mt-2 inline-flex min-h-[40px] items-center text-xs font-medium text-[#5D4A25]/85 underline underline-offset-2 hover:text-[#3D2C12]"
           >
             {copy.linkBack}
@@ -468,22 +493,77 @@ export function ClasificadosServiciosApplication() {
               {copy.langToggle}
             </Link>
           </div>
-        </div>
-        <div className="mx-auto max-w-5xl px-4 pb-3">
-          <p className="text-xs text-[#8a7a62]">{hydrated ? copy.saveHint : "…"}</p>
-          {hydrated ? (
-            <p className="mt-1 text-xs font-medium text-[#6b5c42]">{listingPhaseLine}</p>
-          ) : null}
-          {previewGateError ? (
-            <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950" role="status">
-              {previewGateError}
-            </p>
-          ) : null}
-          <p className="mt-2 text-xs leading-snug text-[#7a6a52]">{copy.labels.bottomActionsHint}</p>
-        </div>
-      </header>
 
-      <main className="mx-auto max-w-3xl space-y-7 px-4 py-6 pb-32 sm:py-8 sm:pb-32 lg:max-w-5xl">
+          <div className="mt-4 border-t border-[#D8C79A]/40 pt-4">
+            <p className="text-xs text-[#8a7a62]">{hydrated ? copy.saveHint : "…"}</p>
+            {hydrated ? (
+              <p className="mt-1 text-xs font-medium text-[#6b5c42]">{listingPhaseLine}</p>
+            ) : null}
+            {previewGateError ? (
+              <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950" role="status">
+                {previewGateError}
+              </p>
+            ) : null}
+            <p className="mt-2 text-xs leading-snug text-[#7a6a52]">{copy.labels.bottomActionsHint}</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+          <aside className="lg:sticky lg:top-24 lg:w-60 lg:shrink-0">
+            <div className="flex gap-1.5 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] lg:hidden">
+              {stepShortLabels.map((short, i) => (
+                <button
+                  key={`servicios-step-tab-${i}`}
+                  type="button"
+                  onClick={() => setStep(i)}
+                  className={[
+                    "shrink-0 touch-manipulation rounded-full border px-3 py-2 text-left text-xs font-semibold transition",
+                    step === i
+                      ? "border-[#3B66AD] bg-[#3B66AD]/10 text-[#1e3a5f] ring-1 ring-[#3B66AD]/20"
+                      : "border-[#D8C79A]/70 bg-white/90 text-[#5D4A25] hover:border-[#3B66AD]/40",
+                  ].join(" ")}
+                >
+                  <span className="tabular-nums text-[#8a7a62]">{i + 1}.</span> {short}
+                </button>
+              ))}
+            </div>
+            <nav
+              className="hidden rounded-2xl border border-[#D8C79A]/50 bg-[#FFFDF7]/90 p-3 shadow-sm lg:block"
+              aria-label={lang === "es" ? "Pasos del formulario" : "Form steps"}
+            >
+              <ol className="space-y-1">
+                {stepLabels.map((lab, i) => (
+                  <li key={lab}>
+                    <button
+                      type="button"
+                      onClick={() => setStep(i)}
+                      className={[
+                        "flex w-full touch-manipulation items-start gap-2 rounded-xl px-2 py-2 text-left text-sm transition",
+                        step === i
+                          ? "bg-[#3B66AD]/12 font-semibold text-[#1e3a5f] ring-1 ring-[#3B66AD]/20"
+                          : "text-[#5D4A25] hover:bg-white/80",
+                      ].join(" ")}
+                    >
+                      <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#F6F0E2] text-xs font-bold tabular-nums text-[#3D2C12]">
+                        {i + 1}
+                      </span>
+                      <span className="min-w-0 leading-snug">{lab}</span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          </aside>
+
+          <div id="servicios-step-panel" className="min-w-0 flex-1 space-y-4">
+            <div className="rounded-xl border border-[#D8C79A]/50 bg-[#FFFDF7]/80 px-3 py-2.5 text-sm text-[#5D4A25] shadow-sm">
+              <span className="font-medium text-[#8a7a62]">{lang === "es" ? "Paso" : "Step"}</span>{" "}
+              <strong className="tabular-nums text-[#3D2C12]">{step + 1}</strong>
+              <span className="text-[#8a7a62]"> / {totalSteps}</span>
+              <span className="text-[#8a7a62]"> · </span>
+              <span className="font-semibold text-[#3D2C12]">{stepLabelActive}</span>
+            </div>
+
         {mediaFlash ? (
           <p
             className="rounded-xl border border-amber-200/90 bg-amber-50 px-3 py-2.5 text-sm font-medium text-amber-950 shadow-sm"
@@ -493,6 +573,8 @@ export function ClasificadosServiciosApplication() {
             {mediaFlash}
           </p>
         ) : null}
+        {step === 0 ? (
+          <>
         {/* 1 · Tipo */}
         <section className={sectionCard} aria-labelledby="sec-type">
           <h2 id="sec-type" className="text-lg font-bold text-[#3D2C12]">
@@ -520,7 +602,11 @@ export function ClasificadosServiciosApplication() {
             ))}
           </select>
         </section>
+          </>
+        ) : null}
 
+        {step === 1 ? (
+          <>
         {/* 2 · Basic */}
         <section className={sectionCard} aria-labelledby="sec-basic">
           <h2 id="sec-basic" className="text-lg font-bold text-[#3D2C12]">
@@ -609,7 +695,11 @@ export function ClasificadosServiciosApplication() {
             </div>
           </div>
         </section>
+          </>
+        ) : null}
 
+        {step === 2 ? (
+          <>
         {/* 3 · Media */}
         <section className={sectionCard} aria-labelledby="sec-media">
           <h2 id="sec-media" className="text-lg font-bold text-[#3D2C12]">
@@ -1047,7 +1137,11 @@ export function ClasificadosServiciosApplication() {
             ) : null}
           </div>
         </section>
+          </>
+        ) : null}
 
+        {step === 3 ? (
+          <>
         {/* 4 · About */}
         <section className={sectionCard}>
           <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.about}</h2>
@@ -1069,7 +1163,11 @@ export function ClasificadosServiciosApplication() {
             onChange={(e) => setState((s) => ({ ...s, specialtiesLine: e.target.value }))}
           />
         </section>
+          </>
+        ) : null}
 
+        {step === 4 ? (
+          <>
         {preset ? (
           <>
             <section className={sectionCard}>
@@ -1141,7 +1239,11 @@ export function ClasificadosServiciosApplication() {
             </p>
           </section>
         )}
+          </>
+        ) : null}
 
+        {step === 5 ? (
+          <>
         {/* 8 · Contact */}
         <section className={sectionCard}>
           <h2 className="text-lg font-bold text-[#3D2C12]">
@@ -1247,7 +1349,11 @@ export function ClasificadosServiciosApplication() {
             </>
           ) : null}
         </section>
+          </>
+        ) : null}
 
+        {step === 6 ? (
+          <>
         {/* 9 · Social */}
         <section className={sectionCard}>
           <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.social}</h2>
@@ -1319,7 +1425,11 @@ export function ClasificadosServiciosApplication() {
             ))}
           </div>
         </section>
+          </>
+        ) : null}
 
+        {step === 7 ? (
+          <>
         {/* 11 · Testimonials */}
         <section className={sectionCard}>
           <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.testimonials}</h2>
@@ -1380,17 +1490,6 @@ export function ClasificadosServiciosApplication() {
             </button>
           </div>
         </section>
-
-        <ListingRulesConfirmationSection
-          lang={lang}
-          subject="servicios"
-          confirmAccurate={state.confirmListingAccurate}
-          confirmPhotos={state.confirmPhotosRepresentBusiness}
-          confirmRules={state.confirmCommunityRules}
-          onAccurate={(v) => setState((s) => ({ ...s, confirmListingAccurate: v }))}
-          onPhotos={(v) => setState((s) => ({ ...s, confirmPhotosRepresentBusiness: v }))}
-          onRules={(v) => setState((s) => ({ ...s, confirmCommunityRules: v }))}
-        />
 
         {/* 12 · Offer */}
         <section className={sectionCard}>
@@ -1522,6 +1621,58 @@ export function ClasificadosServiciosApplication() {
             <span>{copy.labels.offerQrLater}</span>
           </label>
         </section>
+          </>
+        ) : null}
+
+        {step === 8 ? (
+          <>
+            <ListingRulesConfirmationSection
+              lang={lang}
+              subject="servicios"
+              confirmAccurate={state.confirmListingAccurate}
+              confirmPhotos={state.confirmPhotosRepresentBusiness}
+              confirmRules={state.confirmCommunityRules}
+              onAccurate={(v) => setState((s) => ({ ...s, confirmListingAccurate: v }))}
+              onPhotos={(v) => setState((s) => ({ ...s, confirmPhotosRepresentBusiness: v }))}
+              onRules={(v) => setState((s) => ({ ...s, confirmCommunityRules: v }))}
+            />
+            <section className={sectionCard} aria-labelledby="sec-review">
+              <h2 id="sec-review" className="text-lg font-bold text-[#3D2C12]">
+                {lang === "es" ? "Revisión final" : "Final review"}
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">
+                {lang === "es"
+                  ? "Cuando termines las confirmaciones arriba, usa la barra inferior para ver la vista previa o publicar. Tu progreso se guarda en esta sesión."
+                  : "When you finish the confirmations above, use the bottom bar to preview or publish. Your progress is saved for this session."}
+              </p>
+              {hydrated ? (
+                <p className="mt-3 rounded-lg border border-[#D8C79A]/40 bg-[#FFFCF7] px-3 py-2 text-sm font-medium text-[#6b5c42]">{listingPhaseLine}</p>
+              ) : null}
+              <p className="mt-3 text-xs leading-snug text-[#7a6a52]">{copy.labels.bottomActionsHint}</p>
+            </section>
+          </>
+        ) : null}
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#D8C79A]/40 pt-4">
+              <button
+                type="button"
+                disabled={!canGoBack}
+                onClick={() => setStep((s) => Math.max(0, s - 1))}
+                className="inline-flex min-h-[48px] min-w-[7.5rem] touch-manipulation items-center justify-center rounded-xl border border-[#D8C79A]/80 bg-white px-4 py-2.5 text-sm font-semibold text-[#3D2C12] shadow-sm transition hover:bg-[#FFFCF7] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {lang === "es" ? "Anterior" : "Back"}
+              </button>
+              <button
+                type="button"
+                disabled={!canGoNext}
+                onClick={() => setStep((s) => Math.min(totalSteps - 1, s + 1))}
+                className="inline-flex min-h-[48px] min-w-[7.5rem] touch-manipulation items-center justify-center rounded-xl bg-[#3B66AD] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {lang === "es" ? "Siguiente" : "Next"}
+              </button>
+            </div>
+          </div>
+        </div>
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#D8C79A]/60 bg-[#FFFDF7]/98 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_28px_rgba(61,44,18,0.12)] backdrop-blur-md">

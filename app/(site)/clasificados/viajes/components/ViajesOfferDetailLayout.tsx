@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import type { ViajesOfferDetailModel } from "../data/viajesOfferDetailSampleData";
+import type { ViajesUi } from "../data/viajesUiCopy";
 
 const ACCENT = "#D97706";
 
@@ -10,19 +11,24 @@ export function ViajesOfferDetailLayout({
   backHref,
   backLabel = "Volver",
   preview = false,
+  ui,
+  exploreViajesHref,
 }: {
   offer: ViajesOfferDetailModel;
   backHref: string;
   backLabel?: string;
   preview?: boolean;
+  ui: ViajesUi;
+  exploreViajesHref: string;
 }) {
   const { partner } = offer;
+  const od = ui.offerDetail;
 
   return (
     <div className="min-h-screen bg-[color:var(--lx-page)] pb-20 text-[color:var(--lx-text)]">
       {preview ? (
         <div className="border-b border-amber-400/35 bg-amber-100/95 px-4 py-2.5 text-center text-sm font-semibold text-amber-950">
-          Vista previa — así verán tu oferta en Clasificados (datos de borrador / ejemplo).
+          {od.previewBanner}
         </div>
       ) : null}
       <div className="relative min-h-[min(52vh,520px)] w-full overflow-hidden">
@@ -57,19 +63,19 @@ export function ViajesOfferDetailLayout({
               <span>🗓️ {offer.duration}</span>
               <span>✈️ {offer.departureCity}</span>
             </div>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-6 flex w-full max-w-lg flex-col gap-3 sm:max-w-none sm:flex-row sm:flex-wrap">
               <a
                 href={offer.mainCtaHref}
-                className="inline-flex min-h-[48px] items-center justify-center rounded-xl px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:brightness-105"
+                className="inline-flex min-h-[48px] w-full flex-1 items-center justify-center rounded-xl px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:brightness-105 sm:w-auto"
                 style={{ backgroundColor: ACCENT }}
               >
                 {offer.mainCtaLabel}
               </a>
               <Link
-                href="/clasificados/viajes"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-white/50 bg-white/10 px-5 py-3 text-sm font-bold text-white backdrop-blur-sm transition hover:bg-white/20"
+                href={exploreViajesHref}
+                className="inline-flex min-h-[48px] w-full flex-1 items-center justify-center rounded-xl border border-white/50 bg-white/10 px-5 py-3 text-center text-sm font-bold text-white backdrop-blur-sm transition hover:bg-white/20 sm:w-auto sm:flex-initial"
               >
-                Explorar Viajes
+                {od.exploreViajes}
               </Link>
             </div>
           </div>
@@ -92,7 +98,7 @@ export function ViajesOfferDetailLayout({
         </section>
 
         <section className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]/90 p-6 sm:p-8">
-          <h2 className="text-lg font-bold text-[color:var(--lx-text)]">¿Para quién es?</h2>
+          <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{od.whoFor}</h2>
           <ul className="mt-4 space-y-3">
             {offer.whoItsFor.map((p) => (
               <li key={p} className="text-sm leading-relaxed text-[color:var(--lx-text-2)]">
@@ -106,18 +112,15 @@ export function ViajesOfferDetailLayout({
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">
-                {partner.isAffiliate ? "Socio comercial" : "Publicado por"}
+                {partner.isAffiliate ? od.partnerCommercial : od.postedBy}
               </p>
               <h2 className="mt-1 text-xl font-bold text-[color:var(--lx-text)]">{partner.name}</h2>
               {partner.isAffiliate ? (
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-                  {partner.affiliateDisclosure ??
-                    "Esta oferta proviene de un socio comercial; Leonix no procesa el pago final en este flujo."}
+                  {partner.affiliateDisclosure ?? od.affiliateFallback}
                 </p>
               ) : (
-                <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">
-                  Negocio o agencia con anuncio en Leonix Clasificados — contacto directo.
-                </p>
+                <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{od.businessFallback}</p>
               )}
             </div>
             <div className="flex flex-col gap-2 sm:items-end">
@@ -141,11 +144,11 @@ export function ViajesOfferDetailLayout({
         </section>
 
         <section className="space-y-4 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 sm:p-8">
-          <h2 className="text-lg font-bold text-[color:var(--lx-text)]">Detalles del viaje</h2>
+          <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{od.detailsTitle}</h2>
           <p className="text-sm leading-relaxed text-[color:var(--lx-text-2)]">{offer.description}</p>
           {offer.dateRange ? (
             <p className="text-sm font-medium text-[color:var(--lx-text)]">
-              <span className="text-[color:var(--lx-muted)]">Calendario: </span>
+              <span className="text-[color:var(--lx-muted)]">{od.calendar} </span>
               {offer.dateRange}
             </p>
           ) : null}
