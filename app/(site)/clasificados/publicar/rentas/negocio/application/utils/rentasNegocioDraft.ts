@@ -26,3 +26,12 @@ export function saveRentasNegocioDraft(state: RentasNegocioFormState): void {
     /* ignore */
   }
 }
+
+export function clearRentasNegocioDraft(): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(RENTAS_NEGOCIO_DRAFT_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}

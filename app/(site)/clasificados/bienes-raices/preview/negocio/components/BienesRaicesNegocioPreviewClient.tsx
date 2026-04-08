@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
 import { BienesRaicesNegocioPreviewView } from "@/app/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView";
 import { BR_PUBLICAR_NEGOCIO } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import type { BienesRaicesNegocioPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
@@ -76,12 +77,9 @@ export default function BienesRaicesNegocioPreviewClient() {
           Cargando vista previa…
         </div>
       ) : phase === "ready" && vm != null ? (
-        <BienesRaicesNegocioPreviewView
-          vm={vm}
-          editHref={BR_PUBLICAR_NEGOCIO}
-          footerExtra="Vista previa Negocio · Mismo diseño aprobado que verán los compradores. Vuelve a Publicar Negocio para seguir editando."
-          onBeforeNavigateToEdit={markPublishFlowReturningToEdit}
-        />
+        <LeonixPreviewPageShell editHref={BR_PUBLICAR_NEGOCIO} onBeforeNavigateToEdit={markPublishFlowReturningToEdit}>
+          <BienesRaicesNegocioPreviewView vm={vm} />
+        </LeonixPreviewPageShell>
       ) : (
         <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#F9F6F1] px-4 text-[#2C2416]">
           <div className="max-w-md rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-6 text-center shadow-sm">

@@ -171,8 +171,8 @@ export function RestauranteResultsClient({ initialListings }: { initialListings:
     title: lang === "es" ? "Restaurantes" : "Restaurants",
     subtitle:
       lang === "es"
-        ? "Explora listados publicados reales; los filtros usan solo campos guardados en cada anuncio."
-        : "Browse real published listings; filters use only fields stored on each listing.",
+        ? "Listados reales de Leonix; filtros según datos guardados en cada anuncio. Guardados: solo en este dispositivo."
+        : "Real Leonix listings; filters match data stored on each listing. Saves: this device only.",
     searchPh: lang === "es" ? "Buscar nombre o palabras…" : "Search name or keywords…",
     cityPh: lang === "es" ? "Ciudad" : "City",
     zipPh: lang === "es" ? "ZIP" : "ZIP",

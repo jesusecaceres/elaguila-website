@@ -25,8 +25,12 @@ export function InformacionPrincipalSection({
       <BrPreviewHint>
         Título, precio, estado del anuncio y dirección alimentan el hero y la franja superior del preview.
       </BrPreviewHint>
+      <BrPreviewHint>
+        Para una vista previa completa: título y precio son obligatorios; indica ciudad o dirección de referencia (al menos
+        uno).
+      </BrPreviewHint>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <BrField label="Título del anuncio" hint="Claro y atractivo; es el titular principal.">
+        <BrField required label="Título del anuncio" hint="Claro y atractivo; es el titular principal.">
           <input
             className={brInputClass}
             value={state.titulo}
@@ -34,7 +38,7 @@ export function InformacionPrincipalSection({
             placeholder="Ej. Casa moderna con alberca en zona tranquila"
           />
         </BrField>
-        <BrField label="Precio" hint="Solo números o con formato; se muestra destacado en dorado.">
+        <BrField required label="Precio" hint="Solo números o con formato; se muestra destacado en dorado.">
           <input
             className={brInputClass}
             value={state.precio}
@@ -60,7 +64,7 @@ export function InformacionPrincipalSection({
             ))}
           </select>
         </BrField>
-        <BrField label="Dirección o ubicación principal" hint="Calle y número o referencia visible.">
+        <BrField label="Dirección o ubicación principal" hint="Calle y número o referencia visible (o usa solo ciudad abajo).">
           <input
             className={brInputClass}
             value={state.direccion}
@@ -74,7 +78,7 @@ export function InformacionPrincipalSection({
             onChange={(e) => setState((s) => ({ ...s, colonia: e.target.value }))}
           />
         </BrField>
-        <BrField label="Ciudad">
+        <BrField label="Ciudad" hint="Si no hay dirección arriba, la ciudad cumple el requisito de ubicación para la vista previa.">
           <input
             className={brInputClass}
             value={state.ciudad}

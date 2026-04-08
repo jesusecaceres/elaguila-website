@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
+import { gateBienesRaicesPrivadoPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import {
   BR_NEGOCIO_Q_PROPIEDAD,
   parseBrNegocioPropiedadParam,
@@ -45,7 +48,11 @@ import {
   createEmptyBienesRaicesPrivadoFormState,
   type BienesRaicesPrivadoFormState,
 } from "../schema/bienesRaicesPrivadoFormState";
-import { loadBienesRaicesPrivadoDraft, saveBienesRaicesPrivadoDraft } from "./utils/bienesRaicesPrivadoDraft";
+import {
+  clearBienesRaicesPrivadoDraft,
+  loadBienesRaicesPrivadoDraft,
+  saveBienesRaicesPrivadoDraft,
+} from "./utils/bienesRaicesPrivadoDraft";
 
 const MAX_PHOTOS = 8;
 
@@ -75,8 +82,10 @@ const CONDICION_OPTS: { value: BienesRaicesPrivadoFormState["residencial"]["cond
 ];
 
 export function BienesRaicesPrivadoForm() {
+  const router = useRouter();
   const [state, setState] = useState<BienesRaicesPrivadoFormState>(createEmptyBienesRaicesPrivadoFormState);
   const [hydrated, setHydrated] = useState(false);
+  const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const d = loadBienesRaicesPrivadoDraft();
@@ -140,18 +149,45 @@ export function BienesRaicesPrivadoForm() {
           <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">Leonix · Bienes Raíces · Privado</p>
           <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#1E1810] sm:text-[1.65rem]">Publicar — Particular</h1>
           <p className={aiSubClass}>
-            La vista previa solo muestra lo que llenes. El borrador se guarda en este dispositivo.
+            La vista previa solo muestra lo que llenes. El borrador vive en esta sesión del navegador (misma pestaña); al
+            cerrarla se descarta.
           </p>
         </header>
 
+        <ClasificadosApplicationTopActions
+          onPreviewValidated={() => {
+            const g = gateBienesRaicesPrivadoPreview(state);
+            if (!g.ok) {
+              setPreviewGateMessage(g.message);
+              return;
+            }
+            setPreviewGateMessage(null);
+            flushSave();
+            router.push(previewHref);
+          }}
+          openPreviewHref={previewHref}
+          onBeforeOpenUnvalidatedPreview={flushSave}
+          onDeleteApplication={() => {
+            clearBienesRaicesPrivadoDraft();
+            const empty = createEmptyBienesRaicesPrivadoFormState();
+            try {
+              const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+              const p = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
+              setState(p ? { ...empty, categoriaPropiedad: p } : empty);
+            } catch {
+              setState(empty);
+            }
+            setPreviewGateMessage(null);
+          }}
+          validationBlockedMessage={previewGateMessage}
+          deleteConfirmMessage="¿Eliminar el borrador de esta solicitud y empezar de nuevo?"
+        />
+        <p className="text-xs leading-relaxed text-[#5C5346]/88">
+          <strong className="text-[#1E1810]">Vista previa</strong> valida los campos mínimos del anuncio.{" "}
+          <strong className="text-[#1E1810]">Abrir vista previa</strong> guarda y abre sin esa validación.
+        </p>
+
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          <Link
-            href={previewHref}
-            onClick={flushSave}
-            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full bg-[#B8954A] px-6 text-sm font-bold text-[#1E1810] shadow-sm transition hover:brightness-95 sm:w-auto sm:min-w-[200px]"
-          >
-            Ver vista previa
-          </Link>
           <Link
             href={BR_PUBLICAR_HUB}
             className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#C9B46A]/50 px-6 text-sm font-semibold text-[#6E5418] transition hover:bg-[#FFEFD8] sm:w-auto"
@@ -185,7 +221,7 @@ export function BienesRaicesPrivadoForm() {
           <h2 className={aiTitleClass}>Anuncio</h2>
           <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
             <div className="sm:col-span-2">
-              <AiField label="Título">
+              <AiField required label="Título">
                 <input
                   className={fieldClass}
                   value={state.titulo}
@@ -194,7 +230,7 @@ export function BienesRaicesPrivadoForm() {
                 />
               </AiField>
             </div>
-            <AiField label="Precio (USD)" hint="Solo números enteros; en la vista previa verás el formato con comas.">
+            <AiField required label="Precio (USD)" hint="Solo números enteros; en la vista previa verás el formato con comas.">
               <input
                 className={fieldClass}
                 inputMode="numeric"
@@ -234,6 +270,14 @@ export function BienesRaicesPrivadoForm() {
                 autoComplete="street-address"
               />
             </AiField>
+            <p className="sm:col-span-2 text-xs text-[#5C5346]">
+              Para vista previa: ciudad o línea de ubicación (al menos uno)
+              <span className="text-[#B8954A]" aria-hidden>
+                {" "}
+                *
+              </span>
+              .
+            </p>
             <div className="sm:col-span-2">
               <AiField label="Enlace a mapa (opcional)" hint="Pega un enlace https (por ejemplo Google Maps).">
                 <input
@@ -260,7 +304,14 @@ export function BienesRaicesPrivadoForm() {
 
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>Fotos y video</h2>
-          <p className={aiSubClass}>Hasta {MAX_PHOTOS} fotos. Un video (enlace o archivo corto).</p>
+          <p className={aiSubClass}>
+            Hasta {MAX_PHOTOS} fotos. Al menos una foto para una vista previa completa
+            <span className="text-[#B8954A]" aria-hidden>
+              {" "}
+              *
+            </span>
+            . Un video (enlace o archivo corto).
+          </p>
           <div className="mt-4">
             <span className={aiLabelClass}>Fotos</span>
             <input
@@ -325,7 +376,17 @@ export function BienesRaicesPrivadoForm() {
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>Propietario (particular)</h2>
           <p className={aiSubClass}>
-            Tu nombre y cómo te contactan. No se pide sitio web ni redes sociales.
+            Tu nombre y cómo te contactan. No se pide sitio web ni redes sociales. Para vista previa: nombre
+            <span className="text-[#B8954A]" aria-hidden>
+              {" "}
+              *
+            </span>{" "}
+            y al menos un medio de contacto (teléfono, WhatsApp o correo)
+            <span className="text-[#B8954A]" aria-hidden>
+              {" "}
+              *
+            </span>
+            .
           </p>
           <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
             <div className="sm:col-span-2">
@@ -355,7 +416,7 @@ export function BienesRaicesPrivadoForm() {
                 </button>
               ) : null}
             </div>
-            <AiField label="Nombre completo">
+            <AiField required label="Nombre completo">
               <input
                 className={fieldClass}
                 value={state.seller.nombre}

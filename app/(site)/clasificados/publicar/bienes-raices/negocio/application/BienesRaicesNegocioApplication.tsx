@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
+import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
+import { gateBienesRaicesNegocioPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import {
   BR_CATEGORY_HOME,
   BR_PREVIEW_NEGOCIO,
@@ -16,6 +18,7 @@ import {
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import {
   bootstrapBienesRaicesNegocioApplicationState,
+  clearBienesRaicesNegocioPublishTempState,
   saveBienesRaicesNegocioPreviewDraft,
   saveBienesRaicesNegocioPreviewReturnDraft,
 } from "./utils/bienesRaicesPreviewDraft";
@@ -67,6 +70,7 @@ export default function BienesRaicesNegocioApplication() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [state, setState] = useState(() => createEmptyBienesRaicesNegocioFormState());
+  const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
 
   /* Client-only: SSR/hydration starts empty; layout restores only return-to-edit handoff (preview roundtrip), else empty — not preview-draft. */
   useLayoutEffect(() => {
@@ -92,12 +96,31 @@ export default function BienesRaicesNegocioApplication() {
     [isDirty, muxIds, router]
   );
 
-  const openPreview = useCallback(() => {
+  const persistPreviewHandoff = useCallback(() => {
     markPublishFlowOpeningPreview();
     saveBienesRaicesNegocioPreviewDraft(state);
     saveBienesRaicesNegocioPreviewReturnDraft(state);
+  }, [state]);
+
+  const openValidatedPreview = useCallback(() => {
+    const g = gateBienesRaicesNegocioPreview(state);
+    if (!g.ok) {
+      setPreviewGateMessage(g.message);
+      return;
+    }
+    setPreviewGateMessage(null);
+    persistPreviewHandoff();
     router.push(BR_PREVIEW_NEGOCIO);
-  }, [router, state]);
+  }, [persistPreviewHandoff, router, state]);
+
+  const resetApplication = useCallback(() => {
+    const ids = collectMuxAssetIdsFromNegocioState(state);
+    abandonLeonixPublishFlowClient({ muxAssetIds: ids, useBeacon: false });
+    clearBienesRaicesNegocioPublishTempState();
+    setState(createEmptyBienesRaicesNegocioFormState());
+    setStep(0);
+    setPreviewGateMessage(null);
+  }, [state]);
 
   return (
     <main className="min-h-screen bg-[#F6F0E2] pb-20 pt-24 text-[#2C2416] sm:pt-28">
@@ -128,6 +151,21 @@ export default function BienesRaicesNegocioApplication() {
                 Ver categoría BR
               </button>
             </div>
+          </div>
+          <div className="mt-5 border-t border-[#E8DFD0]/80 pt-4">
+            <ClasificadosApplicationTopActions
+              onPreviewValidated={openValidatedPreview}
+              openPreviewHref={BR_PREVIEW_NEGOCIO}
+              onBeforeOpenUnvalidatedPreview={persistPreviewHandoff}
+              onDeleteApplication={resetApplication}
+              validationBlockedMessage={previewGateMessage}
+              deleteConfirmMessage="¿Eliminar toda la solicitud y empezar de nuevo? Se descarta el borrador de esta sesión."
+            />
+            <p className="mt-3 text-xs leading-relaxed text-[#5C5346]/88">
+              <strong className="text-[#1E1810]">Vista previa</strong> exige los campos mínimos para un anuncio completo.{" "}
+              <strong className="text-[#1E1810]">Abrir vista previa</strong> guarda el borrador y abre el diseño sin esa
+              validación.
+            </p>
           </div>
         </div>
 
@@ -183,7 +221,7 @@ export default function BienesRaicesNegocioApplication() {
             {step === 10 ? <AsesorFinancieroNegocioSection state={state} setState={setState} /> : null}
             {step === 11 ? <ContactoCtasNegocioSection state={state} setState={setState} /> : null}
             {step === 12 ? <ConfianzaNegocioSection state={state} setState={setState} /> : null}
-            {step === 13 ? <VistaPreviaNegocioSection onOpenPreview={openPreview} /> : null}
+            {step === 13 ? <VistaPreviaNegocioSection /> : null}
             {step === 14 ? <ResumenPublicarNegocioSection state={state} /> : null}
 
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E8DFD0]/80 pt-4">
@@ -195,15 +233,6 @@ export default function BienesRaicesNegocioApplication() {
               >
                 Anterior
               </button>
-              {step === 13 ? (
-                <button
-                  type="button"
-                  onClick={openPreview}
-                  className="rounded-xl bg-gradient-to-r from-[#C9A85A] to-[#B8954A] px-5 py-2.5 text-sm font-bold text-[#1E1810] shadow-md hover:opacity-95"
-                >
-                  Ver vista previa
-                </button>
-              ) : null}
               <button
                 type="button"
                 disabled={!canGoNext}

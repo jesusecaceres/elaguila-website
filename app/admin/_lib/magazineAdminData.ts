@@ -1,10 +1,7 @@
 /**
- * Magazine manifest reads for admin ops. Source of truth today: `public/magazine/editions.json`.
- *
- * FUTURE: Supabase bucket + DB row for issues; admin uploads update manifest or DB and regenerate static paths.
+ * Magazine manifest for admin preview — same effective output as public `/api/magazine/manifest`.
  */
-import { readFile } from "fs/promises";
-import path from "path";
+import { resolvePublicMagazineManifest } from "@/app/lib/magazine/magazineManifestServer";
 
 export type MagazineFeatured = {
   year: string;
@@ -25,52 +22,34 @@ export type MagazineArchiveMonth = {
 export type MagazineManifestAdmin = {
   featured: MagazineFeatured | null;
   archive: MagazineArchiveMonth[];
+  /** Whether the public hub resolves from Supabase or falls back to editions.json */
+  publicSource: "database" | "file";
 };
 
 export async function getMagazineManifestForAdmin(): Promise<MagazineManifestAdmin> {
   try {
-    const fp = path.join(process.cwd(), "public", "magazine", "editions.json");
-    const raw = await readFile(fp, "utf-8");
-    const j = JSON.parse(raw) as {
-      featured?: {
-        year?: string;
-        month?: string;
-        title?: { es?: string; en?: string };
-        updated?: string;
-      };
-      years?: Record<
-        string,
-        {
-          months?: Array<{
-            month?: string;
-            title?: { es?: string; en?: string };
-            updated?: string;
-          }>;
-        }
-      >;
-    };
-
-    const featured: MagazineFeatured | null = j.featured?.year && j.featured?.month
-      ? {
-          year: j.featured.year,
-          month: j.featured.month,
-          titleEs: j.featured.title?.es ?? j.featured.month,
-          titleEn: j.featured.title?.en ?? j.featured.month,
-          updated: j.featured.updated ?? "",
-        }
-      : null;
+    const m = await resolvePublicMagazineManifest();
+    const featured: MagazineFeatured | null =
+      m.featured?.year && m.featured?.month
+        ? {
+            year: m.featured.year,
+            month: m.featured.month,
+            titleEs: m.featured.title.es,
+            titleEn: m.featured.title.en,
+            updated: m.featured.updated ?? "",
+          }
+        : null;
 
     const archive: MagazineArchiveMonth[] = [];
-    const years = j.years ?? {};
-    for (const [year, block] of Object.entries(years)) {
-      for (const m of block.months ?? []) {
-        if (!m.month) continue;
+    for (const [year, block] of Object.entries(m.years ?? {})) {
+      for (const mo of block.months ?? []) {
+        if (!mo.month) continue;
         archive.push({
           year,
-          month: m.month,
-          titleEs: m.title?.es ?? m.month,
-          titleEn: m.title?.en ?? m.month,
-          updated: m.updated ?? "",
+          month: mo.month,
+          titleEs: mo.title.es,
+          titleEn: mo.title.en,
+          updated: mo.updated ?? "",
         });
       }
     }
@@ -79,8 +58,8 @@ export async function getMagazineManifestForAdmin(): Promise<MagazineManifestAdm
       return b.month.localeCompare(a.month);
     });
 
-    return { featured, archive };
+    return { featured, archive, publicSource: m.source };
   } catch {
-    return { featured: null, archive: [] };
+    return { featured: null, archive: [], publicSource: "file" };
   }
 }

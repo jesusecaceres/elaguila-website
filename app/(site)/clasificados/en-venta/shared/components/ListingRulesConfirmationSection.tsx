@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import SectionShell from "@/app/clasificados/en-venta/shared/components/SectionShell";
 
-const COPY = {
+const COPY_ITEM = {
   es: {
     title: "Confirmación antes de publicar",
     desc: "Estas casillas ayudan a mantener Leonix claro y confiable para todos.",
@@ -23,9 +23,30 @@ const COPY = {
   },
 } as const;
 
+const COPY_SERVICIOS = {
+  es: {
+    title: "Confirmación antes de publicar",
+    desc: "Estas casillas ayudan a mantener Leonix claro y confiable para todos.",
+    a: "Confirmo que la información de mi negocio es veraz y actualizada.",
+    b: "Confirmo que las fotos y videos representan mi negocio y el trabajo que ofrezco.",
+    c: "Confirmo que mi anuncio respeta las reglas de la comunidad y del marketplace.",
+    rulesLink: "Ver reglas de Leonix",
+  },
+  en: {
+    title: "Confirmation before posting",
+    desc: "These checks help keep Leonix clear and trustworthy for everyone.",
+    a: "I confirm my business information is accurate and up to date.",
+    b: "I confirm the photos and videos represent my business and the work I offer.",
+    c: "I confirm this listing follows community and marketplace rules.",
+    rulesLink: "View Leonix rules",
+  },
+} as const;
+
 type Props = {
   lang: "es" | "en";
   variant?: "light" | "dark";
+  /** Marketplace item (En Venta) vs Servicios business profile */
+  subject?: "item" | "servicios";
   confirmAccurate: boolean;
   confirmPhotos: boolean;
   confirmRules: boolean;
@@ -37,6 +58,7 @@ type Props = {
 export default function ListingRulesConfirmationSection({
   lang,
   variant = "light",
+  subject = "item",
   confirmAccurate,
   confirmPhotos,
   confirmRules,
@@ -44,9 +66,11 @@ export default function ListingRulesConfirmationSection({
   onPhotos,
   onRules,
 }: Props) {
-  const t = COPY[lang];
+  const t = subject === "servicios" ? COPY_SERVICIOS[lang] : COPY_ITEM[lang];
   const pathname = usePathname() || "";
-  const rulesHref = `/clasificados/reglas?lang=${lang}&return=${encodeURIComponent(pathname || "/clasificados/publicar/en-venta")}`;
+  const defaultReturn =
+    subject === "servicios" ? "/clasificados/publicar/servicios" : "/clasificados/publicar/en-venta";
+  const rulesHref = `/clasificados/reglas?lang=${lang}&return=${encodeURIComponent(pathname || defaultReturn)}`;
 
   const row =
     variant === "dark"

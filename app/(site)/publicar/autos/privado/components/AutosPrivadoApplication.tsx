@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AutosApplicationTopActions } from "@/app/publicar/autos/shared/components/AutosApplicationTopActions";
 import { useEffect, useMemo } from "react";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
@@ -30,6 +30,17 @@ const LABEL = "block text-xs font-bold uppercase tracking-[0.1em] text-[color:va
 const INPUT =
   "mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2 text-sm text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
 const GRID2 = "grid gap-4 sm:grid-cols-2";
+
+function reqLabel(label: string) {
+  return (
+    <>
+      {label}{" "}
+      <span className="text-red-800" aria-hidden>
+        *
+      </span>
+    </>
+  );
+}
 
 function parseOptInt(raw: string): number | undefined {
   const t = raw.trim();
@@ -140,6 +151,22 @@ export function AutosPrivadoApplication() {
           </details>
         </header>
 
+        <AutosApplicationTopActions
+          lane="privado"
+          copy={t}
+          listing={listing}
+          mediaSectionId="autos-clasificados-app-media"
+          onFlushOpenSameTab={async () => {
+            await flushDraft();
+            router.push(previewHref);
+          }}
+          onFlushOpenNewTab={async () => {
+            await flushDraft();
+            window.open(previewHref, "_blank", "noopener,noreferrer");
+          }}
+          onDeleteApplication={resetDraft}
+        />
+
         <div className="flex flex-col gap-5 sm:gap-6">
           {/* A — Principal (alineado con Negocios; sin pago mensual ni stock) */}
           <section className={CARD}>
@@ -147,7 +174,7 @@ export function AutosPrivadoApplication() {
             <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{t.app.sections.mainSub}</p>
             <div className={`${GRID2} mt-5`}>
               <div>
-                <label className={LABEL}>{t.app.labels.year}</label>
+                <label className={LABEL}>{reqLabel(t.app.labels.year)}</label>
                 <input
                   className={INPUT}
                   inputMode="numeric"
@@ -156,7 +183,7 @@ export function AutosPrivadoApplication() {
                 />
               </div>
               <div>
-                <label className={LABEL}>{t.app.labels.make}</label>
+                <label className={LABEL}>{reqLabel(t.app.labels.make)}</label>
                 <input
                   className={INPUT}
                   value={listing.make ?? ""}
@@ -164,7 +191,7 @@ export function AutosPrivadoApplication() {
                 />
               </div>
               <div>
-                <label className={LABEL}>{t.app.labels.model}</label>
+                <label className={LABEL}>{reqLabel(t.app.labels.model)}</label>
                 <input
                   className={INPUT}
                   value={listing.model ?? ""}
@@ -224,7 +251,7 @@ export function AutosPrivadoApplication() {
                 </select>
               </div>
               <div>
-                <label className={LABEL}>{t.app.labels.price}</label>
+                <label className={LABEL}>{reqLabel(t.app.labels.price)}</label>
                 <input
                   className={INPUT}
                   inputMode="decimal"
@@ -242,7 +269,7 @@ export function AutosPrivadoApplication() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className={LABEL}>{t.app.labels.city}</label>
+                <label className={LABEL}>{reqLabel(t.app.labels.city)}</label>
                 <CityAutocomplete
                   value={listing.city ?? ""}
                   onChange={(v) => setListingPatch({ city: v || undefined })}
@@ -253,7 +280,7 @@ export function AutosPrivadoApplication() {
                 <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.cityNorCal}</p>
               </div>
               <div>
-                <label className={LABEL}>{t.app.labels.state}</label>
+                <label className={LABEL}>{reqLabel(t.app.labels.state)}</label>
                 <select
                   className={INPUT}
                   value={listing.state ?? ""}
@@ -267,7 +294,7 @@ export function AutosPrivadoApplication() {
                 </select>
               </div>
               <div>
-                <label className={LABEL}>{t.app.labels.zip}</label>
+                <label className={LABEL}>{reqLabel(t.app.labels.zip)}</label>
                 <input
                   className={INPUT}
                   inputMode="numeric"
@@ -413,6 +440,7 @@ export function AutosPrivadoApplication() {
             setListingPatch={setListingPatch}
             copy={t}
             hideDealerLogo
+            sectionId="autos-clasificados-app-media"
           />
 
           {/* E — Vendedor / contacto */}
@@ -422,6 +450,12 @@ export function AutosPrivadoApplication() {
               {lang === "es"
                 ? "Nombre y canales de contacto. Sin sitio web, citas ni redes en este paquete."
                 : "Name and contact channels. No website, booking, or social profiles in this package."}
+            </p>
+            <p className="mt-2 text-xs font-semibold text-[color:var(--lx-text-2)]">
+              <span className="text-red-800" aria-hidden>
+                *
+              </span>{" "}
+              {t.app.hints.previewNeed_sellerContact}
             </p>
             <div className={`${GRID2} mt-5`}>
               <div className="sm:col-span-2">
@@ -493,29 +527,6 @@ export function AutosPrivadoApplication() {
             />
           </section>
 
-          {/* Actions */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <Link
-              href={previewHref}
-              onClick={(e) => {
-                e.preventDefault();
-                void (async () => {
-                  await flushDraft();
-                  router.push(previewHref);
-                })();
-              }}
-              className="inline-flex min-h-[48px] w-full items-center justify-center rounded-[14px] bg-[color:var(--lx-cta-dark)] px-6 text-sm font-bold text-[#FFFCF7] shadow-lg transition hover:bg-[color:var(--lx-cta-dark-hover)] sm:w-auto"
-            >
-              {t.app.actions.preview}
-            </Link>
-            <button
-              type="button"
-              className="min-h-[44px] w-full text-sm font-semibold text-[color:var(--lx-muted)] underline-offset-4 hover:text-[color:var(--lx-text-2)] hover:underline sm:min-h-0 sm:w-auto sm:shrink-0"
-              onClick={() => resetDraft()}
-            >
-              {t.app.actions.reset}
-            </button>
-          </div>
         </div>
       </div>
     </div>

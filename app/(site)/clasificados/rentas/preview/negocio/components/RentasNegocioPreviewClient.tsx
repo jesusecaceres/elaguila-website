@@ -7,6 +7,7 @@ import {
   BR_NEGOCIO_Q_PROPIEDAD,
   coerceBrNegocioCategoriaPropiedad,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
 import { BienesRaicesNegocioPreviewView } from "@/app/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView";
 import { mapRentasNegocioStateToPreviewVm } from "@/app/clasificados/publicar/rentas/negocio/application/mapping/mapRentasNegocioStateToPreviewVm";
 import { loadRentasNegocioDraft } from "@/app/clasificados/publicar/rentas/negocio/application/utils/rentasNegocioDraft";
@@ -60,26 +61,28 @@ export default function RentasNegocioPreviewClient() {
       categoriaPropiedad: urlCategoria,
     });
     const vm = mapRentasNegocioStateToPreviewVm(shell);
+    const editHrefRecovery = `${RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(urlCategoria)}`;
     return (
-      <div className="min-h-screen overflow-x-hidden bg-[#F9F6F1]">
-        <div className="border-b px-4 py-3 text-center text-xs text-[#5C5346]" style={{ borderColor: "rgba(61, 54, 48, 0.12)" }}>
+      <LeonixPreviewPageShell editHref={editHrefRecovery}>
+        <p className="mx-auto max-w-[1240px] px-4 py-3 text-center text-xs text-[#5C5346] sm:px-6 lg:px-8">
           <span className="font-semibold text-[#2C2416]">Sin borrador en esta sesión</span>
           <span className="mx-2 opacity-40">·</span>
           Plantilla mínima por categoría.{" "}
-          <Link href={RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY} className="font-semibold underline">
-            Publicar — Negocio
+          <Link href={RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY} className="font-semibold underline" prefetch={false}>
+            Ir a publicar — Negocio
           </Link>
-        </div>
-        <BienesRaicesNegocioPreviewView
-          vm={vm}
-          editHref={`${RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(urlCategoria)}`}
-        />
-      </div>
+        </p>
+        <BienesRaicesNegocioPreviewView vm={vm} />
+      </LeonixPreviewPageShell>
     );
   }
 
   const vm = mapRentasNegocioStateToPreviewVm(draft);
   const editHref = `${RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}`;
 
-  return <BienesRaicesNegocioPreviewView vm={vm} editHref={editHref} />;
+  return (
+    <LeonixPreviewPageShell editHref={editHref}>
+      <BienesRaicesNegocioPreviewView vm={vm} />
+    </LeonixPreviewPageShell>
+  );
 }

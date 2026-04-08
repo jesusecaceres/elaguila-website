@@ -10,10 +10,24 @@ export const aiCardClass =
 export const aiTitleClass = "text-lg font-bold text-[#1E1810]";
 export const aiSubClass = "mt-1 text-sm text-[#5C5346]/88";
 
-export function AiField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+export function AiField({
+  label,
+  hint,
+  required,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  /** Visual * for required-for-preview / trust fields. */
+  required?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
-      <span className={aiLabelClass}>{label}</span>
+      <span className={aiLabelClass}>
+        {label}
+        {required ? <span className="text-[#B8954A]" aria-hidden> *</span> : null}
+      </span>
       {hint ? <p className={aiHintClass}>{hint}</p> : null}
       {children}
     </label>

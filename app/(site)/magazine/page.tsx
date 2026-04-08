@@ -1,37 +1,15 @@
 "use client";
 
 import Image from "next/image";
+import type { PublicMagazineManifest } from "@/app/lib/magazine/magazineManifestTypes";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import newLogo from "../../../public/logo.png";
 
 type Lang = "es" | "en";
 
-type TitleMap = {
-  es: string;
-  en: string;
-};
-
-type MonthEntry = {
-  month: string;
-  title: TitleMap;
-};
-
-type EditionsManifest = {
-  featured: {
-    year: string;
-    month: string;
-    title: TitleMap;
-  };
-  years: Record<
-    string,
-    {
-      months: MonthEntry[];
-    }
-  >;
-};
-
-const FALLBACK: EditionsManifest = {
+const FALLBACK: PublicMagazineManifest = {
+  source: "file",
   featured: {
     year: "2026",
     month: "february",
@@ -39,6 +17,9 @@ const FALLBACK: EditionsManifest = {
       es: "Edición Digital — Febrero 2026",
       en: "Digital Edition — February 2026",
     },
+    coverUrl: null,
+    pdfUrl: null,
+    flipbookUrl: null,
   },
   years: {
     "2026": {
@@ -49,6 +30,9 @@ const FALLBACK: EditionsManifest = {
             es: "Febrero 2026 — Conexión",
             en: "February 2026 — Connection",
           },
+          coverUrl: null,
+          pdfUrl: null,
+          flipbookUrl: null,
         },
         {
           month: "january",
@@ -56,6 +40,9 @@ const FALLBACK: EditionsManifest = {
             es: "Enero 2026 — Claridad",
             en: "January 2026 — Clarity",
           },
+          coverUrl: null,
+          pdfUrl: null,
+          flipbookUrl: null,
         },
       ],
     },
@@ -149,8 +136,7 @@ export default function MagazineHubPage() {
   const params = useSearchParams()!;
   const lang = (params.get("lang") || "es") as Lang;
 
-  // One flipbook link for the live reader (you replace the PDF inside FlipHTML5 monthly)
-  const FLIPBOOK_URL = "https://online.fliphtml5.com/LEONIXMedia/magazine/";
+  const DEFAULT_FLIPBOOK = "https://online.fliphtml5.com/LEONIXMedia/magazine/";
 
   const ui = useMemo(
     () => ({
@@ -181,20 +167,27 @@ export default function MagazineHubPage() {
   );
 
   const t = ui[lang];
-  const [data, setData] = useState<EditionsManifest>(FALLBACK);
+  const [data, setData] = useState<PublicMagazineManifest>(FALLBACK);
   const [status, setStatus] = useState<"loading" | "ready">("loading");
   const [flipOpen, setFlipOpen] = useState(false);
+  const [flipSrc, setFlipSrc] = useState(DEFAULT_FLIPBOOK);
 
-  const openFlipbook = useCallback(() => setFlipOpen(true), []);
+  const openFlipbook = useCallback(
+    (url?: string | null) => {
+      setFlipSrc((url && url.trim()) || DEFAULT_FLIPBOOK);
+      setFlipOpen(true);
+    },
+    [DEFAULT_FLIPBOOK]
+  );
   const closeFlipbook = useCallback(() => setFlipOpen(false), []);
 
   useEffect(() => {
     let alive = true;
     async function load() {
       try {
-        const res = await fetch("/magazine/editions.json", { cache: "no-store" });
+        const res = await fetch("/api/magazine/manifest", { cache: "no-store" });
         if (!res.ok) throw new Error();
-        const json = (await res.json()) as EditionsManifest;
+        const json = (await res.json()) as PublicMagazineManifest;
         if (alive) setData(json);
       } catch {
         if (alive) setData(FALLBACK);
@@ -209,8 +202,10 @@ export default function MagazineHubPage() {
   }, []);
 
   const featured = data.featured;
-  const featuredCoverSrc = `/magazine/${featured.year}/${featured.month}/cover.png`;
-  const featuredPdfSrc = `/magazine/${featured.year}/${featured.month}/magazine.pdf`;
+  const featuredCoverSrc =
+    (featured.coverUrl && featured.coverUrl.trim()) || `/magazine/${featured.year}/${featured.month}/cover.png`;
+  const featuredPdfSrc =
+    (featured.pdfUrl && featured.pdfUrl.trim()) || `/magazine/${featured.year}/${featured.month}/magazine.pdf`;
 
   // Years sorted newest → oldest (string years like "2026")
   const yearsSorted = useMemo(() => {
@@ -233,12 +228,7 @@ export default function MagazineHubPage() {
       }}
     >
 
-      <FullscreenFlipbookModal
-        open={flipOpen}
-        onClose={closeFlipbook}
-        src={FLIPBOOK_URL}
-        title={t.modalTitle}
-      />
+      <FullscreenFlipbookModal open={flipOpen} onClose={closeFlipbook} src={flipSrc} title={t.modalTitle} />
 
       <section className="max-w-6xl mx-auto px-6 pt-28">
         <div className="text-center mb-16">
@@ -275,7 +265,8 @@ export default function MagazineHubPage() {
                   {/* Buttons (NO "PDF (respaldo)" anywhere) */}
                   <div className="mt-6 flex gap-4 flex-wrap">
                     <button
-                      onClick={openFlipbook}
+                      type="button"
+                      onClick={() => openFlipbook(featured.flipbookUrl)}
                       className="px-6 py-3 rounded-full bg-[color:var(--lx-cta-dark)] text-[color:var(--lx-cta-light)] font-semibold hover:bg-[color:var(--lx-cta-dark-hover)] transition"
                     >
                       {t.openMagazine}
@@ -312,8 +303,11 @@ export default function MagazineHubPage() {
                         {months
                           .filter((m) => !isFeatured(year, m.month))
                           .map((m) => {
-                            const coverSrc = `/magazine/${year}/${m.month}/cover.png`;
-                            const pdfSrc = `/magazine/${year}/${m.month}/magazine.pdf`;
+                            const coverSrc =
+                              (m.coverUrl && m.coverUrl.trim()) || `/magazine/${year}/${m.month}/cover.png`;
+                            const pdfSrc =
+                              (m.pdfUrl && m.pdfUrl.trim()) || `/magazine/${year}/${m.month}/magazine.pdf`;
+                            const issueFlip = m.flipbookUrl;
 
                             return (
                               <div
@@ -337,7 +331,8 @@ export default function MagazineHubPage() {
                                   {/* Buttons: Read (fullscreen flipbook) + Download PDF */}
                                   <div className="mt-6 flex gap-4 flex-wrap">
                                     <button
-                                      onClick={openFlipbook}
+                                      type="button"
+                                      onClick={() => openFlipbook(issueFlip)}
                                       className="px-6 py-3 rounded-full bg-[color:var(--lx-cta-dark)] text-[color:var(--lx-cta-light)] font-semibold hover:bg-[color:var(--lx-cta-dark-hover)] transition"
                                     >
                                       {t.openMagazine}

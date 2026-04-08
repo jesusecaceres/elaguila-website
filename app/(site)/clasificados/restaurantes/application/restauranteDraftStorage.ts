@@ -4,6 +4,10 @@ import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 /**
  * Session-scoped key: survives edit ↔ preview, in-tab refresh, and "Volver a editar" while the tab/session lasts.
  * Clears when the browsing session ends (tab closed). Not long-lived across days/weeks.
+ *
+ * **Media (pre-publish):** Imágenes y video local se guardan como data URLs dentro del JSON del borrador en
+ * `sessionStorage` (cuota del navegador). No hay adjunto final a MUX/CDN en este paso: la publicación copia el snapshot
+ * (`listing_json`) cuando Supabase está configurado; hasta entonces todo es local a la sesión.
  */
 export const RESTAURANTES_DRAFT_STORAGE_KEY = "restaurantes-draft";
 

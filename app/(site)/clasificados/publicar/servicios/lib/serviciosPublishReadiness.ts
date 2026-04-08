@@ -44,6 +44,10 @@ const LABELS = {
     es: "Portada o al menos una imagen destacada en la galería principal",
     en: "Cover image or at least one image in the main gallery strip",
   },
+  primaryCta: {
+    es: "Acción principal del botón destacado",
+    en: "Primary highlighted button action",
+  },
 } as const;
 
 /**
@@ -76,6 +80,14 @@ export function evaluateServiciosPublishReadiness(
   }
   if (!hasFeaturedVisual(state)) {
     missing.push({ id: "media", label: L("media") });
+  }
+
+  const presetForCta = getBusinessTypePreset(state.businessTypeId);
+  if (presetForCta && presetForCta.primaryCtaOptions.length > 0) {
+    const validPrimary = presetForCta.primaryCtaOptions.some((c) => c.id === state.primaryCtaId);
+    if (!validPrimary) {
+      missing.push({ id: "primary_cta", label: L("primaryCta") });
+    }
   }
 
   return { ok: missing.length === 0, missing };

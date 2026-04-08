@@ -6,6 +6,7 @@ import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosPro
 import { getServiciosProfileLabels } from "@/app/servicios/copy/serviciosProfileCopy";
 import type { ServiciosPublicListingRow } from "./lib/serviciosPublicListingsServer";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
+import { formatServiciosInternalGroupForDiscovery } from "./lib/serviciosInternalGroupDisplay";
 
 /**
  * Discovery card — only fields that exist on the resolved profile; empty data hides cleanly.
@@ -33,6 +34,9 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
   const msg = profile.contact.messageEnabled === true;
   const promo = profile.promo?.headline?.trim();
   const qf = profile.quickFacts[0]?.label;
+  const groupDiscovery = formatServiciosInternalGroupForDiscovery(row.internal_group, lang);
+  const groupLabel = groupDiscovery?.trim() ?? "";
+  const showGroupChip = Boolean(groupLabel) && (!category || groupLabel !== category.trim());
 
   return (
     <li>
@@ -61,6 +65,11 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col gap-2 p-4">
+          {showGroupChip ? (
+            <span className="w-fit rounded-full bg-[#C9A84A]/12 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#7a6220]">
+              {groupLabel}
+            </span>
+          ) : null}
           {category ? (
             <span className="line-clamp-2 text-[11px] font-bold uppercase tracking-wide text-[#3B66AD]">{category}</span>
           ) : null}

@@ -3,10 +3,32 @@ import { normalizeClasificadosServiciosApplicationState } from "./clasificadosSe
 
 export const CLASIFICADOS_SERVICIOS_APPLICATION_STORAGE_KEY = "leonix.clasificados.servicios.application.v1";
 
+function storage(): Storage | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
 export function readClasificadosServiciosApplicationFromBrowser(): ClasificadosServiciosApplicationState | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(CLASIFICADOS_SERVICIOS_APPLICATION_STORAGE_KEY);
+    const st = storage();
+    let raw = st?.getItem(CLASIFICADOS_SERVICIOS_APPLICATION_STORAGE_KEY) ?? null;
+    if (!raw) {
+      try {
+        const legacy = window.localStorage.getItem(CLASIFICADOS_SERVICIOS_APPLICATION_STORAGE_KEY);
+        if (legacy) {
+          st?.setItem(CLASIFICADOS_SERVICIOS_APPLICATION_STORAGE_KEY, legacy);
+          window.localStorage.removeItem(CLASIFICADOS_SERVICIOS_APPLICATION_STORAGE_KEY);
+          raw = legacy;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
     if (!raw) return null;
     const v = JSON.parse(raw) as unknown;
     if (!v || typeof v !== "object") return null;
@@ -19,7 +41,8 @@ export function readClasificadosServiciosApplicationFromBrowser(): ClasificadosS
 export function writeClasificadosServiciosApplicationToBrowser(state: ClasificadosServiciosApplicationState): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(CLASIFICADOS_SERVICIOS_APPLICATION_STORAGE_KEY, JSON.stringify(state));
+    const st = storage();
+    st?.setItem(CLASIFICADOS_SERVICIOS_APPLICATION_STORAGE_KEY, JSON.stringify(state));
   } catch {
     /* quota */
   }
@@ -28,7 +51,8 @@ export function writeClasificadosServiciosApplicationToBrowser(state: Clasificad
 export function clearClasificadosServiciosApplicationFromBrowser(): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.removeItem(CLASIFICADOS_SERVICIOS_APPLICATION_STORAGE_KEY);
+    const st = storage();
+    st?.removeItem(CLASIFICADOS_SERVICIOS_APPLICATION_STORAGE_KEY);
   } catch {
     /* ignore */
   }

@@ -23,7 +23,9 @@ export function TipoPublicacionSection({
 }) {
   return (
     <section className={brCardClass}>
-      <h2 className={brSectionTitleClass}>¿Qué deseas publicar?</h2>
+      <h2 className={brSectionTitleClass}>
+        ¿Qué deseas publicar? <span className="text-[#B8954A]">*</span>
+      </h2>
       <p className={brSubTitleClass}>Define qué campos extra verás más adelante (por ejemplo proyecto nuevo o inversión).</p>
       <BrPreviewHint>
         Ajusta las filas de datos clave y los extras del listado (proyecto, multifamiliar) en la zona de hechos del preview.

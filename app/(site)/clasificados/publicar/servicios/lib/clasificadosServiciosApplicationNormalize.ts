@@ -163,5 +163,8 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     offerPdfUrl: str("offerPdfUrl", d.offerPdfUrl),
     offerPrimaryAsset,
     offerQrLater: bool("offerQrLater", d.offerQrLater),
+    confirmListingAccurate: bool("confirmListingAccurate", d.confirmListingAccurate),
+    confirmPhotosRepresentBusiness: bool("confirmPhotosRepresentBusiness", d.confirmPhotosRepresentBusiness),
+    confirmCommunityRules: bool("confirmCommunityRules", d.confirmCommunityRules),
   };
 }

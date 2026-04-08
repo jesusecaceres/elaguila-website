@@ -3,7 +3,7 @@
 export const RENTAS_PUBLICAR_PRIVADO = "/clasificados/publicar/rentas/privado";
 /** Same Privado entry as `RENTAS_PUBLICAR_PRIVADO`, under `/publicar`. */
 export const RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY = "/publicar/rentas/privado";
-/** Privado preview (ivory shell); reads `rentas-privado-draft-v1`. */
+/** Privado preview (ivory shell); reads `rentas-privado-draft-v1` in sessionStorage (legacy localStorage migrates once). */
 export const RENTAS_PREVIEW_PRIVADO = "/clasificados/rentas/preview/privado";
 
 export const RENTAS_PUBLICAR_NEGOCIO = "/clasificados/publicar/rentas/negocio";

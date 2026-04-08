@@ -7,6 +7,7 @@ import {
   BR_NEGOCIO_Q_PROPIEDAD,
   coerceBrNegocioCategoriaPropiedad,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
 import { BienesRaicesPrivadoPreviewView } from "@/app/clasificados/bienes-raices/preview/privado/BienesRaicesPrivadoPreviewView";
 import { buildRentasPrivadoTemplateVm } from "../model/buildRentasPrivadoTemplateVm";
 import { mapRentasPrivadoStateToPreviewVm } from "@/app/clasificados/publicar/rentas/privado/application/mapping/mapRentasPrivadoStateToPreviewVm";
@@ -53,23 +54,19 @@ export default function RentasPrivadoPreviewClient() {
 
   if (phase === "recovery" || !draft) {
     const templateVm = buildRentasPrivadoTemplateVm(urlCategoria);
+    const editHrefRecovery = `${RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(urlCategoria)}`;
     return (
-      <div className="min-h-screen overflow-x-hidden bg-[#F9F6F1]">
-        <div className="border-b px-4 py-3 text-center text-xs text-[#5C5346]" style={{ borderColor: "rgba(61, 54, 48, 0.12)" }}>
-          <span className="font-semibold text-[#2C2416]">Sin borrador en este dispositivo</span>
+      <LeonixPreviewPageShell editHref={editHrefRecovery}>
+        <p className="mx-auto max-w-[1240px] px-4 py-3 text-center text-xs text-[#5C5346] sm:px-6 lg:px-8">
+          <span className="font-semibold text-[#2C2416]">Sin borrador en esta sesión</span>
           <span className="mx-2 opacity-40">·</span>
-          Mostrando plantilla por categoría (
-          <Link href={RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY} className="font-semibold underline">
-            publicar
+          Plantilla por categoría.{" "}
+          <Link href={RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY} className="font-semibold underline" prefetch={false}>
+            Ir a publicar — Privado
           </Link>
-          ).
-        </div>
-        <BienesRaicesPrivadoPreviewView
-          vm={templateVm}
-          editHref={`${RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(urlCategoria)}`}
-          previewNavHubLabel="Rentas"
-        />
-      </div>
+        </p>
+        <BienesRaicesPrivadoPreviewView vm={templateVm} />
+      </LeonixPreviewPageShell>
     );
   }
 
@@ -77,5 +74,9 @@ export default function RentasPrivadoPreviewClient() {
 
   const editHref = `${RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}`;
 
-  return <BienesRaicesPrivadoPreviewView vm={vm} editHref={editHref} previewNavHubLabel="Rentas" />;
+  return (
+    <LeonixPreviewPageShell editHref={editHref}>
+      <BienesRaicesPrivadoPreviewView vm={vm} />
+    </LeonixPreviewPageShell>
+  );
 }

@@ -40,8 +40,8 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
       <AdminPageHeader
         eyebrow="Operations"
         title="Customer & records search"
-        subtitle="One query across profiles, Clasificados listings, and Tienda orders. Deep links open the existing admin surfaces — nothing here pretends to be a full CRM yet."
-        helperText="Busca por UUID de cuenta, fragmento de UUID, nombre, correo, teléfono, listing id (UUID público de /clasificados/anuncio/[id]), id de reporte, order id, order_ref o email del pedido Tienda. Los anuncios no usan otro slug numérico hoy: el id de Supabase es la referencia estable."
+        subtitle="Una sola búsqueda agrupa cuenta, anuncios, pedidos Tienda y reportes. Los enlaces abren las pantallas ya existentes; aquí no hay suplantación ni CRM completo."
+        helperText="UUID de cuenta, nombre, correo, teléfono, listing id (misma UUID pública en /clasificados/anuncio/[id]), id de reporte, order id, order_ref o email de pedido. Si solo cae un perfil, verás un resumen de contexto (conteos) debajo."
       />
 
       <form method="get" className={`${adminCardBase} space-y-3 p-5`}>
@@ -73,6 +73,35 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
         <p className="text-sm text-[#5C5346]">Enter a term to search across accounts, ads, and print orders.</p>
       ) : bundle ? (
         <>
+          <nav
+            aria-label="Saltar a sección de resultados"
+            className={`${adminCardBase} flex flex-wrap gap-2 p-3 text-xs font-bold text-[#6B5B2E]`}
+          >
+            <a href="#ops-profiles" className="underline">
+              Perfiles
+            </a>
+            <span className="text-[#D4C4A8]">·</span>
+            <a href="#ops-context" className="underline">
+              Contexto
+            </a>
+            <span className="text-[#D4C4A8]">·</span>
+            <a href="#ops-listings" className="underline">
+              Anuncios
+            </a>
+            <span className="text-[#D4C4A8]">·</span>
+            <a href="#ops-orders" className="underline">
+              Tienda
+            </a>
+            <span className="text-[#D4C4A8]">·</span>
+            <a href="#ops-reports" className="underline">
+              Reportes
+            </a>
+            <span className="text-[#D4C4A8]">·</span>
+            <a href="#ops-shortcuts" className="underline">
+              Atajos
+            </a>
+          </nav>
+
           {(pErr || lErr || oErr || rErr) && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950">
               {pErr ? <p>Profiles: {pErr}</p> : null}
@@ -82,7 +111,7 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
             </div>
           )}
 
-          <section className={`${adminCardBase} p-5`}>
+          <section id="ops-profiles" className={`${adminCardBase} scroll-mt-24 p-5`}>
             <h2 className="text-base font-bold text-[#1E1810]">Profiles</h2>
             <p className="mt-1 text-xs text-[#7A7164]">
               Strategy: {bundle.profiles.strategy === "server_search" ? "Postgres match" : "—"} ·{" "}
@@ -116,7 +145,76 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
             )}
           </section>
 
-          <section className={`${adminCardBase} p-5`}>
+          <section id="ops-context" className={`${adminCardBase} scroll-mt-24 p-5`}>
+            <h2 className="text-base font-bold text-[#1E1810]">Customer context (solo lectura)</h2>
+            <p className="mt-1 text-xs text-[#7A7164]">
+              Aparece cuando hay exactamente un perfil en la búsqueda. Conteos en vivo; no es vista “como el usuario” ni
+              impersonación.
+            </p>
+            {!bundle.supportContext ? (
+              <p className="mt-3 text-sm text-[#5C5346]">
+                {bundle.profiles.rows.length === 0
+                  ? "Sin perfil único para resumir."
+                  : bundle.profiles.rows.length > 1
+                    ? "Varios perfiles coinciden — abre el detalle o acota la búsqueda."
+                    : "Sin datos de contexto (error de lectura o perfil ausente)."}
+              </p>
+            ) : (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 p-3 text-sm">
+                  <p className="font-semibold text-[#1E1810]">{bundle.supportContext.displayName}</p>
+                  <p className="mt-1 text-xs text-[#7A7164] break-all">UUID: {bundle.supportContext.profileId}</p>
+                  <p className="text-xs text-[#7A7164]">{bundle.supportContext.email ?? "—"}</p>
+                  <p className="text-xs text-[#7A7164]">{bundle.supportContext.phone ?? "—"}</p>
+                  <Link
+                    href={`/admin/usuarios/${bundle.supportContext.profileId}`}
+                    className="mt-2 inline-block text-xs font-bold text-[#6B5B2E] underline"
+                  >
+                    Ficha completa →
+                  </Link>
+                </div>
+                <ul className="space-y-2 text-sm text-[#5C5346]">
+                  <li>
+                    Anuncios (owner):{" "}
+                    <strong className="text-[#1E1810]">{bundle.supportContext.listingsTotal}</strong> · pending/flagged:{" "}
+                    <strong className="text-[#1E1810]">{bundle.supportContext.listingsPendingOrFlagged}</strong>{" "}
+                    <Link
+                      href={`/admin/workspace/clasificados?q=${encodeURIComponent(bundle.supportContext.profileId)}`}
+                      className="font-bold text-[#6B5B2E] underline"
+                    >
+                      Cola →
+                    </Link>
+                  </li>
+                  <li>
+                    Reportes como reporter:{" "}
+                    <strong className="text-[#1E1810]">{bundle.supportContext.reportsAsReporter}</strong>{" "}
+                    <Link href="/admin/reportes" className="font-bold text-[#6B5B2E] underline">
+                      Cola →
+                    </Link>
+                  </li>
+                  <li>
+                    Pedidos Tienda (email coincidente):{" "}
+                    <strong className="text-[#1E1810]">{bundle.supportContext.tiendaOrdersMatchingEmail}</strong>
+                    {bundle.supportContext.email?.trim() ? (
+                      <>
+                        {" "}
+                        <Link
+                          href={`/admin/tienda/orders?q=${encodeURIComponent(bundle.supportContext.email!.trim())}`}
+                          className="font-bold text-[#6B5B2E] underline"
+                        >
+                          Inbox →
+                        </Link>
+                      </>
+                    ) : (
+                      <span className="text-xs text-[#9A9084]"> · sin email en perfil</span>
+                    )}
+                  </li>
+                </ul>
+              </div>
+            )}
+          </section>
+
+          <section id="ops-listings" className={`${adminCardBase} scroll-mt-24 p-5`}>
             <h2 className="text-base font-bold text-[#1E1810]">Clasificados listings</h2>
             <p className="mt-1 text-xs text-[#7A7164]">
               Referencia pública estable hoy: <code className="rounded bg-[#FAF7F2] px-1">listings.id</code> (UUID en URL).{" "}
@@ -187,7 +285,7 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
             )}
           </section>
 
-          <section className={`${adminCardBase} p-5`}>
+          <section id="ops-orders" className={`${adminCardBase} scroll-mt-24 p-5`}>
             <h2 className="text-base font-bold text-[#1E1810]">Tienda orders</h2>
             <p className="mt-1 text-xs text-[#7A7164]">
               <Link href={`/admin/tienda/orders?q=${encodeURIComponent(q)}`} className="font-bold text-[#6B5B2E] underline">
@@ -218,7 +316,7 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
             )}
           </section>
 
-          <section className={`${adminCardBase} p-5`}>
+          <section id="ops-reports" className={`${adminCardBase} scroll-mt-24 p-5`}>
             <h2 className="text-base font-bold text-[#1E1810]">Reportes de anuncios</h2>
             <p className="mt-1 text-xs text-[#7A7164]">
               Tabla <code className="rounded bg-[#FAF7F2] px-1">listing_reports</code>. Coincidencias por id de reporte, listing id o texto en el motivo.{" "}
@@ -259,7 +357,10 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
             )}
           </section>
 
-          <section className={`${adminCardBase} border-dashed border-[#C9B46A]/50 bg-[#FFF8F0]/80 p-4 text-xs text-[#5C5346]`}>
+          <section
+            id="ops-shortcuts"
+            className={`${adminCardBase} scroll-mt-24 border-dashed border-[#C9B46A]/50 bg-[#FFF8F0]/80 p-4 text-xs text-[#5C5346]`}
+          >
             <p className="font-semibold text-[#1E1810]">Atajos</p>
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-bold">
               <Link href="/admin/usuarios" className="text-[#6B5B2E] underline">

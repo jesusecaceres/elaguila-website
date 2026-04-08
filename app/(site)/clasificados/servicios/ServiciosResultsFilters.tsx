@@ -41,6 +41,7 @@ export function ServiciosResultsFilters({
       <form
         method="get"
         action="/clasificados/servicios"
+        aria-label={lang === "en" ? "Filter Servicios results" : "Filtrar resultados de Servicios"}
         className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
       >
         <input type="hidden" name="lang" value={lang} />
@@ -113,8 +114,8 @@ export function ServiciosResultsFilters({
 
       <p className="mt-3 text-[11px] leading-relaxed text-neutral-500">
         {lang === "en"
-          ? "Filters use data from published profiles only."
-          : "Los filtros usan solo datos de perfiles publicados."}
+          ? "Filters use structured fields from published profiles only (city, trade family, contact signals, offers). Language is shown on each card when the business provided it — there is no language filter yet."
+          : "Los filtros usan solo campos estructurados de perfiles publicados (ciudad, familia de giro, señales de contacto, ofertas). El idioma aparece en la tarjeta si el negocio lo indicó; aún no hay filtro por idioma."}
       </p>
     </div>
   );

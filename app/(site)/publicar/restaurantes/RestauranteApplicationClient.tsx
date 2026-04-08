@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
@@ -28,6 +27,7 @@ import { readRestauranteImageAsDataUrl } from "@/app/clasificados/restaurantes/a
 import { RestaurantePublishMediaStrip } from "@/app/clasificados/restaurantes/application/RestaurantePublishMediaStrip";
 import { RestauranteSubGalleryBucket } from "@/app/clasificados/restaurantes/application/RestauranteSubGalleryBucket";
 import { resolveRestauranteGallerySequence } from "@/app/clasificados/restaurantes/application/restauranteGalleryMediaSequence";
+import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
 
 const PREVIEW_HREF = "/clasificados/restaurantes/preview";
 
@@ -59,11 +59,26 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{children}</h2>;
 }
 
-function FieldLabel({ children, optional }: { children: React.ReactNode; optional?: boolean }) {
+function FieldLabel({
+  children,
+  optional,
+  required,
+}: {
+  children: React.ReactNode;
+  optional?: boolean;
+  /** Structural requirement for premium preview / open-card (shows *). */
+  required?: boolean;
+}) {
+  const showStar = Boolean(required) && !optional;
   return (
     <label className="block text-sm font-semibold text-[color:var(--lx-text-2)]">
       {children}
       {optional ? <span className="ml-1 font-normal text-[color:var(--lx-muted)]">(opcional)</span> : null}
+      {showStar ? (
+        <span className="ml-0.5 text-red-600" aria-hidden>
+          *
+        </span>
+      ) : null}
     </label>
   );
 }
@@ -181,37 +196,17 @@ export default function RestauranteApplicationClient() {
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={goPreview}
-          className="rounded-full bg-[color:var(--lx-cta-dark)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-light)] hover:bg-[color:var(--lx-cta-dark-hover)]"
-        >
-          Vista previa
-        </button>
-        <Link
-          href={PREVIEW_HREF}
-          title="Abre la vista previa con el borrador guardado, sin validar modos de servicio."
-          className="inline-flex items-center rounded-full border border-[color:var(--lx-nav-border)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
-        >
-          Abrir vista previa
-        </Link>
-        <button
-          type="button"
-          onClick={() => {
-            if (confirm("¿Borrar todo el borrador y empezar de nuevo?")) resetDraft();
-          }}
-          className="rounded-full border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-900 hover:bg-red-100"
-        >
-          Reiniciar borrador
-        </button>
-      </div>
+      <ClasificadosApplicationTopActions
+        onPreviewValidated={goPreview}
+        openPreviewHref={PREVIEW_HREF}
+        onDeleteApplication={resetDraft}
+        disableValidatedPreview={!serviceOk}
+      />
 
       <p className="mt-3 text-xs leading-relaxed text-[color:var(--lx-muted)]">
-        <strong className="text-[color:var(--lx-text-2)]">Abrir vista previa</strong> exige al menos un{" "}
-        <strong>modo de servicio</strong> en la sección B (regla de publicación mínima) y te lleva al resultado.{" "}
-        <strong className="text-[color:var(--lx-text-2)]">Ver borrador (sin validar B)</strong> abre la misma vista con lo
-        guardado aunque falte B — útil para revisar fotos o texto.
+        <strong className="text-[color:var(--lx-text-2)]">Vista previa</strong> valida modos de servicio (sección B) y te
+        lleva al resultado. <strong className="text-[color:var(--lx-text-2)]">Abrir vista previa</strong> abre la misma
+        URL con el borrador de esta sesión <strong>sin</strong> exigir B — útil para revisar fotos o texto.
       </p>
 
       {serviceErr ? (
@@ -241,7 +236,7 @@ export default function RestauranteApplicationClient() {
           <SectionTitle>A · Identidad del negocio</SectionTitle>
           <div className="mt-4 grid gap-4">
             <div>
-              <FieldLabel>Nombre del negocio</FieldLabel>
+              <FieldLabel required>Nombre del negocio</FieldLabel>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.businessName}
@@ -249,7 +244,7 @@ export default function RestauranteApplicationClient() {
               />
             </div>
             <div>
-              <FieldLabel>Tipo de negocio</FieldLabel>
+              <FieldLabel required>Tipo de negocio</FieldLabel>
               <select
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.businessType}
@@ -283,7 +278,7 @@ export default function RestauranteApplicationClient() {
             ) : null}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <FieldLabel>Cocina principal</FieldLabel>
+                <FieldLabel required>Cocina principal</FieldLabel>
                 <select
                   className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                   value={draft.primaryCuisine}
@@ -388,7 +383,7 @@ export default function RestauranteApplicationClient() {
               ) : null}
             </div>
             <div>
-              <FieldLabel>Resumen corto</FieldLabel>
+              <FieldLabel required>Resumen corto</FieldLabel>
               <textarea
                 className="mt-1 min-h-[88px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.shortSummary}
@@ -406,7 +401,7 @@ export default function RestauranteApplicationClient() {
             <CityAutocomplete
               lang="es"
               variant="light"
-              label="Ciudad (canónica NorCal)"
+              label="Ciudad (canónica NorCal) *"
               value={draft.cityCanonical}
               onChange={(v) => setDraftPatch({ cityCanonical: v })}
               placeholder="Ej. San José"
@@ -478,6 +473,10 @@ export default function RestauranteApplicationClient() {
         {/* B */}
         <section id="restaurantes-section-b" className={CARD}>
           <SectionTitle>B · Modelo de operación</SectionTitle>
+          <p className="mt-2 text-xs text-[color:var(--lx-text-2)]">
+            <span className="font-semibold text-red-600">*</span> Al menos un <strong>modo de servicio</strong> (abajo) para
+            el botón «Vista previa» con validación.
+          </p>
           <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">
             Interruptores principales (stacks I · J · K)
           </p>
@@ -584,7 +583,9 @@ export default function RestauranteApplicationClient() {
             </div>
           </div>
 
-          <p className="mt-6 text-sm font-semibold text-[color:var(--lx-text)]">Modos de servicio (lista canónica)</p>
+          <p className="mt-6 text-sm font-semibold text-[color:var(--lx-text)]">
+            Modos de servicio (lista canónica) <span className="text-red-600">*</span>
+          </p>
           <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
             Obligatorio: al menos una opción para usar el botón «Vista previa».
           </p>
@@ -655,6 +656,10 @@ export default function RestauranteApplicationClient() {
         {/* C */}
         <section className={CARD}>
           <SectionTitle>C · Horarios</SectionTitle>
+          <p className="mt-2 text-xs text-[color:var(--lx-text-2)]">
+            <span className="font-semibold text-red-600">*</span> Completa cada día (cerrado u horario) o usa nota especial /
+            temporal abajo — necesario para la vista previa estructural.
+          </p>
           <div className="mt-4 space-y-3">
             {DAY_ROWS.map(({ key, label }) => {
               const s = draft[key] as RestauranteDaySchedule;
@@ -723,7 +728,10 @@ export default function RestauranteApplicationClient() {
         {/* D */}
         <section className={CARD}>
           <SectionTitle>D · Contacto y CTAs</SectionTitle>
-          <p className="mt-2 text-sm text-[color:var(--lx-muted)]">Al menos una vía de contacto para la vista previa mínima.</p>
+          <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
+            <span className="text-red-600">*</span> Al menos una vía de contacto (sitio, teléfono, correo, redes, menú/archivo,
+            etc.) para la vista previa mínima.
+          </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {(
               [
@@ -1008,31 +1016,45 @@ export default function RestauranteApplicationClient() {
           <SectionTitle>G · Galería y medios</SectionTitle>
           <div className="mt-4 grid gap-4">
             <div>
-              <FieldLabel>Foto principal (hero)</FieldLabel>
-              <RestauranteUploadRow
-                buttonLabel="Subir imagen"
-                helperText="Imagen principal del anuncio. Verás la miniatura en cuanto el archivo se guarde en el borrador."
-                accept="image/*"
-                selectedLabel={
-                  uploadLabels.hero ??
-                  (draft.heroImage?.trim()
-                    ? "Imagen en el borrador (miniatura abajo)"
-                    : null)
-                }
-                onFilesSelected={async (files) => {
-                  const f = files?.[0];
-                  if (!f) {
-                    setDraftPatch({ heroImage: "" });
-                    setUploadLabels((p) => {
-                      const n = { ...p };
-                      delete n.hero;
-                      return n;
-                    });
-                    return;
-                  }
+              <FieldLabel required>Foto principal (hero)</FieldLabel>
+              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
+                Si no subes hero, la <strong>primera imagen</strong> del orden en G (galería) actúa como portada en vista previa,
+                resultados y publicación.
+              </p>
+              <div
+                className="mt-2 rounded-xl border border-dashed border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/25 p-3"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "copy";
+                }}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  const f = e.dataTransfer.files?.[0];
+                  if (!f?.type.startsWith("image/")) return;
                   try {
                     const dataUrl = await readRestauranteImageAsDataUrl(f);
-                    if (!dataUrl?.trim().startsWith("data:image")) {
+                    if (!dataUrl?.trim().startsWith("data:image")) return;
+                    setDraftPatch({ heroImage: dataUrl });
+                    setUploadLabels((p) => ({ ...p, hero: f.name }));
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+              >
+                <RestauranteUploadRow
+                  buttonLabel="Subir imagen"
+                  helperText="Clic o arrastra una imagen aquí. Miniatura en cuanto se guarde en el borrador de sesión."
+                  accept="image/*"
+                  selectedLabel={
+                    uploadLabels.hero ??
+                    (draft.heroImage?.trim()
+                      ? "Imagen en el borrador (miniatura abajo)"
+                      : null)
+                  }
+                  onFilesSelected={async (files) => {
+                    const f = files?.[0];
+                    if (!f) {
+                      setDraftPatch({ heroImage: "" });
                       setUploadLabels((p) => {
                         const n = { ...p };
                         delete n.hero;
@@ -1040,17 +1062,28 @@ export default function RestauranteApplicationClient() {
                       });
                       return;
                     }
-                    setDraftPatch({ heroImage: dataUrl });
-                    setUploadLabels((p) => ({ ...p, hero: f.name }));
-                  } catch {
-                    setUploadLabels((p) => {
-                      const n = { ...p };
-                      delete n.hero;
-                      return n;
-                    });
-                  }
-                }}
-              />
+                    try {
+                      const dataUrl = await readRestauranteImageAsDataUrl(f);
+                      if (!dataUrl?.trim().startsWith("data:image")) {
+                        setUploadLabels((p) => {
+                          const n = { ...p };
+                          delete n.hero;
+                          return n;
+                        });
+                        return;
+                      }
+                      setDraftPatch({ heroImage: dataUrl });
+                      setUploadLabels((p) => ({ ...p, hero: f.name }));
+                    } catch {
+                      setUploadLabels((p) => {
+                        const n = { ...p };
+                        delete n.hero;
+                        return n;
+                      });
+                    }
+                  }}
+                />
+              </div>
               {draft.heroImage?.trim() ? (
                 <>
                   <div className="relative mt-3 w-full max-w-lg overflow-hidden rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] shadow-sm">
@@ -1493,40 +1526,22 @@ export default function RestauranteApplicationClient() {
         </section>
       </div>
 
-      <div className="mt-12 space-y-3 border-t border-[color:var(--lx-nav-border)] pt-8">
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          <button
-            type="button"
-            onClick={goPreview}
-            className="rounded-full bg-[color:var(--lx-gold)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)]"
-          >
-            Vista previa
-          </button>
-          <Link
-            href={PREVIEW_HREF}
-            title="Abre la vista previa con el borrador guardado, sin validar modos de servicio."
-            className="inline-flex w-fit items-center rounded-full border border-[color:var(--lx-nav-border)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
-          >
-            Abrir vista previa
-          </Link>
-          <p className="text-xs text-[color:var(--lx-muted)] sm:max-w-md">
-            {serviceOk ? (
-              <span className="font-medium text-emerald-800">
-                Modos de servicio (B): listos — el botón &quot;Vista previa&quot; puede abrir.
-              </span>
-            ) : (
-              <span>
-                <span className="font-semibold text-amber-900">Modos de servicio (B): pendiente.</span> Elige al menos uno
-                para usar &quot;Vista previa&quot; (validación). &quot;Abrir vista previa&quot; sigue disponible sin
-                validación.
-              </span>
-            )}
-          </p>
-        </div>
-        <p className="max-w-2xl text-xs leading-relaxed text-[color:var(--lx-muted)]">
-          <strong className="text-[color:var(--lx-text-2)]">Vista previa</strong> exige modos de servicio en B.{" "}
-          <strong className="text-[color:var(--lx-text-2)]">Abrir vista previa</strong> muestra el borrador guardado tal
-          cual.
+      <div className="mt-12 space-y-4 border-t border-[color:var(--lx-nav-border)] pt-8">
+        <ClasificadosApplicationTopActions
+          onPreviewValidated={goPreview}
+          openPreviewHref={PREVIEW_HREF}
+          onDeleteApplication={resetDraft}
+          disableValidatedPreview={!serviceOk}
+        />
+        <p className="text-xs text-[color:var(--lx-muted)] sm:max-w-xl">
+          {serviceOk ? (
+            <span className="font-medium text-emerald-800">Modos de servicio (B): listos — «Vista previa» puede abrir.</span>
+          ) : (
+            <span>
+              <span className="font-semibold text-amber-900">Modos de servicio (B): pendiente.</span> Elige al menos uno para
+              «Vista previa» con validación; «Abrir vista previa» sigue disponible sin validación.
+            </span>
+          )}
         </p>
       </div>
     </div>

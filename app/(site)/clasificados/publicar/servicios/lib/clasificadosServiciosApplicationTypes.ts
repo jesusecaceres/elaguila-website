@@ -127,4 +127,8 @@ export type ClasificadosServiciosApplicationState = {
   offerPrimaryAsset: "none" | "link" | "image" | "pdf";
   /** Placeholder intent for a future QR asset on the coupon card */
   offerQrLater: boolean;
+  /** Pre-publish attestations (same pattern as En Venta) */
+  confirmListingAccurate: boolean;
+  confirmPhotosRepresentBusiness: boolean;
+  confirmCommunityRules: boolean;
 };

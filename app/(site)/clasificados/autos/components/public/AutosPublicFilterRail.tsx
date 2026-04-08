@@ -71,12 +71,14 @@ export function AutosPublicFilterRail({
         </label>
         <input
           id={`${idPrefix}-radius`}
-          className={inp}
+          className={`${inp} cursor-not-allowed opacity-60`}
           inputMode="numeric"
+          disabled
+          readOnly
           value={value.radiusMiles}
-          onChange={(e) => onChange({ radiusMiles: e.target.value.replace(/\D/g, "").slice(0, 3) })}
           placeholder="—"
           aria-describedby={`${idPrefix}-radius-hint`}
+          aria-disabled="true"
         />
         <p id={`${idPrefix}-radius-hint`} className="mt-1 text-[10px] leading-snug text-[color:var(--lx-muted)]">
           {copy.filterRadiusHint}

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, type CSSProperties } from "react";
 import type { BienesRaicesPreviewQuickFactVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { BrNegocioStreamableVideo } from "@/app/clasificados/bienes-raices/preview/negocio/components/BrNegocioStreamableVideo";
@@ -220,36 +219,6 @@ function GalleryVideoTile({
   return null;
 }
 
-function LeonixBrandMark({ logoUrl }: { logoUrl: string }) {
-  if (logoUrl) {
-    return (
-      <a href="/clasificados" className="flex shrink-0 items-center" aria-label="Leonix Inicio">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logoUrl} alt="" className="h-9 w-auto max-w-[140px] object-contain object-left" />
-      </a>
-    );
-  }
-  return (
-    <a href="/clasificados" className="flex flex-col items-start no-underline" aria-label="Leonix Inicio">
-      <div
-        className="flex h-10 w-10 items-center justify-center rounded-full border-2 shadow-sm"
-        style={{ borderColor: BRONZE, background: CHARCOAL_DEEP }}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path
-            d="M12 3c-1.2 1.8-3.5 2.5-5 4-.8 2.2.5 4.5 2 6-1 1.2-2.5 2-3 3.5.8.3 1.8-.2 2.5-.8.5 1.2 1.5 2 2.5 2.5 1-.5 2-1.3 2.5-2.5.7.6 1.7 1.1 2.5.8-.5-1.5-2-2.3-3-3.5 1.5-1.5 2.8-3.8 2-6-1.5-1.5-3.8-2.2-5-4z"
-            fill={BRONZE}
-            opacity="0.95"
-          />
-        </svg>
-      </div>
-      <span className="mt-1 text-[9px] font-bold tracking-[0.2em]" style={{ color: CHARCOAL }}>
-        LEONIX
-      </span>
-    </a>
-  );
-}
-
 function SectionIcon({ children }: { children: React.ReactNode }) {
   return (
     <span
@@ -374,18 +343,8 @@ function photoIndexInGallery(vm: BienesRaicesPrivadoPreviewVm, url: string): num
   return i >= 0 ? i : 0;
 }
 
-export function BienesRaicesPrivadoPreviewView({
-  vm,
-  editHref,
-  footerExtra,
-  /** Default “Bienes raíces”; Rentas Privado passes “Rentas” for the same shell. */
-  previewNavHubLabel = "Bienes raíces",
-}: {
-  vm: BienesRaicesPrivadoPreviewVm;
-  editHref?: string;
-  footerExtra?: string;
-  previewNavHubLabel?: string;
-}) {
+/** Publishable ad canvas only — preview chrome (`LeonixPreviewPageShell`) wraps edit back-link. */
+export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivadoPreviewVm }) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
@@ -531,42 +490,7 @@ export function BienesRaicesPrivadoPreviewView({
   ) : null;
 
   return (
-    <div className="min-h-screen overflow-x-hidden antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
-      <header className="border-b" style={{ borderColor: BORDER, background: "rgba(253, 251, 247, 0.96)" }}>
-        <div className="mx-auto flex min-w-0 max-w-[1240px] flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:gap-4 sm:px-6 lg:px-8">
-          <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-4 lg:gap-6">
-            <LeonixBrandMark logoUrl={vm.platformLogoUrl ?? ""} />
-            <nav className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: MUTED }}>
-              <span style={{ color: CHARCOAL }}>{previewNavHubLabel}</span>
-              <span className="mx-2 opacity-40">›</span>
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1"
-                style={{ borderColor: BORDER, background: CREAM_CARD }}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="opacity-75" aria-hidden style={{ color: CHARCOAL }}>
-                  <path
-                    d="M12 12a3 3 0 100-6 3 3 0 000 6zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                  />
-                </svg>
-                Privado
-              </span>
-            </nav>
-          </div>
-          {editHref ? (
-            <Link
-              href={editHref}
-              className="shrink-0 text-[11px] font-bold uppercase tracking-wide underline"
-              style={{ color: BRONZE_SOFT }}
-              prefetch={false}
-            >
-              Volver a editar
-            </Link>
-          ) : null}
-        </div>
-      </header>
-
+    <div className="overflow-x-hidden antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
       <main className="mx-auto w-full min-w-0 max-w-[1240px] px-4 pb-16 pt-3 sm:px-6 sm:pt-4 lg:px-8">
         {showGallerySection ? (
           <section className="mb-0" id="galeria-multimedia">
@@ -924,10 +848,9 @@ export function BienesRaicesPrivadoPreviewView({
           </section>
         ) : null}
 
-        {String(vm.footerNote ?? "").trim() || footerExtra ? (
+        {String(vm.footerNote ?? "").trim() ? (
           <footer className="mt-12 border-t pt-6 text-center text-xs" style={{ borderColor: BORDER, color: MUTED }}>
-            {String(vm.footerNote ?? "").trim() ? <p>{vm.footerNote}</p> : null}
-            {footerExtra ? <p className="mt-2 opacity-70">{footerExtra}</p> : null}
+            <p>{vm.footerNote}</p>
           </footer>
         ) : null}
       </main>

@@ -27,7 +27,20 @@ export type AutosNegociosCopy = {
     labels: Record<string, string>;
     placeholders: Record<string, string>;
     hints: Record<string, string>;
-    actions: { preview: string; reset: string };
+    actions: {
+      /** Scroll to media / in-flow reminder */
+      previewScroll: string;
+      /** Navigate to preview route in this tab after flush */
+      openPreview: string;
+      /** Open preview route in a new tab after flush */
+      openPreviewNewTab: string;
+      /** Clear draft + local media */
+      deleteApplication: string;
+      /** @deprecated use `openPreview` */
+      preview: string;
+      /** @deprecated use `deleteApplication` */
+      reset: string;
+    };
     dealer: {
       socialHeading: string;
       applyHoursTemplate: string;
@@ -249,8 +262,24 @@ const ES: AutosNegociosCopy = {
         "Enlace a tu herramienta de citas, Calendly o página para agendar prueba de manejo. Si está vacío, no se muestra el botón de cita en la vista previa.",
       phoneMobile: "Opcional. No aparece como segundo botón de llamada en la vista previa; queda guardado para uso interno o futuro.",
       zip: "5 dígitos (EE. UU.). Opcional; mejora búsqueda y geofencing.",
+      deleteApplicationConfirm:
+        "¿Eliminar toda la solicitud? Se borrará el borrador y los archivos guardados en este dispositivo para esta sesión.",
+      previewCompletenessIntro: "Para una vista previa sólida aún falta completar:",
+      previewNeed_media: "al menos una foto o un video",
+      previewNeed_title: "año / marca / modelo (o título personalizado)",
+      previewNeed_price: "precio o mensual estimado",
+      previewNeed_location: "ciudad, estado y código postal",
+      previewNeed_dealerIdentity: "nombre del concesionario, teléfono principal o logo",
+      previewNeed_sellerContact: "teléfono, móvil, WhatsApp o correo",
     },
-    actions: { preview: "Ver vista previa", reset: "Reiniciar borrador" },
+    actions: {
+      previewScroll: "Vista previa",
+      openPreview: "Abrir vista previa",
+      openPreviewNewTab: "Abrir vista previa en nueva pestaña",
+      deleteApplication: "Eliminar solicitud",
+      preview: "Abrir vista previa",
+      reset: "Eliminar solicitud",
+    },
     dealer: {
       socialHeading: "Redes sociales",
       applyHoursTemplate: "Aplicar plantilla de horario (Lun–Dom)",
@@ -549,8 +578,24 @@ const EN: AutosNegociosCopy = {
         "Link to your scheduling tool, Calendly, or test-drive booking page. If empty, the appointment button is hidden in preview.",
       phoneMobile: "Optional. Not shown as a second call button on preview; stored for internal or future use.",
       zip: "5-digit US ZIP. Optional; improves search and future geofencing.",
+      deleteApplicationConfirm:
+        "Delete this entire application? Draft and on-device files for this session will be cleared.",
+      previewCompletenessIntro: "For a strong preview, still complete:",
+      previewNeed_media: "at least one photo or a video",
+      previewNeed_title: "year / make / model (or a custom title)",
+      previewNeed_price: "price or estimated monthly payment",
+      previewNeed_location: "city, state, and ZIP",
+      previewNeed_dealerIdentity: "dealership name, main phone, or logo",
+      previewNeed_sellerContact: "phone, mobile, WhatsApp, or email",
     },
-    actions: { preview: "View preview", reset: "Reset draft" },
+    actions: {
+      previewScroll: "Preview",
+      openPreview: "Open preview",
+      openPreviewNewTab: "Open preview in new tab",
+      deleteApplication: "Delete application",
+      preview: "Open preview",
+      reset: "Delete application",
+    },
     dealer: {
       socialHeading: "Social links",
       applyHoursTemplate: "Apply Mon–Sun schedule template",

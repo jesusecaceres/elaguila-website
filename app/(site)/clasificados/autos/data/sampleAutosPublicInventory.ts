@@ -1,3 +1,8 @@
+/**
+ * Blueprint/sample inventory for landing, results, and live vehicle routes until a listings API exists.
+ * Keep field shapes aligned with `AutosPublicListing` / application draft types so publish wiring can
+ * swap this module for `getListingsFromApi()` without touching filter or card UI.
+ */
 import type { AutosPublicListing } from "./autosPublicSampleTypes";
 
 const IMG = {

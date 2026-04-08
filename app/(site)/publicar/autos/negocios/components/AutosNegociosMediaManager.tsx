@@ -62,11 +62,14 @@ export function AutosNegociosMediaManager({
   copy,
   /** Hide dealership logo block (e.g. Autos Privado lane). */
   hideDealerLogo = false,
+  /** For in-app “Vista previa” scroll target */
+  sectionId = "autos-clasificados-app-media",
 }: {
   listing: AutoDealerListing;
   setListingPatch: (patch: Partial<AutoDealerListing>) => void;
   copy: AutosNegociosCopy;
   hideDealerLogo?: boolean;
+  sectionId?: string;
 }) {
   const m = copy.media;
   const images = sortByOrder(listing.mediaImages ?? []);
@@ -267,7 +270,10 @@ export function AutosNegociosMediaManager({
     : `${DROPZONE_BASE} border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]`;
 
   return (
-    <section className="min-w-0 overflow-x-hidden rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-5">
+    <section
+      id={sectionId}
+      className="min-w-0 scroll-mt-24 overflow-x-hidden rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-5"
+    >
       <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{copy.app.sections.media}</h2>
       <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{m.sectionIntro}</p>
 
@@ -358,6 +364,7 @@ export function AutosNegociosMediaManager({
               <img
                 src={img.url}
                 alt=""
+                loading="lazy"
                 className="aspect-[4/3] w-full shrink-0 rounded-lg object-cover sm:h-20 sm:w-28 sm:aspect-auto"
               />
               <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">

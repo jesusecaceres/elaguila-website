@@ -41,6 +41,10 @@ export function ServiciosPublishModal({
     const s = getLatestState?.() ?? state;
     const r = evaluateServiciosPublishReadiness(s, lang);
     if (!r.ok) return;
+    if (!s.confirmListingAccurate || !s.confirmPhotosRepresentBusiness || !s.confirmCommunityRules) {
+      setError(copy.publishConfirmMissing);
+      return;
+    }
     setBusy(true);
     setError(null);
     onPersistDraft();
@@ -80,7 +84,7 @@ export function ServiciosPublishModal({
       setError(copy.publishError);
       setBusy(false);
     }
-  }, [getLatestState, state, lang, copy.publishError, router, onPersistDraft]);
+  }, [getLatestState, state, lang, copy.publishError, copy.publishConfirmMissing, router, onPersistDraft]);
 
   if (!open) return null;
 

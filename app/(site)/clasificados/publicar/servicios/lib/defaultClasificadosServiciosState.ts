@@ -66,6 +66,9 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     offerPdfUrl: "",
     offerPrimaryAsset: "none",
     offerQrLater: false,
+    confirmListingAccurate: false,
+    confirmPhotosRepresentBusiness: false,
+    confirmCommunityRules: false,
   };
 }
 
@@ -107,6 +110,7 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
     return true;
   }
   if (s.offerQrLater) return true;
+  if (s.confirmListingAccurate || s.confirmPhotosRepresentBusiness || s.confirmCommunityRules) return true;
   if (s.languageIds.length !== 1 || s.languageIds[0] !== "lang_es") return true;
   if (hoursDifferFromTemplate(s.hours)) return true;
   return false;

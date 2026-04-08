@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, type CSSProperties } from "react";
 import type {
   BienesRaicesNegocioPreviewVm,
@@ -288,36 +287,6 @@ function GalleryVideoTile({
   );
 }
 
-function LeonixBrandMark({ logoUrl }: { logoUrl: string }) {
-  if (logoUrl) {
-    return (
-      <a href="/clasificados" className="flex shrink-0 items-center" aria-label="Leonix Inicio">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logoUrl} alt="" className="h-9 w-auto max-w-[140px] object-contain object-left" />
-      </a>
-    );
-  }
-  return (
-    <a href="/clasificados" className="flex flex-col items-start no-underline" aria-label="Leonix Inicio">
-      <div
-        className="flex h-10 w-10 items-center justify-center rounded-full border-2 shadow-sm"
-        style={{ borderColor: BRONZE, background: CHARCOAL_DEEP }}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path
-            d="M12 3c-1.2 1.8-3.5 2.5-5 4-.8 2.2.5 4.5 2 6-1 1.2-2.5 2-3 3.5.8.3 1.8-.2 2.5-.8.5 1.2 1.5 2 2.5 2.5 1-.5 2-1.3 2.5-2.5.7.6 1.7 1.1 2.5.8-.5-1.5-2-2.3-3-3.5 1.5-1.5 2.8-3.8 2-6-1.5-1.5-3.8-2.2-5-4z"
-            fill={BRONZE}
-            opacity="0.95"
-          />
-        </svg>
-      </div>
-      <span className="mt-1 text-[9px] font-bold tracking-[0.2em]" style={{ color: CHARCOAL }}>
-        LEONIX
-      </span>
-    </a>
-  );
-}
-
 function SectionIcon({ children }: { children: React.ReactNode }) {
   return (
     <span
@@ -513,19 +482,8 @@ function photoIndexInGallery(vm: BienesRaicesNegocioPreviewVm, url: string): num
   return i >= 0 ? i : 0;
 }
 
-export function BienesRaicesNegocioPreviewView({
-  vm,
-  editHref,
-  footerExtra,
-  onBeforeNavigateToEdit,
-}: {
-  vm: BienesRaicesNegocioPreviewVm;
-  /** When set, shows a subtle link to return to the publish flow. */
-  editHref?: string;
-  footerExtra?: string;
-  /** In-flow: mark session so leaving preview for edit does not trigger abandon / leave prompts on the publish route. */
-  onBeforeNavigateToEdit?: () => void;
-}) {
+/** Publishable ad canvas only — chrome (“Volver a editar”) lives in `LeonixPreviewPageShell`. */
+export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocioPreviewVm }) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
@@ -548,39 +506,7 @@ export function BienesRaicesNegocioPreviewView({
   const [gTopA, gTopB] = galleryTopCells(vm);
 
   return (
-    <div className="min-h-screen antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
-      <header className="border-b" style={{ borderColor: BORDER, background: "rgba(253, 251, 247, 0.96)" }}>
-        <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-4 px-6 py-3.5 lg:px-8">
-          <div className="flex flex-wrap items-center gap-4 lg:gap-6">
-            <LeonixBrandMark logoUrl={vm.platformLogoUrl ?? ""} />
-            <nav className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: MUTED }}>
-              <span style={{ color: CHARCOAL }}>Bienes raíces</span>
-              <span className="mx-2 opacity-40">›</span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1" style={{ borderColor: BORDER, background: CREAM_CARD }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="opacity-75" aria-hidden style={{ color: CHARCOAL }}>
-                  <rect x="5" y="9" width="14" height="10" rx="1" stroke="currentColor" strokeWidth="1.5" />
-                  <path d="M9 9V7a3 3 0 013-3h0a3 3 0 013 3v2" stroke="currentColor" strokeWidth="1.5" />
-                </svg>
-                Negocio
-              </span>
-            </nav>
-          </div>
-          {editHref ? (
-            <Link
-              href={editHref}
-              className="text-[11px] font-bold uppercase tracking-wide underline"
-              style={{ color: BRONZE_SOFT }}
-              prefetch={false}
-              onClick={() => {
-                onBeforeNavigateToEdit?.();
-              }}
-            >
-              Volver a editar
-            </Link>
-          ) : null}
-        </div>
-      </header>
-
+    <div className="antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
       <main className="mx-auto max-w-[1240px] px-6 pb-16 pt-4 lg:px-8">
         <section className="mb-0" id="galeria-multimedia">
           <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
@@ -1267,10 +1193,9 @@ export function BienesRaicesNegocioPreviewView({
           )}
         </section>
 
-        {String(vm.footerNote ?? "").trim() || footerExtra ? (
+        {String(vm.footerNote ?? "").trim() ? (
           <footer className="mt-12 border-t pt-6 text-center text-xs" style={{ borderColor: BORDER, color: MUTED }}>
-            {String(vm.footerNote ?? "").trim() ? <p>{vm.footerNote}</p> : null}
-            {footerExtra ? <p className="mt-2 opacity-70">{footerExtra}</p> : null}
+            <p>{vm.footerNote}</p>
           </footer>
         ) : (
           <div className="mt-12 border-t pt-5" style={{ borderColor: BORDER }} aria-hidden />

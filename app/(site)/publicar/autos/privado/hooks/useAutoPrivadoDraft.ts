@@ -15,6 +15,11 @@ import {
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { buildVehicleTitle } from "@/app/publicar/autos/negocios/lib/autoDealerTitle";
 import { createEmptyListing, normalizeLoadedListing } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
+import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
+import {
+  AUTOS_PRIVADO_EDITOR_SESSION_KEY,
+  shouldResetAutosDraftForFreshEditorTab,
+} from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
 
 function applyAutoTitle(listing: AutoDealerListing, override: boolean): AutoDealerListing {
   if (override) return listing;
@@ -42,7 +47,7 @@ export function useAutoPrivadoDraft() {
     const d = await loadAutosPrivadoDraftResolved(namespace);
     if (d) {
       setVehicleTitleOverride(d.vehicleTitleOverride);
-      setListing(normalizeLoadedListing({ ...d.listing, autosLane: "privado" }));
+      setListing(safeNormalizeAutosDraftListing({ ...d.listing, autosLane: "privado" }, "privado"));
     } else {
       setVehicleTitleOverride(false);
       setListing({ ...createEmptyListing(), autosLane: "privado" });
@@ -65,6 +70,9 @@ export function useAutoPrivadoDraft() {
       const ns = await resolveAutosPrivadoDraftNamespace();
       if (cancelled) return;
       namespaceRef.current = ns;
+      if (shouldResetAutosDraftForFreshEditorTab(AUTOS_PRIVADO_EDITOR_SESSION_KEY)) {
+        await clearAutosPrivadoDraft(ns);
+      }
       await hydrateFromNamespace(ns);
       if (!cancelled) setHydrated(true);
     };

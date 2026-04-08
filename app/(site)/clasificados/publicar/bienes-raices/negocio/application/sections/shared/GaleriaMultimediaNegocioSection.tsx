@@ -19,6 +19,12 @@ import {
 const MAX_PHOTOS = 50;
 const MAX_PLANS = 3;
 
+/**
+ * Draft/preview lifecycle: photos and optional local video use data URLs in session until paid publish.
+ * Mux upload during draft is opt-in (`NEXT_PUBLIC_LEONIX_MUX_DRAFT_UPLOAD=true`) for staging; default keeps video local only.
+ */
+const MUX_DRAFT_UPLOAD_ENABLED = process.env.NEXT_PUBLIC_LEONIX_MUX_DRAFT_UPLOAD === "true";
+
 type MuxDirectUploadPayload = {
   ok?: boolean;
   error?: string;
@@ -386,11 +392,12 @@ export function GaleriaMultimediaNegocioSection({
       case "preparing":
         return "Procesando video…";
       case "ready":
-        return "Video listo";
+        return "Video listo (Mux)";
       case "error":
         return sl.errorMessage || "Error";
       default:
-        return sl.fallbackUrl.trim() ? "Enlace de video" : "Sin video";
+        if (sl.fallbackUrl.trim().startsWith("data:video")) return "Video en borrador (solo esta sesión)";
+        return sl.fallbackUrl.trim() ? "Enlace / video en borrador" : "Sin video";
     }
   }
 
@@ -402,7 +409,9 @@ export function GaleriaMultimediaNegocioSection({
       <h2 className={brSectionTitleClass}>Galería multimedia</h2>
       <p className={brSubTitleClass}>
         Sube fotos y ordénalas con las flechas. Elige cuál es la portada (hero) con un clic — no tiene que ser la primera de la
-        lista. Dos videos destacados (Mux o enlace) alimentan el preview; tour y planos activan sus bloques.
+        lista. <span className="font-semibold text-[#6E5418]">Al menos una foto *</span> para una vista previa completa. Los
+        archivos de video en borrador se guardan solo en esta sesión (sin Mux) salvo que el entorno active subidas Mux en
+        borrador.
       </p>
       <BrPreviewHint>
         <span className="font-semibold text-[#4A3F2E]">Portada</span> es la foto grande del encabezado del anuncio. El orden en
@@ -535,7 +544,34 @@ export function GaleriaMultimediaNegocioSection({
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     e.target.value = "";
-                    if (f) startMuxUpload(slot, f);
+                    if (!f) return;
+                    if (MUX_DRAFT_UPLOAD_ENABLED) {
+                      startMuxUpload(slot, f);
+                      return;
+                    }
+                    void (async () => {
+                      try {
+                        const dataUrl = await fileToDataUrl(f);
+                        setVideoSlot(setState, slot, {
+                          uploadId: "",
+                          assetId: "",
+                          playbackId: "",
+                          playbackUrl: "",
+                          thumbnailUrl: "",
+                          durationSeconds: null,
+                          status: "idle",
+                          progressPct: 0,
+                          fileName: f.name,
+                          errorMessage: "",
+                          fallbackUrl: dataUrl,
+                        });
+                      } catch {
+                        setVideoSlot(setState, slot, {
+                          status: "error",
+                          errorMessage: "No se pudo leer el video en el navegador.",
+                        });
+                      }
+                    })();
                   }}
                 />
                 <div className="mt-3 flex flex-wrap gap-2">

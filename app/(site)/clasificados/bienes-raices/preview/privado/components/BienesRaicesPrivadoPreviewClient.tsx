@@ -14,6 +14,7 @@ import {
 import { mapBienesRaicesPrivadoStateToPreviewVm } from "@/app/clasificados/publicar/bienes-raices/privado/application/mapping/mapBienesRaicesPrivadoStateToPreviewVm";
 import { loadBienesRaicesPrivadoDraft } from "@/app/clasificados/publicar/bienes-raices/privado/application/utils/bienesRaicesPrivadoDraft";
 import type { BienesRaicesPrivadoFormState } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
+import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
 import { BienesRaicesPrivadoPreviewView } from "../BienesRaicesPrivadoPreviewView";
 
 type Phase = "loading" | "ready" | "recovery";
@@ -56,7 +57,7 @@ export default function BienesRaicesPrivadoPreviewClient() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-5 overflow-x-hidden bg-[#F9F6F1] px-4 py-8 text-center text-[#2C2416]">
         <p className="max-w-md text-sm leading-relaxed text-[#5C5346] [text-wrap:balance]">
-          No encontramos un borrador de BR Privado en este dispositivo. Publica o continúa editando para generar la vista previa.
+          No encontramos un borrador de BR Privado en esta sesión. Publica o continúa editando para generar la vista previa.
         </p>
         <Link
           href={editHrefRecovery}
@@ -71,5 +72,9 @@ export default function BienesRaicesPrivadoPreviewClient() {
   const vm = mapBienesRaicesPrivadoStateToPreviewVm(draft);
   const editHref = `${BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}`;
 
-  return <BienesRaicesPrivadoPreviewView vm={vm} editHref={editHref} />;
+  return (
+    <LeonixPreviewPageShell editHref={editHref}>
+      <BienesRaicesPrivadoPreviewView vm={vm} />
+    </LeonixPreviewPageShell>
+  );
 }

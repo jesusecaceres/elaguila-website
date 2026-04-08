@@ -13,8 +13,7 @@
  * - usersNeedingHelp: no support tickets table — proxy uses disabled users count only
  */
 import { getAdminSupabase } from "@/app/lib/supabase/server";
-import { readFile } from "fs/promises";
-import path from "path";
+import { resolvePublicMagazineManifest } from "@/app/lib/magazine/magazineManifestServer";
 
 export type AdminDashboardSnapshot = {
   pendingListingsReview: number;
@@ -49,16 +48,11 @@ export type AdminDashboardSnapshot = {
 
 async function readMagazineFeatured(): Promise<{ label: string | null; updated: string | null }> {
   try {
-    const fp = path.join(process.cwd(), "public", "magazine", "editions.json");
-    const raw = await readFile(fp, "utf-8");
-    const j = JSON.parse(raw) as {
-      featured?: { year?: string; month?: string; title?: { es?: string }; updated?: string };
-    };
-    const f = j.featured;
-    if (!f) return { label: null, updated: null };
-    const title = f.title?.es ?? f.month ?? null;
-    const label = title && f.year ? `${title} · ${f.year}` : title;
-    return { label, updated: f.updated ?? null };
+    const m = await resolvePublicMagazineManifest();
+    const f = m.featured;
+    const title = f?.title?.es ?? f?.month ?? null;
+    const label = title && f?.year ? `${title} · ${f.year}` : title;
+    return { label, updated: f?.updated ?? null };
   } catch {
     return { label: null, updated: null };
   }

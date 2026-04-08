@@ -1,8 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { BR_NEGOCIO_Q_PROPIEDAD, type BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import {
+  BR_NEGOCIO_Q_PROPIEDAD,
+  parseBrNegocioPropiedadParam,
+  type BrNegocioCategoriaPropiedad,
+} from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
+import { gateRentasNegocioPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import { RENTAS_PLAZO_LABELS } from "@/app/clasificados/rentas/shared/utils/rentasPublishConstants";
 import {
   RENTAS_PREVIEW_NEGOCIO,
@@ -42,7 +49,11 @@ import {
   createEmptyRentasNegocioFormState,
   type RentasNegocioFormState,
 } from "../schema/rentasNegocioFormState";
-import { loadRentasNegocioDraft, saveRentasNegocioDraft } from "./utils/rentasNegocioDraft";
+import {
+  clearRentasNegocioDraft,
+  loadRentasNegocioDraft,
+  saveRentasNegocioDraft,
+} from "./utils/rentasNegocioDraft";
 
 const MAX_PHOTOS = 8;
 
@@ -72,8 +83,10 @@ const CONDICION_OPTS: { value: RentasNegocioFormState["residencial"]["condicion"
 ];
 
 export function RentasNegocioForm() {
+  const router = useRouter();
   const [state, setState] = useState<RentasNegocioFormState>(createEmptyRentasNegocioFormState);
   const [hydrated, setHydrated] = useState(false);
+  const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const d = loadRentasNegocioDraft();
@@ -130,14 +143,40 @@ export function RentasNegocioForm() {
           </p>
         </header>
 
+        <ClasificadosApplicationTopActions
+          onPreviewValidated={() => {
+            const g = gateRentasNegocioPreview(state);
+            if (!g.ok) {
+              setPreviewGateMessage(g.message);
+              return;
+            }
+            setPreviewGateMessage(null);
+            flushSave();
+            router.push(previewHref);
+          }}
+          openPreviewHref={previewHref}
+          onBeforeOpenUnvalidatedPreview={flushSave}
+          onDeleteApplication={() => {
+            clearRentasNegocioDraft();
+            const empty = createEmptyRentasNegocioFormState();
+            try {
+              const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+              const p = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
+              setState(p ? { ...empty, categoriaPropiedad: p } : empty);
+            } catch {
+              setState(empty);
+            }
+            setPreviewGateMessage(null);
+          }}
+          validationBlockedMessage={previewGateMessage}
+          deleteConfirmMessage="¿Eliminar el borrador de esta solicitud y empezar de nuevo?"
+        />
+        <p className="text-xs leading-relaxed text-[#5C5346]/88">
+          <strong className="text-[#1E1810]">Vista previa</strong> valida los campos mínimos.{" "}
+          <strong className="text-[#1E1810]">Abrir vista previa</strong> guarda y abre sin esa validación.
+        </p>
+
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          <Link
-            href={previewHref}
-            onClick={flushSave}
-            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full bg-[#B8954A] px-6 text-sm font-bold text-[#1E1810] shadow-sm transition hover:brightness-95 sm:w-auto sm:min-w-[200px]"
-          >
-            Ver vista previa
-          </Link>
           <Link
             href="/clasificados/rentas"
             className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#C9B46A]/50 px-6 text-sm font-semibold text-[#6E5418] transition hover:bg-[#FFEFD8] sm:w-auto"
@@ -177,7 +216,7 @@ export function RentasNegocioForm() {
           <h2 className={aiTitleClass}>Anuncio</h2>
           <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
             <div className="sm:col-span-2">
-              <AiField label="Título">
+              <AiField required label="Título">
                 <input
                   className={fieldClass}
                   value={state.titulo}
@@ -186,7 +225,7 @@ export function RentasNegocioForm() {
                 />
               </AiField>
             </div>
-            <AiField label="Renta mensual (USD)" hint="Solo números enteros al mes; en la vista previa verás moneda y “/ mes”.">
+            <AiField required label="Renta mensual (USD)" hint="Solo números enteros al mes; en la vista previa verás moneda y “/ mes”.">
               <input
                 className={fieldClass}
                 inputMode="numeric"
@@ -305,6 +344,14 @@ export function RentasNegocioForm() {
                 autoComplete="street-address"
               />
             </AiField>
+            <p className="sm:col-span-2 text-xs text-[#5C5346]">
+              Para vista previa: ciudad o línea de ubicación (al menos uno)
+              <span className="text-[#B8954A]" aria-hidden>
+                {" "}
+                *
+              </span>
+              .
+            </p>
             <div className="sm:col-span-2">
               <AiField label="Enlace a mapa (opcional)" hint="Pega un enlace https (por ejemplo Google Maps).">
                 <input
@@ -331,7 +378,14 @@ export function RentasNegocioForm() {
 
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>Fotos y video</h2>
-          <p className={aiSubClass}>Hasta {MAX_PHOTOS} fotos. Un video (enlace o archivo corto).</p>
+          <p className={aiSubClass}>
+            Hasta {MAX_PHOTOS} fotos. Al menos una foto para una vista previa completa
+            <span className="text-[#B8954A]" aria-hidden>
+              {" "}
+              *
+            </span>
+            . Un video (enlace o archivo corto) — permanece en esta sesión hasta publicación definitiva.
+          </p>
           <div className="mt-4">
             <span className={aiLabelClass}>Fotos</span>
             <input
@@ -397,6 +451,12 @@ export function RentasNegocioForm() {
           <h2 className={aiTitleClass}>Negocio / marca</h2>
           <p className={aiSubClass}>
             Datos del anunciante comercial. La vista previa reutiliza el shell de Bienes Raíces Negocio (identidad, CTAs, redes).
+            Nombre visible
+            <span className="text-[#B8954A]" aria-hidden>
+              {" "}
+              *
+            </span>{" "}
+            obligatorio para una salida completa.
           </p>
           <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
             <div className="sm:col-span-2">
@@ -426,7 +486,7 @@ export function RentasNegocioForm() {
                 </button>
               ) : null}
             </div>
-            <AiField label="Nombre visible">
+            <AiField required label="Nombre visible">
               <input
                 className={fieldClass}
                 value={state.negocioNombre}

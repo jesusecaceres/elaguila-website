@@ -21,6 +21,19 @@ export function mediaIdFromRef(url: string): string | null {
   return id.length > 0 ? id : null;
 }
 
+/** Drops gallery rows and logo that still point at IndexedDB placeholders (missing rehydration). */
+export function stripUnresolvedIdbRefsFromListing(listing: AutoDealerListing): AutoDealerListing {
+  const mediaImages = (listing.mediaImages ?? []).filter((m) => {
+    if (!m || typeof m.url !== "string") return false;
+    return mediaIdFromRef(m.url) === null;
+  });
+  let dealerLogo = listing.dealerLogo;
+  if (dealerLogo === AUTOS_DRAFT_LOGO_REF) {
+    dealerLogo = undefined;
+  }
+  return { ...listing, mediaImages, dealerLogo };
+}
+
 export async function offloadDraftListingAssetsToIdb(namespace: string, listing: AutoDealerListing): Promise<AutoDealerListing> {
   const rows = listing.mediaImages ?? [];
   const nextImages = [];

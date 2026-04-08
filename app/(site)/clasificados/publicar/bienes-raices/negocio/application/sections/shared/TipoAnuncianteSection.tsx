@@ -19,7 +19,9 @@ export function TipoAnuncianteSection({
 }) {
   return (
     <section className={brCardClass}>
-      <h2 className={brSectionTitleClass}>¿Qué tipo de anunciante eres?</h2>
+      <h2 className={brSectionTitleClass}>
+        ¿Qué tipo de anunciante eres? <span className="text-[#B8954A]">*</span>
+      </h2>
       <p className={brSubTitleClass}>Esto define cómo se muestra tu identidad profesional en la vista previa y en el anuncio.</p>
       <BrPreviewHint>
         Activa el módulo de identidad correcto (tarjeta con foto o logo, nombre y datos de confianza en el carril).

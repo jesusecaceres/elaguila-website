@@ -81,6 +81,11 @@ export default async function Page({
       </div>
 
       <div className="mx-auto max-w-4xl px-4 pt-6 pb-4">
+        <p className="mb-4 text-sm leading-relaxed text-[#111111]/90">
+          {lang === "es"
+            ? "Descubre restaurantes publicados en Leonix: resultados con filtros reales (ciudad, cocina, tipo de negocio y más). Desde aquí entras a la lista o acortas por cocina."
+            : "Discover restaurants published on Leonix: results use real filters (city, cuisine, business type, and more). Jump to the full list or narrow by cuisine from here."}
+        </p>
         <section className="rounded-2xl border border-[#111111]/10 bg-[#F5F5F5] px-4 py-3">
           <p className="text-xs font-semibold text-[#111111]/80">{lang === "es" ? "Explorar por categoría" : "Browse by category"}</p>
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

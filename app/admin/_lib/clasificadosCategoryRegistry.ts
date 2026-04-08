@@ -1,10 +1,10 @@
 /**
- * Clasificados category control model — single registry for admin + future persistence.
- * Status: en-venta = live (primary). Others default to coming_soon or staged per product.
- * TODO: persist overrides in Supabase table `site_category_config` when introduced.
+ * Clasificados category control model — code defaults merged with optional `site_category_config` (admin).
+ * Public Clasificados still reads `categoryConfig` until product wires merged registry into nav.
  */
 import type { CategoryKey } from "@/app/clasificados/config/categoryConfig";
 import { categoryConfig } from "@/app/clasificados/config/categoryConfig";
+import { fetchSiteCategoryConfigMap } from "@/app/lib/siteCategory/siteCategoryConfigData";
 
 export type ClasificadosCategoryOperationalStatus = "live" | "staged" | "coming_soon" | "hidden";
 
@@ -20,6 +20,12 @@ export type ClasificadosCategoryRegistryEntry = {
   landingTarget: string;
   notes: string;
   readiness: "full" | "partial" | "scaffold";
+  /** Admin emphasis in category ops table. */
+  highlight?: boolean;
+  /** Whether posture fields come from Supabase overlay. */
+  configLayer?: "code" | "database";
+  /** Notes column in `site_category_config` only (not merged display copy). */
+  overlayNotes?: string | null;
 };
 
 const EXCLUDE: CategoryKey[] = ["all"];
@@ -80,6 +86,31 @@ export function getClasificadosCategoryRegistry(): ClasificadosCategoryRegistryE
               ? "Partial flows exist; activate carefully after QA."
               : "Route-ready registry entry — not fully operational.",
         readiness: defaultReadiness(slug),
+        highlight: false,
+      };
+    })
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+/** Async registry for admin surfaces — overlays `site_category_config` when rows exist. */
+export async function getClasificadosCategoryRegistryMerged(): Promise<ClasificadosCategoryRegistryEntry[]> {
+  const map = await fetchSiteCategoryConfigMap();
+  const base = getClasificadosCategoryRegistry();
+  return base
+    .map((e) => {
+      const o = map.get(e.slug);
+      if (!o) return { ...e, highlight: false, configLayer: "code" as const, overlayNotes: null };
+      const visibility: "public" | "hidden" = o.visibility === "hidden" ? "hidden" : "public";
+      const overlayNotes = o.notes != null ? String(o.notes) : "";
+      return {
+        ...e,
+        visibility,
+        operationalStatus: o.operational_status,
+        sortOrder: o.sort_order,
+        highlight: o.highlight,
+        notes: o.notes?.trim() ? o.notes : e.notes,
+        configLayer: "database" as const,
+        overlayNotes,
       };
     })
     .sort((a, b) => a.sortOrder - b.sortOrder);

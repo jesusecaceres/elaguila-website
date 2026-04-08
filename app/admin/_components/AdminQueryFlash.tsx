@@ -14,6 +14,10 @@ export function AdminQueryFlash() {
   const saved = sp?.get("saved");
   const registrySaved = sp?.get("registry_saved");
   const registryError = sp?.get("registry_error");
+  const issueSaved = sp?.get("issue_saved");
+  const issueError = sp?.get("issue_error");
+  const catSaved = sp?.get("cat_saved");
+  const catError = sp?.get("cat_error");
   const err = sp?.get("error");
 
   useEffect(() => {
@@ -21,8 +25,16 @@ export function AdminQueryFlash() {
       setOpen({ tone: "ok", message: "Guardado correctamente." });
     } else if (registrySaved === "1") {
       setOpen({ tone: "ok", message: "Registro de revista actualizado." });
+    } else if (issueSaved === "1") {
+      setOpen({ tone: "ok", message: "Número de revista guardado (Supabase)." });
+    } else if (catSaved === "1") {
+      setOpen({ tone: "ok", message: "Postura de categoría guardada en Supabase." });
     } else if (registryError === "1") {
       setOpen({ tone: "err", message: "No se pudo guardar el borrador (falta título o error de servidor)." });
+    } else if (issueError === "1") {
+      setOpen({ tone: "err", message: "No se pudo completar la acción del número de revista." });
+    } else if (catError === "1") {
+      setOpen({ tone: "err", message: "No se pudo guardar la categoría (datos inválidos o error de servidor)." });
     } else if (err === "1") {
       setOpen({ tone: "err", message: "La acción falló. Revisa permisos o vuelve a intentar." });
     } else {
@@ -31,7 +43,7 @@ export function AdminQueryFlash() {
     }
     const t = window.setTimeout(() => setOpen(null), 5200);
     return () => window.clearTimeout(t);
-  }, [saved, registrySaved, registryError, err]);
+  }, [saved, registrySaved, registryError, issueSaved, issueError, catSaved, catError, err]);
 
   if (!open) return null;
 

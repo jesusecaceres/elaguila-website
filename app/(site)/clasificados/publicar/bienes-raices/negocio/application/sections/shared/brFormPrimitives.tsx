@@ -23,15 +23,20 @@ export function BrPreviewHint({ children }: { children: React.ReactNode }) {
 export function BrField({
   label,
   hint,
+  required,
   children,
 }: {
   label: string;
   hint?: string;
+  required?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <label className="block">
-      <span className={brLabelClass}>{label}</span>
+      <span className={brLabelClass}>
+        {label}
+        {required ? <span className="text-[#B8954A]" aria-hidden> *</span> : null}
+      </span>
       {hint ? <p className={brHintClass}>{hint}</p> : null}
       {children}
     </label>

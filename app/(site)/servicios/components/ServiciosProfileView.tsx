@@ -22,6 +22,7 @@ export function ServiciosProfileView({
   editBackHref,
   beforeEditBackNavigate,
   noticeBanner,
+  showTopBar = true,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
@@ -31,10 +32,16 @@ export function ServiciosProfileView({
   beforeEditBackNavigate?: () => void;
   /** Optional system notice (e.g. paused listing) — premium, non-alarming */
   noticeBanner?: string;
+  /** When false, the global Servicios chrome bar is omitted (e.g. Clasificados preview uses an outer wrapper). */
+  showTopBar?: boolean;
 }) {
+  const stickyAsideTop = showTopBar ? "lg:top-[4.5rem]" : "lg:top-4";
+
   return (
     <div className="min-h-screen overflow-x-hidden pb-20 sm:pb-16" style={{ backgroundColor: SV.bg }}>
-      <ServiciosTopBar lang={lang} editBackHref={editBackHref} beforeEditBackNavigate={beforeEditBackNavigate} />
+      {showTopBar ? (
+        <ServiciosTopBar lang={lang} editBackHref={editBackHref} beforeEditBackNavigate={beforeEditBackNavigate} />
+      ) : null}
 
       <main className="mx-auto max-w-[1280px] px-4 pb-10 pt-4 sm:pt-6 md:px-6 md:pt-8">
         {noticeBanner ? (
@@ -58,7 +65,7 @@ export function ServiciosProfileView({
           lg+: classic two-column [content | sticky panel].
         */}
         <div className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_min(100%,380px)] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_400px]">
-          <aside className="order-1 min-w-0 lg:order-2 lg:sticky lg:top-[4.5rem] lg:z-10 lg:self-start">
+          <aside className={`order-1 min-w-0 lg:order-2 lg:sticky ${stickyAsideTop} lg:z-10 lg:self-start`}>
             <ServiciosActionPanel profile={profile} lang={lang} />
           </aside>
           <div className="order-2 flex min-w-0 flex-col gap-6 sm:gap-8 lg:order-1">

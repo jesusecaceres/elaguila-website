@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
+import { AutosApplicationTopActions } from "@/app/publicar/autos/shared/components/AutosApplicationTopActions";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { AutoDealerListing, VehicleBadge } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { useAutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/useAutosNegociosLang";
@@ -30,6 +31,17 @@ const INPUT =
   "mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2 text-sm text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
 const GRID2 = "grid gap-4 sm:grid-cols-2";
 
+function reqLabel(label: string) {
+  return (
+    <>
+      {label}{" "}
+      <span className="text-red-800" aria-hidden>
+        *
+      </span>
+    </>
+  );
+}
+
 function parseOptInt(raw: string): number | undefined {
   const t = raw.trim();
   if (!t) return undefined;
@@ -52,6 +64,7 @@ function newHourRowId(): string {
 }
 
 export function AutosNegociosApplication() {
+  const router = useRouter();
   const { lang, t } = useAutosNegociosLang();
   const {
     hydrated,
@@ -60,6 +73,7 @@ export function AutosNegociosApplication() {
     listing,
     setListingPatch,
     resetDraft,
+    flushDraft,
     updateDealerHourRow,
     removeDealerHourRow,
   } = useAutoDealerDraft();
@@ -124,6 +138,22 @@ export function AutosNegociosApplication() {
           </div>
         </header>
 
+        <AutosApplicationTopActions
+          lane="negocios"
+          copy={t}
+          listing={listing}
+          mediaSectionId="autos-clasificados-app-media"
+          onFlushOpenSameTab={async () => {
+            await flushDraft();
+            router.push(previewHref);
+          }}
+          onFlushOpenNewTab={async () => {
+            await flushDraft();
+            window.open(previewHref, "_blank", "noopener,noreferrer");
+          }}
+          onDeleteApplication={resetDraft}
+        />
+
         <div className="flex flex-col gap-6">
           {/* A — Principal */}
           <section className={CARD}>
@@ -140,7 +170,7 @@ export function AutosNegociosApplication() {
                 />
               </div>
               <div>
-                <label className={LABEL}>{t.app.labels.make}</label>
+                <label className={LABEL}>{reqLabel(t.app.labels.make)}</label>
                 <input
                   className={INPUT}
                   value={listing.make ?? ""}
@@ -148,7 +178,7 @@ export function AutosNegociosApplication() {
                 />
               </div>
               <div>
-                <label className={LABEL}>{t.app.labels.model}</label>
+                <label className={LABEL}>{reqLabel(t.app.labels.model)}</label>
                 <input
                   className={INPUT}
                   value={listing.model ?? ""}
@@ -236,7 +266,7 @@ export function AutosNegociosApplication() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className={LABEL}>{t.app.labels.city}</label>
+                <label className={LABEL}>{reqLabel(t.app.labels.city)}</label>
                 <CityAutocomplete
                   value={listing.city ?? ""}
                   onChange={(v) => setListingPatch({ city: v || undefined })}
@@ -261,7 +291,7 @@ export function AutosNegociosApplication() {
                 </select>
               </div>
               <div>
-                <label className={LABEL}>{t.app.labels.zip}</label>
+                <label className={LABEL}>{reqLabel(t.app.labels.zip)}</label>
                 <input
                   className={INPUT}
                   inputMode="numeric"
@@ -688,22 +718,6 @@ export function AutosNegociosApplication() {
             />
           </section>
 
-          {/* Actions */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <Link
-              href={previewHref}
-              className="inline-flex min-h-[48px] w-full items-center justify-center rounded-[14px] bg-[color:var(--lx-cta-dark)] px-6 text-sm font-bold text-[#FFFCF7] shadow-lg transition hover:bg-[color:var(--lx-cta-dark-hover)] sm:w-auto"
-            >
-              {t.app.actions.preview}
-            </Link>
-            <button
-              type="button"
-              className="min-h-[44px] w-full text-sm font-semibold text-[color:var(--lx-muted)] underline-offset-4 hover:text-[color:var(--lx-text-2)] hover:underline sm:min-h-0 sm:w-auto sm:shrink-0"
-              onClick={() => resetDraft()}
-            >
-              {t.app.actions.reset}
-            </button>
-          </div>
         </div>
       </div>
     </div>

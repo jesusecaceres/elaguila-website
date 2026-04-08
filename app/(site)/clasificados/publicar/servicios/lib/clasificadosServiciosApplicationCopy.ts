@@ -16,6 +16,15 @@ export type ClasificadosServiciosCopy = {
   publishBusy: string;
   publishError: string;
   publishLocalNote: string;
+  /** Shown when the three attestations are not checked before publish */
+  publishConfirmMissing: string;
+  /** Opens preview without running strict checklist (draft may be partial) */
+  openPreviewCta: string;
+  deleteApplication: string;
+  deleteConfirm: string;
+  sessionSaveHint: string;
+  expertSampleFootnote: string;
+  previewMissingBanner: string;
   listingPhaseDraft: string;
   listingPhasePreview: string;
   listingPhasePublish: string;
@@ -169,6 +178,15 @@ const es: ClasificadosServiciosCopy = {
   publishError: "No se pudo publicar. Intenta de nuevo.",
   publishLocalNote:
     "Se guardó en este navegador porque la nube no está disponible. Otros dispositivos no verán el listado hasta que haya servidor.",
+  publishConfirmMissing:
+    "Marca las tres casillas de confirmación en el formulario (sección antes de publicar) para continuar.",
+  openPreviewCta: "Abrir vista previa",
+  deleteApplication: "Eliminar solicitud",
+  deleteConfirm: "¿Borrar todo el borrador de Servicios en esta sesión y empezar de nuevo?",
+  sessionSaveHint:
+    "Borrador en esta sesión del navegador: se conserva al ir a vista previa y volver, y al actualizar en la misma pestaña. Al cerrar la pestaña o el navegador se descarta.",
+  expertSampleFootnote: "Ver ejemplo de vitrina (solo diseño)",
+  previewMissingBanner: "Completa los campos obligatorios para la vista previa:",
   listingPhaseDraft: "Borrador · sigue completando tu perfil.",
   listingPhasePreview: "Listo para vista previa · revisa el diseño antes de publicar.",
   listingPhasePublish: "Listo para publicar · puedes enviar tu listado.",
@@ -281,7 +299,7 @@ const es: ClasificadosServiciosCopy = {
     videoFromFile: "Video subido",
     videoFromUrl: "Enlace / URL",
     offerAssetsIntro: "Sube una imagen o un PDF opcional para tu cupón; puedes combinarlos con el enlace.",
-    bottomActionsHint: "Vista previa y publicar están abajo — siempre a mano en móvil y escritorio.",
+    bottomActionsHint: "Abajo: vista previa completa y publicar. Arriba: acciones rápidas como en otros Clasificados.",
     assetFromFile: "Archivo",
     assetFromUrl: "URL",
     videosTitle: "Videos (opcional)",
@@ -317,6 +335,15 @@ const en: ClasificadosServiciosCopy = {
   publishError: "Could not publish. Please try again.",
   publishLocalNote:
     "Saved on this browser because cloud publish isn’t available. Other devices won’t see it until the server is configured.",
+  publishConfirmMissing:
+    "Check all three confirmation boxes in the form (section before publishing) to continue.",
+  openPreviewCta: "Open preview",
+  deleteApplication: "Delete application",
+  deleteConfirm: "Delete this session’s Servicios draft and start over?",
+  sessionSaveHint:
+    "Session draft: kept when you open preview and return, and when you refresh in the same tab. Closing the tab or browser clears it.",
+  expertSampleFootnote: "View sample showcase (design only)",
+  previewMissingBanner: "Complete required fields for preview:",
   listingPhaseDraft: "Draft · keep filling out your profile.",
   listingPhasePreview: "Preview-ready · review the layout before publishing.",
   listingPhasePublish: "Publish-ready · you can submit your listing.",
@@ -429,7 +456,7 @@ const en: ClasificadosServiciosCopy = {
     videoFromFile: "Uploaded clip",
     videoFromUrl: "From link",
     offerAssetsIntro: "Optional image or PDF for your offer; you can combine with the link above.",
-    bottomActionsHint: "Preview and publish stay at the bottom — quick access on phone and desktop.",
+    bottomActionsHint: "Bottom: full preview and publish. Top: quick utilities like other Clasificados flows.",
     assetFromFile: "File",
     assetFromUrl: "URL",
     videosTitle: "Videos (optional)",

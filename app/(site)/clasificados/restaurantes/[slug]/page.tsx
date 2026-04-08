@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { mapRestauranteDraftToShellData } from "@/app/clasificados/restaurantes/application/mapRestauranteDraftToShell";
 import { listingJsonToDraft } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import { getRestaurantePublicListingBySlugFromDb } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
+import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
 import { RestauranteDetailShell } from "@/app/clasificados/restaurantes/shell/RestauranteDetailShell";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
 
@@ -54,7 +55,9 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
             Ver más restaurantes
           </a>
         </p>
-        <RestauranteDetailShell data={shellData} />
+        <ClasificadosPreviewAdCanvas className="overflow-hidden">
+          <RestauranteDetailShell data={shellData} />
+        </ClasificadosPreviewAdCanvas>
       </div>
     </RestaurantesShellChrome>
   );

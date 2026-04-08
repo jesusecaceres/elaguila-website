@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AutoDealerListing, DealerHoursEntry } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
   clearAutosNegociosDraft,
@@ -10,15 +10,18 @@ import {
 } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftStorage";
 import {
   autosNegociosDraftNamespaceFromUserId,
+  LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY,
   migrateLegacyAutosNegociosDraftJsonToNamespace,
   resolveAutosNegociosDraftNamespace,
 } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftNamespace";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { buildVehicleTitle } from "../lib/autoDealerTitle";
+import { createEmptyListing, normalizeLoadedListing } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
+import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
 import {
-  createEmptyListing,
-  normalizeLoadedListing,
-} from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
+  AUTOS_NEGOCIOS_EDITOR_SESSION_KEY,
+  shouldResetAutosDraftForFreshEditorTab,
+} from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
 
 function applyAutoTitle(listing: AutoDealerListing, override: boolean): AutoDealerListing {
   if (override) return listing;
@@ -34,13 +37,17 @@ export function useAutoDealerDraft() {
   overrideRef.current = vehicleTitleOverride;
 
   const namespaceRef = useRef<string | null>(null);
+  const listingRef = useRef(listing);
+  useLayoutEffect(() => {
+    listingRef.current = listing;
+  }, [listing]);
 
   const hydrateFromNamespace = useCallback(async (namespace: string) => {
     migrateLegacyAutosNegociosDraftJsonToNamespace(namespace);
     const d = await loadAutosNegociosDraftResolved(namespace);
     if (d) {
       setVehicleTitleOverride(d.vehicleTitleOverride);
-      setListing(normalizeLoadedListing(d.listing));
+      setListing(safeNormalizeAutosDraftListing(d.listing, "negocios"));
     } else {
       setVehicleTitleOverride(false);
       setListing(createEmptyListing());
@@ -63,6 +70,17 @@ export function useAutoDealerDraft() {
       const ns = await resolveAutosNegociosDraftNamespace();
       if (cancelled) return;
       namespaceRef.current = ns;
+
+      if (shouldResetAutosDraftForFreshEditorTab(AUTOS_NEGOCIOS_EDITOR_SESSION_KEY)) {
+        try {
+          window.localStorage.removeItem(LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY);
+        } catch {
+          /* ignore */
+        }
+        await clearAutosNegociosDraft(ns);
+      }
+
+      migrateLegacyAutosNegociosDraftJsonToNamespace(ns);
       await hydrateFromNamespace(ns);
       if (!cancelled) setHydrated(true);
     };
@@ -154,15 +172,29 @@ export function useAutoDealerDraft() {
     [persist],
   );
 
-  const resetDraft = useCallback(() => {
+  const resetDraft = useCallback(async () => {
     const ns = namespaceRef.current;
     const empty = createEmptyListing();
     overrideRef.current = false;
     setVehicleTitleOverride(false);
     setListing(empty);
     if (ns) {
-      clearAutosNegociosDraft(ns);
+      await clearAutosNegociosDraft(ns);
     }
+  }, []);
+
+  /** Flush latest listing to localStorage + IndexedDB before navigating away (matches Privado). */
+  const flushDraft = useCallback(async () => {
+    const ns = namespaceRef.current;
+    if (!ns) return;
+    const merged = normalizeLoadedListing(listingRef.current);
+    const withTitle = applyAutoTitle(merged, overrideRef.current);
+    const normalized = normalizeLoadedListing(withTitle);
+    await saveAutosNegociosDraftResolved(ns, {
+      v: 1,
+      vehicleTitleOverride: overrideRef.current,
+      listing: normalized,
+    });
   }, []);
 
   return {
@@ -173,6 +205,7 @@ export function useAutoDealerDraft() {
     setListingPatch,
     replaceListing,
     resetDraft,
+    flushDraft,
     updateDealerHourRow,
     removeDealerHourRow,
   };

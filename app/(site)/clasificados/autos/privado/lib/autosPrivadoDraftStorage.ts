@@ -5,10 +5,10 @@ import { idbClearDraftVideo, idbGetDraftVideoDataUrl, idbPutDraftVideoDataUrl } 
 import {
   clearDraftListingImageAndLogoIdb,
   inlineDraftListingAssetsFromIdb,
-  mediaIdFromRef,
   offloadDraftListingAssetsToIdb,
-  AUTOS_DRAFT_LOGO_REF,
+  stripUnresolvedIdbRefsFromListing,
 } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftIdbRefs";
+import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
 import { buildAutosPrivadoDraftLocalStorageKey } from "./autosPrivadoDraftNamespace";
 
 export type AutosPrivadoDraftV1 = {
@@ -25,33 +25,7 @@ export function isAutosPrivadoDraftV1(x: unknown): x is AutosPrivadoDraftV1 {
 
 /** Normalize listing from storage without throwing; strips risky arrays on failure. */
 export function safeNormalizePrivadoListing(raw: unknown): AutoDealerListing {
-  const emptyPrivado = (): AutoDealerListing => normalizeLoadedListing({ autosLane: "privado" });
-  try {
-    if (!raw || typeof raw !== "object") {
-      return emptyPrivado();
-    }
-    const asPartial = { ...(raw as Record<string, unknown>), autosLane: "privado" as const } as Partial<AutoDealerListing>;
-    try {
-      return normalizeLoadedListing(asPartial);
-    } catch {
-      try {
-        return normalizeLoadedListing({
-          ...asPartial,
-          mediaImages: [],
-          heroImages: [],
-          dealerHours: [],
-          relatedDealerListings: [],
-          badges: [],
-          features: [],
-          autosLane: "privado",
-        });
-      } catch {
-        return emptyPrivado();
-      }
-    }
-  } catch {
-    return emptyPrivado();
-  }
+  return safeNormalizeAutosDraftListing(raw, "privado");
 }
 
 function coerceLooseAutosPrivadoDraftV1(parsed: unknown): AutosPrivadoDraftV1 | null {
@@ -65,19 +39,6 @@ function coerceLooseAutosPrivadoDraftV1(parsed: unknown): AutosPrivadoDraftV1 | 
     vehicleTitleOverride,
     listing: safeNormalizePrivadoListing(o.listing),
   };
-}
-
-/** Removes IDB placeholder refs when blobs are missing or unreadable (preview-safe). */
-export function stripUnresolvedIdbRefsFromListing(listing: AutoDealerListing): AutoDealerListing {
-  const mediaImages = (listing.mediaImages ?? []).filter((m) => {
-    if (!m || typeof m.url !== "string") return false;
-    return mediaIdFromRef(m.url) === null;
-  });
-  let dealerLogo = listing.dealerLogo;
-  if (dealerLogo === AUTOS_DRAFT_LOGO_REF) {
-    dealerLogo = undefined;
-  }
-  return { ...listing, mediaImages, dealerLogo };
 }
 
 function stripBrokenFileVideo(listing: AutoDealerListing): AutoDealerListing {

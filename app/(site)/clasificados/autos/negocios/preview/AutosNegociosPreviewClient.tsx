@@ -11,10 +11,10 @@ import {
 } from "../lib/autosNegociosDraftNamespace";
 import { mockAutoDealerListing } from "../mock/mockAutoDealerListing";
 import type { AutoDealerListing } from "../types/autoDealerListing";
-import { normalizeLoadedListing } from "../lib/autoDealerDraftDefaults";
 import { isMeaningfulAutoDealerDraft } from "../lib/isMeaningfulAutoDealerDraft";
 import { AutosNegociosPreviewLocaleProvider, useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { withLangParam } from "../lib/autosNegociosLang";
+import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
 
 const EDIT_BASE = "/publicar/autos/negocios";
 
@@ -27,30 +27,42 @@ function isDemoQuery(): boolean {
   return v === "1" || v === "true";
 }
 
+function listingIsMeaningfulDraft(listing: AutoDealerListing): boolean {
+  try {
+    return isMeaningfulAutoDealerDraft(listing);
+  } catch {
+    return false;
+  }
+}
+
 async function resolvePreviewState(): Promise<{
   mode: AutosNegociosPreviewMode;
   listing: AutoDealerListing;
 }> {
-  const demo = isDemoQuery();
-  if (demo) {
-    const base = mockAutoDealerListing;
-    const relatedDealerListings =
-      base.relatedDealerListings?.length ? base.relatedDealerListings : (mockAutoDealerListing.relatedDealerListings ?? []);
-    return {
-      mode: "mock",
-      listing: normalizeLoadedListing({ ...base, relatedDealerListings }),
-    };
-  }
+  try {
+    const demo = isDemoQuery();
+    if (demo) {
+      const base = mockAutoDealerListing;
+      const relatedDealerListings =
+        base.relatedDealerListings?.length ? base.relatedDealerListings : (mockAutoDealerListing.relatedDealerListings ?? []);
+      return {
+        mode: "mock",
+        listing: safeNormalizeAutosDraftListing({ ...base, relatedDealerListings }, "negocios"),
+      };
+    }
 
-  const namespace = await resolveAutosNegociosDraftNamespace();
-  migrateLegacyAutosNegociosDraftJsonToNamespace(namespace);
-  const d = await loadAutosNegociosDraftResolved(namespace);
-  const normalized = normalizeLoadedListing(d?.listing);
-  if (isMeaningfulAutoDealerDraft(normalized)) {
-    return { mode: "draft", listing: normalized };
-  }
+    const namespace = await resolveAutosNegociosDraftNamespace();
+    migrateLegacyAutosNegociosDraftJsonToNamespace(namespace);
+    const d = await loadAutosNegociosDraftResolved(namespace);
+    const normalized = safeNormalizeAutosDraftListing(d?.listing, "negocios");
+    if (listingIsMeaningfulDraft(normalized)) {
+      return { mode: "draft", listing: normalized };
+    }
 
-  return { mode: "empty", listing: normalized };
+    return { mode: "empty", listing: normalized };
+  } catch {
+    return { mode: "empty", listing: safeNormalizeAutosDraftListing(undefined, "negocios") };
+  }
 }
 
 function AutosNegociosPreviewInner({
@@ -79,12 +91,22 @@ function AutosNegociosPreviewInner({
 export function AutosNegociosPreviewClient() {
   const [ready, setReady] = useState(false);
   const [mode, setMode] = useState<AutosNegociosPreviewMode>("empty");
-  const [listing, setListing] = useState<AutoDealerListing>(() => normalizeLoadedListing(undefined));
+  const [listing, setListing] = useState<AutoDealerListing>(() => safeNormalizeAutosDraftListing(undefined, "negocios"));
+  const [recoverHint, setRecoverHint] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const next = await resolvePreviewState();
-    setMode(next.mode);
-    setListing(next.listing);
+    try {
+      const next = await resolvePreviewState();
+      setRecoverHint(null);
+      setMode(next.mode);
+      setListing(next.listing);
+    } catch {
+      setMode("empty");
+      setListing(safeNormalizeAutosDraftListing(undefined, "negocios"));
+      if (process.env.NODE_ENV === "development") {
+        setRecoverHint("Preview fell back to empty state after an unexpected error");
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -120,6 +142,11 @@ export function AutosNegociosPreviewClient() {
 
   return (
     <AutosNegociosPreviewLocaleProvider>
+      {process.env.NODE_ENV === "development" && recoverHint ? (
+        <p className="mx-auto max-w-3xl px-4 pt-2 text-xs text-amber-900/90 dark:text-amber-100/90" role="note">
+          {recoverHint}
+        </p>
+      ) : null}
       <AutosNegociosPreviewInner ready={ready} mode={mode} listing={listing} />
     </AutosNegociosPreviewLocaleProvider>
   );

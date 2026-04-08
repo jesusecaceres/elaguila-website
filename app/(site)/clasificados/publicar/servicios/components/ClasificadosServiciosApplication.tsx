@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   FiCheck,
@@ -41,7 +41,9 @@ import {
   readClasificadosServiciosApplicationFromBrowser,
   writeClasificadosServiciosApplicationToBrowser,
 } from "../lib/clasificadosServiciosStorage";
+import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadiness";
+import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
 import {
   clasificadosServiciosApplicationHasProgress,
   createDefaultClasificadosServiciosState,
@@ -102,11 +104,13 @@ function Chip({
 }
 
 export function ClasificadosServiciosApplication() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const lang: ServiciosLang = searchParams?.get("lang") === "en" ? "en" : "es";
   const copy = getClasificadosServiciosCopy(lang);
 
   const [hydrated, setHydrated] = useState(false);
+  const [previewGateError, setPreviewGateError] = useState<string | null>(null);
   const [state, setState] = useState<ClasificadosServiciosApplicationState>(() => createDefaultClasificadosServiciosState());
 
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -158,6 +162,29 @@ export function ClasificadosServiciosApplication() {
     markPublishFlowOpeningPreview();
     writeClasificadosServiciosApplicationToBrowser(stateRef.current);
   }, []);
+
+  const previewHref = `/clasificados/publicar/servicios/preview?lang=${lang}`;
+  const publicarHref = `/clasificados/publicar?lang=${lang}`;
+
+  const goStrictPreview = useCallback(() => {
+    const r = evaluateServiciosPreviewReadiness(stateRef.current, lang);
+    if (!r.ok) {
+      setPreviewGateError(`${copy.previewMissingBanner} ${r.missing.map((m) => m.label).join(" · ")}`);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    setPreviewGateError(null);
+    markPublishFlowOpeningPreview();
+    writeClasificadosServiciosApplicationToBrowser(stateRef.current);
+    router.push(previewHref);
+  }, [copy.previewMissingBanner, lang, previewHref, router]);
+
+  const deleteApplicationDraft = useCallback(() => {
+    if (!window.confirm(copy.deleteConfirm)) return;
+    clearClasificadosServiciosApplicationFromBrowser();
+    setState(createDefaultClasificadosServiciosState());
+    setPreviewGateError(null);
+  }, [copy.deleteConfirm]);
 
   const preset = useMemo(() => getBusinessTypePreset(state.businessTypeId), [state.businessTypeId]);
 
@@ -386,48 +413,71 @@ export function ClasificadosServiciosApplication() {
     }));
   };
 
-  const previewHref = `/clasificados/publicar/servicios/preview?lang=${lang}`;
-  const publicarHref = `/clasificados/publicar?lang=${lang}`;
-
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#F6F0E2] text-[#3D2C12]">
       <header className="border-b border-[#D8C79A]/60 bg-[#FFFDF7]/95 backdrop-blur">
         <div className="mx-auto max-w-3xl px-4 py-5 sm:py-6 lg:max-w-5xl">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
-            <div className="min-w-0">
-              <h1 className="text-xl font-extrabold tracking-tight text-[#3D2C12] sm:text-2xl">{copy.pageTitle}</h1>
-              <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#5D4A25]/90">{copy.pageSubtitle}</p>
-            </div>
-            <div className="flex min-w-0 flex-col gap-2 sm:items-end">
-              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                <Link
-                  href={lang === "es" ? "?lang=en" : "?lang=es"}
-                  className="inline-flex min-h-[44px] touch-manipulation items-center rounded-lg border border-[#D8C79A]/70 bg-white px-3 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFF6E7]"
-                >
-                  {copy.langToggle}
-                </Link>
-                <Link
-                  href={`/clasificados/publicar/servicios/preview?lang=${lang}&sample=expert`}
-                  onClick={persistStateAndMarkOpeningPreview}
-                  className="inline-flex min-h-[44px] touch-manipulation items-center rounded-lg border border-[#D8C79A]/60 bg-white/80 px-3 py-2 text-xs font-semibold text-[#6b5c42] hover:bg-[#FFF6E7]"
-                >
-                  {copy.linkPreviewShell}
-                </Link>
-                <Link
-                  href={publicarHref}
-                  onClick={() => clearClasificadosServiciosApplicationFromBrowser()}
-                  className="inline-flex min-h-[44px] touch-manipulation items-center text-sm font-medium text-[#5D4A25]/85 underline underline-offset-2 hover:text-[#3D2C12]"
-                >
-                  {copy.linkBack}
-                </Link>
-              </div>
-            </div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a7a62]">Leonix Clasificados</p>
+          <h1 className="mt-2 text-xl font-extrabold tracking-tight text-[#3D2C12] sm:text-2xl">{copy.pageTitle}</h1>
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#5D4A25]/90">{copy.pageSubtitle}</p>
+          <Link
+            href={publicarHref}
+            onClick={() => clearClasificadosServiciosApplicationFromBrowser()}
+            className="mt-2 inline-flex min-h-[40px] items-center text-xs font-medium text-[#5D4A25]/85 underline underline-offset-2 hover:text-[#3D2C12]"
+          >
+            {copy.linkBack}
+          </Link>
+          <p className="mt-2 text-xs leading-relaxed text-[#7a6a52]">{copy.sessionSaveHint}</p>
+          <Link
+            href={`/clasificados/publicar/servicios/preview?lang=${lang}&sample=expert`}
+            onClick={persistStateAndMarkOpeningPreview}
+            className="mt-1 inline-flex min-h-[40px] items-center text-xs font-semibold text-[#3B66AD] underline underline-offset-2"
+          >
+            {copy.expertSampleFootnote}
+          </Link>
+
+          <div className="mt-5 flex flex-wrap gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={goStrictPreview}
+              className="inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-full bg-[#3B66AD] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699]"
+            >
+              {copy.previewCta}
+            </button>
+            <Link
+              href={previewHref}
+              onClick={persistStateAndMarkOpeningPreview}
+              className="inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-full border border-[#D8C79A]/80 bg-white px-5 py-2.5 text-sm font-semibold text-[#3D2C12] shadow-sm transition hover:bg-[#FFF6E7]"
+            >
+              {copy.openPreviewCta}
+            </Link>
+            <button
+              type="button"
+              onClick={deleteApplicationDraft}
+              className="inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-full border border-red-200 bg-red-50/90 px-5 py-2.5 text-sm font-semibold text-red-900 shadow-sm transition hover:bg-red-100"
+            >
+              {copy.deleteApplication}
+            </button>
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <Link
+              href={lang === "es" ? "?lang=en" : "?lang=es"}
+              className="inline-flex min-h-[40px] items-center text-xs font-semibold text-[#5D4A25] underline underline-offset-2 hover:text-[#3B66AD]"
+            >
+              {copy.langToggle}
+            </Link>
           </div>
         </div>
         <div className="mx-auto max-w-5xl px-4 pb-3">
           <p className="text-xs text-[#8a7a62]">{hydrated ? copy.saveHint : "…"}</p>
           {hydrated ? (
             <p className="mt-1 text-xs font-medium text-[#6b5c42]">{listingPhaseLine}</p>
+          ) : null}
+          {previewGateError ? (
+            <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950" role="status">
+              {previewGateError}
+            </p>
           ) : null}
           <p className="mt-2 text-xs leading-snug text-[#7a6a52]">{copy.labels.bottomActionsHint}</p>
         </div>
@@ -478,7 +528,9 @@ export function ClasificadosServiciosApplication() {
           </h2>
           <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className={labelClass}>{copy.labels.businessName}</label>
+              <label className={labelClass}>
+                {copy.labels.businessName} <span className="text-red-600">*</span>
+              </label>
               <input
                 className={inputClass}
                 value={state.businessName}
@@ -487,7 +539,9 @@ export function ClasificadosServiciosApplication() {
               />
             </div>
             <div>
-              <label className={labelClass}>{copy.labels.city}</label>
+              <label className={labelClass}>
+                {copy.labels.city} <span className="text-red-600">*</span>
+              </label>
               <input
                 className={inputClass}
                 value={state.city}
@@ -559,9 +613,17 @@ export function ClasificadosServiciosApplication() {
         {/* 3 · Media */}
         <section className={sectionCard} aria-labelledby="sec-media">
           <h2 id="sec-media" className="text-lg font-bold text-[#3D2C12]">
-            {copy.sections.media}
+            {copy.sections.media}{" "}
+            <span className="text-sm font-semibold text-red-600" aria-hidden>
+              *
+            </span>
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">{copy.labels.mediaStructureIntro}</p>
+          <p className="mt-1 text-xs font-medium text-[#8a4a12]">
+            {lang === "es"
+              ? "* Requiere portada o al menos una imagen destacada en la galería."
+              : "* Requires a cover or at least one featured gallery image."}
+          </p>
           <ul className="mt-3 list-inside list-disc space-y-1.5 text-xs leading-relaxed text-[#6b5c42]">
             <li>{copy.labels.galleryFeaturedHint}</li>
             <li>{copy.labels.galleryMoreHint}</li>
@@ -871,7 +933,7 @@ export function ClasificadosServiciosApplication() {
                         </button>
                         <button
                           type="button"
-                          className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-lg text-red-700 hover:bg-red-50"
+                          className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-red-700 hover:bg-red-50"
                           onClick={() =>
                             setState((s) => ({
                               ...s,
@@ -879,9 +941,9 @@ export function ClasificadosServiciosApplication() {
                               featuredGalleryIds: s.featuredGalleryIds.filter((fid) => fid !== g.id),
                             }))
                           }
-                          aria-label={copy.labels.remove}
                         >
-                          <FiTrash2 className="h-4 w-4" />
+                          <FiTrash2 className="h-4 w-4 shrink-0" aria-hidden />
+                          <span>{copy.labels.remove}</span>
                         </button>
                       </div>
                     </li>
@@ -949,6 +1011,15 @@ export function ClasificadosServiciosApplication() {
                           {previewLine}
                         </span>
                         <p className="mt-1 break-all text-xs font-medium text-[#3D2C12]">{detail}</p>
+                        {url && (url.startsWith("data:video") || url.startsWith("http")) ? (
+                          <video
+                            src={url}
+                            controls
+                            muted
+                            playsInline
+                            className="mt-2 max-h-44 w-full rounded-lg border border-neutral-200 bg-black/5"
+                          />
+                        ) : null}
                       </div>
                       <div className="flex w-full flex-col gap-2 border-t border-neutral-100 pt-2 sm:w-auto sm:flex-row sm:items-center sm:border-t-0 sm:pt-0">
                         <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-xs font-medium text-[#5D4A25]">
@@ -982,7 +1053,9 @@ export function ClasificadosServiciosApplication() {
           <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.about}</h2>
           <p className="mt-1 text-sm text-[#5D4A25]/80">{copy.labels.aboutHelper}</p>
           <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.aboutServicesGapNote}</p>
-          <label className={`mt-4 block ${labelClass}`}>{copy.labels.about}</label>
+          <label className={`mt-4 block ${labelClass}`}>
+            {copy.labels.about} <span className="text-red-600">*</span>
+          </label>
           <textarea
             className={inputClass}
             rows={5}
@@ -1000,7 +1073,12 @@ export function ClasificadosServiciosApplication() {
         {preset ? (
           <>
             <section className={sectionCard}>
-              <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.services}</h2>
+              <h2 className="text-lg font-bold text-[#3D2C12]">
+                {copy.sections.services}{" "}
+                <span className="text-sm font-semibold text-red-600" aria-hidden>
+                  *
+                </span>
+              </h2>
               <p className="mt-1 text-sm text-[#5D4A25]/85">{copy.labels.servicesHint}</p>
               <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
                 {preset.suggestedServices.map((c: ChipDef) => (
@@ -1066,7 +1144,17 @@ export function ClasificadosServiciosApplication() {
 
         {/* 8 · Contact */}
         <section className={sectionCard}>
-          <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.contact}</h2>
+          <h2 className="text-lg font-bold text-[#3D2C12]">
+            {copy.sections.contact}{" "}
+            <span className="text-sm font-semibold text-red-600" aria-hidden>
+              *
+            </span>
+          </h2>
+          <p className="mt-1 text-xs text-[#6b5c42]">
+            {lang === "es"
+              ? "* Activa al menos un método de contacto válido (llamada, sitio o WhatsApp)."
+              : "* Enable at least one valid contact method (call, website, or WhatsApp)."}
+          </p>
           <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm">
             <input
               type="checkbox"
@@ -1121,7 +1209,9 @@ export function ClasificadosServiciosApplication() {
 
           {preset ? (
             <>
-              <p className={`mt-6 ${labelClass}`}>{copy.labels.primaryCta}</p>
+              <p className={`mt-6 ${labelClass}`}>
+                {copy.labels.primaryCta} <span className="text-red-600">*</span>
+              </p>
               <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
                 {preset.primaryCtaOptions.map((c: ChipDef) => (
                   <Chip
@@ -1291,6 +1381,17 @@ export function ClasificadosServiciosApplication() {
           </div>
         </section>
 
+        <ListingRulesConfirmationSection
+          lang={lang}
+          subject="servicios"
+          confirmAccurate={state.confirmListingAccurate}
+          confirmPhotos={state.confirmPhotosRepresentBusiness}
+          confirmRules={state.confirmCommunityRules}
+          onAccurate={(v) => setState((s) => ({ ...s, confirmListingAccurate: v }))}
+          onPhotos={(v) => setState((s) => ({ ...s, confirmPhotosRepresentBusiness: v }))}
+          onRules={(v) => setState((s) => ({ ...s, confirmCommunityRules: v }))}
+        />
+
         {/* 12 · Offer */}
         <section className={sectionCard}>
           <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.offer}</h2>
@@ -1425,13 +1526,13 @@ export function ClasificadosServiciosApplication() {
 
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#D8C79A]/60 bg-[#FFFDF7]/98 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_28px_rgba(61,44,18,0.12)] backdrop-blur-md">
         <div className="mx-auto flex max-w-3xl gap-2 px-3 sm:px-4 lg:max-w-5xl">
-          <Link
-            href={previewHref}
-            onClick={persistStateAndMarkOpeningPreview}
+          <button
+            type="button"
+            onClick={goStrictPreview}
             className="flex min-h-[52px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl bg-[#3B66AD] px-3 py-3 text-center text-sm font-bold leading-tight text-white shadow-sm transition hover:bg-[#2f5699] active:opacity-95 sm:min-h-[48px]"
           >
             {copy.previewCta}
-          </Link>
+          </button>
           <button
             type="button"
             onClick={() => setPublishOpen(true)}

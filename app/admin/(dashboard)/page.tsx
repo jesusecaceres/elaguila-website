@@ -5,7 +5,7 @@ import { AdminSectionCard } from "../_components/AdminSectionCard";
 import { AdminStatCard } from "../_components/AdminStatCard";
 import { adminCardBase } from "../_components/adminTheme";
 import { getAdminDashboardSnapshot } from "../_lib/adminDashboardData";
-import { getClasificadosCategoryRegistry, summarizeRegistryForDashboard } from "../_lib/clasificadosCategoryRegistry";
+import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } from "../_lib/clasificadosCategoryRegistry";
 import { AdminTiendaOrderStatusBadge } from "../_components/tienda/AdminTiendaOrderStatusBadge";
 import { tiendaOrderFlowLabel } from "../_lib/tiendaOrderFlowLabel";
 import { getAdminTiendaDashboardCounts, getRecentTiendaOrdersPreview } from "../_lib/tiendaOrdersData";
@@ -13,12 +13,12 @@ import { getAdminTiendaDashboardCounts, getRecentTiendaOrdersPreview } from "../
 export const dynamic = "force-dynamic";
 
 export default async function AdminHomePage() {
-  const [snap, tiendaDash, tiendaRecent] = await Promise.all([
+  const [snap, tiendaDash, tiendaRecent, registry] = await Promise.all([
     getAdminDashboardSnapshot(),
     getAdminTiendaDashboardCounts(),
     getRecentTiendaOrdersPreview(6),
+    getClasificadosCategoryRegistryMerged(),
   ]);
-  const registry = getClasificadosCategoryRegistry();
   const regSum = summarizeRegistryForDashboard(registry);
 
   return (
@@ -170,7 +170,11 @@ export default async function AdminHomePage() {
           <AdminStatCard
             title="Magazine (featured)"
             value={snap.magazineFeaturedLabel ?? "—"}
-            hint={snap.magazineUpdated ? `Manifest updated: ${snap.magazineUpdated}` : "From public/magazine/editions.json"}
+            hint={
+              snap.magazineUpdated
+                ? `Última actualización en manifiesto: ${snap.magazineUpdated}`
+                : "Resuelto vía API (DB si hay números publicados; si no, editions.json)."
+            }
             icon="📰"
             actionLabel="Manage magazines"
             actionHref="/admin/workspace/revista"
@@ -258,16 +262,23 @@ export default async function AdminHomePage() {
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <AdminSectionCard
             title="Categories (registry)"
-            subtitle={`Live: ${regSum.live} · Staged: ${regSum.staged} · Coming soon: ${regSum.comingSoon}`}
+            subtitle={`Efectivo en admin (código + overlay Supabase): live ${regSum.live} · staged ${regSum.staged} · coming soon ${regSum.comingSoon}. Público aún usa código hasta integración.`}
           >
             <div className="grid gap-3 sm:grid-cols-2">
               {registry.slice(0, 8).map((c) => (
                 <div key={c.slug} className={`${adminCardBase} p-4`}>
                   <div className="flex items-start justify-between gap-2">
                     <span className="text-xl">{c.emoji}</span>
-                    <span className="rounded-full bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C4E2E]">
-                      {c.operationalStatus}
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="rounded-full bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C4E2E]">
+                        {c.operationalStatus}
+                      </span>
+                      {c.configLayer === "database" ? (
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-bold uppercase text-emerald-900">
+                          DB
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                   <p className="mt-2 font-bold text-[#1E1810]">{c.displayNameEs}</p>
                   <p className="text-xs text-[#7A7164]">{c.slug}</p>
@@ -280,19 +291,19 @@ export default async function AdminHomePage() {
           </AdminSectionCard>
 
           <AdminSectionCard
-            title="Latest magazine activity"
-            subtitle="Manifest-driven; admin actions stubbed until storage wiring."
+            title="Revista — número destacado"
+            subtitle="El hub /magazine lee el manifiesto público (prioridad: números en Supabase; respaldo editions.json)."
           >
             <div className={`${adminCardBase} p-4`}>
-              <p className="text-sm font-semibold text-[#1E1810]">{snap.magazineFeaturedLabel ?? "No featured issue"}</p>
+              <p className="text-sm font-semibold text-[#1E1810]">{snap.magazineFeaturedLabel ?? "Sin número destacado"}</p>
               <p className="mt-1 text-xs text-[#7A7164]">
-                Stats: not tracked in DB yet — use public analytics later.
+                {snap.magazineUpdated ? `Actualizado: ${snap.magazineUpdated}` : "Sin fecha en manifiesto."}
               </p>
               <p className="mt-3 text-xs text-[#5C5346]/90">
-                Admin activity feed: use Activity Log when audit table exists. Placeholder entries only.
+                Métricas de lectura no están en este panel; usa analítica del sitio cuando aplique.
               </p>
               <Link href="/admin/workspace/revista" className="mt-3 inline-flex text-sm font-bold text-[#6B5B2E] underline">
-                Open magazine ops →
+                Gestionar números →
               </Link>
             </div>
           </AdminSectionCard>
