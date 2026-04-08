@@ -25,6 +25,10 @@ export type ClasificadosServiciosCopy = {
   sessionSaveHint: string;
   expertSampleFootnote: string;
   previewMissingBanner: string;
+  /** When sessionStorage cannot store the full draft (quota) */
+  storageWriteFailed: string;
+  /** Jump to step button in strict-preview block */
+  goToStep: string;
   listingPhaseDraft: string;
   listingPhasePreview: string;
   listingPhasePublish: string;
@@ -158,6 +162,22 @@ export type ClasificadosServiciosCopy = {
     galleryPartialAdd: string;
     /** Shown under the hours section — how schedule appears on the public profile */
     hoursOutputHint: string;
+    /** Paso 2 — ciudad vs zonas */
+    cityHelp: string;
+    serviceAreasHelp: string;
+    languageOtherLabel: string;
+    languageOtherPlaceholder: string;
+    /** Paso 6 — grouped contact UI */
+    contactDataHeading: string;
+    contactVisibleHeading: string;
+    contactPrimaryCtaHeading: string;
+    contactPrimaryCtaHelp: string;
+    contactSecondaryHeading: string;
+    contactSummaryIntro: string;
+    contactSummaryCall: string;
+    contactSummaryWhatsapp: string;
+    contactSummaryWebsite: string;
+    contactSummaryNone: string;
   };
 };
 
@@ -186,7 +206,10 @@ const es: ClasificadosServiciosCopy = {
   sessionSaveHint:
     "Borrador en esta sesión del navegador: se conserva al ir a vista previa y volver, y al actualizar en la misma pestaña. Al cerrar la pestaña o el navegador se descarta.",
   expertSampleFootnote: "Ver ejemplo de vitrina (solo diseño)",
-  previewMissingBanner: "Completa los campos obligatorios para la vista previa:",
+  previewMissingBanner: "Completa lo siguiente antes de la vista previa estricta:",
+  storageWriteFailed:
+    "No se pudo guardar el borrador completo en el navegador (puede ser por tamaño). Reduce fotos o videos y vuelve a intentar.",
+  goToStep: "Ir al paso {n}",
   listingPhaseDraft: "Borrador · sigue completando tu perfil.",
   listingPhasePreview: "Listo para vista previa · revisa el diseño antes de publicar.",
   listingPhasePublish: "Listo para publicar · puedes enviar tu listado.",
@@ -315,6 +338,23 @@ const es: ClasificadosServiciosCopy = {
     galleryPartialAdd: "Solo cabían algunas fotos nuevas (máx. {max} en total).",
     hoursOutputHint:
       "En tu vitrina: destacamos el horario de hoy y mostramos la semana completa en el panel de contacto.",
+    cityHelp:
+      "Ciudad base del negocio (ej. San José). Ayuda a filtros regionales; no sustituye las zonas donde viajas a trabajar.",
+    serviceAreasHelp:
+      "Barrios, condados o radio donde atiendes (ej. “Sur de la bahía · dentro de 40 km”). Es independiente de la ciudad principal.",
+    languageOtherLabel: "Especifica otros idiomas",
+    languageOtherPlaceholder: "Ej.: portugués, cantonés…",
+    contactDataHeading: "A. Datos de contacto que tienes en el formulario",
+    contactVisibleHeading: "B. Acciones visibles en la vitrina",
+    contactPrimaryCtaHeading: "C. Botón principal en la vitrina",
+    contactPrimaryCtaHelp:
+      "Elige qué acción se destaca como botón principal. No es tu único contacto: las casillas de arriba siguen controlando qué métodos se muestran.",
+    contactSecondaryHeading: "D. Acciones secundarias opcionales",
+    contactSummaryIntro: "Resumen de lo que verá el cliente (según lo que activaste y los datos válidos):",
+    contactSummaryCall: "Llamada → usa tu teléfono",
+    contactSummaryWhatsapp: "WhatsApp → usa tu número de WhatsApp",
+    contactSummaryWebsite: "Sitio web → usa tu URL",
+    contactSummaryNone: "Aún no hay un método de contacto válido activo.",
   },
 };
 
@@ -343,7 +383,10 @@ const en: ClasificadosServiciosCopy = {
   sessionSaveHint:
     "Session draft: kept when you open preview and return, and when you refresh in the same tab. Closing the tab or browser clears it.",
   expertSampleFootnote: "View sample showcase (design only)",
-  previewMissingBanner: "Complete required fields for preview:",
+  previewMissingBanner: "Complete the following before strict preview:",
+  storageWriteFailed:
+    "Could not save the full draft in the browser (storage may be full). Try fewer photos or videos, then try again.",
+  goToStep: "Go to step {n}",
   listingPhaseDraft: "Draft · keep filling out your profile.",
   listingPhasePreview: "Preview-ready · review the layout before publishing.",
   listingPhasePublish: "Publish-ready · you can submit your listing.",
@@ -472,6 +515,23 @@ const en: ClasificadosServiciosCopy = {
     galleryPartialAdd: "Only some new photos fit (max {max} total).",
     hoursOutputHint:
       "On your public profile: we highlight today’s hours and show the full week in the contact panel.",
+    cityHelp:
+      "Your business’s home city (e.g. San Jose). Helps regional filters; it’s not the same as everywhere you travel to work.",
+    serviceAreasHelp:
+      "Neighborhoods, counties, or radius you serve (e.g. “South Bay · within 25 mi”). Separate from the main city field.",
+    languageOtherLabel: "Specify other languages",
+    languageOtherPlaceholder: "e.g. Portuguese, Cantonese…",
+    contactDataHeading: "A. Contact details on file",
+    contactVisibleHeading: "B. Visible actions on your showcase",
+    contactPrimaryCtaHeading: "C. Primary button on your showcase",
+    contactPrimaryCtaHelp:
+      "Pick which action is highlighted as the main button. It’s not your only contact method—the toggles above still control what appears.",
+    contactSecondaryHeading: "D. Optional secondary actions",
+    contactSummaryIntro: "What visitors will see (based on enabled methods and valid data):",
+    contactSummaryCall: "Call → uses your phone number",
+    contactSummaryWhatsapp: "WhatsApp → uses your WhatsApp number",
+    contactSummaryWebsite: "Website → uses your URL",
+    contactSummaryNone: "No valid contact method is active yet.",
   },
 };
 

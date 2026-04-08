@@ -1,7 +1,10 @@
 import type { ClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationTypes";
 import { normalizeClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationNormalize";
 import { createDefaultClasificadosServiciosState } from "./defaultClasificadosServiciosState";
-import { readClasificadosServiciosApplicationFromBrowser } from "./clasificadosServiciosStorage";
+import {
+  readClasificadosServiciosApplicationFromBrowser,
+  writeClasificadosServiciosApplicationToBrowser,
+} from "./clasificadosServiciosStorage";
 
 /**
  * One-shot payload when opening preview — consumed when the application remounts after “Volver a editar”.
@@ -22,19 +25,30 @@ function scheduleClearReturnMemory() {
   previewReturnTimer = setTimeout(() => {
     previewReturnMemory = null;
     previewReturnTimer = null;
-  }, 2000);
+  }, 30000);
 }
 
 /** Write immediately before navigating to preview (alongside the main session draft). */
-export function saveServiciosPreviewReturnDraft(state: ClasificadosServiciosApplicationState): void {
-  if (typeof window === "undefined") return;
+export function saveServiciosPreviewReturnDraft(state: ClasificadosServiciosApplicationState): boolean {
+  if (typeof window === "undefined") return false;
   previewReturnMemory = null;
   try {
     const payload: ServiciosPreviewReturnPayload = { state, savedAt: Date.now() };
     window.sessionStorage.setItem(SERVICIOS_PREVIEW_RETURN_KEY, JSON.stringify(payload));
+    return true;
   } catch {
-    /* ignore */
+    return false;
   }
+}
+
+/**
+ * Dual-write session draft + one-shot return payload before opening preview.
+ * Both must succeed; otherwise the in-session roundtrip can lose large media payloads.
+ */
+export function persistServiciosDraftForPreviewNavigation(state: ClasificadosServiciosApplicationState): boolean {
+  const sessionOk = writeClasificadosServiciosApplicationToBrowser(state);
+  const returnOk = saveServiciosPreviewReturnDraft(state);
+  return sessionOk && returnOk;
 }
 
 export function clearServiciosPreviewReturnHandoff(): void {

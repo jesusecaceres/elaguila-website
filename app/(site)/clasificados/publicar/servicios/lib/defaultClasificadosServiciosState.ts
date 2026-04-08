@@ -34,6 +34,7 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     website: "",
     whatsapp: "",
     languageIds: ["lang_es"],
+    languageOtherNote: "",
     logoUrl: "",
     coverUrl: "",
     gallery: [],
@@ -47,7 +48,7 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     selectedReasonIds: [],
     selectedQuickFactIds: [],
     enableCall: true,
-    enableMessage: true,
+    enableMessage: false,
     enableWhatsapp: true,
     enableWebsite: true,
     primaryCtaId: "",
@@ -111,6 +112,7 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
   }
   if (s.offerQrLater) return true;
   if (s.confirmListingAccurate || s.confirmPhotosRepresentBusiness || s.confirmCommunityRules) return true;
+  if (s.languageOtherNote.trim()) return true;
   if (s.languageIds.length !== 1 || s.languageIds[0] !== "lang_es") return true;
   if (hoursDifferFromTemplate(s.hours)) return true;
   return false;

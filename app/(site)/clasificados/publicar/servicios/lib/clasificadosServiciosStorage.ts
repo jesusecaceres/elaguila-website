@@ -38,13 +38,15 @@ export function readClasificadosServiciosApplicationFromBrowser(): ClasificadosS
   }
 }
 
-export function writeClasificadosServiciosApplicationToBrowser(state: ClasificadosServiciosApplicationState): void {
-  if (typeof window === "undefined") return;
+export function writeClasificadosServiciosApplicationToBrowser(state: ClasificadosServiciosApplicationState): boolean {
+  if (typeof window === "undefined") return false;
   try {
     const st = storage();
-    st?.setItem(CLASIFICADOS_SERVICIOS_APPLICATION_STORAGE_KEY, JSON.stringify(state));
+    const payload = JSON.stringify(state);
+    st?.setItem(CLASIFICADOS_SERVICIOS_APPLICATION_STORAGE_KEY, payload);
+    return true;
   } catch {
-    /* quota */
+    return false;
   }
 }
 

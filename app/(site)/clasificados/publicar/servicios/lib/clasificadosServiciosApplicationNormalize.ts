@@ -79,6 +79,11 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     languageIds = o.languageIds.filter((x): x is string => typeof x === "string");
     if (languageIds.length === 0) languageIds = ["lang_es"];
   }
+  if (languageIds.includes("lang_bi")) {
+    languageIds = languageIds.filter((x) => x !== "lang_bi");
+    if (!languageIds.includes("lang_es")) languageIds.push("lang_es");
+    if (!languageIds.includes("lang_en")) languageIds.push("lang_en");
+  }
 
   let selectedServiceIds = d.selectedServiceIds;
   if (Array.isArray(o.selectedServiceIds)) {
@@ -131,6 +136,7 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     website: str("website", d.website),
     whatsapp: str("whatsapp", d.whatsapp),
     languageIds,
+    languageOtherNote: str("languageOtherNote", d.languageOtherNote),
     logoUrl: str("logoUrl", d.logoUrl),
     coverUrl: str("coverUrl", d.coverUrl),
     gallery,

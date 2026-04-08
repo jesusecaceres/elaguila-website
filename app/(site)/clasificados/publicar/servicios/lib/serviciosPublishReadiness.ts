@@ -1,8 +1,10 @@
 import { getBusinessTypePreset } from "./businessTypePresets";
+import { normalizeClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationNormalize";
 import type { ClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationTypes";
 import { isProbablyValidWebUrl } from "./socialAndUrlHelpers";
 
-export type PublishReadinessMissingItem = { id: string; label: string };
+/** Step indices match `ClasificadosServiciosApplication` stepped UI (0-based). */
+export type PublishReadinessMissingItem = { id: string; label: string; stepIndex: number };
 
 export type ServiciosPublishReadinessResult = {
   ok: boolean;
@@ -50,6 +52,19 @@ const LABELS = {
   },
 } as const;
 
+const STEP = {
+  business_type: 0,
+  business_name: 1,
+  city: 1,
+  media: 2,
+  about: 3,
+  services: 4,
+  contact: 5,
+  primary_cta: 5,
+} as const;
+
+type ReadinessId = keyof typeof STEP;
+
 /**
  * Minimum fields required before the transitional publish path may proceed.
  */
@@ -57,36 +72,42 @@ export function evaluateServiciosPublishReadiness(
   state: ClasificadosServiciosApplicationState,
   lang: "es" | "en",
 ): ServiciosPublishReadinessResult {
+  /** Same normalization as session restore so featured-gallery inference matches storage/readiness. */
+  const normalized = normalizeClasificadosServiciosApplicationState(state);
   const L = (id: keyof typeof LABELS) => LABELS[id][lang];
   const missing: PublishReadinessMissingItem[] = [];
 
-  if (!state.businessTypeId.trim() || !getBusinessTypePreset(state.businessTypeId)) {
-    missing.push({ id: "business_type", label: L("businessType") });
+  const push = (id: ReadinessId, label: string) => {
+    missing.push({ id, label, stepIndex: STEP[id] });
+  };
+
+  if (!normalized.businessTypeId.trim() || !getBusinessTypePreset(normalized.businessTypeId)) {
+    push("business_type", L("businessType"));
   }
-  if (state.businessName.trim().length < 2) {
-    missing.push({ id: "business_name", label: L("businessName") });
+  if (normalized.businessName.trim().length < 2) {
+    push("business_name", L("businessName"));
   }
-  if (state.city.trim().length < 2) {
-    missing.push({ id: "city", label: L("city") });
+  if (normalized.city.trim().length < 2) {
+    push("city", L("city"));
   }
-  if (!hasContactMethod(state)) {
-    missing.push({ id: "contact", label: L("contact") });
+  if (!hasContactMethod(normalized)) {
+    push("contact", L("contact"));
   }
-  if (state.aboutText.trim().length < 8) {
-    missing.push({ id: "about", label: L("about") });
+  if (normalized.aboutText.trim().length < 8) {
+    push("about", L("about"));
   }
-  if (!hasAtLeastOneService(state)) {
-    missing.push({ id: "services", label: L("services") });
+  if (!hasAtLeastOneService(normalized)) {
+    push("services", L("services"));
   }
-  if (!hasFeaturedVisual(state)) {
-    missing.push({ id: "media", label: L("media") });
+  if (!hasFeaturedVisual(normalized)) {
+    push("media", L("media"));
   }
 
-  const presetForCta = getBusinessTypePreset(state.businessTypeId);
+  const presetForCta = getBusinessTypePreset(normalized.businessTypeId);
   if (presetForCta && presetForCta.primaryCtaOptions.length > 0) {
-    const validPrimary = presetForCta.primaryCtaOptions.some((c) => c.id === state.primaryCtaId);
+    const validPrimary = presetForCta.primaryCtaOptions.some((c) => c.id === normalized.primaryCtaId);
     if (!validPrimary) {
-      missing.push({ id: "primary_cta", label: L("primaryCta") });
+      push("primary_cta", L("primaryCta"));
     }
   }
 

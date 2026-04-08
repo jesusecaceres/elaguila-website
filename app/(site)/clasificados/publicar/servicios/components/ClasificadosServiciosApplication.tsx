@@ -39,7 +39,7 @@ import { LANGUAGE_OPTION_CHIPS } from "../lib/clasificadosServiciosApplicationTy
 import {
   bootstrapServiciosApplicationState,
   clearServiciosPreviewReturnHandoff,
-  saveServiciosPreviewReturnDraft,
+  persistServiciosDraftForPreviewNavigation,
 } from "../lib/clasificadosServiciosPreviewHandoff";
 import {
   clearClasificadosServiciosApplicationFromBrowser,
@@ -51,7 +51,7 @@ import {
   SERVICIOS_APPLICATION_STEP_COUNT,
 } from "../lib/serviciosApplicationStepLabels";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
-import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadiness";
+import type { PublishReadinessMissingItem } from "../lib/serviciosPublishReadiness";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
 import {
   clasificadosServiciosApplicationHasProgress,
@@ -59,6 +59,7 @@ import {
   WEEK_DAY_LABELS,
 } from "../lib/defaultClasificadosServiciosState";
 import { mergeStateForBusinessTypeChange } from "../lib/presetStateMerge";
+import { digitsOnly, formatPhoneInputDisplay } from "../lib/serviciosPhoneUi";
 import {
   isProbablyValidWebUrl,
   newGalleryId,
@@ -120,7 +121,7 @@ export function ClasificadosServiciosApplication() {
 
   const [hydrated, setHydrated] = useState(false);
   const [step, setStep] = useState(0);
-  const [previewGateError, setPreviewGateError] = useState<string | null>(null);
+  const [previewGateMissing, setPreviewGateMissing] = useState<PublishReadinessMissingItem[] | null>(null);
   const [state, setState] = useState<ClasificadosServiciosApplicationState>(() => createDefaultClasificadosServiciosState());
 
   const stepLabels = useMemo(() => getServiciosApplicationStepLabels(lang), [lang]);
@@ -168,6 +169,20 @@ export function ClasificadosServiciosApplication() {
     return () => window.clearTimeout(t);
   }, [state, hydrated]);
 
+  useEffect(() => {
+    if (!hydrated) return;
+    writeClasificadosServiciosApplicationToBrowser(state);
+  }, [
+    hydrated,
+    state.gallery,
+    state.videos,
+    state.featuredGalleryIds,
+    state.coverUrl,
+    state.logoUrl,
+    state.offerImageUrl,
+    state.offerPdfUrl,
+  ]);
+
   useLeonixPublishLeaveGuard({
     lang,
     isDirty: hydrated && clasificadosServiciosApplicationHasProgress(state),
@@ -177,27 +192,44 @@ export function ClasificadosServiciosApplication() {
   const persistStateAndMarkOpeningPreview = useCallback(() => {
     markPublishFlowOpeningPreview();
     const snap = stateRef.current;
-    writeClasificadosServiciosApplicationToBrowser(snap);
-    saveServiciosPreviewReturnDraft(snap);
-  }, []);
+    if (!persistServiciosDraftForPreviewNavigation(snap)) {
+      setMediaFlash(copy.storageWriteFailed);
+    }
+  }, [copy.storageWriteFailed]);
 
   const previewHref = `/clasificados/publicar/servicios/preview?lang=${lang}`;
   const publicarHref = `/clasificados/publicar?lang=${lang}`;
 
+  const openPreviewUtility = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      markPublishFlowOpeningPreview();
+      if (!persistServiciosDraftForPreviewNavigation(stateRef.current)) {
+        setMediaFlash(copy.storageWriteFailed);
+        return;
+      }
+      router.push(previewHref);
+    },
+    [copy.storageWriteFailed, previewHref, router],
+  );
+
   const goStrictPreview = useCallback(() => {
     const r = evaluateServiciosPreviewReadiness(stateRef.current, lang);
     if (!r.ok) {
-      setPreviewGateError(`${copy.previewMissingBanner} ${r.missing.map((m) => m.label).join(" · ")}`);
+      setPreviewGateMissing(r.missing);
+      const first = r.missing[0];
+      if (first) setStep(first.stepIndex);
       document.getElementById("servicios-step-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
-    setPreviewGateError(null);
+    setPreviewGateMissing(null);
     markPublishFlowOpeningPreview();
-    const snap = stateRef.current;
-    writeClasificadosServiciosApplicationToBrowser(snap);
-    saveServiciosPreviewReturnDraft(snap);
+    if (!persistServiciosDraftForPreviewNavigation(stateRef.current)) {
+      setMediaFlash(copy.storageWriteFailed);
+      return;
+    }
     router.push(previewHref);
-  }, [copy.previewMissingBanner, lang, previewHref, router]);
+  }, [copy.storageWriteFailed, lang, previewHref, router]);
 
   const deleteApplicationDraft = useCallback(() => {
     if (!window.confirm(copy.deleteConfirm)) return;
@@ -205,13 +237,32 @@ export function ClasificadosServiciosApplication() {
     clearClasificadosServiciosApplicationFromBrowser();
     setState(createDefaultClasificadosServiciosState());
     setStep(0);
-    setPreviewGateError(null);
+    setPreviewGateMissing(null);
   }, [copy.deleteConfirm]);
 
   const preset = useMemo(() => getBusinessTypePreset(state.businessTypeId), [state.businessTypeId]);
 
+  const contactSummaryLines = useMemo(() => {
+    const L = copy.labels;
+    const lines: string[] = [];
+    if (state.enableCall && digitsOnly(state.phone).length >= 8) lines.push(L.contactSummaryCall);
+    if (state.enableWhatsapp && digitsOnly(state.whatsapp).length >= 8) lines.push(L.contactSummaryWhatsapp);
+    if (state.enableWebsite && state.website.trim() && isProbablyValidWebUrl(state.website)) {
+      lines.push(L.contactSummaryWebsite);
+    }
+    return lines;
+  }, [
+    copy.labels,
+    state.enableCall,
+    state.enableWebsite,
+    state.enableWhatsapp,
+    state.phone,
+    state.website,
+    state.whatsapp,
+  ]);
+
   const listingPhase = useMemo(() => {
-    const r = evaluateServiciosPublishReadiness(state, lang);
+    const r = evaluateServiciosPreviewReadiness(state, lang);
     if (r.ok) return "publish" as const;
     if (state.businessTypeId && state.businessName.trim().length >= 2) return "preview" as const;
     return "draft" as const;
@@ -242,7 +293,10 @@ export function ClasificadosServiciosApplication() {
     setState((prev) => {
       const on = !prev.languageIds.includes(id);
       if (!on && prev.languageIds.length <= 1) return prev;
-      return { ...prev, languageIds: toggleId(prev.languageIds, id, on) };
+      const languageIds = toggleId(prev.languageIds, id, on);
+      let languageOtherNote = prev.languageOtherNote;
+      if (id === "lang_otro" && !on) languageOtherNote = "";
+      return { ...prev, languageIds, languageOtherNote };
     });
   };
 
@@ -455,7 +509,11 @@ export function ClasificadosServiciosApplication() {
           <p className="mt-2 text-xs leading-relaxed text-[#7a6a52]">{copy.sessionSaveHint}</p>
           <Link
             href={`/clasificados/publicar/servicios/preview?lang=${lang}&sample=expert`}
-            onClick={persistStateAndMarkOpeningPreview}
+            onClick={(e) => {
+              e.preventDefault();
+              persistStateAndMarkOpeningPreview();
+              router.push(`/clasificados/publicar/servicios/preview?lang=${lang}&sample=expert`);
+            }}
             className="mt-1 inline-flex min-h-[40px] items-center text-xs font-semibold text-[#3B66AD] underline underline-offset-2"
           >
             {copy.expertSampleFootnote}
@@ -469,13 +527,13 @@ export function ClasificadosServiciosApplication() {
             >
               {copy.previewCta}
             </button>
-            <Link
+            <a
               href={previewHref}
-              onClick={persistStateAndMarkOpeningPreview}
+              onClick={openPreviewUtility}
               className="inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-full border border-[#D8C79A]/80 bg-white px-5 py-2.5 text-sm font-semibold text-[#3D2C12] shadow-sm transition hover:bg-[#FFF6E7]"
             >
               {copy.openPreviewCta}
-            </Link>
+            </a>
             <button
               type="button"
               onClick={deleteApplicationDraft}
@@ -499,10 +557,24 @@ export function ClasificadosServiciosApplication() {
             {hydrated ? (
               <p className="mt-1 text-xs font-medium text-[#6b5c42]">{listingPhaseLine}</p>
             ) : null}
-            {previewGateError ? (
-              <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950" role="status">
-                {previewGateError}
-              </p>
+            {previewGateMissing?.length ? (
+              <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950" role="status">
+                <p className="font-semibold leading-snug">{copy.previewMissingBanner}</p>
+                <ul className="mt-2 list-inside list-disc space-y-1.5">
+                  {previewGateMissing.map((m) => (
+                    <li key={m.id}>
+                      <span className="align-middle">{m.label}</span>{" "}
+                      <button
+                        type="button"
+                        className="align-middle text-xs font-semibold text-[#2d528d] underline underline-offset-2"
+                        onClick={() => setStep(m.stepIndex)}
+                      >
+                        {copy.goToStep.replace("{n}", String(m.stepIndex + 1))}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ) : null}
             <p className="mt-2 text-xs leading-snug text-[#7a6a52]">{copy.labels.bottomActionsHint}</p>
           </div>
@@ -585,6 +657,11 @@ export function ClasificadosServiciosApplication() {
               ? "Elige el giro real de tu negocio. No necesitas navegar árboles de categorías."
               : "Pick your real trade. No category trees to navigate."}
           </p>
+          <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">
+            {lang === "es"
+              ? "¿No encuentras tu categoría? Usa “Otro servicio” o “No veo mi categoría” y detalla en servicios y descripción."
+              : "Don’t see your trade? Pick “Other service” or “I don’t see my category,” then describe your offer in Services and About."}
+          </p>
           <label className={`mt-4 block ${labelClass}`}>
             {copy.labels.businessType} <span className="text-red-600">*</span>
           </label>
@@ -628,6 +705,7 @@ export function ClasificadosServiciosApplication() {
               <label className={labelClass}>
                 {copy.labels.city} <span className="text-red-600">*</span>
               </label>
+              <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.cityHelp}</p>
               <input
                 className={inputClass}
                 value={state.city}
@@ -637,6 +715,7 @@ export function ClasificadosServiciosApplication() {
             </div>
             <div className="sm:col-span-2">
               <label className={labelClass}>{copy.labels.serviceAreas}</label>
+              <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.serviceAreasHelp}</p>
               <textarea
                 className={inputClass}
                 rows={2}
@@ -652,8 +731,8 @@ export function ClasificadosServiciosApplication() {
                 inputMode="tel"
                 autoComplete="tel"
                 placeholder={lang === "es" ? "Ej: (713) 555-0100" : "e.g. (713) 555-0100"}
-                value={state.phone}
-                onChange={(e) => setState((s) => ({ ...s, phone: e.target.value }))}
+                value={formatPhoneInputDisplay(state.phone)}
+                onChange={(e) => setState((s) => ({ ...s, phone: formatPhoneInputDisplay(e.target.value) }))}
               />
             </div>
             <div>
@@ -662,9 +741,9 @@ export function ClasificadosServiciosApplication() {
                 className={inputClass}
                 type="tel"
                 inputMode="tel"
-                placeholder={lang === "es" ? "Solo números / código de país" : "Digits / country code"}
-                value={state.whatsapp}
-                onChange={(e) => setState((s) => ({ ...s, whatsapp: e.target.value }))}
+                placeholder={lang === "es" ? "+1 o dígitos" : "+1 or digits"}
+                value={formatPhoneInputDisplay(state.whatsapp)}
+                onChange={(e) => setState((s) => ({ ...s, whatsapp: formatPhoneInputDisplay(e.target.value) }))}
               />
             </div>
             <div className="sm:col-span-2">
@@ -692,6 +771,19 @@ export function ClasificadosServiciosApplication() {
                   </Chip>
                 ))}
               </div>
+              {state.languageIds.includes("lang_otro") ? (
+                <label className={`mt-3 block ${labelClass}`}>
+                  {copy.labels.languageOtherLabel}
+                  <input
+                    className={inputClass}
+                    value={state.languageOtherNote}
+                    placeholder={copy.labels.languageOtherPlaceholder}
+                    onChange={(e) => setState((s) => ({ ...s, languageOtherNote: e.target.value }))}
+                    maxLength={120}
+                    autoComplete="off"
+                  />
+                </label>
+              ) : null}
             </div>
           </div>
         </section>
@@ -1254,64 +1346,81 @@ export function ClasificadosServiciosApplication() {
           </h2>
           <p className="mt-1 text-xs text-[#6b5c42]">
             {lang === "es"
-              ? "* Activa al menos un método de contacto válido (llamada, sitio o WhatsApp)."
-              : "* Enable at least one valid contact method (call, website, or WhatsApp)."}
+              ? "* Activa al menos un método de contacto válido (llamada, sitio o WhatsApp) con el dato correspondiente en pasos anteriores."
+              : "* Turn on at least one valid contact method (call, website, or WhatsApp) with matching details from earlier steps."}
           </p>
-          <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="mt-1 h-4 w-4 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
-              checked={state.leonixVerifiedInterest}
-              onChange={(e) => setState((s) => ({ ...s, leonixVerifiedInterest: e.target.checked }))}
-            />
-            <span>
-              <span className="font-semibold text-[#3D2C12]">{copy.labels.leonixVerified}</span>
-              <span className="mt-0.5 block text-xs font-normal text-[#5D4A25]/85">{copy.labels.leonixVerifiedHint}</span>
-            </span>
-          </label>
-          <p className="mt-6 text-sm font-medium text-[#5D4A25]">{lang === "es" ? "Métodos de contacto visibles" : "Visible contact methods"}</p>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
-            <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm sm:min-h-0">
-              <input
-                type="checkbox"
-                className="h-4 w-4 shrink-0 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
-                checked={state.enableCall}
-                onChange={(e) => setState((s) => ({ ...s, enableCall: e.target.checked }))}
-              />
-              {copy.labels.enableCall}
-            </label>
-            <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm sm:min-h-0">
-              <input
-                type="checkbox"
-                className="h-4 w-4 shrink-0 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
-                checked={state.enableMessage}
-                onChange={(e) => setState((s) => ({ ...s, enableMessage: e.target.checked }))}
-              />
-              {copy.labels.enableMessage}
-            </label>
-            <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm sm:min-h-0">
-              <input
-                type="checkbox"
-                className="h-4 w-4 shrink-0 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
-                checked={state.enableWhatsapp}
-                onChange={(e) => setState((s) => ({ ...s, enableWhatsapp: e.target.checked }))}
-              />
-              {copy.labels.enableWhatsapp}
-            </label>
-            <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm sm:min-h-0">
-              <input
-                type="checkbox"
-                className="h-4 w-4 shrink-0 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
-                checked={state.enableWebsite}
-                onChange={(e) => setState((s) => ({ ...s, enableWebsite: e.target.checked }))}
-              />
-              {copy.labels.enableWebsite}
-            </label>
+
+          <div className="mt-6 rounded-xl border border-[#D8C79A]/40 bg-[#FFFCF7]/90 p-4">
+            <p className="text-sm font-bold text-[#3D2C12]">{copy.labels.contactDataHeading}</p>
+            <ul className="mt-2 space-y-1.5 text-sm text-[#5D4A25]">
+              <li>
+                <span className="font-medium text-[#3D2C12]">{copy.labels.phone}:</span>{" "}
+                {state.phone.trim() ? formatPhoneInputDisplay(state.phone) : "—"}
+              </li>
+              <li>
+                <span className="font-medium text-[#3D2C12]">{copy.labels.whatsapp}:</span>{" "}
+                {state.whatsapp.trim() ? formatPhoneInputDisplay(state.whatsapp) : "—"}
+              </li>
+              <li>
+                <span className="font-medium text-[#3D2C12]">{copy.labels.website}:</span>{" "}
+                {state.website.trim() ? state.website.trim() : "—"}
+              </li>
+            </ul>
+            <p className="mt-3 text-xs text-[#6b5c42]">
+              {lang === "es"
+                ? "Edita estos datos en el paso “Información básica”."
+                : "Edit these fields under “Basic information.”"}
+            </p>
+          </div>
+
+          <div className="mt-6">
+            <p className="text-sm font-bold text-[#3D2C12]">{copy.labels.contactVisibleHeading}</p>
+            <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.contactSummaryIntro}</p>
+            {contactSummaryLines.length > 0 ? (
+              <ul className="mt-2 list-inside list-disc text-sm text-[#5D4A25]">
+                {contactSummaryLines.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-amber-900/90">{copy.labels.contactSummaryNone}</p>
+            )}
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
+              <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm sm:min-h-0">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 shrink-0 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
+                  checked={state.enableCall}
+                  onChange={(e) => setState((s) => ({ ...s, enableCall: e.target.checked }))}
+                />
+                {copy.labels.enableCall}
+              </label>
+              <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm sm:min-h-0">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 shrink-0 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
+                  checked={state.enableWhatsapp}
+                  onChange={(e) => setState((s) => ({ ...s, enableWhatsapp: e.target.checked }))}
+                />
+                {copy.labels.enableWhatsapp}
+              </label>
+              <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm sm:min-h-0">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 shrink-0 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
+                  checked={state.enableWebsite}
+                  onChange={(e) => setState((s) => ({ ...s, enableWebsite: e.target.checked }))}
+                />
+                {copy.labels.enableWebsite}
+              </label>
+            </div>
           </div>
 
           {preset ? (
             <>
-              <p className={`mt-6 ${labelClass}`}>
+              <p className={`mt-6 ${labelClass}`}>{copy.labels.contactPrimaryCtaHeading}</p>
+              <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.contactPrimaryCtaHelp}</p>
+              <p className={`mt-4 ${labelClass}`}>
                 {copy.labels.primaryCta} <span className="text-red-600">*</span>
               </p>
               <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
@@ -1327,7 +1436,8 @@ export function ClasificadosServiciosApplication() {
               </div>
               {preset.secondaryCtaOptions.length > 0 ? (
                 <>
-                  <p className={`mt-6 ${labelClass}`}>{copy.labels.secondaryCta}</p>
+                  <p className="mt-6 text-sm font-bold text-[#3D2C12]">{copy.labels.contactSecondaryHeading}</p>
+                  <p className={`mt-1 ${labelClass}`}>{copy.labels.secondaryCta}</p>
                   <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
                     {preset.secondaryCtaOptions.map((c: ChipDef) => (
                       <Chip

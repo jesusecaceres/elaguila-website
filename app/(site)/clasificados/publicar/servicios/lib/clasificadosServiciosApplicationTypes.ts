@@ -28,7 +28,7 @@ export type ChipDef = {
 export const LANGUAGE_OPTION_CHIPS: ChipDef[] = [
   { id: "lang_es", es: "Español", en: "Spanish" },
   { id: "lang_en", es: "Inglés", en: "English" },
-  { id: "lang_bi", es: "Bilingüe", en: "Bilingual" },
+  { id: "lang_otro", es: "Otro", en: "Other" },
 ];
 
 export type BusinessTypePreset = {
@@ -82,8 +82,10 @@ export type ClasificadosServiciosApplicationState = {
   phone: string;
   website: string;
   whatsapp: string;
-  /** Chip ids from LANGUAGE_OPTIONS */
+  /** Chip ids from LANGUAGE_OPTION_CHIPS */
   languageIds: string[];
+  /** When "Otro" language chip is selected — shown on profile when set */
+  languageOtherNote: string;
   logoUrl: string;
   coverUrl: string;
   gallery: GalleryItem[];

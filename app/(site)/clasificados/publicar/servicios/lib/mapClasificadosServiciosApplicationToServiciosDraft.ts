@@ -50,13 +50,27 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   const coverAlt = lang === "en" ? "Cover image" : "Imagen de portada";
 
   const heroBadges: ServiciosApplicationDraft["hero"]["badges"] = [];
-  const bi = state.languageIds.includes("lang_bi");
   const es = state.languageIds.includes("lang_es");
   const en = state.languageIds.includes("lang_en");
-  if (bi || (es && en)) {
+  const otro = state.languageIds.includes("lang_otro");
+  if (es) {
+    heroBadges.push({ kind: "spanish", label: lang === "en" ? "Spanish" : "Español" });
+  }
+  if (en) {
+    heroBadges.push({ kind: "custom", label: lang === "en" ? "English" : "Inglés" });
+  }
+  if (otro) {
+    const note = state.languageOtherNote.trim();
     heroBadges.push({
-      kind: "spanish",
-      label: lang === "en" ? "Bilingual" : "Bilingüe",
+      kind: "custom",
+      label:
+        note.length > 0
+          ? lang === "en"
+            ? `Other: ${note.slice(0, 48)}`
+            : `Otro: ${note.slice(0, 48)}`
+          : lang === "en"
+            ? "Other language"
+            : "Otro idioma",
     });
   }
   /* Leonix “Verificado” is not granted from advertiser interest — see resolver + published listings. */

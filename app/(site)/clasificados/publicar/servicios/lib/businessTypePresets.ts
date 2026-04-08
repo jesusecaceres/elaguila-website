@@ -619,6 +619,38 @@ export const BUSINESS_TYPE_PRESETS: BusinessTypePreset[] = [
     [C("cta_cotiz", "Solicitar cotización", "Request quote")],
     [C("sec_mensaje", "Mensaje", "Message")],
   ),
+  preset(
+    "servicio_otro_generico",
+    "other",
+    "Otro servicio",
+    "Other service",
+    [
+      C("otro_svc", "Servicio a medida", "Custom service"),
+      C("otro_consulta", "Consultoría / asesoría", "Consulting"),
+      C("otro_urgente", "Atención con cita", "By appointment"),
+    ],
+    [
+      C("otro_r1", "Servicio local", "Local service"),
+      C("otro_r2", "Referencias previas", "References on request"),
+    ],
+    [C("otro_q1", "Horario flexible", "Flexible hours")],
+    [C("cta_cotiz", "Solicitar cotización", "Request quote"), C("cta_llamar", "Llamar ahora", "Call now")],
+    [C("sec_whatsapp", "WhatsApp", "WhatsApp")],
+  ),
+  preset(
+    "servicio_no_listado",
+    "other",
+    "No veo mi categoría",
+    "I don't see my category",
+    [
+      C("nl_describe", "Describe tu servicio abajo", "Describe your service below"),
+      C("nl_mixto", "Servicios combinados", "Combined services"),
+    ],
+    [C("nl_r1", "Flexible", "Flexible"), C("nl_r2", "En expansión", "Growing")],
+    [C("nl_q1", "Cobertura regional", "Regional coverage")],
+    [C("cta_cotiz", "Solicitar cotización", "Request quote")],
+    [C("sec_whatsapp", "WhatsApp", "WhatsApp")],
+  ),
 ];
 
 export function getBusinessTypePreset(id: string): BusinessTypePreset | undefined {
