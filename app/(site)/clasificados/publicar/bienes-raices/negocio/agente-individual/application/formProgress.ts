@@ -122,5 +122,7 @@ export function agenteResFormHasProgress(state: AgenteIndividualResidencialFormS
     if (TERRENO_DESTACADOS_DEFS.some((d) => state.destacadosTerreno[d.id])) return true;
   }
 
+  if (state.confirmListingAccurate || state.confirmPhotosRepresentItem || state.confirmCommunityRules) return true;
+
   return false;
 }

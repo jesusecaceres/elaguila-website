@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import {
   BR_NEGOCIO_Q_PROPIEDAD,
   parseBrNegocioPropiedadParam,
@@ -82,8 +83,15 @@ const CONDICION_OPTS: { value: RentasNegocioFormState["residencial"]["condicion"
   { value: "necesita_reparacion", label: "Necesita reparación" },
 ];
 
+const CONFIRM_PREVIEW_BLOCKED = {
+  es: "Marca las tres confirmaciones al final del formulario para usar Vista previa con validación.",
+  en: "Check all three confirmations at the bottom to use validated preview.",
+} as const;
+
 export function RentasNegocioForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const lang = searchParams?.get("lang") === "en" ? "en" : "es";
   const [state, setState] = useState<RentasNegocioFormState>(createEmptyRentasNegocioFormState);
   const [hydrated, setHydrated] = useState(false);
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
@@ -131,6 +139,8 @@ export function RentasNegocioForm() {
   };
 
   const cat = state.categoriaPropiedad;
+  const confirmAll =
+    state.confirmListingAccurate && state.confirmPhotosRepresentItem && state.confirmCommunityRules;
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#F6F0E2] px-4 pb-28 pt-24 text-[#2C2416] sm:px-5 sm:pb-24 sm:pt-28">
@@ -145,6 +155,7 @@ export function RentasNegocioForm() {
 
         <ClasificadosApplicationTopActions
           onPreviewValidated={() => {
+            if (!confirmAll) return;
             const g = gateRentasNegocioPreview(state);
             if (!g.ok) {
               setPreviewGateMessage(g.message);
@@ -156,6 +167,8 @@ export function RentasNegocioForm() {
           }}
           openPreviewHref={previewHref}
           onBeforeOpenUnvalidatedPreview={flushSave}
+          disableValidatedPreview={!confirmAll}
+          validationBlockedMessage={previewGateMessage ?? (!confirmAll ? CONFIRM_PREVIEW_BLOCKED[lang] : null)}
           onDeleteApplication={() => {
             clearRentasNegocioDraft();
             const empty = createEmptyRentasNegocioFormState();
@@ -168,7 +181,6 @@ export function RentasNegocioForm() {
             }
             setPreviewGateMessage(null);
           }}
-          validationBlockedMessage={previewGateMessage}
           deleteConfirmMessage="¿Eliminar el borrador de esta solicitud y empezar de nuevo?"
         />
         <p className="text-xs leading-relaxed text-[#5C5346]/88">
@@ -984,6 +996,17 @@ export function RentasNegocioForm() {
             </div>
           </section>
         ) : null}
+
+        <ListingRulesConfirmationSection
+          lang={lang}
+          subject="property"
+          confirmAccurate={state.confirmListingAccurate}
+          confirmPhotos={state.confirmPhotosRepresentItem}
+          confirmRules={state.confirmCommunityRules}
+          onAccurate={(v) => setState((s) => ({ ...s, confirmListingAccurate: v }))}
+          onPhotos={(v) => setState((s) => ({ ...s, confirmPhotosRepresentItem: v }))}
+          onRules={(v) => setState((s) => ({ ...s, confirmCommunityRules: v }))}
+        />
 
         <p className="break-words text-center text-xs leading-relaxed text-[#5C5346]/80">
           Borrador guardado solo en este dispositivo. Ruta:{" "}

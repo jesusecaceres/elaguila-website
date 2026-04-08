@@ -77,6 +77,10 @@ export type RentasNegocioFormState = {
   residencial: BienesRaicesPrivadoResidencialFields;
   comercial: BienesRaicesPrivadoComercialFields;
   terreno: BienesRaicesPrivadoTerrenoFields;
+
+  confirmListingAccurate: boolean;
+  confirmPhotosRepresentItem: boolean;
+  confirmCommunityRules: boolean;
 };
 
 export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
@@ -113,6 +117,9 @@ export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
     residencial: { ...p.residencial },
     comercial: { ...p.comercial },
     terreno: { ...p.terreno },
+    confirmListingAccurate: p.confirmListingAccurate,
+    confirmPhotosRepresentItem: p.confirmPhotosRepresentItem,
+    confirmCommunityRules: p.confirmCommunityRules,
   };
 }
 
@@ -191,5 +198,13 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
     residencial: br.residencial,
     comercial: br.comercial,
     terreno: br.terreno,
+    confirmListingAccurate:
+      typeof partial.confirmListingAccurate === "boolean" ? partial.confirmListingAccurate : asPrivado.confirmListingAccurate,
+    confirmPhotosRepresentItem:
+      typeof partial.confirmPhotosRepresentItem === "boolean"
+        ? partial.confirmPhotosRepresentItem
+        : asPrivado.confirmPhotosRepresentItem,
+    confirmCommunityRules:
+      typeof partial.confirmCommunityRules === "boolean" ? partial.confirmCommunityRules : asPrivado.confirmCommunityRules,
   };
 }

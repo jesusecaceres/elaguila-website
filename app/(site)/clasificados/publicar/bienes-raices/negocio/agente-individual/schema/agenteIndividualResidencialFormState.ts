@@ -295,6 +295,10 @@ export type AgenteIndividualResidencialFormState = {
   asesorNombre: string;
   asesorTelefono: string;
   asesorEmail: string;
+
+  confirmListingAccurate: boolean;
+  confirmPhotosRepresentItem: boolean;
+  confirmCommunityRules: boolean;
 };
 
 function trim(s: unknown): string {
@@ -662,6 +666,10 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     asesorNombre: "",
     asesorTelefono: "",
     asesorEmail: "",
+
+    confirmListingAccurate: false,
+    confirmPhotosRepresentItem: false,
+    confirmCommunityRules: false,
   };
 }
 
@@ -939,6 +947,24 @@ export function mergePartialAgenteIndividualResidencial(
     ...base,
     ...nested,
     ...flat,
+    confirmListingAccurate:
+      typeof flat.confirmListingAccurate === "boolean"
+        ? flat.confirmListingAccurate
+        : typeof nested.confirmListingAccurate === "boolean"
+          ? nested.confirmListingAccurate
+          : base.confirmListingAccurate,
+    confirmPhotosRepresentItem:
+      typeof flat.confirmPhotosRepresentItem === "boolean"
+        ? flat.confirmPhotosRepresentItem
+        : typeof nested.confirmPhotosRepresentItem === "boolean"
+          ? nested.confirmPhotosRepresentItem
+          : base.confirmPhotosRepresentItem,
+    confirmCommunityRules:
+      typeof flat.confirmCommunityRules === "boolean"
+        ? flat.confirmCommunityRules
+        : typeof nested.confirmCommunityRules === "boolean"
+          ? nested.confirmCommunityRules
+          : base.confirmCommunityRules,
     tipoPublicacionFijo: "venta_residencial",
     sellerTipo,
     categoriaPropiedad,

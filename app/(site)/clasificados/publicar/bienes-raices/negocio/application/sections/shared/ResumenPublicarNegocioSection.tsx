@@ -1,5 +1,7 @@
 "use client";
 
+import type { Dispatch, SetStateAction } from "react";
+import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import type { BienesRaicesNegocioFormState, BienesRaicesAdvertiserType } from "../../schema/bienesRaicesNegocioFormState";
 import { BrPreviewHint, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
 
@@ -10,7 +12,13 @@ const ADV_LABEL: Record<Exclude<BienesRaicesAdvertiserType, "">, string> = {
   constructor_desarrollador: "Constructor / desarrollador",
 };
 
-export function ResumenPublicarNegocioSection({ state }: { state: BienesRaicesNegocioFormState }) {
+export function ResumenPublicarNegocioSection({
+  state,
+  setState,
+}: {
+  state: BienesRaicesNegocioFormState;
+  setState: Dispatch<SetStateAction<BienesRaicesNegocioFormState>>;
+}) {
   const adv = state.advertiserType;
   const nPhotos = state.media.photoUrls.filter((u) => u.trim()).length;
   const nVid = state.media.listingVideoSlots.filter(
@@ -22,6 +30,9 @@ export function ResumenPublicarNegocioSection({ state }: { state: BienesRaicesNe
     state.cta.permitirLlamar && "Llamada",
     state.cta.permitirWhatsapp && "WhatsApp",
   ].filter(Boolean) as string[];
+
+  const confirmAll =
+    state.trust.confirmarInformacion && state.trust.confirmarFotos && state.trust.confirmarReglas;
 
   return (
     <section className={brCardClass}>
@@ -47,9 +58,29 @@ export function ResumenPublicarNegocioSection({ state }: { state: BienesRaicesNe
           {ctasOn.length ? ctasOn.join(", ") : "Ninguno (revisa paso de contacto)"}
         </li>
       </ul>
+      <div className="mt-6">
+        <ListingRulesConfirmationSection
+          lang="es"
+          subject="property"
+          confirmAccurate={state.trust.confirmarInformacion}
+          confirmPhotos={state.trust.confirmarFotos}
+          confirmRules={state.trust.confirmarReglas}
+          onAccurate={(v) =>
+            setState((s) => ({ ...s, trust: { ...s.trust, confirmarInformacion: v } }))
+          }
+          onPhotos={(v) => setState((s) => ({ ...s, trust: { ...s.trust, confirmarFotos: v } }))}
+          onRules={(v) => setState((s) => ({ ...s, trust: { ...s.trust, confirmarReglas: v } }))}
+        />
+      </div>
+      {!confirmAll ? (
+        <p className="mt-3 text-sm text-amber-950/90">
+          Marca las tres confirmaciones para habilitar publicar cuando el cobro esté conectado.
+        </p>
+      ) : null}
       <button
         type="button"
-        className="mt-6 w-full rounded-xl border-2 border-[#B8954A] bg-[#FFFCF7] px-4 py-3.5 text-sm font-bold text-[#6E5418] hover:bg-[#FFF6E7] sm:w-auto"
+        disabled={!confirmAll}
+        className="mt-6 w-full rounded-xl border-2 border-[#B8954A] bg-[#FFFCF7] px-4 py-3.5 text-sm font-bold text-[#6E5418] hover:bg-[#FFF6E7] disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
         onClick={() => {
           /* integración de cobro / API pendiente */
         }}

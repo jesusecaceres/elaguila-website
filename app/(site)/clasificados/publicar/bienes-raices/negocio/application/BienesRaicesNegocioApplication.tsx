@@ -222,7 +222,7 @@ export default function BienesRaicesNegocioApplication() {
             {step === 11 ? <ContactoCtasNegocioSection state={state} setState={setState} /> : null}
             {step === 12 ? <ConfianzaNegocioSection state={state} setState={setState} /> : null}
             {step === 13 ? <VistaPreviaNegocioSection /> : null}
-            {step === 14 ? <ResumenPublicarNegocioSection state={state} /> : null}
+            {step === 14 ? <ResumenPublicarNegocioSection state={state} setState={setState} /> : null}
 
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E8DFD0]/80 pt-4">
               <button

@@ -39,6 +39,7 @@ import {
 } from "../sections/steps04-09";
 import { useBrAgenteResidencialCopy } from "./BrAgenteResidencialLocaleContext";
 import { withBrAgenteResLangParam } from "./brAgenteResidencialLang";
+import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 
 export default function AgenteIndividualResidencialApplication() {
   const router = useRouter();
@@ -77,12 +78,16 @@ export default function AgenteIndividualResidencialApplication() {
     [isDirty, lang, muxIds, router]
   );
 
+  const confirmAll =
+    state.confirmListingAccurate && state.confirmPhotosRepresentItem && state.confirmCommunityRules;
+
   const openPreview = useCallback(() => {
+    if (!confirmAll) return;
     markPublishFlowOpeningPreview();
     saveAgenteResPreviewDraft(state);
     saveAgenteResPreviewReturnDraft(state);
     router.push(withBrAgenteResLangParam(BR_PREVIEW_NEGOCIO, lang));
-  }, [router, state, lang]);
+  }, [router, state, lang, confirmAll]);
 
   const nav = useMemo(
     () => (
@@ -196,10 +201,21 @@ export default function AgenteIndividualResidencialApplication() {
               <section className="rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-sm">
                 <h2 className="text-lg font-bold text-[#1E1810]">{t.app.vistaPreviaTitulo}</h2>
                 <p className="mt-1 text-sm text-[#5C5346]/88">{t.app.vistaPreviaBody}</p>
+                <ListingRulesConfirmationSection
+                  lang={lang}
+                  subject="property"
+                  confirmAccurate={state.confirmListingAccurate}
+                  confirmPhotos={state.confirmPhotosRepresentItem}
+                  confirmRules={state.confirmCommunityRules}
+                  onAccurate={(v) => setState((s) => ({ ...s, confirmListingAccurate: v }))}
+                  onPhotos={(v) => setState((s) => ({ ...s, confirmPhotosRepresentItem: v }))}
+                  onRules={(v) => setState((s) => ({ ...s, confirmCommunityRules: v }))}
+                />
                 <button
                   type="button"
+                  disabled={!confirmAll}
                   onClick={openPreview}
-                  className="mt-5 rounded-xl bg-gradient-to-r from-[#C9A85A] to-[#B8954A] px-6 py-3 text-sm font-bold text-[#1E1810] shadow-md hover:opacity-95"
+                  className="mt-5 rounded-xl bg-gradient-to-r from-[#C9A85A] to-[#B8954A] px-6 py-3 text-sm font-bold text-[#1E1810] shadow-md hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   {t.app.verVistaPrevia}
                 </button>
@@ -219,8 +235,9 @@ export default function AgenteIndividualResidencialApplication() {
                 {step === 9 ? (
                   <button
                     type="button"
+                    disabled={!confirmAll}
                     onClick={openPreview}
-                    className="min-h-[48px] w-full touch-manipulation rounded-xl bg-gradient-to-r from-[#C9A85A] to-[#B8954A] px-5 py-3 text-sm font-bold text-[#1E1810] shadow-md sm:min-h-0 sm:py-2.5"
+                    className="min-h-[48px] w-full touch-manipulation rounded-xl bg-gradient-to-r from-[#C9A85A] to-[#B8954A] px-5 py-3 text-sm font-bold text-[#1E1810] shadow-md disabled:cursor-not-allowed disabled:opacity-45 sm:min-h-0 sm:py-2.5"
                   >
                     {t.app.verVistaPrevia}
                   </button>

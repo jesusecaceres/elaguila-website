@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useState } from "react";
 import SectionShell from "@/app/clasificados/en-venta/shared/components/SectionShell";
+import LeonixMarketplaceRulesDialog from "@/app/clasificados/en-venta/shared/components/LeonixMarketplaceRulesDialog";
 
 const COPY_ITEM = {
   es: {
@@ -42,11 +42,30 @@ const COPY_SERVICIOS = {
   },
 } as const;
 
+const COPY_PROPERTY = {
+  es: {
+    title: "Confirmación antes de publicar",
+    desc: "Estas casillas ayudan a mantener Leonix claro y confiable para todos.",
+    a: "Confirmo que la información de la propiedad es veraz y actualizada.",
+    b: "Confirmo que las fotos muestran la propiedad real que estoy publicando.",
+    c: "Confirmo que mi anuncio respeta las reglas de la comunidad y del marketplace.",
+    rulesLink: "Ver reglas de Leonix",
+  },
+  en: {
+    title: "Confirmation before posting",
+    desc: "These checks help keep Leonix clear and trustworthy for everyone.",
+    a: "I confirm the property information is accurate and up to date.",
+    b: "I confirm the photos show the actual property I’m listing.",
+    c: "I confirm this listing follows community and marketplace rules.",
+    rulesLink: "View Leonix rules",
+  },
+} as const;
+
 type Props = {
   lang: "es" | "en";
   variant?: "light" | "dark";
-  /** Marketplace item (En Venta) vs Servicios business profile */
-  subject?: "item" | "servicios";
+  /** Marketplace item (En Venta) vs Servicios business profile vs Bienes Raíces / Rentas property */
+  subject?: "item" | "servicios" | "property";
   confirmAccurate: boolean;
   confirmPhotos: boolean;
   confirmRules: boolean;
@@ -66,11 +85,9 @@ export default function ListingRulesConfirmationSection({
   onPhotos,
   onRules,
 }: Props) {
-  const t = subject === "servicios" ? COPY_SERVICIOS[lang] : COPY_ITEM[lang];
-  const pathname = usePathname() || "";
-  const defaultReturn =
-    subject === "servicios" ? "/clasificados/publicar/servicios" : "/clasificados/publicar/en-venta";
-  const rulesHref = `/clasificados/reglas?lang=${lang}&return=${encodeURIComponent(pathname || defaultReturn)}`;
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const t =
+    subject === "servicios" ? COPY_SERVICIOS[lang] : subject === "property" ? COPY_PROPERTY[lang] : COPY_ITEM[lang];
 
   const row =
     variant === "dark"
@@ -84,10 +101,16 @@ export default function ListingRulesConfirmationSection({
 
   return (
     <div id="listing-publish" className="scroll-mt-28">
+      <LeonixMarketplaceRulesDialog
+        open={rulesOpen}
+        onClose={() => setRulesOpen(false)}
+        lang={lang}
+        variant={variant}
+      />
       <SectionShell lang={lang} title={t.title} description={t.desc}>
-        <Link href={rulesHref} className={linkClass}>
+        <button type="button" className={linkClass} onClick={() => setRulesOpen(true)}>
           {t.rulesLink}
-        </Link>
+        </button>
         <label className={`${row} mt-4`}>
           <input
             type="checkbox"

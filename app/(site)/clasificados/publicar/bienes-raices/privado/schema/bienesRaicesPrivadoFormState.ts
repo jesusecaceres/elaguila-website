@@ -127,6 +127,10 @@ export type BienesRaicesPrivadoFormState = {
   residencial: BienesRaicesPrivadoResidencialFields;
   comercial: BienesRaicesPrivadoComercialFields;
   terreno: BienesRaicesPrivadoTerrenoFields;
+
+  confirmListingAccurate: boolean;
+  confirmPhotosRepresentItem: boolean;
+  confirmCommunityRules: boolean;
 };
 
 const MAX_PHOTOS = 8;
@@ -195,6 +199,9 @@ export function createEmptyBienesRaicesPrivadoFormState(): BienesRaicesPrivadoFo
       cercado: false,
       destacadoIds: [],
     },
+    confirmListingAccurate: false,
+    confirmPhotosRepresentItem: false,
+    confirmCommunityRules: false,
   };
 }
 
@@ -269,5 +276,13 @@ export function mergePartialBienesRaicesPrivadoState(
       cercado: Boolean(terIn?.cercado),
       destacadoIds: coerceTerrenoDestacados(terIn?.destacadoIds),
     },
+    confirmListingAccurate:
+      typeof partial.confirmListingAccurate === "boolean" ? partial.confirmListingAccurate : base.confirmListingAccurate,
+    confirmPhotosRepresentItem:
+      typeof partial.confirmPhotosRepresentItem === "boolean"
+        ? partial.confirmPhotosRepresentItem
+        : base.confirmPhotosRepresentItem,
+    confirmCommunityRules:
+      typeof partial.confirmCommunityRules === "boolean" ? partial.confirmCommunityRules : base.confirmCommunityRules,
   };
 }
