@@ -11,13 +11,10 @@ import { AUTOS_PUBLIC_BLUEPRINT_COPY } from "../../lib/autosPublicBlueprintCopy"
 import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
 import { parseAutosBrowseUrl, serializeAutosBrowseUrl } from "../../filters/autosBrowseFilterContract";
 import { emptyAutosPublicFilters } from "../../filters/autosPublicFilterTypes";
-import {
-  AUTOS_PUBLIC_SAMPLE_LISTINGS,
-  getFeaturedDealerListings,
-  getStandardListings,
-} from "../../data/sampleAutosPublicInventory";
+import { getFeaturedDealerListings, getStandardListings } from "../../data/sampleAutosPublicInventory";
 import { AutosPublicFeaturedCard } from "./AutosPublicFeaturedCard";
 import { AutosPublicStandardCard } from "./AutosPublicStandardCard";
+import { useAutosPublicListingsFetch } from "./useAutosPublicListingsFetch";
 
 const RESULTADOS_PATH = "/clasificados/autos/resultados";
 
@@ -41,8 +38,9 @@ export function AutosPublicLanding() {
     setZip(b.filters.zip);
   }, [spStr]);
 
-  const featured = useMemo(() => getFeaturedDealerListings(AUTOS_PUBLIC_SAMPLE_LISTINGS), []);
-  const fresh = useMemo(() => getStandardListings(AUTOS_PUBLIC_SAMPLE_LISTINGS).slice(0, 6), []);
+  const { listings: inventory } = useAutosPublicListingsFetch();
+  const featured = useMemo(() => getFeaturedDealerListings(inventory), [inventory]);
+  const fresh = useMemo(() => getStandardListings(inventory).slice(0, 6), [inventory]);
 
   const resultsHref = (bundle: Parameters<typeof serializeAutosBrowseUrl>[0]) =>
     `${RESULTADOS_PATH}?${serializeAutosBrowseUrl(bundle)}`;

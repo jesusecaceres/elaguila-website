@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
 import type { RestauranteDaySchedule, RestauranteFeaturedDish, RestauranteServiceMode } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
@@ -28,11 +28,17 @@ import { RestaurantePublishMediaStrip } from "@/app/clasificados/restaurantes/ap
 import { RestauranteSubGalleryBucket } from "@/app/clasificados/restaurantes/application/RestauranteSubGalleryBucket";
 import { resolveRestauranteGallerySequence } from "@/app/clasificados/restaurantes/application/restauranteGalleryMediaSequence";
 import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
+import { buildRestauranteApplicationSectionNavItems } from "./restauranteApplicationSectionModel";
+import { RestauranteApplicationSectionNav, scrollToRestauranteSection } from "./RestauranteApplicationSectionNav";
 
 const PREVIEW_HREF = "/clasificados/restaurantes/preview";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-6";
+
+/** Anchor offset for sticky mobile bar + nav */
+const SECTION_SCROLL = "scroll-mt-24 lg:scroll-mt-28";
+const sectionSurface = `${CARD} ${SECTION_SCROLL}`;
 
 /** Stacks I / J / K — visually dominant vs. canonical service modes + channel rows below */
 const PRIMARY_OP_CARD =
@@ -103,13 +109,47 @@ export default function RestauranteApplicationClient() {
     if (!satisfiesRestauranteServiceModes(draft.serviceModes)) {
       setServiceErr(true);
       requestAnimationFrame(() => {
-        document.getElementById("restaurantes-section-b")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        scrollToRestauranteSection("restaurantes-section-b");
       });
       return;
     }
     setServiceErr(false);
     window.location.href = PREVIEW_HREF;
   }, [draft.serviceModes]);
+
+  const sectionNavItems = useMemo(() => buildRestauranteApplicationSectionNavItems(draft), [draft]);
+
+  const [activeSectionId, setActiveSectionId] = useState("restaurantes-section-a");
+
+  useEffect(() => {
+    setActiveSectionId((prev) => {
+      const ids = sectionNavItems.map((s) => s.id);
+      if (ids.includes(prev)) return prev;
+      return ids[0] ?? prev;
+    });
+  }, [sectionNavItems]);
+
+  useEffect(() => {
+    const update = () => {
+      if (!sectionNavItems.length) return;
+      const mid = window.scrollY + window.innerHeight * 0.2;
+      let best = sectionNavItems[0].id;
+      for (const s of sectionNavItems) {
+        const el = document.getElementById(s.id);
+        if (!el) continue;
+        const top = el.getBoundingClientRect().top + window.scrollY;
+        if (top <= mid + 80) best = s.id;
+      }
+      setActiveSectionId(best);
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [sectionNavItems]);
 
   const toggleHighlight = useCallback(
     (key: string) => {
@@ -182,7 +222,7 @@ export default function RestauranteApplicationClient() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 pb-24 sm:py-10">
+    <div className="mx-auto max-w-6xl px-4 py-8 pb-24 sm:py-10">
       <div className="mb-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">Leonix Clasificados</p>
         <h1 className="mt-2 text-2xl font-bold text-[color:var(--lx-text)] sm:text-3xl">Publicar restaurante</h1>
@@ -215,7 +255,7 @@ export default function RestauranteApplicationClient() {
           role="alert"
           aria-live="polite"
         >
-          <p className="font-semibold">No se puede usar &quot;Abrir vista previa&quot; todavía</p>
+          <p className="font-semibold">No se puede usar &quot;Vista previa&quot; todavía</p>
           <p className="mt-1">
             Elige al menos un <strong>modo de servicio</strong> en la sección B (comer en local, para llevar, entrega,
             etc.). Es obligatorio para el botón principal; puedes usar &quot;Ver borrador (sin validar B)&quot; si solo
@@ -230,9 +270,29 @@ export default function RestauranteApplicationClient() {
         </p>
       ) : null}
 
-      <div className="mt-10 flex flex-col gap-8">
+      <div className="lg:hidden sticky top-14 z-30 -mx-4 mb-4 border-b border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-page)]/95 px-4 py-2.5 backdrop-blur-md">
+        <RestauranteApplicationSectionNav
+          variant="chips"
+          sections={sectionNavItems}
+          activeId={activeSectionId}
+          onSelect={setActiveSectionId}
+        />
+      </div>
+
+      <div className="mt-6 lg:mt-8 lg:grid lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)] lg:items-start lg:gap-10">
+        <aside className="mb-6 hidden lg:mb-0 lg:block">
+          <div className="sticky top-24 rounded-2xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-card)]/90 p-3 shadow-sm backdrop-blur-sm">
+            <RestauranteApplicationSectionNav
+              sections={sectionNavItems}
+              activeId={activeSectionId}
+              onSelect={setActiveSectionId}
+            />
+          </div>
+        </aside>
+
+        <div className="min-w-0 flex flex-col gap-8">
         {/* A */}
-        <section className={CARD}>
+        <section id="restaurantes-section-a" className={sectionSurface}>
           <SectionTitle>A · Identidad del negocio</SectionTitle>
           <div className="mt-4 grid gap-4">
             <div>
@@ -471,7 +531,7 @@ export default function RestauranteApplicationClient() {
         </section>
 
         {/* B */}
-        <section id="restaurantes-section-b" className={CARD}>
+        <section id="restaurantes-section-b" className={sectionSurface}>
           <SectionTitle>B · Modelo de operación</SectionTitle>
           <p className="mt-2 text-xs text-[color:var(--lx-text-2)]">
             <span className="font-semibold text-red-600">*</span> Al menos un <strong>modo de servicio</strong> (abajo) para
@@ -654,7 +714,7 @@ export default function RestauranteApplicationClient() {
         </section>
 
         {/* C */}
-        <section className={CARD}>
+        <section id="restaurantes-section-c" className={sectionSurface}>
           <SectionTitle>C · Horarios</SectionTitle>
           <p className="mt-2 text-xs text-[color:var(--lx-text-2)]">
             <span className="font-semibold text-red-600">*</span> Completa cada día (cerrado u horario) o usa nota especial /
@@ -726,7 +786,7 @@ export default function RestauranteApplicationClient() {
         </section>
 
         {/* D */}
-        <section className={CARD}>
+        <section id="restaurantes-section-d" className={sectionSurface}>
           <SectionTitle>D · Contacto y CTAs</SectionTitle>
           <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
             <span className="text-red-600">*</span> Al menos una vía de contacto (sitio, teléfono, correo, redes, menú/archivo,
@@ -849,7 +909,7 @@ export default function RestauranteApplicationClient() {
         </section>
 
         {/* E */}
-        <section className={CARD}>
+        <section id="restaurantes-section-e" className={sectionSurface}>
           <SectionTitle>E · Ubicación y privacidad</SectionTitle>
           <div className="mt-4 grid gap-3">
             <div>
@@ -929,7 +989,7 @@ export default function RestauranteApplicationClient() {
         </section>
 
         {/* F */}
-        <section className={CARD}>
+        <section id="restaurantes-section-f" className={sectionSurface}>
           <SectionTitle>F · Platos destacados (máx. 4)</SectionTitle>
           <div className="mt-4 space-y-6">
             {(draft.featuredDishes ?? []).map((dish, i) => (
@@ -1012,7 +1072,7 @@ export default function RestauranteApplicationClient() {
         </section>
 
         {/* G */}
-        <section className={CARD}>
+        <section id="restaurantes-section-g" className={sectionSurface}>
           <SectionTitle>G · Galería y medios</SectionTitle>
           <div className="mt-4 grid gap-4">
             <div>
@@ -1220,7 +1280,7 @@ export default function RestauranteApplicationClient() {
         </section>
 
         {/* H */}
-        <section className={CARD}>
+        <section id="restaurantes-section-h" className={sectionSurface}>
           <SectionTitle>H · Destacados del lugar</SectionTitle>
           <p className="mt-2 text-sm text-[color:var(--lx-muted)]">En la vista previa se muestran hasta 6 en el shell.</p>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -1242,7 +1302,7 @@ export default function RestauranteApplicationClient() {
 
         {/* I */}
         {draft.movingVendor ? (
-          <section className={CARD}>
+          <section id="restaurantes-section-i" className={sectionSurface}>
             <SectionTitle>I · Ubicación móvil</SectionTitle>
             <div className="mt-4 grid gap-3">
               {(
@@ -1299,7 +1359,7 @@ export default function RestauranteApplicationClient() {
 
         {/* J */}
         {draft.homeBasedBusiness ? (
-          <section className={CARD}>
+          <section id="restaurantes-section-j" className={sectionSurface}>
             <SectionTitle>J · Negocio desde casa</SectionTitle>
             <div className="mt-4 grid gap-3">
               <div>
@@ -1376,7 +1436,7 @@ export default function RestauranteApplicationClient() {
 
         {/* K */}
         {draft.cateringAvailable || draft.eventFoodService ? (
-          <section className={CARD}>
+          <section id="restaurantes-section-k" className={sectionSurface}>
             <SectionTitle>K · Catering y eventos</SectionTitle>
             <div className="mt-4 grid gap-3">
               <div>
@@ -1442,7 +1502,7 @@ export default function RestauranteApplicationClient() {
         ) : null}
 
         {/* L */}
-        <section className={CARD}>
+        <section id="restaurantes-section-l" className={sectionSurface}>
           <SectionTitle>L · Confianza y reputación en Leonix</SectionTitle>
           <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-muted)]">
             Aquí refuerzas la <strong className="font-medium text-[color:var(--lx-text-2)]">confianza</strong> dentro del
@@ -1524,25 +1584,26 @@ export default function RestauranteApplicationClient() {
             </label>
           </div>
         </section>
-      </div>
 
-      <div className="mt-12 space-y-4 border-t border-[color:var(--lx-nav-border)] pt-8">
-        <ClasificadosApplicationTopActions
-          onPreviewValidated={goPreview}
-          openPreviewHref={PREVIEW_HREF}
-          onDeleteApplication={resetDraft}
-          disableValidatedPreview={!serviceOk}
-        />
-        <p className="text-xs text-[color:var(--lx-muted)] sm:max-w-xl">
-          {serviceOk ? (
-            <span className="font-medium text-emerald-800">Modos de servicio (B): listos — «Vista previa» puede abrir.</span>
-          ) : (
-            <span>
-              <span className="font-semibold text-amber-900">Modos de servicio (B): pendiente.</span> Elige al menos uno para
-              «Vista previa» con validación; «Abrir vista previa» sigue disponible sin validación.
-            </span>
-          )}
-        </p>
+        <div className="mt-4 space-y-4 border-t border-[color:var(--lx-nav-border)] pt-8">
+          <ClasificadosApplicationTopActions
+            onPreviewValidated={goPreview}
+            openPreviewHref={PREVIEW_HREF}
+            onDeleteApplication={resetDraft}
+            disableValidatedPreview={!serviceOk}
+          />
+          <p className="text-xs text-[color:var(--lx-muted)] sm:max-w-xl">
+            {serviceOk ? (
+              <span className="font-medium text-emerald-800">Modos de servicio (B): listos — «Vista previa» puede abrir.</span>
+            ) : (
+              <span>
+                <span className="font-semibold text-amber-900">Modos de servicio (B): pendiente.</span> Elige al menos uno para
+                «Vista previa» con validación; «Abrir vista previa» sigue disponible sin validación.
+              </span>
+            )}
+          </p>
+        </div>
+        </div>
       </div>
     </div>
   );

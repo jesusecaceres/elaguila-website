@@ -10,9 +10,10 @@ import { AUTOS_PUBLIC_BLUEPRINT_COPY } from "../../lib/autosPublicBlueprintCopy"
 import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
 import { parseAutosBrowseUrl, serializeAutosBrowseUrl, type AutosBrowseUrlBundle } from "../../filters/autosBrowseFilterContract";
 import { emptyAutosPublicFilters } from "../../filters/autosPublicFilterTypes";
-import { AUTOS_PUBLIC_SAMPLE_LISTINGS, getFeaturedDealerListings, getStandardListings } from "../../data/sampleAutosPublicInventory";
+import { getFeaturedDealerListings, getStandardListings } from "../../data/sampleAutosPublicInventory";
 import { AutosPublicFeaturedCard } from "./AutosPublicFeaturedCard";
 import { AutosPublicStandardCard } from "./AutosPublicStandardCard";
+import { useAutosPublicListingsFetch } from "./useAutosPublicListingsFetch";
 import {
   applyAutosPublicFilters,
   sortAutosPublicListings,
@@ -56,8 +57,10 @@ export function AutosPublicResultsShell() {
 
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
+  const { listings: inventory } = useAutosPublicListingsFetch();
+
   const filterOptions: AutosPublicFilterOptions = useMemo(() => {
-    const rows = AUTOS_PUBLIC_SAMPLE_LISTINGS;
+    const rows = inventory;
     return {
       makes: uniqSort(rows.map((r) => r.make)),
       bodyStyles: uniqSort(rows.map((r) => r.bodyStyle)),
@@ -72,11 +75,11 @@ export function AutosPublicResultsShell() {
         { value: "certified", label: copy.conditionCertified },
       ],
     };
-  }, [copy]);
+  }, [copy, inventory]);
 
   const filtered = useMemo(
-    () => applyAutosPublicFilters(AUTOS_PUBLIC_SAMPLE_LISTINGS, applied.filters, applied.q),
-    [applied.filters, applied.q],
+    () => applyAutosPublicFilters(inventory, applied.filters, applied.q),
+    [inventory, applied.filters, applied.q],
   );
 
   const sorted = useMemo(() => sortAutosPublicListings(filtered, applied.sort), [filtered, applied.sort]);

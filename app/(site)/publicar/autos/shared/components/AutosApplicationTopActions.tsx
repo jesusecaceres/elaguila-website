@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import {
@@ -43,6 +44,7 @@ export function AutosApplicationTopActions({
   onFlushOpenSameTab,
   onFlushOpenNewTab,
   onDeleteApplication,
+  publishConfirmHref,
 }: {
   lane: AutosPreviewLane;
   copy: AutosNegociosCopy;
@@ -52,6 +54,7 @@ export function AutosApplicationTopActions({
   onFlushOpenSameTab: () => Promise<void>;
   onFlushOpenNewTab: () => Promise<void>;
   onDeleteApplication: () => void | Promise<void>;
+  publishConfirmHref: string;
 }) {
   const issues = getAutosPreviewCompletenessIssues(lane, listing);
   const h = copy.app.hints;
@@ -86,6 +89,9 @@ export function AutosApplicationTopActions({
         >
           {copy.app.actions.openPreviewNewTab}
         </button>
+        <Link href={publishConfirmHref} className={`${BTN_SECONDARY} text-center no-underline`}>
+          {copy.app.actions.continueToPublish}
+        </Link>
         <button
           type="button"
           className={`${BTN_DANGER} sm:ml-auto`}

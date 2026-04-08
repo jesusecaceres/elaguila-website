@@ -79,6 +79,7 @@ export function AutosPrivadoApplication() {
   }, [t.meta.applicationTitle]);
 
   const previewHref = withLangParam("/clasificados/autos/privado/preview", lang);
+  const publishConfirmHref = withLangParam("/publicar/autos/privado/confirm", lang);
 
   if (!hydrated) {
     return <div className="min-h-[40vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
@@ -165,6 +166,7 @@ export function AutosPrivadoApplication() {
             window.open(previewHref, "_blank", "noopener,noreferrer");
           }}
           onDeleteApplication={resetDraft}
+          publishConfirmHref={publishConfirmHref}
         />
 
         <div className="flex flex-col gap-5 sm:gap-6">

@@ -36,6 +36,8 @@ export type AutosNegociosCopy = {
       openPreviewNewTab: string;
       /** Clear draft + local media */
       deleteApplication: string;
+      /** Link to pre-publish confirmation (paid flow) */
+      continueToPublish: string;
       /** @deprecated use `openPreview` */
       preview: string;
       /** @deprecated use `deleteApplication` */
@@ -277,6 +279,7 @@ const ES: AutosNegociosCopy = {
       openPreview: "Abrir vista previa",
       openPreviewNewTab: "Abrir vista previa en nueva pestaña",
       deleteApplication: "Eliminar solicitud",
+      continueToPublish: "Publicar anuncio",
       preview: "Abrir vista previa",
       reset: "Eliminar solicitud",
     },
@@ -593,6 +596,7 @@ const EN: AutosNegociosCopy = {
       openPreview: "Open preview",
       openPreviewNewTab: "Open preview in new tab",
       deleteApplication: "Delete application",
+      continueToPublish: "Publish listing",
       preview: "Open preview",
       reset: "Delete application",
     },

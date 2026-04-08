@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { getAutosPublicListingById, AUTOS_PUBLIC_SAMPLE_LISTINGS } from "../../data/sampleAutosPublicInventory";
-import { mapAutosPublicListingToAutoDealer } from "../../lib/mapAutosPublicListingToAutoDealer";
+import type { AutoDealerListing } from "../../negocios/types/autoDealerListing";
 import { normalizeLoadedListing } from "../../negocios/lib/autoDealerDraftDefaults";
 import { AutoDealerPreviewPage } from "../../negocios/components/AutoDealerPreviewPage";
 import { AutoPrivadoPreviewPage } from "../../privado/components/AutoPrivadoPreviewPage";
@@ -13,25 +12,60 @@ import { AutosPrivadoPreviewLocaleProvider } from "../../privado/lib/AutosPrivad
 import { serializeAutosBrowseUrl } from "../../filters/autosBrowseFilterContract";
 import { emptyAutosPublicFilters } from "../../filters/autosPublicFilterTypes";
 import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
+import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
+
+type PublicListingApiOk = {
+  ok: true;
+  listing: AutoDealerListing;
+  lane: AutosClassifiedsLane;
+  lang: "es" | "en";
+};
 
 export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
   const sp = useSearchParams();
-  const lang: AutosPublicLang = sp?.get("lang") === "en" ? "en" : "es";
-
-  const listing = getAutosPublicListingById(listingId);
-
-  const data = useMemo(() => {
-    if (!listing) return null;
-    return normalizeLoadedListing(
-      mapAutosPublicListingToAutoDealer(listing, { relatedPool: AUTOS_PUBLIC_SAMPLE_LISTINGS, lang }),
-    );
-  }, [listing, lang]);
+  const qs = sp ?? new URLSearchParams();
+  const lang: AutosPublicLang = qs.get("lang") === "en" ? "en" : "es";
+  const [data, setData] = useState<AutoDealerListing | null>(null);
+  const [lane, setLane] = useState<AutosClassifiedsLane | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (listing?.vehicleTitle) {
-      document.title = `${listing.vehicleTitle} | Leonix Autos`;
-    }
-  }, [listing?.vehicleTitle]);
+    let cancelled = false;
+    setLoading(true);
+    void (async () => {
+      try {
+        const r = await fetch(
+          `/api/clasificados/autos/public/listings/${encodeURIComponent(listingId)}?lang=${lang}`,
+        );
+        const j = (await r.json()) as PublicListingApiOk | { ok?: false };
+        if (cancelled) return;
+        if (r.ok && j && "ok" in j && j.ok && j.listing) {
+          setData(normalizeLoadedListing({ ...j.listing, autosLane: j.lane }));
+          setLane(j.lane);
+        } else {
+          setData(null);
+          setLane(null);
+        }
+      } catch {
+        if (!cancelled) {
+          setData(null);
+          setLane(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [listingId, lang]);
+
+  useEffect(() => {
+    if (!data) return;
+    const t =
+      data.vehicleTitle?.trim() || [data.year, data.make, data.model].filter(Boolean).join(" ");
+    if (t) document.title = `${t} | Leonix Autos`;
+  }, [data]);
 
   const resultsQs = serializeAutosBrowseUrl({
     filters: emptyAutosPublicFilters(),
@@ -42,7 +76,7 @@ export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
   });
   const resultsHref = `/clasificados/autos/resultados?${resultsQs}`;
 
-  if (!listing || !data) {
+  const notFound = useMemo(() => {
     const empty = lang === "es";
     return (
       <div className="min-h-screen bg-[color:var(--lx-page)] px-4 py-16 text-center text-[color:var(--lx-text)]">
@@ -58,9 +92,15 @@ export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
         </Link>
       </div>
     );
+  }, [lang, resultsHref]);
+
+  if (loading) {
+    return <div className="min-h-screen bg-[color:var(--lx-page)]" aria-busy="true" />;
   }
 
-  const lane = data.autosLane ?? (listing.sellerType === "dealer" ? "negocios" : "privado");
+  if (!data || !lane) {
+    return notFound;
+  }
 
   if (lane === "privado") {
     return (
