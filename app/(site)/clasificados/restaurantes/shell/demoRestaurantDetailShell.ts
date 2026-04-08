@@ -96,36 +96,77 @@ export const DEMO_RESTAURANT_DETAIL_SHELL: RestaurantDetailShellData = {
     { key: "catering", label: "Catering" },
     { key: "family", label: "Familiar" },
   ],
-  gallery: [
-    {
-      category: "interior",
-      imageUrl:
-        "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80",
-      alt: "Comedor con mesas de madera y iluminación cálida",
-      countOverlay: 10,
-    },
-    {
-      category: "food",
-      imageUrl:
-        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80",
-      alt: "Plato mediterráneo con vegetales asados",
-    },
-    {
-      category: "exterior",
-      imageUrl:
-        "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1200&q=80",
-      alt: "Fachada del restaurante al atardecer",
-    },
-    {
-      category: "video",
-      imageUrl:
-        "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1200&q=80",
-      alt: "Video: recorrido por el comedor",
-    },
-  ],
+  venueGallery: {
+    categories: [
+      {
+        key: "interior",
+        label: "Interior",
+        items: [
+          {
+            category: "interior",
+            imageUrl:
+              "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80",
+            alt: "Comedor con mesas de madera y iluminación cálida",
+            countOverlay: 10,
+          },
+        ],
+      },
+      {
+        key: "food",
+        label: "Comida",
+        items: [
+          {
+            category: "food",
+            imageUrl:
+              "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80",
+            alt: "Plato mediterráneo con vegetales asados",
+          },
+        ],
+      },
+      {
+        key: "exterior",
+        label: "Exterior",
+        items: [
+          {
+            category: "exterior",
+            imageUrl:
+              "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1200&q=80",
+            alt: "Fachada del restaurante al atardecer",
+          },
+        ],
+      },
+      {
+        key: "video",
+        label: "Video",
+        items: [
+          {
+            category: "video",
+            imageUrl:
+              "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1200&q=80",
+            alt: "Video: recorrido por el comedor",
+            videoRemoteUrl: "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+          },
+        ],
+      },
+    ],
+    supplemental: [
+      {
+        category: "general",
+        imageUrl:
+          "https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=1200&q=80",
+        alt: "Galería general · ambiente en la barra",
+      },
+      {
+        category: "general",
+        imageUrl:
+          "https://images.unsplash.com/photo-1551218808-94e220e084d2?auto=format&fit=crop&w=1200&q=80",
+        alt: "Galería general · detalle de servicio",
+      },
+    ],
+  },
   galleryCta: {
-    label: "Ver todas las fotos y videos",
-    href: "#media",
+    label: "Explorar fotos y videos",
+    href: "#galeria-lugar",
   },
   contact: {
     addressLine1: "235 Valencia St",

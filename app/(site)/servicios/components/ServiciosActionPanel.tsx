@@ -21,6 +21,8 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
   const hours = profile.contact.hours;
   const location = profile.hero.locationSummary?.trim();
   const primaryCta = profile.contact.primaryCtaLabel?.trim();
+  const secondaryCtas = profile.contact.secondaryCtaLabels ?? [];
+  const hasTopCtas = Boolean(primaryCta) || secondaryCtas.length > 0;
   const social = profile.contact.socialLinks;
   const featured = profile.contact.isFeatured;
   const featuredLabel = profile.contact.featuredLabel?.trim() || L.featured;
@@ -164,9 +166,23 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
             </button>
           ) : null}
 
+          {secondaryCtas.length > 0 ? (
+            <div className={`flex flex-col gap-2 ${primaryCta ? "mt-3" : "mt-5"}`}>
+              {secondaryCtas.map((label, i) => (
+                <button
+                  key={`${label}-${i}`}
+                  type="button"
+                  className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-black/[0.1] bg-white px-3 py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:border-[#3B66AD]/35"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           {phone || profile.contact.messageEnabled === true ? (
             <div
-              className={`grid gap-2 ${phone && profile.contact.messageEnabled === true ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} ${primaryCta ? "mt-3" : "mt-5"}`}
+              className={`grid gap-2 ${phone && profile.contact.messageEnabled === true ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} ${hasTopCtas ? "mt-3" : "mt-5"}`}
             >
               {phone && telHref ? (
                 <a

@@ -36,22 +36,22 @@ function emptyMedia(metaLine: string): BienesRaicesPreviewMediaVm {
 const SELLER_PLACEHOLDER = {
   photoUrl: null as string | null,
   hasPhoto: false,
-  name: "Nombre del vendedor",
-  byOwnerLabel: "Particular · dueño directo",
+  name: "Nombre del particular",
+  byOwnerLabel: "Propietario (plantilla)",
   phoneDisplay: "Teléfono (plantilla)",
   emailDisplay: "correo@ejemplo.com",
   whatsappDisplay: "WhatsApp (plantilla)",
-  noteLine: "Los datos de contacto se conectarán al formulario de publicación.",
+  noteLine: "Mensaje breve opcional para quien ve el anuncio (plantilla).",
 };
 
 const CONTACT_TEMPLATE = {
   showSolicitarInfo: true,
   showLlamar: true,
   showWhatsapp: true,
-  solicitarInfoHref: "mailto:correo@ejemplo.com?subject=Consulta%20anuncio",
+  solicitarInfoHref: "mailto:correo@ejemplo.com?subject=Pregunta%20sobre%20tu%20propiedad%20(Leonix)",
   llamarHref: "tel:+15551234567",
   whatsappHref: "https://wa.me/15551234567",
-  instructionsLine: "Plantilla: aquí irán instrucciones breves del vendedor cuando las capture el formulario.",
+  instructionsLine: "Plantilla: texto opcional del particular antes de los botones de contacto.",
 };
 
 export function buildBienesRaicesPrivadoTemplateVm(categoria: BrNegocioCategoriaPropiedad): BienesRaicesPrivadoPreviewVm {
@@ -83,7 +83,7 @@ export function buildBienesRaicesPrivadoTemplateVm(categoria: BrNegocioCategoria
     description:
       "Descripción principal del anuncio (plantilla). Este texto ocupará el mismo espacio que en anuncios publicados. Sin datos reales en esta fase.",
     hasDescription: true,
-    contactRailTitle: "Contactar al vendedor",
+    contactRailTitle: "Contacto",
     contact: { ...CONTACT_TEMPLATE },
     location: {
       mapsUrl: null,

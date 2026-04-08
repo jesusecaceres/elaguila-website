@@ -4,17 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import newLogo from "../../../public/logo.png";
+import { ADMIN_GLOBAL_NAV } from "../_lib/adminGlobalNav";
 
 /** Global operations only — website sections live under `/admin/workspace` (second-layer nav). */
-const NAV: Array<{ href: string; label: string; icon: string; badgeFrom?: "tienda" }> = [
-  { href: "/admin", label: "Dashboard", icon: "◆", badgeFrom: "tienda" },
-  { href: "/admin/usuarios", label: "Users", icon: "◎" },
-  { href: "/admin/payments", label: "Payments", icon: "💳" },
-  { href: "/admin/support", label: "Support", icon: "💬" },
-  { href: "/admin/team", label: "Team", icon: "👥" },
-  { href: "/admin/activity-log", label: "Activity Log", icon: "📋" },
-  { href: "/admin/settings", label: "Settings", icon: "⚙" },
-];
 
 function cx(...p: Array<string | false | undefined>) {
   return p.filter(Boolean).join(" ");
@@ -35,7 +27,7 @@ export function AdminSidebar({ tiendaInboxUnread = 0 }: { tiendaInboxUnread?: nu
         </div>
       </div>
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-4">
-        {NAV.map((item) => {
+        {ADMIN_GLOBAL_NAV.map((item) => {
           const active = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href));
           return (
             <Link

@@ -37,7 +37,7 @@ export function AdminStatCard({
       {actionLabel && actionHref ? (
         <Link
           href={actionHref}
-          className="mt-4 inline-flex rounded-2xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-xs font-bold text-[#5C4E2E] hover:bg-[#F3EBDD]"
+          className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2.5 text-xs font-bold text-[#5C4E2E] hover:bg-[#F3EBDD] sm:min-h-0 sm:py-2"
         >
           {actionLabel} →
         </Link>

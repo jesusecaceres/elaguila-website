@@ -303,8 +303,8 @@ export default async function AdminHomePage() {
         </div>
       </div>
 
-      <aside className="mt-10 lg:mt-0">
-        <div className="sticky top-24 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFF8F0]/95 p-5 shadow-inner">
+      <aside className="mt-10 min-w-0 lg:mt-0">
+        <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFF8F0]/95 p-4 shadow-inner sm:p-5 lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
           <AdminQuickActionsRail />
         </div>
       </aside>

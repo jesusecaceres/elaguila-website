@@ -28,7 +28,6 @@ export default function BienesRaicesPrivadoPreviewClient() {
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [draft, setDraft] = useState<BienesRaicesPrivadoFormState | null>(null);
-  const [urlSynced, setUrlSynced] = useState(false);
 
   useEffect(() => {
     const d = loadBienesRaicesPrivadoDraft();
@@ -36,17 +35,17 @@ export default function BienesRaicesPrivadoPreviewClient() {
     setPhase(d ? "ready" : "recovery");
   }, []);
 
+  /** Keep `?propiedad=` aligned with draft category whenever both are known (survives remounts and query changes). */
   useEffect(() => {
-    if (phase !== "ready" || !draft || urlSynced) return;
+    if (phase !== "ready" || !draft) return;
     if (draft.categoriaPropiedad !== urlCategoria) {
       router.replace(`${BR_PREVIEW_PRIVADO}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}`);
     }
-    setUrlSynced(true);
-  }, [phase, draft, urlCategoria, router, urlSynced]);
+  }, [phase, draft, urlCategoria, router]);
 
   if (phase === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F9F6F1] text-[#5C5346]">
+      <div className="flex min-h-screen items-center justify-center overflow-x-hidden bg-[#F9F6F1] px-4 text-sm text-[#5C5346]">
         Cargando vista previa…
       </div>
     );
@@ -54,13 +53,13 @@ export default function BienesRaicesPrivadoPreviewClient() {
 
   if (phase === "recovery" || !draft) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#F9F6F1] px-4 text-center text-[#2C2416]">
-        <p className="max-w-md text-sm leading-relaxed text-[#5C5346]">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-5 overflow-x-hidden bg-[#F9F6F1] px-4 py-8 text-center text-[#2C2416]">
+        <p className="max-w-md text-sm leading-relaxed text-[#5C5346] [text-wrap:balance]">
           No encontramos un borrador de BR Privado en este dispositivo. Publica o continúa editando para generar la vista previa.
         </p>
         <Link
           href={BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY}
-          className="rounded-full bg-[#B8954A] px-5 py-2.5 text-sm font-bold text-[#1E1810] hover:brightness-95"
+          className="inline-flex min-h-[48px] min-w-[200px] items-center justify-center rounded-full bg-[#B8954A] px-6 text-sm font-bold text-[#1E1810] transition hover:brightness-95"
         >
           Ir a publicar — Privado
         </Link>

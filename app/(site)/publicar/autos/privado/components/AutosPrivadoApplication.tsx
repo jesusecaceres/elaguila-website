@@ -140,7 +140,7 @@ export function AutosPrivadoApplication() {
           </details>
         </header>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-5 sm:gap-6">
           {/* A — Principal (alineado con Negocios; sin pago mensual ni stock) */}
           <section className={CARD}>
             <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{t.app.sections.main}</h2>

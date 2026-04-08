@@ -28,7 +28,7 @@ export function AdminShell({
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
           <AdminTopbar alertCount={tiendaInboxUnread} />
-          <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:py-10">{children}</div>
+          <div className="mx-auto w-full max-w-7xl min-w-0 px-3 py-6 sm:px-6 sm:py-8 lg:py-10">{children}</div>
         </div>
       </div>
     </div>

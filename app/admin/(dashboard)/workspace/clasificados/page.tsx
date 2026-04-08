@@ -82,31 +82,41 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         puedes enlazar manualmente a categorías o rutas públicas (chips). Aquí moderas anuncios en Supabase.
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Link
           href="/admin/workspace/clasificados/servicios"
-          className="rounded-2xl border border-[#7A9E6F]/40 bg-[#F4FAF2] px-4 py-2 text-sm font-semibold text-[#2C4A22]"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-[#7A9E6F]/40 bg-[#F4FAF2] px-4 py-2 text-center text-sm font-semibold text-[#2C4A22] sm:min-h-0 sm:inline-flex"
           title="Simulación en navegador (localStorage), no es la cola real de Supabase"
         >
           Servicios (simulación local) →
         </Link>
-        <Link href="/admin/categories" className="rounded-2xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E]">
+        <Link
+          href="/admin/categories"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-center text-sm font-semibold text-[#5C4E2E] sm:min-h-0"
+        >
           Registro de categorías →
         </Link>
-        <Link href="/admin/reportes" className="rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]">
+        <Link
+          href="/admin/reportes"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2 text-center text-sm font-semibold text-[#2C2416] sm:min-h-0"
+        >
           Reportes →
         </Link>
       </div>
 
       <div className={`${adminCardBase} mb-6 p-4`}>
-        <form className="flex flex-wrap gap-3" method="get">
+        <form className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end" method="get">
           <input
             name="q"
             defaultValue={qRaw}
             placeholder="Buscar título, ciudad o fragmento de ID…"
-            className="min-w-[200px] flex-1 rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm"
+            className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-4 py-3 text-base sm:min-w-[12rem] sm:flex-1 sm:py-2 sm:text-sm"
           />
-          <select name="category" defaultValue={catFilter} className="rounded-2xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm">
+          <select
+            name="category"
+            defaultValue={catFilter}
+            className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[10rem] sm:py-2 sm:text-sm"
+          >
             <option value="">Todas las categorías</option>
             {cats.map((c) => (
               <option key={c} value={c}>
@@ -114,7 +124,11 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
               </option>
             ))}
           </select>
-          <select name="status" defaultValue={statusFilter} className="rounded-2xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm">
+          <select
+            name="status"
+            defaultValue={statusFilter}
+            className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[9rem] sm:py-2 sm:text-sm"
+          >
             <option value="">Todos los estados</option>
             <option value="active">active</option>
             <option value="pending">pending</option>
@@ -122,7 +136,10 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
             <option value="sold">sold</option>
             <option value="removed">removed</option>
           </select>
-          <button type="submit" className="rounded-2xl bg-[#2A2620] px-4 py-2 text-sm font-semibold text-[#FAF7F2]">
+          <button
+            type="submit"
+            className="min-h-[44px] w-full rounded-2xl bg-[#2A2620] px-4 py-3 text-sm font-semibold text-[#FAF7F2] sm:min-h-0 sm:w-auto sm:py-2"
+          >
             Filtrar
           </button>
         </form>

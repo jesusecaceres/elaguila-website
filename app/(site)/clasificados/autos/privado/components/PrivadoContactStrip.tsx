@@ -14,10 +14,10 @@ import {
 } from "../lib/privadoContactIntent";
 
 const BTN_PRIMARY =
-  "inline-flex min-h-[48px] w-full items-center justify-center rounded-[14px] bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold tracking-tight text-[#FFFCF7] shadow-[0_8px_24px_-6px_rgba(26,22,18,0.45)] transition hover:bg-[color:var(--lx-cta-dark-hover)] active:scale-[0.99]";
+  "touch-manipulation inline-flex min-h-[48px] w-full items-center justify-center rounded-[14px] bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold tracking-tight text-[#FFFCF7] shadow-[0_8px_24px_-6px_rgba(26,22,18,0.45)] transition hover:bg-[color:var(--lx-cta-dark-hover)] active:scale-[0.99]";
 
 const BTN_SECONDARY =
-  "inline-flex min-h-[48px] w-full items-center justify-center gap-1.5 rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-2 text-center text-[13px] font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)] sm:px-3 sm:text-sm";
+  "touch-manipulation inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 text-center text-[13px] font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)] active:scale-[0.99] sm:px-3.5 sm:text-sm";
 
 /** Private seller contact only — no website, booking, hours, or socials. */
 export function PrivadoContactStrip({
@@ -51,10 +51,12 @@ export function PrivadoContactStrip({
   if (!seller && !hasAnyCta) return null;
 
   return (
-    <section className="min-w-0 overflow-x-hidden rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.12)] sm:p-6">
+    <section className="min-w-0 overflow-x-hidden rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.12)] sm:p-6">
       <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{labels.seller}</p>
-      {seller ? <h2 className="mt-2 text-lg font-extrabold text-[color:var(--lx-text)]">{seller}</h2> : null}
-      <div className={`mt-4 flex flex-col gap-3 ${seller ? "" : "mt-0"}`}>
+      {seller ? (
+        <h2 className="mt-2 break-words text-lg font-extrabold leading-snug text-[color:var(--lx-text)]">{seller}</h2>
+      ) : null}
+      <div className={`flex flex-col gap-2.5 sm:gap-3 ${seller ? "mt-4" : "mt-3"}`}>
         {showCall && phoneForTel ? (
           <a href={`tel:${phoneForTel}`} className={`${BTN_PRIMARY} flex-col gap-0.5 py-3`}>
             <span className="inline-flex items-center gap-2">

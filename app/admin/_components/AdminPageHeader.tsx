@@ -15,7 +15,7 @@ export function AdminPageHeader({
   helperText?: string;
 }) {
   return (
-    <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <header className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0 flex-1">
         {eyebrow ? (
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#A67C52]">{eyebrow}</p>
@@ -28,7 +28,11 @@ export function AdminPageHeader({
           </p>
         ) : null}
       </div>
-      {rightSlot ? <div className="shrink-0">{rightSlot}</div> : null}
+      {rightSlot ? (
+        <div className="w-full shrink-0 sm:w-auto sm:self-start [&_a]:flex [&_a]:min-h-[44px] [&_a]:w-full [&_a]:items-center [&_a]:justify-center sm:[&_a]:min-h-0 sm:[&_a]:w-auto sm:[&_a]:inline-flex">
+          {rightSlot}
+        </div>
+      ) : null}
     </header>
   );
 }

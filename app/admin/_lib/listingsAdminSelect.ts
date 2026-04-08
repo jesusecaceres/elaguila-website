@@ -11,10 +11,7 @@ export const LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS =
 function shouldRetrySelectWithoutDetailPairs(err: { message?: string; code?: string } | null): boolean {
   if (!err?.message) return false;
   const m = err.message.toLowerCase();
-  if (m.includes("detail_pairs")) return true;
-  // PostgREST undefined_column
-  if (err.code === "42703" && m.includes("detail_pairs")) return true;
-  return false;
+  return m.includes("detail_pairs");
 }
 
 export type ListingsAdminFetchResult<T> = {

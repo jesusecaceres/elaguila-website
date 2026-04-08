@@ -5,6 +5,8 @@ import { FaTiktok, FaWhatsapp } from "react-icons/fa";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
 import { RestauranteShellInteractiveCtas } from "./RestauranteShellInteractiveCtas";
 import { RestauranteShellGalleryBlock } from "./RestauranteShellGalleryBlock";
+import { RestauranteShellPlatillosBlock } from "./RestauranteShellPlatillosBlock";
+import { RestauranteShellVenueGalleryBlock } from "./RestauranteShellVenueGalleryBlock";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)]";
@@ -58,9 +60,14 @@ function hasContactContent(c: RestaurantDetailShellData["contact"]): boolean {
 export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellData }) {
   const open = data.hoursPreview.status === "open";
   const showQuick = (data.quickInfo?.length ?? 0) > 0;
-  const showFeatured = (data.menuHighlights?.length ?? 0) > 0 || Boolean(data.fullMenuCta);
+  const showPlatillos = (data.menuHighlights?.length ?? 0) > 0;
+  const showMenuOnly = Boolean(data.fullMenuCta) && !showPlatillos;
   const showHighlights = (data.highlightTags?.length ?? 0) > 0;
-  const showGallery = (data.gallery?.length ?? 0) > 0;
+  const vg = data.venueGallery;
+  const showVenueGallery = Boolean(
+    vg && ((vg.categories?.length ?? 0) > 0 || (vg.supplemental?.length ?? 0) > 0)
+  );
+  const legacyGallery = (data.gallery?.length ?? 0) > 0;
   const showAbout = Boolean(data.aboutBody?.trim());
   const showContact = hasContactContent(data.contact);
   const showStacks = (data.stackSections?.length ?? 0) > 0;
@@ -177,54 +184,21 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
         className={`mt-10 grid grid-cols-1 gap-8 ${showContact ? "lg:grid-cols-12 lg:gap-10" : ""}`}
       >
         <div className={`min-w-0 space-y-10 ${showContact ? "lg:col-span-8" : "lg:col-span-12"}`}>
-          {/* 4. MENU HIGHLIGHTS */}
-          {showFeatured ? (
-            <section aria-labelledby="menu-highlights-heading">
-              <div className="flex flex-wrap items-end justify-between gap-3">
-                <h2 id="menu-highlights-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
-                  Platos destacados
-                </h2>
-              </div>
-              {data.menuHighlights?.length ? (
-                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {data.menuHighlights.map((dish) => (
-                    <article key={dish.name} className={`${CARD} group overflow-hidden p-0`}>
-                      <div className="relative aspect-[4/3] w-full overflow-hidden">
-                        <Image
-                          src={dish.imageUrl}
-                          alt={dish.name}
-                          fill
-                          unoptimized={dish.imageUrl.startsWith("data:")}
-                          className="object-cover transition duration-500 group-hover:scale-[1.02]"
-                          sizes="(max-width:640px) 100vw, 50vw"
-                        />
-                        {dish.badge ? (
-                          <span className="absolute right-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-                            {dish.badge}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="p-4">
-                        <h3 className="text-base font-bold text-[color:var(--lx-text)]">{dish.name}</h3>
-                        <p className="mt-1.5 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{dish.supportingLine}</p>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : null}
-              {data.fullMenuCta ? (
-                <div className={data.menuHighlights?.length ? "mt-6" : "mt-5"}>
-                  <a
-                    href={data.fullMenuCta.href}
-                    className="flex w-full items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-                  >
-                    {data.fullMenuCta.label}
-                    <span className="ml-1 text-[color:var(--lx-gold)]" aria-hidden>
-                      →
-                    </span>
-                  </a>
-                </div>
-              ) : null}
+          {/* 4. PLATILLOS (featured dishes — not comida bucket) */}
+          {showPlatillos ? (
+            <RestauranteShellPlatillosBlock dishes={data.menuHighlights!} fullMenuCta={data.fullMenuCta} />
+          ) : null}
+          {showMenuOnly ? (
+            <section className="mt-2" aria-label="Menú">
+              <a
+                href={data.fullMenuCta!.href}
+                className="flex w-full min-h-[48px] items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+              >
+                {data.fullMenuCta!.label}
+                <span className="ml-1 text-[color:var(--lx-gold)]" aria-hidden>
+                  →
+                </span>
+              </a>
             </section>
           ) : null}
 
@@ -265,8 +239,10 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
               ))
             : null}
 
-          {/* 6. GALLERY */}
-          {showGallery ? (
+          {/* 6. VENUE GALLERY (grouped) or legacy flat gallery */}
+          {showVenueGallery ? (
+            <RestauranteShellVenueGalleryBlock bundle={data.venueGallery!} galleryCta={data.galleryCta} />
+          ) : legacyGallery ? (
             <RestauranteShellGalleryBlock gallery={data.gallery!} galleryCta={data.galleryCta} />
           ) : null}
 

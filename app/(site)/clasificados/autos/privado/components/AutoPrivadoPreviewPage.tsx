@@ -59,9 +59,9 @@ export function AutoPrivadoPreviewPage({ data, editBackHref }: { data: AutoDeale
   return (
     <PrivadoPreviewChrome editBackHref={editBackHref}>
       <main className="mx-auto mt-6 max-w-[1280px] overflow-x-hidden px-4 sm:mt-8 md:px-5 lg:px-6">
-        <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-6">
+        <div className="grid min-w-0 grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-12 lg:gap-6">
           {showTitle ? (
-            <section className={`${MAIN_CARD} lg:col-span-12`}>
+            <section className={`${MAIN_CARD} max-lg:order-1 lg:order-none lg:col-span-12`}>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
                 {showLeft ? (
                   <div className="min-w-0 max-w-full flex-1">
@@ -69,7 +69,7 @@ export function AutoPrivadoPreviewPage({ data, editBackHref }: { data: AutoDeale
                       {lang === "es" ? "Privado" : "Private"}
                     </div>
                     {h1 ? (
-                      <h1 className="text-2xl font-bold leading-[1.15] tracking-tight text-[color:var(--lx-text)] sm:text-3xl md:text-[1.85rem]">
+                      <h1 className="text-pretty text-2xl font-bold leading-[1.15] tracking-tight text-[color:var(--lx-text)] sm:text-3xl md:text-[1.85rem]">
                         {h1}
                       </h1>
                     ) : null}
@@ -82,9 +82,9 @@ export function AutoPrivadoPreviewPage({ data, editBackHref }: { data: AutoDeale
                           </div>
                         ) : null}
                         {showLoc ? (
-                          <div className="flex gap-2">
-                            <dt className="text-[color:var(--lx-muted)]">{pt.location}</dt>
-                            <dd className="font-semibold">{loc}</dd>
+                          <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-0.5">
+                            <dt className="shrink-0 text-[color:var(--lx-muted)]">{pt.location}</dt>
+                            <dd className="min-w-0 max-w-full break-words font-semibold">{loc}</dd>
                           </div>
                         ) : null}
                         {showVin ? (
@@ -104,7 +104,7 @@ export function AutoPrivadoPreviewPage({ data, editBackHref }: { data: AutoDeale
                     {priceOk ? (
                       <>
                         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{pt.priceLabel}</p>
-                        <p className="mt-1 text-3xl font-bold leading-none tracking-tight text-[color:var(--lx-text)] sm:text-4xl">
+                        <p className="mt-1 text-pretty text-3xl font-bold leading-none tracking-tight text-[color:var(--lx-text)] sm:text-4xl">
                           {formatUsd(data.price)}
                         </p>
                       </>
@@ -116,13 +116,13 @@ export function AutoPrivadoPreviewPage({ data, editBackHref }: { data: AutoDeale
           ) : null}
 
           {showGallery ? (
-            <div className="lg:col-span-12">
+            <div className="max-lg:order-2 lg:order-none lg:col-span-12">
               <AutoGallery data={data} />
             </div>
           ) : null}
 
           {showAnalyticsStrip ? (
-            <div className="lg:col-span-12">
+            <div className="max-lg:order-3 lg:order-none lg:col-span-12">
               <AutosListingAnalyticsRow
                 variant="compact"
                 metrics={analyticsMetrics}
@@ -138,7 +138,7 @@ export function AutoPrivadoPreviewPage({ data, editBackHref }: { data: AutoDeale
             </div>
           ) : null}
 
-          <div className="lg:col-span-7 lg:col-start-1">
+          <div className="min-w-0 max-lg:order-5 lg:order-none lg:col-span-7 lg:col-start-1">
             {showSpecs ? <VehicleSpecsGrid data={data} hiddenRowKeys={["stock"]} /> : null}
             {showHighlights ? (
               <div className={showSpecs ? "mt-6" : ""}>
@@ -152,7 +152,7 @@ export function AutoPrivadoPreviewPage({ data, editBackHref }: { data: AutoDeale
             ) : null}
           </div>
 
-          <aside className="flex min-w-0 flex-col gap-6 lg:sticky lg:top-24 lg:col-span-5 lg:col-start-8 lg:self-start">
+          <aside className="flex min-w-0 flex-col gap-4 sm:gap-6 max-lg:order-4 lg:order-none lg:sticky lg:top-24 lg:col-span-5 lg:col-start-8 lg:self-start">
             <PrivadoContactStrip
               data={data}
               lang={lang}

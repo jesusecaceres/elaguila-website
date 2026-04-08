@@ -136,7 +136,11 @@ export default function AdminListingsTable({
               <th className="p-3 font-semibold text-[#5C4E2E]">Owner</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">Fecha</th>
               <th
-                className="min-w-[220px] p-3 font-semibold text-[#5C4E2E]"
+                className={
+                  detailPairsAvailable
+                    ? "min-w-[220px] p-3 font-semibold text-[#5C4E2E]"
+                    : "min-w-[220px] bg-amber-50/90 p-3 font-semibold text-amber-950"
+                }
                 title={
                   detailPairsAvailable
                     ? "Plan y visibilidad En Venta (detail_pairs + boost_expires)"
@@ -177,7 +181,10 @@ export default function AdminListingsTable({
                 </td>
                 <td className="p-3">
                   {row.owner_id ? (
-                    <Link href={`/admin/usuarios/${row.owner_id}`} className="text-xs font-semibold text-[#6B5B2E] underline">
+                    <Link
+                      href={`/admin/usuarios/${row.owner_id}`}
+                      className="inline-flex min-h-[44px] min-w-[44px] items-center text-xs font-semibold text-[#6B5B2E] underline sm:min-h-0 sm:min-w-0"
+                    >
                       Ver
                     </Link>
                   ) : (
@@ -186,30 +193,36 @@ export default function AdminListingsTable({
                 </td>
                 <td className="p-3 text-[#7A7164]">{formatDate(row.created_at)}</td>
                 <td
-                  className="max-w-[280px] p-3 align-top text-[11px] leading-snug text-[#5C5346]"
+                  className={
+                    detailPairsAvailable
+                      ? "max-w-[280px] p-3 align-top text-[11px] leading-snug text-[#5C5346]"
+                      : "max-w-[280px] bg-amber-50/40 p-3 align-top text-[11px] leading-snug text-amber-950"
+                  }
                   title={enVentaVisibilityAdminLine(row, detailPairsAvailable)}
                 >
                   {enVentaVisibilityAdminLine(row, detailPairsAvailable)}
                 </td>
                 <td className="p-3">
-                  <Link
-                    href={`/clasificados/anuncio/${row.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mr-2 font-semibold text-[#6B5B2E] underline"
-                  >
-                    Ver
-                  </Link>
-                  {row.status !== "removed" && (
-                    <button
-                      type="button"
-                      disabled={deletingId === row.id}
-                      onClick={() => handleDelete(row.id)}
-                      className="text-sm font-semibold text-red-700 hover:underline disabled:opacity-50"
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <Link
+                      href={`/clasificados/anuncio/${row.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-h-[44px] items-center font-semibold text-[#6B5B2E] underline sm:min-h-0"
                     >
-                      {deletingId === row.id ? "…" : "Eliminar"}
-                    </button>
-                  )}
+                      Ver
+                    </Link>
+                    {row.status !== "removed" && (
+                      <button
+                        type="button"
+                        disabled={deletingId === row.id}
+                        onClick={() => handleDelete(row.id)}
+                        className="min-h-[44px] text-sm font-semibold text-red-700 hover:underline disabled:opacity-50 sm:min-h-0"
+                      >
+                        {deletingId === row.id ? "…" : "Eliminar"}
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

@@ -13,8 +13,16 @@ export function AdminQuickActionsRail() {
           <label className="sr-only" htmlFor="rail-user-q">
             Search users
           </label>
-          <input id="rail-user-q" name="q" placeholder="Search users…" className={adminInputClass} />
-          <button type="submit" className={`${adminBtnSecondary} w-full justify-center text-xs`}>
+          <input
+            id="rail-user-q"
+            name="q"
+            placeholder="Search users…"
+            className={`${adminInputClass} min-h-[44px] text-base sm:min-h-0 sm:text-sm`}
+          />
+          <button
+            type="submit"
+            className={`${adminBtnSecondary} flex min-h-[44px] w-full items-center justify-center text-xs sm:min-h-0`}
+          >
             Go →
           </button>
         </form>
@@ -26,7 +34,7 @@ export function AdminQuickActionsRail() {
             id="rail-ad-q"
             name="q"
             placeholder="Fragmento de título, ciudad o ID…"
-            className={adminInputClass}
+            className={`${adminInputClass} min-h-[44px] text-base sm:min-h-0 sm:text-sm`}
             title="Abre Clasificados con ?q=; el filtrado ocurre en la página del workspace"
           />
           <p className="text-[10px] text-[#7A7164]">
@@ -34,7 +42,7 @@ export function AdminQuickActionsRail() {
           </p>
           <button
             type="submit"
-            className={`${adminBtnSecondary} w-full justify-center text-xs`}
+            className={`${adminBtnSecondary} flex min-h-[44px] w-full items-center justify-center text-xs sm:min-h-0`}
             title="Ir a /admin/workspace/clasificados con parámetro q"
           >
             Ir a cola Clasificados →
@@ -47,7 +55,7 @@ export function AdminQuickActionsRail() {
         <button
           type="button"
           disabled
-          className="flex w-full items-center gap-2 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFFCF7]/80 px-3 py-2 text-left text-xs font-semibold text-[#5C5346]/80"
+          className="flex min-h-[44px] w-full items-center gap-2 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFFCF7]/80 px-3 py-2 text-left text-xs font-semibold text-[#5C5346]/80 sm:min-h-0"
           title="Requires Auth Admin API — not wired"
         >
           🔑 Reset user password
@@ -55,7 +63,8 @@ export function AdminQuickActionsRail() {
         <button
           type="button"
           disabled
-          className="flex w-full items-center gap-2 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFFCF7]/80 px-3 py-2 text-left text-xs font-semibold text-[#5C5346]/80"
+          className="flex min-h-[44px] w-full items-center gap-2 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFFCF7]/80 px-3 py-2 text-left text-xs font-semibold text-[#5C5346]/80 sm:min-h-0"
+          title="Réplica de panel de usuario no implementada en admin"
         >
           🪞 Switch to user dashboard (replica)
         </button>

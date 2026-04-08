@@ -18,6 +18,7 @@ export function ServiciosPublishModal({
   lang,
   copy,
   onPersistDraft,
+  getLatestState,
 }: {
   open: boolean;
   onClose: () => void;
@@ -26,15 +27,20 @@ export function ServiciosPublishModal({
   copy: ClasificadosServiciosCopy;
   /** Ensure latest draft is flushed before publishing */
   onPersistDraft: () => void;
+  /** Same-tick snapshot (avoids stale closure if user publishes within debounce window) */
+  getLatestState?: () => ClasificadosServiciosApplicationState;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const readiness = evaluateServiciosPublishReadiness(state, lang);
+  const snapshot = getLatestState?.() ?? state;
+  const readiness = evaluateServiciosPublishReadiness(snapshot, lang);
 
   const handlePublish = useCallback(async () => {
-    if (!readiness.ok) return;
+    const s = getLatestState?.() ?? state;
+    const r = evaluateServiciosPublishReadiness(s, lang);
+    if (!r.ok) return;
     setBusy(true);
     setError(null);
     onPersistDraft();
@@ -42,7 +48,7 @@ export function ServiciosPublishModal({
       const res = await fetch("/api/clasificados/servicios/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ state, lang }),
+        body: JSON.stringify({ state: s, lang }),
       });
       const data = (await res.json()) as {
         ok?: boolean;
@@ -65,8 +71,8 @@ export function ServiciosPublishModal({
       }
 
       if (!data.persisted) {
-        const ig = getBusinessTypePreset(state.businessTypeId)?.internalGroup;
-        upsertLocalServiciosPublish(data.profile, state.city, ig ?? null);
+        const ig = getBusinessTypePreset(s.businessTypeId)?.internalGroup;
+        upsertLocalServiciosPublish(data.profile, s.city, ig ?? null);
       }
 
       router.push(`/clasificados/servicios/${encodeURIComponent(data.slug)}?lang=${lang}`);
@@ -74,7 +80,7 @@ export function ServiciosPublishModal({
       setError(copy.publishError);
       setBusy(false);
     }
-  }, [readiness.ok, state, lang, copy.publishError, router, onPersistDraft]);
+  }, [getLatestState, state, lang, copy.publishError, router, onPersistDraft]);
 
   if (!open) return null;
 

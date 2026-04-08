@@ -43,9 +43,14 @@ export function AutosListingAnalyticsRow({
     { key: "c", label: labels.contacts, value: c, icon: <FiMessageCircle className="h-4 w-4 text-[color:var(--lx-gold)]" aria-hidden /> },
   ];
 
+  const outerPad =
+    variant === "compact"
+      ? "p-3.5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.1)] sm:p-5"
+      : "p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.1)] sm:p-5";
+
   return (
     <section
-      className={`min-w-0 overflow-x-hidden rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.1)] sm:p-5 ${className}`}
+      className={`min-w-0 overflow-x-hidden rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] ${outerPad} ${className}`}
       aria-label="Listing analytics"
     >
       <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">

@@ -266,19 +266,22 @@ function FactBlock({ title, rows }: { title: string; rows: Array<{ label: string
   if (safeRows.length === 0) return null;
   return (
     <div
-      className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]"
+      className="min-w-0 rounded-2xl border p-4 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)] sm:p-6"
       style={{ borderColor: BORDER, background: CREAM_CARD }}
     >
       <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
         {title}
       </h3>
-      <dl className="mt-4 grid gap-x-10 gap-y-5 sm:grid-cols-2">
+      <dl className="mt-3 grid gap-x-6 gap-y-4 sm:mt-4 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-5">
         {safeRows.map((r) => (
-          <div key={`${r.label}-${r.value}`}>
+          <div key={`${r.label}-${r.value}`} className="min-w-0">
             <dt className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
               {r.label}
             </dt>
-            <dd className="mt-1 text-sm font-medium leading-snug" style={{ color: CHARCOAL }}>
+            <dd
+              className="mt-1 break-words text-sm font-medium leading-snug [overflow-wrap:anywhere] [font-variant-numeric:tabular-nums]"
+              style={{ color: CHARCOAL }}
+            >
               {r.value}
             </dd>
           </div>
@@ -375,10 +378,13 @@ export function BienesRaicesPrivadoPreviewView({
   vm,
   editHref,
   footerExtra,
+  /** Default “Bienes raíces”; Rentas Privado passes “Rentas” for the same shell. */
+  previewNavHubLabel = "Bienes raíces",
 }: {
   vm: BienesRaicesPrivadoPreviewVm;
   editHref?: string;
   footerExtra?: string;
+  previewNavHubLabel?: string;
 }) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
@@ -525,13 +531,13 @@ export function BienesRaicesPrivadoPreviewView({
   ) : null;
 
   return (
-    <div className="min-h-screen antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
+    <div className="min-h-screen overflow-x-hidden antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
       <header className="border-b" style={{ borderColor: BORDER, background: "rgba(253, 251, 247, 0.96)" }}>
-        <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-4 px-6 py-3.5 lg:px-8">
-          <div className="flex flex-wrap items-center gap-4 lg:gap-6">
+        <div className="mx-auto flex min-w-0 max-w-[1240px] flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:gap-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-4 lg:gap-6">
             <LeonixBrandMark logoUrl={vm.platformLogoUrl ?? ""} />
             <nav className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: MUTED }}>
-              <span style={{ color: CHARCOAL }}>Bienes raíces</span>
+              <span style={{ color: CHARCOAL }}>{previewNavHubLabel}</span>
               <span className="mx-2 opacity-40">›</span>
               <span
                 className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1"
@@ -551,7 +557,7 @@ export function BienesRaicesPrivadoPreviewView({
           {editHref ? (
             <Link
               href={editHref}
-              className="text-[11px] font-bold uppercase tracking-wide underline"
+              className="shrink-0 text-[11px] font-bold uppercase tracking-wide underline"
               style={{ color: BRONZE_SOFT }}
               prefetch={false}
             >
@@ -561,7 +567,7 @@ export function BienesRaicesPrivadoPreviewView({
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1240px] px-6 pb-16 pt-4 lg:px-8">
+      <main className="mx-auto w-full min-w-0 max-w-[1240px] px-4 pb-16 pt-3 sm:px-6 sm:pt-4 lg:px-8">
         {showGallerySection ? (
           <section className="mb-0" id="galeria-multimedia">
             <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
@@ -579,9 +585,9 @@ export function BienesRaicesPrivadoPreviewView({
                 </p>
               ) : null}
             </div>
-            <div className="grid gap-3 lg:grid-cols-12 lg:gap-4">
+            <div className="grid min-w-0 gap-3 lg:grid-cols-12 lg:gap-4">
               {hasPhotos || videoOnlyHero ? (
-                <div className="lg:col-span-7">
+                <div className="min-w-0 lg:col-span-7">
                   <div className="relative">
                     {hasPhotos && media?.heroUrl ? (
                       <>
@@ -635,7 +641,7 @@ export function BienesRaicesPrivadoPreviewView({
                 </div>
               ) : null}
               <div
-                className={`grid grid-cols-2 gap-3 ${hasPhotos || videoOnlyHero ? "lg:col-span-5" : "lg:col-span-12"} sm:grid-cols-2`}
+                className={`grid min-w-0 grid-cols-2 gap-2.5 sm:gap-3 ${hasPhotos || videoOnlyHero ? "lg:col-span-5" : "lg:col-span-12"} [grid-template-columns:minmax(0,1fr)_minmax(0,1fr)]`}
               >
                 {sidebarGallerySpecs.map((spec, idx) => renderGallerySpec(spec, idx))}
                 {tourTile}
@@ -646,15 +652,15 @@ export function BienesRaicesPrivadoPreviewView({
         ) : null}
 
         <section
-          className={`grid gap-6 lg:items-start lg:gap-8 ${showGallerySection ? "mt-7 border-t pt-7" : "mt-0 border-0 pt-2"} ${
+          className={`grid min-w-0 grid-cols-1 gap-6 lg:items-start lg:gap-8 ${showGallerySection ? "mt-7 border-t pt-7" : "mt-0 border-0 pt-2"} ${
             showMainSellerAside ? "lg:grid-cols-[1fr_minmax(280px,340px)]" : ""
           }`}
           style={{ borderColor: BORDER }}
         >
-          <div>
+          <div className="min-w-0">
             {heroTitleShown ? (
               <h1
-                className="max-w-[720px] text-[1.75rem] font-bold leading-[1.15] tracking-tight sm:text-[2rem] lg:text-[2.35rem]"
+                className="max-w-full text-[1.65rem] font-bold leading-[1.15] tracking-tight [overflow-wrap:anywhere] sm:text-[2rem] lg:max-w-[720px] lg:text-[2.35rem]"
                 style={{ color: CHARCOAL_DEEP, fontFamily: "Georgia, 'Times New Roman', serif" }}
               >
                 {heroTitleShown}
@@ -665,15 +671,18 @@ export function BienesRaicesPrivadoPreviewView({
             {addressLineShown ? (
               <p className="mt-2.5 flex items-start gap-2 text-sm font-medium leading-snug" style={{ color: MUTED }}>
                 <span className="mt-0.5 shrink-0" style={{ color: BRONZE }}>
-                  <IconPin className="block" />
+                  <IconPin className="block h-4 w-4 sm:h-[18px] sm:w-[18px]" />
                 </span>
-                {addressLineShown}
+                <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">{addressLineShown}</span>
               </p>
             ) : null}
             {priceShown || vm.listingStatusLabel ? (
               <div className="mt-3 flex flex-wrap items-end gap-2.5">
                 {priceShown ? (
-                  <span className="text-3xl font-bold tracking-tight sm:text-[2.5rem]" style={{ color: BRONZE, fontFamily: "Georgia, serif" }}>
+                  <span
+                    className="break-words text-[1.65rem] font-bold tracking-tight [font-variant-numeric:tabular-nums] sm:text-[2.25rem] lg:text-[2.5rem]"
+                    style={{ color: BRONZE, fontFamily: "Georgia, serif" }}
+                  >
                     {priceShown}
                   </span>
                 ) : null}
@@ -695,23 +704,26 @@ export function BienesRaicesPrivadoPreviewView({
 
             {quickFacts.length > 0 ? (
               <div
-                className="mt-5 flex flex-wrap gap-2 rounded-2xl border p-3 sm:gap-2.5 sm:p-3.5"
+                className="mt-5 grid grid-cols-2 gap-2 rounded-2xl border p-2.5 sm:flex sm:flex-wrap sm:gap-2.5 sm:p-3.5"
                 style={{ borderColor: BORDER, background: CREAM_CARD, boxShadow: "0 10px 36px -16px rgba(42,36,22,0.12)" }}
               >
                 {quickFacts.map(({ Icon, label, value }, qfIdx) => (
                   <div
                     key={`${label}-${qfIdx}`}
-                    className="flex min-w-[112px] flex-1 items-center gap-2 rounded-lg border px-2.5 py-2 sm:min-w-[128px]"
+                    className="flex min-w-0 items-center gap-2 rounded-lg border px-2 py-2 sm:min-w-[7.5rem] sm:flex-1 sm:px-2.5"
                     style={{ borderColor: BORDER }}
                   >
                     <span style={{ color: BRONZE }} className="shrink-0">
                       <Icon className="block h-[18px] w-[18px] sm:h-5 sm:w-5" />
                     </span>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
                         {label}
                       </p>
-                      <p className="truncate text-sm font-bold" style={{ color: CHARCOAL }}>
+                      <p
+                        className="text-sm font-bold leading-tight [font-variant-numeric:tabular-nums] [overflow-wrap:anywhere] sm:leading-snug"
+                        style={{ color: CHARCOAL }}
+                      >
                         {value}
                       </p>
                     </div>
@@ -723,7 +735,7 @@ export function BienesRaicesPrivadoPreviewView({
 
           {showMainSellerAside ? (
             <aside
-              className="rounded-2xl border p-5 shadow-[0_16px_44px_-12px_rgba(42,36,22,0.15)] lg:sticky lg:top-6 lg:self-start"
+              className="min-w-0 rounded-2xl border p-4 shadow-[0_16px_44px_-12px_rgba(42,36,22,0.15)] sm:p-5 lg:sticky lg:top-6 lg:self-start"
               style={{ borderColor: BORDER, background: CREAM_CARD }}
             >
               {showSellerPhotoAside && vm.seller.photoUrl ? (
@@ -732,22 +744,25 @@ export function BienesRaicesPrivadoPreviewView({
                   <img
                     src={vm.seller.photoUrl}
                     alt=""
-                    className="aspect-[4/5] w-full max-h-[min(340px,44vh)] object-cover object-top sm:max-h-[360px]"
+                    className="aspect-[4/5] w-full max-h-[min(280px,40vh)] object-cover object-top sm:max-h-[min(340px,44vh)] lg:max-h-[360px]"
                   />
                 </div>
               ) : null}
               {sellerNameShown ? (
-                <p className={`text-lg font-bold leading-tight ${showSellerPhotoAside ? "mt-4" : "mt-0"}`} style={{ color: CHARCOAL_DEEP }}>
+                <p
+                  className={`break-words text-base font-bold leading-snug tracking-tight sm:text-lg ${showSellerPhotoAside ? "mt-3 sm:mt-4" : "mt-0"}`}
+                  style={{ color: CHARCOAL_DEEP }}
+                >
                   {sellerNameShown}
                 </p>
               ) : null}
               {sellerRoleShown ? (
-                <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: BRONZE_SOFT }}>
+                <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] sm:text-[11px]" style={{ color: BRONZE_SOFT }}>
                   {sellerRoleShown}
                 </p>
               ) : null}
               {vm.seller.noteLine ? (
-                <p className="mt-3 text-sm leading-relaxed" style={{ color: MUTED }}>
+                <p className="mt-3 text-sm leading-relaxed [overflow-wrap:anywhere]" style={{ color: MUTED }}>
                   {vm.seller.noteLine}
                 </p>
               ) : null}
@@ -760,7 +775,7 @@ export function BienesRaicesPrivadoPreviewView({
                 style={{ borderColor: BORDER }}
               >
                 {vm.seller.phoneDisplay ? (
-                  <p className="font-medium" style={{ color: CHARCOAL }}>
+                  <p className="font-medium [font-variant-numeric:tabular-nums]" style={{ color: CHARCOAL }}>
                     {vm.seller.phoneDisplay}
                   </p>
                 ) : null}
@@ -769,9 +784,13 @@ export function BienesRaicesPrivadoPreviewView({
                     WhatsApp
                   </p>
                 ) : null}
-                {vm.seller.whatsappDisplay ? <p style={{ color: CHARCOAL }}>{vm.seller.whatsappDisplay}</p> : null}
+                {vm.seller.whatsappDisplay ? (
+                  <p className="[font-variant-numeric:tabular-nums]" style={{ color: CHARCOAL }}>
+                    {vm.seller.whatsappDisplay}
+                  </p>
+                ) : null}
                 {vm.seller.emailDisplay ? (
-                  <p className="truncate text-sm opacity-90" style={{ color: CHARCOAL }}>
+                  <p className="break-all text-sm leading-snug opacity-90" style={{ color: CHARCOAL }}>
                     {vm.seller.emailDisplay}
                   </p>
                 ) : null}
@@ -781,7 +800,7 @@ export function BienesRaicesPrivadoPreviewView({
         </section>
 
         <section
-          className={`mt-10 grid gap-5 lg:items-stretch lg:gap-5 ${
+          className={`mt-8 grid min-w-0 grid-cols-1 gap-5 sm:mt-10 lg:items-stretch lg:gap-5 ${
             hasDetailRows && vm.hasHighlights
               ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(280px,340px)]"
               : hasDetailRows || vm.hasHighlights
@@ -813,23 +832,23 @@ export function BienesRaicesPrivadoPreviewView({
                   {vm.contact.instructionsLine}
                 </p>
               ) : null}
-              <div className="flex flex-1 flex-col space-y-3 px-5 py-5" style={{ background: "#2F2A24" }}>
+              <div className="flex flex-1 flex-col space-y-3 px-4 py-4 sm:px-5 sm:py-5" style={{ background: "#2F2A24" }}>
                 {vm.contact.showSolicitarInfo && vm.contact.solicitarInfoHref ? (
                   <a
                     href={vm.contact.solicitarInfoHref}
-                    className="flex w-full items-center justify-center rounded-xl py-3.5 text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-105"
+                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl px-3 py-3.5 text-center text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-105"
                     style={{ background: `linear-gradient(180deg, ${BRONZE} 0%, ${BRONZE_SOFT} 100%)` }}
                   >
-                    Solicitar información
+                    Escribir correo
                   </a>
                 ) : null}
                 {vm.contact.showLlamar && vm.contact.llamarHref ? (
                   <a
                     href={vm.contact.llamarHref}
-                    className="flex w-full items-center justify-center rounded-xl border py-3 text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
+                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(245,240,232,0.25)" }}
                   >
-                    Llamar ahora
+                    Llamar
                   </a>
                 ) : null}
                 {vm.contact.showWhatsapp && vm.contact.whatsappHref ? (
@@ -837,47 +856,30 @@ export function BienesRaicesPrivadoPreviewView({
                     href={vm.contact.whatsappHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex w-full items-center justify-center rounded-xl border py-3 text-sm font-semibold text-[#E8F5E9] transition hover:bg-white/5"
+                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E8F5E9] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(37,211,102,0.35)" }}
                   >
-                    Enviar por WhatsApp
+                    WhatsApp
                   </a>
                 ) : null}
               </div>
-              {sellerNameShown || sellerRoleShown || vm.seller.phoneDisplay || vm.seller.emailDisplay || showSellerPhotoAside ? (
-                <div className="space-y-3 border-t px-5 py-4" style={{ borderColor: "rgba(255,255,255,0.08)", background: "#3A342E" }}>
-                  <div className="flex gap-3 rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
-                    {showSellerPhotoAside && vm.seller.photoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={vm.seller.photoUrl} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
-                    ) : null}
-                    <div className="min-w-0">
-                      {sellerNameShown ? <p className="text-xs font-bold text-[#F5F0E8]">{sellerNameShown}</p> : null}
-                      {sellerRoleShown ? (
-                        <p className="mt-0.5 text-[10px] uppercase tracking-wide text-[#c4b8a8]">{sellerRoleShown}</p>
-                      ) : null}
-                      {vm.seller.phoneDisplay ? <p className="mt-1 text-xs text-[#e8dfd4]">{vm.seller.phoneDisplay}</p> : null}
-                      {vm.seller.emailDisplay ? (
-                        <p className="mt-0.5 truncate text-xs text-[#e8dfd4]">{vm.seller.emailDisplay}</p>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              ) : null}
             </div>
           </aside>
         </section>
 
         {vm.hasDescription ? (
-          <section className="mt-8">
+          <section className="mt-6 min-w-0 sm:mt-8">
             <div
-              className="rounded-2xl border p-6 sm:p-7 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]"
+              className="min-w-0 rounded-2xl border p-4 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)] sm:p-6 md:p-7"
               style={{ borderColor: BORDER, background: CREAM_CARD }}
             >
               <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
                 Descripción
               </h2>
-              <p className="mt-5 whitespace-pre-wrap text-sm leading-[1.75]" style={{ color: CHARCOAL }}>
+              <p
+                className="mt-4 whitespace-pre-wrap text-[15px] leading-[1.75] [overflow-wrap:anywhere] sm:mt-5 sm:text-sm sm:leading-[1.8]"
+                style={{ color: CHARCOAL }}
+              >
                 {vm.description}
               </p>
             </div>
@@ -885,8 +887,8 @@ export function BienesRaicesPrivadoPreviewView({
         ) : null}
 
         {vm.location.hasMeaningfulAddress ? (
-          <section className="mt-14">
-            <div className="text-center">
+          <section className="mt-10 min-w-0 sm:mt-14">
+            <div className="px-1 text-center">
               <h2
                 className="text-xl font-bold uppercase tracking-[0.12em] sm:text-2xl"
                 style={{ color: CHARCOAL_DEEP, fontFamily: "Georgia, serif" }}
@@ -897,12 +899,12 @@ export function BienesRaicesPrivadoPreviewView({
             <div className="mx-auto mt-8 max-w-2xl">
               <LowerModuleCard eyebrow="Referencia" title="Ubicación aproximada">
                 {vm.location.line1 ? (
-                  <p className="text-sm font-semibold" style={{ color: CHARCOAL }}>
+                  <p className="break-words text-sm font-semibold leading-snug [overflow-wrap:anywhere]" style={{ color: CHARCOAL }}>
                     {vm.location.line1}
                   </p>
                 ) : null}
                 {vm.location.cityStateZip ? (
-                  <p className="mt-1 text-sm" style={{ color: MUTED }}>
+                  <p className="mt-1 break-words text-sm leading-snug [overflow-wrap:anywhere]" style={{ color: MUTED }}>
                     {vm.location.cityStateZip}
                   </p>
                 ) : null}

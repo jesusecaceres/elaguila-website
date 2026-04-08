@@ -93,7 +93,7 @@ export function AutoDealerPreviewPage({
   return (
     <AutoDealerPreviewChrome editBackHref={editBackHref}>
       <main className="mx-auto mt-6 max-w-[1280px] overflow-x-hidden px-4 sm:mt-8 md:px-5 lg:px-6">
-        <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-6">
+        <div className="grid min-w-0 grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-12 lg:gap-6">
           {showTitle ? (
             <section
               className={`${MAIN_CARD} lg:col-span-7 lg:col-start-1`}
@@ -103,7 +103,7 @@ export function AutoDealerPreviewPage({
                 {showLeft ? (
                   <div className="min-w-0 max-w-full flex-1">
                     {h1 ? (
-                      <h1 className="text-2xl font-bold leading-[1.15] tracking-tight text-[color:var(--lx-text)] sm:text-3xl md:text-[1.85rem]">
+                      <h1 className="text-pretty text-2xl font-bold leading-[1.15] tracking-tight text-[color:var(--lx-text)] sm:text-3xl md:text-[1.85rem]">
                         {h1}
                       </h1>
                     ) : null}
@@ -128,9 +128,9 @@ export function AutoDealerPreviewPage({
                           </div>
                         ) : null}
                         {showLoc ? (
-                          <div className="flex gap-2">
-                            <dt className="text-[color:var(--lx-muted)]">{pt.location}</dt>
-                            <dd className="font-semibold">{loc}</dd>
+                          <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-0.5">
+                            <dt className="shrink-0 text-[color:var(--lx-muted)]">{pt.location}</dt>
+                            <dd className="min-w-0 max-w-full break-words font-semibold">{loc}</dd>
                           </div>
                         ) : null}
                         {showVin ? (
@@ -156,7 +156,7 @@ export function AutoDealerPreviewPage({
                     {priceOk ? (
                       <>
                         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{pt.priceLabel}</p>
-                        <p className="mt-1 text-3xl font-bold leading-none tracking-tight text-[color:var(--lx-text)] sm:text-4xl">
+                        <p className="mt-1 text-pretty text-3xl font-bold leading-none tracking-tight text-[color:var(--lx-text)] sm:text-4xl">
                           {formatUsd(data.price)}
                         </p>
                       </>

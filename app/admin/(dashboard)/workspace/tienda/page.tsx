@@ -90,7 +90,7 @@ export default function AdminWorkspaceTiendaPage() {
             <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{a.body}</p>
             <Link
               href={a.href}
-              className={`${adminBtnSecondary} mt-4 inline-flex`}
+              className={`${adminBtnSecondary} mt-4 inline-flex min-h-[44px] items-center sm:min-h-0`}
               {...(a.openInNewTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
             >
               {a.cta} →

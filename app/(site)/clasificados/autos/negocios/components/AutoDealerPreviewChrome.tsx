@@ -78,10 +78,10 @@ export function AutoDealerPreviewChrome({
           </ol>
         </nav>
         {editBackHref ? (
-          <div className="mt-4 flex justify-end">
+          <div className="mt-3 flex justify-end sm:mt-4">
             <Link
               href={editBackHref}
-              className="text-sm font-semibold text-[color:var(--lx-text-2)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 transition hover:text-[color:var(--lx-gold)]"
+              className="touch-manipulation inline-flex min-h-[44px] items-center justify-end px-1 py-2 text-sm font-semibold text-[color:var(--lx-text-2)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 transition hover:text-[color:var(--lx-gold)] sm:min-h-0 sm:py-0"
             >
               {c.backToEdit}
             </Link>

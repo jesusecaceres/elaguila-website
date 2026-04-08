@@ -1,6 +1,6 @@
 /**
- * Output template VM for BR Privado (owner seller).
- * Consumed only by `BienesRaicesPrivadoPreviewView` — wiring from the form arrives in a later phase.
+ * Output VM for BR Privado (particular / owner-seller only).
+ * Consumed by `BienesRaicesPrivadoPreviewView`; filled from the Privado draft via the Privado mapper.
  */
 
 import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
@@ -14,7 +14,7 @@ export type BienesRaicesPrivadoSellerVm = {
   photoUrl: string | null;
   hasPhoto: boolean;
   name: string;
-  /** e.g. "Vendedor particular" */
+  /** Owner-facing line, e.g. "Propietario"; empty hides the row */
   byOwnerLabel: string;
   phoneDisplay: string;
   emailDisplay: string;
@@ -24,6 +24,7 @@ export type BienesRaicesPrivadoSellerVm = {
 };
 
 export type BienesRaicesPrivadoContactRailVm = {
+  /** mailto — shown as a simple “correo” action, not a business lead form */
   showSolicitarInfo: boolean;
   showLlamar: boolean;
   showWhatsapp: boolean;
@@ -40,7 +41,7 @@ export type BienesRaicesPrivadoLocationVm = {
   hasMeaningfulAddress: boolean;
 };
 
-/** Category-aware listing output — same shell as Negocio, lean seller + no business stacks. */
+/** Category-aware listing output — same visual shell as Negocio; one particular seller, no business CTAs. */
 export type BienesRaicesPrivadoPreviewVm = {
   categoria: BrNegocioCategoriaPropiedad;
   platformLogoUrl: string;

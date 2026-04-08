@@ -38,16 +38,16 @@ export function AdminWorkspaceNav() {
   const pathname = usePathname() ?? "";
 
   return (
-    <div className="mb-8 rounded-2xl border border-[#C9B46A]/35 bg-gradient-to-r from-[#FFF8F0]/95 to-[#FFFCF7]/90 px-3 py-3 shadow-sm sm:px-4">
+    <div className="mb-6 rounded-2xl border border-[#C9B46A]/35 bg-gradient-to-r from-[#FFF8F0]/95 to-[#FFFCF7]/90 px-2 py-3 shadow-sm sm:mb-8 sm:px-4">
       <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
-        <div>
+        <div className="min-w-0 pr-1">
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">Website sections</p>
           <p className="text-xs text-[#5C5346]/90">Admin-only workspaces — not the public menu.</p>
         </div>
         <Link
           href="/admin/workspace"
           className={cx(
-            "shrink-0 rounded-xl px-2.5 py-1 text-xs font-bold transition",
+            "flex h-10 min-w-[44px] shrink-0 items-center justify-center rounded-xl px-3 py-2 text-xs font-bold transition sm:h-auto sm:min-h-0 sm:px-2.5 sm:py-1",
             pathname === "/admin/workspace"
               ? "bg-[#2A2620] text-[#FAF7F2]"
               : "text-[#6B5B2E] underline decoration-[#C9B46A]/60 underline-offset-2 hover:text-[#2A2620]"
@@ -56,7 +56,10 @@ export function AdminWorkspaceNav() {
           Overview
         </Link>
       </div>
-      <nav className="flex flex-wrap gap-1.5 sm:gap-2" aria-label="Website section workspaces">
+      <nav
+        className="-mx-1 flex max-w-full gap-1.5 overflow-x-auto overscroll-x-contain px-1 pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible sm:pb-0"
+        aria-label="Website section workspaces"
+      >
         {SECTIONS.map((item) => {
           const active = isSectionActive(pathname, item);
           return (
@@ -66,7 +69,7 @@ export function AdminWorkspaceNav() {
               title={item.hint}
               aria-current={active ? "page" : undefined}
               className={cx(
-                "inline-flex min-h-[2.25rem] items-center rounded-xl border px-3 py-1.5 text-xs font-semibold transition sm:text-sm",
+                "inline-flex shrink-0 snap-start items-center rounded-xl border px-3 py-2.5 text-xs font-semibold transition sm:min-h-[2.25rem] sm:py-1.5 sm:text-sm",
                 active
                   ? "border-[#C9B46A]/50 bg-[#FBF7EF] text-[#1E1810] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]"
                   : "border-transparent bg-white/60 text-[#3D3428]/90 hover:border-[#E8DFD0] hover:bg-white"

@@ -54,8 +54,24 @@ export type ShellGalleryItem = {
   /** External link (YouTube, Vimeo, etc.) when no file src */
   videoRemoteUrl?: string;
   alt: string;
-  category: "interior" | "food" | "exterior" | "video";
+  /** `general` = mixed main gallery only; not venue interior/comida/exterior buckets */
+  category: "interior" | "food" | "exterior" | "video" | "general";
   countOverlay?: number;
+};
+
+/** Venue media tabs: interior / comida / exterior / video (non-empty buckets only). */
+export type ShellVenueGalleryCategoryKey = "interior" | "food" | "exterior" | "video";
+
+export type ShellVenueGalleryCategory = {
+  key: ShellVenueGalleryCategoryKey;
+  label: string;
+  items: ShellGalleryItem[];
+};
+
+/** Grouped listing media + optional general-gallery supplement (smaller role). */
+export type ShellVenueGalleryBundle = {
+  categories: ShellVenueGalleryCategory[];
+  supplemental?: ShellGalleryItem[];
 };
 
 /** Contact + access: all optional — shell renders only filled rows */
@@ -118,6 +134,9 @@ export type RestaurantDetailShellData = {
   menuHighlights?: ShellMenuHighlight[];
   fullMenuCta?: { label: string; href: string };
   highlightTags?: ShellHighlightTag[];
+  /** Grouped venue gallery (preview default). */
+  venueGallery?: ShellVenueGalleryBundle;
+  /** Legacy flat gallery (demo / fallback). */
   gallery?: ShellGalleryItem[];
   galleryCta?: { label: string; href: string };
   contact?: ShellContactBlock;

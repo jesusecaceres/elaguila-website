@@ -1,90 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiVideo } from "react-icons/fi";
-import { isRestauranteLocalVideoDataUrl } from "@/app/clasificados/restaurantes/application/restauranteMediaDisplay";
 import type { ShellGalleryItem } from "./restaurantDetailShellTypes";
-
-function youtubeEmbedId(raw: string): string | null {
-  try {
-    const u = new URL(raw.trim());
-    const host = u.hostname.replace(/^www\./, "");
-    if (host === "youtu.be") {
-      const id = u.pathname.replace(/^\//, "").split("/")[0];
-      return id || null;
-    }
-    if (host === "youtube.com" || host === "m.youtube.com" || host === "youtube-nocookie.com") {
-      if (u.pathname.startsWith("/embed/")) return u.pathname.slice("/embed/".length).split("/")[0] || null;
-      const v = u.searchParams.get("v");
-      if (v) return v;
-    }
-  } catch {
-    /* ignore */
-  }
-  return null;
-}
-
-type Slide =
-  | { kind: "image"; url: string; alt: string }
-  | { kind: "video"; item: ShellGalleryItem };
-
-function buildSlides(items: ShellGalleryItem[]): Slide[] {
-  const out: Slide[] = [];
-  for (const g of items) {
-    if (g.category === "video") {
-      out.push({ kind: "video", item: g });
-    } else if (g.imageUrl) {
-      out.push({ kind: "image", url: g.imageUrl, alt: g.alt });
-    }
-  }
-  return out;
-}
-
-function VideoSlide({ item }: { item: ShellGalleryItem }) {
-  const src = item.videoSrc?.trim();
-  const remote = item.videoRemoteUrl?.trim();
-  if (src) {
-    return (
-      <video
-        key={src.slice(0, 80)}
-        className="max-h-[min(78vh,820px)] w-full max-w-5xl object-contain"
-        controls
-        playsInline
-        preload="metadata"
-        src={src}
-      />
-    );
-  }
-  if (remote) {
-    const yid = youtubeEmbedId(remote);
-    if (yid) {
-      return (
-        <iframe
-          title={item.alt}
-          className="aspect-video h-auto min-h-[240px] w-full max-w-5xl rounded-lg border border-white/10"
-          src={`https://www.youtube-nocookie.com/embed/${yid}`}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      );
-    }
-    return (
-      <div className="flex flex-col items-center justify-center gap-4 p-8 text-center">
-        <p className="text-sm text-white/85">Abre el video en una nueva pestaña.</p>
-        <a
-          href={remote}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-xl border border-white/25 bg-white/10 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/15"
-        >
-          Ver video
-        </a>
-      </div>
-    );
-  }
-  return <p className="p-8 text-center text-sm text-white/70">Video no disponible.</p>;
-}
+import {
+  buildShellMediaSlides,
+  ShellGalleryThumb,
+  ShellVideoSlide,
+  type ShellMediaSlide,
+} from "./RestauranteShellGalleryPrimitives";
 
 export function RestauranteShellGalleryBlock({
   gallery,
@@ -93,7 +16,7 @@ export function RestauranteShellGalleryBlock({
   gallery: ShellGalleryItem[];
   galleryCta?: { label: string; href: string };
 }) {
-  const slides = useMemo(() => buildSlides(gallery), [gallery]);
+  const slides = useMemo(() => buildShellMediaSlides(gallery), [gallery]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
 
@@ -117,7 +40,7 @@ export function RestauranteShellGalleryBlock({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, slides.length]);
 
-  const current = slides[Math.min(active, Math.max(0, slides.length - 1))] ?? null;
+  const current: ShellMediaSlide | null = slides[Math.min(active, Math.max(0, slides.length - 1))] ?? null;
 
   return (
     <section id="media" aria-labelledby="gallery-heading">
@@ -126,49 +49,9 @@ export function RestauranteShellGalleryBlock({
           Galería
         </h2>
       </div>
-      <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {gallery.map((g, idx) => (
-          <button
-            key={`${g.alt}-${idx}`}
-            type="button"
-            onClick={() => openAt(idx)}
-            className={`relative aspect-square overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-left transition hover:ring-2 hover:ring-[color:var(--lx-gold-border)]/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--lx-gold)] ${
-              g.category === "video" ? "ring-2 ring-[color:var(--lx-gold)]/35" : ""
-            }`}
-          >
-            {g.imageUrl ? (
-              <Image
-                src={g.imageUrl}
-                alt={g.alt}
-                fill
-                unoptimized={g.imageUrl.startsWith("data:")}
-                className="object-cover"
-                sizes="(max-width:1024px) 50vw, 25vw"
-              />
-            ) : g.category === "video" && g.videoSrc && isRestauranteLocalVideoDataUrl(g.videoSrc) ? (
-              <video
-                className="absolute inset-0 h-full w-full object-cover"
-                muted
-                playsInline
-                preload="metadata"
-                src={g.videoSrc}
-              />
-            ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-[#2a2620] to-[#1a1814]" aria-hidden />
-            )}
-            {g.countOverlay != null ? (
-              <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-semibold text-white">
-                +{g.countOverlay}
-              </span>
-            ) : null}
-            {g.category === "video" ? (
-              <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/92 text-[color:var(--lx-text)] shadow-lg">
-                  <FiVideo className="h-5 w-5" aria-hidden />
-                </span>
-              </span>
-            ) : null}
-          </button>
+          <ShellGalleryThumb key={`${g.alt}-${idx}`} g={g} onOpen={() => openAt(idx)} />
         ))}
       </div>
       {galleryCta ? (
@@ -212,7 +95,7 @@ export function RestauranteShellGalleryBlock({
                   draggable={false}
                 />
               ) : current?.kind === "video" ? (
-                <VideoSlide item={current.item} />
+                <ShellVideoSlide item={current.item} />
               ) : null}
               {slides.length > 1 ? (
                 <>
@@ -220,7 +103,7 @@ export function RestauranteShellGalleryBlock({
                     type="button"
                     aria-label="Anterior"
                     onClick={() => setActive((i) => (i <= 0 ? slides.length - 1 : i - 1))}
-                    className="absolute left-1 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/20 bg-black/50 px-3 py-2 text-sm font-bold text-white hover:bg-black/70 sm:left-3"
+                    className="absolute left-1 top-1/2 z-10 min-h-[44px] min-w-[44px] -translate-y-1/2 rounded-full border border-white/20 bg-black/50 px-3 py-2 text-sm font-bold text-white hover:bg-black/70 sm:left-3"
                   >
                     ‹
                   </button>
@@ -228,7 +111,7 @@ export function RestauranteShellGalleryBlock({
                     type="button"
                     aria-label="Siguiente"
                     onClick={() => setActive((i) => (i >= slides.length - 1 ? 0 : i + 1))}
-                    className="absolute right-1 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/20 bg-black/50 px-3 py-2 text-sm font-bold text-white hover:bg-black/70 sm:right-3"
+                    className="absolute right-1 top-1/2 z-10 min-h-[44px] min-w-[44px] -translate-y-1/2 rounded-full border border-white/20 bg-black/50 px-3 py-2 text-sm font-bold text-white hover:bg-black/70 sm:right-3"
                   >
                     ›
                   </button>

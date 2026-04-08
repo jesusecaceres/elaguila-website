@@ -129,6 +129,7 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
       messageEnabled: contactIn.messageEnabled === true,
       hours: normalizeHours(contactIn.hours),
       primaryCtaLabel: trimText(contactIn.primaryCtaLabel) || undefined,
+      secondaryCtaLabels: filterSecondaryCtaLabels(contactIn.secondaryCtaLabels),
       isFeatured: contactIn.isFeatured === true,
       featuredLabel: trimText(contactIn.featuredLabel) || undefined,
       socialLinks,
@@ -147,6 +148,14 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
     },
     promo,
   };
+}
+
+const MAX_SECONDARY_CTA_LABELS = 6;
+
+function filterSecondaryCtaLabels(raw: string[] | undefined): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out = raw.map((s) => trimText(s)).filter((x) => x.length > 0).slice(0, MAX_SECONDARY_CTA_LABELS);
+  return out.length ? out : undefined;
 }
 
 function splitFeaturedGallery(

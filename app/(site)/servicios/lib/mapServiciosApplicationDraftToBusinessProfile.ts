@@ -91,6 +91,10 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
 
   const primaryCta = trim(draft.contact?.primaryCtaLabel);
   if (primaryCta) contact.primaryCtaLabel = primaryCta;
+  const secondaryLabels = (draft.contact?.secondaryCtaLabels ?? [])
+    .map((s) => trim(typeof s === "string" ? s : ""))
+    .filter(Boolean);
+  if (secondaryLabels.length) contact.secondaryCtaLabels = secondaryLabels;
   if (draft.contact?.isFeatured === true) {
     contact.isFeatured = true;
     const fl = trim(draft.contact?.featuredLabel);

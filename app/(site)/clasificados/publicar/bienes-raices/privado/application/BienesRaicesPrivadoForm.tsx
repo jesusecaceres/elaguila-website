@@ -19,6 +19,9 @@ import {
   aiTextareaClass,
   aiTitleClass,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/formPrimitives";
+
+const fieldClass = `${aiInputClass} min-w-0 max-w-full`;
+const textareaFieldClass = `${aiTextareaClass} min-w-0 max-w-full`;
 import {
   formatUsPhoneDisplay,
   onPhoneInputChange,
@@ -41,6 +44,10 @@ import {
 import { loadBienesRaicesPrivadoDraft, saveBienesRaicesPrivadoDraft } from "./utils/bienesRaicesPrivadoDraft";
 
 const MAX_PHOTOS = 8;
+
+function precioDigitsUnbounded(raw: string): string {
+  return String(raw ?? "").replace(/\D/g, "");
+}
 
 const CATEGORIAS: { id: BrNegocioCategoriaPropiedad; label: string }[] = [
   { id: "residencial", label: "Residencial" },
@@ -112,44 +119,44 @@ export function BienesRaicesPrivadoForm() {
   const cat = state.categoriaPropiedad;
 
   return (
-    <main className="min-h-screen bg-[#F6F0E2] px-4 pb-24 pt-24 text-[#2C2416] sm:pt-28">
-      <div className="mx-auto max-w-3xl space-y-6">
-        <header>
+    <main className="min-h-screen overflow-x-hidden bg-[#F6F0E2] px-4 pb-28 pt-24 text-[#2C2416] sm:px-5 sm:pb-24 sm:pt-28">
+      <div className="mx-auto w-full min-w-0 max-w-3xl space-y-7 md:space-y-8">
+        <header className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">Leonix · Bienes Raíces · Privado</p>
-          <h1 className="mt-2 text-2xl font-extrabold text-[#1E1810]">Publicar — Particular</h1>
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#1E1810] sm:text-[1.65rem]">Publicar — Particular</h1>
           <p className={aiSubClass}>
-            Completa los datos; la vista previa muestra solo lo que llenes. El borrador se guarda en este dispositivo.
+            La vista previa solo muestra lo que llenes. El borrador se guarda en este dispositivo.
           </p>
         </header>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Link
             href={previewHref}
             onClick={flushSave}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[#B8954A] px-5 text-sm font-bold text-[#1E1810] shadow-sm hover:brightness-95"
+            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full bg-[#B8954A] px-6 text-sm font-bold text-[#1E1810] shadow-sm transition hover:brightness-95 sm:w-auto sm:min-w-[200px]"
           >
             Ver vista previa
           </Link>
           <Link
             href={BR_PUBLICAR_HUB}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#C9B46A]/50 px-5 text-sm font-semibold text-[#6E5418] hover:bg-[#FFEFD8]"
+            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#C9B46A]/50 px-6 text-sm font-semibold text-[#6E5418] transition hover:bg-[#FFEFD8] sm:w-auto"
           >
-            Hub BR
+            Volver al hub BR
           </Link>
         </div>
 
-        <section className={aiCardClass}>
+        <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>Categoría</h2>
-          <p className={aiSubClass}>Define qué campos verás en detalle y en la vista previa.</p>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <p className={aiSubClass}>Elige una; los demás campos se adaptan en el formulario y en la vista previa.</p>
+          <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
             {CATEGORIAS.map((c) => (
               <button
                 key={c.id}
                 type="button"
                 onClick={() => setState((s) => ({ ...s, categoriaPropiedad: c.id }))}
-                className={`rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
+                className={`min-h-[48px] w-full rounded-xl border px-3 py-3 text-center text-sm font-semibold leading-snug transition sm:min-h-[44px] sm:py-2.5 ${
                   cat === c.id
-                    ? "border-[#B8954A] bg-[#FFF6E7] text-[#1E1810]"
+                    ? "border-[#B8954A] bg-[#FFF6E7] text-[#1E1810] ring-1 ring-[#B8954A]/30"
                     : "border-[#E8DFD0] bg-white text-[#5C5346] hover:border-[#C9B46A]/60"
                 }`}
               >
@@ -159,31 +166,31 @@ export function BienesRaicesPrivadoForm() {
           </div>
         </section>
 
-        <section className={aiCardClass}>
+        <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>Anuncio</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
             <div className="sm:col-span-2">
               <AiField label="Título">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.titulo}
                   onChange={(e) => setState((s) => ({ ...s, titulo: e.target.value }))}
                   autoComplete="off"
                 />
               </AiField>
             </div>
-            <AiField label="Precio (USD)" hint="Solo números, sin símbolos.">
+            <AiField label="Precio (USD)" hint="Solo números enteros; en la vista previa verás el formato con comas.">
               <input
-                className={aiInputClass}
+                className={fieldClass}
                 inputMode="numeric"
                 value={state.precio}
-                onChange={(e) => setState((s) => ({ ...s, precio: digitsOnly(e.target.value) }))}
+                onChange={(e) => setState((s) => ({ ...s, precio: precioDigitsUnbounded(e.target.value) }))}
                 autoComplete="off"
               />
             </AiField>
             <AiField label="Estado del anuncio">
               <select
-                className={aiInputClass}
+                className={fieldClass}
                 value={state.estadoAnuncio}
                 onChange={(e) =>
                   setState((s) => ({ ...s, estadoAnuncio: e.target.value as BienesRaicesPrivadoFormState["estadoAnuncio"] }))
@@ -198,7 +205,7 @@ export function BienesRaicesPrivadoForm() {
             </AiField>
             <AiField label="Ciudad o zona">
               <input
-                className={aiInputClass}
+                className={fieldClass}
                 value={state.ciudad}
                 onChange={(e) => setState((s) => ({ ...s, ciudad: e.target.value }))}
                 autoComplete="address-level2"
@@ -206,16 +213,16 @@ export function BienesRaicesPrivadoForm() {
             </AiField>
             <AiField label="Dirección o referencia" hint="Texto corto; puedes omitir número exacto.">
               <input
-                className={aiInputClass}
+                className={fieldClass}
                 value={state.ubicacionLinea}
                 onChange={(e) => setState((s) => ({ ...s, ubicacionLinea: e.target.value }))}
                 autoComplete="street-address"
               />
             </AiField>
             <div className="sm:col-span-2">
-              <AiField label="Enlace a mapa (opcional)" hint="Google Maps u otro enlace https.">
+              <AiField label="Enlace a mapa (opcional)" hint="Pega un enlace https (por ejemplo Google Maps).">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   type="url"
                   placeholder="https://"
                   value={state.enlaceMapa}
@@ -226,7 +233,7 @@ export function BienesRaicesPrivadoForm() {
             <div className="sm:col-span-2">
               <AiField label="Descripción">
                 <textarea
-                  className={aiTextareaClass}
+                  className={textareaFieldClass}
                   rows={6}
                   value={state.descripcion}
                   onChange={(e) => setState((s) => ({ ...s, descripcion: e.target.value }))}
@@ -236,7 +243,7 @@ export function BienesRaicesPrivadoForm() {
           </div>
         </section>
 
-        <section className={aiCardClass}>
+        <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>Fotos y video</h2>
           <p className={aiSubClass}>Hasta {MAX_PHOTOS} fotos. Un video (enlace o archivo corto).</p>
           <div className="mt-4">
@@ -251,30 +258,37 @@ export function BienesRaicesPrivadoForm() {
             {state.media.photoDataUrls.length > 0 ? (
               <ul className="mt-3 space-y-2">
                 {state.media.photoDataUrls.map((url, i) => (
-                  <li key={`${i}-${url.slice(0, 24)}`} className="flex flex-wrap items-center gap-2 rounded-lg border border-[#E8DFD0] bg-white p-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt="" className="h-14 w-20 rounded-md object-cover" />
-                    <button
-                      type="button"
-                      className="text-xs font-bold text-[#B8954A] underline"
-                      onClick={() =>
-                        setState((s) => {
-                          const urls = s.media.photoDataUrls.filter((_, j) => j !== i);
-                          let pi = s.media.primaryImageIndex;
-                          if (pi >= urls.length) pi = Math.max(0, urls.length - 1);
-                          return { ...s, media: { ...s.media, photoDataUrls: urls, primaryImageIndex: pi } };
-                        })
-                      }
-                    >
-                      Quitar
-                    </button>
-                    <button
-                      type="button"
-                      className="text-xs font-bold text-[#5C5346] underline"
-                      onClick={() => setState((s) => ({ ...s, media: { ...s.media, primaryImageIndex: i } }))}
-                    >
-                      {i === state.media.primaryImageIndex ? "Portada" : "Usar como portada"}
-                    </button>
+                  <li
+                    key={`${i}-${url.slice(0, 24)}`}
+                    className="flex min-w-0 flex-col gap-2 rounded-lg border border-[#E8DFD0] bg-white p-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt="" className="h-14 w-20 shrink-0 rounded-md object-cover" />
+                      <div className="flex min-w-0 flex-wrap gap-x-3 gap-y-1">
+                        <button
+                          type="button"
+                          className="text-left text-xs font-bold text-[#B8954A] underline"
+                          onClick={() =>
+                            setState((s) => {
+                              const urls = s.media.photoDataUrls.filter((_, j) => j !== i);
+                              let pi = s.media.primaryImageIndex;
+                              if (pi >= urls.length) pi = Math.max(0, urls.length - 1);
+                              return { ...s, media: { ...s.media, photoDataUrls: urls, primaryImageIndex: pi } };
+                            })
+                          }
+                        >
+                          Quitar
+                        </button>
+                        <button
+                          type="button"
+                          className="text-left text-xs font-bold text-[#5C5346] underline"
+                          onClick={() => setState((s) => ({ ...s, media: { ...s.media, primaryImageIndex: i } }))}
+                        >
+                          {i === state.media.primaryImageIndex ? "Portada" : "Usar como portada"}
+                        </button>
+                      </div>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -283,7 +297,7 @@ export function BienesRaicesPrivadoForm() {
           <div className="mt-4">
             <AiField label="Video (URL)" hint="YouTube o enlace directo a mp4, etc.">
               <input
-                className={aiInputClass}
+                className={fieldClass}
                 type="url"
                 placeholder="https://"
                 value={state.media.videoUrl}
@@ -293,9 +307,12 @@ export function BienesRaicesPrivadoForm() {
           </div>
         </section>
 
-        <section className={aiCardClass}>
-          <h2 className={aiTitleClass}>Tu contacto</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <section className={`${aiCardClass} min-w-0`}>
+          <h2 className={aiTitleClass}>Quién vende</h2>
+          <p className={aiSubClass}>
+            Particular: tu nombre y cómo te contactan. No se pide sitio web ni redes sociales.
+          </p>
+          <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
             <div className="sm:col-span-2">
               <span className={aiLabelClass}>Foto (opcional)</span>
               <input
@@ -323,24 +340,24 @@ export function BienesRaicesPrivadoForm() {
                 </button>
               ) : null}
             </div>
-            <AiField label="Nombre">
+            <AiField label="Nombre completo">
               <input
-                className={aiInputClass}
+                className={fieldClass}
                 value={state.seller.nombre}
                 onChange={(e) => setState((s) => ({ ...s, seller: { ...s.seller, nombre: e.target.value } }))}
                 autoComplete="name"
               />
             </AiField>
-            <AiField label="Etiqueta (opcional)" hint='Ej. "Dueño directo".'>
+            <AiField label="Cómo apareces (opcional)" hint='Ej. "Propietario", "Vendo por mi cuenta".'>
               <input
-                className={aiInputClass}
+                className={fieldClass}
                 value={state.seller.etiquetaRol}
                 onChange={(e) => setState((s) => ({ ...s, seller: { ...s.seller, etiquetaRol: e.target.value } }))}
               />
             </AiField>
             <AiField label="Teléfono">
               <input
-                className={aiInputClass}
+                className={fieldClass}
                 inputMode="numeric"
                 value={formatUsPhoneDisplay(digitsOnly(state.seller.telefono))}
                 onChange={(e) => {
@@ -353,7 +370,7 @@ export function BienesRaicesPrivadoForm() {
             </AiField>
             <AiField label="WhatsApp">
               <input
-                className={aiInputClass}
+                className={fieldClass}
                 inputMode="numeric"
                 value={formatUsPhoneDisplay(digitsOnly(state.seller.whatsapp))}
                 onChange={(e) => {
@@ -367,7 +384,7 @@ export function BienesRaicesPrivadoForm() {
             <div className="sm:col-span-2">
               <AiField label="Correo electrónico">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   type="email"
                   value={state.seller.correo}
                   onChange={(e) => setState((s) => ({ ...s, seller: { ...s.seller, correo: e.target.value } }))}
@@ -376,9 +393,9 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
             </div>
             <div className="sm:col-span-2">
-              <AiField label="Nota para compradores (opcional)" hint="Se muestra en el carril de contacto.">
+              <AiField label="Mensaje para interesados (opcional)" hint="Texto breve que verán antes de escribirte o llamarte.">
                 <textarea
-                  className={aiTextareaClass}
+                  className={textareaFieldClass}
                   rows={3}
                   value={state.seller.notaContacto}
                   onChange={(e) => setState((s) => ({ ...s, seller: { ...s.seller, notaContacto: e.target.value } }))}
@@ -389,12 +406,12 @@ export function BienesRaicesPrivadoForm() {
         </section>
 
         {cat === "residencial" ? (
-          <section className={aiCardClass}>
+          <section className={`${aiCardClass} min-w-0`}>
             <h2 className={aiTitleClass}>Detalle residencial</h2>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
               <AiField label="Tipo">
                 <select
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.residencial.tipoCodigo}
                   onChange={(e) =>
                     setState((s) => ({
@@ -412,7 +429,7 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
               <AiField label="Subtipo">
                 <select
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.residencial.subtipo}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, subtipo: e.target.value } }))}
                 >
@@ -425,7 +442,7 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
               <AiField label="Recámaras">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   inputMode="numeric"
                   value={state.residencial.recamaras}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, recamaras: e.target.value } }))}
@@ -433,7 +450,7 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
               <AiField label="Baños completos">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   inputMode="decimal"
                   value={state.residencial.banos}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, banos: e.target.value } }))}
@@ -441,7 +458,7 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
               <AiField label="Medios baños">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   inputMode="decimal"
                   value={state.residencial.mediosBanos}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, mediosBanos: e.target.value } }))}
@@ -449,7 +466,7 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
               <AiField label="Interior (ft²)">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   inputMode="numeric"
                   value={state.residencial.interiorSqft}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, interiorSqft: e.target.value } }))}
@@ -457,7 +474,7 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
               <AiField label="Lote (ft²)">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   inputMode="numeric"
                   value={state.residencial.loteSqft}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, loteSqft: e.target.value } }))}
@@ -465,14 +482,14 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
               <AiField label="Estacionamiento">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.residencial.estacionamiento}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, estacionamiento: e.target.value } }))}
                 />
               </AiField>
               <AiField label="Año de construcción">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   inputMode="numeric"
                   value={state.residencial.ano}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, ano: e.target.value } }))}
@@ -480,7 +497,7 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
               <AiField label="Condición">
                 <select
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.residencial.condicion}
                   onChange={(e) =>
                     setState((s) => ({
@@ -499,13 +516,13 @@ export function BienesRaicesPrivadoForm() {
             </div>
             <div className="mt-6">
               <span className={aiLabelClass}>Destacados</span>
-              <p className={aiHintClass}>Marca lo que quieras mostrar en la vista previa.</p>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <p className={aiHintClass}>Opcional: qué destacar en la vista previa.</p>
+              <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {BR_HIGHLIGHT_PRESET_DEFS.map((d) => (
-                  <label key={d.key} className="flex cursor-pointer items-center gap-2 text-sm">
+                  <label key={d.key} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded border-[#C9B46A]"
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#C9B46A]"
                       checked={state.residencial.highlightKeys.includes(d.key)}
                       onChange={(e) =>
                         setState((s) => {
@@ -516,7 +533,7 @@ export function BienesRaicesPrivadoForm() {
                         })
                       }
                     />
-                    {d.label}
+                    <span className="min-w-0 flex-1">{d.label}</span>
                   </label>
                 ))}
               </div>
@@ -525,12 +542,12 @@ export function BienesRaicesPrivadoForm() {
         ) : null}
 
         {cat === "comercial" ? (
-          <section className={aiCardClass}>
+          <section className={`${aiCardClass} min-w-0`}>
             <h2 className={aiTitleClass}>Detalle comercial</h2>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
               <AiField label="Tipo comercial">
                 <select
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.comercial.tipoCodigo}
                   onChange={(e) =>
                     setState((s) => ({
@@ -548,7 +565,7 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
               <AiField label="Subtipo">
                 <select
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.comercial.subtipo}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, subtipo: e.target.value } }))}
                 >
@@ -562,7 +579,7 @@ export function BienesRaicesPrivadoForm() {
               <div className="sm:col-span-2">
                 <AiField label="Uso">
                   <input
-                    className={aiInputClass}
+                    className={fieldClass}
                     value={state.comercial.uso}
                     onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, uso: e.target.value } }))}
                   />
@@ -570,7 +587,7 @@ export function BienesRaicesPrivadoForm() {
               </div>
               <AiField label="Interior (ft²)">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   inputMode="numeric"
                   value={state.comercial.interiorSqft}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, interiorSqft: e.target.value } }))}
@@ -578,42 +595,42 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
               <AiField label="Oficinas">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.comercial.oficinas}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, oficinas: e.target.value } }))}
                 />
               </AiField>
               <AiField label="Baños">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.comercial.banos}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, banos: e.target.value } }))}
                 />
               </AiField>
               <AiField label="Niveles">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.comercial.niveles}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, niveles: e.target.value } }))}
                 />
               </AiField>
               <AiField label="Estacionamiento">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.comercial.estacionamiento}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, estacionamiento: e.target.value } }))}
                 />
               </AiField>
               <AiField label="Zonificación">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.comercial.zonificacion}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, zonificacion: e.target.value } }))}
                 />
               </AiField>
               <AiField label="Condición">
                 <select
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.comercial.condicion}
                   onChange={(e) =>
                     setState((s) => ({
@@ -629,10 +646,10 @@ export function BienesRaicesPrivadoForm() {
                   ))}
                 </select>
               </AiField>
-              <label className="flex cursor-pointer items-center gap-2 sm:col-span-2">
+              <label className="flex cursor-pointer items-start gap-3 sm:col-span-2">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-[#C9B46A]"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#C9B46A]"
                   checked={state.comercial.accesoCarga}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, accesoCarga: e.target.checked } }))}
                 />
@@ -641,12 +658,12 @@ export function BienesRaicesPrivadoForm() {
             </div>
             <div className="mt-6">
               <span className={aiLabelClass}>Destacados</span>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {COMERCIAL_DESTACADOS_DEFS.map((d) => (
-                  <label key={d.id} className="flex cursor-pointer items-center gap-2 text-sm">
+                  <label key={d.id} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded border-[#C9B46A]"
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#C9B46A]"
                       checked={state.comercial.destacadoIds.includes(d.id)}
                       onChange={(e) =>
                         setState((s) => {
@@ -657,7 +674,7 @@ export function BienesRaicesPrivadoForm() {
                         })
                       }
                     />
-                    {d.label}
+                    <span className="min-w-0 flex-1">{d.label}</span>
                   </label>
                 ))}
               </div>
@@ -666,12 +683,12 @@ export function BienesRaicesPrivadoForm() {
         ) : null}
 
         {cat === "terreno_lote" ? (
-          <section className={aiCardClass}>
+          <section className={`${aiCardClass} min-w-0`}>
             <h2 className={aiTitleClass}>Detalle terreno / lote</h2>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
               <AiField label="Tipo">
                 <select
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.terreno.tipoCodigo}
                   onChange={(e) =>
                     setState((s) => ({
@@ -689,7 +706,7 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
               <AiField label="Subtipo">
                 <select
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.terreno.subtipo}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, subtipo: e.target.value } }))}
                 >
@@ -702,7 +719,7 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
               <AiField label="Lote (ft²)">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   inputMode="numeric"
                   value={state.terreno.loteSqft}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, loteSqft: e.target.value } }))}
@@ -710,28 +727,28 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
               <AiField label="Uso / zonificación">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.terreno.usoZonificacion}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, usoZonificacion: e.target.value } }))}
                 />
               </AiField>
               <AiField label="Acceso">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.terreno.acceso}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, acceso: e.target.value } }))}
                 />
               </AiField>
               <AiField label="Servicios">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.terreno.servicios}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, servicios: e.target.value } }))}
                 />
               </AiField>
               <AiField label="Topografía">
                 <input
-                  className={aiInputClass}
+                  className={fieldClass}
                   value={state.terreno.topografia}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, topografia: e.target.value } }))}
                 />
@@ -739,7 +756,7 @@ export function BienesRaicesPrivadoForm() {
               <label className="flex cursor-pointer items-center gap-2">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-[#C9B46A]"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#C9B46A]"
                   checked={state.terreno.listoConstruir}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, listoConstruir: e.target.checked } }))}
                 />
@@ -748,7 +765,7 @@ export function BienesRaicesPrivadoForm() {
               <label className="flex cursor-pointer items-center gap-2">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-[#C9B46A]"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#C9B46A]"
                   checked={state.terreno.cercado}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, cercado: e.target.checked } }))}
                 />
@@ -757,12 +774,12 @@ export function BienesRaicesPrivadoForm() {
             </div>
             <div className="mt-6">
               <span className={aiLabelClass}>Destacados</span>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {TERRENO_DESTACADOS_DEFS.map((d) => (
-                  <label key={d.id} className="flex cursor-pointer items-center gap-2 text-sm">
+                  <label key={d.id} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded border-[#C9B46A]"
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#C9B46A]"
                       checked={state.terreno.destacadoIds.includes(d.id)}
                       onChange={(e) =>
                         setState((s) => {
@@ -773,7 +790,7 @@ export function BienesRaicesPrivadoForm() {
                         })
                       }
                     />
-                    {d.label}
+                    <span className="min-w-0 flex-1">{d.label}</span>
                   </label>
                 ))}
               </div>
@@ -781,9 +798,9 @@ export function BienesRaicesPrivadoForm() {
           </section>
         ) : null}
 
-        <p className="text-center text-xs text-[#5C5346]/75">
-          Borrador local ·{" "}
-          <code className="rounded bg-[#F9F6F1] px-1">{BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY}</code>
+        <p className="break-words text-center text-xs leading-relaxed text-[#5C5346]/80">
+          Borrador guardado solo en este dispositivo. Ruta:{" "}
+          <code className="break-all rounded bg-[#F9F6F1] px-1.5 py-0.5 text-[11px]">{BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY}</code>
         </p>
       </div>
     </main>

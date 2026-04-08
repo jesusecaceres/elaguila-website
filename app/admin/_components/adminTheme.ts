@@ -21,7 +21,8 @@ export const adminBtnSecondary =
 export const adminBtnDark =
   "inline-flex items-center justify-center gap-2 rounded-2xl bg-[#2A2620] px-4 py-2.5 text-sm font-semibold text-[#FAF7F2] shadow-md hover:bg-[#1a1814]";
 
-export const adminTableWrap = "overflow-x-auto rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95";
+export const adminTableWrap =
+  "max-w-full min-w-0 overflow-x-auto rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 [-webkit-overflow-scrolling:touch]";
 
 /** Visible label for stubs / non-persisted / read-only surfaces (use next to headings or disabled controls). */
 export const adminStubBadgeClass =

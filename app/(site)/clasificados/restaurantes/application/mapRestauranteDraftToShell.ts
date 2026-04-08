@@ -1,6 +1,6 @@
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 import { computePublishGallerySequence } from "./restauranteGalleryMediaSequence";
-import { isRestauranteLocalVideoDataUrl } from "./restauranteMediaDisplay";
+import { isRestauranteDisplayableImageRef, isRestauranteLocalVideoDataUrl } from "./restauranteMediaDisplay";
 import { hasPrimaryContactPath, RESTAURANTE_SHELL_HIGHLIGHT_CAP } from "./restauranteListingApplicationModel";
 import { computeShellHoursPreview } from "./restauranteHoursPreview";
 import type { RestauranteServiceMode } from "./restauranteListingApplicationModel";
@@ -20,6 +20,8 @@ import type {
   ShellPrimaryCta,
   ShellQuickInfoItem,
   ShellStackSection,
+  ShellVenueGalleryBundle,
+  ShellVenueGalleryCategory,
 } from "../shell/restaurantDetailShellTypes";
 
 function nonEmpty(s: string | undefined | null): boolean {
@@ -181,42 +183,82 @@ function buildPrimaryCtas(d: RestauranteListingDraft): ShellPrimaryCta[] {
   return ctas;
 }
 
-function buildGallery(d: RestauranteListingDraft): ShellGalleryItem[] {
-  const out: ShellGalleryItem[] = [];
-  const push = (url: string | undefined, alt: string, cat: ShellGalleryItem["category"]) => {
-    if (!nonEmpty(url)) return;
-    out.push({ imageUrl: url, alt, category: cat });
-  };
-  (d.interiorImages ?? []).forEach((url, i) => push(url, `Interior ${i + 1}`, "interior"));
-  (d.foodImages ?? []).forEach((url, i) => push(url, `Platillo ${i + 1}`, "food"));
-  (d.exteriorImages ?? []).forEach((url, i) => push(url, `Exterior ${i + 1}`, "exterior"));
+/** Video único en vista previa: archivo local tiene precedencia sobre URL externa. */
+function buildVideoShellItem(d: RestauranteListingDraft): ShellGalleryItem | undefined {
+  if (nonEmpty(d.videoFile) && isRestauranteLocalVideoDataUrl(d.videoFile)) {
+    const vf = d.videoFile!.trim();
+    return { alt: "Video", category: "video", videoSrc: vf };
+  }
+  if (nonEmpty(d.videoFile)) {
+    const vf = d.videoFile!.trim();
+    return { imageUrl: vf, alt: "Video", category: "video", videoSrc: vf };
+  }
+  if (nonEmpty(d.videoUrl)) {
+    return {
+      alt: "Video",
+      category: "video",
+      videoRemoteUrl: normalizeUrl(d.videoUrl!),
+    };
+  }
+  return undefined;
+}
 
+/**
+ * Interior / comida / exterior / video por separado; galería general solo como complemento
+ * (índices de `galleryImages` en secuencia publicada, sin mezclar con buckets).
+ */
+function buildVenueGalleryFromDraft(d: RestauranteListingDraft): ShellVenueGalleryBundle | undefined {
+  const categories: ShellVenueGalleryCategory[] = [];
+
+  const interior: ShellGalleryItem[] = [];
+  (d.interiorImages ?? []).forEach((url, i) => {
+    if (nonEmpty(url) && isRestauranteDisplayableImageRef(url)) {
+      interior.push({ imageUrl: url.trim(), alt: `Interior ${i + 1}`, category: "interior" });
+    }
+  });
+  if (interior.length) categories.push({ key: "interior", label: "Interior", items: interior.slice(0, 20) });
+
+  const food: ShellGalleryItem[] = [];
+  (d.foodImages ?? []).forEach((url, i) => {
+    if (nonEmpty(url) && isRestauranteDisplayableImageRef(url)) {
+      food.push({ imageUrl: url.trim(), alt: `Comida ${i + 1}`, category: "food" });
+    }
+  });
+  if (food.length) categories.push({ key: "food", label: "Comida", items: food.slice(0, 20) });
+
+  const exterior: ShellGalleryItem[] = [];
+  (d.exteriorImages ?? []).forEach((url, i) => {
+    if (nonEmpty(url) && isRestauranteDisplayableImageRef(url)) {
+      exterior.push({ imageUrl: url.trim(), alt: `Exterior ${i + 1}`, category: "exterior" });
+    }
+  });
+  if (exterior.length) categories.push({ key: "exterior", label: "Exterior", items: exterior.slice(0, 20) });
+
+  const videoItem = buildVideoShellItem(d);
+  if (videoItem) categories.push({ key: "video", label: "Video", items: [videoItem] });
+
+  const supplemental: ShellGalleryItem[] = [];
   const seq = computePublishGallerySequence(d);
   const imgs = d.galleryImages ?? [];
   let galleryOrdinal = 0;
   for (const e of seq) {
-    if (e === "v") {
-      /* Precedencia: archivo local sobre URL (mismo criterio que el formulario). */
-      if (nonEmpty(d.videoFile) && isRestauranteLocalVideoDataUrl(d.videoFile)) {
-        const vf = d.videoFile!.trim();
-        out.push({ alt: "Video", category: "video", videoSrc: vf });
-      } else if (nonEmpty(d.videoFile)) {
-        const vf = d.videoFile!.trim();
-        out.push({ imageUrl: vf, alt: "Video", category: "video", videoSrc: vf });
-      } else if (nonEmpty(d.videoUrl)) {
-        out.push({
-          alt: "Video",
-          category: "video",
-          videoRemoteUrl: normalizeUrl(d.videoUrl!),
-        });
-      }
-    } else {
-      const url = imgs[e];
-      galleryOrdinal += 1;
-      push(url, `Galería ${galleryOrdinal}`, "interior");
-    }
+    if (e === "v") continue;
+    const url = imgs[e];
+    if (!nonEmpty(url) || !isRestauranteDisplayableImageRef(url)) continue;
+    galleryOrdinal += 1;
+    supplemental.push({
+      imageUrl: url.trim(),
+      alt: `Galería general ${galleryOrdinal}`,
+      category: "general",
+    });
   }
-  return out.slice(0, 24);
+  const suppTrim = supplemental.slice(0, 24);
+
+  if (!categories.length && !suppTrim.length) return undefined;
+  return {
+    categories,
+    supplemental: suppTrim.length ? suppTrim : undefined,
+  };
 }
 
 function buildContact(d: RestauranteListingDraft): ShellContactBlock | undefined {
@@ -386,16 +428,16 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
     .map((k) => ({ key: k, label: labelForHighlight(k) }));
   const dishes =
     d.featuredDishes
-      ?.filter((x) => nonEmpty(x.title) && nonEmpty(x.shortNote) && nonEmpty(x.image))
+      ?.filter((x) => nonEmpty(x.title) && nonEmpty(x.image))
       .slice(0, 4)
       .map((x) => ({
         name: x.title.trim(),
-        supportingLine: x.shortNote.trim(),
-        imageUrl: x.image,
+        supportingLine: nonEmpty(x.shortNote) ? x.shortNote.trim() : "",
+        imageUrl: x.image!.trim(),
         badge: nonEmpty(x.priceLabel) ? String(x.priceLabel).trim() : undefined,
       })) ?? [];
   const menuHref = nonEmpty(d.menuUrl) ? normalizeUrl(d.menuUrl!) : nonEmpty(d.menuFile) ? d.menuFile! : "";
-  const gallery = buildGallery(d);
+  const venueGallery = buildVenueGalleryFromDraft(d);
   const contact = buildContact(d);
   const stacks = buildStacks(d);
   const trustRating =
@@ -420,8 +462,10 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
     menuHighlights: dishes.length ? dishes : undefined,
     fullMenuCta: menuHref ? { label: "Ver menú completo", href: menuHref } : undefined,
     highlightTags: highlights.length ? highlights : undefined,
-    gallery: gallery.length ? gallery : undefined,
-    galleryCta: gallery.length ? { label: "Ver todas las fotos y videos", href: "#media" } : undefined,
+    venueGallery,
+    galleryCta: venueGallery
+      ? { label: "Explorar fotos y videos", href: "#galeria-lugar" }
+      : undefined,
     contact,
     aboutTitle: nonEmpty(d.longDescription) ? "Sobre el negocio" : undefined,
     aboutBody: nonEmpty(d.longDescription) ? d.longDescription!.trim() : undefined,

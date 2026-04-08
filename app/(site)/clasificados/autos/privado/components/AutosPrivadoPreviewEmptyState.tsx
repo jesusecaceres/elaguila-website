@@ -18,7 +18,7 @@ export function AutosPrivadoPreviewEmptyState() {
 
   return (
     <PrivadoPreviewChrome editBackHref={editHref}>
-      <main className="mx-auto mt-8 max-w-[1280px] px-4 md:px-5 lg:px-6">
+      <main className="mx-auto mt-6 max-w-[1280px] px-4 sm:mt-8 md:px-5 lg:px-6">
         <div className={CARD}>
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[color:var(--lx-muted)]">{e.kicker}</p>
           <h1 className="mt-2 text-xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-2xl">{e.title}</h1>

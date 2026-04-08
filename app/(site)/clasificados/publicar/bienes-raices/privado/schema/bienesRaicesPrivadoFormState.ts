@@ -114,6 +114,7 @@ export type BienesRaicesPrivadoFormState = {
     primaryImageIndex: number;
     videoUrl: string;
   };
+  /** Particular only: name, phones, email, optional photo — no web/social fields */
   seller: {
     fotoDataUrl: string;
     nombre: string;

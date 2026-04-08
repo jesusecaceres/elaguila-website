@@ -85,7 +85,7 @@ export default function AdminWorkspaceHubPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {CARDS.map((c) => (
           <Link
             key={c.href}

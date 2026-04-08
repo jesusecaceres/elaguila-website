@@ -152,6 +152,14 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     if (cta) primaryCtaLabel = chipLabel(cta, lang);
   }
 
+  const secondaryCtaLabels: string[] = [];
+  if (preset) {
+    for (const id of state.secondaryCtaIds) {
+      const chip = preset.secondaryCtaOptions.find((c) => c.id === id);
+      if (chip) secondaryCtaLabels.push(chipLabel(chip, lang));
+    }
+  }
+
   const contact: ServiciosApplicationDraft["contact"] = {
     messageEnabled: state.enableMessage === true,
   };
@@ -163,6 +171,7 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     if (w) contact.websiteUrl = w;
   }
   if (primaryCtaLabel) contact.primaryCtaLabel = primaryCtaLabel;
+  if (secondaryCtaLabels.length) contact.secondaryCtaLabels = secondaryCtaLabels;
   if (hoursOpenNowLabel && hoursTodayLine) {
     contact.hoursOpenNowLabel = hoursOpenNowLabel;
     contact.hoursTodayLine = hoursTodayLine;

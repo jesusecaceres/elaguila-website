@@ -145,6 +145,7 @@ export type ServiciosContactBlock = {
   messageEnabled?: boolean;
   hours?: ServiciosHoursSummary;
   primaryCtaLabel?: string;
+  secondaryCtaLabels?: string[];
   isFeatured?: boolean;
   featuredLabel?: string;
   socialLinks?: ServiciosContactSocialLinks;
@@ -206,6 +207,7 @@ export type ServiciosProfileResolved = {
     messageEnabled: boolean;
     hours?: { openNowLabel: string; todayHoursLine: string };
     primaryCtaLabel?: string;
+    secondaryCtaLabels?: string[];
     isFeatured: boolean;
     featuredLabel?: string;
     /** Sanitized external URLs only */

@@ -9,7 +9,10 @@ import {
   TERRENO_TIPO_OPCIONES,
   labelComercialSubtipo,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteComercialTerrenoMeta";
-import { digitsOnly } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
+import {
+  digitsOnly,
+  formatUsPhoneDisplay,
+} from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
 import { labelForSubtipo, TIPO_PROPIEDAD_OPCIONES } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteResidencialTipoMeta";
 import { previewWhatsappClickHref } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/lib/agenteResidencialPreviewFormat";
 import type { BienesRaicesPrivadoFormState } from "../../schema/bienesRaicesPrivadoFormState";
@@ -44,12 +47,34 @@ const CONDICION_LABEL: Record<string, string> = {
   necesita_reparacion: "Necesita reparación",
 };
 
-function formatUsdWhole(digits: string): string {
-  const d = digitsOnly(digits);
+/** Price field: unbounded digits (do not use phone `digitsOnly`, which caps at 10). */
+function priceDigits(raw: string): string {
+  return String(raw ?? "").replace(/\D/g, "");
+}
+
+function formatUsdWhole(precio: string): string {
+  const d = priceDigits(precio);
   if (!d) return "";
   const n = Number(d);
   if (!Number.isFinite(n) || n <= 0) return "";
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+}
+
+/** Thousands separators for plain numeric input (counts, sqft, etc.). */
+function prettifyPlainNumber(raw: string): string {
+  const t = trim(raw);
+  if (!t) return "";
+  const c = t.replace(/,/g, "");
+  if (!/^\d+(\.\d+)?$/.test(c)) return t;
+  const [intPart, frac] = c.split(".");
+  const pretty = intPart!.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return frac !== undefined ? `${pretty}.${frac}` : pretty;
+}
+
+function prettifySqft(raw: string): string {
+  const t = trim(raw);
+  if (!t) return "";
+  return `${prettifyPlainNumber(t)} ft²`;
 }
 
 function buildMailto(to: string, subject: string): string | null {
@@ -134,13 +159,13 @@ function buildResidencialDetails(s: BienesRaicesPrivadoFormState): BienesRaicesP
   const rows: Array<BienesRaicesPreviewFact | null> = [
     row("Tipo", tipoLabel),
     row("Subtipo", subLbl),
-    row("Recámaras", r.recamaras),
-    row("Baños completos", r.banos),
-    row("Medios baños", r.mediosBanos),
-    row("Tamaño interior", r.interiorSqft ? `${trim(r.interiorSqft)} ft²` : ""),
-    row("Tamaño del lote", r.loteSqft ? `${trim(r.loteSqft)} ft²` : ""),
+    row("Recámaras", prettifyPlainNumber(r.recamaras)),
+    row("Baños completos", prettifyPlainNumber(r.banos)),
+    row("Medios baños", prettifyPlainNumber(r.mediosBanos)),
+    row("Tamaño interior", r.interiorSqft ? prettifySqft(r.interiorSqft) : ""),
+    row("Tamaño del lote", r.loteSqft ? prettifySqft(r.loteSqft) : ""),
     row("Estacionamiento", r.estacionamiento),
-    row("Año de construcción", r.ano),
+    row("Año de construcción", prettifyPlainNumber(r.ano)),
     row("Condición", r.condicion ? CONDICION_LABEL[r.condicion] ?? r.condicion : ""),
   ];
   return rows.filter((x): x is BienesRaicesPreviewFact => x != null);
@@ -153,18 +178,19 @@ function buildResidencialQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaic
     const v = trim(value);
     if (v) out.push({ label, value: v, icon });
   };
-  push("Recámaras", r.recamaras, "bed");
-  push("Baños", r.banos, "bath");
-  push("Interior", r.interiorSqft ? `${trim(r.interiorSqft)} ft²` : "", "ruler");
-  push("Lote", r.loteSqft ? `${trim(r.loteSqft)} ft²` : "", "pin");
+  push("Recámaras", prettifyPlainNumber(r.recamaras), "bed");
+  push("Baños", prettifyPlainNumber(r.banos), "bath");
+  push("Interior", r.interiorSqft ? prettifySqft(r.interiorSqft) : "", "ruler");
+  push("Lote", r.loteSqft ? prettifySqft(r.loteSqft) : "", "pin");
   push("Estacionamiento", r.estacionamiento, "car");
-  push("Año", r.ano, "calendar");
+  push("Año", prettifyPlainNumber(r.ano), "calendar");
   return out;
 }
 
 function buildResidencialHighlights(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewFact[] {
   const map = new Map(BR_HIGHLIGHT_PRESET_DEFS.map((d) => [d.key, d.label]));
-  return s.residencial.highlightKeys
+  const uniqueKeys = [...new Set(s.residencial.highlightKeys)];
+  return uniqueKeys
     .map((k) => {
       const label = map.get(k);
       if (!label) return null;
@@ -181,10 +207,10 @@ function buildComercialDetails(s: BienesRaicesPrivadoFormState): BienesRaicesPre
     row("Tipo comercial", tipoLabel),
     row("Subtipo", subLbl),
     row("Uso", c.uso),
-    row("Tamaño interior", c.interiorSqft ? `${trim(c.interiorSqft)} ft²` : ""),
-    row("Oficinas", c.oficinas),
-    row("Baños", c.banos),
-    row("Niveles / pisos", c.niveles),
+    row("Tamaño interior", c.interiorSqft ? prettifySqft(c.interiorSqft) : ""),
+    row("Oficinas", prettifyPlainNumber(c.oficinas)),
+    row("Baños", prettifyPlainNumber(c.banos)),
+    row("Niveles / pisos", prettifyPlainNumber(c.niveles)),
     row("Estacionamiento", c.estacionamiento),
     row("Zonificación", c.zonificacion),
     row("Condición", c.condicion ? CONDICION_LABEL[c.condicion] ?? c.condicion : ""),
@@ -202,17 +228,18 @@ function buildComercialQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaices
     if (v) out.push({ label, value: v, icon });
   };
   if (trim(tipoLabel)) push("Tipo", tipoLabel, "home");
-  push("Interior", c.interiorSqft ? `${trim(c.interiorSqft)} ft²` : "", "ruler");
-  push("Oficinas", c.oficinas, "sparkle");
-  push("Baños", c.banos, "bath");
-  push("Niveles", c.niveles, "calendar");
+  push("Interior", c.interiorSqft ? prettifySqft(c.interiorSqft) : "", "ruler");
+  push("Oficinas", prettifyPlainNumber(c.oficinas), "sparkle");
+  push("Baños", prettifyPlainNumber(c.banos), "bath");
+  push("Niveles", prettifyPlainNumber(c.niveles), "calendar");
   push("Estacionamiento", c.estacionamiento, "car");
   return out;
 }
 
 function buildComercialHighlights(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewFact[] {
   const map = new Map(COMERCIAL_DESTACADOS_DEFS.map((d) => [d.id, d.label]));
-  return s.comercial.destacadoIds
+  const uniqueIds = [...new Set(s.comercial.destacadoIds)];
+  return uniqueIds
     .map((id) => {
       const label = map.get(id);
       if (!label) return null;
@@ -235,7 +262,7 @@ function buildTerrenoDetails(s: BienesRaicesPrivadoFormState): BienesRaicesPrevi
   const rows: Array<BienesRaicesPreviewFact | null> = [
     row("Tipo de terreno", tipoLabel),
     row("Subtipo", subLbl),
-    row("Tamaño del lote", t.loteSqft ? `${trim(t.loteSqft)} ft²` : ""),
+    row("Tamaño del lote", t.loteSqft ? prettifySqft(t.loteSqft) : ""),
     row("Uso / zonificación", t.usoZonificacion),
     row("Acceso", t.acceso),
     row("Servicios disponibles", t.servicios),
@@ -253,7 +280,7 @@ function buildTerrenoQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaicesPr
     const v = trim(value);
     if (v) out.push({ label, value: v, icon });
   };
-  push("Lote", t.loteSqft ? `${trim(t.loteSqft)} ft²` : "", "ruler");
+  push("Lote", t.loteSqft ? prettifySqft(t.loteSqft) : "", "ruler");
   push("Uso / zona", t.usoZonificacion, "pin");
   push("Acceso", t.acceso, "car");
   push("Servicios", t.servicios, "sparkle");
@@ -262,7 +289,8 @@ function buildTerrenoQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaicesPr
 
 function buildTerrenoHighlights(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewFact[] {
   const map = new Map(TERRENO_DESTACADOS_DEFS.map((d) => [d.id, d.label]));
-  return s.terreno.destacadoIds
+  const uniqueIds = [...new Set(s.terreno.destacadoIds)];
+  return uniqueIds
     .map((id) => {
       const label = map.get(id);
       if (!label) return null;
@@ -293,7 +321,7 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
     highlightsRows = buildTerrenoHighlights(s);
   }
 
-  const mailto = buildMailto(s.seller.correo, "Consulta sobre tu anuncio en Leonix");
+  const mailto = buildMailto(s.seller.correo, "Pregunta sobre tu propiedad (Leonix — particular)");
   const telHref = buildTelHref(s.seller.telefono);
   const waRaw = trim(s.seller.whatsapp) || trim(s.seller.telefono);
   const waHref = previewWhatsappClickHref(waRaw);
@@ -306,9 +334,9 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
 
   const sellerPhoto = trim(s.seller.fotoDataUrl);
   const sellerName = trim(s.seller.nombre);
-  const phoneDisp = trim(s.seller.telefono) ? s.seller.telefono : "";
+  const phoneDisp = trim(s.seller.telefono) ? formatUsPhoneDisplay(digitsOnly(s.seller.telefono)) : "";
   const emailDisp = trim(s.seller.correo);
-  const waDisp = trim(s.seller.whatsapp);
+  const waDisp = trim(s.seller.whatsapp) ? formatUsPhoneDisplay(digitsOnly(s.seller.whatsapp)) : "";
 
   return {
     categoria: cat,
@@ -335,7 +363,7 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
     hasHighlights: highlightsRows.length > 0,
     description: desc,
     hasDescription: Boolean(desc),
-    contactRailTitle: "Contactar al vendedor",
+    contactRailTitle: "Contacto",
     contact: {
       showSolicitarInfo: Boolean(mailto),
       showLlamar: Boolean(telHref),

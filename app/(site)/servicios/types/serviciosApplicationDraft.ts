@@ -53,6 +53,8 @@ export type ServiciosApplicationContactDraft = {
   hoursOpenNowLabel?: string;
   hoursTodayLine?: string;
   primaryCtaLabel?: string;
+  /** Preset secondary CTA chip labels (localized at map time) */
+  secondaryCtaLabels?: string[];
   isFeatured?: boolean;
   featuredLabel?: string;
   /** Raw advertiser URLs — mapped to wire `socialLinks` */

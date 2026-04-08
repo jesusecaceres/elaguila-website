@@ -113,6 +113,40 @@ export type ClasificadosServiciosCopy = {
     offerPrimaryPdf: string;
     offerQrLater: string;
     offerAssetContractNote: string;
+    /** How logo / cover / featured / gallery relate in the public profile */
+    mediaStructureIntro: string;
+    logoHelp: string;
+    coverHelp: string;
+    /** {total} and {featured} placeholders */
+    galleryStatusLine: string;
+    mediaUploadedBadge: string;
+    videoFromFile: string;
+    videoFromUrl: string;
+    offerAssetsIntro: string;
+    /** Shown only under sm — reminds mobile users of bottom actions */
+    mobileStickyHint: string;
+    assetFromFile: string;
+    assetFromUrl: string;
+    /** Section heading for optional clips */
+    videosTitle: string;
+    /** {n} and {max} — total gallery photos */
+    galleryCountLine: string;
+    /** {n} and {max} — attached videos */
+    videosCountLine: string;
+    /** Shown when gallery is full (static hint under uploader) */
+    galleryLimitHint: string;
+    /** Shown when both video slots are used */
+    videosLimitHint: string;
+    /** List vs featured grid (Bienes-style clarity) */
+    galleryListOrderHint: string;
+    /** Wrong MIME for logo/cover/gallery file picker */
+    mediaWrongFileType: string;
+    /** Wrong MIME for video file picker */
+    mediaWrongVideoType: string;
+    /** Wrong MIME for offer PDF picker */
+    mediaWrongPdfType: string;
+    /** Some files skipped because only {max} fit */
+    galleryPartialAdd: string;
   };
 };
 
@@ -236,6 +270,29 @@ const es: ClasificadosServiciosCopy = {
     moveUp: "Arriba",
     moveDown: "Abajo",
     featuredToggle: "Principal en anuncio",
+    mediaStructureIntro:
+      "Logo y portada definen el encabezado. La galería muestra hasta 4 fotos destacadas en el anuncio; el resto aparece al ampliar. Todo se guarda en este navegador hasta que salgas del flujo o publiques.",
+    logoHelp: "Cuadrada o casi cuadrada; se muestra junto al nombre.",
+    coverHelp: "Imagen ancha detrás del encabezado (como portada).",
+    galleryStatusLine: "{total} foto(s) · {featured} destacada(s) (máx. 4)",
+    mediaUploadedBadge: "Listo · toca el recuadro para cambiar",
+    videoFromFile: "Video subido",
+    videoFromUrl: "Enlace / URL",
+    offerAssetsIntro: "Sube una imagen o un PDF opcional para tu cupón; puedes combinarlos con el enlace.",
+    mobileStickyHint: "Abajo: vista previa y publicar sin volver arriba.",
+    assetFromFile: "Archivo",
+    assetFromUrl: "URL",
+    videosTitle: "Videos (opcional)",
+    galleryCountLine: "{n} / {max} fotos en la galería",
+    videosCountLine: "{n} / {max} videos adjuntos",
+    galleryLimitHint: "Límite alcanzado (máx. {max}). Quita una foto para añadir más.",
+    videosLimitHint: "Ya tienes el máximo de videos ({max}). Quita uno para cambiar.",
+    galleryListOrderHint:
+      "El orden de la lista es el orden completo de la galería. Las destacadas pueden ser cualquiera de esas fotos; no tienen que ser las primeras.",
+    mediaWrongFileType: "Ese archivo no es una imagen. Usa JPG, PNG, WebP u otro formato de imagen.",
+    mediaWrongVideoType: "Ese archivo no es un video. Usa MP4, WebM u otro formato de video.",
+    mediaWrongPdfType: "El archivo debe ser PDF.",
+    galleryPartialAdd: "Solo cabían algunas fotos nuevas (máx. {max} en total).",
   },
 };
 
@@ -359,6 +416,29 @@ const en: ClasificadosServiciosCopy = {
     moveUp: "Up",
     moveDown: "Down",
     featuredToggle: "Featured on listing",
+    mediaStructureIntro:
+      "Logo and cover shape the header. The gallery uses up to 4 featured photos on the listing; the rest appear when visitors expand the gallery. Everything stays in this browser until you leave the flow or publish.",
+    logoHelp: "Square-ish; shown next to your business name.",
+    coverHelp: "Wide image behind the header (banner).",
+    galleryStatusLine: "{total} photo(s) · {featured} featured (max 4)",
+    mediaUploadedBadge: "Added · tap the box to replace",
+    videoFromFile: "Uploaded clip",
+    videoFromUrl: "From link",
+    offerAssetsIntro: "Optional image or PDF for your offer; you can combine with the link above.",
+    mobileStickyHint: "Below: preview & publish without scrolling back up.",
+    assetFromFile: "File",
+    assetFromUrl: "URL",
+    videosTitle: "Videos (optional)",
+    galleryCountLine: "{n} / {max} photos in gallery",
+    videosCountLine: "{n} / {max} videos attached",
+    galleryLimitHint: "Limit reached (max {max}). Remove a photo to add more.",
+    videosLimitHint: "Maximum videos reached ({max}). Remove one to change.",
+    galleryListOrderHint:
+      "The list order is the full gallery order. Featured picks can be any of those photos — they do not have to be first.",
+    mediaWrongFileType: "That file is not an image. Use JPG, PNG, WebP, or another image format.",
+    mediaWrongVideoType: "That file is not a video. Use MP4, WebM, or another video format.",
+    mediaWrongPdfType: "The file must be a PDF.",
+    galleryPartialAdd: "Only some new photos fit (max {max} total).",
   },
 };
 
