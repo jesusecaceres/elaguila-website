@@ -33,7 +33,7 @@ export function ViajesLandingPage() {
               {lang === "en" ? "Classifieds" : "Clasificados"}
             </Link>
             <span className="mx-1.5 opacity-50">/</span>
-            <span className="text-[color:var(--lx-text)]">{lang === "en" ? "Travel" : "Viajes"}</span>
+            <span className="text-[color:var(--lx-text)]">Viajes</span>
           </nav>
           <Link
             href={publicarHref}

@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { BR_NEGOCIO_Q_PROPIEDAD, type BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import {
+  BR_NEGOCIO_Q_PROPIEDAD,
+  parseBrNegocioPropiedadParam,
+  type BrNegocioCategoriaPropiedad,
+} from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { RENTAS_PLAZO_LABELS } from "@/app/clasificados/rentas/shared/utils/rentasPublishConstants";
 import {
   RENTAS_PREVIEW_PRIVADO,
@@ -77,7 +81,18 @@ export function RentasPrivadoForm() {
 
   useEffect(() => {
     const d = loadRentasPrivadoDraft();
-    if (d) setState(d);
+    if (d) {
+      setState(d);
+      setHydrated(true);
+      return;
+    }
+    try {
+      const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+      const p = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
+      if (p) setState((s) => ({ ...s, categoriaPropiedad: p }));
+    } catch {
+      /* ignore */
+    }
     setHydrated(true);
   }, []);
 

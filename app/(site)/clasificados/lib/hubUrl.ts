@@ -11,7 +11,7 @@ export const HUB_CATEGORY_PATH: Record<HubCategoryKey, string> = {
   clases: "/clasificados/clases",
   comunidad: "/clasificados/comunidad",
   restaurantes: "/clasificados/restaurantes",
-  travel: "/clasificados/travel",
+  travel: "/clasificados/viajes",
 };
 
 /** Append `lang` to a path, preserving `#hash` if present. */

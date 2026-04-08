@@ -12,9 +12,9 @@ const SECTIONS: WorkspaceNavItem[] = [
   { href: "/admin/workspace/nosotros", label: "Nosotros", hint: "Página pública /about" },
   { href: "/admin/workspace/revista", label: "Revista", hint: "Manifiesto editions.json + notas internas" },
   { href: "/admin/workspace/contacto", label: "Contacto", hint: "Página /contacto (formulario global)" },
-  { href: "/admin/workspace/noticias", label: "Noticias", hint: "Pública /noticias — workspace esqueleto, sin CMS aún" },
-  { href: "/admin/workspace/iglesias", label: "Iglesias", hint: "Pública /iglesias — workspace esqueleto" },
-  { href: "/admin/workspace/cupones", label: "Cupones", hint: "Públicas /cupones y /coupons — sin editor aún" },
+  { href: "/admin/workspace/noticias", label: "Noticias", hint: "Shell en site_section_content; RSS sigue en API" },
+  { href: "/admin/workspace/iglesias", label: "Iglesias", hint: "Copy en site_section_content; directorio = backlog" },
+  { href: "/admin/workspace/cupones", label: "Cupones", hint: "cupones_page → /cupones y /coupons" },
   { href: "/admin/workspace/anunciate", label: "Anúnciate", hint: "Mapa al funnel publicar + cola Clasificados; sin CRM" },
 ];
 

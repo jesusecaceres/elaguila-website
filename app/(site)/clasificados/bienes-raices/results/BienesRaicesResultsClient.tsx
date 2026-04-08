@@ -4,12 +4,19 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { BR_PUBLICAR_HUB } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
+import {
+  BR_NEGOCIO_Q_PROPIEDAD,
+  parseBrNegocioPropiedadParam,
+  type BrNegocioCategoriaPropiedad,
+} from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import type { BrPrimaryChipId, BrSecondaryChipId } from "./search/filterTypes";
 import { brNegocioFeaturedListing, brNegocioGridListings, BR_NEGOCIO_DEMO_TOTAL } from "./demoData";
+import type { BrNegocioListing } from "./cards/listingTypes";
 import { BienesRaicesNegocioCard } from "./cards/BienesRaicesNegocioCard";
 import { BienesRaicesCategoryNav } from "./components/BienesRaicesCategoryNav";
 import { BienesRaicesFeaturedSection } from "./components/BienesRaicesFeaturedSection";
 import { BienesRaicesFilterChips } from "./components/BienesRaicesFilterChips";
+import { BienesRaicesPropiedadFilterChips } from "./components/BienesRaicesPropiedadFilterChips";
 import { BienesRaicesResultsHeader } from "./components/BienesRaicesResultsHeader";
 import { BienesRaicesResultsShell } from "./components/BienesRaicesResultsShell";
 import { BienesRaicesResultsTopBar } from "./components/BienesRaicesResultsTopBar";
@@ -46,18 +53,51 @@ function parseSecondaryFromSearch(raw: string | null): Set<BrSecondaryChipId> | 
   return next.size ? next : null;
 }
 
-/** Category-owned results UI for `/clasificados/bienes-raices/results` (demo data uses listado Negocio). */
+function brDemoPriceNumber(price: string): number {
+  const n = Number(String(price).replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function listingMatchesPrimaryChips(listing: BrNegocioListing, primary: Set<BrPrimaryChipId>): boolean {
+  if (primary.size === 0) return true;
+  if (primary.has("renta") && !primary.has("venta")) return false;
+  for (const id of primary) {
+    if (id === "venta" || id === "renta") continue;
+    if (id === "comerciales") {
+      if (!(listing.categoriaPropiedad === "comercial" || listing.badges.includes("comercial"))) return false;
+    } else if (id === "terrenos") {
+      if (listing.categoriaPropiedad !== "terreno_lote") return false;
+    } else if (id === "casas" || id === "departamentos") {
+      if (listing.categoriaPropiedad !== "residencial") return false;
+    }
+  }
+  return true;
+}
+
+function pickFeaturedForFilter(
+  filtered: BrNegocioListing[],
+  fallback: BrNegocioListing
+): BrNegocioListing | null {
+  if (!filtered.length) return null;
+  const promoted = filtered.find((l) => l.badges.includes("promocionada"));
+  if (promoted) return promoted;
+  if (filtered.some((l) => l.id === fallback.id)) return fallback;
+  return filtered[0];
+}
+
+/** Category-owned results UI for `/clasificados/bienes-raices/results` (demo grid; `propiedad` = residencial|comercial|terreno_lote). */
 export function BienesRaicesResultsClient() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const [propertyType, setPropertyType] = useState("");
   const [priceBand, setPriceBand] = useState("");
   const [beds, setBeds] = useState("");
-  const [primary, setPrimary] = useState<Set<BrPrimaryChipId>>(() => new Set(["comerciales"]));
+  const [primary, setPrimary] = useState<Set<BrPrimaryChipId>>(() => new Set());
   const [secondary, setSecondary] = useState<Set<BrSecondaryChipId>>(() => new Set());
   const [sort, setSort] = useState("reciente");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [showMap, setShowMap] = useState(false);
+  const [propiedadFilter, setPropiedadFilter] = useState<BrNegocioCategoriaPropiedad | null>(null);
 
   useEffect(() => {
     if (!searchParams) return;
@@ -73,6 +113,8 @@ export function BienesRaicesResultsClient() {
     if (primaryParsed) setPrimary(primaryParsed);
     const secondaryParsed = parseSecondaryFromSearch(searchParams.get("secondary"));
     if (secondaryParsed) setSecondary(secondaryParsed);
+    const prop = parseBrNegocioPropiedadParam(searchParams.get(BR_NEGOCIO_Q_PROPIEDAD));
+    setPropiedadFilter(prop);
   }, [searchParams]);
 
   const togglePrimary = (id: BrPrimaryChipId) => {
@@ -93,12 +135,36 @@ export function BienesRaicesResultsClient() {
     });
   };
 
+  const filteredListings = useMemo(() => {
+    let rows = brNegocioGridListings.filter((l) => listingMatchesPrimaryChips(l, primary));
+    if (propiedadFilter) rows = rows.filter((l) => l.categoriaPropiedad === propiedadFilter);
+    if (secondary.has("reducida")) rows = rows.filter((l) => l.badges.includes("reducida"));
+    if (secondary.has("open_house")) rows = rows.filter((l) => l.openHouse || l.badges.includes("open_house"));
+    if (secondary.has("tour_virtual")) rows = rows.filter((l) => l.badges.includes("tour_virtual"));
+    if (secondary.has("nuevo_desarrollo")) rows = rows.filter((l) => l.badges.includes("nuevo"));
+    if (secondary.has("planos")) rows = rows.filter((l) => l.badges.includes("planos"));
+    const q = query.trim().toLowerCase();
+    if (q) rows = rows.filter((l) => l.title.toLowerCase().includes(q) || l.addressLine.toLowerCase().includes(q));
+    const sorted = [...rows];
+    if (sort === "precio_asc") sorted.sort((a, b) => brDemoPriceNumber(a.price) - brDemoPriceNumber(b.price));
+    if (sort === "precio_desc") sorted.sort((a, b) => brDemoPriceNumber(b.price) - brDemoPriceNumber(a.price));
+    return sorted;
+  }, [primary, propiedadFilter, secondary, query, sort]);
+
+  const featuredListing = useMemo(
+    () => pickFeaturedForFilter(filteredListings, brNegocioFeaturedListing),
+    [filteredListings]
+  );
+
   const displayedListings = useMemo(() => {
     if (view === "list") {
-      return brNegocioGridListings.map((l) => ({ ...l, layout: "horizontal" as const }));
+      return filteredListings.map((l) => ({ ...l, layout: "horizontal" as const }));
     }
-    return brNegocioGridListings;
-  }, [view]);
+    return filteredListings;
+  }, [filteredListings, view]);
+
+  const totalLabel = propiedadFilter || primary.size || query.trim() ? filteredListings.length : BR_NEGOCIO_DEMO_TOTAL;
+  const showingTo = displayedListings.length ? Math.min(20, displayedListings.length) : 0;
 
   return (
     <BienesRaicesResultsShell>
@@ -123,6 +189,7 @@ export function BienesRaicesResultsClient() {
           beds={beds}
           onBeds={setBeds}
         />
+        <BienesRaicesPropiedadFilterChips active={propiedadFilter} />
         <BienesRaicesFilterChips
           primary={primary}
           secondary={secondary}
@@ -132,9 +199,9 @@ export function BienesRaicesResultsClient() {
       </div>
 
       <BienesRaicesResultsHeader
-        showingFrom={1}
-        showingTo={20}
-        total={BR_NEGOCIO_DEMO_TOTAL}
+        showingFrom={displayedListings.length ? 1 : 0}
+        showingTo={showingTo}
+        total={totalLabel}
         sort={sort}
         onSort={setSort}
         view={view}
@@ -143,13 +210,20 @@ export function BienesRaicesResultsClient() {
         onMapOn={setShowMap}
       />
 
-      <BienesRaicesFeaturedSection listing={brNegocioFeaturedListing} showMap={showMap} />
+      <BienesRaicesFeaturedSection listing={featuredListing} showMap={showMap} />
 
       <section className="mt-14" aria-labelledby="br-more-heading">
         <h2 id="br-more-heading" className="font-serif text-xl font-semibold text-[#1E1810] sm:text-2xl">
           Más resultados en Guadalajara, Jalisco
         </h2>
-        {view === "list" ? (
+        {displayedListings.length === 0 ? (
+          <p className="mt-6 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7]/90 p-6 text-center text-sm text-[#5C5346]">
+            Sin coincidencias en esta combinación.{" "}
+            <Link href="/clasificados/bienes-raices/results" className="font-semibold text-[#B8954A] underline">
+              Ver todas (demo)
+            </Link>
+          </p>
+        ) : view === "list" ? (
           <div className="mt-6 flex flex-col gap-5">
             {displayedListings.map((listing) => (
               <BienesRaicesNegocioCard key={listing.id} listing={listing} />
@@ -173,7 +247,10 @@ export function BienesRaicesResultsClient() {
 
       <footer className="mt-16 border-t border-[#E8DFD0]/70 pt-8 text-center">
         <p className="text-sm text-[#5C5346]/85">
-          Comunidad Leonix · Anuncios moderados · Contacto directo
+          Comunidad Leonix · Anuncios moderados · Contacto directo · Listado demo (venta) separado de{" "}
+          <Link href="/clasificados/bienes-raices/preview/privado" className="font-semibold text-[#B8954A] underline">
+            vista previa Privado
+          </Link>
         </p>
         <div className="mt-4 flex flex-wrap justify-center gap-3 text-sm font-semibold">
           <Link

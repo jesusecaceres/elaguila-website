@@ -3,11 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { AutoPrivadoPreviewPage } from "../components/AutoPrivadoPreviewPage";
 import { AutosPrivadoPreviewEmptyState } from "../components/AutosPrivadoPreviewEmptyState";
-import { loadAutosPrivadoDraftResolved } from "../lib/autosPrivadoDraftStorage";
+import { loadAutosPrivadoDraftResolved, safeNormalizePrivadoListing } from "../lib/autosPrivadoDraftStorage";
 import { resolveAutosPrivadoDraftNamespace, storageEventAffectsAutosPrivadoDraft } from "../lib/autosPrivadoDraftNamespace";
 import { mockAutosPrivadoListing } from "../mock/mockAutosPrivadoListing";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
-import { normalizeLoadedListing } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
 import { isMeaningfulAutoDealerDraft } from "@/app/clasificados/autos/negocios/lib/isMeaningfulAutoDealerDraft";
 import { AutosPrivadoPreviewLocaleProvider, useAutosPrivadoPreviewCopy } from "../lib/AutosPrivadoPreviewLocaleContext";
 import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
@@ -23,26 +22,38 @@ function isDemoQuery(): boolean {
   return v === "1" || v === "true";
 }
 
+function listingIsMeaningfulDraft(listing: AutoDealerListing): boolean {
+  try {
+    return isMeaningfulAutoDealerDraft(listing);
+  } catch {
+    return false;
+  }
+}
+
 async function resolvePreviewState(): Promise<{
   mode: AutosPrivadoPreviewMode;
   listing: AutoDealerListing;
 }> {
-  const demo = isDemoQuery();
-  if (demo) {
-    return {
-      mode: "mock",
-      listing: normalizeLoadedListing({ ...mockAutosPrivadoListing, autosLane: "privado" }),
-    };
-  }
+  try {
+    const demo = isDemoQuery();
+    if (demo) {
+      return {
+        mode: "mock",
+        listing: safeNormalizePrivadoListing({ ...mockAutosPrivadoListing, autosLane: "privado" }),
+      };
+    }
 
-  const namespace = await resolveAutosPrivadoDraftNamespace();
-  const d = await loadAutosPrivadoDraftResolved(namespace);
-  const normalized = normalizeLoadedListing({ ...d?.listing, autosLane: "privado" });
-  if (isMeaningfulAutoDealerDraft(normalized)) {
-    return { mode: "draft", listing: normalized };
-  }
+    const namespace = await resolveAutosPrivadoDraftNamespace();
+    const d = await loadAutosPrivadoDraftResolved(namespace);
+    const normalized = safeNormalizePrivadoListing({ ...d?.listing, autosLane: "privado" });
+    if (listingIsMeaningfulDraft(normalized)) {
+      return { mode: "draft", listing: normalized };
+    }
 
-  return { mode: "empty", listing: normalized };
+    return { mode: "empty", listing: normalized };
+  } catch {
+    return { mode: "empty", listing: safeNormalizePrivadoListing(undefined) };
+  }
 }
 
 function AutosPrivadoPreviewInner({
@@ -71,12 +82,22 @@ function AutosPrivadoPreviewInner({
 export function AutosPrivadoPreviewClient() {
   const [ready, setReady] = useState(false);
   const [mode, setMode] = useState<AutosPrivadoPreviewMode>("empty");
-  const [listing, setListing] = useState<AutoDealerListing>(() => normalizeLoadedListing(undefined));
+  const [listing, setListing] = useState<AutoDealerListing>(() => safeNormalizePrivadoListing(undefined));
+  const [recoverHint, setRecoverHint] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const next = await resolvePreviewState();
-    setMode(next.mode);
-    setListing(next.listing);
+    try {
+      const next = await resolvePreviewState();
+      setRecoverHint(null);
+      setMode(next.mode);
+      setListing(next.listing);
+    } catch {
+      setMode("empty");
+      setListing(safeNormalizePrivadoListing(undefined));
+      if (process.env.NODE_ENV === "development") {
+        setRecoverHint("Preview fell back to empty state after an unexpected error");
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -112,6 +133,14 @@ export function AutosPrivadoPreviewClient() {
 
   return (
     <AutosPrivadoPreviewLocaleProvider>
+      {process.env.NODE_ENV === "development" && recoverHint ? (
+        <p
+          className="mx-auto max-w-3xl px-4 pt-2 text-xs text-amber-900/90 dark:text-amber-100/90"
+          role="note"
+        >
+          {recoverHint}
+        </p>
+      ) : null}
       <AutosPrivadoPreviewInner ready={ready} mode={mode} listing={listing} />
     </AutosPrivadoPreviewLocaleProvider>
   );

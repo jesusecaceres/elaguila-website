@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { AdminSectionOwnershipCallout } from "../../../_components/AdminSectionOwnershipCallout";
-import { adminBtnSecondary, adminCardBase, adminStubBadgeClass } from "../../../_components/adminTheme";
+import { adminBtnSecondary, adminCardBase, adminPartialBadgeClass } from "../../../_components/adminTheme";
 
 export const dynamic = "force-dynamic";
 
@@ -9,41 +9,48 @@ export default function AdminWorkspaceCuponesPage() {
   return (
     <div className="max-w-3xl space-y-6">
       <div className="flex flex-wrap items-center gap-2">
-        <span className={adminStubBadgeClass}>Sin editor persistido</span>
-        <span className={adminStubBadgeClass}>API legacy /pages</span>
+        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-900">
+          Tarjetas persistidas
+        </span>
+        <span className={adminPartialBadgeClass}>Sin cupos / escaneos aún</span>
       </div>
       <AdminPageHeader
         eyebrow="Workspace · Cupones"
         title="Cupones"
-        subtitle="Rutas `/cupones` y `/coupons` sirven contenido hoy; el admin aún no controla ofertas ni caducidad sin trabajo de datos."
-        helperText="Patrones probados en Leonix: `site_section_content` para copy/hero, o tabla `coupons` si necesitas estados, cupos y auditoría. Este workspace documenta el vacío hasta elegir."
+        subtitle="Un solo payload (`cupones_page`) alimenta `/cupones` y `/coupons` con copy bilingüe y hasta 8 tarjetas. No hay redención, QR ni límites por usuario todavía."
+        helperText="Imágenes deben existir bajo /public (p. ej. /coupons/…)."
       />
 
       <AdminSectionOwnershipCallout
         sectionTitle="Cupones"
         publicPath="/cupones · /coupons"
-        sourceOfTruth="Páginas públicas + API en `pages/api` (legacy) hasta consolidar en App Router / Supabase."
-        siteSectionKey={null}
+        sourceOfTruth="Marketing de cupones: `site_section_content.cupones_page`. Sin tabla transaccional todavía."
+        siteSectionKey="cupones_page"
         adminEditors={[
-          { label: "Tienda — vitrina (copy comercial relacionado)", href: "/admin/workspace/tienda/storefront" },
+          { label: "Editor de página y tarjetas", href: "/admin/workspace/cupones/content" },
+          { label: "Tienda — vitrina", href: "/admin/workspace/tienda/storefront" },
           { label: "Home — contenido", href: "/admin/workspace/home/content" },
           { label: "Ajustes globales", href: "/admin/site-settings" },
         ]}
         notYet={[
-          "Inventariar fuente real de cupones (estático vs API vs DB).",
-          "Si hay DB, exponer CRUD admin y retirar duplicados engañosos.",
-          "Opcional: clave `site_section_content` solo para textos legales / disclaimers.",
+          "Tabla `coupons` con caducidad real, cupos, códigos y auditoría si el negocio lo exige.",
+          "Flujo de canje o integración con POS.",
         ]}
       />
 
       <div className={`${adminCardBase} space-y-3 p-6`}>
         <p className="text-sm text-[#5C5346]">
-          <Link href="/cupones?lang=es" className="font-bold text-[#6B5B2E] underline" target="_blank" rel="noreferrer">
+          <Link href="/cupones" className="font-bold text-[#6B5B2E] underline" target="_blank" rel="noreferrer">
             /cupones
           </Link>
           {" · "}
-          <Link href="/coupons?lang=en" className="font-bold text-[#6B5B2E] underline" target="_blank" rel="noreferrer">
+          <Link href="/coupons" className="font-bold text-[#6B5B2E] underline" target="_blank" rel="noreferrer">
             /coupons
+          </Link>
+        </p>
+        <p className="text-xs text-[#7A7164]">
+          <Link href="/admin/workspace/cupones/content" className="font-bold text-[#6B5B2E] underline">
+            Ir al editor →
           </Link>
         </p>
       </div>

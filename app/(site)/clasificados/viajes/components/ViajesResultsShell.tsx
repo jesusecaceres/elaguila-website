@@ -146,7 +146,7 @@ export function ViajesResultsShell() {
             </Link>
             <span className="mx-1.5 opacity-50">/</span>
             <Link href={viajesHome} className="hover:text-[color:var(--lx-text)]">
-              {lang === "en" ? "Travel" : "Viajes"}
+              Viajes
             </Link>
             <span className="mx-1.5 opacity-50">/</span>
             <span className="text-[color:var(--lx-text)]">{lang === "en" ? "Results" : "Resultados"}</span>

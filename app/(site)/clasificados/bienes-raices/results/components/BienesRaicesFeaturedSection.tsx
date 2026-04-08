@@ -5,11 +5,18 @@ import { BienesRaicesNegocioFeaturedCard } from "../cards/BienesRaicesNegocioFea
 import { BienesRaicesMapPreview } from "../map/BienesRaicesMapPreview";
 
 type Props = {
-  listing: BrNegocioListing;
+  listing: BrNegocioListing | null;
   showMap: boolean;
 };
 
 export function BienesRaicesFeaturedSection({ listing, showMap }: Props) {
+  if (!listing) {
+    return (
+      <section className="mt-8 rounded-2xl border border-dashed border-[#E8DFD0] bg-[#FDFBF7]/80 p-6 text-center text-sm text-[#5C5346]/88">
+        No hay destacado en esta vista de categoría. Ajusta el filtro o explora la cuadrícula.
+      </section>
+    );
+  }
   return (
     <section className="mt-8" aria-labelledby="br-featured-heading">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-2">

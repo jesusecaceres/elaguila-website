@@ -44,4 +44,23 @@ export async function upsertSiteSectionJsonAction(sectionKey: string, payloadJso
   if (sectionKey === "global_site") {
     revalidatePath("/", "layout");
   }
+  if (sectionKey === "nosotros") {
+    revalidatePath("/about");
+  }
+  if (sectionKey === "revista_spotlight") {
+    revalidatePath("/admin/workspace/revista");
+  }
+  if (sectionKey === "noticias_page") {
+    revalidatePath("/noticias");
+  }
+  if (sectionKey === "iglesias_page") {
+    revalidatePath("/iglesias");
+  }
+  if (sectionKey === "cupones_page") {
+    revalidatePath("/cupones");
+    revalidatePath("/coupons");
+  }
+  if (sectionKey === "revista_issue_registry") {
+    revalidatePath("/admin/workspace/revista");
+  }
 }

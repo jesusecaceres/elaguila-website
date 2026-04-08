@@ -6,7 +6,7 @@ const CARDS = [
   {
     href: "/admin/workspace/home",
     title: "Home",
-    body: "Portada pública `/home`: hero, avisos, chips manuales y módulos visibles (no la pantalla raíz `/`).",
+    body: "Portada pública `/home`: hero, avisos, chips manuales y módulos visibles (no la pantalla raíz `/`). Persistido en `home_marketing`.",
     teach: "Empieza aquí si solo cambias la primera impresión de la entrada a la revista.",
   },
   {
@@ -40,22 +40,28 @@ const CARDS = [
     teach: "Datos que ve el visitante; soporte interno sigue en la barra lateral.",
   },
   {
+    href: "/admin/site-settings",
+    title: "Ajustes globales del sitio",
+    body: "Avisos transversales, toggles de banners y módulos que cruzan varias rutas. No sustituye editores por sección.",
+    teach: "Cuando un cambio afecta nav o varias páginas, vive aquí — no en cada workspace.",
+  },
+  {
     href: "/admin/workspace/noticias",
     title: "Noticias",
-    body: "[Próximamente · no persistido] Dueño de `/noticias` hasta que exista CMS o JSON en base.",
-    teach: "Solo mapa y enlaces; sin formulario guardado.",
+    body: "Dueño de `/noticias`: titular, subtítulo y etiqueta “última hora” en `noticias_page`. El feed RSS sigue siendo API + plantilla.",
+    teach: "Editor en /workspace/noticias/content — no es CMS de artículos todavía.",
   },
   {
     href: "/admin/workspace/iglesias",
     title: "Iglesias",
-    body: "[Próximamente · no persistido] Sección pública `/iglesias`.",
-    teach: "Placeholder de producto; sin editor.",
+    body: "Landing `/iglesias`: copy transicional en `iglesias_page` hasta directorio con filas en base.",
+    teach: "Editor en /workspace/iglesias/content.",
   },
   {
     href: "/admin/workspace/cupones",
     title: "Cupones",
-    body: "[Próximamente · no persistido] Rutas `/cupones` y `/coupons`.",
-    teach: "Marcar dueño interno antes de cablear ofertas.",
+    body: "Rutas `/cupones` y `/coupons` comparten `cupones_page` (título, intro, tarjetas bilingües).",
+    teach: "Editor en /workspace/cupones/content.",
   },
   {
     href: "/admin/workspace/anunciate",

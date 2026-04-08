@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BR_NEGOCIO_Q_PROPIEDAD } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { buildBrResultsUrl } from "@/app/clasificados/bienes-raices/shared/constants/brResultsRoutes";
 import { BienesRaicesResultsShell } from "./results/components/BienesRaicesResultsShell";
@@ -18,6 +19,9 @@ const QUICK_BROWSE: QuickItem[] = [
   { label: "Departamentos", params: { primary: "departamentos" } },
   { label: "Terrenos", params: { primary: "terrenos" } },
   { label: "Comerciales", params: { primary: "comerciales" } },
+  { label: "Residencial (estructural)", params: { [BR_NEGOCIO_Q_PROPIEDAD]: "residencial" } },
+  { label: "Comercial (estructural)", params: { [BR_NEGOCIO_Q_PROPIEDAD]: "comercial" } },
+  { label: "Terreno / lote", params: { [BR_NEGOCIO_Q_PROPIEDAD]: "terreno_lote" } },
   { label: "Nuevo desarrollo", params: { secondary: "nuevo_desarrollo" } },
   { label: "Open House", params: { secondary: "open_house" } },
 ];

@@ -70,12 +70,16 @@ export default function RentasNegocioPreviewClient() {
             Publicar — Negocio
           </Link>
         </div>
-        <BienesRaicesNegocioPreviewView vm={vm} editHref={RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY} />
+        <BienesRaicesNegocioPreviewView
+          vm={vm}
+          editHref={`${RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(urlCategoria)}`}
+        />
       </div>
     );
   }
 
   const vm = mapRentasNegocioStateToPreviewVm(draft);
+  const editHref = `${RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}`;
 
-  return <BienesRaicesNegocioPreviewView vm={vm} editHref={RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY} />;
+  return <BienesRaicesNegocioPreviewView vm={vm} editHref={editHref} />;
 }

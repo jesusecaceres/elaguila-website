@@ -1,3 +1,5 @@
+import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+
 export type NegocioAdvertiserKind = "agente" | "equipo" | "oficina" | "constructor";
 
 export type BrListingBadge =
@@ -8,7 +10,8 @@ export type BrListingBadge =
   | "tour_virtual"
   | "nuevo"
   | "planos"
-  | "comercial";
+  | "comercial"
+  | "promocionada";
 
 export type BrNegocioListing = {
   id: string;
@@ -20,6 +23,8 @@ export type BrNegocioListing = {
   baths: string;
   sqft: string;
   year?: string;
+  /** Structural category (residencial / comercial / terreno_lote) — filters on results, not Negocio application logic. */
+  categoriaPropiedad: BrNegocioCategoriaPropiedad;
   badges: BrListingBadge[];
   advertiser: {
     kind: NegocioAdvertiserKind;

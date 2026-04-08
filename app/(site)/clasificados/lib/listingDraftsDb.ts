@@ -1,6 +1,9 @@
 /**
  * DB-backed draft layer for Clasificados publish flow.
  * Table: public.listing_drafts (id, user_id, category, title, status, draft_data, created_at, updated_at)
+ *
+ * Live publish path (BR / Rentas): merge draft → `listings` row with `Leonix:*` keys in `detail_pairs`
+ * and lifecycle in `status` / `is_published` — see `leonixRealEstateListingContract.ts`. Preview routes stay separate.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";

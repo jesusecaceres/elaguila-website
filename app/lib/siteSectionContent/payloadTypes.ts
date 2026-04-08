@@ -148,3 +148,60 @@ export type RevistaSpotlightPayload = {
   archiveBlurbEs?: string;
   archiveBlurbEn?: string;
 };
+
+/** `/noticias` — shell copy only; RSS feed + articles stay code/API. */
+export type NoticiasPagePayload = {
+  pageTitle?: Partial<BilingualText>;
+  subtitle?: Partial<BilingualText>;
+  breakingLabel?: Partial<BilingualText>;
+};
+
+/** `/iglesias` — placeholder page until a real directory ships. */
+export type IglesiasPagePayload = {
+  title?: Partial<BilingualText>;
+  subtitle?: Partial<BilingualText>;
+  note?: Partial<BilingualText>;
+  backCta?: Partial<BilingualText>;
+};
+
+/** Bilingual coupon row for `/cupones` and `/coupons` (shared payload). */
+export type CuponCardPayload = {
+  titleEs: string;
+  titleEn: string;
+  businessEs: string;
+  businessEn: string;
+  descriptionEs: string;
+  descriptionEn: string;
+  image: string;
+  expiresEs: string;
+  expiresEn: string;
+};
+
+/** `/cupones` + `/coupons` — headline, intro, optional coupon grid (falls back to code seed). */
+export type CuponesPagePayload = {
+  pageTitle?: Partial<BilingualText>;
+  intro?: Partial<BilingualText>;
+  coupons?: CuponCardPayload[];
+};
+
+/**
+ * Planned magazine issues — DB-backed planning metadata only.
+ * Public `/magazine` still reads `public/magazine/editions.json` until upload/manifest wiring ships.
+ */
+export type RevistaPlannedIssue = {
+  id: string;
+  titleEs: string;
+  titleEn: string;
+  year: string;
+  monthSlug: string;
+  lang: "es" | "en";
+  coverUrl: string;
+  fileUrl: string;
+  publishedAtIso: string;
+  status: "draft" | "scheduled" | "live" | "archived";
+  internalNotes?: string;
+};
+
+export type RevistaIssueRegistryPayload = {
+  plannedIssues?: RevistaPlannedIssue[];
+};

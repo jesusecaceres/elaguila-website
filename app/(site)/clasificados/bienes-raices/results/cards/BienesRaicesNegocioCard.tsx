@@ -82,7 +82,7 @@ export function BienesRaicesNegocioCard({ listing }: { listing: BrNegocioListing
           <div className="flex min-w-0 flex-1 flex-col p-4 sm:py-4 sm:pl-5 sm:pr-4">
             <p className="text-lg font-bold tracking-tight text-[#B8954A] sm:text-xl">{listing.price}</p>
             <Link
-              href={`/clasificados/anuncio/${listing.id}`}
+              href={`/clasificados/bienes-raices/anuncio/${listing.id}`}
               className="mt-1 font-serif text-lg font-semibold leading-snug text-[#1E1810] decoration-[#C9B46A]/45 underline-offset-2 hover:underline"
             >
               {listing.title}
@@ -118,7 +118,7 @@ export function BienesRaicesNegocioCard({ listing }: { listing: BrNegocioListing
       <div className="flex flex-1 flex-col p-4">
         <p className="text-xl font-bold tracking-tight text-[#B8954A]">{listing.price}</p>
         <Link
-          href={`/clasificados/anuncio/${listing.id}`}
+          href={`/clasificados/bienes-raices/anuncio/${listing.id}`}
           className="mt-1 font-serif text-lg font-semibold leading-snug text-[#1E1810] decoration-[#C9B46A]/45 underline-offset-2 hover:underline"
         >
           {listing.title}

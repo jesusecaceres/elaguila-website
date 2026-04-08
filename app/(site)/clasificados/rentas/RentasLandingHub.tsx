@@ -14,9 +14,9 @@ import {
 import { buildRentasResultsUrl } from "@/app/clasificados/rentas/shared/utils/rentasResultsRoutes";
 
 const QUICK = [
-  { label: "Residencial", params: { tipo: "residencial" } },
-  { label: "Comercial", params: { tipo: "comercial" } },
-  { label: "Terreno", params: { tipo: "terreno" } },
+  { label: "Residencial", params: { propiedad: "residencial" } },
+  { label: "Comercial", params: { propiedad: "comercial" } },
+  { label: "Terreno / lote", params: { propiedad: "terreno_lote" } },
 ];
 
 export function RentasLandingHub() {

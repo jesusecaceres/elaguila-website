@@ -7,6 +7,8 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { deleteMuxAssetsForListingRecordClient } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
 import { AutosClassifiedListingManageCard } from "@/app/clasificados/autos/dashboard/AutosClassifiedListingManageCard";
+import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { LeonixRealEstateListingManageCard } from "../components/LeonixRealEstateListingManageCard";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { DashboardMobilePreview } from "../components/DashboardMobilePreview";
 import { isListingBoosted, listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
@@ -313,6 +315,26 @@ export default function MyListingsPage() {
     };
   }, [router, pathname]);
 
+  async function markUnpublish(id: string) {
+    const supabase = createSupabaseBrowserClient();
+    setBusyId(id);
+    setError(null);
+
+    const { error: uErr } = await supabase
+      .from("listings")
+      .update({ status: "unpublished", is_published: false })
+      .eq("id", id);
+
+    if (uErr) {
+      setError(uErr.message);
+      setBusyId(null);
+      return;
+    }
+
+    setListings((prev) => prev.map((x) => (x.id === id ? { ...x, status: "unpublished", is_published: false } : x)));
+    setBusyId(null);
+  }
+
   async function markStatus(id: string, status: "active" | "sold") {
     const supabase = createSupabaseBrowserClient();
     setBusyId(id);
@@ -512,6 +534,12 @@ export default function MyListingsPage() {
           <div className="mt-4 rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-4 text-xs leading-relaxed text-[#5C5346]">
             <p className="font-semibold text-[#1E1810]">BR / Rentas — gestión</p>
             <p className="mt-1">
+              Modelo vivo: borrador (local / <code className="rounded bg-[#F9F6F1] px-1 text-[11px]">listing_drafts</code>) →
+              publicación → <code className="rounded bg-[#F9F6F1] px-1 text-[11px]">listings</code> con{" "}
+              <code className="rounded bg-[#F9F6F1] px-1 text-[11px]">detail_pairs</code> Leonix (rama, operación, categoría). Vista
+              previa no es listado público.
+            </p>
+            <p className="mt-2">
               Publicación en borrador:{" "}
               <Link href="/publicar/bienes-raices/privado" className="font-semibold text-[#B8954A] underline">
                 BR Privado
@@ -667,6 +695,24 @@ export default function MyListingsPage() {
                         appointmentClicks: 0,
                       }}
                       maxViews={maxViews}
+                    />
+                  );
+                }
+
+                const lx = parseLeonixListingContract(x.detail_pairs);
+                if (lx.branch) {
+                  return (
+                    <LeonixRealEstateListingManageCard
+                      key={x.id}
+                      row={x}
+                      lang={lang}
+                      busy={busy}
+                      priceText={priceText}
+                      dateText={dateText}
+                      viewsTotal={viewsTotal}
+                      messagesTotal={stats?.messages ?? 0}
+                      onUnpublish={() => void markUnpublish(x.id)}
+                      onDelete={() => deleteListing(x.id)}
                     />
                   );
                 }

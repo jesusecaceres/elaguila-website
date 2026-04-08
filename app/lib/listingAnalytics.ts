@@ -5,7 +5,16 @@
 
 import { createSupabaseBrowserClient } from "./supabase/browser";
 
-export type ListingEventType = "listing_view" | "listing_save" | "listing_share" | "message_sent" | "profile_view" | "listing_open";
+export type ListingEventType =
+  | "listing_view"
+  | "listing_save"
+  | "listing_share"
+  | "message_sent"
+  | "profile_view"
+  | "listing_open"
+  /** Leonix BR/Rentas — extend DB constraint when enabling these in production. */
+  | "contact_click"
+  | "outbound_click";
 
 /**
  * Track an analytics event. Fire-and-forget (does not throw).

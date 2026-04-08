@@ -9,6 +9,7 @@ const LABEL: Record<BrListingBadge, string> = {
   nuevo: "NUEVO",
   planos: "PLANOS",
   comercial: "COMERCIAL",
+  promocionada: "PROMO",
 };
 
 const STYLE: Record<BrListingBadge, string> = {
@@ -20,6 +21,7 @@ const STYLE: Record<BrListingBadge, string> = {
   nuevo: "bg-[#3D3630]/90 text-[#FAF7F2]",
   planos: "bg-[#6E5418]/88 text-[#FFFCF7]",
   comercial: "bg-[#5C5346]/85 text-[#FAF7F2]",
+  promocionada: "bg-[#8B6914]/95 text-[#FFFCF7]",
 };
 
 export function BadgeStack({ badges }: { badges: BrListingBadge[] }) {

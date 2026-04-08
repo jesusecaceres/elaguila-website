@@ -54,7 +54,7 @@ export function ViajesNegociosApplicationShell() {
   const [languages, setLanguages] = useState("");
 
   useEffect(() => {
-    document.title = lang === "en" ? "Travel business application · Leonix" : "Solicitud negocio Viajes · Leonix";
+    document.title = lang === "en" ? "Viajes business application · Leonix" : "Solicitud negocio Viajes · Leonix";
   }, [lang]);
 
   const branchHref = appendLangToPath("/publicar/viajes", lang);
@@ -84,7 +84,7 @@ export function ViajesNegociosApplicationShell() {
         </nav>
         <header className="mt-4">
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            {lang === "en" ? "Business travel offer" : "Oferta de viajes — negocio"}
+            {lang === "en" ? "Business Viajes offer" : "Oferta de viajes — negocio"}
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
             {lang === "en"

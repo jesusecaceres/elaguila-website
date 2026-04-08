@@ -5,7 +5,7 @@ const LINKS: { href: string; label: string }[] = [
   { href: "/clasificados/en-venta", label: "Ventas" },
   { href: "/clasificados/empleos", label: "Empleos" },
   { href: "/clasificados/autos", label: "Autos" },
-  { href: "/clasificados/travel", label: "Viajes" },
+  { href: "/clasificados/viajes", label: "Viajes" },
 ];
 
 export function BienesRaicesCategoryNav() {

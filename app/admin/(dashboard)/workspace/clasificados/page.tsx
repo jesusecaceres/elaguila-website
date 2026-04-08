@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { fetchListingsForAdminWorkspace } from "@/app/admin/_lib/listingsAdminSelect";
+import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import AdminListingsTable from "./AdminListingsTable";
 import { EnVentaModerationFields } from "@/app/clasificados/en-venta/admin/EnVentaModerationFields";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
@@ -23,10 +24,19 @@ type Row = {
   images?: unknown;
   detail_pairs?: unknown;
   boost_expires?: unknown;
+  is_published?: boolean | null;
 };
 
 type PageProps = {
-  searchParams?: Promise<{ q?: string; category?: string; status?: string }>;
+  searchParams?: Promise<{
+    q?: string;
+    category?: string;
+    status?: string;
+    owner?: string;
+    leonix_branch?: string;
+    leonix_operation?: string;
+    leonix_propiedad?: string;
+  }>;
 };
 
 export default async function AdminClasificadosWorkspacePage(props: PageProps) {
@@ -35,18 +45,35 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   const qRaw = (sp.q ?? "").trim().toLowerCase();
   const catFilter = (sp.category ?? "").trim().toLowerCase();
   const statusFilter = (sp.status ?? "").trim().toLowerCase();
+  const ownerFrag = (sp.owner ?? "").trim().toLowerCase();
+  const lxBranch = (sp.leonix_branch ?? "").trim();
+  const lxOp = (sp.leonix_operation ?? "").trim().toLowerCase();
+  const lxProp = (sp.leonix_propiedad ?? "").trim().toLowerCase();
 
   const { data: listings, error, detailPairsAvailable } = await fetchListingsForAdminWorkspace(supabase);
 
   let rows = (listings ?? []) as Row[];
   if (catFilter) rows = rows.filter((r) => (r.category ?? "").toLowerCase() === catFilter);
   if (statusFilter) rows = rows.filter((r) => (r.status ?? "").toLowerCase() === statusFilter);
+  if (ownerFrag) {
+    rows = rows.filter((r) => (r.owner_id ?? "").toLowerCase().includes(ownerFrag));
+  }
+  if (detailPairsAvailable && (lxBranch || lxOp || lxProp)) {
+    rows = rows.filter((r) => {
+      const lx = parseLeonixListingContract(r.detail_pairs);
+      if (lxBranch && lx.branch !== lxBranch) return false;
+      if (lxOp && lx.operation !== lxOp) return false;
+      if (lxProp && (lx.categoriaPropiedad ?? "").toLowerCase() !== lxProp) return false;
+      return true;
+    });
+  }
   if (qRaw) {
     rows = rows.filter((r) => {
       const id = r.id.toLowerCase();
       const title = (r.title ?? "").toLowerCase();
       const city = (r.city ?? "").toLowerCase();
-      return id.includes(qRaw) || title.includes(qRaw) || city.includes(qRaw);
+      const oid = (r.owner_id ?? "").toLowerCase();
+      return id.includes(qRaw) || title.includes(qRaw) || city.includes(qRaw) || oid.includes(qRaw);
     });
   }
 
@@ -115,43 +142,87 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
       </div>
 
       <div className={`${adminCardBase} mb-6 p-4`}>
-        <form className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end" method="get">
-          <input
-            name="q"
-            defaultValue={qRaw}
-            placeholder="Buscar título, ciudad o fragmento de ID…"
-            className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-4 py-3 text-base sm:min-w-[12rem] sm:flex-1 sm:py-2 sm:text-sm"
-          />
-          <select
-            name="category"
-            defaultValue={catFilter}
-            className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[10rem] sm:py-2 sm:text-sm"
-          >
-            <option value="">Todas las categorías</option>
-            {cats.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          <select
-            name="status"
-            defaultValue={statusFilter}
-            className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[9rem] sm:py-2 sm:text-sm"
-          >
-            <option value="">Todos los estados</option>
-            <option value="active">active</option>
-            <option value="pending">pending</option>
-            <option value="flagged">flagged</option>
-            <option value="sold">sold</option>
-            <option value="removed">removed</option>
-          </select>
-          <button
-            type="submit"
-            className="min-h-[44px] w-full rounded-2xl bg-[#2A2620] px-4 py-3 text-sm font-semibold text-[#FAF7F2] sm:min-h-0 sm:w-auto sm:py-2"
-          >
-            Filtrar
-          </button>
+        <form className="flex flex-col gap-3" method="get">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <input
+              name="q"
+              defaultValue={qRaw}
+              placeholder="Buscar título, ciudad, ID de anuncio u owner…"
+              className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-4 py-3 text-base sm:min-w-[12rem] sm:flex-1 sm:py-2 sm:text-sm"
+            />
+            <input
+              name="owner"
+              defaultValue={ownerFrag}
+              placeholder="Owner ID (fragmento)"
+              className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-4 py-3 text-base sm:w-auto sm:min-w-[11rem] sm:py-2 sm:text-sm"
+            />
+            <select
+              name="category"
+              defaultValue={catFilter}
+              className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[10rem] sm:py-2 sm:text-sm"
+            >
+              <option value="">Todas las categorías</option>
+              {cats.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <select
+              name="status"
+              defaultValue={statusFilter}
+              className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[9rem] sm:py-2 sm:text-sm"
+            >
+              <option value="">Todos los estados</option>
+              <option value="active">active</option>
+              <option value="pending">pending</option>
+              <option value="flagged">flagged</option>
+              <option value="unpublished">unpublished</option>
+              <option value="sold">sold</option>
+              <option value="removed">removed</option>
+            </select>
+          </div>
+          <div className="flex flex-col gap-2 border-t border-[#E8DFD0]/60 pt-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <p className="w-full text-[11px] font-semibold uppercase tracking-wide text-[#5C5346] sm:mb-1">
+              Leonix BR / Rentas (detail_pairs)
+            </p>
+            <select
+              name="leonix_branch"
+              defaultValue={lxBranch}
+              className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[12rem] sm:py-2 sm:text-sm"
+            >
+              <option value="">Rama (todas)</option>
+              <option value="bienes_raices_privado">bienes_raices_privado</option>
+              <option value="bienes_raices_negocio">bienes_raices_negocio</option>
+              <option value="rentas_privado">rentas_privado</option>
+              <option value="rentas_negocio">rentas_negocio</option>
+            </select>
+            <select
+              name="leonix_operation"
+              defaultValue={lxOp}
+              className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[9rem] sm:py-2 sm:text-sm"
+            >
+              <option value="">Operación (todas)</option>
+              <option value="sale">sale (venta)</option>
+              <option value="rent">rent (renta)</option>
+            </select>
+            <select
+              name="leonix_propiedad"
+              defaultValue={lxProp}
+              className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[10rem] sm:py-2 sm:text-sm"
+            >
+              <option value="">Tipo propiedad (todas)</option>
+              <option value="residencial">residencial</option>
+              <option value="comercial">comercial</option>
+              <option value="terreno_lote">terreno_lote</option>
+            </select>
+            <button
+              type="submit"
+              className="min-h-[44px] w-full rounded-2xl bg-[#2A2620] px-4 py-3 text-sm font-semibold text-[#FAF7F2] sm:min-h-0 sm:w-auto sm:py-2"
+            >
+              Filtrar
+            </button>
+          </div>
         </form>
       </div>
 

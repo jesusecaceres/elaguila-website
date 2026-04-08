@@ -12,6 +12,7 @@ import {
   parseBoostExpiresMs,
   parseDetailPairValue,
 } from "@/app/clasificados/en-venta/boosts/enVentaVisibilityRenewal";
+import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 
 type Row = {
   id: string;
@@ -27,6 +28,7 @@ type Row = {
   images?: unknown;
   detail_pairs?: unknown;
   boost_expires?: unknown;
+  is_published?: boolean | null;
 };
 
 function formatAdminDateTime(ms: number): string {
@@ -44,6 +46,19 @@ function formatAdminDateTime(ms: number): string {
   } catch {
     return "—";
   }
+}
+
+function leonixAdminLine(row: Row, detailPairsAvailable: boolean): string {
+  if (!detailPairsAvailable) return "—";
+  const lx = parseLeonixListingContract(row.detail_pairs);
+  const parts: string[] = [];
+  if (lx.branch) parts.push(lx.branch);
+  if (lx.operation) parts.push(lx.operation);
+  if (lx.categoriaPropiedad) parts.push(lx.categoriaPropiedad);
+  const pub =
+    row.is_published === false ? "is_published=false" : row.is_published === true ? "is_published=true" : "pub=?";
+  if (!parts.length) return row.is_published === false ? pub : "—";
+  return `${parts.join(" · ")} · ${pub}`;
 }
 
 function enVentaVisibilityAdminLine(row: Row, detailPairsAvailable: boolean): string {
@@ -138,6 +153,16 @@ export default function AdminListingsTable({
               <th
                 className={
                   detailPairsAvailable
+                    ? "min-w-[200px] p-3 font-semibold text-[#5C4E2E]"
+                    : "min-w-[200px] bg-amber-50/90 p-3 font-semibold text-amber-950"
+                }
+                title="Leonix BR/Rentas: rama, operación, categoría, publicado"
+              >
+                Leonix
+              </th>
+              <th
+                className={
+                  detailPairsAvailable
                     ? "min-w-[220px] p-3 font-semibold text-[#5C4E2E]"
                     : "min-w-[220px] bg-amber-50/90 p-3 font-semibold text-amber-950"
                 }
@@ -192,6 +217,16 @@ export default function AdminListingsTable({
                   )}
                 </td>
                 <td className="p-3 text-[#7A7164]">{formatDate(row.created_at)}</td>
+                <td
+                  className={
+                    detailPairsAvailable
+                      ? "max-w-[240px] p-3 align-top text-[11px] leading-snug text-[#5C5346]"
+                      : "max-w-[240px] bg-amber-50/40 p-3 align-top text-[11px] leading-snug text-amber-950"
+                  }
+                  title={leonixAdminLine(row, detailPairsAvailable)}
+                >
+                  {leonixAdminLine(row, detailPairsAvailable)}
+                </td>
                 <td
                   className={
                     detailPairsAvailable

@@ -1,20 +1,26 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { AdminSectionOwnershipCallout } from "../../../_components/AdminSectionOwnershipCallout";
-import { adminCardBase, adminBtnPrimary, adminBtnSecondary, adminInputClass, adminStubBadgeClass } from "../../../_components/adminTheme";
+import { adminCardBase, adminBtnPrimary, adminBtnSecondary, adminInputClass } from "../../../_components/adminTheme";
 import { getMagazineManifestForAdmin } from "../../../_lib/magazineAdminData";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
-import type { RevistaSpotlightPayload } from "@/app/lib/siteSectionContent/payloadTypes";
+import type { RevistaIssueRegistryPayload, RevistaSpotlightPayload } from "@/app/lib/siteSectionContent/payloadTypes";
 import { saveRevistaSpotlightAction } from "@/app/admin/revistaSpotlightActions";
+import { appendRevistaIssueDraftAction, removeRevistaIssueDraftAction } from "@/app/admin/revistaIssueRegistryActions";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminWorkspaceRevistaPage(props: { searchParams?: Promise<{ saved?: string }> }) {
+export default async function AdminWorkspaceRevistaPage(props: {
+  searchParams?: Promise<{ saved?: string; registry_saved?: string; registry_error?: string }>;
+}) {
   const sp = props.searchParams ? await props.searchParams : {};
   const manifest = await getMagazineManifestForAdmin();
   const featured = manifest.featured;
   const { payload: spotRaw } = await getSiteSectionPayload("revista_spotlight");
   const spot = spotRaw as unknown as RevistaSpotlightPayload;
+  const { payload: regRaw, updatedAt: registryUpdatedAt } = await getSiteSectionPayload("revista_issue_registry");
+  const issueReg = regRaw as unknown as RevistaIssueRegistryPayload;
+  const plannedIssues = issueReg.plannedIssues ?? [];
 
   return (
     <div>
@@ -28,14 +34,14 @@ export default async function AdminWorkspaceRevistaPage(props: { searchParams?: 
       <AdminSectionOwnershipCallout
         sectionTitle="Revista"
         publicPath="/magazine · /magazine/…"
-        sourceOfTruth="Featured + archivo público: `public/magazine/editions.json` (manifiesto). Notas de equipo: `site_section_content.revista_spotlight`."
+        sourceOfTruth="Featured + archivo público: `public/magazine/editions.json`. Notas internas: `revista_spotlight`. Planificación de números (BD): `revista_issue_registry` — no reemplaza el manifiesto aún."
         siteSectionKey="revista_spotlight"
         adminEditors={[
           { label: "Notas internas / archive blurbs (formulario abajo)", href: "#revista-spotlight-form" },
           { label: "Home — contenido (enlaces a revista)", href: "/admin/workspace/home/content" },
         ]}
         notYet={[
-          "Subida de PDF/issue a Storage + fila en BD o manifiesto vía admin (bloque deshabilitado abajo).",
+          "Subida automática de PDF a Storage + escritura de `editions.json` o resolver BD en runtime (el bloque de carga masiva sigue sin cablear).",
           "Hacer que páginas públicas lean blurbs de `revista_spotlight` si producto lo pide.",
         ]}
       />
@@ -112,38 +118,76 @@ export default async function AdminWorkspaceRevistaPage(props: { searchParams?: 
 
         <div className={`${adminCardBase} p-6`}>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-bold uppercase text-[#7A7164]">Subir nuevo número (esqueleto)</p>
-            <span className={adminStubBadgeClass}>Próximamente</span>
-            <span className={adminStubBadgeClass}>No persistido</span>
+            <p className="text-xs font-bold uppercase text-[#7A7164]">Planificación de números</p>
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-900">
+              Persistido (BD)
+            </span>
           </div>
           <p className="mt-1 text-xs text-[#7A7164]">
-            Conectar a Supabase Storage o API segura; luego actualizar manifiesto o fila en BD. Este formulario no guarda aún.
+            Clave <code className="rounded bg-white/90 px-1 text-[11px]">revista_issue_registry</code>. Sirve para coordinar título, fechas, URLs y estado antes de automatizar Storage + manifiesto.{" "}
+            <span className="font-semibold text-[#1E1810]">No cambia</span> <code className="rounded bg-white/90 px-1 text-[11px]">editions.json</code> todavía.
           </p>
-          <div className="mt-4 grid gap-3">
-            <input className={adminInputClass} disabled placeholder="Título (ES)" />
+          <p className="mt-2 text-[11px] text-[#9A9084]">Última escritura en registro: {registryUpdatedAt ? new Date(registryUpdatedAt).toLocaleString() : "—"}</p>
+          <form action={appendRevistaIssueDraftAction} className="mt-4 grid gap-3">
+            <input name="title_es" className={adminInputClass} placeholder="Título (ES)" />
+            <input name="title_en" className={adminInputClass} placeholder="Título (EN)" />
             <div className="grid gap-3 sm:grid-cols-3">
-              <input className={adminInputClass} disabled placeholder="Año" />
-              <input className={adminInputClass} disabled placeholder="Slug del mes" />
-              <select className={adminInputClass} disabled defaultValue="es">
-                <option value="es">Idioma: ES</option>
-                <option value="en">Idioma: EN</option>
+              <input name="year" className={adminInputClass} placeholder="Año (ej. 2026)" />
+              <input name="month_slug" className={adminInputClass} placeholder="Mes slug (ej. april)" />
+              <select name="lang" className={adminInputClass} defaultValue="es">
+                <option value="es">Idioma principal ES</option>
+                <option value="en">Idioma principal EN</option>
               </select>
             </div>
-            <input className={adminInputClass} disabled placeholder="URL de portada" />
-            <input className={adminInputClass} disabled placeholder="URL de PDF o activo del número" />
-            <input className={adminInputClass} disabled placeholder="Fecha de publicación (ISO)" />
-            <select className={adminInputClass} disabled defaultValue="draft">
-              <option value="draft">Estado: borrador</option>
+            <input name="cover_url" className={adminInputClass} placeholder="URL portada (https o /ruta)" />
+            <input name="file_url" className={adminInputClass} placeholder="URL PDF o activo (cuando exista)" />
+            <input name="published_at_iso" className={adminInputClass} placeholder="Fecha ISO (opcional)" />
+            <select name="status" className={adminInputClass} defaultValue="draft">
+              <option value="draft">Borrador</option>
               <option value="scheduled">Programado</option>
-              <option value="live">En vivo</option>
+              <option value="live">En vivo (planificado)</option>
               <option value="archived">Archivado</option>
             </select>
-            <button type="button" disabled className={`${adminBtnPrimary} opacity-60`}>
-              Guardar número (sin cablear)
+            <textarea name="internal_notes" className={adminInputClass} rows={2} placeholder="Notas internas (equipo)" />
+            <button type="submit" className={adminBtnPrimary}>
+              Añadir al registro
             </button>
-          </div>
+          </form>
         </div>
       </div>
+
+      {plannedIssues.length > 0 ? (
+        <div className={`${adminCardBase} mb-8 p-6`}>
+          <h2 className="text-lg font-bold text-[#1E1810]">Registro planificado (Supabase)</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Filas guardadas en <code className="rounded bg-white/90 px-1 text-[11px]">site_section_content</code> — úsalas como checklist hasta conectar subida y manifiesto.
+          </p>
+          <ul className="mt-4 space-y-3 text-sm">
+            {plannedIssues.map((row) => (
+              <li key={row.id} className="rounded-2xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-[#1E1810]">{row.titleEs || row.titleEn || "(sin título)"}</p>
+                    <p className="text-xs text-[#7A7164]">
+                      {row.year}/{row.monthSlug} · {row.lang} ·{" "}
+                      <span className="font-mono uppercase">{row.status}</span>
+                    </p>
+                    {row.internalNotes ? <p className="mt-2 text-xs text-[#5C5346]">{row.internalNotes}</p> : null}
+                    <p className="mt-1 break-all text-[11px] text-[#9A9084]">Cover: {row.coverUrl || "—"}</p>
+                    <p className="break-all text-[11px] text-[#9A9084]">Archivo: {row.fileUrl || "—"}</p>
+                  </div>
+                  <form action={removeRevistaIssueDraftAction}>
+                    <input type="hidden" name="id" value={row.id} />
+                    <button type="submit" className={`${adminBtnSecondary} text-rose-900`} title="Quitar del registro (no borra archivos)">
+                      Quitar
+                    </button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className={`${adminCardBase} mt-8 p-6`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -153,7 +197,7 @@ export default async function AdminWorkspaceRevistaPage(props: { searchParams?: 
               Derivado del manifiesto (años/meses). “Marcar como actual” reordenaría featured — aún no automatizado.
             </p>
           </div>
-          <button type="button" disabled className={adminBtnSecondary} title="Requiere escritor de manifiesto">
+          <button type="button" disabled className={adminBtnSecondary} title="Requiere escritor de manifiesto o pipeline desde el registro BD">
             Hacer actual el seleccionado
           </button>
         </div>

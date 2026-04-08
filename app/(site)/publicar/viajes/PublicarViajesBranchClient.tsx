@@ -17,7 +17,7 @@ export function PublicarViajesBranchClient() {
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
 
   useEffect(() => {
-    document.title = lang === "en" ? "Publish · Leonix Travel" : "Publicar · Leonix Viajes";
+    document.title = lang === "en" ? "Publish · Leonix Viajes" : "Publicar · Leonix Viajes";
   }, [lang]);
 
   const hubHref = appendLangToPath("/clasificados/publicar", lang);
@@ -28,7 +28,7 @@ export function PublicarViajesBranchClient() {
     lang === "en"
       ? {
           kicker: "Leonix Classifieds",
-          title: "Publish a travel offer",
+          title: "Publish a Viajes listing",
           intro:
             "Choose how you want to appear. Business listings are built for agencies and operators; partner paths will open when ready.",
           back: "Back to publishing hub",
@@ -36,7 +36,7 @@ export function PublicarViajesBranchClient() {
           negociosBody: "Structured application aligned with the public Viajes card — title, destination, inclusions, media and contact.",
           negociosCta: "Open business application",
           soonTitle: "Partners & internal",
-          soonBody: "Reserved for verified partners and future Leonix travel programs. Not open for self-serve yet.",
+          soonBody: "Reserved for verified partners and future Leonix Viajes programs. Not open for self-serve yet.",
           soonCta: "Coming soon",
           foot: "Questions? Start from the Viajes destination and explore how listings look live.",
         }

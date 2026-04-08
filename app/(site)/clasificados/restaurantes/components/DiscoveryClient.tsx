@@ -24,12 +24,10 @@ function buildUrl(lang: Lang, next: DiscoveryState) {
 
   if (next.q) params.set("q", next.q);
   if (next.city) params.set("city", next.city);
-  if (next.radiusMi) params.set("r", String(next.radiusMi));
   if (next.cuisine) params.set("cuisine", next.cuisine);
   if (next.price) params.set("price", next.price);
 
   if (next.savedOnly) params.set("saved", "1");
-  if (next.openNow) params.set("open", "1");
   if (next.family) params.set("family", "1");
   if (next.diet) params.set("diet", next.diet);
 

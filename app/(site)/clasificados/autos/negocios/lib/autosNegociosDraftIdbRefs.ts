@@ -42,22 +42,54 @@ export async function offloadDraftListingAssetsToIdb(namespace: string, listing:
   return { ...listing, mediaImages: nextImages, dealerLogo };
 }
 
+function isMediaImageRow(m: unknown): m is MediaImageEntry {
+  if (!m || typeof m !== "object") return false;
+  const o = m as Record<string, unknown>;
+  return typeof o.id === "string" && o.id.length > 0 && typeof o.url === "string";
+}
+
+function coerceMediaImageRow(m: MediaImageEntry): MediaImageEntry {
+  const sourceType: MediaImageEntry["sourceType"] = m.sourceType === "file" ? "file" : "url";
+  const sortOrder = typeof m.sortOrder === "number" && Number.isFinite(m.sortOrder) ? m.sortOrder : 0;
+  return {
+    id: m.id,
+    url: m.url,
+    sourceType,
+    isPrimary: Boolean(m.isPrimary),
+    sortOrder,
+  };
+}
+
+/**
+ * Rehydrates gallery + logo from IndexedDB. Per-asset and DB errors are swallowed so one bad/stale
+ * blob cannot fail the whole draft load (Privado preview + Negocios editor).
+ */
 export async function inlineDraftListingAssetsFromIdb(namespace: string, listing: AutoDealerListing): Promise<AutoDealerListing> {
   const rows = listing.mediaImages ?? [];
   const nextImages: MediaImageEntry[] = [];
   for (const m of rows) {
-    const refId = mediaIdFromRef(m.url);
+    if (!isMediaImageRow(m)) continue;
+    const row = coerceMediaImageRow(m);
+    const refId = mediaIdFromRef(row.url);
     if (refId) {
-      const blob = await idbGetDraftImageDataUrl(namespace, refId);
-      nextImages.push(blob ? { ...m, url: blob } : m);
+      try {
+        const blob = await idbGetDraftImageDataUrl(namespace, refId);
+        if (blob) nextImages.push({ ...row, url: blob });
+      } catch {
+        /* drop stale / unreadable IDB ref */
+      }
     } else {
-      nextImages.push(m);
+      nextImages.push(row);
     }
   }
   let dealerLogo = listing.dealerLogo;
   if (dealerLogo === AUTOS_DRAFT_LOGO_REF) {
-    const blob = await idbGetDealerLogoDataUrl(namespace);
-    dealerLogo = blob ?? undefined;
+    try {
+      const blob = await idbGetDealerLogoDataUrl(namespace);
+      dealerLogo = blob ?? undefined;
+    } catch {
+      dealerLogo = undefined;
+    }
   }
   return { ...listing, mediaImages: nextImages, dealerLogo };
 }

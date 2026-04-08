@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { AdminSectionOwnershipCallout } from "../../../_components/AdminSectionOwnershipCallout";
-import { adminBtnSecondary, adminCardBase, adminStubBadgeClass } from "../../../_components/adminTheme";
+import { adminBtnSecondary, adminCardBase, adminPartialBadgeClass, adminStubBadgeClass } from "../../../_components/adminTheme";
 
 export const dynamic = "force-dynamic";
 
@@ -9,35 +9,42 @@ export default function AdminWorkspaceIglesiasPage() {
   return (
     <div className="max-w-3xl space-y-6">
       <div className="flex flex-wrap items-center gap-2">
-        <span className={adminStubBadgeClass}>Sin editor persistido</span>
-        <span className={adminStubBadgeClass}>Sin fila site_section_content</span>
+        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-900">
+          Copy persistido
+        </span>
+        <span className={adminStubBadgeClass}>Directorio · backlog</span>
+        <span className={adminPartialBadgeClass}>Sin filas de iglesia aún</span>
       </div>
       <AdminPageHeader
         eyebrow="Workspace · Iglesias"
         title="Iglesias"
-        subtitle="Sección pública `/iglesias`. Misma situación que Noticias: página viva, backoffice aún por modelar."
-        helperText="Idealmente una clave `site_section_content` ligera (listado + textos) o tabla si el directorio crece. No simulamos guardado."
+        subtitle="Landing pública `/iglesias` con mensaje transicional editable. Cuando exista directorio, las fichas vendrán de base de datos + migraciones."
+        helperText="Contacto público para altas tempranas sigue en la página Contacto del sitio."
       />
 
       <AdminSectionOwnershipCallout
         sectionTitle="Iglesias"
         publicPath="/iglesias"
-        sourceOfTruth="Código / contenido estático del repo hasta migración editorial."
-        siteSectionKey={null}
+        sourceOfTruth="Copy transicional: `site_section_content.iglesias_page`. Directorio: aún no modelado en Postgres."
+        siteSectionKey="iglesias_page"
         adminEditors={[
-          { label: "Ajustes globales del sitio (banners / cross-site)", href: "/admin/site-settings" },
+          { label: "Editor de copy", href: "/admin/workspace/iglesias/content" },
           { label: "Contacto (datos de soporte públicos)", href: "/admin/workspace/contacto/content" },
+          { label: "Customer ops", href: "/admin/ops" },
         ]}
         notYet={[
-          "Añadir clave en `SITE_SECTION_KEYS` + payload tipado si los textos deben ser editables sin deploy.",
-          "Si el directorio es data-heavy, valorar tabla `iglesias` con RLS y admin CRUD.",
+          "Tabla de congregaciones, geodata, moderación y flujo de altas.",
+          "Búsqueda y filtros en admin enlazados a perfiles o cuentas.",
         ]}
       />
 
       <div className={`${adminCardBase} p-6`}>
-        <p className="text-sm text-[#5C5346]">
-          <Link href="/iglesias" className="font-bold text-[#6B5B2E] underline" target="_blank" rel="noreferrer" title="Vista pública">
-            Abrir /iglesias en el sitio
+        <Link href="/iglesias" className="font-bold text-[#6B5B2E] underline" target="_blank" rel="noreferrer">
+          Abrir /iglesias
+        </Link>
+        <p className="mt-3 text-xs text-[#7A7164]">
+          <Link href="/admin/workspace/iglesias/content" className="font-bold text-[#6B5B2E] underline">
+            Ir al editor →
           </Link>
         </p>
       </div>

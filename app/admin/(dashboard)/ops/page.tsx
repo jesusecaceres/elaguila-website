@@ -33,6 +33,7 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
   const pErr = bundle?.profiles.error ?? null;
   const lErr = bundle?.listings.error ?? null;
   const oErr = bundle?.orders.error ?? null;
+  const rErr = bundle?.reports.error ?? null;
 
   return (
     <div className="max-w-5xl space-y-8">
@@ -40,7 +41,7 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
         eyebrow="Operations"
         title="Customer & records search"
         subtitle="One query across profiles, Clasificados listings, and Tienda orders. Deep links open the existing admin surfaces — nothing here pretends to be a full CRM yet."
-        helperText="Identifiers: account UUID, partial UUID, XXXX-YYYY-style ref (matched within recent profiles), name/email/phone fragments, listing id, order id, order_ref text, customer email on orders. Results are capped per section."
+        helperText="Busca por UUID de cuenta, fragmento de UUID, nombre, correo, teléfono, listing id (UUID público de /clasificados/anuncio/[id]), id de reporte, order id, order_ref o email del pedido Tienda. Los anuncios no usan otro slug numérico hoy: el id de Supabase es la referencia estable."
       />
 
       <form method="get" className={`${adminCardBase} space-y-3 p-5`}>
@@ -72,11 +73,12 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
         <p className="text-sm text-[#5C5346]">Enter a term to search across accounts, ads, and print orders.</p>
       ) : bundle ? (
         <>
-          {(pErr || lErr || oErr) && (
+          {(pErr || lErr || oErr || rErr) && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950">
               {pErr ? <p>Profiles: {pErr}</p> : null}
               {lErr ? <p>Listings: {lErr}</p> : null}
               {oErr ? <p>Tienda orders: {oErr}</p> : null}
+              {rErr ? <p>Reports: {rErr}</p> : null}
             </div>
           )}
 
@@ -117,11 +119,12 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
           <section className={`${adminCardBase} p-5`}>
             <h2 className="text-base font-bold text-[#1E1810]">Clasificados listings</h2>
             <p className="mt-1 text-xs text-[#7A7164]">
+              Referencia pública estable hoy: <code className="rounded bg-[#FAF7F2] px-1">listings.id</code> (UUID en URL).{" "}
               <Link
                 href={`/admin/workspace/clasificados?q=${encodeURIComponent(q)}`}
                 className="font-bold text-[#6B5B2E] underline"
               >
-                Open Clasificados workspace with same q →
+                Abrir cola Clasificados con la misma búsqueda →
               </Link>
             </p>
             {bundle.listings.rows.length === 0 ? (
@@ -132,6 +135,7 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
                   <table className="w-full text-left text-sm">
                     <thead>
                       <tr className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90">
+                        <th className="p-2 font-semibold text-[#5C4E2E]">Listing id</th>
                         <th className="p-2 font-semibold text-[#5C4E2E]">Title</th>
                         <th className="p-2 font-semibold text-[#5C4E2E]">Category</th>
                         <th className="p-2 font-semibold text-[#5C4E2E]">Status</th>
@@ -142,7 +146,10 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
                     <tbody>
                       {bundle.listings.rows.map((row) => (
                         <tr key={row.id} className="border-b border-[#E8DFD0]/60">
-                          <td className="max-w-[200px] truncate p-2 text-[#1E1810]" title={row.title ?? ""}>
+                          <td className="max-w-[120px] p-2 font-mono text-[10px] text-[#3D3428]" title={row.id}>
+                            <span className="break-all">{row.id}</span>
+                          </td>
+                          <td className="max-w-[160px] truncate p-2 text-[#1E1810]" title={row.title ?? ""}>
                             {row.title ?? "—"}
                           </td>
                           <td className="p-2 text-xs">{row.category ?? "—"}</td>
@@ -156,13 +163,19 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
                               "—"
                             )}
                           </td>
-                          <td className="p-2">
+                          <td className="space-y-1 p-2">
                             <Link
                               href={`/clasificados/anuncio/${row.id}`}
                               target="_blank"
-                              className="text-xs font-bold text-[#6B5B2E] underline"
+                              className="block text-xs font-bold text-[#6B5B2E] underline"
                             >
-                              Live
+                              Vista pública
+                            </Link>
+                            <Link
+                              href={`/admin/workspace/clasificados?q=${encodeURIComponent(row.id)}`}
+                              className="block text-xs font-bold text-[#6B5B2E] underline"
+                            >
+                              Cola admin
                             </Link>
                           </td>
                         </tr>
@@ -205,14 +218,66 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
             )}
           </section>
 
-          <section className={`${adminCardBase} border-dashed border-[#C9B46A]/50 bg-[#FFF8F0]/80 p-4 text-xs text-[#5C5346]`}>
-            <p className="font-semibold text-[#1E1810]">Reports & moderation</p>
-            <p className="mt-1">
-              User-submitted reports live in <code className="rounded bg-white/80 px-1">listing_reports</code>.{" "}
+          <section className={`${adminCardBase} p-5`}>
+            <h2 className="text-base font-bold text-[#1E1810]">Reportes de anuncios</h2>
+            <p className="mt-1 text-xs text-[#7A7164]">
+              Tabla <code className="rounded bg-[#FAF7F2] px-1">listing_reports</code>. Coincidencias por id de reporte, listing id o texto en el motivo.{" "}
               <Link href="/admin/reportes" className="font-bold text-[#6B5B2E] underline">
-                Open reports queue →
+                Cola completa →
               </Link>
             </p>
+            {bundle.reports.rows.length === 0 ? (
+              <p className="mt-3 text-sm text-[#5C5346]">No report rows matched.</p>
+            ) : (
+              <ul className="mt-4 space-y-2 text-sm">
+                {bundle.reports.rows.map((row) => (
+                  <li
+                    key={row.id}
+                    className="flex flex-col gap-1 rounded-xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-3 py-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-mono text-[#5C5346]">
+                        Report <span className="font-semibold text-[#1E1810]">{row.id}</span> · listing{" "}
+                        <Link
+                          href={`/admin/workspace/clasificados?q=${encodeURIComponent(row.listing_id)}`}
+                          className="font-bold text-[#6B5B2E] underline"
+                        >
+                          {row.listing_id}
+                        </Link>
+                      </p>
+                      <p className="mt-1 line-clamp-2 text-xs text-[#5C5346]">{row.reason}</p>
+                      <p className="text-[10px] text-[#9A9084]">
+                        {row.status ?? "—"} · {row.created_at ? new Date(row.created_at).toLocaleString() : "—"}
+                      </p>
+                    </div>
+                    <Link href="/admin/reportes" className="shrink-0 text-xs font-bold text-[#6B5B2E] underline">
+                      Moderar →
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className={`${adminCardBase} border-dashed border-[#C9B46A]/50 bg-[#FFF8F0]/80 p-4 text-xs text-[#5C5346]`}>
+            <p className="font-semibold text-[#1E1810]">Atajos</p>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-bold">
+              <Link href="/admin/usuarios" className="text-[#6B5B2E] underline">
+                Usuarios
+              </Link>
+              <Link href="/admin/reportes" className="text-[#6B5B2E] underline">
+                Reportes
+              </Link>
+              <Link href="/admin/workspace/clasificados" className="text-[#6B5B2E] underline">
+                Clasificados
+              </Link>
+              <Link href="/admin/tienda/orders" className="text-[#6B5B2E] underline">
+                Pedidos Tienda
+              </Link>
+              <Link href="/admin/categories" className="text-[#6B5B2E] underline">
+                Categorías
+              </Link>
+            </div>
           </section>
         </>
       ) : null}

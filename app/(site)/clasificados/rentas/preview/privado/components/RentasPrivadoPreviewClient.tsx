@@ -66,7 +66,7 @@ export default function RentasPrivadoPreviewClient() {
         </div>
         <BienesRaicesPrivadoPreviewView
           vm={templateVm}
-          editHref={RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY}
+          editHref={`${RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(urlCategoria)}`}
           previewNavHubLabel="Rentas"
         />
       </div>
@@ -75,11 +75,7 @@ export default function RentasPrivadoPreviewClient() {
 
   const vm = mapRentasPrivadoStateToPreviewVm(draft);
 
-  return (
-    <BienesRaicesPrivadoPreviewView
-      vm={vm}
-      editHref={RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY}
-      previewNavHubLabel="Rentas"
-    />
-  );
+  const editHref = `${RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}`;
+
+  return <BienesRaicesPrivadoPreviewView vm={vm} editHref={editHref} previewNavHubLabel="Rentas" />;
 }

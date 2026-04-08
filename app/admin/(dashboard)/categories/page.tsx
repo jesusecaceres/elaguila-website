@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
-import { adminCardBase, adminReadOnlyBadgeClass } from "../../_components/adminTheme";
+import { adminCardBase, adminPartialBadgeClass, adminReadOnlyBadgeClass } from "../../_components/adminTheme";
 import { getClasificadosCategoryRegistry, summarizeRegistryForDashboard } from "../../_lib/clasificadosCategoryRegistry";
 import { fetchListingStatsForCategorySlugs } from "../../_lib/adminCategoryListingStats";
 
@@ -37,6 +37,7 @@ export default async function AdminCategoriesPage() {
     <div>
       <div className="mb-3 flex flex-wrap gap-2">
         <span className={adminReadOnlyBadgeClass}>Registry: code (overlays)</span>
+        <span className={adminPartialBadgeClass}>Counts + colas: DB</span>
         <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-900">
           Live DB counts
         </span>
@@ -73,6 +74,9 @@ export default async function AdminCategoriesPage() {
           </Link>
           <Link href="/admin/ops" className="text-[#6B5B2E] underline">
             Customer ops search →
+          </Link>
+          <Link href="/admin/tienda/orders" className="text-[#6B5B2E] underline">
+            Tienda orders →
           </Link>
         </div>
       </div>
@@ -123,14 +127,30 @@ export default async function AdminCategoriesPage() {
                     <td className="p-3 text-xs tabular-nums">
                       {st?.queryError ? "—" : (st?.pendingOrFlagged ?? "—")}
                     </td>
-                    <td className="p-3">
-                      <Link
-                        href={`/admin/workspace/clasificados?category=${encodeURIComponent(c.slug)}`}
-                        className="text-xs font-bold text-[#6B5B2E] underline"
-                        title="Open admin queue filtered by this category slug"
-                      >
-                        Queue →
-                      </Link>
+                    <td className="p-3 text-xs font-bold">
+                      <div className="flex flex-col gap-1">
+                        <Link
+                          href={`/admin/workspace/clasificados?category=${encodeURIComponent(c.slug)}`}
+                          className="text-[#6B5B2E] underline"
+                          title="Cola filtrada por categoría"
+                        >
+                          Queue →
+                        </Link>
+                        <Link
+                          href={`/admin/workspace/clasificados?category=${encodeURIComponent(c.slug)}&status=pending`}
+                          className="text-[#6B5B2E] underline"
+                          title="Solo pending"
+                        >
+                          Pending →
+                        </Link>
+                        <Link
+                          href={`/admin/workspace/clasificados?category=${encodeURIComponent(c.slug)}&status=flagged`}
+                          className="text-[#6B5B2E] underline"
+                          title="Solo flagged"
+                        >
+                          Flagged →
+                        </Link>
+                      </div>
                     </td>
                     <td className="p-3">
                       <Link href={c.landingTarget} className="text-xs font-bold text-[#6B5B2E] underline" target="_blank">

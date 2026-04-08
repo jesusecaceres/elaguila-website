@@ -52,13 +52,14 @@ export default function BienesRaicesPrivadoPreviewClient() {
   }
 
   if (phase === "recovery" || !draft) {
+    const editHrefRecovery = `${BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(urlCategoria)}`;
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-5 overflow-x-hidden bg-[#F9F6F1] px-4 py-8 text-center text-[#2C2416]">
         <p className="max-w-md text-sm leading-relaxed text-[#5C5346] [text-wrap:balance]">
           No encontramos un borrador de BR Privado en este dispositivo. Publica o continúa editando para generar la vista previa.
         </p>
         <Link
-          href={BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY}
+          href={editHrefRecovery}
           className="inline-flex min-h-[48px] min-w-[200px] items-center justify-center rounded-full bg-[#B8954A] px-6 text-sm font-bold text-[#1E1810] transition hover:brightness-95"
         >
           Ir a publicar — Privado
@@ -68,6 +69,7 @@ export default function BienesRaicesPrivadoPreviewClient() {
   }
 
   const vm = mapBienesRaicesPrivadoStateToPreviewVm(draft);
+  const editHref = `${BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}`;
 
-  return <BienesRaicesPrivadoPreviewView vm={vm} editHref={BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY} />;
+  return <BienesRaicesPrivadoPreviewView vm={vm} editHref={editHref} />;
 }

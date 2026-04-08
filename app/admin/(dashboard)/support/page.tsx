@@ -14,7 +14,7 @@ export default function AdminSupportPage() {
       <AdminPageHeader
         title="Support"
         subtitle="Operator console for user assistance. Ticket ingestion is not modeled yet — use user search + Ads/Reports for live data."
-        helperText="Usuarios: /admin/usuarios (Postgres cuando escribes). Búsqueda cruzada: /admin/ops. Chips y notas internas no guardan."
+        helperText="Usuarios: /admin/usuarios. Búsqueda cruzada (perfiles, anuncios, pedidos Tienda, reportes): /admin/ops. Las etiquetas de esta página no guardan."
       />
 
       <div className="grid gap-6 lg:grid-cols-2">

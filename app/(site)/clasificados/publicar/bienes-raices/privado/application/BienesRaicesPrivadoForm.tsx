@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { BR_NEGOCIO_Q_PROPIEDAD, type BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import {
+  BR_NEGOCIO_Q_PROPIEDAD,
+  parseBrNegocioPropiedadParam,
+  type BrNegocioCategoriaPropiedad,
+} from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import {
   BR_PREVIEW_PRIVADO,
   BR_PUBLICAR_HUB,
@@ -76,7 +80,18 @@ export function BienesRaicesPrivadoForm() {
 
   useEffect(() => {
     const d = loadBienesRaicesPrivadoDraft();
-    if (d) setState(d);
+    if (d) {
+      setState(d);
+      setHydrated(true);
+      return;
+    }
+    try {
+      const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+      const p = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
+      if (p) setState((s) => ({ ...s, categoriaPropiedad: p }));
+    } catch {
+      /* ignore */
+    }
     setHydrated(true);
   }, []);
 

@@ -77,7 +77,7 @@ const CLASIFICADOS_HUB_UI = {
         label: "Restaurants",
         hint: "Local spots, menus, and reviews.",
       },
-      travel: { label: "Travel", hint: "Deals, agents, and car rentals." },
+      travel: { label: "Viajes", hint: "Deals, agents, and car rentals." },
     },
 
     trustLine:

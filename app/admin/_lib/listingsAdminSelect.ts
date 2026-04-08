@@ -2,11 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 /** Columns for Clasificados admin queue — includes JSON used by En Venta visibility helpers. */
 export const LISTINGS_ADMIN_SELECT_WITH_DETAIL_PAIRS =
-  "id, title, description, city, category, price, is_free, status, owner_id, created_at, images, detail_pairs, boost_expires";
+  "id, title, description, city, category, price, is_free, status, owner_id, created_at, images, detail_pairs, boost_expires, is_published";
 
 /** Same row shape minus `detail_pairs` when the live DB predates that migration. */
 export const LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS =
-  "id, title, description, city, category, price, is_free, status, owner_id, created_at, images, boost_expires";
+  "id, title, description, city, category, price, is_free, status, owner_id, created_at, images, boost_expires, is_published";
 
 function shouldRetrySelectWithoutDetailPairs(err: { message?: string; code?: string } | null): boolean {
   if (!err?.message) return false;

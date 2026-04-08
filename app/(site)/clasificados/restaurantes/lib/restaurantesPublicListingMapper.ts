@@ -11,7 +11,7 @@ function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
 }
 
-/** Results / cards: mirrors former sample row; `sponsored` maps from `promoted`. */
+/** Results / cards: public discovery row from DB; `sponsored` maps from `promoted`. */
 export type RestaurantePublicResultsRow = {
   id: string;
   slug: string;

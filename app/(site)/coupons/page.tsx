@@ -1,49 +1,11 @@
-"use client";
+import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
+import { mergeCuponesPagePayload } from "@/app/lib/siteSectionContent/cuponesPageMerge";
+import { CuponesPageClient } from "../cupones/CuponesPageClient";
 
-import CouponCard from "@/app/components/CouponCard";
+export const dynamic = "force-dynamic";
 
-export default function CouponsPage() {
-  const coupons = [
-    {
-      title: "10% Off Complete Detail",
-      business: "Bay Area Detailing",
-      description: "Full exterior + interior detail. New customers only.",
-      image: "/coupons/detailing.jpg",
-      expires: "02/15/2026",
-      lang: "en",
-    },
-    {
-      title: "Buy 1 Get 1 Free Smoothie",
-      business: "Jungle Smoothies",
-      description: "Any flavor. Limit 1 per customer.",
-      image: "/coupons/smoothie.jpg",
-      expires: "03/01/2026",
-      lang: "en",
-    },
-    {
-      title: "$5 Off Any Service",
-      business: "War Fitness",
-      description: "Valid for new members. Show coupon at front desk.",
-      image: "/coupons/war-fitness.jpg",
-      expires: "02/20/2026",
-      lang: "en",
-    },
-  ];
-
-  return (
-    <main className="min-h-screen w-full bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
-      <div className="pt-28 px-6 pb-20 max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold text-[color:var(--lx-text)] mb-2">Coupons</h1>
-        <p className="text-[color:var(--lx-muted)] mb-8">
-          Local offers with Leonix polish — warm, premium, and readable.
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {coupons.map((c, i) => (
-            <CouponCard key={i} {...c} lang="en" />
-          ))}
-        </div>
-      </div>
-    </main>
-  );
+export default async function CouponsPage() {
+  const { payload } = await getSiteSectionPayload("cupones_page");
+  const merged = mergeCuponesPagePayload(payload);
+  return <CuponesPageClient lang="en" merged={merged} />;
 }

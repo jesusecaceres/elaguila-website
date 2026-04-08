@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   labelForBusinessType,
@@ -20,9 +20,18 @@ import type {
 } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import Navbar from "@/app/components/Navbar";
 import type { RestaurantePublicResultsRow } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
+import {
+  getFavoriteRestaurantIds,
+  isFavoriteRestaurant,
+  toggleFavoriteRestaurant,
+} from "@/app/clasificados/restaurantes/shared/utils/restaurantR3Storage";
 
 type Lang = "es" | "en";
 type SortId = "newest" | "name-asc";
+
+function favStoreKey(listingId: string) {
+  return `rpub:${listingId}`;
+}
 
 function textMatch(q: string, row: RestaurantePublicResultsRow): boolean {
   const t = q.trim().toLowerCase();
@@ -88,11 +97,29 @@ export function RestauranteResultsClient({ initialListings }: { initialListings:
   const mv = sp?.get("mv") === "1";
   const hb = sp?.get("hb") === "1";
   const ft = sp?.get("ft") === "1";
-  const hl = (sp?.get("hl") ?? "").trim();
+  const hlRaw = (sp?.get("hl") ?? "").trim();
+  const hlKeys = hlRaw
+    ? hlRaw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
+  const savedOnly = sp?.get("saved") === "1";
+  const family = sp?.get("family") === "1";
+  const diet = (sp?.get("diet") ?? "").trim() as "" | "glutenfree" | "halal" | "vegan";
   const sort = (sp?.get("sort") ?? "newest") as SortId;
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const qInputRef = useRef<HTMLInputElement>(null);
+  const [favSnap, setFavSnap] = useState(() => new Set<string>());
+
+  useEffect(() => {
+    setFavSnap(new Set(getFavoriteRestaurantIds()));
+  }, []);
+
+  const refreshFavorites = useCallback(() => {
+    setFavSnap(new Set(getFavoriteRestaurantIds()));
+  }, []);
 
   const setParam = useCallback(
     (patch: Record<string, string | undefined>) => {
@@ -119,7 +146,12 @@ export function RestauranteResultsClient({ initialListings }: { initialListings:
       if (mv && !row.movingVendor) return false;
       if (hb && !row.homeBasedBusiness) return false;
       if (ft && !row.foodTruck && row.businessTypeKey !== "food_truck") return false;
-      if (hl && !row.highlightKeys.includes(hl as RestauranteHighlightKey)) return false;
+      if (hlKeys.length && !hlKeys.every((hk) => row.highlightKeys.includes(hk as RestauranteHighlightKey))) return false;
+      if (family && !row.highlightKeys.includes("family_friendly")) return false;
+      if (diet === "halal" && row.primaryCuisineKey !== "halal" && row.secondaryCuisineKey !== "halal") return false;
+      if (diet === "vegan" && !row.highlightKeys.includes("vegan_options")) return false;
+      if (diet === "glutenfree" && !row.highlightKeys.includes("gluten_free")) return false;
+      if (savedOnly && !favSnap.has(favStoreKey(row.id))) return false;
       return true;
     });
 
@@ -129,7 +161,7 @@ export function RestauranteResultsClient({ initialListings }: { initialListings:
     });
 
     return list;
-  }, [initialListings, q, city, zip, cuisine, bt, price, svc, mv, hb, ft, hl, sort]);
+  }, [initialListings, q, city, zip, cuisine, bt, price, svc, mv, hb, ft, hlKeys, family, diet, savedOnly, favSnap, sort]);
 
   const promoted = useMemo(() => filtered.filter((r) => r.sponsored).slice(0, 2), [filtered]);
   const promotedIds = useMemo(() => new Set(promoted.map((p) => p.id)), [promoted]);
@@ -152,6 +184,8 @@ export function RestauranteResultsClient({ initialListings }: { initialListings:
     sortName: lang === "es" ? "Nombre A–Z" : "Name A–Z",
     filters: lang === "es" ? "Filtros" : "Filters",
     open: lang === "es" ? "Ver anuncio" : "View listing",
+    save: lang === "es" ? "Guardar" : "Save",
+    unsave: lang === "es" ? "Quitar de guardados" : "Remove from saved",
   };
 
   return (
@@ -242,7 +276,7 @@ export function RestauranteResultsClient({ initialListings }: { initialListings:
                 <h2 className="text-sm font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{t.sponsored}</h2>
                 <div className="mt-3 flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {promoted.map((row) => (
-                    <ResultCard key={row.id} row={row} lang={lang} compact />
+                    <ResultCard key={row.id} row={row} lang={lang} compact onFavoriteChange={refreshFavorites} labels={t} />
                   ))}
                 </div>
               </section>
@@ -256,7 +290,7 @@ export function RestauranteResultsClient({ initialListings }: { initialListings:
               ) : (
                 gridRows.map((row) => (
                   <li key={row.id}>
-                    <ResultCard row={row} lang={lang} />
+                    <ResultCard row={row} lang={lang} onFavoriteChange={refreshFavorites} labels={t} />
                   </li>
                 ))
               )}
@@ -286,7 +320,11 @@ function FilterFields({
   const mv = sp?.get("mv") === "1";
   const hb = sp?.get("hb") === "1";
   const ft = sp?.get("ft") === "1";
-  const hl = sp?.get("hl") ?? "";
+  const hlRaw = sp?.get("hl") ?? "";
+  const hlSelect = hlRaw.includes(",") ? "" : hlRaw;
+  const family = sp?.get("family") === "1";
+  const diet = (sp?.get("diet") ?? "").trim() as "" | "glutenfree" | "halal" | "vegan";
+  const savedOnly = sp?.get("saved") === "1";
 
   const lab = (es: string, en: string) => (lang === "es" ? es : en);
 
@@ -373,7 +411,7 @@ function FilterFields({
         <label className="text-xs font-semibold text-[color:var(--lx-muted)]">{lab("Destacado", "Highlight")}</label>
         <select
           className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-2 py-2 text-sm"
-          value={hl}
+          value={hlSelect}
           onChange={(e) => setParam({ hl: e.target.value })}
         >
           <option value="">{lab("Cualquiera", "Any")}</option>
@@ -384,7 +422,28 @@ function FilterFields({
           ))}
         </select>
       </div>
+      <div>
+        <label className="text-xs font-semibold text-[color:var(--lx-muted)]">{lab("Dieta / preferencia", "Diet / preference")}</label>
+        <select
+          className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-2 py-2 text-sm"
+          value={diet}
+          onChange={(e) => setParam({ diet: e.target.value || undefined })}
+        >
+          <option value="">{lab("Cualquiera", "Any")}</option>
+          <option value="vegan">{lab("Opciones veganas", "Vegan options")}</option>
+          <option value="halal">Halal ({lab("cocina", "cuisine")})</option>
+          <option value="glutenfree">{lab("Sin gluten", "Gluten-free")}</option>
+        </select>
+      </div>
       <div className="space-y-2 text-sm">
+        <label className="flex cursor-pointer items-center gap-2">
+          <input type="checkbox" checked={family} onChange={(e) => setParam({ family: e.target.checked ? "1" : undefined })} />
+          {lab("Familiar", "Family-friendly")}
+        </label>
+        <label className="flex cursor-pointer items-center gap-2">
+          <input type="checkbox" checked={savedOnly} onChange={(e) => setParam({ saved: e.target.checked ? "1" : undefined })} />
+          {lab("Solo guardados (este dispositivo)", "Saved only (this device)")}
+        </label>
         <label className="flex cursor-pointer items-center gap-2">
           <input type="checkbox" checked={mv} onChange={(e) => setParam({ mv: e.target.checked ? "1" : undefined })} />
           {lab("Ubicación móvil", "Mobile vendor")}
@@ -406,10 +465,14 @@ function ResultCard({
   row,
   lang,
   compact,
+  onFavoriteChange,
+  labels,
 }: {
   row: RestaurantePublicResultsRow;
   lang: Lang;
   compact?: boolean;
+  onFavoriteChange?: () => void;
+  labels: { open: string; save: string; unsave: string };
 }) {
   const line = [
     labelForCuisine(row.primaryCuisineKey),
@@ -427,62 +490,93 @@ function ResultCard({
   const meta = [row.cityCanonical, row.zipCode].filter(Boolean).join(" · ");
 
   const href = `/clasificados/restaurantes/${encodeURIComponent(row.slug)}`;
+  const storeKey = favStoreKey(row.id);
+  const [fav, setFav] = useState(false);
+
+  useEffect(() => {
+    setFav(isFavoriteRestaurant(storeKey));
+  }, [storeKey]);
+
+  const heroUnopt = Boolean(row.heroImageUrl?.startsWith("data:"));
 
   return (
-    <Link
-      href={href}
-      className={`group block overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_8px_32px_-12px_rgba(42,36,22,0.15)] transition hover:border-[color:var(--lx-gold-border)] hover:shadow-md ${
+    <div
+      className={`overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_8px_32px_-12px_rgba(42,36,22,0.15)] transition hover:border-[color:var(--lx-gold-border)] hover:shadow-md ${
         compact ? "w-[min(100vw-2rem,320px)] shrink-0" : "w-full"
       }`}
     >
-      <div className={`relative ${compact ? "aspect-[5/3]" : "aspect-[16/10]"} w-full overflow-hidden bg-[color:var(--lx-section)]`}>
-        {row.heroImageUrl ? (
-          <Image
-            src={row.heroImageUrl}
-            alt=""
-            fill
-            className="object-cover transition duration-300 group-hover:scale-[1.02]"
-            sizes={compact ? "320px" : "(max-width:640px) 100vw, 50vw"}
-          />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-[#2a2620] to-[#4a4034]" aria-hidden />
-        )}
-        {row.sponsored ? (
-          <span className="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
-            {lang === "es" ? "Patrocinio" : "Sponsored"}
-          </span>
-        ) : null}
+      <div className="relative">
+        <Link href={href} className="group block">
+          <div className={`relative ${compact ? "aspect-[5/3]" : "aspect-[16/10]"} w-full overflow-hidden bg-[color:var(--lx-section)]`}>
+            {row.heroImageUrl ? (
+              <Image
+                src={row.heroImageUrl}
+                alt=""
+                fill
+                unoptimized={heroUnopt}
+                className="object-cover transition duration-300 group-hover:scale-[1.02]"
+                sizes={compact ? "320px" : "(max-width:640px) 100vw, 50vw"}
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-[#2a2620] to-[#4a4034]" aria-hidden />
+            )}
+            {row.sponsored ? (
+              <span className="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
+                {lang === "es" ? "Patrocinio" : "Sponsored"}
+              </span>
+            ) : null}
+          </div>
+          <div className="space-y-1.5 p-4">
+            <h3 className="line-clamp-2 text-base font-bold text-[color:var(--lx-text)] group-hover:underline">{row.businessName}</h3>
+            <p className="text-xs font-medium text-[color:var(--lx-gold)]">{line}</p>
+            <p className="text-xs text-[color:var(--lx-muted)]">{meta}</p>
+            <p className="line-clamp-2 text-sm text-[color:var(--lx-text-2)]">{row.summaryShort}</p>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              <span className="rounded-full border border-[color:var(--lx-gold-border)]/60 bg-[color:var(--lx-section)] px-2 py-0.5 text-[11px] font-medium text-[color:var(--lx-text-2)]">
+                {labelForBusinessType(row.businessTypeKey)}
+              </span>
+              {row.priceLevel ? (
+                <span className="rounded-full border border-[color:var(--lx-nav-border)] px-2 py-0.5 text-[11px] text-[color:var(--lx-text-2)]">
+                  {row.priceLevel}
+                </span>
+              ) : null}
+              {badges.slice(0, 3).map((b) => (
+                <span
+                  key={b}
+                  className="rounded-full border border-[color:var(--lx-nav-border)] px-2 py-0.5 text-[11px] text-[color:var(--lx-text-2)]"
+                >
+                  {b}
+                </span>
+              ))}
+            </div>
+            {row.externalRatingValue != null && row.externalReviewCount != null ? (
+              <p className="text-[11px] text-[color:var(--lx-muted)]">
+                ★ {row.externalRatingValue.toFixed(1)} · {row.externalReviewCount}{" "}
+                {lang === "es" ? "reseñas (ref.)" : "reviews (ref.)"}
+              </p>
+            ) : null}
+          </div>
+        </Link>
+        <button
+          type="button"
+          onClick={() => {
+            setFav(toggleFavoriteRestaurant(storeKey));
+            onFavoriteChange?.();
+          }}
+          className="absolute right-2 top-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)]/95 text-sm text-[color:var(--lx-text)] shadow-sm backdrop-blur-sm hover:bg-[color:var(--lx-section)]"
+          aria-label={fav ? labels.unsave : labels.save}
+        >
+          <span aria-hidden>{fav ? "★" : "☆"}</span>
+        </button>
       </div>
-      <div className="space-y-1.5 p-4">
-        <h3 className="line-clamp-2 text-base font-bold text-[color:var(--lx-text)] group-hover:underline">{row.businessName}</h3>
-        <p className="text-xs font-medium text-[color:var(--lx-gold)]">{line}</p>
-        <p className="text-xs text-[color:var(--lx-muted)]">{meta}</p>
-        <p className="line-clamp-2 text-sm text-[color:var(--lx-text-2)]">{row.summaryShort}</p>
-        <div className="flex flex-wrap gap-1.5 pt-1">
-          <span className="rounded-full border border-[color:var(--lx-gold-border)]/60 bg-[color:var(--lx-section)] px-2 py-0.5 text-[11px] font-medium text-[color:var(--lx-text-2)]">
-            {labelForBusinessType(row.businessTypeKey)}
-          </span>
-          {row.priceLevel ? (
-            <span className="rounded-full border border-[color:var(--lx-nav-border)] px-2 py-0.5 text-[11px] text-[color:var(--lx-text-2)]">
-              {row.priceLevel}
-            </span>
-          ) : null}
-          {badges.slice(0, 3).map((b) => (
-            <span
-              key={b}
-              className="rounded-full border border-[color:var(--lx-nav-border)] px-2 py-0.5 text-[11px] text-[color:var(--lx-text-2)]"
-            >
-              {b}
-            </span>
-          ))}
-        </div>
-        {row.externalRatingValue != null && row.externalReviewCount != null ? (
-          <p className="text-[11px] text-[color:var(--lx-muted)]">
-            ★ {row.externalRatingValue.toFixed(1)} · {row.externalReviewCount}{" "}
-            {lang === "es" ? "reseñas (ref.)" : "reviews (ref.)"}
-          </p>
-        ) : null}
+      <div className="border-t border-[color:var(--lx-nav-border)]/80 px-4 pb-4 pt-3">
+        <Link
+          href={href}
+          className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[color:var(--lx-cta-dark)] px-4 text-sm font-semibold text-[color:var(--lx-cta-light)] hover:opacity-95"
+        >
+          {labels.open}
+        </Link>
       </div>
-    </Link>
+    </div>
   );
 }

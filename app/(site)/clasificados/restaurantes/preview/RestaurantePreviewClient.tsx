@@ -10,6 +10,7 @@ import { satisfiesRestauranteMinimumValidPreview } from "@/app/clasificados/rest
 import { useRestauranteDraft } from "@/app/clasificados/restaurantes/application/useRestauranteDraft";
 import { RestauranteDetailShell } from "@/app/clasificados/restaurantes/shell/RestauranteDetailShell";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
+import { supabase } from "@/app/lib/supabaseClient";
 
 const EDIT_HREF = "/publicar/restaurantes";
 
@@ -24,10 +25,12 @@ export default function RestaurantePreviewClient() {
   const onPublish = useCallback(async () => {
     setPub({ busy: true });
     try {
+      const { data: auth } = await supabase.auth.getUser();
+      const owner_user_id = auth?.user?.id;
       const res = await fetch("/api/clasificados/restaurantes/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ draft }),
+        body: JSON.stringify({ draft, ...(owner_user_id ? { owner_user_id } : {}) }),
       });
       const j = (await res.json()) as {
         ok?: boolean;

@@ -33,3 +33,7 @@ export const adminReadOnlyBadgeClass =
 
 export const adminLocalSimBadgeClass =
   "inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-950";
+
+/** Mixed live + backlog surfaces (e.g. DB counts + code registry). */
+export const adminPartialBadgeClass =
+  "inline-flex items-center rounded-full border border-amber-200/90 bg-amber-50/95 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950";

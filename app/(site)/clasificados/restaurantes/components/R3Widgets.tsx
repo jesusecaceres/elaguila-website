@@ -516,7 +516,13 @@ export function DiscoveryPanel({
         </div>
 
         <Toggle lang={lang} label={t(lang, "Abierto ahora", "Open now")} value={openNow} onChange={setOpenNow} hint={t(lang, "Se activará cuando los negocios agreguen horario.", "Will activate once businesses add hours.")} disabled />
-        <Toggle lang={lang} label={t(lang, "Familiar", "Family-friendly")} value={family} onChange={setFamily} hint={t(lang, "Opcional.", "Optional.")} />
+        <Toggle
+          lang={lang}
+          label={t(lang, "Familiar", "Family-friendly")}
+          value={family}
+          onChange={setFamily}
+          hint={t(lang, "Filtra por el destacado “Familiar” guardado en el anuncio.", 'Uses the “Family-friendly” highlight saved on each listing.')}
+        />
         <div>
           <div className="text-sm font-semibold text-white">{t(lang, "Dietas", "Diet")}</div>
           <select

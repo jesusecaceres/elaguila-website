@@ -44,7 +44,7 @@ export function BienesRaicesNegocioFeaturedCard({ listing }: { listing: BrNegoci
         <div className="flex flex-1 flex-col justify-between border-t border-[#E8DFD0]/70 bg-[#FDFBF7] p-5 lg:border-l lg:border-t-0">
           <div>
             <Link
-              href={`/clasificados/anuncio/${listing.id}`}
+              href={`/clasificados/bienes-raices/anuncio/${listing.id}`}
               className="block font-serif text-2xl font-semibold leading-tight text-[#1E1810] decoration-[#C9B46A]/50 underline-offset-4 hover:underline"
             >
               {listing.title}
