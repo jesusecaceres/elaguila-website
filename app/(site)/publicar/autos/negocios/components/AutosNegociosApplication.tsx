@@ -23,6 +23,9 @@ import {
 } from "../lib/autoDealerTaxonomy";
 import { SelectWithOtherField } from "./SelectWithOtherField";
 import { AutosNegociosMediaManager } from "./AutosNegociosMediaManager";
+import { AutosApplicationSteppedShell } from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
+import { AutosApplicationReviewStep } from "@/app/publicar/autos/shared/components/AutosApplicationReviewStep";
+import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-5";
@@ -108,16 +111,14 @@ export function AutosNegociosApplication() {
     setListingPatch({ features: [...cur] });
   }
 
+  const stepLabels = getAutosApplicationStepLabels(lang, "negocios");
+
   return (
-    <div
-      className="min-h-screen overflow-x-hidden pb-20 text-[color:var(--lx-text)]"
-      style={{
-        backgroundColor: "var(--lx-page)",
-        backgroundImage:
-          "radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 180, 106, 0.16), transparent 55%)",
-      }}
-    >
-      <div className="mx-auto w-full min-w-0 max-w-3xl px-4 py-8 sm:py-10 md:px-6">
+    <AutosApplicationSteppedShell
+      lang={lang}
+      lane="negocios"
+      stepLabels={stepLabels}
+      header={
         <header className="mb-8">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">{t.app.kicker}</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-[color:var(--lx-text)] md:text-4xl">{t.app.pageTitle}</h1>
@@ -138,7 +139,8 @@ export function AutosNegociosApplication() {
             <p className="mt-1 text-[13px] text-[color:var(--lx-muted)]">{t.app.noteBody}</p>
           </div>
         </header>
-
+      }
+      topActions={
         <AutosApplicationTopActions
           lane="negocios"
           copy={t}
@@ -155,10 +157,12 @@ export function AutosNegociosApplication() {
           onDeleteApplication={resetDraft}
           publishConfirmHref={publishConfirmHref}
         />
-
-        <div className="flex flex-col gap-6">
+      }
+    >
+      {({ activeStep }) => (
+        <>
           {/* A — Principal */}
-          <section className={CARD}>
+          <section className={`${CARD} ${activeStep === 0 ? "" : "hidden"}`} aria-hidden={activeStep !== 0}>
             <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{t.app.sections.main}</h2>
             <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{t.app.sections.mainSub}</p>
             <div className={`${GRID2} mt-5`}>
@@ -329,7 +333,7 @@ export function AutosNegociosApplication() {
           </section>
 
           {/* B — Especificaciones */}
-          <section className={CARD}>
+          <section className={`${CARD} ${activeStep === 1 ? "" : "hidden"}`} aria-hidden={activeStep !== 1}>
             <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{t.app.sections.specs}</h2>
             <div className={`${GRID2} mt-5`}>
               <SelectWithOtherField
@@ -475,7 +479,7 @@ export function AutosNegociosApplication() {
           </section>
 
           {/* C — Insignias y destacados */}
-          <section className={CARD}>
+          <section className={`${CARD} ${activeStep === 2 ? "" : "hidden"}`} aria-hidden={activeStep !== 2}>
             <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{t.app.sections.badges}</h2>
             <div className="mt-4 flex flex-wrap gap-2">
               {BADGE_OPTIONS.map(({ key }) => {
@@ -513,10 +517,12 @@ export function AutosNegociosApplication() {
           </section>
 
           {/* D — Multimedia */}
-          <AutosNegociosMediaManager listing={listing} setListingPatch={setListingPatch} copy={t} />
+          <div className={activeStep === 3 ? "" : "hidden"} aria-hidden={activeStep !== 3}>
+            <AutosNegociosMediaManager listing={listing} setListingPatch={setListingPatch} copy={t} />
+          </div>
 
           {/* E — Negocio */}
-          <section className={CARD}>
+          <section className={`${CARD} ${activeStep === 4 ? "" : "hidden"}`} aria-hidden={activeStep !== 4}>
             <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{t.app.sections.dealer}</h2>
             <div className={`${GRID2} mt-5`}>
               <div className="sm:col-span-2">
@@ -710,7 +716,7 @@ export function AutosNegociosApplication() {
           </section>
 
           {/* F — Descripción */}
-          <section className={CARD}>
+          <section className={`${CARD} ${activeStep === 5 ? "" : "hidden"}`} aria-hidden={activeStep !== 5}>
             <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{t.app.sections.description}</h2>
             <textarea
               className={`${INPUT} mt-3 min-h-[140px]`}
@@ -720,8 +726,11 @@ export function AutosNegociosApplication() {
             />
           </section>
 
-        </div>
-      </div>
-    </div>
+          <div className={activeStep === 6 ? "" : "hidden"} aria-hidden={activeStep !== 6}>
+            <AutosApplicationReviewStep lane="negocios" listing={listing} copy={t} lang={lang} />
+          </div>
+        </>
+      )}
+    </AutosApplicationSteppedShell>
   );
 }
