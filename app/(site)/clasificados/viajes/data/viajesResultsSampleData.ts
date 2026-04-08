@@ -16,6 +16,10 @@ export interface ViajesAffiliateResult {
   duration: string;
   departureContext: string;
   href: string;
+  /** Canonical trip-type keys for `t` filter (see viajesTripTypes). */
+  tripTypeKeys?: string[];
+  /** Short line for affiliate disclosure on cards */
+  affiliateNote?: string;
 }
 
 export interface ViajesBusinessResult {
@@ -32,6 +36,8 @@ export interface ViajesBusinessResult {
   includedSummary: string;
   whatsapp?: string;
   href: string;
+  tripTypeKeys?: string[];
+  ctaHint?: string;
 }
 
 export type ViajesResultRow = ViajesAffiliateResult | ViajesBusinessResult;
@@ -49,6 +55,8 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
     duration: "5 días · 4 noches",
     departureContext: "Salidas desde SFO y SJO",
     href: "/clasificados/viajes/oferta/cancun-resort-mar",
+    tripTypeKeys: ["resorts", "hoteles"],
+    affiliateNote: "Precio orientativo vía socio Leonix",
   },
   {
     kind: "business",
@@ -64,6 +72,8 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
     includedSummary: "Vuelos, hotel 4★, desayunos, traslados aeropuerto.",
     whatsapp: "+1 555 010 2030",
     href: "/clasificados/viajes/oferta/roma-venecia-express",
+    tripTypeKeys: ["tours", "hoteles", "transporte"],
+    ctaHint: "Contacto directo con la agencia",
   },
   {
     kind: "affiliate",
@@ -77,6 +87,8 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
     duration: "6 días · 5 noches",
     departureContext: "Directo desde SFO",
     href: "/clasificados/viajes/oferta/maui-boutique",
+    tripTypeKeys: ["resorts", "hoteles", "renta-autos"],
+    affiliateNote: "Vuelo + auto + hotel vía socio",
   },
   {
     kind: "business",
@@ -92,6 +104,8 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
     includedSummary: "Hoteles, desayuno, transporte privado, entradas parque.",
     whatsapp: "+506 8888 1234",
     href: "/clasificados/viajes/oferta/cr-familia-arenal-manuel",
+    tripTypeKeys: ["tours", "actividades", "transporte"],
+    ctaHint: "WhatsApp al operador local",
   },
   {
     kind: "affiliate",
@@ -105,6 +119,8 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
     duration: "5 días · 4 noches",
     departureContext: "Vuelo desde Oakland",
     href: "/clasificados/viajes/oferta/riviera-todo-incluido",
+    tripTypeKeys: ["resorts", "ultimo-minuto"],
+    affiliateNote: "Checkout en sitio del socio",
   },
   {
     kind: "business",
@@ -119,5 +135,22 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
     price: "$389 / persona",
     includedSummary: "Cabaña, kayak incluido, guía bilingüe opcional.",
     href: "/clasificados/viajes/oferta/tahoe-fin-semana",
+    tripTypeKeys: ["fin-de-semana", "escapada", "actividades"],
+    ctaHint: "Correo al anunciante",
+  },
+  {
+    kind: "affiliate",
+    id: "aff-car-1",
+    imageSrc: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=900&q=80",
+    imageAlt: "Auto en carretera costera",
+    inventoryLabel: "Socio de viaje",
+    title: "Renta de auto · Cancún aeropuerto (CUN)",
+    destination: "Cancún, México",
+    priceFrom: "Desde $32 / día",
+    duration: "Mínimo 3 días",
+    departureContext: "Recogida en CUN · salidas desde SFO/SJC con vuelo aparte",
+    href: "/clasificados/viajes/oferta/cancun-renta-auto",
+    tripTypeKeys: ["renta-autos", "transporte"],
+    affiliateNote: "Tarifas del proveedor de renta; Leonix no cobra la reserva aquí",
   },
 ];

@@ -23,7 +23,7 @@ export function ViajesHero({ searchBar }: ViajesHeroProps) {
           className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/45 to-black/25"
           aria-hidden
         />
-        <div className="absolute inset-0 flex flex-col justify-end pb-6 pt-20 sm:pb-8 md:pb-10">
+        <div className="absolute inset-0 flex flex-col justify-end pb-7 pt-20 sm:pb-9 md:pb-11">
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-5 lg:px-6">
             <h1 className="max-w-4xl text-2xl font-bold leading-tight tracking-tight text-white drop-shadow-sm sm:text-3xl md:text-4xl md:leading-[1.15]">
               Escapadas, resorts, tours y ofertas para tu próxima aventura
@@ -34,8 +34,8 @@ export function ViajesHero({ searchBar }: ViajesHeroProps) {
           </div>
         </div>
       </div>
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-2 sm:px-5 lg:px-6">
-        <div className="-mt-14 sm:-mt-16 md:-mt-20">{searchBar}</div>
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-3 sm:px-5 lg:px-6">
+        <div className="-mt-[3.25rem] sm:-mt-[3.75rem] md:-mt-[4.5rem]">{searchBar}</div>
       </div>
     </section>
   );

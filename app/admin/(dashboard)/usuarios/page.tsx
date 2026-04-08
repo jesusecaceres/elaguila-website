@@ -5,7 +5,7 @@ import { requireAdminCookie } from "@/app/lib/supabase/server";
 import { fetchProfilesForAdminList } from "../../_lib/adminProfilesQuery";
 import AdminUserActions from "./AdminUserActions";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
-import { adminCardBase, adminTableWrap } from "../../_components/adminTheme";
+import { adminCardBase, adminTableWrap, adminCtaChipCompact } from "../../_components/adminTheme";
 
 type ProfileRow = {
   id: string;
@@ -171,13 +171,12 @@ export default async function AdminUsuariosPage(props: PageProps) {
           {searchNote ? (
             <div className="mb-4 rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/90 p-3 text-xs text-[#5C5346]">{searchNote}</div>
           ) : null}
-          <p className="mb-3 text-xs text-[#7A7164]">
-            Cross-entity lookup:{" "}
-            <Link href="/admin/ops" className="font-bold text-[#6B5B2E] underline">
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <p className="text-xs text-[#7A7164]">Cross-entity lookup (listings + Tienda orders in one pass):</p>
+            <Link href="/admin/ops" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
               Customer ops search →
-            </Link>{" "}
-            (listings + Tienda orders in one pass).
-          </p>
+            </Link>
+          </div>
           <form method="get" action="/admin/usuarios" className="mb-4">
             <label htmlFor="admin-user-search" className="sr-only">
               Buscar clientes

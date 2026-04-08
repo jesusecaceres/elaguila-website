@@ -5,6 +5,8 @@
 
 export type ViajesOfferBadge = "Recomendado" | "Oferta especial" | "Socio de viaje";
 
+export type ViajesTopOfferListingKind = "affiliate" | "business" | "editorial";
+
 export interface ViajesTopOffer {
   id: string;
   imageSrc: string;
@@ -19,6 +21,14 @@ export interface ViajesTopOffer {
   departureContext: string;
   partnerLabel?: string;
   href: string;
+  /** Feed / card routing */
+  listingKind: ViajesTopOfferListingKind;
+  /** Lower = more prominent in curated feed */
+  featuredRank?: number;
+  /** Short affiliate disclosure for cards */
+  affiliateDisclosureShort?: string;
+  /** When listingKind is business */
+  businessName?: string;
 }
 
 export interface ViajesLocalDepartureCard {
@@ -52,6 +62,7 @@ export interface ViajesCategoryPill {
   id: string;
   label: string;
   icon: string;
+  /** Trip-type or filter param for results */
   href: string;
 }
 
@@ -64,11 +75,16 @@ export const VIAJES_CATEGORY_PILLS: ViajesCategoryPill[] = [
   { id: "weekend", label: "Escapadas de fin de semana", icon: "🌴", href: "/clasificados/viajes/resultados?t=fin-de-semana" },
   { id: "day", label: "Viajes de un día", icon: "☀️", href: "/clasificados/viajes/resultados?t=dia" },
   { id: "resorts", label: "Resorts todo incluido", icon: "🏝️", href: "/clasificados/viajes/resultados?t=resorts" },
+  { id: "hoteles", label: "Hoteles / estadías", icon: "🏨", href: "/clasificados/viajes/resultados?t=hoteles" },
   { id: "tours", label: "Tours y excursiones", icon: "🧭", href: "/clasificados/viajes/resultados?t=tours" },
+  { id: "actividades", label: "Actividades en destino", icon: "🎯", href: "/clasificados/viajes/resultados?t=actividades" },
   { id: "cruises", label: "Cruceros", icon: "🚢", href: "/clasificados/viajes/resultados?t=cruceros" },
+  { id: "renta-autos", label: "Renta de autos", icon: "🚗", href: "/clasificados/viajes/resultados?t=renta-autos" },
+  { id: "transporte", label: "Transporte / traslados", icon: "🚌", href: "/clasificados/viajes/resultados?t=transporte" },
+  { id: "ultimo-minuto", label: "Último minuto", icon: "⚡", href: "/clasificados/viajes/resultados?t=ultimo-minuto" },
   { id: "family", label: "Viajes familiares", icon: "👨‍👩‍👧", href: "/clasificados/viajes/resultados?audience=familias" },
   { id: "romantic", label: "Viajes románticos", icon: "💛", href: "/clasificados/viajes/resultados?audience=parejas" },
-  { id: "sjo", label: "Salidas desde San Jose", icon: "✈️", href: "/clasificados/viajes/resultados?from=san-jose" },
+  { id: "sjo", label: "Salidas desde San José (SJC)", icon: "✈️", href: "/clasificados/viajes/resultados?from=san-jose" },
   { id: "budget", label: "Ofertas por presupuesto", icon: "💰", href: "/clasificados/viajes/resultados?t=presupuesto" },
 ];
 
@@ -87,6 +103,9 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
     departureContext: "Salidas desde SFO y SJO (con escala)",
     partnerLabel: "Socio: paquete resort",
     href: "/clasificados/viajes/oferta/cancun-resort-mar",
+    listingKind: "affiliate",
+    featuredRank: 1,
+    affiliateDisclosureShort: "Reserva en sitio del socio · Leonix puede recibir comisión",
   },
   {
     id: "riviera",
@@ -102,6 +121,9 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
     departureContext: "Vuelo desde San Francisco",
     partnerLabel: "Oferta de temporada",
     href: "/clasificados/viajes/oferta/riviera-todo-incluido",
+    listingKind: "affiliate",
+    featuredRank: 2,
+    affiliateDisclosureShort: "Inventario de socio comercial",
   },
   {
     id: "maui",
@@ -117,6 +139,9 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
     departureContext: "Salida desde SFO",
     partnerLabel: "Agencia aliada Leonix",
     href: "/clasificados/viajes/oferta/maui-boutique",
+    listingKind: "affiliate",
+    featuredRank: 3,
+    affiliateDisclosureShort: "Vuelo + hotel vía proveedor afiliado",
   },
   {
     id: "puerto-vallarta",
@@ -132,6 +157,25 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
     departureContext: "Salidas desde Oakland y SJO",
     partnerLabel: "Tour operador verificado",
     href: "/clasificados/viajes/resultados?dest=puerto-vallarta",
+    listingKind: "business",
+    featuredRank: 4,
+    businessName: "Operadores locales Jalisco",
+  },
+  {
+    id: "editorial-pack-light",
+    imageSrc: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Mochila y mapa",
+    badge: "Recomendado",
+    title: "Guía: cómo empacar para 5 días en carry-on",
+    supportingLine: "Ideas editoriales · menos equipaje, más calma en el aeropuerto",
+    stars: 0,
+    locationLine: "Leonix Ideas",
+    priceFrom: "Lectura gratuita",
+    duration: "8 min",
+    departureContext: "Editorial",
+    href: "/clasificados/viajes/resultados?t=ultimo-minuto",
+    listingKind: "editorial",
+    featuredRank: 5,
   },
 ];
 

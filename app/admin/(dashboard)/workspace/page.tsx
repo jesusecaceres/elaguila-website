@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
-import { adminCardBase } from "../../_components/adminTheme";
+import { adminCardBase, adminCtaChip, adminCtaChipSecondary } from "../../_components/adminTheme";
 
 const CARDS = [
   {
@@ -80,19 +80,24 @@ export default function AdminWorkspaceHubPage() {
         eyebrow="Workspace"
       />
 
-      <div className="mb-6 rounded-2xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/90 p-4 text-sm text-[#5C5346]">
-        <p className="font-semibold text-[#1E1810]">Módulos que cruzan varias páginas</p>
-        <p className="mt-1 text-xs text-[#7A7164]">
-          Interruptores o listas que afectan más de una ruta viven en{" "}
-          <Link href="/admin/site-settings" className="font-bold text-[#6B5B2E] underline" title="Módulos y conmutadores transversales">
-            Ajustes globales del sitio
-          </Link>
-          . Para soporte y trazabilidad entre cuenta, anuncio y pedido Tienda, usa{" "}
-          <Link href="/admin/ops" className="font-bold text-[#6B5B2E] underline">
-            Customer ops
-          </Link>
-          .
+      <div className="mb-6 rounded-2xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/90 p-4 text-sm text-[#5C5346] sm:p-5">
+        <p className="text-base font-bold text-[#1E1810]">Módulos que cruzan varias páginas</p>
+        <p className="mt-1.5 text-xs leading-relaxed text-[#7A7164]">
+          Interruptores o listas que afectan más de una ruta viven en ajustes globales. Para soporte y trazabilidad entre cuenta,
+          anuncio y pedido Tienda, usa la búsqueda unificada de ops.
         </p>
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
+          <Link
+            href="/admin/site-settings"
+            className={`${adminCtaChip} w-full justify-center sm:w-auto`}
+            title="Módulos y conmutadores transversales"
+          >
+            Ajustes globales del sitio →
+          </Link>
+          <Link href="/admin/ops" className={`${adminCtaChip} w-full justify-center sm:w-auto`}>
+            Customer ops search →
+          </Link>
+        </div>
       </div>
 
       <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -106,7 +111,7 @@ export default function AdminWorkspaceHubPage() {
             <h2 className="text-lg font-bold text-[#1E1810]">{c.title}</h2>
             <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{c.body}</p>
             <p className="mt-3 text-xs italic text-[#9A9084]">{c.teach}</p>
-            <span className="mt-4 inline-block text-xs font-bold text-[#6B5B2E] underline">Abrir workspace →</span>
+            <span className={`${adminCtaChipSecondary} mt-4 w-full justify-center sm:w-fit`}>Abrir workspace →</span>
           </Link>
         ))}
       </div>

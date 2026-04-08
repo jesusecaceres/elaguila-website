@@ -1,5 +1,7 @@
 "use client";
 
+import { VIAJES_TRIP_TYPE_HERO_OPTIONS } from "../data/viajesTripTypes";
+
 export type ViajesResultsFiltersState = {
   destination: string;
   departureCity: string;
@@ -45,9 +47,9 @@ export function ViajesResultsFilterRail({ value, onChange, onReset, idPrefix }: 
           onChange={(e) => onChange({ departureCity: e.target.value })}
         >
           <option value="">Cualquiera</option>
-          <option value="san-jose">San José (SJO)</option>
-          <option value="san-francisco">San Francisco</option>
-          <option value="oakland">Oakland</option>
+          <option value="san-jose">San José, CA (SJC)</option>
+          <option value="san-francisco">San Francisco (SFO)</option>
+          <option value="oakland">Oakland (OAK)</option>
         </select>
       </div>
       <div>
@@ -76,10 +78,11 @@ export function ViajesResultsFilterRail({ value, onChange, onReset, idPrefix }: 
           value={value.tripType}
           onChange={(e) => onChange({ tripType: e.target.value })}
         >
-          <option value="">Todos</option>
-          <option value="resort">Resort / paquete</option>
-          <option value="tour">Tour / excursión</option>
-          <option value="crucero">Crucero</option>
+          {VIAJES_TRIP_TYPE_HERO_OPTIONS.map((o) => (
+            <option key={o.value || "all"} value={o.value}>
+              {o.label}
+            </option>
+          ))}
         </select>
       </div>
       <div>

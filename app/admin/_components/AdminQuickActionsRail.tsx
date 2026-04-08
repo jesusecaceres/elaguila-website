@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { adminBtnDark, adminBtnSecondary, adminInputClass } from "./adminTheme";
+import { adminBtnDark, adminBtnSecondary, adminInputClass, adminCtaChipCompact } from "./adminTheme";
 
 /**
  * Dashboard-only quick actions. Reset password / replica / verify are UI stubs — no secret flows in browser.
@@ -92,7 +92,7 @@ export function AdminQuickActionsRail() {
           </li>
           <li className="text-xs text-[#7A7164]">Invite-based roster — see Team page for roles.</li>
         </ul>
-        <Link href="/admin/team" className="mt-3 block text-center text-xs font-bold text-[#6B5B2E] underline">
+        <Link href="/admin/team" className={`${adminCtaChipCompact} mt-3 w-full justify-center`}>
           Manage team →
         </Link>
       </div>

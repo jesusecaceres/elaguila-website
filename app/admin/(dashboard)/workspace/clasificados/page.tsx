@@ -6,7 +6,7 @@ import AdminListingsTable from "./AdminListingsTable";
 import { EnVentaModerationFields } from "@/app/clasificados/en-venta/admin/EnVentaModerationFields";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { AdminSectionCard } from "../../../_components/AdminSectionCard";
-import { adminCardBase } from "../../../_components/adminTheme";
+import { adminCardBase, adminCtaChipCompact, adminCtaChipSecondary } from "../../../_components/adminTheme";
 
 export const dynamic = "force-dynamic";
 
@@ -101,12 +101,14 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         </div>
       ) : null}
 
-      <div className={`${adminCardBase} mb-4 max-w-3xl p-4 text-xs text-[#5C5346]`}>
-        <strong className="text-[#1E1810]">Destacados en la portada `/home`:</strong> no se generan solos desde esta cola. En{" "}
-        <Link href="/admin/workspace/home/content" className="font-bold text-[#6B5B2E] underline">
+      <div className={`${adminCardBase} mb-4 max-w-3xl space-y-3 p-4 text-xs text-[#5C5346]`}>
+        <p>
+          <strong className="text-[#1E1810]">Destacados en la portada `/home`:</strong> no se generan solos desde esta cola. En
+          Home → contenido puedes enlazar manualmente a categorías o rutas públicas (chips). Aquí moderas anuncios en Supabase.
+        </p>
+        <Link href="/admin/workspace/home/content" className={`${adminCtaChipSecondary} inline-flex text-xs`}>
           Home → contenido
-        </Link>{" "}
-        puedes enlazar manualmente a categorías o rutas públicas (chips). Aquí moderas anuncios en Supabase.
+        </Link>
       </div>
 
       <div className={`${adminCardBase} mb-4 max-w-3xl p-4 text-xs text-[#5C5346]`}>
@@ -122,21 +124,15 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Link
           href="/admin/workspace/clasificados/servicios"
-          className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-[#7A9E6F]/40 bg-[#F4FAF2] px-4 py-2 text-center text-sm font-semibold text-[#2C4A22] sm:min-h-0 sm:inline-flex"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-dashed border-[#7A9E6F]/55 bg-[#F4FAF2] px-4 py-2.5 text-center text-sm font-bold text-[#2C4A22] shadow-sm transition hover:bg-[#E8F4E4] sm:min-h-10"
           title="Simulación en navegador (localStorage), no es la cola real de Supabase"
         >
           Servicios (simulación local) →
         </Link>
-        <Link
-          href="/admin/categories"
-          className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-center text-sm font-semibold text-[#5C4E2E] sm:min-h-0"
-        >
+        <Link href="/admin/categories" className={`${adminCtaChipSecondary} justify-center text-sm`}>
           Registro de categorías →
         </Link>
-        <Link
-          href="/admin/reportes"
-          className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2 text-center text-sm font-semibold text-[#2C2416] sm:min-h-0"
-        >
+        <Link href="/admin/reportes" className={`${adminCtaChipSecondary} justify-center text-sm`}>
           Reportes →
         </Link>
       </div>
@@ -240,7 +236,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
       </AdminSectionCard>
 
       <div className="mt-8">
-        <Link href="/admin/workspace" className="text-sm font-semibold text-[#2A2620] underline">
+        <Link href="/admin/workspace" className={`${adminCtaChipCompact} inline-flex text-sm`}>
           ← Resumen de secciones del sitio
         </Link>
       </div>

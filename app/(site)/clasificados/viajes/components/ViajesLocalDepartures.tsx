@@ -25,7 +25,7 @@ export function ViajesLocalDepartures() {
             </div>
             <div className="flex flex-1 flex-col p-4 sm:p-5">
               <h3 className="text-base font-bold text-[color:var(--lx-text)] sm:text-lg">{card.title}</h3>
-              <p className="mt-2 flex-1 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{card.description}</p>
+              <p className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{card.description}</p>
               <div className="mt-4 flex items-center justify-between gap-3 border-t border-[color:var(--lx-nav-border)] pt-4">
                 <span className="text-xs text-[color:var(--lx-muted)]" aria-hidden>
                   📍

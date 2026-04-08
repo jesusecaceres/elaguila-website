@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { adminCardBase } from "./adminTheme";
+import { adminCardBase, adminCtaChip } from "./adminTheme";
 
 export function AdminStatCard({
   title,
@@ -35,10 +35,7 @@ export function AdminStatCard({
       <p className="mt-3 text-3xl font-bold tabular-nums text-[#1E1810]">{value}</p>
       {hint ? <p className="mt-1 text-xs text-[#5C5346]/85">{hint}</p> : null}
       {actionLabel && actionHref ? (
-        <Link
-          href={actionHref}
-          className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2.5 text-xs font-bold text-[#5C4E2E] hover:bg-[#F3EBDD] sm:min-h-0 sm:py-2"
-        >
+        <Link href={actionHref} className={`${adminCtaChip} mt-4 w-full text-xs sm:w-auto`}>
           {actionLabel} →
         </Link>
       ) : null}

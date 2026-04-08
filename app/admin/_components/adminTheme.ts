@@ -21,6 +21,28 @@ export const adminBtnSecondary =
 export const adminBtnDark =
   "inline-flex items-center justify-center gap-2 rounded-2xl bg-[#2A2620] px-4 py-2.5 text-sm font-semibold text-[#FAF7F2] shadow-md hover:bg-[#1a1814]";
 
+/** Shared focus ring for chip-style admin links (warm offset matches cards). */
+export const adminCtaFocusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9B46A]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFFCF7]";
+
+/**
+ * Primary admin CTA chip — dashboard “Website editing”, high-confidence shortcuts.
+ * Aligned with Tienda stat-card actions: wax gradient, strong border, 44px min tap target on mobile.
+ */
+export const adminCtaChip =
+  "inline-flex min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-2xl border border-[#C9B46A]/55 bg-gradient-to-br from-[#FBF3DD] via-[#FFFCF7] to-[#F0DFB8] px-4 py-2.5 text-sm font-bold text-[#1E1810] shadow-[0_2px_10px_-3px_rgba(42,35,20,0.16)] transition hover:border-[#A68B3A]/75 hover:shadow-md active:scale-[0.99] sm:min-h-10 " +
+  adminCtaFocusRing;
+
+/** Secondary chip for shortcut strips and supporting actions (still bold, less visual weight than primary). */
+export const adminCtaChipSecondary =
+  "inline-flex min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2.5 text-sm font-bold text-[#2C2416] shadow-sm transition hover:border-[#C9B46A]/45 hover:bg-[#FAF7F2] hover:shadow active:scale-[0.99] sm:min-h-10 " +
+  adminCtaFocusRing;
+
+/** Compact chip for dense groups (e.g. in-page nav, shortcut rows). */
+export const adminCtaChipCompact =
+  "inline-flex min-h-[40px] shrink-0 items-center justify-center rounded-xl border border-[#DED4C4] bg-[#FFFCF7]/95 px-3 py-2 text-xs font-bold text-[#5C4E2E] shadow-sm transition hover:border-[#C9B46A]/55 hover:bg-[#FBF7EF] active:scale-[0.99] " +
+  adminCtaFocusRing;
+
 export const adminTableWrap =
   "max-w-full min-w-0 overflow-x-auto rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 [-webkit-overflow-scrolling:touch]";
 

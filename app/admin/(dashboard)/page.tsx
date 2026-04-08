@@ -3,7 +3,7 @@ import { AdminPageHeader } from "../_components/AdminPageHeader";
 import { AdminQuickActionsRail } from "../_components/AdminQuickActionsRail";
 import { AdminSectionCard } from "../_components/AdminSectionCard";
 import { AdminStatCard } from "../_components/AdminStatCard";
-import { adminCardBase } from "../_components/adminTheme";
+import { adminCardBase, adminCtaChip, adminCtaChipSecondary } from "../_components/adminTheme";
 import { getAdminDashboardSnapshot } from "../_lib/adminDashboardData";
 import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } from "../_lib/clasificadosCategoryRegistry";
 import { AdminTiendaOrderStatusBadge } from "../_components/tienda/AdminTiendaOrderStatusBadge";
@@ -30,19 +30,19 @@ export default async function AdminHomePage() {
           helperText="La barra lateral es administración global. Para editar secciones del sitio (home, clasificados, tienda…), abre Website sections abajo o en el pie del menú."
         />
 
-        <div className="mb-6 rounded-2xl border border-[#C9B46A]/35 bg-[#FFFCF7]/95 p-4 text-sm text-[#5C5346]">
-          <p className="font-semibold text-[#1E1810]">Website editing (sections)</p>
-          <p className="mt-1 text-xs text-[#7A7164]">
+        <div className="mb-6 rounded-2xl border border-[#C9B46A]/35 bg-[#FFFCF7]/95 p-4 text-sm text-[#5C5346] sm:p-5">
+          <p className="text-base font-bold text-[#1E1810]">Website editing (sections)</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-[#7A7164]">
             Public pages are grouped under workspaces — not the same links as the live site menu. Global toggles that cross many pages live in site-wide settings.
           </p>
-          <div className="mt-3 flex flex-wrap gap-3 text-xs font-bold">
-            <Link href="/admin/workspace" className="text-[#6B5B2E] underline underline-offset-2">
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
+            <Link href="/admin/workspace" className={`${adminCtaChip} w-full justify-center sm:w-auto`}>
               Website sections →
             </Link>
-            <Link href="/admin/site-settings" className="text-[#6B5B2E] underline underline-offset-2">
+            <Link href="/admin/site-settings" className={`${adminCtaChip} w-full justify-center sm:w-auto`}>
               Ajustes globales del sitio →
             </Link>
-            <Link href="/admin/ops" className="text-[#6B5B2E] underline underline-offset-2">
+            <Link href="/admin/ops" className={`${adminCtaChip} w-full justify-center sm:w-auto`}>
               Customer ops search →
             </Link>
           </div>
@@ -143,7 +143,7 @@ export default async function AdminHomePage() {
                 ))
               )}
             </ul>
-            <Link href="/admin/tienda/orders" className="mt-4 inline-flex text-sm font-bold text-[#2A2620] underline">
+            <Link href="/admin/tienda/orders" className={`${adminCtaChipSecondary} mt-4 inline-flex`}>
               Full Tienda inbox →
             </Link>
           </AdminSectionCard>
@@ -285,7 +285,7 @@ export default async function AdminHomePage() {
                 </div>
               ))}
             </div>
-            <Link href="/admin/categories" className="mt-4 inline-flex text-sm font-bold text-[#2A2620] underline">
+            <Link href="/admin/categories" className={`${adminCtaChipSecondary} mt-4 inline-flex`}>
               Manage categories →
             </Link>
           </AdminSectionCard>
@@ -302,7 +302,7 @@ export default async function AdminHomePage() {
               <p className="mt-3 text-xs text-[#5C5346]/90">
                 Métricas de lectura no están en este panel; usa analítica del sitio cuando aplique.
               </p>
-              <Link href="/admin/workspace/revista" className="mt-3 inline-flex text-sm font-bold text-[#6B5B2E] underline">
+              <Link href="/admin/workspace/revista" className={`${adminCtaChipSecondary} mt-3 inline-flex`}>
                 Gestionar números →
               </Link>
             </div>

@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
-import { adminCardBase, adminBtnSecondary, adminInputClass, adminReadOnlyBadgeClass, adminStubBadgeClass } from "../../_components/adminTheme";
+import {
+  adminCardBase,
+  adminBtnSecondary,
+  adminInputClass,
+  adminReadOnlyBadgeClass,
+  adminStubBadgeClass,
+  adminCtaChipSecondary,
+} from "../../_components/adminTheme";
 
 export const dynamic = "force-dynamic";
 
@@ -92,8 +99,8 @@ export default function AdminSupportPage() {
         </div>
       </div>
 
-      <div className="mt-6 text-sm">
-        <Link href="/admin/reportes" className="font-bold text-[#6B5B2E] underline">
+      <div className="mt-6">
+        <Link href="/admin/reportes" className={`${adminCtaChipSecondary} inline-flex`}>
           Open reports queue →
         </Link>
       </div>

@@ -9,6 +9,7 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 import { VIAJES_RESULTS_SAMPLE, type ViajesResultRow } from "../data/viajesResultsSampleData";
+import { VIAJES_TRIP_TYPE_HERO_OPTIONS, viajesRowMatchesTripParam } from "../data/viajesTripTypes";
 import { ViajesResultsAffiliateCard } from "./ViajesResultsAffiliateCard";
 import { ViajesResultsBusinessCard } from "./ViajesResultsBusinessCard";
 import {
@@ -47,13 +48,14 @@ function matchesFilters(row: ViajesResultRow, f: ViajesResultsFiltersState, topD
   if (f.departureCity) {
     const dep = row.kind === "affiliate" ? row.departureContext.toLowerCase() : row.departureCity.toLowerCase();
     const map: Record<string, string[]> = {
-      "san-jose": ["sjo", "san josé", "san jose"],
+      "san-jose": ["sjo", "san josé", "san jose", "sjc"],
       "san-francisco": ["san francisco", "sfo"],
       oakland: ["oakland", "oak"],
     };
     const needles = map[f.departureCity] ?? [f.departureCity.replace(/-/g, " ")];
     if (!needles.some((n) => dep.includes(n))) return false;
   }
+  if (f.tripType && !viajesRowMatchesTripParam(row.tripTypeKeys, f.tripType)) return false;
   return true;
 }
 
@@ -213,9 +215,9 @@ export function ViajesResultsShell() {
                 }}
               >
                 <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="san-jose">San José (SJO)</option>
-                <option value="san-francisco">San Francisco</option>
-                <option value="oakland">Oakland</option>
+                <option value="san-jose">San José, CA (SJC)</option>
+                <option value="san-francisco">San Francisco (SFO)</option>
+                <option value="oakland">Oakland (OAK)</option>
               </select>
             </label>
             <label className="md:col-span-2">
@@ -249,10 +251,11 @@ export function ViajesResultsShell() {
                   patchFilters({ tripType: e.target.value });
                 }}
               >
-                <option value="">{lang === "en" ? "All" : "Todos"}</option>
-                <option value="resort">{lang === "en" ? "Resort / package" : "Resort / paquete"}</option>
-                <option value="tour">{lang === "en" ? "Tour" : "Tour"}</option>
-                <option value="crucero">{lang === "en" ? "Cruise" : "Crucero"}</option>
+                {VIAJES_TRIP_TYPE_HERO_OPTIONS.map((o) => (
+                  <option key={o.value || "all"} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="md:col-span-2">

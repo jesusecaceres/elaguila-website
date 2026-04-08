@@ -1,11 +1,19 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import type { ViajesBusinessResult } from "../data/viajesResultsSampleData";
+import { withViajesOfferBackParam } from "../lib/viajesOfferLink";
 
 const VIAJES_ACCENT = "#D97706";
 
 export function ViajesResultsBusinessCard({ row }: { row: ViajesBusinessResult }) {
+  const sp = useSearchParams();
+  const backHref = `/clasificados/viajes/resultados${sp?.toString() ? `?${sp.toString()}` : ""}`;
+  const offerHref = row.href.includes("/oferta/") ? withViajesOfferBackParam(row.href, backHref) : row.href;
+
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] shadow-[0_10px_36px_-14px_rgba(42,36,22,0.18)]">
       <div className="relative aspect-[16/10] w-full">
@@ -23,13 +31,14 @@ export function ViajesResultsBusinessCard({ row }: { row: ViajesBusinessResult }
         <p className="mt-3 text-lg font-bold text-[color:var(--lx-text)]">{row.price}</p>
         <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{row.includedSummary}</p>
         <p className="mt-2 text-xs text-[color:var(--lx-muted)]">🗓️ {row.duration}</p>
+        {row.ctaHint ? <p className="mt-2 text-[11px] font-medium text-[color:var(--lx-text-2)]">{row.ctaHint}</p> : null}
         <div className="mt-auto flex flex-col gap-2 pt-4 sm:flex-row sm:flex-wrap">
           <Link
-            href={row.href}
+            href={offerHref}
             className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm transition hover:brightness-105"
             style={{ backgroundColor: VIAJES_ACCENT }}
           >
-            Ver oferta
+            Ver ficha publicada
           </Link>
           {row.whatsapp ? (
             <a
@@ -42,10 +51,10 @@ export function ViajesResultsBusinessCard({ row }: { row: ViajesBusinessResult }
             </a>
           ) : null}
           <Link
-            href={row.href}
+            href={offerHref}
             className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-[color:var(--lx-cta-dark)] bg-transparent text-sm font-bold text-[color:var(--lx-cta-dark)] transition hover:bg-[color:var(--lx-nav-hover)]"
           >
-            Contactar
+            Más detalles
           </Link>
         </div>
       </div>

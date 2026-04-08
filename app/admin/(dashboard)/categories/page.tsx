@@ -7,6 +7,7 @@ import {
   adminPartialBadgeClass,
   adminReadOnlyBadgeClass,
   adminBtnDark,
+  adminCtaChipCompact,
 } from "../../_components/adminTheme";
 import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } from "../../_lib/clasificadosCategoryRegistry";
 import { fetchListingStatsForCategorySlugs } from "../../_lib/adminCategoryListingStats";
@@ -88,19 +89,19 @@ export default async function AdminCategoriesPage() {
         </div>
       </div>
 
-      <div className={`${adminCardBase} mb-6 space-y-2 p-4 text-sm text-[#5C5346]`}>
-        <p className="font-semibold text-[#1E1810]">Operational shortcuts</p>
-        <div className="flex flex-wrap gap-3 text-xs font-bold">
-          <Link href="/admin/workspace/clasificados" className="text-[#6B5B2E] underline">
+      <div className={`${adminCardBase} mb-6 space-y-3 p-4 text-sm text-[#5C5346] sm:p-5`}>
+        <p className="font-bold text-[#1E1810]">Operational shortcuts</p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <Link href="/admin/workspace/clasificados" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
             Clasificados workspace →
           </Link>
-          <Link href="/admin/reportes" className="text-[#6B5B2E] underline">
+          <Link href="/admin/reportes" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
             Reports queue →
           </Link>
-          <Link href="/admin/ops" className="text-[#6B5B2E] underline">
+          <Link href="/admin/ops" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
             Customer ops search →
           </Link>
-          <Link href="/admin/tienda/orders" className="text-[#6B5B2E] underline">
+          <Link href="/admin/tienda/orders" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
             Tienda orders →
           </Link>
         </div>

@@ -184,6 +184,42 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
     },
     description: "Propiedad 5★ con múltiples restaurantes, actividades para niños y adultos, y playa privada.",
   },
+  "cancun-renta-auto": {
+    slug: "cancun-renta-auto",
+    heroImageSrc: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=2000&q=80",
+    heroImageAlt: "Auto en carretera tropical",
+    title: "Renta de auto en Cancún (CUN)",
+    destination: "Cancún, Quintana Roo, México",
+    priceFrom: "Desde $32 / día",
+    duration: "Reserva mínima 3 días",
+    departureCity: "Recogida CUN · vuelo aparte (SFO / SJC / OAK)",
+    tags: ["Renta de autos", "Flexible", "Independiente"],
+    mainCtaLabel: "Ver tarifas en socio",
+    mainCtaHref: "https://example.com/car-rental-cancun",
+    includes: [
+      "Categoría compacta o SUV sujeta a disponibilidad",
+      "Kilometraje con política del proveedor",
+      "Seguro básico incluido (revisa deducibles en el checkout)",
+      "Cancelación según términos del arrendador",
+    ],
+    whoItsFor: [
+      "Viajeros que ya tienen vuelo y hotel y solo necesitan movilidad.",
+      "Familias que prefieren rutas a cenotes y playas con horario propio.",
+    ],
+    partner: {
+      name: "Socio renta autos Leonix",
+      isAffiliate: true,
+      affiliateDisclosure:
+        "Leonix muestra tarifas de un socio comercial de renta de autos; el contrato final lo emite el proveedor en su sitio.",
+      ctaLabel: "Continuar con el proveedor",
+      ctaHref: "https://example.com/car-rental-cancun",
+      secondaryCtaLabel: "Ver más en resultados",
+      secondaryCtaHref: "/clasificados/viajes/resultados?t=renta-autos",
+    },
+    description:
+      "Comparativo de flotas en zona Cancún–Riviera Maya con recogida en CUN. Ideal para combinar con estancia en resort o Airbnb.",
+    trustNote: "Revisa cargos por conductor joven, gasolina y regreso en otra ciudad antes de confirmar.",
+  },
   "tahoe-fin-semana": {
     slug: "tahoe-fin-semana",
     heroImageSrc: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=2000&q=80",

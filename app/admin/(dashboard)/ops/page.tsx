@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
-import { adminCardBase, adminTableWrap, adminBtnSecondary } from "../../_components/adminTheme";
+import { adminCardBase, adminTableWrap, adminBtnSecondary, adminCtaChipCompact } from "../../_components/adminTheme";
 import { runAdminUnifiedSearch } from "../../_lib/adminOpsUnifiedSearch";
 
 export const dynamic = "force-dynamic";
@@ -75,31 +75,29 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
         <>
           <nav
             aria-label="Saltar a sección de resultados"
-            className={`${adminCardBase} flex flex-wrap gap-2 p-3 text-xs font-bold text-[#6B5B2E]`}
+            className={`${adminCardBase} flex flex-col gap-2 p-3 sm:flex-row sm:flex-wrap sm:items-center`}
           >
-            <a href="#ops-profiles" className="underline">
-              Perfiles
-            </a>
-            <span className="text-[#D4C4A8]">·</span>
-            <a href="#ops-context" className="underline">
-              Contexto
-            </a>
-            <span className="text-[#D4C4A8]">·</span>
-            <a href="#ops-listings" className="underline">
-              Anuncios
-            </a>
-            <span className="text-[#D4C4A8]">·</span>
-            <a href="#ops-orders" className="underline">
-              Tienda
-            </a>
-            <span className="text-[#D4C4A8]">·</span>
-            <a href="#ops-reports" className="underline">
-              Reportes
-            </a>
-            <span className="text-[#D4C4A8]">·</span>
-            <a href="#ops-shortcuts" className="underline">
-              Atajos
-            </a>
+            <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">En esta página</span>
+            <div className="flex min-w-0 flex-wrap gap-2">
+              <a href="#ops-profiles" className={adminCtaChipCompact}>
+                Perfiles
+              </a>
+              <a href="#ops-context" className={adminCtaChipCompact}>
+                Contexto
+              </a>
+              <a href="#ops-listings" className={adminCtaChipCompact}>
+                Anuncios
+              </a>
+              <a href="#ops-orders" className={adminCtaChipCompact}>
+                Tienda
+              </a>
+              <a href="#ops-reports" className={adminCtaChipCompact}>
+                Reportes
+              </a>
+              <a href="#ops-shortcuts" className={adminCtaChipCompact}>
+                Atajos
+              </a>
+            </div>
           </nav>
 
           {(pErr || lErr || oErr || rErr) && (
@@ -362,20 +360,20 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
             className={`${adminCardBase} scroll-mt-24 border-dashed border-[#C9B46A]/50 bg-[#FFF8F0]/80 p-4 text-xs text-[#5C5346]`}
           >
             <p className="font-semibold text-[#1E1810]">Atajos</p>
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-bold">
-              <Link href="/admin/usuarios" className="text-[#6B5B2E] underline">
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              <Link href="/admin/usuarios" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
                 Usuarios
               </Link>
-              <Link href="/admin/reportes" className="text-[#6B5B2E] underline">
+              <Link href="/admin/reportes" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
                 Reportes
               </Link>
-              <Link href="/admin/workspace/clasificados" className="text-[#6B5B2E] underline">
+              <Link href="/admin/workspace/clasificados" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
                 Clasificados
               </Link>
-              <Link href="/admin/tienda/orders" className="text-[#6B5B2E] underline">
+              <Link href="/admin/tienda/orders" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
                 Pedidos Tienda
               </Link>
-              <Link href="/admin/categories" className="text-[#6B5B2E] underline">
+              <Link href="/admin/categories" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
                 Categorías
               </Link>
             </div>

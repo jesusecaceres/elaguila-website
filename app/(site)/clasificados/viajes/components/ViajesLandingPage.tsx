@@ -8,7 +8,7 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 import { ViajesAudienceBuckets } from "./ViajesAudienceBuckets";
-import { ViajesCategoryPills } from "./ViajesCategoryPills";
+import { ViajesCategoryCarousel } from "./ViajesCategoryCarousel";
 import { ViajesDestinations } from "./ViajesDestinations";
 import { ViajesHero } from "./ViajesHero";
 import { ViajesLocalDepartures } from "./ViajesLocalDepartures";
@@ -44,21 +44,21 @@ export function ViajesLandingPage() {
         </div>
       </div>
 
-      <ViajesHero searchBar={<ViajesSearchBar />} />
+      <ViajesHero searchBar={<ViajesSearchBar lang={lang} />} />
 
       <main className="mx-auto max-w-7xl px-4 pb-8 sm:px-5 lg:px-6">
         <section className="mt-10 sm:mt-12">
           <p className="mb-3 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)] sm:text-left">
             Explora por tipo de viaje
           </p>
-          <ViajesCategoryPills />
+          <ViajesCategoryCarousel />
         </section>
 
-        <ViajesTopOffers />
+        <ViajesTopOffers homeBackHref={appendLangToPath("/clasificados/viajes", lang)} />
         <ViajesLocalDepartures />
         <ViajesDestinations />
         <ViajesAudienceBuckets />
-        <ViajesLowerSections />
+        <ViajesLowerSections homeBackHref={appendLangToPath("/clasificados/viajes", lang)} />
       </main>
     </div>
   );

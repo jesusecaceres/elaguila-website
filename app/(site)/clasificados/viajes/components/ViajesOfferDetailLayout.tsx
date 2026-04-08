@@ -8,10 +8,12 @@ const ACCENT = "#D97706";
 export function ViajesOfferDetailLayout({
   offer,
   backHref,
+  backLabel = "Volver",
   preview = false,
 }: {
   offer: ViajesOfferDetailModel;
   backHref: string;
+  backLabel?: string;
   preview?: boolean;
 }) {
   const { partner } = offer;
@@ -39,7 +41,7 @@ export function ViajesOfferDetailLayout({
               href={backHref}
               className="mb-4 inline-flex text-xs font-semibold text-white/90 underline-offset-4 hover:text-white hover:underline"
             >
-              ← Volver a resultados
+              ← {backLabel}
             </Link>
             <div className="flex flex-wrap gap-2">
               {offer.tags.map((t) => (
