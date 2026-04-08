@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
@@ -45,6 +46,7 @@ function parseOptFloat(raw: string): number | undefined {
 }
 
 export function AutosPrivadoApplication() {
+  const router = useRouter();
   const { lang, t } = useAutosPrivadoLang();
   const {
     hydrated,
@@ -53,6 +55,7 @@ export function AutosPrivadoApplication() {
     listing,
     setListingPatch,
     resetDraft,
+    flushDraft,
   } = useAutoPrivadoDraft();
 
   const autoTitlePreview = useMemo(
@@ -494,6 +497,13 @@ export function AutosPrivadoApplication() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <Link
               href={previewHref}
+              onClick={(e) => {
+                e.preventDefault();
+                void (async () => {
+                  await flushDraft();
+                  router.push(previewHref);
+                })();
+              }}
               className="inline-flex min-h-[48px] w-full items-center justify-center rounded-[14px] bg-[color:var(--lx-cta-dark)] px-6 text-sm font-bold text-[#FFFCF7] shadow-lg transition hover:bg-[color:var(--lx-cta-dark-hover)] sm:w-auto"
             >
               {t.app.actions.preview}

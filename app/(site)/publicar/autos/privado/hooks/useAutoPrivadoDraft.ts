@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
   clearAutosPrivadoDraft,
@@ -33,6 +33,10 @@ export function useAutoPrivadoDraft() {
   overrideRef.current = vehicleTitleOverride;
 
   const namespaceRef = useRef<string | null>(null);
+  const listingRef = useRef(listing);
+  useLayoutEffect(() => {
+    listingRef.current = listing;
+  }, [listing]);
 
   const hydrateFromNamespace = useCallback(async (namespace: string) => {
     const d = await loadAutosPrivadoDraftResolved(namespace);
@@ -118,7 +122,23 @@ export function useAutoPrivadoDraft() {
     if (ns) await clearAutosPrivadoDraft(ns);
     setVehicleTitleOverride(false);
     overrideRef.current = false;
-    setListing({ ...createEmptyListing(), autosLane: "privado" });
+    const empty = { ...createEmptyListing(), autosLane: "privado" as const };
+    listingRef.current = empty;
+    setListing(empty);
+  }, []);
+
+  /** Await before navigating to preview so IDB + localStorage reflect the latest media. */
+  const flushDraft = useCallback(async () => {
+    const ns = namespaceRef.current;
+    if (!ns) return;
+    const merged = normalizeLoadedListing({ ...listingRef.current, autosLane: "privado" });
+    const withTitle = applyAutoTitle(merged, overrideRef.current);
+    const normalized = normalizeLoadedListing(withTitle);
+    await saveAutosPrivadoDraftResolved(ns, {
+      v: 1,
+      vehicleTitleOverride: overrideRef.current,
+      listing: normalized,
+    });
   }, []);
 
   return {
@@ -128,5 +148,6 @@ export function useAutoPrivadoDraft() {
     listing,
     setListingPatch,
     resetDraft,
+    flushDraft,
   };
 }
