@@ -6,8 +6,11 @@ import type { ClasificadosServiciosApplicationState, DayKey } from "./clasificad
 import { inferServiceVisualVariant } from "./inferServiceVisualVariant";
 import { normalizeHttpUrl } from "./socialAndUrlHelpers";
 import { slugifyServiciosBusinessName } from "./serviciosSlug";
+import { WEEK_DAY_LABELS } from "./defaultClasificadosServiciosState";
 
 const JS_DAY_TO_ROW: DayKey[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+
+const WEEK_ORDER: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 const TRUST_ICONS: ServiciosTrustItem["icon"][] = ["shield", "shieldCheck", "star", "clock", "heart", "check"];
 
@@ -175,6 +178,23 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (hoursOpenNowLabel && hoursTodayLine) {
     contact.hoursOpenNowLabel = hoursOpenNowLabel;
     contact.hoursTodayLine = hoursTodayLine;
+  }
+
+  const weeklyHoursRows: { dayLabel: string; line: string }[] = [];
+  for (const day of WEEK_ORDER) {
+    const row = state.hours.find((h) => h.day === day);
+    if (!row) continue;
+    const dayLabel = WEEK_DAY_LABELS[day][lang];
+    const line =
+      row.closed === true
+        ? lang === "en"
+          ? "Closed"
+          : "Cerrado"
+        : `${row.open} – ${row.close}`;
+    weeklyHoursRows.push({ dayLabel, line });
+  }
+  if (weeklyHoursRows.length === WEEK_ORDER.length) {
+    contact.weeklyHoursRows = weeklyHoursRows;
   }
 
   const ig = trimUrl(state.socialInstagram);

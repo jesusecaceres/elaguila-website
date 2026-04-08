@@ -42,6 +42,9 @@ export default async function AdminHomePage() {
             <Link href="/admin/site-settings" className="text-[#6B5B2E] underline underline-offset-2">
               Ajustes globales del sitio →
             </Link>
+            <Link href="/admin/ops" className="text-[#6B5B2E] underline underline-offset-2">
+              Customer ops search →
+            </Link>
           </div>
         </div>
 

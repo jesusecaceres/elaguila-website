@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
+import { AdminSectionOwnershipCallout } from "../../../_components/AdminSectionOwnershipCallout";
 import { adminCardBase, adminBtnSecondary } from "../../../_components/adminTheme";
 
 type TiendaWorkspaceArea = {
@@ -64,6 +65,22 @@ export default function AdminWorkspaceTiendaPage() {
         subtitle="Mapa operativo del equipo: mismas rutas de CRUD que ya funcionan bajo `/admin/tienda/*`. Esta página no reemplaza formularios; orienta qué abrir para cada tarea."
         eyebrow="Workspace · Tienda"
         helperText="Usa la franja “Dentro de Tienda” cuando estés en pedidos o catálogo para saltar entre áreas sin volver al menú global."
+      />
+
+      <AdminSectionOwnershipCallout
+        sectionTitle="Tienda"
+        publicPath="/tienda"
+        sourceOfTruth="Vitrina: copy/imágenes en `site_section_content.tienda_storefront`. Productos: tablas catálogo + `tienda_orders` para pedidos self-serve."
+        siteSectionKey="tienda_storefront"
+        adminEditors={[
+          { label: "Editor vitrina (hero, categorías, textos)", href: "/admin/workspace/tienda/storefront" },
+          { label: "Catálogo admin (CRUD real)", href: "/admin/tienda/catalog" },
+          { label: "Pedidos / inbox", href: "/admin/tienda/orders" },
+          { label: "Customer ops (order ref, email, teléfono)", href: "/admin/ops" },
+        ]}
+        notYet={[
+          "Unificar métricas de margen / fulfillment si operaciones lo piden.",
+        ]}
       />
 
       <div className={`${adminCardBase} mb-6 border-[#C9B46A]/35 bg-[#FFFCF7] p-4 text-sm text-[#5C5346]`}>

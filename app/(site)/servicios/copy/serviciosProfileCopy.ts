@@ -26,6 +26,7 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
       promoViewImage: "View image",
       promoViewPdf: "View PDF",
       videoTour: "Video",
+      weeklyHours: "Weekly hours",
     };
   }
   return {
@@ -52,5 +53,6 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
     promoViewImage: "Ver imagen",
     promoViewPdf: "Ver PDF",
     videoTour: "Video",
+    weeklyHours: "Horario de la semana",
   };
 }

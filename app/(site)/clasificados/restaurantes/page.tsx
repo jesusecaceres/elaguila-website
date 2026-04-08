@@ -2,15 +2,22 @@ import Image from "next/image";
 import Link from "next/link";
 import Navbar from "../../../components/Navbar";
 
-import { restaurants } from "../../../data/restaurants";
-import RestaurantCard from "../components/RestaurantCard";
 import { AlertsPanel } from "./components/R3Widgets";
 import DiscoveryClient from "./components/DiscoveryClient";
+import { RestauranteLandingPublishedTeasers } from "./components/RestauranteLandingPublishedTeasers";
+import { mapDbRowsToPublicResultsRows } from "./lib/restaurantesPublicListingMapper";
+import {
+  countRestaurantesPublicListingsFromDb,
+  listPromotedRestaurantesPublicListingsFromDb,
+  listRestaurantesPublicListingsFromDb,
+} from "./lib/restaurantesPublicListingsServer";
 import { RESTAURANTES_LANDING_CATEGORY_PILLS, RESTAURANTES_LANDING_CUISINE_QUICK } from "./shared/fields/restaurantesTaxonomy";
 
 type Lang = "es" | "en";
 
 type SearchParams = Record<string, string | string[] | undefined>;
+
+export const dynamic = "force-dynamic";
 
 function getLang(searchParams: SearchParams): Lang {
   const v = searchParams?.lang;
@@ -46,24 +53,15 @@ export default async function Page({
     diet: (first(sp, "diet") as any) || "",
   };
 
-  const filtered = restaurants.filter((r) => {
-    const q = initialDiscovery.q.toLowerCase();
-    if (q) {
-      const hay = [r.name, r.cuisine, r.city, r.address].filter(Boolean).join(" ").toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    if (initialDiscovery.city) {
-      const city = (r.city || "").toLowerCase();
-      if (!city) return false;
-      if (!city.includes(initialDiscovery.city.toLowerCase())) return false;
-    }
-    if (initialDiscovery.cuisine) {
-      const c = (r.cuisine || "").toLowerCase();
-      if (!c.includes(initialDiscovery.cuisine.toLowerCase())) return false;
-    }
-    return true;
-  });
-
+  const [promotedDb, recentPoolDb, totalPublished] = await Promise.all([
+    listPromotedRestaurantesPublicListingsFromDb(8),
+    listRestaurantesPublicListingsFromDb(48),
+    countRestaurantesPublicListingsFromDb(),
+  ]);
+  const promotedRows = mapDbRowsToPublicResultsRows(promotedDb);
+  const recentPool = mapDbRowsToPublicResultsRows(recentPoolDb);
+  const promotedIds = new Set(promotedRows.map((p) => p.id));
+  const recentRows = recentPool.filter((r) => !promotedIds.has(r.id)).slice(0, 8);
 
   const listaHref = `/clasificados/restaurantes/resultados?lang=${lang}`;
   const postHref = `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?cat=restaurantes&lang=${lang}`)}`;
@@ -113,7 +111,11 @@ export default async function Page({
               </Link>
             ))}
           </div>
-          <p className="mt-1.5 text-[11px] text-[#111111]/70">{lang === "es" ? "Usa el botón para ver resultados con filtros." : "Use the button below to see results with filters."}</p>
+          <p className="mt-1.5 text-[11px] text-[#111111]/70">
+            {lang === "es"
+              ? `Listados reales en Leonix${totalPublished > 0 ? ` · ${totalPublished} publicado(s)` : ""}. Usa resultados para filtrar.`
+              : `Real listings on Leonix${totalPublished > 0 ? ` · ${totalPublished} published` : ""}. Use results to filter.`}
+          </p>
         </section>
       </div>
 
@@ -218,45 +220,39 @@ export default async function Page({
             <AlertsPanel lang={lang} />
           </div>
 
-<div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filtered.length > 0 ? (
-              filtered.map((r) => <RestaurantCard key={r.id} r={r} lang={lang} />)
-            ) : (
-              <>
-                <Placeholder lang={lang} />
-                <Placeholder lang={lang} />
-                <Placeholder lang={lang} />
-                <Placeholder lang={lang} />
-              </>
-            )}
-          </div>
+          <RestauranteLandingPublishedTeasers
+            lang={lang}
+            promoted={promotedRows}
+            recent={recentRows}
+            totalPublished={totalPublished}
+          />
 
-          {restaurants.length === 0 && (
+          {totalPublished === 0 ? (
             <div className="mt-10 rounded-2xl border border-black/10 bg-[#F5F5F5] p-6 text-center">
               <div className="text-base font-semibold text-[#111111]">
-                {lang === "es" ? "Tu ciudad está lista." : "Your city is ready."}
+                {lang === "es" ? "Sé el primero en publicar." : "Be the first to publish."}
               </div>
               <div className="mt-2 text-sm text-[#111111]">
                 {lang === "es"
-                  ? "Lanza tu presencia aquí y recibe clientes con intent alto."
-                  : "Launch your presence here and capture high-intent customers."}
+                  ? "Los listados aparecen aquí y en resultados cuando publicas desde el flujo de Restaurantes."
+                  : "Listings show here and in results when you publish from the Restaurantes flow."}
               </div>
-              <div className="mt-5 flex flex-col sm:flex-row gap-3 justify-center">
+              <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link
                   href={`/clasificados/restaurantes/paquetes?lang=${lang}`}
-                  className="rounded-xl border border-yellow-400/45 bg-[#F2EFE8] px-5 py-2 text-sm font-semibold text-yellow-200 hover:bg-[#F2EFE8] transition"
+                  className="rounded-xl border border-yellow-400/45 bg-[#F2EFE8] px-5 py-2 text-sm font-semibold text-yellow-200 transition hover:bg-[#F2EFE8]"
                 >
                   {lang === "es" ? "Publicar restaurante" : "Post restaurant"}
                 </Link>
                 <Link
                   href={`/clasificados#memberships?lang=${lang}`}
-                  className="rounded-xl border border-white/15 bg-[#F5F5F5] px-5 py-2 text-sm font-semibold text-[#111111] hover:bg-white/10 transition"
+                  className="rounded-xl border border-white/15 bg-[#F5F5F5] px-5 py-2 text-sm font-semibold text-[#111111] transition hover:bg-white/10"
                 >
                   {lang === "es" ? "Ver beneficios" : "See benefits"}
                 </Link>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       {/* Mobile sticky actions */}
       <div className="sm:hidden fixed bottom-4 left-0 right-0 z-40 px-4">
@@ -285,36 +281,6 @@ export default async function Page({
         </div>
       </div>
 
-      </div>
-    </div>
-  );
-}
-
-function Placeholder({ lang }: { lang: Lang }) {
-  return (
-    <div className="rounded-2xl border border-yellow-400/15 bg-black/30 p-6">
-      <div className="flex items-center justify-between gap-3">
-        <div className="h-4 w-48 bg-white/10 rounded" />
-        <div className="h-6 w-20 bg-[#F5F5F5] rounded-full border border-black/10" />
-      </div>
-      <div className="mt-3 h-3 w-36 bg-white/10 rounded" />
-      <div className="mt-2 h-3 w-52 bg-[#F5F5F5] rounded" />
-
-      <div className="mt-6 grid grid-cols-2 gap-2">
-        <div className="h-9 bg-[#F5F5F5] rounded-xl border border-black/10" />
-        <div className="h-9 bg-[#F5F5F5] rounded-xl border border-black/10" />
-        <div className="h-9 bg-[#F5F5F5] rounded-xl border border-black/10" />
-        <div className="h-9 bg-[#F5F5F5] rounded-xl border border-black/10" />
-      </div>
-
-      <div className="mt-6 h-3 w-44 bg-white/10 rounded" />
-      <div className="mt-2 h-3 w-40 bg-[#F5F5F5] rounded" />
-
-      <div className="mt-6 rounded-xl border border-black/10 bg-[#F5F5F5] p-4">
-        <div className="text-sm font-semibold text-[#111111]">
-          {lang === "es" ? "Tu negocio puede estar aquí" : "Your business can be here"}
-        </div>
-        <div className="mt-2 h-3 w-52 bg-white/10 rounded" />
       </div>
     </div>
   );

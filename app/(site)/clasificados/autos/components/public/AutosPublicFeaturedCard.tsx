@@ -1,21 +1,30 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import type { AutosPublicListing } from "../../data/autosPublicSampleTypes";
+import { autosLiveVehiclePath } from "../../filters/autosBrowseFilterContract";
 import { formatAutosLocation, formatAutosMiles, formatAutosUsd } from "./autosPublicFormatters";
 import type { AutosPublicBlueprintCopy } from "../../lib/autosPublicBlueprintCopy";
+import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
 
 export function AutosPublicFeaturedCard({
   listing,
   copy,
+  lang,
 }: {
   listing: AutosPublicListing;
   copy: AutosPublicBlueprintCopy;
+  lang: AutosPublicLang;
 }) {
   const loc = formatAutosLocation(listing.city, listing.state);
+  const href = `${autosLiveVehiclePath(listing.id)}?lang=${lang}`;
 
   return (
-    <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_12px_40px_-16px_rgba(42,36,22,0.18)] transition hover:shadow-[0_16px_48px_-12px_rgba(42,36,22,0.22)]">
+    <Link
+      href={href}
+      className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_12px_40px_-16px_rgba(42,36,22,0.18)] transition hover:shadow-[0_16px_48px_-12px_rgba(42,36,22,0.22)]"
+    >
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-[color:var(--lx-section)]">
         <Image
           src={listing.primaryImageUrl}
@@ -56,6 +65,6 @@ export function AutosPublicFeaturedCard({
           </div>
         ) : null}
       </div>
-    </article>
+    </Link>
   );
 }

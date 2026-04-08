@@ -308,9 +308,9 @@ export function BienesRaicesPrivadoForm() {
         </section>
 
         <section className={`${aiCardClass} min-w-0`}>
-          <h2 className={aiTitleClass}>Quién vende</h2>
+          <h2 className={aiTitleClass}>Propietario (particular)</h2>
           <p className={aiSubClass}>
-            Particular: tu nombre y cómo te contactan. No se pide sitio web ni redes sociales.
+            Tu nombre y cómo te contactan. No se pide sitio web ni redes sociales.
           </p>
           <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
             <div className="sm:col-span-2">
@@ -346,13 +346,6 @@ export function BienesRaicesPrivadoForm() {
                 value={state.seller.nombre}
                 onChange={(e) => setState((s) => ({ ...s, seller: { ...s.seller, nombre: e.target.value } }))}
                 autoComplete="name"
-              />
-            </AiField>
-            <AiField label="Cómo apareces (opcional)" hint='Ej. "Propietario", "Vendo por mi cuenta".'>
-              <input
-                className={fieldClass}
-                value={state.seller.etiquetaRol}
-                onChange={(e) => setState((s) => ({ ...s, seller: { ...s.seller, etiquetaRol: e.target.value } }))}
               />
             </AiField>
             <AiField label="Teléfono">

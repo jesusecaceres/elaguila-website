@@ -332,3 +332,7 @@ export function getFeaturedDealerListings(listings: AutosPublicListing[]): Autos
 export function getStandardListings(listings: AutosPublicListing[]): AutosPublicListing[] {
   return listings.filter((l) => !l.featured);
 }
+
+export function getAutosPublicListingById(id: string): AutosPublicListing | undefined {
+  return AUTOS_PUBLIC_SAMPLE_LISTINGS.find((l) => l.id === id);
+}

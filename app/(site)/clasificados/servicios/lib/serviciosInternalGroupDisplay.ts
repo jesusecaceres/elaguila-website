@@ -1,5 +1,18 @@
 import type { ServiciosInternalGroup } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 
+export const SERVICIOS_INTERNAL_GROUP_IDS: ServiciosInternalGroup[] = [
+  "home_trade",
+  "legal",
+  "health",
+  "beauty",
+  "automotive",
+  "education",
+  "pets",
+  "moving",
+  "cleaning",
+  "other",
+];
+
 const MAP: Record<ServiciosInternalGroup, { es: string; en: string }> = {
   home_trade: { es: "Hogar y oficios", en: "Home & trades" },
   legal: { es: "Legal", en: "Legal" },

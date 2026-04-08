@@ -19,14 +19,12 @@ import type {
   RestauranteServiceMode,
 } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import Navbar from "@/app/components/Navbar";
-import { RESTAURANTE_RESULTS_SAMPLE_LISTINGS, type RestauranteResultsSampleRow } from "./restaurantesSampleListings";
+import type { RestaurantePublicResultsRow } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 
 type Lang = "es" | "en";
 type SortId = "newest" | "name-asc";
 
-const SHELL_DETAIL_HREF = "/clasificados/restaurantes/shell";
-
-function textMatch(q: string, row: RestauranteResultsSampleRow): boolean {
+function textMatch(q: string, row: RestaurantePublicResultsRow): boolean {
   const t = q.trim().toLowerCase();
   if (!t) return true;
   const blob = `${row.businessName} ${row.summaryShort} ${row.cityCanonical} ${row.neighborhood ?? ""}`.toLowerCase();
@@ -53,7 +51,7 @@ const DISCOVERY_CUISINE_ALIASES: Record<string, RestauranteCuisineKey> = {
   dessert: "dessert",
 };
 
-function rowMatchesCuisineFilter(param: string, row: RestauranteResultsSampleRow): boolean {
+function rowMatchesCuisineFilter(param: string, row: RestaurantePublicResultsRow): boolean {
   const raw = param.trim();
   if (!raw) return true;
 
@@ -75,7 +73,7 @@ function rowMatchesCuisineFilter(param: string, row: RestauranteResultsSampleRow
   return p.includes(q) || (s.length > 0 && s.includes(q));
 }
 
-export function RestauranteResultsClient() {
+export function RestauranteResultsClient({ initialListings }: { initialListings: RestaurantePublicResultsRow[] }) {
   const router = useRouter();
   const sp = useSearchParams();
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
@@ -110,7 +108,7 @@ export function RestauranteResultsClient() {
   );
 
   const filtered = useMemo(() => {
-    let list = RESTAURANTE_RESULTS_SAMPLE_LISTINGS.filter((row) => {
+    let list = initialListings.filter((row) => {
       if (!textMatch(q, row)) return false;
       if (city && !row.cityCanonical.toLowerCase().includes(city.toLowerCase())) return false;
       if (zip && (row.zipCode ?? "").trim() !== zip) return false;
@@ -120,7 +118,7 @@ export function RestauranteResultsClient() {
       if (svc && !row.serviceModeKeys.includes(svc as RestauranteServiceMode)) return false;
       if (mv && !row.movingVendor) return false;
       if (hb && !row.homeBasedBusiness) return false;
-      if (ft && !row.foodTruck) return false;
+      if (ft && !row.foodTruck && row.businessTypeKey !== "food_truck") return false;
       if (hl && !row.highlightKeys.includes(hl as RestauranteHighlightKey)) return false;
       return true;
     });
@@ -131,7 +129,7 @@ export function RestauranteResultsClient() {
     });
 
     return list;
-  }, [q, city, zip, cuisine, bt, price, svc, mv, hb, ft, hl, sort]);
+  }, [initialListings, q, city, zip, cuisine, bt, price, svc, mv, hb, ft, hl, sort]);
 
   const promoted = useMemo(() => filtered.filter((r) => r.sponsored).slice(0, 2), [filtered]);
   const promotedIds = useMemo(() => new Set(promoted.map((p) => p.id)), [promoted]);
@@ -141,8 +139,8 @@ export function RestauranteResultsClient() {
     title: lang === "es" ? "Restaurantes" : "Restaurants",
     subtitle:
       lang === "es"
-        ? "Explora con filtros alineados a los datos del anuncio (demo con listados de ejemplo)."
-        : "Browse with filters aligned to listing data (demo sample listings).",
+        ? "Explora listados publicados reales; los filtros usan solo campos guardados en cada anuncio."
+        : "Browse real published listings; filters use only fields stored on each listing.",
     searchPh: lang === "es" ? "Buscar nombre o palabras…" : "Search name or keywords…",
     cityPh: lang === "es" ? "Ciudad" : "City",
     zipPh: lang === "es" ? "ZIP" : "ZIP",
@@ -153,7 +151,7 @@ export function RestauranteResultsClient() {
     sortNew: lang === "es" ? "Más recientes" : "Newest",
     sortName: lang === "es" ? "Nombre A–Z" : "Name A–Z",
     filters: lang === "es" ? "Filtros" : "Filters",
-    open: lang === "es" ? "Abrir detalle (demo shell)" : "Open detail (demo shell)",
+    open: lang === "es" ? "Ver anuncio" : "View listing",
   };
 
   return (
@@ -409,7 +407,7 @@ function ResultCard({
   lang,
   compact,
 }: {
-  row: RestauranteResultsSampleRow;
+  row: RestaurantePublicResultsRow;
   lang: Lang;
   compact?: boolean;
 }) {
@@ -428,7 +426,7 @@ function ResultCard({
 
   const meta = [row.cityCanonical, row.zipCode].filter(Boolean).join(" · ");
 
-  const href = `${SHELL_DETAIL_HREF}?from=results&sample=${encodeURIComponent(row.id)}`;
+  const href = `/clasificados/restaurantes/${encodeURIComponent(row.slug)}`;
 
   return (
     <Link

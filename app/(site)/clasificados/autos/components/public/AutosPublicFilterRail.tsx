@@ -1,7 +1,7 @@
 "use client";
 
 import type { AutosPublicBlueprintCopy } from "../../lib/autosPublicBlueprintCopy";
-import type { AutosPublicFilterState } from "./autosPublicFilters";
+import type { AutosPublicFilterState } from "../../filters/autosPublicFilterTypes";
 
 export type AutosPublicFilterOptions = {
   makes: string[];
@@ -18,6 +18,7 @@ export function AutosPublicFilterRail({
   value,
   onChange,
   onReset,
+  onApply,
   copy,
   options,
   idPrefix = "flt",
@@ -25,6 +26,7 @@ export function AutosPublicFilterRail({
   value: AutosPublicFilterState;
   onChange: (patch: Partial<AutosPublicFilterState>) => void;
   onReset: () => void;
+  onApply: () => void;
   copy: AutosPublicBlueprintCopy;
   options: AutosPublicFilterOptions;
   idPrefix?: string;
@@ -62,6 +64,23 @@ export function AutosPublicFilterRail({
           placeholder={copy.zipPlaceholder}
           autoComplete="postal-code"
         />
+      </div>
+      <div>
+        <label className={lab} htmlFor={`${idPrefix}-radius`}>
+          {copy.filterRadius}
+        </label>
+        <input
+          id={`${idPrefix}-radius`}
+          className={inp}
+          inputMode="numeric"
+          value={value.radiusMiles}
+          onChange={(e) => onChange({ radiusMiles: e.target.value.replace(/\D/g, "").slice(0, 3) })}
+          placeholder="—"
+          aria-describedby={`${idPrefix}-radius-hint`}
+        />
+        <p id={`${idPrefix}-radius-hint`} className="mt-1 text-[10px] leading-snug text-[color:var(--lx-muted)]">
+          {copy.filterRadiusHint}
+        </p>
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
@@ -288,9 +307,9 @@ export function AutosPublicFilterRail({
       <button
         type="button"
         className="rounded-xl bg-[color:var(--lx-cta-dark)] py-2.5 text-sm font-bold text-[#FFFCF7] shadow-sm transition hover:bg-[color:var(--lx-cta-dark-hover)]"
-        onClick={() => {}}
+        onClick={onApply}
       >
-        {copy.alertCta}
+        {copy.filterApply}
       </button>
     </div>
   );

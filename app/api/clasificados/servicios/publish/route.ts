@@ -10,6 +10,7 @@ import { getServiciosPublicListingBySlugFromDb } from "@/app/clasificados/servic
 import { mapServiciosApplicationDraftToBusinessProfile } from "@/app/servicios/lib/mapServiciosApplicationDraftToBusinessProfile";
 import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
+import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "@/app/clasificados/servicios/lib/serviciosListingLifecycle";
 
 async function allocateSlug(base: string): Promise<string> {
   if (!isSupabaseAdminConfigured()) return base;
@@ -84,6 +85,7 @@ export async function POST(req: Request) {
             city,
             profile_json: wire,
             internal_group: internalGroup,
+            listing_status: SERVICIOS_LISTING_STATUS_PUBLISHED,
             updated_at: now,
           })
           .eq("slug", slug);
@@ -95,6 +97,7 @@ export async function POST(req: Request) {
           city,
           profile_json: wire,
           internal_group: internalGroup,
+          listing_status: SERVICIOS_LISTING_STATUS_PUBLISHED,
           leonix_verified: false,
           published_at: now,
           updated_at: now,

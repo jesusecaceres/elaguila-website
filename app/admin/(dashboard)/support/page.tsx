@@ -14,13 +14,27 @@ export default function AdminSupportPage() {
       <AdminPageHeader
         title="Support"
         subtitle="Operator console for user assistance. Ticket ingestion is not modeled yet — use user search + Ads/Reports for live data."
-        helperText="La búsqueda de usuario redirige a /admin/usuarios. Chips y notas internas no guardan."
+        helperText="Usuarios: /admin/usuarios (Postgres cuando escribes). Búsqueda cruzada: /admin/ops. Chips y notas internas no guardan."
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
+        <form className={`${adminCardBase} p-6`} action="/admin/ops" method="get">
+          <h2 className="text-sm font-bold text-[#1E1810]">Unified records search</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Cuenta + anuncios Clasificados + pedidos Tienda en una pasada (límite por sección).
+          </p>
+          <label className="mt-4 block text-xs font-semibold text-[#5C5346]" htmlFor="support-ops-q">
+            Query
+          </label>
+          <input id="support-ops-q" name="q" className={`${adminInputClass} mt-1`} placeholder="UUID, email, listing id, order ref…" />
+          <button type="submit" className={`${adminBtnSecondary} mt-3 w-full justify-center`}>
+            Open Customer ops →
+          </button>
+        </form>
+
         <form className={`${adminCardBase} p-6`} action="/admin/usuarios" method="get">
           <h2 className="text-sm font-bold text-[#1E1810]">Quick user lookup</h2>
-          <p className="mt-1 text-xs text-[#7A7164]">Searches profiles via existing admin users page.</p>
+          <p className="mt-1 text-xs text-[#7A7164]">Solo perfiles — lista y detalle existentes.</p>
           <label className="mt-4 block text-xs font-semibold text-[#5C5346]" htmlFor="support-user-q">
             Query
           </label>
@@ -30,7 +44,7 @@ export default function AdminSupportPage() {
           </button>
         </form>
 
-        <div className={`${adminCardBase} p-6`}>
+        <div className={`${adminCardBase} p-6 lg:col-span-2`}>
           <h2 className="text-sm font-bold text-[#1E1810]">Escalation tags</h2>
           <p className="mt-1 text-xs text-[#7A7164]">
             <span className="mr-2 inline-block rounded-full border border-[#E8DFD0] bg-[#FFFCF7] px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C4E2E]">

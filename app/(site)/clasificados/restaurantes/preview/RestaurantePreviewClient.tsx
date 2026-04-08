@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   isRestauranteDraftPristineEmpty,
   mapRestauranteDraftToShellData,
@@ -15,10 +15,35 @@ const EDIT_HREF = "/publicar/restaurantes";
 
 export default function RestaurantePreviewClient() {
   const { hydrated, draft } = useRestauranteDraft();
+  const [pub, setPub] = useState<{ busy: boolean; url?: string; err?: string; persisted?: boolean }>({ busy: false });
 
   const pristine = useMemo(() => isRestauranteDraftPristineEmpty(draft), [draft]);
   const shellData = useMemo(() => mapRestauranteDraftToShellData(draft), [draft]);
   const minOk = useMemo(() => satisfiesRestauranteMinimumValidPreview(draft), [draft]);
+
+  const onPublish = useCallback(async () => {
+    setPub({ busy: true });
+    try {
+      const res = await fetch("/api/clasificados/restaurantes/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ draft }),
+      });
+      const j = (await res.json()) as {
+        ok?: boolean;
+        publicUrl?: string;
+        error?: string;
+        persisted?: boolean;
+      };
+      if (!res.ok || !j.ok) {
+        setPub({ busy: false, err: j.error ?? "publish_failed" });
+        return;
+      }
+      setPub({ busy: false, url: j.publicUrl, persisted: j.persisted, err: undefined });
+    } catch {
+      setPub({ busy: false, err: "network" });
+    }
+  }, [draft]);
 
   if (!hydrated) {
     return (
@@ -70,6 +95,46 @@ export default function RestaurantePreviewClient() {
             <p className="text-xs font-medium text-emerald-800 sm:text-right">Vista previa mínima lista (borrador).</p>
           )}
         </div>
+        {minOk ? (
+          <div className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-4 sm:px-5">
+            <p className="text-sm font-semibold text-[color:var(--lx-text)]">Publicar en Clasificados</p>
+            <p className="mt-1 text-xs text-[color:var(--lx-text-2)]">
+              Misma información que esta vista previa. Requiere Supabase configurado en el servidor para persistir.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                disabled={pub.busy}
+                onClick={() => void onPublish()}
+                className="min-h-[44px] rounded-full bg-[color:var(--lx-cta-dark)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-light)] disabled:opacity-50"
+              >
+                {pub.busy ? "Publicando…" : "Publicar listado"}
+              </button>
+              {pub.url ? (
+                <Link
+                  href={pub.url}
+                  className="text-sm font-semibold text-[color:var(--lx-gold)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4"
+                >
+                  Abrir anuncio público →
+                </Link>
+              ) : null}
+            </div>
+            {pub.err ? (
+              <p className="mt-2 text-xs text-red-700">
+                {pub.err === "not_ready"
+                  ? "Aún no está listo."
+                  : pub.err === "network"
+                    ? "Error de red."
+                    : `No se pudo publicar (${pub.err}).`}
+              </p>
+            ) : null}
+            {pub.persisted === false && pub.url ? (
+              <p className="mt-2 text-xs text-[color:var(--lx-muted)]">
+                Slug generado localmente; conecta Supabase para guardar en resultados y detalle público.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <div
           className="rounded-2xl border border-[color:var(--lx-gold-border)]/40 bg-[color:var(--lx-section)] px-4 py-3 text-xs leading-relaxed text-[color:var(--lx-text-2)] sm:px-5 sm:text-sm"
           role="note"

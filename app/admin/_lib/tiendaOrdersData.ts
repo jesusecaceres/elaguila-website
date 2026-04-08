@@ -205,6 +205,7 @@ export async function listTiendaOrdersForAdmin(params: TiendaOrderListParams): P
         `order_ref.ilike.${term}`,
         `customer_name.ilike.${term}`,
         `customer_email.ilike.${term}`,
+        `customer_phone.ilike.${term}`,
         `product_slug.ilike.${term}`,
         `product_title.ilike.${term}`,
       ];

@@ -215,6 +215,20 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
             </p>
           ) : null}
 
+          {hours?.weeklyRows && hours.weeklyRows.length > 0 ? (
+            <div className="mt-4 border-t border-black/[0.06] pt-4">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-text-2)]">{L.weeklyHours}</p>
+              <ul className="mt-2 space-y-1.5">
+                {hours.weeklyRows.map((r, i) => (
+                  <li key={`${r.dayLabel}-${i}`} className="flex justify-between gap-3 text-xs text-[color:var(--lx-text-2)]">
+                    <span className="min-w-0 shrink font-medium text-[color:var(--lx-text)]">{r.dayLabel}</span>
+                    <span className="shrink-0 text-right tabular-nums">{r.line}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           {location ? (
             <p className="mt-3 flex items-start gap-2 text-xs text-[color:var(--lx-text-2)]">
               <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#3B66AD]" aria-hidden />

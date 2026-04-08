@@ -399,40 +399,24 @@ export function ClasificadosServiciosApplication() {
               <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#5D4A25]/90">{copy.pageSubtitle}</p>
             </div>
             <div className="flex min-w-0 flex-col gap-2 sm:items-end">
-              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
-                <Link
-                  href={previewHref}
-                  onClick={persistStateAndMarkOpeningPreview}
-                  className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-bold text-white shadow-md transition hover:bg-[#2f5699] sm:w-auto sm:min-w-[10rem]"
-                >
-                  {copy.previewCta}
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setPublishOpen(true)}
-                  className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border-2 border-[#3B66AD]/40 bg-white px-4 text-sm font-bold text-[#2f5699] shadow-sm transition hover:bg-[#3B66AD]/5 sm:w-auto sm:min-w-[10rem]"
-                >
-                  {copy.publishCta}
-                </button>
-              </div>
               <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                 <Link
                   href={lang === "es" ? "?lang=en" : "?lang=es"}
-                  className="inline-flex min-h-[40px] items-center rounded-lg border border-[#D8C79A]/70 bg-white px-3 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFF6E7]"
+                  className="inline-flex min-h-[44px] touch-manipulation items-center rounded-lg border border-[#D8C79A]/70 bg-white px-3 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFF6E7]"
                 >
                   {copy.langToggle}
                 </Link>
                 <Link
                   href={`/clasificados/publicar/servicios/preview?lang=${lang}&sample=expert`}
                   onClick={persistStateAndMarkOpeningPreview}
-                  className="inline-flex min-h-[40px] items-center rounded-lg border border-[#D8C79A]/70 bg-white px-3 py-2 text-xs font-semibold text-[#5D4A25]/90 hover:bg-[#FFF6E7]"
+                  className="inline-flex min-h-[44px] touch-manipulation items-center rounded-lg border border-[#D8C79A]/60 bg-white/80 px-3 py-2 text-xs font-semibold text-[#6b5c42] hover:bg-[#FFF6E7]"
                 >
                   {copy.linkPreviewShell}
                 </Link>
                 <Link
                   href={publicarHref}
                   onClick={() => clearClasificadosServiciosApplicationFromBrowser()}
-                  className="inline-flex min-h-[40px] items-center text-sm font-medium text-[#5D4A25]/80 underline underline-offset-2 hover:text-[#3D2C12]"
+                  className="inline-flex min-h-[44px] touch-manipulation items-center text-sm font-medium text-[#5D4A25]/85 underline underline-offset-2 hover:text-[#3D2C12]"
                 >
                   {copy.linkBack}
                 </Link>
@@ -445,11 +429,11 @@ export function ClasificadosServiciosApplication() {
           {hydrated ? (
             <p className="mt-1 text-xs font-medium text-[#6b5c42]">{listingPhaseLine}</p>
           ) : null}
-          <p className="mt-2 text-xs leading-snug text-[#7a6a52] sm:hidden">{copy.labels.mobileStickyHint}</p>
+          <p className="mt-2 text-xs leading-snug text-[#7a6a52]">{copy.labels.bottomActionsHint}</p>
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl space-y-7 px-4 py-6 pb-40 sm:py-8 sm:pb-8 lg:max-w-5xl">
+      <main className="mx-auto max-w-3xl space-y-7 px-4 py-6 pb-32 sm:py-8 sm:pb-32 lg:max-w-5xl">
         {mediaFlash ? (
           <p
             className="rounded-xl border border-amber-200/90 bg-amber-50 px-3 py-2.5 text-sm font-medium text-amber-950 shadow-sm"
@@ -1205,6 +1189,7 @@ export function ClasificadosServiciosApplication() {
         {/* 10 · Hours */}
         <section className={sectionCard}>
           <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.hours}</h2>
+          <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.hoursOutputHint}</p>
           <div className="mt-4 space-y-3">
             {state.hours.map((row) => (
               <div
@@ -1438,21 +1423,23 @@ export function ClasificadosServiciosApplication() {
         </section>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 flex gap-2 border-t border-[#D8C79A]/60 bg-[#FFFDF7]/98 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_28px_rgba(61,44,18,0.12)] backdrop-blur-md sm:hidden">
-        <Link
-          href={previewHref}
-          onClick={persistStateAndMarkOpeningPreview}
-          className="flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl bg-[#3B66AD] px-2 py-3 text-center text-sm font-bold leading-tight text-white shadow-sm active:opacity-95"
-        >
-          {copy.previewCta}
-        </Link>
-        <button
-          type="button"
-          onClick={() => setPublishOpen(true)}
-          className="flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl border-2 border-[#3B66AD]/45 bg-white px-2 py-3 text-center text-sm font-bold leading-tight text-[#2f5699] shadow-sm active:opacity-95"
-        >
-          {copy.publishCta}
-        </button>
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#D8C79A]/60 bg-[#FFFDF7]/98 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_28px_rgba(61,44,18,0.12)] backdrop-blur-md">
+        <div className="mx-auto flex max-w-3xl gap-2 px-3 sm:px-4 lg:max-w-5xl">
+          <Link
+            href={previewHref}
+            onClick={persistStateAndMarkOpeningPreview}
+            className="flex min-h-[52px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl bg-[#3B66AD] px-3 py-3 text-center text-sm font-bold leading-tight text-white shadow-sm transition hover:bg-[#2f5699] active:opacity-95 sm:min-h-[48px]"
+          >
+            {copy.previewCta}
+          </Link>
+          <button
+            type="button"
+            onClick={() => setPublishOpen(true)}
+            className="flex min-h-[52px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl border-2 border-[#3B66AD]/45 bg-white px-3 py-3 text-center text-sm font-bold leading-tight text-[#2f5699] shadow-sm transition hover:bg-[#3B66AD]/5 active:opacity-95 sm:min-h-[48px]"
+          >
+            {copy.publishCta}
+          </button>
+        </div>
       </div>
 
       <ServiciosPublishModal

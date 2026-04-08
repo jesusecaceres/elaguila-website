@@ -1,17 +1,22 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import type { AutosPublicListing } from "../../data/autosPublicSampleTypes";
+import { autosLiveVehiclePath } from "../../filters/autosBrowseFilterContract";
 import { formatAutosLocation, formatAutosMiles, formatAutosUsd } from "./autosPublicFormatters";
 import type { AutosPublicBlueprintCopy } from "../../lib/autosPublicBlueprintCopy";
+import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
 
 export function AutosPublicStandardCard({
   listing,
   copy,
+  lang,
   compact = false,
 }: {
   listing: AutosPublicListing;
   copy: AutosPublicBlueprintCopy;
+  lang: AutosPublicLang;
   compact?: boolean;
 }) {
   const loc = formatAutosLocation(listing.city, listing.state);
@@ -20,8 +25,11 @@ export function AutosPublicStandardCard({
       ? listing.dealerName ?? copy.sellerDealerFooter
       : listing.privateSellerLabel ?? copy.sellerPrivateFooter;
 
+  const href = `${autosLiveVehiclePath(listing.id)}?lang=${lang}`;
+
   return (
-    <article
+    <Link
+      href={href}
       className={`group flex min-w-0 flex-col overflow-hidden rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_6px_24px_-8px_rgba(42,36,22,0.12)] transition hover:border-[color:var(--lx-gold-border)] hover:shadow-[0_10px_32px_-10px_rgba(42,36,22,0.16)] ${
         compact ? "max-w-full" : ""
       }`}
@@ -62,6 +70,6 @@ export function AutosPublicStandardCard({
           </span>
         </div>
       </div>
-    </article>
+    </Link>
   );
 }

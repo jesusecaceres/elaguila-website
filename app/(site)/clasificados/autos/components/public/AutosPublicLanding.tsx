@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
@@ -9,6 +9,8 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { AUTOS_LANDING_CATEGORY_PILLS } from "../../taxonomy/landingTaxonomy";
 import { AUTOS_PUBLIC_BLUEPRINT_COPY } from "../../lib/autosPublicBlueprintCopy";
 import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
+import { parseAutosBrowseUrl, serializeAutosBrowseUrl } from "../../filters/autosBrowseFilterContract";
+import { emptyAutosPublicFilters } from "../../filters/autosPublicFilterTypes";
 import {
   AUTOS_PUBLIC_SAMPLE_LISTINGS,
   getFeaturedDealerListings,
@@ -17,31 +19,63 @@ import {
 import { AutosPublicFeaturedCard } from "./AutosPublicFeaturedCard";
 import { AutosPublicStandardCard } from "./AutosPublicStandardCard";
 
+const RESULTADOS_PATH = "/clasificados/autos/resultados";
+
 export function AutosPublicLanding() {
   const sp = useSearchParams();
-  const lang: AutosPublicLang = sp?.get("lang") === "en" ? "en" : "es";
+  const spStr = sp?.toString() ?? "";
+  const lang: AutosPublicLang = useMemo(
+    () => parseAutosBrowseUrl(new URLSearchParams(spStr)).lang,
+    [spStr],
+  );
   const copy = AUTOS_PUBLIC_BLUEPRINT_COPY[lang];
 
   const [searchQ, setSearchQ] = useState("");
   const [city, setCity] = useState("San Jose");
   const [zip, setZip] = useState("");
 
+  useEffect(() => {
+    const b = parseAutosBrowseUrl(new URLSearchParams(spStr));
+    setSearchQ(b.q);
+    setCity(b.filters.city.trim() || "San Jose");
+    setZip(b.filters.zip);
+  }, [spStr]);
+
   const featured = useMemo(() => getFeaturedDealerListings(AUTOS_PUBLIC_SAMPLE_LISTINGS), []);
   const fresh = useMemo(() => getStandardListings(AUTOS_PUBLIC_SAMPLE_LISTINGS).slice(0, 6), []);
 
-  const resultsHref = (extra: Record<string, string>) => {
-    const q = new URLSearchParams({ lang, ...extra });
-    return `/clasificados/autos/resultados?${q.toString()}`;
-  };
+  const resultsHref = (bundle: Parameters<typeof serializeAutosBrowseUrl>[0]) =>
+    `${RESULTADOS_PATH}?${serializeAutosBrowseUrl(bundle)}`;
+
+  const chipHref = (patch: Partial<ReturnType<typeof emptyAutosPublicFilters>>) =>
+    resultsHref({
+      filters: { ...emptyAutosPublicFilters(), ...patch },
+      q: "",
+      sort: "newest",
+      page: 1,
+      lang,
+    });
 
   const searchHref = useMemo(() => {
-    const q = new URLSearchParams({ lang });
-    if (searchQ.trim()) q.set("q", searchQ.trim());
-    if (city.trim()) q.set("city", city.trim());
-    const z = zip.replace(/\D/g, "").slice(0, 5);
-    if (z.length === 5) q.set("zip", z);
-    return `/clasificados/autos/resultados?${q.toString()}`;
+    const filters = emptyAutosPublicFilters();
+    filters.city = city.trim();
+    filters.zip = zip.replace(/\D/g, "").slice(0, 5);
+    return resultsHref({
+      filters,
+      q: searchQ.trim(),
+      sort: "newest",
+      page: 1,
+      lang,
+    });
   }, [lang, searchQ, city, zip]);
+
+  const browseAllHref = resultsHref({
+    filters: emptyAutosPublicFilters(),
+    q: "",
+    sort: "newest",
+    page: 1,
+    lang,
+  });
 
   const publicarHref = appendLangToPath("/clasificados/publicar", lang as Lang);
 
@@ -131,40 +165,64 @@ export function AutosPublicLanding() {
           <p className="text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{copy.quickDiscovery}</p>
           <div className="mt-3 flex flex-wrap justify-center gap-2">
             <Link
-              href={resultsHref({ bodyStyle: "Sedan" })}
+              href={chipHref({ bodyStyle: "Sedan" })}
               className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-2 text-xs font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)]"
             >
               {copy.chips.sedan}
             </Link>
             <Link
-              href={resultsHref({ bodyStyle: "SUV" })}
+              href={chipHref({ bodyStyle: "SUV" })}
               className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-2 text-xs font-semibold transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)]"
             >
               {copy.chips.suv}
             </Link>
             <Link
-              href={resultsHref({ bodyStyle: "Truck" })}
+              href={chipHref({ bodyStyle: "Truck" })}
               className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-2 text-xs font-semibold transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)]"
             >
               {copy.chips.truck}
             </Link>
             <Link
-              href={resultsHref({ bodyStyle: "Coupe" })}
+              href={chipHref({ bodyStyle: "Coupe" })}
               className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-2 text-xs font-semibold transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)]"
             >
               {copy.chips.coupe}
             </Link>
             <Link
-              href={resultsHref({ priceMin: "45000" })}
+              href={chipHref({ priceMin: "45000" })}
               className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-2 text-xs font-semibold transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)]"
             >
               {copy.chips.luxury}
             </Link>
             <Link
-              href={resultsHref({ fuelType: "Electric" })}
+              href={chipHref({ fuelType: "Electric" })}
               className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-2 text-xs font-semibold transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)]"
             >
               {copy.chips.ev}
+            </Link>
+          </div>
+        </section>
+
+        <section className="mt-6">
+          <p className="text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{copy.filterSeller}</p>
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
+            <Link
+              href={chipHref({ sellerType: "dealer" })}
+              className="rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-4 py-2 text-xs font-bold text-[color:var(--lx-text)] shadow-sm transition hover:brightness-[1.02]"
+            >
+              {copy.sellerDealer}
+            </Link>
+            <Link
+              href={chipHref({ sellerType: "private" })}
+              className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-2 text-xs font-semibold text-[color:var(--lx-text-2)] transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)]"
+            >
+              {copy.sellerPrivate}
+            </Link>
+            <Link
+              href={browseAllHref}
+              className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-2 text-xs font-semibold text-[color:var(--lx-muted)] transition hover:bg-[color:var(--lx-nav-hover)]"
+            >
+              {copy.sellerAll}
             </Link>
           </div>
         </section>
@@ -173,7 +231,7 @@ export function AutosPublicLanding() {
           <h2 className="text-lg font-bold text-[color:var(--lx-text)] sm:text-xl">{copy.featuredZoneTitle}</h2>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {featured.map((l) => (
-              <AutosPublicFeaturedCard key={l.id} listing={l} copy={copy} />
+              <AutosPublicFeaturedCard key={l.id} listing={l} copy={copy} lang={lang} />
             ))}
           </div>
         </section>
@@ -182,14 +240,14 @@ export function AutosPublicLanding() {
           <h2 className="text-lg font-bold text-[color:var(--lx-text)] sm:text-xl">{copy.freshTitle}</h2>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {fresh.map((l) => (
-              <AutosPublicStandardCard key={l.id} listing={l} copy={copy} compact />
+              <AutosPublicStandardCard key={l.id} listing={l} copy={copy} lang={lang} compact />
             ))}
           </div>
         </section>
 
         <div className="mt-12 flex justify-center">
           <Link
-            href={appendLangToPath("/clasificados/autos/resultados", lang as Lang)}
+            href={browseAllHref}
             className="inline-flex min-h-[52px] w-full max-w-md items-center justify-center rounded-2xl bg-[color:var(--lx-cta-dark)] px-8 py-3.5 text-sm font-bold text-[#FFFCF7] shadow-lg transition hover:bg-[color:var(--lx-cta-dark-hover)] sm:min-h-0"
           >
             {copy.browseAll}

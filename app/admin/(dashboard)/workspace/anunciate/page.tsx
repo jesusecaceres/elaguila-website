@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
+import { AdminSectionOwnershipCallout } from "../../../_components/AdminSectionOwnershipCallout";
 import { adminBtnSecondary, adminCardBase, adminReadOnlyBadgeClass, adminStubBadgeClass } from "../../../_components/adminTheme";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,23 @@ export default function AdminWorkspaceAnunciatePage() {
         title="Anúnciate / publicar"
         subtitle="El menú público “Anúnciate” envía al flujo de login y publicación (p. ej. En venta). No hay formulario guardado aquí: la operación vive en Clasificados + auth."
         helperText="Usa esta página como mapa: enlaces rápidos al hub público y a la cola admin de anuncios. Leads/CRM no están modelados."
+      />
+
+      <AdminSectionOwnershipCallout
+        sectionTitle="Anúnciate / publicar"
+        publicPath="/clasificados/publicar (+ ramas)"
+        sourceOfTruth="Auth + tablas `listings` (Clasificados) y flujos específicos por vertical — no hay entidad “anunciate_page” en BD."
+        siteSectionKey={null}
+        adminEditors={[
+          { label: "Clasificados workspace (cola y moderación)", href: "/admin/workspace/clasificados" },
+          { label: "Customer ops (dueño, email, listing id)", href: "/admin/ops" },
+          { label: "Categorías — conteos y enlaces a cola", href: "/admin/categories" },
+          { label: "Reportes", href: "/admin/reportes" },
+        ]}
+        notYet={[
+          "CRM / pipeline de leads si producto lo requiere.",
+          "Unificar métricas de embudo publicar → listing activo.",
+        ]}
       />
 
       <div className={`${adminCardBase} space-y-4 p-6`}>

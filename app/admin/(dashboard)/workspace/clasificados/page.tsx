@@ -82,6 +82,16 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         puedes enlazar manualmente a categorías o rutas públicas (chips). Aquí moderas anuncios en Supabase.
       </div>
 
+      <div className={`${adminCardBase} mb-4 max-w-3xl p-4 text-xs text-[#5C5346]`}>
+        <strong className="text-[#1E1810]">Ramas inmobiliarias (BR / Rentas):</strong> cuando los listados vivan en{" "}
+        <code className="rounded bg-white/80 px-1 text-[11px]">listings</code>, usa{" "}
+        <code className="rounded bg-white/80 px-1 text-[11px]">category</code> y{" "}
+        <code className="rounded bg-white/80 px-1 text-[11px]">detail_pairs</code> para distinguir venta vs renta, Privado vs
+        Negocio y tipo de propiedad. Vista previa de publicación no es listado público:{" "}
+        <code className="rounded bg-white/80 px-1 text-[11px]">/clasificados/bienes-raices/preview/*</code>,{" "}
+        <code className="rounded bg-white/80 px-1 text-[11px]">/clasificados/rentas/preview/*</code>.
+      </div>
+
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Link
           href="/admin/workspace/clasificados/servicios"

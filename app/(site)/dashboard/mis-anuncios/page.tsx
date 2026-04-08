@@ -509,6 +509,31 @@ export default function MyListingsPage() {
             </Link>
           </header>
 
+          <div className="mt-4 rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-4 text-xs leading-relaxed text-[#5C5346]">
+            <p className="font-semibold text-[#1E1810]">BR / Rentas — gestión</p>
+            <p className="mt-1">
+              Publicación en borrador:{" "}
+              <Link href="/publicar/bienes-raices/privado" className="font-semibold text-[#B8954A] underline">
+                BR Privado
+              </Link>
+              ,{" "}
+              <Link href="/publicar/bienes-raices" className="font-semibold text-[#B8954A] underline">
+                BR Negocio (selector)
+              </Link>
+              ,{" "}
+              <Link href="/publicar/rentas/privado" className="font-semibold text-[#B8954A] underline">
+                Rentas Privado
+              </Link>
+              ,{" "}
+              <Link href="/publicar/rentas/negocio" className="font-semibold text-[#B8954A] underline">
+                Rentas Negocio
+              </Link>
+              . Los anuncios vivos siguen apareciendo abajo con enlace a{" "}
+              <code className="rounded bg-[#F9F6F1] px-1 text-[11px]">/clasificados/anuncio/…</code>; analíticas ampliadas
+              vendrán después.
+            </p>
+          </div>
+
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {[
               { label: t.statActive, value: totalActive, icon: "📣" },

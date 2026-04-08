@@ -99,13 +99,33 @@ export function normalizeReviewCount(raw: unknown): number | undefined {
   return n;
 }
 
-export function normalizeHours(h: ServiciosHoursSummary | undefined): { openNowLabel: string; todayHoursLine: string } | undefined {
+export function normalizeHours(
+  h: ServiciosHoursSummary | undefined,
+): {
+  openNowLabel?: string;
+  todayHoursLine?: string;
+  weeklyRows?: { dayLabel: string; line: string }[];
+} | undefined {
   if (!h) return undefined;
   const openNowLabel = trimText(h.openNowLabel);
   const todayHoursLine = trimText(h.todayHoursLine);
-  if (!openNowLabel && !todayHoursLine) return undefined;
-  if (!openNowLabel || !todayHoursLine) return undefined;
-  return { openNowLabel, todayHoursLine };
+  let weeklyRows: { dayLabel: string; line: string }[] | undefined;
+  if (Array.isArray(h.weeklyRows)) {
+    const wr = h.weeklyRows
+      .map((r) => ({
+        dayLabel: trimText(r?.dayLabel),
+        line: trimText(r?.line),
+      }))
+      .filter((r) => r.dayLabel.length > 0 && r.line.length > 0)
+      .slice(0, 14);
+    if (wr.length) weeklyRows = wr;
+  }
+  const hasToday = openNowLabel.length > 0 && todayHoursLine.length > 0;
+  if (!hasToday && !weeklyRows?.length) return undefined;
+  return {
+    ...(hasToday ? { openNowLabel, todayHoursLine } : {}),
+    ...(weeklyRows?.length ? { weeklyRows } : {}),
+  };
 }
 
 export function normalizeServiceAreaLabel(raw: string | undefined | null): string | null {

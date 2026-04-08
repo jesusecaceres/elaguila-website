@@ -123,8 +123,8 @@ export type ClasificadosServiciosCopy = {
     videoFromFile: string;
     videoFromUrl: string;
     offerAssetsIntro: string;
-    /** Shown only under sm — reminds mobile users of bottom actions */
-    mobileStickyHint: string;
+    /** Primary actions live in the bottom bar on all screen sizes */
+    bottomActionsHint: string;
     assetFromFile: string;
     assetFromUrl: string;
     /** Section heading for optional clips */
@@ -147,6 +147,8 @@ export type ClasificadosServiciosCopy = {
     mediaWrongPdfType: string;
     /** Some files skipped because only {max} fit */
     galleryPartialAdd: string;
+    /** Shown under the hours section — how schedule appears on the public profile */
+    hoursOutputHint: string;
   };
 };
 
@@ -279,7 +281,7 @@ const es: ClasificadosServiciosCopy = {
     videoFromFile: "Video subido",
     videoFromUrl: "Enlace / URL",
     offerAssetsIntro: "Sube una imagen o un PDF opcional para tu cupón; puedes combinarlos con el enlace.",
-    mobileStickyHint: "Abajo: vista previa y publicar sin volver arriba.",
+    bottomActionsHint: "Vista previa y publicar están abajo — siempre a mano en móvil y escritorio.",
     assetFromFile: "Archivo",
     assetFromUrl: "URL",
     videosTitle: "Videos (opcional)",
@@ -293,6 +295,8 @@ const es: ClasificadosServiciosCopy = {
     mediaWrongVideoType: "Ese archivo no es un video. Usa MP4, WebM u otro formato de video.",
     mediaWrongPdfType: "El archivo debe ser PDF.",
     galleryPartialAdd: "Solo cabían algunas fotos nuevas (máx. {max} en total).",
+    hoursOutputHint:
+      "En tu vitrina: destacamos el horario de hoy y mostramos la semana completa en el panel de contacto.",
   },
 };
 
@@ -425,7 +429,7 @@ const en: ClasificadosServiciosCopy = {
     videoFromFile: "Uploaded clip",
     videoFromUrl: "From link",
     offerAssetsIntro: "Optional image or PDF for your offer; you can combine with the link above.",
-    mobileStickyHint: "Below: preview & publish without scrolling back up.",
+    bottomActionsHint: "Preview and publish stay at the bottom — quick access on phone and desktop.",
     assetFromFile: "File",
     assetFromUrl: "URL",
     videosTitle: "Videos (optional)",
@@ -439,6 +443,8 @@ const en: ClasificadosServiciosCopy = {
     mediaWrongVideoType: "That file is not a video. Use MP4, WebM, or another video format.",
     mediaWrongPdfType: "The file must be a PDF.",
     galleryPartialAdd: "Only some new photos fit (max {max} total).",
+    hoursOutputHint:
+      "On your public profile: we highlight today’s hours and show the full week in the contact panel.",
   },
 };
 

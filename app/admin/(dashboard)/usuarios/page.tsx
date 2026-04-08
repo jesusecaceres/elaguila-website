@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { requireAdminCookie, getAdminSupabase } from "@/app/lib/supabase/server";
+import { requireAdminCookie } from "@/app/lib/supabase/server";
+import { fetchProfilesForAdminList } from "../../_lib/adminProfilesQuery";
 import AdminUserActions from "./AdminUserActions";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
 import { adminCardBase, adminTableWrap } from "../../_components/adminTheme";
@@ -100,27 +101,43 @@ export default async function AdminUsuariosPage(props: PageProps) {
 
   let rows: ProfileRow[] = [];
   let queryError: string | null = null;
+  let searchNote: string | null = null;
 
   try {
-    const supabase = getAdminSupabase();
-    const { data, error } = await supabase
-      .from("profiles")
-      .select(
-        "id,created_at,display_name,email,phone,account_type,membership_tier,home_city,owned_city_slug,newsletter_opt_in,is_disabled"
-      )
-      .order("created_at", { ascending: false })
-      .limit(200);
+    const res = await fetchProfilesForAdminList({ q: searchQuery, recentLimit: 200, searchLimit: 80 });
+    queryError = res.error;
+    rows = res.rows as ProfileRow[];
 
-    if (error) {
-      queryError = error.message;
-    } else if (data) {
-      rows = data as ProfileRow[];
+    if (searchQuery) {
+      if (queryError) {
+        const fb = await fetchProfilesForAdminList({ q: "", recentLimit: 400 });
+        if (fb.error) {
+          queryError = fb.error;
+        } else {
+          queryError = null;
+          rows = (fb.rows as ProfileRow[]).filter((r) => matchesSearch(r, searchQuery));
+          searchNote = "La búsqueda en base falló; se filtraron las ~400 cuentas más recientes en memoria.";
+        }
+      } else if (res.strategy === "server_search") {
+        const seen = new Set(rows.map((r) => r.id));
+        const recent = await fetchProfilesForAdminList({ q: "", recentLimit: 400 });
+        if (!recent.error) {
+          for (const r of recent.rows as ProfileRow[]) {
+            if (!seen.has(r.id) && matchesSearch(r, searchQuery)) {
+              rows.push(r);
+              seen.add(r.id);
+            }
+          }
+        }
+        searchNote =
+          "Búsqueda en Postgres + referencias cortas contra las ~400 cuentas más recientes (p. ej. XXXX-YYYY).";
+      }
     }
   } catch (e) {
     queryError = e instanceof Error ? e.message : "Error al cargar clientes.";
   }
 
-  const filteredRows = searchQuery ? rows.filter((r) => matchesSearch(r, searchQuery)) : rows;
+  const filteredRows = rows;
   const disabledCount = filteredRows.filter((r) => r.is_disabled === true).length;
   const newsletterCount = filteredRows.filter((r) => r.newsletter_opt_in === true).length;
   const paidCount = filteredRows.filter((r) => isPaidTier(r.membership_tier)).length;
@@ -129,7 +146,7 @@ export default async function AdminUsuariosPage(props: PageProps) {
     <>
       <AdminPageHeader
         title="Users"
-        subtitle="Profiles (service role). Search by account ref, UUID fragment, name, email, or phone."
+        subtitle="Profiles (service role). Search uses Postgres when you type a query — not limited to the newest 200 rows. Ref-style IDs still merge matches from recent accounts."
         eyebrow="Accounts"
       />
 
@@ -151,6 +168,16 @@ export default async function AdminUsuariosPage(props: PageProps) {
         <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">{queryError}</div>
       ) : (
         <>
+          {searchNote ? (
+            <div className="mb-4 rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/90 p-3 text-xs text-[#5C5346]">{searchNote}</div>
+          ) : null}
+          <p className="mb-3 text-xs text-[#7A7164]">
+            Cross-entity lookup:{" "}
+            <Link href="/admin/ops" className="font-bold text-[#6B5B2E] underline">
+              Customer ops search →
+            </Link>{" "}
+            (listings + Tienda orders in one pass).
+          </p>
           <form method="get" action="/admin/usuarios" className="mb-4">
             <label htmlFor="admin-user-search" className="sr-only">
               Buscar clientes

@@ -81,6 +81,10 @@ export default function AdminWorkspaceHubPage() {
           <Link href="/admin/site-settings" className="font-bold text-[#6B5B2E] underline" title="Módulos y conmutadores transversales">
             Ajustes globales del sitio
           </Link>
+          . Para soporte y trazabilidad entre cuenta, anuncio y pedido Tienda, usa{" "}
+          <Link href="/admin/ops" className="font-bold text-[#6B5B2E] underline">
+            Customer ops
+          </Link>
           .
         </p>
       </div>

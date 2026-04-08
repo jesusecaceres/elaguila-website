@@ -64,11 +64,19 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
     const wire = { ...row.profile_json };
     wire.identity.leonixVerified = row.leonix_verified === true;
     const profile = resolveServiciosProfile(wire, lang);
+    const paused = row.listing_status === "paused_unpublished";
     return (
       <ServiciosProfileView
         profile={profile}
         lang={lang}
         editBackHref={`/clasificados/publicar/servicios?lang=${lang}`}
+        noticeBanner={
+          paused
+            ? lang === "en"
+              ? "This listing is paused and may not appear in public search results."
+              : "Este anuncio está en pausa y puede no aparecer en los resultados públicos."
+            : undefined
+        }
       />
     );
   }

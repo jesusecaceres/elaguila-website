@@ -22,6 +22,9 @@ import {
   EN_VENTA_PREVIEW_RETURN_DRAFT,
   clearEnVentaPublishTempState,
 } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
+import { BR_PRIVADO_DRAFT_STORAGE_KEY } from "@/app/clasificados/publicar/bienes-raices/privado/application/utils/bienesRaicesPrivadoDraft";
+import { RENTAS_PRIVADO_DRAFT_STORAGE_KEY } from "@/app/clasificados/publicar/rentas/privado/application/utils/rentasPrivadoDraft";
+import { RENTAS_NEGOCIO_DRAFT_STORAGE_KEY } from "@/app/clasificados/publicar/rentas/negocio/application/utils/rentasNegocioDraft";
 
 /** Same value as preview-nav flag in publish flow client (avoid importing a `"use client"` module here). */
 const LEONIX_PREVIEW_NAV_SESSION_FLAG = "leonix-publish-flow-opening-preview";
@@ -101,6 +104,7 @@ export const CLASSIFIEDS_DRAFT_STORAGE_KEYS = {
     EN_VENTA_PREVIEW_DRAFT_KEY_PRO,
     EN_VENTA_PREVIEW_DRAFT_META_KEY,
     EN_VENTA_PREVIEW_RETURN_DRAFT,
+    RENTAS_NEGOCIO_DRAFT_STORAGE_KEY,
   ] as const,
   /** localStorage keys are dynamic: listing_draft_<userId|anonId> */
   localStoragePrefix: DRAFT_KEY_PREFIX,
@@ -173,6 +177,12 @@ export function clearAllClassifiedsDrafts(options?: {
       clearStoredDraftId(options.userId);
     }
     localStorage.removeItem(CLASSIFIEDS_LATEST_APPLICATION_DRAFT_KEY);
+    try {
+      localStorage.removeItem(BR_PRIVADO_DRAFT_STORAGE_KEY);
+      localStorage.removeItem(RENTAS_PRIVADO_DRAFT_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
     clearBienesRaicesNegocioPublishTempState();
     clearAgenteIndividualResidencialPublishTempState();
     clearEnVentaPublishTempState();

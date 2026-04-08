@@ -33,6 +33,21 @@ type ListingRow = {
   images?: unknown | null;
 };
 
+type ReportMini = {
+  id: string;
+  listing_id: string;
+  status: string;
+  reason: string;
+  created_at: string;
+};
+
+type TiendaOrderMini = {
+  id: string;
+  order_ref: string;
+  status: string;
+  created_at: string;
+};
+
 const LISTINGS_LIMIT = 12;
 const ALLOWED_ACCOUNT_TYPES = ["personal", "business"] as const;
 const PERSONAL_TIERS = ["gratis", "pro"] as const;
@@ -288,6 +303,57 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
     listingsError = "No se pudieron cargar los anuncios.";
   }
 
+  let tiendaOrderCount: number | null = null;
+  let tiendaOrdersPreview: TiendaOrderMini[] = [];
+  let reportsByReporter: ReportMini[] = [];
+  let reportsOnOwnedPending: ReportMini[] = [];
+  let crossEntityError: string | null = null;
+
+  try {
+    const supabase = getAdminSupabase();
+    const { count: toc } = await supabase
+      .from("tienda_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("customer_user_id", clientId);
+    tiendaOrderCount = typeof toc === "number" ? toc : 0;
+
+    const { data: trows, error: te } = await supabase
+      .from("tienda_orders")
+      .select("id,order_ref,status,created_at")
+      .eq("customer_user_id", clientId)
+      .order("created_at", { ascending: false })
+      .limit(6);
+    if (!te && trows) {
+      tiendaOrdersPreview = trows as TiendaOrderMini[];
+    }
+
+    const { data: rRep, error: re1 } = await supabase
+      .from("listing_reports")
+      .select("id,listing_id,status,reason,created_at")
+      .eq("reporter_id", clientId)
+      .order("created_at", { ascending: false })
+      .limit(12);
+    if (!re1 && rRep) {
+      reportsByReporter = rRep as ReportMini[];
+    }
+
+    const ownedIds = listings.map((l) => l.id).filter(Boolean);
+    if (ownedIds.length > 0) {
+      const { data: rOwn, error: re2 } = await supabase
+        .from("listing_reports")
+        .select("id,listing_id,status,reason,created_at")
+        .in("listing_id", ownedIds)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(12);
+      if (!re2 && rOwn) {
+        reportsOnOwnedPending = rOwn as ReportMini[];
+      }
+    }
+  } catch {
+    crossEntityError = "No se pudieron cargar pedidos Tienda o reportes.";
+  }
+
   const name = displayName(row);
   const emailRaw = (row.email ?? "").trim();
   const emailDisplay = emailRaw || "(sin correo)";
@@ -474,6 +540,111 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
             Réplica modo (stub)
           </button>
         </div>
+      </div>
+
+      <div className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-base font-bold text-[#1E1810]">Operaciones cruzadas</h2>
+        <p className="mt-1 text-xs text-[#7A7164]">
+          Búsqueda unificada (cuenta + anuncios + pedidos impresión):{" "}
+          <Link href={`/admin/ops?q=${encodeURIComponent(row.id)}`} className="font-bold text-[#6B5B2E] underline">
+            Abrir Customer ops con este UUID →
+          </Link>
+        </p>
+        {hasEmail ? (
+          <p className="mt-2 text-xs text-[#7A7164]">
+            Por correo:{" "}
+            <Link href={`/admin/ops?q=${encodeURIComponent(emailRaw)}`} className="font-bold text-[#6B5B2E] underline">
+              Buscar «{emailRaw}» →
+            </Link>
+          </p>
+        ) : null}
+        {hasPhone ? (
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Por teléfono:{" "}
+            <Link href={`/admin/ops?q=${encodeURIComponent(phoneRaw)}`} className="font-bold text-[#6B5B2E] underline">
+              Buscar «{phoneRaw}» →
+            </Link>
+          </p>
+        ) : null}
+      </div>
+
+      {crossEntityError ? (
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950">{crossEntityError}</div>
+      ) : null}
+
+      <div className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-base font-bold text-[#1E1810]">Tienda — pedidos (customer_user_id)</h2>
+        <p className="mt-1 text-xs text-[#7A7164]">
+          Conteo y vista previa desde <code className="rounded bg-white/80 px-1">tienda_orders</code>.{" "}
+          <Link href={`/admin/tienda/orders?q=${encodeURIComponent(clientId)}`} className="font-bold text-[#6B5B2E] underline">
+            Inbox filtrado →
+          </Link>
+        </p>
+        <p className="mt-2 text-sm font-semibold text-[#1E1810]">{tiendaOrderCount ?? "—"} pedido(s)</p>
+        {tiendaOrdersPreview.length === 0 ? (
+          <p className="mt-2 text-sm text-[#5C5346]">Sin pedidos ligados a esta cuenta.</p>
+        ) : (
+          <ul className="mt-3 space-y-2 text-sm">
+            {tiendaOrdersPreview.map((o) => (
+              <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E8DFD0]/80 bg-white/80 px-3 py-2">
+                <div>
+                  <p className="font-mono text-xs font-semibold text-[#1E1810]">{o.order_ref}</p>
+                  <p className="text-xs text-[#7A7164]">
+                    {o.status} · {formatDate(o.created_at)}
+                  </p>
+                </div>
+                <Link href={`/admin/tienda/orders/${o.id}`} className="text-xs font-bold text-[#6B5B2E] underline">
+                  Ver pedido
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-base font-bold text-[#1E1810]">Reportes (moderación)</h2>
+        <p className="mt-1 text-xs text-[#7A7164]">
+          Cola global:{" "}
+          <Link href="/admin/reportes" className="font-bold text-[#6B5B2E] underline">
+            /admin/reportes →
+          </Link>
+        </p>
+        <h3 className="mt-4 text-xs font-bold uppercase text-[#7A7164]">Enviados por este usuario</h3>
+        {reportsByReporter.length === 0 ? (
+          <p className="mt-1 text-sm text-[#5C5346]">Ninguno.</p>
+        ) : (
+          <ul className="mt-2 space-y-2 text-sm">
+            {reportsByReporter.map((r) => (
+              <li key={r.id} className="rounded-xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-3 py-2">
+                <p className="text-xs font-mono text-[#6B5B2E]">Listing {r.listing_id.slice(0, 8)}…</p>
+                <p className="text-xs text-[#5C5346]">
+                  {r.status} · {formatDate(r.created_at)}
+                </p>
+                <p className="text-xs text-[#3D3428]">{r.reason}</p>
+                <Link href={`/clasificados/anuncio/${r.listing_id}`} target="_blank" className="mt-1 inline-block text-xs font-bold text-[#6B5B2E] underline">
+                  Ver anuncio
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        <h3 className="mt-6 text-xs font-bold uppercase text-[#7A7164]">Pendientes sobre anuncios de su propiedad</h3>
+        {reportsOnOwnedPending.length === 0 ? (
+          <p className="mt-1 text-sm text-[#5C5346]">Ninguno pendiente.</p>
+        ) : (
+          <ul className="mt-2 space-y-2 text-sm">
+            {reportsOnOwnedPending.map((r) => (
+              <li key={r.id} className="rounded-xl border border-amber-200/80 bg-amber-50/60 px-3 py-2">
+                <p className="text-xs font-mono text-[#6B5B2E]">Listing {r.listing_id.slice(0, 8)}…</p>
+                <p className="text-xs text-[#5C5346]">{r.reason}</p>
+                <Link href={`/admin/workspace/clasificados?q=${encodeURIComponent(r.listing_id)}`} className="mt-1 inline-block text-xs font-bold text-[#6B5B2E] underline">
+                  Abrir en cola admin
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className={`${adminCardBase} mb-6 p-5`}>

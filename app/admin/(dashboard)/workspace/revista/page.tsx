@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
+import { AdminSectionOwnershipCallout } from "../../../_components/AdminSectionOwnershipCallout";
 import { adminCardBase, adminBtnPrimary, adminBtnSecondary, adminInputClass, adminStubBadgeClass } from "../../../_components/adminTheme";
 import { getMagazineManifestForAdmin } from "../../../_lib/magazineAdminData";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
@@ -24,13 +25,32 @@ export default async function AdminWorkspaceRevistaPage(props: { searchParams?: 
         helperText="Número en portada y archivo público. No es el catálogo de Tienda ni la cola de Clasificados."
       />
 
+      <AdminSectionOwnershipCallout
+        sectionTitle="Revista"
+        publicPath="/magazine · /magazine/…"
+        sourceOfTruth="Featured + archivo público: `public/magazine/editions.json` (manifiesto). Notas de equipo: `site_section_content.revista_spotlight`."
+        siteSectionKey="revista_spotlight"
+        adminEditors={[
+          { label: "Notas internas / archive blurbs (formulario abajo)", href: "#revista-spotlight-form" },
+          { label: "Home — contenido (enlaces a revista)", href: "/admin/workspace/home/content" },
+        ]}
+        notYet={[
+          "Subida de PDF/issue a Storage + fila en BD o manifiesto vía admin (bloque deshabilitado abajo).",
+          "Hacer que páginas públicas lean blurbs de `revista_spotlight` si producto lo pide.",
+        ]}
+      />
+
       {sp.saved === "1" ? (
         <div className={`${adminCardBase} mb-6 border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>
           Notas del workspace guardadas.
         </div>
       ) : null}
 
-      <form action={saveRevistaSpotlightAction} className={`${adminCardBase} mb-8 space-y-3 p-6`}>
+      <form
+        id="revista-spotlight-form"
+        action={saveRevistaSpotlightAction}
+        className={`${adminCardBase} mb-8 space-y-3 p-6`}
+      >
         <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Notas internas / archivo (texto libre)</h2>
         <p className="text-xs text-[#7A7164]">
           Para alinear al equipo antes de automatizar el manifiesto. No afecta `/magazine` hasta que una página pública lea estos campos.

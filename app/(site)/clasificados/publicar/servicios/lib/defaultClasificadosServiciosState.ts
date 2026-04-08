@@ -14,6 +14,16 @@ function defaultHours(): DayHoursRow[] {
   });
 }
 
+function hoursDifferFromTemplate(rows: DayHoursRow[]): boolean {
+  const tmpl = defaultHours();
+  if (rows.length !== tmpl.length) return true;
+  return rows.some((row, i) => {
+    const t = tmpl[i];
+    if (!t || row.day !== t.day) return true;
+    return row.closed !== t.closed || row.open !== t.open || row.close !== t.close;
+  });
+}
+
 export function createDefaultClasificadosServiciosState(): ClasificadosServiciosApplicationState {
   return {
     businessTypeId: "",
@@ -98,5 +108,6 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
   }
   if (s.offerQrLater) return true;
   if (s.languageIds.length !== 1 || s.languageIds[0] !== "lang_es") return true;
+  if (hoursDifferFromTemplate(s.hours)) return true;
   return false;
 }

@@ -321,6 +321,10 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
     highlightsRows = buildTerrenoHighlights(s);
   }
 
+  const sellerPhoto = trim(s.seller.fotoDataUrl);
+  const sellerName = trim(s.seller.nombre);
+  const ownerLabel = trim(s.seller.etiquetaRol) || (sellerName ? "Propietario" : "");
+
   const mailto = buildMailto(s.seller.correo, "Pregunta sobre tu propiedad (Leonix — particular)");
   const telHref = buildTelHref(s.seller.telefono);
   const waRaw = trim(s.seller.whatsapp) || trim(s.seller.telefono);
@@ -331,9 +335,6 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
   const addressLine = [line, city].filter(Boolean).join(line && city ? " · " : "") || "";
 
   const desc = trim(s.descripcion);
-
-  const sellerPhoto = trim(s.seller.fotoDataUrl);
-  const sellerName = trim(s.seller.nombre);
   const phoneDisp = trim(s.seller.telefono) ? formatUsPhoneDisplay(digitsOnly(s.seller.telefono)) : "";
   const emailDisp = trim(s.seller.correo);
   const waDisp = trim(s.seller.whatsapp) ? formatUsPhoneDisplay(digitsOnly(s.seller.whatsapp)) : "";
@@ -351,7 +352,7 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
       photoUrl: sellerPhoto || null,
       hasPhoto: Boolean(sellerPhoto),
       name: sellerName,
-      byOwnerLabel: trim(s.seller.etiquetaRol),
+      byOwnerLabel: ownerLabel,
       phoneDisplay: phoneDisp,
       emailDisplay: emailDisp,
       whatsappDisplay: waDisp,
@@ -371,7 +372,7 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
       solicitarInfoHref: mailto,
       llamarHref: telHref,
       whatsappHref: waHref,
-      instructionsLine: trim(s.seller.notaContacto),
+      instructionsLine: "",
     },
     location: {
       mapsUrl,

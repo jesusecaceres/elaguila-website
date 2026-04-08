@@ -52,6 +52,8 @@ export type ServiciosApplicationContactDraft = {
   messageEnabled?: boolean;
   hoursOpenNowLabel?: string;
   hoursTodayLine?: string;
+  /** Mon→Sun localized rows for public weekly schedule */
+  weeklyHoursRows?: { dayLabel: string; line: string }[];
   primaryCtaLabel?: string;
   /** Preset secondary CTA chip labels (localized at map time) */
   secondaryCtaLabels?: string[];

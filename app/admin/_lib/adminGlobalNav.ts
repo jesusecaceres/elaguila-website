@@ -9,6 +9,7 @@ export type AdminGlobalNavItem = {
 export const ADMIN_GLOBAL_NAV: AdminGlobalNavItem[] = [
   { href: "/admin", label: "Dashboard", icon: "◆", badgeFrom: "tienda" },
   { href: "/admin/usuarios", label: "Users", icon: "◎" },
+  { href: "/admin/ops", label: "Customer ops", icon: "⌕" },
   { href: "/admin/payments", label: "Payments", icon: "💳" },
   { href: "/admin/support", label: "Support", icon: "💬" },
   { href: "/admin/team", label: "Team", icon: "👥" },

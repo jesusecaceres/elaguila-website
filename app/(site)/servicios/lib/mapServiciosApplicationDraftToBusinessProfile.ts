@@ -85,8 +85,20 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
 
   const openNow = trim(draft.contact?.hoursOpenNowLabel);
   const today = trim(draft.contact?.hoursTodayLine);
+  const weeklyWire = (draft.contact?.weeklyHoursRows ?? [])
+    .map((r) => ({
+      dayLabel: trim(typeof r?.dayLabel === "string" ? r.dayLabel : ""),
+      line: trim(typeof r?.line === "string" ? r.line : ""),
+    }))
+    .filter((r) => r.dayLabel && r.line);
   if (openNow && today) {
-    contact.hours = { openNowLabel: openNow, todayHoursLine: today };
+    contact.hours = {
+      openNowLabel: openNow,
+      todayHoursLine: today,
+      ...(weeklyWire.length ? { weeklyRows: weeklyWire } : {}),
+    };
+  } else if (weeklyWire.length >= 3) {
+    contact.hours = { weeklyRows: weeklyWire };
   }
 
   const primaryCta = trim(draft.contact?.primaryCtaLabel);

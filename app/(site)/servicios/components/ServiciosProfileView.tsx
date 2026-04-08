@@ -21,6 +21,7 @@ export function ServiciosProfileView({
   lang,
   editBackHref,
   beforeEditBackNavigate,
+  noticeBanner,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
@@ -28,12 +29,22 @@ export function ServiciosProfileView({
   editBackHref?: string;
   /** Same-tab preview → edit handoff (Leonix publish flow session flags). */
   beforeEditBackNavigate?: () => void;
+  /** Optional system notice (e.g. paused listing) — premium, non-alarming */
+  noticeBanner?: string;
 }) {
   return (
-    <div className="min-h-screen overflow-x-hidden pb-16" style={{ backgroundColor: SV.bg }}>
+    <div className="min-h-screen overflow-x-hidden pb-20 sm:pb-16" style={{ backgroundColor: SV.bg }}>
       <ServiciosTopBar lang={lang} editBackHref={editBackHref} beforeEditBackNavigate={beforeEditBackNavigate} />
 
       <main className="mx-auto max-w-[1280px] px-4 pb-10 pt-4 sm:pt-6 md:px-6 md:pt-8">
+        {noticeBanner ? (
+          <p
+            className="mb-4 rounded-xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 text-center text-sm font-medium text-amber-950 shadow-sm"
+            role="status"
+          >
+            {noticeBanner}
+          </p>
+        ) : null}
         {hasHeroIdentityResolved(profile) ? <ServiciosHero profile={profile} lang={lang} /> : null}
 
         {hasQuickFactsResolved(profile) ? (

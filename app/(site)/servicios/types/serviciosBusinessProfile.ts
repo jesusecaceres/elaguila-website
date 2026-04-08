@@ -87,9 +87,18 @@ export type ServiciosServiceArea = {
   kind?: "city" | "neighborhood" | "zip" | "region";
 };
 
+/** One row in the weekly schedule (localized day label + hours line). */
+export type ServiciosWeeklyHourRow = {
+  dayLabel: string;
+  line: string;
+};
+
 export type ServiciosHoursSummary = {
+  /** e.g. "Hoy" / "Today" — paired with todayHoursLine for the hero panel */
   openNowLabel?: string;
   todayHoursLine?: string;
+  /** Full week from the application — shown under the today line when present */
+  weeklyRows?: ServiciosWeeklyHourRow[];
 };
 
 export type ServiciosPromoOffer = {
@@ -205,7 +214,11 @@ export type ServiciosProfileResolved = {
     websiteHref?: string;
     websiteLabel?: string;
     messageEnabled: boolean;
-    hours?: { openNowLabel: string; todayHoursLine: string };
+    hours?: {
+      openNowLabel?: string;
+      todayHoursLine?: string;
+      weeklyRows?: ServiciosWeeklyHourRow[];
+    };
     primaryCtaLabel?: string;
     secondaryCtaLabels?: string[];
     isFeatured: boolean;

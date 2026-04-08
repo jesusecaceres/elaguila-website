@@ -1,67 +1,19 @@
 import type { AutosPublicListing } from "../../data/autosPublicSampleTypes";
+import { parseAutosBrowseUrl } from "../../filters/autosBrowseFilterContract";
+import type { AutosPublicFilterState, AutosPublicSortKey } from "../../filters/autosPublicFilterTypes";
 
-export type AutosPublicFilterState = {
-  city: string;
-  zip: string;
-  priceMin: string;
-  priceMax: string;
-  make: string;
-  model: string;
-  yearMin: string;
-  yearMax: string;
-  condition: "" | "new" | "used" | "certified";
-  sellerType: "" | "dealer" | "private";
-  bodyStyle: string;
-  transmission: string;
-  drivetrain: string;
-  fuelType: string;
-  mileageMax: string;
-  titleStatus: string;
-};
+export type { AutosPublicFilterState, AutosPublicSortKey } from "../../filters/autosPublicFilterTypes";
+export { emptyAutosPublicFilters } from "../../filters/autosPublicFilterTypes";
 
-/** Optional URL seeds (`?bodyStyle=SUV&q=honda` …) for shareable blueprint links. */
+/** @deprecated Prefer `parseAutosBrowseUrl` when you need q/sort/page/lang too. */
 export function seedFiltersFromSearchParams(sp: URLSearchParams): AutosPublicFilterState {
-  const f = emptyAutosPublicFilters();
-  f.city = sp.get("city") ?? "";
-  f.zip = sp.get("zip") ?? "";
-  f.priceMin = sp.get("priceMin") ?? "";
-  f.priceMax = sp.get("priceMax") ?? "";
-  f.make = sp.get("make") ?? "";
-  f.model = sp.get("model") ?? "";
-  f.yearMin = sp.get("yearMin") ?? "";
-  f.yearMax = sp.get("yearMax") ?? "";
-  const cond = sp.get("condition");
-  if (cond === "new" || cond === "used" || cond === "certified") f.condition = cond;
-  const seller = sp.get("seller");
-  if (seller === "dealer" || seller === "private") f.sellerType = seller;
-  f.bodyStyle = sp.get("bodyStyle") ?? "";
-  f.transmission = sp.get("transmission") ?? "";
-  f.drivetrain = sp.get("drivetrain") ?? "";
-  f.fuelType = sp.get("fuelType") ?? "";
-  f.mileageMax = sp.get("mileageMax") ?? "";
-  f.titleStatus = sp.get("titleStatus") ?? "";
-  return f;
+  return parseAutosBrowseUrl(sp).filters;
 }
 
-export const emptyAutosPublicFilters = (): AutosPublicFilterState => ({
-  city: "",
-  zip: "",
-  priceMin: "",
-  priceMax: "",
-  make: "",
-  model: "",
-  yearMin: "",
-  yearMax: "",
-  condition: "",
-  sellerType: "",
-  bodyStyle: "",
-  transmission: "",
-  drivetrain: "",
-  fuelType: "",
-  mileageMax: "",
-  titleStatus: "",
-});
-
+/**
+ * Filter listings using the same fields as Negocios/Privado applications.
+ * Note: `radiusMiles` is reserved in the URL contract but not applied here until geo is wired.
+ */
 export function applyAutosPublicFilters(
   listings: AutosPublicListing[],
   f: AutosPublicFilterState,
@@ -108,8 +60,6 @@ export function applyAutosPublicFilters(
     return true;
   });
 }
-
-export type AutosPublicSortKey = "newest" | "priceAsc" | "priceDesc" | "mileage";
 
 export function sortAutosPublicListings(listings: AutosPublicListing[], sort: AutosPublicSortKey): AutosPublicListing[] {
   const out = [...listings];
