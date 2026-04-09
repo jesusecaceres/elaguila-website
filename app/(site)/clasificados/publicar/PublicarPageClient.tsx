@@ -199,7 +199,9 @@ export default function PublicarPageClient({
                     ? `/clasificados/publicar/servicios?lang=${lang}`
                     : key === "restaurantes"
                       ? withLangParam("/publicar/restaurantes", lang)
-                      : `/clasificados/publicar/${key}?lang=${lang}`;
+                      : key === "empleos"
+                        ? `/clasificados/publicar/empleos?lang=${lang}`
+                        : `/clasificados/publicar/${key}?lang=${lang}`;
               return (
                 <Link
                   key={key}

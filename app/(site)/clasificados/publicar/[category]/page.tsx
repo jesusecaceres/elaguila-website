@@ -46,6 +46,10 @@ export default function PublicarCategoryPage() {
       router.replace(`/publicar/restaurantes?lang=${lang}`);
       return;
     }
+    if (categoryFromUrl === "empleos") {
+      router.replace(`/clasificados/publicar/empleos?lang=${lang}`);
+      return;
+    }
     if (!categoryFromUrl) {
       router.replace(`/clasificados/publicar?lang=${lang}`);
     }
@@ -58,7 +62,8 @@ export default function PublicarCategoryPage() {
     categoryFromUrl === "en-venta" ||
     categoryFromUrl === "autos" ||
     categoryFromUrl === "servicios" ||
-    categoryFromUrl === "restaurantes"
+    categoryFromUrl === "restaurantes" ||
+    categoryFromUrl === "empleos"
   ) {
     return (
       <main className="min-h-[50vh] pt-28 flex items-center justify-center text-[#111111]/70 text-sm">
