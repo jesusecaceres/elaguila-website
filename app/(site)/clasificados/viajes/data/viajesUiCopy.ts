@@ -161,6 +161,11 @@ export type ViajesUi = {
     trustBody: string;
   };
   trustStrip: string;
+  /** Short “why this exists” line for reviewers (screenshots / trust). */
+  trustWhy: {
+    title: string;
+    body: string;
+  };
   trustFooter: {
     aboutViajes: string;
     aboutBody: string;
@@ -183,7 +188,7 @@ function es(): Omit<ViajesUi, "lang"> {
     exploreByTripType: "Explora por tipo de viaje",
     heroTitle: "Escapadas, resorts, tours y ofertas para tu próxima aventura",
     heroSubtitle:
-      "Descubre viajes para familias, parejas y grupos — con salidas locales, ofertas especiales y socios confiables.",
+      "En Leonix Clasificados, Viajes reúne escapadas visuales y ofertas curadas: inventario de socios comerciales, negocios publicados e ideas editoriales. Leonix no vende el viaje final aquí.",
     search: {
       whereTo: "¿A dónde quieres ir?",
       departureFrom: "Salida desde",
@@ -207,7 +212,7 @@ function es(): Omit<ViajesUi, "lang"> {
     topOffers: {
       title: "Top ofertas de la semana",
       subtitle:
-        "Selección curada: socios comerciales, negocios publicados e ideas editoriales — cada tarjeta indica el origen.",
+        "Cada tarjeta muestra el origen: socio comercial (suele abrir en el sitio del socio), negocio con anuncio en Leonix, o guía editorial.",
     },
     localDepartures: {
       title: "Saliendo desde tu área",
@@ -263,7 +268,7 @@ function es(): Omit<ViajesUi, "lang"> {
       readTime: (n) => `${n} de lectura`,
       seasonalTitle: "Ofertas de temporada",
       seasonalSubtitle: "Campañas agrupadas — mezcla de inventario de socios y anuncios de negocios locales.",
-      sourcePartner: "Socio",
+      sourcePartner: "Socio comercial",
       sourceBusiness: "Negocio",
     },
     tripTypes: {
@@ -356,7 +361,7 @@ function es(): Omit<ViajesUi, "lang"> {
       badgeRecommended: "Recomendado",
       badgeSpecial: "Oferta especial",
       badgePartner: "Socio de viaje",
-      sourceAffiliate: "Socio",
+      sourceAffiliate: "Socio comercial",
       sourceBusiness: "Negocio",
       sourceIdeas: "Ideas",
       partnerInventory: "Inventario de socio",
@@ -376,8 +381,10 @@ function es(): Omit<ViajesUi, "lang"> {
       whoFor: "¿Para quién es?",
       partnerCommercial: "Socio comercial",
       postedBy: "Publicado por",
-      affiliateFallback: "Esta oferta proviene de un socio comercial; Leonix no procesa el pago final en este flujo.",
-      businessFallback: "Negocio o agencia con anuncio en Leonix Clasificados — contacto directo.",
+      affiliateFallback:
+        "Oferta de un socio comercial: al continuar sueles salir de Leonix para completar la reserva o el pago. Leonix no actúa como vendedor final.",
+      businessFallback:
+        "Anuncio de negocio o agencia en Leonix Clasificados — contacto directo; Leonix no procesa la reserva por ti.",
       detailsTitle: "Detalles del viaje",
       calendar: "Calendario:",
     },
@@ -394,11 +401,15 @@ function es(): Omit<ViajesUi, "lang"> {
         "Pronto: reseñas verificadas, años en operación y documentos de registro. Mientras tanto, confirma identidad del negocio antes de pagar adelantos.",
     },
     trustStrip:
-      "Leonix Viajes te ayuda a descubrir ofertas, tours y negocios de viajes de confianza. Leonix no es el vendedor final: las reservas con socios ocurren en sus sitios; los negocios locales se contactan directamente.",
+      "Leonix Viajes es una vitrina de descubrimiento dentro de Clasificados: ofertas de socios comerciales, anuncios de agencias/operadores e ideas editoriales. Leonix no es el vendedor final — con socios, la reserva ocurre en su sitio; con negocios locales, el contacto es directo.",
+    trustWhy: {
+      title: "Por qué Leonix Viajes",
+      body: "Unimos inspiración con inventario real: socios comerciales, negocios que publican en Leonix e ideas editoriales. No somos la agencia de reservas — te acercamos a la oferta y al contacto correcto.",
+    },
     trustFooter: {
       aboutViajes: "Sobre Viajes",
       aboutBody:
-        "Descubre escapadas, resorts, tours y rentas con salidas desde tu área — con inventario de socios, anuncios de negocios locales e ideas editoriales.",
+        "Explora escapadas, resorts y tours con salidas desde tu zona. Verás inventario de socios comerciales (enlaces externos), negocios con ficha en Leonix y contenido editorial — siempre con el origen visible.",
       contact: "Contacto",
       privacy: "Privacidad",
       terms: "Términos",
@@ -421,7 +432,7 @@ function en(): Omit<ViajesUi, "lang"> {
     exploreByTripType: "Explore by trip type",
     heroTitle: "Getaways, resorts, tours, and deals for your next adventure",
     heroSubtitle:
-      "Discover trips for families, couples, and groups — with local departures, special offers, and trusted partners.",
+      "Inside Leonix Classifieds, Viajes is your visual lane for getaways: partner offers, business listings, and editorial picks. Leonix does not sell the final trip here.",
     search: {
       whereTo: "Where do you want to go?",
       departureFrom: "Departing from",
@@ -444,7 +455,8 @@ function en(): Omit<ViajesUi, "lang"> {
     carousel: { prev: "Show previous categories", next: "Show next categories" },
     topOffers: {
       title: "Top offers this week",
-      subtitle: "Curated mix: partner inventory, business listings, and editorial picks — each card shows the source.",
+      subtitle:
+        "Each card shows the source: commercial partner (often opens on the partner site), a business listing on Leonix, or editorial.",
     },
     localDepartures: {
       title: "Departing near you",
@@ -499,7 +511,7 @@ function en(): Omit<ViajesUi, "lang"> {
       readTime: (n) => `${n} read`,
       seasonalTitle: "Seasonal offers",
       seasonalSubtitle: "Grouped campaigns — a mix of partner inventory and local business listings.",
-      sourcePartner: "Partner",
+      sourcePartner: "Commercial partner",
       sourceBusiness: "Business",
     },
     tripTypes: {
@@ -592,7 +604,7 @@ function en(): Omit<ViajesUi, "lang"> {
       badgeRecommended: "Featured",
       badgeSpecial: "Special offer",
       badgePartner: "Travel partner",
-      sourceAffiliate: "Partner",
+      sourceAffiliate: "Commercial partner",
       sourceBusiness: "Business",
       sourceIdeas: "Ideas",
       partnerInventory: "Partner inventory",
@@ -612,8 +624,10 @@ function en(): Omit<ViajesUi, "lang"> {
       whoFor: "Who it’s for",
       partnerCommercial: "Commercial partner",
       postedBy: "Posted by",
-      affiliateFallback: "This offer comes from a commercial partner; Leonix does not process the final payment in this flow.",
-      businessFallback: "Business or agency listing on Leonix Classifieds — direct contact.",
+      affiliateFallback:
+        "Commercial partner offer: continuing usually takes you off Leonix to complete booking or payment. Leonix is not the final seller.",
+      businessFallback:
+        "Business or agency listing on Leonix Classifieds — direct contact; Leonix does not process the booking for you.",
       detailsTitle: "Trip details",
       calendar: "Dates:",
     },
@@ -630,11 +644,15 @@ function en(): Omit<ViajesUi, "lang"> {
         "Coming soon: verified reviews, years in business, and registration documents. Until then, confirm the business identity before paying deposits.",
     },
     trustStrip:
-      "Leonix Viajes helps you discover travel offers, tours, and trusted travel businesses. Leonix is not the final seller: bookings with partners happen on their sites; local businesses are contacted directly.",
+      "Leonix Viajes is a discovery showcase inside Classifieds: partner offers, agency/operator listings, and editorial ideas. Leonix is not the final seller — partner bookings happen on partner sites; local businesses are contacted directly.",
+    trustWhy: {
+      title: "Why Leonix Viajes",
+      body: "We blend inspiration with real inventory: commercial partners, businesses that publish on Leonix, and editorial ideas. We’re not the booking agency — we surface the offer and the right next step.",
+    },
     trustFooter: {
       aboutViajes: "About Viajes",
       aboutBody:
-        "Discover getaways, resorts, tours, and rentals with departures near you — partner inventory, local business listings, and editorial picks.",
+        "Explore getaways, resorts, and tours near you. You’ll see partner inventory (external links), businesses with a Leonix profile, and editorial content — the source is always labeled.",
       contact: "Contact",
       privacy: "Privacy",
       terms: "Terms",

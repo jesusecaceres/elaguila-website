@@ -1,13 +1,16 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
+import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import {
   getAutosPreviewCompletenessIssues,
   type AutosPreviewCompletenessKey,
   type AutosPreviewLane,
 } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
+import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
+import { AutosPublishPlaceholderModal } from "./AutosPublishPlaceholderModal";
 
 const BTN_SECONDARY =
   "inline-flex min-h-[44px] items-center justify-center rounded-[12px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 text-xs font-bold text-[color:var(--lx-text)] shadow-sm transition hover:bg-[color:var(--lx-nav-hover)]";
@@ -33,87 +36,73 @@ function previewHintKey(issue: AutosPreviewCompletenessKey): keyof AutosNegocios
   }
 }
 
+function toPublishLane(lane: AutosPreviewLane): AutosClassifiedsLane {
+  return lane;
+}
+
 /**
- * Standard top application controls for both Autos lanes (after page header).
+ * Top application controls: Preview (same tab), Publish placeholder, Delete.
  */
 export function AutosApplicationTopActions({
   lane,
+  lang,
   copy,
   listing,
-  mediaSectionId,
-  onFlushOpenSameTab,
-  onFlushOpenNewTab,
+  onPreview,
   onDeleteApplication,
-  publishConfirmHref,
 }: {
   lane: AutosPreviewLane;
+  lang: AutosNegociosLang;
   copy: AutosNegociosCopy;
   listing: AutoDealerListing;
-  /** Section id on the media block — in-flow “Vista previa” scrolls here */
-  mediaSectionId: string;
-  onFlushOpenSameTab: () => Promise<void>;
-  onFlushOpenNewTab: () => Promise<void>;
+  onPreview: () => void | Promise<void>;
   onDeleteApplication: () => void | Promise<void>;
-  publishConfirmHref: string;
 }) {
   const issues = getAutosPreviewCompletenessIssues(lane, listing);
   const h = copy.app.hints;
+  const [publishOpen, setPublishOpen] = useState(false);
 
   return (
-    <div className="mb-6 space-y-3 rounded-[16px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm sm:p-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
-        <button
-          type="button"
-          className={BTN_SECONDARY}
-          onClick={() => {
-            document.getElementById(mediaSectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }}
-        >
-          {copy.app.actions.previewScroll}
-        </button>
-        <button
-          type="button"
-          className={BTN_PRIMARY}
-          onClick={() => {
-            void onFlushOpenSameTab();
-          }}
-        >
-          {copy.app.actions.openPreview}
-        </button>
-        <button
-          type="button"
-          className={BTN_SECONDARY}
-          onClick={() => {
-            void onFlushOpenNewTab();
-          }}
-        >
-          {copy.app.actions.openPreviewNewTab}
-        </button>
-        <Link href={publishConfirmHref} className={`${BTN_SECONDARY} text-center no-underline`}>
-          {copy.app.actions.continueToPublish}
-        </Link>
-        <button
-          type="button"
-          className={`${BTN_DANGER} sm:ml-auto`}
-          onClick={() => {
-            if (typeof window !== "undefined" && window.confirm(h.deleteApplicationConfirm)) {
-              void Promise.resolve(onDeleteApplication());
-            }
-          }}
-        >
-          {copy.app.actions.deleteApplication}
-        </button>
-      </div>
-      {issues.length > 0 ? (
-        <div className="rounded-[12px] border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-3 py-2 text-[13px] text-[color:var(--lx-text-2)]">
-          <p className="font-semibold text-[color:var(--lx-text)]">{h.previewCompletenessIntro}</p>
-          <ul className="mt-1 list-inside list-disc space-y-0.5">
-            {issues.map((issue) => (
-              <li key={issue}>{h[previewHintKey(issue)]}</li>
-            ))}
-          </ul>
+    <>
+      <div className="mb-6 space-y-3 rounded-[16px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+          <button
+            type="button"
+            className={BTN_PRIMARY}
+            onClick={() => {
+              void Promise.resolve(onPreview());
+            }}
+          >
+            {copy.app.actions.openPreview}
+          </button>
+          <button type="button" className={BTN_SECONDARY} onClick={() => setPublishOpen(true)}>
+            {copy.app.actions.continueToPublish}
+          </button>
+          <button
+            type="button"
+            className={`${BTN_DANGER} sm:ml-auto`}
+            onClick={() => {
+              if (typeof window !== "undefined" && window.confirm(h.deleteApplicationConfirm)) {
+                void Promise.resolve(onDeleteApplication());
+              }
+            }}
+          >
+            {copy.app.actions.deleteApplication}
+          </button>
         </div>
-      ) : null}
-    </div>
+        {issues.length > 0 ? (
+          <div className="rounded-[12px] border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-3 py-2 text-[13px] text-[color:var(--lx-text-2)]">
+            <p className="font-semibold text-[color:var(--lx-text)]">{h.previewCompletenessIntro}</p>
+            <ul className="mt-1 list-inside list-disc space-y-0.5">
+              {issues.map((issue) => (
+                <li key={issue}>{h[previewHintKey(issue)]}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </div>
+
+      <AutosPublishPlaceholderModal open={publishOpen} onClose={() => setPublishOpen(false)} lang={lang} lane={toPublishLane(lane)} />
+    </>
   );
 }

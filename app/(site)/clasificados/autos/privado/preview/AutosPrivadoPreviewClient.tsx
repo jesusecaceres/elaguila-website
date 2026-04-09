@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AutoPrivadoPreviewPage } from "../components/AutoPrivadoPreviewPage";
 import { AutosPrivadoPreviewEmptyState } from "../components/AutosPrivadoPreviewEmptyState";
+import { AutosPrivadoPreviewErrorBoundary } from "./AutosPrivadoPreviewErrorBoundary";
 import { loadAutosPrivadoDraftResolved, safeNormalizePrivadoListing } from "../lib/autosPrivadoDraftStorage";
 import { resolveAutosPrivadoDraftNamespace, storageEventAffectsAutosPrivadoDraft } from "../lib/autosPrivadoDraftNamespace";
 import { mockAutosPrivadoListing } from "../mock/mockAutosPrivadoListing";
@@ -76,7 +77,11 @@ function AutosPrivadoPreviewInner({
     return <AutosPrivadoPreviewEmptyState />;
   }
 
-  return <AutoPrivadoPreviewPage data={listing} editBackHref={editBackHref} />;
+  return (
+    <AutosPrivadoPreviewErrorBoundary>
+      <AutoPrivadoPreviewPage data={listing} editBackHref={editBackHref} />
+    </AutosPrivadoPreviewErrorBoundary>
+  );
 }
 
 export function AutosPrivadoPreviewClient() {

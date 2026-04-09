@@ -55,13 +55,18 @@ export function AutosApplicationReviewStep({
       <div className="mt-6 rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3">
         <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">{shell.reviewChecklistTitle}</p>
         {issues.length === 0 ? (
-          <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{shell.reviewAllGood}</p>
+          <p className="mt-2 text-sm font-medium text-[color:var(--lx-text)]">{shell.reviewAllGood}</p>
         ) : (
-          <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-[color:var(--lx-text-2)]">
-            {issues.map((issue) => (
-              <li key={issue}>{h[previewHintKey(issue)]}</li>
-            ))}
-          </ul>
+          <>
+            <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">
+              {lang === "es" ? "Para una vista previa completa, completa lo siguiente:" : "To complete your preview, add:"}
+            </p>
+            <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-[color:var(--lx-text-2)]">
+              {issues.map((issue) => (
+                <li key={issue}>{h[previewHintKey(issue)]}</li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
     </section>

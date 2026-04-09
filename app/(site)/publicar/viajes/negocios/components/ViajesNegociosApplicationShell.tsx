@@ -90,38 +90,74 @@ export function ViajesNegociosApplicationShell() {
           </Link>
         </nav>
         <header className="mt-4">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{c.h1}</h1>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">{c.workflowKicker}</p>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">{c.h1}</h1>
           <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{c.intro}</p>
+          <ol className="mt-4 flex flex-wrap gap-2" aria-label="Workflow steps">
+            {c.stepLabels.map((label, i) => (
+              <li
+                key={label}
+                className={`rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide ${
+                  i === c.activeStepIndex
+                    ? "bg-[#D97706] text-white shadow-sm"
+                    : "border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] text-[color:var(--lx-muted)]"
+                }`}
+              >
+                {i + 1}. {label}
+              </li>
+            ))}
+          </ol>
         </header>
+
+        <div className="mt-6 space-y-3">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-[color:var(--lx-gold-border)]/50 bg-[color:var(--lx-section)]/90 p-3 text-xs text-[color:var(--lx-text-2)]">
+              <p className="font-bold text-[color:var(--lx-text)]">{c.workflow.previewWhat.title}</p>
+              <p className="mt-1 leading-relaxed">{c.workflow.previewWhat.body}</p>
+            </div>
+            <div className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-3 text-xs text-[color:var(--lx-text-2)]">
+              <p className="font-bold text-[color:var(--lx-text)]">{c.workflow.afterSubmit.title}</p>
+              <p className="mt-1 leading-relaxed">{c.workflow.afterSubmit.body}</p>
+            </div>
+            <div className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-3 text-xs text-[color:var(--lx-text-2)]">
+              <p className="font-bold text-[color:var(--lx-text)]">{c.workflow.moderation.title}</p>
+              <p className="mt-1 leading-relaxed">{c.workflow.moderation.body}</p>
+            </div>
+          </div>
+          <div className="rounded-xl border border-dashed border-[color:var(--lx-gold-border)] bg-amber-50/90 p-3 text-xs text-amber-950 sm:p-4">
+            <p className="font-bold">{c.trustBar.title}</p>
+            <p className="mt-1 leading-relaxed">{c.trustBar.body}</p>
+          </div>
+          <div className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-3 text-xs text-[color:var(--lx-text-2)] sm:p-4">
+            <p className="font-bold text-[color:var(--lx-text)]">{c.productMode.title}</p>
+            <p className="mt-1 leading-relaxed">{c.productMode.body}</p>
+          </div>
+          <div className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]/60 p-3 text-xs text-[color:var(--lx-text-2)] sm:p-4">
+            <p className="font-bold text-[color:var(--lx-text)]">{c.lifecycle.title}</p>
+            <p className="mt-1 text-[color:var(--lx-muted)]">{c.lifecycle.intro}</p>
+            <ul className="mt-2 list-inside list-disc space-y-1">
+              {c.lifecycle.items.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
 
         <form className="mt-8 space-y-6" onSubmit={(e) => e.preventDefault()}>
           <section className={CARD}>
             <h2 className="text-base font-bold text-[color:var(--lx-text)]">{c.sections.main}</h2>
-            <div className={`mt-4 ${GRID2}`}>
-              <div>
-                <label className={LABEL} htmlFor="tipoOferta">
-                  {c.offerType.label}
-                </label>
-                <select id="tipoOferta" className={INPUT} value={tipoOferta} onChange={(e) => setTipoOferta(e.target.value)}>
-                  {(Object.keys(c.offerType.options) as Array<keyof typeof c.offerType.options>).map((key) => (
-                    <option key={String(key)} value={key}>
-                      {c.offerType.options[key]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={LABEL} htmlFor="ctaType">
-                  {c.ctaType.label}
-                </label>
-                <select id="ctaType" className={INPUT} value={ctaType} onChange={(e) => setCtaType(e.target.value)}>
-                  {(Object.keys(c.ctaType.options) as Array<keyof typeof c.ctaType.options>).map((key) => (
-                    <option key={key} value={key}>
-                      {c.ctaType.options[key]}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{c.sectionHints.main}</p>
+            <div className="mt-4">
+              <label className={LABEL} htmlFor="tipoOferta">
+                {c.offerType.label}
+              </label>
+              <select id="tipoOferta" className={INPUT} value={tipoOferta} onChange={(e) => setTipoOferta(e.target.value)}>
+                {(Object.keys(c.offerType.options) as Array<keyof typeof c.offerType.options>).map((key) => (
+                  <option key={String(key)} value={key}>
+                    {c.offerType.options[key]}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="mt-4">
               <label className={LABEL} htmlFor="titulo">
@@ -179,6 +215,7 @@ export function ViajesNegociosApplicationShell() {
 
           <section className={CARD}>
             <h2 className="text-base font-bold text-[color:var(--lx-text)]">{c.sections.audience}</h2>
+            <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{c.sectionHints.audience}</p>
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               {chk("familias", familias, setFamilias, a.families)}
               {chk("parejas", parejas, setParejas, a.couples)}
@@ -213,6 +250,7 @@ export function ViajesNegociosApplicationShell() {
 
           <section className={CARD}>
             <h2 className="text-base font-bold text-[color:var(--lx-text)]">{c.sections.media}</h2>
+            <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{c.sectionHints.media}</p>
             <div className="mt-4">
               <label className={LABEL} htmlFor="imgMain">
                 {c.multimedia.heroUrl.label}
@@ -242,6 +280,7 @@ export function ViajesNegociosApplicationShell() {
 
           <section className={CARD}>
             <h2 className="text-base font-bold text-[color:var(--lx-text)]">{c.sections.business}</h2>
+            <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{c.sectionHints.business}</p>
             <div className="mt-4">
               <label className={LABEL} htmlFor="biz">
                 {c.business.name.label}
@@ -267,6 +306,18 @@ export function ViajesNegociosApplicationShell() {
                 {c.business.website.label}
               </label>
               <input id="web" className={INPUT} value={website} onChange={(e) => setWebsite(e.target.value)} />
+            </div>
+            <div className="mt-4">
+              <label className={LABEL} htmlFor="ctaType">
+                {c.ctaType.label}
+              </label>
+              <select id="ctaType" className={INPUT} value={ctaType} onChange={(e) => setCtaType(e.target.value)}>
+                {(Object.keys(c.ctaType.options) as Array<keyof typeof c.ctaType.options>).map((key) => (
+                  <option key={key} value={key}>
+                    {c.ctaType.options[key]}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="mt-4">
               <label className={LABEL} htmlFor="socials">
@@ -305,6 +356,7 @@ export function ViajesNegociosApplicationShell() {
               {c.submitSoon}
             </button>
           </div>
+          <p className="text-center text-xs text-[color:var(--lx-muted)]">{c.ctaRowHint}</p>
         </form>
       </div>
     </div>

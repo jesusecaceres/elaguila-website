@@ -7,11 +7,11 @@ import { withViajesOfferBackParam } from "../lib/viajesOfferLink";
 
 const VIAJES_ACCENT = "#D97706";
 
-function StarRow({ count }: { count: number }) {
+function StarRow({ count, ariaLabel }: { count: number; ariaLabel: string }) {
   if (count <= 0) return null;
   const full = Math.min(5, Math.max(0, Math.round(count)));
   return (
-    <span className="text-amber-500" aria-label={`${full} de 5 estrellas`}>
+    <span className="text-amber-500" aria-label={ariaLabel}>
       {"★".repeat(full)}
       <span className="text-[color:var(--lx-muted)]/40">{"☆".repeat(5 - full)}</span>
     </span>
@@ -19,6 +19,11 @@ function StarRow({ count }: { count: number }) {
 }
 
 export function ViajesTopOfferCard({ offer, homeBackHref, ui }: { offer: ViajesTopOffer; homeBackHref: string; ui: ViajesUi }) {
+  const affiliateDisclosure =
+    ui.lang === "en" && offer.affiliateDisclosureShortEn ? offer.affiliateDisclosureShortEn : offer.affiliateDisclosureShort;
+  const starAria =
+    ui.lang === "en" ? `${Math.min(5, Math.max(0, Math.round(offer.stars)))} of 5 stars` : `${Math.min(5, Math.max(0, Math.round(offer.stars)))} de 5 estrellas`;
+
   const href =
     offer.href.includes("/oferta/") && offer.listingKind !== "editorial"
       ? withViajesOfferBackParam(offer.href, homeBackHref)
@@ -67,7 +72,7 @@ export function ViajesTopOfferCard({ offer, homeBackHref, ui }: { offer: ViajesT
         <h3 className="line-clamp-2 text-lg font-bold leading-snug text-[color:var(--lx-text)]">{offer.title}</h3>
         <p className="mt-1 line-clamp-2 text-sm text-[color:var(--lx-text-2)]">{offer.supportingLine}</p>
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[color:var(--lx-muted)]">
-          <StarRow count={offer.stars} />
+          <StarRow count={offer.stars} ariaLabel={starAria} />
           {offer.stars > 0 ? <span className="hidden sm:inline">·</span> : null}
           <span>{offer.locationLine}</span>
         </div>
@@ -83,9 +88,9 @@ export function ViajesTopOfferCard({ offer, homeBackHref, ui }: { offer: ViajesT
             <span aria-hidden>✈️</span>
             {offer.departureContext}
           </span>
-          {offer.listingKind === "affiliate" && offer.affiliateDisclosureShort ? (
+          {offer.listingKind === "affiliate" && affiliateDisclosure ? (
             <p className="mt-1 rounded-lg border border-amber-200/60 bg-amber-50/80 px-2 py-1.5 text-[10px] font-medium leading-snug text-amber-950">
-              {offer.affiliateDisclosureShort}
+              {affiliateDisclosure}
             </p>
           ) : null}
           {offer.listingKind === "business" && offer.businessName ? (

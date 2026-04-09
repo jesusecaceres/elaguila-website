@@ -1,17 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { FiMail, FiMessageCircle, FiPhone } from "react-icons/fi";
+import { FiMail, FiPhone } from "react-icons/fi";
 import { SiWhatsapp } from "react-icons/si";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { resolveDealerOfficePhone } from "@/app/clasificados/autos/negocios/lib/dealerContactResolve";
 import { formatUsPhoneDisplay, phoneDigitsForTel } from "@/app/clasificados/autos/negocios/components/autoDealerFormatters";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
-import {
-  buildPrivadoSellerMailtoHref,
-  buildPrivadoSiteMessageHref,
-  buildPrivadoWhatsappInterestHref,
-} from "../lib/privadoContactIntent";
+import { buildPrivadoSellerMailtoHref, buildPrivadoWhatsappInterestHref } from "../lib/privadoContactIntent";
 
 const BTN_PRIMARY =
   "touch-manipulation inline-flex min-h-[48px] w-full items-center justify-center rounded-[14px] bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold tracking-tight text-[#FFFCF7] shadow-[0_8px_24px_-6px_rgba(26,22,18,0.45)] transition hover:bg-[color:var(--lx-cta-dark-hover)] active:scale-[0.99]";
@@ -39,15 +34,11 @@ export function PrivadoContactStrip({
   const waHref = buildPrivadoWhatsappInterestHref(data, lang);
   const showWa = Boolean(waHref);
 
-  const siteMessageEnabled = data.privadoSiteMessageEnabled !== false;
-  const messageHref = buildPrivadoSiteMessageHref(lang, data);
-  const showMessage = siteMessageEnabled;
-
   const mailtoHref = buildPrivadoSellerMailtoHref(data, lang);
   const showEmail = Boolean(mailtoHref);
 
   const seller = data.dealerName?.trim();
-  const hasAnyCta = showCall || showWa || showMessage || showEmail;
+  const hasAnyCta = showCall || showWa || showEmail;
   if (!seller && !hasAnyCta) return null;
 
   return (
@@ -75,12 +66,6 @@ export function PrivadoContactStrip({
             <SiWhatsapp className="h-5 w-5 shrink-0 text-[#25D366]" aria-hidden />
             {labels.whatsapp}
           </a>
-        ) : null}
-        {showMessage ? (
-          <Link href={messageHref} className={`${BTN_SECONDARY} gap-2`}>
-            <FiMessageCircle className="h-5 w-5 shrink-0" aria-hidden />
-            {labels.messageSite}
-          </Link>
         ) : null}
         {showEmail && mailtoHref ? (
           <a href={mailtoHref} className={`${BTN_SECONDARY} gap-2`}>

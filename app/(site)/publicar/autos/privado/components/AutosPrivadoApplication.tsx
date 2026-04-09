@@ -23,6 +23,13 @@ import {
 import { SelectWithOtherField } from "@/app/publicar/autos/negocios/components/SelectWithOtherField";
 import { AutosNegociosMediaManager } from "@/app/publicar/autos/negocios/components/AutosNegociosMediaManager";
 import { AUTOS_PRIVADO_PRODUCT } from "@/app/clasificados/autos/privado/contracts/autosPrivadoProduct";
+import {
+  formatMileageInputDisplay,
+  formatUsdIntegerInputDisplay,
+  parseMileageInput,
+  parseUsdIntegerInput,
+} from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
+import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { AutosApplicationSteppedShell } from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
 import { AutosApplicationReviewStep } from "@/app/publicar/autos/shared/components/AutosApplicationReviewStep";
 import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
@@ -82,7 +89,6 @@ export function AutosPrivadoApplication() {
   }, [t.meta.applicationTitle]);
 
   const previewHref = withLangParam("/clasificados/autos/privado/preview", lang);
-  const publishConfirmHref = withLangParam("/publicar/autos/privado/confirm", lang);
 
   if (!hydrated) {
     return <div className="min-h-[40vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
@@ -94,8 +100,6 @@ export function AutosPrivadoApplication() {
     else cur.add(label);
     setListingPatch({ features: [...cur] });
   }
-
-  const siteMessageOn = listing.privadoSiteMessageEnabled !== false;
 
   const stepLabels = getAutosApplicationStepLabels(lang, "privado");
 
@@ -156,19 +160,14 @@ export function AutosPrivadoApplication() {
       topActions={
         <AutosApplicationTopActions
           lane="privado"
+          lang={lang}
           copy={t}
           listing={listing}
-          mediaSectionId="autos-clasificados-app-media"
-          onFlushOpenSameTab={async () => {
+          onPreview={async () => {
             await flushDraft();
             router.push(previewHref);
           }}
-          onFlushOpenNewTab={async () => {
-            await flushDraft();
-            window.open(previewHref, "_blank", "noopener,noreferrer");
-          }}
           onDeleteApplication={resetDraft}
-          publishConfirmHref={publishConfirmHref}
         />
       }
     >
@@ -258,21 +257,38 @@ export function AutosPrivadoApplication() {
               </div>
               <div>
                 <label className={LABEL}>{reqLabel(t.app.labels.price)}</label>
-                <input
-                  className={INPUT}
-                  inputMode="decimal"
-                  value={listing.price ?? ""}
-                  onChange={(e) => setListingPatch({ price: parseOptFloat(e.target.value) })}
-                />
+                <div className="relative mt-1">
+                  <span
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[color:var(--lx-muted)]"
+                    aria-hidden
+                  >
+                    $
+                  </span>
+                  <input
+                    className={`${INPUT} pl-7 tabular-nums`}
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={formatUsdIntegerInputDisplay(listing.price)}
+                    onChange={(e) => setListingPatch({ price: parseUsdIntegerInput(e.target.value) })}
+                    aria-label={t.app.labels.price}
+                  />
+                </div>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">
+                  {lang === "es" ? "USD · miles de separación · valor numérico guardado." : "USD · thousands separators · value stored as a number."}
+                </p>
               </div>
               <div>
                 <label className={LABEL}>{t.app.labels.mileage}</label>
                 <input
-                  className={INPUT}
+                  className={`${INPUT} tabular-nums`}
                   inputMode="numeric"
-                  value={listing.mileage ?? ""}
-                  onChange={(e) => setListingPatch({ mileage: parseOptFloat(e.target.value) })}
+                  autoComplete="off"
+                  value={formatMileageInputDisplay(listing.mileage)}
+                  onChange={(e) => setListingPatch({ mileage: parseMileageInput(e.target.value) })}
                 />
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">
+                  {lang === "es" ? "Millas · miles de separación · valor numérico guardado." : "Miles · thousands separators · value stored as a number."}
+                </p>
               </div>
               <div className="sm:col-span-2">
                 <label className={LABEL}>{reqLabel(t.app.labels.city)}</label>
@@ -477,22 +493,28 @@ export function AutosPrivadoApplication() {
               <div className="sm:col-span-2">
                 <label className={LABEL}>{t.app.labels.phoneOffice}</label>
                 <input
-                  className={INPUT}
+                  className={`${INPUT} tabular-nums`}
                   inputMode="tel"
                   autoComplete="tel"
-                  value={listing.dealerPhoneOffice ?? ""}
-                  onChange={(e) => setListingPatch({ dealerPhoneOffice: e.target.value || undefined })}
+                  value={formatPhoneInputDisplay(listing.dealerPhoneOffice ?? "")}
+                  onChange={(e) => {
+                    const v = formatPhoneInputDisplay(e.target.value);
+                    setListingPatch({ dealerPhoneOffice: v.trim() ? v : undefined });
+                  }}
                 />
               </div>
               <div className="sm:col-span-2">
                 <label className={LABEL}>{t.app.labels.whatsapp}</label>
                 <input
-                  className={INPUT}
+                  className={`${INPUT} tabular-nums`}
                   inputMode="tel"
                   autoComplete="tel"
                   placeholder={t.app.placeholders.whatsapp}
-                  value={listing.dealerWhatsapp ?? ""}
-                  onChange={(e) => setListingPatch({ dealerWhatsapp: e.target.value.trim() ? e.target.value : undefined })}
+                  value={formatPhoneInputDisplay(listing.dealerWhatsapp ?? "")}
+                  onChange={(e) => {
+                    const v = formatPhoneInputDisplay(e.target.value);
+                    setListingPatch({ dealerWhatsapp: v.trim() ? v : undefined });
+                  }}
                 />
                 <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.whatsapp}</p>
               </div>
@@ -506,20 +528,6 @@ export function AutosPrivadoApplication() {
                   value={listing.dealerEmail ?? ""}
                   onChange={(e) => setListingPatch({ dealerEmail: e.target.value.trim() ? e.target.value : undefined })}
                 />
-              </div>
-              <div className="sm:col-span-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3">
-                <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-[color:var(--lx-text)]">
-                  <input
-                    type="checkbox"
-                    checked={siteMessageOn}
-                    onChange={(e) => setListingPatch({ privadoSiteMessageEnabled: e.target.checked })}
-                    className="mt-0.5 rounded border-[color:var(--lx-nav-border)]"
-                  />
-                  <span>
-                    {t.app.labels.siteMessageCta}
-                    <span className="mt-1 block text-xs font-normal text-[color:var(--lx-muted)]">{t.app.labels.siteMessageCtaHint}</span>
-                  </span>
-                </label>
               </div>
             </div>
           </section>

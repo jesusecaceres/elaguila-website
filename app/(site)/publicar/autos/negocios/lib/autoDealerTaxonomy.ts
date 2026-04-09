@@ -105,17 +105,17 @@ export const US_STATE_OPTIONS = [
 ];
 
 export const FEATURE_OPTIONS: string[] = [
-  "Cámara de reversa",
-  "Monitor de punto ciego",
   "Apple CarPlay",
   "Android Auto",
-  "Control crucero adaptativo",
-  "Techo panorámico",
+  "Monitor de punto ciego",
+  "Cámara de reversa",
   "Asientos calefactables",
   "Navegación",
-  "Remote start",
+  "Techo panorámico",
   "AWD / 4WD",
+  "Arranque a distancia",
   "Tercera fila",
+  "Control crucero adaptativo",
 ];
 
 export const BADGE_OPTIONS: { key: VehicleBadge; label: string }[] = [

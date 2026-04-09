@@ -11,12 +11,14 @@ export function getAutosApplicationStepShellCopy(lang: AutosNegociosLang) {
     previous: isEs ? "Anterior" : "Previous",
     next: isEs ? "Siguiente" : "Next",
     mobileStepLabel: isEs ? "Ir al paso" : "Go to step",
-    reviewTitle: isEs ? "Listo para revisar" : "Ready to review",
+    reviewTitle: isEs ? "Revisión final" : "Final review",
     reviewIntro: isEs
-      ? "Usa los botones de arriba para abrir la vista previa en esta pestaña o en una nueva. Tu borrador se guarda automáticamente."
-      : "Use the buttons above to open preview in this tab or a new tab. Your draft saves automatically.",
-    reviewChecklistTitle: isEs ? "Antes de la vista previa" : "Before preview",
-    reviewAllGood: isEs ? "No faltan datos estructurales clave." : "No key structural fields are missing.",
+      ? "Arriba tienes Vista previa, Publicar anuncio y Eliminar solicitud. La vista previa abre en esta ventana después de guardar el borrador."
+      : "Above you’ll find Preview, Publish listing, and Delete application. Preview opens in this window after saving your draft.",
+    reviewChecklistTitle: isEs ? "Lista de completitud" : "Completeness",
+    reviewAllGood: isEs
+      ? "Los datos mínimos para una vista previa sólida están listos."
+      : "Minimum data for a solid preview is in place.",
   };
 }
 

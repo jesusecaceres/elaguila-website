@@ -50,10 +50,6 @@ export function getAutosPrivadoCopy(lang: AutosNegociosLang): AutosNegociosCopy 
         phoneOffice: isEs ? "Teléfono" : "Phone",
         dealerName: isEs ? "Nombre del vendedor" : "Seller name",
         sellerEmail: isEs ? "Correo electrónico (opcional)" : "Email (optional)",
-        siteMessageCta: isEs ? "Mostrar botón “Mensaje” (Leonix) en la vista previa" : "Show “Message” (Leonix) on preview",
-        siteMessageCtaHint: isEs
-          ? "Abre el formulario de contacto de Leonix con un mensaje sugerido sobre este auto."
-          : "Opens Leonix’s contact form with a suggested note about this vehicle.",
       },
     },
   };

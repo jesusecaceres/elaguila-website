@@ -22,7 +22,7 @@ function iconForFeature(label: string): ReactNode {
   if (t.includes("techo") || t.includes("roof") || t.includes("panoramic")) return <BiSun className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" />;
   if (t.includes("asientos") || t.includes("heated") || t.includes("seat")) return <TbArmchair2 className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" />;
   if (t.includes("navegación") || t.includes("navegacion") || t.includes("navigation")) return <BiNavigation className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" />;
-  if (t.includes("remote")) return <FiSmartphone className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" />;
+  if (t.includes("remote") || t.includes("arranque")) return <FiSmartphone className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" />;
   if (t.includes("awd") || t.includes("4wd") || t.includes("4x4")) return <BiCar className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" />;
   if (t.includes("tercera") || t.includes("third")) return <TbLayoutGrid className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" />;
   return <BiCheckDecor />;

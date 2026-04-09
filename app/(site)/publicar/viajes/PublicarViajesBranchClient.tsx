@@ -9,6 +9,7 @@ import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { ViajesLangSwitch } from "@/app/(site)/clasificados/viajes/components/ViajesLangSwitch";
+import { getPublicarViajesHubCopy } from "./data/publicarViajesHubCopy";
 
 const CARD =
   "group flex h-full flex-col rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] transition hover:border-[color:var(--lx-gold-border)] hover:shadow-[0_12px_36px_-14px_rgba(42,36,22,0.14)] sm:p-6";
@@ -16,46 +17,15 @@ const CARD =
 export function PublicarViajesBranchClient() {
   const sp = useSearchParams();
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  const copy = getPublicarViajesHubCopy(lang);
 
   useEffect(() => {
-    document.title = lang === "en" ? "Publish · Leonix Viajes" : "Publicar · Leonix Viajes";
-  }, [lang]);
+    document.title = copy.documentTitle;
+  }, [copy.documentTitle]);
 
   const hubHref = appendLangToPath("/clasificados/publicar", lang);
   const negociosHref = appendLangToPath("/publicar/viajes/negocios", lang);
   const viajesHref = appendLangToPath("/clasificados/viajes", lang);
-
-  const copy =
-    lang === "en"
-      ? {
-          kicker: "Leonix Classifieds",
-          title: "Publish a Viajes listing",
-          intro:
-            "Choose how you want to appear. Business listings are built for agencies and operators; partner paths will open when ready.",
-          back: "Back to publishing hub",
-          negociosTitle: "Businesses & agencies",
-          negociosBody: "Structured application aligned with the public Viajes card — title, destination, inclusions, media and contact.",
-          negociosCta: "Open business application",
-          soonTitle: "Partners & internal",
-          soonBody: "Reserved for verified partners and future Leonix Viajes programs. Not open for self-serve yet.",
-          soonCta: "Coming soon",
-          foot: "Questions? Start from the Viajes destination and explore how listings look live.",
-        }
-      : {
-          kicker: "Leonix Clasificados",
-          title: "Publica una oferta de viajes",
-          intro:
-            "Elige cómo quieres aparecer. La vía de negocios está pensada para agencias y operadores; las rutas de socios se abrirán cuando estén listas.",
-          back: "Volver al hub de publicar",
-          negociosTitle: "Negocios y agencias",
-          negociosBody:
-            "Solicitud estructurada alineada con la ficha pública de Viajes: título, destino, inclusiones, multimedia y contacto.",
-          negociosCta: "Abrir solicitud para negocios",
-          soonTitle: "Socios e interno",
-          soonBody: "Espacio reservado para socios verificados y futuros programas Leonix de viajes. Aún sin autoservicio.",
-          soonCta: "Próximamente",
-          foot: "¿Dudas? Entra a la página de Viajes y revisa cómo se ven las fichas en vivo.",
-        };
 
   return (
     <div
@@ -85,6 +55,19 @@ export function PublicarViajesBranchClient() {
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-text-2)] sm:text-base">{copy.intro}</p>
         </header>
 
+        <section className="mt-8 rounded-2xl border border-[color:var(--lx-gold-border)]/50 bg-[color:var(--lx-section)]/70 p-4 sm:p-5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{copy.stepsTitle}</p>
+          <ol className="mt-3 space-y-2">
+            {copy.steps.map((s) => (
+              <li key={s.label} className="flex flex-col gap-0.5 rounded-xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-card)] px-3 py-2.5 text-sm sm:flex-row sm:items-baseline sm:gap-2">
+                <span className="shrink-0 font-bold text-[color:var(--lx-text)]">{s.label}</span>
+                <span className="text-[color:var(--lx-text-2)]">{s.detail}</span>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-4 text-xs leading-relaxed text-[color:var(--lx-muted)]">{copy.modeNote}</p>
+        </section>
+
         <div className="mt-8 grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2">
           <Link href={negociosHref} className={CARD}>
             <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] text-[color:var(--lx-gold)]">
@@ -110,10 +93,9 @@ export function PublicarViajesBranchClient() {
 
         <p className="mt-10 text-center text-sm text-[color:var(--lx-muted)]">
           <Link href={viajesHref} className="font-semibold text-[color:var(--lx-text)] underline-offset-4 hover:underline">
-            Ver Viajes en Clasificados
-          </Link>
-          {" · "}
-          {copy.foot}
+            {copy.footLink}
+          </Link>{" "}
+          {copy.footRest}
         </p>
       </div>
     </div>

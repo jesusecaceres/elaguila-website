@@ -5,12 +5,30 @@ export type PublicarViajesNegociosUi = {
   navBack: string;
   h1: string;
   intro: string;
+  /** Short line under H1 — workflow position */
+  workflowKicker: string;
   sections: {
     main: string;
     audience: string;
     media: string;
     business: string;
   };
+  sectionHints: {
+    main: string;
+    audience: string;
+    media: string;
+    business: string;
+  };
+  workflow: {
+    previewWhat: { title: string; body: string };
+    afterSubmit: { title: string; body: string };
+    moderation: { title: string; body: string };
+  };
+  trustBar: { title: string; body: string };
+  lifecycle: { title: string; intro: string; items: string[] };
+  productMode: { title: string; body: string };
+  stepLabels: string[];
+  activeStepIndex: number;
   offerType: { label: string; options: Record<string, string> };
   ctaType: { label: string; options: Record<string, string> };
   title: { label: string; placeholder: string };
@@ -49,20 +67,64 @@ export type PublicarViajesNegociosUi = {
   };
   previewCta: string;
   submitSoon: string;
+  ctaRowHint: string;
 };
 
 function es(): PublicarViajesNegociosUi {
   return {
     documentTitle: "Solicitud negocio Viajes · Leonix",
     navBack: "Volver a publicar Viajes",
-    h1: "Oferta de viajes — negocio",
-    intro: "Borrador estructurado — los campos mapearán a tu ficha pública. Aún no se envía nada.",
+    h1: "Solicitud de oferta — negocio de viajes",
+    intro:
+      "Completa un borrador de calidad comercial. Los datos están pensados para mapear a la ficha pública de Viajes en Clasificados. El envío en vivo y la moderación se activarán en una siguiente fase — hoy solo entrenas el flujo y la vista previa.",
+    workflowKicker: "Paso 2 de 4 · Borrador de oferta",
     sections: {
-      main: "1. Información principal",
-      audience: "2. Audiencia y contexto",
-      media: "3. Multimedia",
-      business: "4. Datos del negocio",
+      main: "1. Oferta y logística del viaje",
+      audience: "2. Público e inclusiones",
+      media: "3. Medios visuales",
+      business: "4. Identidad y contacto del negocio",
     },
+    sectionHints: {
+      main: "Tipo de producto, ruta, precio publicado y qué incluye — lo que un viajero necesita para decidir.",
+      audience: "Perfil del viajero y señales de servicio (hotel, transporte, idioma).",
+      media: "Imagen principal y material opcional; la subida gestionada llegará con el panel de negocio.",
+      business: "Quién responde y cómo te contactan — puede solicitarse verificación antes de publicar.",
+    },
+    workflow: {
+      previewWhat: {
+        title: "Qué verás en vista previa",
+        body: "Una página de oferta de ejemplo en Clasificados: titular, destino, inclusiones, socio/negocio y CTAs — coherente con el listado público de Viajes.",
+      },
+      afterSubmit: {
+        title: "Después del envío (próximamente)",
+        body: "Revisión de calidad, posibles solicitudes de documentos o sitio web, y activación en la categoría cuando corresponda al plan Standard / Plus del negocio.",
+      },
+      moderation: {
+        title: "Moderación y confianza",
+        body: "Viajes exige más claridad que un clasificado genérico: identidad del negocio, ofertas vigentes y canales de contacto verificables. Los anunciantes nuevos en viajes pueden pasar revisión manual.",
+      },
+    },
+    trustBar: {
+      title: "Expectativas de confianza en Viajes",
+      body: "Podemos pedir sitio web, redes o teléfono comercial; las ofertas caducadas se retiran. Leonix no es la agencia de reservas — tú sigues siendo el vendedor del servicio.",
+    },
+    lifecycle: {
+      title: "Después, en el panel de negocio (planeado)",
+      intro: "Sin backend aún — visión de producto:",
+      items: [
+        "Editar, pausar o duplicar ofertas",
+        "Renovar vigencia y destacados",
+        "Subir galería y video con herramientas Leonix",
+        "Métricas de clics y leads",
+        "Ajustar plan Standard / Plus",
+      ],
+    },
+    productMode: {
+      title: "Modo producto actual",
+      body: "V1: vitrina de descubrimiento — sin checkout de viajes en Leonix, sin publicación libre para consumidor, con revisión para nuevas fichas de negocio. Contenido editorial y socios comerciales se muestran aparte en la categoría pública.",
+    },
+    stepLabels: ["Entrada", "Borrador", "Vista previa", "Envío"],
+    activeStepIndex: 1,
     offerType: {
       label: "Tipo de oferta",
       options: {
@@ -127,8 +189,9 @@ function es(): PublicarViajesNegociosUi {
       destinationsServed: { label: "Destinos que atienden", placeholder: "Separados por coma" },
       languages: { label: "Idiomas", placeholder: "Ej. Español, inglés" },
     },
-    previewCta: "Vista previa de la ficha",
-    submitSoon: "Enviar (próximamente)",
+    previewCta: "Vista previa de la ficha pública",
+    submitSoon: "Enviar solicitud (próximamente)",
+    ctaRowHint: "La vista previa abre un ejemplo en Clasificados. El botón de envío se habilitará cuando exista backend y reglas de moderación.",
   };
 }
 
@@ -136,14 +199,57 @@ function en(): PublicarViajesNegociosUi {
   return {
     documentTitle: "Viajes business application · Leonix",
     navBack: "Back to Viajes publishing",
-    h1: "Business travel offer",
-    intro: "Structured draft — fields will map to your public listing. Nothing is submitted yet.",
+    h1: "Business travel offer application",
+    intro:
+      "Complete a commercial-quality draft. Fields are designed to map to your public Viajes listing in Classifieds. Live submit and moderation will ship in a later phase — today you practice the flow and preview only.",
+    workflowKicker: "Step 2 of 4 · Offer draft",
     sections: {
-      main: "1. Key details",
-      audience: "2. Audience and context",
-      media: "3. Media",
-      business: "4. Business profile",
+      main: "1. Trip offer & logistics",
+      audience: "2. Audience & inclusions",
+      media: "3. Visual media",
+      business: "4. Business identity & contact",
     },
+    sectionHints: {
+      main: "Product type, route, published price, and inclusions — what a traveler needs to decide.",
+      audience: "Traveler profile and service signals (hotel, transport, language).",
+      media: "Hero image and optional assets; managed upload will arrive with the business dashboard.",
+      business: "Who responds and how — verification may be requested before publishing.",
+    },
+    workflow: {
+      previewWhat: {
+        title: "What preview shows",
+        body: "A sample offer page in Classifieds: headline, destination, inclusions, partner/business context, and CTAs — consistent with public Viajes listings.",
+      },
+      afterSubmit: {
+        title: "After submit (coming later)",
+        body: "Quality review, possible requests for documents or website, and activation in the category aligned with your Standard / Plus business plan.",
+      },
+      moderation: {
+        title: "Moderation & trust",
+        body: "Viajes requires more clarity than a generic classified: business identity, valid offers, and verifiable contact channels. New travel advertisers may receive manual review.",
+      },
+    },
+    trustBar: {
+      title: "Trust expectations in Viajes",
+      body: "We may request website, socials, or business phone; expired offers are removed. Leonix is not the booking agency — you remain the seller of the service.",
+    },
+    lifecycle: {
+      title: "Later, in the business dashboard (planned)",
+      intro: "No backend yet — product direction:",
+      items: [
+        "Edit, pause, or duplicate offers",
+        "Renew validity and featured placement",
+        "Upload gallery and video with Leonix tools",
+        "Clicks and lead metrics",
+        "Adjust Standard / Plus plan",
+      ],
+    },
+    productMode: {
+      title: "Current product mode",
+      body: "V1: discovery showcase — no travel checkout on Leonix, no open consumer free-post, with review for new business listings. Editorial and commercial partner surfaces are labeled separately on the public category.",
+    },
+    stepLabels: ["Entry", "Draft", "Preview", "Submit"],
+    activeStepIndex: 1,
     offerType: {
       label: "Offer type",
       options: {
@@ -208,8 +314,9 @@ function en(): PublicarViajesNegociosUi {
       destinationsServed: { label: "Destinations you serve", placeholder: "Comma-separated" },
       languages: { label: "Languages", placeholder: "e.g. Spanish, English" },
     },
-    previewCta: "Preview public card",
-    submitSoon: "Submit (soon)",
+    previewCta: "Preview public listing",
+    submitSoon: "Submit application (soon)",
+    ctaRowHint: "Preview opens a sample page in Classifieds. Submit stays disabled until backend and moderation rules exist.",
   };
 }
 

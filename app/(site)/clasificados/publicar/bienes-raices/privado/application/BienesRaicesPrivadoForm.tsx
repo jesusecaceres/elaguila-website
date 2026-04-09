@@ -39,8 +39,7 @@ import {
   compressImageFileToJpegDataUrl,
   readVideoFileAsDataUrlLimited,
 } from "./utils/brPrivadoMediaCompress";
-import { readFileAsDataUrl } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/readFileAsDataUrl";
-import { BR_PRIVADO_CIUDAD_ZONA_SUGGESTIONS } from "./utils/brPrivadoNorCalZones";
+import { BrPrivadoCiudadZonaCombobox } from "./components/BrPrivadoCiudadZonaCombobox";
 import {
   COMERCIAL_DESTACADOS_DEFS,
   COMERCIAL_SUBTIPO_POR_TIPO,
@@ -67,6 +66,23 @@ const MAX_VIDEO_BYTES = 32 * 1024 * 1024;
 function precioDigitsUnbounded(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "");
 }
+
+/** Live preview of how price will render in the ad (USD, commas). */
+function formatPricePreviewUsd(digitsRaw: string): string {
+  const d = precioDigitsUnbounded(digitsRaw);
+  if (!d) return "";
+  const n = Number(d);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+}
+
+const BR_PRIVADO_PREVIEW_ACTION_LABELS = {
+  preview: "Validar y ver vista previa",
+  openPreview: "Ver vista previa (sin validar)",
+  openPreviewTitle:
+    "Abre la vista previa enseguida con el borrador guardado en esta pestaña. No exige las confirmaciones del final ni todos los campos mínimos.",
+  deleteApplication: "Eliminar borrador",
+} as const;
 
 const CATEGORIAS: { id: BrNegocioCategoriaPropiedad; label: string }[] = [
   { id: "residencial", label: "Residencial" },
@@ -127,11 +143,38 @@ export function BienesRaicesPrivadoForm() {
     setHydrated(true);
   }, []);
 
+  /** Debounced autosave — always persists `stateRef.current` when the timer fires (avoids stale closures). */
   useEffect(() => {
     if (!hydrated) return;
-    const id = window.setTimeout(() => saveBienesRaicesPrivadoDraft(state), 400);
+    const id = window.setTimeout(() => {
+      saveBienesRaicesPrivadoDraft(stateRef.current);
+    }, 280);
     return () => window.clearTimeout(id);
   }, [state, hydrated]);
+
+  /** Flush on tab hide / navigation away so the last keystroke is not lost. */
+  useEffect(() => {
+    if (!hydrated) return;
+    function flush() {
+      saveBienesRaicesPrivadoDraft(stateRef.current);
+    }
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") flush();
+    }
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (state.media.videoLocalDataUrl && !localVideoFileName) {
+      setLocalVideoFileName("Video local (sesión)");
+    }
+  }, [hydrated, state.media.videoLocalDataUrl, localVideoFileName]);
 
   const flushSave = useCallback(() => {
     saveBienesRaicesPrivadoDraft(stateRef.current);
@@ -201,7 +244,8 @@ export function BienesRaicesPrivadoForm() {
       setState((s) => {
         const out: BienesRaicesPrivadoFormState = {
           ...s,
-          media: { ...s.media, videoLocalDataUrl: data },
+          /** One video source: archivo borra enlace guardado para evitar ambigüedad. */
+          media: { ...s.media, videoLocalDataUrl: data, videoUrl: "" },
         };
         queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
         return out;
@@ -232,9 +276,61 @@ export function BienesRaicesPrivadoForm() {
     });
   };
 
+  const onVideoUrlChange = (raw: string) => {
+    setMediaNotice(null);
+    const t = raw.trim();
+    if (t) setLocalVideoFileName("");
+    setState((s) => {
+      const out: BienesRaicesPrivadoFormState = {
+        ...s,
+        media: {
+          ...s.media,
+          videoUrl: raw,
+          ...(t ? { videoLocalDataUrl: "" } : {}),
+        },
+      };
+      queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
+      return out;
+    });
+  };
+
   const cat = state.categoriaPropiedad;
   const confirmAll =
     state.confirmListingAccurate && state.confirmPhotosRepresentItem && state.confirmCommunityRules;
+
+  const pricePreview = formatPricePreviewUsd(state.precio);
+
+  const previewActionsProps = {
+    onPreviewValidated: () => {
+      if (!confirmAll) return;
+      const g = gateBienesRaicesPrivadoPreview(stateRef.current);
+      if (!g.ok) {
+        setPreviewGateMessage(g.message);
+        return;
+      }
+      setPreviewGateMessage(null);
+      flushSave();
+      router.push(previewHref);
+    },
+    openPreviewHref: previewHref,
+    onBeforeOpenUnvalidatedPreview: flushSave,
+    disableValidatedPreview: !confirmAll,
+    validationBlockedMessage: previewGateMessage ?? (!confirmAll ? CONFIRM_PREVIEW_BLOCKED[lang] : null),
+    labels: BR_PRIVADO_PREVIEW_ACTION_LABELS,
+    onDeleteApplication: () => {
+      clearBienesRaicesPrivadoDraft();
+      const empty = createEmptyBienesRaicesPrivadoFormState();
+      try {
+        const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+        const p = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
+        setState(p ? { ...empty, categoriaPropiedad: p } : empty);
+      } catch {
+        setState(empty);
+      }
+      setPreviewGateMessage(null);
+    },
+    deleteConfirmMessage: "¿Eliminar el borrador de esta solicitud y empezar de nuevo?",
+  };
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#F6F0E2] px-4 pb-28 pt-24 text-[#2C2416] sm:px-5 sm:pb-24 sm:pt-28">
@@ -248,46 +344,12 @@ export function BienesRaicesPrivadoForm() {
           </p>
         </header>
 
-        <ClasificadosApplicationTopActions
-          onPreviewValidated={() => {
-            if (!confirmAll) return;
-            const g = gateBienesRaicesPrivadoPreview(stateRef.current);
-            if (!g.ok) {
-              setPreviewGateMessage(g.message);
-              return;
-            }
-            setPreviewGateMessage(null);
-            flushSave();
-            router.push(previewHref);
-          }}
-          openPreviewHref={previewHref}
-          onBeforeOpenUnvalidatedPreview={flushSave}
-          disableValidatedPreview={!confirmAll}
-          validationBlockedMessage={previewGateMessage ?? (!confirmAll ? CONFIRM_PREVIEW_BLOCKED[lang] : null)}
-          labels={{
-            preview: "Preparar vista previa",
-            openPreview: "Abrir vista previa ahora",
-            openPreviewTitle:
-              "Guarda el borrador en esta sesión y abre la vista previa sin pasar por la validación mínima (útil si faltan datos opcionales).",
-          }}
-          onDeleteApplication={() => {
-            clearBienesRaicesPrivadoDraft();
-            const empty = createEmptyBienesRaicesPrivadoFormState();
-            try {
-              const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-              const p = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
-              setState(p ? { ...empty, categoriaPropiedad: p } : empty);
-            } catch {
-              setState(empty);
-            }
-            setPreviewGateMessage(null);
-          }}
-          deleteConfirmMessage="¿Eliminar el borrador de esta solicitud y empezar de nuevo?"
-        />
+        <ClasificadosApplicationTopActions {...previewActionsProps} />
         <p className="text-xs leading-relaxed text-[#5C5346]/88">
-          <strong className="text-[#1E1810]">Preparar vista previa</strong> revisa requisitos mínimos y, si pasan, te lleva al
-          anuncio de prueba. <strong className="text-[#1E1810]">Abrir vista previa ahora</strong> guarda el borrador y abre
-          de inmediato (sin bloquear por confirmaciones o campos opcionales).
+          <strong className="text-[#1E1810]">Validar y ver vista previa</strong> exige las confirmaciones del final y los
+          requisitos mínimos; si pasan, abre tu anuncio de prueba.{" "}
+          <strong className="text-[#1E1810]">Ver vista previa (sin validar)</strong> guarda el borrador y abre al instante
+          (útil mientras terminas campos opcionales).
         </p>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -333,7 +395,11 @@ export function BienesRaicesPrivadoForm() {
                 />
               </AiField>
             </div>
-            <AiField required label="Precio (USD)" hint="Solo números enteros; en la vista previa verás el formato con comas.">
+            <AiField
+              required
+              label="Precio (USD)"
+              hint="Escribe solo números (sin símbolos). Abajo ves cómo quedará en el anuncio."
+            >
               <input
                 className={fieldClass}
                 inputMode="numeric"
@@ -341,6 +407,20 @@ export function BienesRaicesPrivadoForm() {
                 onChange={(e) => setState((s) => ({ ...s, precio: precioDigitsUnbounded(e.target.value) }))}
                 autoComplete="off"
               />
+              {pricePreview ? (
+                <p className="mt-2 text-sm font-semibold [font-variant-numeric:tabular-nums] text-[#6E5418]">
+                  En el anuncio:{" "}
+                  <span className="text-[#1E1810]" aria-live="polite">
+                    {pricePreview}
+                  </span>
+                </p>
+              ) : (
+                <p className="mt-2 text-xs text-[#5C5346]/85">
+                  {state.precio.trim()
+                    ? "Revisa el número (debe ser mayor que cero)."
+                    : "Ejemplo: al escribir 120000 se mostrará como precio en dólares con formato."}
+                </p>
+              )}
             </AiField>
             <AiField label="Estado del anuncio">
               <select
@@ -359,30 +439,23 @@ export function BienesRaicesPrivadoForm() {
             </AiField>
             <AiField
               label="Ciudad o zona"
-              hint="Área donde está la propiedad (NorCal). Puedes elegir una sugerencia o escribir la tuya; sirve para filtros futuros."
+              hint="Escribe y elige una sugerencia NorCal, o escribe tu propia zona. Sirve para ubicación en el anuncio y para filtros futuros."
             >
-              <input
+              <BrPrivadoCiudadZonaCombobox
                 className={fieldClass}
-                list="br-privado-ciudad-zona"
                 value={state.ciudad}
-                onChange={(e) => setState((s) => ({ ...s, ciudad: e.target.value }))}
-                autoComplete="address-level2"
+                onChange={(v) => setState((s) => ({ ...s, ciudad: v }))}
               />
-              <datalist id="br-privado-ciudad-zona">
-                {BR_PRIVADO_CIUDAD_ZONA_SUGGESTIONS.map((z) => (
-                  <option key={z} value={z} />
-                ))}
-              </datalist>
             </AiField>
             <AiField
               label="Dirección o referencia"
-              hint="Calle y zona aproximada, colonia o punto de referencia (esquina, cuadra). No hace falta el número exacto si prefieres mantenerlo general."
+              hint="Ubicación aproximada o segura para publicar: no hace falta la dirección completa. Ejemplos ficticios: “Cerca de la esquina de Oak y 12 · barrio tranquilo”, “Zona residencial al norte del centro”, “Frente al parque de la colonia (referencia).”"
             >
               <input
                 className={fieldClass}
                 value={state.ubicacionLinea}
                 onChange={(e) => setState((s) => ({ ...s, ubicacionLinea: e.target.value }))}
-                autoComplete="street-address"
+                autoComplete="off"
               />
             </AiField>
             <p className="sm:col-span-2 text-xs text-[#5C5346]">
@@ -405,7 +478,10 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
             </div>
             <div className="sm:col-span-2">
-              <AiField label="Descripción de la propiedad" hint="Qué ofrece, estado, vecindario — lo que verá el interesado en el anuncio.">
+              <AiField
+                label="Descripción de la propiedad"
+                hint="Describe la vivienda o terreno: distribución, estado, luz, vecindario, accesos. Es el texto principal del anuncio."
+              >
                 <textarea
                   className={textareaFieldClass}
                   rows={6}
@@ -420,13 +496,14 @@ export function BienesRaicesPrivadoForm() {
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>Fotos y video</h2>
           <p className={aiSubClass}>
-            Hasta {MAX_PHOTOS} fotos (se comprimen para esta sesión). Al menos una foto para una vista previa completa
+            Hasta {MAX_PHOTOS} fotos (se comprimen en el navegador). Para una vista previa completa hace falta al menos una
+            foto
             <span className="text-[#B8954A]" aria-hidden>
               {" "}
               *
             </span>
-            . Un video: enlace o archivo local — el archivo tiene prioridad si hay ambos. Nada se sube a servidores hasta
-            publicar; en borrador/vista previa todo queda en el navegador.
+            . Un solo video: por archivo <strong className="font-semibold text-[#1E1810]">o</strong> por enlace (no ambos).
+            Nada se sube a servidores en este paso; el borrador vive en esta sesión hasta que exista publicación.
           </p>
           {mediaNotice ? (
             <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-950" role="status">
@@ -531,10 +608,11 @@ export function BienesRaicesPrivadoForm() {
             ) : null}
           </div>
           <div className="mt-6 border-t border-[#E8DFD0] pt-5">
-            <span className={aiLabelClass}>Video</span>
+            <span className={aiLabelClass}>Video (opcional)</span>
             <p className={aiHintClass}>
-              Enlace (YouTube, Vimeo, mp4…) o archivo desde tu equipo. Si hay archivo y enlace, se usa el archivo en la vista
-              previa.
+              Elige <strong className="font-semibold text-[#1E1810]">un solo origen</strong>: archivo en tu equipo (borrador
+              local, sin Mux) o enlace (YouTube, mp4, etc.). Al elegir archivo se borra el enlace; al pegar un enlace se borra
+              el archivo.
             </p>
             <input
               ref={videoFileInputRef}
@@ -543,48 +621,57 @@ export function BienesRaicesPrivadoForm() {
               className="sr-only"
               onChange={(e) => onVideoFile(e.target.files)}
             />
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#C9B46A]/70 bg-white px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
-                onClick={() => videoFileInputRef.current?.click()}
-              >
-                Elegir video del dispositivo
-              </button>
-              {state.media.videoLocalDataUrl ? (
-                <span className="inline-flex max-w-full min-w-0 items-center gap-2 rounded-full border border-[#B8954A]/40 bg-[#FFF6E7] px-3 py-1 text-xs font-medium text-[#2C2416]">
-                  <span className="min-w-0 truncate">{localVideoFileName || "Video local (borrador)"}</span>
+            {state.media.videoLocalDataUrl ? (
+              <div className="mt-3 space-y-2 rounded-xl border border-[#B8954A]/35 bg-[#FFF6E7] p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#6E5418]">Video activo: archivo local</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex max-w-full min-w-0 items-center rounded-full border border-[#C9B46A]/60 bg-white px-3 py-1.5 text-xs font-semibold text-[#1E1810]">
+                    <span className="min-w-0 truncate">{localVideoFileName || "Video local (sesión)"}</span>
+                  </span>
                   <button
                     type="button"
-                    className="shrink-0 font-bold text-[#B8954A] underline"
+                    className="text-xs font-bold text-[#B8954A] underline"
                     onClick={clearLocalVideo}
                   >
                     Quitar archivo
                   </button>
-                </span>
-              ) : null}
-            </div>
-            <div className="mt-4">
-              <AiField label="Video por enlace (opcional)" hint="Pega URL completa o dominio; YouTube y enlaces directos funcionan en vista previa.">
-                <input
-                  className={fieldClass}
-                  type="text"
-                  inputMode="url"
-                  autoComplete="off"
-                  placeholder="https://"
-                  value={state.media.videoUrl}
-                  onChange={(e) =>
-                    setState((s) => ({
-                      ...s,
-                      media: { ...s.media, videoUrl: e.target.value },
-                    }))
-                  }
-                />
-              </AiField>
-            </div>
-            {state.media.videoLocalDataUrl && state.media.videoUrl.trim() ? (
-              <p className="mt-2 text-xs font-medium text-[#6E5418]">En vista previa se usará el video del dispositivo (prioridad sobre el enlace).</p>
-            ) : null}
+                </div>
+                <p className="text-xs leading-relaxed text-[#5C5346]">
+                  Para usar un enlace, quita primero el archivo. La vista previa reproduce este video solo en tu navegador.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#C9B46A]/70 bg-white px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
+                    onClick={() => videoFileInputRef.current?.click()}
+                  >
+                    Subir video del dispositivo
+                  </button>
+                </div>
+                <div className="mt-4">
+                  <AiField
+                    label="O video por enlace"
+                    hint="Pega la URL completa (YouTube, Vimeo, mp4…). Si empiezas a escribir aquí, cualquier archivo de video anterior se descarta."
+                  >
+                    <input
+                      className={fieldClass}
+                      type="text"
+                      inputMode="url"
+                      autoComplete="off"
+                      placeholder="https://"
+                      value={state.media.videoUrl}
+                      onChange={(e) => onVideoUrlChange(e.target.value)}
+                    />
+                  </AiField>
+                </div>
+                {state.media.videoUrl.trim() ? (
+                  <p className="mt-2 text-xs font-medium text-[#2C7A4E]">Enlace listo: se usará en la vista previa.</p>
+                ) : null}
+              </>
+            )}
           </div>
         </section>
 
@@ -1121,6 +1208,14 @@ export function BienesRaicesPrivadoForm() {
           onPhotos={(v) => setState((s) => ({ ...s, confirmPhotosRepresentItem: v }))}
           onRules={(v) => setState((s) => ({ ...s, confirmCommunityRules: v }))}
         />
+
+        <div className="min-w-0 space-y-3 rounded-2xl border border-[#E8DFD0] bg-[#FFFBF7] p-4 sm:p-5">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">Vista previa del anuncio</p>
+          <p className="text-xs leading-relaxed text-[#5C5346]/90">
+            Mismas acciones que arriba: no necesitas desplazarte otra vez al inicio del formulario.
+          </p>
+          <ClasificadosApplicationTopActions {...previewActionsProps} />
+        </div>
 
         <p className="break-words text-center text-xs leading-relaxed text-[#5C5346]/80">
           Borrador guardado solo en este dispositivo. Ruta:{" "}

@@ -109,6 +109,13 @@ function row(label: string, value: string): BienesRaicesPreviewFact | null {
   return { label, value: v };
 }
 
+/** Hide optional half-baths when empty or explicitly zero (avoid noisy "0" in preview). */
+function rowOptionalCount(label: string, raw: string): BienesRaicesPreviewFact | null {
+  const t = trim(raw);
+  if (!t || t === "0") return null;
+  return row(label, prettifyPlainNumber(raw));
+}
+
 function operationSummaryFor(cat: BienesRaicesPrivadoFormState["categoriaPropiedad"]): string {
   if (cat === "residencial") return "Venta residencial";
   if (cat === "comercial") return "Venta comercial";
@@ -164,7 +171,7 @@ function buildResidencialDetails(s: BienesRaicesPrivadoFormState): BienesRaicesP
     row("Subtipo", subLbl),
     row("Recámaras", prettifyPlainNumber(r.recamaras)),
     row("Baños completos", prettifyPlainNumber(r.banos)),
-    row("Medios baños", prettifyPlainNumber(r.mediosBanos)),
+    rowOptionalCount("Medios baños", r.mediosBanos),
     row("Tamaño interior", r.interiorSqft ? prettifySqft(r.interiorSqft) : ""),
     row("Tamaño del lote", r.loteSqft ? prettifySqft(r.loteSqft) : ""),
     row("Estacionamiento", r.estacionamiento),
@@ -183,7 +190,8 @@ function buildResidencialQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaic
   };
   push("Recámaras", prettifyPlainNumber(r.recamaras), "bed");
   push("Baños", prettifyPlainNumber(r.banos), "bath");
-  push("Medios baños", prettifyPlainNumber(r.mediosBanos), "bath");
+  const mb = trim(r.mediosBanos);
+  if (mb && mb !== "0") push("Medios baños", prettifyPlainNumber(r.mediosBanos), "bath");
   push("Interior", r.interiorSqft ? prettifySqft(r.interiorSqft) : "", "ruler");
   push("Lote", r.loteSqft ? prettifySqft(r.loteSqft) : "", "pin");
   push("Estacionamiento", r.estacionamiento, "car");

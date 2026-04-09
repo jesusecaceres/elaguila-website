@@ -27,6 +27,8 @@ export interface ViajesTopOffer {
   featuredRank?: number;
   /** Short affiliate disclosure for cards */
   affiliateDisclosureShort?: string;
+  /** EN variant for `?lang=en` screenshots */
+  affiliateDisclosureShortEn?: string;
   /** When listingKind is business */
   businessName?: string;
 }
@@ -106,6 +108,7 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
     listingKind: "affiliate",
     featuredRank: 1,
     affiliateDisclosureShort: "Reserva en sitio del socio · Leonix puede recibir comisión",
+    affiliateDisclosureShortEn: "Book on the partner site · Leonix may earn a commission",
   },
   {
     id: "riviera",
@@ -124,6 +127,7 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
     listingKind: "affiliate",
     featuredRank: 2,
     affiliateDisclosureShort: "Inventario de socio comercial",
+    affiliateDisclosureShortEn: "Commercial partner inventory",
   },
   {
     id: "maui",
@@ -142,6 +146,7 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
     listingKind: "affiliate",
     featuredRank: 3,
     affiliateDisclosureShort: "Vuelo + hotel vía proveedor afiliado",
+    affiliateDisclosureShortEn: "Flight + hotel via affiliate provider",
   },
   {
     id: "puerto-vallarta",

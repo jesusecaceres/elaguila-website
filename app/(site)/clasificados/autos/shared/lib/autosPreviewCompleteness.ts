@@ -9,7 +9,7 @@ export type AutosPreviewLane = "negocios" | "privado";
  * Structural minimum so preview shells (hero, title band, contact) are not empty or misleading.
  * Lane differences:
  * - Negocios: business identity (name or primary phone) expected for dealer CTAs.
- * - Privado: lighter — seller must expose at least one contact path when messaging is on, else phone/WhatsApp/email.
+ * - Privado: lighter — seller must expose at least one of phone, WhatsApp, or email.
  */
 export type AutosPreviewCompletenessKey =
   | "media"

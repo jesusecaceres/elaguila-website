@@ -91,7 +91,6 @@ export function AutosNegociosApplication() {
   }, [t.meta.applicationTitle]);
 
   const previewHref = withLangParam("/clasificados/autos/negocios/preview", lang);
-  const publishConfirmHref = withLangParam("/publicar/autos/negocios/confirm", lang);
 
   if (!hydrated) {
     return <div className="min-h-[40vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
@@ -143,19 +142,14 @@ export function AutosNegociosApplication() {
       topActions={
         <AutosApplicationTopActions
           lane="negocios"
+          lang={lang}
           copy={t}
           listing={listing}
-          mediaSectionId="autos-clasificados-app-media"
-          onFlushOpenSameTab={async () => {
+          onPreview={async () => {
             await flushDraft();
             router.push(previewHref);
           }}
-          onFlushOpenNewTab={async () => {
-            await flushDraft();
-            window.open(previewHref, "_blank", "noopener,noreferrer");
-          }}
           onDeleteApplication={resetDraft}
-          publishConfirmHref={publishConfirmHref}
         />
       }
     >

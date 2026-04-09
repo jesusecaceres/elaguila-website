@@ -12,6 +12,7 @@ import { getViajesUi } from "../data/viajesUiCopy";
 import { VIAJES_RESULTS_SAMPLE, type ViajesResultRow } from "../data/viajesResultsSampleData";
 import { getViajesTripTypeHeroOptions, viajesRowMatchesTripParam } from "../data/viajesTripTypes";
 import { ViajesLangSwitch } from "./ViajesLangSwitch";
+import { ViajesTrustStrip } from "./ViajesTrustStrip";
 import { ViajesResultsAffiliateCard } from "./ViajesResultsAffiliateCard";
 import { ViajesResultsBusinessCard } from "./ViajesResultsBusinessCard";
 import {
@@ -185,6 +186,8 @@ export function ViajesResultsShell() {
             {sorted.length} {R.resultsWord}
           </p>
         </header>
+
+        <ViajesTrustStrip ui={ui} className="mt-3 mb-6 sm:mt-4 sm:mb-7" />
 
         {/* Top filter / search bar */}
         <section className="mb-6 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm sm:p-5">
