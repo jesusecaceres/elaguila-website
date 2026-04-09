@@ -126,13 +126,11 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     }
   }
 
+  /**
+   * Advertiser-provided testimonials are not collected in the Clasificados application UI for this phase.
+   * Do not map `state.testimonials` into preview/publish output — legacy keys may still exist in stored drafts.
+   */
   const reviews: NonNullable<ServiciosApplicationDraft["reviews"]> = [];
-  for (const t of state.testimonials) {
-    const author = t.authorName.trim();
-    const quote = t.quote.trim();
-    if (!author || !quote) continue;
-    reviews.push({ id: t.id, authorName: author, quote });
-  }
 
   const areaLabels = state.serviceAreaNotes
     .split(/[\n,;]+/)
