@@ -92,17 +92,33 @@ export default async function AdminCategoriesPage() {
       <div className={`${adminCardBase} mb-6 space-y-3 p-4 text-sm text-[#5C5346] sm:p-5`}>
         <p className="font-bold text-[#1E1810]">Operational shortcuts</p>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          <Link href="/admin/workspace/clasificados" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
-            Clasificados workspace →
+          <Link
+            href="/admin/workspace/clasificados"
+            className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}
+            title="Cola operativa de anuncios (moderación)"
+          >
+            Cola Clasificados →
           </Link>
-          <Link href="/admin/reportes" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
-            Reports queue →
+          <Link
+            href="/admin/reportes"
+            className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}
+            title="Reportes de anuncios (listing_reports)"
+          >
+            Cola de reportes →
           </Link>
-          <Link href="/admin/ops" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
-            Customer ops search →
+          <Link
+            href="/admin/ops"
+            className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}
+            title="Buscar cuenta, anuncios, pedidos y reportes en una sola búsqueda"
+          >
+            Customer ops →
           </Link>
-          <Link href="/admin/tienda/orders" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
-            Tienda orders →
+          <Link
+            href="/admin/tienda/orders"
+            className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}
+            title="Bandeja de pedidos de impresión / self-serve"
+          >
+            Pedidos Tienda →
           </Link>
         </div>
       </div>
@@ -254,8 +270,12 @@ export default async function AdminCategoriesPage() {
                               className={adminInputClass}
                             />
                           </div>
-                          <button type="submit" className={adminBtnDark}>
-                            Guardar en Supabase
+                          <button
+                            type="submit"
+                            className={adminBtnDark}
+                            title="Guarda visibilidad, orden y estado en site_category_config; actualiza el hub /clasificados/publicar"
+                          >
+                            Guardar categoría (Supabase + publicar)
                           </button>
                         </form>
                       </td>

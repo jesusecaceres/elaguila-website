@@ -18,12 +18,18 @@ export function AdminQuickActionsRail() {
             name="q"
             placeholder="Search users…"
             className={`${adminInputClass} min-h-[44px] text-base sm:min-h-0 sm:text-sm`}
+            aria-describedby="rail-user-hint"
+            autoComplete="off"
           />
+          <p id="rail-user-hint" className="text-[10px] leading-snug text-[#7A7164]">
+            Abre la lista de usuarios con tu texto en <span className="font-mono">?q=</span> (email, nombre, UUID…).
+          </p>
           <button
             type="submit"
             className={`${adminBtnSecondary} flex min-h-[44px] w-full items-center justify-center text-xs sm:min-h-0`}
+            title="Navega a /admin/usuarios con el parámetro de búsqueda"
           >
-            Go →
+            Ir a lista de usuarios →
           </button>
         </form>
         <form className="mt-3 space-y-2" action="/admin/workspace/clasificados" method="get">

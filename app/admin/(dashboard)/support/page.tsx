@@ -132,9 +132,23 @@ async function SupportTicketsSection(props: {
           <label className="mt-4 block text-xs font-semibold text-[#5C5346]" htmlFor="support-ops-q">
             Query
           </label>
-          <input id="support-ops-q" name="q" className={`${adminInputClass} mt-1`} placeholder="UUID, email, listing id, order ref…" />
-          <button type="submit" className={`${adminBtnSecondary} mt-3 w-full min-h-[44px] justify-center sm:min-h-0`}>
-            Open Customer ops →
+          <input
+            id="support-ops-q"
+            name="q"
+            className={`${adminInputClass} mt-1`}
+            placeholder="UUID, email, listing id, order ref…"
+            autoComplete="off"
+            aria-describedby="support-ops-hint"
+          />
+          <p id="support-ops-hint" className="mt-1 text-[10px] text-[#7A7164]">
+            Abre /admin/ops con tu texto en la URL; allí se cruzan perfiles, anuncios, pedidos y reportes.
+          </p>
+          <button
+            type="submit"
+            className={`${adminBtnSecondary} mt-3 w-full min-h-[44px] justify-center sm:min-h-0`}
+            title="Ir a Customer ops con búsqueda unificada"
+          >
+            Abrir Customer ops →
           </button>
         </form>
 
@@ -144,9 +158,23 @@ async function SupportTicketsSection(props: {
           <label className="mt-4 block text-xs font-semibold text-[#5C5346]" htmlFor="support-user-q">
             Query
           </label>
-          <input id="support-user-q" name="q" className={`${adminInputClass} mt-1`} placeholder="Email, ref, name…" />
-          <button type="submit" className={`${adminBtnSecondary} mt-3 w-full min-h-[44px] justify-center sm:min-h-0`}>
-            Open in Users →
+          <input
+            id="support-user-q"
+            name="q"
+            className={`${adminInputClass} mt-1`}
+            placeholder="Email, ref, name…"
+            autoComplete="off"
+            aria-describedby="support-users-hint"
+          />
+          <p id="support-users-hint" className="mt-1 text-[10px] text-[#7A7164]">
+            Solo la lista de perfiles; no abre Ops ni pedidos.
+          </p>
+          <button
+            type="submit"
+            className={`${adminBtnSecondary} mt-3 w-full min-h-[44px] justify-center sm:min-h-0`}
+            title="Ir a /admin/usuarios con el texto de búsqueda"
+          >
+            Buscar en Users →
           </button>
         </form>
 
@@ -210,8 +238,12 @@ async function SupportTicketsSection(props: {
                 />
               </div>
               <div className="sm:col-span-2">
-                <button type="submit" className={`${adminBtnPrimary} w-full justify-center sm:w-auto`}>
-                  Guardar ticket interno
+                <button
+                  type="submit"
+                  className={`${adminBtnPrimary} w-full justify-center sm:w-auto`}
+                  title="Crea una fila en support_tickets (log interno; no es helpdesk público)"
+                >
+                  Crear ticket interno
                 </button>
               </div>
             </form>

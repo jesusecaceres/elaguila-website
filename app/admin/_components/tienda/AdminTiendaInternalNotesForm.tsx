@@ -21,8 +21,12 @@ export function AdminTiendaInternalNotesForm(props: { orderId: string; initialNo
         className={`${adminInputClass} min-h-[100px] resize-y font-sans text-sm`}
         placeholder="e.g. Reprint v2, match Pantone 873 C, customer will pick up Friday…"
       />
-      <button type="submit" className={adminBtnPrimary}>
-        Save notes
+      <button
+        type="submit"
+        className={adminBtnPrimary}
+        title="Guarda notas internas en tienda_orders (solo staff; visible en auditoría como actualización de notas)"
+      >
+        Guardar notas internas
       </button>
     </form>
   );

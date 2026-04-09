@@ -25,6 +25,20 @@ function escapeIlike(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
 }
 
+/** Ring-highlight a row when ?q= is report id, or a single listing/reporter match, or first of several. */
+function resolveHighlightReportId(qRaw: string, list: ReportRow[]): string | null {
+  if (!qRaw || !isUuid(qRaw) || list.length === 0) return null;
+  const q = qRaw.trim();
+  if (list.some((r) => r.id === q)) return q;
+  const byListing = list.filter((r) => r.listing_id === q);
+  const byReporter = list.filter((r) => r.reporter_id === q);
+  if (byListing.length === 1) return byListing[0].id;
+  if (byReporter.length === 1) return byReporter[0].id;
+  if (byListing.length > 0) return byListing[0].id;
+  if (byReporter.length > 0) return byReporter[0].id;
+  return null;
+}
+
 type PageProps = {
   searchParams?: Promise<{ q?: string }>;
 };
@@ -55,7 +69,7 @@ export default async function AdminReportesPage(props: PageProps) {
   const pending = list.filter((r) => r.status === "pending").length;
   const reviewed = list.filter((r) => r.status === "reviewed").length;
   const dismissed = list.filter((r) => r.status === "dismissed").length;
-  const highlightId = qRaw && isUuid(qRaw) && list.some((r) => r.id === qRaw) ? qRaw : null;
+  const highlightId = resolveHighlightReportId(qRaw, list);
 
   return (
     <>
@@ -81,14 +95,27 @@ export default async function AdminReportesPage(props: PageProps) {
             defaultValue={qRaw}
             placeholder="UUID (reporte / listing / reporter) o texto en motivo…"
             className={`${adminInputClass} mt-1`}
+            aria-describedby="reportes-search-hint"
+            autoComplete="off"
           />
+          <p id="reportes-search-hint" className="mt-1 text-[10px] leading-snug text-[#7A7164]">
+            UUID: reporte, anuncio o reporter. Texto libre: solo en el motivo.
+          </p>
         </div>
-        <button type="submit" className={`${adminBtnSecondary} min-h-[44px] sm:min-h-0`}>
-          Aplicar
+        <button
+          type="submit"
+          className={`${adminBtnSecondary} min-h-[44px] sm:min-h-0`}
+          title="Filtrar la tabla con el criterio indicado"
+        >
+          Aplicar filtro
         </button>
         {qRaw ? (
-          <Link href="/admin/reportes" className={`${adminBtnSecondary} min-h-[44px] text-center sm:min-h-0`}>
-            Limpiar
+          <Link
+            href="/admin/reportes"
+            className={`${adminBtnSecondary} min-h-[44px] text-center sm:min-h-0`}
+            title="Quitar filtro y ver todos los reportes recientes"
+          >
+            Limpiar búsqueda
           </Link>
         ) : null}
       </form>

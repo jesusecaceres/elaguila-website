@@ -89,6 +89,7 @@ export default function AdminReportsTable({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-mono text-xs font-semibold text-[#6B5B2E] underline"
+                    title="Abrir anuncio público en nueva pestaña"
                   >
                     {row.listing_id.slice(0, 8)}…
                   </Link>
@@ -98,6 +99,7 @@ export default function AdminReportsTable({
                     <Link
                       href={`/admin/usuarios/${row.reporter_id}`}
                       className="font-mono text-xs font-semibold text-[#6B5B2E] underline"
+                      title="Ficha del usuario que reportó (Leonix admin)"
                     >
                       {row.reporter_id.slice(0, 8)}…
                     </Link>
@@ -116,17 +118,21 @@ export default function AdminReportsTable({
                     <span className="flex flex-wrap gap-2">
                       <button
                         type="button"
-                        className="rounded-lg bg-emerald-600 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                        className="min-h-[40px] rounded-lg bg-emerald-600 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 sm:min-h-0"
                         onClick={() => handleStatus(row.id, "reviewed")}
                         disabled={updatingId === row.id}
+                        title="Marca el reporte como revisado en listing_reports"
+                        aria-label="Marcar reporte como revisado"
                       >
                         Revisado
                       </button>
                       <button
                         type="button"
-                        className="rounded-lg border border-[#E8DFD0] bg-white px-2 py-1 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2] disabled:opacity-50"
+                        className="min-h-[40px] rounded-lg border border-[#E8DFD0] bg-white px-2 py-1 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2] disabled:opacity-50 sm:min-h-0"
                         onClick={() => handleStatus(row.id, "dismissed")}
                         disabled={updatingId === row.id}
+                        title="Descarta el reporte (no implica borrar el anuncio)"
+                        aria-label="Descartar reporte"
                       >
                         Descartar
                       </button>

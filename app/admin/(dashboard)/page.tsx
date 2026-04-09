@@ -36,13 +36,25 @@ export default async function AdminHomePage() {
             Public pages are grouped under workspaces — not the same links as the live site menu. Global toggles that cross many pages live in site-wide settings.
           </p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
-            <Link href="/admin/workspace" className={`${adminCtaChip} w-full justify-center sm:w-auto`}>
+            <Link
+              href="/admin/workspace"
+              className={`${adminCtaChip} w-full justify-center sm:w-auto`}
+              title="Workspaces de contenido público (home, clasificados, tienda, revista…)"
+            >
               Website sections →
             </Link>
-            <Link href="/admin/site-settings" className={`${adminCtaChip} w-full justify-center sm:w-auto`}>
+            <Link
+              href="/admin/site-settings"
+              className={`${adminCtaChip} w-full justify-center sm:w-auto`}
+              title="Avisos globales, toggles y contenido que cruza varias páginas"
+            >
               Ajustes globales del sitio →
             </Link>
-            <Link href="/admin/ops" className={`${adminCtaChip} w-full justify-center sm:w-auto`}>
+            <Link
+              href="/admin/ops"
+              className={`${adminCtaChip} w-full justify-center sm:w-auto`}
+              title="Buscar cuenta, anuncios, pedidos Tienda y reportes en una sola búsqueda"
+            >
               Customer ops search →
             </Link>
           </div>
@@ -60,6 +72,7 @@ export default async function AdminHomePage() {
             icon="🛒"
             actionLabel="Open Tienda inbox"
             actionHref="/admin/tienda/orders"
+            actionTitle="Abre la bandeja de pedidos de impresión / self-serve (tienda_orders)"
             accent="amber"
           />
           <AdminStatCard
@@ -69,6 +82,7 @@ export default async function AdminHomePage() {
             icon="✉️"
             actionLabel="Unread inbox"
             actionHref="/admin/tienda/orders?unread=1"
+            actionTitle="Solo pedidos marcados como no leídos por el equipo"
           />
           <AdminStatCard
             title="Tienda — ready to fulfill"
@@ -77,6 +91,7 @@ export default async function AdminHomePage() {
             icon="📦"
             actionLabel="View inbox"
             actionHref="/admin/tienda/orders?status=ready_to_fulfill"
+            actionTitle="Pedidos listos para producción / cumplimiento"
           />
           <AdminStatCard
             title="Tienda — in review"
@@ -85,6 +100,7 @@ export default async function AdminHomePage() {
             icon="🔍"
             actionLabel="Filter reviewing"
             actionHref="/admin/tienda/orders?status=reviewing"
+            actionTitle="Pedidos en revisión de arte o especificaciones"
           />
           <AdminStatCard
             title="Tienda — total"
@@ -93,6 +109,7 @@ export default async function AdminHomePage() {
             icon="∑"
             actionLabel="All Tienda orders"
             actionHref="/admin/tienda/orders"
+            actionTitle="Bandeja completa de pedidos Tienda"
           />
         </div>
 
@@ -136,8 +153,9 @@ export default async function AdminHomePage() {
                     <Link
                       href={`/admin/tienda/orders/${row.id}`}
                       className="shrink-0 text-xs font-bold text-[#6B5B2E] underline"
+                      title="Abrir detalle del pedido, archivos y estado de cumplimiento"
                     >
-                      Open
+                      Ver pedido
                     </Link>
                   </li>
                 ))
@@ -157,6 +175,7 @@ export default async function AdminHomePage() {
             icon="📣"
             actionLabel="Review ads"
             actionHref="/admin/workspace/clasificados"
+            actionTitle="Cola administrativa de anuncios Clasificados (moderación)"
             accent="rose"
           />
           <AdminStatCard
@@ -166,6 +185,7 @@ export default async function AdminHomePage() {
             icon="🆘"
             actionLabel="View users"
             actionHref="/admin/usuarios"
+            actionTitle="Lista de perfiles (búsqueda y ficha de cliente)"
           />
           <AdminStatCard
             title="Magazine (featured)"
@@ -178,6 +198,7 @@ export default async function AdminHomePage() {
             icon="📰"
             actionLabel="Manage magazines"
             actionHref="/admin/workspace/revista"
+            actionTitle="Números de revista, PDF/flipbook y número actual en portada"
           />
           <AdminStatCard
             title="Reports / complaints"
@@ -186,6 +207,7 @@ export default async function AdminHomePage() {
             icon="⚠️"
             actionLabel="View reports"
             actionHref="/admin/reportes"
+            actionTitle="Cola de reportes de anuncios (listing_reports)"
             accent="amber"
           />
         </div>
@@ -213,9 +235,11 @@ export default async function AdminHomePage() {
                     <Link
                       href={`/clasificados/anuncio/${row.id}`}
                       target="_blank"
+                      rel="noopener noreferrer"
                       className="shrink-0 text-xs font-bold text-[#6B5B2E] underline"
+                      title="Abre el anuncio en el sitio público (nueva pestaña)"
                     >
-                      Open
+                      Ver público
                     </Link>
                   </li>
                 ))
@@ -241,16 +265,19 @@ export default async function AdminHomePage() {
                       <Link
                         href={`/admin/usuarios/${row.owner_id}`}
                         className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-2 py-1 text-xs font-semibold text-[#2C2416]"
+                        title="Ficha del vendedor en Leonix admin"
                       >
-                        Owner
+                        Ficha vendedor
                       </Link>
                     ) : null}
                     <Link
                       href={`/clasificados/anuncio/${row.id}`}
                       target="_blank"
+                      rel="noopener noreferrer"
                       className="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-900"
+                      title="Vista pública del anuncio (nueva pestaña)"
                     >
-                      View live
+                      Ver público
                     </Link>
                   </div>
                 </li>

@@ -409,10 +409,10 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
       />
 
       <div className="mb-4 flex flex-wrap gap-2">
-        <Link href="/admin/usuarios" className={adminBtnSecondary}>
+        <Link href="/admin/usuarios" className={adminBtnSecondary} title="Volver a la lista de usuarios">
           ← Volver a clientes
         </Link>
-        <Link href="/admin" className={adminBtnDark}>
+        <Link href="/admin" className={adminBtnDark} title="Panel principal Leonix">
           Dashboard
         </Link>
       </div>
@@ -499,8 +499,11 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
         <p className="mt-1 text-sm text-[#5C5346]/90">
           Sobrescritura administrativa. Solo tipo de cuenta y membresía.
         </p>
-        <form action={updateClientAccountAction} className="mt-4 space-y-4">
+        <form action={updateClientAccountAction} className="mt-4 space-y-4" aria-describedby="account-save-hint">
           <input type="hidden" name="clientId" value={row.id} />
+          <p id="account-save-hint" className="text-[10px] text-[#7A7164]">
+            Guarda en <span className="font-mono">profiles</span> (tipo y membresía). No cambia contraseña ni Auth.
+          </p>
           <div>
             <label htmlFor="account_type" className="mb-1 block text-sm text-[#5C5346]">
               Tipo de cuenta
@@ -528,8 +531,12 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
               )}
             </select>
           </div>
-          <button type="submit" className={`${adminBtnDark} w-full sm:w-auto`}>
-            Guardar cambios
+          <button
+            type="submit"
+            className={`${adminBtnDark} w-full sm:w-auto`}
+            title="Persistir tipo de cuenta y membresía en Supabase (auditoría)"
+          >
+            Guardar tipo y membresía
           </button>
         </form>
       </div>
@@ -568,7 +575,11 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
         <h2 className="text-base font-bold text-[#1E1810]">Operaciones cruzadas</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
           Búsqueda unificada (cuenta + anuncios + pedidos impresión):{" "}
-          <Link href={`/admin/ops?q=${encodeURIComponent(row.id)}`} className="font-bold text-[#6B5B2E] underline">
+          <Link
+            href={`/admin/ops?q=${encodeURIComponent(row.id)}`}
+            className="font-bold text-[#6B5B2E] underline"
+            title="Búsqueda unificada: perfil, anuncios, pedidos Tienda y reportes con este identificador"
+          >
             Abrir Customer ops con este UUID →
           </Link>
         </p>
@@ -710,17 +721,23 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                       <Link
                         href={`/clasificados/anuncio/${listing.id}`}
                         className="text-xs font-bold text-[#6B5B2E] underline"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Vista pública del anuncio (sitio)"
                       >
-                        Ver anuncio
+                        Ver público
                       </Link>
                       <Link
                         href={`/dashboard/mis-anuncios/${listing.id}/editar`}
                         className="text-xs font-semibold text-[#5C5346] underline"
-                        title="Abre el editor del vendedor (dashboard) — no es moderación admin"
+                        title="Abre el editor del vendedor en el dashboard del cliente — no es moderación Leonix"
                       >
-                        Editar como vendedor
+                        Editar en dashboard vendedor
                       </Link>
                     </div>
+                    <p className="mt-1 text-[10px] text-[#9A9084] md:hidden">
+                      Público = sitio. Vendedor = editor del cliente, no cola admin.
+                    </p>
                   </div>
                 </li>
               );

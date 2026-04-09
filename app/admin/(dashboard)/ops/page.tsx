@@ -44,9 +44,9 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
         helperText="UUID de cuenta, nombre, correo, teléfono, listing id (misma UUID pública en /clasificados/anuncio/[id]), id de reporte, order id, order_ref o email de pedido. Si solo cae un perfil, verás un resumen de contexto (conteos) debajo."
       />
 
-      <form method="get" className={`${adminCardBase} space-y-3 p-5`}>
+      <form method="get" className={`${adminCardBase} space-y-3 p-5`} aria-describedby="ops-search-hint">
         <label htmlFor="ops-q" className="text-sm font-semibold text-[#5C5346]">
-          Search
+          Búsqueda unificada
         </label>
         <input
           id="ops-q"
@@ -55,16 +55,33 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
           defaultValue={q}
           placeholder="Email, phone, name, account id, listing id, order id, order ref…"
           className="w-full rounded-2xl border border-[#E8DFD0] bg-white px-4 py-3 text-base text-[#1E1810] placeholder:text-[#9A9084] focus:border-[#C9B46A] focus:outline-none focus:ring-2 focus:ring-[#D4BC6A]/50 sm:text-sm"
+          aria-describedby="ops-search-hint"
+          autoComplete="off"
         />
+        <p id="ops-search-hint" className="text-[10px] leading-snug text-[#7A7164]">
+          Misma búsqueda en perfiles, anuncios, pedidos Tienda y reportes (límite por sección). No es CRM ni suplantación.
+        </p>
         <div className="flex flex-wrap gap-2">
-          <button type="submit" className="rounded-2xl bg-[#2A2620] px-4 py-2.5 text-sm font-semibold text-[#FAF7F2]">
-            Search
+          <button
+            type="submit"
+            className="min-h-[44px] rounded-2xl bg-[#2A2620] px-4 py-2.5 text-sm font-semibold text-[#FAF7F2] sm:min-h-0"
+            title="Ejecutar búsqueda y mostrar resultados en esta página"
+          >
+            Buscar
           </button>
-          <Link href="/admin/ops" className={`${adminBtnSecondary} inline-flex items-center`}>
-            Clear
+          <Link
+            href="/admin/ops"
+            className={`${adminBtnSecondary} inline-flex min-h-[44px] items-center sm:min-h-0`}
+            title="Quitar término y volver al estado inicial"
+          >
+            Limpiar
           </Link>
-          <Link href="/admin/usuarios" className={`${adminBtnSecondary} inline-flex items-center`}>
-            Users list only →
+          <Link
+            href="/admin/usuarios"
+            className={`${adminBtnSecondary} inline-flex min-h-[44px] items-center sm:min-h-0`}
+            title="Solo la lista de usuarios (misma cookie admin; no incluye pedidos ni reportes)"
+          >
+            Solo Users →
           </Link>
         </div>
       </form>

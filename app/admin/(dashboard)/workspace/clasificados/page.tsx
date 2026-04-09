@@ -132,22 +132,35 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         >
           Servicios (simulación local) →
         </Link>
-        <Link href="/admin/categories" className={`${adminCtaChipSecondary} justify-center text-sm`}>
+        <Link
+          href="/admin/categories"
+          className={`${adminCtaChipSecondary} justify-center text-sm`}
+          title="Visibilidad, orden y estado operativo por categoría (site_category_config)"
+        >
           Registro de categorías →
         </Link>
-        <Link href="/admin/reportes" className={`${adminCtaChipSecondary} justify-center text-sm`}>
+        <Link
+          href="/admin/reportes"
+          className={`${adminCtaChipSecondary} justify-center text-sm`}
+          title="Cola de reportes de anuncios (listing_reports)"
+        >
           Reportes →
         </Link>
       </div>
 
       <div className={`${adminCardBase} mb-6 p-4`}>
-        <form className="flex flex-col gap-3" method="get">
+        <form className="flex flex-col gap-3" method="get" aria-describedby="clasificados-filter-hint">
+          <p id="clasificados-filter-hint" className="text-[10px] leading-snug text-[#7A7164]">
+            Los filtros se aplican en esta página (GET). BR/Rentas refinan en cliente sobre <span className="font-mono">detail_pairs</span>.
+          </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
             <input
               name="q"
               defaultValue={qRaw}
               placeholder="Título, ciudad, fragmento de UUID de anuncio u owner…"
               className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-4 py-3 text-base sm:min-w-[12rem] sm:flex-1 sm:py-2 sm:text-sm"
+              aria-describedby="clasificados-filter-hint"
+              autoComplete="off"
             />
             <input
               name="owner"
@@ -218,8 +231,9 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
             <button
               type="submit"
               className="min-h-[44px] w-full rounded-2xl bg-[#2A2620] px-4 py-3 text-sm font-semibold text-[#FAF7F2] sm:min-h-0 sm:w-auto sm:py-2"
+              title="Recargar la cola con los filtros en la URL (sin mutar datos)"
             >
-              Filtrar
+              Aplicar filtros
             </button>
           </div>
         </form>

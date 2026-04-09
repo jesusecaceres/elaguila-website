@@ -101,8 +101,12 @@ export function MagazineIssueCreateCard() {
         }}
       />
 
-      <button type="submit" className={adminBtnPrimary}>
-        Guardar número
+      <button
+        type="submit"
+        className={adminBtnPrimary}
+        title="Crea o reemplaza número por año+mes en magazine_issues (upsert)"
+      >
+        Crear o actualizar número
       </button>
     </form>
   );

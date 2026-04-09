@@ -56,15 +56,23 @@ function IssueEditCard({ row }: { row: MagazineIssueRow }) {
           {row.status === "draft" ? (
             <form action={publishMagazineIssueAction}>
               <input type="hidden" name="id" value={row.id} />
-              <button type="submit" className={`${adminBtnSecondary} text-sm`}>
-                Publicar
+              <button
+                type="submit"
+                className={`${adminBtnSecondary} text-sm`}
+                title="Pasa el borrador a published y entra al manifiesto público (según reglas del hub)"
+              >
+                Publicar número
               </button>
             </form>
           ) : null}
           {row.status === "published" && !row.is_featured ? (
             <form action={setMagazineCurrentIssueAction}>
               <input type="hidden" name="id" value={row.id} />
-              <button type="submit" className={`${adminBtnSecondary} text-sm`} title="El número que estaba en portada pasa a archivado automáticamente.">
+              <button
+                type="submit"
+                className={`${adminBtnSecondary} text-sm`}
+                title="Pone este publicado como actual en portada; archiva automáticamente el anterior destacado"
+              >
                 Marcar como número actual
               </button>
             </form>
@@ -72,15 +80,23 @@ function IssueEditCard({ row }: { row: MagazineIssueRow }) {
           {row.status === "published" ? (
             <form action={archiveMagazineIssueAction}>
               <input type="hidden" name="id" value={row.id} />
-              <button type="submit" className={`${adminBtnSecondary} text-sm text-amber-950`}>
-                Archivar
+              <button
+                type="submit"
+                className={`${adminBtnSecondary} text-sm text-amber-950`}
+                title="Marca el número como archivado (sale de portada si aplicaba)"
+              >
+                Archivar número
               </button>
             </form>
           ) : null}
           {row.status === "draft" ? (
             <form action={deleteMagazineDraftAction}>
               <input type="hidden" name="id" value={row.id} />
-              <button type="submit" className={`${adminBtnSecondary} text-sm text-rose-900`}>
+              <button
+                type="submit"
+                className={`${adminBtnSecondary} text-sm text-rose-900`}
+                title="Elimina solo borradores (draft) de magazine_issues"
+              >
                 Borrar borrador
               </button>
             </form>
@@ -155,16 +171,22 @@ function IssueEditCard({ row }: { row: MagazineIssueRow }) {
           <label className="text-xs font-semibold text-[#5C5346]">Notas internas</label>
           <textarea name="internal_notes" className={adminInputClass} rows={2} defaultValue={row.internal_notes ?? ""} />
         </div>
-        <button type="submit" className={adminBtnSecondary}>
-          Guardar cambios
+        <button
+          type="submit"
+          className={adminBtnSecondary}
+          title="Actualiza metadatos y URLs del número en magazine_issues (upsert por id)"
+        >
+          Guardar datos del número
         </button>
       </form>
       <Link
         href={`/magazine/${row.year}/${row.month_slug}`}
         className="inline-block text-xs font-bold text-[#6B5B2E] underline"
         target="_blank"
+        rel="noopener noreferrer"
+        title="Vista pública de plantilla (puede diferir del manifiesto si la ruta no está generada)"
       >
-        Ruta estática pública (plantilla) →
+        Vista plantilla pública →
       </Link>
     </div>
   );
@@ -242,7 +264,13 @@ export default async function AdminWorkspaceRevistaPage(props: {
                 {featured.month} · {featured.year} · {featured.updated}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Link href="/magazine" className={adminBtnSecondary} target="_blank">
+                <Link
+                  href="/magazine"
+                  className={adminBtnSecondary}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Hub público de la revista (sitio)"
+                >
                   Abrir hub /magazine
                 </Link>
               </div>

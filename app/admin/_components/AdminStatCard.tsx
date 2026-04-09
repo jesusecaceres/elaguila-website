@@ -9,6 +9,7 @@ export function AdminStatCard({
   icon,
   actionLabel,
   actionHref,
+  actionTitle,
   accent = "default",
 }: {
   title: string;
@@ -17,6 +18,8 @@ export function AdminStatCard({
   icon?: ReactNode;
   actionLabel?: string;
   actionHref?: string;
+  /** Hover/long-press hint for the primary CTA (desktop title / supplemental context). */
+  actionTitle?: string;
   accent?: "default" | "rose" | "amber";
 }) {
   const accentRing =
@@ -35,7 +38,11 @@ export function AdminStatCard({
       <p className="mt-3 text-3xl font-bold tabular-nums text-[#1E1810]">{value}</p>
       {hint ? <p className="mt-1 text-xs text-[#5C5346]/85">{hint}</p> : null}
       {actionLabel && actionHref ? (
-        <Link href={actionHref} className={`${adminCtaChip} mt-4 w-full text-xs sm:w-auto`}>
+        <Link
+          href={actionHref}
+          className={`${adminCtaChip} mt-4 w-full text-xs sm:w-auto`}
+          title={actionTitle}
+        >
           {actionLabel} →
         </Link>
       ) : null}

@@ -209,8 +209,9 @@ export default function AdminListingsTable({
                     <Link
                       href={`/admin/usuarios/${row.owner_id}`}
                       className="inline-flex min-h-[44px] min-w-[44px] items-center text-xs font-semibold text-[#6B5B2E] underline sm:min-h-0 sm:min-w-0"
+                      title="Abrir ficha del vendedor en Leonix admin"
                     >
-                      Ver
+                      Ficha vendedor
                     </Link>
                   ) : (
                     "—"
@@ -238,23 +239,26 @@ export default function AdminListingsTable({
                   {enVentaVisibilityAdminLine(row, detailPairsAvailable)}
                 </td>
                 <td className="p-3">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1">
                     <Link
                       href={`/clasificados/anuncio/${row.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex min-h-[44px] items-center font-semibold text-[#6B5B2E] underline sm:min-h-0"
+                      title="Abrir anuncio en el sitio público (nueva pestaña)"
                     >
-                      Ver
+                      Ver público
                     </Link>
                     {row.status !== "removed" && (
                       <button
                         type="button"
                         disabled={deletingId === row.id}
                         onClick={() => handleDelete(row.id)}
-                        className="min-h-[44px] text-sm font-semibold text-red-700 hover:underline disabled:opacity-50 sm:min-h-0"
+                        className="min-h-[44px] text-left text-sm font-semibold text-red-700 hover:underline disabled:opacity-50 sm:min-h-0"
+                        title="Marca el anuncio como removed en base (acción de staff; aparece en auditoría)"
+                        aria-label="Marcar anuncio como eliminado en base de datos"
                       >
-                        {deletingId === row.id ? "…" : "Eliminar"}
+                        {deletingId === row.id ? "…" : "Eliminar (staff)"}
                       </button>
                     )}
                   </div>

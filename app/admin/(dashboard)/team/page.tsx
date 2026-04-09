@@ -261,7 +261,13 @@ export default async function AdminTeamPage(props: {
                         <input type="hidden" name="next_active" value={m.is_active ? "0" : "1"} />
                         <button
                           type="submit"
-                          className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#5C5346] hover:bg-[#FFFCF7]"
+                          className="min-h-[40px] rounded-xl border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#5C5346] hover:bg-[#FFFCF7] sm:min-h-0"
+                          title={
+                            m.is_active
+                              ? "Desactiva la fila en admin_team_members (no borra usuario Auth)"
+                              : "Reactiva la fila en el roster operativo"
+                          }
+                          aria-label={m.is_active ? "Desactivar miembro en roster" : "Activar miembro en roster"}
                         >
                           {m.is_active ? "Desactivar" : "Activar"}
                         </button>
@@ -322,7 +328,11 @@ export default async function AdminTeamPage(props: {
               <input id="member-notes" name="notes" className={`${adminInputClass} mt-1`} placeholder="Opcional" />
             </div>
             <div className="sm:col-span-2">
-              <button type="submit" className={`${adminBtnPrimary} w-full justify-center sm:w-auto`}>
+              <button
+                type="submit"
+                className={`${adminBtnPrimary} w-full justify-center sm:w-auto`}
+                title="Inserta fila en admin_team_members; no crea usuario en Supabase Auth"
+              >
                 Guardar en admin_team_members
               </button>
             </div>
@@ -374,8 +384,12 @@ export default async function AdminTeamPage(props: {
               <input id="team-invite-note" name="note" className={`${adminInputClass} mt-1`} placeholder="Ticket / contexto" />
             </div>
             <div className="sm:col-span-2">
-              <button type="submit" className={`${adminBtnPrimary} w-full justify-center sm:w-auto`}>
-                Guardar intención en Supabase
+              <button
+                type="submit"
+                className={`${adminBtnPrimary} w-full justify-center sm:w-auto`}
+                title="Registra intención en admin_team_invites; no envía email ni crea Auth"
+              >
+                Guardar intención de invitación
               </button>
             </div>
           </form>

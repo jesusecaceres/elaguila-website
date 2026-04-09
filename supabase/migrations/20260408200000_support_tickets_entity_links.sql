@@ -1,5 +1,9 @@
 -- Optional cross-links for internal support routing (admin-only writes; no end-user portal).
 -- Prerequisite: public.support_tickets from 20260408183000_control_center_extensions.sql (or equivalent).
+--
+-- Apply path (live DB must include these columns for FK context + optional form fields):
+--   From repo: `npx supabase db push` or `npx supabase migration up`
+--   Or paste this file in Supabase Dashboard → SQL Editor after prior migrations.
 ALTER TABLE public.support_tickets
   ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES public.profiles (id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS order_id uuid REFERENCES public.tienda_orders (id) ON DELETE SET NULL,
