@@ -61,32 +61,43 @@ function leonixAdminLine(row: Row, detailPairsAvailable: boolean): string {
   return `${parts.join(" · ")} · ${pub}`;
 }
 
-function enVentaVisibilityAdminLine(row: Row, detailPairsAvailable: boolean): string {
+function enVentaVisibilityAdminLine(
+  row: Row,
+  detailPairsAvailable: boolean,
+  boostExpiresAvailable: boolean
+): string {
   if ((row.category ?? "").toLowerCase() !== "en-venta") return "—";
   if (!detailPairsAvailable) return "N/D · falta columna detail_pairs en BD";
   const plan = listingPlanFromDetailPairs(row.detail_pairs);
   const now = Date.now();
-  const boostEnd = parseBoostExpiresMs(row.boost_expires);
-  const boostPart =
-    boostEnd != null && boostEnd > now
-      ? `boost ${formatAdminDateTime(boostEnd)}`
-      : "boost off";
+  const boostPart = !boostExpiresAvailable
+    ? "boost N/D (sin columna boost_expires)"
+    : (() => {
+        const boostEnd = parseBoostExpiresMs(row.boost_expires);
+        return boostEnd != null && boostEnd > now
+          ? `boost ${formatAdminDateTime(boostEnd)}`
+          : "boost off";
+      })();
   const lastIso = parseDetailPairValue(row.detail_pairs, EN_VENTA_VISIBILITY_LAST_RENEWAL_LABEL);
   const lastPart = lastIso ? `lastRenew ${formatAdminDateTime(new Date(lastIso).getTime())}` : "lastRenew —";
 
   if (plan === "free") return `free · ${boostPart} · ${lastPart}`;
 
-  const vm = computeEnVentaVisibilityRenewalVm({
-    plan: "pro",
-    boostExpires: row.boost_expires,
-    detailPairs: row.detail_pairs,
-    nowMs: now,
-  });
-  const renewPart = vm?.canRenewNow
-    ? "renew OK"
-    : vm
-      ? `renew≥ ${formatAdminDateTime(vm.nextRenewEligibleAt)}`
-      : "renew —";
+  const renewPart = !boostExpiresAvailable
+    ? "renew N/D"
+    : (() => {
+        const vm = computeEnVentaVisibilityRenewalVm({
+          plan: "pro",
+          boostExpires: row.boost_expires,
+          detailPairs: row.detail_pairs,
+          nowMs: now,
+        });
+        return vm?.canRenewNow
+          ? "renew OK"
+          : vm
+            ? `renew≥ ${formatAdminDateTime(vm.nextRenewEligibleAt)}`
+            : "renew —";
+      })();
 
   return `pro · ${boostPart} · ${lastPart} · ${renewPart}`;
 }
@@ -94,10 +105,13 @@ function enVentaVisibilityAdminLine(row: Row, detailPairsAvailable: boolean): st
 export default function AdminListingsTable({
   listings,
   detailPairsAvailable = true,
+  boostExpiresAvailable = true,
 }: {
   listings: Row[];
   /** When false, DB has no `listings.detail_pairs` — En Venta visibility column is degraded. */
   detailPairsAvailable?: boolean;
+  /** When false, select omitted `listings.boost_expires` — boost/renew lines are degraded. */
+  boostExpiresAvailable?: boolean;
 }) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -135,6 +149,8 @@ export default function AdminListingsTable({
     );
   }
 
+  const enVentaColumnDegraded = !detailPairsAvailable || !boostExpiresAvailable;
+
   return (
     <div className={adminTableWrap}>
       {error && <div className="border-b border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</div>}
@@ -162,14 +178,16 @@ export default function AdminListingsTable({
               </th>
               <th
                 className={
-                  detailPairsAvailable
-                    ? "min-w-[220px] p-3 font-semibold text-[#5C4E2E]"
-                    : "min-w-[220px] bg-amber-50/90 p-3 font-semibold text-amber-950"
+                  enVentaColumnDegraded
+                    ? "min-w-[220px] bg-amber-50/90 p-3 font-semibold text-amber-950"
+                    : "min-w-[220px] p-3 font-semibold text-[#5C4E2E]"
                 }
                 title={
-                  detailPairsAvailable
-                    ? "Plan y visibilidad En Venta (detail_pairs + boost_expires)"
-                    : "Columna detail_pairs no disponible en esta base — aplica migración listings.detail_pairs"
+                  !detailPairsAvailable
+                    ? "Columna detail_pairs no disponible en esta base — aplica migración listings.detail_pairs"
+                    : !boostExpiresAvailable
+                      ? "Columna boost_expires no disponible — aplica migración listings_engagement_boost"
+                      : "Plan y visibilidad En Venta (detail_pairs + boost_expires)"
                 }
               >
                 En venta · vis.
@@ -230,13 +248,13 @@ export default function AdminListingsTable({
                 </td>
                 <td
                   className={
-                    detailPairsAvailable
-                      ? "max-w-[280px] p-3 align-top text-[11px] leading-snug text-[#5C5346]"
-                      : "max-w-[280px] bg-amber-50/40 p-3 align-top text-[11px] leading-snug text-amber-950"
+                    enVentaColumnDegraded
+                      ? "max-w-[280px] bg-amber-50/40 p-3 align-top text-[11px] leading-snug text-amber-950"
+                      : "max-w-[280px] p-3 align-top text-[11px] leading-snug text-[#5C5346]"
                   }
-                  title={enVentaVisibilityAdminLine(row, detailPairsAvailable)}
+                  title={enVentaVisibilityAdminLine(row, detailPairsAvailable, boostExpiresAvailable)}
                 >
-                  {enVentaVisibilityAdminLine(row, detailPairsAvailable)}
+                  {enVentaVisibilityAdminLine(row, detailPairsAvailable, boostExpiresAvailable)}
                 </td>
                 <td className="p-3">
                   <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1">

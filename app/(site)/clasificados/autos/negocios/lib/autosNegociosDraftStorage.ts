@@ -170,6 +170,11 @@ export async function clearAutosNegociosDraft(namespace: string): Promise<void> 
   } catch {
     /* ignore */
   }
+  try {
+    window.localStorage.removeItem(LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY);
+  } catch {
+    /* ignore */
+  }
   await clearDraftListingImageAndLogoIdb(namespace, sync?.listing ?? null);
   await idbClearDraftVideo(namespace);
 }

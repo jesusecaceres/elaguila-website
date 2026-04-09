@@ -20,6 +20,10 @@ import {
   AUTOS_PRIVADO_EDITOR_SESSION_KEY,
   shouldResetAutosDraftForFreshEditorTab,
 } from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
+import {
+  clearAutosDraftNamespaceHint,
+  rememberAutosDraftNamespaceHint,
+} from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
 
 function applyAutoTitle(listing: AutoDealerListing, override: boolean): AutoDealerListing {
   if (override) return listing;
@@ -71,6 +75,7 @@ export function useAutoPrivadoDraft() {
       if (cancelled) return;
       namespaceRef.current = ns;
       if (shouldResetAutosDraftForFreshEditorTab(AUTOS_PRIVADO_EDITOR_SESSION_KEY)) {
+        clearAutosDraftNamespaceHint("privado");
         await clearAutosPrivadoDraft(ns);
       }
       await hydrateFromNamespace(ns);
@@ -139,6 +144,7 @@ export function useAutoPrivadoDraft() {
   const flushDraft = useCallback(async () => {
     const ns = namespaceRef.current;
     if (!ns) return;
+    rememberAutosDraftNamespaceHint("privado", ns);
     const merged = normalizeLoadedListing({ ...listingRef.current, autosLane: "privado" });
     const withTitle = applyAutoTitle(merged, overrideRef.current);
     const normalized = normalizeLoadedListing(withTitle);

@@ -176,6 +176,7 @@ export function ClasificadosServiciosApplication() {
   const [videoUrlDraft, setVideoUrlDraft] = useState("");
   const [galleryZoneActive, setGalleryZoneActive] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [finalStepPublishBlocked, setFinalStepPublishBlocked] = useState<string | null>(null);
   const [mediaFlash, setMediaFlash] = useState<string | null>(null);
 
   const stateRef = useRef(state);
@@ -203,6 +204,26 @@ export function ClasificadosServiciosApplication() {
   }, [state, hydrated]);
 
   useEffect(() => {
+    if (step !== 8) setFinalStepPublishBlocked(null);
+  }, [step]);
+
+  useEffect(() => {
+    if (
+      step === 8 &&
+      state.confirmListingAccurate &&
+      state.confirmPhotosRepresentBusiness &&
+      state.confirmCommunityRules
+    ) {
+      setFinalStepPublishBlocked(null);
+    }
+  }, [
+    step,
+    state.confirmListingAccurate,
+    state.confirmPhotosRepresentBusiness,
+    state.confirmCommunityRules,
+  ]);
+
+  useEffect(() => {
     if (!hydrated) return;
     writeClasificadosServiciosApplicationToBrowser(state);
   }, [
@@ -222,29 +243,8 @@ export function ClasificadosServiciosApplication() {
     muxAssetIds: [],
   });
 
-  const persistStateAndMarkOpeningPreview = useCallback(() => {
-    markPublishFlowOpeningPreview();
-    const snap = stateRef.current;
-    if (!persistServiciosDraftForPreviewNavigation(snap)) {
-      setMediaFlash(copy.storageWriteFailed);
-    }
-  }, [copy.storageWriteFailed]);
-
   const previewHref = `/clasificados/publicar/servicios/preview?lang=${lang}`;
   const publicarHref = `/clasificados/publicar?lang=${lang}`;
-
-  const openPreviewUtility = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      markPublishFlowOpeningPreview();
-      if (!persistServiciosDraftForPreviewNavigation(stateRef.current)) {
-        setMediaFlash(copy.storageWriteFailed);
-        return;
-      }
-      router.push(previewHref);
-    },
-    [copy.storageWriteFailed, previewHref, router],
-  );
 
   const goStrictPreview = useCallback(() => {
     const r = evaluateServiciosPreviewReadiness(stateRef.current, lang);
@@ -265,6 +265,16 @@ export function ClasificadosServiciosApplication() {
     }
     router.push(previewHref);
   }, [copy.storageWriteFailed, lang, previewHref, router]);
+
+  const openPublishModalFromFinalStep = useCallback(() => {
+    const s = stateRef.current;
+    if (!s.confirmListingAccurate || !s.confirmPhotosRepresentBusiness || !s.confirmCommunityRules) {
+      setFinalStepPublishBlocked(copy.publishConfirmMissing);
+      return;
+    }
+    setFinalStepPublishBlocked(null);
+    setPublishOpen(true);
+  }, [copy.publishConfirmMissing]);
 
   const deleteApplicationDraft = useCallback(() => {
     if (!window.confirm(copy.deleteConfirm)) return;
@@ -573,58 +583,17 @@ export function ClasificadosServiciosApplication() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#F6F0E2] text-[#3D2C12]">
-      <main className="mx-auto max-w-6xl px-4 pb-36 pt-6 sm:pb-32 sm:pt-8">
+      <main className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:pb-12 sm:pt-8">
         <div className="mb-6 rounded-2xl border border-[#D8C79A]/60 bg-[#FFFDF7]/95 p-4 shadow-sm sm:p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#8a7a62]">Leonix Clasificados</p>
           <h1 className="mt-2 text-xl font-extrabold tracking-tight text-[#3D2C12] sm:text-2xl">{copy.pageTitle}</h1>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#5D4A25]/90">{copy.pageSubtitle}</p>
           <Link
             href={publicarHref}
-            onClick={() => {
-              clearServiciosPreviewReturnHandoff();
-              clearClasificadosServiciosApplicationFromBrowser();
-            }}
             className="mt-2 inline-flex min-h-[40px] items-center text-xs font-medium text-[#5D4A25]/85 underline underline-offset-2 hover:text-[#3D2C12]"
           >
             {copy.linkBack}
           </Link>
-          <p className="mt-2 text-xs leading-relaxed text-[#7a6a52]">{copy.sessionSaveHint}</p>
-          <Link
-            href={`/clasificados/publicar/servicios/preview?lang=${lang}&sample=expert`}
-            onClick={(e) => {
-              e.preventDefault();
-              persistStateAndMarkOpeningPreview();
-              router.push(`/clasificados/publicar/servicios/preview?lang=${lang}&sample=expert`);
-            }}
-            className="mt-1 inline-flex min-h-[40px] items-center text-xs font-semibold text-[#3B66AD] underline underline-offset-2"
-          >
-            {copy.expertSampleFootnote}
-          </Link>
-
-          <div className="mt-5 flex flex-wrap gap-2 sm:gap-3">
-            <button
-              type="button"
-              onClick={goStrictPreview}
-              className="inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-full bg-[#3B66AD] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699]"
-            >
-              {copy.previewCta}
-            </button>
-            <button
-              type="button"
-              onClick={openPreviewUtility}
-              className="inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-full border border-[#D8C79A]/80 bg-white px-5 py-2.5 text-sm font-semibold text-[#3D2C12] shadow-sm transition hover:bg-[#FFF6E7]"
-            >
-              {copy.openPreviewCta}
-            </button>
-            <button
-              type="button"
-              onClick={deleteApplicationDraft}
-              className="inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-full border border-red-200 bg-red-50/90 px-5 py-2.5 text-sm font-semibold text-red-900 shadow-sm transition hover:bg-red-100"
-            >
-              {copy.deleteApplication}
-            </button>
-          </div>
-          <p className="mt-3 max-w-3xl text-xs leading-relaxed text-[#6b5c42]">{copy.openPreviewHelp}</p>
 
           <div className="mt-4 flex justify-end">
             <Link
@@ -636,10 +605,15 @@ export function ClasificadosServiciosApplication() {
           </div>
 
           <div className="mt-4 border-t border-[#D8C79A]/40 pt-4">
-            <p className="text-xs text-[#8a7a62]">{hydrated ? copy.saveHint : "…"}</p>
             {hydrated ? (
-              <p className="mt-1 text-xs font-medium text-[#6b5c42]">{listingPhaseLine}</p>
-            ) : null}
+              <p className="text-xs leading-relaxed text-[#7a6a52]">
+                <span className="font-medium text-[#6b5c42]">{listingPhaseLine}</span>
+                <span className="text-[#8a7a62]"> · </span>
+                <span>{copy.saveHint}</span>
+              </p>
+            ) : (
+              <p className="text-xs text-[#8a7a62]">…</p>
+            )}
             {previewGateMissing?.length ? (
               <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950" role="status">
                 <p className="font-semibold leading-snug">{copy.previewMissingBanner}</p>
@@ -662,7 +636,6 @@ export function ClasificadosServiciosApplication() {
                 </ul>
               </div>
             ) : null}
-            <p className="mt-2 text-xs leading-snug text-[#7a6a52]">{copy.labels.bottomActionsHint}</p>
           </div>
         </div>
 
@@ -2134,15 +2107,45 @@ export function ClasificadosServiciosApplication() {
               <h2 id="sec-review" className="text-lg font-bold text-[#3D2C12]">
                 {lang === "es" ? "Revisión final" : "Final review"}
               </h2>
-              <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">
-                {lang === "es"
-                  ? "Cuando termines las confirmaciones arriba, usa la barra inferior para ver la vista previa o publicar. Tu progreso se guarda en esta sesión."
-                  : "When you finish the confirmations above, use the bottom bar to preview or publish. Your progress is saved for this session."}
-              </p>
+              <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">{copy.labels.finalStepActionsIntro}</p>
               {hydrated ? (
                 <p className="mt-3 rounded-lg border border-[#D8C79A]/40 bg-[#FFFCF7] px-3 py-2 text-sm font-medium text-[#6b5c42]">{listingPhaseLine}</p>
               ) : null}
-              <p className="mt-3 text-xs leading-snug text-[#7a6a52]">{copy.labels.bottomActionsHint}</p>
+              <div className="mt-6 flex flex-col gap-3 border-t border-[#D8C79A]/40 pt-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFinalStepPublishBlocked(null);
+                      goStrictPreview();
+                    }}
+                    className="inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl bg-[#3B66AD] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] sm:max-w-xs"
+                  >
+                    {copy.previewCta}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openPublishModalFromFinalStep}
+                    className="inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl border-2 border-[#3B66AD]/45 bg-white px-4 py-3 text-sm font-bold leading-tight text-[#2f5699] shadow-sm transition hover:bg-[#3B66AD]/5 sm:max-w-xs"
+                  >
+                    {copy.publishCta}
+                  </button>
+                </div>
+                {finalStepPublishBlocked ? (
+                  <p className="text-sm font-medium text-amber-900" role="status">
+                    {finalStepPublishBlocked}
+                  </p>
+                ) : null}
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={deleteApplicationDraft}
+                    className="text-xs font-medium text-red-800/90 underline decoration-red-800/30 underline-offset-2 hover:text-red-950"
+                  >
+                    {copy.deleteApplication}
+                  </button>
+                </div>
+              </div>
             </section>
           </>
         ) : null}
@@ -2178,25 +2181,6 @@ export function ClasificadosServiciosApplication() {
           </div>
         </div>
       </main>
-
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#D8C79A]/60 bg-[#FFFDF7]/98 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_28px_rgba(61,44,18,0.12)] backdrop-blur-md">
-        <div className="mx-auto flex max-w-3xl gap-2 px-3 sm:px-4 lg:max-w-5xl">
-          <button
-            type="button"
-            onClick={goStrictPreview}
-            className="flex min-h-[52px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl bg-[#3B66AD] px-3 py-3 text-center text-sm font-bold leading-tight text-white shadow-sm transition hover:bg-[#2f5699] active:opacity-95 sm:min-h-[48px]"
-          >
-            {copy.previewCta}
-          </button>
-          <button
-            type="button"
-            onClick={() => setPublishOpen(true)}
-            className="flex min-h-[52px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl border-2 border-[#3B66AD]/45 bg-white px-3 py-3 text-center text-sm font-bold leading-tight text-[#2f5699] shadow-sm transition hover:bg-[#3B66AD]/5 active:opacity-95 sm:min-h-[48px]"
-          >
-            {copy.publishCta}
-          </button>
-        </div>
-      </div>
 
       <ServiciosPublishModal
         open={publishOpen}

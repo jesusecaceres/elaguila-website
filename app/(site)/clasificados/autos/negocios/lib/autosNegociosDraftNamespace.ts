@@ -47,13 +47,18 @@ export function autosNegociosDraftNamespaceFromUserId(userId: string | null | un
   return `anon:${getOrCreateAnonInstallId()}`;
 }
 
-/** Resolve namespace from current Supabase session (async). */
+/** Resolve namespace from current Supabase session (async). Prefer `getSession()` (local) so preview matches editor writes; fall back to `getUser()`. */
 export async function resolveAutosNegociosDraftNamespace(): Promise<string> {
   if (typeof window === "undefined") {
     return `anon:${getOrCreateAnonInstallId()}`;
   }
   try {
     const supabase = createSupabaseBrowserClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const sessionUid = sessionData.session?.user?.id;
+    if (sessionUid) {
+      return autosNegociosDraftNamespaceFromUserId(sessionUid);
+    }
     const { data } = await withAuthTimeout(supabase.auth.getUser(), AUTH_CHECK_TIMEOUT_MS);
     return autosNegociosDraftNamespaceFromUserId(data?.user?.id);
   } catch {

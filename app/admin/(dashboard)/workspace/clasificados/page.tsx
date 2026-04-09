@@ -58,7 +58,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   const limitRaw = Number(sp.limit ?? "300");
   const queueLimit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 50), 500) : 300;
 
-  const [{ data: listings, error, detailPairsAvailable }, cats] = await Promise.all([
+  const [{ data: listings, error, detailPairsAvailable, boostExpiresAvailable }, cats] = await Promise.all([
     fetchListingsForAdminWorkspaceFiltered(supabase, {
       q: qRaw || undefined,
       category: catFilter || undefined,
@@ -102,6 +102,18 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
           <code className="rounded bg-white/80 px-1 text-[11px]">20250316200000_listings_detail_pairs.sql</code> o{" "}
           <code className="rounded bg-white/80 px-1 text-[11px]">20260407140000_ensure_listings_detail_pairs.sql</code> (idempotente)
           y vuelve a cargar.
+        </div>
+      ) : null}
+
+      {detailPairsAvailable && !boostExpiresAvailable ? (
+        <div
+          className={`${adminCardBase} mb-4 max-w-3xl border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}
+          role="status"
+        >
+          <strong className="font-bold">Base sin columna listings.boost_expires.</strong> La cola carga sin fechas de boost; la
+          columna “En venta · vis.” muestra plan y lastRenew pero no el estado exacto de boost/renew hasta migrar. Aplica{" "}
+          <code className="rounded bg-white/80 px-1 text-[11px]">20250312000000_listings_engagement_boost.sql</code> en Supabase y
+          vuelve a cargar.
         </div>
       ) : null}
 
@@ -258,7 +270,11 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
       {error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error.message}</div>
       ) : (
-        <AdminListingsTable listings={rows} detailPairsAvailable={detailPairsAvailable} />
+        <AdminListingsTable
+          listings={rows}
+          detailPairsAvailable={detailPairsAvailable}
+          boostExpiresAvailable={boostExpiresAvailable}
+        />
       )}
 
       <AdminSectionCard

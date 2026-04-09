@@ -1,68 +1,73 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+const LISTINGS_ADMIN_CORE =
+  "id, title, description, city, category, price, is_free, status, owner_id, created_at, images";
+
 /** Columns for Clasificados admin queue — includes JSON used by En Venta visibility helpers. */
 export const LISTINGS_ADMIN_SELECT_WITH_DETAIL_PAIRS =
-  "id, title, description, city, category, price, is_free, status, owner_id, created_at, images, detail_pairs, boost_expires, is_published";
+  `${LISTINGS_ADMIN_CORE}, detail_pairs, boost_expires, is_published`;
+
+/** `detail_pairs` without `boost_expires` — when `20250312000000_listings_engagement_boost.sql` is not applied. */
+export const LISTINGS_ADMIN_SELECT_WITH_DETAIL_NO_BOOST = `${LISTINGS_ADMIN_CORE}, detail_pairs, is_published`;
 
 /** Same row shape minus `detail_pairs` when the live DB predates that migration. */
 export const LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS =
-  "id, title, description, city, category, price, is_free, status, owner_id, created_at, images, boost_expires, is_published";
+  `${LISTINGS_ADMIN_CORE}, boost_expires, is_published`;
 
-function shouldRetrySelectWithoutDetailPairs(err: { message?: string; code?: string } | null): boolean {
-  if (!err?.message) return false;
-  const m = err.message.toLowerCase();
-  return m.includes("detail_pairs");
-}
+/** Neither column — minimal admin queue when both optional migrations are missing. */
+export const LISTINGS_ADMIN_SELECT_MINIMAL = `${LISTINGS_ADMIN_CORE}, is_published`;
 
 export type ListingsAdminFetchResult<T> = {
   data: T[] | null;
   error: { message: string; code?: string } | null;
   /** False when we fell back to a select without `detail_pairs`. Apply `supabase/migrations/20250316200000_listings_detail_pairs.sql` (or later ensure migration) on production. */
   detailPairsAvailable: boolean;
+  /** False when we fell back to a select without `boost_expires`. Apply `supabase/migrations/20250312000000_listings_engagement_boost.sql`. */
+  boostExpiresAvailable: boolean;
 };
 
+const ADMIN_LISTING_SELECT_TIERS: Array<{
+  cols: string;
+  detailPairsAvailable: boolean;
+  boostExpiresAvailable: boolean;
+}> = [
+  { cols: LISTINGS_ADMIN_SELECT_WITH_DETAIL_PAIRS, detailPairsAvailable: true, boostExpiresAvailable: true },
+  { cols: LISTINGS_ADMIN_SELECT_WITH_DETAIL_NO_BOOST, detailPairsAvailable: true, boostExpiresAvailable: false },
+  { cols: LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS, detailPairsAvailable: false, boostExpiresAvailable: true },
+  { cols: LISTINGS_ADMIN_SELECT_MINIMAL, detailPairsAvailable: false, boostExpiresAvailable: false },
+];
+
 /**
- * Load listings for admin moderation. If `detail_pairs` is missing in Postgres, retries without it so the page still loads.
+ * Load listings for admin moderation. Retries with fewer optional columns if `detail_pairs` and/or `boost_expires` are missing.
  */
 export async function fetchListingsForAdminWorkspace(
   supabase: SupabaseClient
 ): Promise<ListingsAdminFetchResult<Record<string, unknown>>> {
-  const first = await supabase
-    .from("listings")
-    .select(LISTINGS_ADMIN_SELECT_WITH_DETAIL_PAIRS)
-    .order("created_at", { ascending: false })
-    .limit(300);
+  let lastErr: { message: string; code?: string } | null = null;
 
-  if (!first.error) {
-    return { data: (first.data as Record<string, unknown>[]) ?? [], error: null, detailPairsAvailable: true };
-  }
-
-  if (shouldRetrySelectWithoutDetailPairs(first.error)) {
-    const second = await supabase
+  for (const tier of ADMIN_LISTING_SELECT_TIERS) {
+    const res = await supabase
       .from("listings")
-      .select(LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS)
+      .select(tier.cols)
       .order("created_at", { ascending: false })
       .limit(300);
 
-    if (second.error) {
+    if (!res.error) {
       return {
-        data: null,
-        error: { message: second.error.message, code: second.error.code },
-        detailPairsAvailable: false,
+        data: (res.data as unknown as Record<string, unknown>[]) ?? [],
+        error: null,
+        detailPairsAvailable: tier.detailPairsAvailable,
+        boostExpiresAvailable: tier.boostExpiresAvailable,
       };
     }
-
-    return {
-      data: (second.data as Record<string, unknown>[]) ?? [],
-      error: null,
-      detailPairsAvailable: false,
-    };
+    lastErr = { message: res.error.message, code: res.error.code };
   }
 
   return {
     data: null,
-    error: { message: first.error.message, code: first.error.code },
+    error: lastErr,
     detailPairsAvailable: true,
+    boostExpiresAvailable: true,
   };
 }
 
@@ -174,20 +179,27 @@ export async function fetchListingsForAdminWorkspaceFiltered(
     return { data: mergeById(merged, limit), error: null };
   };
 
-  const first = await run(LISTINGS_ADMIN_SELECT_WITH_DETAIL_PAIRS);
-  if (!first.error) {
-    return { data: first.data ?? [], error: null, detailPairsAvailable: true };
-  }
+  let lastErr: { message: string } | null = null;
 
-  if (shouldRetrySelectWithoutDetailPairs({ message: first.error.message })) {
-    const second = await run(LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS);
-    if (second.error) {
-      return { data: null, error: { message: second.error.message }, detailPairsAvailable: false };
+  for (const tier of ADMIN_LISTING_SELECT_TIERS) {
+    const result = await run(tier.cols);
+    if (!result.error) {
+      return {
+        data: result.data ?? [],
+        error: null,
+        detailPairsAvailable: tier.detailPairsAvailable,
+        boostExpiresAvailable: tier.boostExpiresAvailable,
+      };
     }
-    return { data: second.data ?? [], error: null, detailPairsAvailable: false };
+    lastErr = result.error;
   }
 
-  return { data: null, error: first.error, detailPairsAvailable: true };
+  return {
+    data: null,
+    error: lastErr,
+    detailPairsAvailable: true,
+    boostExpiresAvailable: true,
+  };
 }
 
 /** Same matching rules as the legacy in-memory search (substring on id / owner). */

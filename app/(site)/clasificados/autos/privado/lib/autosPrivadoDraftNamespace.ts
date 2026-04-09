@@ -46,6 +46,11 @@ export async function resolveAutosPrivadoDraftNamespace(): Promise<string> {
   }
   try {
     const supabase = createSupabaseBrowserClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const sessionUid = sessionData.session?.user?.id;
+    if (sessionUid) {
+      return autosPrivadoDraftNamespaceFromUserId(sessionUid);
+    }
     const { data } = await withAuthTimeout(supabase.auth.getUser(), AUTH_CHECK_TIMEOUT_MS);
     return autosPrivadoDraftNamespaceFromUserId(data?.user?.id);
   } catch {

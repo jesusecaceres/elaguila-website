@@ -22,6 +22,10 @@ import {
   AUTOS_NEGOCIOS_EDITOR_SESSION_KEY,
   shouldResetAutosDraftForFreshEditorTab,
 } from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
+import {
+  clearAutosDraftNamespaceHint,
+  rememberAutosDraftNamespaceHint,
+} from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
 
 function applyAutoTitle(listing: AutoDealerListing, override: boolean): AutoDealerListing {
   if (override) return listing;
@@ -77,6 +81,7 @@ export function useAutoDealerDraft() {
         } catch {
           /* ignore */
         }
+        clearAutosDraftNamespaceHint("negocios");
         await clearAutosNegociosDraft(ns);
       }
 
@@ -178,6 +183,12 @@ export function useAutoDealerDraft() {
     overrideRef.current = false;
     setVehicleTitleOverride(false);
     setListing(empty);
+    clearAutosDraftNamespaceHint("negocios");
+    try {
+      window.sessionStorage.removeItem(AUTOS_NEGOCIOS_EDITOR_SESSION_KEY);
+    } catch {
+      /* ignore */
+    }
     if (ns) {
       await clearAutosNegociosDraft(ns);
     }
@@ -187,6 +198,7 @@ export function useAutoDealerDraft() {
   const flushDraft = useCallback(async () => {
     const ns = namespaceRef.current;
     if (!ns) return;
+    rememberAutosDraftNamespaceHint("negocios", ns);
     const merged = normalizeLoadedListing(listingRef.current);
     const withTitle = applyAutoTitle(merged, overrideRef.current);
     const normalized = normalizeLoadedListing(withTitle);

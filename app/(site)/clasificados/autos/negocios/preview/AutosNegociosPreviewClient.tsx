@@ -15,6 +15,7 @@ import { isMeaningfulAutoDealerDraft } from "../lib/isMeaningfulAutoDealerDraft"
 import { AutosNegociosPreviewLocaleProvider, useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { withLangParam } from "../lib/autosNegociosLang";
 import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
+import { consumeAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
 import { AutosDraftPreviewErrorBoundary } from "@/app/clasificados/autos/shared/components/AutosDraftPreviewErrorBoundary";
 
 const EDIT_BASE = "/publicar/autos/negocios";
@@ -52,7 +53,8 @@ async function resolvePreviewState(): Promise<{
       };
     }
 
-    const namespace = await resolveAutosNegociosDraftNamespace();
+    const hinted = consumeAutosDraftNamespaceHint("negocios");
+    const namespace = hinted ?? (await resolveAutosNegociosDraftNamespace());
     migrateLegacyAutosNegociosDraftJsonToNamespace(namespace);
     const d = await loadAutosNegociosDraftResolved(namespace);
     const normalized = safeNormalizeAutosDraftListing(d?.listing, "negocios");

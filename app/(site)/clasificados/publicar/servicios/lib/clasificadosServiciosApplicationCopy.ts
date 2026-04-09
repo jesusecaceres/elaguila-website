@@ -18,14 +18,8 @@ export type ClasificadosServiciosCopy = {
   publishLocalNote: string;
   /** Shown when the three attestations are not checked before publish */
   publishConfirmMissing: string;
-  /** Opens preview without running strict checklist (draft may be partial) */
-  openPreviewCta: string;
-  /** Explains strict vs utility preview — under the two preview actions */
-  openPreviewHelp: string;
   deleteApplication: string;
   deleteConfirm: string;
-  sessionSaveHint: string;
-  expertSampleFootnote: string;
   previewMissingBanner: string;
   /** When sessionStorage cannot store the full draft (quota) */
   storageWriteFailed: string;
@@ -34,7 +28,6 @@ export type ClasificadosServiciosCopy = {
   listingPhaseDraft: string;
   listingPhasePreview: string;
   listingPhasePublish: string;
-  linkPreviewShell: string;
   linkBack: string;
   langToggle: string;
   required: string;
@@ -170,8 +163,8 @@ export type ClasificadosServiciosCopy = {
     videoFromFile: string;
     videoFromUrl: string;
     offerAssetsIntro: string;
-    /** Primary actions live in the bottom bar on all screen sizes */
-    bottomActionsHint: string;
+    /** Final step — after confirmations, points to Vista previa / Publicar */
+    finalStepActionsIntro: string;
     assetFromFile: string;
     assetFromUrl: string;
     /** Section heading for optional clips */
@@ -223,7 +216,7 @@ const es: ClasificadosServiciosCopy = {
   pageSubtitle:
     "Un solo formulario para tu vitrina premium en Leonix. Completa cada sección; podrás refinar el texto con herramientas externas si lo deseas.",
   saveHint: "Borrador guardado en este navegador.",
-  previewCta: "Ver vista previa",
+  previewCta: "Vista previa",
   publishCta: "Publicar",
   publishModalTitle: "Publicar listado",
   publishModalIntro:
@@ -236,23 +229,16 @@ const es: ClasificadosServiciosCopy = {
   publishLocalNote:
     "Se guardó en este navegador porque la nube no está disponible. Otros dispositivos no verán el listado hasta que haya servidor.",
   publishConfirmMissing:
-    "Marca las tres casillas de confirmación en el formulario (sección antes de publicar) para continuar.",
-  openPreviewCta: "Abrir vista previa (utilidad)",
-  openPreviewHelp:
-    "«Ver vista previa» solo navega cuando ya cumples el checklist completo y verás la vitrina terminada. «Abrir vista previa (utilidad)» guarda tu borrador y abre la página de vista previa aunque falten datos: verás la lista de pendientes, no el diseño final.",
+    "Marca las tres casillas de confirmación arriba para poder publicar.",
   deleteApplication: "Eliminar solicitud",
   deleteConfirm: "¿Borrar todo el borrador de Servicios en esta sesión y empezar de nuevo?",
-  sessionSaveHint:
-    "Borrador en esta sesión del navegador: se conserva al ir a vista previa y volver, y al actualizar en la misma pestaña. Al cerrar la pestaña o el navegador se descarta.",
-  expertSampleFootnote: "Ver ejemplo de vitrina (solo diseño)",
-  previewMissingBanner: "Completa lo siguiente antes de la vista previa estricta:",
+  previewMissingBanner: "Completa lo siguiente antes de la vista previa:",
   storageWriteFailed:
     "No se pudo guardar el borrador completo en el navegador (puede ser por tamaño). Reduce fotos o videos y vuelve a intentar.",
   goToStep: "Ir al paso {n}",
   listingPhaseDraft: "Borrador · sigue completando tu perfil.",
   listingPhasePreview: "Listo para vista previa · revisa el diseño antes de publicar.",
   listingPhasePublish: "Listo para publicar · puedes enviar tu listado.",
-  linkPreviewShell: "Ver ejemplo de página pública (solo diseño)",
   linkBack: "Volver a categorías",
   langToggle: "English",
   required: "Requerido",
@@ -395,8 +381,8 @@ const es: ClasificadosServiciosCopy = {
     videoFromFile: "Video subido",
     videoFromUrl: "Enlace / URL",
     offerAssetsIntro: "",
-    bottomActionsHint:
-      "Barra inferior: «Ver vista previa» (estricta) y publicar. La utilidad «Abrir vista previa» solo está arriba junto al texto explicativo.",
+    finalStepActionsIntro:
+      "Cuando termines las confirmaciones arriba, usa los botones de abajo para ver la vista previa o publicar. Tu progreso se guarda en esta sesión.",
     assetFromFile: "Archivo",
     assetFromUrl: "URL",
     videosTitle: "Videos (opcional)",
@@ -438,7 +424,7 @@ const en: ClasificadosServiciosCopy = {
   pageSubtitle:
     "One guided form for your premium Leonix showcase. Complete each section; you can polish copy with external tools if needed.",
   saveHint: "Draft saved in this browser.",
-  previewCta: "View preview",
+  previewCta: "Preview",
   publishCta: "Publish",
   publishModalTitle: "Publish listing",
   publishModalIntro:
@@ -451,23 +437,16 @@ const en: ClasificadosServiciosCopy = {
   publishLocalNote:
     "Saved on this browser because cloud publish isn’t available. Other devices won’t see it until the server is configured.",
   publishConfirmMissing:
-    "Check all three confirmation boxes in the form (section before publishing) to continue.",
-  openPreviewCta: "Open preview (utility)",
-  openPreviewHelp:
-    "“View preview” only navigates once every checklist item is satisfied and shows the finished showcase. “Open preview (utility)” saves your draft and opens the preview page even if data is missing: you’ll see what’s left to complete, not the final layout.",
+    "Check all three confirmation boxes above before publishing.",
   deleteApplication: "Delete application",
   deleteConfirm: "Delete this session’s Servicios draft and start over?",
-  sessionSaveHint:
-    "Session draft: kept when you open preview and return, and when you refresh in the same tab. Closing the tab or browser clears it.",
-  expertSampleFootnote: "View sample showcase (design only)",
-  previewMissingBanner: "Complete the following before strict preview:",
+  previewMissingBanner: "Complete the following before preview:",
   storageWriteFailed:
     "Could not save the full draft in the browser (storage may be full). Try fewer photos or videos, then try again.",
   goToStep: "Go to step {n}",
   listingPhaseDraft: "Draft · keep filling out your profile.",
   listingPhasePreview: "Preview-ready · review the layout before publishing.",
   listingPhasePublish: "Publish-ready · you can submit your listing.",
-  linkPreviewShell: "View example public page (design only)",
   linkBack: "Back to categories",
   langToggle: "Español",
   required: "Required",
@@ -610,8 +589,8 @@ const en: ClasificadosServiciosCopy = {
     videoFromFile: "Uploaded clip",
     videoFromUrl: "From link",
     offerAssetsIntro: "",
-    bottomActionsHint:
-      "Bottom bar: strict “View preview” plus publish. The utility “Open preview” lives in the header with the explanation above.",
+    finalStepActionsIntro:
+      "When you finish the confirmations above, use the buttons below to preview or publish. Your progress is saved for this session.",
     assetFromFile: "File",
     assetFromUrl: "URL",
     videosTitle: "Videos (optional)",

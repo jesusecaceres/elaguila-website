@@ -6,6 +6,7 @@ import { AutosPrivadoPreviewEmptyState } from "../components/AutosPrivadoPreview
 import { AutosDraftPreviewErrorBoundary } from "@/app/clasificados/autos/shared/components/AutosDraftPreviewErrorBoundary";
 import { loadAutosPrivadoDraftResolved, safeNormalizePrivadoListing } from "../lib/autosPrivadoDraftStorage";
 import { resolveAutosPrivadoDraftNamespace, storageEventAffectsAutosPrivadoDraft } from "../lib/autosPrivadoDraftNamespace";
+import { consumeAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
 import { mockAutosPrivadoListing } from "../mock/mockAutosPrivadoListing";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { isMeaningfulAutoDealerDraft } from "@/app/clasificados/autos/negocios/lib/isMeaningfulAutoDealerDraft";
@@ -44,7 +45,8 @@ async function resolvePreviewState(): Promise<{
       };
     }
 
-    const namespace = await resolveAutosPrivadoDraftNamespace();
+    const hinted = consumeAutosDraftNamespaceHint("privado");
+    const namespace = hinted ?? (await resolveAutosPrivadoDraftNamespace());
     const d = await loadAutosPrivadoDraftResolved(namespace);
     const normalized = safeNormalizePrivadoListing({ ...d?.listing, autosLane: "privado" });
     if (listingIsMeaningfulDraft(normalized)) {
