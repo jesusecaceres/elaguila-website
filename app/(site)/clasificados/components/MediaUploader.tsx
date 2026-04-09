@@ -4,12 +4,13 @@ import React, { useCallback, useRef, useState } from "react";
 import imageCompression from "browser-image-compression";
 import {
   DndContext,
-  closestCenter,
+  closestCorners,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  useDroppable,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -20,6 +21,21 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 const COMPRESSION_OPTS = { maxSizeMB: 1, maxWidthOrHeight: 1920 };
+
+const MAIN_GALLERY_MAX = 4;
+
+type ZoneParse =
+  | { kind: "item"; zone: "main" | "archive"; index: number }
+  | { kind: "archiveEmpty" }
+  | null;
+
+function parseImageDragId(id: string | number): ZoneParse {
+  const s = String(id);
+  if (s === "archive-empty") return { kind: "archiveEmpty" };
+  const m = /^(main|archive)-(\d+)$/.exec(s);
+  if (!m) return null;
+  return { kind: "item", zone: m[1] as "main" | "archive", index: Number(m[2]) };
+}
 
 export type MediaUploaderProps = {
   images: File[];
@@ -51,20 +67,20 @@ export type MediaUploaderProps = {
 
 function SortableImageItem({
   file,
-  index,
+  sortableId,
   previewUrl,
   onRemove,
   lang,
   isFirst,
 }: {
   file: File;
-  index: number;
+  sortableId: string;
   previewUrl: string;
   onRemove: () => void;
   lang: "es" | "en";
   isFirst: boolean;
 }) {
-  const id = String(index);
+  const id = sortableId;
   const {
     attributes,
     listeners,
@@ -117,6 +133,19 @@ function SortableImageItem({
         </button>
       </div>
     </div>
+  );
+}
+
+function ArchiveEmptyDropZone({ lang }: { lang: "es" | "en" }) {
+  const { setNodeRef, isOver } = useDroppable({ id: "archive-empty" });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`flex min-h-[4.5rem] items-center justify-center rounded border border-dashed border-black/15 bg-[#F5F5F5] ${
+        isOver ? "border-black/30 bg-[#EFEFEF]" : ""
+      }`}
+      aria-label={lang === "es" ? "Archivo de fotos extra" : "Extra photos archive"}
+    />
   );
 }
 
@@ -194,15 +223,56 @@ export function MediaUploader({
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
-      if (over && active.id !== over.id) {
-        const oldIndex = images.length ? Number(active.id) : 0;
-        const newIndex = Number(over.id);
-        if (oldIndex >= 0 && newIndex >= 0 && oldIndex < images.length && newIndex < images.length) {
-          onImagesChange(arrayMove(images, oldIndex, newIndex));
+      if (!over || active.id === over.id) return;
+
+      const activeP = parseImageDragId(active.id);
+      const overP = parseImageDragId(over.id);
+      if (!activeP || activeP.kind !== "item") return;
+
+      let main = images.slice(0, MAIN_GALLERY_MAX);
+      let arch = images.slice(MAIN_GALLERY_MAX);
+
+      if (overP !== null && overP.kind === "item" && activeP.zone === overP.zone) {
+        if (activeP.index === overP.index) return;
+        if (activeP.zone === "main") {
+          onImagesChange([...arrayMove(main, activeP.index, overP.index), ...arch]);
+        } else {
+          onImagesChange([...main, ...arrayMove(arch, activeP.index, overP.index)]);
+        }
+        return;
+      }
+
+      const validCrossTarget =
+        overP?.kind === "archiveEmpty" ||
+        (overP?.kind === "item" && overP.zone === "archive") ||
+        (overP?.kind === "item" && overP.zone === "main");
+      if (!validCrossTarget || !overP) return;
+
+      const file = activeP.zone === "main" ? main[activeP.index] : arch[activeP.index];
+      if (!file) return;
+
+      if (activeP.zone === "main") main.splice(activeP.index, 1);
+      else arch.splice(activeP.index, 1);
+
+      if (overP.kind === "archiveEmpty") {
+        arch.push(file);
+      } else if (overP.kind === "item" && overP.zone === "archive") {
+        let insertAt = overP.index;
+        if (activeP.zone === "archive" && insertAt > activeP.index) insertAt -= 1;
+        arch.splice(insertAt, 0, file);
+      } else if (overP.kind === "item" && overP.zone === "main") {
+        let insertAt = overP.index;
+        if (activeP.zone === "main" && insertAt > activeP.index) insertAt -= 1;
+        main.splice(insertAt, 0, file);
+        while (main.length > MAIN_GALLERY_MAX) {
+          const bumped = main.pop();
+          if (bumped) arch.unshift(bumped);
         }
       }
+
+      onImagesChange([...main, ...arch]);
     },
-    [images, onImagesChange]
+    [images, onImagesChange],
   );
 
   const sensors = useSensors(
@@ -222,7 +292,10 @@ export function MediaUploader({
     [onVideoChange]
   );
 
-  const ids = images.map((_, i) => String(i));
+  const mainImages = images.slice(0, MAIN_GALLERY_MAX);
+  const archivedImages = images.slice(MAIN_GALLERY_MAX);
+  const mainIds = mainImages.map((_, i) => `main-${i}`);
+  const archiveIds = archivedImages.map((_, i) => `archive-${i}`);
   const atLimit = images.length >= maxImages;
 
   const addImagesLabel = copy.addImages ?? (lang === "es" ? "Agregar fotos" : "Add photos");
@@ -304,33 +377,65 @@ export function MediaUploader({
         )}
 
         {images.length > 0 && (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={ids} strategy={rectSortingStrategy}>
-              <div className="grid grid-cols-3 gap-2 mt-3">
-                {images.map((file, index) => (
-                  <SortableImageItem
-                    key={`${file.name}-${file.size}-${index}`}
-                    file={file}
-                    index={index}
-                    previewUrl={previewUrls[index] ?? ""}
-                    onRemove={() => onImagesChange(images.filter((_, i) => i !== index))}
-                    lang={lang}
-                    isFirst={index === 0}
-                  />
-                ))}
-                {!atLimit && (
-                  <button
-                    type="button"
-                    onClick={() => galleryInputRef.current?.click()}
-                    disabled={compressing}
-                    className="flex h-28 items-center justify-center rounded border border-dashed border-black/20 bg-[#F5F5F5] text-2xl text-[#111111]/50 hover:bg-[#EFEFEF] disabled:opacity-50"
-                    aria-label={addImagesLabel}
-                  >
-                    +
-                  </button>
+          <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+            <div className="mt-3 space-y-4">
+              <div className="rounded-lg border border-black/10 bg-white/50 p-2">
+                <SortableContext items={mainIds} strategy={rectSortingStrategy}>
+                  <div className="grid grid-cols-3 gap-2">
+                    {mainImages.map((file, index) => {
+                      const globalIndex = index;
+                      return (
+                        <SortableImageItem
+                          key={`main-${globalIndex}-${file.name}-${file.size}-${file.lastModified}`}
+                          file={file}
+                          sortableId={`main-${index}`}
+                          previewUrl={previewUrls[globalIndex] ?? ""}
+                          onRemove={() => onImagesChange(images.filter((_, i) => i !== globalIndex))}
+                          lang={lang}
+                          isFirst={globalIndex === 0}
+                        />
+                      );
+                    })}
+                    {!atLimit && (
+                      <button
+                        type="button"
+                        onClick={() => galleryInputRef.current?.click()}
+                        disabled={compressing}
+                        className="flex h-28 items-center justify-center rounded border border-dashed border-black/20 bg-[#F5F5F5] text-2xl text-[#111111]/50 hover:bg-[#EFEFEF] disabled:opacity-50"
+                        aria-label={addImagesLabel}
+                      >
+                        +
+                      </button>
+                    )}
+                  </div>
+                </SortableContext>
+              </div>
+
+              <div className="rounded-lg border border-dashed border-black/12 bg-[#FAFAFA] p-2">
+                {archivedImages.length > 0 ? (
+                  <SortableContext items={archiveIds} strategy={rectSortingStrategy}>
+                    <div className="grid grid-cols-3 gap-2">
+                      {archivedImages.map((file, index) => {
+                        const globalIndex = MAIN_GALLERY_MAX + index;
+                        return (
+                          <SortableImageItem
+                            key={`archive-${index}-${file.name}-${file.size}-${file.lastModified}`}
+                            file={file}
+                            sortableId={`archive-${index}`}
+                            previewUrl={previewUrls[globalIndex] ?? ""}
+                            onRemove={() => onImagesChange(images.filter((_, i) => i !== globalIndex))}
+                            lang={lang}
+                            isFirst={false}
+                          />
+                        );
+                      })}
+                    </div>
+                  </SortableContext>
+                ) : (
+                  <ArchiveEmptyDropZone lang={lang} />
                 )}
               </div>
-            </SortableContext>
+            </div>
           </DndContext>
         )}
 

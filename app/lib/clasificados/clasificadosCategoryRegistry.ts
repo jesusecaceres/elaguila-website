@@ -4,6 +4,8 @@
  * pulling admin bundle chunks into the site graph.
  * `/clasificados/publicar` chooser uses merged visibility + order; labels still come from `categoryConfig`.
  */
+import "server-only";
+
 import type { CategoryKey } from "@/app/clasificados/config/categoryConfig";
 import { categoryConfig } from "@/app/clasificados/config/categoryConfig";
 import { fetchSiteCategoryConfigMap } from "@/app/lib/siteCategory/siteCategoryConfigData";

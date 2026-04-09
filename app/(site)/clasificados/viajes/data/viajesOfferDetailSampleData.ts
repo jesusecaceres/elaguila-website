@@ -2,6 +2,8 @@
  * Sample offer/detail records keyed by slug — swap for CMS or API later.
  */
 
+import type { ViajesHeroVisualKind } from "../lib/viajesOfferHeroFallbacks";
+
 export type ViajesOfferPartnerBlock = {
   name: string;
   isAffiliate: boolean;
@@ -22,6 +24,8 @@ export type ViajesOfferDetailModel = {
   heroImageAlt: string;
   /** Use unoptimized <img> for blob/data URLs or unvalidated user URLs */
   heroUseNativeImg?: boolean;
+  /** Optional — category-aware hero fallback when URL fails or is empty */
+  heroVisualKind?: ViajesHeroVisualKind;
   title: string;
   destination: string;
   priceFrom: string;

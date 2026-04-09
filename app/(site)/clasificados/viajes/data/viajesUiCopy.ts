@@ -163,6 +163,14 @@ export type ViajesUi = {
     detailsTitle: string;
     calendar: string;
     trustIntegratedTitle: string;
+    affiliateIdentityKicker: string;
+    affiliateReferralHint: string;
+    businessIdentityKicker: string;
+    businessOperatorHint: string;
+    valueAccentResort: string;
+    valueAccentCar: string;
+    valueAccentItinerary: string;
+    valueAccentDefault: string;
   };
   negocio: {
     back: string;
@@ -417,6 +425,15 @@ function es(): Omit<ViajesUi, "lang"> {
       detailsTitle: "Detalles del viaje",
       calendar: "Calendario:",
       trustIntegratedTitle: "Confianza y detalles",
+      affiliateIdentityKicker: "Socio comercial",
+      affiliateReferralHint:
+        "Leonix te acerca a esta oferta; la reserva o el pago suelen completarse en el sitio del socio.",
+      businessIdentityKicker: "Operador o agencia",
+      businessOperatorHint: "Contacto directo con el negocio — Leonix no procesa cobros ni reservas aquí.",
+      valueAccentResort: "Enfoque en estadía e inclusiones — confirma impuestos y políticas con quien publica.",
+      valueAccentCar: "Movilidad y tarifas — verifica kilometraje, seguros y depósitos antes de reservar.",
+      valueAccentItinerary: "Itinerario y soporte del operador — ajusta fechas y logística según disponibilidad.",
+      valueAccentDefault: "Revisa condiciones, fechas límite y métodos de pago directamente con quien publica.",
     },
     negocio: {
       back: "Volver a Viajes",
@@ -675,6 +692,15 @@ function en(): Omit<ViajesUi, "lang"> {
       detailsTitle: "Trip details",
       calendar: "Dates:",
       trustIntegratedTitle: "Trust & details",
+      affiliateIdentityKicker: "Commercial partner",
+      affiliateReferralHint:
+        "Leonix connects you to this offer; booking or payment usually happens on the partner’s site.",
+      businessIdentityKicker: "Operator or agency",
+      businessOperatorHint: "Direct contact with the business — Leonix does not process payments or bookings here.",
+      valueAccentResort: "Stay-focused — confirm taxes, resort fees, and policies with the publisher.",
+      valueAccentCar: "Mobility and rates — verify mileage, insurance, and deposits before you book.",
+      valueAccentItinerary: "Itinerary and operator support — align dates and logistics with availability.",
+      valueAccentDefault: "Review terms, blackout dates, and payment methods directly with whoever published the offer.",
     },
     negocio: {
       back: "Back to Viajes",

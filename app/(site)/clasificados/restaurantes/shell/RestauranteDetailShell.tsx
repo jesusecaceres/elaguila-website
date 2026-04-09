@@ -38,6 +38,68 @@ function StarRow({ rating }: { rating: number }) {
   );
 }
 
+/** Shared hero copy — used in stacked mobile layout and desktop overlay (both on dark). */
+function HeroIdentityBlock({
+  data,
+  open,
+  showHoursDetail,
+}: {
+  data: RestaurantDetailShellData;
+  open: boolean;
+  showHoursDetail: boolean;
+}) {
+  return (
+    <div className="max-w-3xl">
+      <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-[2.35rem] md:leading-[1.1]">
+        {data.businessName}
+      </h1>
+      {data.trustRating ? (
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-white/95">
+          <StarRow rating={Math.min(5, data.trustRating.average)} />
+          <span className="font-semibold tabular-nums">{data.trustRating.average.toFixed(1)}</span>
+          <span className="text-white/75">({data.trustRating.count.toLocaleString("es-US")} valoraciones)</span>
+        </div>
+      ) : null}
+      {data.cuisineTypeLine ? (
+        <p className="mt-2 text-[15px] font-medium text-white/88 sm:text-base">{data.cuisineTypeLine}</p>
+      ) : null}
+      {data.taxonomyChips?.length ? (
+        <div className="mt-2 flex flex-wrap gap-2" aria-label="Detalles de categoría">
+          {data.taxonomyChips.map((c) => (
+            <span
+              key={c.key}
+              title={c.label}
+              className="max-w-full min-w-0 rounded-full border border-white/25 bg-white/10 px-2.5 py-0.5 text-left text-[11px] font-semibold leading-snug text-white/95 sm:text-xs"
+            >
+              <span className="line-clamp-2 break-words">{c.label}</span>
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {data.summaryShort ? (
+        <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-white/92 sm:text-base">{data.summaryShort}</p>
+      ) : null}
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+        <p className="min-w-0 text-sm break-words">
+          <span className={open ? "font-semibold text-emerald-300" : "font-semibold text-amber-200"}>
+            {data.hoursPreview.statusLine}
+          </span>
+          <span className="text-white/55"> · </span>
+          <span className="text-white/85">{data.hoursPreview.scheduleSummary}</span>
+        </p>
+        {showHoursDetail ? (
+          <a
+            href={data.seeHoursHref}
+            className="w-fit shrink-0 text-sm font-semibold text-[color:var(--lx-gold-soft)] underline decoration-white/35 underline-offset-4 hover:text-white"
+          >
+            {data.seeHoursLabel}
+          </a>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 function mapsHref(query: string) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
@@ -84,10 +146,44 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
   );
 
   return (
-    <main className="mx-auto mt-6 max-w-[1280px] px-4 sm:mt-8 md:px-5 lg:px-6">
-      {/* 1. HERO */}
-      <section className="relative overflow-hidden rounded-[24px] border border-black/8 shadow-[0_24px_80px_-32px_rgba(0,0,0,0.45)]">
-        <div className="relative min-h-[min(72vh,640px)] w-full">
+    <main className="mx-auto mt-6 min-w-0 max-w-[1280px] px-4 sm:mt-8 md:px-5 lg:px-6">
+      {/* 1. HERO — mobile: stacked image → identity → scroll CTA rail; lg+: full-bleed overlay */}
+      <section
+        className="relative overflow-hidden rounded-[24px] border border-black/8 shadow-[0_24px_80px_-32px_rgba(0,0,0,0.45)]"
+        aria-label="Cabecera del negocio"
+      >
+        {/* Mobile / tablet: image first, text + CTAs below (no pills over the title) */}
+        <div className="lg:hidden">
+          <div className="relative aspect-[4/3] w-full max-h-[min(44vh,440px)] min-h-[200px] bg-[#1a1814]">
+            {hasHeroImg ? (
+              <Image
+                src={data.heroImageUrl!}
+                alt={data.heroImageAlt ?? ""}
+                fill
+                priority
+                unoptimized={data.heroImageUrl!.startsWith("data:")}
+                className="object-cover"
+                sizes="100vw"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-[#1a1814] via-[#2d2820] to-[#4a4034]" aria-hidden />
+            )}
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" aria-hidden />
+          </div>
+          <div className="border-t border-white/10 bg-gradient-to-b from-[#141210] to-[#0e0c0a] px-4 pb-2 pt-5 sm:px-5">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/40">Identidad</p>
+            <HeroIdentityBlock data={data} open={open} showHoursDetail={showHoursDetail} />
+            {showCtas ? (
+              <div className="mt-6 border-t border-white/10 pt-5">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/40">Acciones</p>
+                <RestauranteShellInteractiveCtas listingId={data.id} ctas={data.primaryCtas} layout="scrollRail" />
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Desktop: classic full-height hero with overlay + wrapped CTAs */}
+        <div className="relative hidden min-h-[min(72vh,640px)] w-full lg:block">
           {hasHeroImg ? (
             <Image
               src={data.heroImageUrl!}
@@ -99,76 +195,17 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
               sizes="(max-width:1280px) 100vw, 1280px"
             />
           ) : (
-            <div
-              className="absolute inset-0 bg-gradient-to-br from-[#1a1814] via-[#2d2820] to-[#4a4034]"
-              aria-hidden
-            />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#1a1814] via-[#2d2820] to-[#4a4034]" aria-hidden />
           )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/78 via-black/35 to-black/10" aria-hidden />
           <div
-            className="absolute inset-0 bg-gradient-to-t from-black/78 via-black/35 to-black/10"
-            aria-hidden
-          />
-          <div
-            className={`absolute inset-x-0 bottom-0 flex flex-col gap-6 p-6 sm:p-8 md:p-10 ${showCtas ? "pb-36 sm:pb-40 md:pb-44" : "pb-10 sm:pb-12 md:pb-14"}`}
+            className={`absolute inset-x-0 bottom-0 z-[1] flex flex-col gap-6 p-6 sm:p-8 md:p-10 ${showCtas ? "pb-36 sm:pb-40 md:pb-44" : "pb-10 sm:pb-12 md:pb-14"}`}
           >
-            <div className="max-w-3xl">
-              <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-[2.35rem] md:leading-[1.1]">
-                {data.businessName}
-              </h1>
-              {data.trustRating ? (
-                <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-white/95">
-                  <StarRow rating={Math.min(5, data.trustRating.average)} />
-                  <span className="font-semibold tabular-nums">
-                    {data.trustRating.average.toFixed(1)}
-                  </span>
-                  <span className="text-white/75">
-                    ({data.trustRating.count.toLocaleString("es-US")} valoraciones)
-                  </span>
-                </div>
-              ) : null}
-              {data.cuisineTypeLine ? (
-                <p className="mt-2 text-[15px] font-medium text-white/88 sm:text-base">{data.cuisineTypeLine}</p>
-              ) : null}
-              {data.taxonomyChips?.length ? (
-                <div className="mt-2 flex flex-wrap gap-2" aria-label="Detalles de categoría">
-                  {data.taxonomyChips.map((c) => (
-                    <span
-                      key={c.key}
-                      title={c.label}
-                      className="max-w-full min-w-0 rounded-full border border-white/25 bg-white/10 px-2.5 py-0.5 text-left text-[11px] font-semibold leading-snug text-white/95 sm:text-xs"
-                    >
-                      <span className="line-clamp-2 break-words">{c.label}</span>
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-              {data.summaryShort ? (
-                <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-white/92 sm:text-base">
-                  {data.summaryShort}
-                </p>
-              ) : null}
-              <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-                <p className="text-sm">
-                  <span className={open ? "font-semibold text-emerald-300" : "font-semibold text-amber-200"}>
-                    {data.hoursPreview.statusLine}
-                  </span>
-                  <span className="text-white/55"> · </span>
-                  <span className="text-white/85">{data.hoursPreview.scheduleSummary}</span>
-                </p>
-                {showHoursDetail ? (
-                  <a
-                    href={data.seeHoursHref}
-                    className="w-fit text-sm font-semibold text-[color:var(--lx-gold-soft)] underline decoration-white/35 underline-offset-4 hover:text-white"
-                  >
-                    {data.seeHoursLabel}
-                  </a>
-                ) : null}
-              </div>
-            </div>
+            <HeroIdentityBlock data={data} open={open} showHoursDetail={showHoursDetail} />
           </div>
           {showCtas ? (
             <div className="absolute bottom-6 left-0 right-0 z-10 flex justify-center px-3">
-              <RestauranteShellInteractiveCtas listingId={data.id} ctas={data.primaryCtas} />
+              <RestauranteShellInteractiveCtas listingId={data.id} ctas={data.primaryCtas} layout="wrap" />
             </div>
           ) : null}
         </div>
@@ -176,7 +213,13 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
 
       {/* 3. QUICK INFO STRIP */}
       {showQuick ? (
-        <section className="mt-8" aria-label="Información rápida">
+        <section className="mt-6 sm:mt-8" aria-labelledby="quick-info-heading">
+          <h2 id="quick-info-heading" className="sr-only">
+            Información rápida
+          </h2>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--lx-muted)] lg:hidden">
+            Información rápida
+          </p>
           <div className={`${CARD} flex flex-wrap gap-x-3 gap-y-2 px-4 py-4 sm:px-5`}>
             {data.quickInfo!.map((item) => (
               <div
@@ -184,7 +227,7 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
                 className="flex min-w-0 max-w-full items-baseline gap-2 rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-3 py-1.5 text-[13px]"
               >
                 <span className="shrink-0 font-semibold text-[color:var(--lx-muted)]">{item.label}</span>
-                <span className="min-w-0 font-medium text-[color:var(--lx-text)]">{item.value}</span>
+                <span className="min-w-0 break-words font-medium text-[color:var(--lx-text)]">{item.value}</span>
               </div>
             ))}
           </div>
@@ -194,7 +237,7 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
       {showHoursDetail && data.hoursDetail ? (
         <section
           id="horarios-detalle"
-          className={`${CARD} mt-8 scroll-mt-28 px-5 py-5 sm:px-6`}
+          className={`${CARD} mt-8 scroll-mt-24 px-5 py-5 sm:px-6 lg:scroll-mt-28`}
           aria-labelledby="hours-detail-heading"
         >
           <h2 id="hours-detail-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
@@ -224,102 +267,11 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
       ) : null}
 
       <div
-        className={`mt-10 grid grid-cols-1 gap-8 ${showContact ? "lg:grid-cols-12 lg:gap-10" : ""}`}
+        className={`mt-10 flex flex-col gap-8 ${showContact ? "lg:grid lg:grid-cols-12 lg:items-start lg:gap-10" : ""}`}
       >
-        <div className={`min-w-0 space-y-10 ${showContact ? "lg:col-span-8" : "lg:col-span-12"}`}>
-          {/* 4. PLATILLOS (featured dishes — not comida bucket) */}
-          {showPlatillos ? (
-            <RestauranteShellPlatillosBlock dishes={data.menuHighlights!} fullMenuCta={data.fullMenuCta} />
-          ) : null}
-          {showMenuOnly ? (
-            <section className="mt-2" aria-label="Menú">
-              <RestauranteShellInlineDataAssetButton
-                href={data.fullMenuCta!.href}
-                label={`${data.fullMenuCta!.label} →`}
-                className="flex w-full min-h-[48px] items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-              />
-            </section>
-          ) : null}
-
-          {/* 5. HIGHLIGHTS */}
-          {showHighlights ? (
-            <section aria-labelledby="highlights-heading">
-              <h2 id="highlights-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
-                Destacados
-              </h2>
-              <ul className="mt-4 flex flex-wrap gap-2">
-                {data.highlightTags!.map((tag) => (
-                  <li key={tag.key}>
-                    <span className="inline-flex items-center rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] px-3 py-1.5 text-[13px] font-medium text-[color:var(--lx-text-2)]">
-                      {tag.label}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {/* Optional stacks I–K */}
-          {showStacks
-            ? data.stackSections!.map((stack) => (
-                <section key={stack.id} aria-labelledby={`stack-${stack.id}`}>
-                  <h2 id={`stack-${stack.id}`} className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
-                    {stack.title}
-                  </h2>
-                  <dl className={`${CARD} mt-4 space-y-3 px-5 py-4 text-sm`}>
-                    {stack.rows.map((row) => (
-                      <div key={`${row.label}-${row.value}`}>
-                        <dt className="font-semibold text-[color:var(--lx-muted)]">{row.label}</dt>
-                        <dd className="mt-0.5 text-[color:var(--lx-text-2)]">{row.value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </section>
-              ))
-            : null}
-
-          {/* 6. VENUE GALLERY (grouped) or legacy flat gallery */}
-          {showVenueGallery ? (
-            <RestauranteShellVenueGalleryBlock bundle={data.venueGallery!} galleryCta={data.galleryCta} />
-          ) : legacyGallery ? (
-            <RestauranteShellGalleryBlock gallery={data.gallery!} galleryCta={data.galleryCta} />
-          ) : null}
-
-          {/* 8. ABOUT */}
-          {showAbout ? (
-            <section aria-labelledby="about-heading">
-              <h2 id="about-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
-                {data.aboutTitle ?? "Sobre el negocio"}
-              </h2>
-              <p className="mt-4 text-[15px] leading-[1.75] text-[color:var(--lx-text-2)]">{data.aboutBody}</p>
-            </section>
-          ) : null}
-
-          {/* 9. LIGHT TRUST */}
-          {data.trustLight ? (
-            <section
-              className={`${CARD} border-dashed px-5 py-5 sm:px-6`}
-              aria-label="Confianza"
-            >
-              <p className="text-sm leading-relaxed text-[color:var(--lx-text-2)]">{data.trustLight.summaryLine}</p>
-              {data.trustLight.externalTrustHref && data.trustLight.externalTrustLabel ? (
-                <a
-                  href={data.trustLight.externalTrustHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 inline-flex text-sm font-semibold text-[color:var(--lx-text)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 hover:text-[color:var(--lx-gold)]"
-                >
-                  {data.trustLight.externalTrustLabel}
-                </a>
-              ) : null}
-            </section>
-          ) : null}
-        </div>
-
-        {/* 7. CONTACT + ACCESS */}
         {showContact ? (
-          <aside className="min-w-0 lg:col-span-4 lg:row-span-1">
-            <div className={`${CARD} sticky top-24 space-y-5 p-5 sm:p-6`}>
+          <aside className="order-1 min-w-0 lg:order-2 lg:col-span-4">
+            <div className={`${CARD} space-y-5 p-5 sm:p-6 lg:sticky lg:top-24`}>
               <h2 className="text-lg font-bold text-[color:var(--lx-text)]">Contacto y acceso</h2>
               <div className="space-y-3 text-sm">
                 {data.contact!.addressLine1 || data.contact!.mapsSearchQuery ? (
@@ -460,6 +412,95 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
             </div>
           </aside>
         ) : null}
+        <div className={`order-2 min-w-0 space-y-10 lg:order-1 ${showContact ? "lg:col-span-8" : "lg:col-span-12"}`}>
+          {/* 4. PLATILLOS (featured dishes — not comida bucket) */}
+          {showPlatillos ? (
+            <RestauranteShellPlatillosBlock dishes={data.menuHighlights!} fullMenuCta={data.fullMenuCta} />
+          ) : null}
+          {showMenuOnly ? (
+            <section className="mt-2" aria-label="Menú">
+              <RestauranteShellInlineDataAssetButton
+                href={data.fullMenuCta!.href}
+                label={`${data.fullMenuCta!.label} →`}
+                className="flex w-full min-h-[48px] items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+              />
+            </section>
+          ) : null}
+
+          {/* 5. HIGHLIGHTS */}
+          {showHighlights ? (
+            <section aria-labelledby="highlights-heading">
+              <h2 id="highlights-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
+                Destacados
+              </h2>
+              <ul className="mt-4 flex flex-wrap gap-2">
+                {data.highlightTags!.map((tag) => (
+                  <li key={tag.key}>
+                    <span className="inline-flex items-center rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] px-3 py-1.5 text-[13px] font-medium text-[color:var(--lx-text-2)]">
+                      {tag.label}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {/* Optional stacks I–K */}
+          {showStacks
+            ? data.stackSections!.map((stack) => (
+                <section key={stack.id} aria-labelledby={`stack-${stack.id}`}>
+                  <h2 id={`stack-${stack.id}`} className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
+                    {stack.title}
+                  </h2>
+                  <dl className={`${CARD} mt-4 space-y-3 px-5 py-4 text-sm`}>
+                    {stack.rows.map((row) => (
+                      <div key={`${row.label}-${row.value}`}>
+                        <dt className="font-semibold text-[color:var(--lx-muted)]">{row.label}</dt>
+                        <dd className="mt-0.5 text-[color:var(--lx-text-2)]">{row.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              ))
+            : null}
+
+          {/* 6. VENUE GALLERY (grouped) or legacy flat gallery */}
+          {showVenueGallery ? (
+            <RestauranteShellVenueGalleryBlock bundle={data.venueGallery!} galleryCta={data.galleryCta} />
+          ) : legacyGallery ? (
+            <RestauranteShellGalleryBlock gallery={data.gallery!} galleryCta={data.galleryCta} />
+          ) : null}
+
+          {/* 8. ABOUT */}
+          {showAbout ? (
+            <section aria-labelledby="about-heading">
+              <h2 id="about-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
+                {data.aboutTitle ?? "Sobre el negocio"}
+              </h2>
+              <p className="mt-4 text-[15px] leading-[1.75] text-[color:var(--lx-text-2)]">{data.aboutBody}</p>
+            </section>
+          ) : null}
+
+          {/* 9. LIGHT TRUST */}
+          {data.trustLight ? (
+            <section
+              className={`${CARD} border-dashed px-5 py-5 sm:px-6`}
+              aria-label="Confianza"
+            >
+              <p className="text-sm leading-relaxed text-[color:var(--lx-text-2)]">{data.trustLight.summaryLine}</p>
+              {data.trustLight.externalTrustHref && data.trustLight.externalTrustLabel ? (
+                <a
+                  href={data.trustLight.externalTrustHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-flex text-sm font-semibold text-[color:var(--lx-text)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 hover:text-[color:var(--lx-gold)]"
+                >
+                  {data.trustLight.externalTrustLabel}
+                </a>
+              ) : null}
+            </section>
+          ) : null}
+        </div>
       </div>
     </main>
   );

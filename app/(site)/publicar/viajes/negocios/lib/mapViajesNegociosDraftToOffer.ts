@@ -1,4 +1,5 @@
 import type { ViajesOfferDetailModel } from "@/app/(site)/clasificados/viajes/data/viajesOfferDetailSampleData";
+import type { ViajesHeroVisualKind } from "@/app/(site)/clasificados/viajes/lib/viajesOfferHeroFallbacks";
 
 import type { PublicarViajesNegociosUi } from "../data/publicarViajesNegociosCopy";
 import type { ViajesNegociosDraft } from "./viajesNegociosDraftTypes";
@@ -15,6 +16,12 @@ function withHttp(url: string) {
   if (!t) return "";
   if (t.startsWith("http://") || t.startsWith("https://")) return t;
   return `https://${t}`;
+}
+
+function negociosOfferTypeToHeroKind(offerType: string): ViajesHeroVisualKind | undefined {
+  if (offerType === "resort") return "resort";
+  if (offerType === "crucero" || offerType === "tour") return "itinerary";
+  return undefined;
 }
 
 function buildCta(
@@ -127,12 +134,14 @@ export function mapViajesNegociosDraftToOffer(
   const notes = notesParts.length ? notesParts.join(" · ") : undefined;
 
   const logoTrim = d.logoSocio.trim();
+  const heroVisualKind = negociosOfferTypeToHeroKind(d.offerType);
 
   return {
     slug: "preview-negocios",
     heroImageSrc: heroSrc,
     heroImageAlt: d.titulo.trim() || (lang === "en" ? "Travel offer" : "Oferta de viaje"),
     heroUseNativeImg: heroNative,
+    ...(heroVisualKind ? { heroVisualKind } : {}),
     title: d.titulo.trim() || (sparse ? untitled : titleFallback),
     destination: d.destino.trim() || (sparse ? "" : "—"),
     priceFrom: d.precio.trim() || (sparse ? "" : lang === "en" ? "Ask for quote" : "Consultar"),

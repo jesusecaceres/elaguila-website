@@ -58,12 +58,17 @@ function iconFor(key: ShellPrimaryCta["key"]): IconType {
   }
 }
 
+type CtaLayout = "wrap" | "scrollRail";
+
 export function RestauranteShellInteractiveCtas({
   listingId,
   ctas,
+  /** `scrollRail`: horizontal thumb rail (mobile hero). `wrap`: centered wrap (desktop hero overlay). */
+  layout = "wrap",
 }: {
   listingId: string;
   ctas: ShellPrimaryCta[];
+  layout?: CtaLayout;
 }) {
   const [saved, setSaved] = useState(false);
   const [dataModal, setDataModal] = useState<{ href: string; title: string } | null>(null);
@@ -115,8 +120,21 @@ export function RestauranteShellInteractiveCtas({
     }
   }, []);
 
+  const rail = layout === "scrollRail";
+
+  const pillClass =
+    "inline-flex min-h-[44px] shrink-0 snap-start items-center gap-2 rounded-full border border-white/25 bg-white/95 px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)] backdrop-blur transition hover:bg-white";
+
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
+    <div
+      className={
+        rail
+          ? "flex w-full max-w-[100vw] flex-nowrap items-stretch justify-start gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain px-1 py-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]"
+          : "flex flex-wrap items-center justify-center gap-2 sm:gap-2.5"
+      }
+      role={rail ? "toolbar" : undefined}
+      aria-label={rail ? "Acciones rápidas" : undefined}
+    >
       {ctas.map((cta, idx) => {
         const Icon = iconFor(cta.key);
         const disabled = cta.enabled === false;
@@ -128,7 +146,7 @@ export function RestauranteShellInteractiveCtas({
               key={rowKey}
               type="button"
               onClick={() => persistSaved(!saved)}
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-white/25 bg-white/95 px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)] backdrop-blur transition hover:bg-white"
+              className={pillClass}
             >
               <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
               {saved ? "Guardado" : cta.label}
@@ -142,7 +160,7 @@ export function RestauranteShellInteractiveCtas({
               key={rowKey}
               type="button"
               onClick={onShare}
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-white/25 bg-white/95 px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)] backdrop-blur transition hover:bg-white"
+              className={pillClass}
             >
               <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
               {cta.label}
@@ -155,7 +173,7 @@ export function RestauranteShellInteractiveCtas({
             <span
               key={rowKey}
               title={cta.disabledReason}
-              className="inline-flex min-h-[44px] cursor-not-allowed items-center gap-2 rounded-full border border-white/15 bg-white/55 px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)]/45 shadow-inner"
+              className="inline-flex min-h-[44px] shrink-0 snap-start cursor-not-allowed items-center gap-2 rounded-full border border-white/15 bg-white/55 px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)]/45 shadow-inner"
             >
               <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 opacity-50" aria-hidden />
               {cta.label}
@@ -169,7 +187,7 @@ export function RestauranteShellInteractiveCtas({
               key={rowKey}
               type="button"
               onClick={() => setDataModal({ href: cta.href, title: cta.label })}
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-white/25 bg-white/95 px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)] backdrop-blur transition hover:bg-white"
+              className={pillClass}
             >
               <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
               {cta.label}
@@ -183,7 +201,7 @@ export function RestauranteShellInteractiveCtas({
               key={rowKey}
               type="button"
               onClick={() => setExtModal({ href: cta.href, title: cta.label })}
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-white/25 bg-white/95 px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)] backdrop-blur transition hover:bg-white"
+              className={pillClass}
             >
               <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
               {cta.label}
@@ -195,7 +213,7 @@ export function RestauranteShellInteractiveCtas({
           <a
             key={rowKey}
             href={cta.href}
-            className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-white/25 bg-white/95 px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)] backdrop-blur transition hover:bg-white"
+            className={pillClass}
             {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
           >
             <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
