@@ -1,5 +1,6 @@
 "use client";
 
+import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import type { ReactNode } from "react";
 
 export function EmpleosSectionCard({ title, children }: { title: string; children: ReactNode }) {
@@ -15,16 +16,20 @@ export function EmpleosFieldLabel({
   children,
   optional,
   required,
+  lang = "es",
 }: {
   children: React.ReactNode;
   optional?: boolean;
   required?: boolean;
+  /** UI language for the “(optional)” suffix. */
+  lang?: Lang;
 }) {
   const star = Boolean(required) && !optional;
+  const optWord = lang === "en" ? "optional" : "opcional";
   return (
     <span className="block text-sm font-semibold text-[color:var(--lx-text)]">
       {children}
-      {optional ? <span className="ml-1 font-normal text-[color:var(--lx-muted)]">(opcional)</span> : null}
+      {optional ? <span className="ml-1 font-normal text-[color:var(--lx-muted)]">({optWord})</span> : null}
       {star ? (
         <span className="ml-0.5 text-red-600" aria-hidden>
           *

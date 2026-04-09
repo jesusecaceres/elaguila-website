@@ -30,8 +30,10 @@ export async function GET(request: Request) {
   if (!listingId) {
     return NextResponse.json({ ok: false, error: "missing_listing" }, { status: 400 });
   }
-  const activated = await tryActivateAutosListingAfterPayment(listingId);
-  if (!activated) {
+  const pi = session.payment_intent;
+  const piId = typeof pi === "string" ? pi : pi?.id ?? null;
+  const activation = await tryActivateAutosListingAfterPayment(listingId, { stripePaymentIntentId: piId });
+  if (!activation.ok) {
     return NextResponse.json({ ok: false, error: "activation_failed" }, { status: 409 });
   }
   const row = await getAutosClassifiedsListingById(listingId);

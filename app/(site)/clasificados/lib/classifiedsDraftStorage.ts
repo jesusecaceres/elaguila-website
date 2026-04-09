@@ -26,8 +26,14 @@ import {
   BR_PRIVADO_DRAFT_LS_FALLBACK_KEY,
   BR_PRIVADO_DRAFT_STORAGE_KEY,
 } from "@/app/clasificados/publicar/bienes-raices/privado/application/utils/bienesRaicesPrivadoDraft";
-import { RENTAS_PRIVADO_DRAFT_STORAGE_KEY } from "@/app/clasificados/publicar/rentas/privado/application/utils/rentasPrivadoDraft";
-import { RENTAS_NEGOCIO_DRAFT_STORAGE_KEY } from "@/app/clasificados/publicar/rentas/negocio/application/utils/rentasNegocioDraft";
+import {
+  RENTAS_PRIVADO_DRAFT_LS_FALLBACK_KEY,
+  RENTAS_PRIVADO_DRAFT_STORAGE_KEY,
+} from "@/app/clasificados/publicar/rentas/privado/application/utils/rentasPrivadoDraft";
+import {
+  RENTAS_NEGOCIO_DRAFT_LS_FALLBACK_KEY,
+  RENTAS_NEGOCIO_DRAFT_STORAGE_KEY,
+} from "@/app/clasificados/publicar/rentas/negocio/application/utils/rentasNegocioDraft";
 
 /** Same value as preview-nav flag in publish flow client (avoid importing a `"use client"` module here). */
 const LEONIX_PREVIEW_NAV_SESSION_FLAG = "leonix-publish-flow-opening-preview";
@@ -188,6 +194,8 @@ export function clearAllClassifiedsDrafts(options?: {
       localStorage.removeItem(BR_PRIVADO_DRAFT_STORAGE_KEY);
       localStorage.removeItem(BR_PRIVADO_DRAFT_LS_FALLBACK_KEY);
       localStorage.removeItem(RENTAS_PRIVADO_DRAFT_STORAGE_KEY);
+      localStorage.removeItem(RENTAS_PRIVADO_DRAFT_LS_FALLBACK_KEY);
+      localStorage.removeItem(RENTAS_NEGOCIO_DRAFT_LS_FALLBACK_KEY);
     } catch {
       /* ignore */
     }

@@ -12,6 +12,11 @@ export type AdminSupportContext = {
   listingsPendingOrFlagged: number;
   reportsAsReporter: number;
   tiendaOrdersMatchingEmail: number;
+  /** Internal support tickets linked to this profile (`support_tickets.user_id`). */
+  supportTicketsTotal: number;
+  supportTicketsOpen: number;
+  /** True when `support_tickets` or `user_id` column is missing — counts are zero. */
+  supportTicketsUnavailable: boolean;
 };
 
 export async function fetchAdminSupportContextForProfile(profileId: string): Promise<AdminSupportContext | null> {
@@ -25,7 +30,14 @@ export async function fetchAdminSupportContextForProfile(profileId: string): Pro
 
   const emailRaw = typeof prof.email === "string" ? prof.email.trim() : "";
 
-  const [{ count: listingsTotal }, { count: listingsPF }, { count: reportsRep }, tiendaRes] = await Promise.all([
+  const [
+    { count: listingsTotal },
+    { count: listingsPF },
+    { count: reportsRep },
+    tiendaRes,
+    ticketsTotalRes,
+    ticketsOpenRes,
+  ] = await Promise.all([
     supabase.from("listings").select("id", { count: "exact", head: true }).eq("owner_id", profileId),
     supabase
       .from("listings")
@@ -36,8 +48,21 @@ export async function fetchAdminSupportContextForProfile(profileId: string): Pro
     emailRaw
       ? supabase.from("tienda_orders").select("id", { count: "exact", head: true }).ilike("customer_email", emailRaw)
       : Promise.resolve({ count: 0 }),
+    supabase.from("support_tickets").select("id", { count: "exact", head: true }).eq("user_id", profileId),
+    supabase
+      .from("support_tickets")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", profileId)
+      .in("status", ["open", "in_progress"]),
   ]);
   const tiendaCount = typeof tiendaRes.count === "number" ? tiendaRes.count : 0;
+
+  const ticketErr = ticketsTotalRes.error ?? ticketsOpenRes.error;
+  const supportTicketsUnavailable = Boolean(ticketErr);
+  const supportTicketsTotal =
+    !supportTicketsUnavailable && typeof ticketsTotalRes.count === "number" ? ticketsTotalRes.count : 0;
+  const supportTicketsOpen =
+    !supportTicketsUnavailable && typeof ticketsOpenRes.count === "number" ? ticketsOpenRes.count : 0;
 
   return {
     profileId,
@@ -48,5 +73,8 @@ export async function fetchAdminSupportContextForProfile(profileId: string): Pro
     listingsPendingOrFlagged: typeof listingsPF === "number" ? listingsPF : 0,
     reportsAsReporter: typeof reportsRep === "number" ? reportsRep : 0,
     tiendaOrdersMatchingEmail: tiendaCount,
+    supportTicketsTotal,
+    supportTicketsOpen,
+    supportTicketsUnavailable,
   };
 }

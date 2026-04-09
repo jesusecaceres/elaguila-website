@@ -138,7 +138,7 @@ export async function fetchListingsForAdminWorkspaceFiltered(
         }
         qb = qb.or(parts.join(","));
       } else if (qMode === "owner_like") {
-        qb = qb.filter("owner_id", "like", `%${qRaw}%`);
+        qb = qb.filter("owner_id", "ilike", `%${qRaw}%`);
       }
     }
     return qb;

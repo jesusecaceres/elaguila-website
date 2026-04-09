@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import {
   BR_NEGOCIO_Q_PROPIEDAD,
@@ -96,6 +96,9 @@ export function RentasNegocioForm() {
   const [hydrated, setHydrated] = useState(false);
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
 
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
   useEffect(() => {
     const d = loadRentasNegocioDraft();
     if (d) setState(d);
@@ -104,13 +107,29 @@ export function RentasNegocioForm() {
 
   useEffect(() => {
     if (!hydrated) return;
-    const id = window.setTimeout(() => saveRentasNegocioDraft(state), 400);
+    const id = window.setTimeout(() => saveRentasNegocioDraft(stateRef.current), 280);
     return () => window.clearTimeout(id);
   }, [state, hydrated]);
 
+  useEffect(() => {
+    if (!hydrated) return;
+    function flush() {
+      saveRentasNegocioDraft(stateRef.current);
+    }
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") flush();
+    }
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [hydrated]);
+
   const flushSave = useCallback(() => {
-    saveRentasNegocioDraft(state);
-  }, [state]);
+    saveRentasNegocioDraft(stateRef.current);
+  }, []);
 
   const previewHref = `${RENTAS_PREVIEW_NEGOCIO}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(state.categoriaPropiedad)}`;
 
@@ -156,7 +175,7 @@ export function RentasNegocioForm() {
         <ClasificadosApplicationTopActions
           onPreviewValidated={() => {
             if (!confirmAll) return;
-            const g = gateRentasNegocioPreview(state);
+            const g = gateRentasNegocioPreview(stateRef.current);
             if (!g.ok) {
               setPreviewGateMessage(g.message);
               return;

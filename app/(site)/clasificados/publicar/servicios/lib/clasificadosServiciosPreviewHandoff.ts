@@ -33,9 +33,12 @@ export function saveServiciosPreviewReturnDraft(state: ClasificadosServiciosAppl
   if (typeof window === "undefined") return false;
   previewReturnMemory = null;
   try {
-    const payload: ServiciosPreviewReturnPayload = { state, savedAt: Date.now() };
-    window.sessionStorage.setItem(SERVICIOS_PREVIEW_RETURN_KEY, JSON.stringify(payload));
-    return true;
+    const normalized = normalizeClasificadosServiciosApplicationState(state);
+    const payload: ServiciosPreviewReturnPayload = { state: normalized, savedAt: Date.now() };
+    const raw = JSON.stringify(payload);
+    window.sessionStorage.setItem(SERVICIOS_PREVIEW_RETURN_KEY, raw);
+    const round = window.sessionStorage.getItem(SERVICIOS_PREVIEW_RETURN_KEY);
+    return round === raw;
   } catch {
     return false;
   }
@@ -46,8 +49,9 @@ export function saveServiciosPreviewReturnDraft(state: ClasificadosServiciosAppl
  * Both must succeed; otherwise the in-session roundtrip can lose large media payloads.
  */
 export function persistServiciosDraftForPreviewNavigation(state: ClasificadosServiciosApplicationState): boolean {
-  const sessionOk = writeClasificadosServiciosApplicationToBrowser(state);
-  const returnOk = saveServiciosPreviewReturnDraft(state);
+  const normalized = normalizeClasificadosServiciosApplicationState(state);
+  const sessionOk = writeClasificadosServiciosApplicationToBrowser(normalized);
+  const returnOk = saveServiciosPreviewReturnDraft(normalized);
   return sessionOk && returnOk;
 }
 
@@ -74,6 +78,7 @@ export function bootstrapServiciosApplicationState(): ClasificadosServiciosAppli
   if (typeof window === "undefined") return createDefaultClasificadosServiciosState();
   if (previewReturnMemory) {
     scheduleClearReturnMemory();
+    writeClasificadosServiciosApplicationToBrowser(previewReturnMemory);
     return previewReturnMemory;
   }
   try {
@@ -85,6 +90,7 @@ export function bootstrapServiciosApplicationState(): ClasificadosServiciosAppli
         window.sessionStorage.removeItem(SERVICIOS_PREVIEW_RETURN_KEY);
         previewReturnMemory = merged;
         scheduleClearReturnMemory();
+        writeClasificadosServiciosApplicationToBrowser(merged);
         return merged;
       }
     }

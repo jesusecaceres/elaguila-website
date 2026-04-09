@@ -30,6 +30,7 @@ export function emptyViajesPrivadoDraft(): ViajesPrivadoDraft {
     presupuestoTag: "",
     imagenUrl: "",
     localImageDataUrl: null,
+    localHeroBlobId: null,
     displayName: "",
     ctaType: "whatsapp",
     phone: "",

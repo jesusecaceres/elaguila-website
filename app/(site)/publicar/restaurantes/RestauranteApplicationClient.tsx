@@ -372,7 +372,7 @@ export default function RestauranteApplicationClient() {
               <div>
                 <FieldLabel required>Cocina principal</FieldLabel>
                 <HelperText>
-                  Identidad culinaria principal: línea de tipo/cocina en resultados y filtros. Una sola elección.
+                  Identidad culinaria principal: en la ficha aparece en la <strong className="text-[color:var(--lx-text-2)]">línea de cocina bajo el título</strong> del héroe y alimenta datos estructurados para filtros. Una sola elección.
                 </HelperText>
                 <select
                   className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
@@ -396,8 +396,7 @@ export default function RestauranteApplicationClient() {
               <div>
                 <FieldLabel optional>Cocina secundaria</FieldLabel>
                 <HelperText>
-                  Segunda cocina si aplica (p. ej. fusión o doble oferta). Opcional; no sustituye la principal. Una sola
-                  elección.
+                  Segunda identidad culinaria opcional: se une a la principal en la <strong className="text-[color:var(--lx-text-2)]">misma línea bajo el título</strong>. No sustituye la principal. Una sola elección.
                 </HelperText>
                 <select
                   className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
@@ -448,9 +447,9 @@ export default function RestauranteApplicationClient() {
             <div>
               <FieldLabel optional>Cocinas adicionales</FieldLabel>
               <HelperText>
-                Etiquetas extra para descubrimiento y riqueza en la ficha — no son la identidad principal. Elige hasta{" "}
-                <strong className="font-semibold text-[color:var(--lx-text-2)]">{MAX_ADDITIONAL_CUISINES}</strong> para
-                evitar ruido en resultados. Principal y secundaria siguen siendo las que definen el mensaje.
+                Etiquetas de apoyo para descubrimiento: en la ficha salen como <strong className="text-[color:var(--lx-text-2)]">chips «Descub.»</strong> bajo la línea principal/secundaria, no en esa línea. Por eso existen las tres: identidad clara + etiquetas selectivas. Elige hasta{" "}
+                <strong className="font-semibold text-[color:var(--lx-text-2)]">{MAX_ADDITIONAL_CUISINES}</strong>. La ciudad
+                canónica y la cocina principal siguen anclando filtros y resultados.
               </HelperText>
               <p className="mt-1 text-xs font-medium text-[color:var(--lx-text-2)]">
                 {(draft.additionalCuisines ?? []).length}/{MAX_ADDITIONAL_CUISINES} seleccionadas
@@ -536,7 +535,9 @@ export default function RestauranteApplicationClient() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <FieldLabel optional>Barrio / zona</FieldLabel>
-                <HelperText>Texto libre para contexto local en la ficha; no reemplaza la ciudad canónica.</HelperText>
+                <HelperText>
+                  Texto libre de barrio o zona: aparece en la tarjeta <strong className="text-[color:var(--lx-text-2)]">«Zona»</strong> de la franja de información rápida, junto a la ciudad canónica. No sustituye la ciudad estructurada ni los filtros NorCal.
+                </HelperText>
                 <input
                   className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                   value={draft.neighborhood ?? ""}
@@ -751,6 +752,11 @@ export default function RestauranteApplicationClient() {
           {(draft.serviceModes ?? []).includes(TAXONOMY_KEY_OTHER as RestauranteServiceMode) ? (
             <div className="mt-3 max-w-lg">
               <FieldLabel optional>Especifica el modo de servicio (Otro)</FieldLabel>
+              <HelperText>
+                Texto corto que verá el cliente en la <strong className="text-[color:var(--lx-text-2)]">franja Servicio</strong>{" "}
+                (información rápida) y como etiqueta «Modo: …» cuando aplique; forma parte de la identidad canónica igual que
+                los demás modos marcados.
+              </HelperText>
               <input
                 className={OTHER_INPUT}
                 maxLength={64}

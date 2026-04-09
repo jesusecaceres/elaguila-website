@@ -119,16 +119,23 @@ export function ClasificadosServiciosApplication() {
   const copy = getClasificadosServiciosCopy(lang);
 
   const [hydrated, setHydrated] = useState(false);
-  const [step, setStep] = useState(0);
   const [previewGateMissing, setPreviewGateMissing] = useState<PublishReadinessMissingItem[] | null>(null);
   const [state, setState] = useState<ClasificadosServiciosApplicationState>(() => createDefaultClasificadosServiciosState());
 
   const stepLabels = useMemo(() => getServiciosApplicationStepLabels(lang), [lang]);
   const stepShortLabels = useMemo(() => getServiciosApplicationStepShortLabels(lang), [lang]);
   const totalSteps = SERVICIOS_APPLICATION_STEP_COUNT;
+  const step = state.applicationStepIndex;
   const canGoBack = step > 0;
   const canGoNext = step < totalSteps - 1;
   const stepLabelActive = stepLabels[step] ?? "";
+
+  const goToStep = useCallback((n: number) => {
+    setState((s) => ({
+      ...s,
+      applicationStepIndex: Math.max(0, Math.min(SERVICIOS_APPLICATION_STEP_COUNT - 1, n)),
+    }));
+  }, []);
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -217,7 +224,9 @@ export function ClasificadosServiciosApplication() {
     if (!r.ok) {
       setPreviewGateMissing(r.missing);
       const first = r.missing[0];
-      if (first) setStep(first.stepIndex);
+      if (first) {
+        goToStep(first.stepIndex);
+      }
       document.getElementById("servicios-step-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
@@ -235,7 +244,6 @@ export function ClasificadosServiciosApplication() {
     clearServiciosPreviewReturnHandoff();
     clearClasificadosServiciosApplicationFromBrowser();
     setState(createDefaultClasificadosServiciosState());
-    setStep(0);
     setPreviewGateMissing(null);
   }, [copy.deleteConfirm]);
 
@@ -526,13 +534,13 @@ export function ClasificadosServiciosApplication() {
             >
               {copy.previewCta}
             </button>
-            <a
-              href={previewHref}
+            <button
+              type="button"
               onClick={openPreviewUtility}
               className="inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-full border border-[#D8C79A]/80 bg-white px-5 py-2.5 text-sm font-semibold text-[#3D2C12] shadow-sm transition hover:bg-[#FFF6E7]"
             >
               {copy.openPreviewCta}
-            </a>
+            </button>
             <button
               type="button"
               onClick={deleteApplicationDraft}
@@ -541,6 +549,7 @@ export function ClasificadosServiciosApplication() {
               {copy.deleteApplication}
             </button>
           </div>
+          <p className="mt-3 max-w-3xl text-xs leading-relaxed text-[#6b5c42]">{copy.openPreviewHelp}</p>
 
           <div className="mt-4 flex justify-end">
             <Link
@@ -559,14 +568,17 @@ export function ClasificadosServiciosApplication() {
             {previewGateMissing?.length ? (
               <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950" role="status">
                 <p className="font-semibold leading-snug">{copy.previewMissingBanner}</p>
-                <ul className="mt-2 list-inside list-disc space-y-1.5">
+                <ul className="mt-2 list-inside list-disc space-y-2">
                   {previewGateMissing.map((m) => (
-                    <li key={m.id}>
-                      <span className="align-middle">{m.label}</span>{" "}
+                    <li key={m.id} className="leading-snug">
+                      <span className="font-semibold text-amber-950">
+                        {stepLabels[m.stepIndex] ?? `${lang === "es" ? "Paso" : "Step"} ${m.stepIndex + 1}`}
+                      </span>
+                      <span className="text-amber-950/90"> — {m.label}</span>{" "}
                       <button
                         type="button"
-                        className="align-middle text-xs font-semibold text-[#2d528d] underline underline-offset-2"
-                        onClick={() => setStep(m.stepIndex)}
+                        className="ml-1 align-baseline text-xs font-semibold text-[#2d528d] underline underline-offset-2"
+                        onClick={() => goToStep(m.stepIndex)}
                       >
                         {copy.goToStep.replace("{n}", String(m.stepIndex + 1))}
                       </button>
@@ -586,7 +598,7 @@ export function ClasificadosServiciosApplication() {
                 <button
                   key={`servicios-step-tab-${i}`}
                   type="button"
-                  onClick={() => setStep(i)}
+                  onClick={() => goToStep(i)}
                   className={[
                     "shrink-0 touch-manipulation rounded-full border px-3 py-2 text-left text-xs font-semibold transition",
                     step === i
@@ -607,7 +619,7 @@ export function ClasificadosServiciosApplication() {
                   <li key={lab}>
                     <button
                       type="button"
-                      onClick={() => setStep(i)}
+                      onClick={() => goToStep(i)}
                       className={[
                         "flex w-full touch-manipulation items-start gap-2 rounded-xl px-2 py-2 text-left text-sm transition",
                         step === i
@@ -1413,6 +1425,7 @@ export function ClasificadosServiciosApplication() {
                 {copy.labels.enableWebsite}
               </label>
             </div>
+            <p className="mt-3 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.contactMessageFootnote}</p>
           </div>
 
           {preset ? (
@@ -1702,7 +1715,12 @@ export function ClasificadosServiciosApplication() {
               <button
                 type="button"
                 disabled={!canGoBack}
-                onClick={() => setStep((s) => Math.max(0, s - 1))}
+                onClick={() =>
+                  setState((s) => ({
+                    ...s,
+                    applicationStepIndex: Math.max(0, s.applicationStepIndex - 1),
+                  }))
+                }
                 className="inline-flex min-h-[48px] min-w-[7.5rem] touch-manipulation items-center justify-center rounded-xl border border-[#D8C79A]/80 bg-white px-4 py-2.5 text-sm font-semibold text-[#3D2C12] shadow-sm transition hover:bg-[#FFFCF7] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {lang === "es" ? "Anterior" : "Back"}
@@ -1710,7 +1728,12 @@ export function ClasificadosServiciosApplication() {
               <button
                 type="button"
                 disabled={!canGoNext}
-                onClick={() => setStep((s) => Math.min(totalSteps - 1, s + 1))}
+                onClick={() =>
+                  setState((s) => ({
+                    ...s,
+                    applicationStepIndex: Math.min(totalSteps - 1, s.applicationStepIndex + 1),
+                  }))
+                }
                 className="inline-flex min-h-[48px] min-w-[7.5rem] touch-manipulation items-center justify-center rounded-xl bg-[#3B66AD] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {lang === "es" ? "Siguiente" : "Next"}

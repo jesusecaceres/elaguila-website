@@ -1,6 +1,6 @@
 /** Admin-only business-offer moderation row (operator-submitted Viajes lane). */
 
-export type AdminViajesBusinessOfferStatus = "pending" | "approved" | "rejected" | "needs_edits";
+export type AdminViajesBusinessOfferStatus = "pending" | "approved" | "rejected" | "needs_edits" | "expired";
 
 export type AdminViajesBusinessOfferRow = {
   id: string;
@@ -12,6 +12,8 @@ export type AdminViajesBusinessOfferRow = {
   validThrough: string | null;
   /** Short internal review stub */
   reviewNotes: string;
+  /** Placeholder for moderator rationale (not persisted yet) */
+  moderationReasonStub?: string;
   /** Placeholder trust / risk tags */
   trustFlags: string[];
   /** Public business profile slug when known */

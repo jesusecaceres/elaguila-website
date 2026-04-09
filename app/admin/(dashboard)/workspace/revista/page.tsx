@@ -211,6 +211,15 @@ export default async function AdminWorkspaceRevistaPage(props: {
         helperText="Sube portada/PDF a Blob (requiere BLOB_READ_WRITE_TOKEN) o pega URLs. Un solo publicado es “actual”; al marcar otro, el anterior en portada se archiva automáticamente."
       />
 
+      <div className={`${adminCardBase} mb-6 max-w-3xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 p-4 text-xs text-[#5C5346]`}>
+        <strong className="text-[#1E1810]">Resolver público:</strong> el hub efectivo es{" "}
+        <code className="rounded bg-white/80 px-1">/api/magazine/manifest</code> + rutas bajo{" "}
+        <code className="rounded bg-white/80 px-1">/magazine</code>. Si un número está publicado en{" "}
+        <code className="rounded bg-white/80 px-1">magazine_issues</code> pero la URL aún no coincide con el manifiesto, revisa
+        estado <span className="font-mono">published</span>, <span className="font-mono">is_featured</span> y el enlace{" "}
+        <span className="font-mono">Vista plantilla pública</span> en cada tarjeta.
+      </div>
+
       <AdminSectionOwnershipCallout
         sectionTitle="Revista"
         publicPath="/magazine"

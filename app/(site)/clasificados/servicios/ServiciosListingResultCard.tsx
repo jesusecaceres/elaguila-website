@@ -64,7 +64,7 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
           ) : null}
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-2 p-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 p-3.5 sm:p-4">
           {showGroupChip ? (
             <span className="w-fit rounded-full bg-[#C9A84A]/12 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#7a6220]">
               {groupLabel}
@@ -83,7 +83,7 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
           {qf ? <span className="text-xs font-medium text-neutral-500">{qf}</span> : null}
           {hasSnippet ? <p className="line-clamp-3 text-sm leading-relaxed text-neutral-600">{snippet}</p> : null}
 
-          <div className="mt-auto flex flex-wrap gap-2 border-t border-neutral-100 pt-3">
+          <div className="mt-auto flex flex-wrap gap-1.5 border-t border-neutral-100 pt-2.5 sm:gap-2 sm:pt-3">
             {phone && tel ? (
               <span className="inline-flex min-h-[36px] items-center gap-1 rounded-full border border-neutral-200 bg-[#F9F8F6] px-2.5 py-1 text-[11px] font-semibold text-neutral-800">
                 <FiPhone className="h-3.5 w-3.5 text-[#3B66AD]" aria-hidden />

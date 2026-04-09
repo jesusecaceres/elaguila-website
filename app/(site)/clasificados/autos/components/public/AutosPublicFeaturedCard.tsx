@@ -7,6 +7,8 @@ import { autosLiveVehiclePath } from "../../filters/autosBrowseFilterContract";
 import { formatAutosLocation, formatAutosMiles, formatAutosUsd } from "./autosPublicFormatters";
 import type { AutosPublicBlueprintCopy } from "../../lib/autosPublicBlueprintCopy";
 import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
+import { AUTOS_CLASSIFIEDS_EVENT } from "@/app/lib/clasificados/autos/autosClassifiedsEventTypes";
+import { trackAutosListingEvent } from "../../lib/autosListingAnalyticsClient";
 
 export function AutosPublicFeaturedCard({
   listing,
@@ -19,10 +21,12 @@ export function AutosPublicFeaturedCard({
 }) {
   const loc = formatAutosLocation(listing.city, listing.state);
   const href = `${autosLiveVehiclePath(listing.id)}?lang=${lang}`;
+  const trackLane = listing.sellerType === "dealer" ? "negocios" : "privado";
 
   return (
     <Link
       href={href}
+      onClick={() => trackAutosListingEvent(listing.id, AUTOS_CLASSIFIEDS_EVENT.resultCardClick, { lane: trackLane })}
       className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_12px_40px_-16px_rgba(42,36,22,0.18)] transition hover:shadow-[0_16px_48px_-12px_rgba(42,36,22,0.22)]"
     >
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-[color:var(--lx-section)]">

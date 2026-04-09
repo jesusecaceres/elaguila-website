@@ -12,6 +12,7 @@ const STATUS_LABEL: Record<AdminViajesBusinessOfferStatus, string> = {
   approved: "Approved",
   rejected: "Rejected",
   needs_edits: "Needs edits",
+  expired: "Expired",
 };
 
 function statusBadge(s: AdminViajesBusinessOfferStatus) {
@@ -20,6 +21,7 @@ function statusBadge(s: AdminViajesBusinessOfferStatus) {
     approved: "bg-emerald-100 text-emerald-900 ring-emerald-200",
     rejected: "bg-rose-100 text-rose-900 ring-rose-200",
     needs_edits: "bg-sky-100 text-sky-950 ring-sky-200",
+    expired: "bg-stone-200 text-stone-900 ring-stone-300",
   };
   return (
     <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 ${map[s]}`}>
@@ -36,6 +38,9 @@ function imgModBadge(s: "pending" | "ok" | "flagged") {
   };
   return <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${map[s]}`}>{s}</span>;
 }
+
+const stagedBtn =
+  "rounded-lg border border-[#E8DFD0]/90 bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#5C5346] disabled:cursor-not-allowed disabled:opacity-45";
 
 export function AdminViajesBusinessOffersModeration() {
   const [q, setQ] = useState("");
@@ -81,12 +86,17 @@ export function AdminViajesBusinessOffersModeration() {
             <option value="needs_edits">Needs edits</option>
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
+            <option value="expired">Expired</option>
           </select>
         </div>
       </div>
 
+      <p className="text-xs text-[#7A7164]">
+        Per-row actions below are <strong>staged placeholders</strong> for the future moderation API — they do not change data yet.
+      </p>
+
       <div className="overflow-x-auto rounded-2xl border border-[#E8DFD0]/90 bg-white/95 shadow-sm">
-        <table className="min-w-[1180px] w-full border-collapse text-left text-sm">
+        <table className="min-w-[1520px] w-full border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-[#E8DFD0]/90 bg-[#FAF7F2]/90 text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
               <th className="px-3 py-3">Business</th>
@@ -99,6 +109,8 @@ export function AdminViajesBusinessOffersModeration() {
               <th className="px-3 py-3">Contact proof</th>
               <th className="px-3 py-3">Images</th>
               <th className="px-3 py-3">Review notes</th>
+              <th className="max-w-[200px] px-3 py-3">Moderation reasoning (stub)</th>
+              <th className="px-3 py-3">Staged actions</th>
               <th className="px-3 py-3">Profile / offer</th>
             </tr>
           </thead>
@@ -131,6 +143,25 @@ export function AdminViajesBusinessOffersModeration() {
                 </td>
                 <td className="px-3 py-2.5">{imgModBadge(r.imageModeration)}</td>
                 <td className="max-w-[220px] px-3 py-2.5 text-xs text-[#5C5346]">{r.reviewNotes}</td>
+                <td className="max-w-[200px] px-3 py-2.5 text-[10px] leading-snug text-[#5C5346]">
+                  {r.moderationReasonStub ?? "—"}
+                </td>
+                <td className="px-3 py-2.5">
+                  <div className="flex max-w-[14rem] flex-col gap-1">
+                    <button type="button" className={stagedBtn} disabled title="Staged — no API">
+                      Approve
+                    </button>
+                    <button type="button" className={stagedBtn} disabled title="Staged — no API">
+                      Reject
+                    </button>
+                    <button type="button" className={stagedBtn} disabled title="Staged — no API">
+                      Request edits
+                    </button>
+                    <button type="button" className={stagedBtn} disabled title="Staged — no API">
+                      Mark expired
+                    </button>
+                  </div>
+                </td>
                 <td className="px-3 py-2.5">
                   <div className="flex flex-col gap-1">
                     {r.businessProfileSlug ? (
@@ -166,13 +197,13 @@ export function AdminViajesBusinessOffersModeration() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className={adminBtnSecondary} disabled>
-          Approve selected (API TBD)
+        <button type="button" className={adminBtnSecondary} disabled title="Staged — bulk actions need API">
+          Bulk approve (staged)
         </button>
-        <button type="button" className={adminBtnSecondary} disabled>
-          Request edits (API TBD)
+        <button type="button" className={adminBtnSecondary} disabled title="Staged — bulk actions need API">
+          Bulk request edits (staged)
         </button>
-        <p className="text-xs text-[#7A7164]">Queue actions are disabled until moderation endpoints exist.</p>
+        <p className="text-xs text-[#7A7164]">Bulk queue actions stay disabled until moderation endpoints and persistence exist.</p>
       </div>
     </div>
   );

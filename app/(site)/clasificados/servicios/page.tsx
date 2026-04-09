@@ -78,7 +78,7 @@ export default async function ClasificadosServiciosDirectoryPage(props: PageProp
               {lang === "en" ? "Create a listing" : "Crear anuncio"}
             </Link>
             <Link
-              href={`/clasificados/publicar/servicios/preview?lang=${lang}`}
+              href={`/clasificados/publicar/servicios/preview?lang=${lang}&sample=expert`}
               className="inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-xl border border-[#3D2C12]/20 bg-white px-5 text-sm font-semibold text-[#3D2C12] shadow-sm transition hover:border-[#3B66AD]/40"
             >
               {lang === "en" ? "See sample profile" : "Ver ejemplo de vitrina"}
@@ -140,7 +140,7 @@ export default async function ClasificadosServiciosDirectoryPage(props: PageProp
               </div>
             </div>
           ) : (
-            <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-4 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
               {rows.map((r) => (
                 <ServiciosListingResultCard key={r.slug} row={r} lang={lang} />
               ))}

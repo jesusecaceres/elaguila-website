@@ -5,6 +5,7 @@ export const EMPLEOS_PUBLISH_SHARED_COPY = {
       abrirVistaPrevia: "Abrir vista previa",
       deleteApplication: "Eliminar borrador",
       deleteConfirm: "¿Eliminar este borrador de la sesión? Se perderán los cambios no publicados.",
+      ariaGroup: "Acciones del anuncio",
     },
     gateFail: "Completa los campos marcados con * antes de la vista previa:",
     publishModal: {
@@ -18,6 +19,11 @@ export const EMPLEOS_PUBLISH_SHARED_COPY = {
       confirmCta: "Continuar (sin pago aún)",
       cancelCta: "Cancelar",
       blockedHint: "Marca las tres casillas para continuar.",
+      closeOverlayAria: "Cerrar",
+    },
+    previewNoDraft: {
+      message: "No hay borrador de sesión para mostrar.",
+      backLink: "Volver a editar",
     },
   },
   en: {
@@ -26,6 +32,7 @@ export const EMPLEOS_PUBLISH_SHARED_COPY = {
       abrirVistaPrevia: "Open preview",
       deleteApplication: "Delete application",
       deleteConfirm: "Delete this session draft? Unpublished changes will be lost.",
+      ariaGroup: "Listing actions",
     },
     gateFail: "Complete required fields (*) before preview:",
     publishModal: {
@@ -39,6 +46,11 @@ export const EMPLEOS_PUBLISH_SHARED_COPY = {
       confirmCta: "Continue (no payment yet)",
       cancelCta: "Cancel",
       blockedHint: "Check all three boxes to continue.",
+      closeOverlayAria: "Close",
+    },
+    previewNoDraft: {
+      message: "No session draft to display.",
+      backLink: "Back to edit",
     },
   },
 } as const;

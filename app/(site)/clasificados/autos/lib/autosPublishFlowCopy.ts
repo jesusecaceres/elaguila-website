@@ -27,6 +27,10 @@ export function getAutosPublishFlowCopy(lang: AutosPublishFlowLang, lane: AutosC
       : "Review the summary. You must check all three boxes to continue to Stripe checkout.",
     laneLine: isEs ? "Tipo de anuncio" : "Listing type",
     laneValue: laneLabel,
+    summaryVehicle: isEs ? "Vehículo" : "Vehicle",
+    summaryPrice: isEs ? "Precio" : "Price",
+    summaryLocation: isEs ? "Ubicación" : "Location",
+    summaryMonthly: isEs ? "Mensual (est.)" : "Monthly (est.)",
     checks: {
       accurate: isEs
         ? "Confirmo que la información del vehículo y del anuncio es veraz y puedo respaldarla."

@@ -1,67 +1,169 @@
+import Link from "next/link";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
-import { adminCardBase, adminBtnSecondary, adminInputClass, adminStubBadgeClass } from "../../_components/adminTheme";
+import {
+  adminCardBase,
+  adminBtnSecondary,
+  adminInputClass,
+  adminReadOnlyBadgeClass,
+  adminStubBadgeClass,
+} from "../../_components/adminTheme";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default function AdminPaymentsPage() {
+const TIENDA_STATUSES = [
+  "new",
+  "reviewing",
+  "ready_to_fulfill",
+  "ordered",
+  "completed",
+  "needs_customer_followup",
+  "failed_submission",
+] as const;
+
+type TiendaAgg = {
+  unavailable: boolean;
+  total: number;
+  byStatus: Record<string, number>;
+};
+
+async function fetchTiendaOrderAggregates(): Promise<TiendaAgg> {
+  try {
+    const supabase = getAdminSupabase();
+    const results = await Promise.all(
+      TIENDA_STATUSES.map((status) =>
+        supabase.from("tienda_orders").select("id", { count: "exact", head: true }).eq("status", status)
+      )
+    );
+    const byStatus: Record<string, number> = {};
+    let total = 0;
+    for (let i = 0; i < TIENDA_STATUSES.length; i++) {
+      const r = results[i];
+      if (r.error) return { unavailable: true, total: 0, byStatus: {} };
+      const c = typeof r.count === "number" ? r.count : 0;
+      byStatus[TIENDA_STATUSES[i]] = c;
+      total += c;
+    }
+    return { unavailable: false, total, byStatus };
+  } catch {
+    return { unavailable: true, total: 0, byStatus: {} };
+  }
+}
+
+export default async function AdminPaymentsPage() {
+  const tienda = await fetchTiendaOrderAggregates();
+  const pipeline =
+    (tienda.byStatus.new ?? 0) +
+    (tienda.byStatus.reviewing ?? 0) +
+    (tienda.byStatus.ready_to_fulfill ?? 0) +
+    (tienda.byStatus.ordered ?? 0);
+  const stripeDashboardUrl = (process.env.STRIPE_DASHBOARD_URL ?? "").trim();
+
   return (
     <div>
       <div className="mb-3 flex flex-wrap gap-2">
-        <span className={adminStubBadgeClass}>Próximamente</span>
-        <span className={adminStubBadgeClass}>No persistido</span>
+        {tienda.unavailable ? (
+          <span className={adminStubBadgeClass}>Tienda orders: no legible</span>
+        ) : (
+          <span className={adminReadOnlyBadgeClass}>Metadatos operativos (sin PCI)</span>
+        )}
+        <span className={adminStubBadgeClass}>PSP / Stripe API: no conectado</span>
       </div>
       <AdminPageHeader
         title="Payments"
-        subtitle="Billing health and references only. Card data is never stored or displayed in admin. Integrations are future Stripe/customer portal links."
-        helperText="Ningún dato de facturación se lee ni escribe en Supabase desde esta pantalla todavía."
+        subtitle="Esta pantalla no procesa ni almacena tarjetas. Lo que ves aquí son proxies operativos desde pedidos Tienda en Supabase (estado de fulfillment) y enlaces a colas reales."
+        helperText="Facturación con tarjeta / webhooks del procesador siguen fuera de Leonix hasta integración explícita. No pegues PAN, CVV ni datos magnéticos."
       />
 
       <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950">
-        <strong>No PCI scope here:</strong> do not paste full card numbers, CVV, or magnetic data. Use processor dashboards for
-        disputes.
+        <strong>Sin alcance PCI aquí:</strong> usa el dashboard del procesador para contracargos y métodos de pago. Leonix admin
+        solo enlaza contexto operativo.
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className={`${adminCardBase} p-5`}>
-          <p className="text-xs font-bold uppercase text-[#7A7164]">Overview</p>
-          <p className="mt-2 text-3xl font-bold text-[#1E1810]">—</p>
-          <p className="mt-1 text-xs text-[#7A7164]">Connect to billing provider for MRR / failed payments.</p>
+          <p className="text-xs font-bold uppercase text-[#7A7164]">Pedidos Tienda (filas)</p>
+          <p className="mt-2 text-3xl font-bold text-[#1E1810]">{tienda.unavailable ? "—" : tienda.total}</p>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Tabla <code className="rounded bg-[#FAF7F2] px-1">tienda_orders</code> — refleja checkout interno, no ingresos contables
+            del PSP.
+          </p>
+          <Link href="/admin/tienda/orders" className={`${adminBtnSecondary} mt-3 inline-flex text-xs`}>
+            Abrir inbox Tienda →
+          </Link>
         </div>
         <div className={`${adminCardBase} p-5`}>
-          <p className="text-xs font-bold uppercase text-[#7A7164]">Open invoices</p>
-          <p className="mt-2 text-3xl font-bold text-[#1E1810]">—</p>
-          <p className="mt-1 text-xs text-[#7A7164]">Future: query invoices by customer ref.</p>
+          <p className="text-xs font-bold uppercase text-[#7A7164]">En pipeline (aprox.)</p>
+          <p className="mt-2 text-3xl font-bold text-[#1E1810]">{tienda.unavailable ? "—" : pipeline}</p>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Suma de <span className="font-mono">new + reviewing + ready_to_fulfill + ordered</span> — trabajo operativo pendiente
+            de cerrar.
+          </p>
         </div>
         <div className={`${adminCardBase} p-5`}>
-          <p className="text-xs font-bold uppercase text-[#7A7164]">Failed charges (24h)</p>
-          <p className="mt-2 text-3xl font-bold text-[#1E1810]">—</p>
-          <p className="mt-1 text-xs text-[#7A7164]">Wire webhook summaries when available.</p>
+          <p className="text-xs font-bold uppercase text-[#7A7164]">Atención / fallos</p>
+          <p className="mt-2 text-3xl font-bold text-[#1E1810]">
+            {tienda.unavailable
+              ? "—"
+              : (tienda.byStatus.needs_customer_followup ?? 0) + (tienda.byStatus.failed_submission ?? 0)}
+          </p>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            <span className="font-mono">needs_customer_followup</span> + <span className="font-mono">failed_submission</span>.
+          </p>
         </div>
       </div>
 
-      <div className={`${adminCardBase} mt-8 p-6`}>
-        <h2 className="text-sm font-bold text-[#1E1810]">Search references</h2>
-        <p className="mt-1 text-xs text-[#7A7164]">Lookup by invoice id, subscription id, or user email once billing tables exist.</p>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <input className={`${adminInputClass} max-w-md`} disabled placeholder="Invoice / subscription / email" />
-          <span
-            className={`${adminStubBadgeClass} inline-flex min-h-[44px] items-center sm:min-h-0`}
-            title="Sin tablas de facturación conectadas"
-          >
-            Búsqueda desactivada
-          </span>
+      {!tienda.unavailable ? (
+        <div className={`${adminCardBase} mb-8 p-5`}>
+          <p className="text-xs font-bold uppercase text-[#7A7164]">Desglose por estado</p>
+          <ul className="mt-3 grid gap-1 text-sm text-[#5C5346] sm:grid-cols-2">
+            {TIENDA_STATUSES.map((s) => (
+              <li key={s}>
+                <span className="font-mono text-xs">{s}</span>:{" "}
+                <strong className="text-[#1E1810]">{tienda.byStatus[s] ?? 0}</strong>
+              </li>
+            ))}
+          </ul>
         </div>
+      ) : null}
+
+      <div className={`${adminCardBase} p-6`}>
+        <h2 className="text-sm font-bold text-[#1E1810]">Qué controlará esta sección en el futuro</h2>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-[#7A7164]">
+          <li>Enlaces firmados al Customer Portal / dashboard Stripe (solo URLs; sin secretos en el cliente admin).</li>
+          <li>Resúmenes de webhooks (fallos de cobro, disputas) cuando exista tabla dedicada.</li>
+          <li>Búsqueda por customer ref / subscription id alineada al modelo de facturación real.</li>
+        </ul>
+        <p className="mt-3 text-xs text-[#7A7164]">
+          Hoy, la trazabilidad operativa de pedidos está en{" "}
+          <Link href="/admin/tienda/orders" className="font-bold text-[#6B5B2E] underline">
+            Tienda → pedidos
+          </Link>
+          .
+        </p>
       </div>
 
       <div className={`${adminCardBase} mt-6 p-6`}>
-        <h2 className="text-sm font-bold text-[#1E1810]">Secure update method</h2>
+        <h2 className="text-sm font-bold text-[#1E1810]">Processor dashboard</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Send customers to hosted payment-method update (Stripe Customer Portal or equivalent). No raw card forms in Leonix
-          admin.
+          Opcional: define <code className="rounded bg-[#FAF7F2] px-1">STRIPE_DASHBOARD_URL</code> en el entorno del servidor
+          (solo URL base del dashboard; sin claves).
         </p>
-        <button type="button" disabled className={`${adminBtnSecondary} mt-4 cursor-not-allowed opacity-70`} title="Conecta Stripe u otro PSP en el futuro">
-          Processor dashboard (no conectado)
-        </button>
+        {stripeDashboardUrl ? (
+          <a
+            href={stripeDashboardUrl}
+            target="_blank"
+            rel="noreferrer"
+            className={`${adminBtnSecondary} mt-4 inline-flex`}
+          >
+            Abrir Stripe dashboard ↗
+          </a>
+        ) : (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <input className={`${adminInputClass} max-w-md`} disabled placeholder="Configure STRIPE_DASHBOARD_URL" />
+            <span className={`${adminStubBadgeClass} inline-flex`}>Sin URL configurada</span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -36,10 +36,7 @@ export function mapQuickDraftToShell(d: EmpleosQuickDraft): QuickJobDetailSample
     jobType: d.jobType.trim() || "—",
     schedule: d.schedule.trim() || "—",
     description: d.description.trim() || "—",
-    benefits: d.benefitsText
-      .split("\n")
-      .map((b) => b.trim())
-      .filter(Boolean),
+    benefits: d.benefits.map((b) => b.trim()).filter(Boolean),
     phone: d.phone.trim(),
     whatsapp: d.whatsapp.trim(),
     email: d.email.trim(),

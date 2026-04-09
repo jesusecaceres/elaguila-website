@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
@@ -15,11 +16,14 @@ export function AutosPublishPlaceholderModal({
   onClose,
   lang,
   lane,
+  confirmHref,
 }: {
   open: boolean;
   onClose: () => void;
   lang: AutosNegociosLang;
   lane: AutosClassifiedsLane;
+  /** Pre-publish + Stripe entry (`/publicar/autos/{lane}/confirm` with lang). */
+  confirmHref: string;
 }) {
   const c = getAutosPublishPlaceholderCopy(lang, lane);
   const [checks, setChecks] = useState([false, false, false]);
@@ -85,9 +89,15 @@ export function AutosPublishPlaceholderModal({
           <button type="button" className={BTN_GHOST} onClick={onClose}>
             {c.backEdit}
           </button>
-          <button type="button" className={BTN} disabled={!all} onClick={onClose}>
-            {c.acknowledge}
-          </button>
+          {all ? (
+            <Link href={confirmHref} className={`${BTN} text-center`} onClick={onClose}>
+              {c.continueToConfirm}
+            </Link>
+          ) : (
+            <span className={`${BTN} cursor-not-allowed text-center opacity-40`} aria-disabled>
+              {c.continueToConfirm}
+            </span>
+          )}
         </div>
       </div>
     </div>

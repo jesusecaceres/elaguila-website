@@ -7,6 +7,8 @@ import { autosLiveVehiclePath } from "../../filters/autosBrowseFilterContract";
 import { formatAutosLocation, formatAutosMiles, formatAutosUsd } from "./autosPublicFormatters";
 import type { AutosPublicBlueprintCopy } from "../../lib/autosPublicBlueprintCopy";
 import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
+import { AUTOS_CLASSIFIEDS_EVENT } from "@/app/lib/clasificados/autos/autosClassifiedsEventTypes";
+import { trackAutosListingEvent } from "../../lib/autosListingAnalyticsClient";
 
 export function AutosPublicStandardCard({
   listing,
@@ -26,10 +28,12 @@ export function AutosPublicStandardCard({
       : listing.privateSellerLabel ?? copy.sellerPrivateFooter;
 
   const href = `${autosLiveVehiclePath(listing.id)}?lang=${lang}`;
+  const trackLane = listing.sellerType === "dealer" ? "negocios" : "privado";
 
   return (
     <Link
       href={href}
+      onClick={() => trackAutosListingEvent(listing.id, AUTOS_CLASSIFIEDS_EVENT.resultCardClick, { lane: trackLane })}
       className={`group flex min-w-0 flex-col overflow-hidden rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_6px_24px_-8px_rgba(42,36,22,0.12)] transition hover:border-[color:var(--lx-gold-border)] hover:shadow-[0_10px_32px_-10px_rgba(42,36,22,0.16)] ${
         compact ? "max-w-full" : ""
       }`}

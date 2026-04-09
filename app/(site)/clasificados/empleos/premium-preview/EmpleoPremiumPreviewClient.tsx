@@ -11,6 +11,7 @@ import { clearLeonixPreviewNavSessionFlag, markPublishFlowReturningToEdit } from
 import { EmpleoPremiumDetailPage } from "../components/premiumJob/EmpleoPremiumDetailPage";
 import { EMPLEOS_SESSION_KEYS } from "@/app/publicar/empleos/shared/constants/empleosSessionKeys";
 import { EMPLEOS_PUBLISH_ROUTES } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
+import { EMPLEOS_PUBLISH_SHARED_COPY } from "@/app/publicar/empleos/shared/copy/empleosPublishSharedCopy";
 import { mapPremiumDraftToShell } from "@/app/publicar/empleos/shared/mappers/mapPremiumDraftToShell";
 import { emptyEmpleosPremiumDraft, type EmpleosPremiumDraft } from "@/app/publicar/empleos/shared/types/empleosPremiumDraft";
 
@@ -43,6 +44,7 @@ export function EmpleoPremiumPreviewClient() {
 
   const editHref = appendLangToPath(EMPLEOS_PUBLISH_ROUTES.premium, lang);
   const backLabel = lang === "en" ? "Back to edit" : "Volver a editar";
+  const prevCopy = EMPLEOS_PUBLISH_SHARED_COPY[lang].previewNoDraft;
 
   if (!ready) {
     return <div className="min-h-screen bg-[#ECEAE7]" aria-busy="true" />;
@@ -51,9 +53,9 @@ export function EmpleoPremiumPreviewClient() {
   if (fromPublicar && !draft) {
     return (
       <div className="min-h-screen bg-[#ECEAE7] px-4 py-10 text-center text-sm text-[color:var(--lx-text-2)]">
-        <p>No hay borrador de sesión para mostrar.</p>
+        <p>{prevCopy.message}</p>
         <Link href={editHref} className="mt-4 inline-block font-semibold text-[#2563EB] underline">
-          Volver a editar
+          {prevCopy.backLink}
         </Link>
       </div>
     );

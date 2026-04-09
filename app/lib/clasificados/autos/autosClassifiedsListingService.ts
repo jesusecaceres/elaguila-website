@@ -1,7 +1,9 @@
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
+import { deriveHeroImageUrls } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
 import { normalizeLoadedListing } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
 import { stripDraftMuxFields } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftGuards";
+import { buildVehicleTitle } from "@/app/publicar/autos/negocios/lib/autoDealerTitle";
 import { buildRelatedPublicListings } from "@/app/clasificados/autos/lib/mapAutosPublicListingToAutoDealer";
 import type { AutosPublicListing } from "@/app/clasificados/autos/data/autosPublicSampleTypes";
 import type {
@@ -80,6 +82,93 @@ export async function assertAutosListingOwner(listingId: string, ownerUserId: st
   return row;
 }
 
+/** Payload + lang may be updated while status is draft or payment_failed (recoverable). */
+export async function updateAutosClassifiedsListingDraft(
+  listingId: string,
+  ownerUserId: string,
+  input: { listing: AutoDealerListing; lang?: AutosClassifiedsLang },
+): Promise<AutosClassifiedsListingRow | null> {
+  const row = await assertAutosListingOwner(listingId, ownerUserId);
+  if (!row) return null;
+  if (row.status !== "draft" && row.status !== "payment_failed" && row.status !== "pending_payment") return null;
+  if (!isSupabaseAdminConfigured()) return null;
+  const supabase = getAdminSupabase();
+  const payload = stripDraftMuxFields(
+    normalizeLoadedListing({
+      ...input.listing,
+      autosLane: row.lane,
+    }),
+  );
+  const lang: AutosClassifiedsLang = input.lang === "en" || input.lang === "es" ? input.lang : row.lang;
+  const { data, error } = await supabase
+    .from("autos_classifieds_listings")
+    .update({
+      listing_payload: payload,
+      lang,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", listingId)
+    .select()
+    .single();
+  if (error || !data) {
+    console.error("updateAutosClassifiedsListingDraft", error);
+    return null;
+  }
+  return rowFromDb(data as Record<string, unknown>);
+}
+
+export async function listAutosClassifiedsListingsForOwner(ownerUserId: string): Promise<AutosClassifiedsListingRow[]> {
+  if (!isSupabaseAdminConfigured()) return [];
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("autos_classifieds_listings")
+    .select("*")
+    .eq("owner_user_id", ownerUserId)
+    .order("updated_at", { ascending: false });
+  if (error || !data?.length) return [];
+  return data.map((r) => rowFromDb(r as Record<string, unknown>));
+}
+
+export type AutosClassifiedsDashboardRow = {
+  id: string;
+  status: AutosClassifiedsListingStatus;
+  lane: AutosClassifiedsLane;
+  lang: AutosClassifiedsLang;
+  updated_at: string;
+  published_at: string | null;
+  title: string;
+  priceUsd: number | null;
+  city: string;
+  thumbUrl: string | null;
+};
+
+export function autosClassifiedsRowToDashboardRow(row: AutosClassifiedsListingRow): AutosClassifiedsDashboardRow {
+  const L = row.listing_payload;
+  const autoTitle = buildVehicleTitle(L.year, L.make, L.model, L.trim);
+  const title = (L.vehicleTitle?.trim() || autoTitle || "").trim() || "—";
+  const thumbs = deriveHeroImageUrls(L);
+  const priceUsd = typeof L.price === "number" && Number.isFinite(L.price) ? L.price : null;
+  return {
+    id: row.id,
+    status: row.status,
+    lane: row.lane,
+    lang: row.lang,
+    updated_at: row.updated_at,
+    published_at: row.published_at,
+    title,
+    priceUsd,
+    city: (L.city ?? "").trim(),
+    thumbUrl: thumbs[0] ?? null,
+  };
+}
+
+/** Owner may unpublish an active paid Autos listing (hidden from public APIs). */
+export async function markAutosClassifiedsListingRemovedIfOwner(listingId: string, ownerUserId: string): Promise<boolean> {
+  const row = await assertAutosListingOwner(listingId, ownerUserId);
+  if (!row || row.status !== "active") return false;
+  return updateAutosListingStatus(listingId, "removed");
+}
+
 export async function listActiveAutosClassifiedsRows(): Promise<AutosClassifiedsListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
@@ -116,13 +205,48 @@ export async function activateAutosClassifiedsListing(listingId: string): Promis
   return updateAutosListingStatus(listingId, "active", { published_at: now });
 }
 
-/** Idempotent: only transitions from pending_payment → active. */
-export async function tryActivateAutosListingAfterPayment(listingId: string): Promise<boolean> {
-  const row = await getAutosClassifiedsListingById(listingId);
-  if (!row) return false;
-  if (row.status === "active") return true;
-  if (row.status !== "pending_payment") return false;
-  return activateAutosClassifiedsListing(listingId);
+export type ActivateAutosAfterPaymentOpts = { stripePaymentIntentId?: string | null };
+
+export type TryActivateAutosResult = { ok: boolean; transitioned: boolean };
+
+/**
+ * Idempotent activation after Stripe paid. Uses `status = pending_payment` in the WHERE clause
+ * so concurrent verify + webhook only perform one transition (the other becomes a no-op ok).
+ */
+export async function tryActivateAutosListingAfterPayment(
+  listingId: string,
+  opts?: ActivateAutosAfterPaymentOpts,
+): Promise<TryActivateAutosResult> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, transitioned: false };
+  const existing = await getAutosClassifiedsListingById(listingId);
+  if (!existing) return { ok: false, transitioned: false };
+  if (existing.status === "active") return { ok: true, transitioned: false };
+  if (existing.status !== "pending_payment") return { ok: false, transitioned: false };
+  const supabase = getAdminSupabase();
+  const now = new Date().toISOString();
+  const patch: Record<string, unknown> = {
+    status: "active",
+    published_at: now,
+    updated_at: now,
+    stripe_checkout_session_id: null,
+  };
+  const pi = opts?.stripePaymentIntentId;
+  if (pi) patch.stripe_payment_intent_id = pi;
+  const { data, error } = await supabase
+    .from("autos_classifieds_listings")
+    .update(patch)
+    .eq("id", listingId)
+    .eq("status", "pending_payment")
+    .select("id")
+    .maybeSingle();
+  if (error) {
+    console.error("tryActivateAutosListingAfterPayment", error);
+    return { ok: false, transitioned: false };
+  }
+  if (data) return { ok: true, transitioned: true };
+  const again = await getAutosClassifiedsListingById(listingId);
+  if (again?.status === "active") return { ok: true, transitioned: false };
+  return { ok: false, transitioned: false };
 }
 
 export async function markAutosListingPaymentFailed(listingId: string): Promise<boolean> {

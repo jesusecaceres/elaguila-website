@@ -29,6 +29,8 @@ export type EmpleosPremiumDraft = {
   reviewCount: string;
   videoObjectUrl: string | null;
   videoFileName: string;
+  /** External video URL for draft preview only (no Mux). */
+  videoUrl: string;
 };
 
 export function emptyEmpleosPremiumDraft(): EmpleosPremiumDraft {
@@ -44,7 +46,7 @@ export function emptyEmpleosPremiumDraft(): EmpleosPremiumDraft {
     premium: true,
     gallery: [],
     logoUrl: "",
-    applyLabel: "Postularse ahora",
+    applyLabel: "",
     websiteUrl: "",
     whatsapp: "",
     email: "",
@@ -59,5 +61,6 @@ export function emptyEmpleosPremiumDraft(): EmpleosPremiumDraft {
     reviewCount: "",
     videoObjectUrl: null,
     videoFileName: "",
+    videoUrl: "",
   };
 }

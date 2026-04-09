@@ -7,12 +7,18 @@ import {
   adminCtaChipSecondary,
 } from "../../_components/adminTheme";
 import { AdminEmptyState } from "../../_components/AdminEmptyState";
-import { ROLE_LABELS, type AdminTeamRole, type AdminPermissionKey } from "../../_lib/teamTypes";
+import {
+  ALL_ADMIN_PERMISSION_KEYS,
+  ROLE_LABELS,
+  type AdminTeamRole,
+  type AdminPermissionKey,
+} from "../../_lib/teamTypes";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import {
   createTeamInviteIntentAction,
   createTeamMemberRecordAction,
   toggleTeamMemberActiveAction,
+  updateTeamMemberPermissionsAction,
 } from "../../adminTeamActions";
 
 export const dynamic = "force-dynamic";
@@ -81,11 +87,13 @@ async function fetchTeamMembers(): Promise<{ rows: MemberRow[]; unavailable: boo
   }
 }
 
+const KNOWN_PERM = new Set<string>(ALL_ADMIN_PERMISSION_KEYS);
+
 function parsePermissions(raw: unknown): AdminPermissionKey[] {
   if (!Array.isArray(raw)) return [];
   const out: AdminPermissionKey[] = [];
   for (const x of raw) {
-    if (typeof x === "string" && x in PERM_SHORT) {
+    if (typeof x === "string" && KNOWN_PERM.has(x)) {
       out.push(x as AdminPermissionKey);
     }
   }
@@ -209,7 +217,7 @@ export default async function AdminTeamPage(props: {
                 <th className="p-4">Miembro</th>
                 <th className="p-4">Rol</th>
                 <th className="p-4">Estado</th>
-                <th className="p-4">Permisos (JSON)</th>
+                <th className="p-4">Permisos</th>
                 <th className="p-4 text-right">Acciones</th>
               </tr>
             </thead>
@@ -236,9 +244,9 @@ export default async function AdminTeamPage(props: {
                         {m.is_active ? "Activo" : "Inactivo"}
                       </span>
                     </td>
-                    <td className="p-4">
+                    <td className="p-4 align-top">
                       {perms.length === 0 ? (
-                        <span className="text-xs text-[#7A7164]">— (vacío; asignar en JSON vía Supabase si aplica)</span>
+                        <span className="text-xs text-[#7A7164]">Ninguno (solo rol)</span>
                       ) : (
                         <div className="flex max-w-md flex-wrap gap-1">
                           {perms.slice(0, 6).map((p) => (
@@ -254,6 +262,45 @@ export default async function AdminTeamPage(props: {
                           ) : null}
                         </div>
                       )}
+                      <details className="mt-2 max-w-md">
+                        <summary className="cursor-pointer select-none text-xs font-semibold text-[#8B4513] hover:underline">
+                          Editar permisos (Supabase + auditoría)
+                        </summary>
+                        <form
+                          action={updateTeamMemberPermissionsAction}
+                          className="mt-2 space-y-2 rounded-lg border border-[#E8DFD0]/90 bg-[#FFFCF7] p-3"
+                        >
+                          <input type="hidden" name="member_id" value={m.id} />
+                          <p className="text-[10px] leading-snug text-[#7A7164]">
+                            Marca las capacidades Leonix para esta fila de roster. No modifica Supabase Auth.
+                          </p>
+                          <ul className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
+                            {ALL_ADMIN_PERMISSION_KEYS.map((key) => (
+                              <li key={key}>
+                                <label className="flex cursor-pointer items-start gap-2 text-xs text-[#3D3428]">
+                                  <input
+                                    type="checkbox"
+                                    name="permissions"
+                                    value={key}
+                                    defaultChecked={perms.includes(key)}
+                                    className="mt-0.5"
+                                  />
+                                  <span>
+                                    <span className="font-semibold">{PERM_SHORT[key]}</span>
+                                    <span className="ml-1 font-mono text-[10px] text-[#7A7164]">{key}</span>
+                                  </span>
+                                </label>
+                              </li>
+                            ))}
+                          </ul>
+                          <button
+                            type="submit"
+                            className="min-h-[40px] w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#5C5346] hover:bg-white sm:min-h-0 sm:w-auto"
+                          >
+                            Guardar permisos
+                          </button>
+                        </form>
+                      </details>
                     </td>
                     <td className="p-4 text-right">
                       <form action={toggleTeamMemberActiveAction} className="inline">

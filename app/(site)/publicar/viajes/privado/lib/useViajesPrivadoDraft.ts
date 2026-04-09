@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { viajesDraftMediaDelete } from "@/app/(site)/clasificados/viajes/lib/viajesDraftMediaIdb";
+
 import type { ViajesPrivadoDraft } from "./viajesPrivadoDraftTypes";
 import { emptyViajesPrivadoDraft, VIAJES_PRIVADO_DRAFT_STORAGE_KEY, VIAJES_PRIVADO_MAX_IMAGE_STORAGE } from "./viajesPrivadoDraftDefaults";
 
@@ -44,8 +46,13 @@ export function useViajesPrivadoDraft() {
   }, []);
 
   const reset = useCallback(() => {
-    const next = emptyViajesPrivadoDraft();
-    setDraft(next);
+    setDraft((d) => {
+      const bid = d.localHeroBlobId;
+      if (typeof window !== "undefined" && bid) {
+        queueMicrotask(() => void viajesDraftMediaDelete("privado", bid));
+      }
+      return emptyViajesPrivadoDraft();
+    });
     try {
       if (typeof window !== "undefined") localStorage.removeItem(VIAJES_PRIVADO_DRAFT_STORAGE_KEY);
     } catch {

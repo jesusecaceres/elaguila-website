@@ -42,9 +42,11 @@ export function writeClasificadosServiciosApplicationToBrowser(state: Clasificad
   if (typeof window === "undefined") return false;
   try {
     const st = storage();
+    if (!st) return false;
     const payload = JSON.stringify(state);
-    st?.setItem(CLASIFICADOS_SERVICIOS_APPLICATION_STORAGE_KEY, payload);
-    return true;
+    st.setItem(CLASIFICADOS_SERVICIOS_APPLICATION_STORAGE_KEY, payload);
+    const round = st.getItem(CLASIFICADOS_SERVICIOS_APPLICATION_STORAGE_KEY);
+    return round === payload;
   } catch {
     return false;
   }

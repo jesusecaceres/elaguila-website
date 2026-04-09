@@ -5,6 +5,9 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireAdminCookie, getAdminSupabase } from "@/app/lib/supabase/server";
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
+import { ALL_ADMIN_PERMISSION_KEYS, type AdminPermissionKey } from "@/app/admin/_lib/teamTypes";
+
+const PERM_SET = new Set<string>(ALL_ADMIN_PERMISSION_KEYS);
 
 const ROLES = new Set([
   "super_admin",
@@ -108,6 +111,39 @@ export async function createTeamMemberRecordAction(formData: FormData) {
     targetType: "admin_team_members",
     targetId: email,
     meta: { role },
+  });
+
+  revalidatePath("/admin/team");
+  redirect("/admin/team?member_saved=1");
+}
+
+/** Updates `permissions` JSON array on roster row. Does not change Supabase Auth. */
+export async function updateTeamMemberPermissionsAction(formData: FormData) {
+  await assertAdmin();
+  const id = str(formData, "member_id");
+  if (!id) redirect("/admin/team?member_error=1");
+
+  const raw = formData.getAll("permissions");
+  const next: AdminPermissionKey[] = [];
+  for (const x of raw) {
+    if (typeof x === "string" && PERM_SET.has(x)) {
+      next.push(x as AdminPermissionKey);
+    }
+  }
+
+  const supabase = getAdminSupabase();
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("admin_team_members")
+    .update({ permissions: next, updated_at: now })
+    .eq("id", id);
+  if (error) redirect("/admin/team?member_error=1");
+
+  await appendAdminAuditLog({
+    action: "team_member_permissions_updated",
+    targetType: "admin_team_members",
+    targetId: id,
+    meta: { permissions: next, source: "leonix_admin" },
   });
 
   revalidatePath("/admin/team");

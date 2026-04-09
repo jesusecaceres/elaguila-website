@@ -16,6 +16,8 @@ type Props = {
   removeLabel: string;
   upLabel: string;
   downLabel: string;
+  /** Alt text input placeholder (i18n). */
+  altPlaceholder?: string;
 };
 
 export function EmpleosImageGalleryEditor({
@@ -28,6 +30,7 @@ export function EmpleosImageGalleryEditor({
   removeLabel,
   upLabel,
   downLabel,
+  altPlaceholder = "",
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const urlRef = useRef<HTMLInputElement>(null);
@@ -140,7 +143,7 @@ export function EmpleosImageGalleryEditor({
                     onChange(images.map((x) => (x.id === im.id ? { ...x, alt: v } : x)));
                   }}
                   className="w-full rounded border border-black/10 px-2 py-1 text-xs"
-                  placeholder="Alt / descripción corta"
+                  placeholder={altPlaceholder}
                 />
                 <div className="flex flex-wrap gap-2">
                   <button type="button" onClick={() => setMain(im.id)} className={`text-xs font-semibold ${im.isMain ? "text-emerald-700" : "text-[color:var(--lx-muted)]"}`}>

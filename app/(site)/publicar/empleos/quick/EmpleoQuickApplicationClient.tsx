@@ -11,12 +11,14 @@ import { EMPLEOS_PUBLISH_SHARED_COPY } from "@/app/publicar/empleos/shared/copy/
 import { useEmpleosDraftSession } from "@/app/publicar/empleos/shared/hooks/useEmpleosDraftSession";
 import { EmpleosImageGalleryEditor } from "@/app/publicar/empleos/shared/media/EmpleosImageGalleryEditor";
 import { EmpleosSingleImageField } from "@/app/publicar/empleos/shared/media/EmpleosSingleImageField";
+import { EmpleosVideoDraftField } from "@/app/publicar/empleos/shared/media/EmpleosVideoDraftField";
 import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publish/EmpleosPublishConfirmModal";
 import { gateEmpleosQuickPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
 import { EMPLEOS_SESSION_KEYS } from "@/app/publicar/empleos/shared/constants/empleosSessionKeys";
 import { empleosHandoffPreviewUrl } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
 import { emptyEmpleosQuickDraft, type EmpleosQuickDraft } from "@/app/publicar/empleos/shared/types/empleosQuickDraft";
 import { EmpleosFieldLabel, EmpleosSectionCard } from "@/app/publicar/empleos/shared/ui/empleosFormPrimitives";
+import { EmpleosStringLinesEditor } from "@/app/publicar/empleos/shared/ui/empleosStringLinesEditor";
 
 const INPUT = "mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm";
 
@@ -33,7 +35,7 @@ export default function EmpleoQuickApplicationClient() {
 
   const [publishOpen, setPublishOpen] = useState(false);
 
-  const gate = useMemo(() => gateEmpleosQuickPreview(state), [state]);
+  const gate = useMemo(() => gateEmpleosQuickPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;
   const previewDisabledReason = gate.ok ? null : `${copy.gateFail} ${gate.issues.join(", ")}`;
 
@@ -52,25 +54,6 @@ export default function EmpleoQuickApplicationClient() {
   const revokeIfBlob = useCallback((url: string | null) => {
     if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
   }, []);
-
-  const onVideoFile = useCallback(
-    (files: FileList | null) => {
-      const file = files?.[0];
-      if (!file) return;
-      patch((prev) => {
-        revokeIfBlob(prev.videoObjectUrl);
-        return { ...prev, videoObjectUrl: URL.createObjectURL(file), videoFileName: file.name };
-      });
-    },
-    [patch, revokeIfBlob]
-  );
-
-  const clearVideo = useCallback(() => {
-    patch((prev) => {
-      revokeIfBlob(prev.videoObjectUrl);
-      return { ...prev, videoObjectUrl: null, videoFileName: "" };
-    });
-  }, [patch, revokeIfBlob]);
 
   const labelsCta =
     lang === "es"
@@ -105,9 +88,17 @@ export default function EmpleoQuickApplicationClient() {
           uploadLogo: "Subir logo",
           removeLogo: "Quitar logo",
           altLogo: "Texto alternativo",
-          video: "Video (solo vista previa local, sin Mux)",
-          pickVideo: "Elegir video",
-          clearVideo: "Quitar video",
+          videoSection: "Video (opcional)",
+          videoHint: "Archivo local o URL. No se sube a Mux en borrador.",
+          videoUrlField: "URL del video",
+          videoUrlPh: "https://…",
+          videoApplyUrl: "Usar URL",
+          videoPickFile: "Elegir archivo de video",
+          videoClear: "Quitar video",
+          benefitAdd: "+ Añadir beneficio",
+          benefitRemove: "Quitar",
+          benefitPh: "Beneficio",
+          altImage: "Texto alternativo (imagen)",
         }
       : {
           urlPh: "https://…",
@@ -123,9 +114,17 @@ export default function EmpleoQuickApplicationClient() {
           uploadLogo: "Upload logo",
           removeLogo: "Remove logo",
           altLogo: "Alt text",
-          video: "Video (local preview only, no Mux)",
-          pickVideo: "Choose video",
-          clearVideo: "Remove video",
+          videoSection: "Video (optional)",
+          videoHint: "Local file or URL. No Mux upload in draft.",
+          videoUrlField: "Video URL",
+          videoUrlPh: "https://…",
+          videoApplyUrl: "Apply URL",
+          videoPickFile: "Choose video file",
+          videoClear: "Remove video",
+          benefitAdd: "+ Add benefit",
+          benefitRemove: "Remove",
+          benefitPh: "Benefit",
+          altImage: "Image alt text",
         };
 
   if (!hydrated) {
@@ -156,37 +155,37 @@ export default function EmpleoQuickApplicationClient() {
         <div className="space-y-6">
           <EmpleosSectionCard title={lang === "es" ? "1. Información principal" : "1. Main details"}>
             <label className="block text-sm">
-              <EmpleosFieldLabel required>{lang === "es" ? "Título del puesto" : "Job title"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Título del puesto" : "Job title"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.title} onChange={(e) => patch({ title: e.target.value })} />
             </label>
             <label className="block text-sm">
-              <EmpleosFieldLabel required>{lang === "es" ? "Nombre del negocio" : "Business name"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Nombre del negocio" : "Business name"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.businessName} onChange={(e) => patch({ businessName: e.target.value })} />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
-                <EmpleosFieldLabel required>{lang === "es" ? "Ciudad" : "City"}</EmpleosFieldLabel>
+                <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Ciudad" : "City"}</EmpleosFieldLabel>
                 <input className={INPUT} value={state.city} onChange={(e) => patch({ city: e.target.value })} />
               </label>
               <label className="block text-sm">
-                <EmpleosFieldLabel required>{lang === "es" ? "Estado" : "State"}</EmpleosFieldLabel>
+                <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Estado" : "State"}</EmpleosFieldLabel>
                 <input className={INPUT} value={state.state} onChange={(e) => patch({ state: e.target.value })} />
               </label>
             </div>
             <label className="block text-sm">
-              <EmpleosFieldLabel required>{lang === "es" ? "Tipo de empleo" : "Job type"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Tipo de empleo" : "Job type"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.jobType} onChange={(e) => patch({ jobType: e.target.value })} />
             </label>
             <label className="block text-sm">
-              <EmpleosFieldLabel required>{lang === "es" ? "Horario" : "Schedule"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Horario" : "Schedule"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.schedule} onChange={(e) => patch({ schedule: e.target.value })} />
             </label>
             <label className="block text-sm">
-              <EmpleosFieldLabel required>{lang === "es" ? "Pago" : "Pay"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Pago" : "Pay"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.pay} onChange={(e) => patch({ pay: e.target.value })} />
             </label>
             <label className="block text-sm">
-              <EmpleosFieldLabel required>{lang === "es" ? "Descripción corta" : "Short description"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Descripción corta" : "Short description"}</EmpleosFieldLabel>
               <textarea
                 className={`${INPUT} min-h-[100px]`}
                 value={state.description}
@@ -196,20 +195,22 @@ export default function EmpleoQuickApplicationClient() {
           </EmpleosSectionCard>
 
           <EmpleosSectionCard title={lang === "es" ? "2. Beneficios (opcional)" : "2. Benefits (optional)"}>
-            <label className="block text-sm">
-              <EmpleosFieldLabel optional>{lang === "es" ? "Un beneficio por línea" : "One benefit per line"}</EmpleosFieldLabel>
-              <textarea
-                className={`${INPUT} min-h-[88px]`}
-                value={state.benefitsText}
-                onChange={(e) => patch({ benefitsText: e.target.value })}
-              />
-            </label>
+            <p className="text-xs text-[color:var(--lx-muted)]">
+              {lang === "es" ? "Añade viñetas; solo las líneas con texto aparecen en el anuncio." : "Add bullets; only non-empty lines appear on the listing."}
+            </p>
+            <EmpleosStringLinesEditor
+              items={state.benefits.length ? state.benefits : [""]}
+              onChange={(benefits) => patch({ benefits })}
+              addLabel={mediaCopy.benefitAdd}
+              removeLabel={mediaCopy.benefitRemove}
+              placeholder={mediaCopy.benefitPh}
+            />
           </EmpleosSectionCard>
 
           <EmpleosSectionCard title={lang === "es" ? "3. Multimedia" : "3. Media"}>
             <div>
               <div className="text-sm font-semibold text-[color:var(--lx-text)]">
-                <EmpleosFieldLabel required>{lang === "es" ? "Imágenes" : "Images"}</EmpleosFieldLabel>
+                <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Imágenes" : "Images"}</EmpleosFieldLabel>
               </div>
               <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
                 {lang === "es" ? "Incluye la imagen principal; puedes reordenar y marcar cuál es principal." : "Include the main image; reorder and set which is primary."}
@@ -225,6 +226,7 @@ export default function EmpleoQuickApplicationClient() {
                   removeLabel={mediaCopy.remove}
                   upLabel={mediaCopy.up}
                   downLabel={mediaCopy.down}
+                  altPlaceholder={mediaCopy.altImage}
                 />
               </div>
             </div>
@@ -246,21 +248,22 @@ export default function EmpleoQuickApplicationClient() {
               </div>
             </div>
 
-            <div>
-              <p className="text-sm font-semibold">{mediaCopy.video}</p>
-              {state.videoObjectUrl ? (
-                <video src={state.videoObjectUrl} controls className="mt-2 max-h-56 w-full rounded-lg border border-black/10 bg-black/5" />
-              ) : null}
-              {state.videoFileName ? <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{state.videoFileName}</p> : null}
-              <div className="mt-2 flex flex-wrap gap-2">
-                <input type="file" accept="video/*" className="text-sm" onChange={(e) => void onVideoFile(e.target.files)} />
-                {state.videoObjectUrl ? (
-                  <button type="button" className="text-sm font-semibold text-red-800 underline" onClick={clearVideo}>
-                    {mediaCopy.clearVideo}
-                  </button>
-                ) : null}
-              </div>
-            </div>
+            <EmpleosVideoDraftField
+              objectUrl={state.videoObjectUrl}
+              fileName={state.videoFileName}
+              externalUrl={state.videoUrl}
+              revokeIfBlob={revokeIfBlob}
+              onPatch={(p) => patch((prev) => ({ ...prev, ...p }))}
+              labels={{
+                sectionTitle: mediaCopy.videoSection,
+                hint: mediaCopy.videoHint,
+                urlField: mediaCopy.videoUrlField,
+                urlPlaceholder: mediaCopy.videoUrlPh,
+                applyUrl: mediaCopy.videoApplyUrl,
+                pickFile: mediaCopy.videoPickFile,
+                clear: mediaCopy.videoClear,
+              }}
+            />
           </EmpleosSectionCard>
 
           <EmpleosSectionCard title={lang === "es" ? "4. Contacto / CTA" : "4. Contact / CTA"}>
@@ -277,20 +280,20 @@ export default function EmpleoQuickApplicationClient() {
 
           <EmpleosSectionCard title={lang === "es" ? "5. Ubicación (opcional)" : "5. Location (optional)"}>
             <label className="block text-sm">
-              <EmpleosFieldLabel optional>{lang === "es" ? "Dirección línea 1" : "Address line 1"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Dirección línea 1" : "Address line 1"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.addressLine1} onChange={(e) => patch({ addressLine1: e.target.value })} />
             </label>
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="block text-sm">
-                <EmpleosFieldLabel optional>{lang === "es" ? "Ciudad (detalle)" : "City (detail)"}</EmpleosFieldLabel>
+                <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Ciudad (detalle)" : "City (detail)"}</EmpleosFieldLabel>
                 <input className={INPUT} value={state.addressCity} onChange={(e) => patch({ addressCity: e.target.value })} />
               </label>
               <label className="block text-sm">
-                <EmpleosFieldLabel optional>{lang === "es" ? "Estado (detalle)" : "State (detail)"}</EmpleosFieldLabel>
+                <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Estado (detalle)" : "State (detail)"}</EmpleosFieldLabel>
                 <input className={INPUT} value={state.addressState} onChange={(e) => patch({ addressState: e.target.value })} />
               </label>
               <label className="block text-sm">
-                <EmpleosFieldLabel optional>{lang === "es" ? "CP" : "ZIP"}</EmpleosFieldLabel>
+                <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "CP" : "ZIP"}</EmpleosFieldLabel>
                 <input className={INPUT} value={state.addressZip} onChange={(e) => patch({ addressZip: e.target.value })} />
               </label>
             </div>
@@ -325,6 +328,7 @@ export default function EmpleoQuickApplicationClient() {
         confirmCta={copy.publishModal.confirmCta}
         cancelCta={copy.publishModal.cancelCta}
         blockedHint={copy.publishModal.blockedHint}
+        closeOverlayAria={copy.publishModal.closeOverlayAria}
       />
     </main>
   );

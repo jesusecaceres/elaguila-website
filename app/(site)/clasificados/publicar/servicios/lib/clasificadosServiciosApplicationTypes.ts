@@ -75,6 +75,11 @@ export type TestimonialRow = {
 };
 
 export type ClasificadosServiciosApplicationState = {
+  /**
+   * Current stepped UI index (0-based), persisted for preview roundtrips.
+   * Must stay in sync with `SERVICIOS_APPLICATION_STEP_COUNT`.
+   */
+  applicationStepIndex: number;
   businessTypeId: string;
   businessName: string;
   city: string;

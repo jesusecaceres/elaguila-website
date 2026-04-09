@@ -52,6 +52,8 @@ export type PublicarViajesNegociosUi = {
   };
   multimedia: {
     heroUrl: { label: string; placeholder: string };
+    localFile: { label: string; helper: string };
+    clearImage: string;
     gallery: { label: string; helper: string; placeholder: string };
     logo: { label: string };
     video: { label: string; placeholder: string };
@@ -66,6 +68,19 @@ export type PublicarViajesNegociosUi = {
     languages: { label: string; placeholder: string };
   };
   previewCta: string;
+  /** Back link label on draft-driven preview page */
+  previewBackEdit: string;
+  resetDraft: string;
+  /** Opens honest publish handoff (no live submit) */
+  publishHandoffCta: string;
+  publishModal: {
+    title: string;
+    intro: string;
+    bullets: string[];
+    standardPlus: string;
+    honestNote: string;
+    close: string;
+  };
   submitSoon: string;
   ctaRowHint: string;
 };
@@ -93,7 +108,7 @@ function es(): PublicarViajesNegociosUi {
     workflow: {
       previewWhat: {
         title: "Qué verás en vista previa",
-        body: "Una página de oferta de ejemplo en Clasificados: titular, destino, inclusiones, socio/negocio y CTAs — coherente con el listado público de Viajes.",
+        body: "Tu borrador en esta pantalla se guarda en el navegador y alimenta la vista previa pública de ejemplo. Titular, destino, inclusiones, negocio y CTAs — coherente con Viajes en Clasificados.",
       },
       afterSubmit: {
         title: "Después del envío (próximamente)",
@@ -172,6 +187,12 @@ function es(): PublicarViajesNegociosUi {
     },
     multimedia: {
       heroUrl: { label: "Imagen principal (URL de prueba)", placeholder: "https://…" },
+      localFile: {
+        label: "O sube imagen principal (solo este dispositivo)",
+        helper:
+          "Archivos grandes van a IndexedDB; URL sigue siendo la opción más ligera. No hay subida a la nube en esta fase.",
+      },
+      clearImage: "Quitar imagen local / URL en borrador",
       gallery: {
         label: "Galería",
         helper: "Pronto: subida múltiple. Por ahora describe o pega URLs.",
@@ -190,8 +211,27 @@ function es(): PublicarViajesNegociosUi {
       languages: { label: "Idiomas", placeholder: "Ej. Español, inglés" },
     },
     previewCta: "Vista previa de la ficha pública",
+    previewBackEdit: "Volver a editar borrador",
+    resetDraft: "Borrar borrador local",
+    publishHandoffCta: "Publicar — qué sigue",
+    publishModal: {
+      title: "Envío y publicación (próxima fase)",
+      intro:
+        "Hoy no se envía nada al servidor. Este paso explica el recorrido real cuando exista backend, pagos y moderación.",
+      bullets: [
+        "Revisión manual de identidad del negocio, oferta y medios.",
+        "Posible verificación de sitio web, WhatsApp o documentos.",
+        "Activación en Clasificados Viajes solo tras aprobación.",
+        "Integración futura con Supabase u otro almacén para borradores y estados.",
+      ],
+      standardPlus:
+        "Planes Standard / Plus (cuando existan) definirán visibilidad, destacados y renovación. Aquí no se cobra ni se activa ningún plan.",
+      honestNote: "No estás publicando aún: al cerrar este cuadro sigues en borrador local.",
+      close: "Entendido — volver al borrador",
+    },
     submitSoon: "Enviar solicitud (próximamente)",
-    ctaRowHint: "La vista previa abre un ejemplo en Clasificados. El botón de envío se habilitará cuando exista backend y reglas de moderación.",
+    ctaRowHint:
+      "La vista previa usa tu borrador guardado en este dispositivo (clave leonix:viajes:negocios:draft:v1). El envío en vivo llegará con backend y moderación.",
   };
 }
 
@@ -218,7 +258,7 @@ function en(): PublicarViajesNegociosUi {
     workflow: {
       previewWhat: {
         title: "What preview shows",
-        body: "A sample offer page in Classifieds: headline, destination, inclusions, partner/business context, and CTAs — consistent with public Viajes listings.",
+        body: "Your draft on this screen is saved in the browser and powers the sample public preview: headline, destination, inclusions, business block, and CTAs — consistent with Viajes in Classifieds.",
       },
       afterSubmit: {
         title: "After submit (coming later)",
@@ -297,6 +337,11 @@ function en(): PublicarViajesNegociosUi {
     },
     multimedia: {
       heroUrl: { label: "Hero image (test URL)", placeholder: "https://…" },
+      localFile: {
+        label: "Or upload a hero image (this device only)",
+        helper: "Large files use IndexedDB; a URL is still the lightest option. No cloud upload in this phase.",
+      },
+      clearImage: "Clear local / draft hero image",
       gallery: {
         label: "Gallery",
         helper: "Multi-upload coming soon. For now, paste URLs or notes.",
@@ -315,8 +360,26 @@ function en(): PublicarViajesNegociosUi {
       languages: { label: "Languages", placeholder: "e.g. Spanish, English" },
     },
     previewCta: "Preview public listing",
+    previewBackEdit: "Back to edit draft",
+    resetDraft: "Clear local draft",
+    publishHandoffCta: "Publish — what happens next",
+    publishModal: {
+      title: "Submission & publishing (next phase)",
+      intro: "Nothing is sent to the server today. This describes the real path once backend, billing, and moderation exist.",
+      bullets: [
+        "Manual review of business identity, offer, and media.",
+        "Possible checks for website, WhatsApp, or documents.",
+        "Activation on Clasificados Viajes only after approval.",
+        "Future Supabase or similar storage for drafts and workflow states.",
+      ],
+      standardPlus:
+        "Standard / Plus plans (when shipped) will control visibility, featuring, and renewal. No charge or plan activation happens here.",
+      honestNote: "You are not publishing yet — closing this dialog keeps you on the local draft.",
+      close: "Got it — back to draft",
+    },
     submitSoon: "Submit application (soon)",
-    ctaRowHint: "Preview opens a sample page in Classifieds. Submit stays disabled until backend and moderation rules exist.",
+    ctaRowHint:
+      "Preview uses your draft saved on this device (key leonix:viajes:negocios:draft:v1). Live submit ships with backend and moderation.",
   };
 }
 

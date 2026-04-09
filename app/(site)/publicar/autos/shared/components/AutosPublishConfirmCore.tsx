@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
+import { AUTOS_CLASSIFIEDS_EVENT } from "@/app/lib/clasificados/autos/autosClassifiedsEventTypes";
+import { buildVehicleTitle } from "@/app/publicar/autos/negocios/lib/autoDealerTitle";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import type { AutosPublishFlowLang } from "@/app/clasificados/autos/lib/autosPublishFlowCopy";
@@ -10,6 +12,15 @@ import { getAutosPublishFlowCopy } from "@/app/clasificados/autos/lib/autosPubli
 
 function sessionKey(lane: AutosClassifiedsLane) {
   return `lx-autos-publish-listing-${lane}`;
+}
+
+function formatUsd(n: number | undefined, lang: AutosPublishFlowLang) {
+  if (n === undefined || !Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat(lang === "es" ? "es-US" : "en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(n);
 }
 
 export function AutosPublishConfirmCore({
@@ -60,10 +71,20 @@ export function AutosPublishConfirmCore({
         if (cancelled) return;
         if (r.ok) {
           const j = (await r.json()) as { status?: string };
-          if (j.status === "draft" || j.status === "pending_payment") {
-            setListingId(cached);
-            setPhase("ready");
-            return;
+          if (j.status === "draft" || j.status === "pending_payment" || j.status === "payment_failed") {
+            const sync = await fetch(`/api/clasificados/autos/listings/${cached}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ listing: listingRef.current, lang }),
+            });
+            if (cancelled) return;
+            if (!sync.ok) {
+              window.sessionStorage.removeItem(sk);
+            } else {
+              setListingId(cached);
+              setPhase("ready");
+              return;
+            }
           }
         }
         window.sessionStorage.removeItem(sk);
@@ -89,6 +110,24 @@ export function AutosPublishConfirmCore({
       cancelled = true;
     };
   }, [hydrated, lane, lang, flushDraft]);
+
+  useEffect(() => {
+    if (phase !== "ready" || !listingId || sessionMissing) return;
+    const k = `lx-autos-publish-funnel-${listingId}`;
+    if (typeof window !== "undefined" && sessionStorage.getItem(k)) return;
+    void (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return;
+      if (typeof window !== "undefined") sessionStorage.setItem(k, "1");
+      await fetch(`/api/clasificados/autos/listings/${listingId}/analytics`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ eventType: AUTOS_CLASSIFIEDS_EVENT.publishConversion }),
+      });
+    })();
+  }, [phase, listingId, sessionMissing]);
 
   const allChecked = checks.every(Boolean);
   const loginHref =
@@ -142,6 +181,16 @@ export function AutosPublishConfirmCore({
     const token = sessionData.session?.access_token;
     if (!token) return;
     setPayBusy(true);
+    const sync = await fetch(`/api/clasificados/autos/listings/${listingId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ listing: listingRef.current, lang }),
+    });
+    if (!sync.ok) {
+      setPayBusy(false);
+      setPhase("error");
+      return;
+    }
     const res = await fetch("/api/clasificados/autos/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -156,6 +205,12 @@ export function AutosPublishConfirmCore({
     setPhase("error");
   }
 
+  const vehicleLine =
+    listing.vehicleTitle?.trim() ||
+    buildVehicleTitle(listing.year, listing.make, listing.model, listing.trim) ||
+    "—";
+  const locLine = [listing.city, listing.state, listing.zip].filter((x) => (x ?? "").trim()).join(", ") || "—";
+
   return (
     <div className="mx-auto max-w-xl px-4 py-10 text-[color:var(--lx-text)]">
       <h1 className="text-2xl font-bold">{c.title}</h1>
@@ -164,6 +219,24 @@ export function AutosPublishConfirmCore({
         <div className="flex justify-between gap-4">
           <dt className="text-[color:var(--lx-muted)]">{c.laneLine}</dt>
           <dd className="font-semibold text-right">{c.laneValue}</dd>
+        </div>
+        <div className="flex justify-between gap-4 border-t border-[color:var(--lx-nav-border)] pt-2">
+          <dt className="text-[color:var(--lx-muted)]">{c.summaryVehicle}</dt>
+          <dd className="max-w-[min(100%,220px)] text-right font-semibold leading-snug">{vehicleLine}</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-[color:var(--lx-muted)]">{c.summaryPrice}</dt>
+          <dd className="font-semibold text-right">{formatUsd(listing.price, lang)}</dd>
+        </div>
+        {lane === "negocios" && listing.monthlyEstimate?.trim() ? (
+          <div className="flex justify-between gap-4">
+            <dt className="text-[color:var(--lx-muted)]">{c.summaryMonthly}</dt>
+            <dd className="text-right font-medium text-[color:var(--lx-text-2)]">{listing.monthlyEstimate.trim()}</dd>
+          </div>
+        ) : null}
+        <div className="flex justify-between gap-4">
+          <dt className="text-[color:var(--lx-muted)]">{c.summaryLocation}</dt>
+          <dd className="max-w-[min(100%,240px)] text-right font-medium text-[color:var(--lx-text-2)]">{locLine}</dd>
         </div>
       </dl>
       <ul className="mt-8 space-y-4">

@@ -28,6 +28,8 @@ export type ViajesPrivadoDraft = {
   imagenUrl: string;
   /** Base64 data URL from local file — omitted if too large when saving */
   localImageDataUrl: string | null;
+  /** IndexedDB-backed hero when file exceeds localStorage-safe inline size */
+  localHeroBlobId: string | null;
   displayName: string;
   ctaType: ViajesPrivadoCtaType;
   phone: string;

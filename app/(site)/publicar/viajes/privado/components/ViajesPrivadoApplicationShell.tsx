@@ -9,6 +9,9 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { ViajesLangSwitch } from "@/app/(site)/clasificados/viajes/components/ViajesLangSwitch";
 
+import { useViajesLocalHeroObjectUrl } from "@/app/(site)/clasificados/viajes/lib/useViajesLocalHeroObjectUrl";
+import { newViajesDraftMediaId, viajesDraftMediaDelete, viajesDraftMediaPut } from "@/app/(site)/clasificados/viajes/lib/viajesDraftMediaIdb";
+
 import { getPublicarViajesPrivadoCopy } from "../data/publicarViajesPrivadoCopy";
 import { VIAJES_PRIVADO_MAX_IMAGE_STORAGE } from "../lib/viajesPrivadoDraftDefaults";
 import { useViajesPrivadoDraft } from "../lib/useViajesPrivadoDraft";
@@ -26,9 +29,12 @@ export function ViajesPrivadoApplicationShell() {
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
   const c = getPublicarViajesPrivadoCopy(lang);
   const { draft, update, reset, hydrated } = useViajesPrivadoDraft();
+  const heroBlobUrl = useViajesLocalHeroObjectUrl("privado", draft.localHeroBlobId);
   const [publishOpen, setPublishOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modalTitleId = useId();
+
+  const BLOB_PATH_BYTES = 360_000;
 
   useEffect(() => {
     document.title = c.documentTitle;
@@ -44,28 +50,49 @@ export function ViajesPrivadoApplicationShell() {
     </label>
   );
 
-  function onPickImageFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onPickImageFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const r = String(reader.result ?? "");
-      if (r.length > VIAJES_PRIVADO_MAX_IMAGE_STORAGE) {
+    const prevBlobId = draft.localHeroBlobId;
+    e.target.value = "";
+
+    const storeBlob = async () => {
+      const newId = newViajesDraftMediaId();
+      try {
+        await viajesDraftMediaPut("privado", newId, file);
+        if (prevBlobId) void viajesDraftMediaDelete("privado", prevBlobId);
+        update({ localHeroBlobId: newId, localImageDataUrl: null });
+      } catch {
         window.alert(
           lang === "en"
-            ? "Image is too large to save in the local draft. Use a smaller file or an image URL."
-            : "La imagen es demasiado grande para guardarla en el borrador local. Usa un archivo más pequeño o una URL."
+            ? "Could not store this image locally (storage may be blocked or full). Try a smaller file or paste an image URL."
+            : "No se pudo guardar la imagen en el dispositivo (almacenamiento bloqueado o lleno). Prueba un archivo más pequeño o pega una URL."
         );
-        return;
       }
-      update({ localImageDataUrl: r });
+    };
+
+    if (file.size > BLOB_PATH_BYTES) {
+      await storeBlob();
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      void (async () => {
+        const r = String(reader.result ?? "");
+        if (r.length > VIAJES_PRIVADO_MAX_IMAGE_STORAGE) {
+          await storeBlob();
+          return;
+        }
+        if (prevBlobId) void viajesDraftMediaDelete("privado", prevBlobId);
+        update({ localImageDataUrl: r, localHeroBlobId: null });
+      })();
     };
     reader.readAsDataURL(file);
-    e.target.value = "";
   }
 
   const a = c.audience;
-  const heroPreview = draft.localImageDataUrl || draft.imagenUrl.trim();
+  const heroPreview = draft.localImageDataUrl || heroBlobUrl || draft.imagenUrl.trim();
 
   return (
     <div
@@ -313,7 +340,8 @@ export function ViajesPrivadoApplicationShell() {
                     type="button"
                     className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-xs font-bold text-[color:var(--lx-text)]"
                     onClick={() => {
-                      update({ localImageDataUrl: null });
+                      if (draft.localHeroBlobId) void viajesDraftMediaDelete("privado", draft.localHeroBlobId);
+                      update({ localImageDataUrl: null, localHeroBlobId: null });
                       if (fileInputRef.current) fileInputRef.current.value = "";
                     }}
                   >

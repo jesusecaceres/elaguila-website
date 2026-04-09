@@ -8,6 +8,8 @@ export type ViajesOfferPartnerBlock = {
   /** Private individual listing — distinct from business agency card */
   privateSeller?: boolean;
   affiliateDisclosure?: string;
+  /** Business / operator logo (URL or blob:) for draft previews */
+  logoSrc?: string;
   ctaLabel: string;
   ctaHref: string;
   secondaryCtaLabel?: string;

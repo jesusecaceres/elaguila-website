@@ -103,6 +103,11 @@ export function ClasificadosServiciosPreviewClient() {
               ? "Complete the checklist in the application so the public profile looks complete and premium."
               : "Completa el formulario para que el perfil público se vea completo y premium."}
           </p>
+          <p className="mt-3 text-xs leading-relaxed text-neutral-500">
+            {lang === "en"
+              ? "If you used “Open preview (utility)” with a partial draft, this screen is expected. Use “View preview” in the form once every requirement is met to see the finished layout."
+              : "Si usaste «Abrir vista previa (utilidad)» con un borrador incompleto, esta pantalla es normal. Usa «Ver vista previa» en el formulario cuando cumplas todo para ver la vitrina terminada."}
+          </p>
           <ul className="mt-6 list-inside list-disc space-y-2 text-sm text-neutral-700">
             {previewReadiness.missing.map((m) => (
               <li key={m.id}>{m.label}</li>

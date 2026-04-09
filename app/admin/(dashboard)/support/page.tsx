@@ -12,9 +12,11 @@ import {
 } from "../../_components/adminTheme";
 import { getSupabaseAuthUsersDashboardUrl } from "../../_lib/supabaseDashboardLinks";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
-import { createSupportTicketRecordAction } from "../../supportTicketActions";
+import { createSupportTicketRecordAction, updateSupportTicketFollowupAction } from "../../supportTicketActions";
 
 export const dynamic = "force-dynamic";
+
+const PROFILE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type TicketRow = {
   id: string;
@@ -22,69 +24,138 @@ type TicketRow = {
   body: string;
   status: string;
   created_at: string;
+  updated_at: string | null;
   user_id: string | null;
   order_id: string | null;
   listing_id: string | null;
+  staff_internal_notes: string | null;
+  escalation_tag: string | null;
 };
 
-async function fetchSupportTickets(): Promise<{
+function schemaMissing(msg: string): boolean {
+  return /column|does not exist|schema cache/i.test(msg.toLowerCase());
+}
+
+function profileFilter(raw: string | undefined): string | null {
+  const t = (raw ?? "").trim();
+  if (!t) return null;
+  return PROFILE_UUID_RE.test(t) ? t : null;
+}
+
+async function fetchSupportTickets(profileId: string | null): Promise<{
   rows: TicketRow[];
   unavailable: boolean;
   /** False when FK columns from 20260408200000 are not applied — list still loads; optional form links need migration. */
   entityLinksAvailable: boolean;
+  /** False until `20260408210000_support_tickets_staff_followup.sql` — status updates still work. */
+  staffFollowupAvailable: boolean;
 }> {
   try {
     const supabase = getAdminSupabase();
-    const full = await supabase
-      .from("support_tickets")
-      .select("id, subject, body, status, created_at, user_id, order_id, listing_id")
-      .order("created_at", { ascending: false })
-      .limit(30);
+    const extendedSelect =
+      "id, subject, body, status, created_at, updated_at, user_id, order_id, listing_id, staff_internal_notes, escalation_tag";
+
+    let extQ = supabase.from("support_tickets").select(extendedSelect).order("created_at", { ascending: false }).limit(30);
+    if (profileId) extQ = extQ.eq("user_id", profileId);
+    const full = await extQ;
 
     if (!full.error && full.data) {
       return {
         rows: (full.data ?? []) as TicketRow[],
         unavailable: false,
         entityLinksAvailable: true,
+        staffFollowupAvailable: true,
       };
     }
 
-    const msg = (full.error?.message ?? "").toLowerCase();
-    const schemaMissing = /column|does not exist|schema cache/i.test(msg);
+    const msg = full.error?.message ?? "";
 
-    if (schemaMissing) {
-      const base = await supabase
-        .from("support_tickets")
-        .select("id, subject, body, status, created_at")
-        .order("created_at", { ascending: false })
-        .limit(30);
-      if (base.error) {
-        return { rows: [], unavailable: true, entityLinksAvailable: false };
+    if (schemaMissing(msg)) {
+      const entitySelect = "id, subject, body, status, created_at, updated_at, user_id, order_id, listing_id";
+      let entQ = supabase.from("support_tickets").select(entitySelect).order("created_at", { ascending: false }).limit(30);
+      if (profileId) entQ = entQ.eq("user_id", profileId);
+      const ent = await entQ;
+
+      if (!ent.error && ent.data) {
+        const rows = (ent.data ?? []).map((r) => ({
+          ...(r as Omit<TicketRow, "staff_internal_notes" | "escalation_tag">),
+          staff_internal_notes: null,
+          escalation_tag: null,
+        }));
+        return {
+          rows,
+          unavailable: false,
+          entityLinksAvailable: true,
+          staffFollowupAvailable: false,
+        };
       }
-      const rows = (base.data ?? []).map((r) => ({
-        ...(r as Omit<TicketRow, "user_id" | "order_id" | "listing_id">),
-        user_id: null,
-        order_id: null,
-        listing_id: null,
-      }));
-      return { rows, unavailable: false, entityLinksAvailable: false };
+
+      const entMsg = ent.error?.message ?? "";
+      if (schemaMissing(entMsg)) {
+        let legQ = supabase
+          .from("support_tickets")
+          .select("id, subject, body, status, created_at")
+          .order("created_at", { ascending: false })
+          .limit(30);
+        const base = await legQ;
+        if (base.error) {
+          return { rows: [], unavailable: true, entityLinksAvailable: false, staffFollowupAvailable: false };
+        }
+        const rows = (base.data ?? []).map((r) => ({
+          ...(r as { id: string; subject: string; body: string; status: string; created_at: string }),
+          updated_at: null,
+          user_id: null,
+          order_id: null,
+          listing_id: null,
+          staff_internal_notes: null,
+          escalation_tag: null,
+        }));
+        return { rows, unavailable: false, entityLinksAvailable: false, staffFollowupAvailable: false };
+      }
     }
 
-    return { rows: [], unavailable: true, entityLinksAvailable: false };
+    return { rows: [], unavailable: true, entityLinksAvailable: false, staffFollowupAvailable: false };
   } catch {
-    return { rows: [], unavailable: true, entityLinksAvailable: false };
+    return { rows: [], unavailable: true, entityLinksAvailable: false, staffFollowupAvailable: false };
   }
 }
 
 async function SupportTicketsSection(props: {
-  searchParams?: Promise<{ ticket_saved?: string; ticket_error?: string }>;
+  searchParams?: Promise<{
+    ticket_saved?: string;
+    ticket_created?: string;
+    ticket_error?: string;
+    followup_columns?: string;
+    profile?: string;
+  }>;
 }) {
   const sp = props.searchParams ? await props.searchParams : {};
-  const { rows: tickets, unavailable, entityLinksAvailable } = await fetchSupportTickets();
+  const profileId = profileFilter(sp.profile);
+  const profileQueryInvalid = !!(sp.profile && sp.profile.trim() && !profileId);
+  const { rows: tickets, unavailable, entityLinksAvailable, staffFollowupAvailable } =
+    await fetchSupportTickets(profileId);
   const authDashboardUrl = getSupabaseAuthUsersDashboardUrl();
 
   return (
     <>
+      {profileQueryInvalid ? (
+        <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
+          Parámetro <code className="rounded bg-white/80 px-1">profile</code> no es un UUID válido — mostrando todos los tickets
+          recientes.
+        </div>
+      ) : null}
+      {profileId ? (
+        <div className={`${adminCardBase} mb-4 border-sky-200 bg-sky-50/90 p-3 text-sm text-sky-950`}>
+          Filtrado por usuario{" "}
+          <Link href={`/admin/usuarios/${profileId}`} className="font-bold text-[#6B5B2E] underline">
+            {profileId.slice(0, 8)}…
+          </Link>
+          .{" "}
+          <Link href="/admin/support" className="font-bold text-[#6B5B2E] underline">
+            Quitar filtro
+          </Link>
+        </div>
+      ) : null}
       {!unavailable && !entityLinksAvailable ? (
         <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
           <strong>Enlaces de contexto no activos:</strong> la tabla existe, pero faltan columnas{" "}
@@ -94,9 +165,29 @@ async function SupportTicketsSection(props: {
           campos opcionales en el formulario.
         </div>
       ) : null}
+      {!unavailable && entityLinksAvailable && !staffFollowupAvailable ? (
+        <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
+          <strong>Seguimiento parcial:</strong> puedes cambiar el <strong>estado</strong> del ticket. Las notas internas y la
+          etiqueta de escalación requieren{" "}
+          <code className="rounded bg-white/80 px-1">20260408210000_support_tickets_staff_followup.sql</code>.
+        </div>
+      ) : null}
+      {sp.ticket_created === "1" ? (
+        <div className={`${adminCardBase} mb-4 border-emerald-200 bg-emerald-50/90 p-3 text-sm text-emerald-950`}>
+          Ticket interno creado en <code className="rounded bg-white/80 px-1">support_tickets</code>.
+        </div>
+      ) : null}
       {sp.ticket_saved === "1" ? (
         <div className={`${adminCardBase} mb-4 border-emerald-200 bg-emerald-50/90 p-3 text-sm text-emerald-950`}>
-          Ticket interno guardado.
+          {sp.followup_columns === "0" ? (
+            <>
+              Estado del ticket actualizado en base.{" "}
+              <strong>Notas internas y etiqueta de escalación no se guardaron</strong> — aplica la migración{" "}
+              <code className="rounded bg-white/80 px-1">20260408210000_support_tickets_staff_followup.sql</code>.
+            </>
+          ) : (
+            <>Seguimiento del ticket guardado (estado / notas / escalación según migración).</>
+          )}
         </div>
       ) : null}
       {sp.ticket_error === "1" ? (
@@ -261,7 +352,9 @@ async function SupportTicketsSection(props: {
                       <th className="p-3">Asunto</th>
                       <th className="p-3">Contexto</th>
                       <th className="p-3">Estado</th>
+                      <th className="p-3">Escalación</th>
                       <th className="p-3">Fecha</th>
+                      <th className="p-3">Seguimiento</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -307,8 +400,84 @@ async function SupportTicketsSection(props: {
                           </div>
                         </td>
                         <td className="p-3 text-xs font-semibold">{t.status}</td>
+                        <td className="p-3 align-top text-xs">
+                          {t.escalation_tag ? (
+                            <span className="inline-block rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-950">
+                              {t.escalation_tag}
+                            </span>
+                          ) : (
+                            <span className="text-[#9A9084]">—</span>
+                          )}
+                        </td>
                         <td className="p-3 text-xs text-[#7A7164]">
                           {t.created_at ? new Date(t.created_at).toLocaleString() : "—"}
+                        </td>
+                        <td className="max-w-[14rem] p-3 align-top">
+                          <details className="text-xs">
+                            <summary className="cursor-pointer select-none font-semibold text-[#8B4513] hover:underline">
+                              Actualizar
+                            </summary>
+                            <form
+                              action={updateSupportTicketFollowupAction}
+                              className="mt-2 space-y-2 rounded-lg border border-[#E8DFD0]/90 bg-[#FFFCF7] p-2"
+                            >
+                              <input type="hidden" name="ticket_id" value={t.id} />
+                              <div>
+                                <label className="block text-[10px] font-semibold text-[#5C5346]" htmlFor={`st-${t.id}`}>
+                                  Estado
+                                </label>
+                                <select
+                                  id={`st-${t.id}`}
+                                  name="status"
+                                  defaultValue={t.status}
+                                  className={`${adminInputClass} mt-0.5 text-xs`}
+                                >
+                                  <option value="open">open</option>
+                                  <option value="in_progress">in_progress</option>
+                                  <option value="closed">closed</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-[#5C5346]" htmlFor={`esc-${t.id}`}>
+                                  Escalación
+                                </label>
+                                <select
+                                  id={`esc-${t.id}`}
+                                  name="escalation_tag"
+                                  defaultValue={t.escalation_tag ?? ""}
+                                  disabled={!staffFollowupAvailable}
+                                  className={`${adminInputClass} mt-0.5 text-xs disabled:opacity-60`}
+                                >
+                                  <option value="">(ninguna)</option>
+                                  <option value="Billing">Billing</option>
+                                  <option value="Technical">Technical</option>
+                                  <option value="Fraud">Fraud</option>
+                                  <option value="Content">Content</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-[#5C5346]" htmlFor={`notes-${t.id}`}>
+                                  Notas internas (staff)
+                                </label>
+                                <textarea
+                                  id={`notes-${t.id}`}
+                                  name="staff_internal_notes"
+                                  rows={3}
+                                  defaultValue={t.staff_internal_notes ?? ""}
+                                  disabled={!staffFollowupAvailable}
+                                  className={`${adminInputClass} mt-0.5 text-xs disabled:opacity-60`}
+                                />
+                              </div>
+                              {!staffFollowupAvailable ? (
+                                <p className="text-[10px] text-amber-900">
+                                  Solo <strong>estado</strong> se persiste hasta aplicar la migración de seguimiento.
+                                </p>
+                              ) : null}
+                              <button type="submit" className={`${adminBtnSecondary} w-full justify-center text-xs`}>
+                                Guardar
+                              </button>
+                            </form>
+                          </details>
                         </td>
                       </tr>
                     ))}
@@ -322,23 +491,16 @@ async function SupportTicketsSection(props: {
         </div>
 
         <div className={`${adminCardBase} p-6 lg:col-span-2`}>
-          <h2 className="text-sm font-bold text-[#1E1810]">Escalation tags</h2>
+          <h2 className="text-sm font-bold text-[#1E1810]">Escalación y notas internas</h2>
           <p className="mt-1 text-xs text-[#7A7164]">
-            <span className="mr-2 inline-block rounded-full border border-[#E8DFD0] bg-[#FFFCF7] px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C4E2E]">
-              Solo UI
-            </span>
-            Para enrutamiento futuro — no se guardan.
+            Valores de escalación permitidos en base: <strong className="text-[#1E1810]">Billing</strong>,{" "}
+            <strong className="text-[#1E1810]">Technical</strong>, <strong className="text-[#1E1810]">Fraud</strong>,{" "}
+            <strong className="text-[#1E1810]">Content</strong>. Se guardan por ticket en{" "}
+            <code className="rounded bg-white/80 px-1">support_tickets</code> cuando la migración{" "}
+            <code className="rounded bg-white/80 px-1">20260408210000_support_tickets_staff_followup.sql</code> está aplicada;
+            cada guardado queda en <code className="rounded bg-white/80 px-1">admin_audit_log</code> vía{" "}
+            <code className="rounded bg-white/80 px-1">auditAdminWrite</code>.
           </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {["Billing", "Technical", "Fraud", "Content"].map((t) => (
-              <span
-                key={t}
-                className="rounded-full border border-[#E8DFD0] bg-[#FFFCF7] px-3 py-1 text-xs font-bold text-[#3D3428]"
-              >
-                {t}
-              </span>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -380,14 +542,10 @@ async function SupportTicketsSection(props: {
           </span>{" "}
           — fuera de alcance por seguridad y cookies.
         </p>
-        <div className="mt-6">
-          <label className="text-xs font-semibold text-[#5C5346]">Internal notes (local only — not saved)</label>
-          <textarea
-            className={`${adminInputClass} mt-1 min-h-[100px]`}
-            disabled
-            placeholder="Futuro: notas internas cifradas + audit trail."
-          />
-        </div>
+        <p className="mt-4 text-xs text-[#7A7164]">
+          Notas internas del caso: en cada fila de la tabla de tickets, abre <strong>Seguimiento → Actualizar</strong> (columna a
+          la derecha). No hay bloc de notas global — todo va ligado al ticket y queda auditado.
+        </p>
       </div>
 
       <div className="mt-6">
@@ -400,7 +558,13 @@ async function SupportTicketsSection(props: {
 }
 
 export default function AdminSupportPage(props: {
-  searchParams?: Promise<{ ticket_saved?: string; ticket_error?: string }>;
+  searchParams?: Promise<{
+    ticket_saved?: string;
+    ticket_created?: string;
+    ticket_error?: string;
+    followup_columns?: string;
+    profile?: string;
+  }>;
 }) {
   return (
     <div>

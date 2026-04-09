@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { getAutosPublishUserIdFromRequest } from "@/app/lib/clasificados/autos/autosListingBearerAuth";
 import {
+  autosClassifiedsRowToDashboardRow,
   createAutosClassifiedsListing,
   isAutosClassifiedsDbConfigured,
+  listAutosClassifiedsListingsForOwner,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import type { AutosClassifiedsLane, AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 
@@ -14,6 +16,22 @@ type Body = {
   lane?: AutosClassifiedsLane;
   lang?: AutosClassifiedsLang;
 };
+
+/** Owner's Autos classifieds rows (all statuses) for dashboard / publish flow. */
+export async function GET(request: Request) {
+  if (!isAutosClassifiedsDbConfigured()) {
+    return NextResponse.json({ ok: false, error: "db_not_configured" }, { status: 503 });
+  }
+  const userId = await getAutosPublishUserIdFromRequest(request);
+  if (!userId) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+  const rows = await listAutosClassifiedsListingsForOwner(userId);
+  return NextResponse.json({
+    ok: true,
+    listings: rows.map(autosClassifiedsRowToDashboardRow),
+  });
+}
 
 export async function POST(request: Request) {
   if (!isAutosClassifiedsDbConfigured()) {

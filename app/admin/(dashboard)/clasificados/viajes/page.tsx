@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { AdminStatCard } from "@/app/admin/_components/AdminStatCard";
 import { adminCardBase, adminCtaChipSecondary } from "@/app/admin/_components/adminTheme";
+import { AdminViajesAnalyticsPlaceholders } from "./_components/AdminViajesAnalyticsPlaceholders";
 import { ADMIN_VIAJES_OVERVIEW_MOCK } from "@/app/admin/_lib/adminViajesOverviewMock";
 
 export default function AdminViajesOverviewPage() {
@@ -49,6 +50,8 @@ export default function AdminViajesOverviewPage() {
       </div>
 
       <p className="mb-6 text-xs text-[#7A7164]">{m.lastSyncedNote}</p>
+
+      <AdminViajesAnalyticsPlaceholders />
 
       <div className={`${adminCardBase} p-5`}>
         <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">Quick links</p>

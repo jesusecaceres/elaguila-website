@@ -13,6 +13,7 @@ type Props = {
     abrirVistaPrevia: string;
     deleteApplication: string;
     deleteConfirm: string;
+    ariaGroup: string;
   };
   onVistaPrevia: () => void;
   onAbrirVistaPrevia: () => void;
@@ -34,7 +35,7 @@ export function EmpleosApplicationTopActions({
       <div
         className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-2 sm:[&>button]:min-w-0 sm:[&>button]:flex-1 md:[&>button]:flex-none"
         role="group"
-        aria-label="Acciones del anuncio"
+        aria-label={copy.ariaGroup}
       >
         <button
           type="button"

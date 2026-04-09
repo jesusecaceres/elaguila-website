@@ -11,8 +11,8 @@ export type EmpleosQuickDraft = {
   schedule: string;
   pay: string;
   description: string;
-  /** One line per benefit in the form; split for the shell. */
-  benefitsText: string;
+  /** Repeatable benefit lines → shell bullets. */
+  benefits: string[];
   images: EmpleosImageItem[];
   logoUrl: string;
   phone: string;
@@ -27,15 +27,21 @@ export type EmpleosQuickDraft = {
   /** Local object URL for draft preview only — not uploaded to Mux */
   videoObjectUrl: string | null;
   videoFileName: string;
+  /** External video URL for draft preview only (no Mux). */
+  videoUrl: string;
 };
 
-/** Migrates legacy `benefits[]` sessions to `benefitsText`. */
-export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { benefits?: string[] }): EmpleosQuickDraft {
+/** Migrates legacy `benefitsText` and partial sessions. */
+export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { benefitsText?: string }): EmpleosQuickDraft {
   const e = emptyEmpleosQuickDraft();
-  const { benefits: legacyBenefits, ...rest } = p;
-  let benefitsText = typeof rest.benefitsText === "string" ? rest.benefitsText : "";
-  if (!benefitsText && Array.isArray(legacyBenefits)) benefitsText = legacyBenefits.filter(Boolean).join("\n");
-  return { ...e, ...rest, benefitsText };
+  const raw = p as Partial<EmpleosQuickDraft> & { benefitsText?: string };
+  const legacyText = typeof raw.benefitsText === "string" ? raw.benefitsText : "";
+  const { benefitsText: _drop, ...rest } = raw;
+  let benefits = Array.isArray(rest.benefits) ? [...rest.benefits] : [];
+  if (!benefits.length && legacyText.trim()) {
+    benefits = legacyText.split("\n").map((s) => s.trim()).filter(Boolean);
+  }
+  return { ...e, ...rest, benefits, videoUrl: typeof rest.videoUrl === "string" ? rest.videoUrl : e.videoUrl };
 }
 
 export function emptyEmpleosQuickDraft(): EmpleosQuickDraft {
@@ -48,7 +54,7 @@ export function emptyEmpleosQuickDraft(): EmpleosQuickDraft {
     schedule: "",
     pay: "",
     description: "",
-    benefitsText: "",
+    benefits: [],
     images: [],
     logoUrl: "",
     phone: "",
@@ -62,5 +68,6 @@ export function emptyEmpleosQuickDraft(): EmpleosQuickDraft {
     addressZip: "",
     videoObjectUrl: null,
     videoFileName: "",
+    videoUrl: "",
   };
 }

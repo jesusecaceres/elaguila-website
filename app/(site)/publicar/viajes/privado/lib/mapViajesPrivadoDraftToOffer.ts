@@ -33,14 +33,16 @@ export function mapViajesPrivadoDraftToOffer(
   d: ViajesPrivadoDraft,
   c: PublicarViajesPrivadoCopy,
   lang: "es" | "en",
-  opts?: { sparse?: boolean }
+  opts?: { sparse?: boolean; heroSrcOverride?: string }
 ): ViajesOfferDetailModel {
   const sparse = opts?.sparse === true;
   const cta = buildCta(d, c);
   const remote = d.imagenUrl.trim();
   const local = d.localImageDataUrl?.trim();
-  const heroSrc = local || remote || FALLBACK_HERO;
-  const heroNative = Boolean(local || (remote && !remote.includes("images.unsplash.com")));
+  const heroSrc = (opts?.heroSrcOverride?.trim() || local || remote || FALLBACK_HERO).trim() || FALLBACK_HERO;
+  const heroNative = Boolean(
+    (opts?.heroSrcOverride && opts.heroSrcOverride.startsWith("blob:")) || local || (remote && !remote.includes("images.unsplash.com"))
+  );
 
   const tags: string[] = [];
   if (d.offerType && c.offerType.options[d.offerType]) tags.push(c.offerType.options[d.offerType]);

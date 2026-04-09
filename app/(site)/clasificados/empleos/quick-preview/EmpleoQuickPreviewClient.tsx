@@ -11,6 +11,7 @@ import { clearLeonixPreviewNavSessionFlag, markPublishFlowReturningToEdit } from
 import { EmpleoQuickDetailPage } from "../components/quickJob/EmpleoQuickDetailPage";
 import { EMPLEOS_SESSION_KEYS } from "@/app/publicar/empleos/shared/constants/empleosSessionKeys";
 import { EMPLEOS_PUBLISH_ROUTES } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
+import { EMPLEOS_PUBLISH_SHARED_COPY } from "@/app/publicar/empleos/shared/copy/empleosPublishSharedCopy";
 import { mapQuickDraftToShell } from "@/app/publicar/empleos/shared/mappers/mapQuickDraftToShell";
 import { normalizeEmpleosQuickDraft, type EmpleosQuickDraft } from "@/app/publicar/empleos/shared/types/empleosQuickDraft";
 
@@ -31,7 +32,7 @@ export function EmpleoQuickPreviewClient() {
       const raw = sessionStorage.getItem(EMPLEOS_SESSION_KEYS.quick);
       if (!raw) setDraft(null);
       else {
-        const parsed = JSON.parse(raw) as Partial<EmpleosQuickDraft> & { benefits?: string[] };
+        const parsed = JSON.parse(raw) as Partial<EmpleosQuickDraft> & { benefits?: string[]; benefitsText?: string };
         setDraft(normalizeEmpleosQuickDraft(parsed));
       }
     } catch {
@@ -43,6 +44,7 @@ export function EmpleoQuickPreviewClient() {
 
   const editHref = appendLangToPath(EMPLEOS_PUBLISH_ROUTES.quick, lang);
   const backLabel = lang === "en" ? "Back to edit" : "Volver a editar";
+  const prevCopy = EMPLEOS_PUBLISH_SHARED_COPY[lang].previewNoDraft;
 
   if (!ready) {
     return <div className="min-h-screen bg-[#ECEAE7]" aria-busy="true" />;
@@ -51,9 +53,9 @@ export function EmpleoQuickPreviewClient() {
   if (fromPublicar && !draft) {
     return (
       <div className="min-h-screen bg-[#ECEAE7] px-4 py-10 text-center text-sm text-[color:var(--lx-text-2)]">
-        <p>No hay borrador de sesión para mostrar.</p>
+        <p>{prevCopy.message}</p>
         <Link href={editHref} className="mt-4 inline-block font-semibold text-[#2563EB] underline">
-          Volver a editar
+          {prevCopy.backLink}
         </Link>
       </div>
     );

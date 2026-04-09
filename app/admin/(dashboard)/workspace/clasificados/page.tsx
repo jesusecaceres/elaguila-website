@@ -3,7 +3,6 @@ import { getAdminSupabase } from "@/app/lib/supabase/server";
 import {
   fetchListingsForAdminWorkspaceFiltered,
   fetchListingCategoriesDistinct,
-  listingRowMatchesAdminQuery,
   isUuidString,
 } from "@/app/admin/_lib/listingsAdminSelect";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
@@ -78,9 +77,6 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
       return true;
     });
   }
-  if (qRaw) {
-    rows = rows.filter((r) => listingRowMatchesAdminQuery(r, qRaw));
-  }
 
   return (
     <>
@@ -88,7 +84,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         title="Clasificados — anuncios"
         subtitle="Cola operativa para todas las categorías. En Venta es el estándar vivo — usa las herramientas de moderación abajo. El registro de categorías y reportes siguen enlazados aquí."
         eyebrow="Workspace · Clasificados"
-        helperText="Búsqueda en Postgres: título, ciudad, descripción (texto libre), id/owner UUID; owner parcial combina consultas y refina en cliente. Filtros Leonix BR (rama/operación/tipo) siguen en cliente sobre detail_pairs. Tienda es otro workspace."
+        helperText="Búsqueda en Postgres: título, ciudad, descripción, id y owner (UUID completo o fragmento con ilike). Filtros Leonix BR (rama/operación/tipo) siguen en cliente sobre detail_pairs JSON. Tienda es otro workspace."
       />
 
       {!detailPairsAvailable ? (
@@ -151,7 +147,8 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
       <div className={`${adminCardBase} mb-6 p-4`}>
         <form className="flex flex-col gap-3" method="get" aria-describedby="clasificados-filter-hint">
           <p id="clasificados-filter-hint" className="text-[10px] leading-snug text-[#7A7164]">
-            Los filtros se aplican en esta página (GET). BR/Rentas refinan en cliente sobre <span className="font-mono">detail_pairs</span>.
+            Los filtros se aplican en esta página (GET). El campo <span className="font-mono">q</span> va a Supabase; BR/Rentas
+            refinan en cliente sobre <span className="font-mono">detail_pairs</span>.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
             <input

@@ -12,7 +12,9 @@ import { AutosPrivadoPreviewLocaleProvider } from "../../privado/lib/AutosPrivad
 import { serializeAutosBrowseUrl } from "../../filters/autosBrowseFilterContract";
 import { emptyAutosPublicFilters } from "../../filters/autosPublicFilterTypes";
 import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
+import { AUTOS_CLASSIFIEDS_EVENT } from "@/app/lib/clasificados/autos/autosClassifiedsEventTypes";
 import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
+import { trackAutosListingEvent } from "../../lib/autosListingAnalyticsClient";
 
 type PublicListingApiOk = {
   ok: true;
@@ -59,6 +61,11 @@ export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
       cancelled = true;
     };
   }, [listingId, lang]);
+
+  useEffect(() => {
+    if (!data || !lane) return;
+    trackAutosListingEvent(listingId, AUTOS_CLASSIFIEDS_EVENT.listingOpen, { lane });
+  }, [listingId, data, lane]);
 
   useEffect(() => {
     if (!data) return;

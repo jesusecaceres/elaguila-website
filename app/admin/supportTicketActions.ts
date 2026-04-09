@@ -66,5 +66,64 @@ export async function createSupportTicketRecordAction(formData: FormData) {
   });
 
   revalidatePath("/admin/support");
+  redirect("/admin/support?ticket_created=1");
+}
+
+const TICKET_STATUS = new Set(["open", "in_progress", "closed"]);
+const ESCALATION_TAGS = new Set(["Billing", "Technical", "Fraud", "Content"]);
+
+function schemaColumnMissing(err: { message?: string } | null): boolean {
+  const m = (err?.message ?? "").toLowerCase();
+  return /column|does not exist|schema cache/i.test(m);
+}
+
+/** Status always persisted; notes + escalation require migration `20260408210000_support_tickets_staff_followup.sql`. */
+export async function updateSupportTicketFollowupAction(formData: FormData) {
+  await assertAdmin();
+  const id = uuidOrNull(str(formData, "ticket_id"));
+  if (!id) redirect("/admin/support?ticket_error=1");
+
+  const status = str(formData, "status");
+  if (!TICKET_STATUS.has(status)) redirect("/admin/support?ticket_error=1");
+
+  const staff_internal_notes = str(formData, "staff_internal_notes") || null;
+  const escRaw = str(formData, "escalation_tag");
+  const escalation_tag =
+    escRaw === "" ? null : ESCALATION_TAGS.has(escRaw) ? escRaw : null;
+  if (escRaw !== "" && escalation_tag === null) {
+    redirect("/admin/support?ticket_error=1");
+  }
+
+  const supabase = getAdminSupabase();
+  const now = new Date().toISOString();
+
+  const full = { status, updated_at: now, staff_internal_notes, escalation_tag };
+  let { error } = await supabase.from("support_tickets").update(full).eq("id", id);
+
+  if (error && schemaColumnMissing(error)) {
+    const { error: e2 } = await supabase
+      .from("support_tickets")
+      .update({ status, updated_at: now })
+      .eq("id", id);
+    error = e2;
+    if (!error) {
+      auditAdminWrite("support_ticket_updated", "support_tickets", id, {
+        status,
+        staff_followup_columns: "unavailable",
+      });
+      revalidatePath("/admin/support");
+      redirect("/admin/support?ticket_saved=1&followup_columns=0");
+    }
+  }
+
+  if (error) redirect("/admin/support?ticket_error=1");
+
+  auditAdminWrite("support_ticket_updated", "support_tickets", id, {
+    status,
+    escalation_tag,
+    notes_len: staff_internal_notes?.length ?? 0,
+  });
+
+  revalidatePath("/admin/support");
   redirect("/admin/support?ticket_saved=1");
 }

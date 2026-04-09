@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { tryActivateAutosListingAfterPayment } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
+import { recordAutosClassifiedsListingEvent } from "@/app/lib/clasificados/autos/autosClassifiedsAnalyticsService";
+import { AUTOS_CLASSIFIEDS_EVENT } from "@/app/lib/clasificados/autos/autosClassifiedsEventTypes";
+import { getAutosClassifiedsListingById, tryActivateAutosListingAfterPayment } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import { getStripeSecretKey, getStripeWebhookSecret, isStripeAutosConfigured } from "@/app/lib/clasificados/autos/stripeAutosConfig";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +31,20 @@ export async function POST(request: Request) {
     const session = event.data.object as Stripe.Checkout.Session;
     const listingId = session.metadata?.listing_id ?? session.client_reference_id ?? undefined;
     if (listingId && session.payment_status === "paid") {
-      await tryActivateAutosListingAfterPayment(listingId);
+      const pi = session.payment_intent;
+      const piId = typeof pi === "string" ? pi : pi?.id ?? null;
+      const result = await tryActivateAutosListingAfterPayment(listingId, { stripePaymentIntentId: piId });
+      if (result.ok && result.transitioned) {
+        const row = await getAutosClassifiedsListingById(listingId);
+        if (row) {
+          void recordAutosClassifiedsListingEvent({
+            listingId,
+            eventType: AUTOS_CLASSIFIEDS_EVENT.paymentConversion,
+            lane: row.lane,
+            metadata: { source: "stripe_webhook" },
+          });
+        }
+      }
     }
   }
   return NextResponse.json({ received: true });

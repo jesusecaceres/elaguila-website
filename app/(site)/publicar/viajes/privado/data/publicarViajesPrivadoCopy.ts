@@ -181,7 +181,11 @@ function es(): PublicarViajesPrivadoCopy {
     },
     multimedia: {
       heroUrl: { label: "URL de imagen (opcional)", placeholder: "https://…" },
-      localFile: { label: "O sube una imagen (solo en este dispositivo)", helper: "Se usa para la vista previa; no se sube a la nube aún." },
+      localFile: {
+        label: "O sube una imagen (solo en este dispositivo)",
+        helper:
+          "Vista previa en este navegador. Archivos grandes se guardan en IndexedDB (más fiable que solo localStorage); si el navegador bloquea almacenamiento, usa una URL o una foto más pequeña. No hay subida a la nube.",
+      },
       clearImage: "Quitar imagen",
     },
     contact: {
@@ -312,7 +316,11 @@ function en(): PublicarViajesPrivadoCopy {
     },
     multimedia: {
       heroUrl: { label: "Image URL (optional)", placeholder: "https://…" },
-      localFile: { label: "Or upload an image (this device only)", helper: "Used for preview; not uploaded to the cloud yet." },
+      localFile: {
+        label: "Or upload an image (this device only)",
+        helper:
+          "Preview in this browser. Large files are stored in IndexedDB (more reliable than localStorage alone); if the browser blocks storage, use a URL or a smaller photo. Nothing is uploaded to the cloud.",
+      },
       clearImage: "Remove image",
     },
     contact: {

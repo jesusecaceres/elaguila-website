@@ -7,6 +7,7 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { deleteMuxAssetsForListingRecordClient } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
 import { AutosClassifiedListingManageCard } from "@/app/clasificados/autos/dashboard/AutosClassifiedListingManageCard";
+import { AutosLeonixPaidListingsSection } from "@/app/clasificados/autos/dashboard/AutosLeonixPaidListingsSection";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { LeonixRealEstateListingManageCard } from "../components/LeonixRealEstateListingManageCard";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
@@ -530,6 +531,8 @@ export default function MyListingsPage() {
               {t.cta}
             </Link>
           </header>
+
+          <AutosLeonixPaidListingsSection lang={lang} />
 
           <div className="mt-4 rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-4 text-xs leading-relaxed text-[#5C5346]">
             <p className="font-semibold text-[#1E1810]">BR / Rentas — gestión</p>

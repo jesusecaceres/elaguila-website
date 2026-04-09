@@ -9,6 +9,7 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { ViajesOfferDetailLayout } from "@/app/(site)/clasificados/viajes/components/ViajesOfferDetailLayout";
 import { getViajesUi } from "@/app/(site)/clasificados/viajes/data/viajesUiCopy";
 import { ViajesLangSwitch } from "@/app/(site)/clasificados/viajes/components/ViajesLangSwitch";
+import { useViajesLocalHeroObjectUrl } from "@/app/(site)/clasificados/viajes/lib/useViajesLocalHeroObjectUrl";
 import { getPublicarViajesPrivadoCopy } from "@/app/(site)/publicar/viajes/privado/data/publicarViajesPrivadoCopy";
 import { mapViajesPrivadoDraftToOffer } from "@/app/(site)/publicar/viajes/privado/lib/mapViajesPrivadoDraftToOffer";
 import { useViajesPrivadoDraft } from "@/app/(site)/publicar/viajes/privado/lib/useViajesPrivadoDraft";
@@ -19,10 +20,15 @@ export function ViajesPrivadoPreviewClient() {
   const ui = getViajesUi(lang);
   const c = getPublicarViajesPrivadoCopy(lang);
   const { draft, hydrated } = useViajesPrivadoDraft();
+  const heroBlobUrl = useViajesLocalHeroObjectUrl("privado", draft.localHeroBlobId);
 
   const offer = useMemo(
-    () => mapViajesPrivadoDraftToOffer(draft, c, lang === "en" ? "en" : "es", { sparse: true }),
-    [draft, c, lang]
+    () =>
+      mapViajesPrivadoDraftToOffer(draft, c, lang === "en" ? "en" : "es", {
+        sparse: true,
+        heroSrcOverride: heroBlobUrl ?? undefined,
+      }),
+    [draft, c, lang, heroBlobUrl]
   );
 
   const backHref = appendLangToPath("/publicar/viajes/privado", lang);

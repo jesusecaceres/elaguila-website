@@ -137,11 +137,19 @@ export function ViajesOfferDetailLayout({
 
         <section className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 shadow-sm sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
+            <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">
                 {partner.isAffiliate ? od.partnerCommercial : partner.privateSeller ? od.privatePostedBy : od.postedBy}
               </p>
-              <h2 className="mt-1 text-xl font-bold text-[color:var(--lx-text)]">{partner.name}</h2>
+              <div className="mt-1 flex flex-wrap items-center gap-3">
+                {partner.logoSrc ? (
+                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] shadow-sm">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- arbitrary partner / draft logo URLs */}
+                    <img src={partner.logoSrc} alt="" className="h-full w-full object-contain p-1" />
+                  </div>
+                ) : null}
+                <h2 className="text-xl font-bold text-[color:var(--lx-text)]">{partner.name}</h2>
+              </div>
               {partner.isAffiliate ? (
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-text-2)]">
                   {partner.affiliateDisclosure ?? od.affiliateFallback}

@@ -26,6 +26,22 @@ export type AdminPermissionKey =
   | "can_view_activity_logs"
   | "can_use_replica_mode";
 
+/** All keys storable in `admin_team_members.permissions` (JSON array of strings). */
+export const ALL_ADMIN_PERMISSION_KEYS: readonly AdminPermissionKey[] = [
+  "can_view_users",
+  "can_edit_users",
+  "can_reset_passwords",
+  "can_manage_ads",
+  "can_manage_reports",
+  "can_manage_categories",
+  "can_manage_magazine",
+  "can_manage_website_content",
+  "can_view_payments",
+  "can_manage_team",
+  "can_view_activity_logs",
+  "can_use_replica_mode",
+] as const;
+
 export type AdminTeamMember = {
   id: string;
   email: string;

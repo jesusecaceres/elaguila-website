@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
-import { adminCardBase, adminBtnPrimary, adminInputClass, adminStubBadgeClass } from "../../_components/adminTheme";
+import { adminCardBase, adminBtnPrimary, adminInputClass, adminStubBadgeClass, adminCtaChipSecondary } from "../../_components/adminTheme";
 import { SITE_THEME_PRESETS, type SiteThemePresetId } from "../../_lib/adminSettingsTheme";
 
 export const dynamic = "force-dynamic";
@@ -12,9 +13,23 @@ export default function AdminSettingsPage() {
       </div>
       <AdminPageHeader
         title="Settings"
-        subtitle="Environment and future theme control. Changing presets does not alter the public site until CSS variable wiring lands."
-        helperText="Tema y campos deshabilitados: no se guardan. Para avisos globales del sitio usa Ajustes globales (/admin/site-settings)."
+        subtitle="Esta página sigue siendo intencionalmente no persistente: no hay tabla Leonix de “site settings” genéricos. El tema y notas de coordinación viven en código / despliegue hasta que exista un modelo acordado."
+        helperText="Lo que sí persiste hoy: secciones del sitio (`site_section_content`), categorías (`site_category_config`), ajustes globales (`/admin/site-settings`), roster (`admin_team_members`), revista (`magazine_issues`), pedidos Tienda, etc."
       />
+
+      <div className={`${adminCardBase} mb-6 border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}>
+        <strong>Bloqueador para “guardar tema aquí”:</strong> haría falta una fila o tabla dedicada (p. ej.{" "}
+        <code className="rounded bg-white/80 px-1">site_runtime_settings</code>), políticas RLS, y lectura en el layout público
+        sin romper caché. Hasta entonces, cualquier botón “Save” sería falso — por eso los campos siguen deshabilitados.
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link href="/admin/site-settings" className={`${adminCtaChipSecondary} justify-center text-xs`}>
+            Ajustes globales (persistidos) →
+          </Link>
+          <Link href="/admin/workspace" className={`${adminCtaChipSecondary} justify-center text-xs`}>
+            Mapa de workspaces →
+          </Link>
+        </div>
+      </div>
 
       <div className={`${adminCardBase} mb-8 p-6`}>
         <h2 className="text-sm font-bold text-[#1E1810]">Environment</h2>

@@ -39,7 +39,7 @@ export default function EmpleoFeriaApplicationClient() {
 
   const [publishOpen, setPublishOpen] = useState(false);
 
-  const gate = useMemo(() => gateEmpleosFeriaPreview(state), [state]);
+  const gate = useMemo(() => gateEmpleosFeriaPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;
   const previewDisabledReason = gate.ok ? null : `${copy.gateFail} ${gate.issues.join(", ")}`;
 
@@ -100,37 +100,37 @@ export default function EmpleoFeriaApplicationClient() {
         <div className="space-y-6">
           <EmpleosSectionCard title={lang === "es" ? "1. Información principal" : "1. Main details"}>
             <label className="block text-sm">
-              <EmpleosFieldLabel required>{lang === "es" ? "Título" : "Title"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Título" : "Title"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.title} onChange={(e) => patch({ title: e.target.value })} />
             </label>
             <label className="block text-sm">
-              <EmpleosFieldLabel required>{lang === "es" ? "Fecha" : "Date"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Fecha" : "Date"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.dateLine} onChange={(e) => patch({ dateLine: e.target.value })} />
             </label>
             <label className="block text-sm">
-              <EmpleosFieldLabel optional>{lang === "es" ? "Hora" : "Time"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Hora" : "Time"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.timeLine} onChange={(e) => patch({ timeLine: e.target.value })} />
             </label>
             <label className="block text-sm">
-              <EmpleosFieldLabel required>{lang === "es" ? "Sede / venue" : "Venue"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Sede / venue" : "Venue"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.venue} onChange={(e) => patch({ venue: e.target.value })} />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
-                <EmpleosFieldLabel required>{lang === "es" ? "Ciudad" : "City"}</EmpleosFieldLabel>
+                <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Ciudad" : "City"}</EmpleosFieldLabel>
                 <input className={INPUT} value={state.city} onChange={(e) => patch({ city: e.target.value })} />
               </label>
               <label className="block text-sm">
-                <EmpleosFieldLabel required>{lang === "es" ? "Estado" : "State"}</EmpleosFieldLabel>
+                <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Estado" : "State"}</EmpleosFieldLabel>
                 <input className={INPUT} value={state.state} onChange={(e) => patch({ state: e.target.value })} />
               </label>
             </div>
             <label className="block text-sm">
-              <EmpleosFieldLabel required>{lang === "es" ? "Organizador" : "Organizer"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Organizador" : "Organizer"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.organizer} onChange={(e) => patch({ organizer: e.target.value })} />
             </label>
             <label className="block text-sm">
-              <EmpleosFieldLabel optional>{lang === "es" ? "Sitio del organizador" : "Organizer website"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Sitio del organizador" : "Organizer website"}</EmpleosFieldLabel>
               <input className={INPUT} type="url" value={state.organizerUrl} onChange={(e) => patch({ organizerUrl: e.target.value })} />
             </label>
           </EmpleosSectionCard>
@@ -178,7 +178,7 @@ export default function EmpleoFeriaApplicationClient() {
               </label>
             </div>
             <label className="block text-sm">
-              <EmpleosFieldLabel optional>{lang === "es" ? "Enfoque de industria" : "Industry focus"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Enfoque de industria" : "Industry focus"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.industryFocus} onChange={(e) => patch({ industryFocus: e.target.value })} />
             </label>
             <p className="text-xs text-[color:var(--lx-muted)]">{lang === "es" ? "Tipo de evento: feria de empleo (fijo en el anuncio)." : "Event type: job fair (fixed)."}</p>
@@ -186,23 +186,23 @@ export default function EmpleoFeriaApplicationClient() {
 
           <EmpleosSectionCard title={lang === "es" ? "4. Contacto / CTA" : "4. Contact / CTA"}>
             <label className="block text-sm">
-              <EmpleosFieldLabel optional>{lang === "es" ? "Texto introductorio (banda CTA)" : "CTA intro copy"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Texto introductorio (banda CTA)" : "CTA intro copy"}</EmpleosFieldLabel>
               <textarea className={`${INPUT} min-h-[80px]`} value={state.ctaIntro} onChange={(e) => patch({ ctaIntro: e.target.value })} />
             </label>
             <label className="block text-sm">
-              <EmpleosFieldLabel optional>{lang === "es" ? "Enlace de registro / más info" : "Registration / info link"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Enlace de registro / más info" : "Registration / info link"}</EmpleosFieldLabel>
               <input className={INPUT} type="url" value={state.contactLink} onChange={(e) => patch({ contactLink: e.target.value })} />
             </label>
             <label className="block text-sm">
-              <EmpleosFieldLabel optional>{lang === "es" ? "Teléfono" : "Phone"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Teléfono" : "Phone"}</EmpleosFieldLabel>
               <input className={INPUT} type="tel" value={state.contactPhone} onChange={(e) => patch({ contactPhone: e.target.value })} />
             </label>
             <label className="block text-sm">
-              <EmpleosFieldLabel optional>{lang === "es" ? "Email" : "Email"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Email" : "Email"}</EmpleosFieldLabel>
               <input className={INPUT} type="email" value={state.contactEmail} onChange={(e) => patch({ contactEmail: e.target.value })} />
             </label>
             <label className="block text-sm">
-              <EmpleosFieldLabel optional>{lang === "es" ? "Etiqueta CTA (reservado)" : "CTA label (reserved)"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Etiqueta CTA (reservado)" : "CTA label (reserved)"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.ctaLabel} onChange={(e) => patch({ ctaLabel: e.target.value })} />
             </label>
           </EmpleosSectionCard>
@@ -257,6 +257,7 @@ export default function EmpleoFeriaApplicationClient() {
         confirmCta={copy.publishModal.confirmCta}
         cancelCta={copy.publishModal.cancelCta}
         blockedHint={copy.publishModal.blockedHint}
+        closeOverlayAria={copy.publishModal.closeOverlayAria}
       />
     </main>
   );

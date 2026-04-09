@@ -57,6 +57,7 @@ export function AutosPagoExitoClient() {
     lang,
   });
   const resultsHref = `/clasificados/autos/resultados?${resultsQs}`;
+  const dashboardHref = `/dashboard/mis-anuncios?lang=${lang}`;
 
   if (!sessionId || err) {
     return (
@@ -94,9 +95,12 @@ export function AutosPagoExitoClient() {
       >
         {c.viewLive}
       </Link>
-      <div className="mt-4">
+      <div className="mt-4 flex flex-col gap-2 sm:items-center">
         <Link href={resultsHref} className="text-sm font-semibold text-[color:var(--lx-gold)]">
           {c.browseMore}
+        </Link>
+        <Link href={dashboardHref} className="text-sm font-semibold text-[color:var(--lx-text-2)] underline">
+          {lang === "es" ? "Ir a mis anuncios" : "Go to my listings"}
         </Link>
       </div>
     </div>

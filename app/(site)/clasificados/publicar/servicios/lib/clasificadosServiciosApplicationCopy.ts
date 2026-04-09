@@ -20,6 +20,8 @@ export type ClasificadosServiciosCopy = {
   publishConfirmMissing: string;
   /** Opens preview without running strict checklist (draft may be partial) */
   openPreviewCta: string;
+  /** Explains strict vs utility preview — under the two preview actions */
+  openPreviewHelp: string;
   deleteApplication: string;
   deleteConfirm: string;
   sessionSaveHint: string;
@@ -185,6 +187,8 @@ export type ClasificadosServiciosCopy = {
     contactSummaryWhatsapp: string;
     contactSummaryWebsite: string;
     contactSummaryNone: string;
+    /** In-app message channel not offered in this phase */
+    contactMessageFootnote: string;
   };
 };
 
@@ -207,7 +211,9 @@ const es: ClasificadosServiciosCopy = {
     "Se guardó en este navegador porque la nube no está disponible. Otros dispositivos no verán el listado hasta que haya servidor.",
   publishConfirmMissing:
     "Marca las tres casillas de confirmación en el formulario (sección antes de publicar) para continuar.",
-  openPreviewCta: "Abrir vista previa",
+  openPreviewCta: "Abrir vista previa (utilidad)",
+  openPreviewHelp:
+    "«Ver vista previa» solo navega cuando ya cumples el checklist completo y verás la vitrina terminada. «Abrir vista previa (utilidad)» guarda tu borrador y abre la página de vista previa aunque falten datos: verás la lista de pendientes, no el diseño final.",
   deleteApplication: "Eliminar solicitud",
   deleteConfirm: "¿Borrar todo el borrador de Servicios en esta sesión y empezar de nuevo?",
   sessionSaveHint:
@@ -242,7 +248,7 @@ const es: ClasificadosServiciosCopy = {
     businessType: "Tipo de negocio",
     businessName: "Nombre del negocio",
     city: "Ciudad principal",
-    serviceAreas: "Zonas / área de servicio (opcional)",
+    serviceAreas: "Zonas de servicio (barrios, condados o radio)",
     phone: "Teléfono",
     website: "Sitio web",
     whatsapp: "WhatsApp",
@@ -336,7 +342,8 @@ const es: ClasificadosServiciosCopy = {
     videoFromFile: "Video subido",
     videoFromUrl: "Enlace / URL",
     offerAssetsIntro: "",
-    bottomActionsHint: "Abajo: vista previa completa y publicar. Arriba: acciones rápidas como en otros Clasificados.",
+    bottomActionsHint:
+      "Barra inferior: «Ver vista previa» (estricta) y publicar. La utilidad «Abrir vista previa» solo está arriba junto al texto explicativo.",
     assetFromFile: "Archivo",
     assetFromUrl: "URL",
     videosTitle: "Videos (opcional)",
@@ -353,9 +360,9 @@ const es: ClasificadosServiciosCopy = {
     hoursOutputHint:
       "En tu vitrina: destacamos el horario de hoy y mostramos la semana completa en el panel de contacto.",
     cityHelp:
-      "Ciudad base del negocio (ej. San José). Ayuda a filtros regionales; no sustituye las zonas donde viajas a trabajar.",
+      "Ciudad principal del negocio (p. ej. San José, Oakland, Fresno, Sacramento). La usamos como ancla para filtros regionales en NorCal; no reemplaza las zonas donde viajas a trabajar.",
     serviceAreasHelp:
-      "Barrios, condados o radio donde atiendes (ej. “Sur de la bahía · dentro de 40 km”). Es independiente de la ciudad principal.",
+      "Describe barrios, condados o radio donde atiendes (p. ej. “Sur de la bahía · dentro de 40 km”). Es independiente de la ciudad principal y no debe duplicarla.",
     languageOtherLabel: "Especifica otros idiomas",
     languageOtherPlaceholder: "Ej.: portugués, cantonés…",
     contactDataHeading: "A. Datos de contacto que tienes en el formulario",
@@ -369,6 +376,8 @@ const es: ClasificadosServiciosCopy = {
     contactSummaryWhatsapp: "WhatsApp → usa tu número de WhatsApp",
     contactSummaryWebsite: "Sitio web → usa tu URL",
     contactSummaryNone: "Aún no hay un método de contacto válido activo.",
+    contactMessageFootnote:
+      "El canal de “Mensaje” dentro de la vitrina no está activo en esta fase de Leonix Clasificados: las acciones públicas son llamada, WhatsApp y sitio web según lo actives arriba.",
   },
 };
 
@@ -391,7 +400,9 @@ const en: ClasificadosServiciosCopy = {
     "Saved on this browser because cloud publish isn’t available. Other devices won’t see it until the server is configured.",
   publishConfirmMissing:
     "Check all three confirmation boxes in the form (section before publishing) to continue.",
-  openPreviewCta: "Open preview",
+  openPreviewCta: "Open preview (utility)",
+  openPreviewHelp:
+    "“View preview” only navigates once every checklist item is satisfied and shows the finished showcase. “Open preview (utility)” saves your draft and opens the preview page even if data is missing: you’ll see what’s left to complete, not the final layout.",
   deleteApplication: "Delete application",
   deleteConfirm: "Delete this session’s Servicios draft and start over?",
   sessionSaveHint:
@@ -426,7 +437,7 @@ const en: ClasificadosServiciosCopy = {
     businessType: "Business type",
     businessName: "Business name",
     city: "Main city",
-    serviceAreas: "Service areas (optional)",
+    serviceAreas: "Service areas (neighborhoods, counties, radius)",
     phone: "Phone",
     website: "Website",
     whatsapp: "WhatsApp",
@@ -520,7 +531,8 @@ const en: ClasificadosServiciosCopy = {
     videoFromFile: "Uploaded clip",
     videoFromUrl: "From link",
     offerAssetsIntro: "",
-    bottomActionsHint: "Bottom: full preview and publish. Top: quick utilities like other Clasificados flows.",
+    bottomActionsHint:
+      "Bottom bar: strict “View preview” plus publish. The utility “Open preview” lives in the header with the explanation above.",
     assetFromFile: "File",
     assetFromUrl: "URL",
     videosTitle: "Videos (optional)",
@@ -537,9 +549,9 @@ const en: ClasificadosServiciosCopy = {
     hoursOutputHint:
       "On your public profile: we highlight today’s hours and show the full week in the contact panel.",
     cityHelp:
-      "Your business’s home city (e.g. San Jose). Helps regional filters; it’s not the same as everywhere you travel to work.",
+      "Primary city for your business (e.g. San Jose, Oakland, Fresno, Sacramento). We use it as the anchor for NorCal-style regional filters; it does not replace the areas you travel for jobs.",
     serviceAreasHelp:
-      "Neighborhoods, counties, or radius you serve (e.g. “South Bay · within 25 mi”). Separate from the main city field.",
+      "Neighborhoods, counties, or service radius (e.g. “South Bay · within 25 mi”). Keep this distinct from the main city — don’t duplicate the city name here.",
     languageOtherLabel: "Specify other languages",
     languageOtherPlaceholder: "e.g. Portuguese, Cantonese…",
     contactDataHeading: "A. Contact details on file",
@@ -553,6 +565,8 @@ const en: ClasificadosServiciosCopy = {
     contactSummaryWhatsapp: "WhatsApp → uses your WhatsApp number",
     contactSummaryWebsite: "Website → uses your URL",
     contactSummaryNone: "No valid contact method is active yet.",
+    contactMessageFootnote:
+      "The in-showcase “Message” channel is not active in this Leonix Clasificados phase — public actions are call, WhatsApp, and website based on what you enable above.",
   },
 };
 

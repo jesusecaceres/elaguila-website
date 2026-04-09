@@ -7,6 +7,7 @@ import type {
   VideoItem,
 } from "./clasificadosServiciosApplicationTypes";
 import { createDefaultClasificadosServiciosState } from "./defaultClasificadosServiciosState";
+import { SERVICIOS_APPLICATION_STEP_COUNT } from "./serviciosApplicationStepLabels";
 
 const DAY_KEYS: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
@@ -127,7 +128,14 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     featuredGalleryIds = gallery.slice(0, 4).map((g) => g.id);
   }
 
+  const maxStep = Math.max(0, SERVICIOS_APPLICATION_STEP_COUNT - 1);
+  let applicationStepIndex = d.applicationStepIndex;
+  if (typeof o.applicationStepIndex === "number" && Number.isFinite(o.applicationStepIndex)) {
+    applicationStepIndex = Math.max(0, Math.min(maxStep, Math.floor(o.applicationStepIndex)));
+  }
+
   return {
+    applicationStepIndex,
     businessTypeId: str("businessTypeId", d.businessTypeId),
     businessName: str("businessName", d.businessName),
     city: str("city", d.city),

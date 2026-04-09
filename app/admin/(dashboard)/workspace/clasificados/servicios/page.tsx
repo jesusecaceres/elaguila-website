@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import { adminLocalSimBadgeClass } from "@/app/admin/_components/adminTheme";
 
@@ -348,11 +349,12 @@ export default function AdminServiciosPage() {
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-violet-200 bg-violet-50/90 p-3 text-sm text-violet-950">
         <span className={adminLocalSimBadgeClass}>Simulación local</span>
         <span className="text-xs">
-          Los datos viven en <code className="rounded bg-white/80 px-1">localStorage</code> del navegador — no son anuncios reales en Supabase. Para moderación real usa{" "}
-          <a href="/admin/workspace/clasificados" className="font-bold underline">
-            Clasificados
-          </a>
-          .
+          Los datos viven en <code className="rounded bg-white/80 px-1">localStorage</code> del navegador — no son filas en{" "}
+          <code className="rounded bg-white/80 px-1">listings</code>. Cola real Servicios (misma categoría):{" "}
+          <Link href="/admin/workspace/clasificados?category=servicios" className="font-bold underline">
+            Clasificados → category=servicios
+          </Link>
+          . Esta pantalla sigue siendo sandbox de UX/tiers hasta reenganchar mutaciones a Supabase.
         </span>
       </div>
       <h1 className="text-xl font-bold text-[#111111]">Servicios – Create listing</h1>

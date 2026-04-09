@@ -26,6 +26,7 @@ function hoursDifferFromTemplate(rows: DayHoursRow[]): boolean {
 
 export function createDefaultClasificadosServiciosState(): ClasificadosServiciosApplicationState {
   return {
+    applicationStepIndex: 0,
     businessTypeId: "",
     businessName: "",
     city: "",
@@ -85,6 +86,7 @@ export const WEEK_DAY_LABELS: Record<DayKey, { es: string; en: string }> = {
 
 /** True when the draft differs from a fresh empty form (leave-guard + abandon flows). */
 export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServiciosApplicationState): boolean {
+  if (s.applicationStepIndex > 0) return true;
   if (s.businessTypeId.trim()) return true;
   if (s.businessName.trim()) return true;
   if (s.city.trim()) return true;

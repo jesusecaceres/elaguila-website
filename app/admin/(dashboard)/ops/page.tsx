@@ -111,6 +111,9 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
               <a href="#ops-reports" className={adminCtaChipCompact}>
                 Reportes
               </a>
+              <a href="#ops-support-tickets" className={adminCtaChipCompact}>
+                Tickets
+              </a>
               <a href="#ops-shortcuts" className={adminCtaChipCompact}>
                 Atajos
               </a>
@@ -225,6 +228,29 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
                       </>
                     ) : (
                       <span className="text-xs text-[#9A9084]"> · sin email en perfil</span>
+                    )}
+                  </li>
+                  <li id="ops-support-tickets" className="scroll-mt-24">
+                    Tickets internos{" "}
+                    <span className="font-mono text-[10px] text-[#7A7164]">(support_tickets.user_id)</span>:{" "}
+                    {bundle.supportContext.supportTicketsUnavailable ? (
+                      <span className="text-xs text-amber-900">
+                        No disponible (tabla o columna <span className="font-mono">user_id</span>).
+                      </span>
+                    ) : (
+                      <>
+                        total <strong className="text-[#1E1810]">{bundle.supportContext.supportTicketsTotal}</strong>
+                        {" · "}
+                        abiertos / en curso{" "}
+                        <strong className="text-[#1E1810]">{bundle.supportContext.supportTicketsOpen}</strong>
+                        {" · "}
+                        <Link
+                          href={`/admin/support?profile=${encodeURIComponent(bundle.supportContext.profileId)}`}
+                          className="font-bold text-[#6B5B2E] underline"
+                        >
+                          Support (filtrado) →
+                        </Link>
+                      </>
                     )}
                   </li>
                 </ul>
@@ -406,6 +432,9 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
               </Link>
               <Link href="/admin/tienda/orders" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
                 Pedidos Tienda
+              </Link>
+              <Link href="/admin/support" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
+                Support / tickets
               </Link>
               <Link href="/admin/categories" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
                 Categorías

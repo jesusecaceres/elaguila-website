@@ -5,7 +5,8 @@ export function AdminViajesPublicSurfaceMap() {
     <div className={`${adminCardBase} mb-6 border border-sky-200/80 bg-sky-50/70 p-5`}>
       <p className="text-xs font-bold uppercase tracking-wide text-sky-950">Public surface map (affiliate lane)</p>
       <p className="mt-2 text-sm text-[#1E1810]">
-        Fields in Affiliate Cards are intentionally shaped to feed the live Viajes experience — not a disconnected spreadsheet.
+        Fields in Affiliate Cards are intentionally shaped to feed the live Viajes experience — not a disconnected spreadsheet. Business-lane mapping lives separately under{" "}
+        <strong>Business Offers</strong> (see business public surface map there).
       </p>
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <div className="rounded-2xl border border-sky-100 bg-white/90 p-3 text-xs text-[#2C2416]">

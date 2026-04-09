@@ -12,6 +12,7 @@ type Props = {
   confirmCta: string;
   cancelCta: string;
   blockedHint: string;
+  closeOverlayAria: string;
 };
 
 /**
@@ -28,6 +29,7 @@ export function EmpleosPublishConfirmModal({
   confirmCta,
   cancelCta,
   blockedHint,
+  closeOverlayAria,
 }: Props) {
   const [c, setC] = useState([false, false, false]);
   useEffect(() => {
@@ -37,7 +39,7 @@ export function EmpleosPublishConfirmModal({
   const all = c.every(Boolean);
   return (
     <div className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center" role="dialog" aria-modal="true">
-      <button type="button" className="absolute inset-0 bg-black/50" aria-label="Cerrar" onClick={onClose} />
+      <button type="button" className="absolute inset-0 bg-black/50" aria-label={closeOverlayAria} onClick={onClose} />
       <div className="relative z-[201] m-4 w-full max-w-lg rounded-2xl border border-black/10 bg-white p-6 shadow-xl">
         <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{title}</h2>
         <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{intro}</p>

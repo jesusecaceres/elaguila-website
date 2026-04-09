@@ -40,10 +40,9 @@ export function emptyEmpleosFeriaDraft(): EmpleosFeriaDraft {
     freeEntry: true,
     bilingual: false,
     industryFocus: "",
-    detailsBullets: ["Feria de Empleo"],
+    detailsBullets: [],
     secondaryDetails: [],
-    ctaIntro:
-      "¡No te pierdas nuestra feria de empleo! Haz clic en el botón para ver más detalles y prepararte para este gran evento.",
+    ctaIntro: "",
     contactLink: "",
     contactPhone: "",
     contactEmail: "",

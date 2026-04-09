@@ -10,6 +10,7 @@ import {
   type AutosPreviewCompletenessKey,
   type AutosPreviewLane,
 } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
+import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import type { AutosApplicationStepContext } from "./AutosApplicationSteppedShell";
 import { getAutosApplicationStepShellCopy } from "../lib/autosApplicationStepShellCopy";
@@ -83,6 +84,12 @@ export function AutosApplicationTopActions({
     if (idx !== null) stepCtx.goToStep(idx, { bypassMax: true });
   }
 
+  const publishLane = toPublishLane(lane);
+  const publishConfirmHref = withLangParam(
+    publishLane === "negocios" ? "/publicar/autos/negocios/confirm" : "/publicar/autos/privado/confirm",
+    lang,
+  );
+
   return (
     <>
       <div className="mb-6 space-y-3 rounded-[16px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm sm:p-5">
@@ -148,7 +155,13 @@ export function AutosApplicationTopActions({
         ) : null}
       </div>
 
-      <AutosPublishPlaceholderModal open={publishOpen} onClose={() => setPublishOpen(false)} lang={lang} lane={toPublishLane(lane)} />
+      <AutosPublishPlaceholderModal
+        open={publishOpen}
+        onClose={() => setPublishOpen(false)}
+        lang={lang}
+        lane={publishLane}
+        confirmHref={publishConfirmHref}
+      />
     </>
   );
 }

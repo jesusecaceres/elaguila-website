@@ -23,7 +23,7 @@ export function ServiciosResultsFilters({
   );
 
   return (
-    <div className="mt-6 rounded-2xl border border-neutral-200/90 bg-white/90 p-4 shadow-sm sm:p-5">
+    <div className="mt-6 rounded-2xl border border-neutral-200/90 bg-white/90 p-3 shadow-sm sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xs font-bold uppercase tracking-wide text-neutral-500">
           {lang === "en" ? "Filters" : "Filtros"}
@@ -42,7 +42,7 @@ export function ServiciosResultsFilters({
         method="get"
         action="/clasificados/servicios"
         aria-label={lang === "en" ? "Filter Servicios results" : "Filtrar resultados de Servicios"}
-        className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+        className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
       >
         <input type="hidden" name="lang" value={lang} />
         <label className="flex min-w-0 flex-col gap-1">

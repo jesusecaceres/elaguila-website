@@ -35,6 +35,7 @@ export default function AdminWorkspaceNoticiasPage() {
         notYet={[
           "Modelo editorial completo: artículos propios en Postgres, markdown en git, o integración externa.",
           "Edición de taxonomía de pestañas (Últimas, Deportes…) sin deploy.",
+          "Siguiente paso mínimo viable: tabla `news_articles` + campos slug/body/published_at + lectura en `/noticias` con fallback RSS.",
         ]}
       />
 

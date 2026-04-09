@@ -15,11 +15,11 @@ export function getAutosPublishPlaceholderCopy(lang: AutosClassifiedsLang, lane:
     overlayClose: isEs ? "Cerrar" : "Close",
     title: isEs ? "Antes de publicar" : "Before publishing",
     subtitle: isEs
-      ? `Estás en el flujo ${laneLabel}. Revisa estas confirmaciones; el pago en línea y la activación automática llegarán en la siguiente fase del sistema.`
-      : `You're in the ${laneLabel} flow. Review these confirmations—online payment and automatic activation are coming in the next system phase.`,
+      ? `Estás en el flujo ${laneLabel}. Marca las confirmaciones y continúa a la pantalla de confirmación y pago con Stripe.`
+      : `You're in the ${laneLabel} flow. Check the confirmations, then continue to the confirmation and Stripe payment step.`,
     phaseNote: isEs
-      ? "Por ahora puedes seguir editando y usando la vista previa. Tu borrador se guarda en este dispositivo."
-      : "You can keep editing and using preview for now. Your draft saves on this device.",
+      ? "Tu borrador se guarda en este dispositivo hasta que confirmes y pagues. Tras el pago, el anuncio aparece en resultados y en la ficha pública."
+      : "Your draft stays on this device until you confirm and pay. After payment, your listing appears in search and on the public vehicle page.",
     checks: {
       accurate: isEs
         ? "Confirmo que la información del vehículo y del anuncio es veraz y puedo respaldarla."
@@ -28,11 +28,11 @@ export function getAutosPublishPlaceholderCopy(lang: AutosClassifiedsLang, lane:
         ? "Acepto las reglas de Clasificados Leonix para anuncios de autos y el uso del canal correspondiente."
         : "I accept Leonix Clasificados rules for vehicle listings and use of this channel.",
       paidPlaceholder: isEs
-        ? "Entiendo que el pago en línea y la activación publicada aún no están conectados en esta versión."
-        : "I understand online payment and published activation are not connected in this version yet.",
+        ? "Entiendo el costo del paquete y que el pago es vía Stripe antes de la activación pública."
+        : "I understand the package cost and that payment is processed via Stripe before public activation.",
     },
     mustCheck: isEs ? "Marca las tres casillas para continuar." : "Check all three boxes to continue.",
     backEdit: isEs ? "Volver al formulario" : "Back to form",
-    acknowledge: isEs ? "Entendido" : "Got it",
+    continueToConfirm: isEs ? "Ir a confirmar y pagar" : "Go to confirm and pay",
   };
 }
