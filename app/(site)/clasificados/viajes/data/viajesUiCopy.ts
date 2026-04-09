@@ -144,8 +144,10 @@ export type ViajesUi = {
     whoFor: string;
     partnerCommercial: string;
     postedBy: string;
+    privatePostedBy: string;
     affiliateFallback: string;
     businessFallback: string;
+    privateFallback: string;
     detailsTitle: string;
     calendar: string;
   };
@@ -381,10 +383,13 @@ function es(): Omit<ViajesUi, "lang"> {
       whoFor: "¿Para quién es?",
       partnerCommercial: "Socio comercial",
       postedBy: "Publicado por",
+      privatePostedBy: "Particular",
       affiliateFallback:
         "Oferta de un socio comercial: al continuar sueles salir de Leonix para completar la reserva o el pago. Leonix no actúa como vendedor final.",
       businessFallback:
         "Anuncio de negocio o agencia en Leonix Clasificados — contacto directo; Leonix no procesa la reserva por ti.",
+      privateFallback:
+        "Anuncio particular en Leonix Clasificados — Leonix no verifica identidad ni cobra por ti. Confirma disponibilidad y condiciones directamente con el anunciante.",
       detailsTitle: "Detalles del viaje",
       calendar: "Calendario:",
     },
@@ -624,10 +629,13 @@ function en(): Omit<ViajesUi, "lang"> {
       whoFor: "Who it’s for",
       partnerCommercial: "Commercial partner",
       postedBy: "Posted by",
+      privatePostedBy: "Private seller",
       affiliateFallback:
         "Commercial partner offer: continuing usually takes you off Leonix to complete booking or payment. Leonix is not the final seller.",
       businessFallback:
         "Business or agency listing on Leonix Classifieds — direct contact; Leonix does not process the booking for you.",
+      privateFallback:
+        "Private individual listing on Leonix Classifieds — Leonix does not verify identity or collect payment for you. Confirm availability and terms directly with the seller.",
       detailsTitle: "Trip details",
       calendar: "Dates:",
     },

@@ -11,9 +11,9 @@ export type PublicarViajesHubCopy = {
   negociosTitle: string;
   negociosBody: string;
   negociosCta: string;
-  soonTitle: string;
-  soonBody: string;
-  soonCta: string;
+  privadoTitle: string;
+  privadoBody: string;
+  privadoCta: string;
   footLink: string;
   footRest: string;
   modeNote: string;
@@ -24,27 +24,28 @@ function es(): PublicarViajesHubCopy {
     documentTitle: "Publicar · Leonix Viajes",
     back: "Volver al hub de publicar",
     kicker: "Leonix Clasificados",
-    title: "Publica una oferta de viajes (negocio)",
+    title: "Publica en Viajes",
     intro:
-      "Viajes es una categoría curada: las solicitudes de negocio pasan por revisión antes de publicarse. Aquí eliges la vía de agencia u operador — no hay publicación libre para particulares en esta versión.",
+      "Viajes es una categoría curada. Elige si publicas como negocio/agencia o como particular: ambas vías usan borrador local, vista previa en Clasificados y revisión antes de salir en vivo. Los socios comerciales (afiliados) se gestionan solo en el equipo Leonix — no desde aquí.",
     stepsTitle: "Flujo previsto",
     steps: [
-      { label: "1. Entrada", detail: "Eliges la vía de negocio y entiendes expectativas." },
-      { label: "2. Solicitud", detail: "Completas la oferta y los datos del negocio (borrador local)." },
-      { label: "3. Vista previa", detail: "Revisas cómo se verá la ficha pública en Clasificados." },
-      { label: "4. Envío y moderación", detail: "El envío en vivo y la moderación llegarán en una siguiente fase del producto." },
+      { label: "1. Entrada", detail: "Eliges negocios o privado y lees expectativas de calidad y confianza." },
+      { label: "2. Solicitud", detail: "Completas la oferta en borrador (guardado en este dispositivo)." },
+      { label: "3. Vista previa", detail: "Revisas la ficha en Clasificados antes de publicar." },
+      { label: "4. Publicación", detail: "El pago y la publicación en vivo llegarán en la siguiente fase del sistema." },
     ],
     negociosTitle: "Negocios y agencias",
     negociosBody:
-      "Solicitud estructurada para ofertas de viaje de calidad — alineada con la ficha pública de Viajes (destino, inclusiones, precio, contacto).",
+      "Solicitud estructurada para agencias y operadores — alineada con la ficha pública de Viajes (destino, inclusiones, precio, contacto del negocio).",
     negociosCta: "Continuar a la solicitud",
-    soonTitle: "Socios e integraciones",
-    soonBody: "Reservado para inventario de socios comerciales y programas internos. Sin autoservicio abierto aún.",
-    soonCta: "Próximamente",
+    privadoTitle: "Particulares (privado)",
+    privadoBody:
+      "Para personas que ofrecen un viaje, cupo o paquete propio — no es la vía de agencia ni inventario de socios comerciales. Revisión y calidad de anuncio aplican.",
+    privadoCta: "Continuar como particular",
     footLink: "Ver Viajes en Clasificados",
     footRest: "para ver ejemplos de fichas y confianza en la categoría.",
     modeNote:
-      "Leonix no procesa reservas ni pagos de viajes en esta vitrina — es descubrimiento y contacto, con reglas de confianza propias de Viajes.",
+      "Tres vías en el producto: socios comerciales (solo Leonix), negocios con solicitud, y particular con borrador local. Leonix no procesa reservas ni pagos en esta vitrina — descubrimiento y contacto con reglas de confianza de Viajes.",
   };
 }
 
@@ -53,27 +54,28 @@ function en(): PublicarViajesHubCopy {
     documentTitle: "Publish · Leonix Viajes",
     back: "Back to publishing hub",
     kicker: "Leonix Classifieds",
-    title: "Publish a travel offer (business)",
+    title: "Publish on Viajes",
     intro:
-      "Viajes is a curated category: business applications are reviewed before going live. This path is for agencies and operators — there is no open consumer free-post lane in this version.",
+      "Viajes is curated. Choose business/agency or private individual: both use a local draft, a Classifieds preview, and review before going live. Commercial partner (affiliate) inventory is managed only by Leonix — not from this flow.",
     stepsTitle: "Intended flow",
     steps: [
-      { label: "1. Entry", detail: "Choose the business path and understand expectations." },
-      { label: "2. Application", detail: "Complete the offer and business details (local draft)." },
-      { label: "3. Preview", detail: "Review how the public listing will look in Classifieds." },
-      { label: "4. Submit & moderation", detail: "Live submit and moderation ship in a later product phase." },
+      { label: "1. Entry", detail: "Choose business or private and read quality and trust expectations." },
+      { label: "2. Application", detail: "Complete the offer as a draft (saved on this device)." },
+      { label: "3. Preview", detail: "Review your card in Classifieds before publishing." },
+      { label: "4. Publishing", detail: "Payment and live publishing arrive in the next system phase." },
     ],
     negociosTitle: "Businesses & agencies",
     negociosBody:
-      "Structured request for quality travel offers — aligned with the public Viajes card (destination, inclusions, price, contact).",
+      "Structured application for agencies and operators — aligned with the public Viajes card (destination, inclusions, price, business contact).",
     negociosCta: "Continue to application",
-    soonTitle: "Partners & integrations",
-    soonBody: "Reserved for commercial partner inventory and internal programs. Not open for self-serve yet.",
-    soonCta: "Coming soon",
+    privadoTitle: "Private individuals",
+    privadoBody:
+      "For people offering their own trip, spot, or package — not the agency path and not commercial partner inventory. Listings are reviewed for accuracy and quality.",
+    privadoCta: "Continue as a private seller",
     footLink: "Open Viajes in Classifieds",
     footRest: "to see sample listings and category trust cues.",
     modeNote:
-      "Leonix does not process travel bookings or payments in this showcase — it’s discovery and contact, with Viajes-specific trust expectations.",
+      "Three lanes in the product: commercial partners (Leonix-internal), businesses via application, and private listings with a local draft. Leonix does not process travel bookings or payments in this showcase — it is discovery and contact with Viajes trust expectations.",
   };
 }
 

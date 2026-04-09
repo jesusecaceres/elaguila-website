@@ -8,7 +8,7 @@ const ES = [
   "Servicios y datos rápidos",
   "Contacto y acciones",
   "Redes y horarios",
-  "Testimonios y oferta",
+  "Promoción (opcional)",
   "Revisión y confirmación",
 ] as const;
 
@@ -20,7 +20,7 @@ const EN = [
   "Services & quick facts",
   "Contact & CTAs",
   "Social & hours",
-  "Testimonials & offer",
+  "Promotion (optional)",
   "Review & confirmation",
 ] as const;
 
@@ -32,7 +32,7 @@ export function getServiciosApplicationStepLabels(lang: ServiciosLang): readonly
 
 export function getServiciosApplicationStepShortLabels(lang: ServiciosLang): readonly string[] {
   if (lang === "en") {
-    return ["Type", "Basics", "Media", "About", "Services", "Contact", "Social", "Extra", "Review"];
+    return ["Type", "Basics", "Media", "About", "Services", "Contact", "Social", "Promo", "Review"];
   }
-  return ["Tipo", "Básico", "Media", "Sobre", "Servicios", "Contacto", "Redes", "Extra", "Revisión"];
+  return ["Tipo", "Básico", "Media", "Sobre", "Servicios", "Contacto", "Redes", "Promo", "Revisión"];
 }

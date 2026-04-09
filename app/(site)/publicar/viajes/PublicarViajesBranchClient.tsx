@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { FiArrowRight, FiBriefcase, FiLayers } from "react-icons/fi";
+import { FiArrowRight, FiBriefcase, FiUser } from "react-icons/fi";
 
 import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
@@ -25,6 +25,7 @@ export function PublicarViajesBranchClient() {
 
   const hubHref = appendLangToPath("/clasificados/publicar", lang);
   const negociosHref = appendLangToPath("/publicar/viajes/negocios", lang);
+  const privadoHref = appendLangToPath("/publicar/viajes/privado", lang);
   const viajesHref = appendLangToPath("/clasificados/viajes", lang);
 
   return (
@@ -81,14 +82,17 @@ export function PublicarViajesBranchClient() {
             </span>
           </Link>
 
-          <div className={`${CARD} cursor-not-allowed opacity-60`} aria-disabled="true">
-            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-muted)]">
-              <FiLayers className="h-5 w-5" aria-hidden />
+          <Link href={privadoHref} className={CARD}>
+            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] text-[color:var(--lx-gold)]">
+              <FiUser className="h-5 w-5" aria-hidden />
             </span>
-            <h2 className="mt-4 text-lg font-bold text-[color:var(--lx-text)]">{copy.soonTitle}</h2>
-            <p className="mt-2 flex-1 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{copy.soonBody}</p>
-            <span className="mt-6 inline-flex min-h-[48px] items-center gap-2 text-sm font-bold text-[color:var(--lx-muted)]">{copy.soonCta}</span>
-          </div>
+            <h2 className="mt-4 text-lg font-bold text-[color:var(--lx-text)]">{copy.privadoTitle}</h2>
+            <p className="mt-2 flex-1 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{copy.privadoBody}</p>
+            <span className="mt-6 inline-flex min-h-[48px] items-center gap-2 text-sm font-bold text-[#D97706] group-hover:underline">
+              {copy.privadoCta}
+              <FiArrowRight className="h-4 w-4 shrink-0 transition group-hover:translate-x-0.5" aria-hidden />
+            </span>
+          </Link>
         </div>
 
         <p className="mt-10 text-center text-sm text-[color:var(--lx-muted)]">

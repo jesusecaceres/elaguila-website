@@ -27,7 +27,7 @@ export default function AdminViajesLayout({ children }: { children: React.ReactN
         <Link href="/publicar/viajes" className="font-semibold text-[#6B5B2E] underline underline-offset-2">
           /publicar/viajes
         </Link>{" "}
-        branch is for vetted businesses, not partner inventory.
+        branch is for vetted businesses, not partner inventory. The public publish hub also includes a private (particular) draft path — still not affiliate authoring.
       </p>
       <AdminViajesLaneLegend />
       <AdminViajesSubnav />

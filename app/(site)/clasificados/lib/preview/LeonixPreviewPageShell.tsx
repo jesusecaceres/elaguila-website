@@ -13,11 +13,14 @@ const BRONZE_SOFT = "#B8954A";
 export function LeonixPreviewPageShell({
   editHref,
   onBeforeNavigateToEdit,
+  backLabel = "Volver a editar",
   children,
 }: {
   editHref?: string;
   /** BR Negocio: session handoff so leave-guards do not fire when returning from preview. */
   onBeforeNavigateToEdit?: () => void;
+  /** Defaults to Spanish; pass `Back to edit` for EN flows. */
+  backLabel?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -35,7 +38,7 @@ export function LeonixPreviewPageShell({
               className="inline-flex min-h-[44px] items-center justify-center rounded-full border px-4 py-2 text-[11px] font-bold uppercase tracking-wide sm:min-h-0 sm:py-1.5"
               style={{ borderColor: BORDER, color: BRONZE_SOFT }}
             >
-              Volver a editar
+              {backLabel}
             </Link>
           ) : null}
         </div>

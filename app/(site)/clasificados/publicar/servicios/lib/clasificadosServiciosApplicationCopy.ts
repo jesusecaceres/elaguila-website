@@ -90,6 +90,13 @@ export type ClasificadosServiciosCopy = {
     offerLink: string;
     offerNote: string;
     testimonialsNote: string;
+    /** Step promo — overall intro */
+    promoSectionIntro: string;
+    offerTitleHelp: string;
+    offerDetailsHelp: string;
+    offerLinkHelp: string;
+    offerImageHelp: string;
+    offerPdfHelp: string;
     dropzone: string;
     upload: string;
     urlFallback: string;
@@ -229,7 +236,7 @@ const es: ClasificadosServiciosCopy = {
     social: "9 · Redes sociales",
     hours: "10 · Horarios",
     testimonials: "11 · Testimonios (opcional)",
-    offer: "12 · Oferta o cupón (opcional)",
+    offer: "12 · Promoción destacada (opcional)",
   },
   labels: {
     businessType: "Tipo de negocio",
@@ -267,10 +274,10 @@ const es: ClasificadosServiciosCopy = {
     testimonialAuthor: "Nombre",
     testimonialQuote: "Testimonio",
     addTestimonial: "Añadir testimonio",
-    offerTitle: "Título de la oferta",
+    offerTitle: "Título",
     offerDetails: "Detalles",
-    offerLink: "Enlace (opcional)",
-    offerNote: "Más adelante podrá vincularse al ecosistema de cupones Leonix.",
+    offerLink: "Enlace",
+    offerNote: "",
     testimonialsNote:
       "No son reseñas públicas con estrellas de Leonix: son testimonios opcionales que tú proporcionas. Podrían moderarse más adelante.",
     dropzone: "Arrastra imágenes o haz clic para subir",
@@ -300,16 +307,23 @@ const es: ClasificadosServiciosCopy = {
     leonixVerified: "Mostrar interés en Verificado Leonix",
     leonixVerifiedHint:
       "No otorga el distintivo: Leonix lo asigna en un paso controlado. Esto solo registra tu interés.",
-    offerImage: "Imagen de la oferta (opcional)",
-    offerPdf: "PDF / archivo de la oferta (opcional)",
-    offerPrimaryLabel: "Prioridad del cupón (cuando hay varios recursos)",
-    offerPrimaryNone: "Sin prioridad fija",
+    offerImage: "Imagen opcional",
+    offerPdf: "PDF o volante (opcional)",
+    offerPrimaryLabel: "Si añades varios recursos, ¿cuál mostrar primero?",
+    offerPrimaryNone: "Sin preferencia",
     offerPrimaryLink: "Enlace",
     offerPrimaryImage: "Imagen",
     offerPrimaryPdf: "PDF",
-    offerQrLater: "Quiero incluir un código QR en una fase posterior",
-    offerAssetContractNote:
-      "Enlace, imagen y PDF pueden convivir; esto solo indica cuál destacar primero cuando publiquemos el cupón.",
+    offerQrLater: "",
+    offerAssetContractNote: "Solo ordena el foco visual cuando hay más de un archivo o enlace.",
+    promoSectionIntro:
+      "Añade una promoción breve para tu vitrina: descuento, temporada, estimado gratis, consulta inicial o paquete especial. Sé concreto; un bloque corto funciona mejor que un texto largo.",
+    offerTitleHelp: "Titular directo: qué ofreces y para quién (ej. “15% en limpieza profunda esta semana”).",
+    offerDetailsHelp:
+      "Incluye la oferta, quién califica, condiciones y vigencia si aplica. Evita letras pequeñas ilegibles: lo esencial aquí.",
+    offerLinkHelp: "Opcional. Úsalo si la promoción vive en tu web, formulario o calendario.",
+    offerImageHelp: "Opcional. Sube un gráfico o foto si ya tienes material promocional.",
+    offerPdfHelp: "Opcional. PDF o volante si quieres que el cliente pueda abrir un archivo.",
     moveUp: "Arriba",
     moveDown: "Abajo",
     featuredToggle: "Principal en anuncio",
@@ -321,7 +335,7 @@ const es: ClasificadosServiciosCopy = {
     mediaUploadedBadge: "Listo · toca el recuadro para cambiar",
     videoFromFile: "Video subido",
     videoFromUrl: "Enlace / URL",
-    offerAssetsIntro: "Sube una imagen o un PDF opcional para tu cupón; puedes combinarlos con el enlace.",
+    offerAssetsIntro: "",
     bottomActionsHint: "Abajo: vista previa completa y publicar. Arriba: acciones rápidas como en otros Clasificados.",
     assetFromFile: "Archivo",
     assetFromUrl: "URL",
@@ -406,7 +420,7 @@ const en: ClasificadosServiciosCopy = {
     social: "9 · Social media",
     hours: "10 · Hours",
     testimonials: "11 · Testimonials (optional)",
-    offer: "12 · Offer / coupon (optional)",
+    offer: "12 · Featured promotion (optional)",
   },
   labels: {
     businessType: "Business type",
@@ -444,10 +458,10 @@ const en: ClasificadosServiciosCopy = {
     testimonialAuthor: "Name",
     testimonialQuote: "Quote",
     addTestimonial: "Add testimonial",
-    offerTitle: "Offer title",
+    offerTitle: "Headline",
     offerDetails: "Details",
-    offerLink: "Link (optional)",
-    offerNote: "Later this can connect to Leonix coupon tools.",
+    offerLink: "Link",
+    offerNote: "",
     testimonialsNote:
       "These are optional testimonials you provide — not Leonix public star reviews. They may be moderated later.",
     dropzone: "Drag images or click to upload",
@@ -477,16 +491,23 @@ const en: ClasificadosServiciosCopy = {
     leonixVerified: "Show interest in Leonix Verified",
     leonixVerifiedHint:
       "This does not grant the badge — Leonix assigns verification in a controlled step. This only records your interest.",
-    offerImage: "Offer image (optional)",
-    offerPdf: "Offer PDF / file (optional)",
-    offerPrimaryLabel: "Coupon priority when multiple assets exist",
-    offerPrimaryNone: "No fixed priority",
+    offerImage: "Optional image",
+    offerPdf: "Optional PDF / flyer",
+    offerPrimaryLabel: "If you add several assets, which should lead?",
+    offerPrimaryNone: "No preference",
     offerPrimaryLink: "Link",
     offerPrimaryImage: "Image",
     offerPrimaryPdf: "PDF",
-    offerQrLater: "Plan to add a QR code in a later step",
-    offerAssetContractNote:
-      "Link, image, and PDF can coexist; this only sets which asset to emphasize first when coupon publishing ships.",
+    offerQrLater: "",
+    offerAssetContractNote: "This only sets visual emphasis when more than one link or file is present.",
+    promoSectionIntro:
+      "Add one short promotion for your profile: a seasonal offer, discount, free estimate, consultation, or package. Keep it clear and scannable—a tight block beats a long paragraph.",
+    offerTitleHelp: "Use a direct headline: what you offer and for whom (e.g. “15% off deep cleaning this week”).",
+    offerDetailsHelp:
+      "Include the offer, who qualifies, conditions, and timing if relevant. Keep must-know terms here—avoid tiny-print surprises.",
+    offerLinkHelp: "Optional. Use when the promo lives on your site, booking page, or form.",
+    offerImageHelp: "Optional. Upload a graphic if you already have promo artwork.",
+    offerPdfHelp: "Optional. Add a PDF or flyer if clients should open a file.",
     moveUp: "Up",
     moveDown: "Down",
     featuredToggle: "Featured on listing",
@@ -498,7 +519,7 @@ const en: ClasificadosServiciosCopy = {
     mediaUploadedBadge: "Added · tap the box to replace",
     videoFromFile: "Uploaded clip",
     videoFromUrl: "From link",
-    offerAssetsIntro: "Optional image or PDF for your offer; you can combine with the link above.",
+    offerAssetsIntro: "",
     bottomActionsHint: "Bottom: full preview and publish. Top: quick utilities like other Clasificados flows.",
     assetFromFile: "File",
     assetFromUrl: "URL",

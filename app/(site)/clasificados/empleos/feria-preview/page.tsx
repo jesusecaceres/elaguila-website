@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 
-import { EmpleoJobFairDetailPage } from "../components/jobFair/EmpleoJobFairDetailPage";
+import { EmpleoFeriaPreviewClient } from "./EmpleoFeriaPreviewClient";
 
 export const metadata: Metadata = {
   title: "Feria de Empleo | Leonix Clasificados",
@@ -16,7 +16,7 @@ export default function ClasificadosEmpleosFeriaPreviewPage() {
         <div className="min-h-screen bg-[#ECEAE7]" aria-busy="true" aria-label="Cargando feria" />
       }
     >
-      <EmpleoJobFairDetailPage />
+      <EmpleoFeriaPreviewClient />
     </Suspense>
   );
 }

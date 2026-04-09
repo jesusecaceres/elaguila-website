@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 
-import { EmpleoQuickDetailPage } from "../components/quickJob/EmpleoQuickDetailPage";
+import { EmpleoQuickPreviewClient } from "./EmpleoQuickPreviewClient";
 
 export const metadata: Metadata = {
   title: "Se Busca Cocinero | Empleos | Leonix Clasificados",
@@ -16,7 +16,7 @@ export default function ClasificadosEmpleosQuickPreviewPage() {
         <div className="min-h-screen bg-[#ECEAE7]" aria-busy="true" aria-label="Cargando anuncio" />
       }
     >
-      <EmpleoQuickDetailPage />
+      <EmpleoQuickPreviewClient />
     </Suspense>
   );
 }

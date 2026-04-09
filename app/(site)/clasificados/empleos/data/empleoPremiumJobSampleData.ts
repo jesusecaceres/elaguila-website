@@ -33,6 +33,8 @@ export type EmpleoPremiumJobSample = {
   whatsapp?: string;
   email?: string;
   websiteUrl?: string;
+  /** Overrides default “Postularse ahora” when set (application-driven). */
+  applyCtaLabel?: string;
   gallery: PremiumGalleryImage[];
   introduction: string;
   responsibilities: string[];

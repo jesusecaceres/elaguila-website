@@ -5,6 +5,8 @@
 export type ViajesOfferPartnerBlock = {
   name: string;
   isAffiliate: boolean;
+  /** Private individual listing — distinct from business agency card */
+  privateSeller?: boolean;
   affiliateDisclosure?: string;
   ctaLabel: string;
   ctaHref: string;
@@ -16,6 +18,8 @@ export type ViajesOfferDetailModel = {
   slug: string;
   heroImageSrc: string;
   heroImageAlt: string;
+  /** Use unoptimized <img> for blob/data URLs or unvalidated user URLs */
+  heroUseNativeImg?: boolean;
   title: string;
   destination: string;
   priceFrom: string;

@@ -63,9 +63,11 @@ const COPY = {
 
 type Props = {
   data?: EmpleoPremiumJobSample;
+  /** Hide global site Navbar (publish preview embedded under LeonixPreviewPageShell). */
+  withSiteChrome?: boolean;
 };
 
-export function EmpleoPremiumDetailPage({ data = EMPLEO_PREMIUM_JOB_SAMPLE }: Props) {
+export function EmpleoPremiumDetailPage({ data = EMPLEO_PREMIUM_JOB_SAMPLE, withSiteChrome = true }: Props) {
   const sp = useSearchParams();
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
   const t = COPY[lang];
@@ -79,7 +81,7 @@ export function EmpleoPremiumDetailPage({ data = EMPLEO_PREMIUM_JOB_SAMPLE }: Pr
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#ECEAE7] pb-20 text-[color:var(--lx-text)]">
-      <Navbar />
+      {withSiteChrome ? <Navbar /> : null}
 
       <header className="bg-[#C41E3A] text-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5 sm:px-5 sm:py-3 lg:px-6">
@@ -129,7 +131,7 @@ export function EmpleoPremiumDetailPage({ data = EMPLEO_PREMIUM_JOB_SAMPLE }: Pr
               whatsapp={data.whatsapp?.trim() || undefined}
               email={data.email?.trim() || undefined}
               websiteUrl={data.websiteUrl?.trim() || undefined}
-              applyLabel={t.apply}
+              applyLabel={data.applyCtaLabel?.trim() || t.apply}
               websiteCtaLabel={t.visitSite}
               emailLabel={t.emailCta}
               badgeFeatured={t.badgeFeatured}

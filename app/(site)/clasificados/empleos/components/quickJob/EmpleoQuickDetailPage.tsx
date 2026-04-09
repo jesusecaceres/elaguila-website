@@ -58,9 +58,10 @@ const COPY = {
 
 type Props = {
   data?: QuickJobDetailSample;
+  withSiteChrome?: boolean;
 };
 
-export function EmpleoQuickDetailPage({ data = EMPLEO_QUICK_JOB_SAMPLE }: Props) {
+export function EmpleoQuickDetailPage({ data = EMPLEO_QUICK_JOB_SAMPLE, withSiteChrome = true }: Props) {
   const sp = useSearchParams();
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
   const t = COPY[lang];
@@ -78,7 +79,7 @@ export function EmpleoQuickDetailPage({ data = EMPLEO_QUICK_JOB_SAMPLE }: Props)
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#ECEAE7] pb-20 text-[color:var(--lx-text)]">
-      <Navbar />
+      {withSiteChrome ? <Navbar /> : null}
 
       <header className="bg-[#C41E3A] text-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5 sm:px-5 sm:py-3 lg:px-6">

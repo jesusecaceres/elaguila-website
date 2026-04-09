@@ -63,7 +63,6 @@ import { digitsOnly, formatPhoneInputDisplay } from "../lib/serviciosPhoneUi";
 import {
   isProbablyValidWebUrl,
   newGalleryId,
-  newTestimonialId,
   newVideoId,
   normalizeHttpUrl,
 } from "../lib/socialAndUrlHelpers";
@@ -1540,89 +1539,34 @@ export function ClasificadosServiciosApplication() {
 
         {step === 7 ? (
           <>
-        {/* 11 · Testimonials */}
-        <section className={sectionCard}>
-          <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.testimonials}</h2>
-          <p className="mt-1 text-sm text-[#5D4A25]/85">{copy.labels.testimonialsNote}</p>
-          <div className="mt-4 space-y-4">
-            {state.testimonials.map((t) => (
-              <div key={t.id} className="rounded-xl border border-neutral-200 bg-[#FFFCF7] p-4">
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div>
-                    <label className="text-xs font-semibold text-[#5D4A25]">{copy.labels.testimonialAuthor}</label>
-                    <input
-                      className={inputClass}
-                      value={t.authorName}
-                      onChange={(e) =>
-                        setState((s) => ({
-                          ...s,
-                          testimonials: s.testimonials.map((x) => (x.id === t.id ? { ...x, authorName: e.target.value } : x)),
-                        }))
-                      }
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="text-xs font-semibold text-[#5D4A25]">{copy.labels.testimonialQuote}</label>
-                    <textarea
-                      className={inputClass}
-                      rows={2}
-                      value={t.quote}
-                      onChange={(e) =>
-                        setState((s) => ({
-                          ...s,
-                          testimonials: s.testimonials.map((x) => (x.id === t.id ? { ...x, quote: e.target.value } : x)),
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="mt-2 text-xs font-semibold text-red-700 hover:underline"
-                  onClick={() => setState((s) => ({ ...s, testimonials: s.testimonials.filter((x) => x.id !== t.id) }))}
-                >
-                  {copy.labels.remove}
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-xl border border-[#D8C79A]/80 bg-white px-4 py-2 text-sm font-semibold text-[#3D2C12]"
-              onClick={() =>
-                setState((s) => ({
-                  ...s,
-                  testimonials: [...s.testimonials, { id: newTestimonialId(), authorName: "", quote: "" }],
-                }))
-              }
-            >
-              <FiPlus className="h-4 w-4" aria-hidden />
-              {copy.labels.addTestimonial}
-            </button>
-          </div>
-        </section>
-
-        {/* 12 · Offer */}
-        <section className={sectionCard}>
-          <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.offer}</h2>
-          <p className="mt-1 text-sm text-[#5D4A25]/75">{copy.labels.offerNote}</p>
-          <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerAssetsIntro}</p>
-          <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerTitle}</label>
+        {/* Promoción (testimonials hidden — state preserved in draft) */}
+        <section className={sectionCard} aria-labelledby="sec-promo">
+          <h2 id="sec-promo" className="text-lg font-bold text-[#3D2C12]">
+            {copy.sections.offer}
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">{copy.labels.promoSectionIntro}</p>
+          <label className={`mt-5 block ${labelClass}`}>{copy.labels.offerTitle}</label>
+          <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerTitleHelp}</p>
           <input
             className={inputClass}
             value={state.offerTitle}
             onChange={(e) => setState((s) => ({ ...s, offerTitle: e.target.value }))}
           />
           <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerDetails}</label>
+          <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerDetailsHelp}</p>
           <textarea className={inputClass} rows={3} value={state.offerDetails} onChange={(e) => setState((s) => ({ ...s, offerDetails: e.target.value }))} />
           <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerLink}</label>
+          <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerLinkHelp}</p>
           <input
             className={`${inputClass} ${offerLinkInvalid ? inputWarn : ""}`}
             type="url"
+            placeholder="https://"
             value={state.offerLink}
             onChange={(e) => setState((s) => ({ ...s, offerLink: e.target.value }))}
           />
           {offerLinkInvalid ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
           <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerImage}</label>
+          <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerImageHelp}</p>
           <input
             ref={offerImageInputRef}
             type="file"
@@ -1721,15 +1665,6 @@ export function ClasificadosServiciosApplication() {
             ))}
           </div>
           <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerAssetContractNote}</p>
-          <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm text-[#5D4A25]">
-            <input
-              type="checkbox"
-              className="mt-1 h-4 w-4 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
-              checked={state.offerQrLater}
-              onChange={(e) => setState((s) => ({ ...s, offerQrLater: e.target.checked }))}
-            />
-            <span>{copy.labels.offerQrLater}</span>
-          </label>
         </section>
           </>
         ) : null}

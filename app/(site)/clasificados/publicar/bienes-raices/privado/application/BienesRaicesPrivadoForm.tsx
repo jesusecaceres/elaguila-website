@@ -526,7 +526,7 @@ export function BienesRaicesPrivadoForm() {
                 className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#C9B46A]/70 bg-[#FFF6E7] px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
                 onClick={() => photosInputRef.current?.click()}
               >
-                Subir fotos
+                Subir o añadir fotos
               </button>
               <span className="self-center text-xs text-[#5C5346]">
                 {state.media.photoDataUrls.length}/{MAX_PHOTOS} seleccionadas

@@ -12,6 +12,7 @@ export function ViajesOfferDetailLayout({
   backHref,
   backLabel = "Volver",
   preview = false,
+  sparseSections = false,
   ui,
   exploreViajesHref,
 }: {
@@ -19,6 +20,8 @@ export function ViajesOfferDetailLayout({
   backHref: string;
   backLabel?: string;
   preview?: boolean;
+  /** Hide empty blocks — used for private draft preview */
+  sparseSections?: boolean;
   ui: ViajesUi;
   exploreViajesHref: string;
 }) {
@@ -33,14 +36,19 @@ export function ViajesOfferDetailLayout({
         </div>
       ) : null}
       <div className="relative min-h-[min(52vh,520px)] w-full overflow-hidden">
-        <Image
-          src={offer.heroImageSrc}
-          alt={offer.heroImageAlt}
-          fill
-          priority
-          className="object-cover object-center"
-          sizes="100vw"
-        />
+        {offer.heroUseNativeImg ? (
+          // eslint-disable-next-line @next/next/no-img-element -- blob/data/user URLs for draft preview
+          <img src={offer.heroImageSrc} alt={offer.heroImageAlt} className="absolute inset-0 h-full w-full object-cover object-center" />
+        ) : (
+          <Image
+            src={offer.heroImageSrc}
+            alt={offer.heroImageAlt}
+            fill
+            priority
+            className="object-cover object-center"
+            sizes="100vw"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/20" aria-hidden />
         <div className="absolute inset-0 flex flex-col justify-end">
           <div className="mx-auto w-full max-w-7xl px-4 pb-10 pt-24 sm:px-5 lg:px-6">
@@ -50,19 +58,33 @@ export function ViajesOfferDetailLayout({
             >
               ← {backLabel}
             </Link>
-            <div className="flex flex-wrap gap-2">
-              {offer.tags.map((t) => (
-                <span key={t} className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
-                  {t}
-                </span>
-              ))}
-            </div>
+            {(!sparseSections || offer.tags.length > 0) && (
+              <div className="flex flex-wrap gap-2">
+                {offer.tags.map((t) => (
+                  <span key={t} className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
             <h1 className="mt-3 max-w-4xl text-3xl font-bold leading-tight text-white drop-shadow-sm sm:text-4xl">{offer.title}</h1>
-            <p className="mt-2 text-sm text-white/95 sm:text-base">{offer.destination}</p>
+            {(!sparseSections || offer.destination.trim().length > 0) && (
+              <p className="mt-2 text-sm text-white/95 sm:text-base">{offer.destination}</p>
+            )}
             <div className="mt-4 flex flex-col gap-2 text-sm text-white/90 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
-              <span className="text-lg font-bold text-white">{offer.priceFrom}</span>
-              <span>🗓️ {offer.duration}</span>
-              <span>✈️ {offer.departureCity}</span>
+              {(!sparseSections || offer.priceFrom.trim().length > 0) && (
+                <span className="text-lg font-bold text-white">{offer.priceFrom}</span>
+              )}
+              {(!sparseSections || offer.duration.trim().length > 0) && (
+                <span>
+                  🗓️ {offer.duration}
+                </span>
+              )}
+              {(!sparseSections || offer.departureCity.trim().length > 0) && (
+                <span>
+                  ✈️ {offer.departureCity}
+                </span>
+              )}
             </div>
             <div className="mt-6 flex w-full max-w-lg flex-col gap-3 sm:max-w-none sm:flex-row sm:flex-wrap">
               <a
@@ -84,42 +106,48 @@ export function ViajesOfferDetailLayout({
       </div>
 
       <div className="mx-auto max-w-7xl space-y-10 px-4 py-10 sm:px-5 lg:space-y-12 lg:px-6 lg:py-12">
-        <section className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 shadow-sm sm:p-8">
-          <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{od.includes}</h2>
-          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-            {offer.includes.map((line) => (
-              <li key={line} className="flex gap-3 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-                <span className="mt-0.5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden>
-                  ✓
-                </span>
-                {line}
-              </li>
-            ))}
-          </ul>
-        </section>
+        {(!sparseSections || offer.includes.length > 0) && (
+          <section className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 shadow-sm sm:p-8">
+            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{od.includes}</h2>
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+              {offer.includes.map((line) => (
+                <li key={line} className="flex gap-3 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+                  <span className="mt-0.5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden>
+                    ✓
+                  </span>
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
-        <section className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]/90 p-6 sm:p-8">
-          <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{od.whoFor}</h2>
-          <ul className="mt-4 space-y-3">
-            {offer.whoItsFor.map((p) => (
-              <li key={p} className="text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-                · {p}
-              </li>
-            ))}
-          </ul>
-        </section>
+        {(!sparseSections || offer.whoItsFor.length > 0) && (
+          <section className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]/90 p-6 sm:p-8">
+            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{od.whoFor}</h2>
+            <ul className="mt-4 space-y-3">
+              {offer.whoItsFor.map((p) => (
+                <li key={p} className="text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+                  · {p}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <section className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 shadow-sm sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">
-                {partner.isAffiliate ? od.partnerCommercial : od.postedBy}
+                {partner.isAffiliate ? od.partnerCommercial : partner.privateSeller ? od.privatePostedBy : od.postedBy}
               </p>
               <h2 className="mt-1 text-xl font-bold text-[color:var(--lx-text)]">{partner.name}</h2>
               {partner.isAffiliate ? (
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-text-2)]">
                   {partner.affiliateDisclosure ?? od.affiliateFallback}
                 </p>
+              ) : partner.privateSeller ? (
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-text-2)]">{od.privateFallback}</p>
               ) : (
                 <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{od.businessFallback}</p>
               )}
@@ -146,7 +174,9 @@ export function ViajesOfferDetailLayout({
 
         <section className="space-y-4 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 sm:p-8">
           <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{od.detailsTitle}</h2>
-          <p className="text-sm leading-relaxed text-[color:var(--lx-text-2)]">{offer.description}</p>
+          {(!sparseSections || offer.description.trim().length > 0) && (
+            <p className="text-sm leading-relaxed text-[color:var(--lx-text-2)]">{offer.description}</p>
+          )}
           {offer.dateRange ? (
             <p className="text-sm font-medium text-[color:var(--lx-text)]">
               <span className="text-[color:var(--lx-muted)]">{od.calendar} </span>
