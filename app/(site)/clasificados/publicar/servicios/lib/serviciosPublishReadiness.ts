@@ -22,7 +22,7 @@ function hasContactMethod(state: ClasificadosServiciosApplicationState): boolean
 }
 
 function hasAtLeastOneService(state: ClasificadosServiciosApplicationState): boolean {
-  if (state.customServiceLabel.trim().length > 0) return true;
+  if (state.customServiceIncluded && state.customServiceLabel.trim().length > 0) return true;
   return state.selectedServiceIds.length > 0;
 }
 

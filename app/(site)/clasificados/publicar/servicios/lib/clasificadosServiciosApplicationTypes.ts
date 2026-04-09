@@ -117,10 +117,18 @@ export type ClasificadosServiciosApplicationState = {
   selectedServiceIds: string[];
   /** Short free-text service when presets do not cover it */
   customServiceLabel: string;
+  /** When true, custom service chip is active and counts toward the services cap */
+  customServiceIncluded: boolean;
+  selectedReasonIds: string[];
+  /** Short label — paired with `customReasonIncluded` */
+  customReasonLabel: string;
+  customReasonIncluded: boolean;
+  selectedQuickFactIds: string[];
+  /** Short label — paired with `customQuickFactIncluded` */
+  customQuickFactLabel: string;
+  customQuickFactIncluded: boolean;
   /** Interest in Leonix verification — does not grant a badge; ops-controlled later */
   leonixVerifiedInterest: boolean;
-  selectedReasonIds: string[];
-  selectedQuickFactIds: string[];
   /** contact method toggles */
   enableCall: boolean;
   enableMessage: boolean;

@@ -1,5 +1,6 @@
 import { getBusinessTypePreset } from "./businessTypePresets";
 import type { ClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationTypes";
+import { enforceServiciosSelectionCaps } from "./serviciosSelectionCaps";
 
 /**
  * When business type changes, drop selections that no longer exist on the new preset.
@@ -18,7 +19,7 @@ export function mergeStateForBusinessTypeChange(
   const qSet = new Set(p.quickFacts.map((x) => x.id));
   const gIds = new Set(prev.gallery.map((g) => g.id));
 
-  return {
+  return enforceServiciosSelectionCaps({
     ...prev,
     businessTypeId: newTypeId,
     selectedServiceIds: prev.selectedServiceIds.filter((id) => sSet.has(id)),
@@ -27,5 +28,5 @@ export function mergeStateForBusinessTypeChange(
     primaryCtaId: "",
     secondaryCtaIds: [],
     featuredGalleryIds: prev.featuredGalleryIds.filter((id) => gIds.has(id)).slice(0, 4),
-  };
+  });
 }

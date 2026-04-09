@@ -53,9 +53,14 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     specialtiesLine: "",
     selectedServiceIds: [],
     customServiceLabel: "",
-    leonixVerifiedInterest: false,
+    customServiceIncluded: false,
     selectedReasonIds: [],
+    customReasonLabel: "",
+    customReasonIncluded: false,
     selectedQuickFactIds: [],
+    customQuickFactLabel: "",
+    customQuickFactIncluded: false,
+    leonixVerifiedInterest: false,
     enableCall: true,
     enableMessage: false,
     enableWhatsapp: true,
@@ -115,8 +120,9 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
   if (s.logoUrl.trim() || s.coverUrl.trim()) return true;
   if (s.gallery.length > 0 || s.videos.length > 0) return true;
   if (s.aboutText.trim() || s.specialtiesLine.trim()) return true;
-  if (s.selectedServiceIds.length > 0 || s.customServiceLabel.trim()) return true;
-  if (s.selectedReasonIds.length > 0 || s.selectedQuickFactIds.length > 0) return true;
+  if (s.selectedServiceIds.length > 0 || (s.customServiceIncluded && s.customServiceLabel.trim())) return true;
+  if (s.selectedReasonIds.length > 0 || (s.customReasonIncluded && s.customReasonLabel.trim())) return true;
+  if (s.selectedQuickFactIds.length > 0 || (s.customQuickFactIncluded && s.customQuickFactLabel.trim())) return true;
   if (s.primaryCtaId.trim() || s.secondaryCtaIds.length > 0) return true;
   if (s.leonixVerifiedInterest) return true;
   if (

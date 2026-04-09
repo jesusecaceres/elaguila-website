@@ -59,6 +59,12 @@ import {
   WEEK_DAY_LABELS,
 } from "../lib/defaultClasificadosServiciosState";
 import { mergeStateForBusinessTypeChange } from "../lib/presetStateMerge";
+import {
+  CUSTOM_CHIP_MAX_LENGTH,
+  MAX_QUICK_FACTS_SELECTION,
+  MAX_REASONS_SELECTION,
+  MAX_SERVICES_SELECTION,
+} from "../lib/serviciosSelectionCaps";
 import { isValidEmail } from "../lib/leonixContactCtaPriority";
 import { digitsOnly, formatPhoneInputDisplay } from "../lib/serviciosPhoneUi";
 import {
@@ -91,24 +97,44 @@ function Chip({
   selected,
   onClick,
   children,
+  className,
+  truncateLabel,
+  labelTitle,
 }: {
   selected: boolean;
   onClick: () => void;
   children: ReactNode;
+  /** Merged into the chip button (e.g. max width / truncate) */
+  className?: string;
+  /** Wrap label text for ellipsis on small screens */
+  truncateLabel?: boolean;
+  /** Full label for hover tooltip (custom chips) */
+  labelTitle?: string;
 }) {
+  const inner =
+    truncateLabel ? (
+      <span className="min-w-0 max-w-full truncate text-left" title={labelTitle}>
+        {children}
+      </span>
+    ) : (
+      children
+    );
   return (
     <button
       type="button"
       onClick={onClick}
       className={[
-        "inline-flex min-h-[40px] shrink-0 touch-manipulation items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition active:scale-[0.99] sm:min-h-0 sm:py-1.5",
+        "inline-flex min-h-[40px] min-w-0 max-w-full touch-manipulation items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition active:scale-[0.99] sm:min-h-0 sm:py-1.5",
         selected
           ? "border-[#3B66AD] bg-[#3B66AD]/10 text-[#1e3a5f] ring-1 ring-[#3B66AD]/20"
           : "border-neutral-200 bg-neutral-50/80 text-neutral-700 hover:border-neutral-300",
-      ].join(" ")}
+        className ?? "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
       {selected ? <FiCheck className="h-3.5 w-3.5 shrink-0 text-[#3B66AD]" aria-hidden /> : null}
-      {children}
+      {inner}
     </button>
   );
 }
@@ -320,9 +346,49 @@ export function ClasificadosServiciosApplication() {
     setState((prev) => {
       const cur = prev[field];
       const on = !cur.includes(id);
-      return { ...prev, [field]: toggleId(cur, id, on) };
+      if (!on) {
+        return { ...prev, [field]: toggleId(cur, id, false) };
+      }
+      const max =
+        field === "selectedServiceIds"
+          ? MAX_SERVICES_SELECTION
+          : field === "selectedReasonIds"
+            ? MAX_REASONS_SELECTION
+            : MAX_QUICK_FACTS_SELECTION;
+      const customSlot =
+        field === "selectedServiceIds"
+          ? prev.customServiceIncluded && prev.customServiceLabel.trim()
+            ? 1
+            : 0
+          : field === "selectedReasonIds"
+            ? prev.customReasonIncluded && prev.customReasonLabel.trim()
+              ? 1
+              : 0
+            : prev.customQuickFactIncluded && prev.customQuickFactLabel.trim()
+              ? 1
+              : 0;
+      if (cur.length + customSlot >= max) return prev;
+      return { ...prev, [field]: toggleId(cur, id, true) };
     });
   };
+
+  const serviceSelectionCount = useMemo(
+    () =>
+      state.selectedServiceIds.length +
+      (state.customServiceIncluded && state.customServiceLabel.trim() ? 1 : 0),
+    [state.customServiceIncluded, state.customServiceLabel, state.selectedServiceIds],
+  );
+  const reasonsSelectionCount = useMemo(
+    () =>
+      state.selectedReasonIds.length + (state.customReasonIncluded && state.customReasonLabel.trim() ? 1 : 0),
+    [state.customReasonIncluded, state.customReasonLabel, state.selectedReasonIds],
+  );
+  const quickFactsSelectionCount = useMemo(
+    () =>
+      state.selectedQuickFactIds.length +
+      (state.customQuickFactIncluded && state.customQuickFactLabel.trim() ? 1 : 0),
+    [state.customQuickFactIncluded, state.customQuickFactLabel, state.selectedQuickFactIds],
+  );
 
   const pickFileToUrl = async (file: File | null, field: "logoUrl" | "coverUrl") => {
     if (!file) return;
@@ -1407,10 +1473,12 @@ export function ClasificadosServiciosApplication() {
             value={state.aboutText}
             onChange={(e) => setState((s) => ({ ...s, aboutText: e.target.value }))}
           />
-          <label className={`mt-4 block ${labelClass}`}>{copy.labels.specialties}</label>
+          <label className={`mt-4 block ${labelClass}`}>{copy.labels.businessFocus}</label>
+          <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.businessFocusHelper}</p>
           <input
             className={inputClass}
             value={state.specialtiesLine}
+            maxLength={90}
             onChange={(e) => setState((s) => ({ ...s, specialtiesLine: e.target.value }))}
           />
         </section>
@@ -1430,38 +1498,215 @@ export function ClasificadosServiciosApplication() {
               </h2>
               <p className="mt-1 text-sm text-[#5D4A25]/85">{copy.labels.servicesHint}</p>
               <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
-                {preset.suggestedServices.map((c: ChipDef) => (
+                {preset.suggestedServices.map((c: ChipDef) => {
+                  const selected = state.selectedServiceIds.includes(c.id);
+                  const disabled = !selected && serviceSelectionCount >= MAX_SERVICES_SELECTION;
+                  return (
+                    <Chip
+                      key={c.id}
+                      selected={selected}
+                      onClick={() => {
+                        if (disabled) return;
+                        toggleChipList("selectedServiceIds", c.id);
+                      }}
+                      className={disabled ? "cursor-not-allowed opacity-45" : undefined}
+                    >
+                      {chipLabel(c, lang)}
+                    </Chip>
+                  );
+                })}
+                {state.customServiceIncluded && state.customServiceLabel.trim() ? (
                   <Chip
-                    key={c.id}
-                    selected={state.selectedServiceIds.includes(c.id)}
-                    onClick={() => toggleChipList("selectedServiceIds", c.id)}
+                    selected
+                    truncateLabel
+                    labelTitle={state.customServiceLabel.trim()}
+                    onClick={() =>
+                      setState((s) => ({
+                        ...s,
+                        customServiceIncluded: false,
+                        customServiceLabel: "",
+                      }))
+                    }
                   >
-                    {chipLabel(c, lang)}
+                    {state.customServiceLabel.trim()}
                   </Chip>
-                ))}
+                ) : null}
               </div>
+              {serviceSelectionCount >= MAX_SERVICES_SELECTION ? (
+                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxFour}</p>
+              ) : null}
               <label className={`mt-6 block ${labelClass}`}>{copy.labels.customService}</label>
-              <input
-                className={inputClass}
-                placeholder={copy.labels.customServicePlaceholder}
-                value={state.customServiceLabel}
-                onChange={(e) => setState((s) => ({ ...s, customServiceLabel: e.target.value }))}
-              />
+              <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.customChipShortHint}</p>
+              <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+                <input
+                  className={inputClass}
+                  placeholder={copy.labels.customServicePlaceholder}
+                  maxLength={CUSTOM_CHIP_MAX_LENGTH}
+                  disabled={
+                    !state.customServiceIncluded && state.selectedServiceIds.length >= MAX_SERVICES_SELECTION
+                  }
+                  value={state.customServiceLabel}
+                  onChange={(e) => {
+                    const v = e.target.value.slice(0, CUSTOM_CHIP_MAX_LENGTH);
+                    setState((s) => ({
+                      ...s,
+                      customServiceLabel: v,
+                      customServiceIncluded: v.trim().length > 0 ? s.customServiceIncluded : false,
+                    }));
+                  }}
+                />
+                {state.customServiceIncluded ? (
+                  <button
+                    type="button"
+                    className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-red-700 hover:bg-neutral-50 sm:w-auto"
+                    onClick={() =>
+                      setState((s) => ({
+                        ...s,
+                        customServiceIncluded: false,
+                        customServiceLabel: "",
+                      }))
+                    }
+                  >
+                    {copy.labels.remove}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={
+                      !state.customServiceLabel.trim() ||
+                      state.selectedServiceIds.length +
+                        (state.customServiceIncluded ? 1 : 0) >=
+                        MAX_SERVICES_SELECTION
+                    }
+                    className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                    onClick={() => {
+                      const t = state.customServiceLabel.trim();
+                      if (!t) return;
+                      if (
+                        state.selectedServiceIds.length +
+                          (state.customServiceIncluded ? 1 : 0) >=
+                        MAX_SERVICES_SELECTION
+                      ) {
+                        return;
+                      }
+                      setState((s) => ({
+                        ...s,
+                        customServiceIncluded: true,
+                        customServiceLabel: t.slice(0, CUSTOM_CHIP_MAX_LENGTH),
+                      }));
+                    }}
+                  >
+                    {copy.labels.addCustomChip}
+                  </button>
+                )}
+              </div>
             </section>
 
             <section className={sectionCard}>
               <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.reasons}</h2>
               <p className="mt-1 text-sm text-[#5D4A25]/85">{copy.labels.reasonsHint}</p>
               <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
-                {preset.reasonsToChoose.map((c: ChipDef) => (
+                {preset.reasonsToChoose.map((c: ChipDef) => {
+                  const selected = state.selectedReasonIds.includes(c.id);
+                  const disabled = !selected && reasonsSelectionCount >= MAX_REASONS_SELECTION;
+                  return (
+                    <Chip
+                      key={c.id}
+                      selected={selected}
+                      onClick={() => {
+                        if (disabled) return;
+                        toggleChipList("selectedReasonIds", c.id);
+                      }}
+                      className={disabled ? "cursor-not-allowed opacity-45" : undefined}
+                    >
+                      {chipLabel(c, lang)}
+                    </Chip>
+                  );
+                })}
+                {state.customReasonIncluded && state.customReasonLabel.trim() ? (
                   <Chip
-                    key={c.id}
-                    selected={state.selectedReasonIds.includes(c.id)}
-                    onClick={() => toggleChipList("selectedReasonIds", c.id)}
+                    selected
+                    truncateLabel
+                    labelTitle={state.customReasonLabel.trim()}
+                    onClick={() =>
+                      setState((s) => ({
+                        ...s,
+                        customReasonIncluded: false,
+                        customReasonLabel: "",
+                      }))
+                    }
                   >
-                    {chipLabel(c, lang)}
+                    {state.customReasonLabel.trim()}
                   </Chip>
-                ))}
+                ) : null}
+              </div>
+              {reasonsSelectionCount >= MAX_REASONS_SELECTION ? (
+                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxThree}</p>
+              ) : null}
+              <label className={`mt-6 block ${labelClass}`}>{copy.labels.customReason}</label>
+              <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.customChipShortHint}</p>
+              <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+                <input
+                  className={inputClass}
+                  placeholder={copy.labels.customChipPlaceholder}
+                  maxLength={CUSTOM_CHIP_MAX_LENGTH}
+                  disabled={
+                    !state.customReasonIncluded && state.selectedReasonIds.length >= MAX_REASONS_SELECTION
+                  }
+                  value={state.customReasonLabel}
+                  onChange={(e) => {
+                    const v = e.target.value.slice(0, CUSTOM_CHIP_MAX_LENGTH);
+                    setState((s) => ({
+                      ...s,
+                      customReasonLabel: v,
+                      customReasonIncluded: v.trim().length > 0 ? s.customReasonIncluded : false,
+                    }));
+                  }}
+                />
+                {state.customReasonIncluded ? (
+                  <button
+                    type="button"
+                    className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-red-700 hover:bg-neutral-50 sm:w-auto"
+                    onClick={() =>
+                      setState((s) => ({
+                        ...s,
+                        customReasonIncluded: false,
+                        customReasonLabel: "",
+                      }))
+                    }
+                  >
+                    {copy.labels.remove}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={
+                      !state.customReasonLabel.trim() ||
+                      state.selectedReasonIds.length +
+                        (state.customReasonIncluded ? 1 : 0) >=
+                        MAX_REASONS_SELECTION
+                    }
+                    className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                    onClick={() => {
+                      const t = state.customReasonLabel.trim();
+                      if (!t) return;
+                      if (
+                        state.selectedReasonIds.length +
+                          (state.customReasonIncluded ? 1 : 0) >=
+                        MAX_REASONS_SELECTION
+                      ) {
+                        return;
+                      }
+                      setState((s) => ({
+                        ...s,
+                        customReasonIncluded: true,
+                        customReasonLabel: t.slice(0, CUSTOM_CHIP_MAX_LENGTH),
+                      }));
+                    }}
+                  >
+                    {copy.labels.addCustomChip}
+                  </button>
+                )}
               </div>
             </section>
 
@@ -1469,15 +1714,108 @@ export function ClasificadosServiciosApplication() {
               <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.quickFacts}</h2>
               <p className="mt-1 text-sm text-[#5D4A25]/85">{copy.labels.quickHint}</p>
               <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
-                {preset.quickFacts.map((c: ChipDef) => (
+                {preset.quickFacts.map((c: ChipDef) => {
+                  const selected = state.selectedQuickFactIds.includes(c.id);
+                  const disabled = !selected && quickFactsSelectionCount >= MAX_QUICK_FACTS_SELECTION;
+                  return (
+                    <Chip
+                      key={c.id}
+                      selected={selected}
+                      onClick={() => {
+                        if (disabled) return;
+                        toggleChipList("selectedQuickFactIds", c.id);
+                      }}
+                      className={disabled ? "cursor-not-allowed opacity-45" : undefined}
+                    >
+                      {chipLabel(c, lang)}
+                    </Chip>
+                  );
+                })}
+                {state.customQuickFactIncluded && state.customQuickFactLabel.trim() ? (
                   <Chip
-                    key={c.id}
-                    selected={state.selectedQuickFactIds.includes(c.id)}
-                    onClick={() => toggleChipList("selectedQuickFactIds", c.id)}
+                    selected
+                    truncateLabel
+                    labelTitle={state.customQuickFactLabel.trim()}
+                    onClick={() =>
+                      setState((s) => ({
+                        ...s,
+                        customQuickFactIncluded: false,
+                        customQuickFactLabel: "",
+                      }))
+                    }
                   >
-                    {chipLabel(c, lang)}
+                    {state.customQuickFactLabel.trim()}
                   </Chip>
-                ))}
+                ) : null}
+              </div>
+              {quickFactsSelectionCount >= MAX_QUICK_FACTS_SELECTION ? (
+                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxThree}</p>
+              ) : null}
+              <label className={`mt-6 block ${labelClass}`}>{copy.labels.customQuickFact}</label>
+              <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.customChipShortHint}</p>
+              <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+                <input
+                  className={inputClass}
+                  placeholder={copy.labels.customChipPlaceholder}
+                  maxLength={CUSTOM_CHIP_MAX_LENGTH}
+                  disabled={
+                    !state.customQuickFactIncluded &&
+                    state.selectedQuickFactIds.length >= MAX_QUICK_FACTS_SELECTION
+                  }
+                  value={state.customQuickFactLabel}
+                  onChange={(e) => {
+                    const v = e.target.value.slice(0, CUSTOM_CHIP_MAX_LENGTH);
+                    setState((s) => ({
+                      ...s,
+                      customQuickFactLabel: v,
+                      customQuickFactIncluded: v.trim().length > 0 ? s.customQuickFactIncluded : false,
+                    }));
+                  }}
+                />
+                {state.customQuickFactIncluded ? (
+                  <button
+                    type="button"
+                    className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-red-700 hover:bg-neutral-50 sm:w-auto"
+                    onClick={() =>
+                      setState((s) => ({
+                        ...s,
+                        customQuickFactIncluded: false,
+                        customQuickFactLabel: "",
+                      }))
+                    }
+                  >
+                    {copy.labels.remove}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={
+                      !state.customQuickFactLabel.trim() ||
+                      state.selectedQuickFactIds.length +
+                        (state.customQuickFactIncluded ? 1 : 0) >=
+                        MAX_QUICK_FACTS_SELECTION
+                    }
+                    className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                    onClick={() => {
+                      const t = state.customQuickFactLabel.trim();
+                      if (!t) return;
+                      if (
+                        state.selectedQuickFactIds.length +
+                          (state.customQuickFactIncluded ? 1 : 0) >=
+                        MAX_QUICK_FACTS_SELECTION
+                      ) {
+                        return;
+                      }
+                      setState((s) => ({
+                        ...s,
+                        customQuickFactIncluded: true,
+                        customQuickFactLabel: t.slice(0, CUSTOM_CHIP_MAX_LENGTH),
+                      }));
+                    }}
+                  >
+                    {copy.labels.addCustomChip}
+                  </button>
+                )}
               </div>
             </section>
           </>

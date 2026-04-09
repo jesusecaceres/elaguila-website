@@ -7,6 +7,7 @@ import type {
   VideoItem,
 } from "./clasificadosServiciosApplicationTypes";
 import { createDefaultClasificadosServiciosState } from "./defaultClasificadosServiciosState";
+import { enforceServiciosSelectionCaps } from "./serviciosSelectionCaps";
 import { SERVICIOS_APPLICATION_STEP_COUNT } from "./serviciosApplicationStepLabels";
 
 const DAY_KEYS: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
@@ -134,7 +135,13 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     applicationStepIndex = Math.max(0, Math.min(maxStep, Math.floor(o.applicationStepIndex)));
   }
 
-  return {
+  const customServiceLabel = str("customServiceLabel", d.customServiceLabel);
+  const customServiceIncluded =
+    typeof o.customServiceIncluded === "boolean"
+      ? (o.customServiceIncluded as boolean)
+      : customServiceLabel.trim().length > 0;
+
+  return enforceServiciosSelectionCaps({
     applicationStepIndex,
     businessTypeId: str("businessTypeId", d.businessTypeId),
     businessName: str("businessName", d.businessName),
@@ -168,10 +175,15 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     aboutText: str("aboutText", d.aboutText),
     specialtiesLine: str("specialtiesLine", d.specialtiesLine),
     selectedServiceIds,
-    customServiceLabel: str("customServiceLabel", d.customServiceLabel),
+    customServiceLabel,
+    customServiceIncluded,
     leonixVerifiedInterest: bool("leonixVerifiedInterest", d.leonixVerifiedInterest),
     selectedReasonIds,
+    customReasonLabel: str("customReasonLabel", d.customReasonLabel),
+    customReasonIncluded: bool("customReasonIncluded", d.customReasonIncluded),
     selectedQuickFactIds,
+    customQuickFactLabel: str("customQuickFactLabel", d.customQuickFactLabel),
+    customQuickFactIncluded: bool("customQuickFactIncluded", d.customQuickFactIncluded),
     enableCall: bool("enableCall", d.enableCall),
     enableMessage: bool("enableMessage", d.enableMessage),
     enableWhatsapp: bool("enableWhatsapp", d.enableWhatsapp),
@@ -196,5 +208,5 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     confirmListingAccurate: bool("confirmListingAccurate", d.confirmListingAccurate),
     confirmPhotosRepresentBusiness: bool("confirmPhotosRepresentBusiness", d.confirmPhotosRepresentBusiness),
     confirmCommunityRules: bool("confirmCommunityRules", d.confirmCommunityRules),
-  };
+  });
 }

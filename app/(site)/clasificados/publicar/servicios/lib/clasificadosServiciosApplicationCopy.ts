@@ -80,7 +80,8 @@ export type ClasificadosServiciosCopy = {
     cover: string;
     gallery: string;
     about: string;
-    specialties: string;
+    businessFocus: string;
+    businessFocusHelper: string;
     aboutHelper: string;
     servicesHint: string;
     reasonsHint: string;
@@ -132,6 +133,13 @@ export type ClasificadosServiciosCopy = {
     videoPrimary: string;
     customService: string;
     customServicePlaceholder: string;
+    customReason: string;
+    customQuickFact: string;
+    customChipPlaceholder: string;
+    customChipShortHint: string;
+    addCustomChip: string;
+    selectionMaxFour: string;
+    selectionMaxThree: string;
     aboutServicesGapNote: string;
     leonixVerified: string;
     leonixVerifiedHint: string;
@@ -291,7 +299,9 @@ const es: ClasificadosServiciosCopy = {
     cover: "Imagen de portada",
     gallery: "Galería de trabajos",
     about: "Sobre nosotros",
-    specialties: "Especialidades (una línea corta)",
+    businessFocus: "Enfoque del negocio (una línea corta)",
+    businessFocusHelper:
+      "Agrega una frase breve para resumir tu enfoque, experiencia o tipo de trabajo principal. No repitas todos tus servicios.",
     aboutHelper:
       "Describe tu experiencia y cómo ayudas a tus clientes. Puedes borradorar ideas aquí y pulir el texto con IA externamente si te hace falta.",
     servicesHint: "Marca los servicios que ofreces (según tu tipo de negocio).",
@@ -343,7 +353,14 @@ const es: ClasificadosServiciosCopy = {
     addVideoUrl: "Añadir video por URL",
     videoPrimary: "Video principal / tour",
     customService: "Otro servicio",
-    customServicePlaceholder: "Ej.: instalación de marcos a medida",
+    customServicePlaceholder: "Ej.: marcos a medida",
+    customReason: "Otro motivo",
+    customQuickFact: "Otro dato rápido",
+    customChipPlaceholder: "Etiqueta breve",
+    customChipShortHint: "Usa pocas palabras",
+    addCustomChip: "Añadir",
+    selectionMaxFour: "Máximo 4 opciones",
+    selectionMaxThree: "Máximo 3 opciones",
     aboutServicesGapNote:
       "Si algo de tu oferta no encaja en las opciones sugeridas, detállalo aquí: especialidades, materiales, alcance y condiciones. Ayuda a los clientes a entender exactamente qué resuelves.",
     leonixVerified: "Mostrar interés en Verificado Leonix",
@@ -497,7 +514,9 @@ const en: ClasificadosServiciosCopy = {
     cover: "Cover image",
     gallery: "Work gallery",
     about: "About you",
-    specialties: "Specialties (one short line)",
+    businessFocus: "Business focus (one short line)",
+    businessFocusHelper:
+      "Add a short phrase summarizing your focus, experience, or main type of work. Do not repeat your full services list.",
     aboutHelper:
       "Describe your experience and how you help clients. Draft here and refine with an external AI assistant if you want.",
     servicesHint: "Select the services you offer (based on your business type).",
@@ -549,7 +568,14 @@ const en: ClasificadosServiciosCopy = {
     addVideoUrl: "Add video URL",
     videoPrimary: "Primary / tour video",
     customService: "Other service",
-    customServicePlaceholder: "e.g. custom trim installation",
+    customServicePlaceholder: "e.g. custom trim",
+    customReason: "Other reason",
+    customQuickFact: "Other quick fact",
+    customChipPlaceholder: "Short label",
+    customChipShortHint: "Keep it short",
+    addCustomChip: "Add",
+    selectionMaxFour: "Maximum 4 options",
+    selectionMaxThree: "Maximum 3 options",
     aboutServicesGapNote:
       "If your offer is not fully covered by the suggested chips, describe specialties, scope, and constraints here so clients know exactly what you deliver.",
     leonixVerified: "Show interest in Leonix Verified",

@@ -92,11 +92,10 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       });
     }
   }
-  const customLabel = state.customServiceLabel.trim();
-  if (customLabel) {
-    const title = customLabel.slice(0, 96);
+  if (state.customServiceIncluded && state.customServiceLabel.trim()) {
+    const title = state.customServiceLabel.trim().slice(0, 28);
     services.push({
-      id: "svc_custom",
+      id: "custom_service",
       title,
       secondaryLine: "",
       imageAlt: title,
@@ -112,10 +111,16 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       quickFacts.push({ kind: "custom", label: chipLabel(chip, lang) });
     }
   }
+  if (state.customQuickFactIncluded && state.customQuickFactLabel.trim()) {
+    quickFacts.push({
+      kind: "custom",
+      label: state.customQuickFactLabel.trim().slice(0, 28),
+    });
+  }
 
   const trust: NonNullable<ServiciosApplicationDraft["trust"]> = [];
+  let ti = 0;
   if (preset) {
-    let ti = 0;
     for (const id of state.selectedReasonIds) {
       const chip = preset.reasonsToChoose.find((c) => c.id === id);
       if (!chip) continue;
@@ -126,6 +131,14 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       });
       ti += 1;
     }
+  }
+  if (state.customReasonIncluded && state.customReasonLabel.trim()) {
+    trust.push({
+      id: "custom_reason",
+      label: state.customReasonLabel.trim().slice(0, 28),
+      icon: TRUST_ICONS[ti % TRUST_ICONS.length]!,
+    });
+    ti += 1;
   }
 
   /**
