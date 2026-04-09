@@ -2,16 +2,15 @@
 
 import type { ReactNode } from "react";
 import { Component, type ErrorInfo } from "react";
-import { AutosPrivadoPreviewEmptyState } from "../components/AutosPrivadoPreviewEmptyState";
 
-type Props = { children: ReactNode };
+type Props = { children: ReactNode; fallback: ReactNode; logLabel?: string };
 
 type State = { hasError: boolean };
 
 /**
- * Prevents a single render exception in Privado preview from white-screening the route.
+ * Catches render errors in Autos draft preview routes so a bad draft cannot white-screen the page.
  */
-export class AutosPrivadoPreviewErrorBoundary extends Component<Props, State> {
+export class AutosDraftPreviewErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false };
@@ -23,13 +22,13 @@ export class AutosPrivadoPreviewErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
     if (process.env.NODE_ENV === "development") {
-      console.error("[AutosPrivadoPreview]", error, info.componentStack);
+      console.error(`[AutosDraftPreview:${this.props.logLabel ?? "preview"}]`, error, info.componentStack);
     }
   }
 
   render(): ReactNode {
     if (this.state.hasError) {
-      return <AutosPrivadoPreviewEmptyState />;
+      return this.props.fallback;
     }
     return this.props.children;
   }

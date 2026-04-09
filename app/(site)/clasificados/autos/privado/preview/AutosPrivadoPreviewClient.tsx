@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AutoPrivadoPreviewPage } from "../components/AutoPrivadoPreviewPage";
 import { AutosPrivadoPreviewEmptyState } from "../components/AutosPrivadoPreviewEmptyState";
-import { AutosPrivadoPreviewErrorBoundary } from "./AutosPrivadoPreviewErrorBoundary";
+import { AutosDraftPreviewErrorBoundary } from "@/app/clasificados/autos/shared/components/AutosDraftPreviewErrorBoundary";
 import { loadAutosPrivadoDraftResolved, safeNormalizePrivadoListing } from "../lib/autosPrivadoDraftStorage";
 import { resolveAutosPrivadoDraftNamespace, storageEventAffectsAutosPrivadoDraft } from "../lib/autosPrivadoDraftNamespace";
 import { mockAutosPrivadoListing } from "../mock/mockAutosPrivadoListing";
@@ -78,9 +78,9 @@ function AutosPrivadoPreviewInner({
   }
 
   return (
-    <AutosPrivadoPreviewErrorBoundary>
+    <AutosDraftPreviewErrorBoundary logLabel="privado" fallback={<AutosPrivadoPreviewEmptyState />}>
       <AutoPrivadoPreviewPage data={listing} editBackHref={editBackHref} />
-    </AutosPrivadoPreviewErrorBoundary>
+    </AutosDraftPreviewErrorBoundary>
   );
 }
 

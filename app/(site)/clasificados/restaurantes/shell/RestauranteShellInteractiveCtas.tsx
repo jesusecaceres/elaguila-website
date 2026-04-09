@@ -14,6 +14,7 @@ import {
 } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import type { IconType } from "react-icons";
+import { RestauranteShellDataUrlModal } from "./RestauranteShellDataUrlModal";
 
 const STORAGE_KEY = "leonix.clasificados.restaurantes.shell.demo.saved";
 
@@ -50,6 +51,7 @@ export function RestauranteShellInteractiveCtas({
   ctas: ShellPrimaryCta[];
 }) {
   const [saved, setSaved] = useState(false);
+  const [dataModal, setDataModal] = useState<{ href: string; title: string } | null>(null);
 
   useEffect(() => {
     try {
@@ -135,17 +137,38 @@ export function RestauranteShellInteractiveCtas({
           );
         }
 
+        if (cta.href.startsWith("data:")) {
+          return (
+            <button
+              key={cta.key}
+              type="button"
+              onClick={() => setDataModal({ href: cta.href, title: cta.label })}
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-white/25 bg-white/95 px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)] backdrop-blur transition hover:bg-white"
+            >
+              <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+              {cta.label}
+            </button>
+          );
+        }
+
         return (
           <a
             key={cta.key}
             href={cta.href}
             className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-white/25 bg-white/95 px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)] backdrop-blur transition hover:bg-white"
+            {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
           >
             <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
             {cta.label}
           </a>
         );
       })}
+      <RestauranteShellDataUrlModal
+        open={dataModal != null}
+        onClose={() => setDataModal(null)}
+        href={dataModal?.href ?? ""}
+        title={dataModal?.title ?? ""}
+      />
     </div>
   );
 }

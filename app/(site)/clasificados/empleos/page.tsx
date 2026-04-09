@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Navbar from "../../../components/Navbar";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { EMPLEOS_LANDING_CATEGORY_PILLS, EMPLEOS_QUICK_CHIPS } from "./shared/fields/empleosTaxonomy";
-import { buildEmpleosListaUrl } from "./shared/utils/empleosListaUrl";
+import { buildEmpleosResultadosUrl } from "./shared/utils/empleosListaUrl";
 
 type Lang = "es" | "en";
 
@@ -45,7 +45,7 @@ export default function Page() {
   const t = COPY[lang];
   const chips = EMPLEOS_QUICK_CHIPS[lang];
 
-  const listaHref = useMemo(() => buildEmpleosListaUrl(CATEGORY, lang), [lang]);
+  const listaHref = useMemo(() => buildEmpleosResultadosUrl(lang), [lang]);
   const postHref = useMemo(() => `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?cat=${CATEGORY}&lang=${lang}`)}`, [lang]);
   return (
     <div className="min-h-screen bg-[#D9D9D9] text-[#111111] pb-20 bg-[radial-gradient(ellipse_at_top,rgba(169,140,42,0.10),transparent_60%)]">
@@ -95,7 +95,7 @@ export default function Page() {
             {chips.map((label) => (
               <Link
                 key={label}
-                href={buildEmpleosListaUrl(CATEGORY, lang, label)}
+                href={buildEmpleosResultadosUrl(lang, { q: label })}
                 className="shrink-0 rounded-full border border-[#111111]/15 bg-white px-2.5 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
               >
                 {label}

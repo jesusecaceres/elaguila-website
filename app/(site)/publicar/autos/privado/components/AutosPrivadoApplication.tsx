@@ -273,9 +273,7 @@ export function AutosPrivadoApplication() {
                     aria-label={t.app.labels.price}
                   />
                 </div>
-                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">
-                  {lang === "es" ? "USD · miles de separación · valor numérico guardado." : "USD · thousands separators · value stored as a number."}
-                </p>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.priceInputHint}</p>
               </div>
               <div>
                 <label className={LABEL}>{t.app.labels.mileage}</label>
@@ -286,9 +284,7 @@ export function AutosPrivadoApplication() {
                   value={formatMileageInputDisplay(listing.mileage)}
                   onChange={(e) => setListingPatch({ mileage: parseMileageInput(e.target.value) })}
                 />
-                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">
-                  {lang === "es" ? "Millas · miles de separación · valor numérico guardado." : "Miles · thousands separators · value stored as a number."}
-                </p>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.mileageInputHint}</p>
               </div>
               <div className="sm:col-span-2">
                 <label className={LABEL}>{reqLabel(t.app.labels.city)}</label>

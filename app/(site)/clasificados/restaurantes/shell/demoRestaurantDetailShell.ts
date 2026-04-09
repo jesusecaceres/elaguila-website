@@ -28,7 +28,19 @@ export const DEMO_RESTAURANT_DETAIL_SHELL: RestaurantDetailShellData = {
     scheduleSummary: "Lun – Dom · 17:00 – 22:00",
   },
   seeHoursLabel: "Ver horarios",
-  seeHoursHref: "#horarios",
+  seeHoursHref: "#horarios-detalle",
+  hoursDetail: {
+    rows: [
+      { dayLabel: "Lunes", line: "17:00 – 22:00" },
+      { dayLabel: "Martes", line: "17:00 – 22:00" },
+      { dayLabel: "Miércoles", line: "17:00 – 22:00" },
+      { dayLabel: "Jueves", line: "17:00 – 22:00" },
+      { dayLabel: "Viernes", line: "17:00 – 23:00" },
+      { dayLabel: "Sábado", line: "16:00 – 23:00" },
+      { dayLabel: "Domingo", line: "16:00 – 21:00" },
+    ],
+    specialNote: "Cerrado días festivos según calendario municipal.",
+  },
   primaryCtas: [
     { key: "website", label: "Sitio web", href: "https://naranjosal.example.com", enabled: true },
     { key: "call", label: "Llamar", href: "tel:+14155550123", enabled: true },

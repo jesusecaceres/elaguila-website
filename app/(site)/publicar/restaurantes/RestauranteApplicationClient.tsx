@@ -107,6 +107,12 @@ export default function RestauranteApplicationClient() {
 
   const minPreviewOk = useMemo(() => satisfiesRestauranteMinimumValidPreview(draft), [draft]);
   const serviceOk = useMemo(() => satisfiesRestauranteServiceModes(draft.serviceModes), [draft.serviceModes]);
+  const deliveryRelevant = useMemo(
+    () =>
+      Boolean(draft.delivery) ||
+      (draft.serviceModes ?? []).includes("delivery" as RestauranteServiceMode),
+    [draft.delivery, draft.serviceModes]
+  );
 
   const setDay = useCallback(
     (key: keyof RestauranteListingDraft, sched: RestauranteDaySchedule) => {
@@ -153,8 +159,12 @@ export default function RestauranteApplicationClient() {
   const toggleHighlight = useCallback(
     (key: string) => {
       const cur = draft.highlights ?? [];
-      const next = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
-      setDraftPatch({ highlights: next });
+      if (cur.includes(key)) {
+        setDraftPatch({ highlights: cur.filter((k) => k !== key) });
+        return;
+      }
+      if (cur.length >= 6) return;
+      setDraftPatch({ highlights: [...cur, key] });
     },
     [draft.highlights, setDraftPatch]
   );
@@ -1116,13 +1126,15 @@ export default function RestauranteApplicationClient() {
         <section id="restaurantes-section-e" className={stepPanel}>
           <SectionTitle>E · Ubicación y privacidad</SectionTitle>
           <HelperText>
-            La <strong className="text-[color:var(--lx-text-2)]">ciudad canónica</strong> (sección A) es la que filtra en
-            resultados NorCal. Estas líneas refuerzan dirección y mapa en la ficha; la privacidad controla cuánto se muestra.
+            La <strong className="text-[color:var(--lx-text-2)]">ciudad canónica</strong> (sección A) sigue siendo el campo
+            estructurado para filtros NorCal. Aquí defines <strong className="text-[color:var(--lx-text-2)]">cómo se ve</strong>{" "}
+            la ubicación en la ficha: dirección, mapa y privacidad. Un restaurante con fachura fija suele mostrar dirección
+            exacta; food trucks, pop-ups, cocina en casa o catering suelen combinar privacidad + área de servicio.
           </HelperText>
           <div className="mt-4 grid gap-3">
             <div>
               <FieldLabel optional>Dirección línea 1</FieldLabel>
-              <HelperText>Calle y número para mostrar contacto y contexto de mapa cuando la privacidad lo permita.</HelperText>
+              <HelperText>Calle y número cuando quieras anclar el pin o el bloque de contacto; respeta lo que elijas en privacidad.</HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.addressLine1 ?? ""}
@@ -1157,11 +1169,18 @@ export default function RestauranteApplicationClient() {
                 />
                 <span className="font-semibold text-[color:var(--lx-text)]">Mostrar dirección exacta cuando aplique</span>
               </label>
-              <HelperText>Si está desactivado, la ficha puede acotar lo que se muestra según el modo de privacidad.</HelperText>
+              <HelperText>
+                <strong className="text-[color:var(--lx-text-2)]">Encendido:</strong> típico de local con dirección pública.{" "}
+                <strong className="text-[color:var(--lx-text-2)]">Apagado + privacidad «aproximada» o solo ciudad:</strong> el
+                mapa puede mostrar zona aproximada o cruce en lugar del número exacto — útil para móvil, pop-up o casa.
+              </HelperText>
             </div>
             <div>
               <FieldLabel optional>Área de servicio (texto)</FieldLabel>
-              <HelperText>Describe zonas donde entregas o atiendes (p. ej. «Sur de la bahía»); texto libre para la ficha.</HelperText>
+              <HelperText>
+                Resumen en lenguaje natural de <em>dónde atiendes</em> (ej. «Península / desde San Mateo hasta SJ»). No
+                sustituye la ciudad canónica ni los filtros; complementa la tarjeta.
+              </HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.serviceAreaText ?? ""}
@@ -1170,7 +1189,18 @@ export default function RestauranteApplicationClient() {
             </div>
             <div>
               <FieldLabel optional>Radio de entrega (millas)</FieldLabel>
-              <HelperText>Referencia numérica de alcance; se muestra en información de servicio cuando aplica.</HelperText>
+              <HelperText>
+                {deliveryRelevant ? (
+                  <>
+                    Alcance aproximado cuando ofreces <strong className="text-[color:var(--lx-text-2)]">entrega</strong> (marca
+                    «Entrega» en B o el interruptor de entrega). Déjalo vacío si no entregas.
+                  </>
+                ) : (
+                  <>
+                    Solo relevante si ofreces entrega (activa entrega en sección B). Si no aplica, puedes dejarlo vacío.
+                  </>
+                )}
+              </HelperText>
               <input
                 type="number"
                 min={0}
@@ -1186,8 +1216,9 @@ export default function RestauranteApplicationClient() {
             <div>
               <FieldLabel optional>Privacidad de ubicación</FieldLabel>
               <HelperText>
-                Controla cuánta precisión geográfica se muestra (barrio vs. aproximado, etc.) sin cambiar tu ciudad canónica de
-                filtros.
+                Alinea el listado con tu modelo: exacta = fachada conocida; aproximada = zona o cruce; solo ciudad/zona = sin
+                pin fino. Leonix <strong className="text-[color:var(--lx-text-2)]">no gestiona seguimiento en vivo</strong>: el
+                mapa usa la dirección, esta opción y (si la pegas) la URL manual de D.
               </HelperText>
               <select
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
@@ -1215,8 +1246,9 @@ export default function RestauranteApplicationClient() {
         <section id="restaurantes-section-f" className={stepPanel}>
           <SectionTitle>F · Platos destacados (máx. 4)</SectionTitle>
           <HelperText>
-            Hasta cuatro platos con foto y texto; en la ficha aparecen en el módulo de destacados cuando los completes. No
-            sustituyen al menú completo (URLs/archivos en D).
+            Módulo propio en la ficha abierta (no es la galería G): vende el menú con foto + título + nota. En vista previa
+            los dos primeros destacan; el resto se despliega con «Ver más platillos». El precio se muestra en formato USD
+            limpio; el enlace es opcional por plato.
           </HelperText>
           <div className="mt-4 space-y-6">
             {(draft.featuredDishes ?? []).map((dish, i) => (
@@ -1230,6 +1262,7 @@ export default function RestauranteApplicationClient() {
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <div className="sm:col-span-2">
                     <FieldLabel>Título</FieldLabel>
+                    <HelperText>Nombre del plato en el bloque «Platillos destacados».</HelperText>
                     <input
                       className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       value={dish.title}
@@ -1238,6 +1271,7 @@ export default function RestauranteApplicationClient() {
                   </div>
                   <div className="sm:col-span-2">
                     <FieldLabel>Nota corta</FieldLabel>
+                    <HelperText>Subtítulo bajo el título (ingredientes, estilo).</HelperText>
                     <textarea
                       className="mt-1 min-h-[64px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       value={dish.shortNote}
@@ -1246,6 +1280,7 @@ export default function RestauranteApplicationClient() {
                   </div>
                   <div>
                     <FieldLabel optional>Precio / etiqueta</FieldLabel>
+                    <HelperText>Número o texto; si es importe, la ficha lo formatea como USD (ej. 12 → $12.00).</HelperText>
                     <input
                       className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       value={dish.priceLabel ?? ""}
@@ -1254,6 +1289,7 @@ export default function RestauranteApplicationClient() {
                   </div>
                   <div>
                     <FieldLabel optional>Enlace al menú</FieldLabel>
+                    <HelperText>Opcional: ancla a una sección del menú online si aplica.</HelperText>
                     <input
                       className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.menuUrl}
@@ -1263,6 +1299,7 @@ export default function RestauranteApplicationClient() {
                   </div>
                   <div className="sm:col-span-2">
                     <FieldLabel>Imagen</FieldLabel>
+                    <HelperText>Foto del plato; sin foto el bloque igual muestra el título con marcador visual.</HelperText>
                     <RestauranteUploadRow
                       buttonLabel="Subir imagen"
                       helperText="Foto del plato."
@@ -1304,8 +1341,11 @@ export default function RestauranteApplicationClient() {
         <section id="restaurantes-section-g" className={stepPanel}>
           <SectionTitle>G · Galería y medios</SectionTitle>
           <HelperText>
-            Hero y galería alimentan la portada y la experiencia visual del detalle. Interiores, comida y exterior se
-            agrupan por tipo en la ficha; la galería general complementa el carrusel.
+            <strong className="text-[color:var(--lx-text-2)]">Hero</strong> = ancla visual superior de la ficha.{" "}
+            <strong className="text-[color:var(--lx-text-2)]">Galería general + video en la tira</strong> = carrusel mixto de
+            apoyo. <strong className="text-[color:var(--lx-text-2)]">Interiores / Comida / Exterior</strong> = grupos
+            etiquetados en el detalle (no sustituyen a los platillos F). El video es opcional y complementa; en preview el
+            archivo local gana sobre URL.
           </HelperText>
           <div className="mt-4 grid gap-4">
             <div>
@@ -1379,8 +1419,8 @@ export default function RestauranteApplicationClient() {
               </div>
               {draft.heroImage?.trim() ? (
                 <>
-                  <div className="relative mt-3 w-full max-w-lg overflow-hidden rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] shadow-sm">
-                    <div className="relative aspect-[16/9] min-h-[160px] w-full">
+                  <div className="relative mt-3 w-full max-w-md overflow-hidden rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] shadow-sm">
+                    <div className="relative aspect-[16/9] min-h-[120px] w-full">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={draft.heroImage}
@@ -1525,21 +1565,30 @@ export default function RestauranteApplicationClient() {
         {activeSectionId === "restaurantes-section-h" ? (
         <section id="restaurantes-section-h" className={stepPanel}>
           <SectionTitle>H · Destacados del lugar</SectionTitle>
-          <p className="mt-2 text-sm text-[color:var(--lx-muted)]">En la vista previa se muestran hasta 6 en el shell.</p>
+          <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
+            Máximo <strong className="text-[color:var(--lx-text-2)]">6</strong> etiquetas en la ficha; aquí no puedes pasar de
+            seis seleccionadas.
+          </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            {RESTAURANTE_HIGHLIGHTS.map((o) => (
-              <label
-                key={o.key}
-                className="inline-flex items-center gap-2 rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1.5 text-sm"
-              >
-                <input
-                  type="checkbox"
-                  checked={(draft.highlights ?? []).includes(o.key)}
-                  onChange={() => toggleHighlight(o.key)}
-                />
-                {o.labelEs}
-              </label>
-            ))}
+            {RESTAURANTE_HIGHLIGHTS.map((o) => {
+              const cur = draft.highlights ?? [];
+              const checked = cur.includes(o.key);
+              const atCap = cur.length >= 6 && !checked;
+              return (
+                <label
+                  key={o.key}
+                  className={`inline-flex items-center gap-2 rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1.5 text-sm ${atCap ? "cursor-not-allowed opacity-50" : ""}`}
+                >
+                  <input
+                    type="checkbox"
+                    disabled={atCap}
+                    checked={checked}
+                    onChange={() => toggleHighlight(o.key)}
+                  />
+                  {o.labelEs}
+                </label>
+              );
+            })}
           </div>
         </section>
         ) : null}
@@ -1548,55 +1597,118 @@ export default function RestauranteApplicationClient() {
         {draft.movingVendor && activeSectionId === "restaurantes-section-i" ? (
           <section id="restaurantes-section-i" className={stepPanel}>
             <SectionTitle>I · Ubicación móvil</SectionTitle>
+            <HelperText>
+              Para <strong className="text-[color:var(--lx-text-2)]">tacos trucks, puestos móviles y pop-ups</strong> cuya
+              ubicación cambia. Esto <strong className="text-[color:var(--lx-text-2)]">no es rastreo en vivo en Leonix</strong>:
+              tú publicas texto y enlaces; el cliente usa tu URL (red social, mapa guardado, página de ubicación) para
+              enterarse. Leonix no envía notificaciones push ni GPS.
+            </HelperText>
             <div className="mt-4 grid gap-3">
-              {(
-                [
-                  ["currentLocationText", "Ubicación actual"],
-                  ["currentLocationUrl", "URL ubicación"],
-                  ["todayHoursText", "Horario de hoy"],
-                  ["nextStopText", "Próxima parada"],
-                  ["nextStopTime", "Hora próxima parada"],
-                  ["weeklyRouteText", "Ruta semanal"],
-                  ["notifyCopy", "Texto de avisos"],
-                ] as const
-              ).map(([k, lab]) => (
-                <div key={k}>
-                  <FieldLabel optional>{lab}</FieldLabel>
+              <div>
+                <FieldLabel optional>Ubicación actual</FieldLabel>
+                <HelperText>Texto corto de dónde estás hoy (barrio, esquina, evento).</HelperText>
+                <input
+                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                  value={draft.movingVendorStack?.currentLocationText ?? ""}
+                  onChange={(e) =>
+                    setDraftPatch({
+                      movingVendorStack: { ...draft.movingVendorStack, currentLocationText: e.target.value || undefined },
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <FieldLabel optional>URL ubicación</FieldLabel>
+                <HelperText>Donde suele estar tu aviso actualizado (post, perfil, mapa compartido).</HelperText>
+                <input
+                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                  value={draft.movingVendorStack?.currentLocationUrl ?? ""}
+                  onChange={(e) =>
+                    setDraftPatch({
+                      movingVendorStack: { ...draft.movingVendorStack, currentLocationUrl: e.target.value || undefined },
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <FieldLabel optional>Horario de hoy</FieldLabel>
+                <HelperText>Franja visible en el bloque móvil (aparte de la sección C general).</HelperText>
+                <input
+                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                  value={draft.movingVendorStack?.todayHoursText ?? ""}
+                  onChange={(e) =>
+                    setDraftPatch({
+                      movingVendorStack: { ...draft.movingVendorStack, todayHoursText: e.target.value || undefined },
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <FieldLabel optional>Próxima parada</FieldLabel>
+                <input
+                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                  value={draft.movingVendorStack?.nextStopText ?? ""}
+                  onChange={(e) =>
+                    setDraftPatch({
+                      movingVendorStack: { ...draft.movingVendorStack, nextStopText: e.target.value || undefined },
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <FieldLabel optional>Hora próxima parada</FieldLabel>
+                <input
+                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                  value={draft.movingVendorStack?.nextStopTime ?? ""}
+                  onChange={(e) =>
+                    setDraftPatch({
+                      movingVendorStack: { ...draft.movingVendorStack, nextStopTime: e.target.value || undefined },
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <FieldLabel optional>Ruta semanal</FieldLabel>
+                <HelperText>Patrón recurrente (ej. «Mié–Vie SOMA»).</HelperText>
+                <input
+                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                  value={draft.movingVendorStack?.weeklyRouteText ?? ""}
+                  onChange={(e) =>
+                    setDraftPatch({
+                      movingVendorStack: { ...draft.movingVendorStack, weeklyRouteText: e.target.value || undefined },
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <FieldLabel optional>Texto de avisos</FieldLabel>
+                <HelperText>Mensaje para quien lea el anuncio (cambios, retrasos).</HelperText>
+                <input
+                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                  value={draft.movingVendorStack?.notifyCopy ?? ""}
+                  onChange={(e) =>
+                    setDraftPatch({
+                      movingVendorStack: { ...draft.movingVendorStack, notifyCopy: e.target.value || undefined },
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
                   <input
-                    className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                    value={(draft.movingVendorStack?.[k] as string | undefined) ?? ""}
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={Boolean(draft.movingVendorStack?.activeNow)}
                     onChange={(e) =>
                       setDraftPatch({
-                        movingVendorStack: { ...draft.movingVendorStack, [k]: e.target.value || undefined },
+                        movingVendorStack: { ...draft.movingVendorStack, activeNow: e.target.checked },
                       })
                     }
                   />
-                </div>
-              ))}
-              <label className="inline-flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={Boolean(draft.movingVendorStack?.activeNow)}
-                  onChange={(e) =>
-                    setDraftPatch({
-                      movingVendorStack: { ...draft.movingVendorStack, activeNow: e.target.checked },
-                    })
-                  }
-                />
-                Activo ahora
-              </label>
-              <label className="inline-flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={Boolean(draft.movingVendorStack?.allowFollowNotify)}
-                  onChange={(e) =>
-                    setDraftPatch({
-                      movingVendorStack: { ...draft.movingVendorStack, allowFollowNotify: e.target.checked },
-                    })
-                  }
-                />
-                Permitir seguimiento / avisos (solo UI por ahora)
-              </label>
+                  <span className="font-semibold text-[color:var(--lx-text)]">Activo ahora</span>
+                </label>
+                <HelperText>Indica en el anuncio si estás operando en este momento (texto; no seguimiento automático).</HelperText>
+              </div>
             </div>
           </section>
         ) : null}
@@ -1605,9 +1717,15 @@ export default function RestauranteApplicationClient() {
         {draft.homeBasedBusiness && activeSectionId === "restaurantes-section-j" ? (
           <section id="restaurantes-section-j" className={stepPanel}>
             <SectionTitle>J · Negocio desde casa</SectionTitle>
+            <HelperText>
+              <strong className="text-[color:var(--lx-text-2)]">No sustituye la sección C</strong>: C es el horario general del
+              negocio; J es logística de <strong className="text-[color:var(--lx-text-2)]">recogida / ventanas / radio desde
+              casa</strong> cuando operas desde domicilio.
+            </HelperText>
             <div className="mt-4 grid gap-3">
               <div>
                 <FieldLabel optional>Instrucciones de recogida</FieldLabel>
+                <HelperText>Cómo llega el cliente (entrada, timbre, estacionamiento).</HelperText>
                 <textarea
                   className="mt-1 min-h-[72px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                   value={draft.homeBasedStack?.pickupInstructions ?? ""}
@@ -1620,6 +1738,7 @@ export default function RestauranteApplicationClient() {
               </div>
               <div>
                 <FieldLabel optional>Días de recogida</FieldLabel>
+                <HelperText>Días en los que aceptas pickup en casa (pueden ser un subconjunto de C).</HelperText>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {RESTAURANTE_PICKUP_DAYS.map((d) => (
                     <label key={d} className="inline-flex items-center gap-2 text-sm">
@@ -1646,6 +1765,13 @@ export default function RestauranteApplicationClient() {
               ).map(([k, lab]) => (
                 <div key={k}>
                   <FieldLabel optional>{lab}</FieldLabel>
+                  {k === "pickupWindowText" ? (
+                    <HelperText>Ventana horaria típica de recogida en este modelo.</HelperText>
+                  ) : k === "preorderLeadTimeText" ? (
+                    <HelperText>Cuánto tiempo pides pedir con anticipación.</HelperText>
+                  ) : (
+                    <HelperText>Aviso corto al cliente (acceso, estacionamiento).</HelperText>
+                  )}
                   <input
                     className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                     value={(draft.homeBasedStack?.[k] as string | undefined) ?? ""}
@@ -1659,6 +1785,7 @@ export default function RestauranteApplicationClient() {
               ))}
               <div>
                 <FieldLabel optional>Radio de entrega (millas) — hogar</FieldLabel>
+                <HelperText>Alcance desde el punto de cocina/hogar cuando ofreces entrega desde casa.</HelperText>
                 <input
                   type="number"
                   min={0}
@@ -1682,9 +1809,14 @@ export default function RestauranteApplicationClient() {
         {(draft.cateringAvailable || draft.eventFoodService) && activeSectionId === "restaurantes-section-k" ? (
           <section id="restaurantes-section-k" className={stepPanel}>
             <SectionTitle>K · Catering y eventos</SectionTitle>
+            <HelperText>
+              Alcance de <strong className="text-[color:var(--lx-text-2)]">catering y comida para eventos</strong> — distinto
+              de I (móvil) y de J (pickup hogareño). Aquí defines anticipación, dónde solicitar cotización y radio de servicio.
+            </HelperText>
             <div className="mt-4 grid gap-3">
               <div>
                 <FieldLabel optional>Tamaños de evento</FieldLabel>
+                <HelperText>Qué tamaños de grupo puedes atender.</HelperText>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {RESTAURANTE_EVENT_SIZES.map((o) => (
                     <label key={o.key} className="inline-flex items-center gap-2 text-sm">
@@ -1713,6 +1845,13 @@ export default function RestauranteApplicationClient() {
               ).map(([k, lab]) => (
                 <div key={k}>
                   <FieldLabel optional>{lab}</FieldLabel>
+                  {k === "bookingLeadTimeText" ? (
+                    <HelperText>Con cuánta anticipación deben contactarte (ej. «mín. 2 semanas»).</HelperText>
+                  ) : k === "cateringInquiryUrl" ? (
+                    <HelperText>Formulario o página donde el cliente pide presupuesto.</HelperText>
+                  ) : (
+                    <HelperText>Nota visible en el bloque de catering/eventos.</HelperText>
+                  )}
                   <input
                     className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                     value={(draft.cateringEventsStack?.[k] as string | undefined) ?? ""}
@@ -1726,6 +1865,7 @@ export default function RestauranteApplicationClient() {
               ))}
               <div>
                 <FieldLabel optional>Radio de servicio (millas)</FieldLabel>
+                <HelperText>Distancia aproximada donde ofreces catering o servicio en sitio.</HelperText>
                 <input
                   type="number"
                   min={0}
@@ -1743,92 +1883,6 @@ export default function RestauranteApplicationClient() {
               </div>
             </div>
           </section>
-        ) : null}
-
-        {/* L */}
-        {activeSectionId === "restaurantes-section-l" ? (
-        <section id="restaurantes-section-l" className={stepPanel}>
-          <SectionTitle>L · Confianza y reputación en Leonix</SectionTitle>
-          <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-muted)]">
-            Aquí refuerzas la <strong className="font-medium text-[color:var(--lx-text-2)]">confianza</strong> dentro del
-            anuncio: resumen de reputación, testimonio y, si quieres, un resumen asistido. Los enlaces a otras plataformas
-            son <strong className="font-medium text-[color:var(--lx-text-2)]">opcionales</strong> — no son el centro de la
-            experiencia; sirven como respaldo si ya tienes presencia allá.
-          </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <FieldLabel optional>Enlace a reseñas (Google u otro) — opcional</FieldLabel>
-              <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.googleReviewUrl}
-                value={draft.googleReviewUrl ?? ""}
-                onChange={(e) => setDraftPatch({ googleReviewUrl: e.target.value || undefined })}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <FieldLabel optional>Otro enlace de prueba social — opcional</FieldLabel>
-              <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.yelpReviewUrl}
-                value={draft.yelpReviewUrl ?? ""}
-                onChange={(e) => setDraftPatch({ yelpReviewUrl: e.target.value || undefined })}
-              />
-            </div>
-            <div>
-              <FieldLabel optional>Resumen de calificación (0–5)</FieldLabel>
-              <p className="mt-0.5 text-xs text-[color:var(--lx-muted)]">Si publicas una nota agregada, sin sustituir reseñas nativas de Leonix.</p>
-              <input
-                type="number"
-                step="0.1"
-                min={0}
-                max={5}
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                value={draft.externalRatingValue ?? ""}
-                onChange={(e) =>
-                  setDraftPatch({
-                    externalRatingValue: e.target.value === "" ? undefined : Number(e.target.value),
-                  })
-                }
-              />
-            </div>
-            <div>
-              <FieldLabel optional>Cantidad de opiniones (referencia)</FieldLabel>
-              <input
-                type="number"
-                min={0}
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                value={draft.externalReviewCount ?? ""}
-                onChange={(e) =>
-                  setDraftPatch({
-                    externalReviewCount: e.target.value === "" ? undefined : Number(e.target.value),
-                  })
-                }
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <FieldLabel optional>Testimonio o frase de cliente</FieldLabel>
-              <textarea
-                className="mt-1 min-h-[72px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                value={draft.testimonialSnippet ?? ""}
-                onChange={(e) => setDraftPatch({ testimonialSnippet: e.target.value || undefined })}
-              />
-            </div>
-            <label className="flex cursor-pointer items-start gap-2 text-sm sm:col-span-2">
-              <input
-                type="checkbox"
-                className="mt-1 h-4 w-4 rounded border-[color:var(--lx-nav-border)]"
-                checked={Boolean(draft.aiSummaryEnabled)}
-                onChange={(e) => setDraftPatch({ aiSummaryEnabled: e.target.checked })}
-              />
-              <span>
-                <span className="font-semibold text-[color:var(--lx-text)]">Resumen corto asistido (opcional)</span>
-                <span className="mt-0.5 block text-xs text-[color:var(--lx-muted)]">
-                  Puede ayudar a sintetizar tu reputación para el anuncio en Leonix cuando haya datos o enlaces útiles.
-                </span>
-              </span>
-            </label>
-          </div>
-        </section>
         ) : null}
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--lx-nav-border)] pt-6">

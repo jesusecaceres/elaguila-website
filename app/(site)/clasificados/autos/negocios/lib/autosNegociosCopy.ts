@@ -273,6 +273,8 @@ const ES: AutosNegociosCopy = {
       previewNeed_location: "ciudad, estado y código postal",
       previewNeed_dealerIdentity: "nombre del concesionario, teléfono principal o logo",
       previewNeed_sellerContact: "teléfono, móvil, WhatsApp o correo",
+      priceInputHint: "USD · miles de separación · valor numérico guardado.",
+      mileageInputHint: "Millas · miles de separación · valor numérico guardado.",
     },
     actions: {
       previewScroll: "Vista previa",
@@ -590,6 +592,8 @@ const EN: AutosNegociosCopy = {
       previewNeed_location: "city, state, and ZIP",
       previewNeed_dealerIdentity: "dealership name, main phone, or logo",
       previewNeed_sellerContact: "phone, mobile, WhatsApp, or email",
+      priceInputHint: "USD · thousands separators · value stored as a number.",
+      mileageInputHint: "Miles · thousands separators · value stored as a number.",
     },
     actions: {
       previewScroll: "Preview",

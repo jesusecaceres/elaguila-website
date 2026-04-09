@@ -1,8 +1,10 @@
+"use client";
+
 import Image from "next/image";
-import Link from "next/link";
 import { FiMail, FiMapPin, FiPhone, FiInstagram, FiFacebook, FiYoutube } from "react-icons/fi";
 import { FaTiktok, FaWhatsapp } from "react-icons/fa";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
+import { RestauranteShellInlineDataAssetButton } from "./RestauranteShellInlineDataAssetButton";
 import { RestauranteShellInteractiveCtas } from "./RestauranteShellInteractiveCtas";
 import { RestauranteShellGalleryBlock } from "./RestauranteShellGalleryBlock";
 import { RestauranteShellPlatillosBlock } from "./RestauranteShellPlatillosBlock";
@@ -73,6 +75,12 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
   const showStacks = (data.stackSections?.length ?? 0) > 0;
   const showCtas = (data.primaryCtas?.length ?? 0) > 0;
   const hasHeroImg = Boolean(data.heroImageUrl?.trim());
+  const showHoursDetail = Boolean(
+    data.hoursDetail &&
+      ((data.hoursDetail.rows?.length ?? 0) > 0 ||
+        data.hoursDetail.specialNote?.trim() ||
+        data.hoursDetail.temporaryNote?.trim())
+  );
 
   return (
     <main className="mx-auto mt-6 max-w-[1280px] px-4 sm:mt-8 md:px-5 lg:px-6">
@@ -138,7 +146,7 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
                   {data.summaryShort}
                 </p>
               ) : null}
-              <div id="horarios" className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
                 <p className="text-sm">
                   <span className={open ? "font-semibold text-emerald-300" : "font-semibold text-amber-200"}>
                     {data.hoursPreview.statusLine}
@@ -146,12 +154,14 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
                   <span className="text-white/55"> · </span>
                   <span className="text-white/85">{data.hoursPreview.scheduleSummary}</span>
                 </p>
-                <Link
-                  href={data.seeHoursHref}
-                  className="w-fit text-sm font-semibold text-[color:var(--lx-gold-soft)] underline decoration-white/35 underline-offset-4 hover:text-white"
-                >
-                  {data.seeHoursLabel}
-                </Link>
+                {showHoursDetail ? (
+                  <a
+                    href={data.seeHoursHref}
+                    className="w-fit text-sm font-semibold text-[color:var(--lx-gold-soft)] underline decoration-white/35 underline-offset-4 hover:text-white"
+                  >
+                    {data.seeHoursLabel}
+                  </a>
+                ) : null}
               </div>
             </div>
           </div>
@@ -180,6 +190,38 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
         </section>
       ) : null}
 
+      {showHoursDetail && data.hoursDetail ? (
+        <section
+          id="horarios-detalle"
+          className={`${CARD} mt-8 scroll-mt-28 px-5 py-5 sm:px-6`}
+          aria-labelledby="hours-detail-heading"
+        >
+          <h2 id="hours-detail-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
+            Horarios completos
+          </h2>
+          <dl className="mt-4 divide-y divide-[color:var(--lx-nav-border)]/70">
+            {data.hoursDetail.rows.map((r) => (
+              <div key={r.dayLabel} className="flex flex-wrap gap-x-4 gap-y-1 py-3 first:pt-0">
+                <dt className="w-32 shrink-0 font-semibold text-[color:var(--lx-muted)]">{r.dayLabel}</dt>
+                <dd className="min-w-0 text-[15px] text-[color:var(--lx-text-2)]">{r.line}</dd>
+              </div>
+            ))}
+          </dl>
+          {data.hoursDetail.specialNote ? (
+            <p className="mt-4 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+              <span className="font-semibold text-[color:var(--lx-text)]">Nota: </span>
+              {data.hoursDetail.specialNote}
+            </p>
+          ) : null}
+          {data.hoursDetail.temporaryNote ? (
+            <p className="mt-4 rounded-xl border border-amber-200/90 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-950">
+              <span className="font-semibold">Horario temporal: </span>
+              {data.hoursDetail.temporaryNote}
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+
       <div
         className={`mt-10 grid grid-cols-1 gap-8 ${showContact ? "lg:grid-cols-12 lg:gap-10" : ""}`}
       >
@@ -190,15 +232,11 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
           ) : null}
           {showMenuOnly ? (
             <section className="mt-2" aria-label="Menú">
-              <a
+              <RestauranteShellInlineDataAssetButton
                 href={data.fullMenuCta!.href}
+                label={`${data.fullMenuCta!.label} →`}
                 className="flex w-full min-h-[48px] items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-              >
-                {data.fullMenuCta!.label}
-                <span className="ml-1 text-[color:var(--lx-gold)]" aria-hidden>
-                  →
-                </span>
-              </a>
+              />
             </section>
           ) : null}
 
@@ -405,14 +443,11 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
               ) : null}
 
               {data.contact!.menuFileHref && data.contact!.menuFileLabel ? (
-                <a
+                <RestauranteShellInlineDataAssetButton
                   href={data.contact!.menuFileHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  label={data.contact!.menuFileLabel}
                   className="flex w-full items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-4 py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-active)]"
-                >
-                  {data.contact!.menuFileLabel}
-                </a>
+                />
               ) : null}
             </div>
           </aside>

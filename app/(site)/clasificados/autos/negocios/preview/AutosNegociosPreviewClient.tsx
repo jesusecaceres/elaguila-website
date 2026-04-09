@@ -15,6 +15,7 @@ import { isMeaningfulAutoDealerDraft } from "../lib/isMeaningfulAutoDealerDraft"
 import { AutosNegociosPreviewLocaleProvider, useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { withLangParam } from "../lib/autosNegociosLang";
 import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
+import { AutosDraftPreviewErrorBoundary } from "@/app/clasificados/autos/shared/components/AutosDraftPreviewErrorBoundary";
 
 const EDIT_BASE = "/publicar/autos/negocios";
 
@@ -85,7 +86,11 @@ function AutosNegociosPreviewInner({
     return <AutosNegociosPreviewEmptyState />;
   }
 
-  return <AutoDealerPreviewPage data={listing} editBackHref={editBackHref} />;
+  return (
+    <AutosDraftPreviewErrorBoundary logLabel="negocios" fallback={<AutosNegociosPreviewEmptyState />}>
+      <AutoDealerPreviewPage data={listing} editBackHref={editBackHref} />
+    </AutosDraftPreviewErrorBoundary>
+  );
 }
 
 export function AutosNegociosPreviewClient() {

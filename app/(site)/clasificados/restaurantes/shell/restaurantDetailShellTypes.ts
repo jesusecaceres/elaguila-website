@@ -36,9 +36,17 @@ export type ShellQuickInfoItem = {
 export type ShellMenuHighlight = {
   name: string;
   supportingLine: string;
-  imageUrl: string;
+  /** Omitted when the seller named the dish but has not added a photo yet */
+  imageUrl?: string;
   /** Optional badge e.g. photo count from community */
   badge?: string;
+};
+
+/** Full week grid for “Ver horarios” target section */
+export type ShellHoursDetail = {
+  rows: { dayLabel: string; line: string }[];
+  specialNote?: string;
+  temporaryNote?: string;
 };
 
 export type ShellHighlightTag = {
@@ -128,7 +136,10 @@ export type RestaurantDetailShellData = {
     scheduleSummary: string;
   };
   seeHoursLabel: string;
+  /** In-page anchor for full hours block (e.g. #horarios-detalle) */
   seeHoursHref: string;
+  /** When present, shell renders a full week + notes below the fold */
+  hoursDetail?: ShellHoursDetail;
   primaryCtas: ShellPrimaryCta[];
   quickInfo?: ShellQuickInfoItem[];
   menuHighlights?: ShellMenuHighlight[];

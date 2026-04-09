@@ -136,7 +136,7 @@ export default function RestaurantePreviewClient() {
           </div>
         </details>
 
-        <ClasificadosPreviewAdCanvas className="overflow-hidden">
+        <ClasificadosPreviewAdCanvas>
           <RestauranteDetailShell data={shellData} />
         </ClasificadosPreviewAdCanvas>
       </div>

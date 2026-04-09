@@ -328,13 +328,15 @@ export function RestaurantePublishMediaStrip({
                         dragLabel="Arrastrar imagen"
                         onRemove={() => removeGalleryAt(entry)}
                       >
-                        <div className="relative aspect-square w-full min-h-[140px] bg-[color:var(--lx-section)]">
+                        <div className="relative aspect-square w-full min-h-[100px] bg-[color:var(--lx-section)]">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={url}
                             alt=""
                             className="absolute inset-0 h-full w-full object-cover"
                             draggable={false}
+                            loading="lazy"
+                            decoding="async"
                           />
                           {isCoverHint ? (
                             <span className="absolute bottom-2 left-2 rounded bg-[color:var(--lx-gold)]/95 px-1.5 py-0.5 text-[10px] font-bold text-[#1a1814]">

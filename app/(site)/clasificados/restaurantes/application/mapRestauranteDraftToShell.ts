@@ -1,9 +1,13 @@
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 import { computePublishGallerySequence } from "./restauranteGalleryMediaSequence";
 import { isRestauranteDisplayableImageRef, isRestauranteLocalVideoDataUrl } from "./restauranteMediaDisplay";
-import { hasPrimaryContactPath, RESTAURANTE_SHELL_HIGHLIGHT_CAP } from "./restauranteListingApplicationModel";
+import {
+  hasPrimaryContactPath,
+  RESTAURANTE_SHELL_HIGHLIGHT_CAP,
+  type RestauranteDaySchedule,
+  type RestauranteServiceMode,
+} from "./restauranteListingApplicationModel";
 import { computeShellHoursPreview } from "./restauranteHoursPreview";
-import type { RestauranteServiceMode } from "./restauranteListingApplicationModel";
 import {
   labelForBusinessType,
   labelForCuisine,
@@ -17,12 +21,14 @@ import type {
   RestaurantDetailShellData,
   ShellContactBlock,
   ShellGalleryItem,
+  ShellHoursDetail,
   ShellPrimaryCta,
   ShellQuickInfoItem,
   ShellStackSection,
   ShellVenueGalleryBundle,
   ShellVenueGalleryCategory,
 } from "../shell/restaurantDetailShellTypes";
+import { formatPlatilloPriceBadge } from "./restauranteShellDisplayFormat";
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
@@ -125,6 +131,41 @@ function websiteDisplayFromUrl(url: string): string {
   } catch {
     return url.replace(/^https?:\/\//, "").replace(/\/$/, "");
   }
+}
+
+const HOURS_DAY_ORDER: {
+  key: keyof Pick<
+    RestauranteListingDraft,
+    "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday"
+  >;
+  label: string;
+}[] = [
+  { key: "monday", label: "Lunes" },
+  { key: "tuesday", label: "Martes" },
+  { key: "wednesday", label: "Miércoles" },
+  { key: "thursday", label: "Jueves" },
+  { key: "friday", label: "Viernes" },
+  { key: "saturday", label: "Sábado" },
+  { key: "sunday", label: "Domingo" },
+];
+
+function buildHoursDetail(d: RestauranteListingDraft): ShellHoursDetail | undefined {
+  const rows: { dayLabel: string; line: string }[] = [];
+  for (const { key, label } of HOURS_DAY_ORDER) {
+    const s = d[key] as RestauranteDaySchedule | undefined;
+    if (!s) continue;
+    const line = s.closed
+      ? "Cerrado"
+      : s.openTime?.trim() && s.closeTime?.trim()
+        ? `${s.openTime} – ${s.closeTime}`
+        : "Horario por confirmar";
+    rows.push({ dayLabel: label, line });
+  }
+  const specialNote = d.specialHoursNote?.trim() || undefined;
+  const temporaryNote =
+    d.temporaryHoursActive && d.temporaryHoursNote?.trim() ? d.temporaryHoursNote.trim() : undefined;
+  if (!rows.length && !specialNote && !temporaryNote) return undefined;
+  return { rows, specialNote, temporaryNote };
 }
 
 function buildCuisineLine(d: RestauranteListingDraft): string | undefined {
@@ -428,13 +469,13 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
     .map((k) => ({ key: k, label: labelForHighlight(k) }));
   const dishes =
     d.featuredDishes
-      ?.filter((x) => nonEmpty(x.title) && nonEmpty(x.image))
+      ?.filter((x) => nonEmpty(x.title))
       .slice(0, 4)
       .map((x) => ({
         name: x.title.trim(),
         supportingLine: nonEmpty(x.shortNote) ? x.shortNote.trim() : "",
-        imageUrl: x.image!.trim(),
-        badge: nonEmpty(x.priceLabel) ? String(x.priceLabel).trim() : undefined,
+        imageUrl: nonEmpty(x.image) ? x.image!.trim() : undefined,
+        badge: formatPlatilloPriceBadge(x.priceLabel),
       })) ?? [];
   const menuHref = nonEmpty(d.menuUrl) ? normalizeUrl(d.menuUrl!) : nonEmpty(d.menuFile) ? d.menuFile! : "";
   const venueGallery = buildVenueGalleryFromDraft(d);
@@ -456,7 +497,8 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
     trustRating,
     hoursPreview: hp,
     seeHoursLabel: "Ver horarios",
-    seeHoursHref: "#horarios",
+    seeHoursHref: "#horarios-detalle",
+    hoursDetail: buildHoursDetail(d),
     primaryCtas: buildPrimaryCtas(d),
     quickInfo: quick.length ? quick : undefined,
     menuHighlights: dishes.length ? dishes : undefined,

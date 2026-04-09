@@ -27,6 +27,5 @@ export function buildRestauranteApplicationSectionNavItems(draft: RestauranteLis
   if (draft.cateringAvailable || draft.eventFoodService) {
     items.push({ id: "restaurantes-section-k", letter: "K", shortTitle: "Catering y eventos" });
   }
-  items.push({ id: "restaurantes-section-l", letter: "L", shortTitle: "Confianza y reputación" });
   return items;
 }

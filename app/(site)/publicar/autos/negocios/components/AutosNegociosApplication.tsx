@@ -26,6 +26,13 @@ import { AutosNegociosMediaManager } from "./AutosNegociosMediaManager";
 import { AutosApplicationSteppedShell } from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
 import { AutosApplicationReviewStep } from "@/app/publicar/autos/shared/components/AutosApplicationReviewStep";
 import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
+import {
+  formatMileageInputDisplay,
+  formatUsdIntegerInputDisplay,
+  parseMileageInput,
+  parseUsdIntegerInput,
+} from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
+import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-5";
@@ -239,12 +246,20 @@ export function AutosNegociosApplication() {
               </div>
               <div>
                 <label className={LABEL}>{t.app.labels.price}</label>
-                <input
-                  className={INPUT}
-                  inputMode="decimal"
-                  value={listing.price ?? ""}
-                  onChange={(e) => setListingPatch({ price: parseOptFloat(e.target.value) })}
-                />
+                <div className="relative mt-1">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[color:var(--lx-muted)]" aria-hidden>
+                    $
+                  </span>
+                  <input
+                    className={`${INPUT} pl-7 tabular-nums`}
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={formatUsdIntegerInputDisplay(listing.price)}
+                    onChange={(e) => setListingPatch({ price: parseUsdIntegerInput(e.target.value) })}
+                    aria-label={t.app.labels.price}
+                  />
+                </div>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.priceInputHint}</p>
               </div>
               <div>
                 <label className={LABEL}>{t.app.labels.monthly}</label>
@@ -259,11 +274,13 @@ export function AutosNegociosApplication() {
               <div>
                 <label className={LABEL}>{t.app.labels.mileage}</label>
                 <input
-                  className={INPUT}
+                  className={`${INPUT} tabular-nums`}
                   inputMode="numeric"
-                  value={listing.mileage ?? ""}
-                  onChange={(e) => setListingPatch({ mileage: parseOptFloat(e.target.value) })}
+                  autoComplete="off"
+                  value={formatMileageInputDisplay(listing.mileage)}
+                  onChange={(e) => setListingPatch({ mileage: parseMileageInput(e.target.value) })}
                 />
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.mileageInputHint}</p>
               </div>
               <div className="sm:col-span-2">
                 <label className={LABEL}>{reqLabel(t.app.labels.city)}</label>
@@ -530,33 +547,42 @@ export function AutosNegociosApplication() {
               <div>
                 <label className={LABEL}>{t.app.labels.phoneOffice}</label>
                 <input
-                  className={INPUT}
+                  className={`${INPUT} tabular-nums`}
                   inputMode="tel"
                   autoComplete="tel"
-                  value={listing.dealerPhoneOffice ?? ""}
-                  onChange={(e) => setListingPatch({ dealerPhoneOffice: e.target.value || undefined })}
+                  value={formatPhoneInputDisplay(listing.dealerPhoneOffice ?? "")}
+                  onChange={(e) => {
+                    const v = formatPhoneInputDisplay(e.target.value);
+                    setListingPatch({ dealerPhoneOffice: v.trim() ? v : undefined });
+                  }}
                 />
               </div>
               <div>
                 <label className={LABEL}>{t.app.labels.phoneMobile}</label>
                 <input
-                  className={INPUT}
+                  className={`${INPUT} tabular-nums`}
                   inputMode="tel"
                   autoComplete="tel"
-                  value={listing.dealerPhoneMobile ?? ""}
-                  onChange={(e) => setListingPatch({ dealerPhoneMobile: e.target.value || undefined })}
+                  value={formatPhoneInputDisplay(listing.dealerPhoneMobile ?? "")}
+                  onChange={(e) => {
+                    const v = formatPhoneInputDisplay(e.target.value);
+                    setListingPatch({ dealerPhoneMobile: v.trim() ? v : undefined });
+                  }}
                 />
                 <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.phoneMobile}</p>
               </div>
               <div>
                 <label className={LABEL}>{t.app.labels.whatsapp}</label>
                 <input
-                  className={INPUT}
+                  className={`${INPUT} tabular-nums`}
                   inputMode="tel"
                   autoComplete="tel"
                   placeholder={t.app.placeholders.whatsapp}
-                  value={listing.dealerWhatsapp ?? ""}
-                  onChange={(e) => setListingPatch({ dealerWhatsapp: e.target.value.trim() ? e.target.value : undefined })}
+                  value={formatPhoneInputDisplay(listing.dealerWhatsapp ?? "")}
+                  onChange={(e) => {
+                    const v = formatPhoneInputDisplay(e.target.value);
+                    setListingPatch({ dealerWhatsapp: v.trim() ? v : undefined });
+                  }}
                 />
                 <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.whatsapp}</p>
               </div>

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import type { ShellMenuHighlight } from "./restaurantDetailShellTypes";
+import { RestauranteShellInlineDataAssetButton } from "./RestauranteShellInlineDataAssetButton";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)]";
@@ -32,15 +33,24 @@ export function RestauranteShellPlatillosBlock({
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {visible.map((dish, idx) => (
           <article key={`${dish.name}-${idx}`} className={`${CARD} group overflow-hidden p-0`}>
-            <div className="relative aspect-[4/3] w-full overflow-hidden">
-              <Image
-                src={dish.imageUrl}
-                alt={dish.name}
-                fill
-                unoptimized={dish.imageUrl.startsWith("data:")}
-                className="object-cover transition duration-500 group-hover:scale-[1.02]"
-                sizes="(max-width:640px) 100vw, 50vw"
-              />
+            <div className="relative aspect-[4/3] w-full overflow-hidden bg-[color:var(--lx-section)]">
+              {dish.imageUrl ? (
+                <Image
+                  src={dish.imageUrl}
+                  alt={dish.name}
+                  fill
+                  unoptimized={dish.imageUrl.startsWith("data:")}
+                  className="object-cover transition duration-500 group-hover:scale-[1.02]"
+                  sizes="(max-width:640px) 100vw, 50vw"
+                />
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-4 text-center">
+                  <span className="text-4xl opacity-50" aria-hidden>
+                    🍽
+                  </span>
+                  <span className="text-xs font-semibold text-[color:var(--lx-muted)]">Sin foto aún</span>
+                </div>
+              )}
               {dish.badge ? (
                 <span className="absolute right-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
                   {dish.badge}
@@ -69,15 +79,11 @@ export function RestauranteShellPlatillosBlock({
       ) : null}
       {fullMenuCta ? (
         <div className="mt-6">
-          <a
+          <RestauranteShellInlineDataAssetButton
             href={fullMenuCta.href}
+            label={`${fullMenuCta.label} →`}
             className="flex w-full min-h-[48px] items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-          >
-            {fullMenuCta.label}
-            <span className="ml-1 text-[color:var(--lx-gold)]" aria-hidden>
-              →
-            </span>
-          </a>
+          />
         </div>
       ) : null}
     </section>
