@@ -11,13 +11,15 @@ const BTN_NAV =
 const BTN_NAV_PRIMARY =
   "inline-flex min-h-[48px] min-w-[120px] items-center justify-center rounded-xl bg-[color:var(--lx-cta-dark)] px-5 text-sm font-bold text-[#FFFCF7] shadow-md transition hover:bg-[color:var(--lx-cta-dark-hover)] disabled:cursor-not-allowed disabled:opacity-40";
 
+export type AutosGoToStepOptions = { bypassMax?: boolean };
+
 export type AutosApplicationStepContext = {
   activeStep: number;
   stepCount: number;
   maxReached: number;
   goNext: () => void;
   goPrev: () => void;
-  goToStep: (index: number) => void;
+  goToStep: (index: number, opts?: AutosGoToStepOptions) => void;
 };
 
 type Props = {
@@ -25,11 +27,21 @@ type Props = {
   lane: AutosPreviewLane;
   stepLabels: string[];
   header: ReactNode;
-  topActions: ReactNode;
+  topActions: (ctx: AutosApplicationStepContext) => ReactNode;
+  /** Step indices that still have blocking completeness gaps (for subtle nav hints). */
+  stepBlockWarnings?: readonly number[];
   children: (ctx: AutosApplicationStepContext) => ReactNode;
 };
 
-export function AutosApplicationSteppedShell({ lang, lane, stepLabels, header, topActions, children }: Props) {
+export function AutosApplicationSteppedShell({
+  lang,
+  lane,
+  stepLabels,
+  header,
+  topActions,
+  stepBlockWarnings,
+  children,
+}: Props) {
   const stepSelectId = useId();
   const copy = useMemo(() => getAutosApplicationStepShellCopy(lang), [lang]);
   const stepCount = stepLabels.length;
@@ -49,8 +61,13 @@ export function AutosApplicationSteppedShell({ lang, lane, stepLabels, header, t
   }, []);
 
   const goToStep = useCallback(
-    (index: number) => {
+    (index: number, opts?: AutosGoToStepOptions) => {
       if (index < 0 || index >= stepCount) return;
+      if (opts?.bypassMax) {
+        setMaxReached((m) => Math.max(m, index));
+        setActiveStep(index);
+        return;
+      }
       if (index <= maxReached) setActiveStep(index);
     },
     [maxReached, stepCount],
@@ -73,7 +90,7 @@ export function AutosApplicationSteppedShell({ lang, lane, stepLabels, header, t
 
   return (
     <div
-      className="min-h-screen overflow-x-hidden pb-24 text-[color:var(--lx-text)] lg:pb-28"
+      className="min-h-screen overflow-x-hidden pb-[calc(6rem+env(safe-area-inset-bottom,0px))] text-[color:var(--lx-text)] lg:pb-28"
       style={{
         backgroundColor: "var(--lx-page)",
         backgroundImage:
@@ -83,7 +100,7 @@ export function AutosApplicationSteppedShell({ lang, lane, stepLabels, header, t
       <div className="mx-auto w-full min-w-0 max-w-6xl px-4 py-8 sm:py-10 md:px-6">
         {header}
 
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--lx-nav-border)] pb-4">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--lx-nav-border)] pb-4 sm:gap-4">
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--lx-muted)]">
               {copy.category} · {laneLabel}
@@ -93,9 +110,9 @@ export function AutosApplicationSteppedShell({ lang, lane, stepLabels, header, t
           </div>
         </div>
 
-        <div className="mt-6">{topActions}</div>
+        <div className="mt-6">{topActions(ctx)}</div>
 
-        <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)] lg:gap-10 lg:items-start">
+        <div className="mt-6 grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)] lg:gap-10 lg:items-start">
           {/* Desktop sidebar */}
           <aside className="hidden lg:block">
             <nav aria-label={lang === "es" ? "Pasos del formulario" : "Form steps"} className="sticky top-24 space-y-1">
@@ -103,11 +120,13 @@ export function AutosApplicationSteppedShell({ lang, lane, stepLabels, header, t
                 const isActive = i === activeStep;
                 const isPast = i < activeStep;
                 const canClick = i <= maxReached;
+                const hasBlockWarning = Boolean(stepBlockWarnings?.includes(i));
                 return (
                   <button
                     key={label}
                     type="button"
                     disabled={!canClick}
+                    title={hasBlockWarning && !isActive ? copy.stepNeedsAttentionShort : undefined}
                     onClick={() => goToStep(i)}
                     className={`flex w-full items-start gap-2 rounded-xl px-3 py-2.5 text-left text-sm transition ${
                       isActive
@@ -115,6 +134,10 @@ export function AutosApplicationSteppedShell({ lang, lane, stepLabels, header, t
                         : isPast
                           ? "text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-section)]"
                           : "text-[color:var(--lx-muted)]"
+                    } ${
+                      hasBlockWarning && !isActive
+                        ? "ring-1 ring-amber-400/40 bg-[color:var(--lx-nav-hover)]/40"
+                        : ""
                     } ${canClick ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}
                   >
                     <span
@@ -123,7 +146,9 @@ export function AutosApplicationSteppedShell({ lang, lane, stepLabels, header, t
                           ? "bg-[color:var(--lx-cta-dark)] text-[#FFFCF7]"
                           : isPast
                             ? "border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)]"
-                            : "border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] text-[color:var(--lx-muted)]"
+                            : hasBlockWarning
+                              ? "border border-amber-400/70 bg-amber-50 text-amber-950"
+                              : "border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] text-[color:var(--lx-muted)]"
                       }`}
                     >
                       {i + 1}
@@ -144,15 +169,19 @@ export function AutosApplicationSteppedShell({ lang, lane, stepLabels, header, t
                 </label>
                 <select
                   id={stepSelectId}
-                  className="min-h-[48px] flex-1 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 text-sm font-semibold text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2"
+                  className="min-h-[48px] flex-1 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2 text-sm font-semibold text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2"
                   value={activeStep}
                   onChange={(e) => goToStep(Number(e.target.value))}
                 >
-                  {stepLabels.map((label, i) => (
-                    <option key={label} value={i} disabled={i > maxReached}>
-                      {i + 1}. {label}
-                    </option>
-                  ))}
+                  {stepLabels.map((label, i) => {
+                    const mark = stepBlockWarnings?.includes(i) ? ` (${copy.stepNeedsAttentionShort})` : "";
+                    return (
+                      <option key={label} value={i} disabled={i > maxReached}>
+                        {i + 1}. {label}
+                        {mark}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-[color:var(--lx-section)]">
@@ -172,7 +201,7 @@ export function AutosApplicationSteppedShell({ lang, lane, stepLabels, header, t
 
             <div className="min-w-0">{children(ctx)}</div>
 
-            <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--lx-nav-border)] pt-6">
+            <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--lx-nav-border)] pt-6 sm:gap-4">
               <button type="button" className={BTN_NAV} onClick={goPrev} disabled={activeStep === 0}>
                 {copy.previous}
               </button>

@@ -44,6 +44,7 @@ export function AutosApplicationReviewStep({
   const shell = getAutosApplicationStepShellCopy(lang);
   const issues = getAutosPreviewCompletenessIssues(lane, listing);
   const h = copy.app.hints;
+  const ready = issues.length === 0;
 
   return (
     <section className={CARD} aria-labelledby="autos-app-review-heading">
@@ -52,15 +53,24 @@ export function AutosApplicationReviewStep({
       </h2>
       <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{shell.reviewIntro}</p>
 
-      <div className="mt-6 rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3">
+      {!ready ? (
+        <div className="mt-4 rounded-[14px] border border-amber-300/50 bg-amber-50/40 px-4 py-3 text-sm text-amber-950">
+          <p className="font-semibold">{shell.reviewNotReadyTitle}</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-amber-950/90">{shell.reviewNotReadyIntro}</p>
+        </div>
+      ) : null}
+
+      <div
+        className={`mt-6 rounded-[14px] border px-4 py-3 ${
+          ready ? "border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]" : "border-amber-300/40 bg-[color:var(--lx-card)]"
+        }`}
+      >
         <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">{shell.reviewChecklistTitle}</p>
-        {issues.length === 0 ? (
+        {ready ? (
           <p className="mt-2 text-sm font-medium text-[color:var(--lx-text)]">{shell.reviewAllGood}</p>
         ) : (
           <>
-            <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">
-              {lang === "es" ? "Para una vista previa completa, completa lo siguiente:" : "To complete your preview, add:"}
-            </p>
+            <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{h.previewCompletenessIntro}</p>
             <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-[color:var(--lx-text-2)]">
               {issues.map((issue) => (
                 <li key={issue}>{h[previewHintKey(issue)]}</li>

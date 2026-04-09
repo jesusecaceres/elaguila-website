@@ -30,6 +30,7 @@ import {
   parseUsdIntegerInput,
 } from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
 import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
 import { AutosApplicationSteppedShell } from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
 import { AutosApplicationReviewStep } from "@/app/publicar/autos/shared/components/AutosApplicationReviewStep";
 import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
@@ -102,12 +103,14 @@ export function AutosPrivadoApplication() {
   }
 
   const stepLabels = getAutosApplicationStepLabels(lang, "privado");
+  const stepBlockWarnings = useMemo(() => getAutosPreviewBlockingStepIndices("privado", listing), [listing]);
 
   return (
     <AutosApplicationSteppedShell
       lang={lang}
       lane="privado"
       stepLabels={stepLabels}
+      stepBlockWarnings={stepBlockWarnings}
       header={
         <header className="mb-8">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">{t.app.kicker}</p>
@@ -157,19 +160,20 @@ export function AutosPrivadoApplication() {
           </details>
         </header>
       }
-      topActions={
+      topActions={(stepCtx) => (
         <AutosApplicationTopActions
           lane="privado"
           lang={lang}
           copy={t}
           listing={listing}
+          stepCtx={stepCtx}
           onPreview={async () => {
             await flushDraft();
             router.push(previewHref);
           }}
           onDeleteApplication={resetDraft}
         />
-      }
+      )}
     >
       {({ activeStep }) => (
         <>

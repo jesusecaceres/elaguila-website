@@ -29,9 +29,14 @@ export function getAutosPreviewCompletenessIssues(lane: AutosPreviewLane, listin
   const hasTitle = Boolean(listing.vehicleTitle?.trim()) || Boolean(autoTitle?.trim());
   if (!hasTitle) missing.push("title");
 
-  const hasPrice =
-    (listing.price !== undefined && Number.isFinite(listing.price)) || Boolean(listing.monthlyEstimate?.trim());
-  if (!hasPrice) missing.push("price");
+  if (lane === "privado") {
+    const hasUsdPrice = listing.price !== undefined && Number.isFinite(listing.price);
+    if (!hasUsdPrice) missing.push("price");
+  } else {
+    const hasPrice =
+      (listing.price !== undefined && Number.isFinite(listing.price)) || Boolean(listing.monthlyEstimate?.trim());
+    if (!hasPrice) missing.push("price");
+  }
 
   const hasLocation =
     Boolean(listing.city?.trim()) && Boolean(listing.state?.trim()) && Boolean(listing.zip?.trim());
@@ -56,4 +61,35 @@ export function getAutosPreviewCompletenessIssues(lane: AutosPreviewLane, listin
 
 export function isAutosPreviewStructurallyComplete(lane: AutosPreviewLane, listing: AutoDealerListing): boolean {
   return getAutosPreviewCompletenessIssues(lane, listing).length === 0;
+}
+
+/** Step indices match `getAutosApplicationStepLabels` order (0–6). */
+export function mapAutosPreviewIssueToStep(issue: AutosPreviewCompletenessKey): number {
+  switch (issue) {
+    case "media":
+      return 3;
+    case "title":
+    case "price":
+    case "location":
+      return 0;
+    case "dealerIdentity":
+    case "sellerContact":
+      return 4;
+    default:
+      return 0;
+  }
+}
+
+/** Distinct steps that still have blocking gaps (sorted). */
+export function getAutosPreviewBlockingStepIndices(lane: AutosPreviewLane, listing: AutoDealerListing): number[] {
+  const issues = getAutosPreviewCompletenessIssues(lane, listing);
+  const set = new Set(issues.map((i) => mapAutosPreviewIssueToStep(i)));
+  return [...set].sort((a, b) => a - b);
+}
+
+/** Earliest step in the flow that still has a blocking issue (for jump-to-fix). */
+export function getFirstBlockingStepIndex(lane: AutosPreviewLane, listing: AutoDealerListing): number | null {
+  const steps = getAutosPreviewBlockingStepIndices(lane, listing);
+  if (steps.length === 0) return null;
+  return steps[0] ?? null;
 }

@@ -40,6 +40,10 @@ export function getAutosPrivadoCopy(lang: AutosNegociosLang): AutosNegociosCopy 
     },
     app: {
       ...base.app,
+      hints: {
+        ...base.app.hints,
+        previewNeed_price: isEs ? "precio en USD" : "USD price",
+      },
       sections: {
         ...base.app.sections,
         badges: isEs ? "Destacados y equipamiento" : "Highlights & equipment",

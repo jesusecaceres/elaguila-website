@@ -33,6 +33,7 @@ import {
   parseUsdIntegerInput,
 } from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
 import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-5";
@@ -118,12 +119,14 @@ export function AutosNegociosApplication() {
   }
 
   const stepLabels = getAutosApplicationStepLabels(lang, "negocios");
+  const stepBlockWarnings = useMemo(() => getAutosPreviewBlockingStepIndices("negocios", listing), [listing]);
 
   return (
     <AutosApplicationSteppedShell
       lang={lang}
       lane="negocios"
       stepLabels={stepLabels}
+      stepBlockWarnings={stepBlockWarnings}
       header={
         <header className="mb-8">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">{t.app.kicker}</p>
@@ -146,19 +149,20 @@ export function AutosNegociosApplication() {
           </div>
         </header>
       }
-      topActions={
+      topActions={(stepCtx) => (
         <AutosApplicationTopActions
           lane="negocios"
           lang={lang}
           copy={t}
           listing={listing}
+          stepCtx={stepCtx}
           onPreview={async () => {
             await flushDraft();
             router.push(previewHref);
           }}
           onDeleteApplication={resetDraft}
         />
-      }
+      )}
     >
       {({ activeStep }) => (
         <>

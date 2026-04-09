@@ -55,7 +55,8 @@ function hasContactContent(c: RestaurantDetailShellData["contact"]): boolean {
       c.tiktokHref ||
       c.youtubeHref ||
       c.whatsappHref ||
-      c.menuFileHref
+      c.menuFileHref ||
+      c.brochureFileHref
   );
 }
 
@@ -447,6 +448,13 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
                   href={data.contact!.menuFileHref}
                   label={data.contact!.menuFileLabel}
                   className="flex w-full items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-4 py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-active)]"
+                />
+              ) : null}
+              {data.contact!.brochureFileHref && data.contact!.brochureFileLabel ? (
+                <RestauranteShellInlineDataAssetButton
+                  href={data.contact!.brochureFileHref}
+                  label={data.contact!.brochureFileLabel}
+                  className="flex w-full items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
                 />
               ) : null}
             </div>

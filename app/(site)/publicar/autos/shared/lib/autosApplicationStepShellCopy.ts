@@ -19,6 +19,17 @@ export function getAutosApplicationStepShellCopy(lang: AutosNegociosLang) {
     reviewAllGood: isEs
       ? "Los datos mínimos para una vista previa sólida están listos."
       : "Minimum data for a solid preview is in place.",
+    reviewNotReadyTitle: isEs ? "Aún no está listo para vista previa" : "Not ready for preview yet",
+    reviewNotReadyIntro: isEs
+      ? "Completa los requisitos estructurales en los pasos indicados abajo. Vista previa y publicación se desbloquean cuando la ficha esté completa."
+      : "Finish the structural requirements in the steps below. Preview and publish unlock once the listing shell is complete.",
+    gatingPreviewTapBlocked: isEs
+      ? "Te llevamos al primer paso pendiente. Completa la lista antes de abrir la vista previa."
+      : "We moved you to the first step that still needs work. Finish the checklist before opening preview.",
+    gatingPublishTapBlocked: isEs
+      ? "Te llevamos al primer paso pendiente. Completa la lista antes de continuar a publicar."
+      : "We moved you to the first step that still needs work. Finish the checklist before publishing.",
+    stepNeedsAttentionShort: isEs ? "Pendiente" : "Needs attention",
   };
 }
 

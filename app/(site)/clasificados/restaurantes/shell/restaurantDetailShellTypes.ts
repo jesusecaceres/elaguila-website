@@ -11,6 +11,7 @@ export type ShellPrimaryCtaKey =
   | "whatsapp"
   | "message"
   | "menu"
+  | "menuAsset"
   | "reserve"
   | "order"
   | "save"
@@ -99,6 +100,9 @@ export type ShellContactBlock = {
   whatsappHref?: string;
   menuFileLabel?: string;
   menuFileHref?: string;
+  /** Brochure / supporting PDF or image (data URL in session draft) */
+  brochureFileHref?: string;
+  brochureFileLabel?: string;
 };
 
 export type ShellTrustLight = {

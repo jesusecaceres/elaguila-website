@@ -51,10 +51,12 @@ function cuisineToken(key: string, custom?: string): string {
   return labelForCuisine(k);
 }
 
+const LANG_QUICKINFO_MAX = 140;
+
 function formatLanguagesForQuickInfo(d: RestauranteListingDraft): string {
   const langs = d.languagesSpoken?.filter(nonEmpty) ?? [];
   if (!langs.length) return "";
-  return langs
+  const line = langs
     .map((k) => {
       if (k === TAXONOMY_KEY_OTHER_LANG) {
         if (nonEmpty(d.languageOtherCustom)) return `Otro: ${clampChipLabel(d.languageOtherCustom!, 36)}`;
@@ -62,7 +64,8 @@ function formatLanguagesForQuickInfo(d: RestauranteListingDraft): string {
       }
       return labelForLanguage(k);
     })
-    .join(", ");
+    .join(" · ");
+  return line.length > LANG_QUICKINFO_MAX ? `${line.slice(0, LANG_QUICKINFO_MAX - 1)}…` : line;
 }
 
 function formatServiceModesForQuickInfo(d: RestauranteListingDraft): string {
@@ -99,6 +102,12 @@ function buildTaxonomyChips(d: RestauranteListingDraft): { key: string; label: s
     nonEmpty(d.serviceModeOtherCustom)
   ) {
     chips.push({ key: "tax-svc", label: `Modo: ${clampChipLabel(d.serviceModeOtherCustom!)}` });
+  }
+  const addl = (d.additionalCuisines ?? []).filter(nonEmpty).slice(0, 3);
+  for (const raw of addl) {
+    const k = raw.trim();
+    if (k === TAXONOMY_KEY_OTHER) continue;
+    chips.push({ key: `disc-${k}`, label: `Descub.: ${labelForCuisine(k)}` });
   }
   return chips.length ? chips : undefined;
 }
@@ -168,15 +177,11 @@ function buildHoursDetail(d: RestauranteListingDraft): ShellHoursDetail | undefi
   return { rows, specialNote, temporaryNote };
 }
 
-function buildCuisineLine(d: RestauranteListingDraft): string | undefined {
+/** Cabecera: solo identidad principal + secundaria (las adicionales van a chips «Descub.»). */
+function buildCuisineIdentityLine(d: RestauranteListingDraft): string | undefined {
   const parts: string[] = [];
   if (nonEmpty(d.primaryCuisine)) parts.push(cuisineToken(d.primaryCuisine, d.primaryCuisineCustom));
   if (nonEmpty(d.secondaryCuisine)) parts.push(cuisineToken(d.secondaryCuisine!, d.secondaryCuisineCustom));
-  for (const k of d.additionalCuisines?.filter(nonEmpty) ?? []) {
-    const t = k.trim();
-    if (t === TAXONOMY_KEY_OTHER) parts.push(cuisineToken(t, d.additionalCuisineOtherCustom));
-    else parts.push(labelForCuisine(t));
-  }
   const line = parts.filter(Boolean).join(" · ");
   return line || undefined;
 }
@@ -215,8 +220,16 @@ function buildPrimaryCtas(d: RestauranteListingDraft): ShellPrimaryCta[] {
     const sms = digits.length >= 10 ? `sms:+1${digits.slice(-10)}` : `sms:${d.phoneNumber}`;
     ctas.push({ key: "message", label: "Mensaje", href: sms });
   }
-  const menuHref = nonEmpty(d.menuUrl) ? normalizeUrl(d.menuUrl!) : nonEmpty(d.menuFile) ? d.menuFile! : "";
-  if (menuHref) ctas.push({ key: "menu", label: "Ver menú", href: menuHref });
+  const hasMenuUrl = nonEmpty(d.menuUrl);
+  const hasMenuFile = nonEmpty(d.menuFile);
+  if (hasMenuUrl && hasMenuFile) {
+    ctas.push({ key: "menu", label: "Menú en línea", href: normalizeUrl(d.menuUrl!) });
+    ctas.push({ key: "menuAsset", label: "Carta (archivo)", href: d.menuFile! });
+  } else if (hasMenuUrl) {
+    ctas.push({ key: "menu", label: "Ver menú", href: normalizeUrl(d.menuUrl!) });
+  } else if (hasMenuFile) {
+    ctas.push({ key: "menu", label: "Ver menú", href: d.menuFile! });
+  }
   if (nonEmpty(d.reservationUrl)) ctas.push({ key: "reserve", label: "Reservar", href: normalizeUrl(d.reservationUrl!) });
   if (nonEmpty(d.orderUrl)) ctas.push({ key: "order", label: "Ordenar", href: normalizeUrl(d.orderUrl!) });
   ctas.push({ key: "save", label: "Guardar", href: "#guardar" });
@@ -333,6 +346,10 @@ function buildContact(d: RestauranteListingDraft): ShellContactBlock | undefined
     c.menuFileHref = d.menuFile;
     c.menuFileLabel = "Carta / menú (archivo)";
   }
+  if (nonEmpty(d.brochureFile)) {
+    c.brochureFileHref = d.brochureFile;
+    c.brochureFileLabel = "Folleto / material (archivo)";
+  }
   const has =
     c.addressLine1 ||
     c.mapsSearchQuery ||
@@ -344,7 +361,8 @@ function buildContact(d: RestauranteListingDraft): ShellContactBlock | undefined
     c.tiktokHref ||
     c.youtubeHref ||
     c.whatsappHref ||
-    c.menuFileHref;
+    c.menuFileHref ||
+    c.brochureFileHref;
   return has ? c : undefined;
 }
 
@@ -455,12 +473,13 @@ export function isRestauranteDraftPristineEmpty(d: RestauranteListingDraft): boo
 
 export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): RestaurantDetailShellData {
   const hp = computeShellHoursPreview(d);
-  const cuisineLine = buildCuisineLine(d);
+  const cuisineLine = buildCuisineIdentityLine(d);
   const seq = computePublishGallerySequence(d);
   const imgs = d.galleryImages ?? [];
   const firstGalIdx = seq.find((x): x is number => typeof x === "number" && Number.isFinite(x) && x >= 0 && x < imgs.length);
   const firstGal = firstGalIdx != null ? imgs[firstGalIdx] : undefined;
-  const heroResolved = nonEmpty(d.heroImage) ? d.heroImage : nonEmpty(firstGal) ? firstGal : undefined;
+  const heroTrim = d.heroImage?.trim();
+  const heroResolved = nonEmpty(heroTrim) ? heroTrim : nonEmpty(firstGal) ? firstGal : undefined;
 
   const quick = buildQuickInfo(d, hp.scheduleSummary).filter((q) => nonEmpty(q.value));
   const highlights = (d.highlights ?? [])
@@ -477,7 +496,9 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
         imageUrl: nonEmpty(x.image) ? x.image!.trim() : undefined,
         badge: formatPlatilloPriceBadge(x.priceLabel),
       })) ?? [];
-  const menuHref = nonEmpty(d.menuUrl) ? normalizeUrl(d.menuUrl!) : nonEmpty(d.menuFile) ? d.menuFile! : "";
+  const hasMenuUrl = nonEmpty(d.menuUrl);
+  const hasMenuFile = nonEmpty(d.menuFile);
+  const menuHref = hasMenuUrl ? normalizeUrl(d.menuUrl!) : hasMenuFile ? d.menuFile! : "";
   const venueGallery = buildVenueGalleryFromDraft(d);
   const contact = buildContact(d);
   const stacks = buildStacks(d);
@@ -488,7 +509,7 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
 
   return {
     id: d.draftListingId,
-    heroImageUrl: nonEmpty(heroResolved) ? heroResolved : undefined,
+    heroImageUrl: heroResolved != null && nonEmpty(heroResolved) ? heroResolved.trim() : undefined,
     heroImageAlt: nonEmpty(d.businessName) ? `Foto principal · ${d.businessName.trim()}` : "Foto principal del negocio",
     businessName: nonEmpty(d.businessName) ? d.businessName.trim() : "Borrador sin título",
     cuisineTypeLine: cuisineLine,
@@ -502,7 +523,9 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
     primaryCtas: buildPrimaryCtas(d),
     quickInfo: quick.length ? quick : undefined,
     menuHighlights: dishes.length ? dishes : undefined,
-    fullMenuCta: menuHref ? { label: "Ver menú completo", href: menuHref } : undefined,
+    fullMenuCta: menuHref
+      ? { label: hasMenuUrl ? "Ver menú completo" : "Ver carta completa", href: menuHref }
+      : undefined,
     highlightTags: highlights.length ? highlights : undefined,
     venueGallery,
     galleryCta: venueGallery

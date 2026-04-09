@@ -573,7 +573,8 @@ export default function RestauranteApplicationClient() {
               <FieldLabel optional>Idiomas</FieldLabel>
               <HelperText>
                 Idiomas en los que el equipo puede atender al cliente en persona, por teléfono o mensaje — no es una lista
-                decorativa.
+                decorativa. Aparecen en la franja de información rápida como una línea compacta. «Otro» sirve para idiomas no
+                listados; escribe el nombre concreto.
               </HelperText>
               <div className="mt-3 flex flex-wrap gap-2 rounded-xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/40 p-3">
                 {RESTAURANTE_LANGUAGES.map((o) => (
@@ -760,11 +761,18 @@ export default function RestauranteApplicationClient() {
             </div>
           ) : null}
 
-          <p className="mt-8 text-sm font-semibold text-[color:var(--lx-text)]">Capa 3 — Detalles de servicio (complementarios)</p>
+          <p className="mt-8 text-sm font-semibold text-[color:var(--lx-text)]">
+            Capa 3 — Canal y opciones de servicio (complementarios)
+          </p>
           <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
             Casillas de apoyo (local, entrega, reservas, food truck, pop-up, chef, etc.): refuerzan el relato operativo y la
             ficha, pero <strong className="text-[color:var(--lx-text-2)]">no reemplazan</strong> la lista canónica ni los
             interruptores I / J / K.
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-text-2)]">
+            <strong className="text-[color:var(--lx-text)]">Cómo no confundir términos:</strong> «Food truck» y «Pop-up»
+            describen <em>formato o ubicación</em> del negocio. «Entrega» de la <strong>capa 2</strong> es el modo formal de
+            servicio a domicilio. Pueden convivir (por ejemplo, entrega desde un food truck).
           </p>
           <div className={`mt-3 grid gap-2 sm:grid-cols-2 ${SECONDARY_CHANNEL_CLUSTER}`}>
             {(
@@ -849,8 +857,9 @@ export default function RestauranteApplicationClient() {
             <div>
               <FieldLabel optional>Nota de horario especial</FieldLabel>
               <HelperText>
-                Aviso fijo que acompaña el bloque de horarios (p. ej. «cerrado lunes festivos»). Complementa la cuadrícula;
-                úsala cuando haya una regla recurrente o excepción que quieras visible siempre.
+                Aviso <strong className="text-[color:var(--lx-text-2)]">recurrente o general</strong> (p. ej. «cerrado lunes
+                festivos»): no reemplaza la cuadrícula semanal. Se muestra en el resumen de horario cuando aplica y en el bloque
+                «Horarios completos» bajo la lista de días.
               </HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
@@ -869,15 +878,17 @@ export default function RestauranteApplicationClient() {
                 <span className="font-semibold text-[color:var(--lx-text)]">Horario temporal activo</span>
               </label>
               <HelperText>
-                Actívalo cuando haya un cambio <strong className="text-[color:var(--lx-text-2)]">por tiempo limitado</strong>{" "}
-                (obras, temporada, reforma). La nota temporal se muestra como aviso destacado; no borra la cuadrícula estándar.
+                Actívalo para cambios <strong className="text-[color:var(--lx-text-2)]">temporales o estacionales</strong>{" "}
+                (obras, feriados extendidos, horario de verano). Mientras esté activo, el estado en la cabecera prioriza tu nota
+                temporal; la cuadrícula sigue visible en «Ver horarios» para referencia.
               </HelperText>
             </div>
             <div>
               <FieldLabel optional>Nota de horario temporal</FieldLabel>
               <HelperText>
-                Texto del cambio puntual (fechas, horario sustituto, «solo pickup», etc.). Tiene sentido sobre todo con la
-                casilla anterior marcada.
+                <strong className="text-[color:var(--lx-text-2)]">Mensaje que leerá el cliente:</strong> fechas, horario
+                sustituto, «solo pickup», etc. Aparece en la franja de estado del héroe (con el interruptor activo) y como aviso
+                destacado en «Horarios completos» — es el texto operativo del cambio temporal.
               </HelperText>
               <textarea
                 className="mt-1 min-h-[72px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
@@ -898,9 +909,11 @@ export default function RestauranteApplicationClient() {
             etc.) para la vista previa mínima.
           </p>
           <HelperText>
-            Los enlaces web se convierten en botones de acción en la ficha cuando existen. El bloque de menú usa{" "}
-            <strong className="text-[color:var(--lx-text-2)]">primero la URL del menú</strong> si la rellenas; si no hay URL,
-            usa el archivo subido. Ambos pueden convivir en datos, pero el CTA principal «Ver menú» prioriza la URL.
+            Los enlaces web se convierten en botones en la ficha. <strong className="text-[color:var(--lx-text-2)]">Menú URL</strong>{" "}
+            abre la carta en el sitio del restaurante (vista previa: confirmación y luego pestaña nueva).{" "}
+            <strong className="text-[color:var(--lx-text-2)]">Menú archivo</strong> se abre en un visor dentro de la vista previa
+            (PDF/imagen). Si hay ambos, verás dos botones: menú en línea y carta en archivo; el bloque de contacto también puede
+            repetir el archivo para descarga/visualización.
           </HelperText>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">
@@ -988,7 +1001,7 @@ export default function RestauranteApplicationClient() {
             </div>
             <div>
               <FieldLabel optional>Menú (URL)</FieldLabel>
-              <HelperText>Página del menú en la web. Tiene prioridad sobre el archivo para el CTA «Ver menú».</HelperText>
+              <HelperText>Página pública donde está la carta (sitio propio, PDF en hosting, etc.). Si también subes archivo, la URL sigue siendo el acceso «en línea»; el archivo es la copia local en visor.</HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.menuUrl}
@@ -1013,8 +1026,8 @@ export default function RestauranteApplicationClient() {
             <div className="sm:col-span-2">
               <FieldLabel optional>Menú (archivo — vista previa local)</FieldLabel>
               <HelperText>
-                PDF o imagen de la carta. Si no hay URL de menú, el archivo alimenta el CTA «Ver menú». El bloque de contacto
-                también puede mostrar el archivo como enlace descargable cuando aplica.
+                PDF o imagen de la carta guardada en el borrador de sesión: en la vista previa se abre en un visor a pantalla
+                completa (no sustituye a la URL si ambas existen; entonces tendrás botón web + botón archivo).
               </HelperText>
               <RestauranteUploadRow
                 buttonLabel="Subir archivo"
@@ -1055,7 +1068,10 @@ export default function RestauranteApplicationClient() {
             </div>
             <div className="sm:col-span-2">
               <FieldLabel optional>Folleto (archivo)</FieldLabel>
-              <HelperText>Material descargable o de apoyo (PDF/imagen); se enlaza desde el bloque de contacto cuando existe.</HelperText>
+              <HelperText>
+                PDF o imagen de apoyo (promo, catering, menú degustación). No sustituye al menú principal: aparece como acceso
+                aparte en contacto y, si es PDF/imagen en sesión, se abre en el mismo visor en contexto.
+              </HelperText>
               <RestauranteUploadRow
                 buttonLabel="Subir archivo"
                 helperText="Imagen o PDF."
@@ -1109,8 +1125,8 @@ export default function RestauranteApplicationClient() {
               <HelperText>
                 {phonePresent ? (
                   <>
-                    Añade un botón «Mensaje» que abre SMS al{" "}
-                    <strong className="text-[color:var(--lx-text-2)]">número de teléfono</strong> de este formulario.
+                    Usará el <strong className="text-[color:var(--lx-text-2)]">número de teléfono</strong> ingresado arriba. El
+                    botón «Mensaje» abre SMS a ese mismo número (formato detectado automáticamente).
                   </>
                 ) : (
                   <>Añade primero un teléfono en «Teléfono» para poder activar el SMS.</>
