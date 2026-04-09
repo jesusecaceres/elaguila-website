@@ -146,10 +146,20 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     physicalPostalCode: str("physicalPostalCode", d.physicalPostalCode),
     serviceAreaNotes: str("serviceAreaNotes", d.serviceAreaNotes),
     phone: str("phone", d.phone),
+    phoneOffice: str("phoneOffice", d.phoneOffice),
     website: str("website", d.website),
     whatsapp: str("whatsapp", d.whatsapp),
+    whatsappBusinessUrl: str("whatsappBusinessUrl", d.whatsappBusinessUrl),
+    email: str("email", d.email),
     languageIds,
-    languageOtherNote: str("languageOtherNote", d.languageOtherNote),
+    languageOtherLines: (() => {
+      let lines = str("languageOtherLines", d.languageOtherLines);
+      const legacy = o.languageOtherNote;
+      if (!lines.trim() && typeof legacy === "string" && legacy.trim()) {
+        lines = legacy;
+      }
+      return lines;
+    })(),
     logoUrl: str("logoUrl", d.logoUrl),
     coverUrl: str("coverUrl", d.coverUrl),
     gallery,
@@ -166,6 +176,7 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     enableMessage: bool("enableMessage", d.enableMessage),
     enableWhatsapp: bool("enableWhatsapp", d.enableWhatsapp),
     enableWebsite: bool("enableWebsite", d.enableWebsite),
+    enableEmail: bool("enableEmail", d.enableEmail),
     primaryCtaId: str("primaryCtaId", d.primaryCtaId),
     secondaryCtaIds,
     socialInstagram: str("socialInstagram", d.socialInstagram),

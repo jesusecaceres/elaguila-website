@@ -2,24 +2,24 @@ import type { ServiciosLang } from "./clasificadosServiciosApplicationTypes";
 
 const ES = [
   "Tipo de negocio",
-  "Datos básicos",
+  "Datos básicos y contacto",
   "Imágenes y videos",
   "Sobre el negocio",
   "Servicios y datos rápidos",
-  "Contacto y acciones",
-  "Redes y horarios",
+  "Acciones visibles",
+  "Horarios",
   "Promoción (opcional)",
   "Revisión y confirmación",
 ] as const;
 
 const EN = [
   "Business type",
-  "Basic details",
+  "Basics & contact",
   "Images & video",
   "About the business",
   "Services & quick facts",
-  "Contact & CTAs",
-  "Social & hours",
+  "Visible actions",
+  "Hours",
   "Promotion (optional)",
   "Review & confirmation",
 ] as const;
@@ -32,7 +32,7 @@ export function getServiciosApplicationStepLabels(lang: ServiciosLang): readonly
 
 export function getServiciosApplicationStepShortLabels(lang: ServiciosLang): readonly string[] {
   if (lang === "en") {
-    return ["Type", "Basics", "Media", "About", "Services", "Contact", "Social", "Promo", "Review"];
+    return ["Type", "Basics", "Media", "About", "Services", "Actions", "Hours", "Promo", "Review"];
   }
-  return ["Tipo", "Básico", "Media", "Sobre", "Servicios", "Contacto", "Redes", "Promo", "Revisión"];
+  return ["Tipo", "Básico", "Media", "Sobre", "Servicios", "Acciones", "Horario", "Promo", "Revisión"];
 }

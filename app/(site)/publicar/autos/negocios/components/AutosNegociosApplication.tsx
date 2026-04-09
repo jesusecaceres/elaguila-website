@@ -98,6 +98,9 @@ export function AutosNegociosApplication() {
     document.title = t.meta.applicationTitle;
   }, [t.meta.applicationTitle]);
 
+  const stepLabels = getAutosApplicationStepLabels(lang, "negocios");
+  const stepBlockWarnings = useMemo(() => getAutosPreviewBlockingStepIndices("negocios", listing), [listing]);
+
   const previewHref = withLangParam("/clasificados/autos/negocios/preview", lang);
 
   if (!hydrated) {
@@ -117,9 +120,6 @@ export function AutosNegociosApplication() {
     else cur.add(label);
     setListingPatch({ features: [...cur] });
   }
-
-  const stepLabels = getAutosApplicationStepLabels(lang, "negocios");
-  const stepBlockWarnings = useMemo(() => getAutosPreviewBlockingStepIndices("negocios", listing), [listing]);
 
   return (
     <AutosApplicationSteppedShell

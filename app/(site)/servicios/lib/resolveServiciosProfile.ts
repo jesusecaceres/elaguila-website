@@ -44,6 +44,11 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
 
   const phoneDisplay = sanitizePhoneDisplay(contactIn.phone);
   const phoneTelHref = sanitizeTelHref(contactIn.phone);
+  const phoneOfficeDisplay = sanitizePhoneDisplay(contactIn.phoneOffice);
+  const phoneOfficeTelHref = sanitizeTelHref(contactIn.phoneOffice);
+  const emailRaw = trimText(contactIn.email);
+  const emailMailtoHref =
+    emailRaw && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw) ? `mailto:${emailRaw}` : undefined;
   const websiteHref = safeExternalWebsiteHref(contactIn.websiteUrl);
   const websiteLabel = trimText(contactIn.websiteLabel);
 
@@ -143,6 +148,10 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
     contact: {
       phoneDisplay: phoneDisplay ?? undefined,
       phoneTelHref: phoneTelHref ?? undefined,
+      phoneOfficeDisplay: phoneOfficeDisplay ?? undefined,
+      phoneOfficeTelHref: phoneOfficeTelHref ?? undefined,
+      email: emailRaw || undefined,
+      emailMailtoHref: emailMailtoHref ?? undefined,
       websiteHref: websiteHref ?? undefined,
       websiteLabel: websiteLabel || undefined,
       messageEnabled: contactIn.messageEnabled === true,

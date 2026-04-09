@@ -47,6 +47,9 @@ export type ServiciosApplicationHeroBadgeDraft = {
 
 export type ServiciosApplicationContactDraft = {
   phone?: string;
+  phoneOffice?: string;
+  /** Plain email local-part@domain — rendered as mailto: in shell when present */
+  email?: string;
   websiteUrl?: string;
   websiteLabel?: string;
   messageEnabled?: boolean;

@@ -89,6 +89,9 @@ export function AutosPrivadoApplication() {
     document.title = t.meta.applicationTitle;
   }, [t.meta.applicationTitle]);
 
+  const stepLabels = getAutosApplicationStepLabels(lang, "privado");
+  const stepBlockWarnings = useMemo(() => getAutosPreviewBlockingStepIndices("privado", listing), [listing]);
+
   const previewHref = withLangParam("/clasificados/autos/privado/preview", lang);
 
   if (!hydrated) {
@@ -101,9 +104,6 @@ export function AutosPrivadoApplication() {
     else cur.add(label);
     setListingPatch({ features: [...cur] });
   }
-
-  const stepLabels = getAutosApplicationStepLabels(lang, "privado");
-  const stepBlockWarnings = useMemo(() => getAutosPreviewBlockingStepIndices("privado", listing), [listing]);
 
   return (
     <AutosApplicationSteppedShell

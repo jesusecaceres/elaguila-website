@@ -1,4 +1,4 @@
-import { FiClock, FiGlobe, FiMapPin, FiMessageCircle, FiPhone, FiZap } from "react-icons/fi";
+import { FiClock, FiGlobe, FiMail, FiMapPin, FiMessageCircle, FiPhone, FiZap } from "react-icons/fi";
 import { FaFacebook, FaInstagram, FaLinkedin, FaStar, FaTiktok, FaWhatsapp, FaYoutube } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
@@ -66,12 +66,35 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
             </a>
           ) : null}
 
+          {profile.contact.phoneOfficeDisplay && profile.contact.phoneOfficeTelHref ? (
+            <a
+              href={profile.contact.phoneOfficeTelHref}
+              className={`flex items-center gap-2 text-sm font-semibold text-[color:var(--lx-text)] hover:text-[#3B66AD] ${phone ? "mt-2" : ""}`}
+            >
+              <FiPhone className="h-4 w-4 shrink-0 text-[#3B66AD]" aria-hidden />
+              <span className="text-xs font-semibold text-[color:var(--lx-text-2)]">{lang === "en" ? "Office" : "Oficina"}:</span>{" "}
+              {profile.contact.phoneOfficeDisplay}
+            </a>
+          ) : null}
+
+          {profile.contact.emailMailtoHref && profile.contact.email ? (
+            <a
+              href={profile.contact.emailMailtoHref}
+              className={`flex items-center gap-2 text-sm font-semibold text-[#3B66AD] hover:underline ${phone || profile.contact.phoneOfficeDisplay ? "mt-3" : ""}`}
+            >
+              <FiMail className="h-4 w-4 shrink-0" aria-hidden />
+              {profile.contact.email}
+            </a>
+          ) : null}
+
           {website ? (
             <a
               href={website}
               target="_blank"
               rel="noopener noreferrer"
-              className={`flex items-center gap-2 text-sm font-semibold text-[#3B66AD] hover:underline ${phone ? "mt-3" : ""}`}
+              className={`flex items-center gap-2 text-sm font-semibold text-[#3B66AD] hover:underline ${
+                phone || profile.contact.phoneOfficeDisplay || profile.contact.email ? "mt-3" : ""
+              }`}
             >
               <FiGlobe className="h-4 w-4 shrink-0" aria-hidden />
               {websiteLabel}
@@ -85,7 +108,11 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
             social.tiktok ||
             social.linkedin ||
             social.whatsapp) ? (
-            <div className={`flex flex-wrap gap-2 sm:gap-2.5 ${phone || website ? "mt-4" : ""}`}>
+            <div
+              className={`flex flex-wrap gap-2 sm:gap-2.5 ${
+                phone || website || profile.contact.phoneOfficeDisplay || profile.contact.email ? "mt-4" : ""
+              }`}
+            >
               {social.instagram ? (
                 <a
                   href={social.instagram}

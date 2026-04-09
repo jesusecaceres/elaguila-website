@@ -37,10 +37,13 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     physicalPostalCode: "",
     serviceAreaNotes: "",
     phone: "",
+    phoneOffice: "",
     website: "",
     whatsapp: "",
+    whatsappBusinessUrl: "",
+    email: "",
     languageIds: ["lang_es"],
-    languageOtherNote: "",
+    languageOtherLines: "",
     logoUrl: "",
     coverUrl: "",
     gallery: [],
@@ -57,6 +60,7 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     enableMessage: false,
     enableWhatsapp: true,
     enableWebsite: true,
+    enableEmail: true,
     primaryCtaId: "",
     secondaryCtaIds: [],
     socialInstagram: "",
@@ -105,7 +109,9 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
     return true;
   }
   if (s.serviceAreaNotes.trim()) return true;
-  if (s.phone.trim() || s.website.trim() || s.whatsapp.trim()) return true;
+  if (s.phone.trim() || s.phoneOffice.trim() || s.website.trim() || s.whatsapp.trim() || s.email.trim() || s.whatsappBusinessUrl.trim()) {
+    return true;
+  }
   if (s.logoUrl.trim() || s.coverUrl.trim()) return true;
   if (s.gallery.length > 0 || s.videos.length > 0) return true;
   if (s.aboutText.trim() || s.specialtiesLine.trim()) return true;
@@ -128,7 +134,7 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
   }
   if (s.offerQrLater) return true;
   if (s.confirmListingAccurate || s.confirmPhotosRepresentBusiness || s.confirmCommunityRules) return true;
-  if (s.languageOtherNote.trim()) return true;
+  if (s.languageOtherLines.trim()) return true;
   if (s.languageIds.length !== 1 || s.languageIds[0] !== "lang_es") return true;
   if (hoursDifferFromTemplate(s.hours)) return true;
   return false;

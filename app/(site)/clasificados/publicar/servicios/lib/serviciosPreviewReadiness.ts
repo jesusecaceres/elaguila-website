@@ -11,7 +11,6 @@ import type { ServiciosPublishReadinessResult } from "./serviciosPublishReadines
  * - About text (min 8 chars)
  * - At least one service (preset chip or custom line)
  * - Hero media: cover image OR ≥1 featured gallery image
- * - When the preset defines primary CTA options, a valid primary CTA selection
  *
  * Publish/readiness uses the same rules via `evaluateServiciosPublishReadiness`.
  */

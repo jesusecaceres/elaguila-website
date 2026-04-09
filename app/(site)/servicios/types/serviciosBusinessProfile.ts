@@ -149,6 +149,8 @@ export type ServiciosContactSocialLinks = {
 /** Contact & primary actions (sticky panel) */
 export type ServiciosContactBlock = {
   phone?: string;
+  phoneOffice?: string;
+  email?: string;
   websiteUrl?: string;
   websiteLabel?: string;
   messageEnabled?: boolean;
@@ -217,6 +219,10 @@ export type ServiciosProfileResolved = {
   contact: {
     phoneDisplay?: string;
     phoneTelHref?: string;
+    phoneOfficeDisplay?: string;
+    phoneOfficeTelHref?: string;
+    email?: string;
+    emailMailtoHref?: string;
     websiteHref?: string;
     websiteLabel?: string;
     messageEnabled: boolean;

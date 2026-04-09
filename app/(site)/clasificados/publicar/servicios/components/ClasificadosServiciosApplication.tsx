@@ -59,6 +59,7 @@ import {
   WEEK_DAY_LABELS,
 } from "../lib/defaultClasificadosServiciosState";
 import { mergeStateForBusinessTypeChange } from "../lib/presetStateMerge";
+import { isValidEmail } from "../lib/leonixContactCtaPriority";
 import { digitsOnly, formatPhoneInputDisplay } from "../lib/serviciosPhoneUi";
 import {
   isProbablyValidWebUrl,
@@ -252,8 +253,11 @@ export function ClasificadosServiciosApplication() {
   const contactSummaryLines = useMemo(() => {
     const L = copy.labels;
     const lines: string[] = [];
+    if (state.enableWhatsapp && (digitsOnly(state.whatsapp).length >= 8 || (state.whatsappBusinessUrl.trim() && isProbablyValidWebUrl(state.whatsappBusinessUrl)))) {
+      lines.push(L.contactSummaryWhatsapp);
+    }
     if (state.enableCall && digitsOnly(state.phone).length >= 8) lines.push(L.contactSummaryCall);
-    if (state.enableWhatsapp && digitsOnly(state.whatsapp).length >= 8) lines.push(L.contactSummaryWhatsapp);
+    if (state.enableEmail && isValidEmail(state.email)) lines.push(L.contactSummaryEmail);
     if (state.enableWebsite && state.website.trim() && isProbablyValidWebUrl(state.website)) {
       lines.push(L.contactSummaryWebsite);
     }
@@ -261,11 +265,14 @@ export function ClasificadosServiciosApplication() {
   }, [
     copy.labels,
     state.enableCall,
+    state.enableEmail,
     state.enableWebsite,
     state.enableWhatsapp,
+    state.email,
     state.phone,
     state.website,
     state.whatsapp,
+    state.whatsappBusinessUrl,
   ]);
 
   const listingPhase = useMemo(() => {
@@ -288,6 +295,8 @@ export function ClasificadosServiciosApplication() {
 
   const websiteInvalid = state.website.trim() && !isProbablyValidWebUrl(state.website);
   const offerLinkInvalid = state.offerLink.trim() && !isProbablyValidWebUrl(state.offerLink);
+  const emailInvalid = state.email.trim().length > 0 && !isValidEmail(state.email);
+  const whatsappBizInvalid = state.whatsappBusinessUrl.trim().length > 0 && !isProbablyValidWebUrl(state.whatsappBusinessUrl);
   const socialInvalid = {
     ig: state.socialInstagram.trim() && !isProbablyValidWebUrl(state.socialInstagram),
     fb: state.socialFacebook.trim() && !isProbablyValidWebUrl(state.socialFacebook),
@@ -301,9 +310,9 @@ export function ClasificadosServiciosApplication() {
       const on = !prev.languageIds.includes(id);
       if (!on && prev.languageIds.length <= 1) return prev;
       const languageIds = toggleId(prev.languageIds, id, on);
-      let languageOtherNote = prev.languageOtherNote;
-      if (id === "lang_otro" && !on) languageOtherNote = "";
-      return { ...prev, languageIds, languageOtherNote };
+      let languageOtherLines = prev.languageOtherLines;
+      if (id === "lang_otro" && !on) languageOtherLines = "";
+      return { ...prev, languageIds, languageOtherLines };
     });
   };
 
@@ -790,42 +799,124 @@ export function ClasificadosServiciosApplication() {
               </div>
             </div>
 
-            <div>
-              <label className={labelClass}>{copy.labels.phone}</label>
-              <input
-                className={inputClass}
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                placeholder={lang === "es" ? "Ej: (713) 555-0100" : "e.g. (713) 555-0100"}
-                value={formatPhoneInputDisplay(state.phone)}
-                onChange={(e) => setState((s) => ({ ...s, phone: formatPhoneInputDisplay(e.target.value) }))}
-              />
+            <div className="sm:col-span-2 mt-2 border-t border-[#D8C79A]/35 pt-6">
+              <h3 className="text-base font-bold text-[#3D2C12]">{copy.labels.contactPhonesHeading}</h3>
+              <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className={labelClass}>{copy.labels.phone}</label>
+                  <input
+                    className={inputClass}
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    placeholder={lang === "es" ? "(713) 555-0100" : "(713) 555-0100"}
+                    value={formatPhoneInputDisplay(state.phone)}
+                    onChange={(e) => setState((s) => ({ ...s, phone: formatPhoneInputDisplay(e.target.value) }))}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>{copy.labels.phoneOffice}</label>
+                  <input
+                    className={inputClass}
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    placeholder={lang === "es" ? "(415) 555-0199" : "(415) 555-0199"}
+                    value={formatPhoneInputDisplay(state.phoneOffice)}
+                    onChange={(e) => setState((s) => ({ ...s, phoneOffice: formatPhoneInputDisplay(e.target.value) }))}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>{copy.labels.whatsapp}</label>
+                  <input
+                    className={inputClass}
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder={lang === "es" ? "(713) 555-0100" : "(713) 555-0100"}
+                    value={formatPhoneInputDisplay(state.whatsapp)}
+                    onChange={(e) => setState((s) => ({ ...s, whatsapp: formatPhoneInputDisplay(e.target.value) }))}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>{copy.labels.whatsappBusinessUrl}</label>
+                  <input
+                    className={`${inputClass} ${whatsappBizInvalid ? inputWarn : ""}`}
+                    type="url"
+                    inputMode="url"
+                    placeholder={lang === "es" ? "https://wa.me/… o https://api.whatsapp.com/…" : "https://wa.me/…"}
+                    value={state.whatsappBusinessUrl}
+                    onChange={(e) => setState((s) => ({ ...s, whatsappBusinessUrl: e.target.value }))}
+                  />
+                  {whatsappBizInvalid ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
+                </div>
+              </div>
             </div>
-            <div>
-              <label className={labelClass}>{copy.labels.whatsapp}</label>
-              <input
-                className={inputClass}
-                type="tel"
-                inputMode="tel"
-                placeholder={lang === "es" ? "+1 o dígitos" : "+1 or digits"}
-                value={formatPhoneInputDisplay(state.whatsapp)}
-                onChange={(e) => setState((s) => ({ ...s, whatsapp: formatPhoneInputDisplay(e.target.value) }))}
-              />
+
+            <div className="sm:col-span-2 mt-2 border-t border-[#D8C79A]/35 pt-6">
+              <h3 className="text-base font-bold text-[#3D2C12]">{copy.labels.contactEmailWebHeading}</h3>
+              <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className={labelClass}>{copy.labels.email}</label>
+                  <input
+                    className={`${inputClass} ${emailInvalid ? inputWarn : ""}`}
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    placeholder={lang === "es" ? "contacto@tunegocio.com" : "hello@yourbusiness.com"}
+                    value={state.email}
+                    onChange={(e) => setState((s) => ({ ...s, email: e.target.value }))}
+                  />
+                  {emailInvalid ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidEmail}</p> : null}
+                </div>
+                <div>
+                  <label className={labelClass}>{copy.labels.website}</label>
+                  <input
+                    className={`${inputClass} ${websiteInvalid ? inputWarn : ""}`}
+                    type="url"
+                    inputMode="url"
+                    placeholder={lang === "es" ? "https://www.tunegocio.com" : "https://www.yourbusiness.com"}
+                    value={state.website}
+                    onChange={(e) => setState((s) => ({ ...s, website: e.target.value }))}
+                  />
+                  {websiteInvalid ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
+                </div>
+              </div>
             </div>
-            <div className="sm:col-span-2">
-              <label className={labelClass}>{copy.labels.website}</label>
-              <input
-                className={`${inputClass} ${websiteInvalid ? inputWarn : ""}`}
-                type="url"
-                inputMode="url"
-                placeholder="https://"
-                value={state.website}
-                onChange={(e) => setState((s) => ({ ...s, website: e.target.value }))}
-              />
-              {websiteInvalid ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
+
+            <div className="sm:col-span-2 mt-2 border-t border-[#D8C79A]/35 pt-6">
+              <h3 className="text-base font-bold text-[#3D2C12]">{copy.labels.contactSocialHeading}</h3>
+              <p className="mt-1 text-xs text-[#6b5c42]">
+                {lang === "es"
+                  ? "Pega la URL pública de cada red (perfil o página), no solo el nombre de usuario."
+                  : "Paste each network’s public profile or page URL, not just a handle."}
+              </p>
+              <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
+                {(
+                  [
+                    ["socialInstagram", copy.labels.instagram, state.socialInstagram, socialInvalid.ig, "https://www.instagram.com/tunegocio"] as const,
+                    ["socialFacebook", copy.labels.facebook, state.socialFacebook, socialInvalid.fb, "https://www.facebook.com/tunegocio"] as const,
+                    ["socialYoutube", copy.labels.youtube, state.socialYoutube, socialInvalid.yt, "https://www.youtube.com/@canal"] as const,
+                    ["socialTiktok", copy.labels.tiktok, state.socialTiktok, socialInvalid.tt, "https://www.tiktok.com/@cuenta"] as const,
+                    ["socialLinkedin", copy.labels.linkedin, state.socialLinkedin, socialInvalid.li, "https://www.linkedin.com/company/…"] as const,
+                  ] as const
+                ).map(([key, lab, val, inv, ph]) => (
+                  <div key={key}>
+                    <label className={labelClass}>{lab}</label>
+                    <input
+                      className={`${inputClass} ${inv ? inputWarn : ""}`}
+                      type="url"
+                      inputMode="url"
+                      placeholder={ph}
+                      value={val}
+                      onChange={(e) => setState((s) => ({ ...s, [key]: e.target.value }))}
+                    />
+                    {inv ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="sm:col-span-2">
+
+            <div className="sm:col-span-2 mt-2 border-t border-[#D8C79A]/35 pt-6">
               <p className={labelClass}>{copy.labels.languages}</p>
               <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
                 {LANGUAGE_OPTION_CHIPS.map((c) => (
@@ -841,13 +932,14 @@ export function ClasificadosServiciosApplication() {
               {state.languageIds.includes("lang_otro") ? (
                 <label className={`mt-3 block ${labelClass}`}>
                   {copy.labels.languageOtherLabel}
-                  <input
-                    className={inputClass}
-                    value={state.languageOtherNote}
+                  <p className="mt-1 text-xs font-normal text-[#6b5c42]">{copy.labels.languageOtherHelp}</p>
+                  <textarea
+                    className={`${inputClass} min-h-[88px]`}
+                    value={state.languageOtherLines}
                     placeholder={copy.labels.languageOtherPlaceholder}
-                    onChange={(e) => setState((s) => ({ ...s, languageOtherNote: e.target.value }))}
-                    maxLength={120}
+                    onChange={(e) => setState((s) => ({ ...s, languageOtherLines: e.target.value }))}
                     autoComplete="off"
+                    spellCheck={false}
                   />
                 </label>
               ) : null}
@@ -1403,7 +1495,7 @@ export function ClasificadosServiciosApplication() {
 
         {step === 5 ? (
           <>
-        {/* 8 · Contact */}
+        {/* Contact visibility */}
         <section className={sectionCard}>
           <h2 className="text-lg font-bold text-[#3D2C12]">
             {copy.sections.contact}{" "}
@@ -1413,8 +1505,8 @@ export function ClasificadosServiciosApplication() {
           </h2>
           <p className="mt-1 text-xs text-[#6b5c42]">
             {lang === "es"
-              ? "* Activa al menos un método de contacto válido (llamada, sitio o WhatsApp) con el dato correspondiente en pasos anteriores."
-              : "* Turn on at least one valid contact method (call, website, or WhatsApp) with matching details from earlier steps."}
+              ? "* Activa al menos un método de contacto válido con los datos del paso “Datos básicos y contacto”."
+              : "* Turn on at least one valid contact method with matching details from “Basics & contact.”"}
           </p>
 
           <div className="mt-6 rounded-xl border border-[#D8C79A]/40 bg-[#FFFCF7]/90 p-4">
@@ -1425,8 +1517,19 @@ export function ClasificadosServiciosApplication() {
                 {state.phone.trim() ? formatPhoneInputDisplay(state.phone) : "—"}
               </li>
               <li>
+                <span className="font-medium text-[#3D2C12]">{copy.labels.phoneOffice}:</span>{" "}
+                {state.phoneOffice.trim() ? formatPhoneInputDisplay(state.phoneOffice) : "—"}
+              </li>
+              <li>
                 <span className="font-medium text-[#3D2C12]">{copy.labels.whatsapp}:</span>{" "}
                 {state.whatsapp.trim() ? formatPhoneInputDisplay(state.whatsapp) : "—"}
+              </li>
+              <li>
+                <span className="font-medium text-[#3D2C12]">{copy.labels.whatsappBusinessUrl}:</span>{" "}
+                {state.whatsappBusinessUrl.trim() ? state.whatsappBusinessUrl.trim() : "—"}
+              </li>
+              <li>
+                <span className="font-medium text-[#3D2C12]">{copy.labels.email}:</span> {state.email.trim() ? state.email.trim() : "—"}
               </li>
               <li>
                 <span className="font-medium text-[#3D2C12]">{copy.labels.website}:</span>{" "}
@@ -1435,8 +1538,8 @@ export function ClasificadosServiciosApplication() {
             </ul>
             <p className="mt-3 text-xs text-[#6b5c42]">
               {lang === "es"
-                ? "Edita estos datos en el paso “Información básica”."
-                : "Edit these fields under “Basic information.”"}
+                ? "Edita estos datos en el paso “Datos básicos y contacto”."
+                : "Edit these fields under “Basics & contact.”"}
             </p>
           </div>
 
@@ -1452,16 +1555,8 @@ export function ClasificadosServiciosApplication() {
             ) : (
               <p className="mt-2 text-sm text-amber-900/90">{copy.labels.contactSummaryNone}</p>
             )}
+            <p className="mt-3 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.contactPrimaryCtaHelp}</p>
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
-              <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm sm:min-h-0">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 shrink-0 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
-                  checked={state.enableCall}
-                  onChange={(e) => setState((s) => ({ ...s, enableCall: e.target.checked }))}
-                />
-                {copy.labels.enableCall}
-              </label>
               <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm sm:min-h-0">
                 <input
                   type="checkbox"
@@ -1475,6 +1570,24 @@ export function ClasificadosServiciosApplication() {
                 <input
                   type="checkbox"
                   className="h-4 w-4 shrink-0 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
+                  checked={state.enableCall}
+                  onChange={(e) => setState((s) => ({ ...s, enableCall: e.target.checked }))}
+                />
+                {copy.labels.enableCall}
+              </label>
+              <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm sm:min-h-0">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 shrink-0 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
+                  checked={state.enableEmail}
+                  onChange={(e) => setState((s) => ({ ...s, enableEmail: e.target.checked }))}
+                />
+                {copy.labels.enableEmail}
+              </label>
+              <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm sm:min-h-0">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 shrink-0 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
                   checked={state.enableWebsite}
                   onChange={(e) => setState((s) => ({ ...s, enableWebsite: e.target.checked }))}
                 />
@@ -1483,84 +1596,13 @@ export function ClasificadosServiciosApplication() {
             </div>
             <p className="mt-3 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.contactMessageFootnote}</p>
           </div>
-
-          {preset ? (
-            <>
-              <p className={`mt-6 ${labelClass}`}>{copy.labels.contactPrimaryCtaHeading}</p>
-              <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.contactPrimaryCtaHelp}</p>
-              <p className={`mt-4 ${labelClass}`}>
-                {copy.labels.primaryCta} <span className="text-red-600">*</span>
-              </p>
-              <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
-                {preset.primaryCtaOptions.map((c: ChipDef) => (
-                  <Chip
-                    key={c.id}
-                    selected={state.primaryCtaId === c.id}
-                    onClick={() => setState((s) => ({ ...s, primaryCtaId: c.id }))}
-                  >
-                    {chipLabel(c, lang)}
-                  </Chip>
-                ))}
-              </div>
-              {preset.secondaryCtaOptions.length > 0 ? (
-                <>
-                  <p className="mt-6 text-sm font-bold text-[#3D2C12]">{copy.labels.contactSecondaryHeading}</p>
-                  <p className={`mt-1 ${labelClass}`}>{copy.labels.secondaryCta}</p>
-                  <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
-                    {preset.secondaryCtaOptions.map((c: ChipDef) => (
-                      <Chip
-                        key={c.id}
-                        selected={state.secondaryCtaIds.includes(c.id)}
-                        onClick={() =>
-                          setState((s) => ({
-                            ...s,
-                            secondaryCtaIds: toggleId(s.secondaryCtaIds, c.id, !s.secondaryCtaIds.includes(c.id)),
-                          }))
-                        }
-                      >
-                        {chipLabel(c, lang)}
-                      </Chip>
-                    ))}
-                  </div>
-                </>
-              ) : null}
-            </>
-          ) : null}
         </section>
           </>
         ) : null}
 
         {step === 6 ? (
           <>
-        {/* 9 · Social */}
-        <section className={sectionCard}>
-          <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.social}</h2>
-          <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
-            {(
-              [
-                ["socialInstagram", copy.labels.instagram, state.socialInstagram, socialInvalid.ig] as const,
-                ["socialFacebook", copy.labels.facebook, state.socialFacebook, socialInvalid.fb] as const,
-                ["socialYoutube", copy.labels.youtube, state.socialYoutube, socialInvalid.yt] as const,
-                ["socialTiktok", copy.labels.tiktok, state.socialTiktok, socialInvalid.tt] as const,
-                ["socialLinkedin", copy.labels.linkedin, state.socialLinkedin, socialInvalid.li] as const,
-              ] as const
-            ).map(([key, lab, val, inv]) => (
-              <div key={key}>
-                <label className={labelClass}>{lab}</label>
-                <input
-                  className={`${inputClass} ${inv ? inputWarn : ""}`}
-                  type="url"
-                  placeholder="https://"
-                  value={val}
-                  onChange={(e) => setState((s) => ({ ...s, [key]: e.target.value }))}
-                />
-                {inv ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* 10 · Hours */}
+        {/* Hours */}
         <section className={sectionCard}>
           <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.hours}</h2>
           <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.hoursOutputHint}</p>

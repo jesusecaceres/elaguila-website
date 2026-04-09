@@ -66,8 +66,15 @@ export type ClasificadosServiciosCopy = {
     physicalRegion: string;
     physicalPostalCode: string;
     phone: string;
+    phoneOffice: string;
+    email: string;
     website: string;
     whatsapp: string;
+    whatsappBusinessUrl: string;
+    contactPhonesHeading: string;
+    contactEmailWebHeading: string;
+    contactSocialHeading: string;
+    languageOtherHelp: string;
     languages: string;
     logo: string;
     cover: string;
@@ -84,6 +91,7 @@ export type ClasificadosServiciosCopy = {
     enableMessage: string;
     enableWhatsapp: string;
     enableWebsite: string;
+    enableEmail: string;
     instagram: string;
     facebook: string;
     youtube: string;
@@ -115,6 +123,7 @@ export type ClasificadosServiciosCopy = {
     replace: string;
     emptyGallery: string;
     invalidUrl: string;
+    invalidEmail: string;
     galleryFeaturedHint: string;
     galleryMoreHint: string;
     videosHint: string;
@@ -184,7 +193,7 @@ export type ClasificadosServiciosCopy = {
     serviceAreasHelp: string;
     languageOtherLabel: string;
     languageOtherPlaceholder: string;
-    /** Paso 6 — grouped contact UI */
+    /** Paso contacto — visibilidad */
     contactDataHeading: string;
     contactVisibleHeading: string;
     contactPrimaryCtaHeading: string;
@@ -194,6 +203,7 @@ export type ClasificadosServiciosCopy = {
     contactSummaryCall: string;
     contactSummaryWhatsapp: string;
     contactSummaryWebsite: string;
+    contactSummaryEmail: string;
     contactSummaryNone: string;
     /** In-app message channel not offered in this phase */
     contactMessageFootnote: string;
@@ -240,13 +250,13 @@ const es: ClasificadosServiciosCopy = {
   required: "Requerido",
   sections: {
     type: "1 · Tipo de negocio",
-    basic: "2 · Información básica",
+    basic: "2 · Datos básicos y contacto",
     media: "3 · Imágenes y marca",
     about: "4 · Sobre el negocio",
     services: "5 · Servicios que ofreces",
     reasons: "6 · ¿Por qué elegirte?",
     quickFacts: "7 · Datos rápidos",
-    contact: "8 · Contacto y acciones",
+    contact: "8 · Acciones visibles",
     social: "9 · Redes sociales",
     hours: "10 · Horarios",
     testimonials: "11 · Testimonios (opcional)",
@@ -266,9 +276,16 @@ const es: ClasificadosServiciosCopy = {
     physicalAddressCity: "Ciudad",
     physicalRegion: "Estado",
     physicalPostalCode: "Código ZIP",
-    phone: "Teléfono",
+    phone: "Teléfono principal",
+    phoneOffice: "Teléfono de oficina (opcional)",
+    email: "Correo electrónico",
     website: "Sitio web",
-    whatsapp: "WhatsApp",
+    whatsapp: "WhatsApp (número)",
+    whatsappBusinessUrl: "WhatsApp — enlace de perfil o negocio (opcional)",
+    contactPhonesHeading: "Teléfonos y WhatsApp",
+    contactEmailWebHeading: "Correo y sitio web",
+    contactSocialHeading: "Redes sociales (URL pública)",
+    languageOtherHelp: "Un idioma por línea. También puedes pegar varios separados por coma.",
     languages: "Idiomas",
     logo: "Logo del negocio",
     cover: "Imagen de portada",
@@ -286,6 +303,7 @@ const es: ClasificadosServiciosCopy = {
     enableMessage: "Mensaje",
     enableWhatsapp: "WhatsApp",
     enableWebsite: "Sitio web",
+    enableEmail: "Correo",
     instagram: "Instagram",
     facebook: "Facebook",
     youtube: "YouTube",
@@ -311,6 +329,7 @@ const es: ClasificadosServiciosCopy = {
     replace: "Cambiar",
     emptyGallery: "Aún no hay fotos en la galería.",
     invalidUrl: "Revisa el formato del enlace (https://…)",
+    invalidEmail: "Revisa el formato del correo (ej. nombre@dominio.com)",
     galleryFeaturedHint:
       "Selecciona las 4 imágenes principales que quieres mostrar en tu anuncio (icono de estrella).",
     galleryMoreHint: "Las imágenes adicionales podrán verse al abrir la galería.",
@@ -378,21 +397,22 @@ const es: ClasificadosServiciosCopy = {
       "En tu vitrina: destacamos el horario de hoy y mostramos la semana completa en el panel de contacto.",
     cityHelp: "Ciudad donde se ubica principalmente tu negocio.",
     serviceAreasHelp: "Describe vecindades, condados o el radio donde atiendes.",
-    languageOtherLabel: "Especifica otros idiomas",
-    languageOtherPlaceholder: "Ej.: portugués, cantonés…",
-    contactDataHeading: "A. Datos de contacto que tienes en el formulario",
-    contactVisibleHeading: "B. Acciones visibles en la vitrina",
-    contactPrimaryCtaHeading: "C. Botón principal en la vitrina",
+    languageOtherLabel: "Otros idiomas",
+    languageOtherPlaceholder: "Chino\nJaponés",
+    contactDataHeading: "Tus datos de contacto",
+    contactVisibleHeading: "Qué puede usar el cliente en la vitrina",
+    contactPrimaryCtaHeading: "Destacado en la vitrina",
     contactPrimaryCtaHelp:
-      "Elige qué acción se destaca como botón principal. No es tu único contacto: las casillas de arriba siguen controlando qué métodos se muestran.",
-    contactSecondaryHeading: "D. Acciones secundarias opcionales",
-    contactSummaryIntro: "Resumen de lo que verá el cliente (según lo que activaste y los datos válidos):",
-    contactSummaryCall: "Llamada → usa tu teléfono",
-    contactSummaryWhatsapp: "WhatsApp → usa tu número de WhatsApp",
-    contactSummaryWebsite: "Sitio web → usa tu URL",
+      "Leonix prioriza automáticamente: WhatsApp, llamada, correo, sitio y mensaje (si aplica), según lo que actives y los datos válidos.",
+    contactSecondaryHeading: "Acciones secundarias",
+    contactSummaryIntro: "Vista previa lógica según lo activado:",
+    contactSummaryCall: "Llamada",
+    contactSummaryWhatsapp: "WhatsApp",
+    contactSummaryWebsite: "Sitio web",
+    contactSummaryEmail: "Correo",
     contactSummaryNone: "Aún no hay un método de contacto válido activo.",
     contactMessageFootnote:
-      "El canal de “Mensaje” dentro de la vitrina no está activo en esta fase de Leonix Clasificados: las acciones públicas son llamada, WhatsApp y sitio web según lo actives arriba.",
+      "El canal “Mensaje” dentro de la vitrina no está activo en esta fase. Activa llamada, WhatsApp, correo o sitio según corresponda.",
   },
 };
 
@@ -436,13 +456,13 @@ const en: ClasificadosServiciosCopy = {
   required: "Required",
   sections: {
     type: "1 · Business type",
-    basic: "2 · Basic information",
+    basic: "2 · Basics & contact",
     media: "3 · Brand & media",
     about: "4 · About the business",
     services: "5 · Services you offer",
     reasons: "6 · Why choose you",
     quickFacts: "7 · Quick facts",
-    contact: "8 · Contact & actions",
+    contact: "8 · Visible actions",
     social: "9 · Social media",
     hours: "10 · Hours",
     testimonials: "11 · Testimonials (optional)",
@@ -462,9 +482,16 @@ const en: ClasificadosServiciosCopy = {
     physicalAddressCity: "City",
     physicalRegion: "State",
     physicalPostalCode: "ZIP code",
-    phone: "Phone",
+    phone: "Main phone",
+    phoneOffice: "Office phone (optional)",
+    email: "Email",
     website: "Website",
-    whatsapp: "WhatsApp",
+    whatsapp: "WhatsApp (number)",
+    whatsappBusinessUrl: "WhatsApp — business or profile link (optional)",
+    contactPhonesHeading: "Phones & WhatsApp",
+    contactEmailWebHeading: "Email & website",
+    contactSocialHeading: "Social profiles (public URL)",
+    languageOtherHelp: "One language per line. You can also paste several separated by commas.",
     languages: "Languages",
     logo: "Business logo",
     cover: "Cover image",
@@ -482,6 +509,7 @@ const en: ClasificadosServiciosCopy = {
     enableMessage: "Message",
     enableWhatsapp: "WhatsApp",
     enableWebsite: "Website",
+    enableEmail: "Email",
     instagram: "Instagram",
     facebook: "Facebook",
     youtube: "YouTube",
@@ -507,6 +535,7 @@ const en: ClasificadosServiciosCopy = {
     replace: "Replace",
     emptyGallery: "No gallery photos yet.",
     invalidUrl: "Check the link format (https://…)",
+    invalidEmail: "Check the email format (e.g. name@domain.com)",
     galleryFeaturedHint:
       "Pick up to 4 main photos for your listing (star toggle). Those appear in the hero gallery grid.",
     galleryMoreHint: "Additional photos will be available when the expanded gallery opens.",
@@ -574,21 +603,22 @@ const en: ClasificadosServiciosCopy = {
       "On your public profile: we highlight today’s hours and show the full week in the contact panel.",
     cityHelp: "City where your business is primarily based.",
     serviceAreasHelp: "Describe neighborhoods, counties, or the radius you serve.",
-    languageOtherLabel: "Specify other languages",
-    languageOtherPlaceholder: "e.g. Portuguese, Cantonese…",
-    contactDataHeading: "A. Contact details on file",
-    contactVisibleHeading: "B. Visible actions on your showcase",
-    contactPrimaryCtaHeading: "C. Primary button on your showcase",
+    languageOtherLabel: "Other languages",
+    languageOtherPlaceholder: "Mandarin\nJapanese",
+    contactDataHeading: "Your contact details",
+    contactVisibleHeading: "What clients can use on your showcase",
+    contactPrimaryCtaHeading: "Highlight order",
     contactPrimaryCtaHelp:
-      "Pick which action is highlighted as the main button. It’s not your only contact method—the toggles above still control what appears.",
-    contactSecondaryHeading: "D. Optional secondary actions",
-    contactSummaryIntro: "What visitors will see (based on enabled methods and valid data):",
-    contactSummaryCall: "Call → uses your phone number",
-    contactSummaryWhatsapp: "WhatsApp → uses your WhatsApp number",
-    contactSummaryWebsite: "Website → uses your URL",
+      "Leonix uses a fixed priority: WhatsApp, call, email, website, then message when available—based on what you enable with valid details.",
+    contactSecondaryHeading: "Secondary actions",
+    contactSummaryIntro: "Logical preview from your toggles:",
+    contactSummaryCall: "Call",
+    contactSummaryWhatsapp: "WhatsApp",
+    contactSummaryWebsite: "Website",
+    contactSummaryEmail: "Email",
     contactSummaryNone: "No valid contact method is active yet.",
     contactMessageFootnote:
-      "The in-showcase “Message” channel is not active in this Leonix Clasificados phase — public actions are call, WhatsApp, and website based on what you enable above.",
+      "The in-showcase “Message” channel is not active in this phase. Enable call, WhatsApp, email, or website as needed.",
   },
 };
 

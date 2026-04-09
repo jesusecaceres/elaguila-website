@@ -1,6 +1,7 @@
 import { getBusinessTypePreset } from "./businessTypePresets";
 import { normalizeClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationNormalize";
 import type { ClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationTypes";
+import { isValidEmail } from "./leonixContactCtaPriority";
 import { isProbablyValidWebUrl } from "./socialAndUrlHelpers";
 
 /** Step indices match `ClasificadosServiciosApplication` stepped UI (0-based). */
@@ -15,6 +16,8 @@ function hasContactMethod(state: ClasificadosServiciosApplicationState): boolean
   if (state.enableCall && state.phone.trim().replace(/\D/g, "").length >= 8) return true;
   if (state.enableWebsite && state.website.trim() && isProbablyValidWebUrl(state.website)) return true;
   if (state.enableWhatsapp && String(state.whatsapp ?? "").replace(/\D/g, "").length >= 8) return true;
+  if (state.enableWhatsapp && state.whatsappBusinessUrl.trim() && isProbablyValidWebUrl(state.whatsappBusinessUrl)) return true;
+  if (state.enableEmail && isValidEmail(state.email)) return true;
   return false;
 }
 
@@ -39,16 +42,15 @@ const LABELS = {
   businessType: { es: "Tipo de negocio", en: "Business type" },
   businessName: { es: "Nombre del negocio", en: "Business name" },
   city: { es: "Ciudad principal", en: "Main city" },
-  contact: { es: "Al menos un método de contacto (teléfono, sitio o WhatsApp)", en: "At least one contact method (phone, website, or WhatsApp)" },
+  contact: {
+    es: "Al menos un método de contacto válido (teléfono, sitio, WhatsApp o correo)",
+    en: "At least one valid contact method (phone, website, WhatsApp, or email)",
+  },
   about: { es: "Texto “Sobre el negocio”", en: "“About the business” text" },
   services: { es: "Al menos un servicio", en: "At least one service" },
   media: {
     es: "Portada o al menos una imagen destacada en la galería principal",
     en: "Cover image or at least one image in the main gallery strip",
-  },
-  primaryCta: {
-    es: "Acción principal del botón destacado",
-    en: "Primary highlighted button action",
   },
 } as const;
 
@@ -59,8 +61,8 @@ const STEP = {
   media: 2,
   about: 3,
   services: 4,
-  contact: 5,
-  primary_cta: 5,
+  /** Contact source fields live on step 2 (index 1) */
+  contact: 1,
 } as const;
 
 type ReadinessId = keyof typeof STEP;
@@ -101,14 +103,6 @@ export function evaluateServiciosPublishReadiness(
   }
   if (!hasFeaturedVisual(normalized)) {
     push("media", L("media"));
-  }
-
-  const presetForCta = getBusinessTypePreset(normalized.businessTypeId);
-  if (presetForCta && presetForCta.primaryCtaOptions.length > 0) {
-    const validPrimary = presetForCta.primaryCtaOptions.some((c) => c.id === normalized.primaryCtaId);
-    if (!validPrimary) {
-      push("primary_cta", L("primaryCta"));
-    }
   }
 
   return { ok: missing.length === 0, missing };

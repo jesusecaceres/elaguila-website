@@ -4,16 +4,11 @@ export function digitsOnly(raw: string): string {
 }
 
 /**
- * US-style display for phone/WhatsApp fields (NorCal-focused).
- * Preserves leading + for WhatsApp international entry when present.
+ * US-style display for phone/WhatsApp fields: (XXX) XXX-XXXX.
+ * Does not prepend country codes; digits beyond ten use the first ten for grouping.
  */
 export function formatPhoneInputDisplay(raw: string): string {
-  const t = raw.trim();
-  if (t.startsWith("+")) {
-    const rest = digitsOnly(t.slice(1));
-    return `+${rest}`;
-  }
-  const d = digitsOnly(t);
+  const d = digitsOnly(raw).slice(0, 10);
   if (d.length === 0) return "";
   if (d.length <= 3) return `(${d}`;
   if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;

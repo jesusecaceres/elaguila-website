@@ -91,12 +91,21 @@ export type ClasificadosServiciosApplicationState = {
   physicalPostalCode: string;
   serviceAreaNotes: string;
   phone: string;
+  /** Optional second line — same digit rules as `phone` */
+  phoneOffice: string;
   website: string;
   whatsapp: string;
+  /** Public WhatsApp Business / profile URL if the number field is not used */
+  whatsappBusinessUrl: string;
+  /** Advertiser email — shown when `enableEmail` */
+  email: string;
   /** Chip ids from LANGUAGE_OPTION_CHIPS */
   languageIds: string[];
-  /** When "Otro" language chip is selected — shown on profile when set */
-  languageOtherNote: string;
+  /**
+   * When "Otro" is selected: one language per line (also accepts comma/semicolon-separated paste).
+   * Legacy `languageOtherNote` is migrated in normalize.
+   */
+  languageOtherLines: string;
   logoUrl: string;
   coverUrl: string;
   gallery: GalleryItem[];
@@ -117,8 +126,10 @@ export type ClasificadosServiciosApplicationState = {
   enableMessage: boolean;
   enableWhatsapp: boolean;
   enableWebsite: boolean;
-  /** primary CTA: preset chip id from current preset's primaryCtaOptions */
+  enableEmail: boolean;
+  /** @deprecated Preset-driven CTA — kept for stored drafts; shell uses fixed Leonix priority */
   primaryCtaId: string;
+  /** @deprecated */
   secondaryCtaIds: string[];
   socialInstagram: string;
   socialFacebook: string;

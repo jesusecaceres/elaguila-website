@@ -4,7 +4,10 @@ import type { ServiciosTrustItem } from "@/app/servicios/types/serviciosBusiness
 import { chipLabel, getBusinessTypePreset } from "./businessTypePresets";
 import type { ClasificadosServiciosApplicationState, DayKey } from "./clasificadosServiciosApplicationTypes";
 import { inferServiceVisualVariant } from "./inferServiceVisualVariant";
-import { normalizeHttpUrl } from "./socialAndUrlHelpers";
+import { buildLeonixContactCtaLabels, isValidEmail } from "./leonixContactCtaPriority";
+import { parseLanguageOtherLines } from "./languageOtherLines";
+import { digitsOnly } from "./serviciosPhoneUi";
+import { isProbablyValidWebUrl, normalizeHttpUrl } from "./socialAndUrlHelpers";
 import { slugifyServiciosBusinessName } from "./serviciosSlug";
 import { WEEK_DAY_LABELS } from "./defaultClasificadosServiciosState";
 
@@ -60,18 +63,17 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     heroBadges.push({ kind: "custom", label: lang === "en" ? "English" : "Inglés" });
   }
   if (otro) {
-    const note = state.languageOtherNote.trim();
-    heroBadges.push({
-      kind: "custom",
-      label:
-        note.length > 0
-          ? lang === "en"
-            ? `Other: ${note.slice(0, 48)}`
-            : `Otro: ${note.slice(0, 48)}`
-          : lang === "en"
-            ? "Other language"
-            : "Otro idioma",
-    });
+    const extra = parseLanguageOtherLines(state.languageOtherLines);
+    if (extra.length === 0) {
+      heroBadges.push({
+        kind: "custom",
+        label: lang === "en" ? "Other language" : "Otro idioma",
+      });
+    } else {
+      for (const lab of extra) {
+        heroBadges.push({ kind: "custom", label: lab.slice(0, 48) });
+      }
+    }
   }
   /* Leonix “Verificado” is not granted from advertiser interest — see resolver + published listings. */
 
@@ -161,25 +163,21 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       : `${todayRow.open} – ${todayRow.close}`;
   }
 
-  let primaryCtaLabel: string | undefined;
-  if (preset && state.primaryCtaId) {
-    const cta = preset.primaryCtaOptions.find((c) => c.id === state.primaryCtaId);
-    if (cta) primaryCtaLabel = chipLabel(cta, lang);
-  }
-
-  const secondaryCtaLabels: string[] = [];
-  if (preset) {
-    for (const id of state.secondaryCtaIds) {
-      const chip = preset.secondaryCtaOptions.find((c) => c.id === id);
-      if (chip) secondaryCtaLabels.push(chipLabel(chip, lang));
-    }
-  }
+  const leonixCta = buildLeonixContactCtaLabels(state, lang);
+  const primaryCtaLabel = leonixCta.primaryCtaLabel;
+  const secondaryCtaLabels = leonixCta.secondaryCtaLabels;
 
   const contact: ServiciosApplicationDraft["contact"] = {
     messageEnabled: state.enableMessage === true,
   };
-  if (state.enableCall && state.phone.trim()) {
+  if (state.enableCall && state.phone.trim() && digitsOnly(state.phone).length >= 8) {
     contact.phone = state.phone.trim();
+  }
+  if (state.enableCall && state.phoneOffice.trim() && digitsOnly(state.phoneOffice).length >= 8) {
+    contact.phoneOffice = state.phoneOffice.trim();
+  }
+  if (state.enableEmail && isValidEmail(state.email)) {
+    contact.email = state.email.trim();
   }
   if (state.enableWebsite) {
     const w = safeWebsiteForDraft(state.website);
@@ -221,7 +219,12 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (li) contact.socialLinkedinUrl = normalizeHttpUrl(li);
   if (state.enableWhatsapp) {
     const wa = waMeUrl(state.whatsapp);
-    if (wa) contact.socialWhatsappUrl = wa;
+    const biz = trimUrl(state.whatsappBusinessUrl);
+    if (wa) {
+      contact.socialWhatsappUrl = wa;
+    } else if (biz && isProbablyValidWebUrl(biz)) {
+      contact.socialWhatsappUrl = normalizeHttpUrl(biz);
+    }
   }
 
   const physStreet = state.physicalStreet.trim();
