@@ -9,7 +9,7 @@ import {
   adminBtnDark,
   adminCtaChipCompact,
 } from "../../_components/adminTheme";
-import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } from "../../_lib/clasificadosCategoryRegistry";
+import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
 import { fetchListingStatsForCategorySlugs } from "../../_lib/adminCategoryListingStats";
 import { saveSiteCategoryConfigRowAction } from "../../siteCategoryConfigActions";
 

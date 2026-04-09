@@ -2,6 +2,9 @@ import { Suspense } from "react";
 import { getPublishChooserCategoryKeys } from "@/app/lib/clasificados/categoryChooserServer";
 import PublicarPageClient from "./PublicarPageClient";
 
+/** DB-backed chooser keys — avoid static prerender (and flaky worker chunks on some environments). */
+export const dynamic = "force-dynamic";
+
 export default async function PublicarRootPage() {
   const chooserKeys = await getPublishChooserCategoryKeys();
   return (

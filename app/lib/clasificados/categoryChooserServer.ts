@@ -1,7 +1,7 @@
 import "server-only";
 
-import type { CategoryKey } from "@/app/(site)/clasificados/config/categoryConfig";
-import { getClasificadosCategoryRegistryMerged } from "@/app/admin/_lib/clasificadosCategoryRegistry";
+import type { CategoryKey } from "@/app/clasificados/config/categoryConfig";
+import { getClasificadosCategoryRegistryMerged } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
 
 const DEFAULT_PUBLISH_KEYS: Array<Exclude<CategoryKey, "all">> = [
   "en-venta",

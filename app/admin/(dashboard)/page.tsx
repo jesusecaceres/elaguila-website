@@ -5,7 +5,7 @@ import { AdminSectionCard } from "../_components/AdminSectionCard";
 import { AdminStatCard } from "../_components/AdminStatCard";
 import { adminCardBase, adminCtaChip, adminCtaChipSecondary } from "../_components/adminTheme";
 import { getAdminDashboardSnapshot } from "../_lib/adminDashboardData";
-import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } from "../_lib/clasificadosCategoryRegistry";
+import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
 import { AdminTiendaOrderStatusBadge } from "../_components/tienda/AdminTiendaOrderStatusBadge";
 import { tiendaOrderFlowLabel } from "../_lib/tiendaOrderFlowLabel";
 import { getAdminTiendaDashboardCounts, getRecentTiendaOrdersPreview } from "../_lib/tiendaOrdersData";

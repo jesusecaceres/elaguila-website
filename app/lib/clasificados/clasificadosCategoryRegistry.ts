@@ -1,5 +1,7 @@
 /**
  * Clasificados category control model — code defaults merged with optional `site_category_config` (admin).
+ * Lives under `app/lib` (not `app/admin`) so public routes e.g. `/clasificados/publicar` can import without
+ * pulling admin bundle chunks into the site graph.
  * `/clasificados/publicar` chooser uses merged visibility + order; labels still come from `categoryConfig`.
  */
 import type { CategoryKey } from "@/app/clasificados/config/categoryConfig";
@@ -63,18 +65,18 @@ export function getClasificadosCategoryRegistry(): ClasificadosCategoryRegistryE
               : slug === "rentas"
                 ? "🏠"
                 : slug === "autos"
-                    ? "🚗"
-                    : slug === "restaurantes"
-                      ? "🍽"
-                      : slug === "servicios"
-                        ? "🔧"
-                        : slug === "clases"
-                          ? "📚"
-                          : slug === "comunidad"
-                            ? "🤝"
-                            : slug === "travel"
-                              ? "✈️"
-                              : "📁",
+                  ? "🚗"
+                  : slug === "restaurantes"
+                    ? "🍽"
+                    : slug === "servicios"
+                      ? "🔧"
+                      : slug === "clases"
+                        ? "📚"
+                        : slug === "comunidad"
+                          ? "🤝"
+                          : slug === "travel"
+                            ? "✈️"
+                            : "📁",
         sortOrder: i,
         visibility,
         operationalStatus: op,
@@ -92,7 +94,7 @@ export function getClasificadosCategoryRegistry(): ClasificadosCategoryRegistryE
     .sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
-/** Async registry for admin surfaces — overlays `site_category_config` when rows exist. */
+/** Async registry — overlays `site_category_config` when rows exist. */
 export async function getClasificadosCategoryRegistryMerged(): Promise<ClasificadosCategoryRegistryEntry[]> {
   const map = await fetchSiteCategoryConfigMap();
   const base = getClasificadosCategoryRegistry();
