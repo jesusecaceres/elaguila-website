@@ -1,7 +1,7 @@
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
-/** Future DB/admin row shape notes: `shared/types/empleosAdminListingCompatibility.ts` (generic clasificados listings). */
+/** Publish envelope + admin projection: `shared/publish/buildEmpleosPublishEnvelope.ts`, `shared/types/empleosAdminListingCompatibility.ts`. */
 
 /** Publicar Empleos application routes (no Clasificados public shells). */
 export const EMPLEOS_PUBLISH_ROUTES = {

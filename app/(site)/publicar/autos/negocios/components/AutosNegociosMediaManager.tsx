@@ -12,11 +12,11 @@ const INPUT =
   "mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2 text-sm text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
 const SUBHEAD = "mt-6 text-sm font-bold text-[color:var(--lx-text)]";
 const DROPZONE_BASE =
-  "rounded-xl border-2 border-dashed transition-colors px-4 py-6 text-center";
+  "rounded-xl border-2 border-dashed transition-colors px-4 py-8 text-center sm:py-7";
 const BTN_PRIMARY =
-  "inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-[color:var(--lx-cta-dark)] px-5 text-sm font-bold text-[#FFFCF7] shadow-md transition hover:bg-[color:var(--lx-cta-dark-hover)]";
+  "inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[14px] bg-[color:var(--lx-cta-dark)] px-5 text-sm font-bold text-[#FFFCF7] shadow-md transition hover:bg-[color:var(--lx-cta-dark-hover)] active:opacity-90";
 const BTN_SECONDARY =
-  "inline-flex items-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2 text-xs font-bold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]";
+  "inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-4 py-2 text-xs font-bold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)] active:opacity-90";
 
 function sortByOrder(images: MediaImageEntry[]): MediaImageEntry[] {
   return [...images].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -272,7 +272,7 @@ export function AutosNegociosMediaManager({
   return (
     <section
       id={sectionId}
-      className="min-w-0 scroll-mt-24 overflow-x-hidden rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-5"
+      className="min-w-0 scroll-mt-24 overflow-x-hidden rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6"
     >
       <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{copy.app.sections.media}</h2>
       <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{m.sectionIntro}</p>
@@ -302,7 +302,7 @@ export function AutosNegociosMediaManager({
       >
         <FiImage className="mx-auto h-8 w-8 text-[color:var(--lx-muted)] opacity-70" aria-hidden />
         <p className="mt-2 text-sm font-semibold text-[color:var(--lx-text)]">{m.dropzone}</p>
-        <button type="button" className={`${BTN_PRIMARY} mt-4`} onClick={() => photoInputRef.current?.click()}>
+        <button type="button" className={`${BTN_PRIMARY} mt-4 w-full max-w-sm sm:w-auto`} onClick={() => photoInputRef.current?.click()}>
           <FiUpload className="h-4 w-4" aria-hidden />
           {m.addPhotos}
         </button>
@@ -354,7 +354,7 @@ export function AutosNegociosMediaManager({
           <p className="text-xs text-[color:var(--lx-muted)]">{m.emptyPhotosHint}</p>
         </div>
       ) : (
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+        <ul className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {images.map((img) => (
             <li
               key={img.id}
@@ -435,7 +435,7 @@ export function AutosNegociosMediaManager({
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          className={`min-h-[40px] rounded-full px-3 py-2 text-xs font-bold ${
+          className={`min-h-[44px] min-w-[44px] rounded-full px-4 py-2 text-xs font-bold transition active:opacity-90 ${
             vs === "url" ? "bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)]" : "border border-[color:var(--lx-nav-border)] bg-[#FFFCF7]"
           }`}
           onClick={setVideoModeUrl}
@@ -444,7 +444,7 @@ export function AutosNegociosMediaManager({
         </button>
         <button
           type="button"
-          className={`min-h-[40px] rounded-full px-3 py-2 text-xs font-bold ${
+          className={`min-h-[44px] min-w-[44px] rounded-full px-4 py-2 text-xs font-bold transition active:opacity-90 ${
             vs === "file" ? "bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)]" : "border border-[color:var(--lx-nav-border)] bg-[#FFFCF7]"
           }`}
           onClick={setVideoModeFile}
@@ -452,7 +452,7 @@ export function AutosNegociosMediaManager({
           {m.videoFileTab}
         </button>
         {(vs || videoUrl || videoFile) && (
-          <button type="button" className="min-h-[40px] px-1 text-xs font-bold text-red-800 underline" onClick={clearVideo}>
+          <button type="button" className="min-h-[44px] px-2 text-xs font-bold text-red-800 underline" onClick={clearVideo}>
             {m.removeVideo}
           </button>
         )}

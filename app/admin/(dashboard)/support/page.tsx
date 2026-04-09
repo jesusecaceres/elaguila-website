@@ -211,7 +211,7 @@ async function SupportTicketsSection(props: {
       <AdminPageHeader
         title="Support"
         subtitle="Búsqueda de cuentas y colas reales: Users, Ops y Reportes. Los tickets aquí son un log interno mínimo — no sustituyen un helpdesk público."
-        helperText="Habilitar/deshabilitar cuenta: Users → ficha. Contraseña: solo vía Supabase Auth o flujo seguro, no desde este panel."
+        helperText="Seguimiento completo (estado + notas + escalación) requiere la migración 20260408210000_support_tickets_staff_followup.sql aplicada en Supabase; cada guardado va a admin_audit_log. Cuentas: Users → ficha; contraseña solo vía Auth."
       />
 
       <div className="grid gap-6 lg:grid-cols-2">

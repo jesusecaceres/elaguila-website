@@ -52,6 +52,7 @@ export function ViajesNegociosPreviewClient() {
           backHref={backHref}
           backLabel={c.previewBackEdit}
           preview
+          previewTone="minimal"
           sparseSections
           ui={ui}
           exploreViajesHref={exploreViajesHref}

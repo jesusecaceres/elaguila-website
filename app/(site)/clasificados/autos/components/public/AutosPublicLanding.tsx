@@ -78,10 +78,10 @@ export function AutosPublicLanding() {
   const publicarHref = appendLangToPath("/clasificados/publicar", lang as Lang);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] pb-24 text-[color:var(--lx-text)]">
+    <div className="min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] pb-[calc(6rem+env(safe-area-inset-bottom,0px))] text-[color:var(--lx-text)]">
       <Navbar />
       <div className="border-b border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-bg)] backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-[max(1rem,env(safe-area-inset-left))] py-3 pr-[max(1rem,env(safe-area-inset-right))] sm:px-5">
           <nav className="text-[11px] font-medium text-[color:var(--lx-muted)]">
             <Link href={appendLangToPath("/clasificados", lang as Lang)} className="hover:text-[color:var(--lx-text)]">
               {copy.breadcrumb}
@@ -91,14 +91,14 @@ export function AutosPublicLanding() {
           </nav>
           <Link
             href={publicarHref}
-            className="rounded-full bg-[color:var(--lx-cta-dark)] px-4 py-2 text-xs font-bold text-[#FFFCF7] shadow-sm transition hover:bg-[color:var(--lx-cta-dark-hover)]"
+            className="inline-flex min-h-[44px] items-center rounded-full bg-[color:var(--lx-cta-dark)] px-4 py-2 text-xs font-bold text-[#FFFCF7] shadow-sm transition hover:bg-[color:var(--lx-cta-dark-hover)] active:opacity-90"
           >
             {copy.postAd}
           </Link>
         </div>
       </div>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-5 sm:py-10">
+      <main className="mx-auto max-w-7xl px-[max(1rem,env(safe-area-inset-left))] py-8 pr-[max(1rem,env(safe-area-inset-right))] sm:px-5 sm:py-10">
         <header className="mx-auto max-w-3xl text-center">
           <h1 className="text-3xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-4xl md:text-[2.35rem] md:leading-tight">
             {copy.title}
@@ -106,7 +106,7 @@ export function AutosPublicLanding() {
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-text-2)] sm:text-base">{copy.tagline}</p>
         </header>
 
-        <section className="mx-auto mt-8 max-w-4xl rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-12px_rgba(42,36,22,0.12)] sm:p-5">
+        <section className="mx-auto mt-8 max-w-4xl rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-12px_rgba(42,36,22,0.12)] sm:p-6">
           <div className="flex flex-col gap-3">
             <div className="min-w-0">
               <label className="mb-1 block text-left text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]">
@@ -152,7 +152,7 @@ export function AutosPublicLanding() {
             </div>
             <Link
               href={searchHref}
-              className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[linear-gradient(135deg,rgba(201,168,74,0.95),rgba(184,149,74,0.92))] px-4 py-3 text-sm font-bold text-[#FFFCF7] shadow-md transition hover:brightness-[1.03]"
+              className="flex min-h-[48px] w-full items-center justify-center rounded-2xl bg-[linear-gradient(135deg,rgba(201,168,74,0.95),rgba(184,149,74,0.92))] px-4 py-3 text-sm font-bold text-[#FFFCF7] shadow-md transition hover:brightness-[1.03] active:opacity-95"
             >
               {copy.searchCta}
             </Link>
@@ -227,7 +227,7 @@ export function AutosPublicLanding() {
 
         <section className="mt-12">
           <h2 className="text-lg font-bold text-[color:var(--lx-text)] sm:text-xl">{copy.featuredZoneTitle}</h2>
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
             {featured.map((l) => (
               <AutosPublicFeaturedCard key={l.id} listing={l} copy={copy} lang={lang} />
             ))}
@@ -236,7 +236,7 @@ export function AutosPublicLanding() {
 
         <section className="mt-14">
           <h2 className="text-lg font-bold text-[color:var(--lx-text)] sm:text-xl">{copy.freshTitle}</h2>
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
             {fresh.map((l) => (
               <AutosPublicStandardCard key={l.id} listing={l} copy={copy} lang={lang} compact />
             ))}
@@ -246,7 +246,7 @@ export function AutosPublicLanding() {
         <div className="mt-12 flex justify-center">
           <Link
             href={browseAllHref}
-            className="inline-flex min-h-[52px] w-full max-w-md items-center justify-center rounded-2xl bg-[color:var(--lx-cta-dark)] px-8 py-3.5 text-sm font-bold text-[#FFFCF7] shadow-lg transition hover:bg-[color:var(--lx-cta-dark-hover)] sm:min-h-0"
+            className="inline-flex min-h-[52px] w-full max-w-md items-center justify-center rounded-2xl bg-[color:var(--lx-cta-dark)] px-8 py-3.5 text-sm font-bold text-[#FFFCF7] shadow-lg transition hover:bg-[color:var(--lx-cta-dark-hover)] active:opacity-90 sm:min-h-0"
           >
             {copy.browseAll}
           </Link>

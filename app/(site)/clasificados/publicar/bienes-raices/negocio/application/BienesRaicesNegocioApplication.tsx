@@ -123,8 +123,8 @@ export default function BienesRaicesNegocioApplication() {
   }, [state]);
 
   return (
-    <main className="min-h-screen bg-[#F6F0E2] pb-20 pt-24 text-[#2C2416] sm:pt-28">
-      <div className="mx-auto max-w-6xl px-4">
+    <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#F6F0E2] pb-[max(5rem,env(safe-area-inset-bottom,0px))] pt-24 text-[#2C2416] sm:pb-20 sm:pt-28">
+      <div className="mx-auto max-w-6xl min-w-0 px-4">
         <div className="mb-6 rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-4 shadow-[0_10px_32px_-14px_rgba(42,36,22,0.1)] sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
@@ -135,17 +135,17 @@ export default function BienesRaicesNegocioApplication() {
                 contacto. Usa “Vista previa” para comprobarlo en vivo.
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
               <button
                 type="button"
-                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm font-semibold text-[#2C2416] hover:bg-[#FFFCF7]"
+                className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#E8DFD0] bg-white px-4 py-2.5 text-sm font-semibold text-[#2C2416] hover:bg-[#FFFCF7] sm:min-h-0 sm:w-auto"
                 onClick={() => leaveAndGo(BR_PUBLICAR_HUB)}
               >
                 Cambiar canal
               </button>
               <button
                 type="button"
-                className="rounded-xl border border-[#C9B46A]/50 bg-[#FFF6E7] px-3 py-2 text-sm font-semibold text-[#6E5418] hover:bg-[#FFEFD8]"
+                className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#C9B46A]/50 bg-[#FFF6E7] px-4 py-2.5 text-sm font-semibold text-[#6E5418] hover:bg-[#FFEFD8] sm:min-h-0 sm:w-auto"
                 onClick={() => leaveAndGo(BR_CATEGORY_HOME)}
               >
                 Ver categoría BR
@@ -180,7 +180,7 @@ export default function BienesRaicesNegocioApplication() {
                       type="button"
                       onClick={() => setStep(i)}
                       className={
-                        "flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition " +
+                        "flex min-h-[44px] w-full touch-manipulation items-start gap-2 rounded-lg px-2 py-2 text-left transition sm:min-h-0 sm:py-1.5 " +
                         (i === step
                           ? "bg-[#FFF0D4] font-bold text-[#6E5418]"
                           : "text-[#5C5346] hover:bg-white/80")
@@ -224,12 +224,12 @@ export default function BienesRaicesNegocioApplication() {
             {step === 13 ? <VistaPreviaNegocioSection /> : null}
             {step === 14 ? <ResumenPublicarNegocioSection state={state} setState={setState} /> : null}
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E8DFD0]/80 pt-4">
+            <div className="flex flex-col gap-3 border-t border-[#E8DFD0]/80 pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
               <button
                 type="button"
                 disabled={!canGoBack}
                 onClick={() => setStep((s) => Math.max(0, s - 1))}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2.5 text-sm font-semibold text-[#2C2416] disabled:cursor-not-allowed disabled:opacity-40"
+                className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm font-semibold text-[#2C2416] disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-[44px] sm:w-auto sm:py-2.5"
               >
                 Anterior
               </button>
@@ -237,7 +237,7 @@ export default function BienesRaicesNegocioApplication() {
                 type="button"
                 disabled={!canGoNext}
                 onClick={() => setStep((s) => Math.min(TOTAL - 1, s + 1))}
-                className="rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] px-4 py-2.5 text-sm font-semibold text-[#6E5418] disabled:cursor-not-allowed disabled:opacity-40"
+                className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] px-4 py-3 text-sm font-semibold text-[#6E5418] disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-[44px] sm:w-auto sm:py-2.5"
               >
                 Siguiente
               </button>

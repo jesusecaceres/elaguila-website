@@ -33,11 +33,11 @@ type Props = {
 };
 
 const BTN_PRIMARY =
-  "inline-flex min-h-[44px] items-center justify-center rounded-full bg-[color:var(--lx-cta-dark)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-light)] hover:bg-[color:var(--lx-cta-dark-hover)] disabled:pointer-events-none disabled:opacity-45 sm:min-h-0";
+  "inline-flex w-full min-h-[48px] touch-manipulation items-center justify-center rounded-full bg-[color:var(--lx-cta-dark)] px-4 py-3 text-center text-sm font-semibold leading-snug text-[color:var(--lx-cta-light)] hover:bg-[color:var(--lx-cta-dark-hover)] disabled:pointer-events-none disabled:opacity-45 sm:min-h-[44px] sm:w-auto sm:px-5 sm:py-2.5";
 const BTN_SECONDARY =
-  "inline-flex min-h-[44px] items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)] sm:min-h-0";
+  "inline-flex w-full min-h-[48px] touch-manipulation items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] px-4 py-3 text-center text-sm font-semibold leading-snug text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)] sm:min-h-[44px] sm:w-auto sm:px-5 sm:py-2.5";
 const BTN_DANGER =
-  "inline-flex min-h-[44px] items-center justify-center rounded-full border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-900 hover:bg-red-100 sm:min-h-0";
+  "inline-flex w-full min-h-[48px] touch-manipulation items-center justify-center rounded-full border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-semibold leading-snug text-red-900 hover:bg-red-100 sm:min-h-[44px] sm:w-auto sm:px-5 sm:py-2.5";
 
 /**
  * Shared top (and repeatable bottom) actions for Clasificados category applications.
@@ -82,7 +82,7 @@ export function ClasificadosApplicationTopActions({
       </div>
       {validationBlockedMessage ? (
         <p
-          className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-950"
+          className="mt-3 break-words rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm leading-snug text-amber-950"
           role="alert"
         >
           {validationBlockedMessage}

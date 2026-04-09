@@ -36,7 +36,11 @@ import {
   onPhoneInputChange,
   digitsOnly,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
-import { readFileAsDataUrl } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/readFileAsDataUrl";
+import {
+  compressImageFileToJpegDataUrl,
+  readVideoFileAsDataUrlLimited,
+} from "@/app/clasificados/publicar/bienes-raices/privado/application/utils/brPrivadoMediaCompress";
+import { BrPrivadoCiudadZonaCombobox } from "@/app/clasificados/publicar/bienes-raices/privado/application/components/BrPrivadoCiudadZonaCombobox";
 import {
   COMERCIAL_DESTACADOS_DEFS,
   COMERCIAL_SUBTIPO_POR_TIPO,
@@ -57,10 +61,28 @@ import {
 } from "./utils/rentasNegocioDraft";
 
 const MAX_PHOTOS = 8;
+const MAX_VIDEO_BYTES = 32 * 1024 * 1024;
 
 function precioDigitsUnbounded(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "");
 }
+
+function formatRentPreviewUsd(digitsRaw: string): string {
+  const d = precioDigitsUnbounded(digitsRaw);
+  if (!d) return "";
+  const n = Number(d);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  const cur = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+  return `${cur} / mes`;
+}
+
+const RENTAS_NEGOCIO_PREVIEW_ACTION_LABELS = {
+  preview: "Validar y ver vista previa",
+  openPreview: "Ver vista previa (sin validar)",
+  openPreviewTitle:
+    "Abre la vista previa enseguida con el borrador guardado en esta pestaña. No exige las confirmaciones del final ni todos los campos mínimos.",
+  deleteApplication: "Eliminar borrador",
+} as const;
 
 const CATEGORIAS: { id: BrNegocioCategoriaPropiedad; label: string }[] = [
   { id: "residencial", label: "Residencial" },
@@ -95,9 +117,14 @@ export function RentasNegocioForm() {
   const [state, setState] = useState<RentasNegocioFormState>(createEmptyRentasNegocioFormState);
   const [hydrated, setHydrated] = useState(false);
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
+  const [localVideoFileName, setLocalVideoFileName] = useState("");
+  const [mediaNotice, setMediaNotice] = useState<string | null>(null);
 
   const stateRef = useRef(state);
   stateRef.current = state;
+  const photosInputRef = useRef<HTMLInputElement>(null);
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
+  const negocioLogoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const d = loadRentasNegocioDraft();
@@ -127,6 +154,13 @@ export function RentasNegocioForm() {
     };
   }, [hydrated]);
 
+  useEffect(() => {
+    if (!hydrated) return;
+    if (state.media.videoLocalDataUrl && !localVideoFileName) {
+      setLocalVideoFileName("Video local (sesión)");
+    }
+  }, [hydrated, state.media.videoLocalDataUrl, localVideoFileName]);
+
   const flushSave = useCallback(() => {
     saveRentasNegocioDraft(stateRef.current);
   }, []);
@@ -142,27 +176,137 @@ export function RentasNegocioForm() {
       const f = files[i];
       if (!f || !/^image\//.test(f.type)) continue;
       try {
-        next.push(await readFileAsDataUrl(f));
+        next.push(await compressImageFileToJpegDataUrl(f));
       } catch {
         /* ignore */
       }
     }
-    setState((s) => ({
-      ...s,
-      media: {
-        ...s.media,
-        photoDataUrls: next,
-        primaryImageIndex: Math.min(s.media.primaryImageIndex, Math.max(0, next.length - 1)),
-      },
-    }));
+    setState((s) => {
+      const primaryImageIndex = Math.min(s.media.primaryImageIndex, Math.max(0, next.length - 1));
+      const out: RentasNegocioFormState = {
+        ...s,
+        media: { ...s.media, photoDataUrls: next, primaryImageIndex },
+      };
+      queueMicrotask(() => saveRentasNegocioDraft(out));
+      return out;
+    });
+    if (photosInputRef.current) photosInputRef.current.value = "";
+  };
+
+  const movePhoto = (index: number, delta: -1 | 1) => {
+    setState((s) => {
+      const urls = [...s.media.photoDataUrls];
+      const j = index + delta;
+      if (j < 0 || j >= urls.length) return s;
+      const a = urls[index];
+      const b = urls[j];
+      if (a === undefined || b === undefined) return s;
+      urls[index] = b;
+      urls[j] = a;
+      let pi = s.media.primaryImageIndex;
+      if (pi === index) pi = j;
+      else if (pi === j) pi = index;
+      const out: RentasNegocioFormState = {
+        ...s,
+        media: { ...s.media, photoDataUrls: urls, primaryImageIndex: pi },
+      };
+      queueMicrotask(() => saveRentasNegocioDraft(out));
+      return out;
+    });
+  };
+
+  const onVideoFile = async (files: FileList | null) => {
+    const f = files?.[0];
+    if (!f) return;
+    setMediaNotice(null);
+    try {
+      const data = await readVideoFileAsDataUrlLimited(f, MAX_VIDEO_BYTES);
+      setLocalVideoFileName(f.name);
+      setState((s) => {
+        const out: RentasNegocioFormState = {
+          ...s,
+          media: { ...s.media, videoLocalDataUrl: data, videoUrl: "" },
+        };
+        queueMicrotask(() => saveRentasNegocioDraft(out));
+        return out;
+      });
+    } catch (e) {
+      const code = e instanceof Error ? e.message : "";
+      if (code === "video_too_large") {
+        setMediaNotice(`El video supera ${Math.round(MAX_VIDEO_BYTES / (1024 * 1024))} MB (límite para vista previa).`);
+      } else if (code === "not_video") {
+        setMediaNotice("Elige un archivo de video válido.");
+      } else {
+        setMediaNotice("No se pudo leer el video.");
+      }
+    }
+    if (videoFileInputRef.current) videoFileInputRef.current.value = "";
+  };
+
+  const clearLocalVideo = () => {
+    setLocalVideoFileName("");
+    setMediaNotice(null);
+    setState((s) => {
+      const out: RentasNegocioFormState = { ...s, media: { ...s.media, videoLocalDataUrl: "" } };
+      queueMicrotask(() => saveRentasNegocioDraft(out));
+      return out;
+    });
+  };
+
+  const onVideoUrlChange = (raw: string) => {
+    setMediaNotice(null);
+    const t = raw.trim();
+    if (t) setLocalVideoFileName("");
+    setState((s) => {
+      const out: RentasNegocioFormState = {
+        ...s,
+        media: { ...s.media, videoUrl: raw, ...(t ? { videoLocalDataUrl: "" } : {}) },
+      };
+      queueMicrotask(() => saveRentasNegocioDraft(out));
+      return out;
+    });
   };
 
   const cat = state.categoriaPropiedad;
   const confirmAll =
     state.confirmListingAccurate && state.confirmPhotosRepresentItem && state.confirmCommunityRules;
 
+  const rentPreview = formatRentPreviewUsd(state.rentaMensual);
+
+  const previewActionsProps = {
+    onPreviewValidated: () => {
+      if (!confirmAll) return;
+      const g = gateRentasNegocioPreview(stateRef.current);
+      if (!g.ok) {
+        setPreviewGateMessage(g.message);
+        return;
+      }
+      setPreviewGateMessage(null);
+      flushSave();
+      router.push(previewHref);
+    },
+    openPreviewHref: previewHref,
+    onBeforeOpenUnvalidatedPreview: flushSave,
+    disableValidatedPreview: !confirmAll,
+    validationBlockedMessage: previewGateMessage ?? (!confirmAll ? CONFIRM_PREVIEW_BLOCKED[lang] : null),
+    labels: RENTAS_NEGOCIO_PREVIEW_ACTION_LABELS,
+    onDeleteApplication: () => {
+      clearRentasNegocioDraft();
+      const empty = createEmptyRentasNegocioFormState();
+      try {
+        const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+        const p = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
+        setState(p ? { ...empty, categoriaPropiedad: p } : empty);
+      } catch {
+        setState(empty);
+      }
+      setPreviewGateMessage(null);
+    },
+    deleteConfirmMessage: "¿Eliminar el borrador de esta solicitud y empezar de nuevo?",
+  };
+
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#F6F0E2] px-4 pb-28 pt-24 text-[#2C2416] sm:px-5 sm:pb-24 sm:pt-28">
+    <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#F6F0E2] px-4 pb-[max(7rem,env(safe-area-inset-bottom,0px))] pt-24 text-[#2C2416] sm:px-5 sm:pb-24 sm:pt-28">
       <div className="mx-auto w-full min-w-0 max-w-3xl space-y-7 md:space-y-8">
         <header className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">Leonix · Rentas · Negocio</p>
@@ -172,39 +316,12 @@ export function RentasNegocioForm() {
           </p>
         </header>
 
-        <ClasificadosApplicationTopActions
-          onPreviewValidated={() => {
-            if (!confirmAll) return;
-            const g = gateRentasNegocioPreview(stateRef.current);
-            if (!g.ok) {
-              setPreviewGateMessage(g.message);
-              return;
-            }
-            setPreviewGateMessage(null);
-            flushSave();
-            router.push(previewHref);
-          }}
-          openPreviewHref={previewHref}
-          onBeforeOpenUnvalidatedPreview={flushSave}
-          disableValidatedPreview={!confirmAll}
-          validationBlockedMessage={previewGateMessage ?? (!confirmAll ? CONFIRM_PREVIEW_BLOCKED[lang] : null)}
-          onDeleteApplication={() => {
-            clearRentasNegocioDraft();
-            const empty = createEmptyRentasNegocioFormState();
-            try {
-              const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-              const p = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
-              setState(p ? { ...empty, categoriaPropiedad: p } : empty);
-            } catch {
-              setState(empty);
-            }
-            setPreviewGateMessage(null);
-          }}
-          deleteConfirmMessage="¿Eliminar el borrador de esta solicitud y empezar de nuevo?"
-        />
+        <ClasificadosApplicationTopActions {...previewActionsProps} />
         <p className="text-xs leading-relaxed text-[#5C5346]/88">
-          <strong className="text-[#1E1810]">Vista previa</strong> valida los campos mínimos.{" "}
-          <strong className="text-[#1E1810]">Abrir vista previa</strong> guarda y abre sin esa validación.
+          <strong className="text-[#1E1810]">Validar y ver vista previa</strong> exige las confirmaciones del final y los
+          requisitos mínimos; si pasan, abre tu anuncio de prueba.{" "}
+          <strong className="text-[#1E1810]">Ver vista previa (sin validar)</strong> guarda el borrador y abre al instante
+          (útil mientras terminas campos opcionales).
         </p>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -256,7 +373,11 @@ export function RentasNegocioForm() {
                 />
               </AiField>
             </div>
-            <AiField required label="Renta mensual (USD)" hint="Solo números enteros al mes; en la vista previa verás moneda y “/ mes”.">
+            <AiField
+              required
+              label="Renta mensual (USD)"
+              hint="Escribe solo números (sin símbolos). Abajo ves cómo quedará en el anuncio."
+            >
               <input
                 className={fieldClass}
                 inputMode="numeric"
@@ -264,6 +385,20 @@ export function RentasNegocioForm() {
                 onChange={(e) => setState((s) => ({ ...s, rentaMensual: precioDigitsUnbounded(e.target.value) }))}
                 autoComplete="off"
               />
+              {rentPreview ? (
+                <p className="mt-2 text-sm font-semibold [font-variant-numeric:tabular-nums] text-[#6E5418]">
+                  En el anuncio:{" "}
+                  <span className="text-[#1E1810]" aria-live="polite">
+                    {rentPreview}
+                  </span>
+                </p>
+              ) : (
+                <p className="mt-2 text-xs text-[#5C5346]/85">
+                  {state.rentaMensual.trim()
+                    ? "Revisa el número (debe ser mayor que cero)."
+                    : "Ejemplo: al escribir 2500 se mostrará la renta en dólares con formato y “/ mes”."}
+                </p>
+              )}
             </AiField>
             <AiField label="Depósito" hint="Texto libre o monto (ej. un mes de renta).">
               <input
@@ -359,20 +494,25 @@ export function RentasNegocioForm() {
                 ))}
               </select>
             </AiField>
-            <AiField label="Ciudad o zona">
-              <input
+            <AiField
+              label="Ciudad o zona"
+              hint="Escribe y elige una sugerencia NorCal, o escribe tu propia zona. Sirve para ubicación en el anuncio y para filtros futuros."
+            >
+              <BrPrivadoCiudadZonaCombobox
                 className={fieldClass}
                 value={state.ciudad}
-                onChange={(e) => setState((s) => ({ ...s, ciudad: e.target.value }))}
-                autoComplete="address-level2"
+                onChange={(v) => setState((s) => ({ ...s, ciudad: v }))}
               />
             </AiField>
-            <AiField label="Dirección o referencia" hint="Texto corto; puedes omitir número exacto.">
+            <AiField
+              label="Dirección o referencia"
+              hint="Ubicación aproximada o segura para publicar: no hace falta la dirección completa. Ejemplos ficticios: “Cerca de la esquina de Oak y 12 · barrio tranquilo”, “Zona residencial al norte del centro”, “Frente al parque de la colonia (referencia).”"
+            >
               <input
                 className={fieldClass}
                 value={state.ubicacionLinea}
                 onChange={(e) => setState((s) => ({ ...s, ubicacionLinea: e.target.value }))}
-                autoComplete="street-address"
+                autoComplete="off"
               />
             </AiField>
             <p className="sm:col-span-2 text-xs text-[#5C5346]">
@@ -395,7 +535,10 @@ export function RentasNegocioForm() {
               </AiField>
             </div>
             <div className="sm:col-span-2">
-              <AiField label="Descripción">
+              <AiField
+                label="Descripción de la propiedad"
+                hint="Describe la vivienda o terreno: distribución, estado, luz, vecindario, accesos. Es el texto principal del anuncio."
+              >
                 <textarea
                   className={textareaFieldClass}
                   rows={6}
@@ -410,22 +553,42 @@ export function RentasNegocioForm() {
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>Fotos y video</h2>
           <p className={aiSubClass}>
-            Hasta {MAX_PHOTOS} fotos. Al menos una foto para una vista previa completa
+            Hasta {MAX_PHOTOS} fotos (se comprimen en el navegador). Para una vista previa completa hace falta al menos una
+            foto
             <span className="text-[#B8954A]" aria-hidden>
               {" "}
               *
             </span>
-            . Un video (enlace o archivo corto) — permanece en esta sesión hasta publicación definitiva.
+            . Un solo video: por archivo <strong className="font-semibold text-[#1E1810]">o</strong> por enlace (no ambos).
+            Nada se sube a servidores en este paso; el borrador vive en esta sesión hasta que exista publicación.
           </p>
+          {mediaNotice ? (
+            <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-950" role="status">
+              {mediaNotice}
+            </p>
+          ) : null}
           <div className="mt-4">
-            <span className={aiLabelClass}>Fotos</span>
+            <span className={aiLabelClass}>Fotos del anuncio</span>
             <input
+              ref={photosInputRef}
               type="file"
               accept="image/*"
               multiple
-              className="mt-2 block w-full text-sm text-[#5C5346]"
+              className="sr-only"
               onChange={(e) => onPhotos(e.target.files)}
             />
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#C9B46A]/70 bg-[#FFF6E7] px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
+                onClick={() => photosInputRef.current?.click()}
+              >
+                Subir o añadir fotos
+              </button>
+              <span className="self-center text-xs text-[#5C5346]">
+                {state.media.photoDataUrls.length}/{MAX_PHOTOS} seleccionadas
+              </span>
+            </div>
             {state.media.photoDataUrls.length > 0 ? (
               <ul className="mt-3 space-y-2">
                 {state.media.photoDataUrls.map((url, i) => (
@@ -435,29 +598,62 @@ export function RentasNegocioForm() {
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={url} alt="" className="h-14 w-20 shrink-0 rounded-md object-cover" />
-                      <div className="flex min-w-0 flex-wrap gap-x-3 gap-y-1">
-                        <button
-                          type="button"
-                          className="text-left text-xs font-bold text-[#B8954A] underline"
-                          onClick={() =>
-                            setState((s) => {
-                              const urls = s.media.photoDataUrls.filter((_, j) => j !== i);
-                              let pi = s.media.primaryImageIndex;
-                              if (pi >= urls.length) pi = Math.max(0, urls.length - 1);
-                              return { ...s, media: { ...s.media, photoDataUrls: urls, primaryImageIndex: pi } };
-                            })
-                          }
-                        >
-                          Quitar
-                        </button>
-                        <button
-                          type="button"
-                          className="text-left text-xs font-bold text-[#5C5346] underline"
-                          onClick={() => setState((s) => ({ ...s, media: { ...s.media, primaryImageIndex: i } }))}
-                        >
-                          {i === state.media.primaryImageIndex ? "Portada" : "Usar como portada"}
-                        </button>
+                      <img src={url} alt="" className="h-16 w-[5.5rem] shrink-0 rounded-md object-cover" />
+                      <div className="flex min-w-0 flex-col gap-2">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className="inline-flex min-h-[44px] min-w-[44px] shrink-0 touch-manipulation items-center justify-center rounded-full border border-[#E8DFD0] text-sm font-bold text-[#5C5346] disabled:opacity-40"
+                            disabled={i === 0}
+                            onClick={() => movePhoto(i, -1)}
+                            aria-label="Mover foto arriba"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex min-h-[44px] min-w-[44px] shrink-0 touch-manipulation items-center justify-center rounded-full border border-[#E8DFD0] text-sm font-bold text-[#5C5346] disabled:opacity-40"
+                            disabled={i >= state.media.photoDataUrls.length - 1}
+                            onClick={() => movePhoto(i, 1)}
+                            aria-label="Mover foto abajo"
+                          >
+                            ↓
+                          </button>
+                        </div>
+                        <div className="flex min-w-0 flex-wrap gap-x-3 gap-y-1">
+                          <button
+                            type="button"
+                            className="text-left text-xs font-bold text-[#B8954A] underline"
+                            onClick={() =>
+                              setState((s) => {
+                                const urls = s.media.photoDataUrls.filter((_, j) => j !== i);
+                                let pi = s.media.primaryImageIndex;
+                                if (pi >= urls.length) pi = Math.max(0, urls.length - 1);
+                                const out: RentasNegocioFormState = {
+                                  ...s,
+                                  media: { ...s.media, photoDataUrls: urls, primaryImageIndex: pi },
+                                };
+                                queueMicrotask(() => saveRentasNegocioDraft(out));
+                                return out;
+                              })
+                            }
+                          >
+                            Quitar
+                          </button>
+                          <button
+                            type="button"
+                            className="text-left text-xs font-bold text-[#5C5346] underline"
+                            onClick={() =>
+                              setState((s) => {
+                                const out: RentasNegocioFormState = { ...s, media: { ...s.media, primaryImageIndex: i } };
+                                queueMicrotask(() => saveRentasNegocioDraft(out));
+                                return out;
+                              })
+                            }
+                          >
+                            {i === state.media.primaryImageIndex ? "Portada (principal)" : "Usar como portada"}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </li>
@@ -465,16 +661,67 @@ export function RentasNegocioForm() {
               </ul>
             ) : null}
           </div>
-          <div className="mt-4">
-            <AiField label="Video (URL)" hint="YouTube o enlace directo a mp4, etc.">
-              <input
-                className={fieldClass}
-                type="url"
-                placeholder="https://"
-                value={state.media.videoUrl}
-                onChange={(e) => setState((s) => ({ ...s, media: { ...s.media, videoUrl: e.target.value } }))}
-              />
-            </AiField>
+          <div className="mt-6 border-t border-[#E8DFD0] pt-5">
+            <span className={aiLabelClass}>Video (opcional)</span>
+            <p className={aiHintClass}>
+              Elige <strong className="font-semibold text-[#1E1810]">un solo origen</strong>: archivo en tu equipo (borrador
+              local, sin Mux) o enlace (YouTube, mp4, etc.). Al elegir archivo se borra el enlace; al pegar un enlace se borra
+              el archivo.
+            </p>
+            <input
+              ref={videoFileInputRef}
+              type="file"
+              accept="video/*"
+              className="sr-only"
+              onChange={(e) => onVideoFile(e.target.files)}
+            />
+            {state.media.videoLocalDataUrl ? (
+              <div className="mt-3 space-y-2 rounded-xl border border-[#B8954A]/35 bg-[#FFF6E7] p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#6E5418]">Video activo: archivo local</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex max-w-full min-w-0 items-center rounded-full border border-[#C9B46A]/60 bg-white px-3 py-1.5 text-xs font-semibold text-[#1E1810]">
+                    <span className="min-w-0 truncate">{localVideoFileName || "Video local (sesión)"}</span>
+                  </span>
+                  <button type="button" className="text-xs font-bold text-[#B8954A] underline" onClick={clearLocalVideo}>
+                    Quitar archivo
+                  </button>
+                </div>
+                <p className="text-xs leading-relaxed text-[#5C5346]">
+                  Para usar un enlace, quita primero el archivo. La vista previa reproduce este video solo en tu navegador.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#C9B46A]/70 bg-white px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
+                    onClick={() => videoFileInputRef.current?.click()}
+                  >
+                    Subir video del dispositivo
+                  </button>
+                </div>
+                <div className="mt-4">
+                  <AiField
+                    label="O video por enlace"
+                    hint="Pega la URL completa (YouTube, Vimeo, mp4…). Si empiezas a escribir aquí, cualquier archivo de video anterior se descarta."
+                  >
+                    <input
+                      className={fieldClass}
+                      type="text"
+                      inputMode="url"
+                      autoComplete="off"
+                      placeholder="https://"
+                      value={state.media.videoUrl}
+                      onChange={(e) => onVideoUrlChange(e.target.value)}
+                    />
+                  </AiField>
+                </div>
+                {state.media.videoUrl.trim() ? (
+                  <p className="mt-2 text-xs font-medium text-[#2C7A4E]">Enlace listo: se usará en la vista previa.</p>
+                ) : null}
+              </>
+            )}
           </div>
         </section>
 
@@ -493,29 +740,58 @@ export function RentasNegocioForm() {
             <div className="sm:col-span-2">
               <span className={aiLabelClass}>Logo o foto del equipo (opcional)</span>
               <input
+                ref={negocioLogoInputRef}
                 type="file"
                 accept="image/*"
-                className="mt-2 block w-full text-sm"
+                className="sr-only"
                 onChange={async (e) => {
                   const f = e.target.files?.[0];
                   if (!f) return;
                   try {
-                    const data = await readFileAsDataUrl(f);
-                    setState((s) => ({ ...s, negocioLogoDataUrl: data }));
+                    const data = await compressImageFileToJpegDataUrl(f);
+                    setState((s) => {
+                      const out: RentasNegocioFormState = { ...s, negocioLogoDataUrl: data };
+                      queueMicrotask(() => saveRentasNegocioDraft(out));
+                      return out;
+                    });
                   } catch {
                     /* ignore */
                   }
+                  if (negocioLogoInputRef.current) negocioLogoInputRef.current.value = "";
                 }}
               />
-              {state.negocioLogoDataUrl ? (
+              <div className="mt-2 flex flex-wrap items-start gap-3">
                 <button
                   type="button"
-                  className="mt-2 text-xs font-bold text-[#B8954A] underline"
-                  onClick={() => setState((s) => ({ ...s, negocioLogoDataUrl: "" }))}
+                  className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-full border border-[#C9B46A]/70 bg-[#FFF6E7] px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
+                  onClick={() => negocioLogoInputRef.current?.click()}
                 >
-                  Quitar imagen
+                  Subir logo o foto
                 </button>
-              ) : null}
+                {state.negocioLogoDataUrl ? (
+                  <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={state.negocioLogoDataUrl}
+                      alt=""
+                      className="h-16 w-16 shrink-0 rounded-full border border-[#E8DFD0] object-cover"
+                    />
+                    <button
+                      type="button"
+                      className="text-left text-xs font-bold text-[#B8954A] underline"
+                      onClick={() =>
+                        setState((s) => {
+                          const out: RentasNegocioFormState = { ...s, negocioLogoDataUrl: "" };
+                          queueMicrotask(() => saveRentasNegocioDraft(out));
+                          return out;
+                        })
+                      }
+                    >
+                      Quitar imagen
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </div>
             <AiField required label="Nombre visible">
               <input
@@ -1026,6 +1302,14 @@ export function RentasNegocioForm() {
           onPhotos={(v) => setState((s) => ({ ...s, confirmPhotosRepresentItem: v }))}
           onRules={(v) => setState((s) => ({ ...s, confirmCommunityRules: v }))}
         />
+
+        <div className="min-w-0 space-y-3 rounded-2xl border border-[#E8DFD0] bg-[#FFFBF7] p-4 sm:p-5">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">Vista previa del anuncio</p>
+          <p className="text-xs leading-relaxed text-[#5C5346]/90">
+            Mismas acciones que arriba: no necesitas desplazarte otra vez al inicio del formulario.
+          </p>
+          <ClasificadosApplicationTopActions {...previewActionsProps} />
+        </div>
 
         <p className="break-words text-center text-xs leading-relaxed text-[#5C5346]/80">
           Borrador guardado solo en este dispositivo. Ruta:{" "}

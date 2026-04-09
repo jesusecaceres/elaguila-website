@@ -143,7 +143,7 @@ export function AutosPublicResultsShell() {
     `${RESULTADOS_PATH}?${serializeAutosBrowseUrl({ ...applied, page })}`;
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] pb-24 text-[color:var(--lx-text)]">
+    <div className="min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] pb-[calc(6rem+env(safe-area-inset-bottom,0px))] text-[color:var(--lx-text)]">
       <Navbar />
       <div className="border-b border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-bg)] backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
@@ -175,7 +175,7 @@ export function AutosPublicResultsShell() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-5 lg:py-8">
+      <div className="mx-auto max-w-7xl px-[max(1rem,env(safe-area-inset-left))] py-6 pr-[max(1rem,env(safe-area-inset-right))] sm:px-5 lg:py-8">
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-3xl">{copy.resultsTitle}</h1>

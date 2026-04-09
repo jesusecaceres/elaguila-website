@@ -116,7 +116,12 @@ export function mapViajesPrivadoDraftToOffer(
     },
     dateRange: d.fechas.trim() || undefined,
     notes: d.politicaReserva.trim() || undefined,
-    description: d.descripcion.trim() || (sparse ? "" : lang === "en" ? "Add a short description in the form." : "Añade una descripción breve en el formulario."),
+    description:
+      d.descripcion
+        .trim()
+        .replace(/\n{3,}/g, "\n\n")
+        .replace(/\s+$/g, "") ||
+      (sparse ? "" : lang === "en" ? "Add a short description in the form." : "Añade una descripción breve en el formulario."),
     trustNote: c.laneSummary,
   };
 }

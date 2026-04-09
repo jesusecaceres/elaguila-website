@@ -77,7 +77,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
     dateRange: "Salidas seleccionadas: marzo–agosto (sujeto a inventario)",
     notes: "Tarifas sujetas a cambio según temporada y ocupación aérea.",
     description:
-      "Paquete curado con enfoque en playa, comodidad y tiempo libre. Ideal para quien quiere llegar y desconectar sin planificar cada comida.",
+      "Paquete curado con enfoque en playa, comodidad y tiempo libre: llegas, te instalas y el resort sostiene la experiencia. Ideal si quieres desconectar sin microplanificar cada comida.",
     trustNote: "Verifica siempre cancelaciones y cargos extras antes de pagar.",
   },
   "roma-venecia-express": {
@@ -128,15 +128,24 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
     mainCtaLabel: "Ver disponibilidad",
     mainCtaHref: "https://example.com/maui-offer",
     includes: ["Vuelo directo SFO–OGG", "SUV compacto 5 días", "Hotel boutique con desayuno continental"],
-    whoItsFor: ["Parejas que buscan playas menos congestionadas y atardeceres icónicos."],
+    whoItsFor: [
+      "Parejas que buscan playas menos congestionadas y atardeceres icónicos.",
+      "Viajeros que valoran vuelo directo y auto para moverse a su ritmo.",
+    ],
     partner: {
       name: "Socio hotelero Leonix",
       isAffiliate: true,
-      affiliateDisclosure: "Oferta de inventario afiliado; precio final en checkout del socio.",
+      affiliateDisclosure:
+        "Leonix puede recibir una comisión si completas una reserva con este socio. Precio y disponibilidad los confirma el proveedor en su checkout.",
       ctaLabel: "Reservar en socio",
       ctaHref: "https://example.com/maui-offer",
+      secondaryCtaLabel: "Explorar Viajes",
+      secondaryCtaHref: "/clasificados/viajes/resultados",
     },
-    description: "Combinación de vuelo directo, auto y hotel boutique para explorar la costa sin prisa.",
+    dateRange: "Ventana flexible: primavera–otoño (inventario según socio)",
+    description:
+      "Combinación premium de vuelo directo, SUV y hotel boutique para recorrer la costa sin prisa: mañanas en la playa, tardes en miradores y cenas tranquilas cerca del agua.",
+    trustNote: "Revisa política de cancelación y equipaje en el sitio del socio antes de pagar.",
   },
   "cr-familia-arenal-manuel": {
     slug: "cr-familia-arenal-manuel",

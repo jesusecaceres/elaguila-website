@@ -62,6 +62,8 @@ export type RentasNegocioFormState = {
     photoDataUrls: string[];
     primaryImageIndex: number;
     videoUrl: string;
+    /** Session-local video for preview; takes priority over `videoUrl` in mapping. */
+    videoLocalDataUrl: string;
   };
   negocioNombre: string;
   negocioMarca: string;

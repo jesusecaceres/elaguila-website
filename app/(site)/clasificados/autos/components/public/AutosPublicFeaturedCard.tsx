@@ -27,7 +27,7 @@ export function AutosPublicFeaturedCard({
     <Link
       href={href}
       onClick={() => trackAutosListingEvent(listing.id, AUTOS_CLASSIFIEDS_EVENT.resultCardClick, { lane: trackLane })}
-      className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_12px_40px_-16px_rgba(42,36,22,0.18)] transition hover:shadow-[0_16px_48px_-12px_rgba(42,36,22,0.22)]"
+      className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_12px_40px_-16px_rgba(42,36,22,0.18)] transition hover:shadow-[0_16px_48px_-12px_rgba(42,36,22,0.22)] active:opacity-95"
     >
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-[color:var(--lx-section)]">
         <Image

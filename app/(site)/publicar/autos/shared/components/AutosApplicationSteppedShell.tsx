@@ -7,9 +7,9 @@ import type { AutosPreviewLane } from "@/app/clasificados/autos/shared/lib/autos
 import { getAutosApplicationStepShellCopy } from "../lib/autosApplicationStepShellCopy";
 
 const BTN_NAV =
-  "inline-flex min-h-[48px] min-w-[120px] items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-5 text-sm font-bold text-[color:var(--lx-text)] shadow-sm transition hover:bg-[color:var(--lx-nav-hover)] disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 text-sm font-bold text-[color:var(--lx-text)] shadow-sm transition hover:bg-[color:var(--lx-nav-hover)] active:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:min-w-[120px] sm:flex-none sm:px-5";
 const BTN_NAV_PRIMARY =
-  "inline-flex min-h-[48px] min-w-[120px] items-center justify-center rounded-xl bg-[color:var(--lx-cta-dark)] px-5 text-sm font-bold text-[#FFFCF7] shadow-md transition hover:bg-[color:var(--lx-cta-dark-hover)] disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-2xl bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold text-[#FFFCF7] shadow-md transition hover:bg-[color:var(--lx-cta-dark-hover)] active:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:min-w-[120px] sm:flex-none sm:px-5";
 
 export type AutosGoToStepOptions = { bypassMax?: boolean };
 
@@ -97,20 +97,19 @@ export function AutosApplicationSteppedShell({
           "radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 180, 106, 0.16), transparent 55%)",
       }}
     >
-      <div className="mx-auto w-full min-w-0 max-w-6xl px-4 py-8 sm:py-10 md:px-6">
+      <div className="mx-auto w-full min-w-0 max-w-6xl px-[max(1rem,env(safe-area-inset-left))] py-8 pr-[max(1rem,env(safe-area-inset-right))] sm:py-10 md:px-6">
         {header}
 
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--lx-nav-border)] pb-4 sm:gap-4">
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--lx-nav-border)] pb-4 sm:mt-6 sm:gap-4">
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--lx-muted)]">
               {copy.category} · {laneLabel}
             </p>
             <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">{copy.progress(activeStep + 1, stepCount)}</p>
-            <p className="mt-0.5 truncate text-xs text-[color:var(--lx-text-2)] lg:hidden">{currentLabel}</p>
           </div>
         </div>
 
-        <div className="mt-6">{topActions(ctx)}</div>
+        <div className="mt-5 sm:mt-6">{topActions(ctx)}</div>
 
         <div className="mt-6 grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)] lg:gap-10 lg:items-start">
           {/* Desktop sidebar */}
@@ -160,16 +159,16 @@ export function AutosApplicationSteppedShell({
             </nav>
           </aside>
 
-          <div className="min-w-0 space-y-6">
+          <div className="min-w-0 space-y-5 sm:space-y-6">
             {/* Mobile: step picker + bar */}
-            <div className="flex flex-col gap-3 lg:hidden">
+            <div className="flex flex-col gap-3 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)]/80 p-3 shadow-[0_4px_24px_-12px_rgba(42,36,22,0.12)] lg:hidden">
               <div className="flex items-center gap-2">
                 <label htmlFor={stepSelectId} className="sr-only">
                   {copy.mobileStepLabel}
                 </label>
                 <select
                   id={stepSelectId}
-                  className="min-h-[48px] flex-1 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2 text-sm font-semibold text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2"
+                  className="min-h-[48px] flex-1 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2.5 text-[15px] font-semibold text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2"
                   value={activeStep}
                   onChange={(e) => goToStep(Number(e.target.value))}
                 >
@@ -184,12 +183,13 @@ export function AutosApplicationSteppedShell({
                   })}
                 </select>
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[color:var(--lx-section)]">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-[color:var(--lx-section)]">
                 <div
                   className="h-full rounded-full bg-[color:var(--lx-gold)] transition-[width] duration-300"
                   style={{ width: `${((activeStep + 1) / stepCount) * 100}%` }}
                 />
               </div>
+              <p className="text-base font-bold leading-snug text-[color:var(--lx-text)] line-clamp-2">{currentLabel}</p>
             </div>
 
             <div className="hidden border-b border-[color:var(--lx-nav-border)] pb-3 lg:block">
@@ -201,7 +201,7 @@ export function AutosApplicationSteppedShell({
 
             <div className="min-w-0">{children(ctx)}</div>
 
-            <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--lx-nav-border)] pt-6 sm:gap-4">
+            <footer className="flex flex-col gap-3 border-t border-[color:var(--lx-nav-border)] pt-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
               <button type="button" className={BTN_NAV} onClick={goPrev} disabled={activeStep === 0}>
                 {copy.previous}
               </button>

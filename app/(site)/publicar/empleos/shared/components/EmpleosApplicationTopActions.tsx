@@ -31,7 +31,7 @@ export function EmpleosApplicationTopActions({
   previewDisabledReason,
 }: Props) {
   return (
-    <div className="mb-6 space-y-3 rounded-[16px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm sm:p-5">
+    <div className="mb-6 min-w-0 space-y-3 rounded-[16px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm sm:p-5">
       <div
         className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-2 sm:[&>button]:min-w-0 sm:[&>button]:flex-1 md:[&>button]:flex-none"
         role="group"

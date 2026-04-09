@@ -25,7 +25,7 @@ import { PrivadoPreviewChrome } from "./PrivadoPreviewChrome";
 import { useAutosPrivadoPreviewCopy } from "../lib/AutosPrivadoPreviewLocaleContext";
 
 const MAIN_CARD =
-  "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-5";
+  "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-6";
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
@@ -58,8 +58,8 @@ export function AutoPrivadoPreviewPage({ data, editBackHref }: { data: AutoDeale
 
   return (
     <PrivadoPreviewChrome editBackHref={editBackHref}>
-      <main className="mx-auto mt-6 max-w-[1280px] overflow-x-hidden px-4 sm:mt-8 md:px-5 lg:px-6">
-        <div className="grid min-w-0 grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-12 lg:gap-6">
+      <main className="mx-auto mt-5 max-w-[1280px] overflow-x-hidden px-[max(1rem,env(safe-area-inset-left))] pb-8 pr-[max(1rem,env(safe-area-inset-right))] pt-1 sm:mt-8 sm:pb-10 md:px-5 lg:px-6">
+        <div className="grid min-w-0 grid-cols-1 gap-6 sm:gap-7 lg:grid-cols-12 lg:gap-6">
           {showTitle ? (
             <section className={`${MAIN_CARD} max-lg:order-1 lg:order-none lg:col-span-12`}>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
@@ -74,7 +74,7 @@ export function AutoPrivadoPreviewPage({ data, editBackHref }: { data: AutoDeale
                       </h1>
                     ) : null}
                     {showMeta ? (
-                      <dl className="mt-4 grid gap-2 text-sm text-[color:var(--lx-text-2)] sm:grid-cols-2">
+                      <dl className="mt-4 grid grid-cols-1 gap-3 text-sm text-[color:var(--lx-text-2)] sm:grid-cols-2 sm:gap-2">
                         {showMileage ? (
                           <div className="flex gap-2">
                             <dt className="text-[color:var(--lx-muted)]">{pt.mileage}</dt>

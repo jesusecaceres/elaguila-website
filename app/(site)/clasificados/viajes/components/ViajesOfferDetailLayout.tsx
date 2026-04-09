@@ -3,9 +3,23 @@ import Link from "next/link";
 
 import type { ViajesOfferDetailModel } from "../data/viajesOfferDetailSampleData";
 import type { ViajesUi } from "../data/viajesUiCopy";
+import { getViajesOpenCardLane } from "../lib/viajesOpenCardStrategy";
 import { setLangOnHref } from "../lib/viajesLangHref";
 
 const ACCENT = "#D97706";
+
+function MetaCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 sm:px-4 sm:py-3">
+      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/70">{label}</p>
+      <p className="mt-1 text-sm font-semibold leading-snug text-white sm:text-[15px]">{value}</p>
+    </div>
+  );
+}
+
+function isExternalHref(href: string) {
+  return href.startsWith("http://") || href.startsWith("https://") || href.startsWith("mailto:") || href.startsWith("tel:") || href.startsWith("https://wa.me");
+}
 
 export function ViajesOfferDetailLayout({
   offer,
@@ -13,6 +27,7 @@ export function ViajesOfferDetailLayout({
   backLabel = "Volver",
   preview = false,
   sparseSections = false,
+  previewTone = "default",
   ui,
   exploreViajesHref,
 }: {
@@ -22,20 +37,65 @@ export function ViajesOfferDetailLayout({
   preview?: boolean;
   /** Hide empty blocks — used for private draft preview */
   sparseSections?: boolean;
+  /** Minimal preview strip — closer to live output (draft previews) */
+  previewTone?: "default" | "minimal";
   ui: ViajesUi;
   exploreViajesHref: string;
 }) {
   const { partner } = offer;
   const od = ui.offerDetail;
+  const lane = getViajesOpenCardLane(offer);
+
+  const laneSurface =
+    lane === "affiliate"
+      ? "border-l-[6px] border-amber-400 bg-gradient-to-br from-amber-50/90 via-[color:var(--lx-card)] to-[color:var(--lx-card)] shadow-[0_12px_40px_-16px_rgba(180,83,9,0.25)]"
+      : lane === "business"
+        ? "border-l-[6px] border-emerald-500/80 bg-gradient-to-br from-emerald-50/70 via-[color:var(--lx-card)] to-[color:var(--lx-card)] shadow-[0_12px_40px_-16px_rgba(5,150,105,0.2)]"
+        : "border-l-[6px] border-slate-400 bg-gradient-to-br from-slate-50/90 via-[color:var(--lx-card)] to-[color:var(--lx-card)] shadow-[0_12px_40px_-16px_rgba(71,85,105,0.18)]";
+
+  const identityBadge =
+    lane === "affiliate" ? od.identityBadgeAffiliate : lane === "business" ? od.identityBadgeBusiness : od.identityBadgePrivate;
+
+  const disclosurePanel =
+    lane === "affiliate"
+      ? "rounded-xl border border-amber-200/80 bg-amber-50/95 px-4 py-3 text-sm leading-relaxed text-amber-950"
+      : lane === "private"
+        ? "rounded-xl border border-slate-200/90 bg-slate-50/95 px-4 py-3 text-sm leading-relaxed text-slate-900"
+        : "rounded-xl border border-emerald-100/90 bg-emerald-50/60 px-4 py-3 text-sm leading-relaxed text-[color:var(--lx-text-2)]";
+
+  const metaItems: { label: string; value: string }[] = [];
+  if (!sparseSections || offer.priceFrom.trim().length > 0) {
+    const p = offer.priceFrom.trim();
+    metaItems.push({
+      label: od.metaPriceLabel,
+      value: p ? (/\b(desde|from)\b/i.test(p) ? p : `${od.valueFraming} ${p}`) : "—",
+    });
+  }
+  if (!sparseSections || offer.duration.trim().length > 0) {
+    metaItems.push({ label: od.metaDurationLabel, value: offer.duration.trim() || "—" });
+  }
+  if (!sparseSections || offer.departureCity.trim().length > 0) {
+    metaItems.push({ label: od.metaDepartureLabel, value: offer.departureCity.trim() || "—" });
+  }
+  /** Dates live in the trust/details block to avoid repeating the same line under the hero. */
+
+  const showMetaStrip = metaItems.length > 0 && metaItems.some((m) => m.value !== "—");
 
   return (
-    <div className="min-h-screen bg-[color:var(--lx-page)] pb-20 text-[color:var(--lx-text)]">
+    <div className="min-h-screen bg-[color:var(--lx-page)] pb-16 text-[color:var(--lx-text)] sm:pb-20">
       {preview ? (
-        <div className="border-b border-amber-400/35 bg-amber-100/95 px-4 py-2.5 text-center text-sm font-semibold text-amber-950">
-          {od.previewBanner}
+        <div
+          className={
+            previewTone === "minimal"
+              ? "border-b border-amber-300/40 bg-gradient-to-r from-amber-50/95 to-amber-100/80 px-4 py-2 text-center text-xs font-semibold text-amber-950 sm:text-[13px]"
+              : "border-b border-amber-400/35 bg-amber-100/95 px-4 py-2.5 text-center text-sm font-semibold text-amber-950"
+          }
+        >
+          {previewTone === "minimal" ? od.previewBannerMinimal : od.previewBanner}
         </div>
       ) : null}
-      <div className="relative min-h-[min(52vh,520px)] w-full overflow-hidden">
+
+      <div className="relative min-h-[min(56vh,560px)] w-full overflow-hidden sm:min-h-[min(58vh,580px)]">
         {offer.heroUseNativeImg ? (
           // eslint-disable-next-line @next/next/no-img-element -- blob/data/user URLs for draft preview
           <img src={offer.heroImageSrc} alt={offer.heroImageAlt} className="absolute inset-0 h-full w-full object-cover object-center" />
@@ -49,73 +109,106 @@ export function ViajesOfferDetailLayout({
             sizes="100vw"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/20" aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/45 to-black/25" aria-hidden />
         <div className="absolute inset-0 flex flex-col justify-end">
-          <div className="mx-auto w-full max-w-7xl px-4 pb-10 pt-24 sm:px-5 lg:px-6">
+          <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-6 pt-20 sm:px-5 sm:pb-8 sm:pt-24 lg:px-6">
             <Link
               href={backHref}
-              className="mb-4 inline-flex text-xs font-semibold text-white/90 underline-offset-4 hover:text-white hover:underline"
+              className="mb-3 inline-flex min-h-[44px] items-center text-xs font-semibold text-white/90 underline-offset-4 hover:text-white hover:underline sm:mb-4"
             >
               ← {backLabel}
             </Link>
             {(!sparseSections || offer.tags.length > 0) && (
               <div className="flex flex-wrap gap-2">
                 {offer.tags.map((t) => (
-                  <span key={t} className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+                  <span
+                    key={t}
+                    className="rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white backdrop-blur-sm sm:text-xs"
+                  >
                     {t}
                   </span>
                 ))}
               </div>
             )}
-            <h1 className="mt-3 max-w-4xl text-3xl font-bold leading-tight text-white drop-shadow-sm sm:text-4xl">{offer.title}</h1>
+            <h1 className="mt-3 max-w-4xl text-[1.65rem] font-bold leading-[1.15] tracking-tight text-white drop-shadow-md sm:text-4xl lg:max-w-5xl lg:text-5xl">
+              {offer.title}
+            </h1>
             {(!sparseSections || offer.destination.trim().length > 0) && (
-              <p className="mt-2 text-sm text-white/95 sm:text-base">{offer.destination}</p>
+              <p className="mt-2 max-w-3xl text-base font-medium leading-snug text-white/95 sm:text-lg">{offer.destination}</p>
             )}
-            <div className="mt-4 flex flex-col gap-2 text-sm text-white/90 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
-              {(!sparseSections || offer.priceFrom.trim().length > 0) && (
-                <span className="text-lg font-bold text-white">{offer.priceFrom}</span>
-              )}
-              {(!sparseSections || offer.duration.trim().length > 0) && (
-                <span>
-                  🗓️ {offer.duration}
-                </span>
-              )}
-              {(!sparseSections || offer.departureCity.trim().length > 0) && (
-                <span>
-                  ✈️ {offer.departureCity}
-                </span>
-              )}
-            </div>
-            <div className="mt-6 flex w-full max-w-lg flex-col gap-3 sm:max-w-none sm:flex-row sm:flex-wrap">
-              <a
-                href={offer.mainCtaHref}
-                className="inline-flex min-h-[48px] w-full flex-1 items-center justify-center rounded-xl px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:brightness-105 sm:w-auto"
-                style={{ backgroundColor: ACCENT }}
-              >
-                {offer.mainCtaLabel}
-              </a>
-              <Link
-                href={exploreViajesHref}
-                className="inline-flex min-h-[48px] w-full flex-1 items-center justify-center rounded-xl border border-white/50 bg-white/10 px-5 py-3 text-center text-sm font-bold text-white backdrop-blur-sm transition hover:bg-white/20 sm:w-auto sm:flex-initial"
-              >
-                {od.exploreViajes}
-              </Link>
-            </div>
+
+            {showMetaStrip || !sparseSections ? (
+              <div className="mt-5 rounded-2xl border border-white/20 bg-black/40 p-4 shadow-[0_24px_60px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-5">
+                {showMetaStrip ? (
+                  <div
+                    className={`grid gap-2 sm:gap-3 ${
+                      metaItems.length >= 4 ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                    }`}
+                  >
+                    {metaItems.map((m) => (
+                      <MetaCell key={m.label} label={m.label} value={m.value} />
+                    ))}
+                  </div>
+                ) : null}
+                <div
+                  className={`flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap ${showMetaStrip ? "mt-4" : ""}`}
+                >
+                  <a
+                    href={offer.mainCtaHref}
+                    className="inline-flex min-h-[52px] w-full flex-1 items-center justify-center rounded-2xl px-6 py-3.5 text-center text-sm font-bold text-white shadow-[0_8px_24px_rgba(217,119,6,0.45)] transition hover:brightness-110 active:scale-[0.99] sm:min-h-[48px] sm:max-w-md sm:flex-none"
+                    style={{ backgroundColor: ACCENT }}
+                  >
+                    {offer.mainCtaLabel}
+                  </a>
+                  <Link
+                    href={exploreViajesHref}
+                    className="inline-flex min-h-[52px] w-full flex-1 items-center justify-center rounded-2xl border border-white/45 bg-white/12 px-5 py-3.5 text-center text-sm font-bold text-white backdrop-blur-md transition hover:bg-white/20 sm:min-h-[48px] sm:w-auto sm:max-w-xs"
+                  >
+                    {od.exploreViajes}
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                <a
+                  href={offer.mainCtaHref}
+                  className="inline-flex min-h-[52px] w-full flex-1 items-center justify-center rounded-2xl px-6 py-3.5 text-sm font-bold text-white shadow-lg transition hover:brightness-110 sm:max-w-md"
+                  style={{ backgroundColor: ACCENT }}
+                >
+                  {offer.mainCtaLabel}
+                </a>
+                <Link
+                  href={exploreViajesHref}
+                  className="inline-flex min-h-[52px] w-full flex-1 items-center justify-center rounded-2xl border border-white/45 bg-white/12 px-5 py-3.5 text-sm font-bold text-white backdrop-blur-md sm:w-auto"
+                >
+                  {od.exploreViajes}
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl space-y-10 px-4 py-10 sm:px-5 lg:space-y-12 lg:px-6 lg:py-12">
+      <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:space-y-10 sm:px-5 sm:py-10 lg:space-y-12 lg:px-6 lg:py-12">
         {(!sparseSections || offer.includes.length > 0) && (
-          <section className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 shadow-sm sm:p-8">
-            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{od.includes}</h2>
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+          <section className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-sm sm:p-8">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <h2 className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">{od.includes}</h2>
+              {(!sparseSections || offer.includes.length > 0) && <p className="max-w-2xl text-xs text-[color:var(--lx-muted)] sm:text-sm">{od.includesSubline}</p>}
+            </div>
+            <ul className="mt-5 grid gap-3 sm:grid-cols-2">
               {offer.includes.map((line) => (
-                <li key={line} className="flex gap-3 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-                  <span className="mt-0.5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden>
+                <li
+                  key={line}
+                  className="flex gap-3 rounded-xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/50 p-3.5 text-sm leading-relaxed text-[color:var(--lx-text-2)] sm:p-4"
+                >
+                  <span
+                    className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[color:var(--lx-gold)]/15 text-[color:var(--lx-gold)]"
+                    aria-hidden
+                  >
                     ✓
                   </span>
-                  {line}
+                  <span>{line}</span>
                 </li>
               ))}
             </ul>
@@ -123,77 +216,102 @@ export function ViajesOfferDetailLayout({
         )}
 
         {(!sparseSections || offer.whoItsFor.length > 0) && (
-          <section className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]/90 p-6 sm:p-8">
-            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{od.whoFor}</h2>
-            <ul className="mt-4 space-y-3">
+          <section className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]/90 p-5 sm:p-8">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <h2 className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">{od.whoFor}</h2>
+              {(!sparseSections || offer.whoItsFor.length > 0) && <p className="max-w-2xl text-xs text-[color:var(--lx-muted)] sm:text-sm">{od.whoForSubline}</p>}
+            </div>
+            <ul className="mt-4 flex flex-wrap gap-2">
               {offer.whoItsFor.map((p) => (
-                <li key={p} className="text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-                  · {p}
+                <li
+                  key={p}
+                  className="inline-flex max-w-full rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-sm font-medium leading-snug text-[color:var(--lx-text-2)] shadow-sm"
+                >
+                  <span className="mr-2 text-[color:var(--lx-gold)]" aria-hidden>
+                    ◆
+                  </span>
+                  {p}
                 </li>
               ))}
             </ul>
           </section>
         )}
 
-        <section className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 shadow-sm sm:p-8">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">
-                {partner.isAffiliate ? od.partnerCommercial : partner.privateSeller ? od.privatePostedBy : od.postedBy}
-              </p>
-              <div className="mt-1 flex flex-wrap items-center gap-3">
+        <section className={`rounded-2xl border border-[color:var(--lx-nav-border)] p-5 shadow-sm sm:p-8 ${laneSurface}`}>
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-black/[0.06] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
+                  {identityBadge}
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">
+                  {partner.isAffiliate ? od.partnerCommercial : partner.privateSeller ? od.privatePostedBy : od.postedBy}
+                </span>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
                 {partner.logoSrc ? (
-                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] shadow-sm">
+                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-[color:var(--lx-nav-border)] bg-white shadow-sm">
                     {/* eslint-disable-next-line @next/next/no-img-element -- arbitrary partner / draft logo URLs */}
                     <img src={partner.logoSrc} alt="" className="h-full w-full object-contain p-1" />
                   </div>
                 ) : null}
-                <h2 className="text-xl font-bold text-[color:var(--lx-text)]">{partner.name}</h2>
+                <h2 className="text-xl font-bold text-[color:var(--lx-text)] sm:text-2xl">{partner.name}</h2>
               </div>
-              {partner.isAffiliate ? (
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-                  {partner.affiliateDisclosure ?? od.affiliateFallback}
-                </p>
-              ) : partner.privateSeller ? (
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-text-2)]">{od.privateFallback}</p>
-              ) : (
-                <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{od.businessFallback}</p>
-              )}
+              <div className={`mt-4 ${disclosurePanel}`}>
+                {partner.isAffiliate ? (
+                  <p>{partner.affiliateDisclosure ?? od.affiliateFallback}</p>
+                ) : partner.privateSeller ? (
+                  <p>{od.privateFallback}</p>
+                ) : (
+                  <p>{od.businessFallback}</p>
+                )}
+              </div>
             </div>
-            <div className="flex flex-col gap-2 sm:items-end">
+            <div className="flex w-full flex-col gap-2 sm:max-w-sm sm:items-stretch lg:items-end">
               <a
                 href={partner.ctaHref}
-                className="inline-flex min-h-[44px] min-w-[200px] items-center justify-center rounded-xl text-sm font-bold text-white shadow-md transition hover:brightness-105"
+                className="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-md transition hover:brightness-105 lg:min-w-[220px]"
                 style={{ backgroundColor: ACCENT }}
               >
                 {partner.ctaLabel}
               </a>
               {partner.secondaryCtaLabel && partner.secondaryCtaHref ? (
-                <Link
-                  href={setLangOnHref(partner.secondaryCtaHref, ui.lang)}
-                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] px-4 text-sm font-bold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-                >
-                  {partner.secondaryCtaLabel}
-                </Link>
+                isExternalHref(partner.secondaryCtaHref) ? (
+                  <a
+                    href={partner.secondaryCtaHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-3 text-sm font-bold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                  >
+                    {partner.secondaryCtaLabel}
+                  </a>
+                ) : (
+                  <Link
+                    href={setLangOnHref(partner.secondaryCtaHref, ui.lang)}
+                    className="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-3 text-center text-sm font-bold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                  >
+                    {partner.secondaryCtaLabel}
+                  </Link>
+                )
               ) : null}
             </div>
           </div>
         </section>
 
-        <section className="space-y-4 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 sm:p-8">
-          <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{od.detailsTitle}</h2>
+        <section className="space-y-4 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 sm:p-8">
+          <h2 className="text-xl font-bold text-[color:var(--lx-text)]">{od.trustIntegratedTitle}</h2>
           {(!sparseSections || offer.description.trim().length > 0) && (
-            <p className="text-sm leading-relaxed text-[color:var(--lx-text-2)]">{offer.description}</p>
+            <p className="whitespace-pre-line text-sm leading-relaxed text-[color:var(--lx-text-2)] sm:text-[15px]">{offer.description}</p>
           )}
-          {offer.dateRange ? (
-            <p className="text-sm font-medium text-[color:var(--lx-text)]">
-              <span className="text-[color:var(--lx-muted)]">{od.calendar} </span>
-              {offer.dateRange}
-            </p>
+          {offer.dateRange && (!sparseSections || offer.dateRange.trim().length > 0) ? (
+            <div className="flex flex-wrap items-baseline gap-2 rounded-xl border border-[color:var(--lx-nav-border)]/60 bg-[color:var(--lx-section)]/50 px-4 py-3">
+              <span className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{od.calendar}</span>
+              <span className="text-sm font-semibold text-[color:var(--lx-text)]">{offer.dateRange}</span>
+            </div>
           ) : null}
           {offer.notes ? <p className="text-sm text-[color:var(--lx-muted)]">{offer.notes}</p> : null}
           {offer.trustNote ? (
-            <div className="rounded-xl border border-dashed border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)]/80 p-4 text-sm text-[color:var(--lx-text-2)]">
+            <div className="rounded-xl border border-dashed border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)]/90 p-4 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
               {offer.trustNote}
             </div>
           ) : null}

@@ -69,9 +69,11 @@ function buildRedesArray(raw: string): string[] {
  */
 export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormState): BienesRaicesNegocioFormState {
   const pub = publicationForCategory(s.categoriaPropiedad);
+  const local = trim(s.media.videoLocalDataUrl);
   const vu = trim(s.media.videoUrl);
   const slot0 = createEmptyBienesRaicesMuxVideoSlot(0);
-  if (vu) slot0.fallbackUrl = vu;
+  if (local) slot0.fallbackUrl = local;
+  else if (vu) slot0.fallbackUrl = vu;
 
   const basePartial: Parameters<typeof mergePartialBienesRaicesNegocioState>[0] = {
     advertiserType: "agente_individual",

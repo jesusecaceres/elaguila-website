@@ -39,6 +39,10 @@ export default function AdminSettingsPage() {
         <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-[#5C5346]/95">
           <li>Verify production Supabase URL + anon key via deployment dashboard (not shown here).</li>
           <li>Service role key must never ship to the browser — admin data uses server-only `getAdminSupabase`.</li>
+          <li>
+            Permisos de roster opcionales: <code className="rounded bg-white/80 px-1 text-xs">ADMIN_ENFORCE_ROSTER_PERMISSIONS</code>{" "}
+            + <code className="rounded bg-white/80 px-1 text-xs">ADMIN_OPERATOR_EMAIL</code> — ver Team.
+          </li>
         </ul>
       </div>
 

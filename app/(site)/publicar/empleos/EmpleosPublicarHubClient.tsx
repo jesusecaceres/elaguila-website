@@ -119,8 +119,8 @@ export default function EmpleosPublicarHubClient({ variant = "default" }: Props)
 
   if (variant === "clasificadosPublicar") {
     return (
-      <main className="min-h-screen bg-[#F6F0E2] text-[#3D2C12] pt-28 pb-16">
-        <div className="mx-auto max-w-6xl px-6">
+      <main className="min-h-screen overflow-x-hidden bg-[#F6F0E2] text-[#3D2C12] pb-16 pt-28">
+        <div className="mx-auto max-w-6xl min-w-0 px-4 sm:px-6">
           <section className="rounded-3xl border border-[#D8C79A]/70 bg-[#FFFDF7] p-6 shadow-[0_18px_48px_rgba(113,84,22,0.10)] sm:p-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
@@ -150,8 +150,8 @@ export default function EmpleosPublicarHubClient({ variant = "default" }: Props)
   }
 
   return (
-    <main className="min-h-screen bg-[color:var(--lx-page)] px-4 pb-20 pt-24 text-[color:var(--lx-text)]">
-      <div className="mx-auto max-w-4xl">
+    <main className="min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] px-4 pb-20 pt-24 text-[color:var(--lx-text)]">
+      <div className="mx-auto min-w-0 max-w-4xl">
         <header className="mb-10 text-center sm:mb-12">
           <h1 className="text-3xl font-extrabold sm:text-4xl">{t.title}</h1>
           <p className="mx-auto mt-3 max-w-2xl text-sm text-[color:var(--lx-text-2)] sm:text-base">{t.subtitle}</p>

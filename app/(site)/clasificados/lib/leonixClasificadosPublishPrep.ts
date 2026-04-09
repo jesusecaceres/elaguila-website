@@ -3,6 +3,20 @@
  * Preview routes remain draft-only; results/detail URLs are separate surfaces.
  */
 
+import { BR_PREVIEW_NEGOCIO, BR_PREVIEW_PRIVADO } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
+import { RENTAS_PREVIEW_NEGOCIO, RENTAS_PREVIEW_PRIVADO } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
+
+/**
+ * Draft preview URLs (session-backed). Do not use for SEO, sitemap, or “live” analytics.
+ * Public listing/detail URLs are added when publish goes server-side.
+ */
+export const LEONIX_CLASIFICADOS_PREVIEW_ROUTES = {
+  bienesRaicesNegocio: BR_PREVIEW_NEGOCIO,
+  bienesRaicesPrivado: BR_PREVIEW_PRIVADO,
+  rentasNegocio: RENTAS_PREVIEW_NEGOCIO,
+  rentasPrivado: RENTAS_PREVIEW_PRIVADO,
+} as const;
+
 export type LeonixClasificadosBrRentasBranch =
   | "bienes_raices_negocio"
   | "bienes_raices_privado"

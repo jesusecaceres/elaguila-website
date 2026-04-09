@@ -31,19 +31,22 @@ export function AutosPagoErrorClient() {
   const confirmHref = listingId ? withLangParam(`/publicar/autos/${lane}/confirm`, lang) : null;
 
   return (
-    <div className="mx-auto max-w-md px-4 py-20 text-center text-[color:var(--lx-text)]">
-      <h1 className="text-2xl font-bold">{c.errorTitle}</h1>
-      <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{c.errorBody}</p>
+    <div className="mx-auto max-w-md px-[max(1rem,env(safe-area-inset-left))] py-16 pb-[max(4rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] pt-12 text-center text-[color:var(--lx-text)] sm:py-20">
+      <h1 className="text-2xl font-bold tracking-tight">{c.errorTitle}</h1>
+      <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{c.errorBody}</p>
       {confirmHref ? (
         <Link
           href={confirmHref}
-          className="mt-8 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[color:var(--lx-cta-dark)] px-6 text-sm font-bold text-[#FFFCF7]"
+          className="mt-8 inline-flex min-h-[48px] w-full max-w-sm items-center justify-center rounded-2xl bg-[color:var(--lx-cta-dark)] px-6 text-sm font-bold text-[#FFFCF7] transition active:opacity-90"
         >
           {c.retryPay}
         </Link>
       ) : null}
-      <div className="mt-6">
-        <Link href={resultsHref} className="text-sm font-semibold text-[color:var(--lx-gold)]">
+      <div className="mt-8">
+        <Link
+          href={resultsHref}
+          className="inline-flex min-h-[44px] items-center justify-center text-sm font-semibold text-[color:var(--lx-gold)] underline-offset-4 transition hover:underline"
+        >
           {c.browseMore}
         </Link>
       </div>

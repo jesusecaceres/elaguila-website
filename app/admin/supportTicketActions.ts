@@ -2,13 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { requireAdminCookie, getAdminSupabase } from "@/app/lib/supabase/server";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
+import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 
-async function assertAdmin(): Promise<void> {
-  const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+/** Internal support log — gated with `can_manage_reports` when roster enforcement is on (ops proxy). */
+async function assertSupportTicketAdmin(): Promise<void> {
+  await requireLeonixAdminPermission("can_manage_reports");
 }
 
 function str(f: FormData, k: string): string {
@@ -26,7 +26,7 @@ function uuidOrNull(raw: string): string | null {
 
 /** Minimal internal ticket log — not a customer-facing helpdesk. */
 export async function createSupportTicketRecordAction(formData: FormData) {
-  await assertAdmin();
+  await assertSupportTicketAdmin();
   const subject = str(formData, "subject");
   const body = str(formData, "body");
   if (!subject || !body) {
@@ -79,7 +79,7 @@ function schemaColumnMissing(err: { message?: string } | null): boolean {
 
 /** Status always persisted; notes + escalation require migration `20260408210000_support_tickets_staff_followup.sql`. */
 export async function updateSupportTicketFollowupAction(formData: FormData) {
-  await assertAdmin();
+  await assertSupportTicketAdmin();
   const id = uuidOrNull(str(formData, "ticket_id"));
   if (!id) redirect("/admin/support?ticket_error=1");
 

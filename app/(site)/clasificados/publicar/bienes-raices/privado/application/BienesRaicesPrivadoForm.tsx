@@ -333,7 +333,7 @@ export function BienesRaicesPrivadoForm() {
   };
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#F6F0E2] px-4 pb-28 pt-24 text-[#2C2416] sm:px-5 sm:pb-24 sm:pt-28">
+    <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#F6F0E2] px-4 pb-[max(7rem,env(safe-area-inset-bottom,0px))] pt-24 text-[#2C2416] sm:px-5 sm:pb-24 sm:pt-28">
       <div className="mx-auto w-full min-w-0 max-w-3xl space-y-7 md:space-y-8">
         <header className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">Leonix · Bienes Raíces · Privado</p>
@@ -546,7 +546,7 @@ export function BienesRaicesPrivadoForm() {
                         <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
-                            className="rounded-full border border-[#E8DFD0] px-2.5 py-1 text-[11px] font-bold text-[#5C5346] disabled:opacity-40"
+                            className="inline-flex min-h-[44px] min-w-[44px] shrink-0 touch-manipulation items-center justify-center rounded-full border border-[#E8DFD0] text-sm font-bold text-[#5C5346] disabled:opacity-40"
                             disabled={i === 0}
                             onClick={() => movePhoto(i, -1)}
                             aria-label="Mover foto arriba"
@@ -555,7 +555,7 @@ export function BienesRaicesPrivadoForm() {
                           </button>
                           <button
                             type="button"
-                            className="rounded-full border border-[#E8DFD0] px-2.5 py-1 text-[11px] font-bold text-[#5C5346] disabled:opacity-40"
+                            className="inline-flex min-h-[44px] min-w-[44px] shrink-0 touch-manipulation items-center justify-center rounded-full border border-[#E8DFD0] text-sm font-bold text-[#5C5346] disabled:opacity-40"
                             disabled={i >= state.media.photoDataUrls.length - 1}
                             onClick={() => movePhoto(i, 1)}
                             aria-label="Mover foto abajo"

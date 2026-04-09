@@ -40,15 +40,20 @@ export function EmpleosPublishConfirmModal({
   return (
     <div className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center" role="dialog" aria-modal="true">
       <button type="button" className="absolute inset-0 bg-black/50" aria-label={closeOverlayAria} onClick={onClose} />
-      <div className="relative z-[201] m-4 w-full max-w-lg rounded-2xl border border-black/10 bg-white p-6 shadow-xl">
+      <div className="relative z-[201] m-4 w-full min-w-0 max-w-lg rounded-2xl border border-black/10 bg-white p-6 shadow-xl">
         <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{title}</h2>
         <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{intro}</p>
-        <ul className="mt-4 space-y-3">
+        <ul className="mt-4 max-h-[min(40vh,320px)] space-y-3 overflow-y-auto pr-1">
           {checks.map((label, i) => (
             <li key={label}>
-              <label className="flex cursor-pointer gap-3 text-sm">
-                <input type="checkbox" checked={c[i]} onChange={(e) => setC((prev) => prev.map((x, j) => (j === i ? e.target.checked : x)))} />
-                <span>{label}</span>
+              <label className="flex cursor-pointer gap-3 text-sm leading-snug">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-black/20"
+                  checked={c[i]}
+                  onChange={(e) => setC((prev) => prev.map((x, j) => (j === i ? e.target.checked : x)))}
+                />
+                <span className="min-w-0 flex-1">{label}</span>
               </label>
             </li>
           ))}

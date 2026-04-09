@@ -86,16 +86,16 @@ export function AutosPagoExitoClient() {
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 py-20 text-center text-[color:var(--lx-text)]">
-      <h1 className="text-2xl font-bold">{c.successTitle}</h1>
-      <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{c.successBody}</p>
+    <div className="mx-auto max-w-md px-[max(1rem,env(safe-area-inset-left))] py-16 pb-[max(4rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] pt-12 text-center text-[color:var(--lx-text)] sm:py-20">
+      <h1 className="text-2xl font-bold tracking-tight">{c.successTitle}</h1>
+      <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{c.successBody}</p>
       <Link
         href={livePath}
-        className="mt-8 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[color:var(--lx-cta-dark)] px-6 text-sm font-bold text-[#FFFCF7]"
+        className="mt-8 inline-flex min-h-[48px] w-full max-w-sm items-center justify-center rounded-2xl bg-[color:var(--lx-cta-dark)] px-6 text-sm font-bold text-[#FFFCF7] transition active:opacity-90"
       >
         {c.viewLive}
       </Link>
-      <div className="mt-4 flex flex-col gap-2 sm:items-center">
+      <div className="mt-5 flex flex-col gap-3 sm:items-center">
         <Link href={resultsHref} className="text-sm font-semibold text-[color:var(--lx-gold)]">
           {c.browseMore}
         </Link>

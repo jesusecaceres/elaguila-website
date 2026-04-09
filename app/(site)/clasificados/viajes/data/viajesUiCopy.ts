@@ -139,17 +139,30 @@ export type ViajesUi = {
   };
   offerDetail: {
     previewBanner: string;
+    /** Thinner draft preview strip — feels closer to live output */
+    previewBannerMinimal: string;
     exploreViajes: string;
     includes: string;
+    includesSubline: string;
     whoFor: string;
+    whoForSubline: string;
+    metaPriceLabel: string;
+    metaDurationLabel: string;
+    metaDepartureLabel: string;
+    metaDatesLabel: string;
+    valueFraming: string;
     partnerCommercial: string;
     postedBy: string;
     privatePostedBy: string;
+    identityBadgeAffiliate: string;
+    identityBadgeBusiness: string;
+    identityBadgePrivate: string;
     affiliateFallback: string;
     businessFallback: string;
     privateFallback: string;
     detailsTitle: string;
     calendar: string;
+    trustIntegratedTitle: string;
   };
   negocio: {
     back: string;
@@ -378,12 +391,23 @@ function es(): Omit<ViajesUi, "lang"> {
     },
     offerDetail: {
       previewBanner: "Vista previa — así verán tu oferta en Clasificados (datos de borrador / ejemplo).",
+      previewBannerMinimal: "Vista previa · borrador local — misma ficha que verás al publicar.",
       exploreViajes: "Explorar Viajes",
       includes: "Qué incluye",
+      includesSubline: "Valor real: lo que suele venir en esta oferta. Confirma siempre con el socio o el negocio.",
       whoFor: "¿Para quién es?",
+      whoForSubline: "Señales de viaje para acertar con tu grupo.",
+      metaPriceLabel: "Precio",
+      metaDurationLabel: "Duración",
+      metaDepartureLabel: "Salida",
+      metaDatesLabel: "Fechas",
+      valueFraming: "Desde",
       partnerCommercial: "Socio comercial",
       postedBy: "Publicado por",
       privatePostedBy: "Particular",
+      identityBadgeAffiliate: "Inventario de socio",
+      identityBadgeBusiness: "Negocio en Leonix",
+      identityBadgePrivate: "Particular",
       affiliateFallback:
         "Oferta de un socio comercial: al continuar sueles salir de Leonix para completar la reserva o el pago. Leonix no actúa como vendedor final.",
       businessFallback:
@@ -392,6 +416,7 @@ function es(): Omit<ViajesUi, "lang"> {
         "Anuncio particular en Leonix Clasificados — Leonix no verifica identidad ni cobra por ti. Confirma disponibilidad y condiciones directamente con el anunciante.",
       detailsTitle: "Detalles del viaje",
       calendar: "Calendario:",
+      trustIntegratedTitle: "Confianza y detalles",
     },
     negocio: {
       back: "Volver a Viajes",
@@ -624,12 +649,23 @@ function en(): Omit<ViajesUi, "lang"> {
     },
     offerDetail: {
       previewBanner: "Preview — this is how your offer will appear in Classifieds (sample / draft data).",
+      previewBannerMinimal: "Preview · local draft — same layout as the live listing.",
       exploreViajes: "Explore Viajes",
       includes: "What’s included",
+      includesSubline: "Real value: what this offer typically covers. Always confirm with the partner or business.",
       whoFor: "Who it’s for",
+      whoForSubline: "Travel intent signals to match your group.",
+      metaPriceLabel: "Price",
+      metaDurationLabel: "Duration",
+      metaDepartureLabel: "Departure",
+      metaDatesLabel: "Dates",
+      valueFraming: "From",
       partnerCommercial: "Commercial partner",
       postedBy: "Posted by",
       privatePostedBy: "Private seller",
+      identityBadgeAffiliate: "Partner inventory",
+      identityBadgeBusiness: "Business on Leonix",
+      identityBadgePrivate: "Private seller",
       affiliateFallback:
         "Commercial partner offer: continuing usually takes you off Leonix to complete booking or payment. Leonix is not the final seller.",
       businessFallback:
@@ -638,6 +674,7 @@ function en(): Omit<ViajesUi, "lang"> {
         "Private individual listing on Leonix Classifieds — Leonix does not verify identity or collect payment for you. Confirm availability and terms directly with the seller.",
       detailsTitle: "Trip details",
       calendar: "Dates:",
+      trustIntegratedTitle: "Trust & details",
     },
     negocio: {
       back: "Back to Viajes",

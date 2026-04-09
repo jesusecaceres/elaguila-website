@@ -35,6 +35,7 @@ export default function AdminWorkspaceIglesiasPage() {
         notYet={[
           "Tabla de congregaciones, geodata, moderación y flujo de altas.",
           "Búsqueda y filtros en admin enlazados a perfiles o cuentas.",
+          "Migración mínima sugerida: `churches` (id, name, city, slug, published_at, geom opcional) + RLS lectura pública + escritura solo service role.",
         ]}
       />
 

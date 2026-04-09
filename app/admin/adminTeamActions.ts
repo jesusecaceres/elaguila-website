@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { requireAdminCookie, getAdminSupabase } from "@/app/lib/supabase/server";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
 import { ALL_ADMIN_PERMISSION_KEYS, type AdminPermissionKey } from "@/app/admin/_lib/teamTypes";
+import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 
 const PERM_SET = new Set<string>(ALL_ADMIN_PERMISSION_KEYS);
 
@@ -19,9 +19,8 @@ const ROLES = new Set([
   "read_only",
 ]);
 
-async function assertAdmin(): Promise<void> {
-  const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+async function assertTeamAdmin(): Promise<void> {
+  await requireLeonixAdminPermission("can_manage_team");
 }
 
 function str(f: FormData, k: string): string {
@@ -34,7 +33,7 @@ function str(f: FormData, k: string): string {
  * staff must complete in Supabase Auth or your IdP.
  */
 export async function createTeamInviteIntentAction(formData: FormData) {
-  await assertAdmin();
+  await assertTeamAdmin();
   const email = str(formData, "email").toLowerCase();
   const role = str(formData, "role");
   const note = str(formData, "note") || null;
@@ -74,7 +73,7 @@ export async function createTeamInviteIntentAction(formData: FormData) {
 
 /** Inserts a roster row — does not create a Supabase Auth user. */
 export async function createTeamMemberRecordAction(formData: FormData) {
-  await assertAdmin();
+  await assertTeamAdmin();
   const email = str(formData, "email").toLowerCase();
   const displayName = str(formData, "display_name") || null;
   const role = str(formData, "role");
@@ -119,7 +118,7 @@ export async function createTeamMemberRecordAction(formData: FormData) {
 
 /** Updates `permissions` JSON array on roster row. Does not change Supabase Auth. */
 export async function updateTeamMemberPermissionsAction(formData: FormData) {
-  await assertAdmin();
+  await assertTeamAdmin();
   const id = str(formData, "member_id");
   if (!id) redirect("/admin/team?member_error=1");
 
@@ -151,7 +150,7 @@ export async function updateTeamMemberPermissionsAction(formData: FormData) {
 }
 
 export async function toggleTeamMemberActiveAction(formData: FormData) {
-  await assertAdmin();
+  await assertTeamAdmin();
   const id = str(formData, "id");
   const nextActive = str(formData, "next_active") === "1";
   if (!id) redirect("/admin/team?member_error=1");

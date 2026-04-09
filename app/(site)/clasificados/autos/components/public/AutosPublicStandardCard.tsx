@@ -34,7 +34,7 @@ export function AutosPublicStandardCard({
     <Link
       href={href}
       onClick={() => trackAutosListingEvent(listing.id, AUTOS_CLASSIFIEDS_EVENT.resultCardClick, { lane: trackLane })}
-      className={`group flex min-w-0 flex-col overflow-hidden rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_6px_24px_-8px_rgba(42,36,22,0.12)] transition hover:border-[color:var(--lx-gold-border)] hover:shadow-[0_10px_32px_-10px_rgba(42,36,22,0.16)] ${
+      className={`group flex min-w-0 flex-col overflow-hidden rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_6px_24px_-8px_rgba(42,36,22,0.12)] transition hover:border-[color:var(--lx-gold-border)] hover:shadow-[0_10px_32px_-10px_rgba(42,36,22,0.16)] active:opacity-95 ${
         compact ? "max-w-full" : ""
       }`}
     >

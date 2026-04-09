@@ -17,11 +17,11 @@ import { getAutosApplicationStepShellCopy } from "../lib/autosApplicationStepShe
 import { AutosPublishPlaceholderModal } from "./AutosPublishPlaceholderModal";
 
 const BTN_SECONDARY =
-  "inline-flex min-h-[48px] items-center justify-center rounded-[12px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 text-xs font-bold text-[color:var(--lx-text)] shadow-sm transition hover:bg-[color:var(--lx-nav-hover)]";
+  "inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 text-xs font-bold text-[color:var(--lx-text)] shadow-sm transition hover:bg-[color:var(--lx-nav-hover)] active:opacity-90";
 const BTN_PRIMARY =
-  "inline-flex min-h-[48px] items-center justify-center rounded-[12px] bg-[color:var(--lx-cta-dark)] px-4 text-xs font-bold text-[#FFFCF7] shadow-md transition hover:bg-[color:var(--lx-cta-dark-hover)]";
+  "inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-[color:var(--lx-cta-dark)] px-4 text-xs font-bold text-[#FFFCF7] shadow-md transition hover:bg-[color:var(--lx-cta-dark-hover)] active:opacity-90";
 const BTN_DANGER =
-  "inline-flex min-h-[48px] items-center justify-center rounded-[12px] border border-red-200 bg-[#FFFCF7] px-4 text-xs font-bold text-red-900 hover:bg-red-50";
+  "inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-red-200 bg-[#FFFCF7] px-4 text-xs font-bold text-red-900 hover:bg-red-50 active:opacity-90";
 
 function previewHintKey(issue: AutosPreviewCompletenessKey): keyof AutosNegociosCopy["app"]["hints"] {
   switch (issue) {
@@ -92,7 +92,7 @@ export function AutosApplicationTopActions({
 
   return (
     <>
-      <div className="mb-6 space-y-3 rounded-[16px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm sm:p-5">
+      <div className="mb-6 space-y-3 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm sm:p-5">
         <div
           className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-2 sm:[&>button]:min-w-0 sm:[&>button]:flex-1 md:[&>button]:flex-none"
           role="group"
@@ -144,11 +144,14 @@ export function AutosApplicationTopActions({
           </p>
         ) : null}
         {issues.length > 0 ? (
-          <div className="rounded-[12px] border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-3 py-2 text-[13px] text-[color:var(--lx-text-2)]">
+          <div className="rounded-[14px] border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-3.5 py-3 text-[13px] leading-snug text-[color:var(--lx-text-2)]">
             <p className="font-semibold text-[color:var(--lx-text)]">{h.previewCompletenessIntro}</p>
-            <ul className="mt-1 list-inside list-disc space-y-0.5">
+            <ul className="mt-2 list-none space-y-2">
               {issues.map((issue) => (
-                <li key={issue}>{h[previewHintKey(issue)]}</li>
+                <li key={issue} className="flex gap-2 pl-0.5">
+                  <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[color:var(--lx-gold)]" aria-hidden />
+                  <span>{h[previewHintKey(issue)]}</span>
+                </li>
               ))}
             </ul>
           </div>

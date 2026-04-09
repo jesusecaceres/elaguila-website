@@ -144,7 +144,7 @@ export default async function AdminTeamPage(props: {
       <AdminPageHeader
         title="Team"
         subtitle="Roster operativo en `admin_team_members` (no es Supabase Auth). Las invitaciones en `admin_team_invites` son intención — completar alta en Auth por separado."
-        helperText="Para contraseñas y magic links usa el panel de Supabase Auth. Este panel solo registra filas operativas y auditoría."
+        helperText="Opcional en servidor: `ADMIN_ENFORCE_ROSTER_PERMISSIONS=1` + `ADMIN_OPERATOR_EMAIL` (email en roster) activa comprobación de permisos en mutaciones críticas; sin eso solo aplica la cookie compartida. Contraseñas: panel Supabase Auth."
       />
 
       <div className="mb-6 flex flex-wrap gap-2">

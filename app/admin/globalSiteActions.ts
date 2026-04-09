@@ -2,15 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { requireAdminCookie } from "@/app/lib/supabase/server";
 import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
+import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 import { upsertSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type { GlobalSitePayload } from "@/app/lib/siteSectionContent/payloadTypes";
 
-async function assertAdmin(): Promise<void> {
-  const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+async function assertGlobalSiteAdmin(): Promise<void> {
+  await requireLeonixAdminPermission("can_manage_website_content");
 }
 
 function str(f: FormData, k: string): string {
@@ -23,7 +21,7 @@ function on(f: FormData, k: string): boolean {
 }
 
 export async function saveGlobalSiteAction(formData: FormData) {
-  await assertAdmin();
+  await assertGlobalSiteAdmin();
   const payload: GlobalSitePayload = {
     sitewideNotice: { es: str(formData, "notice_es"), en: str(formData, "notice_en") },
     globalPromoStrip: { es: str(formData, "promo_es"), en: str(formData, "promo_en") },

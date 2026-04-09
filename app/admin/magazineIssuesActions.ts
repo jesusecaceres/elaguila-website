@@ -2,9 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { requireAdminCookie, getAdminSupabase } from "@/app/lib/supabase/server";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
+import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 
 const MONTHS = new Set([
   "january",
@@ -21,9 +21,8 @@ const MONTHS = new Set([
   "december",
 ]);
 
-async function assertAdmin(): Promise<void> {
-  const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+async function assertMagazineAdmin(): Promise<void> {
+  await requireLeonixAdminPermission("can_manage_magazine");
 }
 
 function str(f: FormData, k: string): string {
@@ -32,7 +31,7 @@ function str(f: FormData, k: string): string {
 }
 
 export async function upsertMagazineIssueAction(formData: FormData) {
-  await assertAdmin();
+  await assertMagazineAdmin();
   const id = str(formData, "id");
   const year = str(formData, "year");
   const monthSlug = str(formData, "month_slug").toLowerCase();
@@ -100,13 +99,18 @@ export async function upsertMagazineIssueAction(formData: FormData) {
     });
   }
 
-  revalidatePath("/magazine");
-  revalidatePath("/");
+  revalidateMagazinePublicSurfaces();
   redirect("/admin/workspace/revista?issue_saved=1");
 }
 
+function revalidateMagazinePublicSurfaces(): void {
+  revalidatePath("/magazine");
+  revalidatePath("/");
+  revalidatePath("/api/magazine/manifest");
+}
+
 export async function setMagazineCurrentIssueAction(formData: FormData) {
-  await assertAdmin();
+  await assertMagazineAdmin();
   const id = str(formData, "id");
   if (!id) redirect("/admin/workspace/revista?issue_error=1");
   const supabase = getAdminSupabase();
@@ -143,13 +147,12 @@ export async function setMagazineCurrentIssueAction(formData: FormData) {
   if (error) throw new Error(error.message);
 
   auditAdminWrite("magazine_issue_set_current", "magazine_issues", id, {});
-  revalidatePath("/magazine");
-  revalidatePath("/");
+  revalidateMagazinePublicSurfaces();
   redirect("/admin/workspace/revista?issue_saved=1");
 }
 
 export async function archiveMagazineIssueAction(formData: FormData) {
-  await assertAdmin();
+  await assertMagazineAdmin();
   const id = str(formData, "id");
   if (!id) redirect("/admin/workspace/revista?issue_error=1");
   const supabase = getAdminSupabase();
@@ -161,13 +164,12 @@ export async function archiveMagazineIssueAction(formData: FormData) {
   if (error) throw new Error(error.message);
 
   auditAdminWrite("magazine_issue_archived", "magazine_issues", id, {});
-  revalidatePath("/magazine");
-  revalidatePath("/");
+  revalidateMagazinePublicSurfaces();
   redirect("/admin/workspace/revista?issue_saved=1");
 }
 
 export async function publishMagazineIssueAction(formData: FormData) {
-  await assertAdmin();
+  await assertMagazineAdmin();
   const id = str(formData, "id");
   if (!id) redirect("/admin/workspace/revista?issue_error=1");
   const supabase = getAdminSupabase();
@@ -184,13 +186,12 @@ export async function publishMagazineIssueAction(formData: FormData) {
   if (error) throw new Error(error.message);
 
   auditAdminWrite("magazine_issue_published", "magazine_issues", id, {});
-  revalidatePath("/magazine");
-  revalidatePath("/");
+  revalidateMagazinePublicSurfaces();
   redirect("/admin/workspace/revista?issue_saved=1");
 }
 
 export async function deleteMagazineDraftAction(formData: FormData) {
-  await assertAdmin();
+  await assertMagazineAdmin();
   const id = str(formData, "id");
   if (!id) redirect("/admin/workspace/revista?issue_error=1");
   const supabase = getAdminSupabase();
@@ -202,7 +203,6 @@ export async function deleteMagazineDraftAction(formData: FormData) {
   if (error) throw new Error(error.message);
 
   auditAdminWrite("magazine_issue_draft_deleted", "magazine_issues", id, {});
-  revalidatePath("/magazine");
-  revalidatePath("/");
+  revalidateMagazinePublicSurfaces();
   redirect("/admin/workspace/revista?issue_saved=1");
 }

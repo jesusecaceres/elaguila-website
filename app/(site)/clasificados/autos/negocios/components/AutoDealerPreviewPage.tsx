@@ -29,7 +29,7 @@ import { AutosListingAnalyticsRow } from "@/app/clasificados/autos/shared/compon
 import { AUTOS_LISTING_ANALYTICS_DRAFT_DEMO } from "@/app/clasificados/autos/shared/types/autosListingAnalytics";
 
 const MAIN_CARD =
-  "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-5";
+  "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-6";
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
@@ -92,8 +92,8 @@ export function AutoDealerPreviewPage({
 
   return (
     <AutoDealerPreviewChrome editBackHref={editBackHref}>
-      <main className="mx-auto mt-6 max-w-[1280px] overflow-x-hidden px-4 sm:mt-8 md:px-5 lg:px-6">
-        <div className="grid min-w-0 grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-12 lg:gap-6">
+      <main className="mx-auto mt-5 max-w-[1280px] overflow-x-hidden px-[max(1rem,env(safe-area-inset-left))] pb-8 pr-[max(1rem,env(safe-area-inset-right))] pt-1 sm:mt-8 sm:pb-10 md:px-5 lg:px-6">
+        <div className="grid min-w-0 grid-cols-1 gap-6 sm:gap-7 lg:grid-cols-12 lg:gap-6">
           {showTitle ? (
             <section
               className={`${MAIN_CARD} lg:col-span-7 lg:col-start-1`}

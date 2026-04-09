@@ -499,11 +499,11 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
   ) : null;
 
   return (
-    <div className="overflow-x-hidden antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
-      <main className="mx-auto w-full min-w-0 max-w-[1240px] px-4 pb-16 pt-3 sm:px-6 sm:pt-4 lg:px-8">
+    <div className="w-full min-w-0 max-w-[100vw] overflow-x-hidden antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
+      <main className="mx-auto w-full min-w-0 max-w-[1240px] px-4 pb-[max(4rem,env(safe-area-inset-bottom,0px))] pt-3 sm:px-6 sm:pb-16 sm:pt-4 lg:px-8">
         {showGallerySection ? (
           <section className="mb-0" id="galeria-multimedia">
-            <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+            <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
               <div className="flex items-center gap-2">
                 <SectionIcon>
                   <IconHome className="h-4 w-4" />
@@ -643,7 +643,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                 {quickFacts.map(({ Icon, label, value }, qfIdx) => (
                   <div
                     key={`${label}-${qfIdx}`}
-                    className="flex min-w-0 items-center gap-2 rounded-lg border px-2 py-2 sm:min-w-[7.5rem] sm:flex-1 sm:px-2.5"
+                    className="flex min-h-[44px] min-w-0 items-center gap-2 rounded-lg border px-2 py-2 sm:min-h-0 sm:min-w-[7.5rem] sm:flex-1 sm:px-2.5"
                     style={{ borderColor: BORDER }}
                   >
                     <span style={{ color: BRONZE }} className="shrink-0">

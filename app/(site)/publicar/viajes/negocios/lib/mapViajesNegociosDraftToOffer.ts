@@ -106,9 +106,11 @@ export function mapViajesNegociosDraftToOffer(
   const metaLines: string[] = [];
   if (d.languages.trim()) metaLines.push(`${c.business.languages.label}: ${d.languages.trim()}`);
   if (d.destinationsServed.trim()) metaLines.push(`${c.business.destinationsServed.label}: ${d.destinationsServed.trim()}`);
-  const descBase = d.descripcion.trim();
-  const descExtra = metaLines.length ? `\n\n${metaLines.join("\n")}` : "";
-  const description = (descBase + descExtra).trim() || (sparse ? "" : lang === "en" ? "Add a short description in the form." : "Añade una descripción en el formulario.");
+  const descBase = d.descripcion.trim().replace(/\n{3,}/g, "\n\n");
+  const descriptionParts = [descBase, ...metaLines].filter(Boolean);
+  const description =
+    descriptionParts.join("\n\n").trim() ||
+    (sparse ? "" : lang === "en" ? "Add a short description in the form." : "Añade una descripción en el formulario.");
 
   const web = withHttp(d.website);
   let secondaryLabel: string | undefined;

@@ -24,18 +24,22 @@ export function LeonixPreviewPageShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen overflow-x-hidden antialiased" style={{ backgroundColor: IVORY }}>
+    <div className="min-h-screen w-full min-w-0 overflow-x-hidden antialiased" style={{ backgroundColor: IVORY }}>
       <div
         className="sticky top-0 z-[100] border-b px-4 py-3 sm:px-6"
-        style={{ borderColor: BORDER, background: "rgba(253, 251, 247, 0.98)" }}
+        style={{
+          borderColor: BORDER,
+          background: "rgba(253, 251, 247, 0.98)",
+          paddingTop: "max(0.75rem, env(safe-area-inset-top, 0px))",
+        }}
       >
-        <div className="mx-auto flex max-w-[1240px] justify-end">
+        <div className="mx-auto flex w-full max-w-[1240px] min-w-0 justify-stretch sm:justify-end">
           {editHref ? (
             <Link
               href={editHref}
               prefetch={false}
               onClick={() => onBeforeNavigateToEdit?.()}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-full border px-4 py-2 text-[11px] font-bold uppercase tracking-wide sm:min-h-0 sm:py-1.5"
+              className="inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-full border px-4 py-2.5 text-center text-[11px] font-bold uppercase leading-snug tracking-wide sm:min-h-[40px] sm:w-auto sm:py-2"
               style={{ borderColor: BORDER, color: BRONZE_SOFT }}
             >
               {backLabel}

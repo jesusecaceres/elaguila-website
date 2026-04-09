@@ -35,6 +35,7 @@ export default function AdminWorkspaceCuponesPage() {
         notYet={[
           "Tabla `coupons` con caducidad real, cupos, códigos y auditoría si el negocio lo exige.",
           "Flujo de canje o integración con POS.",
+          "Esquema mínimo viable: código único, max_redemptions, valid_from/until, revocación y tabla `coupon_redemptions` (user_id opcional, timestamp).",
         ]}
       />
 

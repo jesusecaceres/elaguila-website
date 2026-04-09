@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 
 export function EmpleosSectionCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-[16px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm sm:p-5">
+    <section className="min-w-0 rounded-[16px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm sm:p-5">
       <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{title}</h2>
       <div className="mt-4 space-y-4">{children}</div>
     </section>

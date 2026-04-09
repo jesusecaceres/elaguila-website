@@ -2,13 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { requireAdminCookie, getAdminSupabase } from "@/app/lib/supabase/server";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
+import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 
-async function assertAdmin(): Promise<void> {
-  const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+async function assertCategoryAdmin(): Promise<void> {
+  await requireLeonixAdminPermission("can_manage_categories");
 }
 
 function str(f: FormData, k: string): string {
@@ -20,7 +19,7 @@ const OPS = new Set(["live", "staged", "coming_soon", "hidden"]);
 const VIS = new Set(["public", "hidden"]);
 
 export async function saveSiteCategoryConfigRowAction(formData: FormData) {
-  await assertAdmin();
+  await assertCategoryAdmin();
   const slug = str(formData, "slug");
   if (!slug) redirect("/admin/categories?cat_error=1");
 

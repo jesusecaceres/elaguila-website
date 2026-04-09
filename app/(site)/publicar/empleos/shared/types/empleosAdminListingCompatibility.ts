@@ -14,4 +14,29 @@
  * Session-only drafts (`useEmpleosDraftSession`) are not admin-visible until a publish API exists.
  */
 
-export {};
+import type { EmpleosLane, EmpleosListingLifecycleStatus } from "../publish/empleosListingLifecycle";
+import type { EmpleosPaymentHandoffPlaceholder } from "../publish/empleosPaymentHandoff";
+
+/**
+ * Projection of a future persisted row aligned with `EmpleosPublishEnvelope` for admin lists.
+ */
+export type EmpleosAdminListingRowProjection = {
+  id: string | null;
+  owner_id: string | null;
+  category: "empleos";
+  lane: EmpleosLane;
+  status: EmpleosListingLifecycleStatus;
+  title: string;
+  description: string;
+  city: string;
+  state: string;
+  primary_image_url: string | null;
+  images: string[];
+  detail_pairs: Record<string, string>;
+  cta_summary: string;
+  payment_state: EmpleosPaymentHandoffPlaceholder["paymentState"];
+  created_at: string | null;
+  updated_at: string | null;
+  published_at: string | null;
+  moderation_meta: { lane: EmpleosLane; language: string } | null;
+};

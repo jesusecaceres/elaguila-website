@@ -4,6 +4,7 @@ import { deleteMuxAssetsBestEffort } from "@/app/lib/mux/server";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
 import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
+import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 
 export type ListingReportStatus = "pending" | "reviewed" | "dismissed";
 
@@ -28,6 +29,7 @@ export async function updateListingReportStatusAction(reportId: string, status: 
 }
 
 export async function deleteListingAction(listingId: string) {
+  await requireLeonixAdminPermission("can_manage_ads");
   const supabase = getAdminSupabase();
   const { data: row } = await supabase
     .from("listings")
@@ -48,6 +50,7 @@ export async function deleteListingAction(listingId: string) {
 }
 
 export async function setUserDisabledAction(userId: string, disabled: boolean) {
+  await requireLeonixAdminPermission("can_edit_users");
   const supabase = getAdminSupabase();
   const { error } = await supabase
     .from("profiles")

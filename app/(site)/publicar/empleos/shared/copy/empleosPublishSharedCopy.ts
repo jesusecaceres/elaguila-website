@@ -8,6 +8,9 @@ export const EMPLEOS_PUBLISH_SHARED_COPY = {
       ariaGroup: "Acciones del anuncio",
     },
     gateFail: "Completa los campos marcados con * antes de la vista previa:",
+    publishBlocked: "Completa los requisitos de vista previa antes de la revisión final.",
+    stagedSuccess:
+      "Listo para el siguiente paso: tu intención de publicación quedó registrada solo en esta sesión (sin pago ni anuncio en vivo).",
     publishModal: {
       title: "Confirmar publicación",
       intro: "El pago y la publicación en vivo llegarán en una fase posterior. Por ahora confirma que revisaste tu anuncio.",
@@ -35,6 +38,9 @@ export const EMPLEOS_PUBLISH_SHARED_COPY = {
       ariaGroup: "Listing actions",
     },
     gateFail: "Complete required fields (*) before preview:",
+    publishBlocked: "Complete preview requirements before the final review.",
+    stagedSuccess:
+      "Ready for the next step: your publish intent was recorded for this session only (no payment or live listing yet).",
     publishModal: {
       title: "Confirm publish",
       intro: "Payment and live listing will arrive in a later phase. For now confirm you reviewed your listing.",

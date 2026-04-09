@@ -40,6 +40,8 @@ type PageProps = {
     leonix_branch?: string;
     leonix_operation?: string;
     leonix_propiedad?: string;
+    /** Max rows from Supabase for this view (50–500). */
+    limit?: string;
   }>;
 };
 
@@ -53,6 +55,8 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   const lxBranch = (sp.leonix_branch ?? "").trim();
   const lxOp = (sp.leonix_operation ?? "").trim().toLowerCase();
   const lxProp = (sp.leonix_propiedad ?? "").trim().toLowerCase();
+  const limitRaw = Number(sp.limit ?? "300");
+  const queueLimit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 50), 500) : 300;
 
   const [{ data: listings, error, detailPairsAvailable }, cats] = await Promise.all([
     fetchListingsForAdminWorkspaceFiltered(supabase, {
@@ -60,6 +64,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
       category: catFilter || undefined,
       status: statusFilter || undefined,
       ownerFrag: ownerFrag && isUuidString(ownerFrag) ? ownerFrag : undefined,
+      limit: queueLimit,
     }),
     fetchListingCategoriesDistinct(supabase),
   ]);
@@ -84,7 +89,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         title="Clasificados — anuncios"
         subtitle="Cola operativa para todas las categorías. En Venta es el estándar vivo — usa las herramientas de moderación abajo. El registro de categorías y reportes siguen enlazados aquí."
         eyebrow="Workspace · Clasificados"
-        helperText="Búsqueda en Postgres: título, ciudad, descripción, id y owner (UUID completo o fragmento con ilike). Filtros Leonix BR (rama/operación/tipo) siguen en cliente sobre detail_pairs JSON. Tienda es otro workspace."
+        helperText={`Búsqueda en Postgres (hasta ${queueLimit} filas): título, ciudad, descripción, id y owner. Filtros Leonix BR (rama/operación/tipo) siguen en cliente sobre detail_pairs JSON. Tienda es otro workspace.`}
       />
 
       {!detailPairsAvailable ? (
@@ -148,7 +153,8 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         <form className="flex flex-col gap-3" method="get" aria-describedby="clasificados-filter-hint">
           <p id="clasificados-filter-hint" className="text-[10px] leading-snug text-[#7A7164]">
             Los filtros se aplican en esta página (GET). El campo <span className="font-mono">q</span> va a Supabase; BR/Rentas
-            refinan en cliente sobre <span className="font-mono">detail_pairs</span>.
+            refinan en cliente sobre <span className="font-mono">detail_pairs</span>.{" "}
+            <span className="font-mono">limit</span> acota filas devueltas (50–500; por defecto 300).
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
             <input
@@ -189,6 +195,19 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
               <option value="unpublished">unpublished</option>
               <option value="sold">sold</option>
               <option value="removed">removed</option>
+            </select>
+            <select
+              name="limit"
+              defaultValue={String(queueLimit)}
+              className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[8rem] sm:py-2 sm:text-sm"
+              title="Máximo de anuncios a traer de Supabase en esta vista"
+              aria-label="Límite de filas"
+            >
+              <option value="100">100 filas</option>
+              <option value="200">200 filas</option>
+              <option value="300">300 filas</option>
+              <option value="400">400 filas</option>
+              <option value="500">500 filas</option>
             </select>
           </div>
           <div className="flex flex-col gap-2 border-t border-[#E8DFD0]/60 pt-3 sm:flex-row sm:flex-wrap sm:items-end">

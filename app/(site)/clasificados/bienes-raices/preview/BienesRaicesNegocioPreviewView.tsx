@@ -308,7 +308,7 @@ function FactBlock({ title, rows }: { title: string; rows: Array<{ label: string
       <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
         {title}
       </h3>
-      <dl className="mt-4 grid gap-x-10 gap-y-5 sm:grid-cols-2">
+      <dl className="mt-4 grid gap-x-4 gap-y-5 sm:grid-cols-2 sm:gap-x-10">
         {safeRows.map((r) => (
           <div key={`${r.label}-${r.value}`}>
             <dt className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
@@ -327,7 +327,7 @@ function FactBlock({ title, rows }: { title: string; rows: Array<{ label: string
 function FactRowsList({ rows }: { rows: Array<{ label: string; value: string }> | undefined }) {
   const safeRows = Array.isArray(rows) ? rows : [];
   return (
-    <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+    <dl className="grid gap-x-4 gap-y-4 sm:grid-cols-2 sm:gap-x-8">
       {safeRows.map((r) => (
         <div key={`${r.label}-${r.value}`}>
           <dt className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
@@ -506,10 +506,10 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
   const [gTopA, gTopB] = galleryTopCells(vm);
 
   return (
-    <div className="antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
-      <main className="mx-auto max-w-[1240px] px-6 pb-16 pt-4 lg:px-8">
+    <div className="w-full min-w-0 max-w-[100vw] overflow-x-hidden antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
+      <main className="mx-auto max-w-[1240px] min-w-0 px-4 pb-[max(4rem,env(safe-area-inset-bottom,0px))] pt-3 sm:px-6 sm:pb-16 sm:pt-4 lg:px-8">
         <section className="mb-0" id="galeria-multimedia">
-          <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+          <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
             <div className="flex items-center gap-2">
               <SectionIcon>
                 <IconHome className="h-4 w-4" />
@@ -712,7 +712,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
         <section className="mt-7 grid gap-6 border-t pt-7 lg:grid-cols-[1fr_minmax(280px,340px)] lg:items-start lg:gap-8" style={{ borderColor: BORDER }}>
           <div>
             <h1
-              className="max-w-[720px] text-[1.75rem] font-bold leading-[1.15] tracking-tight sm:text-[2rem] lg:text-[2.35rem]"
+              className="max-w-[720px] break-words text-[1.65rem] font-bold leading-[1.15] tracking-tight [overflow-wrap:anywhere] sm:text-[2rem] lg:text-[2.35rem]"
               style={{ color: CHARCOAL_DEEP, fontFamily: "Georgia, 'Times New Roman', serif" }}
             >
               {vm.heroTitle}
@@ -741,23 +741,23 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
             ) : null}
 
             <div
-              className="mt-5 flex flex-wrap gap-2 rounded-2xl border p-3 sm:gap-2.5 sm:p-3.5"
+              className="mt-5 grid grid-cols-2 gap-2 rounded-2xl border p-3 sm:flex sm:flex-wrap sm:gap-2.5 sm:p-3.5"
               style={{ borderColor: BORDER, background: CREAM_CARD, boxShadow: "0 10px 36px -16px rgba(42,36,22,0.12)" }}
             >
               {quickFacts.map(({ Icon, label, value }, qfIdx) => (
                 <div
                   key={`${label}-${qfIdx}`}
-                  className="flex min-w-[112px] flex-1 items-center gap-2 rounded-lg border px-2.5 py-2 sm:min-w-[128px]"
+                  className="flex min-h-[44px] min-w-0 items-center gap-2 rounded-lg border px-2.5 py-2 sm:min-h-0 sm:min-w-[128px] sm:flex-1"
                   style={{ borderColor: BORDER }}
                 >
                   <span style={{ color: BRONZE }} className="shrink-0">
                     <Icon className="block h-[18px] w-[18px] sm:h-5 sm:w-5" />
                   </span>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
                       {label}
                     </p>
-                    <p className="truncate text-sm font-bold" style={{ color: CHARCOAL }}>
+                    <p className="break-words text-sm font-bold leading-snug" style={{ color: CHARCOAL }}>
                       {value}
                     </p>
                   </div>
@@ -931,7 +931,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                 {vm.contact.showSolicitarInfo && vm.contact.solicitarInfoHref ? (
                   <a
                     href={vm.contact.solicitarInfoHref}
-                    className="flex w-full items-center justify-center rounded-xl py-3.5 text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-105"
+                    className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl px-3 py-3.5 text-center text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-105"
                     style={{ background: `linear-gradient(180deg, ${BRONZE} 0%, ${BRONZE_SOFT} 100%)` }}
                   >
                     Solicitar información
@@ -940,7 +940,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                 {vm.contact.showProgramarVisita && vm.contact.programarVisitaHref ? (
                   <a
                     href={vm.contact.programarVisitaHref}
-                    className="flex w-full items-center justify-center rounded-xl border py-3 text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
+                    className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(245,240,232,0.25)" }}
                   >
                     Programar visita
@@ -949,7 +949,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                 {vm.contact.showLlamar && vm.contact.llamarHref ? (
                   <a
                     href={vm.contact.llamarHref}
-                    className="flex w-full items-center justify-center rounded-xl border py-3 text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
+                    className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(245,240,232,0.25)" }}
                   >
                     Llamar ahora
@@ -960,7 +960,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                     href={vm.contact.whatsappHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex w-full items-center justify-center rounded-xl border py-3 text-sm font-semibold text-[#E8F5E9] transition hover:bg-white/5"
+                    className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E8F5E9] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(37,211,102,0.35)" }}
                   >
                     Enviar por WhatsApp

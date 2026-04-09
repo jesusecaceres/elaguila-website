@@ -113,7 +113,7 @@ export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
     return (
       <AutosPrivadoPreviewLocaleProvider>
         <AutoPrivadoPreviewPage data={data} editBackHref={undefined} />
-        <div className="border-t border-[color:var(--lx-nav-border)] bg-[color:var(--lx-page)] px-4 py-6 text-center">
+        <div className="border-t border-[color:var(--lx-nav-border)] bg-[color:var(--lx-page)] px-[max(1rem,env(safe-area-inset-left))] py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] text-center">
           <Link href={resultsHref} className="text-sm font-semibold text-[color:var(--lx-gold)]">
             {lang === "es" ? "← Volver a resultados" : "← Back to results"}
           </Link>
@@ -125,7 +125,7 @@ export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
   return (
     <AutosNegociosPreviewLocaleProvider>
       <AutoDealerPreviewPage data={data} editBackHref={undefined} />
-      <div className="border-t border-[color:var(--lx-nav-border)] bg-[color:var(--lx-page)] px-4 py-6 text-center">
+      <div className="border-t border-[color:var(--lx-nav-border)] bg-[color:var(--lx-page)] px-[max(1rem,env(safe-area-inset-left))] py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] text-center">
         <Link href={resultsHref} className="text-sm font-semibold text-[color:var(--lx-gold)]">
           {lang === "es" ? "← Volver a resultados" : "← Back to results"}
         </Link>

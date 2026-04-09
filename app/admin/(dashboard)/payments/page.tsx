@@ -25,28 +25,61 @@ type TiendaAgg = {
   unavailable: boolean;
   total: number;
   byStatus: Record<string, number>;
+  unreadAdmin: number;
+  emailDeliveryFailed: number;
+  approvalIncomplete: number;
 };
 
 async function fetchTiendaOrderAggregates(): Promise<TiendaAgg> {
   try {
     const supabase = getAdminSupabase();
-    const results = await Promise.all(
-      TIENDA_STATUSES.map((status) =>
-        supabase.from("tienda_orders").select("id", { count: "exact", head: true }).eq("status", status)
-      )
-    );
+    const [statusResults, unreadRes, emailFailRes, approvalRes] = await Promise.all([
+      Promise.all(
+        TIENDA_STATUSES.map((status) =>
+          supabase.from("tienda_orders").select("id", { count: "exact", head: true }).eq("status", status)
+        )
+      ),
+      supabase.from("tienda_orders").select("id", { count: "exact", head: true }).eq("unread_admin", true),
+      supabase.from("tienda_orders").select("id", { count: "exact", head: true }).eq("email_delivery_status", "failed"),
+      supabase.from("tienda_orders").select("id", { count: "exact", head: true }).eq("approval_complete", false),
+    ]);
     const byStatus: Record<string, number> = {};
     let total = 0;
     for (let i = 0; i < TIENDA_STATUSES.length; i++) {
-      const r = results[i];
-      if (r.error) return { unavailable: true, total: 0, byStatus: {} };
+      const r = statusResults[i];
+      if (r.error) {
+        return {
+          unavailable: true,
+          total: 0,
+          byStatus: {},
+          unreadAdmin: 0,
+          emailDeliveryFailed: 0,
+          approvalIncomplete: 0,
+        };
+      }
       const c = typeof r.count === "number" ? r.count : 0;
       byStatus[TIENDA_STATUSES[i]] = c;
       total += c;
     }
-    return { unavailable: false, total, byStatus };
+    const count = (x: { count?: number | null; error?: unknown }) =>
+      x.error ? null : typeof x.count === "number" ? x.count : 0;
+    return {
+      unavailable: false,
+      total,
+      byStatus,
+      unreadAdmin: count(unreadRes) ?? 0,
+      emailDeliveryFailed: count(emailFailRes) ?? 0,
+      approvalIncomplete: count(approvalRes) ?? 0,
+    };
   } catch {
-    return { unavailable: true, total: 0, byStatus: {} };
+    return {
+      unavailable: true,
+      total: 0,
+      byStatus: {},
+      unreadAdmin: 0,
+      emailDeliveryFailed: 0,
+      approvalIncomplete: 0,
+    };
   }
 }
 
@@ -80,7 +113,7 @@ export default async function AdminPaymentsPage() {
         solo enlaza contexto operativo.
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
         <div className={`${adminCardBase} p-5`}>
           <p className="text-xs font-bold uppercase text-[#7A7164]">Pedidos Tienda (filas)</p>
           <p className="mt-2 text-3xl font-bold text-[#1E1810]">{tienda.unavailable ? "—" : tienda.total}</p>
@@ -114,7 +147,33 @@ export default async function AdminPaymentsPage() {
       </div>
 
       {!tienda.unavailable ? (
-        <div className={`${adminCardBase} mb-8 p-5`}>
+        <div className="mt-6 grid gap-6 lg:grid-cols-3">
+          <div className={`${adminCardBase} p-5`}>
+            <p className="text-xs font-bold uppercase text-[#7A7164]">Inbox sin leer (admin)</p>
+            <p className="mt-2 text-3xl font-bold text-[#1E1810]">{tienda.unreadAdmin}</p>
+            <p className="mt-1 text-xs text-[#7A7164]">
+              Columna <span className="font-mono">unread_admin</span> — proxy de trabajo pendiente de revisar en Leonix.
+            </p>
+          </div>
+          <div className={`${adminCardBase} p-5`}>
+            <p className="text-xs font-bold uppercase text-[#7A7164]">Email de confirmación fallido</p>
+            <p className="mt-2 text-3xl font-bold text-[#1E1810]">{tienda.emailDeliveryFailed}</p>
+            <p className="mt-1 text-xs text-[#7A7164]">
+              <span className="font-mono">email_delivery_status = failed</span> — revisar bandeja / logs, no es cobro PSP.
+            </p>
+          </div>
+          <div className={`${adminCardBase} p-5`}>
+            <p className="text-xs font-bold uppercase text-[#7A7164]">Aprobación incompleta</p>
+            <p className="mt-2 text-3xl font-bold text-[#1E1810]">{tienda.approvalIncomplete}</p>
+            <p className="mt-1 text-xs text-[#7A7164]">
+              <span className="font-mono">approval_complete = false</span> — checklist interno del pedido antes de fulfillment.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {!tienda.unavailable ? (
+        <div className={`${adminCardBase} mb-8 mt-6 p-5`}>
           <p className="text-xs font-bold uppercase text-[#7A7164]">Desglose por estado</p>
           <ul className="mt-3 grid gap-1 text-sm text-[#5C5346] sm:grid-cols-2">
             {TIENDA_STATUSES.map((s) => (

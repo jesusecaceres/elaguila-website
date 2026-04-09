@@ -10,7 +10,9 @@ import { EmpleosApplicationTopActions } from "@/app/publicar/empleos/shared/comp
 import { EMPLEOS_PUBLISH_SHARED_COPY } from "@/app/publicar/empleos/shared/copy/empleosPublishSharedCopy";
 import { useEmpleosDraftSession } from "@/app/publicar/empleos/shared/hooks/useEmpleosDraftSession";
 import { EmpleosSingleImageField } from "@/app/publicar/empleos/shared/media/EmpleosSingleImageField";
+import { buildEmpleosPublishEnvelopeFromFeria } from "@/app/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope";
 import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publish/EmpleosPublishConfirmModal";
+import { writeEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
 import { gateEmpleosFeriaPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
 import { EMPLEOS_SESSION_KEYS } from "@/app/publicar/empleos/shared/constants/empleosSessionKeys";
 import { empleosHandoffPreviewUrl } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
@@ -38,6 +40,7 @@ export default function EmpleoFeriaApplicationClient() {
   );
 
   const [publishOpen, setPublishOpen] = useState(false);
+  const [stagedNotice, setStagedNotice] = useState(false);
 
   const gate = useMemo(() => gateEmpleosFeriaPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;
@@ -77,8 +80,8 @@ export default function EmpleoFeriaApplicationClient() {
   }
 
   return (
-    <main className="min-h-screen bg-[color:var(--lx-page)] px-4 pb-24 pt-24 text-[color:var(--lx-text)]">
-      <div className="mx-auto max-w-3xl">
+    <main className="min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] px-4 pb-24 pt-24 text-[color:var(--lx-text)] sm:px-5">
+      <div className="mx-auto min-w-0 max-w-3xl">
         <header className="mb-8">
           <h1 className="text-2xl font-bold sm:text-3xl">{lang === "es" ? "Feria de empleo" : "Job fair"}</h1>
           <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">
@@ -235,10 +238,20 @@ export default function EmpleoFeriaApplicationClient() {
           <p className="text-sm text-[color:var(--lx-text-2)]">
             {lang === "es" ? "Confirmación final (sin pago todavía)." : "Final confirmation (no payment yet)."}
           </p>
+          {stagedNotice ? (
+            <p className="mt-3 rounded-xl border border-emerald-200/80 bg-emerald-50/95 px-3 py-2 text-sm text-emerald-950" role="status">
+              {copy.stagedSuccess}
+            </p>
+          ) : null}
           <button
             type="button"
-            className="mt-3 inline-flex min-h-[48px] items-center justify-center rounded-[12px] bg-[color:var(--lx-cta-dark)] px-5 text-sm font-bold text-[#FFFCF7]"
-            onClick={() => setPublishOpen(true)}
+            className="mt-3 inline-flex min-h-[48px] w-full max-w-full items-center justify-center rounded-[12px] bg-[color:var(--lx-cta-dark)] px-5 text-sm font-bold text-[#FFFCF7] disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
+            disabled={previewDisabled}
+            title={previewDisabled ? copy.publishBlocked : undefined}
+            onClick={() => {
+              if (previewDisabled) return;
+              setPublishOpen(true);
+            }}
           >
             {lang === "es" ? "Revisión final antes de publicar" : "Final review before publish"}
           </button>
@@ -249,7 +262,11 @@ export default function EmpleoFeriaApplicationClient() {
         open={publishOpen}
         onClose={() => setPublishOpen(false)}
         onConfirm={() => {
-          /* publish API in a later phase */
+          const g = gateEmpleosFeriaPreview(state, lang);
+          if (!g.ok) return;
+          const envelope = buildEmpleosPublishEnvelopeFromFeria(state, lang);
+          writeEmpleosStagedPublish(envelope);
+          setStagedNotice(true);
         }}
         title={copy.publishModal.title}
         intro={copy.publishModal.intro}
