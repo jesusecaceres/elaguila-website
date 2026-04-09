@@ -1,5 +1,7 @@
 "use client";
 
+import { filterPublicDetailPairRows } from "@/app/clasificados/lib/leonixDetailPairDisplay";
+
 type Lang = "es" | "en";
 
 export function EnVentaItemSpecs({
@@ -9,7 +11,7 @@ export function EnVentaItemSpecs({
   lang: Lang;
   rows: Array<{ label: string; value: string }>;
 }) {
-  const filtered = rows.filter((r) => r.label && r.value && !/^leonix:/i.test(r.label));
+  const filtered = filterPublicDetailPairRows(rows);
   if (!filtered.length) return null;
   return (
     <section className="rounded-2xl border border-black/10 bg-white p-4">

@@ -1,5 +1,5 @@
 import { parseBusinessMeta } from "../../../config/businessListingContract";
-import { parseNegocioRedesSocialLinks } from "./negocioRedesSocialLinks";
+import { buildLeonixBusinessLiveDisplay } from "../../../lib/leonixBusinessLiveDisplay";
 import { inferRentasPlanTierFromListing } from "../../shared/utils/rentasPlanTier";
 import type {
   RentasAnuncioFactPair,
@@ -142,30 +142,7 @@ export function buildRentasNegocioLiveDisplay(
   rentasBusinessMeta: Record<string, string> | null,
   lang: RentasAnuncioLang
 ): RentasNegocioLiveDisplay | null {
-  const isBiz = listing.sellerType === "business" || listing.seller_type === "business";
-  if (!isBiz) return null;
-  const name =
-    (listing.business_name ?? listing.businessName ?? rentasBusinessMeta?.negocioNombre ?? "") as string;
-  const meta = rentasBusinessMeta ?? {};
-  const website = meta.negocioSitioWeb?.trim() || "";
-  const rawSocials = meta.negocioRedes?.trim() || "";
-  const socialLinks = parseNegocioRedesSocialLinks(rawSocials);
-  return {
-    name: name.trim() || (lang === "es" ? "Negocio" : "Business"),
-    agent: meta.negocioAgente?.trim() || "",
-    role: meta.negocioCargo?.trim() || "",
-    agentLicense: meta.negocioLicencia?.trim() || "",
-    officePhone: meta.negocioTelOficina?.trim() || "",
-    website: website || null,
-    socialLinks,
-    rawSocials: socialLinks ? "" : rawSocials,
-    logoUrl: meta.negocioLogoUrl?.trim() || null,
-    agentPhotoUrl: meta.negocioFotoAgenteUrl?.trim() || null,
-    languages: meta.negocioIdiomas?.trim() || "",
-    hours: meta.negocioHorario?.trim() || "",
-    virtualTourUrl: meta.negocioRecorridoVirtual?.trim() || null,
-    plusMoreListings: meta.negocioPlusMasAnuncios === "si",
-  };
+  return buildLeonixBusinessLiveDisplay(listing, rentasBusinessMeta, lang);
 }
 
 export function filterRentasSameCompanySampleListings(

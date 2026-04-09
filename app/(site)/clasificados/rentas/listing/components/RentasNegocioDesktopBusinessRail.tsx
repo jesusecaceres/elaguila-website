@@ -75,7 +75,8 @@ export function RentasNegocioDesktopBusinessRail(props: {
             {lang === "es" ? "Sitio web" : "Website"} →
           </a>
         )}
-        {railDisplay.virtualTourUrl && (railTier === "business_plus" || railTier === "business_standard") && (
+        {railDisplay.virtualTourUrl &&
+          (railTier == null || railTier === "business_plus" || railTier === "business_standard") && (
           <a
             href={
               railDisplay.virtualTourUrl.startsWith("http") ? railDisplay.virtualTourUrl : `https://${railDisplay.virtualTourUrl}`
@@ -101,7 +102,7 @@ export function RentasNegocioDesktopBusinessRail(props: {
               </a>
             ))}
           </div>
-        ) : railTier === "business_standard" && railDisplay.socialLinks && railDisplay.socialLinks.length > 0 ? (
+        ) : (railTier === "business_standard" || railTier == null) && railDisplay.socialLinks && railDisplay.socialLinks.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {railDisplay.socialLinks.slice(0, 2).map((s, i) => (
               <a

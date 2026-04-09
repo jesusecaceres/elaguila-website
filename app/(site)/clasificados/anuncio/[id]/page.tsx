@@ -32,6 +32,7 @@ import { RentasAnuncioMetaGridCards } from "../../rentas/listing/components/Rent
 import { RentasNegocioDesktopBusinessRail } from "../../rentas/listing/components/RentasNegocioDesktopBusinessRail";
 import type { RentasAnuncioListingLike } from "../../rentas/listing/types/rentasAnuncioLiveTypes";
 import { EnVentaAnuncioLayout } from "../../en-venta/listing/EnVentaAnuncioLayout";
+import { resolveLeonixLiveListingContact } from "../../lib/leonixListingContactResolve";
 import { useAutosAnuncioDerived } from "../../autos/listing/hooks/useAutosAnuncioDerived";
 import { AutosAnuncioMetaFactCards } from "../../autos/listing/components/AutosAnuncioMetaFactCards";
 import { AutosAnuncioLaneContextStrip } from "../../autos/listing/components/AutosAnuncioLaneContextStrip";
@@ -416,6 +417,11 @@ export default function AnuncioDetallePage() {
   }, [params?.id]);
 
   const listing: Listing | undefined = sampleListing ?? fetchedListing;
+
+  const leonixLiveContact = useMemo(
+    () => (listing ? resolveLeonixLiveListingContact(listing as Listing & { business_meta?: string | null }) : null),
+    [listing]
+  );
 
   /** True when the visible listing was loaded from Supabase, not from SAMPLE_LISTINGS. */
   const isLiveDbListing = Boolean(listing && !sampleListing);
@@ -914,6 +920,7 @@ export default function AnuncioDetallePage() {
       detailPairs?: unknown;
       contact_phone?: string | null;
       contact_email?: string | null;
+      business_meta?: string | null;
     };
     return (
       <EnVentaAnuncioLayout
@@ -933,6 +940,7 @@ export default function AnuncioDetallePage() {
           contact_phone: ev.contact_phone ?? null,
           contact_email: ev.contact_email ?? null,
           owner_id: listing.owner_id ?? null,
+          business_meta: listing.business_meta ?? ev.business_meta ?? null,
         }}
         lang={lang}
         backHref={`/clasificados/en-venta/results?lang=${lang}`}
@@ -1462,8 +1470,8 @@ export default function AnuncioDetallePage() {
                 display={rentasNegocioDisplay}
                 railTier={rentasPlanTier}
                 listing={{
-                  contact_phone: (listing as any).contact_phone,
-                  contact_email: (listing as any).contact_email,
+                  contact_phone: leonixLiveContact?.phoneForTel ?? (listing as any).contact_phone,
+                  contact_email: leonixLiveContact?.emailForMailto ?? (listing as any).contact_email,
                 }}
                 onRequestInfo={handleContactarVendedor}
                 onScheduleVisit={handleContactarVendedor}
@@ -1730,10 +1738,10 @@ export default function AnuncioDetallePage() {
                 )}
                 <ContactActions
                   lang={lang}
-                  phone={rentasNegocioDisplay?.officePhone ?? (listing as any)?.contact_phone ?? (listing as any)?.phone}
+                  phone={leonixLiveContact?.phoneForTel ?? rentasNegocioDisplay?.officePhone ?? (listing as any)?.contact_phone ?? (listing as any)?.phone}
                   text={(listing as any)?.text}
-                  email={(listing as any)?.contact_email ?? (listing as any)?.email}
-                  website={rentasNegocioDisplay?.website ?? (listing as any)?.website}
+                  email={leonixLiveContact?.emailForMailto ?? (listing as any)?.contact_email ?? (listing as any)?.email}
+                  website={leonixLiveContact?.website ?? rentasNegocioDisplay?.website ?? (listing as any)?.website}
                   mapsUrl={(listing as any)?.mapsUrl}
                   onContact={
                     listing

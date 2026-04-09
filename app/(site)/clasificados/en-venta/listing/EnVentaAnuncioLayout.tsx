@@ -11,6 +11,9 @@ import { EnVentaSellerCard } from "./EnVentaSellerCard";
 import { EnVentaItemSpecs } from "./EnVentaItemSpecs";
 import { EnVentaRelatedRail } from "./EnVentaRelatedRail";
 import { enVentaClassifiedAdJsonLd } from "../seo/enVentaJsonLd";
+import { RentasNegocioDesktopBusinessRail } from "@/app/clasificados/rentas/listing/components/RentasNegocioDesktopBusinessRail";
+import { buildLeonixBusinessLiveDisplay, parseLeonixBusinessMetaForLive } from "@/app/clasificados/lib/leonixBusinessLiveDisplay";
+import { resolveLeonixLiveListingContact } from "@/app/clasificados/lib/leonixListingContactResolve";
 import {
   trackEnVentaListingOpen,
   trackEnVentaListingView,
@@ -36,6 +39,7 @@ type AnuncioListingLike = {
   contact_phone?: string | null;
   contact_email?: string | null;
   owner_id?: string | null;
+  business_meta?: string | null;
 };
 
 function pairsFromListing(l: AnuncioListingLike): Array<{ label: string; value: string }> {
@@ -87,6 +91,25 @@ export function EnVentaAnuncioLayout({
   const condition = conditionFromPairs(rows, lang);
   const sellerKind = listing.sellerType === "business" ? "business" : "personal";
   const biz = listing.businessName || listing.business_name || null;
+  const businessMeta = useMemo(
+    () => parseLeonixBusinessMetaForLive(listing.business_meta ?? null),
+    [listing.business_meta]
+  );
+  const negocioDisplay = useMemo(
+    () => buildLeonixBusinessLiveDisplay(listing, businessMeta, lang),
+    [listing, businessMeta, lang]
+  );
+  const resolvedContact = useMemo(
+    () =>
+      resolveLeonixLiveListingContact({
+        sellerType: listing.sellerType,
+        seller_type: listing.sellerType,
+        contact_phone: listing.contact_phone,
+        contact_email: listing.contact_email,
+        business_meta: listing.business_meta ?? null,
+      }),
+    [listing.sellerType, listing.contact_phone, listing.contact_email, listing.business_meta]
+  );
   const [correoOpen, setCorreoOpen] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveReady, setSaveReady] = useState(false);
@@ -190,9 +213,14 @@ export function EnVentaAnuncioLayout({
   });
 
   const posted = formatPostedAgo(listing.created_at ?? null, lang);
-  const phoneTel = listing.contact_phone ? normalizePhoneForTel(String(listing.contact_phone)) : "";
-  const email = String(listing.contact_email || "").trim();
+  const phoneTel = resolvedContact.phoneForTel ? normalizePhoneForTel(String(resolvedContact.phoneForTel)) : "";
+  const email = String(resolvedContact.emailForMailto || "").trim();
   const ownerId = listing.owner_id?.trim() || null;
+
+  const scrollToContact = useCallback(() => {
+    const el = document.getElementById("leonix-contact-actions");
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   const BtnBase = "px-4 py-2 rounded-xl font-semibold transition";
   const secondary = "bg-white/5 border border-white/10 hover:bg-white/10 text-white";
@@ -280,9 +308,25 @@ export function EnVentaAnuncioLayout({
               ) : null}
             </div>
 
-            <EnVentaSellerCard lang={lang} sellerKind={sellerKind} businessName={biz} />
+            {!(sellerKind === "business" && negocioDisplay) ? (
+              <EnVentaSellerCard lang={lang} sellerKind={sellerKind} businessName={biz} />
+            ) : null}
 
-            <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
+            {sellerKind === "business" && negocioDisplay ? (
+              <RentasNegocioDesktopBusinessRail
+                lang={lang}
+                display={negocioDisplay}
+                railTier={null}
+                listing={{
+                  contact_phone: resolvedContact.phoneForTel,
+                  contact_email: resolvedContact.emailForMailto,
+                }}
+                onRequestInfo={scrollToContact}
+                onScheduleVisit={scrollToContact}
+              />
+            ) : null}
+
+            <div id="leonix-contact-actions" className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
               <div className="text-sm font-bold text-[#111111]">{lang === "es" ? "Contacto" : "Contact"}</div>
               <div className="mt-3">
                 {listing.contact_phone || listing.contact_email ? (
