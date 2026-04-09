@@ -1,4 +1,5 @@
 -- Optional cross-links for internal support routing (admin-only writes; no end-user portal).
+-- Prerequisite: public.support_tickets from 20260408183000_control_center_extensions.sql (or equivalent).
 ALTER TABLE public.support_tickets
   ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES public.profiles (id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS order_id uuid REFERENCES public.tienda_orders (id) ON DELETE SET NULL,

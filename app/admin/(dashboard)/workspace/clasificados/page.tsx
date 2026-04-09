@@ -88,7 +88,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         title="Clasificados — anuncios"
         subtitle="Cola operativa para todas las categorías. En Venta es el estándar vivo — usa las herramientas de moderación abajo. El registro de categorías y reportes siguen enlazados aquí."
         eyebrow="Workspace · Clasificados"
-        helperText="Búsqueda y filtros van a Postgres (título, ciudad, id/owner UUID, y coincidencia por texto en owner_id cuando aplica). Los filtros Leonix BR siguen en cliente sobre detail_pairs. Tienda es otro workspace."
+        helperText="Búsqueda en Postgres: título, ciudad, descripción (texto libre), id/owner UUID; owner parcial combina consultas y refina en cliente. Filtros Leonix BR (rama/operación/tipo) siguen en cliente sobre detail_pairs. Tienda es otro workspace."
       />
 
       {!detailPairsAvailable ? (

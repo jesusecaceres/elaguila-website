@@ -129,6 +129,9 @@ export async function fetchListingsForAdminWorkspaceFiltered(
     if (qRaw) {
       if (qMode === "text_uuid") {
         const parts = [`title.ilike.%${safeQ}%`, `city.ilike.%${safeQ}%`];
+        if (!isUuid(qRaw)) {
+          parts.push(`description.ilike.%${safeQ}%`);
+        }
         if (isUuid(qRaw)) {
           parts.push(`id.eq.${qRaw}`);
           parts.push(`owner_id.eq.${qRaw}`);
@@ -189,7 +192,13 @@ export async function fetchListingsForAdminWorkspaceFiltered(
 
 /** Same matching rules as the legacy in-memory search (substring on id / owner). */
 export function listingRowMatchesAdminQuery(
-  row: { id: string; title?: string | null; city?: string | null; owner_id?: string | null },
+  row: {
+    id: string;
+    title?: string | null;
+    city?: string | null;
+    owner_id?: string | null;
+    description?: string | null;
+  },
   qLower: string
 ): boolean {
   if (!qLower) return true;
@@ -197,7 +206,14 @@ export function listingRowMatchesAdminQuery(
   const title = (row.title ?? "").toLowerCase();
   const city = (row.city ?? "").toLowerCase();
   const oid = (row.owner_id ?? "").toLowerCase();
-  return id.includes(qLower) || title.includes(qLower) || city.includes(qLower) || oid.includes(qLower);
+  const desc = (row.description ?? "").toLowerCase();
+  return (
+    id.includes(qLower) ||
+    title.includes(qLower) ||
+    city.includes(qLower) ||
+    oid.includes(qLower) ||
+    desc.includes(qLower)
+  );
 }
 
 /** Distinct category values for filter dropdown (bounded scan). */

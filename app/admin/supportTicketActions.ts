@@ -39,11 +39,18 @@ export async function createSupportTicketRecordAction(formData: FormData) {
 
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
-  const { data, error } = await supabase
-    .from("support_tickets")
-    .insert({ subject, body, status: "open", updated_at: now, user_id, order_id, listing_id })
-    .select("id")
-    .single();
+  /** Omit unset FK keys so inserts succeed when entity-link columns are not migrated yet. */
+  const row: Record<string, unknown> = {
+    subject,
+    body,
+    status: "open",
+    updated_at: now,
+  };
+  if (user_id) row.user_id = user_id;
+  if (order_id) row.order_id = order_id;
+  if (listing_id) row.listing_id = listing_id;
+
+  const { data, error } = await supabase.from("support_tickets").insert(row).select("id").single();
 
   if (error || !data) {
     redirect("/admin/support?ticket_error=1");

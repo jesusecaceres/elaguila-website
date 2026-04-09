@@ -27,18 +27,52 @@ type TicketRow = {
   listing_id: string | null;
 };
 
-async function fetchSupportTickets(): Promise<{ rows: TicketRow[]; unavailable: boolean }> {
+async function fetchSupportTickets(): Promise<{
+  rows: TicketRow[];
+  unavailable: boolean;
+  /** False when FK columns from 20260408200000 are not applied — list still loads; optional form links need migration. */
+  entityLinksAvailable: boolean;
+}> {
   try {
     const supabase = getAdminSupabase();
-    const { data, error } = await supabase
+    const full = await supabase
       .from("support_tickets")
       .select("id, subject, body, status, created_at, user_id, order_id, listing_id")
       .order("created_at", { ascending: false })
       .limit(30);
-    if (error) return { rows: [], unavailable: true };
-    return { rows: (data ?? []) as TicketRow[], unavailable: false };
+
+    if (!full.error && full.data) {
+      return {
+        rows: (full.data ?? []) as TicketRow[],
+        unavailable: false,
+        entityLinksAvailable: true,
+      };
+    }
+
+    const msg = (full.error?.message ?? "").toLowerCase();
+    const schemaMissing = /column|does not exist|schema cache/i.test(msg);
+
+    if (schemaMissing) {
+      const base = await supabase
+        .from("support_tickets")
+        .select("id, subject, body, status, created_at")
+        .order("created_at", { ascending: false })
+        .limit(30);
+      if (base.error) {
+        return { rows: [], unavailable: true, entityLinksAvailable: false };
+      }
+      const rows = (base.data ?? []).map((r) => ({
+        ...(r as Omit<TicketRow, "user_id" | "order_id" | "listing_id">),
+        user_id: null,
+        order_id: null,
+        listing_id: null,
+      }));
+      return { rows, unavailable: false, entityLinksAvailable: false };
+    }
+
+    return { rows: [], unavailable: true, entityLinksAvailable: false };
   } catch {
-    return { rows: [], unavailable: true };
+    return { rows: [], unavailable: true, entityLinksAvailable: false };
   }
 }
 
@@ -46,11 +80,20 @@ async function SupportTicketsSection(props: {
   searchParams?: Promise<{ ticket_saved?: string; ticket_error?: string }>;
 }) {
   const sp = props.searchParams ? await props.searchParams : {};
-  const { rows: tickets, unavailable } = await fetchSupportTickets();
+  const { rows: tickets, unavailable, entityLinksAvailable } = await fetchSupportTickets();
   const authDashboardUrl = getSupabaseAuthUsersDashboardUrl();
 
   return (
     <>
+      {!unavailable && !entityLinksAvailable ? (
+        <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
+          <strong>Enlaces de contexto no activos:</strong> la tabla existe, pero faltan columnas{" "}
+          <code className="rounded bg-white/80 px-1">user_id</code> / <code className="rounded bg-white/80 px-1">order_id</code> /{" "}
+          <code className="rounded bg-white/80 px-1">listing_id</code>. Aplica{" "}
+          <code className="rounded bg-white/80 px-1">20260408200000_support_tickets_entity_links.sql</code> para enlaces y
+          campos opcionales en el formulario.
+        </div>
+      ) : null}
       {sp.ticket_saved === "1" ? (
         <div className={`${adminCardBase} mb-4 border-emerald-200 bg-emerald-50/90 p-3 text-sm text-emerald-950`}>
           Ticket interno guardado.
@@ -138,7 +181,8 @@ async function SupportTicketsSection(props: {
                   id="ticket-user-id"
                   name="user_id"
                   placeholder="profiles.id"
-                  className={`${adminInputClass} mt-1 font-mono text-xs`}
+                  disabled={!entityLinksAvailable}
+                  className={`${adminInputClass} mt-1 font-mono text-xs disabled:opacity-60`}
                 />
               </div>
               <div>
@@ -149,7 +193,8 @@ async function SupportTicketsSection(props: {
                   id="ticket-order-id"
                   name="order_id"
                   placeholder="tienda_orders.id"
-                  className={`${adminInputClass} mt-1 font-mono text-xs`}
+                  disabled={!entityLinksAvailable}
+                  className={`${adminInputClass} mt-1 font-mono text-xs disabled:opacity-60`}
                 />
               </div>
               <div className="sm:col-span-2">
@@ -160,7 +205,8 @@ async function SupportTicketsSection(props: {
                   id="ticket-listing-id"
                   name="listing_id"
                   placeholder="listings.id"
-                  className={`${adminInputClass} mt-1 font-mono text-xs`}
+                  disabled={!entityLinksAvailable}
+                  className={`${adminInputClass} mt-1 font-mono text-xs disabled:opacity-60`}
                 />
               </div>
               <div className="sm:col-span-2">
