@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { requireAdminCookie, getAdminSupabase } from "@/app/lib/supabase/server";
-import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
+import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import type { TiendaOrderOpsStatus } from "@/app/lib/tienda/tiendaOrderOperations";
 import { isTiendaOrderOpsStatus } from "@/app/lib/tienda/tiendaOrderOperations";
 
@@ -26,12 +26,7 @@ export async function updateTiendaOrderStatusAction(orderUuid: string, status: s
   revalidatePath("/admin");
   revalidatePath("/admin/tienda/orders");
   revalidatePath(`/admin/tienda/orders/${orderUuid}`);
-  void appendAdminAuditLog({
-    action: "tienda_order_status_updated",
-    targetType: "tienda_orders",
-    targetId: orderUuid,
-    meta: { status },
-  });
+  auditAdminWrite("tienda_order_status_updated", "tienda_orders", orderUuid, { status });
 }
 
 export async function updateTiendaOrderAdminNotesAction(orderUuid: string, formData: FormData): Promise<void> {
@@ -49,6 +44,9 @@ export async function updateTiendaOrderAdminNotesAction(orderUuid: string, formD
   revalidatePath("/admin");
   revalidatePath("/admin/tienda/orders");
   revalidatePath(`/admin/tienda/orders/${orderUuid}`);
+  auditAdminWrite("tienda_order_admin_notes_updated", "tienda_orders", orderUuid, {
+    notesLength: notes.length,
+  });
 }
 
 export async function setTiendaOrderUnreadAction(orderUuid: string, unread: boolean): Promise<void> {
@@ -62,4 +60,5 @@ export async function setTiendaOrderUnreadAction(orderUuid: string, unread: bool
   revalidatePath("/admin");
   revalidatePath("/admin/tienda/orders");
   revalidatePath(`/admin/tienda/orders/${orderUuid}`);
+  auditAdminWrite("tienda_order_unread_toggled", "tienda_orders", orderUuid, { unread });
 }

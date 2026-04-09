@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
+import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { upsertSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type { RevistaSpotlightPayload } from "@/app/lib/siteSectionContent/payloadTypes";
 
@@ -27,6 +28,7 @@ export async function saveRevistaSpotlightAction(formData: FormData) {
   };
   const { error } = await upsertSiteSectionPayload("revista_spotlight", payload as unknown as Record<string, unknown>);
   if (error) throw new Error(error);
+  auditAdminWrite("site_section_saved", "site_section", "revista_spotlight", {});
   revalidatePath("/admin/workspace/revista");
   redirect("/admin/workspace/revista?saved=1");
 }

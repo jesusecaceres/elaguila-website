@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
+import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { getSiteSectionPayload, upsertSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type { RevistaIssueRegistryPayload, RevistaPlannedIssue } from "@/app/lib/siteSectionContent/payloadTypes";
 
@@ -48,6 +49,7 @@ export async function appendRevistaIssueDraftAction(formData: FormData) {
   const next: RevistaIssueRegistryPayload = { plannedIssues: list };
   const { error } = await upsertSiteSectionPayload("revista_issue_registry", next as unknown as Record<string, unknown>);
   if (error) throw new Error(error);
+  auditAdminWrite("revista_issue_registry_appended", "revista_planned_issue", draft.id, {});
   revalidatePath("/admin/workspace/revista");
   redirect("/admin/workspace/revista?registry_saved=1");
 }
@@ -62,6 +64,7 @@ export async function removeRevistaIssueDraftAction(formData: FormData) {
   const next: RevistaIssueRegistryPayload = { plannedIssues: list };
   const { error } = await upsertSiteSectionPayload("revista_issue_registry", next as unknown as Record<string, unknown>);
   if (error) throw new Error(error);
+  auditAdminWrite("revista_issue_registry_removed", "revista_planned_issue", id, {});
   revalidatePath("/admin/workspace/revista");
   redirect("/admin/workspace/revista?registry_saved=1");
 }

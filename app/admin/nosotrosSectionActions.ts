@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
+import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { upsertSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type { NosotrosPayload } from "@/app/lib/siteSectionContent/payloadTypes";
 
@@ -34,6 +35,7 @@ export async function saveNosotrosSectionAction(formData: FormData) {
   };
   const { error } = await upsertSiteSectionPayload("nosotros", payload as unknown as Record<string, unknown>);
   if (error) throw new Error(error);
+  auditAdminWrite("site_section_saved", "site_section", "nosotros", {});
   revalidatePath("/about");
   redirect("/admin/workspace/nosotros/content?saved=1");
 }

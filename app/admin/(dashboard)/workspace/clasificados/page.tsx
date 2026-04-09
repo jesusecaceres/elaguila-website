@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
-import { fetchListingsForAdminWorkspace } from "@/app/admin/_lib/listingsAdminSelect";
+import {
+  fetchListingsForAdminWorkspaceFiltered,
+  fetchListingCategoriesDistinct,
+  listingRowMatchesAdminQuery,
+  isUuidString,
+} from "@/app/admin/_lib/listingsAdminSelect";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import AdminListingsTable from "./AdminListingsTable";
 import { EnVentaModerationFields } from "@/app/clasificados/en-venta/admin/EnVentaModerationFields";
@@ -50,12 +55,18 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   const lxOp = (sp.leonix_operation ?? "").trim().toLowerCase();
   const lxProp = (sp.leonix_propiedad ?? "").trim().toLowerCase();
 
-  const { data: listings, error, detailPairsAvailable } = await fetchListingsForAdminWorkspace(supabase);
+  const [{ data: listings, error, detailPairsAvailable }, cats] = await Promise.all([
+    fetchListingsForAdminWorkspaceFiltered(supabase, {
+      q: qRaw || undefined,
+      category: catFilter || undefined,
+      status: statusFilter || undefined,
+      ownerFrag: ownerFrag && isUuidString(ownerFrag) ? ownerFrag : undefined,
+    }),
+    fetchListingCategoriesDistinct(supabase),
+  ]);
 
   let rows = (listings ?? []) as Row[];
-  if (catFilter) rows = rows.filter((r) => (r.category ?? "").toLowerCase() === catFilter);
-  if (statusFilter) rows = rows.filter((r) => (r.status ?? "").toLowerCase() === statusFilter);
-  if (ownerFrag) {
+  if (ownerFrag && !isUuidString(ownerFrag)) {
     rows = rows.filter((r) => (r.owner_id ?? "").toLowerCase().includes(ownerFrag));
   }
   if (detailPairsAvailable && (lxBranch || lxOp || lxProp)) {
@@ -68,16 +79,8 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
     });
   }
   if (qRaw) {
-    rows = rows.filter((r) => {
-      const id = r.id.toLowerCase();
-      const title = (r.title ?? "").toLowerCase();
-      const city = (r.city ?? "").toLowerCase();
-      const oid = (r.owner_id ?? "").toLowerCase();
-      return id.includes(qRaw) || title.includes(qRaw) || city.includes(qRaw) || oid.includes(qRaw);
-    });
+    rows = rows.filter((r) => listingRowMatchesAdminQuery(r, qRaw));
   }
-
-  const cats = Array.from(new Set((listings ?? []).map((x) => (x as Row).category).filter(Boolean))) as string[];
 
   return (
     <>
@@ -85,7 +88,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         title="Clasificados — anuncios"
         subtitle="Cola operativa para todas las categorías. En Venta es el estándar vivo — usa las herramientas de moderación abajo. El registro de categorías y reportes siguen enlazados aquí."
         eyebrow="Workspace · Clasificados"
-        helperText="Moderación y listados de anuncios viven aquí. Tienda (productos impresos/self-serve) es otro workspace: no mezclar flujos."
+        helperText="Búsqueda y filtros van a Postgres (título, ciudad, id/owner UUID, y coincidencia por texto en owner_id cuando aplica). Los filtros Leonix BR siguen en cliente sobre detail_pairs. Tienda es otro workspace."
       />
 
       {!detailPairsAvailable ? (
@@ -143,7 +146,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
             <input
               name="q"
               defaultValue={qRaw}
-              placeholder="Buscar título, ciudad, ID de anuncio u owner…"
+              placeholder="Título, ciudad, fragmento de UUID de anuncio u owner…"
               className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-4 py-3 text-base sm:min-w-[12rem] sm:flex-1 sm:py-2 sm:text-sm"
             />
             <input

@@ -15,7 +15,14 @@ type ReportRow = {
   status: string;
 };
 
-export default function AdminReportsTable({ reports }: { reports: ReportRow[] }) {
+export default function AdminReportsTable({
+  reports,
+  highlightReportId,
+}: {
+  reports: ReportRow[];
+  /** When set (e.g. deep link from Ops), row gets a visible ring. */
+  highlightReportId?: string | null;
+}) {
   const router = useRouter();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +68,7 @@ export default function AdminReportsTable({ reports }: { reports: ReportRow[] })
             <tr className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90">
               <th className="p-3 font-semibold text-[#5C4E2E]">Fecha</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">Anuncio</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">Reporter</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">Motivo</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">Estado</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">Acciones</th>
@@ -68,7 +76,12 @@ export default function AdminReportsTable({ reports }: { reports: ReportRow[] })
           </thead>
           <tbody>
             {reports.map((row) => (
-              <tr key={row.id} className="border-b border-[#E8DFD0]/60">
+              <tr
+                key={row.id}
+                className={`border-b border-[#E8DFD0]/60 ${
+                  highlightReportId && row.id === highlightReportId ? "bg-amber-50/90 ring-2 ring-inset ring-amber-300/90" : ""
+                }`}
+              >
                 <td className="p-3 text-[#3D3428]">{formatDate(row.created_at)}</td>
                 <td className="p-3">
                   <Link
@@ -79,6 +92,18 @@ export default function AdminReportsTable({ reports }: { reports: ReportRow[] })
                   >
                     {row.listing_id.slice(0, 8)}…
                   </Link>
+                </td>
+                <td className="p-3">
+                  {row.reporter_id ? (
+                    <Link
+                      href={`/admin/usuarios/${row.reporter_id}`}
+                      className="font-mono text-xs font-semibold text-[#6B5B2E] underline"
+                    >
+                      {row.reporter_id.slice(0, 8)}…
+                    </Link>
+                  ) : (
+                    <span className="text-xs text-[#9A9084]">—</span>
+                  )}
                 </td>
                 <td className="max-w-[280px] truncate p-3 text-[#2C2416]" title={row.reason}>
                   {row.reason || "—"}

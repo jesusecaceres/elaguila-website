@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
+import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { upsertSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type { CuponCardPayload, CuponesPagePayload, IglesiasPagePayload, NoticiasPagePayload } from "@/app/lib/siteSectionContent/payloadTypes";
 
@@ -26,6 +27,7 @@ export async function saveNoticiasPageAction(formData: FormData) {
   };
   const { error } = await upsertSiteSectionPayload("noticias_page", payload as unknown as Record<string, unknown>);
   if (error) throw new Error(error);
+  auditAdminWrite("site_section_saved", "site_section", "noticias_page", {});
   revalidatePath("/noticias");
   redirect("/admin/workspace/noticias/content?saved=1");
 }
@@ -40,6 +42,7 @@ export async function saveIglesiasPageAction(formData: FormData) {
   };
   const { error } = await upsertSiteSectionPayload("iglesias_page", payload as unknown as Record<string, unknown>);
   if (error) throw new Error(error);
+  auditAdminWrite("site_section_saved", "site_section", "iglesias_page", {});
   revalidatePath("/iglesias");
   redirect("/admin/workspace/iglesias/content?saved=1");
 }
@@ -75,6 +78,7 @@ export async function saveCuponesPageAction(formData: FormData) {
   };
   const { error } = await upsertSiteSectionPayload("cupones_page", payload as unknown as Record<string, unknown>);
   if (error) throw new Error(error);
+  auditAdminWrite("site_section_saved", "site_section", "cupones_page", {});
   revalidatePath("/cupones");
   revalidatePath("/coupons");
   redirect("/admin/workspace/cupones/content?saved=1");

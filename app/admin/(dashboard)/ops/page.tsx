@@ -186,8 +186,11 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
                   <li>
                     Reportes como reporter:{" "}
                     <strong className="text-[#1E1810]">{bundle.supportContext.reportsAsReporter}</strong>{" "}
-                    <Link href="/admin/reportes" className="font-bold text-[#6B5B2E] underline">
-                      Cola →
+                    <Link
+                      href={`/admin/reportes?q=${encodeURIComponent(bundle.supportContext.profileId)}`}
+                      className="font-bold text-[#6B5B2E] underline"
+                    >
+                      Cola (como reporter) →
                     </Link>
                   </li>
                   <li>
@@ -318,8 +321,11 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
             <h2 className="text-base font-bold text-[#1E1810]">Reportes de anuncios</h2>
             <p className="mt-1 text-xs text-[#7A7164]">
               Tabla <code className="rounded bg-[#FAF7F2] px-1">listing_reports</code>. Coincidencias por id de reporte, listing id o texto en el motivo.{" "}
-              <Link href="/admin/reportes" className="font-bold text-[#6B5B2E] underline">
-                Cola completa →
+              <Link
+                href={q ? `/admin/reportes?q=${encodeURIComponent(q)}` : "/admin/reportes"}
+                className="font-bold text-[#6B5B2E] underline"
+              >
+                {q ? "Abrir cola con esta búsqueda →" : "Cola completa →"}
               </Link>
             </p>
             {bundle.reports.rows.length === 0 ? (
@@ -342,12 +348,23 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
                         </Link>
                       </p>
                       <p className="mt-1 line-clamp-2 text-xs text-[#5C5346]">{row.reason}</p>
+                      {row.reporter_id ? (
+                        <p className="mt-1 text-[10px] text-[#7A7164]">
+                          Reporter:{" "}
+                          <Link href={`/admin/usuarios/${row.reporter_id}`} className="font-bold text-[#6B5B2E] underline">
+                            {row.reporter_id.slice(0, 8)}…
+                          </Link>
+                        </p>
+                      ) : null}
                       <p className="text-[10px] text-[#9A9084]">
                         {row.status ?? "—"} · {row.created_at ? new Date(row.created_at).toLocaleString() : "—"}
                       </p>
                     </div>
-                    <Link href="/admin/reportes" className="shrink-0 text-xs font-bold text-[#6B5B2E] underline">
-                      Moderar →
+                    <Link
+                      href={`/admin/reportes?q=${encodeURIComponent(row.id)}`}
+                      className="shrink-0 text-xs font-bold text-[#6B5B2E] underline"
+                    >
+                      Abrir en cola →
                     </Link>
                   </li>
                 ))}

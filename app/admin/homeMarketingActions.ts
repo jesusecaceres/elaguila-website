@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
+import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { upsertSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type { HomeFeaturedCallout, HomeMarketingPayload } from "@/app/lib/siteSectionContent/payloadTypes";
 
@@ -59,6 +60,7 @@ export async function saveHomeMarketingAction(formData: FormData) {
   };
   const { error } = await upsertSiteSectionPayload("home_marketing", payload as unknown as Record<string, unknown>);
   if (error) throw new Error(error);
+  auditAdminWrite("site_section_saved", "site_section", "home_marketing", {});
   revalidatePath("/home");
   redirect("/admin/workspace/home/content?saved=1");
 }

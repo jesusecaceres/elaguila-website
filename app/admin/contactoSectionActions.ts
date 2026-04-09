@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
+import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { upsertSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type { ContactoPayload } from "@/app/lib/siteSectionContent/payloadTypes";
 
@@ -37,6 +38,7 @@ export async function saveContactoSectionAction(formData: FormData) {
   };
   const { error } = await upsertSiteSectionPayload("contacto", payload as unknown as Record<string, unknown>);
   if (error) throw new Error(error);
+  auditAdminWrite("site_section_saved", "site_section", "contacto", {});
   revalidatePath("/contacto");
   redirect("/admin/workspace/contacto/content?saved=1");
 }

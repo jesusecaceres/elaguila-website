@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
+import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { getSiteSectionPayload, upsertSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type { TiendaStorefrontPayload } from "@/app/lib/siteSectionContent/payloadTypes";
 import { TIENDA_CATEGORY_SLUGS } from "@/app/tienda/data/tiendaCategories";
@@ -135,6 +136,7 @@ export async function saveTiendaStorefrontFormAction(formData: FormData) {
   const next = formDataToPayload(formData);
   const { error } = await upsertSiteSectionPayload("tienda_storefront", next as unknown as Record<string, unknown>);
   if (error) throw new Error(error);
+  auditAdminWrite("site_section_saved", "site_section", "tienda_storefront", {});
   revalidatePath("/tienda");
   revalidatePath("/admin/workspace/tienda/storefront");
   redirect("/admin/workspace/tienda/storefront?saved=1");

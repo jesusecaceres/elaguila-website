@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { requireAdminCookie, getAdminSupabase } from "@/app/lib/supabase/server";
+import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { getSupabaseAuthUsersDashboardUrl } from "@/app/admin/_lib/supabaseDashboardLinks";
 import AdminUserActions from "../AdminUserActions";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
@@ -211,6 +212,10 @@ async function updateClientAccountAction(formData: FormData) {
     redirect(`/admin/usuarios/${clientId}?error=update-failed`);
   }
 
+  auditAdminWrite("client_account_updated", "profiles", clientId, {
+    account_type: rawAccountType,
+    membership_tier: rawMembershipTier,
+  });
   revalidatePath(`/admin/usuarios/${clientId}`);
   revalidatePath("/admin/usuarios");
   redirect(`/admin/usuarios/${clientId}?updated=1`);
@@ -634,14 +639,21 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
           <ul className="mt-2 space-y-2 text-sm">
             {reportsByReporter.map((r) => (
               <li key={r.id} className="rounded-xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-3 py-2">
-                <p className="text-xs font-mono text-[#6B5B2E]">Listing {r.listing_id.slice(0, 8)}…</p>
+                <p className="text-xs font-mono text-[#6B5B2E]">
+                  Reporte <Link href={`/admin/reportes?q=${encodeURIComponent(r.id)}`} className="font-bold underline">{r.id.slice(0, 8)}…</Link> · Listing {r.listing_id.slice(0, 8)}…
+                </p>
                 <p className="text-xs text-[#5C5346]">
                   {r.status} · {formatDate(r.created_at)}
                 </p>
                 <p className="text-xs text-[#3D3428]">{r.reason}</p>
-                <Link href={`/clasificados/anuncio/${r.listing_id}`} target="_blank" className="mt-1 inline-block text-xs font-bold text-[#6B5B2E] underline">
-                  Ver anuncio
-                </Link>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <Link href={`/admin/reportes?q=${encodeURIComponent(r.id)}`} className="inline-block text-xs font-bold text-[#6B5B2E] underline">
+                    Abrir en cola de reportes
+                  </Link>
+                  <Link href={`/clasificados/anuncio/${r.listing_id}`} target="_blank" className="inline-block text-xs font-bold text-[#6B5B2E] underline">
+                    Ver anuncio
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>
@@ -655,9 +667,14 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
               <li key={r.id} className="rounded-xl border border-amber-200/80 bg-amber-50/60 px-3 py-2">
                 <p className="text-xs font-mono text-[#6B5B2E]">Listing {r.listing_id.slice(0, 8)}…</p>
                 <p className="text-xs text-[#5C5346]">{r.reason}</p>
-                <Link href={`/admin/workspace/clasificados?q=${encodeURIComponent(r.listing_id)}`} className="mt-1 inline-block text-xs font-bold text-[#6B5B2E] underline">
-                  Abrir en cola admin
-                </Link>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <Link href={`/admin/reportes?q=${encodeURIComponent(r.id)}`} className="inline-block text-xs font-bold text-[#6B5B2E] underline">
+                    Ver reporte
+                  </Link>
+                  <Link href={`/admin/workspace/clasificados?q=${encodeURIComponent(r.listing_id)}`} className="inline-block text-xs font-bold text-[#6B5B2E] underline">
+                    Cola Clasificados
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>
@@ -699,8 +716,9 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                       <Link
                         href={`/dashboard/mis-anuncios/${listing.id}/editar`}
                         className="text-xs font-semibold text-[#5C5346] underline"
+                        title="Abre el editor del vendedor (dashboard) — no es moderación admin"
                       >
-                        Editar
+                        Editar como vendedor
                       </Link>
                     </div>
                   </div>

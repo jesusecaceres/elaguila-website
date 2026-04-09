@@ -3,6 +3,7 @@
 import { deleteMuxAssetsBestEffort } from "@/app/lib/mux/server";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
+import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 
 export type ListingReportStatus = "pending" | "reviewed" | "dismissed";
 
@@ -22,6 +23,7 @@ export async function updateListingReportStatusAction(reportId: string, status: 
   const supabase = getAdminSupabase();
   const { error } = await supabase.from("listing_reports").update({ status }).eq("id", reportId);
   if (error) throw new Error(error.message);
+  auditAdminWrite("listing_report_status_updated", "listing_reports", reportId, { status });
   return { ok: true };
 }
 
@@ -41,6 +43,7 @@ export async function deleteListingAction(listingId: string) {
     .update({ status: "removed" })
     .eq("id", listingId);
   if (error) throw new Error(error.message);
+  auditAdminWrite("listing_removed_by_admin", "listings", listingId, {});
   return { ok: true };
 }
 

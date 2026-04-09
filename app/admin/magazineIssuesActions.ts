@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireAdminCookie, getAdminSupabase } from "@/app/lib/supabase/server";
+import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 
 const MONTHS = new Set([
   "january",
@@ -81,6 +82,7 @@ export async function upsertMagazineIssueAction(formData: FormData) {
       .update({ ...base, ...extra })
       .eq("id", id);
     if (error) throw new Error(error.message);
+    auditAdminWrite("magazine_issue_upserted", "magazine_issues", id, { status, year, month_slug: monthSlug });
   } else {
     const { error } = await supabase.from("magazine_issues").upsert(
       {
@@ -91,6 +93,11 @@ export async function upsertMagazineIssueAction(formData: FormData) {
       { onConflict: "year,month_slug" }
     );
     if (error) throw new Error(error.message);
+    auditAdminWrite("magazine_issue_upserted", "magazine_issues", `${year}:${monthSlug}`, {
+      status,
+      year,
+      month_slug: monthSlug,
+    });
   }
 
   revalidatePath("/magazine");
@@ -135,6 +142,7 @@ export async function setMagazineCurrentIssueAction(formData: FormData) {
     .eq("id", id);
   if (error) throw new Error(error.message);
 
+  auditAdminWrite("magazine_issue_set_current", "magazine_issues", id, {});
   revalidatePath("/magazine");
   revalidatePath("/");
   redirect("/admin/workspace/revista?issue_saved=1");
@@ -152,6 +160,7 @@ export async function archiveMagazineIssueAction(formData: FormData) {
     .eq("id", id);
   if (error) throw new Error(error.message);
 
+  auditAdminWrite("magazine_issue_archived", "magazine_issues", id, {});
   revalidatePath("/magazine");
   revalidatePath("/");
   redirect("/admin/workspace/revista?issue_saved=1");
@@ -174,6 +183,7 @@ export async function publishMagazineIssueAction(formData: FormData) {
     .eq("id", id);
   if (error) throw new Error(error.message);
 
+  auditAdminWrite("magazine_issue_published", "magazine_issues", id, {});
   revalidatePath("/magazine");
   revalidatePath("/");
   redirect("/admin/workspace/revista?issue_saved=1");
@@ -191,6 +201,7 @@ export async function deleteMagazineDraftAction(formData: FormData) {
   const { error } = await supabase.from("magazine_issues").delete().eq("id", id);
   if (error) throw new Error(error.message);
 
+  auditAdminWrite("magazine_issue_draft_deleted", "magazine_issues", id, {});
   revalidatePath("/magazine");
   revalidatePath("/");
   redirect("/admin/workspace/revista?issue_saved=1");

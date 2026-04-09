@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
+import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { upsertSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type { GlobalSitePayload } from "@/app/lib/siteSectionContent/payloadTypes";
 
@@ -34,6 +35,7 @@ export async function saveGlobalSiteAction(formData: FormData) {
   };
   const { error } = await upsertSiteSectionPayload("global_site", payload as unknown as Record<string, unknown>);
   if (error) throw new Error(error);
+  auditAdminWrite("site_section_saved", "site_section", "global_site", {});
   revalidatePath("/", "layout");
   redirect("/admin/site-settings?saved=1");
 }

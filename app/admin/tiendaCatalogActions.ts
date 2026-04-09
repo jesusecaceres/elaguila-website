@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireAdminCookie, getAdminSupabase } from "@/app/lib/supabase/server";
+import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { isCatalogSlugTaken } from "@/app/admin/_lib/tiendaCatalogAdminData";
 import {
   isTiendaCatalogCtaMode,
@@ -111,6 +112,7 @@ export async function createTiendaCatalogItemAction(formData: FormData): Promise
     });
   }
 
+  auditAdminWrite("tienda_catalog_item_created", "tienda_catalog_items", id, { slug });
   revalidatePath("/admin/tienda/catalog");
   revalidatePath("/tienda");
   revalidatePath("/tienda/c", "layout");
@@ -167,6 +169,7 @@ export async function updateTiendaCatalogItemAction(itemId: string, formData: Fo
   const { error } = await supabase.from("tienda_catalog_items").update(patch).eq("id", itemId);
   if (error) throw new Error(error.message);
 
+  auditAdminWrite("tienda_catalog_item_updated", "tienda_catalog_items", itemId, { slug });
   revalidatePath("/admin/tienda/catalog");
   revalidatePath(`/admin/tienda/catalog/${itemId}`);
   revalidatePath("/tienda");
@@ -212,6 +215,7 @@ export async function deleteTiendaCatalogImageAction(itemId: string, imageId: st
   const supabase = getAdminSupabase();
   const { error } = await supabase.from("tienda_catalog_images").delete().eq("id", imageId).eq("item_id", itemId);
   if (error) throw new Error(error.message);
+  auditAdminWrite("tienda_catalog_image_deleted", "tienda_catalog_images", imageId, { item_id: itemId });
   revalidatePath(`/admin/tienda/catalog/${itemId}`);
   revalidatePath("/tienda");
 }
@@ -243,5 +247,6 @@ export async function deleteTiendaCatalogPricingRuleAction(itemId: string, ruleI
   const supabase = getAdminSupabase();
   const { error } = await supabase.from("tienda_catalog_pricing_rules").delete().eq("id", ruleId).eq("item_id", itemId);
   if (error) throw new Error(error.message);
+  auditAdminWrite("tienda_catalog_pricing_rule_deleted", "tienda_catalog_pricing_rules", ruleId, { item_id: itemId });
   revalidatePath(`/admin/tienda/catalog/${itemId}`);
 }

@@ -22,6 +22,9 @@ type TicketRow = {
   body: string;
   status: string;
   created_at: string;
+  user_id: string | null;
+  order_id: string | null;
+  listing_id: string | null;
 };
 
 async function fetchSupportTickets(): Promise<{ rows: TicketRow[]; unavailable: boolean }> {
@@ -29,7 +32,7 @@ async function fetchSupportTickets(): Promise<{ rows: TicketRow[]; unavailable: 
     const supabase = getAdminSupabase();
     const { data, error } = await supabase
       .from("support_tickets")
-      .select("id, subject, body, status, created_at")
+      .select("id, subject, body, status, created_at, user_id, order_id, listing_id")
       .order("created_at", { ascending: false })
       .limit(30);
     if (error) return { rows: [], unavailable: true };
@@ -55,7 +58,9 @@ async function SupportTicketsSection(props: {
       ) : null}
       {sp.ticket_error === "1" ? (
         <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
-          No se pudo guardar — aplica migración <code className="rounded bg-white/80 px-1">20260408183000_control_center_extensions.sql</code> o revisa Supabase.
+          No se pudo guardar — aplica migraciones de control center (p. ej.{" "}
+          <code className="rounded bg-white/80 px-1">20260408183000_control_center_extensions.sql</code>,{" "}
+          <code className="rounded bg-white/80 px-1">20260408200000_support_tickets_entity_links.sql</code>) o revisa Supabase.
         </div>
       ) : null}
 
@@ -125,6 +130,39 @@ async function SupportTicketsSection(props: {
                 </label>
                 <textarea id="ticket-body" name="body" required rows={4} className={`${adminInputClass} mt-1`} />
               </div>
+              <div>
+                <label className="text-xs font-semibold text-[#5C5346]" htmlFor="ticket-user-id">
+                  Usuario (UUID, opcional)
+                </label>
+                <input
+                  id="ticket-user-id"
+                  name="user_id"
+                  placeholder="profiles.id"
+                  className={`${adminInputClass} mt-1 font-mono text-xs`}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#5C5346]" htmlFor="ticket-order-id">
+                  Pedido Tienda (UUID, opcional)
+                </label>
+                <input
+                  id="ticket-order-id"
+                  name="order_id"
+                  placeholder="tienda_orders.id"
+                  className={`${adminInputClass} mt-1 font-mono text-xs`}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-xs font-semibold text-[#5C5346]" htmlFor="ticket-listing-id">
+                  Anuncio Clasificados (UUID, opcional)
+                </label>
+                <input
+                  id="ticket-listing-id"
+                  name="listing_id"
+                  placeholder="listings.id"
+                  className={`${adminInputClass} mt-1 font-mono text-xs`}
+                />
+              </div>
               <div className="sm:col-span-2">
                 <button type="submit" className={`${adminBtnPrimary} w-full justify-center sm:w-auto`}>
                   Guardar ticket interno
@@ -143,6 +181,7 @@ async function SupportTicketsSection(props: {
                   <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase text-[#7A7164]">
                     <tr>
                       <th className="p-3">Asunto</th>
+                      <th className="p-3">Contexto</th>
                       <th className="p-3">Estado</th>
                       <th className="p-3">Fecha</th>
                     </tr>
@@ -153,6 +192,41 @@ async function SupportTicketsSection(props: {
                         <td className="p-3">
                           <p className="font-semibold text-[#1E1810]">{t.subject}</p>
                           <p className="mt-1 line-clamp-2 text-xs text-[#7A7164]">{t.body}</p>
+                        </td>
+                        <td className="p-3 align-top text-xs">
+                          <div className="flex flex-col gap-1.5 text-[#5C5346]">
+                            {t.user_id ? (
+                              <Link href={`/admin/usuarios/${t.user_id}`} className="font-bold text-[#6B5B2E] underline">
+                                Usuario
+                              </Link>
+                            ) : null}
+                            {t.listing_id ? (
+                              <>
+                                <Link
+                                  href={`/admin/workspace/clasificados?q=${encodeURIComponent(t.listing_id)}`}
+                                  className="font-bold text-[#6B5B2E] underline"
+                                >
+                                  Anuncio (cola)
+                                </Link>
+                                <Link
+                                  href={`/clasificados/anuncio/${t.listing_id}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[#6B5B2E] underline"
+                                >
+                                  Vista pública ↗
+                                </Link>
+                              </>
+                            ) : null}
+                            {t.order_id ? (
+                              <Link href={`/admin/tienda/orders/${t.order_id}`} className="font-bold text-[#6B5B2E] underline">
+                                Pedido Tienda
+                              </Link>
+                            ) : null}
+                            {!t.user_id && !t.listing_id && !t.order_id ? (
+                              <span className="text-[#9A9084]">—</span>
+                            ) : null}
+                          </div>
                         </td>
                         <td className="p-3 text-xs font-semibold">{t.status}</td>
                         <td className="p-3 text-xs text-[#7A7164]">

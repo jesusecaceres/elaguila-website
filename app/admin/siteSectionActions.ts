@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
+import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { upsertSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import { isSiteSectionKey, type SiteSectionKey } from "@/app/lib/siteSectionContent/sectionKeys";
 
@@ -31,6 +32,8 @@ export async function upsertSiteSectionJsonAction(sectionKey: string, payloadJso
   }
   const { error } = await upsertSiteSectionPayload(sectionKey as SiteSectionKey, payload);
   if (error) throw new Error(error);
+
+  auditAdminWrite("site_section_json_saved", "site_section", sectionKey, {});
 
   if (sectionKey === "tienda_storefront") {
     revalidatePath("/tienda");
