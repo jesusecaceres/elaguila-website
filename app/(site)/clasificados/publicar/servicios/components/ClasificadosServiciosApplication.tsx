@@ -716,10 +716,13 @@ export function ClasificadosServiciosApplication() {
               <label className={labelClass}>
                 {copy.labels.city} <span className="text-red-600">*</span>
               </label>
-              <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.cityHelp}</p>
+              {copy.labels.cityHelp.trim() ? (
+                <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.cityHelp}</p>
+              ) : null}
               <input
                 className={inputClass}
                 value={state.city}
+                placeholder={copy.labels.cityPlaceholder}
                 onChange={(e) => setState((s) => ({ ...s, city: e.target.value }))}
                 autoComplete="address-level2"
               />
@@ -734,6 +737,59 @@ export function ClasificadosServiciosApplication() {
                 onChange={(e) => setState((s) => ({ ...s, serviceAreaNotes: e.target.value }))}
               />
             </div>
+
+            <div className="sm:col-span-2 mt-1 border-t border-[#D8C79A]/35 pt-6">
+              <h3 className="text-base font-bold text-[#3D2C12]">{copy.labels.physicalAddressSection}</h3>
+              <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.physicalAddressIntro}</p>
+              <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <label className={labelClass}>{copy.labels.physicalStreet}</label>
+                  <input
+                    className={inputClass}
+                    value={state.physicalStreet}
+                    onChange={(e) => setState((s) => ({ ...s, physicalStreet: e.target.value }))}
+                    autoComplete="street-address"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className={labelClass}>{copy.labels.physicalSuite}</label>
+                  <input
+                    className={inputClass}
+                    value={state.physicalSuite}
+                    onChange={(e) => setState((s) => ({ ...s, physicalSuite: e.target.value }))}
+                    autoComplete="address-line2"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>{copy.labels.physicalAddressCity}</label>
+                  <input
+                    className={inputClass}
+                    value={state.physicalAddressCity}
+                    onChange={(e) => setState((s) => ({ ...s, physicalAddressCity: e.target.value }))}
+                    autoComplete="address-level2"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>{copy.labels.physicalRegion}</label>
+                  <input
+                    className={inputClass}
+                    value={state.physicalRegion}
+                    onChange={(e) => setState((s) => ({ ...s, physicalRegion: e.target.value }))}
+                    autoComplete="address-level1"
+                  />
+                </div>
+                <div className="sm:col-span-2 sm:max-w-xs">
+                  <label className={labelClass}>{copy.labels.physicalPostalCode}</label>
+                  <input
+                    className={inputClass}
+                    value={state.physicalPostalCode}
+                    onChange={(e) => setState((s) => ({ ...s, physicalPostalCode: e.target.value }))}
+                    autoComplete="postal-code"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div>
               <label className={labelClass}>{copy.labels.phone}</label>
               <input

@@ -27,6 +27,8 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
       promoViewPdf: "View PDF",
       videoTour: "Video",
       weeklyHours: "Weekly hours",
+      physicalLocation: "Location",
+      openInMaps: "Open in Maps",
     };
   }
   return {
@@ -54,5 +56,7 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
     promoViewPdf: "Ver PDF",
     videoTour: "Video",
     weeklyHours: "Horario de la semana",
+    physicalLocation: "Ubicación",
+    openInMaps: "Abrir en mapa",
   };
 }

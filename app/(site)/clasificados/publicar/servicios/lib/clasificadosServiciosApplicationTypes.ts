@@ -83,6 +83,12 @@ export type ClasificadosServiciosApplicationState = {
   businessTypeId: string;
   businessName: string;
   city: string;
+  /** Optional public storefront / mailing address (distinct from discovery `city` anchor). */
+  physicalStreet: string;
+  physicalSuite: string;
+  physicalAddressCity: string;
+  physicalRegion: string;
+  physicalPostalCode: string;
   serviceAreaNotes: string;
   phone: string;
   website: string;

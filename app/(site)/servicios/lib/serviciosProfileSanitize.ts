@@ -296,3 +296,45 @@ export function humanizeSlug(slug: string): string {
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(" ");
 }
+
+/** Multiline display for optional storefront / mailing address. */
+export function formatPhysicalAddressDisplay(p: {
+  physicalStreet?: string;
+  physicalSuite?: string;
+  physicalCity?: string;
+  physicalRegion?: string;
+  physicalPostalCode?: string;
+}): string | undefined {
+  const street = trimText(p.physicalStreet);
+  const suite = trimText(p.physicalSuite);
+  const city = trimText(p.physicalCity);
+  const region = trimText(p.physicalRegion);
+  const zip = trimText(p.physicalPostalCode);
+  const line1 = [street, suite].filter(Boolean).join(", ");
+  const line2 = [city, region, zip].filter(Boolean).join(", ");
+  const lines = [line1, line2].filter(Boolean);
+  if (lines.length === 0) return undefined;
+  return lines.join("\n");
+}
+
+/** Google Maps search URL — https only, built from structured address parts. */
+export function buildGoogleMapsSearchHrefFromPhysical(p: {
+  physicalStreet?: string;
+  physicalSuite?: string;
+  physicalCity?: string;
+  physicalRegion?: string;
+  physicalPostalCode?: string;
+}): string | undefined {
+  const q = [
+    trimText(p.physicalStreet),
+    trimText(p.physicalSuite),
+    trimText(p.physicalCity),
+    trimText(p.physicalRegion),
+    trimText(p.physicalPostalCode),
+  ]
+    .filter(Boolean)
+    .join(", ");
+  if (q.length < 3) return undefined;
+  const clipped = q.length > 500 ? q.slice(0, 500) : q;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(clipped)}`;
+}

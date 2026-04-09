@@ -224,6 +224,17 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     if (wa) contact.socialWhatsappUrl = wa;
   }
 
+  const physStreet = state.physicalStreet.trim();
+  const physSuite = state.physicalSuite.trim();
+  const physCity = state.physicalAddressCity.trim();
+  const physRegion = state.physicalRegion.trim();
+  const physZip = state.physicalPostalCode.trim();
+  if (physStreet) contact.physicalStreet = physStreet;
+  if (physSuite) contact.physicalSuite = physSuite;
+  if (physCity) contact.physicalCity = physCity;
+  if (physRegion) contact.physicalRegion = physRegion;
+  if (physZip) contact.physicalPostalCode = physZip;
+
   const gallery: NonNullable<ServiciosApplicationDraft["gallery"]> = state.gallery.map((g) => ({
     id: g.id,
     url: g.url.trim(),

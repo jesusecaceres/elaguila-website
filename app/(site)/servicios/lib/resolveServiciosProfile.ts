@@ -24,6 +24,8 @@ import {
   sanitizePhoneDisplay,
   sanitizeTelHref,
   trimText,
+  formatPhysicalAddressDisplay,
+  buildGoogleMapsSearchHrefFromPhysical,
 } from "./serviciosProfileSanitize";
 
 /**
@@ -44,6 +46,23 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
   const phoneTelHref = sanitizeTelHref(contactIn.phone);
   const websiteHref = safeExternalWebsiteHref(contactIn.websiteUrl);
   const websiteLabel = trimText(contactIn.websiteLabel);
+
+  const physicalAddressDisplay = formatPhysicalAddressDisplay({
+    physicalStreet: contactIn.physicalStreet,
+    physicalSuite: contactIn.physicalSuite,
+    physicalCity: contactIn.physicalCity,
+    physicalRegion: contactIn.physicalRegion,
+    physicalPostalCode: contactIn.physicalPostalCode,
+  });
+  const mapsSearchHref = physicalAddressDisplay
+    ? buildGoogleMapsSearchHrefFromPhysical({
+        physicalStreet: contactIn.physicalStreet,
+        physicalSuite: contactIn.physicalSuite,
+        physicalCity: contactIn.physicalCity,
+        physicalRegion: contactIn.physicalRegion,
+        physicalPostalCode: contactIn.physicalPostalCode,
+      })
+    : undefined;
 
   const rawSocial = contactIn.socialLinks;
   let socialLinks: ServiciosProfileResolved["contact"]["socialLinks"];
@@ -133,6 +152,8 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
       isFeatured: contactIn.isFeatured === true,
       featuredLabel: trimText(contactIn.featuredLabel) || undefined,
       socialLinks,
+      physicalAddressDisplay: physicalAddressDisplay || undefined,
+      mapsSearchHref: mapsSearchHref || undefined,
     },
     quickFacts: filterQuickFacts(input.quickFacts),
     about: sanitizeAbout(input.about),

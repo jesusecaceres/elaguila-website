@@ -236,6 +236,26 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
             </p>
           ) : null}
 
+          {profile.contact.physicalAddressDisplay ? (
+            <div className="mt-3 border-t border-black/[0.06] pt-3">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-text-2)]">{L.physicalLocation}</p>
+              <p className="mt-1.5 whitespace-pre-line text-xs leading-relaxed text-[color:var(--lx-text)]">
+                {profile.contact.physicalAddressDisplay}
+              </p>
+              {profile.contact.mapsSearchHref ? (
+                <a
+                  href={profile.contact.mapsSearchHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-flex min-h-[40px] items-center gap-2 text-sm font-semibold text-[#3B66AD] hover:underline"
+                >
+                  <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
+                  {L.openInMaps}
+                </a>
+              ) : null}
+            </div>
+          ) : null}
+
           <ServiciosLeadForm lang={lang} />
         </div>
       </div>

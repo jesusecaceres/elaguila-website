@@ -158,6 +158,12 @@ export type ServiciosContactBlock = {
   isFeatured?: boolean;
   featuredLabel?: string;
   socialLinks?: ServiciosContactSocialLinks;
+  /** Optional mailing / storefront address (distinct from hero location summary line). */
+  physicalStreet?: string;
+  physicalSuite?: string;
+  physicalCity?: string;
+  physicalRegion?: string;
+  physicalPostalCode?: string;
 };
 
 export type ServiciosAboutBlock = {
@@ -232,6 +238,10 @@ export type ServiciosProfileResolved = {
       linkedin?: string;
       whatsapp?: string;
     };
+    /** Formatted for display; omitted when no physical address provided */
+    physicalAddressDisplay?: string;
+    /** https://www.google.com/maps/search/... built in resolver */
+    mapsSearchHref?: string;
   };
   quickFacts: ServiciosQuickFact[];
   about?: ServiciosAboutBlock;

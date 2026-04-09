@@ -56,7 +56,15 @@ export type ClasificadosServiciosCopy = {
     businessType: string;
     businessName: string;
     city: string;
+    cityPlaceholder: string;
     serviceAreas: string;
+    physicalAddressSection: string;
+    physicalAddressIntro: string;
+    physicalStreet: string;
+    physicalSuite: string;
+    physicalAddressCity: string;
+    physicalRegion: string;
+    physicalPostalCode: string;
     phone: string;
     website: string;
     whatsapp: string;
@@ -248,7 +256,16 @@ const es: ClasificadosServiciosCopy = {
     businessType: "Tipo de negocio",
     businessName: "Nombre del negocio",
     city: "Ciudad principal",
-    serviceAreas: "Zonas de servicio (barrios, condados o radio)",
+    cityPlaceholder: "Ej. San José",
+    serviceAreas: "Zonas de servicio",
+    physicalAddressSection: "Dirección física (opcional)",
+    physicalAddressIntro:
+      "Solo si tienes una ubicación pública (oficina o local). Los servicios solo a domicilio pueden dejarlo vacío.",
+    physicalStreet: "Dirección",
+    physicalSuite: "Suite / unidad (opcional)",
+    physicalAddressCity: "Ciudad",
+    physicalRegion: "Estado",
+    physicalPostalCode: "Código ZIP",
     phone: "Teléfono",
     website: "Sitio web",
     whatsapp: "WhatsApp",
@@ -359,10 +376,8 @@ const es: ClasificadosServiciosCopy = {
     galleryPartialAdd: "Solo cabían algunas fotos nuevas (máx. {max} en total).",
     hoursOutputHint:
       "En tu vitrina: destacamos el horario de hoy y mostramos la semana completa en el panel de contacto.",
-    cityHelp:
-      "Ciudad principal del negocio (p. ej. San José, Oakland, Fresno, Sacramento). La usamos como ancla para filtros regionales en NorCal; no reemplaza las zonas donde viajas a trabajar.",
-    serviceAreasHelp:
-      "Describe barrios, condados o radio donde atiendes (p. ej. “Sur de la bahía · dentro de 40 km”). Es independiente de la ciudad principal y no debe duplicarla.",
+    cityHelp: "Ciudad donde se ubica principalmente tu negocio.",
+    serviceAreasHelp: "Describe vecindades, condados o el radio donde atiendes.",
     languageOtherLabel: "Especifica otros idiomas",
     languageOtherPlaceholder: "Ej.: portugués, cantonés…",
     contactDataHeading: "A. Datos de contacto que tienes en el formulario",
@@ -437,7 +452,16 @@ const en: ClasificadosServiciosCopy = {
     businessType: "Business type",
     businessName: "Business name",
     city: "Main city",
-    serviceAreas: "Service areas (neighborhoods, counties, radius)",
+    cityPlaceholder: "e.g. San Jose",
+    serviceAreas: "Service areas",
+    physicalAddressSection: "Physical address (optional)",
+    physicalAddressIntro:
+      "Only if you have a public storefront or office. Mobile-only providers can leave this blank.",
+    physicalStreet: "Street address",
+    physicalSuite: "Suite / unit (optional)",
+    physicalAddressCity: "City",
+    physicalRegion: "State",
+    physicalPostalCode: "ZIP code",
     phone: "Phone",
     website: "Website",
     whatsapp: "WhatsApp",
@@ -548,10 +572,8 @@ const en: ClasificadosServiciosCopy = {
     galleryPartialAdd: "Only some new photos fit (max {max} total).",
     hoursOutputHint:
       "On your public profile: we highlight today’s hours and show the full week in the contact panel.",
-    cityHelp:
-      "Primary city for your business (e.g. San Jose, Oakland, Fresno, Sacramento). We use it as the anchor for NorCal-style regional filters; it does not replace the areas you travel for jobs.",
-    serviceAreasHelp:
-      "Neighborhoods, counties, or service radius (e.g. “South Bay · within 25 mi”). Keep this distinct from the main city — don’t duplicate the city name here.",
+    cityHelp: "City where your business is primarily based.",
+    serviceAreasHelp: "Describe neighborhoods, counties, or the radius you serve.",
     languageOtherLabel: "Specify other languages",
     languageOtherPlaceholder: "e.g. Portuguese, Cantonese…",
     contactDataHeading: "A. Contact details on file",

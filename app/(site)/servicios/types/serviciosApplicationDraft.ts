@@ -66,6 +66,12 @@ export type ServiciosApplicationContactDraft = {
   socialTiktokUrl?: string;
   socialLinkedinUrl?: string;
   socialWhatsappUrl?: string;
+  /** Optional public storefront / mailing address — shown in contact panel + maps when present */
+  physicalStreet?: string;
+  physicalSuite?: string;
+  physicalCity?: string;
+  physicalRegion?: string;
+  physicalPostalCode?: string;
 };
 
 export type ServiciosApplicationAboutDraft = {

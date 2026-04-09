@@ -30,6 +30,11 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     businessTypeId: "",
     businessName: "",
     city: "",
+    physicalStreet: "",
+    physicalSuite: "",
+    physicalAddressCity: "",
+    physicalRegion: "",
+    physicalPostalCode: "",
     serviceAreaNotes: "",
     phone: "",
     website: "",
@@ -90,6 +95,15 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
   if (s.businessTypeId.trim()) return true;
   if (s.businessName.trim()) return true;
   if (s.city.trim()) return true;
+  if (
+    s.physicalStreet.trim() ||
+    s.physicalSuite.trim() ||
+    s.physicalAddressCity.trim() ||
+    s.physicalRegion.trim() ||
+    s.physicalPostalCode.trim()
+  ) {
+    return true;
+  }
   if (s.serviceAreaNotes.trim()) return true;
   if (s.phone.trim() || s.website.trim() || s.whatsapp.trim()) return true;
   if (s.logoUrl.trim() || s.coverUrl.trim()) return true;

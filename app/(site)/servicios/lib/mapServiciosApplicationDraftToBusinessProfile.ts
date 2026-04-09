@@ -131,6 +131,17 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
     contact.socialLinks = socialLinks;
   }
 
+  const physStreet = trim(c?.physicalStreet);
+  const physSuite = trim(c?.physicalSuite);
+  const physCity = trim(c?.physicalCity);
+  const physRegion = trim(c?.physicalRegion);
+  const physZip = trim(c?.physicalPostalCode);
+  if (physStreet) contact.physicalStreet = physStreet;
+  if (physSuite) contact.physicalSuite = physSuite;
+  if (physCity) contact.physicalCity = physCity;
+  if (physRegion) contact.physicalRegion = physRegion;
+  if (physZip) contact.physicalPostalCode = physZip;
+
   const quickFacts = mapQuickFacts(draft.quickFacts);
   const about = mapAbout(draft.about);
   const services = mapServices(draft.services);
