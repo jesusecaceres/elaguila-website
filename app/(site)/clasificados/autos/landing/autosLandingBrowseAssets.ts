@@ -11,5 +11,6 @@ export const AUTOS_LANDING_BODYSTYLE_IMAGES = {
     "https://images.unsplash.com/photo-1552519507-dfcab29b665a?auto=format&fit=crop&w=800&q=80",
 } as const;
 
+/** Premium automotive row / showroom mood — toned via shell overlays (not full-bleed raw photo). */
 export const AUTOS_LANDING_HERO_BACKDROP =
-  "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=2400&q=70";
+  "https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=2400&q=82";

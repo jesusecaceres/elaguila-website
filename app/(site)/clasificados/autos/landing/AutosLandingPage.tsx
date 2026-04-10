@@ -28,6 +28,7 @@ import { NeedBasedBrowseSection } from "./NeedBasedBrowseSection";
 import { FeaturedDealersSection } from "./FeaturedDealersSection";
 import { RecentAutosSection } from "./RecentAutosSection";
 import { AutosLandingPublishCTA } from "./AutosLandingPublishCTA";
+import { autosLandingSectionClass } from "./autosLandingLayout";
 
 const RESULTADOS_PATH = "/clasificados/autos/resultados";
 
@@ -157,7 +158,7 @@ export function AutosLandingPage() {
   return (
     <AutosLandingShell>
       <div className="border-b border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-bg)]/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5 md:px-6">
+        <div className={`${autosLandingSectionClass} flex flex-wrap items-center justify-between gap-3 py-3`}>
           <nav className="text-[11px] font-medium text-[color:var(--lx-muted)]">
             <Link href={clasificadosHome} className="hover:text-[color:var(--lx-text)]">
               {copy.breadcrumb}
@@ -177,7 +178,7 @@ export function AutosLandingPage() {
         </div>
       </div>
 
-      <main className="mx-auto flex min-w-0 max-w-[1280px] flex-col gap-8 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] pt-7 sm:gap-10 sm:pt-9 md:gap-12 md:pt-11">
+      <main className="flex w-full min-w-0 flex-col gap-7 pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] pt-6 sm:gap-9 sm:pt-8 md:gap-10 md:pt-9 lg:gap-11 lg:pt-10 2xl:gap-12">
         <AutosHeroSearch
           copy={copy}
           searchQ={searchQ}

@@ -10,12 +10,12 @@ export function ViajesTrustStrip({ ui, className = "" }: { ui: ViajesUi; classNa
     <aside
       className={`rounded-2xl border border-[color:var(--lx-gold-border)] bg-[#fffdf9]/96 px-4 py-4 shadow-[0_12px_36px_-20px_rgba(30,50,70,0.12)] sm:rounded-3xl sm:px-6 sm:py-5 ${className}`}
     >
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-8">
-        <div className="lg:max-w-xs">
+      <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:gap-8">
+        <div className="min-w-0 lg:max-w-xs">
           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-sky-900/80">{w.title}</p>
           <p className="mt-1.5 text-sm font-semibold leading-snug text-[color:var(--lx-text)]">{w.body}</p>
         </div>
-        <ul className="grid flex-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-3">
+        <ul className="grid min-w-0 flex-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-3">
           {points.map((line, i) => (
             <li
               key={i}

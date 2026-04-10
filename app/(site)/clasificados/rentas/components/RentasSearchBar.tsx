@@ -35,75 +35,75 @@ export function RentasSearchBar({
   priceOptions,
 }: Props) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-[#5B7C99]/95 sm:text-left">
         {copy.moduleHeadline}
       </p>
       <div className={rentasSearchShellClass}>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:gap-4">
-        <label className="min-w-0 flex-1 lg:flex-[1.15]">
-          <span className="sr-only">{copy.labelSearch}</span>
-          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">
-            {copy.labelSearch}
-          </span>
-          <div className="relative">
-            <FiSearch
-              className="pointer-events-none absolute left-3.5 top-1/2 h-[1.1rem] w-[1.1rem] -translate-y-1/2 text-[#C45C26]/90"
-              aria-hidden
-            />
-            <input
-              value={query}
-              onChange={(e) => onQuery(e.target.value)}
-              placeholder={copy.placeholder}
-              className={`${fieldClass} pl-10`}
-            />
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:gap-4">
+          <label className="min-w-0 w-full flex-1 xl:min-w-0 xl:flex-[1.2]">
+            <span className="sr-only">{copy.labelSearch}</span>
+            <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">
+              {copy.labelSearch}
+            </span>
+            <div className="relative">
+              <FiSearch
+                className="pointer-events-none absolute left-3.5 top-1/2 h-[1.1rem] w-[1.1rem] -translate-y-1/2 text-[#C45C26]/90"
+                aria-hidden
+              />
+              <input
+                value={query}
+                onChange={(e) => onQuery(e.target.value)}
+                placeholder={copy.placeholder}
+                className={`${fieldClass} min-h-[48px] pl-10`}
+              />
+            </div>
+          </label>
+          <div className="grid min-w-0 w-full grid-cols-1 gap-3 md:grid-cols-3 xl:max-w-[29rem] xl:shrink-0">
+            <label className="min-w-0">
+              <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.tipo}</span>
+              <select
+                value={propertyType}
+                onChange={(e) => onPropertyType(e.target.value)}
+                className={`${fieldClass} min-h-[48px]`}
+              >
+                <option value="">{copy.tipoPlaceholder}</option>
+                <option value="casa">{copy.optCasa}</option>
+                <option value="depto">{copy.optDepto}</option>
+                <option value="terreno">{copy.optTerreno}</option>
+                <option value="comercial">{copy.optComercial}</option>
+              </select>
+            </label>
+            <label className="min-w-0">
+              <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.precio}</span>
+              <select
+                value={priceBand}
+                onChange={(e) => onPriceBand(e.target.value)}
+                className={`${fieldClass} min-h-[48px]`}
+              >
+                {priceOptions.map((o) => (
+                  <option key={o.value || "any"} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="min-w-0">
+              <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.recs}</span>
+              <select value={beds} onChange={(e) => onBeds(e.target.value)} className={`${fieldClass} min-h-[48px]`}>
+                <option value="">{copy.recsAny}</option>
+                <option value="1">1+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+                <option value="4">4+</option>
+              </select>
+            </label>
           </div>
-        </label>
-        <div className="grid flex-1 gap-3 sm:grid-cols-3 lg:max-w-[28rem] lg:shrink-0">
-          <label>
-            <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.tipo}</span>
-            <select
-              value={propertyType}
-              onChange={(e) => onPropertyType(e.target.value)}
-              className={fieldClass}
-            >
-              <option value="">{copy.tipoPlaceholder}</option>
-              <option value="casa">{copy.optCasa}</option>
-              <option value="depto">{copy.optDepto}</option>
-              <option value="terreno">{copy.optTerreno}</option>
-              <option value="comercial">{copy.optComercial}</option>
-            </select>
-          </label>
-          <label>
-            <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.precio}</span>
-            <select
-              value={priceBand}
-              onChange={(e) => onPriceBand(e.target.value)}
-              className={fieldClass}
-            >
-              {priceOptions.map((o) => (
-                <option key={o.value || "any"} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.recs}</span>
-            <select value={beds} onChange={(e) => onBeds(e.target.value)} className={fieldClass}>
-              <option value="">{copy.recsAny}</option>
-              <option value="1">1+</option>
-              <option value="2">2+</option>
-              <option value="3">3+</option>
-              <option value="4">4+</option>
-            </select>
-          </label>
+          <button type="button" onClick={() => onSearch?.()} className={rentasSearchSubmitClass}>
+            <FiSearch className="h-4 w-4 opacity-95 xl:hidden" aria-hidden />
+            {copy.buscar}
+          </button>
         </div>
-        <button type="button" onClick={() => onSearch?.()} className={rentasSearchSubmitClass}>
-          <FiSearch className="h-4 w-4 opacity-95 lg:hidden" aria-hidden />
-          {copy.buscar}
-        </button>
-      </div>
       </div>
     </div>
   );

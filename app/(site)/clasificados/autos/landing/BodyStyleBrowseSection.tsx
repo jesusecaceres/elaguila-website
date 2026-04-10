@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { AutosPublicBlueprintCopy } from "../lib/autosPublicBlueprintCopy";
 import { AUTOS_LANDING_BODYSTYLE_IMAGES } from "./autosLandingBrowseAssets";
+import { autosLandingSectionClass } from "./autosLandingLayout";
 
 export function BodyStyleBrowseSection({
   copy,
@@ -13,11 +14,11 @@ export function BodyStyleBrowseSection({
   tiles: { href: string; label: string; imageKey: keyof typeof AUTOS_LANDING_BODYSTYLE_IMAGES }[];
 }) {
   return (
-    <section className="mx-auto w-full max-w-[1280px] min-w-0 px-4 sm:px-5 md:px-6">
+    <section className={autosLandingSectionClass}>
       <h2 className="border-l-[3px] border-[color:var(--lx-gold)] pl-3 font-serif text-xl font-semibold tracking-tight text-[color:var(--lx-text)] sm:text-2xl">
         {copy.browseBodyStyleTitle}
       </h2>
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:gap-5 lg:grid-cols-3 lg:gap-5 xl:grid-cols-6">
         {tiles.map((t) => (
           <Link
             key={t.label}

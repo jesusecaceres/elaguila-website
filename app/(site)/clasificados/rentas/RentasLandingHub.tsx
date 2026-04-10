@@ -17,6 +17,7 @@ import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasL
 import { RentasLandingCard } from "@/app/clasificados/rentas/landing/RentasLandingCard";
 import { RentasLandingCategoryHeader } from "@/app/clasificados/rentas/landing/RentasLandingCategoryHeader";
 import { RentasLandingFeatured } from "@/app/clasificados/rentas/landing/RentasLandingFeatured";
+import { RentasLandingHero } from "@/app/clasificados/rentas/landing/RentasLandingHero";
 import { RentasLandingQuickChips } from "@/app/clasificados/rentas/landing/RentasLandingQuickChips";
 import { RentasLandingSectionBand } from "@/app/clasificados/rentas/landing/RentasLandingSectionBand";
 import { RentasLandingShell } from "@/app/clasificados/rentas/landing/RentasLandingShell";
@@ -79,12 +80,12 @@ export function RentasLandingHub() {
 
   return (
     <RentasLandingShell>
-      <div className="relative z-[2]">
+      <RentasLandingHero>
         <div className={rentasLandingHeroPanelClass}>
           <RentasLandingCategoryHeader copy={copy} lang={lang} />
         </div>
 
-        <div className="relative z-[3] mx-auto mt-6 w-full max-w-[min(100%,1200px)] sm:-mt-10 lg:-mt-12 xl:max-w-[min(100%,1280px)]">
+        <div className="w-full min-w-0 max-w-[min(100%,1280px)]">
           <RentasSearchBar
             query={query}
             onQuery={setQuery}
@@ -104,7 +105,7 @@ export function RentasLandingHub() {
             </Link>
           </p>
         </div>
-      </div>
+      </RentasLandingHero>
 
       <RentasLandingQuickChips copy={copy.quickExplore} chips={quickChipLinks} />
 
@@ -120,7 +121,7 @@ export function RentasLandingHub() {
           </Link>
         }
       >
-        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 sm:gap-8 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 lg:gap-8">
           {destacadas.map((l) => (
             <RentasLandingCard key={l.id} listing={l} copy={copy} lang={lang} />
           ))}
@@ -137,7 +138,7 @@ export function RentasLandingHub() {
           </Link>
         }
       >
-        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 sm:gap-8 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 lg:gap-8">
           {recientes.map((l) => (
             <RentasLandingCard key={`rec-${l.id}`} listing={l} copy={copy} lang={lang} />
           ))}

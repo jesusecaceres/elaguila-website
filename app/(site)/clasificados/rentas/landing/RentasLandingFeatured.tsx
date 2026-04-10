@@ -61,12 +61,12 @@ export function RentasLandingFeatured({ copy, lang, primary, supporting }: Props
       </h2>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#4A4338]/90">{fc.subtitle}</p>
 
-      <div className="mt-10 grid grid-cols-1 gap-7 lg:grid-cols-12 lg:items-stretch lg:gap-10">
-        <div className="lg:col-span-8">
+      <div className="mt-10 grid grid-cols-1 gap-7 md:grid-cols-12 md:items-stretch md:gap-8 lg:gap-10">
+        <div className="md:col-span-12 lg:col-span-8">
           <div className={`overflow-hidden rounded-[1.35rem] ${rentasCardSurfaceClass} ring-1 ring-[#D4C4A8]/35`}>
             <div className="flex flex-col lg:flex-row lg:items-stretch">
-              <div className="relative lg:w-[58%]">
-                <div className="relative aspect-[16/10] lg:aspect-auto lg:min-h-[340px] lg:h-full">
+              <div className="relative min-w-0 lg:w-[58%]">
+                <div className="relative aspect-[16/10] bg-[#E8E0D4] lg:aspect-auto lg:h-full lg:min-h-[min(360px,50vh)]">
                   <span className="absolute left-3 top-3 z-[2] rounded-md border border-[#E8A849]/40 bg-[#FFF4E0]/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#7A4A12] shadow-sm">
                     {fc.badgeFeatured}
                   </span>
@@ -126,7 +126,7 @@ export function RentasLandingFeatured({ copy, lang, primary, supporting }: Props
 
         {supporting ? (
           <aside
-            className={`flex flex-col justify-between gap-4 rounded-[1.15rem] p-5 lg:col-span-4 ${rentasCardSurfaceClass} ring-1 ring-[#5B7C99]/15`}
+            className={`flex flex-col justify-between gap-4 rounded-[1.15rem] p-5 md:col-span-12 lg:col-span-4 ${rentasCardSurfaceClass} ring-1 ring-[#5B7C99]/15`}
           >
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/80">{fc.supportingEyebrow}</p>

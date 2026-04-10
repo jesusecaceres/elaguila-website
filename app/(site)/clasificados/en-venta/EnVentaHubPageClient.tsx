@@ -38,6 +38,9 @@ type Lang = "es" | "en";
 
 function HeroBackdrop({ src }: { src: string }) {
   const useNextImage = src.startsWith("/") || src.includes("images.unsplash.com");
+  /** Responsive focal point: slightly higher on phones, centered on desktop — reduces awkward crops. */
+  const objectPos =
+    "object-cover object-[center_35%] min-[400px]:object-[center_38%] md:object-[center_40%] xl:object-[center_42%]";
   if (useNextImage) {
     return (
       <Image
@@ -45,14 +48,14 @@ function HeroBackdrop({ src }: { src: string }) {
         alt=""
         fill
         priority
-        sizes="(max-width: 1152px) 100vw, 1152px"
-        className="object-cover object-[center_42%] max-sm:object-[center_38%]"
+        sizes="(max-width: 640px) 100vw, (max-width: 1280px) 100vw, 1152px"
+        className={objectPos}
       />
     );
   }
   return (
     // eslint-disable-next-line @next/next/no-img-element -- admin may set arbitrary HTTPS hero URLs not in `images.remotePatterns`
-    <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover object-[center_42%] max-sm:object-[center_38%]" />
+    <img src={src} alt="" className={`absolute inset-0 h-full w-full ${objectPos}`} />
   );
 }
 
@@ -127,13 +130,13 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
     "shadow-[0_8px_24px_-10px_rgba(42,36,22,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] transition hover:bg-white active:scale-[0.99]";
 
   const chipNeutral =
-    "inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#E8DFD0] bg-white/95 px-3.5 py-2 text-[12px] font-semibold text-[#2C2416] shadow-[0_2px_8px_-2px_rgba(47,74,101,0.08)] transition hover:border-[#C9B46A]/45 hover:bg-white hover:shadow-[0_4px_14px_-4px_rgba(47,74,101,0.12)] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:px-4 sm:text-[13px]";
+    "inline-flex min-h-[44px] max-w-full items-center justify-center text-balance rounded-full border border-[#E8DFD0] bg-white/95 px-3 py-2 text-center text-[12px] font-semibold leading-snug text-[#2C2416] shadow-[0_2px_8px_-2px_rgba(47,74,101,0.08)] transition hover:border-[#C9B46A]/45 hover:bg-white hover:shadow-[0_4px_14px_-4px_rgba(47,74,101,0.12)] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:px-3.5 sm:text-[13px]";
   const chipFeaturedCls =
-    "inline-flex min-h-[44px] items-center gap-1.5 justify-center rounded-full border border-[#C9A84A]/45 bg-gradient-to-br from-[#FFFBF0] via-[#F5F8FB] to-[#E8EEF3] px-3.5 py-2 text-[12px] font-semibold text-[#2F4A65] shadow-[0_4px_16px_-6px_rgba(201,168,74,0.35)] ring-1 ring-[#C9A84A]/25 transition hover:ring-[#C9A84A]/40 focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:px-4 sm:text-[13px]";
+    "inline-flex min-h-[44px] max-w-full items-center gap-1.5 justify-center text-balance rounded-full border border-[#C9A84A]/45 bg-gradient-to-br from-[#FFFBF0] via-[#F5F8FB] to-[#E8EEF3] px-3 py-2 text-center text-[12px] font-semibold leading-tight text-[#2F4A65] shadow-[0_4px_16px_-6px_rgba(201,168,74,0.35)] ring-1 ring-[#C9A84A]/25 transition hover:ring-[#C9A84A]/40 focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:px-4 sm:text-[13px]";
 
   return (
     <div
-      className="relative min-h-screen text-[#2C2416]"
+      className="relative min-h-screen overflow-x-hidden text-[#2C2416]"
       style={{
         backgroundColor: "#F3EBDD",
         backgroundImage: `
@@ -151,23 +154,26 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
         aria-hidden
       />
 
-      <main className="relative mx-auto max-w-6xl px-4 pb-32 pt-6 sm:px-6 sm:pb-24 sm:pt-10 lg:px-8">
+      <main className="relative mx-auto w-full min-w-0 max-w-6xl px-3 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pb-24 sm:pt-9 md:px-6 lg:px-8 lg:pt-10">
         {/* Hero */}
-        <section className="relative overflow-hidden rounded-[28px] border border-white/50 bg-[#E8E0D4]/40 shadow-[0_24px_80px_-32px_rgba(47,74,101,0.35)] sm:rounded-[32px]">
-          <div className="absolute inset-0">
+        <section className="relative isolate overflow-hidden rounded-[24px] border border-white/50 bg-[#E8E0D4]/40 shadow-[0_24px_80px_-32px_rgba(47,74,101,0.35)] sm:rounded-[28px] md:rounded-[32px]">
+          <div className="absolute inset-0 min-h-[240px] sm:min-h-[260px] md:min-h-[280px] lg:min-h-[300px]">
             <HeroBackdrop src={backdropSrc} />
             <div
-              className="absolute inset-0 bg-gradient-to-b from-[#F8F1E4]/88 via-[#F5EFE3]/78 to-[#F3EBDD]"
+              className="absolute inset-0 bg-gradient-to-b from-[#F8F1E4]/90 via-[#F5EFE3]/80 to-[#F3EBDD]/95 max-md:from-[#F8F1E4]/92"
               aria-hidden
             />
             <div
               className="absolute inset-0 bg-gradient-to-r from-[#3D5A73]/[0.07] via-transparent to-[#3D5A73]/[0.05]"
               aria-hidden
             />
-            <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#F3EBDD] via-[#F3EBDD]/92 to-transparent sm:h-40" aria-hidden />
+            <div
+              className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#F3EBDD] via-[#F3EBDD]/94 to-transparent sm:h-32 md:h-40"
+              aria-hidden
+            />
           </div>
 
-          <div className="relative z-10 flex min-h-0 flex-col items-center px-4 pb-9 pt-7 text-center sm:min-h-0 sm:px-8 sm:pb-14 sm:pt-12 md:pb-16 md:pt-14">
+          <div className="relative z-10 mx-auto flex w-full min-w-0 max-w-3xl flex-col items-center px-3 pb-8 pt-6 text-center sm:max-w-none sm:px-6 sm:pb-12 sm:pt-10 md:px-8 md:pb-14 md:pt-12 lg:pb-16 lg:pt-14">
             <span
               className={cx(
                 "mb-4 inline-flex min-h-[36px] items-center rounded-full px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white sm:mb-5",
@@ -177,7 +183,7 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
               {t.badge}
             </span>
 
-            <h1 className="font-serif text-[2.1rem] font-bold leading-[1.08] tracking-tight text-[#1E1810] sm:text-5xl md:text-[3.35rem]">
+            <h1 className="max-w-[min(100%,18ch)] font-serif text-[clamp(1.7rem,4.2vw+0.65rem,3.35rem)] font-bold leading-[1.08] tracking-tight text-[#1E1810] min-[400px]:max-w-none md:text-[3.1rem] lg:text-[3.35rem]">
               {t.heroEmoji ? (
                 <span className="mr-2 inline-block" aria-hidden>
                   {t.heroEmoji}
@@ -185,13 +191,15 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
               ) : null}
               {t.hero}
             </h1>
-            <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[#3D3428]/95 sm:mt-4 sm:text-lg">{t.sub}</p>
-            <p className="mt-2.5 max-w-md text-[11px] font-semibold uppercase leading-snug tracking-[0.14em] text-[#4A6678] sm:mt-3 sm:text-[12px] sm:tracking-[0.16em]">
+            <p className="mt-3 max-w-[min(100%,36rem)] text-pretty text-[15px] leading-relaxed text-[#3D3428]/95 sm:mt-4 sm:text-lg">
+              {t.sub}
+            </p>
+            <p className="mt-2.5 max-w-[min(100%,28rem)] text-pretty text-[11px] font-semibold uppercase leading-snug tracking-[0.12em] text-[#4A6678] sm:mt-3 sm:text-[12px] sm:tracking-[0.16em]">
               {t.premiumTagline}
             </p>
 
             <form
-              className="mt-7 w-full max-w-3xl text-left sm:mt-9"
+              className="mt-6 w-full min-w-0 max-w-3xl text-left sm:mt-8 lg:mt-9"
               action="/clasificados/en-venta/results"
               method="get"
               role="search"
@@ -199,11 +207,12 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
               <input type="hidden" name="lang" value={lang} />
               <div
                 className={cx(
-                  "flex flex-col gap-0 overflow-hidden rounded-[24px] border border-white/85 bg-white/92 shadow-[0_18px_56px_-20px_rgba(47,74,101,0.35),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-md",
-                  "sm:flex-row sm:items-stretch sm:rounded-full sm:gap-0"
+                  "flex flex-col gap-0 overflow-hidden rounded-[22px] border border-white/85 bg-white/92 shadow-[0_18px_56px_-20px_rgba(47,74,101,0.35),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-md",
+                  "md:rounded-[24px]",
+                  "xl:flex-row xl:items-stretch xl:rounded-full"
                 )}
               >
-                <label className="flex min-h-[52px] min-w-0 flex-1 cursor-text items-center gap-3 px-4 sm:pl-6 sm:pr-2">
+                <label className="flex min-h-[52px] min-w-0 flex-1 cursor-text items-center gap-2.5 px-3 sm:gap-3 sm:px-4 xl:min-w-[120px] xl:flex-1 xl:pl-6 xl:pr-4">
                   <span className="shrink-0 text-[#4A6678]" aria-hidden>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <circle cx="11" cy="11" r="7" />
@@ -215,60 +224,59 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
                     type="search"
                     autoComplete="off"
                     placeholder={t.searchPh}
-                    className="min-h-[44px] min-w-0 flex-1 bg-transparent py-2 text-[15px] text-[#1E1810] placeholder:text-[#7A7164] outline-none"
+                    className="min-h-[48px] min-w-0 flex-1 bg-transparent py-2 text-[15px] text-[#1E1810] placeholder:text-[#7A7164] outline-none sm:min-h-[44px]"
                   />
                 </label>
 
-                <div
-                  className="hidden h-auto w-px shrink-0 bg-[#E5DDD0] sm:my-3 sm:block"
-                  aria-hidden
-                />
+                <div className="hidden w-px shrink-0 self-stretch bg-[#E5DDD0] xl:my-3 xl:block" aria-hidden />
 
-                <div className="flex min-h-[52px] items-center gap-2 border-t border-[#EDE6DA] px-4 sm:w-[min(100%,220px)] sm:border-t-0 sm:px-3">
-                  <span className="shrink-0 text-[#4A6678]" aria-hidden>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M12 21s7-4.5 7-11a7 7 0 10-14 0c0 6.5 7 11 7 11z" strokeLinejoin="round" />
-                      <circle cx="12" cy="10" r="2.5" />
-                    </svg>
-                  </span>
-                  <select
-                    name="city"
-                    defaultValue=""
-                    aria-label={t.cityPh}
-                    className="min-h-[44px] w-full cursor-pointer appearance-none rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] py-2 pl-3 pr-8 text-[14px] font-medium text-[#2C2416] outline-none transition focus:border-[#C9B46A]/60"
-                    style={{
-                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234A6678' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-                      backgroundRepeat: "no-repeat",
-                      backgroundPosition: "right 10px center",
-                    }}
-                  >
-                    <option value="">{t.cityPh}</option>
-                    {EN_VENTA_HUB_CITY_PRESETS.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <div className="grid min-w-0 grid-cols-1 border-t border-[#EDE6DA] sm:grid-cols-2 xl:contents xl:border-0">
+                  <div className="flex min-h-[52px] min-w-0 items-center gap-2 px-3 sm:px-4 xl:w-[min(100%,240px)] xl:max-w-[240px] xl:shrink-0 xl:px-3">
+                    <span className="shrink-0 text-[#4A6678]" aria-hidden>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 21s7-4.5 7-11a7 7 0 10-14 0c0 6.5 7 11 7 11z" strokeLinejoin="round" />
+                        <circle cx="12" cy="10" r="2.5" />
+                      </svg>
+                    </span>
+                    <select
+                      name="city"
+                      defaultValue=""
+                      aria-label={t.cityPh}
+                      className="min-h-[48px] w-full min-w-0 cursor-pointer appearance-none rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] py-2 pl-3 pr-8 text-[14px] font-medium text-[#2C2416] outline-none transition focus:border-[#C9B46A]/60 sm:min-h-[44px]"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234A6678' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+                        backgroundRepeat: "no-repeat",
+                        backgroundPosition: "right 10px center",
+                      }}
+                    >
+                      <option value="">{t.cityPh}</option>
+                      {EN_VENTA_HUB_CITY_PRESETS.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div className="border-t border-[#EDE6DA] p-2 sm:border-t-0 sm:border-l sm:border-[#EDE6DA] sm:p-2">
-                  <button type="submit" className={cx(goldBtn, "h-[48px] w-full sm:w-auto sm:px-8")}>
-                    {t.search}
-                  </button>
+                  <div className="flex min-w-0 border-t border-[#EDE6DA] p-2 sm:border-l sm:border-t-0 sm:border-[#EDE6DA] xl:flex xl:items-stretch xl:p-2">
+                    <button type="submit" className={cx(goldBtn, "h-[48px] w-full min-w-0 xl:w-auto xl:min-w-[112px] xl:px-7")}>
+                      {t.search}
+                    </button>
+                  </div>
                 </div>
               </div>
             </form>
 
-            <p className="mt-4 max-w-lg text-[12px] font-medium leading-snug text-[#4A6678] sm:mt-5 sm:text-sm">{t.socialProof}</p>
+            <p className="mt-4 max-w-lg text-pretty text-[12px] font-medium leading-snug text-[#4A6678] sm:mt-5 sm:text-sm">{t.socialProof}</p>
 
-            <div className="mt-6 flex w-full max-w-xl flex-col gap-3 sm:mt-8 sm:max-w-2xl sm:flex-row sm:justify-center sm:gap-4">
-              <Link href={publishHref} className={cx(goldBtn, "w-full sm:w-auto sm:min-w-[200px]")}>
+            <div className="mx-auto mt-6 flex w-full min-w-0 max-w-[min(100%,36rem)] flex-col gap-3 sm:mt-8 sm:max-w-2xl sm:flex-row sm:justify-center sm:gap-4">
+              <Link href={publishHref} className={cx(goldBtn, "w-full min-w-0 sm:w-[min(100%,280px)]")}>
                 <span aria-hidden className="text-lg font-light">
                   +
                 </span>
                 {t.publish}
               </Link>
-              <Link href={allListingsHref} className={cx(ivoryBtn, "w-full sm:w-auto sm:min-w-[200px]")}>
+              <Link href={allListingsHref} className={cx(ivoryBtn, "w-full min-w-0 sm:w-[min(100%,280px)]")}>
                 {t.lista}
               </Link>
             </div>
@@ -298,7 +306,7 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
           <h3 className="mb-2.5 mt-6 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[#5C5346] sm:mb-3 sm:mt-7 sm:tracking-[0.16em]">
             {t.browseSectionLabel}
           </h3>
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-2.5">
+          <div className="flex w-full min-w-0 flex-wrap justify-center gap-2 px-0.5 sm:gap-2.5">
             <Link href={hrefBrowseNewest} className={chipNeutral}>
               {t.browseChipNewest}
             </Link>
@@ -331,7 +339,7 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
           <h2 className="text-center font-serif text-[1.35rem] font-bold tracking-tight text-[#1E1810] sm:text-3xl">
             {t.categoriesTitle}
           </h2>
-          <div className="mt-7 grid grid-cols-2 gap-2.5 sm:mt-10 sm:gap-5 lg:grid-cols-4">
+          <div className="mt-7 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:mt-10 sm:gap-4 lg:gap-5 xl:grid-cols-4">
             {EN_VENTA_DEPARTMENTS.map((d) => {
               const href = buildEnVentaResultsUrl(lang, { evDept: d.key });
               const title = d.label[lang];
@@ -360,8 +368,8 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
                   >
                     {vis.icon}
                   </span>
-                  <span className="text-[15px] font-bold leading-tight text-[#1E1810]">{title}</span>
-                  <span className="mt-1.5 line-clamp-2 text-[12px] leading-snug text-[#5C5346] sm:text-[13px]">{hint}</span>
+                  <span className="text-[14px] font-bold leading-tight text-[#1E1810] min-[420px]:text-[15px]">{title}</span>
+                  <span className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-[#5C5346] min-[420px]:text-[12px] sm:text-[13px]">{hint}</span>
                 </Link>
               );
             })}
@@ -371,7 +379,7 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
         {/* Trust */}
         <section className="mt-11 sm:mt-16">
           <div className="rounded-[24px] border border-white/75 bg-[#FFFCF7]/90 px-4 py-7 shadow-[0_14px_44px_-18px_rgba(42,36,22,0.14)] sm:px-8 sm:py-8">
-            <div className="grid grid-cols-1 gap-7 md:grid-cols-3 md:gap-8">
+            <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 md:gap-8">
               <div className="flex flex-col items-center text-center md:items-start md:text-left">
                 <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#FFF3D6] to-[#E8C96A]/50 text-[#B8891A]">
                   <TrustIconGift className="h-6 w-6" />
@@ -400,7 +408,7 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
         {/* Bottom sell CTA */}
         <section className="mt-10 sm:mt-14">
           <div className="flex flex-col items-start justify-between gap-5 rounded-[24px] border border-white/75 bg-[#FFFCF7]/95 px-5 py-7 shadow-[0_16px_48px_-20px_rgba(47,74,101,0.18)] sm:flex-row sm:items-center sm:gap-8 sm:px-10 sm:py-10">
-            <div className="max-w-xl">
+            <div className="min-w-0 max-w-xl flex-1">
               <h2 className="font-serif text-[1.15rem] font-bold text-[#1E1810] sm:text-2xl">{t.bottomSellTitle}</h2>
               <p className="mt-2 text-[13px] leading-relaxed text-[#3d556b] sm:text-base">{t.bottomSellSub}</p>
             </div>

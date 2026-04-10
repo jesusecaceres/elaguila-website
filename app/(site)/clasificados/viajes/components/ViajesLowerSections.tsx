@@ -65,20 +65,20 @@ export function ViajesLowerSections({ homeBackHref, ui }: ViajesLowerSectionsPro
           headingScale="tertiary"
           className="mb-5 sm:mb-6"
         />
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
           {editorial.map((card) => (
             <Link
               key={card.id}
               href={setLangOnHref(card.href, ui.lang)}
               className="group min-w-0 overflow-hidden rounded-2xl border border-dashed border-[color:var(--lx-gold-border)]/80 bg-white/75 transition hover:bg-[color:var(--lx-section)]/85"
             >
-              <div className="relative aspect-[16/10] w-full">
+              <div className="relative aspect-[16/10] w-full min-w-0 overflow-hidden">
                 <Image
                   src={card.imageSrc}
                   alt={card.imageAlt}
                   fill
-                  className="object-cover transition duration-300 group-hover:scale-[1.02]"
-                  sizes="(max-width:768px) 100vw, 33vw"
+                  className="object-cover object-center transition duration-300 group-hover:scale-[1.02]"
+                  sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw"
                 />
                 <span className="absolute left-2 top-2 rounded-md bg-black/55 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">{L.editorialPill}</span>
               </div>

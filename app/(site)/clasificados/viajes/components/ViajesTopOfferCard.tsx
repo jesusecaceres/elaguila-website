@@ -68,7 +68,7 @@ export function ViajesTopOfferCard({ offer, homeBackHref, ui }: { offer: ViajesT
     <article
       className={`group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-transparent transition hover:-translate-y-[1px] hover:shadow-[0_22px_48px_-20px_rgba(30,50,80,0.16)] ${shell}`}
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden">
+      <div className="relative aspect-[4/3] w-full min-w-0 overflow-hidden">
         <Image
           src={offer.imageSrc}
           alt={offer.imageAlt}

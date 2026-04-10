@@ -92,11 +92,11 @@ export function TrustValueStrip({ lang }: { lang: Lang }) {
       </h2>
       <div className="grid gap-8 sm:grid-cols-2 sm:gap-9 lg:grid-cols-4 lg:gap-10">
         {items.map((it) => (
-          <div key={it.title} className="flex gap-4">
+          <div key={it.title} className="flex min-w-0 gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-b from-[#eef4fb] to-[#dfe9f4] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-[#1e3a5f]/[0.06]">
               <Icon kind={it.icon} />
             </div>
-            <div>
+            <div className="min-w-0">
               <h3 className="text-[15px] font-bold leading-snug text-[#142a42]">{it.title}</h3>
               <p className="mt-1.5 text-[13px] leading-relaxed text-[#4a5d6e]">{it.body}</p>
             </div>

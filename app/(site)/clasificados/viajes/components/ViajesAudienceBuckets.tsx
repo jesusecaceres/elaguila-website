@@ -23,7 +23,7 @@ export function ViajesAudienceBuckets({ ui, browseAllHref }: ViajesAudienceBucke
         headingScale="secondary"
         className="mb-6 sm:mb-8"
       />
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-2 lg:gap-6 xl:grid-cols-4">
         {VIAJES_AUDIENCE_BUCKETS.map((card) => {
           const copy = ui.audience.byId[card.id];
           return (
@@ -32,7 +32,7 @@ export function ViajesAudienceBuckets({ ui, browseAllHref }: ViajesAudienceBucke
               href={setLangOnHref(card.href, ui.lang)}
               className="group block min-w-0 overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)] bg-[#fffefb] shadow-[0_12px_40px_-20px_rgba(30,24,16,0.12)] transition hover:-translate-y-[2px] hover:shadow-[0_22px_52px_-24px_rgba(30,50,80,0.16)]"
             >
-              <div className="relative aspect-[5/4] w-full overflow-hidden">
+              <div className="relative aspect-[5/4] w-full min-w-0 overflow-hidden">
                 <Image
                   src={card.imageSrc}
                   alt={card.imageAlt}

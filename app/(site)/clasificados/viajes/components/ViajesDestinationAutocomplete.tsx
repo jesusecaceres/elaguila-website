@@ -84,10 +84,10 @@ export function ViajesDestinationAutocomplete({
 
   const baseInput =
     inputClassName ??
-    "w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] placeholder:text-[color:var(--lx-muted)] focus:ring-2";
+    "w-full min-w-0 max-w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] placeholder:text-[color:var(--lx-muted)] focus:ring-2";
 
   return (
-    <div ref={wrapRef} className="relative">
+    <div ref={wrapRef} className="relative min-w-0 w-full max-w-full">
       <input
         role="combobox"
         aria-expanded={open}

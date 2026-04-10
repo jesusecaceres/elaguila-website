@@ -23,7 +23,7 @@ export function ViajesTopOffers({ homeBackHref, browseAllHref, ui }: ViajesTopOf
         headingScale="primary"
         className="mb-6 sm:mb-8"
       />
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-2 lg:gap-6 xl:grid-cols-4">
         {offers.map((offer) => (
           <ViajesTopOfferCard key={offer.id} offer={offer} homeBackHref={homeBackHref} ui={ui} />
         ))}

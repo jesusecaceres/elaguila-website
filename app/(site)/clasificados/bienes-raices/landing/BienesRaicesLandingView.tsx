@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -17,6 +18,7 @@ import { BienesRaicesNegocioFeaturedCard } from "@/app/clasificados/bienes-raice
 import { BienesRaicesMapPreview } from "@/app/clasificados/bienes-raices/resultados/map/BienesRaicesMapPreview";
 import { BienesRaicesResultsShell } from "@/app/clasificados/bienes-raices/resultados/components/BienesRaicesResultsShell";
 import {
+  BR_LANDING_HERO_IMAGE,
   BR_LANDING_QUICK_CHIPS,
   brLandingDestacadas,
   brLandingFeaturedHero,
@@ -33,12 +35,12 @@ const BTN_SECONDARY =
   "inline-flex min-h-[50px] w-full min-w-0 items-center justify-center rounded-2xl border border-[#E8DFD0]/90 bg-gradient-to-b from-white to-[#F5EFE6]/95 px-6 py-3.5 text-center text-sm font-bold text-[#1E1810] shadow-[0_8px_28px_-14px_rgba(42,36,22,0.18)] transition hover:border-[#C9B46A]/55 hover:shadow-[0_12px_32px_-14px_rgba(42,36,22,0.2)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9B46A]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F4EFE6] sm:w-auto";
 
 const INPUT_CLASS =
-  "w-full rounded-2xl border border-[#E8DFD0]/90 bg-white/[0.97] py-3.5 text-sm text-[#1E1810] shadow-[inset_0_2px_4px_rgba(61,54,48,0.04)] outline-none transition placeholder:text-[#5C5346]/36 focus:border-[#C9B46A]/70 focus:bg-white focus:shadow-[inset_0_0_0_1px_rgba(201,180,106,0.25)] focus:ring-2 focus:ring-[#C9B46A]/22";
+  "w-full min-h-[3.25rem] rounded-2xl border border-[#E8DFD0]/90 bg-white/[0.97] py-3 text-sm text-[#1E1810] shadow-[inset_0_2px_4px_rgba(61,54,48,0.04)] outline-none transition placeholder:text-[#5C5346]/36 focus:border-[#C9B46A]/70 focus:bg-white focus:shadow-[inset_0_0_0_1px_rgba(201,180,106,0.25)] focus:ring-2 focus:ring-[#C9B46A]/22";
 
 /** Break out of shell horizontal padding for an immersive band (no horizontal scroll). */
 function ImmersiveBand({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative -mx-4 w-[calc(100%+2rem)] max-w-[100vw] overflow-x-clip sm:-mx-5 sm:w-[calc(100%+2.5rem)]">
+    <div className="relative -mx-4 w-[calc(100%+2rem)] max-w-[100vw] overflow-x-clip overscroll-x-none sm:-mx-5 sm:w-[calc(100%+2.5rem)]">
       {children}
     </div>
   );
@@ -63,7 +65,7 @@ function SectionHeading({
     <div className="mb-7 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex min-w-0 items-start gap-4 sm:gap-6">
         <span
-          className={`shrink-0 font-serif text-[2.75rem] font-semibold leading-none sm:text-[3.25rem] ${idxColor}`}
+          className={`shrink-0 font-serif text-[clamp(2rem,5.5vw,3.25rem)] font-semibold leading-none ${idxColor}`}
           aria-hidden
         >
           {index}
@@ -131,7 +133,7 @@ function LandingSearchForm({
 
   return (
     <div className="relative">
-      <p className="mb-4 text-center font-serif text-lg text-[#3D3630]/90 sm:text-left sm:text-xl">{copy.searchModuleLead}</p>
+      <p className="mb-4 px-1 text-center font-serif text-lg text-[#3D3630]/90 sm:px-0 sm:text-left sm:text-xl">{copy.searchModuleLead}</p>
       <form
         onSubmit={onSubmit}
         className="relative overflow-hidden rounded-[1.35rem] border border-white/70 bg-gradient-to-br from-white/95 via-[#FDFBF7]/98 to-[#f3ebe6]/90 shadow-[0_28px_80px_-36px_rgba(42,36,22,0.45)] ring-1 ring-[#C9B46A]/15 backdrop-blur-md"
@@ -149,15 +151,15 @@ function LandingSearchForm({
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={copy.searchKeywordPlaceholder}
                 autoComplete="off"
-                className={`${INPUT_CLASS} py-4 pl-12 pr-4 text-base sm:text-[1.05rem]`}
+                className={`${INPUT_CLASS} min-h-[3.5rem] py-3.5 pl-12 pr-4 text-base sm:text-[1.05rem]`}
               />
             </div>
           </label>
 
           <div className="my-6 h-px w-full bg-gradient-to-r from-transparent via-[#E8DFD0]/85 to-transparent" aria-hidden />
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:items-end lg:gap-4">
-            <label>
+          <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 sm:items-end lg:grid-cols-4 lg:gap-4">
+            <label className="min-w-0 sm:col-span-1">
               <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.18em] text-[#5C5346]/68">
                 {copy.searchOperationLabel}
               </span>
@@ -171,7 +173,7 @@ function LandingSearchForm({
                 <option value="renta">{copy.searchOperationRent}</option>
               </select>
             </label>
-            <label>
+            <label className="min-w-0 sm:col-span-1">
               <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.18em] text-[#5C5346]/68">
                 {copy.searchPropertyLabel}
               </span>
@@ -187,7 +189,7 @@ function LandingSearchForm({
                 <option value="comercial">{copy.searchPropertyCommercial}</option>
               </select>
             </label>
-            <label className="sm:col-span-2 lg:col-span-1">
+            <label className="min-w-0 sm:col-span-2 lg:col-span-1">
               <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.18em] text-[#5C5346]/68">
                 {copy.searchCityLabel}
               </span>
@@ -199,7 +201,7 @@ function LandingSearchForm({
                 className={`${INPUT_CLASS} px-4`}
               />
             </label>
-            <div className="sm:col-span-2 lg:col-span-1">
+            <div className="min-w-0 sm:col-span-2 lg:col-span-1">
               <button type="submit" className={BTN_PRIMARY + " w-full shadow-[0_16px_40px_-14px_rgba(194,84,45,0.5)]"}>
                 {copy.searchSubmit}
               </button>
@@ -262,7 +264,7 @@ function ListingBand({
             index={sectionIndex}
             accent={BAND_ACCENT[variant]}
           />
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-7 xl:grid-cols-3 [&_article]:rounded-[1.2rem] [&_article]:border-[#E8DFD0]/88 [&_article]:shadow-[0_18px_52px_-22px_rgba(42,36,22,0.26)] [&_article]:ring-1 [&_article]:ring-[#C9B46A]/[0.09] [&_article]:transition [&_article]:duration-300 [&_article]:hover:-translate-y-1 [&_article]:hover:border-[#C9B46A]/38 [&_article]:hover:shadow-[0_26px_64px_-24px_rgba(42,36,22,0.32)]">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-7 lg:grid-cols-3 [&_article]:rounded-[1.2rem] [&_article]:border-[#E8DFD0]/88 [&_article]:shadow-[0_18px_52px_-22px_rgba(42,36,22,0.26)] [&_article]:ring-1 [&_article]:ring-[#C9B46A]/[0.09] [&_article]:transition [&_article]:duration-300 [&_article]:hover:-translate-y-1 [&_article]:hover:border-[#C9B46A]/38 [&_article]:hover:shadow-[0_26px_64px_-24px_rgba(42,36,22,0.32)]">
             {listings.map((listing) => (
               <BienesRaicesNegocioCard key={listing.id} listing={listing} sellerKindLabels={sellerLabels} />
             ))}
@@ -318,63 +320,72 @@ export function BienesRaicesLandingView() {
         </nav>
 
         <ImmersiveBand>
-          <header className="relative min-h-[min(32rem,88vh)] overflow-hidden rounded-b-[2rem] border-b border-[#E8DFD0]/50 shadow-[0_32px_100px_-48px_rgba(42,36,22,0.55)] sm:min-h-[min(28rem,82vh)] sm:rounded-[2rem] sm:border sm:border-[#E8DFD0]/40">
+          <header className="relative isolate flex min-h-[min(26rem,92svh)] flex-col overflow-hidden rounded-b-[2rem] border-b border-[#E8DFD0]/50 shadow-[0_32px_100px_-48px_rgba(42,36,22,0.55)] sm:min-h-[min(30rem,88svh)] sm:rounded-[2rem] sm:border sm:border-[#E8DFD0]/40 md:min-h-[min(34rem,86svh)] lg:min-h-[min(38rem,84svh)]">
+            <div className="absolute inset-0">
+              <Image
+                src={BR_LANDING_HERO_IMAGE.src}
+                alt=""
+                fill
+                priority
+                sizes="100vw"
+                className="object-cover object-[center_44%] sm:object-[center_40%] lg:object-[center_38%]"
+              />
+            </div>
+            {/* Stronger scenic read: warm scrim on copy side, lighter veil on the right so the neighborhood stays visible */}
             <div
-              className="pointer-events-none absolute inset-0 bg-cover bg-[center_42%] opacity-[0.26] mix-blend-multiply sm:opacity-[0.22]"
-              style={{
-                backgroundImage:
-                  "url(https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=2400&q=80&auto=format&fit=crop)",
-              }}
+              className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#FCF9F4]/[0.96] via-[#F6EFE6]/[0.72] to-[#e6d8c8]/[0.22] sm:via-[#F3EBE2]/[0.58]"
               aria-hidden
             />
             <div
-              className="pointer-events-none absolute inset-0 bg-cover bg-[center_20%] opacity-[0.14] mix-blend-soft-light sm:opacity-[0.12]"
-              style={{
-                backgroundImage:
-                  "url(https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=2200&q=75&auto=format&fit=crop)",
-              }}
+              className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#FDFBF7]/45 via-transparent to-[#F1E9DE]/[0.94]"
               aria-hidden
             />
             <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#dfe9f4]/45 via-[#f2e8d8]/55 to-[#f4efe6]/75"
+              className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-[#fffdf9]/20 to-[#c5d4e3]/28 mix-blend-soft-light"
               aria-hidden
             />
             <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#FDFBF7]/90 via-[#f7f2ea]/85 to-[#F4EFE6]/92"
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_95%_65%_at_18%_12%,rgba(255,252,247,0.72),transparent_58%)]"
               aria-hidden
             />
             <div
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,252,247,0.95),transparent_58%)]"
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_100%_45%,rgba(42,36,22,0.07),transparent_52%)]"
               aria-hidden
             />
             <div
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_100%,rgba(223,233,244,0.35),transparent_45%)]"
+              className="pointer-events-none absolute inset-0 shadow-[inset_0_0_120px_rgba(42,36,22,0.07)]"
               aria-hidden
             />
 
-            <div className="relative z-10 flex min-h-[min(32rem,88vh)] flex-col px-5 pb-12 pt-10 sm:min-h-[min(28rem,82vh)] sm:px-10 sm:pb-14 sm:pt-12">
-              <div className="flex flex-1 flex-col gap-10 lg:flex-row lg:items-start lg:justify-between lg:gap-12">
-                <div className="max-w-2xl">
+            <div className="relative z-10 flex w-full min-w-0 flex-1 flex-col px-4 pb-10 pt-8 sm:px-6 sm:pb-12 sm:pt-10 md:px-8 md:pb-14 lg:px-10 lg:pt-12">
+              <div className="flex w-full min-w-0 flex-col gap-8 md:gap-10 lg:flex-row lg:items-start lg:justify-between lg:gap-12 xl:gap-14">
+                <div className="min-w-0 max-w-2xl flex-1">
                   <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-[#8A6F3A]">{copy.categoryEyebrow}</p>
-                  <h1 className="mt-4 font-serif text-[2.35rem] font-semibold leading-[1.05] tracking-tight text-[#1E1810] drop-shadow-[0_1px_0_rgba(255,255,255,0.6)] sm:text-[3rem] md:text-[3.35rem]">
+                  <h1 className="mt-4 font-serif font-semibold leading-[1.06] tracking-tight text-[#1E1810] drop-shadow-[0_1px_0_rgba(255,255,255,0.72)] [text-wrap:balance] text-[clamp(1.85rem,4.2vw+0.6rem,3.35rem)]">
                     {copy.pageTitle}
                   </h1>
-                  <p className="mt-5 max-w-xl text-base leading-[1.7] text-[#3a342f]/92 sm:text-lg">{copy.heroSubtitle}</p>
+                  <p className="mt-5 max-w-xl text-base leading-[1.75] text-[#3a342f]/92 sm:text-lg">{copy.heroSubtitle}</p>
                 </div>
-                <div className="w-full min-w-0 max-w-lg shrink-0 lg:max-w-md">
+                <div className="w-full min-w-0 shrink-0 lg:max-w-[22rem] xl:max-w-sm">
                   <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#5C5346]/75">{copy.publishEyebrow}</p>
-                  <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                    <Link href={withLang(BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY)} className={BTN_SECONDARY}>
+                  <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-3">
+                    <Link
+                      href={withLang(BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY)}
+                      className={BTN_SECONDARY + " w-full min-w-0 sm:w-auto sm:min-w-[12rem]"}
+                    >
                       {copy.publishPrivado}
                     </Link>
-                    <Link href={withLang(BR_PUBLICAR_NEGOCIOS_PUBLIC_ENTRY)} className={BTN_PRIMARY}>
+                    <Link
+                      href={withLang(BR_PUBLICAR_NEGOCIOS_PUBLIC_ENTRY)}
+                      className={BTN_PRIMARY + " w-full min-w-0 sm:w-auto sm:min-w-[12rem]"}
+                    >
                       {copy.publishNegocio}
                     </Link>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-auto pt-10 sm:pt-12">
+              <div className="mt-10 w-full min-w-0 sm:mt-12 lg:mt-14">
                 <LandingSearchForm withLang={withLang} copy={copy} />
               </div>
             </div>
@@ -382,17 +393,17 @@ export function BienesRaicesLandingView() {
         </ImmersiveBand>
 
         <section className="mt-12 sm:mt-14" aria-labelledby="br-quick-chips">
-          <div className="rounded-[1.5rem] border border-[#E8DFD0]/70 bg-gradient-to-r from-[#FFFCF7]/95 via-white/90 to-[#f5f0e8]/90 px-4 py-7 shadow-[0_16px_48px_-32px_rgba(42,36,22,0.28)] ring-1 ring-[#C9B46A]/[0.08] sm:px-8">
+          <div className="min-w-0 rounded-[1.5rem] border border-[#E8DFD0]/70 bg-gradient-to-r from-[#FFFCF7]/95 via-white/90 to-[#f5f0e8]/90 px-4 py-7 shadow-[0_16px_48px_-32px_rgba(42,36,22,0.28)] ring-1 ring-[#C9B46A]/[0.08] sm:px-8">
             <p className="text-center font-serif text-lg text-[#1E1810]/92 sm:text-left">{copy.quickChipsLead}</p>
             <h2 id="br-quick-chips" className="sr-only">
               {copy.quickFiltersHeading}
             </h2>
-            <div className="mt-5 flex flex-wrap justify-center gap-2.5 sm:justify-start">
+            <div className="mt-5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto overflow-y-visible scroll-pl-3 scroll-pr-3 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:justify-start sm:overflow-visible sm:scroll-pl-0 sm:scroll-pr-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
               {BR_LANDING_QUICK_CHIPS.map((chip) => (
                 <Link
                   key={chip.id}
                   href={withLang(buildBrResultsUrl(chip.params))}
-                  className="group/chip inline-flex min-h-[44px] min-w-0 items-center rounded-full border border-[#E8DFD0]/80 bg-gradient-to-b from-[#FFFCF7] to-[#f0e8dc]/90 px-4 py-2.5 text-[13px] font-semibold text-[#3D3630] shadow-[0_8px_24px_-12px_rgba(42,36,22,0.22)] ring-1 ring-white/60 transition hover:border-[#C9B46A]/5 hover:shadow-[0_12px_32px_-14px_rgba(194,84,45,0.2)] hover:ring-[#C9B46A]/25 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9B46A]/45"
+                  className="group/chip inline-flex min-h-[44px] shrink-0 snap-start items-center rounded-full border border-[#E8DFD0]/80 bg-gradient-to-b from-[#FFFCF7] to-[#f0e8dc]/90 px-4 py-2.5 text-[13px] font-semibold text-[#3D3630] shadow-[0_8px_24px_-12px_rgba(42,36,22,0.22)] ring-1 ring-white/60 transition hover:border-[#C9B46A]/5 hover:shadow-[0_12px_32px_-14px_rgba(194,84,45,0.2)] hover:ring-[#C9B46A]/25 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9B46A]/45 sm:shrink"
                 >
                   <span className="mr-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-gradient-to-br from-[#C9B46A] to-[#C2542D] opacity-80 group-hover/chip:opacity-100" aria-hidden />
                   <span className="truncate">{copy.chipLabel[chip.id]}</span>
@@ -414,8 +425,8 @@ export function BienesRaicesLandingView() {
             />
             <div className="relative z-[1]">
               <FeaturedHeading id="br-featured-hero" title={copy.featuredTitle} subtitle={copy.featuredSubtitle} />
-              <div className="grid gap-7 lg:grid-cols-12 lg:items-stretch lg:gap-8">
-                <div className="min-w-0 lg:col-span-7 xl:col-span-8">
+              <div className="grid min-h-0 gap-7 lg:grid-cols-12 lg:items-stretch lg:gap-8">
+                <div className="min-h-0 min-w-0 lg:col-span-7 xl:col-span-8">
                   <BienesRaicesNegocioFeaturedCard
                     listing={brLandingFeaturedHero}
                     titleAsLink={false}
@@ -423,14 +434,16 @@ export function BienesRaicesLandingView() {
                     className="rounded-[1.4rem] border-[#E8DFD0]/80 shadow-[0_28px_80px_-30px_rgba(42,36,22,0.4)] ring-2 ring-[#C9B46A]/15 hover:shadow-[0_36px_96px_-32px_rgba(42,36,22,0.45)]"
                   />
                 </div>
-                <div className="hidden min-h-0 lg:col-span-5 lg:block xl:col-span-4">
-                  <BienesRaicesMapPreview copy={mapCopy} />
+                <div className="hidden min-h-0 min-w-0 lg:col-span-5 lg:flex xl:col-span-4">
+                  <div className="flex min-h-0 w-full flex-1 flex-col">
+                    <BienesRaicesMapPreview copy={mapCopy} />
+                  </div>
                 </div>
               </div>
-              <div className="mt-6 lg:hidden">
+              <div className="mt-6 min-w-0 lg:hidden">
                 <BienesRaicesMapPreview copy={mapCopy} />
               </div>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <div className="mt-8 flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                 <Link href={withLang(buildBrResultsUrl({ operationType: "venta", city: "Monterrey" }))} className={BTN_PRIMARY}>
                   {copy.featuredCtaProperties}
                 </Link>
@@ -504,11 +517,14 @@ export function BienesRaicesLandingView() {
                 {copy.footerTitle}
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-[#5C5346]/88 sm:text-[1.02rem]">{copy.footerBody}</p>
-              <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                <Link href={withLang(BR_RESULTS)} className={BTN_PRIMARY}>
+              <div className="mt-10 flex w-full min-w-0 flex-col items-stretch justify-center gap-3 sm:mx-auto sm:max-w-2xl sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
+                <Link href={withLang(BR_RESULTS)} className={BTN_PRIMARY + " w-full min-w-0 sm:w-auto sm:min-w-[12rem]"}>
                   {copy.footerCtaExploreAll}
                 </Link>
-                <Link href={withLang(BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY)} className={BTN_SECONDARY}>
+                <Link
+                  href={withLang(BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY)}
+                  className={BTN_SECONDARY + " w-full min-w-0 sm:w-auto sm:min-w-[12rem]"}
+                >
                   {copy.footerCtaPublish}
                 </Link>
               </div>

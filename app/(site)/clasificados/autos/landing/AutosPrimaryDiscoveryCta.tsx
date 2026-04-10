@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { FiArrowRight } from "react-icons/fi";
 import type { AutosPublicBlueprintCopy } from "../lib/autosPublicBlueprintCopy";
+import { autosLandingSectionClass } from "./autosLandingLayout";
 
 export function AutosPrimaryDiscoveryCta({ copy, browseAllHref }: { copy: AutosPublicBlueprintCopy; browseAllHref: string }) {
   return (
-    <section className="mx-auto w-full max-w-[1280px] min-w-0 px-4 sm:px-5 md:px-6">
-      <div className="mx-auto flex max-w-lg flex-col items-center gap-3 text-center">
+    <section className={autosLandingSectionClass}>
+      <div className="mx-auto flex max-w-lg flex-col items-center gap-3 text-center md:max-w-xl 2xl:max-w-2xl">
         <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{copy.primaryDiscoveryHint}</p>
         <Link
           href={browseAllHref}

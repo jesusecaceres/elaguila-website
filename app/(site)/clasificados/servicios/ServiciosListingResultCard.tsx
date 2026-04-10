@@ -54,7 +54,7 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
       >
         <div className="relative aspect-[16/9] w-full bg-gradient-to-br from-[#3B66AD]/8 to-[#F6F0E2]/40">
           {thumb ? (
-            <Image src={thumb} alt="" fill className="object-cover" unoptimized sizes="(max-width:640px) 100vw, 50vw" />
+            <Image src={thumb} alt="" fill className="object-cover" unoptimized sizes="(max-width:640px) 100vw, (max-width:1280px) 50vw, 33vw" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-xs font-semibold uppercase tracking-wide text-[#3B66AD]/40">
               Leonix

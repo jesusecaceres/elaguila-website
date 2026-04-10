@@ -19,9 +19,9 @@ export function RentasLandingCategoryHeader({ copy, lang }: Props) {
 
   return (
     <header className="pb-0">
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
         <div className="min-w-0 max-w-3xl">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 gap-y-2">
             <nav className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/90">
               <Link href={clasificadosHref} className="transition hover:text-[#C45C26]">
                 {copy.breadcrumbClasificados}
@@ -61,21 +61,24 @@ export function RentasLandingCategoryHeader({ copy, lang }: Props) {
               </Link>
             </div>
           </div>
-          <h1 className="mt-4 font-serif text-[2.35rem] font-semibold leading-[1.06] tracking-tight text-[#1E1810] sm:text-[2.85rem] lg:text-[3.15rem]">
+          <h1
+            id="rentas-hero-heading"
+            className="mt-4 font-serif text-[clamp(1.85rem,4.2vw,3.05rem)] font-semibold leading-[1.07] tracking-tight text-[#1E1810]"
+          >
             {copy.title}
           </h1>
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-[#3D3830]/92 sm:text-lg">{copy.intro}</p>
+          <p className="mt-3 max-w-2xl text-base leading-relaxed text-[#2e2a24]/95 sm:text-lg">{copy.intro}</p>
         </div>
-        <div className="flex w-full flex-shrink-0 flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+        <div className="flex w-full min-w-0 flex-shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 lg:w-auto lg:max-w-[min(100%,24rem)]">
           <Link
             href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, lang)}
-            className={`${rentasCtaPrimaryClass} w-full text-center sm:min-w-[12.5rem] sm:w-auto`}
+            className={`${rentasCtaPrimaryClass} w-full min-w-0 text-center sm:flex-1 lg:w-full lg:min-w-[11.5rem]`}
           >
             {copy.publishPrivado}
           </Link>
           <Link
             href={withRentasLandingLang(RENTAS_PUBLICAR_NEGOCIO, lang)}
-            className={`${rentasCtaSecondaryClass} w-full text-center sm:min-w-[12.5rem] sm:w-auto`}
+            className={`${rentasCtaSecondaryClass} w-full min-w-0 text-center sm:flex-1 lg:w-full lg:min-w-[11.5rem]`}
           >
             {copy.publishNegocio}
           </Link>

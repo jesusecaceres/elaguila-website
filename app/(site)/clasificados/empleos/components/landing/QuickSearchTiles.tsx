@@ -23,12 +23,12 @@ export function QuickSearchTiles({ lang }: Props) {
           : "Filter by modality, industry, or schedule — one tap and go."
       }
     >
-      <div className="flex flex-wrap gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {sampleQuickFilters.map((f) => (
           <Link
             key={f.id}
             href={buildEmpleosResultadosUrl(lang, f.params)}
-            className="group flex min-h-[4.25rem] min-w-[7.5rem] flex-1 flex-col items-center justify-center gap-2 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-center shadow-[0_6px_22px_rgba(42,40,38,0.06)] transition hover:-translate-y-0.5 hover:border-[#D9A23A]/45 hover:shadow-[0_12px_28px_rgba(42,40,38,0.1)] sm:min-w-[8rem]"
+            className="group flex min-h-[4.5rem] flex-col items-center justify-center gap-2 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3.5 text-center shadow-[0_6px_22px_rgba(42,40,38,0.06)] transition hover:-translate-y-0.5 hover:border-[#D9A23A]/45 hover:shadow-[0_12px_28px_rgba(42,40,38,0.1)]"
           >
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#EEF3F7] to-[#E4ECF3] text-[#4F6B82] transition group-hover:from-[#FFF6E5] group-hover:to-[#FFE8C4] group-hover:text-[#8A6A2A]">
               <QuickFilterIcon kind={f.icon} className="h-5 w-5" />

@@ -19,8 +19,8 @@ export function JobFairLandingBanner({ lang }: Props) {
 
   return (
     <section className="overflow-hidden rounded-[1.35rem] border border-[#2F3438] bg-[#2F3438] shadow-[0_20px_50px_rgba(0,0,0,0.2)]">
-      <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
-        <div className="relative min-h-[200px] lg:min-h-[260px]">
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.92fr)]">
+        <div className="relative min-h-[220px] sm:min-h-[240px] lg:min-h-[260px]">
           <Image src={ev.imageSrc} alt={ev.imageAlt} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 50vw" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/55 to-transparent lg:from-black/45" />
         </div>

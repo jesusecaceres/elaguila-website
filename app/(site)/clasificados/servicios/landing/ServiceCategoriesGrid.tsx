@@ -26,7 +26,7 @@ export function ServiceCategoriesGrid({
             : "Entra a resultados con las mismas familias de giro que usará tu anuncio al publicarse."}
         </p>
       </div>
-      <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 md:gap-5 lg:grid-cols-7">
+      <div className="grid grid-cols-2 gap-3 sm:gap-3.5 sm:grid-cols-3 md:grid-cols-4 md:gap-4 lg:grid-cols-5 lg:gap-5 xl:grid-cols-6 2xl:grid-cols-7">
         {categories.map((c) => (
           <ServiceCategoryCard key={c.id} lang={lang} cat={c} />
         ))}

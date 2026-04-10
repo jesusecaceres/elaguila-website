@@ -22,8 +22,14 @@ import {
 } from "./restaurantesBlueprintSampleData";
 import { RESTAURANTES_LANDING_CTA_BG, RESTAURANTES_LANDING_CTA_TEAM } from "./restaurantesLandingAssets";
 import { RestaurantesLandingShell } from "./RestaurantesLandingShell";
+import { CategoryHeroFrame } from "@/app/(site)/clasificados/components/categoryLanding/CategoryHeroFrame";
+import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
 
 const ACCENT = "#D97706";
+
+/** Editorial dining atmosphere — strong hero presence without competing with search module */
+const RESTAURANTES_HERO_IMAGE =
+  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=2400&q=82";
 
 function StarRow({ rating, lang }: { rating: number; lang: Lang }) {
   const rounded = Math.min(5, Math.max(0, Math.round(rating)));
@@ -60,13 +66,13 @@ function ListingCard({
 
   return (
     <article className={shell}>
-      <div className="relative aspect-[16/10] w-full overflow-hidden">
+      <div className="relative aspect-[16/10] w-full overflow-hidden rounded-t-[20px]">
         <Image
           src={card.imageSrc}
           alt=""
           fill
-          className="object-cover transition duration-500 group-hover:scale-[1.03]"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-cover object-center transition duration-500 group-hover:scale-[1.03]"
         />
         {variant === "featured" ? (
           <span
@@ -82,7 +88,7 @@ function ListingCard({
         )}
       </div>
       <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <h3 className="font-serif text-lg font-semibold leading-snug text-[#2D241E]">{name}</h3>
+        <h3 className="break-words font-serif text-lg font-semibold leading-snug text-[#2D241E]">{name}</h3>
         <p className="mt-1 text-xs leading-relaxed text-[#2D241E]/65 sm:text-sm">{cuisine}</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <StarRow rating={card.rating} lang={lang} />
@@ -90,14 +96,14 @@ function ListingCard({
             {card.rating.toFixed(1)} · {lang === "es" ? "valoración" : "rating"}
           </span>
         </div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#2D241E]/[0.07] pt-4">
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#2D241E]/70">
-            <FaMapMarkerAlt className="h-3.5 w-3.5 shrink-0" style={{ color: ACCENT }} aria-hidden />
-            {city}
+        <div className="mt-4 flex flex-col gap-3 border-t border-[#2D241E]/[0.07] pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <span className="inline-flex min-w-0 items-start gap-1.5 text-xs font-medium leading-snug text-[#2D241E]/70 sm:items-center">
+            <FaMapMarkerAlt className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:mt-0" style={{ color: ACCENT }} aria-hidden />
+            <span className="break-words">{city}</span>
           </span>
           <Link
             href={detailHref}
-            className="inline-flex min-h-[40px] min-w-[96px] items-center justify-center rounded-full px-4 text-xs font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(180,83,9,0.58)] transition hover:brightness-[1.05] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2"
+            className="inline-flex min-h-[44px] w-full min-w-[96px] shrink-0 items-center justify-center rounded-full px-4 text-xs font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(180,83,9,0.58)] transition hover:brightness-[1.05] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 sm:w-auto"
             style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
           >
             {lang === "es" ? "Ver más" : "See more"}
@@ -201,7 +207,7 @@ export function RestaurantesLandingPage() {
       <Navbar />
 
       <div className="sticky top-0 z-30 border-b border-[#2D241E]/[0.08] bg-[#FFFCF7]/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5 lg:px-6">
+        <div className="mx-auto flex max-w-[1280px] min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-5 lg:px-6">
           <nav className="text-[11px] font-medium text-[#2D241E]/55" aria-label="Breadcrumb">
             <Link href={clasificadosHref} className="transition hover:text-[#2D241E] hover:underline">
               {copy.breadcrumbParent}
@@ -221,72 +227,85 @@ export function RestaurantesLandingPage() {
         </div>
       </div>
 
-      <header className="mx-auto max-w-[1280px] px-4 pb-12 pt-8 sm:px-5 sm:pb-16 sm:pt-10 lg:px-6">
-        <div className="mx-auto max-w-3xl text-center">
-          <h1 className="text-balance font-serif text-[2rem] font-semibold leading-[1.12] tracking-tight text-[#2D241E] sm:text-[2.35rem] md:text-[2.65rem]">
-            {copy.heroLead}
-            <span className="font-serif font-semibold" style={{ color: ACCENT }}>
-              {copy.heroAccent}
-            </span>
-          </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-[#2D241E]/78 sm:text-base">{copy.heroSub}</p>
-        </div>
+      <header className="mx-auto max-w-[1280px] space-y-6 px-4 pb-8 pt-6 sm:px-5 sm:pb-12 sm:pt-8 md:pb-14 md:pt-9 lg:px-6 lg:space-y-8 lg:pb-16">
+        <CategoryHeroFrame
+          imageSrc={RESTAURANTES_HERO_IMAGE}
+          overlay="leonix-cream"
+          contentJustify="center"
+          minHeightClass="min-h-[min(34vh,280px)] sm:min-h-[min(38vh,340px)] md:min-h-[min(40vh,380px)] lg:min-h-[min(42vh,420px)]"
+          objectClassName="object-cover object-[center_42%] sm:object-[center_40%] md:object-[center_38%]"
+          contentClassName="text-center"
+        >
+          <div className="mx-auto w-full max-w-3xl">
+            <h1 className="text-balance font-serif text-[clamp(1.55rem,3.5vw+0.5rem,2.55rem)] font-semibold leading-[1.12] tracking-tight text-[#2D241E] drop-shadow-[0_1px_0_rgba(255,252,247,0.88)]">
+              {copy.heroLead}
+              <span className="font-serif font-semibold" style={{ color: ACCENT }}>
+                {copy.heroAccent}
+              </span>
+            </h1>
+            <p className="mx-auto mt-3 max-w-2xl text-[0.9375rem] leading-relaxed text-[#2D241E]/88 sm:mt-4 sm:text-base">
+              {copy.heroSub}
+            </p>
+          </div>
+        </CategoryHeroFrame>
 
-        <div className="mx-auto mt-8 max-w-[960px] rounded-[24px] border border-[#2D241E]/[0.1] bg-[#FFFCF7]/95 p-4 shadow-[0_20px_56px_-28px_rgba(45,36,30,0.45)] backdrop-blur-sm sm:p-5 md:p-6">
+        <div className="mx-auto max-w-[960px] rounded-[20px] border border-[#2D241E]/[0.1] bg-[#FFFCF7]/95 p-4 shadow-[0_20px_56px_-28px_rgba(45,36,30,0.45)] backdrop-blur-sm sm:rounded-[22px] sm:p-5 md:p-6 lg:rounded-[24px]">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               router.push(searchResultsHref);
             }}
-            className="flex flex-col gap-4 lg:flex-row lg:items-start"
+            className="flex flex-col gap-3 sm:gap-4 xl:flex-row xl:items-start"
           >
-            <div className="min-w-0 flex-1">
-              <label className="sr-only" htmlFor="rx-landing-q">
-                {copy.searchPh}
-              </label>
-              <div className="relative">
-                <FaSearch className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2D241E]/40" aria-hidden />
-                <input
-                  id="rx-landing-q"
-                  value={searchQ}
-                  onChange={(e) => setSearchQ(e.target.value)}
-                  placeholder={copy.searchPh}
-                  autoComplete="off"
-                  aria-describedby="rx-landing-q-hint"
-                  className="min-h-[52px] w-full rounded-[16px] border border-[#2D241E]/[0.12] bg-[#FFFCF7] py-3 pl-11 pr-3 text-sm text-[#2D241E] outline-none ring-[#D97706]/30 transition-shadow focus:ring-2"
-                />
+            <div className="grid min-w-0 w-full flex-1 grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:contents">
+              <div className="min-w-0 md:min-w-0 xl:flex-1">
+                <label className="sr-only" htmlFor="rx-landing-q">
+                  {copy.searchPh}
+                </label>
+                <div className="relative">
+                  <FaSearch className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2D241E]/40" aria-hidden />
+                  <input
+                    id="rx-landing-q"
+                    value={searchQ}
+                    onChange={(e) => setSearchQ(e.target.value)}
+                    placeholder={copy.searchPh}
+                    autoComplete="off"
+                    aria-describedby="rx-landing-q-hint"
+                    className="min-h-[52px] w-full min-w-0 rounded-[16px] border border-[#2D241E]/[0.12] bg-[#FFFCF7] py-3 pl-11 pr-3 text-sm text-[#2D241E] outline-none ring-[#D97706]/30 transition-shadow focus:ring-2"
+                  />
+                </div>
+                <p id="rx-landing-q-hint" className="mt-2 text-left text-[11px] leading-snug text-[#2D241E]/55 sm:text-xs">
+                  {copy.searchHelper}
+                </p>
               </div>
-              <p id="rx-landing-q-hint" className="mt-2 text-left text-[11px] leading-snug text-[#2D241E]/55 sm:text-xs">
-                {copy.searchHelper}
-              </p>
-            </div>
-            <div className="min-w-0 flex-1">
-              <label className="sr-only" htmlFor="rx-landing-loc">
-                {copy.locationPh}
-              </label>
-              <div className="relative">
-                <FaMapMarkerAlt
-                  className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2D241E]/40"
-                  aria-hidden
-                />
-                <input
-                  id="rx-landing-loc"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder={copy.locationPh}
-                  autoComplete="address-level2"
-                  aria-describedby="rx-landing-loc-hint"
-                  className="min-h-[52px] w-full rounded-[16px] border border-[#2D241E]/[0.12] bg-[#FFFCF7] py-3 pl-11 pr-3 text-sm text-[#2D241E] outline-none ring-[#D97706]/30 transition-shadow focus:ring-2"
-                />
+              <div className="min-w-0 md:min-w-0 xl:flex-1">
+                <label className="sr-only" htmlFor="rx-landing-loc">
+                  {copy.locationPh}
+                </label>
+                <div className="relative">
+                  <FaMapMarkerAlt
+                    className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2D241E]/40"
+                    aria-hidden
+                  />
+                  <input
+                    id="rx-landing-loc"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder={copy.locationPh}
+                    autoComplete="address-level2"
+                    aria-describedby="rx-landing-loc-hint"
+                    className="min-h-[52px] w-full min-w-0 rounded-[16px] border border-[#2D241E]/[0.12] bg-[#FFFCF7] py-3 pl-11 pr-3 text-sm text-[#2D241E] outline-none ring-[#D97706]/30 transition-shadow focus:ring-2"
+                  />
+                </div>
+                <p id="rx-landing-loc-hint" className="mt-2 text-left text-[11px] leading-snug text-[#2D241E]/55 sm:text-xs">
+                  {copy.locationHelper}
+                </p>
               </div>
-              <p id="rx-landing-loc-hint" className="mt-2 text-left text-[11px] leading-snug text-[#2D241E]/55 sm:text-xs">
-                {copy.locationHelper}
-              </p>
             </div>
-            <div className="flex items-stretch self-center lg:w-[200px] lg:self-center">
+            <div className="w-full shrink-0 xl:w-[min(100%,200px)] xl:self-center">
               <button
                 type="submit"
-                className="inline-flex min-h-[52px] w-full flex-1 items-center justify-center rounded-[16px] px-6 text-sm font-bold text-[#FFFCF7] shadow-[0_12px_36px_-10px_rgba(180,83,9,0.6)] transition hover:brightness-[1.04] hover:shadow-[0_14px_40px_-10px_rgba(180,83,9,0.58)] active:scale-[0.99] active:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2"
+                className="inline-flex min-h-[52px] w-full items-center justify-center rounded-[16px] px-6 text-sm font-bold text-[#FFFCF7] shadow-[0_12px_36px_-10px_rgba(180,83,9,0.6)] transition hover:brightness-[1.04] hover:shadow-[0_14px_40px_-10px_rgba(180,83,9,0.58)] active:scale-[0.99] active:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 touch-manipulation"
                 style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
               >
                 {copy.searchCta}
@@ -294,38 +313,43 @@ export function RestaurantesLandingPage() {
             </div>
           </form>
 
-          <div className="mt-5 flex flex-wrap gap-2">
+          <CategoryLandingChipsRail
+            className="mt-4 sm:mt-5"
+            label={lang === "en" ? "Quick restaurant filters" : "Filtros rápidos de restaurantes"}
+          >
             {RESTAURANTES_BLUEPRINT_QUICK_FILTERS.map((f) => (
               <Link
                 key={f.id}
                 href={buildRestaurantesResultsHref(lang, f.resultParams)}
-                className="inline-flex min-h-[40px] items-center rounded-full border border-[#D97706]/35 bg-[#FFFCF7] px-4 py-2 text-xs font-semibold text-[#2D241E] shadow-sm transition-all duration-200 hover:-translate-y-px hover:border-[#D97706]/60 hover:bg-[#FFF7ED] hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/70 focus-visible:ring-offset-2 touch-manipulation"
+                className="inline-flex min-h-[40px] shrink-0 snap-start items-center whitespace-nowrap rounded-full border border-[#D97706]/35 bg-[#FFFCF7] px-4 py-2 text-xs font-semibold text-[#2D241E] shadow-sm transition-all duration-200 hover:-translate-y-px hover:border-[#D97706]/60 hover:bg-[#FFF7ED] hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/70 focus-visible:ring-offset-2 touch-manipulation sm:shrink"
               >
                 {lang === "es" ? f.labelEs : f.labelEn}
               </Link>
             ))}
-          </div>
+          </CategoryLandingChipsRail>
 
           <div
-            className="mt-5 flex flex-wrap gap-2 rounded-[20px] border border-white/10 px-3 py-3 sm:px-4"
+            className="mt-4 overflow-x-auto overflow-y-hidden rounded-[20px] border border-white/10 [-ms-overflow-style:none] [scrollbar-width:none] sm:mt-5 sm:overflow-visible [&::-webkit-scrollbar]:hidden"
             style={{ background: "rgba(45,36,30,0.88)" }}
           >
-            {RESTAURANTES_BLUEPRINT_CUISINE_CHIPS.map((c) => (
-              <Link
-                key={c.id}
-                href={buildRestaurantesResultsHref(lang, { cuisine: c.cuisineKey })}
-                className="inline-flex min-h-[40px] items-center rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold text-[#FFFCF7] backdrop-blur-sm transition-all duration-200 hover:-translate-y-px hover:border-amber-300/45 hover:bg-white/[0.18] hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FBBF24]/85 focus-visible:ring-offset-2 focus-visible:ring-offset-[#2D241E] touch-manipulation"
-              >
-                {lang === "es" ? c.labelEs : c.labelEn}
-              </Link>
-            ))}
+            <div className="flex w-max min-w-full flex-nowrap gap-2 scroll-pl-3 scroll-pr-3 px-3 py-3 sm:w-auto sm:flex-wrap sm:scroll-pl-0 sm:scroll-pr-0 sm:px-4">
+              {RESTAURANTES_BLUEPRINT_CUISINE_CHIPS.map((c) => (
+                <Link
+                  key={c.id}
+                  href={buildRestaurantesResultsHref(lang, { cuisine: c.cuisineKey })}
+                  className="inline-flex min-h-[40px] shrink-0 snap-start items-center whitespace-nowrap rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold text-[#FFFCF7] backdrop-blur-sm transition-all duration-200 hover:-translate-y-px hover:border-amber-300/45 hover:bg-white/[0.18] hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FBBF24]/85 focus-visible:ring-offset-2 focus-visible:ring-offset-[#2D241E] touch-manipulation"
+                >
+                  {lang === "es" ? c.labelEs : c.labelEn}
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1280px] space-y-12 bg-[#FDFBF7] px-4 pb-16 text-[#2D241E] sm:space-y-16 sm:px-5 sm:pb-20 lg:px-6">
+      <main className="mx-auto max-w-[1280px] space-y-10 bg-[#FDFBF7] px-4 pb-14 text-[#2D241E] sm:space-y-12 sm:px-5 sm:pb-20 md:space-y-14 lg:space-y-16 lg:px-6">
         <section
-          className="grid grid-cols-1 gap-6 rounded-[20px] border border-[#2D241E]/[0.06] bg-[#FFFCF7]/90 p-6 shadow-sm sm:grid-cols-3 sm:gap-8 sm:p-8"
+          className="grid grid-cols-1 gap-5 rounded-[20px] border border-[#2D241E]/[0.06] bg-[#FFFCF7]/90 p-5 shadow-sm sm:gap-6 sm:p-6 md:grid-cols-2 md:gap-6 md:p-7 lg:grid-cols-3 lg:gap-8 lg:p-8"
           aria-label={lang === "es" ? "Por qué Leonix Restaurantes" : "Why search Leonix Restaurants"}
         >
           {copy.trust.map((line) => (
@@ -347,7 +371,7 @@ export function RestaurantesLandingPage() {
               <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#2D241E]/60 sm:text-sm">{copy.featuredIntro}</p>
             </div>
           </div>
-          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-6 grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {RESTAURANTES_BLUEPRINT_FEATURED.map((card) => (
               <ListingCard
                 key={card.id}
@@ -370,20 +394,20 @@ export function RestaurantesLandingPage() {
             </div>
             <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#2D241E]/60 sm:text-sm">{copy.browseIntro}</p>
           </div>
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 lg:gap-4">
+          <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:gap-4 lg:grid-cols-6">
             {RESTAURANTES_BLUEPRINT_CATEGORY_TILES.map((tile) => (
               <Link
                 key={tile.id}
                 href={buildRestaurantesResultsHref(lang, { cuisine: tile.cuisineKey })}
                 className="group flex flex-col overflow-hidden rounded-[16px] border border-[#2D241E]/[0.08] bg-[#FFFCF7] shadow-[0_10px_32px_-22px_rgba(45,36,30,0.4)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_36px_-20px_rgba(45,36,30,0.45)] touch-manipulation"
               >
-                <div className="relative aspect-square w-full overflow-hidden">
+                <div className="relative aspect-square w-full overflow-hidden rounded-t-[16px]">
                   <Image
                     src={tile.imageSrc}
                     alt=""
                     fill
-                    className="object-cover transition duration-500 group-hover:scale-[1.05]"
                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
+                    className="object-cover object-center transition duration-500 group-hover:scale-[1.05]"
                   />
                 </div>
                 <div className="p-3 text-center">
@@ -406,7 +430,7 @@ export function RestaurantesLandingPage() {
             </div>
             <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#2D241E]/60 sm:text-sm">{copy.recentIntro}</p>
           </div>
-          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-6 grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {RESTAURANTES_BLUEPRINT_RECENT.map((card) => (
               <ListingCard
                 key={card.id}
@@ -419,36 +443,51 @@ export function RestaurantesLandingPage() {
           </div>
         </section>
 
-        <div className="mt-10 flex justify-center sm:mt-12">
+        <div className="mt-8 flex justify-center sm:mt-10 md:mt-12">
           <Link
             href={allResultsHref}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#D97706]/40 bg-[#FFFCF7] px-6 text-sm font-semibold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/65 hover:bg-[#FFF7ED] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/70 focus-visible:ring-offset-2"
+            className="inline-flex min-h-[44px] w-full max-w-md items-center justify-center rounded-full border border-[#D97706]/40 bg-[#FFFCF7] px-6 text-sm font-semibold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/65 hover:bg-[#FFF7ED] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/70 focus-visible:ring-offset-2 sm:w-auto sm:max-w-none"
           >
             {copy.exploreAll}
           </Link>
         </div>
 
         <section
-          className="relative overflow-hidden rounded-[24px] border border-[#2D241E]/[0.08] shadow-[0_20px_50px_-28px_rgba(45,36,30,0.35)]"
+          className="relative overflow-hidden rounded-[20px] border border-[#2D241E]/[0.08] shadow-[0_20px_50px_-28px_rgba(45,36,30,0.35)] sm:rounded-[24px]"
           aria-labelledby="rx-owner-cta"
         >
           <div className="absolute inset-0" aria-hidden>
-            <Image src={RESTAURANTES_LANDING_CTA_BG} alt="" fill className="object-cover opacity-90" sizes="100vw" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#FDFBF7]/95 via-[#FDFBF7]/88 to-[#FDFBF7]/75" />
+            <Image
+              src={RESTAURANTES_LANDING_CTA_BG}
+              alt=""
+              fill
+              className="object-cover object-center opacity-90 sm:object-[center_40%]"
+              sizes="(max-width: 768px) 100vw, 1280px"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#FDFBF7]/92 via-[#FDFBF7]/86 to-[#FDFBF7]/78 sm:bg-gradient-to-r sm:from-[#FDFBF7]/95 sm:via-[#FDFBF7]/88 sm:to-[#FDFBF7]/75" />
           </div>
-          <div className="relative grid grid-cols-1 items-center gap-8 p-6 sm:grid-cols-[minmax(0,280px)_1fr] sm:gap-10 sm:p-8 lg:p-10">
-            <div className="relative mx-auto aspect-[4/3] w-full max-w-[280px] overflow-hidden rounded-[20px] shadow-lg sm:mx-0 sm:max-w-none">
-              <Image src={RESTAURANTES_LANDING_CTA_TEAM} alt="" fill className="object-cover" sizes="(max-width:640px) 280px, 360px" />
+          <div className="relative grid grid-cols-1 items-center gap-6 p-5 sm:gap-8 sm:p-7 md:grid-cols-[minmax(0,240px)_1fr] md:gap-10 lg:grid-cols-[minmax(0,280px)_1fr] lg:p-10">
+            <div className="relative mx-auto aspect-[4/3] w-full max-w-[260px] overflow-hidden rounded-[18px] shadow-lg sm:max-w-[280px] md:mx-0 md:max-w-none">
+              <Image
+                src={RESTAURANTES_LANDING_CTA_TEAM}
+                alt=""
+                fill
+                className="object-cover object-center"
+                sizes="(max-width: 768px) 260px, min(360px, 35vw)"
+              />
             </div>
-            <div className="min-w-0 text-center sm:text-left">
-              <h2 id="rx-owner-cta" className="font-serif text-2xl font-semibold leading-tight text-[#2D241E] sm:text-3xl">
+            <div className="min-w-0 text-center md:text-left">
+              <h2
+                id="rx-owner-cta"
+                className="font-serif text-[clamp(1.375rem,2.5vw+0.75rem,1.875rem)] font-semibold leading-tight text-[#2D241E] sm:text-2xl lg:text-3xl"
+              >
                 {copy.ctaHeadline}
               </h2>
-              <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-[#2D241E]/78 sm:mx-0 sm:text-base">{copy.ctaSub}</p>
-              <div className="mt-6 flex justify-center sm:justify-start">
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-[#2D241E]/78 md:mx-0 md:text-base">{copy.ctaSub}</p>
+              <div className="mt-5 flex justify-center md:mt-6 md:justify-start">
                 <Link
                   href={publishHref}
-                  className="inline-flex min-h-[52px] min-w-[220px] items-center justify-center rounded-[16px] px-8 text-sm font-bold text-[#FFFCF7] shadow-[0_14px_40px_-12px_rgba(180,83,9,0.58)] transition hover:brightness-[1.04] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2"
+                  className="inline-flex min-h-[52px] w-full max-w-sm items-center justify-center rounded-[16px] px-8 text-sm font-bold text-[#FFFCF7] shadow-[0_14px_40px_-12px_rgba(180,83,9,0.58)] transition hover:brightness-[1.04] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 sm:min-w-[220px] sm:w-auto sm:max-w-none touch-manipulation"
                   style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
                 >
                   {copy.ctaBtn}

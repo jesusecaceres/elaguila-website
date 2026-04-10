@@ -36,9 +36,9 @@ export function ViajesSectionHeader({
           {eyebrow ? (
             <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-sky-900/75">{eyebrow}</p>
           ) : null}
-          <h2 className={TITLE[headingScale]}>{title}</h2>
+          <h2 className={`${TITLE[headingScale]} break-words`}>{title}</h2>
           {subtitle ? (
-            <p className="mx-auto mt-2 max-w-3xl text-[13px] leading-relaxed text-[color:var(--lx-text-2)] sm:mx-0 sm:text-[0.9375rem]">
+            <p className="mx-auto mt-2 max-w-3xl break-words text-[13px] leading-relaxed text-[color:var(--lx-text-2)] sm:mx-0 sm:text-[0.9375rem]">
               {subtitle}
             </p>
           ) : null}

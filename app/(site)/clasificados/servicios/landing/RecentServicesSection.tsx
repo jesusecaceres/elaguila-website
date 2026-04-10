@@ -26,7 +26,7 @@ export function RecentServicesSection({
             : "Vitrinas nuevas y actualizadas de profesionales locales."}
         </p>
       </div>
-      <div className="grid gap-7 md:grid-cols-2 md:gap-8 lg:grid-cols-3 lg:gap-9">
+      <div className="grid grid-cols-1 gap-7 sm:gap-8 md:grid-cols-2 md:gap-8 xl:grid-cols-3 xl:gap-9">
         {items.map((row) => (
           <RecentServiceCard key={row.id} row={row} lang={lang} />
         ))}

@@ -76,7 +76,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
         aria-hidden
       />
 
-      <div className="relative mx-auto max-w-6xl px-4 py-6 pb-24 sm:px-6 sm:py-10 sm:pb-10 lg:px-8">
+      <div className="relative mx-auto w-full max-w-7xl px-4 py-6 pb-24 sm:px-6 sm:py-10 sm:pb-10 lg:px-10 xl:px-12 2xl:max-w-[1440px]">
         {/* Top bar: dedicated results context + CTAs */}
         <header className="mb-6 flex flex-col gap-4 rounded-[22px] border border-[#e5ddd2]/90 bg-[#FFFCF7] p-4 shadow-[0_22px_60px_-42px_rgba(20,38,58,0.42)] ring-1 ring-[#1e3a5f]/[0.04] sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-5">
           <div className="min-w-0">
@@ -112,7 +112,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
           </div>
         </header>
 
-        <div className="lg:grid lg:grid-cols-[minmax(0,340px)_1fr] lg:items-start lg:gap-8">
+        <div className="min-w-0 lg:grid lg:grid-cols-[minmax(260px,360px)_minmax(0,1fr)] lg:items-start lg:gap-8 xl:gap-10">
           <aside className="lg:sticky lg:top-4">
             <ServiciosResultsFilters lang={lang} current={filterQuery} />
           </aside>
@@ -186,7 +186,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                 </div>
               </div>
             ) : (
-              <ul className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-2 xl:grid-cols-3">
+              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-2 xl:grid-cols-3">
                 {displayRows.map((r) => (
                   <ServiciosListingResultCard key={r.slug} row={r} lang={lang} />
                 ))}

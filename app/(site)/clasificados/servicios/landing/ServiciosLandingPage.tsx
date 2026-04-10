@@ -17,9 +17,9 @@ import {
 
 type Lang = "es" | "en";
 
-/** Full-page wash: repair / maintenance context, extremely low contrast — supports cards, does not compete. */
+/** Page-wide whisper (same service-trade family as hero); stays behind sections so the hero image reads as the category anchor. */
 const PAGE_ATMOSPHERE =
-  "https://images.unsplash.com/photo-1504307651254-3560f0eae650?auto=format&fit=crop&w=2400&q=75";
+  "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=2400&q=70";
 
 const sectionShell =
   "rounded-[22px] border border-white/90 bg-[#FFFCF7] shadow-[0_28px_80px_-48px_rgba(20,38,58,0.45)] ring-1 ring-[#1e3a5f]/[0.05] sm:rounded-[26px]";
@@ -34,7 +34,7 @@ export function ServiciosLandingPage({ lang }: { lang: Lang }) {
           alt=""
           fill
           sizes="100vw"
-          className="object-cover object-[center_40%] opacity-[0.11] blur-[2px] saturate-[0.75] sm:opacity-[0.13]"
+          className="object-cover object-[center_42%] opacity-[0.07] blur-[2px] saturate-[0.72] sm:opacity-[0.08]"
         />
         <div
           className="absolute inset-0 bg-gradient-to-b from-[#f5efe6] via-[#f3ebe2]/[0.97] to-[#efe6db]"
@@ -50,14 +50,15 @@ export function ServiciosLandingPage({ lang }: { lang: Lang }) {
         />
       </div>
 
-      <main className="relative mx-auto max-w-[1280px] px-4 pb-20 pt-8 sm:px-6 sm:pb-24 sm:pt-10 lg:px-10 lg:pb-28">
+      <main className="relative mx-auto w-full max-w-[min(100%,1440px)] px-4 pb-20 pt-8 sm:px-6 sm:pb-24 sm:pt-10 lg:px-10 lg:pb-28 xl:px-12 2xl:px-14">
         {/* Hero + chips: one composed entry block */}
         <section
+          id="servicios-hero"
           className={`overflow-hidden ${sectionShell} shadow-[0_36px_90px_-50px_rgba(20,38,58,0.5)]`}
           aria-label={lang === "en" ? "Search services" : "Buscar servicios"}
         >
           <ServiciosHeroSearch lang={lang} />
-          <div className="relative border-t border-[#e8e0d4]/80 bg-gradient-to-b from-[#faf6f0]/95 to-[#f4ebe3]/98 px-4 py-7 sm:px-8 sm:py-8 md:px-10 md:py-9">
+          <div className="relative border-t border-[#e8e0d4]/80 bg-gradient-to-b from-[#faf6f0]/95 to-[#f4ebe3]/98 px-3 py-6 sm:px-8 sm:py-8 md:px-10 md:py-9">
             <div
               className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/90 to-transparent"
               aria-hidden
@@ -66,11 +67,11 @@ export function ServiciosLandingPage({ lang }: { lang: Lang }) {
           </div>
         </section>
 
-        <div className="mt-6 sm:mt-8">
+        <div className="mt-8 sm:mt-10 md:mt-12">
           <ServiciosLandingBrowseRow lang={lang} />
         </div>
 
-        <div className="mt-14 space-y-14 sm:mt-16 sm:space-y-16 md:mt-[4.5rem] md:space-y-[4.5rem]">
+        <div className="mt-16 space-y-16 sm:mt-20 sm:space-y-20 md:mt-24 md:space-y-[5.5rem]">
           <div className={`${sectionShell} p-7 sm:p-9 md:p-11 lg:p-12`}>
             <FeaturedBusinessSection lang={lang} items={SERVICIOS_LANDING_FEATURED} />
           </div>

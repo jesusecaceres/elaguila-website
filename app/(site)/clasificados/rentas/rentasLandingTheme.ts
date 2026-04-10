@@ -8,11 +8,23 @@ export const rentasLandingPaperBgClass = [
   "[background-position:0_0,12px_12px]",
 ].join(" ");
 
-/** Hero scenic — apartment / neighborhood mood (faded, non-competing). */
+/** Hero scenic — bright rental interior / lifestyle (used in `RentasLandingHero` + results shell). */
 export const rentasLandingHeroScenicImage =
-  "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1920&q=65&auto=format&fit=crop";
+  "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1920&q=75";
 
-/** Immersive hero band — full-width atmosphere (readable, place-aware). */
+/** Optimized src for `next/image` in the landing hero (stronger presence). */
+export const rentasLandingHeroImageSrc =
+  "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=2400&q=82";
+
+/** Scenic hero card — En Venta–style containment, Rentas-owned atmosphere. */
+export const rentasLandingHeroSectionClass = [
+  "relative isolate min-h-[min(52vh,620px)] w-full min-w-0 overflow-hidden",
+  "rounded-[1.65rem] border border-white/55 sm:rounded-[2rem]",
+  "shadow-[0_28px_90px_-36px_rgba(47,74,101,0.42)] ring-1 ring-white/35",
+  "max-lg:min-h-[min(48vh,520px)] max-sm:min-h-[440px]",
+].join(" ");
+
+/** Immersive hero band — legacy absolute strip (results shell only). */
 export const rentasLandingHeroBandClass = [
   "pointer-events-none absolute inset-x-0 top-0 z-0 w-full overflow-hidden",
   "min-h-[200px] sm:min-h-[min(36vh,400px)] lg:min-h-[min(50vh,560px)]",
@@ -22,7 +34,7 @@ export const rentasLandingHeroBandClass = [
 
 export const rentasLandingHeroPhotoLayerClass = [
   "absolute inset-0 bg-cover bg-[center_40%]",
-  "opacity-[0.15] mix-blend-multiply",
+  "opacity-[0.22] mix-blend-multiply",
 ].join(" ");
 
 /** Warm mist + depth — rental / neighborhood comfort without noise. */
@@ -40,13 +52,13 @@ export const rentasLandingHeroVignetteClass = [
 export const rentasLandingContainerClass =
   "mx-auto w-full max-w-[min(100%,1460px)] px-4 sm:px-6 lg:px-10 xl:px-12";
 
-/** Frosted panel for title + CTAs inside hero. */
+/** Frosted panel for title + CTAs — sits on scenic hero (readable stack). */
 export const rentasLandingHeroPanelClass = [
-  "rounded-[1.65rem] border border-white/80",
-  "bg-gradient-to-br from-white/94 via-[#FFFCF7]/90 to-[#F3EBE0]/78",
-  "shadow-[0_28px_72px_-36px_rgba(30,24,16,0.32),inset_0_1px_0_rgba(255,255,255,0.9)]",
+  "rounded-[1.35rem] border border-white/90 sm:rounded-[1.5rem]",
+  "bg-gradient-to-br from-white/96 via-[#FFFCF7]/92 to-[#F8F0E6]/85",
+  "shadow-[0_24px_64px_-34px_rgba(30,24,16,0.28),inset_0_1px_0_rgba(255,255,255,0.92)]",
   "backdrop-blur-md backdrop-saturate-125",
-  "p-5 sm:p-9 lg:p-10",
+  "p-4 sm:p-7 md:p-8 lg:p-9",
 ].join(" ");
 
 /** Listing detail — conversion / trust cluster (matches landing language). */
@@ -94,18 +106,18 @@ export const rentasSearchShellClass = [
   "rounded-[1.45rem] border border-white/95",
   "bg-gradient-to-b from-[#FFFCF7] to-[#FAF6EF]/98",
   "p-3 shadow-[0_22px_60px_-26px_rgba(44,36,28,0.34),0_1px_0_rgba(255,255,255,0.95)_inset]",
-  "ring-2 ring-[#C45C26]/14 ring-offset-2 ring-offset-[#F4EDE3]/80",
-  "backdrop-blur-sm sm:p-5",
+  "ring-2 ring-[#C45C26]/14 ring-offset-0 ring-offset-transparent",
+  "backdrop-blur-sm sm:p-5 xl:ring-offset-2 xl:ring-offset-[#F4EDE3]/90",
 ].join(" ");
 
 /** Search primary button — strong burnt orange, obvious action. */
 export const rentasSearchSubmitClass = [
-  "inline-flex w-full items-center justify-center gap-2 rounded-full",
+  "inline-flex w-full min-h-[48px] shrink-0 items-center justify-center gap-2 rounded-full",
   "bg-[#C45C26] px-7 py-3 text-sm font-bold tracking-wide text-[#FFFBF7]",
   "shadow-[0_12px_32px_-12px_rgba(196,92,38,0.65)] transition",
   "hover:bg-[#A84E20] hover:shadow-[0_14px_36px_-12px_rgba(196,92,38,0.55)]",
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C45C26]/50",
-  "lg:w-auto lg:min-w-[10rem] lg:shrink-0 lg:py-3",
+  "xl:w-auto xl:min-w-[10.5rem] xl:py-3",
 ].join(" ");
 
 /** Quick explore — primary browse paths (property + branch). */

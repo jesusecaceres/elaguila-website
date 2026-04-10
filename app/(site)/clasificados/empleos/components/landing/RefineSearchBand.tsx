@@ -64,8 +64,8 @@ export function RefineSearchBand({ lang }: Props) {
         onSubmit={onSubmit}
         className="rounded-[1.25rem] border border-[#E8DFD0] bg-[#F7F2EA] px-4 py-5 shadow-inner sm:px-6"
       >
-        <div className="grid gap-4 lg:grid-cols-12 lg:items-end">
-          <label className="lg:col-span-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12 lg:items-end">
+          <label className="sm:col-span-1 lg:col-span-2">
             <span className="mb-1.5 block text-xs font-semibold text-[#4A4744]">
               {lang === "es" ? "Rango de salario" : "Salary range"}
             </span>
@@ -82,7 +82,7 @@ export function RefineSearchBand({ lang }: Props) {
             </select>
           </label>
 
-          <label className="lg:col-span-2">
+          <label className="sm:col-span-1 lg:col-span-2">
             <span className="mb-1.5 block text-xs font-semibold text-[#4A4744]">
               {lang === "es" ? "Modalidad" : "Modality"}
             </span>
@@ -99,7 +99,7 @@ export function RefineSearchBand({ lang }: Props) {
             </select>
           </label>
 
-          <label className="lg:col-span-2">
+          <label className="sm:col-span-1 lg:col-span-2">
             <span className="mb-1.5 block text-xs font-semibold text-[#4A4744]">
               {lang === "es" ? "Tipo de empleo" : "Job type"}
             </span>
@@ -116,7 +116,7 @@ export function RefineSearchBand({ lang }: Props) {
             </select>
           </label>
 
-          <label className="lg:col-span-2">
+          <label className="sm:col-span-1 lg:col-span-2">
             <span className="mb-1.5 block text-xs font-semibold text-[#4A4744]">
               {lang === "es" ? "Nivel de experiencia" : "Experience level"}
             </span>
@@ -133,7 +133,7 @@ export function RefineSearchBand({ lang }: Props) {
             </select>
           </label>
 
-          <label className="lg:col-span-2">
+          <label className="sm:col-span-1 lg:col-span-2">
             <span className="mb-1.5 block text-xs font-semibold text-[#4A4744]">
               {lang === "es" ? "Tipo de empresa" : "Company type"}
             </span>
@@ -150,7 +150,7 @@ export function RefineSearchBand({ lang }: Props) {
             </select>
           </label>
 
-          <div className="flex flex-col gap-3 lg:col-span-2">
+          <div className="flex flex-col gap-3 sm:col-span-2 lg:col-span-2">
             <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-[#2A2826]">
               <input
                 type="checkbox"

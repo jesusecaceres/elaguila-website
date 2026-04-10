@@ -1,8 +1,8 @@
 import Image from "next/image";
 
-/** Consultation / professional exchange — low-contrast, service-world (not retail). */
+/** Skilled local service / trades — human, trustworthy work (not retail, travel, or marketplace). */
 const HERO_BACKDROP =
-  "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=2400&q=80";
+  "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=2400&q=82";
 
 type Lang = "es" | "en";
 
@@ -39,7 +39,7 @@ export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
   const resultsAction = "/clasificados/servicios/resultados";
 
   return (
-    <div className="relative min-h-[min(52vh,620px)] overflow-hidden sm:min-h-[min(56vh,680px)] lg:min-h-[min(58vh,720px)]">
+    <div className="relative min-h-[min(44vh,520px)] overflow-hidden sm:min-h-[min(50vh,600px)] md:min-h-[min(54vh,660px)] lg:min-h-[min(56vh,700px)]">
       <div className="absolute inset-0">
         <Image
           src={HERO_BACKDROP}
@@ -47,22 +47,29 @@ export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
           fill
           priority
           sizes="100vw"
-          className="object-cover object-[center_32%] opacity-[0.38] saturate-[0.85] sm:opacity-[0.42]"
+          className="object-cover object-[center_42%] opacity-[0.46] saturate-[0.82] sm:object-[center_38%] sm:opacity-[0.5] md:object-[center_36%] lg:opacity-[0.48]"
         />
         <div
-          className="absolute inset-0 bg-gradient-to-b from-[#FBF7F0]/[0.97] via-[#F8F3EA]/[0.94] to-[#F3EDE4]/[0.98]"
+          className="absolute inset-0 bg-gradient-to-b from-[#FBF7F0]/[0.96] via-[#F8F3EA]/[0.9] to-[#F1E9DE]/[0.97]"
           aria-hidden
         />
         <div
-          className="absolute inset-0 bg-gradient-to-r from-[#E8EDF4]/[0.45] via-transparent to-[#F4E8D8]/[0.35]"
+          className="absolute inset-0 bg-gradient-to-r from-[#E8EDF4]/[0.5] via-transparent to-[#F4E8D8]/[0.38]"
           aria-hidden
         />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(255,255,255,0.55),transparent_58%)]" aria-hidden />
+        <div
+          className="absolute inset-0 bg-[radial-gradient(ellipse_85%_65%_at_50%_8%,rgba(255,255,255,0.62),transparent_55%)]"
+          aria-hidden
+        />
+        <div
+          className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_100%,rgba(20,42,66,0.12),transparent_50%)]"
+          aria-hidden
+        />
       </div>
 
-      <div className="relative z-10 flex min-h-[inherit] flex-col justify-center px-5 py-14 sm:px-10 sm:py-16 md:px-12 md:py-20 lg:px-14 lg:py-24">
-        <div className="mx-auto w-full max-w-[880px] text-center">
-          <h1 className="text-balance font-serif text-[2.1rem] font-bold leading-[1.08] tracking-tight text-[#142a42] sm:text-[2.85rem] md:text-[3.45rem] lg:text-[3.85rem]">
+      <div className="relative z-10 flex min-h-[inherit] flex-col justify-center px-4 py-12 sm:px-8 sm:py-14 md:px-10 md:py-16 lg:px-14 lg:py-20">
+        <div className="mx-auto w-full max-w-[min(100%,880px)] text-center">
+          <h1 className="text-balance font-serif text-[clamp(1.75rem,4vw+1rem,3.85rem)] font-bold leading-[1.08] tracking-tight text-[#142a42]">
             {lang === "en" ? (
               <>
                 Find local services <span className="text-[#C2410C]">near you</span>
@@ -73,7 +80,7 @@ export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
               </>
             )}
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-pretty text-base leading-relaxed text-[#3d4f62] sm:mt-6 sm:text-lg md:text-xl">
+          <p className="mx-auto mt-4 max-w-2xl text-pretty text-base leading-relaxed text-[#3d4f62] sm:mt-5 sm:text-lg md:mt-6 md:text-xl">
             {t.sub}
           </p>
         </div>
@@ -83,7 +90,7 @@ export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
           method="get"
           role="search"
           aria-describedby="servicios-search-hint"
-          className="mx-auto mt-10 w-full max-w-[920px] sm:mt-12 md:mt-14"
+          className="mx-auto mt-9 w-full max-w-[min(100%,920px)] sm:mt-11 md:mt-14"
         >
           <p id="servicios-search-hint" className="sr-only">
             {lang === "en"
@@ -91,8 +98,8 @@ export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
               : "Envía tu búsqueda y ubicación a la página de resultados de Servicios, donde podrás afinar filtros."}
           </p>
           <input type="hidden" name="lang" value={lang} />
-          <div className="flex flex-col gap-0 overflow-hidden rounded-[22px] border border-white/95 bg-white/[0.97] shadow-[0_22px_56px_-28px_rgba(25,45,70,0.42),inset_0_1px_0_rgba(255,255,255,0.95)] backdrop-blur-md sm:flex-row sm:items-stretch sm:rounded-full">
-            <label className="flex min-h-[58px] min-w-0 flex-1 cursor-text items-center gap-3 border-b border-[#E5DED4]/90 px-4 sm:min-h-[60px] sm:border-b-0 sm:border-r sm:pl-7 sm:pr-4">
+          <div className="flex flex-col gap-0 overflow-hidden rounded-2xl border border-white/95 bg-white/[0.97] shadow-[0_22px_56px_-28px_rgba(25,45,70,0.42),inset_0_1px_0_rgba(255,255,255,0.95)] backdrop-blur-md md:flex-row md:items-stretch md:rounded-full">
+            <label className="flex min-h-[58px] min-w-0 flex-1 cursor-text items-center gap-3 border-b border-[#E5DED4]/90 px-4 sm:min-h-[60px] md:border-b-0 md:border-r md:pl-7 md:pr-4">
               <span className="shrink-0 text-[#3d5a73]" aria-hidden>
                 <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="11" cy="11" r="7" />
@@ -107,7 +114,7 @@ export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
                 className="min-w-0 flex-1 bg-transparent py-3.5 text-[16px] text-[#142a42] outline-none placeholder:text-[#6b7c8c] sm:text-[15px]"
               />
             </label>
-            <label className="flex min-h-[58px] min-w-0 flex-1 cursor-text items-center gap-3 px-4 sm:min-h-[60px] sm:px-4">
+            <label className="flex min-h-[58px] min-w-0 flex-1 cursor-text items-center gap-3 px-4 sm:min-h-[60px] md:px-4">
               <span className="shrink-0 text-[#3d5a73]" aria-hidden>
                 <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 21s-6-4.35-6-10a6 6 0 1112 0c0 5.65-6 10-6 10z" strokeLinecap="round" strokeLinejoin="round" />
@@ -122,17 +129,17 @@ export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
                 className="min-w-0 flex-1 bg-transparent py-3.5 text-[16px] text-[#142a42] outline-none placeholder:text-[#6b7c8c] sm:text-[15px]"
               />
             </label>
-            <div className="flex shrink-0 p-2.5 sm:p-2 sm:pr-3 sm:pl-0">
+            <div className="flex shrink-0 p-2.5 md:p-2 md:pr-3 md:pl-0">
               <button
                 type="submit"
-                className="flex min-h-[52px] w-full min-w-[132px] items-center justify-center rounded-[16px] bg-gradient-to-br from-[#EA580C] to-[#C2410C] px-7 text-[16px] font-bold tracking-wide text-white shadow-[0_12px_32px_-10px_rgba(194,65,12,0.55)] transition hover:brightness-[1.04] active:scale-[0.99] sm:w-auto sm:rounded-full sm:text-[15px]"
+                className="flex min-h-[52px] w-full min-w-0 items-center justify-center rounded-[16px] bg-gradient-to-br from-[#EA580C] to-[#C2410C] px-7 text-[16px] font-bold tracking-wide text-white shadow-[0_12px_32px_-10px_rgba(194,65,12,0.55)] transition hover:brightness-[1.04] active:scale-[0.99] md:w-auto md:min-w-[132px] md:rounded-full md:text-[15px]"
               >
                 {t.search}
               </button>
             </div>
           </div>
         </form>
-        <p className="mx-auto mt-6 max-w-[640px] text-center text-[12px] leading-relaxed text-[#5a6b7c] sm:mt-7 sm:text-[13px]">
+        <p className="mx-auto mt-5 max-w-[min(100%,640px)] px-1 text-center text-[12px] leading-relaxed text-[#5a6b7c] sm:mt-6 sm:text-[13px]">
           {t.continuity}
         </p>
       </div>

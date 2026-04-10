@@ -41,19 +41,19 @@ export function ViajesLandingPage() {
         <Navbar />
 
         <div className="relative z-30 border-b border-[color:var(--lx-gold-border)]/55 bg-[#fffdf9]/88 backdrop-blur-md">
-          <div className="mx-auto flex max-w-7xl min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5 lg:px-6">
-            <nav className="min-w-0 text-[11px] font-medium text-[color:var(--lx-muted)]" aria-label="Breadcrumb">
+          <div className="mx-auto flex max-w-7xl min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 py-2.5 sm:px-5 sm:py-3 lg:px-6">
+            <nav className="min-w-0 flex-1 basis-[min(100%,20rem)] break-words text-[11px] font-medium text-[color:var(--lx-muted)]" aria-label="Breadcrumb">
               <Link href={clasificadosHref} className="transition hover:text-sky-900 hover:underline">
                 {ui.breadcrumbClassifieds}
               </Link>
               <span className="mx-1.5 opacity-50">/</span>
               <span className="font-semibold text-[color:var(--lx-text)]">{ui.categoryViajes}</span>
             </nav>
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2">
               <ViajesLangSwitch compact />
               <Link
                 href={publicarHref}
-                className="rounded-full bg-[color:var(--lx-cta-dark)] px-4 py-2 text-xs font-bold text-[#FFFCF7] shadow-[0_8px_20px_-10px_rgba(42,36,22,0.35)] transition hover:bg-[color:var(--lx-cta-dark-hover)]"
+                className="whitespace-nowrap rounded-full bg-[color:var(--lx-cta-dark)] px-3 py-2 text-[11px] font-bold text-[#FFFCF7] shadow-[0_8px_20px_-10px_rgba(42,36,22,0.35)] transition hover:bg-[color:var(--lx-cta-dark-hover)] sm:px-4 sm:text-xs"
               >
                 {ui.postListing}
               </Link>
@@ -67,7 +67,7 @@ export function ViajesLandingPage() {
           tripPills={<ViajesCategoryPillsPanel lang={lang} ui={ui} />}
         />
 
-        <main className="relative mx-auto max-w-7xl min-w-0 px-4 pb-10 pt-10 sm:px-5 sm:pt-12 lg:px-6">
+        <main className="relative mx-auto max-w-7xl min-w-0 px-3 pb-10 pt-8 sm:px-5 sm:pt-10 lg:px-6 lg:pt-12">
           <ViajesTopOffers homeBackHref={homeBackHref} browseAllHref={browseAllHref} ui={ui} />
           <ViajesLocalDepartures ui={ui} browseAllHref={browseAllHref} />
 

@@ -6,6 +6,7 @@ import { FaStar } from "react-icons/fa";
 import { FiMapPin } from "react-icons/fi";
 import type { AutosPublicBlueprintCopy } from "../lib/autosPublicBlueprintCopy";
 import type { AutosLandingDealerSample } from "./autosLandingDealerSamples";
+import { autosLandingSectionClass } from "./autosLandingLayout";
 
 export function FeaturedDealersSection({
   copy,
@@ -17,11 +18,11 @@ export function FeaturedDealersSection({
   buildInventoryHref: (dealer: AutosLandingDealerSample) => string;
 }) {
   return (
-    <section className="mx-auto w-full max-w-[1280px] min-w-0 px-4 sm:px-5 md:px-6">
+    <section className={autosLandingSectionClass}>
       <div className="rounded-[20px] border border-[color:var(--lx-nav-border)] bg-gradient-to-b from-[color:var(--lx-section)]/98 to-[color:var(--lx-card)]/95 px-3 py-8 shadow-[inset_0_1px_0_rgba(255,252,247,0.7),0_12px_40px_-18px_rgba(42,36,22,0.18)] backdrop-blur-sm sm:px-6 sm:py-10">
         <h2 className="text-center font-serif text-xl font-semibold tracking-tight text-[color:var(--lx-text)] sm:text-2xl">{copy.featuredDealersTitle}</h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-sm leading-relaxed text-[color:var(--lx-muted)]">{copy.featuredDealersSubtitle}</p>
-        <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-4 md:gap-5 lg:grid-cols-2 xl:grid-cols-4">
           {dealers.map((d) => (
             <div
               key={d.id}

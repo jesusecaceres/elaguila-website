@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "../../../components/Navbar";
+import { CategoryHeroFrame } from "@/app/(site)/clasificados/components/categoryLanding/CategoryHeroFrame";
+import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { COMUNIDAD_LANDING_CATEGORY_PILLS, COMUNIDAD_QUICK_CHIPS } from "./shared/fields/comunidadTaxonomy";
 import { buildComunidadListaUrl } from "./shared/utils/comunidadListaUrl";
@@ -12,8 +14,13 @@ type Lang = "es" | "en";
 
 const CATEGORY = "comunidad";
 
+/** Local gathering / community — warm, inviting */
+const COMUNIDAD_HERO_IMAGE =
+  "https://images.unsplash.com/photo-1511632765483-eabc875e1d96?auto=format&fit=crop&w=2400&q=82";
+
 const COPY = {
   es: {
+    eyebrow: "Leonix · Clasificados",
     title: "Comunidad",
     subtitle: "Eventos, avisos y conexión local.",
     searchPlaceholder: "Buscar: eventos, ayuda, avisos…",
@@ -24,8 +31,10 @@ const COPY = {
     hint: "Usa el botón para ver resultados con filtros.",
     ctaPost: "Publicar anuncio",
     ctaView: "Ver anuncios",
+    heroImageAlt: "Personas reunidas en la comunidad",
   },
   en: {
+    eyebrow: "Leonix · Classifieds",
     title: "Community",
     subtitle: "Events, notices and local connection.",
     searchPlaceholder: "Search: events, help, notices…",
@@ -36,6 +45,7 @@ const COPY = {
     hint: "Use the button below to see results with filters.",
     ctaPost: "Post listing",
     ctaView: "View listings",
+    heroImageAlt: "People gathering as a community",
   },
 } as const;
 
@@ -46,70 +56,117 @@ export default function Page() {
   const chips = COMUNIDAD_QUICK_CHIPS[lang];
 
   const listaHref = useMemo(() => buildComunidadListaUrl(CATEGORY, lang), [lang]);
-  const postHref = useMemo(() => `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?cat=${CATEGORY}&lang=${lang}`)}`, [lang]);
+  const postHref = useMemo(
+    () =>
+      `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?cat=${CATEGORY}&lang=${lang}`)}`,
+    [lang],
+  );
+
   return (
-    <div className="min-h-screen bg-[#D9D9D9] text-[#111111] pb-20 bg-[radial-gradient(ellipse_at_top,rgba(169,140,42,0.10),transparent_60%)]">
+    <div className="min-h-screen pb-20 text-[#111111] [background:radial-gradient(ellipse_at_top,rgba(169,140,42,0.12),transparent_58%),#F4EFE6]">
       <Navbar />
 
-      <div className="sticky top-14 z-30 border-b border-black/10 bg-[#D9D9D9]/90 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-2 px-4 py-2">
-          <Link href={postHref} className="rounded-full bg-[#111111] px-4 py-2 text-sm font-semibold text-[#F5F5F5] hover:opacity-95 transition">
+      <div className="sticky top-14 z-30 border-b border-[#C9B46A]/20 bg-[#F4EFE6]/92 backdrop-blur-md">
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-2 px-4 py-2.5">
+          <Link
+            href={postHref}
+            className="inline-flex min-h-[40px] items-center justify-center rounded-full bg-[#111111] px-4 py-2 text-sm font-semibold text-[#F5F5F5] transition hover:opacity-95"
+          >
             {t.ctaPost}
           </Link>
-          <Link href={listaHref} className="rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition">
+          <Link
+            href={listaHref}
+            className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-[#C9B46A]/70 bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[#111111] transition hover:bg-[#F5F0E6]"
+          >
             {t.ctaView}
           </Link>
         </div>
       </div>
 
-      <main className="mx-auto max-w-4xl px-4 pt-6 pb-12">
-        <h1 className="text-3xl md:text-4xl font-bold text-[#111111] tracking-tight">
-          {t.title}
-        </h1>
-        <p className="mt-2 text-[#111111] text-base">{t.subtitle}</p>
+      <main className="mx-auto w-full max-w-[min(100%,960px)] min-w-0 px-4 pb-12 pt-5 sm:px-5 sm:pt-6 md:pt-7">
+        <CategoryHeroFrame
+          imageSrc={COMUNIDAD_HERO_IMAGE}
+          imageAlt={t.heroImageAlt}
+          overlay="leonix-slate"
+          contentJustify="end"
+          minHeightClass="min-h-[min(36vh,300px)] sm:min-h-[min(40vh,360px)] md:min-h-[min(44vh,400px)]"
+          objectClassName="object-cover object-[center_42%] sm:object-[center_40%] md:object-[center_38%]"
+        >
+          <div className="w-full max-w-2xl">
+            <p className="text-[11px] font-bold uppercase tracking-[0.26em] text-[#5C5346]">{t.eyebrow}</p>
+            <h1 className="mt-3 text-balance font-serif text-[clamp(1.65rem,4vw+0.5rem,2.65rem)] font-semibold leading-[1.1] tracking-tight text-[#1E1810] drop-shadow-[0_1px_0_rgba(255,252,247,0.85)]">
+              {t.title}
+            </h1>
+            <p className="mt-3 max-w-xl text-[0.9375rem] leading-relaxed text-[#2a241c]/92 sm:text-base">{t.subtitle}</p>
+          </div>
+        </CategoryHeroFrame>
 
-        <section className="mt-6 rounded-2xl border border-[#111111]/10 bg-[#F5F5F5] px-4 py-3">
-          <p className="text-xs font-semibold text-[#111111]/80">{t.exploreCategory}</p>
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {COMUNIDAD_LANDING_CATEGORY_PILLS.map(({ key, labelEs, labelEn }) => (
-              <Link
-                key={key}
-                href={appendLangToPath(`/clasificados/${key}`, lang)}
-                className="shrink-0 rounded-full border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
-              >
-                {lang === "es" ? labelEs : labelEn}
-              </Link>
-            ))}
+        <section className="mt-6 rounded-2xl border border-[#C9B46A]/22 bg-[#FFFCF7]/95 px-4 py-4 shadow-[0_12px_40px_-28px_rgba(42,36,22,0.35)] ring-1 ring-[#C9B46A]/10 sm:px-5">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.14em] text-[#3d5a73]/80 sm:text-left">{t.exploreCategory}</p>
+          <div className="mt-3">
+            <CategoryLandingChipsRail label={t.exploreCategory}>
+              {COMUNIDAD_LANDING_CATEGORY_PILLS.map(({ key, labelEs, labelEn }) => (
+                <Link
+                  key={key}
+                  href={appendLangToPath(`/clasificados/${key}`, lang)}
+                  className="inline-flex min-h-[40px] shrink-0 snap-start items-center rounded-full border border-[#C9B46A]/45 bg-[#F8F6F0] px-3.5 py-2 text-xs font-medium text-[#111111] transition hover:bg-[#EFEFEF] sm:shrink"
+                >
+                  {lang === "es" ? labelEs : labelEn}
+                </Link>
+              ))}
+            </CategoryLandingChipsRail>
           </div>
         </section>
 
-        <section className="mt-4 rounded-xl border border-[#C9B46A]/25 bg-[#F5F5F5] shadow-sm p-3 ring-1 ring-[#C9B46A]/10">
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-stretch">
+        <section className="mt-4 rounded-2xl border border-[#C9B46A]/28 bg-[#FFFCF7]/98 p-4 shadow-sm ring-1 ring-[#C9B46A]/12 sm:p-5">
+          <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-stretch sm:gap-2.5">
             <div className="relative min-w-0">
-              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#111111]/50 text-sm" aria-hidden>⌕</span>
-              <input type="text" placeholder={t.searchPlaceholder} className="w-full rounded-lg border border-[#C9B46A]/30 bg-white py-2 pl-8 pr-3 text-sm text-[#111111] outline-none placeholder:text-[#111111]/70 focus:border-[#A98C2A]/60 focus:ring-1 focus:ring-[#A98C2A]/20" aria-label={t.searchPlaceholder} readOnly onFocus={(e) => e.target.blur()} />
+              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#111111]/50 text-sm" aria-hidden>
+                ⌕
+              </span>
+              <input
+                type="text"
+                placeholder={t.searchPlaceholder}
+                className="min-h-[44px] w-full rounded-xl border border-[#C9B46A]/35 bg-white py-2.5 pl-8 pr-3 text-sm text-[#111111] outline-none placeholder:text-[#111111]/70 focus:border-[#A98C2A]/60 focus:ring-2 focus:ring-[#A98C2A]/18"
+                aria-label={t.searchPlaceholder}
+                readOnly
+                onFocus={(e) => e.target.blur()}
+              />
             </div>
-            <Link href={listaHref} className="flex items-center rounded-lg border border-[#C9B46A]/30 bg-white px-3 py-2 text-sm text-[#111111]/80 hover:bg-[#EFEFEF] transition sm:w-36"><span className="truncate">{t.locationPlaceholder}</span></Link>
+            <Link
+              href={listaHref}
+              className="flex min-h-[44px] min-w-0 items-center justify-center rounded-xl border border-[#C9B46A]/35 bg-white px-3 py-2.5 text-sm text-[#111111]/85 transition hover:bg-[#EFEFEF] sm:w-40 sm:justify-start"
+            >
+              <span className="truncate">{t.locationPlaceholder}</span>
+            </Link>
           </div>
-          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {chips.map((label) => (
-              <Link
-                key={label}
-                href={buildComunidadListaUrl(CATEGORY, lang, label)}
-                className="shrink-0 rounded-full border border-[#111111]/15 bg-white px-2.5 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
-              >
-                {label}
-              </Link>
-            ))}
+          <div className="mt-3">
+            <CategoryLandingChipsRail label={lang === "en" ? "Quick topic shortcuts" : "Atajos de temas"}>
+              {chips.map((label) => (
+                <Link
+                  key={label}
+                  href={buildComunidadListaUrl(CATEGORY, lang, label)}
+                  className="inline-flex min-h-[40px] shrink-0 snap-start items-center rounded-full border border-[#111111]/14 bg-white px-3 py-2 text-xs font-medium text-[#111111] transition hover:bg-[#EFEFEF] sm:shrink"
+                >
+                  {label}
+                </Link>
+              ))}
+            </CategoryLandingChipsRail>
           </div>
-          <p className="mt-1.5 text-[11px] text-[#111111]/70">{t.hint}</p>
+          <p className="mt-2 text-[11px] leading-snug text-[#111111]/68">{t.hint}</p>
         </section>
 
-        <div className="mt-6 flex flex-col sm:flex-row gap-3">
-          <Link href={listaHref} className="inline-flex justify-center rounded-xl bg-[#111111] px-5 py-3 text-sm font-semibold text-[#F5F5F5] hover:opacity-95 transition">
+        <div className="mt-8 flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-3">
+          <Link
+            href={listaHref}
+            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[#111111] px-5 py-3 text-sm font-semibold text-[#F5F5F5] transition hover:opacity-95 sm:w-auto sm:min-w-[11rem]"
+          >
             {t.buttonView}
           </Link>
-          <Link href={postHref} className="inline-flex justify-center rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] px-5 py-3 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
+          <Link
+            href={postHref}
+            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#C9B46A]/55 bg-[#FFFCF7] px-5 py-3 text-sm font-medium text-[#111111] transition hover:bg-[#F5F0E6] sm:w-auto sm:min-w-[11rem]"
+          >
             {t.buttonPost}
           </Link>
         </div>

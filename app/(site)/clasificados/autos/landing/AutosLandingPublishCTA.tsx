@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FiArrowRight, FiCheck } from "react-icons/fi";
 import type { AutosPublicBlueprintCopy } from "../lib/autosPublicBlueprintCopy";
+import { autosLandingSectionClass } from "./autosLandingLayout";
 
 export function AutosLandingPublishCTA({
   copy,
@@ -16,9 +17,9 @@ export function AutosLandingPublishCTA({
   const bullets = [copy.publishTrust1, copy.publishTrust2, copy.publishTrust3];
 
   return (
-    <section className="mx-auto w-full max-w-[1280px] min-w-0 px-4 sm:px-5 md:px-6">
-      <div className="rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)]/95 p-5 shadow-[0_16px_48px_-20px_rgba(42,36,22,0.22)] backdrop-blur-sm sm:p-8 md:p-10">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10 lg:items-start">
+    <section className={autosLandingSectionClass}>
+      <div className="rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)]/95 p-5 shadow-[0_16px_48px_-20px_rgba(42,36,22,0.22)] backdrop-blur-sm sm:p-7 md:p-9 lg:p-10 2xl:p-11">
+        <div className="grid grid-cols-1 gap-7 sm:gap-8 lg:grid-cols-12 lg:gap-10 lg:items-start 2xl:gap-12">
           <div className="min-w-0 lg:col-span-7">
             <h2 className="font-serif text-2xl font-semibold tracking-tight text-[color:var(--lx-text)] sm:text-[1.65rem]">{copy.publishBandTitle}</h2>
             <p className="mt-3 text-sm leading-relaxed text-[color:var(--lx-text-2)] sm:text-base">{copy.publishBandBody}</p>

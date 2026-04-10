@@ -29,7 +29,7 @@ export function RecentServiceCard({ row, lang }: { row: ServiciosLandingRecentLi
           src={row.coverImageSrc}
           alt={row.coverImageAlt}
           fill
-          sizes="(max-width: 768px) 100vw, 33vw"
+          sizes="(max-width: 768px) 100vw, (max-width: 1536px) 50vw, 32vw"
           className="object-cover"
         />
         {row.sellerPresentation ? (

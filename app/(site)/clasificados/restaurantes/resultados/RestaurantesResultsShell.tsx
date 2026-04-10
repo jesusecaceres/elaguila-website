@@ -341,9 +341,9 @@ export function RestaurantesResultsShell() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FDFBF7] text-[#2D241E]">
       <Navbar />
-      <div className="mx-auto max-w-[1280px] px-4 pb-20 pt-6 sm:px-5 lg:px-6">
-        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[#2D241E]/10 pb-6">
-          <div className="min-w-0">
+      <div className="mx-auto max-w-[1280px] min-w-0 px-4 pb-16 pt-5 sm:px-5 sm:pb-20 sm:pt-6 md:px-5 lg:px-6">
+        <div className="flex flex-col gap-4 border-b border-[#2D241E]/10 pb-5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4 sm:pb-6">
+          <div className="min-w-0 max-w-full">
             <p className="text-xs font-semibold uppercase tracking-wide text-[#2D241E]/50">{t.eyebrow}</p>
             <h1 className="mt-2 font-serif text-2xl font-semibold tracking-tight sm:text-3xl">{t.title}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#2D241E]/72">{t.subtitle}</p>
@@ -356,31 +356,33 @@ export function RestaurantesResultsShell() {
 
         <form
           onSubmit={onSearchSubmit}
-          className="mt-8 rounded-[20px] border border-[#2D241E]/10 bg-[#FFFCF7] p-4 shadow-[0_16px_48px_-28px_rgba(45,36,30,0.35)] sm:p-5"
+          className="mt-6 rounded-[18px] border border-[#2D241E]/10 bg-[#FFFCF7] p-4 shadow-[0_16px_48px_-28px_rgba(45,36,30,0.35)] sm:mt-8 sm:rounded-[20px] sm:p-5"
         >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
-            <div className="relative min-w-0 flex-1">
-              <FaSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2D241E]/40" aria-hidden />
-              <input
-                value={qInput}
-                onChange={(e) => setQInput(e.target.value)}
-                placeholder={t.searchPh}
-                className="min-h-[52px] w-full rounded-[16px] border border-[#2D241E]/12 bg-[#FFFCF7] py-3 pl-10 pr-3 text-sm outline-none transition-shadow ring-[#D97706]/30 focus:ring-2"
-                autoComplete="off"
-              />
-            </div>
-            <div className="relative min-w-0 flex-1">
-              <FaMapMarkerAlt className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2D241E]/40" aria-hidden />
-              <input
-                value={locInput}
-                onChange={(e) => setLocInput(e.target.value)}
-                placeholder={t.locationPh}
-                className="min-h-[52px] w-full rounded-[16px] border border-[#2D241E]/12 bg-[#FFFCF7] py-3 pl-10 pr-3 text-sm outline-none transition-shadow ring-[#D97706]/30 focus:ring-2"
-              />
+          <div className="flex flex-col gap-3 sm:gap-4 xl:flex-row xl:items-stretch">
+            <div className="grid min-w-0 w-full flex-1 grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:contents">
+              <div className="relative min-w-0 md:min-w-0 xl:flex-1">
+                <FaSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2D241E]/40" aria-hidden />
+                <input
+                  value={qInput}
+                  onChange={(e) => setQInput(e.target.value)}
+                  placeholder={t.searchPh}
+                  className="min-h-[52px] w-full min-w-0 rounded-[16px] border border-[#2D241E]/12 bg-[#FFFCF7] py-3 pl-10 pr-3 text-sm outline-none transition-shadow ring-[#D97706]/30 focus:ring-2"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="relative min-w-0 md:min-w-0 xl:flex-1">
+                <FaMapMarkerAlt className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2D241E]/40" aria-hidden />
+                <input
+                  value={locInput}
+                  onChange={(e) => setLocInput(e.target.value)}
+                  placeholder={t.locationPh}
+                  className="min-h-[52px] w-full min-w-0 rounded-[16px] border border-[#2D241E]/12 bg-[#FFFCF7] py-3 pl-10 pr-3 text-sm outline-none transition-shadow ring-[#D97706]/30 focus:ring-2"
+                />
+              </div>
             </div>
             <button
               type="submit"
-              className="min-h-[52px] w-full shrink-0 rounded-[16px] px-8 text-sm font-bold text-[#FFFCF7] shadow-[0_10px_32px_-12px_rgba(180,83,9,0.55)] lg:w-[200px]"
+              className="min-h-[52px] w-full shrink-0 rounded-[16px] px-8 text-sm font-bold text-[#FFFCF7] shadow-[0_10px_32px_-12px_rgba(180,83,9,0.55)] touch-manipulation xl:w-[min(100%,200px)] xl:self-center"
               style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
             >
               {t.search}
@@ -388,17 +390,17 @@ export function RestaurantesResultsShell() {
           </div>
         </form>
 
-        <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-[#2D241E]/80">
+        <div className="mt-5 flex min-w-0 flex-col gap-4 sm:mt-6 md:flex-row md:items-start md:justify-between lg:items-center">
+          <p className="min-w-0 shrink text-sm leading-snug text-[#2D241E]/80">
             <span className="font-semibold text-[#2D241E]">{sorted.length}</span>{" "}
             <span className="text-[#2D241E]/72">{t.resultsMatching}</span>
           </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2 text-sm">
-              <span className="text-[#2D241E]/55">{t.sort}</span>
+          <div className="flex min-w-0 w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
+            <label className="flex min-w-0 w-full flex-col gap-1.5 text-sm sm:w-auto sm:flex-row sm:items-center sm:gap-2">
+              <span className="shrink-0 text-[#2D241E]/55">{t.sort}</span>
               <select
                 aria-label={t.sort}
-                className="min-h-[48px] min-w-[180px] rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none transition focus:border-[#D97706]/45 focus:ring-2 focus:ring-[#D97706]/25"
+                className="min-h-[48px] w-full min-w-0 max-w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none transition focus:border-[#D97706]/45 focus:ring-2 focus:ring-[#D97706]/25 sm:w-auto sm:min-w-[min(100%,200px)] md:min-w-[200px]"
                 value={parsed.top ? "rating-desc" : parsed.sort}
                 onChange={(e) => {
                   const v = e.target.value as RestaurantesDiscoveryState["sort"];
@@ -412,7 +414,7 @@ export function RestaurantesResultsShell() {
             </label>
             <button
               type="button"
-              className="inline-flex min-h-[48px] items-center justify-center rounded-[12px] border border-[#2D241E]/15 bg-[#FFFCF7] px-4 text-sm font-semibold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/35 lg:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/45"
+              className="inline-flex min-h-[48px] w-full shrink-0 items-center justify-center rounded-[12px] border border-[#2D241E]/15 bg-[#FFFCF7] px-4 text-sm font-semibold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/35 sm:w-auto lg:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/45 touch-manipulation"
               onClick={() => setMobileFiltersOpen(true)}
             >
               {t.filters}
@@ -421,43 +423,47 @@ export function RestaurantesResultsShell() {
         </div>
 
         {activeChips.length ? (
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-[#2D241E]/50">{t.active}:</span>
-            {activeChips.map((c) => (
-              <button
-                key={c.label}
-                type="button"
-                onClick={c.clear}
-                className="inline-flex min-h-[40px] items-center gap-1 rounded-full border border-[#D97706]/35 bg-[#FFF7ED] px-3 text-xs font-semibold text-[#2D241E] transition hover:bg-[#FFEDD5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/50"
-              >
-                {c.label} <span aria-hidden>×</span>
-              </button>
-            ))}
+          <div className="mt-4 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <span className="shrink-0 text-xs font-semibold text-[#2D241E]/50">{t.active}:</span>
+            <div className="-mx-1 flex min-w-0 flex-1 flex-wrap items-center gap-2 overflow-x-auto px-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:overflow-visible [&::-webkit-scrollbar]:hidden">
+              {activeChips.map((c) => (
+                <button
+                  key={c.label}
+                  type="button"
+                  onClick={c.clear}
+                  className="inline-flex min-h-[40px] max-w-[min(100%,280px)] shrink-0 items-center gap-1 overflow-hidden text-ellipsis rounded-full border border-[#D97706]/35 bg-[#FFF7ED] px-3 text-left text-xs font-semibold text-[#2D241E] transition hover:bg-[#FFEDD5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/50 sm:max-w-none"
+                >
+                  <span className="truncate">{c.label}</span> <span aria-hidden>×</span>
+                </button>
+              ))}
+            </div>
           </div>
         ) : null}
 
-        <div className="mt-8 lg:grid lg:grid-cols-[280px_1fr] lg:gap-8">
+        <div className="mt-6 min-w-0 lg:mt-8 lg:grid lg:grid-cols-[minmax(0,280px)_1fr] lg:gap-6 xl:gap-8">
           <aside className="mb-6 hidden lg:block">
-            <div className="sticky top-24 rounded-[20px] border border-[#2D241E]/10 bg-[#FFFCF7] p-5 shadow-sm">{filterPanel}</div>
+            <div className="sticky top-24 rounded-[20px] border border-[#2D241E]/10 bg-[#FFFCF7] p-4 shadow-sm xl:p-5">{filterPanel}</div>
           </aside>
 
           <div className="min-w-0">
             {promotedBand.length ? (
-              <section className="mb-8" aria-label={t.featured}>
-                <div className="mb-4 flex items-center gap-2">
-                  <FaStar className="h-4 w-4" style={{ color: ACCENT }} aria-hidden />
+              <section className="mb-6 sm:mb-8" aria-label={t.featured}>
+                <div className="mb-3 flex items-center gap-2 sm:mb-4">
+                  <FaStar className="h-4 w-4 shrink-0" style={{ color: ACCENT }} aria-hidden />
                   <h2 className="font-serif text-lg font-semibold">{t.featured}</h2>
                 </div>
-                <div className="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden">
                   {promotedBand.map((row) => (
-                    <ResultCard key={row.id} row={row} lang={lang} badge={t.promotedBadge} cta={t.verMas} />
+                    <div key={row.id} className="snap-start">
+                      <ResultCard row={row} lang={lang} badge={t.promotedBadge} cta={t.verMas} />
+                    </div>
                   ))}
                 </div>
               </section>
             ) : null}
 
             {shown.length === 0 ? (
-              <div className="rounded-[20px] border border-dashed border-[#2D241E]/25 bg-gradient-to-b from-[#FFFCF7] to-[#FDFBF7] px-6 py-14 text-center sm:px-10">
+              <div className="rounded-[20px] border border-dashed border-[#2D241E]/25 bg-gradient-to-b from-[#FFFCF7] to-[#FDFBF7] px-5 py-10 text-center sm:px-8 sm:py-14 md:px-10">
                 <p className="font-serif text-lg font-semibold text-[#2D241E]">{t.emptyTitle}</p>
                 <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#2D241E]/72">{t.emptyBody}</p>
                 <Link
@@ -468,7 +474,7 @@ export function RestaurantesResultsShell() {
                 </Link>
               </div>
             ) : (
-              <ul className="grid list-none grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className="grid list-none grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 md:gap-6 lg:grid-cols-3">
                 {shown.map((row) => (
                   <li key={row.id}>
                     <ResultCard row={row} lang={lang} cta={t.verMas} />
@@ -500,7 +506,7 @@ export function RestaurantesResultsShell() {
             aria-label={t.close}
             onClick={() => setMobileFiltersOpen(false)}
           />
-          <div className="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto rounded-t-[20px] bg-[#FDFBF7] p-5 shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto rounded-t-[20px] bg-[#FDFBF7] p-5 pb-8 shadow-2xl sm:pb-5">
             <div className="mb-4 flex items-center justify-between">
               <p className="font-serif text-lg font-semibold">{t.filters}</p>
               <button type="button" className="min-h-[44px] px-3 text-sm font-semibold text-[#D97706]" onClick={() => setMobileFiltersOpen(false)}>
@@ -529,12 +535,18 @@ function ResultCard({
   const moreHref = buildRestaurantesResultsHref(lang, { q: row.name, lang });
   return (
     <article
-      className={`flex h-full max-w-[100%] flex-col overflow-hidden rounded-[20px] border border-[#2D241E]/10 bg-[#FFFCF7] shadow-[0_12px_40px_-22px_rgba(45,36,30,0.3)] transition-shadow duration-300 hover:shadow-[0_16px_44px_-20px_rgba(45,36,30,0.36)] ${
-        badge ? "w-[min(100vw-2rem,320px)] shrink-0 ring-1 ring-[#D97706]/22" : "w-full"
+      className={`flex h-full max-w-full flex-col overflow-hidden rounded-[20px] border border-[#2D241E]/10 bg-[#FFFCF7] shadow-[0_12px_40px_-22px_rgba(45,36,30,0.3)] transition-shadow duration-300 hover:shadow-[0_16px_44px_-20px_rgba(45,36,30,0.36)] ${
+        badge ? "w-[min(100%,320px)] min-w-[260px] shrink-0 ring-1 ring-[#D97706]/22 sm:w-[300px]" : "w-full min-w-0"
       }`}
     >
-      <div className="relative aspect-[16/10] w-full overflow-hidden">
-        <Image src={row.imageSrc} alt="" fill className="object-cover" sizes={badge ? "320px" : "(max-width:640px) 100vw, 50vw"} />
+      <div className="relative aspect-[16/10] w-full overflow-hidden rounded-t-[20px]">
+        <Image
+          src={row.imageSrc}
+          alt=""
+          fill
+          className="object-cover object-center"
+          sizes={badge ? "(max-width:640px) 85vw, 300px" : "(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw"}
+        />
         {badge ? (
           <span
             className="absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-bold text-[#FFFCF7] shadow-sm"
@@ -551,19 +563,23 @@ function ResultCard({
           </span>
         ) : null}
       </div>
-      <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <h3 className="font-serif text-lg font-semibold text-[#2D241E]">{row.name}</h3>
-        <p className="mt-1 text-sm text-[#2D241E]/65">{row.cuisineLine}</p>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#2D241E]/55">
-          <span className="inline-flex items-center gap-1">
-            <FaStar className="h-3.5 w-3.5" style={{ color: ACCENT }} aria-hidden />
+      <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+        <h3 className="break-words font-serif text-lg font-semibold leading-snug text-[#2D241E]">{row.name}</h3>
+        <p className="mt-1 text-sm leading-snug text-[#2D241E]/65">{row.cuisineLine}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#2D241E]/55">
+          <span className="inline-flex min-w-0 items-center gap-1">
+            <FaStar className="h-3.5 w-3.5 shrink-0" style={{ color: ACCENT }} aria-hidden />
             {row.rating.toFixed(1)}
           </span>
-          <span>·</span>
-          <span className="inline-flex items-center gap-1">
-            <FaMapMarkerAlt className="h-3.5 w-3.5" style={{ color: ACCENT }} aria-hidden />
-            {row.city}
-            {row.zip ? ` · ${row.zip}` : ""}
+          <span className="opacity-50" aria-hidden>
+            ·
+          </span>
+          <span className="inline-flex min-w-0 items-start gap-1 break-words sm:items-center">
+            <FaMapMarkerAlt className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:mt-0" style={{ color: ACCENT }} aria-hidden />
+            <span>
+              {row.city}
+              {row.zip ? ` · ${row.zip}` : ""}
+            </span>
           </span>
         </div>
         <div className="mt-4 border-t border-[#2D241E]/8 pt-4">

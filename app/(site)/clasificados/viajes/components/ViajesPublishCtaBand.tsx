@@ -17,11 +17,11 @@ export function ViajesPublishCtaBand({ ui, href }: ViajesPublishCtaBandProps) {
         <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(234,88,12,0.05)_0%,transparent_42%,rgba(14,116,144,0.04)_100%)]" aria-hidden />
         <div className="relative flex flex-col gap-6 px-5 py-7 sm:px-10 sm:py-9 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
           <div className="min-w-0 flex-1">
-            <h2 id="viajes-publish-cta-heading" className="text-[1.15rem] font-bold tracking-tight text-[color:var(--lx-text)] sm:text-2xl">
+            <h2 id="viajes-publish-cta-heading" className="break-words text-[1.15rem] font-bold tracking-tight text-[color:var(--lx-text)] sm:text-2xl">
               {copy.title}
             </h2>
-            <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-[color:var(--lx-text-2)] sm:text-[0.9375rem]">{copy.body}</p>
-            <p className="mt-3 max-w-2xl border-l-2 border-[color:var(--lx-gold)]/50 pl-3 text-[11px] leading-snug text-[color:var(--lx-muted)] sm:text-xs">
+            <p className="mt-2 max-w-2xl break-words text-[13px] leading-relaxed text-[color:var(--lx-text-2)] sm:text-[0.9375rem]">{copy.body}</p>
+            <p className="mt-3 max-w-2xl break-words border-l-2 border-[color:var(--lx-gold)]/50 pl-3 text-[11px] leading-snug text-[color:var(--lx-muted)] sm:text-xs">
               {copy.reinforcement}
             </p>
           </div>

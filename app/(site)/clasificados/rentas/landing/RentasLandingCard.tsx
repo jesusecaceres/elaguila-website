@@ -46,8 +46,8 @@ export function RentasLandingCard({ listing, layout = "vertical", copy, lang }: 
     return (
       <article className={`group overflow-hidden ${rentasCardSurfaceClass} ring-1 ring-[#D4C4A8]/32`}>
         <div className="flex flex-col sm:flex-row sm:items-stretch">
-          <div className="relative sm:w-[42%] sm:max-w-[300px]">
-            <div className="relative aspect-[16/10] sm:aspect-auto sm:h-full sm:min-h-[180px]">
+          <div className="relative shrink-0 sm:w-[42%] sm:max-w-[min(100%,300px)]">
+            <div className="relative aspect-[16/10] sm:aspect-auto sm:h-full sm:min-h-[200px]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={listing.imageUrl} alt="" className="h-full w-full object-cover transition duration-500 group-hover:brightness-[1.03]" />
               <div className="absolute left-2 top-2 z-[2] flex flex-wrap gap-1">
@@ -93,8 +93,8 @@ export function RentasLandingCard({ listing, layout = "vertical", copy, lang }: 
   }
 
   return (
-    <article className={`group flex h-full flex-col overflow-hidden ${rentasCardSurfaceClass} ring-1 ring-[#D4C4A8]/32`}>
-      <div className="relative aspect-[16/11] overflow-hidden">
+    <article className={`group flex h-full min-h-0 flex-col overflow-hidden ${rentasCardSurfaceClass} ring-1 ring-[#D4C4A8]/32`}>
+      <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-[#E8E0D4]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={listing.imageUrl}

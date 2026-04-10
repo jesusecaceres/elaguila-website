@@ -36,7 +36,7 @@ export function ServiciosResultsFilters({
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#3d5a73]/85">
             {lang === "en" ? "Search" : "Buscar"}
           </p>
-          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-end">
             <label className="min-w-0 flex-1">
               <span className="text-xs font-semibold text-[#3d4f62]">
                 {lang === "en" ? "Keywords" : "Palabras clave"}
@@ -91,7 +91,7 @@ export function ServiciosResultsFilters({
           ) : null}
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           <label className="flex min-w-0 flex-col gap-1">
             <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Sort" : "Orden"}</span>
             <select
@@ -138,7 +138,7 @@ export function ServiciosResultsFilters({
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#64748b]">
             {lang === "en" ? "Contact signals on the profile" : "Señales de contacto en la vitrina"}
           </p>
-          <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
             <label className="flex min-w-0 flex-col gap-1">
               <span className="text-xs font-semibold text-neutral-700">WhatsApp</span>
               <select

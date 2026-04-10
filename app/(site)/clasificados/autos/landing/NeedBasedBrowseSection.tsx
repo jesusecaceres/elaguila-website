@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { AutosPublicBlueprintCopy } from "../lib/autosPublicBlueprintCopy";
 import { FiArrowUpRight } from "react-icons/fi";
+import { autosLandingSectionClass } from "./autosLandingLayout";
 
 export function NeedBasedBrowseSection({
   copy,
@@ -12,11 +13,11 @@ export function NeedBasedBrowseSection({
   cards: { href: string; title: string; hint: string; key: string }[];
 }) {
   return (
-    <section className="mx-auto w-full max-w-[1280px] min-w-0 px-4 sm:px-5 md:px-6">
+    <section className={autosLandingSectionClass}>
       <h2 className="border-l-[3px] border-[color:var(--lx-gold)] pl-3 font-serif text-xl font-semibold tracking-tight text-[color:var(--lx-text)] sm:text-2xl">
         {copy.browseNeedTitle}
       </h2>
-      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:gap-5 lg:grid-cols-3">
         {cards.map((c) => (
           <Link
             key={c.key}

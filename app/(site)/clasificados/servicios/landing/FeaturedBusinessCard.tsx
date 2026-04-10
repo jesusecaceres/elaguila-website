@@ -52,7 +52,7 @@ export function FeaturedBusinessCard({ row, lang }: { row: ServiciosLandingFeatu
           src={row.coverImageSrc}
           alt={row.coverImageAlt}
           fill
-          sizes="(max-width: 768px) 100vw, 33vw"
+          sizes="(max-width: 768px) 100vw, (max-width: 1536px) 50vw, 32vw"
           className="object-cover transition duration-700 group-hover:scale-[1.04]"
         />
         <div

@@ -48,7 +48,7 @@ export function LatestJobsAndEmployer({ lang }: Props) {
         </Link>
       }
     >
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.45fr)] lg:items-start">
+      <div className="grid gap-8 lg:gap-10 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.45fr)] xl:items-start">
         <div className="rounded-[1.25rem] border border-[#E8DFD0] bg-white shadow-[0_12px_36px_rgba(42,40,38,0.07)]">
           {sampleRecentJobs.map((job, i) => {
             const detailHref = appendLangToPath(`/clasificados/empleos/${job.slug}`, lang);

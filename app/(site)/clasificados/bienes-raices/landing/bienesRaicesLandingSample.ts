@@ -1,6 +1,11 @@
 import type { BrNegocioListing } from "../resultados/cards/listingTypes";
 import { brNegocioFeaturedListing, brNegocioGridListings } from "../resultados/demoData";
 
+/** Full-bleed landing hero — upscale residential / neighborhood (Unsplash). */
+export const BR_LANDING_HERO_IMAGE = {
+  src: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=2400&q=85&auto=format&fit=crop",
+} as const;
+
 /** Editorial featured block — same shape as future published “hero” slots. */
 export const brLandingFeaturedHero: BrNegocioListing = {
   ...brNegocioFeaturedListing,

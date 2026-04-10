@@ -2,7 +2,7 @@
 export function ViajesLandingTierBreak({ label }: { label: string }) {
   return (
     <div
-      className="my-12 flex items-center gap-4 sm:my-14 md:my-16"
+      className="my-10 flex min-w-0 items-center gap-3 px-1 sm:my-14 sm:gap-4 md:my-16"
       role="separator"
       aria-label={label}
     >
