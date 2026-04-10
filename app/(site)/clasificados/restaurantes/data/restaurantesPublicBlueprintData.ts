@@ -1,8 +1,14 @@
 import type { RestaurantesBlueprintCard } from "@/app/clasificados/restaurantes/lib/restaurantesBlueprintTypes";
+import {
+  selectLandingDestacadosCandidates,
+  selectLandingRecientesCandidates,
+} from "@/app/clasificados/restaurantes/lib/restaurantesListingExposurePolicy";
 
 /**
  * Single structured pool for Restaurantes public blueprint (landing sections + results shell).
- * Swap this module’s exports for query-mapped data later without redesigning UI shells.
+ * **Swap** this module’s exports for query-mapped / API-backed rows later without redesigning UI shells.
+ *
+ * @see `adapters/restauranteApplicationToDiscoveryRow.ts` — published listing → same row shape.
  */
 
 export type RestaurantesPublicBlueprintPrice = "$" | "$$" | "$$$" | "$$$$";
@@ -21,18 +27,67 @@ export type RestaurantesPublicBlueprintRow = {
   imageSrc: string;
   serviceModes: Array<"dine_in" | "takeout" | "delivery">;
   familyFriendly: boolean;
-  /** Promoted placements (future: paid/featured tiers). */
+  /** Paid / featured / boosted stand-in (`RestauranteInternalContract.featured` / `boosted` / tier). */
   promoted: boolean;
-  /** Demo stand-in until stored hours + “open now” evaluation exists. */
+  /** Demo until `weeklyHours` + server “open now” evaluation exists. */
   openNowDemo: boolean;
   veganOptions: boolean;
   glutenFreeOptions: boolean;
   halalCuisine: boolean;
+  /** ISO timestamp — maps to `publishedAt` for “recientes”. */
   listedAt: string;
+  /** `RestauranteBusinessIdentity.businessType` */
+  businessType?: string;
+  /** `RestauranteOperatingModel` flags */
+  movingVendor?: boolean;
+  homeBasedBusiness?: boolean;
+  foodTruck?: boolean;
+  popUp?: boolean;
+  neighborhood?: string;
+  /** Subset of `highlights` keys */
+  highlightKeys?: string[];
+  /** `externalReviewCount` */
+  externalReviewCount?: number;
 };
 
-/** Full demo inventory for results filtering / sorting. */
-export const RESTAURANTES_PUBLIC_BLUEPRINT_ROWS: RestaurantesPublicBlueprintRow[] = [
+const DEFAULT_DISCOVERY: Pick<
+  RestaurantesPublicBlueprintRow,
+  | "businessType"
+  | "movingVendor"
+  | "homeBasedBusiness"
+  | "foodTruck"
+  | "popUp"
+  | "neighborhood"
+  | "highlightKeys"
+  | "externalReviewCount"
+> = {
+  businessType: "sit_down",
+  movingVendor: false,
+  homeBasedBusiness: false,
+  foodTruck: false,
+  popUp: false,
+  neighborhood: undefined,
+  highlightKeys: [],
+  externalReviewCount: undefined,
+};
+
+/** Per-row demo overrides — keep variety for filter QA. */
+const DISCOVERY_OVERRIDES: Record<string, Partial<RestaurantesPublicBlueprintRow>> = {
+  "bp-07": { businessType: "food_truck", foodTruck: true },
+  "bp-08": { movingVendor: true, businessType: "street_vendor" },
+  "bp-10": {
+    businessType: "cafe",
+    neighborhood: "Centro",
+    homeBasedBusiness: true,
+    highlightKeys: ["family_friendly", "outdoor_seating"],
+    externalReviewCount: 128,
+  },
+  "bp-11": { popUp: true, businessType: "sit_down" },
+  "bp-12": { businessType: "fast_casual" },
+  "bp-09": { highlightKeys: ["great_dinner"] },
+};
+
+const RESTAURANTES_PUBLIC_BLUEPRINT_ROWS_RAW: Array<Omit<RestaurantesPublicBlueprintRow, keyof typeof DEFAULT_DISCOVERY>> = [
   {
     id: "bp-01",
     name: "Casa Tapatía",
@@ -282,32 +337,38 @@ export const RESTAURANTES_PUBLIC_BLUEPRINT_ROWS: RestaurantesPublicBlueprintRow[
   },
 ];
 
-const FEATURED_IDS = new Set(["bp-01", "bp-02", "bp-03"]);
-const RECENT_IDS = new Set(["bp-04", "bp-05", "bp-06"]);
+export const RESTAURANTES_PUBLIC_BLUEPRINT_ROWS: RestaurantesPublicBlueprintRow[] = RESTAURANTES_PUBLIC_BLUEPRINT_ROWS_RAW.map(
+  (r) => ({
+    ...DEFAULT_DISCOVERY,
+    ...DISCOVERY_OVERRIDES[r.id],
+    ...r,
+  }),
+);
 
 function rowToLandingCard(row: RestaurantesPublicBlueprintRow): RestaurantesBlueprintCard {
   return {
     id: row.id,
     name: row.name,
     cuisineLine: row.cuisineLine,
-    cityLine: row.city,
+    cityLine: row.neighborhood ? `${row.city} · ${row.neighborhood}` : row.city,
     rating: row.rating,
     imageSrc: row.imageSrc,
   };
 }
 
 export function getRestaurantesBlueprintLandingFeatured(): RestaurantesBlueprintCard[] {
-  return RESTAURANTES_PUBLIC_BLUEPRINT_ROWS.filter((r) => FEATURED_IDS.has(r.id)).map(rowToLandingCard);
+  return selectLandingDestacadosCandidates(RESTAURANTES_PUBLIC_BLUEPRINT_ROWS).map(rowToLandingCard);
 }
 
 export function getRestaurantesBlueprintLandingRecent(): RestaurantesBlueprintCard[] {
-  return RESTAURANTES_PUBLIC_BLUEPRINT_ROWS.filter((r) => RECENT_IDS.has(r.id)).map(rowToLandingCard);
+  return selectLandingRecientesCandidates(RESTAURANTES_PUBLIC_BLUEPRINT_ROWS).map(rowToLandingCard);
 }
 
 export function isBlueprintPromotedId(id: string): boolean {
-  return FEATURED_IDS.has(id);
+  return RESTAURANTES_PUBLIC_BLUEPRINT_ROWS.some((r) => r.id === id && r.promoted);
 }
 
 export function isBlueprintRecentId(id: string): boolean {
-  return RECENT_IDS.has(id);
+  const recent = selectLandingRecientesCandidates(RESTAURANTES_PUBLIC_BLUEPRINT_ROWS);
+  return recent.some((r) => r.id === id);
 }

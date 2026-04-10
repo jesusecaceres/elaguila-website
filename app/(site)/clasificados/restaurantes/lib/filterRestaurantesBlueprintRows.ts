@@ -1,7 +1,7 @@
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 import type { RestaurantesDiscoveryState } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
 
-/** Matches landing + results `cuisine=` keys to stored primary/secondary cuisine keys. */
+/** Matches `cuisine=` to primary/secondary/additional keys on the row. */
 function rowMatchesCuisineFilter(param: string, row: RestaurantesPublicBlueprintRow): boolean {
   const raw = param.trim();
   if (!raw) return true;
@@ -9,9 +9,19 @@ function rowMatchesCuisineFilter(param: string, row: RestaurantesPublicBlueprint
   return false;
 }
 
+export type FilterRestaurantesBlueprintOptions = {
+  /** When `saved` is true in state, keep only these listing ids (from first-party storage). */
+  savedIds?: Set<string>;
+};
+
+/**
+ * Single implementation for URL `RestaurantesDiscoveryState` → blueprint rows.
+ * **Future:** swap `RestaurantesPublicBlueprintRow[]` for API rows; keep state shape.
+ */
 export function filterRestaurantesBlueprintRows(
   rows: RestaurantesPublicBlueprintRow[],
   s: RestaurantesDiscoveryState,
+  opts?: FilterRestaurantesBlueprintOptions,
 ): RestaurantesPublicBlueprintRow[] {
   return rows.filter((row) => {
     const q = s.q.trim().toLowerCase();
@@ -22,6 +32,7 @@ export function filterRestaurantesBlueprintRows(
     if (s.city && !row.city.toLowerCase().includes(s.city.toLowerCase())) return false;
     if (s.zip && (row.zip ?? "").trim() !== s.zip.trim()) return false;
     if (s.cuisine && !rowMatchesCuisineFilter(s.cuisine, row)) return false;
+    if (s.biz && (row.businessType ?? "") !== s.biz) return false;
     if (s.svc && !row.serviceModes.includes(s.svc as "dine_in" | "takeout" | "delivery")) return false;
     if (s.family && !row.familyFriendly) return false;
     if (s.price && row.priceLevel !== s.price) return false;
@@ -30,6 +41,31 @@ export function filterRestaurantesBlueprintRows(
     if (s.diet === "glutenfree" && !row.glutenFreeOptions) return false;
     if (s.diet === "halal" && !row.halalCuisine && row.primaryCuisineKey !== "halal") return false;
     if (s.top && row.rating < 4.5) return false;
+
+    if (s.movingVendor && !row.movingVendor) return false;
+    if (s.homeBasedBusiness && !row.homeBasedBusiness) return false;
+    if (s.foodTruck && !row.foodTruck) return false;
+    if (s.popUp && !row.popUp) return false;
+
+    if (s.hl) {
+      const keys = row.highlightKeys ?? [];
+      if (!keys.includes(s.hl)) return false;
+    }
+
+    /**
+     * `near` without city/zip: intent-only — do not exclude rows until geo radius exists.
+     * With city/zip, normal location filters above already apply.
+     */
+    if (s.near && !s.city.trim() && !s.zip.trim()) {
+      // pass
+    }
+
+    if (s.saved) {
+      const ids = opts?.savedIds;
+      if (!ids || ids.size === 0) return false;
+      if (!ids.has(row.id)) return false;
+    }
+
     return true;
   });
 }

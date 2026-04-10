@@ -8,7 +8,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FaMapMarkerAlt, FaSearch, FaStar } from "react-icons/fa";
 
 import Navbar from "@/app/components/Navbar";
-import { RESTAURANTE_CUISINES, RESTAURANTE_PRICE_LEVELS } from "@/app/clasificados/restaurantes/application/restauranteTaxonomy";
+import {
+  RESTAURANTE_BUSINESS_TYPES,
+  RESTAURANTE_CUISINES,
+  RESTAURANTE_HIGHLIGHTS,
+  RESTAURANTE_PRICE_LEVELS,
+} from "@/app/clasificados/restaurantes/application/restauranteTaxonomy";
 import {
   RESTAURANTES_PUBLIC_BLUEPRINT_ROWS,
   type RestaurantesPublicBlueprintRow,
@@ -16,12 +21,20 @@ import {
 import { filterRestaurantesBlueprintRows, sortRestaurantesBlueprintRows } from "@/app/clasificados/restaurantes/lib/filterRestaurantesBlueprintRows";
 import {
   buildRestaurantesResultsHref,
+  clearRestaurantesDiscoveryFilters,
   parseRestaurantesResultsSearchParams,
   restaurantesDiscoveryStateToParams,
   splitLocationInput,
   type RestaurantesDiscoveryLang,
   type RestaurantesDiscoveryState,
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
+import { requestCoarsePlaceFromBrowserGeolocation } from "@/app/clasificados/restaurantes/lib/restaurantesCoarseGeolocation";
+import {
+  readRestaurantesSavedIds,
+  rememberRestaurantesDiscoveryFromState,
+} from "@/app/clasificados/restaurantes/lib/restaurantesFirstPartyPreferences";
+import { selectPromotedResultsCandidates } from "@/app/clasificados/restaurantes/lib/restaurantesListingExposurePolicy";
+import { leonixPersonalizationAllowed } from "@/app/lib/leonixPublicConsent";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 const ACCENT = "#D97706";
@@ -57,6 +70,9 @@ export function RestaurantesResultsShell() {
 
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [visible, setVisible] = useState(PAGE_SIZE);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [geoNote, setGeoNote] = useState<string | null>(null);
+  const [geoLoading, setGeoLoading] = useState(false);
 
   const [qInput, setQInput] = useState(parsed.q);
   const [locInput, setLocInput] = useState(parsed.zip || parsed.city || "");
@@ -70,16 +86,26 @@ export function RestaurantesResultsShell() {
     setVisible(PAGE_SIZE);
   }, [spStr]);
 
+  useEffect(() => {
+    setSavedIds(readRestaurantesSavedIds());
+  }, [spStr, parsed.saved]);
+
   const effectiveSort = useMemo(() => {
     if (parsed.top) return "rating-desc" as const;
     return parsed.sort;
   }, [parsed.top, parsed.sort]);
 
-  const filteredUnsorted = useMemo(() => filterRestaurantesBlueprintRows(RESTAURANTES_PUBLIC_BLUEPRINT_ROWS, parsed), [parsed]);
+  const filteredUnsorted = useMemo(
+    () =>
+      filterRestaurantesBlueprintRows(RESTAURANTES_PUBLIC_BLUEPRINT_ROWS, parsed, {
+        savedIds: parsed.saved ? savedIds : undefined,
+      }),
+    [parsed, savedIds],
+  );
 
   const sorted = useMemo(() => sortRestaurantesBlueprintRows(filteredUnsorted, effectiveSort), [filteredUnsorted, effectiveSort]);
 
-  const promotedBand = useMemo(() => sorted.filter((r) => r.promoted).slice(0, 3), [sorted]);
+  const promotedBand = useMemo(() => selectPromotedResultsCandidates(sorted, 3), [sorted]);
   const promotedIds = useMemo(() => new Set(promotedBand.map((r) => r.id)), [promotedBand]);
 
   const gridRows = useMemo(() => sorted.filter((r) => !promotedIds.has(r.id)), [sorted, promotedIds]);
@@ -97,14 +123,14 @@ export function RestaurantesResultsShell() {
   const onSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
     const loc = splitLocationInput(locInput);
-    pushState(
-      mergeDiscovery(parsed, {
-        q: qInput.trim(),
-        city: loc.city ?? "",
-        zip: loc.zip ?? "",
-        page: 1,
-      }),
-    );
+    const next = mergeDiscovery(parsed, {
+      q: qInput.trim(),
+      city: loc.city ?? "",
+      zip: loc.zip ?? "",
+      page: 1,
+    });
+    rememberRestaurantesDiscoveryFromState(next);
+    pushState(next);
   };
 
   const t = useMemo(() => {
@@ -149,7 +175,24 @@ export function RestaurantesResultsShell() {
         active: "Active filters",
         backLanding: "Restaurants home",
         eyebrow: "Leonix · Clasificados",
-        nearReserved: "Nearby (coming soon)",
+        nearHonest: "Near me: add city or ZIP to narrow results.",
+        sectionCuisine: "Cuisine",
+        sectionLocation: "Location",
+        sectionService: "Service",
+        sectionPrice: "Price",
+        sectionStyle: "Style / business",
+        sectionMore: "More filters",
+        biz: "Business type",
+        hl: "Highlight",
+        flagMoving: "Moving vendor",
+        flagHome: "Home-based",
+        flagTruck: "Food truck",
+        flagPopUp: "Pop-up",
+        savedOnly: "Saved only",
+        savedPrivacy: "Enable personalization in cookie preferences to filter saved listings.",
+        useLocation: "Use my location",
+        clearAll: "Clear all",
+        nearReserved: "Near me",
       };
     }
     return {
@@ -193,121 +236,291 @@ export function RestaurantesResultsShell() {
       active: "Filtros activos",
       backLanding: "Inicio Restaurantes",
       eyebrow: "Leonix · Clasificados",
-      nearReserved: "Cerca (próximamente)",
+      nearHonest: "Cerca de mí: añade ciudad o código postal para acotar mejor.",
+      sectionCuisine: "Cocina",
+      sectionLocation: "Ubicación",
+      sectionService: "Servicio",
+      sectionPrice: "Precio",
+      sectionStyle: "Estilo / negocio",
+      sectionMore: "Más filtros",
+      biz: "Tipo de negocio",
+      hl: "Destacado / ambiente",
+      flagMoving: "Vendedor móvil",
+      flagHome: "Desde casa",
+      flagTruck: "Food truck",
+      flagPopUp: "Pop-up",
+      savedOnly: "Solo guardados",
+      savedPrivacy: "Activa personalización en cookies para filtrar favoritos guardados.",
+      useLocation: "Usar mi ubicación",
+      clearAll: "Limpiar todo",
+      nearReserved: "Cerca de mí",
     };
   }, [lang]);
 
   const landingHref = appendLangToPath("/clasificados/restaurantes", lang);
 
   const filterPanel = (
-    <div className="space-y-4">
-      <div>
-        <label className="text-xs font-semibold text-[#2D241E]/60">{t.cuisine}</label>
-        <select
-          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
-          value={parsed.cuisine}
-          onChange={(e) => pushState(mergeDiscovery(parsed, { cuisine: e.target.value, page: 1 }))}
-        >
-          <option value="">{t.all}</option>
-          {RESTAURANTE_CUISINES.filter((c) => c.key !== "other").map((c) => (
-            <option key={c.key} value={c.key}>
-              {c.labelEs}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-[#2D241E]/60">{t.city}</label>
-        <input
-          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
-          defaultValue={parsed.city}
-          key={`city-${parsed.city}`}
-          onBlur={(e) => pushState(mergeDiscovery(parsed, { city: e.target.value.trim(), page: 1 }))}
-        />
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-[#2D241E]/60">{t.zip}</label>
-        <input
-          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
-          defaultValue={parsed.zip}
-          key={`zip-${parsed.zip}`}
-          inputMode="numeric"
-          maxLength={5}
-          onBlur={(e) =>
-            pushState(mergeDiscovery(parsed, { zip: e.target.value.replace(/\D/g, "").slice(0, 5), page: 1 }))
-          }
-        />
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-[#2D241E]/60">{t.price}</label>
-        <select
-          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
-          value={parsed.price}
-          onChange={(e) => pushState(mergeDiscovery(parsed, { price: e.target.value, page: 1 }))}
-        >
-          <option value="">{t.any}</option>
-          {RESTAURANTE_PRICE_LEVELS.map((p) => (
-            <option key={p.key} value={p.key}>
-              {p.labelEs}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-[#2D241E]/60">{t.serviceFull}</label>
-        <select
-          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
-          value={parsed.svc}
-          onChange={(e) => pushState(mergeDiscovery(parsed, { svc: e.target.value, page: 1 }))}
-        >
-          <option value="">{t.any}</option>
-          <option value="dine_in">{lang === "es" ? "Comer en local" : "Dine-in"}</option>
-          <option value="takeout">{lang === "es" ? "Para llevar" : "Takeout"}</option>
-          <option value="delivery">{lang === "es" ? "Entrega a domicilio" : "Delivery"}</option>
-        </select>
-      </div>
-      <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
-        <input
-          type="checkbox"
-          className="h-5 w-5 rounded border-[#2D241E]/20"
-          checked={parsed.open}
-          onChange={(e) => pushState(mergeDiscovery(parsed, { open: e.target.checked, page: 1 }))}
-        />
-        {t.openNow}
-      </label>
-      <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
-        <input
-          type="checkbox"
-          className="h-5 w-5 rounded border-[#2D241E]/20"
-          checked={parsed.family}
-          onChange={(e) => pushState(mergeDiscovery(parsed, { family: e.target.checked, page: 1 }))}
-        />
-        {t.family}
-      </label>
-      <div>
-        <label className="text-xs font-semibold text-[#2D241E]/60">{t.dietFull}</label>
-        <select
-          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
-          value={parsed.diet}
-          onChange={(e) =>
-            pushState(
-              mergeDiscovery(parsed, {
-                diet: (e.target.value as RestaurantesDiscoveryState["diet"]) || "",
-                page: 1,
-              }),
-            )
-          }
-        >
-          <option value="">{t.any}</option>
-          <option value="vegan">Vegano (opciones)</option>
-          <option value="glutenfree">Sin gluten</option>
-          <option value="halal">Halal</option>
-        </select>
-      </div>
+    <div className="space-y-6">
+      <section aria-labelledby="rx-f-cuisine">
+        <h3 id="rx-f-cuisine" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+          {t.sectionCuisine}
+        </h3>
+        <div className="mt-2">
+          <label className="sr-only" htmlFor="rx-filter-cuisine">
+            {t.cuisine}
+          </label>
+          <select
+            id="rx-filter-cuisine"
+            className="min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+            value={parsed.cuisine}
+            onChange={(e) => pushState(mergeDiscovery(parsed, { cuisine: e.target.value, page: 1 }))}
+          >
+            <option value="">{t.all}</option>
+            {RESTAURANTE_CUISINES.filter((c) => c.key !== "other").map((c) => (
+              <option key={c.key} value={c.key}>
+                {c.labelEs}
+              </option>
+            ))}
+          </select>
+        </div>
+      </section>
+
+      <section aria-labelledby="rx-f-loc">
+        <h3 id="rx-f-loc" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+          {t.sectionLocation}
+        </h3>
+        <div className="mt-2 space-y-3">
+          <div>
+            <label className="text-xs font-semibold text-[#2D241E]/60" htmlFor="rx-filter-city">
+              {t.city}
+            </label>
+            <input
+              id="rx-filter-city"
+              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+              defaultValue={parsed.city}
+              key={`city-${parsed.city}`}
+              onBlur={(e) => pushState(mergeDiscovery(parsed, { city: e.target.value.trim(), page: 1 }))}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-[#2D241E]/60" htmlFor="rx-filter-zip">
+              {t.zip}
+            </label>
+            <input
+              id="rx-filter-zip"
+              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+              defaultValue={parsed.zip}
+              key={`zip-${parsed.zip}`}
+              inputMode="numeric"
+              maxLength={5}
+              onBlur={(e) =>
+                pushState(mergeDiscovery(parsed, { zip: e.target.value.replace(/\D/g, "").slice(0, 5), page: 1 }))
+              }
+            />
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="rx-f-svc">
+        <h3 id="rx-f-svc" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+          {t.sectionService}
+        </h3>
+        <div className="mt-2 space-y-3">
+          <div>
+            <label className="sr-only" htmlFor="rx-filter-svc">
+              {t.serviceFull}
+            </label>
+            <select
+              id="rx-filter-svc"
+              className="min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+              value={parsed.svc}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { svc: e.target.value, page: 1 }))}
+            >
+              <option value="">{t.any}</option>
+              <option value="dine_in">{lang === "es" ? "Comer en local" : "Dine-in"}</option>
+              <option value="takeout">{lang === "es" ? "Para llevar" : "Takeout"}</option>
+              <option value="delivery">{lang === "es" ? "Entrega a domicilio" : "Delivery"}</option>
+            </select>
+          </div>
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-[#2D241E]/20"
+              checked={parsed.open}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { open: e.target.checked, page: 1 }))}
+            />
+            {t.openNow}
+          </label>
+        </div>
+      </section>
+
+      <section aria-labelledby="rx-f-price">
+        <h3 id="rx-f-price" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+          {t.sectionPrice}
+        </h3>
+        <div className="mt-2">
+          <label className="sr-only" htmlFor="rx-filter-price">
+            {t.price}
+          </label>
+          <select
+            id="rx-filter-price"
+            className="min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+            value={parsed.price}
+            onChange={(e) => pushState(mergeDiscovery(parsed, { price: e.target.value, page: 1 }))}
+          >
+            <option value="">{t.any}</option>
+            {RESTAURANTE_PRICE_LEVELS.map((p) => (
+              <option key={p.key} value={p.key}>
+                {p.labelEs}
+              </option>
+            ))}
+          </select>
+        </div>
+      </section>
+
+      <section aria-labelledby="rx-f-style">
+        <h3 id="rx-f-style" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+          {t.sectionStyle}
+        </h3>
+        <div className="mt-2">
+          <label className="sr-only" htmlFor="rx-filter-biz">
+            {t.biz}
+          </label>
+          <select
+            id="rx-filter-biz"
+            className="min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+            value={parsed.biz}
+            onChange={(e) =>
+              pushState(mergeDiscovery(parsed, { biz: e.target.value as RestaurantesDiscoveryState["biz"], page: 1 }))
+            }
+          >
+            <option value="">{t.any}</option>
+            {RESTAURANTE_BUSINESS_TYPES.filter((b) => b.key !== "other").map((b) => (
+              <option key={b.key} value={b.key}>
+                {b.labelEs}
+              </option>
+            ))}
+          </select>
+        </div>
+      </section>
+
+      <section aria-labelledby="rx-f-more">
+        <h3 id="rx-f-more" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+          {t.sectionMore}
+        </h3>
+        <div className="mt-2 space-y-3">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-[#2D241E]/20"
+              checked={parsed.family}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { family: e.target.checked, page: 1 }))}
+            />
+            {t.family}
+          </label>
+          <div>
+            <label className="text-xs font-semibold text-[#2D241E]/60" htmlFor="rx-filter-diet">
+              {t.dietFull}
+            </label>
+            <select
+              id="rx-filter-diet"
+              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+              value={parsed.diet}
+              onChange={(e) =>
+                pushState(
+                  mergeDiscovery(parsed, {
+                    diet: (e.target.value as RestaurantesDiscoveryState["diet"]) || "",
+                    page: 1,
+                  }),
+                )
+              }
+            >
+              <option value="">{t.any}</option>
+              <option value="vegan">Vegano (opciones)</option>
+              <option value="glutenfree">Sin gluten</option>
+              <option value="halal">Halal</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-[#2D241E]/60" htmlFor="rx-filter-hl">
+              {t.hl}
+            </label>
+            <select
+              id="rx-filter-hl"
+              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+              value={parsed.hl}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { hl: e.target.value, page: 1 }))}
+            >
+              <option value="">{t.any}</option>
+              {RESTAURANTE_HIGHLIGHTS.slice(0, 14).map((h) => (
+                <option key={h.key} value={h.key}>
+                  {h.labelEs}
+                </option>
+              ))}
+            </select>
+          </div>
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-[#2D241E]/20"
+              checked={parsed.movingVendor}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { movingVendor: e.target.checked, page: 1 }))}
+            />
+            {t.flagMoving}
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-[#2D241E]/20"
+              checked={parsed.homeBasedBusiness}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { homeBasedBusiness: e.target.checked, page: 1 }))}
+            />
+            {t.flagHome}
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-[#2D241E]/20"
+              checked={parsed.foodTruck}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { foodTruck: e.target.checked, page: 1 }))}
+            />
+            {t.flagTruck}
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-[#2D241E]/20"
+              checked={parsed.popUp}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { popUp: e.target.checked, page: 1 }))}
+            />
+            {t.flagPopUp}
+          </label>
+          <div>
+            <label className="flex cursor-pointer items-start gap-3 text-sm font-medium text-[#2D241E]">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-5 w-5 rounded border-[#2D241E]/20"
+                disabled={!leonixPersonalizationAllowed()}
+                checked={parsed.saved}
+                onChange={(e) => pushState(mergeDiscovery(parsed, { saved: e.target.checked, page: 1 }))}
+              />
+              <span>
+                {t.savedOnly}
+                {!leonixPersonalizationAllowed() ? (
+                  <span className="mt-1 block text-xs font-normal text-[#2D241E]/55">{t.savedPrivacy}</span>
+                ) : null}
+              </span>
+            </label>
+          </div>
+        </div>
+      </section>
+
       <button
         type="button"
         className="w-full min-h-[48px] rounded-[12px] border border-[#2D241E]/12 text-sm font-semibold text-[#2D241E]/80 hover:bg-[#FFFCF7]"
-        onClick={() => router.push(buildRestaurantesResultsHref(lang, { lang }))}
+        onClick={() =>
+          router.push(buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang))))
+        }
       >
         {t.reset}
       </button>
@@ -315,28 +528,109 @@ export function RestaurantesResultsShell() {
   );
 
   const activeChips = useMemo(() => {
-    const chips: { label: string; clear: () => void }[] = [];
-    if (parsed.q) chips.push({ label: `“${parsed.q}”`, clear: () => pushState(mergeDiscovery(parsed, { q: "", page: 1 })) });
-    if (parsed.city) chips.push({ label: parsed.city, clear: () => pushState(mergeDiscovery(parsed, { city: "", page: 1 })) });
-    if (parsed.zip) chips.push({ label: parsed.zip, clear: () => pushState(mergeDiscovery(parsed, { zip: "", page: 1 })) });
+    const chips: { id: string; label: string; clear: () => void }[] = [];
+    if (parsed.q) chips.push({ id: "q", label: `“${parsed.q}”`, clear: () => pushState(mergeDiscovery(parsed, { q: "", page: 1 })) });
+    if (parsed.city) chips.push({ id: "city", label: parsed.city, clear: () => pushState(mergeDiscovery(parsed, { city: "", page: 1 })) });
+    if (parsed.zip) chips.push({ id: "zip", label: parsed.zip, clear: () => pushState(mergeDiscovery(parsed, { zip: "", page: 1 })) });
     if (parsed.cuisine)
       chips.push({
+        id: "cuisine",
         label: RESTAURANTE_CUISINES.find((c) => c.key === parsed.cuisine)?.labelEs ?? parsed.cuisine,
         clear: () => pushState(mergeDiscovery(parsed, { cuisine: "", page: 1 })),
       });
+    if (parsed.biz)
+      chips.push({
+        id: "biz",
+        label: RESTAURANTE_BUSINESS_TYPES.find((b) => b.key === parsed.biz)?.labelEs ?? parsed.biz,
+        clear: () => pushState(mergeDiscovery(parsed, { biz: "", page: 1 })),
+      });
     if (parsed.svc)
       chips.push({
+        id: "svc",
         label: labelForSvcParam(parsed.svc, lang),
         clear: () => pushState(mergeDiscovery(parsed, { svc: "", page: 1 })),
       });
-    if (parsed.family) chips.push({ label: t.family, clear: () => pushState(mergeDiscovery(parsed, { family: false, page: 1 })) });
-    if (parsed.price) chips.push({ label: parsed.price, clear: () => pushState(mergeDiscovery(parsed, { price: "", page: 1 })) });
-    if (parsed.open) chips.push({ label: t.openNow, clear: () => pushState(mergeDiscovery(parsed, { open: false, page: 1 })) });
-    if (parsed.diet) chips.push({ label: parsed.diet, clear: () => pushState(mergeDiscovery(parsed, { diet: "", page: 1 })) });
-    if (parsed.top) chips.push({ label: t.sortRating, clear: () => pushState(mergeDiscovery(parsed, { top: false, page: 1 })) });
-    if (parsed.near) chips.push({ label: t.nearReserved, clear: () => pushState(mergeDiscovery(parsed, { near: false, page: 1 })) });
+    if (parsed.family) chips.push({ id: "family", label: t.family, clear: () => pushState(mergeDiscovery(parsed, { family: false, page: 1 })) });
+    if (parsed.price) chips.push({ id: "price", label: parsed.price, clear: () => pushState(mergeDiscovery(parsed, { price: "", page: 1 })) });
+    if (parsed.open) chips.push({ id: "open", label: t.openNow, clear: () => pushState(mergeDiscovery(parsed, { open: false, page: 1 })) });
+    if (parsed.diet) chips.push({ id: "diet", label: parsed.diet, clear: () => pushState(mergeDiscovery(parsed, { diet: "", page: 1 })) });
+    if (parsed.hl)
+      chips.push({
+        id: "hl",
+        label: RESTAURANTE_HIGHLIGHTS.find((h) => h.key === parsed.hl)?.labelEs ?? parsed.hl,
+        clear: () => pushState(mergeDiscovery(parsed, { hl: "", page: 1 })),
+      });
+    if (parsed.movingVendor)
+      chips.push({ id: "mv", label: t.flagMoving, clear: () => pushState(mergeDiscovery(parsed, { movingVendor: false, page: 1 })) });
+    if (parsed.homeBasedBusiness)
+      chips.push({ id: "hb", label: t.flagHome, clear: () => pushState(mergeDiscovery(parsed, { homeBasedBusiness: false, page: 1 })) });
+    if (parsed.foodTruck)
+      chips.push({ id: "ft", label: t.flagTruck, clear: () => pushState(mergeDiscovery(parsed, { foodTruck: false, page: 1 })) });
+    if (parsed.popUp) chips.push({ id: "pu", label: t.flagPopUp, clear: () => pushState(mergeDiscovery(parsed, { popUp: false, page: 1 })) });
+    if (parsed.top) chips.push({ id: "top", label: t.sortRating, clear: () => pushState(mergeDiscovery(parsed, { top: false, page: 1 })) });
+    if (parsed.near)
+      chips.push({
+        id: "near",
+        label: t.nearReserved,
+        clear: () => pushState(mergeDiscovery(parsed, { near: false, page: 1 })),
+      });
+    if (parsed.saved)
+      chips.push({ id: "saved", label: t.savedOnly, clear: () => pushState(mergeDiscovery(parsed, { saved: false, page: 1 })) });
     return chips;
   }, [parsed, pushState, t, lang]);
+
+  const locationToolbar = (
+    <>
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <button
+          type="button"
+          disabled={geoLoading}
+          className="inline-flex min-h-[44px] items-center justify-center rounded-[12px] border border-[#D97706]/35 bg-[#FFFCF7] px-4 text-sm font-semibold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/55 disabled:opacity-60"
+          onClick={async () => {
+            setGeoNote(null);
+            setGeoLoading(true);
+            try {
+              const place = await requestCoarsePlaceFromBrowserGeolocation();
+              setGeoNote(lang === "es" ? place.noteEs : place.noteEn);
+              pushState(
+                mergeDiscovery(parsed, {
+                  city: place.cityLabel,
+                  near: false,
+                  page: 1,
+                }),
+              );
+              setLocInput(place.cityLabel);
+            } catch {
+              setGeoNote(
+                lang === "es"
+                  ? "No pudimos obtener tu ubicación. Usa ciudad o código postal."
+                  : "Could not get your location. Use city or ZIP.",
+              );
+            } finally {
+              setGeoLoading(false);
+            }
+          }}
+        >
+          {t.useLocation}
+        </button>
+        {activeChips.length > 0 ? (
+          <button
+            type="button"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-[12px] border border-[#2D241E]/15 px-4 text-sm font-semibold text-[#2D241E]/85 hover:bg-[#FFFCF7]"
+            onClick={() =>
+              router.push(buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang))))
+            }
+          >
+            {t.clearAll}
+          </button>
+        ) : null}
+      </div>
+      {geoNote ? <p className="mt-2 text-xs leading-relaxed text-[#2D241E]/65">{geoNote}</p> : null}
+      {parsed.near && !parsed.city?.trim() && !parsed.zip?.trim() ? (
+        <p className="mt-2 text-xs leading-relaxed text-[#2D241E]/65">{t.nearHonest}</p>
+      ) : null}
+    </>
+  );
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FDFBF7] text-[#2D241E]">
@@ -389,6 +683,7 @@ export function RestaurantesResultsShell() {
             </button>
           </div>
         </form>
+        {locationToolbar}
 
         <div className="mt-5 flex min-w-0 flex-col gap-4 sm:mt-6 md:flex-row md:items-start md:justify-between lg:items-center">
           <p className="min-w-0 shrink text-sm leading-snug text-[#2D241E]/80">
@@ -428,7 +723,7 @@ export function RestaurantesResultsShell() {
             <div className="-mx-1 flex min-w-0 flex-1 flex-wrap items-center gap-2 overflow-x-auto px-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:overflow-visible [&::-webkit-scrollbar]:hidden">
               {activeChips.map((c) => (
                 <button
-                  key={c.label}
+                  key={c.id}
                   type="button"
                   onClick={c.clear}
                   className="inline-flex min-h-[40px] max-w-[min(100%,280px)] shrink-0 items-center gap-1 overflow-hidden text-ellipsis rounded-full border border-[#D97706]/35 bg-[#FFF7ED] px-3 text-left text-xs font-semibold text-[#2D241E] transition hover:bg-[#FFEDD5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/50 sm:max-w-none"
@@ -570,6 +865,9 @@ function ResultCard({
           <span className="inline-flex min-w-0 items-center gap-1">
             <FaStar className="h-3.5 w-3.5 shrink-0" style={{ color: ACCENT }} aria-hidden />
             {row.rating.toFixed(1)}
+            {row.externalReviewCount != null ? (
+              <span className="text-[#2D241E]/45"> ({row.externalReviewCount})</span>
+            ) : null}
           </span>
           <span className="opacity-50" aria-hidden>
             ·

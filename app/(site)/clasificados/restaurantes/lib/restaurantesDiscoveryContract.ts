@@ -1,60 +1,113 @@
 /**
- * Public discovery URL contract: landing ↔ `/clasificados/restaurantes/resultados`.
+ * # Restaurantes public discovery contract (source of truth)
  *
- * URL → stored-field intent (blueprint / future DB):
- * - `q` → full-text on name, cuisine line, city (later: indexed search).
- * - `city`, `zip` → `cityCanonical` / `zipCode` on listings.
- * - `cuisine` → primary/secondary cuisine keys.
- * - `svc` → `serviceModes` includes dine_in | takeout | delivery.
- * - `family` → highlight or trait: family-friendly.
- * - `price` → `priceLevel` ($ … $$$$).
- * - `diet` → vegan / gluten-free / halal mapped to cuisine + highlight flags.
- * - `open` → reserved for live hours + “open now” (blueprint: demo `openNowDemo`).
- * - `near` → reserved for geolocation + radius.
- * - `top` → reserved for “best rated” (blueprint: rating ≥ 4.5 + sort).
- * - `sort` → newest | name | rating (rating wired in blueprint shell).
+ * **Routes:** `/clasificados/restaurantes` ↔ `/clasificados/restaurantes/resultados`
+ *
+ * **Application model:** Field names below reference `RestauranteListingApplication` in
+ * `application/restauranteListingApplication.ts` (business identity, operating model, hours, trust, internal contract).
+ *
+ * ## URL parameters → stored fields (intent)
+ *
+ * | Param | Maps to (application / listing) | Notes |
+ * | ----- | -------------------------------- | ----- |
+ * | `q` | `businessName`, cuisines (primary/secondary/additional), dish text in indexed blob | Full-text; blueprint matches name + cuisineLine + city + zip. |
+ * | `city` | `cityCanonical` | Substring match in demo. |
+ * | `zip` | `zipCode` | Exact match. |
+ * | `cuisine` | `primaryCuisine`, `secondaryCuisine`, `additionalCuisines` | Single taxonomy key. |
+ * | `biz` | `businessType` | Taxonomy key (`RESTAURANTE_BUSINESS_TYPES`). |
+ * | `svc` | `serviceModes` | Subset: dine_in, takeout, delivery (shell filters; full taxonomy at publish). |
+ * | `family` | `highlights` includes family_friendly OR family signal | Blueprint uses `familyFriendly` boolean. |
+ * | `price` | `priceLevel` | `$` … `$$$$`. |
+ * | `diet` | vegan/gluten/halal signals | Maps to diet flags + cuisine. |
+ * | `open` | `weeklyHours` + `temporaryHours*` evaluated server-side | Blueprint: `openNowDemo`. |
+ * | `near` | Geolocation + radius (future) | **Without** city/zip: intent-only (no row exclusion). With city/zip: same as location filters. |
+ * | `mv` | `movingVendor` | `1` / absent. |
+ * | `hb` | `homeBasedBusiness` | `1` / absent. |
+ * | `ft` | `foodTruck` | `1` / absent. |
+ * | `pu` | `popUp` | `1` / absent. |
+ * | `hl` | `highlights` | Single highlight key. |
+ * | `saved` | User-saved listing ids (local, first-party) | Requires personalization consent; see `restaurantesFirstPartyPreferences.ts`. |
+ * | `sort` | Sort only | `newest` → `publishedAt`/`listedAt`; `name-asc` → `businessName`; `rating-desc` → rating. |
+ * | `top` | Boost “best rated” shortcut | Blueprint: rating ≥ 4.5 + ties to sort. |
+ * | `page` | Pagination | |
+ * | `lang` | UI language | `es` / `en`. |
+ *
+ * ## Landing vs results
+ * - **Landing shortcuts:** quick chips + cuisine chips + search — subset of params (fast path).
+ * - **Results:** full filter set + sort + active chips + reset.
+ *
+ * @module restaurantesDiscoveryContract
  */
+
+import type { RestauranteBusinessTypeKey } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 
 export const RESTAURANTES_RESULTADOS_PATH = "/clasificados/restaurantes/resultados" as const;
 
 export type RestaurantesDiscoveryLang = "es" | "en";
 
-/** Keys mirrored in results UI and future API filters. */
-export type RestaurantesResultsUrlKeys =
-  | "lang"
-  | "q"
-  | "city"
-  | "zip"
-  | "cuisine"
-  | "svc"
-  | "family"
-  | "price"
-  | "diet"
-  | "sort"
-  | "open"
-  | "near"
-  | "top"
-  | "page";
+/** All keys we serialize to the results URL (single source for parsers/builders). */
+export const RESTAURANTES_DISCOVERY_URL_KEYS = [
+  "lang",
+  "q",
+  "city",
+  "zip",
+  "cuisine",
+  "biz",
+  "svc",
+  "family",
+  "price",
+  "diet",
+  "sort",
+  "open",
+  "near",
+  "top",
+  "mv",
+  "hb",
+  "ft",
+  "pu",
+  "hl",
+  "saved",
+  "page",
+] as const;
+
+export type RestaurantesResultsUrlKey = (typeof RESTAURANTES_DISCOVERY_URL_KEYS)[number];
 
 export type RestaurantesResultsSortId = "newest" | "name-asc" | "rating-desc";
 
 export type RestaurantesDiscoveryState = {
   lang: RestaurantesDiscoveryLang;
+  /** Full-text: name, cuisines, dishes (future indexed). */
   q: string;
+  /** `cityCanonical` */
   city: string;
+  /** `zipCode` US-style 5 digits when present */
   zip: string;
+  /** Primary/secondary/additional cuisine filter (single key). */
   cuisine: string;
+  /** `businessType` */
+  biz: RestauranteBusinessTypeKey | "";
   svc: string;
   family: boolean;
   price: string;
   diet: "" | "glutenfree" | "halal" | "vegan";
   sort: RestaurantesResultsSortId;
-  /** Reserved until hours + live “open now” can be evaluated server-side. */
+  /** Open now — requires hours evaluation (demo: blueprint flag). */
   open: boolean;
-  /** Reserved until geolocation + radius is wired. */
+  /**
+   * “Near me” intent. Without city/zip: does not exclude rows (honest until geo radius ships).
+   * With city/zip: location filters apply as usual.
+   */
   near: boolean;
-  /** Reserved until external or internal rating sort is wired. */
+  /** Shortcut: highly rated (aligned with `top` URL param). */
   top: boolean;
+  movingVendor: boolean;
+  homeBasedBusiness: boolean;
+  foodTruck: boolean;
+  popUp: boolean;
+  /** Single `highlights` key */
+  hl: string;
+  /** Filter to ids saved locally (first-party; consent-gated read in UI). */
+  saved: boolean;
   page: number;
 };
 
@@ -65,6 +118,7 @@ export function defaultRestaurantesDiscoveryState(lang: RestaurantesDiscoveryLan
     city: "",
     zip: "",
     cuisine: "",
+    biz: "",
     svc: "",
     family: false,
     price: "",
@@ -73,6 +127,12 @@ export function defaultRestaurantesDiscoveryState(lang: RestaurantesDiscoveryLan
     open: false,
     near: false,
     top: false,
+    movingVendor: false,
+    homeBasedBusiness: false,
+    foodTruck: false,
+    popUp: false,
+    hl: "",
+    saved: false,
     page: 1,
   };
 }
@@ -91,20 +151,29 @@ export function parseRestaurantesResultsSearchParams(
   const sort: RestaurantesResultsSortId =
     sortRaw === "name-asc" || sortRaw === "rating-desc" || sortRaw === "newest" ? sortRaw : "newest";
 
+  const flag = (k: string) => sp.get(k) === "1";
+
   return {
     lang,
     q: (sp.get("q") ?? "").trim(),
     city: (sp.get("city") ?? "").trim(),
     zip: (sp.get("zip") ?? "").trim(),
     cuisine: (sp.get("cuisine") ?? "").trim(),
+    biz: (sp.get("biz") ?? "").trim() as RestaurantesDiscoveryState["biz"],
     svc: (sp.get("svc") ?? "").trim(),
-    family: sp.get("family") === "1",
+    family: flag("family"),
     price: (sp.get("price") ?? "").trim(),
     diet,
     sort,
-    open: sp.get("open") === "1",
-    near: sp.get("near") === "1",
-    top: sp.get("top") === "1",
+    open: flag("open"),
+    near: flag("near"),
+    top: flag("top"),
+    movingVendor: flag("mv"),
+    homeBasedBusiness: flag("hb"),
+    foodTruck: flag("ft"),
+    popUp: flag("pu"),
+    hl: (sp.get("hl") ?? "").trim(),
+    saved: flag("saved"),
     page: Math.max(1, parseInt(sp.get("page") ?? "1", 10) || 1),
   };
 }
@@ -118,6 +187,7 @@ export function restaurantesDiscoveryStateToParams(
     city: s.city || undefined,
     zip: s.zip || undefined,
     cuisine: s.cuisine || undefined,
+    biz: s.biz || undefined,
     svc: s.svc || undefined,
     family: s.family ? "1" : undefined,
     price: s.price || undefined,
@@ -126,6 +196,12 @@ export function restaurantesDiscoveryStateToParams(
     open: s.open ? "1" : undefined,
     near: s.near ? "1" : undefined,
     top: s.top ? "1" : undefined,
+    mv: s.movingVendor ? "1" : undefined,
+    hb: s.homeBasedBusiness ? "1" : undefined,
+    ft: s.foodTruck ? "1" : undefined,
+    pu: s.popUp ? "1" : undefined,
+    hl: s.hl || undefined,
+    saved: s.saved ? "1" : undefined,
     page: s.page > 1 ? String(s.page) : undefined,
   };
   return out;
@@ -144,10 +220,20 @@ export function buildRestaurantesResultsHref(
   return `${RESTAURANTES_RESULTADOS_PATH}?${sp.toString()}`;
 }
 
-/** Single “Ciudad o Código Postal” field → `city` or `zip` for results. */
+/**
+ * Single “Ciudad o Código Postal” field → `city` or `zip` for results.
+ * Aligns with `RestauranteBusinessIdentity.cityCanonical` + `zipCode`.
+ */
 export function splitLocationInput(raw: string): { city?: string; zip?: string } {
   const t = raw.trim();
   if (/^\d{5}$/.test(t)) return { zip: t };
   if (t) return { city: t };
   return {};
+}
+
+/** Reset to defaults while preserving language. */
+export function clearRestaurantesDiscoveryFilters(
+  lang: RestaurantesDiscoveryLang,
+): RestaurantesDiscoveryState {
+  return { ...defaultRestaurantesDiscoveryState(lang), lang };
 }

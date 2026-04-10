@@ -11,7 +11,13 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { ViajesLangSwitch } from "@/app/clasificados/viajes/components/ViajesLangSwitch";
 
-import { buildRestaurantesResultsHref, splitLocationInput } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
+import {
+  buildRestaurantesResultsHref,
+  defaultRestaurantesDiscoveryState,
+  restaurantesDiscoveryStateToParams,
+  splitLocationInput,
+} from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
+import { rememberRestaurantesDiscoveryFromState } from "@/app/clasificados/restaurantes/lib/restaurantesFirstPartyPreferences";
 import {
   type RestaurantesBlueprintCard,
   RESTAURANTES_BLUEPRINT_CATEGORY_TILES,
@@ -134,11 +140,6 @@ export function RestaurantesLandingPage() {
   const clasificadosHref = appendLangToPath("/clasificados", lang);
   const publishHref = appendLangToPath("/publicar/restaurantes", lang);
 
-  const searchResultsHref = useMemo(() => {
-    const loc = splitLocationInput(location);
-    return buildRestaurantesResultsHref(lang, { q: searchQ.trim(), ...loc });
-  }, [lang, searchQ, location]);
-
   const allResultsHref = useMemo(() => buildRestaurantesResultsHref(lang, {}), [lang]);
 
   const copy = useMemo(() => {
@@ -170,6 +171,8 @@ export function RestaurantesLandingPage() {
           "Put your menu in front of diners actively searching Leonix—premium exposure, clear discovery, and room to grow with featured placement.",
         ctaBtn: "Advertise your restaurant",
         exploreAll: "Explore all results",
+        continuityHint:
+          "Search and quick chips open full results with the same URL filters—you can refine further on the results page.",
       };
     }
     return {
@@ -199,6 +202,8 @@ export function RestaurantesLandingPage() {
         "Llega a comensales que ya buscan en Leonix: visibilidad clara, descubrimiento premium y espacio para crecer con destacados.",
       ctaBtn: "Anuncia tu Restaurante",
       exploreAll: "Explorar todos los resultados",
+      continuityHint:
+        "La búsqueda y las fichas rápidas abren resultados con los mismos parámetros de URL; allí sigues refinando.",
     };
   }, [lang]);
 
@@ -256,7 +261,16 @@ export function RestaurantesLandingPage() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              router.push(searchResultsHref);
+              const loc = splitLocationInput(location);
+              const next = {
+                ...defaultRestaurantesDiscoveryState(lang),
+                lang,
+                q: searchQ.trim(),
+                city: loc.city ?? "",
+                zip: loc.zip ?? "",
+              };
+              rememberRestaurantesDiscoveryFromState(next);
+              router.push(buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(next)));
             }}
             className="flex flex-col gap-3.5 sm:gap-4 xl:flex-row xl:items-start"
           >
@@ -315,6 +329,9 @@ export function RestaurantesLandingPage() {
               </button>
             </div>
           </form>
+          <p className="mt-3 border-t border-[#2D241E]/[0.06] pt-3 text-center text-[11px] leading-relaxed text-[#2D241E]/55 sm:text-xs">
+            {copy.continuityHint}
+          </p>
 
           <CategoryLandingChipsRail
             className="mt-4 sm:mt-5"
