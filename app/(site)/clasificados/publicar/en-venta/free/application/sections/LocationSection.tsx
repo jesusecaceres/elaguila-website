@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
+import { useEnVentaDetailField } from "@/app/clasificados/en-venta/publish/EnVentaDetailFieldCopyContext";
 import SectionShell from "@/app/clasificados/en-venta/shared/components/SectionShell";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { getZipRecord, normalizeZipInput } from "@/app/data/locations/californiaLocationHelpers";
@@ -33,6 +34,7 @@ export function LocationSection<S extends EnVentaFreeApplicationState>({
   setState,
 }: EnVentaFreeSectionProps<S>) {
   const t = COPY[lang];
+  const ovZip = useEnVentaDetailField("zip");
   const validation = useMemo(
     () => validateEnVentaLocation(state.city, state.zip),
     [state.city, state.zip]
@@ -78,8 +80,8 @@ export function LocationSection<S extends EnVentaFreeApplicationState>({
         />
       </div>
       <div>
-        <label className={labelClass}>{t.zip}</label>
-        <p className="mt-1 text-xs text-[#111111]/60">{t.zipHint}</p>
+        <label className={labelClass}>{ovZip?.label ?? t.zip}</label>
+        <p className="mt-1 text-xs text-[#111111]/60">{ovZip?.help ?? t.zipHint}</p>
         <input
           className={`${inputClass} mt-2 ${zipInvalid ? "border-red-500 ring-1 ring-red-500/35" : ""}`}
           inputMode="numeric"
@@ -92,7 +94,7 @@ export function LocationSection<S extends EnVentaFreeApplicationState>({
               return { ...s, city: next.city, zip: next.zip };
             });
           }}
-          placeholder={lang === "es" ? "Ej: 95350" : "e.g. 95350"}
+          placeholder={ovZip?.placeholder ?? (lang === "es" ? "Ej: 95350" : "e.g. 95350")}
           aria-invalid={zipInvalid}
         />
       </div>

@@ -1,3 +1,4 @@
+import { EMPLEOS_STANDARD_CITY } from "../constants/empleosStandardRegion";
 import type { EmpleosImageItem } from "../media/empleosMediaTypes";
 
 export type EmpleosQuickPrimaryCta = "phone" | "whatsapp" | "email";
@@ -41,14 +42,20 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
   if (!benefits.length && legacyText.trim()) {
     benefits = legacyText.split("\n").map((s) => s.trim()).filter(Boolean);
   }
-  return { ...e, ...rest, benefits, videoUrl: typeof rest.videoUrl === "string" ? rest.videoUrl : e.videoUrl };
+  return {
+    ...e,
+    ...rest,
+    benefits,
+    videoUrl: typeof rest.videoUrl === "string" ? rest.videoUrl : e.videoUrl,
+    city: EMPLEOS_STANDARD_CITY,
+  };
 }
 
 export function emptyEmpleosQuickDraft(): EmpleosQuickDraft {
   return {
     title: "",
     businessName: "",
-    city: "",
+    city: EMPLEOS_STANDARD_CITY,
     state: "",
     jobType: "",
     schedule: "",

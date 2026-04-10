@@ -37,6 +37,15 @@ export type PublicarViajesNegociosUi = {
   price: { label: string; placeholder: string };
   duration: { label: string; placeholder: string };
   dates: { label: string; placeholder: string };
+  dateUx: {
+    modeFixed: string;
+    modeFlexible: string;
+    modeSeasonal: string;
+    start: string;
+    end: string;
+    note: string;
+    previewHint: string;
+  };
   shortDescription: { label: string };
   includes: { label: string; placeholder: string };
   audience: {
@@ -54,18 +63,46 @@ export type PublicarViajesNegociosUi = {
     heroUrl: { label: string; placeholder: string };
     localFile: { label: string; helper: string };
     clearImage: string;
+    tabUrl: string;
+    tabFile: string;
     gallery: { label: string; helper: string; placeholder: string };
+    galleryAddUrl: string;
+    galleryAddFile: string;
+    galleryRemove: string;
+    galleryMaxNote: string;
+    blocks: { hero: string; gallery: string; logo: string; video: string };
     logo: { label: string };
     video: { label: string; placeholder: string };
+    videoFile: string;
+    videoFileHint: string;
   };
   business: {
     name: { label: string };
     phone: { label: string };
+    phoneOffice: { label: string };
+    email: { label: string };
     whatsapp: { label: string };
     website: { label: string };
     socials: { label: string; placeholder: string };
+    socialSection: string;
+    socialFacebook: { label: string };
+    socialInstagram: { label: string };
+    socialTiktok: { label: string };
+    socialYoutube: { label: string };
+    socialTwitter: { label: string };
     destinationsServed: { label: string; placeholder: string };
     languages: { label: string; placeholder: string };
+  };
+  contactUx: {
+    websiteHint: string;
+    whatsappHint: string;
+    ctaExplain: string;
+  };
+  recovery: {
+    title: string;
+    wrongLaneBody: string;
+    goPrivado: string;
+    hubViajes: string;
   };
   previewCta: string;
   /** Back link label on draft-driven preview page */
@@ -166,6 +203,15 @@ function es(): PublicarViajesNegociosUi {
     price: { label: "Precio / precio desde", placeholder: "USD, por persona…" },
     duration: { label: "Duración", placeholder: "Ej. 5 días / 4 noches" },
     dates: { label: "Fechas o rango", placeholder: "Temporada, meses o fechas fijas" },
+    dateUx: {
+      modeFixed: "Fechas fijas",
+      modeFlexible: "Flexible / por acordar",
+      modeSeasonal: "Temporada o ventana",
+      start: "Inicio",
+      end: "Fin",
+      note: "Nota (temporada, flexibilidad, blackout…)",
+      previewHint: "Vista previa del texto que verá el viajero en la ficha.",
+    },
     shortDescription: { label: "Descripción corta" },
     includes: { label: "Qué incluye", placeholder: "Un ítem por línea o párrafo breve" },
     audience: {
@@ -193,22 +239,56 @@ function es(): PublicarViajesNegociosUi {
           "Archivos grandes van a IndexedDB; URL sigue siendo la opción más ligera. No hay subida a la nube en esta fase.",
       },
       clearImage: "Quitar imagen local / URL en borrador",
+      tabUrl: "Enlace URL",
+      tabFile: "Archivo local",
       gallery: {
         label: "Galería",
-        helper: "Pronto: subida múltiple. Por ahora describe o pega URLs.",
-        placeholder: "URLs separadas por coma o notas",
+        helper: "Añade hasta 8 imágenes por URL o archivo pequeño (solo este dispositivo).",
+        placeholder: "Notas opcionales sobre la galería",
+      },
+      galleryAddUrl: "Añadir URL",
+      galleryAddFile: "Añadir archivo",
+      galleryRemove: "Quitar",
+      galleryMaxNote: "Máximo 8 imágenes en galería.",
+      blocks: {
+        hero: "Imagen principal",
+        gallery: "Galería",
+        logo: "Logo",
+        video: "Video",
       },
       logo: { label: "Logo del negocio (URL opcional)" },
       video: { label: "Video (URL opcional)", placeholder: "YouTube o Vimeo" },
+      videoFile: "Archivo de video (solo referencia local)",
+      videoFileHint: "No subimos video a la nube aquí: guardamos solo el nombre del archivo como referencia en el borrador.",
     },
     business: {
       name: { label: "Nombre del negocio" },
-      phone: { label: "Teléfono" },
+      phone: { label: "Teléfono principal" },
+      phoneOffice: { label: "Teléfono oficina / alternativo" },
+      email: { label: "Correo de contacto" },
       whatsapp: { label: "WhatsApp" },
       website: { label: "Sitio web" },
-      socials: { label: "Redes sociales", placeholder: "@usuario o enlaces" },
+      socials: { label: "Redes (texto libre, legado)", placeholder: "@usuario o enlaces" },
+      socialSection: "Redes sociales (enlaces)",
+      socialFacebook: { label: "Facebook" },
+      socialInstagram: { label: "Instagram" },
+      socialTiktok: { label: "TikTok" },
+      socialYoutube: { label: "YouTube" },
+      socialTwitter: { label: "X (Twitter)" },
       destinationsServed: { label: "Destinos que atienden", placeholder: "Separados por coma" },
       languages: { label: "Idiomas", placeholder: "Ej. Español, inglés" },
+    },
+    contactUx: {
+      websiteHint: "Puedes pegar dominio sin https; lo normalizamos en vista previa.",
+      whatsappHint: "Número con código de país o enlace https://wa.me/…",
+      ctaExplain:
+        "El CTA principal es el botón destacado en la ficha. Usa los campos de contacto según el canal que quieras priorizar.",
+    },
+    recovery: {
+      title: "¿Entraste por error?",
+      wrongLaneBody: "Si eres particular (no agencia), usa la vía Particular. Si representas un negocio, quédate aquí.",
+      goPrivado: "Ir a solicitud particular",
+      hubViajes: "Ir al hub de Viajes",
     },
     previewCta: "Vista previa de la ficha pública",
     previewBackEdit: "Volver a editar borrador",
@@ -316,6 +396,15 @@ function en(): PublicarViajesNegociosUi {
     price: { label: "Price / from price", placeholder: "USD, per person…" },
     duration: { label: "Duration", placeholder: "e.g. 5 days / 4 nights" },
     dates: { label: "Dates or range", placeholder: "Season, months, or fixed dates" },
+    dateUx: {
+      modeFixed: "Fixed dates",
+      modeFlexible: "Flexible / TBD",
+      modeSeasonal: "Season or window",
+      start: "Start",
+      end: "End",
+      note: "Note (season, flexibility, blackouts…)",
+      previewHint: "Preview of the line travelers will see on the listing.",
+    },
     shortDescription: { label: "Short description" },
     includes: { label: "What’s included", placeholder: "One item per line or a short paragraph" },
     audience: {
@@ -342,22 +431,56 @@ function en(): PublicarViajesNegociosUi {
         helper: "Large files use IndexedDB; a URL is still the lightest option. No cloud upload in this phase.",
       },
       clearImage: "Clear local / draft hero image",
+      tabUrl: "Image URL",
+      tabFile: "Local file",
       gallery: {
         label: "Gallery",
-        helper: "Multi-upload coming soon. For now, paste URLs or notes.",
-        placeholder: "Comma-separated URLs or notes",
+        helper: "Add up to 8 images via URL or small local file (this device only).",
+        placeholder: "Optional gallery notes",
+      },
+      galleryAddUrl: "Add URL",
+      galleryAddFile: "Add file",
+      galleryRemove: "Remove",
+      galleryMaxNote: "Maximum 8 gallery images.",
+      blocks: {
+        hero: "Hero image",
+        gallery: "Gallery",
+        logo: "Logo",
+        video: "Video",
       },
       logo: { label: "Business logo (optional URL)" },
       video: { label: "Video (optional URL)", placeholder: "YouTube or Vimeo" },
+      videoFile: "Video file (local reference only)",
+      videoFileHint: "We do not upload video to the cloud here — only the filename is stored as a draft note.",
     },
     business: {
       name: { label: "Business name" },
-      phone: { label: "Phone" },
+      phone: { label: "Primary phone" },
+      phoneOffice: { label: "Office / alternate phone" },
+      email: { label: "Contact email" },
       whatsapp: { label: "WhatsApp" },
       website: { label: "Website" },
-      socials: { label: "Social profiles", placeholder: "@handle or links" },
+      socials: { label: "Social (freeform, legacy)", placeholder: "@handle or links" },
+      socialSection: "Social profiles (links)",
+      socialFacebook: { label: "Facebook" },
+      socialInstagram: { label: "Instagram" },
+      socialTiktok: { label: "TikTok" },
+      socialYoutube: { label: "YouTube" },
+      socialTwitter: { label: "X (Twitter)" },
       destinationsServed: { label: "Destinations you serve", placeholder: "Comma-separated" },
       languages: { label: "Languages", placeholder: "e.g. Spanish, English" },
+    },
+    contactUx: {
+      websiteHint: "You may paste a domain without https; we normalize in preview.",
+      whatsappHint: "Number with country code or a https://wa.me/… link",
+      ctaExplain:
+        "The primary CTA is the highlighted button on the listing. Fill contact fields to match the channel you want to prioritize.",
+    },
+    recovery: {
+      title: "Wrong lane?",
+      wrongLaneBody: "If you are a private seller (not an agency), use the Private path. If you represent a business, stay here.",
+      goPrivado: "Go to private application",
+      hubViajes: "Back to Viajes hub",
     },
     previewCta: "Preview public listing",
     previewBackEdit: "Back to edit draft",

@@ -18,7 +18,7 @@ export type RentasPublishTrackStepProps = {
   copyBack: string;
 };
 
-/** Rentas: privado vs negocio track (step `rentas-track`). Delegated from `[category]/page.tsx`. */
+/** Rentas: privado vs negocio branch selector (shared UI block). */
 export function RentasPublishTrackStep({
   lang,
   cx,

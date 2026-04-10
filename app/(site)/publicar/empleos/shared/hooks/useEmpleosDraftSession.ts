@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { EMPLEOS_SESSION_KEYS } from "../constants/empleosSessionKeys";
+import { normalizeEmpleosFeriaDraft, type EmpleosFeriaDraft } from "../types/empleosFeriaDraft";
+import { normalizeEmpleosPremiumDraft, type EmpleosPremiumDraft } from "../types/empleosPremiumDraft";
 import { normalizeEmpleosQuickDraft } from "../types/empleosQuickDraft";
 
 /**
@@ -24,6 +26,10 @@ export function useEmpleosDraftSession<T extends object>(storageKey: string, ini
         const parsed = JSON.parse(raw) as Partial<T>;
         if (storageKey === EMPLEOS_SESSION_KEYS.quick) {
           setState(normalizeEmpleosQuickDraft(parsed as Parameters<typeof normalizeEmpleosQuickDraft>[0]) as T);
+        } else if (storageKey === EMPLEOS_SESSION_KEYS.premium) {
+          setState(normalizeEmpleosPremiumDraft(parsed as Partial<EmpleosPremiumDraft>) as T);
+        } else if (storageKey === EMPLEOS_SESSION_KEYS.feria) {
+          setState(normalizeEmpleosFeriaDraft(parsed as Partial<EmpleosFeriaDraft>) as T);
         } else {
           setState((prev) => ({ ...prev, ...parsed }));
         }

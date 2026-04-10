@@ -31,6 +31,17 @@ function entryToId(e: RestauranteGallerySeqEntry): string {
   return e === "v" ? "v" : `g-${e}`;
 }
 
+function videoUrlDisplay(raw: string): { title: string; subtitle: string } {
+  const t = raw.trim();
+  try {
+    const u = new URL(t);
+    const host = u.hostname.replace(/^www\./, "");
+    return { title: host, subtitle: "Enlace válido · se usa en vista previa si no hay archivo" };
+  } catch {
+    return { title: "Video por URL", subtitle: t.length > 48 ? `${t.slice(0, 48)}…` : t };
+  }
+}
+
 type Props = {
   draft: RestauranteListingDraft;
   setDraftPatch: (p: RestauranteDraftPatch) => void;
@@ -238,14 +249,20 @@ export function RestaurantePublishMediaStrip({
                                 src={draft.videoFile}
                               />
                             ) : draft.videoUrl?.trim() ? (
-                              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-[#2a2620] to-[#1a1814] p-2 text-center">
-                                <span className="text-2xl" aria-hidden>
-                                  ▶
-                                </span>
-                                <span className="line-clamp-3 px-1 text-[10px] font-semibold text-white/85">
-                                  {draft.videoUrl.trim()}
-                                </span>
-                              </div>
+                              (() => {
+                                const vd = videoUrlDisplay(draft.videoUrl!);
+                                return (
+                                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-[#1f1c17] via-[#2a2620] to-[#141210] p-3 text-center">
+                                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-lg text-white shadow-md ring-1 ring-white/25" aria-hidden>
+                                      ▶
+                                    </span>
+                                    <span className="line-clamp-2 px-1 text-xs font-bold text-white">{vd.title}</span>
+                                    <span className="line-clamp-2 px-1 text-[10px] font-medium leading-snug text-white/65">
+                                      {vd.subtitle}
+                                    </span>
+                                  </div>
+                                );
+                              })()
                             ) : (
                               <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-[#2a2620] to-[#1a1814] p-2 text-center">
                                 <span className="text-2xl" aria-hidden>
@@ -254,11 +271,11 @@ export function RestaurantePublishMediaStrip({
                                 <span className="text-[10px] font-semibold text-white/80">Video</span>
                               </div>
                             )}
-                            <span className="absolute bottom-2 left-2 max-w-[calc(100%-12px)] rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold leading-tight text-white">
+                            <span className="absolute bottom-2 left-2 max-w-[calc(100%-12px)] rounded bg-black/75 px-1.5 py-0.5 text-[10px] font-bold leading-tight text-white">
                               {isRestauranteLocalVideoDataUrl(draft.videoFile)
-                                ? "Video · archivo (se usa en preview)"
+                                ? "Video · archivo (prioridad en preview)"
                                 : draft.videoUrl?.trim()
-                                  ? "Video · enlace (preview si no hay archivo)"
+                                  ? "Video · URL mapeada"
                                   : "Video"}
                             </span>
                           </div>

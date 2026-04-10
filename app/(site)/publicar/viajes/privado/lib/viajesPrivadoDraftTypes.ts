@@ -1,5 +1,7 @@
 /** Private-lane Viajes draft — distinct from negocios / affiliate admin models. */
 
+import type { ViajesDateMode } from "../../lib/viajesResolveFechasDisplay";
+
 export type ViajesPrivadoCtaType = "whatsapp" | "phone" | "email";
 
 export type ViajesPrivadoDraft = {
@@ -11,6 +13,10 @@ export type ViajesPrivadoDraft = {
   precio: string;
   duracion: string;
   fechas: string;
+  dateMode: ViajesDateMode;
+  fechaInicio: string;
+  fechaFin: string;
+  fechasNota: string;
   descripcion: string;
   incluye: string;
   familias: boolean;
@@ -30,9 +36,18 @@ export type ViajesPrivadoDraft = {
   localImageDataUrl: string | null;
   /** IndexedDB-backed hero when file exceeds localStorage-safe inline size */
   localHeroBlobId: string | null;
+  heroSourceMode: "url" | "file";
+  galeriaUrls: string[];
   displayName: string;
   ctaType: ViajesPrivadoCtaType;
   phone: string;
+  phoneOffice: string;
   whatsapp: string;
   email: string;
+  website: string;
+  socialFacebook: string;
+  socialInstagram: string;
+  socialTiktok: string;
+  socialYoutube: string;
+  socialTwitter: string;
 };

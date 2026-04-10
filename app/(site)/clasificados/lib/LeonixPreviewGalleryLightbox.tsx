@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { BienesRaicesPreviewMediaVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { BrNegocioStreamableVideo } from "@/app/clasificados/bienes-raices/preview/negocio/components/BrNegocioStreamableVideo";
+import { isHostedStreamOrBlobUrl, isHttpsDirectVideoUrl, isInlineVideoDataUrl } from "@/app/clasificados/lib/leonixPreviewVideoUrl";
 import {
   buildLeonixGallerySlidesFromMediaVm,
   type LeonixGallerySlide,
@@ -75,15 +76,18 @@ function VideoSlide({ vm, slot }: { vm: Vm; slot: 0 | 1 }) {
       />
     );
   }
-  if (playback && /^data:video\//i.test(playback)) {
+  if (playback && isInlineVideoDataUrl(playback)) {
     return <video controls playsInline className="h-full max-h-[min(72vh,720px)] w-full object-contain" src={playback} />;
   }
-  if (playback && /\.m3u8|\.mp4(\?|$)|blob:/i.test(playback)) {
+  if (playback && isHostedStreamOrBlobUrl(playback)) {
     return playback.includes(".m3u8") || playback.startsWith("blob:") ? (
       <BrNegocioStreamableVideo url={playback} className="h-full min-h-[200px] max-h-[min(72vh,720px)] w-full object-contain" />
     ) : (
       <video poster={thumb ?? undefined} controls playsInline className="h-full max-h-[min(72vh,720px)] w-full object-contain" src={playback} />
     );
+  }
+  if (playback && isHttpsDirectVideoUrl(playback)) {
+    return <video controls playsInline className="h-full max-h-[min(72vh,720px)] w-full object-contain" src={playback} />;
   }
   if (watchUrl) {
     return (

@@ -1,3 +1,4 @@
+import { EMPLEOS_STANDARD_CITY } from "../constants/empleosStandardRegion";
 import type { EmpleosImageItem } from "../media/empleosMediaTypes";
 
 export type EmpleosPremiumPrimaryCta = "apply" | "whatsapp" | "email" | "website";
@@ -33,11 +34,16 @@ export type EmpleosPremiumDraft = {
   videoUrl: string;
 };
 
+export function normalizeEmpleosPremiumDraft(p: Partial<EmpleosPremiumDraft>): EmpleosPremiumDraft {
+  const e = emptyEmpleosPremiumDraft();
+  return { ...e, ...p, city: EMPLEOS_STANDARD_CITY };
+}
+
 export function emptyEmpleosPremiumDraft(): EmpleosPremiumDraft {
   return {
     title: "",
     companyName: "",
-    city: "",
+    city: EMPLEOS_STANDARD_CITY,
     state: "",
     salaryPrimary: "",
     salarySecondary: "",

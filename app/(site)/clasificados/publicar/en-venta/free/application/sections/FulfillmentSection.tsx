@@ -1,5 +1,6 @@
 "use client";
 
+import { useEnVentaDetailField } from "@/app/clasificados/en-venta/publish/EnVentaDetailFieldCopyContext";
 import SectionShell from "@/app/clasificados/en-venta/shared/components/SectionShell";
 import type { EnVentaFreeApplicationState } from "../schema/enVentaFreeFormState";
 import type { EnVentaFreeSectionProps } from "../types/sectionProps";
@@ -57,11 +58,14 @@ export function FulfillmentSection<S extends EnVentaFreeApplicationState>({
   setState,
 }: EnVentaFreeSectionProps<S>) {
   const t = COPY[lang];
+  const ovPickup = useEnVentaDetailField("pickup");
+  const ovShip = useEnVentaDetailField("shipping");
+  const ovDelivery = useEnVentaDetailField("delivery");
   return (
     <SectionShell lang={lang} title={t.title} description={t.desc}>
       <div className="grid gap-2 sm:grid-cols-2">
         <Toggle
-          label={t.pickup}
+          label={ovPickup?.label ?? t.pickup}
           checked={state.pickup}
           onChange={(v) => setState((s) => ({ ...s, pickup: v }))}
         />
@@ -71,12 +75,12 @@ export function FulfillmentSection<S extends EnVentaFreeApplicationState>({
           onChange={(v) => setState((s) => ({ ...s, meetup: v }))}
         />
         <Toggle
-          label={t.delivery}
+          label={ovDelivery?.label ?? t.delivery}
           checked={state.localDelivery}
           onChange={(v) => setState((s) => ({ ...s, localDelivery: v }))}
         />
         <Toggle
-          label={t.ship}
+          label={ovShip?.label ?? t.ship}
           checked={state.shipping}
           onChange={(v) => setState((s) => ({ ...s, shipping: v }))}
         />
@@ -84,8 +88,8 @@ export function FulfillmentSection<S extends EnVentaFreeApplicationState>({
 
       {state.pickup ? (
         <div>
-          <label className={labelClass}>{t.pickup}</label>
-          <p className="mt-1 text-xs text-[#111111]/60">{t.pickupH}</p>
+          <label className={labelClass}>{ovPickup?.label ?? t.pickup}</label>
+          <p className="mt-1 text-xs text-[#111111]/60">{ovPickup?.help ?? t.pickupH}</p>
           <textarea
             className={`${inputClass} mt-2 min-h-[64px]`}
             value={state.pickupDetailNotes}
@@ -108,8 +112,8 @@ export function FulfillmentSection<S extends EnVentaFreeApplicationState>({
 
       {state.localDelivery ? (
         <div>
-          <label className={labelClass}>{t.delivery}</label>
-          <p className="mt-1 text-xs text-[#111111]/60">{t.deliveryH}</p>
+          <label className={labelClass}>{ovDelivery?.label ?? t.delivery}</label>
+          <p className="mt-1 text-xs text-[#111111]/60">{ovDelivery?.help ?? t.deliveryH}</p>
           <textarea
             className={`${inputClass} mt-2 min-h-[64px]`}
             value={state.localDeliveryDetailNotes}
@@ -121,7 +125,7 @@ export function FulfillmentSection<S extends EnVentaFreeApplicationState>({
       {state.shipping ? (
         <div>
           <label className={labelClass}>{t.notesShip}</label>
-          <p className="mt-1 text-xs text-[#111111]/60">{t.shipH}</p>
+          <p className="mt-1 text-xs text-[#111111]/60">{ovShip?.help ?? t.shipH}</p>
           <textarea
             className={`${inputClass} mt-2 min-h-[72px]`}
             value={state.shippingNotes}

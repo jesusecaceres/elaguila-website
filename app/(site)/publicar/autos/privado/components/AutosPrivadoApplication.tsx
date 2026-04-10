@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AutosApplicationFinalActions } from "@/app/publicar/autos/shared/components/AutosApplicationFinalActions";
 import { AutosApplicationMissingItemsBanner } from "@/app/publicar/autos/shared/components/AutosApplicationMissingItemsBanner";
 import { useEffect, useMemo } from "react";
@@ -23,7 +23,6 @@ import {
 } from "@/app/publicar/autos/negocios/lib/autoDealerTaxonomy";
 import { SelectWithOtherField } from "@/app/publicar/autos/negocios/components/SelectWithOtherField";
 import { AutosNegociosMediaManager } from "@/app/publicar/autos/negocios/components/AutosNegociosMediaManager";
-import { AUTOS_PRIVADO_PRODUCT } from "@/app/clasificados/autos/privado/contracts/autosPrivadoProduct";
 import {
   formatMileageInputDisplay,
   formatUsdIntegerInputDisplay,
@@ -70,6 +69,8 @@ function parseOptFloat(raw: string): number | undefined {
 
 export function AutosPrivadoApplication() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { lang, t } = useAutosPrivadoLang();
   const {
     hydrated,
@@ -89,6 +90,16 @@ export function AutosPrivadoApplication() {
   useEffect(() => {
     document.title = t.meta.applicationTitle;
   }, [t.meta.applicationTitle]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!searchParams || !pathname) return;
+    if (searchParams.get("resume") !== "1") return;
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete("resume");
+    const qs = p.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
+  }, [hydrated, pathname, router, searchParams]);
 
   const stepLabels = getAutosApplicationStepLabels(lang, "privado");
   const stepBlockWarnings = useMemo(() => getAutosPreviewBlockingStepIndices("privado", listing), [listing]);
@@ -113,57 +124,22 @@ export function AutosPrivadoApplication() {
       stepLabels={stepLabels}
       stepBlockWarnings={stepBlockWarnings}
       header={
-        <header className="mb-8">
+        <header className="mb-6 sm:mb-7">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">{t.app.kicker}</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-[color:var(--lx-text)] md:text-4xl">{t.app.pageTitle}</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-text-2)]">{t.app.intro}</p>
-          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-semibold text-[color:var(--lx-muted)]">
+          <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-3xl md:text-4xl">{t.app.pageTitle}</h1>
+          <p className="mt-2 max-w-xl text-sm leading-snug text-[color:var(--lx-text-2)]">{t.app.intro}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-[color:var(--lx-muted)]">
             <span className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1">
               {t.app.badgeLocal}
             </span>
-            <span className="rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-3 py-1 text-[color:var(--lx-text-2)]">
-              {t.app.badgeAutosave}
-            </span>
           </div>
-          <div
-            className="mt-5 rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3 text-sm leading-relaxed text-[color:var(--lx-text-2)] shadow-sm"
-            role="note"
-          >
-            <p className="font-semibold text-[color:var(--lx-text)]">{t.app.noteTitle}</p>
-            <p className="mt-1 text-[13px] text-[color:var(--lx-muted)]">{t.app.noteBody}</p>
-          </div>
-          <details className="mt-5 rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3 text-sm text-[color:var(--lx-text-2)] shadow-sm open:pb-4">
-            <summary className="cursor-pointer list-none font-semibold text-[color:var(--lx-text)] [&::-webkit-details-marker]:hidden">
-              {lang === "es" ? "Paquete Privado (vista rápida)" : "Private package (quick view)"}
-            </summary>
-            <div className="mt-3 space-y-3 text-[13px] leading-relaxed">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">
-                  {lang === "es" ? "Incluye" : "Includes"}
-                </p>
-                <ul className="mt-1.5 list-disc space-y-1 pl-5">
-                  {AUTOS_PRIVADO_PRODUCT.includes.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">
-                  {lang === "es" ? "No incluye" : "Does not include"}
-                </p>
-                <ul className="mt-1.5 list-disc space-y-1 pl-5">
-                  {AUTOS_PRIVADO_PRODUCT.excludes.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </details>
         </header>
       }
-      topActions={(stepCtx) => (
-        <AutosApplicationMissingItemsBanner lane="privado" lang={lang} copy={t} listing={listing} stepCtx={stepCtx} />
-      )}
+      topActions={(stepCtx) =>
+        stepCtx.activeStep >= stepCtx.stepCount - 1 ? null : (
+          <AutosApplicationMissingItemsBanner lane="privado" lang={lang} copy={t} listing={listing} stepCtx={stepCtx} />
+        )
+      }
     >
       {(ctx) => {
         const { activeStep } = ctx;
@@ -543,6 +519,7 @@ export function AutosPrivadoApplication() {
               copy={t}
               listing={listing}
               stepCtx={ctx}
+              flushDraft={flushDraft}
               onPreview={async () => {
                 await flushDraft();
                 router.push(previewHref);

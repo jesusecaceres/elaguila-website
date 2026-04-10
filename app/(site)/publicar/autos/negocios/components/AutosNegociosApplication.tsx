@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { AutosApplicationFinalActions } from "@/app/publicar/autos/shared/components/AutosApplicationFinalActions";
 import { AutosApplicationMissingItemsBanner } from "@/app/publicar/autos/shared/components/AutosApplicationMissingItemsBanner";
@@ -77,6 +77,8 @@ function newHourRowId(): string {
 
 export function AutosNegociosApplication() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { lang, t } = useAutosNegociosLang();
   const {
     hydrated,
@@ -98,6 +100,15 @@ export function AutosNegociosApplication() {
   useEffect(() => {
     document.title = t.meta.applicationTitle;
   }, [t.meta.applicationTitle]);
+
+  useEffect(() => {
+    if (!hydrated || !searchParams || !pathname) return;
+    if (searchParams.get("resume") !== "1") return;
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete("resume");
+    const qs = p.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
+  }, [hydrated, pathname, router, searchParams]);
 
   const stepLabels = getAutosApplicationStepLabels(lang, "negocios");
   const stepBlockWarnings = useMemo(() => getAutosPreviewBlockingStepIndices("negocios", listing), [listing]);
@@ -129,30 +140,22 @@ export function AutosNegociosApplication() {
       stepLabels={stepLabels}
       stepBlockWarnings={stepBlockWarnings}
       header={
-        <header className="mb-8">
+        <header className="mb-6 sm:mb-7">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">{t.app.kicker}</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-[color:var(--lx-text)] md:text-4xl">{t.app.pageTitle}</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-text-2)]">{t.app.intro}</p>
-          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-semibold text-[color:var(--lx-muted)]">
+          <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-3xl md:text-4xl">{t.app.pageTitle}</h1>
+          <p className="mt-2 max-w-xl text-sm leading-snug text-[color:var(--lx-text-2)]">{t.app.intro}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-[color:var(--lx-muted)]">
             <span className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1">
               {t.app.badgeLocal}
             </span>
-            <span className="rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-3 py-1 text-[color:var(--lx-text-2)]">
-              {t.app.badgeAutosave}
-            </span>
-          </div>
-          <div
-            className="mt-5 rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3 text-sm leading-relaxed text-[color:var(--lx-text-2)] shadow-sm"
-            role="note"
-          >
-            <p className="font-semibold text-[color:var(--lx-text)]">{t.app.noteTitle}</p>
-            <p className="mt-1 text-[13px] text-[color:var(--lx-muted)]">{t.app.noteBody}</p>
           </div>
         </header>
       }
-      topActions={(stepCtx) => (
-        <AutosApplicationMissingItemsBanner lane="negocios" lang={lang} copy={t} listing={listing} stepCtx={stepCtx} />
-      )}
+      topActions={(stepCtx) =>
+        stepCtx.activeStep >= stepCtx.stepCount - 1 ? null : (
+          <AutosApplicationMissingItemsBanner lane="negocios" lang={lang} copy={t} listing={listing} stepCtx={stepCtx} />
+        )
+      }
     >
       {(ctx) => {
         const { activeStep } = ctx;
@@ -750,6 +753,7 @@ export function AutosNegociosApplication() {
               copy={t}
               listing={listing}
               stepCtx={ctx}
+              flushDraft={flushDraft}
               onPreview={async () => {
                 await flushDraft();
                 router.push(previewHref);

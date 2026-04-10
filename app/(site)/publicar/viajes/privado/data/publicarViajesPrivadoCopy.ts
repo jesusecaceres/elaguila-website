@@ -44,6 +44,15 @@ export type PublicarViajesPrivadoCopy = {
   price: { label: string; placeholder: string };
   duration: { label: string; placeholder: string };
   dates: { label: string; placeholder: string };
+  dateUx: {
+    modeFixed: string;
+    modeFlexible: string;
+    modeSeasonal: string;
+    start: string;
+    end: string;
+    note: string;
+    previewHint: string;
+  };
   shortDescription: { label: string };
   includes: { label: string; placeholder: string };
   peopleCount: { label: string; placeholder: string };
@@ -61,13 +70,40 @@ export type PublicarViajesPrivadoCopy = {
     heroUrl: { label: string; placeholder: string };
     localFile: { label: string; helper: string };
     clearImage: string;
+    tabUrl: string;
+    tabFile: string;
+    blocks: { hero: string; gallery: string };
+    gallery: { label: string; helper: string };
+    galleryAddUrl: string;
+    galleryAddFile: string;
+    galleryRemove: string;
+    galleryMaxNote: string;
   };
   contact: {
     displayName: { label: string; placeholder: string };
     ctaType: { label: string; options: Record<string, string> };
     phone: { label: string; placeholder: string };
+    phoneOffice: { label: string; placeholder: string };
     whatsapp: { label: string; placeholder: string };
     email: { label: string; placeholder: string };
+    website: { label: string; placeholder: string };
+  };
+  contactUx: {
+    websiteHint: string;
+    whatsappHint: string;
+    ctaExplain: string;
+  };
+  socialSection: string;
+  socialFacebook: { label: string };
+  socialInstagram: { label: string };
+  socialTiktok: { label: string };
+  socialYoutube: { label: string };
+  socialTwitter: { label: string };
+  recovery: {
+    title: string;
+    wrongLaneBody: string;
+    goNegocios: string;
+    hubViajes: string;
   };
   previewCta: string;
   previewBackEdit: string;
@@ -156,6 +192,15 @@ function es(): PublicarViajesPrivadoCopy {
     price: { label: "Precio / desde", placeholder: "Ej. $450 por persona" },
     duration: { label: "Duración", placeholder: "Ej. 4 días · 3 noches" },
     dates: { label: "Fechas o rango", placeholder: "Ej. 15–22 julio o flexibles" },
+    dateUx: {
+      modeFixed: "Fechas fijas",
+      modeFlexible: "Flexible / por acordar",
+      modeSeasonal: "Temporada o ventana",
+      start: "Inicio",
+      end: "Fin",
+      note: "Nota (temporada, flexibilidad…)",
+      previewHint: "Así se verá la línea de fechas en la ficha.",
+    },
     shortDescription: { label: "Descripción corta" },
     includes: { label: "Qué incluye", placeholder: "Un ítem por línea o párrafo breve" },
     peopleCount: { label: "Número de personas (aprox.)", placeholder: "Ej. 2 adultos" },
@@ -187,6 +232,17 @@ function es(): PublicarViajesPrivadoCopy {
           "Vista previa en este navegador. Archivos grandes se guardan en IndexedDB (más fiable que solo localStorage); si el navegador bloquea almacenamiento, usa una URL o una foto más pequeña. No hay subida a la nube.",
       },
       clearImage: "Quitar imagen",
+      tabUrl: "Enlace URL",
+      tabFile: "Archivo local",
+      blocks: { hero: "Imagen principal", gallery: "Galería opcional" },
+      gallery: {
+        label: "Galería",
+        helper: "Hasta 8 imágenes por URL o archivo pequeño (solo este dispositivo).",
+      },
+      galleryAddUrl: "Añadir URL",
+      galleryAddFile: "Añadir archivo",
+      galleryRemove: "Quitar",
+      galleryMaxNote: "Máximo 8 imágenes.",
     },
     contact: {
       displayName: { label: "Nombre para mostrar", placeholder: "Tu nombre o cómo firmar" },
@@ -198,9 +254,28 @@ function es(): PublicarViajesPrivadoCopy {
           email: "Correo",
         },
       },
-      phone: { label: "Teléfono", placeholder: "+506 …" },
+      phone: { label: "Teléfono principal", placeholder: "+506 …" },
+      phoneOffice: { label: "Teléfono alternativo", placeholder: "Opcional" },
       whatsapp: { label: "WhatsApp", placeholder: "Enlace o número" },
       email: { label: "Correo", placeholder: "tu@email.com" },
+      website: { label: "Sitio web o red (opcional)", placeholder: "https://…" },
+    },
+    contactUx: {
+      websiteHint: "Puedes pegar un enlace corto; lo normalizamos en vista previa.",
+      whatsappHint: "Número con código de país o enlace wa.me",
+      ctaExplain: "El CTA principal define el botón destacado; los demás campos aparecen como accesos adicionales en la ficha.",
+    },
+    socialSection: "Redes sociales (opcional)",
+    socialFacebook: { label: "Facebook" },
+    socialInstagram: { label: "Instagram" },
+    socialTiktok: { label: "TikTok" },
+    socialYoutube: { label: "YouTube" },
+    socialTwitter: { label: "X (Twitter)" },
+    recovery: {
+      title: "¿Eres agencia o negocio?",
+      wrongLaneBody: "Si publicas en nombre de una agencia u operador, debes usar la vía Negocios.",
+      goNegocios: "Ir a solicitud de negocio",
+      hubViajes: "Ir al hub de Viajes",
     },
     previewCta: "Ver vista previa en Clasificados",
     previewBackEdit: "Volver a editar",
@@ -291,6 +366,15 @@ function en(): PublicarViajesPrivadoCopy {
     price: { label: "Price / from", placeholder: "e.g. $450 per person" },
     duration: { label: "Duration", placeholder: "e.g. 4 days · 3 nights" },
     dates: { label: "Dates or range", placeholder: "e.g. Jul 15–22 or flexible" },
+    dateUx: {
+      modeFixed: "Fixed dates",
+      modeFlexible: "Flexible / TBD",
+      modeSeasonal: "Season or window",
+      start: "Start",
+      end: "End",
+      note: "Note (season, flexibility…)",
+      previewHint: "This is how the date line will read on the listing.",
+    },
     shortDescription: { label: "Short description" },
     includes: { label: "What’s included", placeholder: "One line per item or a short paragraph" },
     peopleCount: { label: "Number of people (approx.)", placeholder: "e.g. 2 adults" },
@@ -322,6 +406,17 @@ function en(): PublicarViajesPrivadoCopy {
           "Preview in this browser. Large files are stored in IndexedDB (more reliable than localStorage alone); if the browser blocks storage, use a URL or a smaller photo. Nothing is uploaded to the cloud.",
       },
       clearImage: "Remove image",
+      tabUrl: "Image URL",
+      tabFile: "Local file",
+      blocks: { hero: "Hero image", gallery: "Optional gallery" },
+      gallery: {
+        label: "Gallery",
+        helper: "Up to 8 images via URL or small local file (this device only).",
+      },
+      galleryAddUrl: "Add URL",
+      galleryAddFile: "Add file",
+      galleryRemove: "Remove",
+      galleryMaxNote: "Maximum 8 images.",
     },
     contact: {
       displayName: { label: "Display name", placeholder: "Your name or how you sign" },
@@ -333,9 +428,28 @@ function en(): PublicarViajesPrivadoCopy {
           email: "Email",
         },
       },
-      phone: { label: "Phone", placeholder: "+1 …" },
+      phone: { label: "Primary phone", placeholder: "+1 …" },
+      phoneOffice: { label: "Alternate phone", placeholder: "Optional" },
       whatsapp: { label: "WhatsApp", placeholder: "Link or number" },
       email: { label: "Email", placeholder: "you@email.com" },
+      website: { label: "Website or profile (optional)", placeholder: "https://…" },
+    },
+    contactUx: {
+      websiteHint: "Paste a short link; we normalize it in preview.",
+      whatsappHint: "Country code or wa.me link",
+      ctaExplain: "The primary CTA is the highlighted button; other fields show as extra links on the card.",
+    },
+    socialSection: "Social profiles (optional)",
+    socialFacebook: { label: "Facebook" },
+    socialInstagram: { label: "Instagram" },
+    socialTiktok: { label: "TikTok" },
+    socialYoutube: { label: "YouTube" },
+    socialTwitter: { label: "X (Twitter)" },
+    recovery: {
+      title: "Are you a business?",
+      wrongLaneBody: "If you post on behalf of an agency or operator, use the Businesses path.",
+      goNegocios: "Go to business application",
+      hubViajes: "Back to Viajes hub",
     },
     previewCta: "Preview in Classifieds",
     previewBackEdit: "Back to edit",

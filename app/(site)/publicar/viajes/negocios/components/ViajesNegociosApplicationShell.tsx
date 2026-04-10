@@ -10,9 +10,10 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { ViajesLangSwitch } from "@/app/(site)/clasificados/viajes/components/ViajesLangSwitch";
 import { useViajesLocalHeroObjectUrl } from "@/app/(site)/clasificados/viajes/lib/useViajesLocalHeroObjectUrl";
 import { newViajesDraftMediaId, viajesDraftMediaDelete, viajesDraftMediaPut } from "@/app/(site)/clasificados/viajes/lib/viajesDraftMediaIdb";
+import { ViajesDateRangeFields } from "../../components/ViajesDateRangeFields";
 import { getPublicarViajesNegociosCopy } from "../data/publicarViajesNegociosCopy";
 import type { ViajesNegociosCtaType } from "../lib/viajesNegociosDraftTypes";
-import { VIAJES_NEGOCIOS_MAX_INLINE_IMAGE } from "../lib/viajesNegociosDraftDefaults";
+import { VIAJES_NEGOCIOS_GALLERY_MAX, VIAJES_NEGOCIOS_MAX_INLINE_IMAGE } from "../lib/viajesNegociosDraftDefaults";
 import { useViajesNegociosDraft } from "../lib/useViajesNegociosDraft";
 
 const CARD =
@@ -30,6 +31,9 @@ export function ViajesNegociosApplicationShell() {
   const heroBlobUrl = useViajesLocalHeroObjectUrl("negocios", draft.localHeroImageId);
   const [publishOpen, setPublishOpen] = useState(false);
   const heroFileRef = useRef<HTMLInputElement>(null);
+  const logoFileRef = useRef<HTMLInputElement>(null);
+  const galleryFileRef = useRef<HTMLInputElement>(null);
+  const videoFileRef = useRef<HTMLInputElement>(null);
   const publishModalTitleId = useId();
   const BLOB_PATH_BYTES = 360_000;
 
@@ -38,6 +42,7 @@ export function ViajesNegociosApplicationShell() {
   }, [c.documentTitle]);
 
   const branchHref = appendLangToPath("/publicar/viajes", lang);
+  const privadoHref = appendLangToPath("/publicar/viajes/privado", lang);
   const previewHref = appendLangToPath("/clasificados/viajes/preview/negocios", lang);
 
   const chk = (id: string, checked: boolean, onChange: (v: boolean) => void, label: string) => (
@@ -101,6 +106,56 @@ export function ViajesNegociosApplicationShell() {
     if (heroFileRef.current) heroFileRef.current.value = "";
   }
 
+  function onLogoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    e.target.value = "";
+    const reader = new FileReader();
+    reader.onload = () => {
+      const r = String(reader.result ?? "");
+      if (r.length > 160_000) {
+        window.alert(
+          lang === "en" ? "Logo file is too large for local draft. Use a URL or a smaller image." : "El logo es demasiado grande para el borrador local. Usa una URL o una imagen más pequeña."
+        );
+        return;
+      }
+      update({ logoLocalDataUrl: r, logoSocio: "" });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function onGalleryFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    e.target.value = "";
+    if (draft.galeriaUrls.length >= VIAJES_NEGOCIOS_GALLERY_MAX) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const r = String(reader.result ?? "");
+      if (r.length > 120_000) {
+        window.alert(
+          lang === "en" ? "Image too large. Add a hosted URL instead or shrink the file." : "Imagen demasiado grande. Usa una URL alojada o reduce el archivo."
+        );
+        return;
+      }
+      update({ galeriaUrls: [...draft.galeriaUrls, r] });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function addGalleryUrl() {
+    if (draft.galeriaUrls.length >= VIAJES_NEGOCIOS_GALLERY_MAX) return;
+    const raw =
+      typeof window !== "undefined"
+        ? window.prompt(lang === "en" ? "Paste image URL (https://…)" : "Pega URL de imagen (https://…)")
+        : null;
+    const u = raw?.trim();
+    if (!u) return;
+    update({ galeriaUrls: [...draft.galeriaUrls, u] });
+  }
+
+  const logoPreview = draft.logoLocalDataUrl || draft.logoSocio.trim();
+
   return (
     <div
       className="min-h-screen overflow-x-hidden pb-24 text-[color:var(--lx-text)]"
@@ -137,6 +192,24 @@ export function ViajesNegociosApplicationShell() {
               </li>
             ))}
           </ol>
+          <div className="mt-5 rounded-2xl border border-amber-300/60 bg-gradient-to-r from-amber-50 to-[color:var(--lx-card)] p-4 shadow-sm">
+            <p className="text-sm font-bold text-[color:var(--lx-text)]">{c.recovery.title}</p>
+            <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-text-2)]">{c.recovery.wrongLaneBody}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link
+                href={privadoHref}
+                className="inline-flex min-h-[44px] items-center rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-2 text-xs font-bold text-[color:var(--lx-text)] shadow-sm hover:bg-[color:var(--lx-nav-hover)]"
+              >
+                {c.recovery.goPrivado}
+              </Link>
+              <Link
+                href={branchHref}
+                className="inline-flex min-h-[44px] items-center rounded-xl border border-dashed border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)]/60 px-4 py-2 text-xs font-bold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
+              >
+                {c.recovery.hubViajes}
+              </Link>
+            </div>
+          </div>
         </header>
 
         <div className="mt-6 space-y-3">
@@ -224,10 +297,19 @@ export function ViajesNegociosApplicationShell() {
               </div>
             </div>
             <div className="mt-4">
-              <label className={LABEL} htmlFor="fechas">
-                {c.dates.label}
-              </label>
-              <input id="fechas" className={INPUT} value={draft.fechas} onChange={(e) => update({ fechas: e.target.value })} placeholder={c.dates.placeholder} />
+              <span className={LABEL}>{c.dates.label}</span>
+              <div className="mt-3">
+                <ViajesDateRangeFields
+                  lang={lang}
+                  dateMode={draft.dateMode}
+                  fechaInicio={draft.fechaInicio}
+                  fechaFin={draft.fechaFin}
+                  fechasNota={draft.fechasNota}
+                  fechas={draft.fechas}
+                  onPatch={(p) => update(p)}
+                  copy={c.dateUx}
+                />
+              </div>
             </div>
             <div className="mt-4">
               <label className={LABEL} htmlFor="descripcion">
@@ -281,45 +363,202 @@ export function ViajesNegociosApplicationShell() {
           <section className={CARD}>
             <h2 className="text-base font-bold text-[color:var(--lx-text)]">{c.sections.media}</h2>
             <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{c.sectionHints.media}</p>
-            <div className="mt-4">
-              <label className={LABEL} htmlFor="imgMain">
-                {c.multimedia.heroUrl.label}
-              </label>
-              <input id="imgMain" className={INPUT} value={draft.imagenPrincipal} onChange={(e) => update({ imagenPrincipal: e.target.value })} placeholder={c.multimedia.heroUrl.placeholder} />
-            </div>
-            <div className="mt-4">
-              <span className={LABEL}>{c.multimedia.localFile.label}</span>
-              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{c.multimedia.localFile.helper}</p>
-              <input ref={heroFileRef} type="file" accept="image/*" className="mt-2 block w-full text-sm" onChange={onPickHeroFile} />
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button type="button" className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-xs font-bold text-[color:var(--lx-text)]" onClick={onClearHero}>
-                  {c.multimedia.clearImage}
+
+            <div className="mt-6 space-y-2 rounded-2xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/35 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{c.multimedia.blocks.hero}</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className={`rounded-xl border px-3 py-2 text-xs font-bold ${
+                    draft.heroSourceMode === "url"
+                      ? "border-[#D97706] bg-[#D97706]/12 text-[color:var(--lx-text)]"
+                      : "border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] text-[color:var(--lx-muted)]"
+                  }`}
+                  onClick={() => update({ heroSourceMode: "url" })}
+                >
+                  {c.multimedia.tabUrl}
+                </button>
+                <button
+                  type="button"
+                  className={`rounded-xl border px-3 py-2 text-xs font-bold ${
+                    draft.heroSourceMode === "file"
+                      ? "border-[#D97706] bg-[#D97706]/12 text-[color:var(--lx-text)]"
+                      : "border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] text-[color:var(--lx-muted)]"
+                  }`}
+                  onClick={() => update({ heroSourceMode: "file", imagenPrincipal: "" })}
+                >
+                  {c.multimedia.tabFile}
                 </button>
               </div>
+              {draft.heroSourceMode === "url" ? (
+                <div>
+                  <label className={LABEL} htmlFor="imgMain">
+                    {c.multimedia.heroUrl.label}
+                  </label>
+                  <input
+                    id="imgMain"
+                    className={INPUT}
+                    value={draft.imagenPrincipal}
+                    onChange={(e) => update({ imagenPrincipal: e.target.value })}
+                    placeholder={c.multimedia.heroUrl.placeholder}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <span className={LABEL}>{c.multimedia.localFile.label}</span>
+                  <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{c.multimedia.localFile.helper}</p>
+                  <input ref={heroFileRef} type="file" accept="image/*" className="mt-2 block w-full text-sm" onChange={onPickHeroFile} />
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button type="button" className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-xs font-bold text-[color:var(--lx-text)]" onClick={onClearHero}>
+                      {c.multimedia.clearImage}
+                    </button>
+                  </div>
+                </div>
+              )}
               {heroThumb ? (
-                <div className="mt-4 overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)]">
+                <div className="mt-3 overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={heroThumb} alt="" className="max-h-56 w-full object-cover" />
                 </div>
               ) : null}
             </div>
-            <div className="mt-4">
-              <span className={LABEL}>{c.multimedia.gallery.label}</span>
-              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{c.multimedia.gallery.helper}</p>
-              <textarea className={`${INPUT} mt-2 min-h-[72px]`} value={draft.galeriaNota} onChange={(e) => update({ galeriaNota: e.target.value })} placeholder={c.multimedia.gallery.placeholder} />
-            </div>
-            <div className={`mt-4 ${GRID2}`}>
+
+            <div className="mt-6 space-y-3 rounded-2xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/35 p-4">
               <div>
-                <label className={LABEL} htmlFor="logo">
-                  {c.multimedia.logo.label}
-                </label>
-                <input id="logo" className={INPUT} value={draft.logoSocio} onChange={(e) => update({ logoSocio: e.target.value })} />
+                <span className={LABEL}>{c.multimedia.blocks.gallery}</span>
+                <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{c.multimedia.gallery.helper}</p>
+                <p className="mt-1 text-[11px] font-semibold text-[color:var(--lx-muted)]">{c.multimedia.galleryMaxNote}</p>
               </div>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" className="rounded-xl bg-[#D97706] px-3 py-2 text-xs font-bold text-white shadow-sm" onClick={addGalleryUrl}>
+                  {c.multimedia.galleryAddUrl}
+                </button>
+                <button type="button" className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-xs font-bold text-[color:var(--lx-text)]" onClick={() => galleryFileRef.current?.click()}>
+                  {c.multimedia.galleryAddFile}
+                </button>
+                <input ref={galleryFileRef} type="file" accept="image/*" className="hidden" onChange={onGalleryFile} />
+              </div>
+              <ul className="space-y-2">
+                {draft.galeriaUrls.map((url, idx) => (
+                  <li key={`${idx}-${url.slice(0, 24)}`} className="flex flex-wrap items-center gap-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-2">
+                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-[color:var(--lx-nav-border)] bg-black/5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt="" className="h-full w-full object-cover" />
+                    </div>
+                    <span className="min-w-0 flex-1 truncate text-xs text-[color:var(--lx-muted)]">{url.startsWith("data:") ? (lang === "en" ? "Local image" : "Imagen local") : url}</span>
+                    <button
+                      type="button"
+                      className="text-xs font-bold text-red-700 underline"
+                      onClick={() => update({ galeriaUrls: draft.galeriaUrls.filter((_, i) => i !== idx) })}
+                    >
+                      {c.multimedia.galleryRemove}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <div>
+                <label className={LABEL} htmlFor="galNota">
+                  {c.multimedia.gallery.label} — {lang === "en" ? "notes" : "notas"}
+                </label>
+                <textarea
+                  id="galNota"
+                  className={`${INPUT} mt-1 min-h-[64px]`}
+                  value={draft.galeriaNota}
+                  onChange={(e) => update({ galeriaNota: e.target.value })}
+                  placeholder={c.multimedia.gallery.placeholder}
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-3 rounded-2xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/35 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{c.multimedia.blocks.logo}</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className={`rounded-xl border px-3 py-2 text-xs font-bold ${
+                    draft.logoSourceMode === "url"
+                      ? "border-[#D97706] bg-[#D97706]/12"
+                      : "border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] text-[color:var(--lx-muted)]"
+                  }`}
+                  onClick={() => update({ logoSourceMode: "url", logoLocalDataUrl: null })}
+                >
+                  {c.multimedia.tabUrl}
+                </button>
+                <button
+                  type="button"
+                  className={`rounded-xl border px-3 py-2 text-xs font-bold ${
+                    draft.logoSourceMode === "file"
+                      ? "border-[#D97706] bg-[#D97706]/12"
+                      : "border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] text-[color:var(--lx-muted)]"
+                  }`}
+                  onClick={() => update({ logoSourceMode: "file", logoSocio: "" })}
+                >
+                  {c.multimedia.tabFile}
+                </button>
+              </div>
+              {draft.logoSourceMode === "url" ? (
+                <div>
+                  <label className={LABEL} htmlFor="logo">
+                    {c.multimedia.logo.label}
+                  </label>
+                  <input id="logo" className={INPUT} value={draft.logoSocio} onChange={(e) => update({ logoSocio: e.target.value })} placeholder="https://…" />
+                </div>
+              ) : (
+                <div>
+                  <input ref={logoFileRef} type="file" accept="image/*" className="mt-1 block w-full text-sm" onChange={onLogoFile} />
+                  <button
+                    type="button"
+                    className="mt-2 text-xs font-bold text-[color:var(--lx-muted)] underline"
+                    onClick={() => {
+                      update({ logoLocalDataUrl: null });
+                      if (logoFileRef.current) logoFileRef.current.value = "";
+                    }}
+                  >
+                    {c.multimedia.clearImage}
+                  </button>
+                </div>
+              )}
+              {logoPreview ? (
+                <div className="h-16 w-16 overflow-hidden rounded-xl border border-[color:var(--lx-nav-border)] bg-white p-1">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={logoPreview} alt="" className="h-full w-full object-contain" />
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-6 space-y-3 rounded-2xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/35 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{c.multimedia.blocks.video}</p>
               <div>
                 <label className={LABEL} htmlFor="video">
                   {c.multimedia.video.label}
                 </label>
-                <input id="video" className={INPUT} value={draft.videoUrl} onChange={(e) => update({ videoUrl: e.target.value })} placeholder={c.multimedia.video.placeholder} />
+                <input
+                  id="video"
+                  className={INPUT}
+                  value={draft.videoUrl}
+                  onChange={(e) => update({ videoUrl: e.target.value })}
+                  placeholder={c.multimedia.video.placeholder}
+                />
+              </div>
+              <div>
+                <span className={LABEL}>{c.multimedia.videoFile}</span>
+                <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{c.multimedia.videoFileHint}</p>
+                <input
+                  ref={videoFileRef}
+                  type="file"
+                  accept="video/*"
+                  className="mt-2 block w-full text-sm"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) update({ videoLocalLabel: f.name });
+                    e.target.value = "";
+                  }}
+                />
+                {draft.videoLocalLabel ? (
+                  <p className="mt-2 text-xs text-[color:var(--lx-text-2)]">
+                    {lang === "en" ? "Selected:" : "Seleccionado:"} {draft.videoLocalLabel}
+                  </p>
+                ) : null}
               </div>
             </div>
           </section>
@@ -341,17 +580,36 @@ export function ViajesNegociosApplicationShell() {
                 <input id="tel" className={INPUT} value={draft.phone} onChange={(e) => update({ phone: e.target.value })} />
               </div>
               <div>
+                <label className={LABEL} htmlFor="telOff">
+                  {c.business.phoneOffice.label}
+                </label>
+                <input id="telOff" className={INPUT} value={draft.phoneOffice} onChange={(e) => update({ phoneOffice: e.target.value })} />
+              </div>
+            </div>
+            <div className={`mt-4 ${GRID2}`}>
+              <div>
                 <label className={LABEL} htmlFor="wa">
                   {c.business.whatsapp.label}
                 </label>
                 <input id="wa" className={INPUT} value={draft.whatsapp} onChange={(e) => update({ whatsapp: e.target.value })} />
+                <p className="mt-1 text-[11px] text-[color:var(--lx-muted)]">{c.contactUx.whatsappHint}</p>
+              </div>
+              <div>
+                <label className={LABEL} htmlFor="emailBiz">
+                  {c.business.email.label}
+                </label>
+                <input id="emailBiz" type="email" className={INPUT} value={draft.email} onChange={(e) => update({ email: e.target.value })} autoComplete="email" />
               </div>
             </div>
             <div className="mt-4">
               <label className={LABEL} htmlFor="web">
                 {c.business.website.label}
               </label>
-              <input id="web" className={INPUT} value={draft.website} onChange={(e) => update({ website: e.target.value })} />
+              <input id="web" className={INPUT} value={draft.website} onChange={(e) => update({ website: e.target.value })} placeholder="https://…" />
+              <p className="mt-1 text-[11px] text-[color:var(--lx-muted)]">{c.contactUx.websiteHint}</p>
+            </div>
+            <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-section)]/50 p-3 text-xs leading-relaxed text-[color:var(--lx-text-2)]">
+              {c.contactUx.ctaExplain}
             </div>
             <div className="mt-4">
               <label className={LABEL} htmlFor="ctaType">
@@ -364,6 +622,39 @@ export function ViajesNegociosApplicationShell() {
                   </option>
                 ))}
               </select>
+            </div>
+            <p className="mt-4 text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{c.business.socialSection}</p>
+            <div className={`mt-2 grid gap-3 sm:grid-cols-2`}>
+              <div>
+                <label className={LABEL} htmlFor="sf">
+                  {c.business.socialFacebook.label}
+                </label>
+                <input id="sf" className={INPUT} value={draft.socialFacebook} onChange={(e) => update({ socialFacebook: e.target.value })} placeholder="https://…" />
+              </div>
+              <div>
+                <label className={LABEL} htmlFor="si">
+                  {c.business.socialInstagram.label}
+                </label>
+                <input id="si" className={INPUT} value={draft.socialInstagram} onChange={(e) => update({ socialInstagram: e.target.value })} placeholder="https://…" />
+              </div>
+              <div>
+                <label className={LABEL} htmlFor="st">
+                  {c.business.socialTiktok.label}
+                </label>
+                <input id="st" className={INPUT} value={draft.socialTiktok} onChange={(e) => update({ socialTiktok: e.target.value })} placeholder="https://…" />
+              </div>
+              <div>
+                <label className={LABEL} htmlFor="sy">
+                  {c.business.socialYoutube.label}
+                </label>
+                <input id="sy" className={INPUT} value={draft.socialYoutube} onChange={(e) => update({ socialYoutube: e.target.value })} placeholder="https://…" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={LABEL} htmlFor="sx">
+                  {c.business.socialTwitter.label}
+                </label>
+                <input id="sx" className={INPUT} value={draft.socialTwitter} onChange={(e) => update({ socialTwitter: e.target.value })} placeholder="https://…" />
+              </div>
             </div>
             <div className="mt-4">
               <label className={LABEL} htmlFor="socials">

@@ -6,6 +6,7 @@ import { getViajesOpenCardLane } from "../lib/viajesOpenCardStrategy";
 import { setLangOnHref } from "../lib/viajesLangHref";
 import type { ViajesHeroVisualKind } from "../lib/viajesOfferHeroFallbacks";
 import { inferViajesHeroVisualKind } from "../lib/viajesOfferHeroFallbacks";
+import { ViajesContactChannelsRow } from "./ViajesContactChannelsRow";
 import { ViajesOfferHeroBackdrop } from "./ViajesOfferHeroBackdrop";
 import { ViajesPartnerLogo } from "./ViajesPartnerLogo";
 
@@ -315,6 +316,9 @@ export function ViajesOfferDetailLayout({
                   <p>{od.businessFallback}</p>
                 )}
               </div>
+              {partner.contactChannels && partner.contactChannels.length > 0 ? (
+                <ViajesContactChannelsRow channels={partner.contactChannels} ariaLabel={od.contactChannelsHeading} />
+              ) : null}
             </div>
             <div className="flex w-full flex-col gap-2.5 sm:max-w-sm sm:items-stretch lg:min-w-[240px] lg:items-end">
               <a

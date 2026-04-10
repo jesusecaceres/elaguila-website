@@ -1,31 +1,90 @@
-import { FiClock, FiGlobe, FiMail, FiMapPin, FiMessageCircle, FiPhone, FiZap } from "react-icons/fi";
+import { FiClock, FiGlobe, FiMail, FiMapPin, FiPhone, FiZap } from "react-icons/fi";
 import { FaFacebook, FaInstagram, FaLinkedin, FaStar, FaTiktok, FaWhatsapp, FaYoutube } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { nonEmpty } from "../lib/serviciosProfilePrimitives";
-import { ServiciosLeadForm } from "./ServiciosLeadForm";
+import {
+  buildServiciosSecondaryActions,
+  resolveServiciosQuoteDestination,
+  type ServiciosSecondaryAction,
+} from "../lib/serviciosContactActions";
 import { ServiciosStarRating } from "./ServiciosStarRating";
 import { ServiciosActionPanelAreasMap } from "./ServiciosActionPanelAreasMap";
 import { ServiciosOfferCard } from "./ServiciosOfferCard";
 import { SV } from "./serviciosDesignTokens";
+
+function secondaryLabel(
+  L: ReturnType<typeof getServiciosProfileLabels>,
+  a: ServiciosSecondaryAction,
+): string {
+  switch (a.labelKey) {
+    case "whatsapp":
+      return L.whatsapp;
+    case "call":
+      return L.call;
+    case "callOffice":
+      return L.callOffice;
+    case "email":
+      return L.email;
+    case "visitWebsite":
+      return L.visitWebsite;
+    default:
+      return a.labelKey;
+  }
+}
+
+function SecondaryIcon({ id }: { id: ServiciosSecondaryAction["id"] }) {
+  const c = "h-4 w-4 shrink-0 text-[#3B66AD]";
+  if (id === "whatsapp") return <FaWhatsapp className="h-4 w-4 shrink-0 text-[#25D366]" aria-hidden />;
+  if (id === "email") return <FiMail className={c} aria-hidden />;
+  if (id === "website") return <FiGlobe className={c} aria-hidden />;
+  if (id === "call" || id === "callOffice") return <FiPhone className={c} aria-hidden />;
+  return <FiPhone className={c} aria-hidden />;
+}
 
 /** Sticky contact / quote panel (right column). */
 export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
   const L = getServiciosProfileLabels(lang);
   const rating = profile.hero.rating;
   const reviewCount = profile.hero.reviewCount;
-  const phone = profile.contact.phoneDisplay;
-  const telHref = profile.contact.phoneTelHref;
-  const website = profile.contact.websiteHref;
-  const websiteLabel = profile.contact.websiteLabel?.trim() || L.visitWebsite;
   const hours = profile.contact.hours;
   const location = profile.hero.locationSummary?.trim();
-  const primaryCta = profile.contact.primaryCtaLabel?.trim();
-  const secondaryCtas = profile.contact.secondaryCtaLabels ?? [];
-  const hasTopCtas = Boolean(primaryCta) || secondaryCtas.length > 0;
+  const primaryCtaLabel = profile.contact.primaryCtaLabel?.trim() || L.requestQuote;
   const social = profile.contact.socialLinks;
   const featured = profile.contact.isFeatured;
   const featuredLabel = profile.contact.featuredLabel?.trim() || L.featured;
+
+  const quote = resolveServiciosQuoteDestination(profile, lang);
+  const secondary = buildServiciosSecondaryActions(profile, quote);
+  const whatsappInConversionRail =
+    quote?.kind === "whatsapp" || secondary.some((s) => s.id === "whatsapp");
+
+  const linkBase =
+    "flex min-h-[46px] w-full items-center justify-center gap-2 rounded-xl border border-black/[0.08] bg-white px-3 py-3 text-sm font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:border-[#3B66AD]/40 hover:shadow-md";
+  const primaryClass =
+    "flex min-h-[50px] w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-bold text-white shadow-lg transition hover:opacity-[0.97] active:scale-[0.99]";
+
+  const headerBlock = featured ? (
+    <div className="flex flex-wrap items-center gap-2 border-b border-black/[0.06] pb-4">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#C9A84A]/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[#9a7b28]">
+        <FaStar className="h-3.5 w-3.5 text-[#C9A84A]" aria-hidden />
+        {featuredLabel}
+      </span>
+      {rating != null && reviewCount != null ? (
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[color:var(--lx-text-2)]">
+          <ServiciosStarRating value={rating} size="sm" />
+          {rating.toFixed(1)} ({reviewCount} {lang === "en" ? "reviews" : "reseñas"})
+        </span>
+      ) : null}
+    </div>
+  ) : rating != null && reviewCount != null ? (
+    <div className="flex flex-wrap items-center gap-2 border-b border-black/[0.06] pb-4">
+      <ServiciosStarRating value={rating} size="sm" />
+      <span className="text-xs font-semibold text-[color:var(--lx-text-2)]">
+        {rating.toFixed(1)} ({reviewCount})
+      </span>
+    </div>
+  ) : null;
 
   return (
     <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
@@ -33,72 +92,41 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
         className="rounded-2xl border p-4 shadow-md sm:p-6"
         style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadow }}
       >
-        {featured ? (
-          <div className="flex flex-wrap items-center gap-2 border-b border-black/[0.06] pb-4">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#C9A84A]/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[#9a7b28]">
-              <FaStar className="h-3.5 w-3.5 text-[#C9A84A]" aria-hidden />
-              {featuredLabel}
-            </span>
-            {rating != null && reviewCount != null ? (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[color:var(--lx-text-2)]">
-                <ServiciosStarRating value={rating} size="sm" />
-                {rating.toFixed(1)} ({reviewCount} {lang === "en" ? "reviews" : "reseñas"})
-              </span>
-            ) : null}
-          </div>
-        ) : rating != null && reviewCount != null ? (
-          <div className="flex flex-wrap items-center gap-2 border-b border-black/[0.06] pb-4">
-            <ServiciosStarRating value={rating} size="sm" />
-            <span className="text-xs font-semibold text-[color:var(--lx-text-2)]">
-              {rating.toFixed(1)} ({reviewCount})
-            </span>
-          </div>
-        ) : null}
+        {headerBlock}
 
-        <div className={featured || (rating != null && reviewCount != null) ? "pt-4" : ""}>
-          {phone && telHref ? (
+        <div className={headerBlock ? "pt-4" : ""}>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-text-2)]">
+            {lang === "en" ? "Contact" : "Contacto"}
+          </p>
+
+          {quote ? (
             <a
-              href={telHref}
-              className="flex items-center gap-2 text-sm font-semibold text-[color:var(--lx-text)] hover:text-[#3B66AD]"
+              href={quote.href}
+              {...(quote.kind === "website" || quote.kind === "whatsapp"
+                ? { target: "_blank", rel: "noopener noreferrer" }
+                : {})}
+              className={`${primaryClass} mt-3`}
+              style={{ backgroundColor: SV.blue, boxShadow: "0 12px 32px rgba(59,102,173,0.28)" }}
             >
-              <FiPhone className="h-4 w-4 shrink-0 text-[#3B66AD]" aria-hidden />
-              {phone}
+              <FiZap className="h-5 w-5 shrink-0" aria-hidden />
+              {primaryCtaLabel}
             </a>
           ) : null}
 
-          {profile.contact.phoneOfficeDisplay && profile.contact.phoneOfficeTelHref ? (
-            <a
-              href={profile.contact.phoneOfficeTelHref}
-              className={`flex items-center gap-2 text-sm font-semibold text-[color:var(--lx-text)] hover:text-[#3B66AD] ${phone ? "mt-2" : ""}`}
-            >
-              <FiPhone className="h-4 w-4 shrink-0 text-[#3B66AD]" aria-hidden />
-              <span className="text-xs font-semibold text-[color:var(--lx-text-2)]">{lang === "en" ? "Office" : "Oficina"}:</span>{" "}
-              {profile.contact.phoneOfficeDisplay}
-            </a>
-          ) : null}
-
-          {profile.contact.emailMailtoHref && profile.contact.email ? (
-            <a
-              href={profile.contact.emailMailtoHref}
-              className={`flex items-center gap-2 text-sm font-semibold text-[#3B66AD] hover:underline ${phone || profile.contact.phoneOfficeDisplay ? "mt-3" : ""}`}
-            >
-              <FiMail className="h-4 w-4 shrink-0" aria-hidden />
-              {profile.contact.email}
-            </a>
-          ) : null}
-
-          {website ? (
-            <a
-              href={website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`flex items-center gap-2 text-sm font-semibold text-[#3B66AD] hover:underline ${
-                phone || profile.contact.phoneOfficeDisplay || profile.contact.email ? "mt-3" : ""
-              }`}
-            >
-              <FiGlobe className="h-4 w-4 shrink-0" aria-hidden />
-              {websiteLabel}
-            </a>
+          {secondary.length > 0 ? (
+            <div className={`flex flex-col gap-2 ${quote ? "mt-3" : "mt-3"}`}>
+              {secondary.map((a) => (
+                <a
+                  key={`${a.id}-${a.href}`}
+                  href={a.href}
+                  {...(a.id === "website" || a.id === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                  className={linkBase}
+                >
+                  <SecondaryIcon id={a.id} />
+                  {secondaryLabel(L, a)}
+                </a>
+              ))}
+            </div>
           ) : null}
 
           {social &&
@@ -107,11 +135,9 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
             social.youtube ||
             social.tiktok ||
             social.linkedin ||
-            social.whatsapp) ? (
+            (!whatsappInConversionRail && social.whatsapp)) ? (
             <div
-              className={`flex flex-wrap gap-2 sm:gap-2.5 ${
-                phone || website || profile.contact.phoneOfficeDisplay || profile.contact.email ? "mt-4" : ""
-              }`}
+              className={`flex flex-wrap gap-2 sm:gap-2.5 ${quote || secondary.length > 0 ? "mt-5 border-t border-black/[0.06] pt-4" : "mt-4"}`}
             >
               {social.instagram ? (
                 <a
@@ -168,7 +194,7 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
                   <FaLinkedin className="h-4 w-4" aria-hidden />
                 </a>
               ) : null}
-              {social.whatsapp ? (
+              {!whatsappInConversionRail && social.whatsapp ? (
                 <a
                   href={social.whatsapp}
                   target="_blank"
@@ -182,58 +208,12 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
             </div>
           ) : null}
 
-          {primaryCta ? (
-            <button
-              type="button"
-              className="mt-5 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-bold text-white shadow-lg transition hover:opacity-[0.97] active:scale-[0.99]"
-              style={{ backgroundColor: SV.blue, boxShadow: "0 12px 32px rgba(59,102,173,0.28)" }}
-            >
-              <FiZap className="h-5 w-5" aria-hidden />
-              {primaryCta}
-            </button>
-          ) : null}
-
-          {secondaryCtas.length > 0 ? (
-            <div className={`flex flex-col gap-2 ${primaryCta ? "mt-3" : "mt-5"}`}>
-              {secondaryCtas.map((label, i) => (
-                <button
-                  key={`${label}-${i}`}
-                  type="button"
-                  className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-black/[0.1] bg-white px-3 py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:border-[#3B66AD]/35"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          ) : null}
-
-          {phone || profile.contact.messageEnabled === true ? (
-            <div
-              className={`grid gap-2 ${phone && profile.contact.messageEnabled === true ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} ${hasTopCtas ? "mt-3" : "mt-5"}`}
-            >
-              {phone && telHref ? (
-                <a
-                  href={telHref}
-                  className="flex min-h-[44px] items-center justify-center rounded-xl border border-black/[0.1] bg-white px-3 py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:border-[#3B66AD]/35"
-                >
-                  <FiPhone className="mr-2 h-4 w-4 text-[#3B66AD]" aria-hidden />
-                  {L.call}
-                </a>
-              ) : null}
-              {profile.contact.messageEnabled ? (
-                <button
-                  type="button"
-                  className="flex min-h-[44px] items-center justify-center rounded-xl border border-black/[0.1] bg-white px-3 py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:border-[#3B66AD]/35"
-                >
-                  <FiMessageCircle className="mr-2 h-4 w-4 text-[#3B66AD]" aria-hidden />
-                  {L.message}
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-
           {hours?.openNowLabel && nonEmpty(hours.todayHoursLine) ? (
-            <p className="mt-5 flex items-start gap-2 text-xs text-[color:var(--lx-text-2)]">
+            <p
+              className={`mt-5 flex items-start gap-2 text-xs text-[color:var(--lx-text-2)] ${
+                quote || secondary.length > 0 || social ? "border-t border-black/[0.06] pt-4" : ""
+              }`}
+            >
               <FiClock className="mt-0.5 h-4 w-4 shrink-0 text-[#3B66AD]" aria-hidden />
               <span>
                 <span className="font-semibold text-[color:var(--lx-text)]">{hours.openNowLabel}:</span>{" "}
@@ -274,16 +254,24 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
                   href={profile.contact.mapsSearchHref}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-2 inline-flex min-h-[40px] items-center gap-2 text-sm font-semibold text-[#3B66AD] hover:underline"
+                  className="mt-3 inline-flex min-h-[40px] items-center gap-2 rounded-lg text-sm font-semibold text-[#3B66AD] hover:underline"
                 >
                   <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
                   {L.openInMaps}
                 </a>
               ) : null}
             </div>
+          ) : profile.contact.mapsSearchHref ? (
+            <a
+              href={profile.contact.mapsSearchHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex min-h-[40px] items-center gap-2 text-sm font-semibold text-[#3B66AD] hover:underline"
+            >
+              <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
+              {L.openInMaps}
+            </a>
           ) : null}
-
-          <ServiciosLeadForm lang={lang} />
         </div>
       </div>
 

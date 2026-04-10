@@ -38,20 +38,3 @@ export function buildPublishPreviewDisplayStrings(params: {
   };
 }
 
-/** Ordered subset of detail rows for BR privado compact preview card. */
-export function buildCompactBrPrivateDetailPairs(params: {
-  categoryFromUrl: string;
-  isBienesRaicesPrivado: boolean;
-  previewDetailPairs: Array<{ label: string; value: string }>;
-  lang: PublishPreviewLang;
-}): Array<{ label: string; value: string }> {
-  const { categoryFromUrl, isBienesRaicesPrivado, previewDetailPairs, lang } = params;
-  if (categoryFromUrl !== "bienes-raices" || !isBienesRaicesPrivado || !previewDetailPairs.length) return [];
-  const order =
-    lang === "es"
-      ? ["Tipo de propiedad", "Dirección", "Recámaras", "Baños", "Pies²"]
-      : ["Property type", "Address", "Bedrooms", "Bathrooms", "Sq ft"];
-  const byLabel = new Map(previewDetailPairs.map((p) => [p.label, p]));
-  return order.map((label) => byLabel.get(label)).filter(Boolean) as Array<{ label: string; value: string }>;
-}
-

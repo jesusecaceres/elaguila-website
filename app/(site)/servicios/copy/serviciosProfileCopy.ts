@@ -7,6 +7,8 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
       openNow: "Open now",
       closed: "Closed",
       requestQuote: "Request quote",
+      whatsapp: "WhatsApp",
+      callOffice: "Call office",
       call: "Call",
       email: "Email",
       message: "Message",
@@ -30,6 +32,8 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
       weeklyHours: "Weekly hours",
       physicalLocation: "Location",
       openInMaps: "Open in Maps",
+      showMoreServices: "Show more services",
+      showLessServices: "Show fewer",
     };
   }
   return {
@@ -37,6 +41,8 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
     openNow: "Abierto ahora",
     closed: "Cerrado",
     requestQuote: "Solicitar cotización",
+    whatsapp: "WhatsApp",
+    callOffice: "Llamar oficina",
     call: "Llamar",
     email: "Correo",
     message: "Mensaje",
@@ -60,5 +66,7 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
     weeklyHours: "Horario de la semana",
     physicalLocation: "Ubicación",
     openInMaps: "Abrir en mapa",
+    showMoreServices: "Ver más servicios",
+    showLessServices: "Ver menos",
   };
 }

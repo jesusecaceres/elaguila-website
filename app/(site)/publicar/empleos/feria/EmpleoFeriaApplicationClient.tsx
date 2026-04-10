@@ -16,6 +16,7 @@ import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publis
 import { clearEmpleosStagedPublish, writeEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
 import { flushEmpleosDraftToSession } from "@/app/publicar/empleos/shared/lib/flushEmpleosDraftToSession";
 import { gateEmpleosFeriaPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
+import { EMPLEOS_STANDARD_CITY } from "@/app/publicar/empleos/shared/constants/empleosStandardRegion";
 import { EMPLEOS_SESSION_KEYS } from "@/app/publicar/empleos/shared/constants/empleosSessionKeys";
 import { empleosHandoffPreviewUrl } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
 import { emptyEmpleosFeriaDraft, type EmpleosFeriaDraft } from "@/app/publicar/empleos/shared/types/empleosFeriaDraft";
@@ -23,6 +24,7 @@ import { EmpleosFieldLabel, EmpleosSectionCard } from "@/app/publicar/empleos/sh
 import { EmpleosStringLinesEditor } from "@/app/publicar/empleos/shared/ui/empleosStringLinesEditor";
 
 const INPUT = "mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm";
+const INPUT_CITY_LOCKED = `${INPUT} cursor-not-allowed bg-black/[0.04]`;
 
 const MODALITIES: { value: JobFairModality; es: string; en: string }[] = [
   { value: "presencial", es: "Presencial", en: "In person" },
@@ -113,7 +115,16 @@ export default function EmpleoFeriaApplicationClient() {
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
                 <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Ciudad" : "City"}</EmpleosFieldLabel>
-                <input className={INPUT} value={state.city} onChange={(e) => patch({ city: e.target.value })} />
+                <input
+                  readOnly
+                  className={INPUT_CITY_LOCKED}
+                  value={EMPLEOS_STANDARD_CITY}
+                  aria-readonly="true"
+                  title={lang === "es" ? "Región estandarizada" : "Standardized region"}
+                />
+                <p className="mt-0.5 text-[11px] leading-snug text-[color:var(--lx-muted)]">
+                  {lang === "es" ? "NorCal — región fija para filtros Leonix." : "NorCal — fixed region for Leonix filters."}
+                </p>
               </label>
               <label className="block text-sm">
                 <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Estado" : "State"}</EmpleosFieldLabel>

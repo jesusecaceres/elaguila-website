@@ -3,6 +3,7 @@
  * Dispatches to category field config + structured category mappers.
  */
 
+import type { ClasificadosDetailFieldCopyPatch } from "@/app/lib/clasificados/clasificadosCategoryContentTypes";
 import { getPublishCategoryFields } from "@/app/clasificados/config/publishCategoryFields";
 import { appendEnVentaDetailPairs } from "@/app/clasificados/en-venta/mapping/appendEnVentaDetailPairs";
 import { getRentasPublishStructuredDetailPairs } from "@/app/clasificados/rentas/shared/mapping/rentasPublishDetailPairs";
@@ -14,9 +15,10 @@ export function getDetailPairs(
   cat: string,
   lang: PublishLang,
   details: Record<string, string>,
-  cityDisplay = ""
+  cityDisplay = "",
+  fieldOverrides?: Record<string, ClasificadosDetailFieldCopyPatch>
 ): Array<{ label: string; value: string }> {
-  const fields = getPublishCategoryFields(cat, details);
+  const fields = getPublishCategoryFields(cat, details, fieldOverrides);
   const out: Array<{ label: string; value: string }> = [];
   if (cat === "rentas") {
     out.push(...getRentasPublishStructuredDetailPairs(lang, details));
@@ -54,7 +56,11 @@ export function buildDetailsAppendix(
   cat: string,
   lang: PublishLang,
   details: Record<string, string>,
-  cityDisplay?: string
+  cityDisplay?: string,
+  fieldOverrides?: Record<string, ClasificadosDetailFieldCopyPatch>
 ): string {
-  return buildDetailsAppendixFromPairs(getDetailPairs(cat, lang, details, cityDisplay ?? ""), lang);
+  return buildDetailsAppendixFromPairs(
+    getDetailPairs(cat, lang, details, cityDisplay ?? "", fieldOverrides),
+    lang
+  );
 }

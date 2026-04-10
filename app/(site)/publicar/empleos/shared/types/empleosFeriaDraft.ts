@@ -1,5 +1,7 @@
 import type { JobFairModality } from "@/app/clasificados/empleos/data/empleoJobFairSampleData";
 
+import { EMPLEOS_STANDARD_CITY } from "../constants/empleosStandardRegion";
+
 export type EmpleosFeriaDraft = {
   title: string;
   flyerImageUrl: string;
@@ -24,6 +26,11 @@ export type EmpleosFeriaDraft = {
   ctaLabel: string;
 };
 
+export function normalizeEmpleosFeriaDraft(p: Partial<EmpleosFeriaDraft>): EmpleosFeriaDraft {
+  const e = emptyEmpleosFeriaDraft();
+  return { ...e, ...p, city: EMPLEOS_STANDARD_CITY };
+}
+
 export function emptyEmpleosFeriaDraft(): EmpleosFeriaDraft {
   return {
     title: "",
@@ -32,7 +39,7 @@ export function emptyEmpleosFeriaDraft(): EmpleosFeriaDraft {
     dateLine: "",
     timeLine: "",
     venue: "",
-    city: "",
+    city: EMPLEOS_STANDARD_CITY,
     state: "",
     organizer: "",
     organizerUrl: "",

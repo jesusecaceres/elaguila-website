@@ -177,25 +177,27 @@ export function RestauranteShellVenueGalleryBlock({
   if (!hasCats && !hasSupp) return null;
 
   return (
-    <section id="galeria-lugar" aria-labelledby="venue-gallery-heading">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 id="venue-gallery-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
-            Galería del lugar
-          </h2>
-          {hasCats && activeCategory && showTabs ? (
-            <p className="mt-1 text-sm text-[color:var(--lx-text-2)]">
-              Viendo: <span className="font-semibold text-[color:var(--lx-text)]">{activeCategory.label}</span>
-            </p>
-          ) : hasCats && activeCategory && !showTabs ? (
-            <p className="mt-1 text-sm text-[color:var(--lx-text-2)]">{activeCategory.label}</p>
-          ) : null}
-        </div>
+    <section id="galeria-lugar" aria-labelledby="venue-gallery-heading" className="scroll-mt-24">
+      <div className="max-w-2xl">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Ambiente</p>
+        <h2 id="venue-gallery-heading" className="mt-1 text-2xl font-bold tracking-tight text-[color:var(--lx-text)]">
+          El lugar, la mesa y el entorno
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+          Un recorrido visual: interior, platos y exterior cuando aplica — para imaginarte la experiencia antes de reservar.
+        </p>
+        {hasCats && activeCategory && showTabs ? (
+          <p className="mt-3 text-sm text-[color:var(--lx-text-2)]">
+            Álbum: <span className="font-semibold text-[color:var(--lx-text)]">{activeCategory.label}</span>
+          </p>
+        ) : hasCats && activeCategory && !showTabs ? (
+          <p className="mt-3 text-sm text-[color:var(--lx-text-2)]">{activeCategory.label}</p>
+        ) : null}
       </div>
 
       {showTabs ? (
         <div
-          className="mt-4 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
+          className="mt-6 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
           role="tablist"
           aria-label="Categorías de la galería"
         >
@@ -227,7 +229,7 @@ export function RestauranteShellVenueGalleryBlock({
 
       {hasCats && activeCategory ? (
         <div
-          className={`${showTabs ? "mt-4" : "mt-5"} grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:max-w-4xl lg:grid-cols-3`}
+          className={`${showTabs ? "mt-5" : "mt-6"} grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-3 lg:grid-cols-3`}
           role="tabpanel"
           aria-label={activeCategory.label}
         >

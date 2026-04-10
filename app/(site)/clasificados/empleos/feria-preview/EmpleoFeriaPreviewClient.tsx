@@ -13,7 +13,7 @@ import { EMPLEOS_SESSION_KEYS } from "@/app/publicar/empleos/shared/constants/em
 import { EMPLEOS_PUBLISH_ROUTES } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
 import { EMPLEOS_PUBLISH_SHARED_COPY } from "@/app/publicar/empleos/shared/copy/empleosPublishSharedCopy";
 import { mapFeriaDraftToShell } from "@/app/publicar/empleos/shared/mappers/mapFeriaDraftToShell";
-import { emptyEmpleosFeriaDraft, type EmpleosFeriaDraft } from "@/app/publicar/empleos/shared/types/empleosFeriaDraft";
+import { normalizeEmpleosFeriaDraft, type EmpleosFeriaDraft } from "@/app/publicar/empleos/shared/types/empleosFeriaDraft";
 
 export function EmpleoFeriaPreviewClient() {
   const sp = useSearchParams();
@@ -33,7 +33,7 @@ export function EmpleoFeriaPreviewClient() {
       if (!raw) setDraft(null);
       else {
         const parsed = JSON.parse(raw) as Partial<EmpleosFeriaDraft>;
-        setDraft({ ...emptyEmpleosFeriaDraft(), ...parsed });
+        setDraft(normalizeEmpleosFeriaDraft(parsed));
       }
     } catch {
       setDraft(null);

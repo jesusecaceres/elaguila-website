@@ -19,6 +19,7 @@ import {
 } from "react-icons/fi";
 import { BR_PUBLICAR_HUB } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
+import { RENTAS_LANDING } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { LEONIX_CATEGORY_VISUALS } from "@/app/clasificados/config/categoryVisuals";
 import newLogo from "../../../../public/logo.png";
 import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
@@ -97,7 +98,9 @@ export default function PublicarPageClient({
               ? `/publicar/restaurantes?${p.toString()}`
               : deepLinkCat === "travel"
                 ? `/publicar/viajes?${p.toString()}`
-                : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
+                : deepLinkCat === "rentas"
+                  ? `${RENTAS_LANDING}?${p.toString()}`
+                  : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
     router.replace(dest);
   }, [deepLinkCat, lang, router, searchParams]);
 
@@ -205,7 +208,9 @@ export default function PublicarPageClient({
                         ? withLangParam("/publicar/viajes", lang)
                         : key === "empleos"
                           ? `/clasificados/publicar/empleos?lang=${lang}`
-                          : `/clasificados/publicar/${key}?lang=${lang}`;
+                          : key === "rentas"
+                            ? `${RENTAS_LANDING}?lang=${lang}`
+                            : `/clasificados/publicar/${key}?lang=${lang}`;
               return (
                 <Link
                   key={key}

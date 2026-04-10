@@ -40,6 +40,13 @@ export function getAutosPrivadoCopy(lang: AutosNegociosLang): AutosNegociosCopy 
     },
     app: {
       ...base.app,
+      kicker: isEs ? "Clasificados" : "Classifieds",
+      pageTitle: isEs ? "Autos · Privado" : "Autos · Private",
+      intro: isEs
+        ? "Completa la ficha; la vista previa refleja lo que ingreses en esta sesión."
+        : "Complete the listing; preview reflects what you enter in this session.",
+      noteTitle: "",
+      noteBody: "",
       hints: {
         ...base.app.hints,
         previewNeed_price: isEs ? "precio en USD" : "USD price",

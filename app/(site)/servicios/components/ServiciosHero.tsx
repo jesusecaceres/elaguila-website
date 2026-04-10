@@ -17,10 +17,17 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
   const { identity, hero } = profile;
   const rating = hero.rating;
   const reviewCount = hero.reviewCount;
+  const about = profile.about;
+  const heroFacts = profile.quickFacts.slice(0, 3);
+
+  const headlineSub =
+    hero.categoryLine && hero.locationSummary
+      ? `${hero.categoryLine} · ${hero.locationSummary}`
+      : hero.categoryLine || hero.locationSummary || null;
 
   return (
     <section className="relative w-full overflow-hidden rounded-xl shadow-[0_20px_60px_rgba(30,24,16,0.12)] sm:rounded-2xl md:rounded-3xl">
-      <div className="relative min-h-[200px] w-full aspect-[5/4] sm:aspect-[21/9] sm:min-h-[240px] md:aspect-[2.4/1] md:min-h-[320px]">
+      <div className="relative aspect-[5/4] w-full min-h-[200px] sm:aspect-[21/9] sm:min-h-[240px] md:aspect-[2.4/1] md:min-h-[320px]">
         {hero.coverImageUrl ? (
           <Image
             src={hero.coverImageUrl}
@@ -39,11 +46,11 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
             }}
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-transparent" aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" aria-hidden />
 
         <div className="absolute inset-0 flex flex-col justify-end p-3 pb-4 sm:p-4 sm:pb-6 md:p-8 lg:flex-row lg:items-end lg:justify-start">
           <div
-            className="w-full max-w-xl rounded-xl border p-4 shadow-xl sm:rounded-2xl sm:p-5 md:p-7"
+            className="w-full max-w-2xl rounded-xl border p-4 shadow-xl sm:rounded-2xl sm:p-5 md:max-w-2xl md:p-7"
             style={{
               backgroundColor: "rgba(255,255,255,0.97)",
               borderColor: SV.border,
@@ -75,8 +82,16 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
                 <h1 className="text-xl font-bold leading-tight tracking-tight text-[color:var(--lx-text)] sm:text-2xl md:text-[1.65rem]">
                   {identity.businessName}
                 </h1>
-                {hero.categoryLine ? (
-                  <p className="mt-1 text-sm text-[color:var(--lx-muted)] sm:text-[15px]">{hero.categoryLine}</p>
+                {headlineSub ? (
+                  <p className="mt-1.5 text-sm font-medium text-[color:var(--lx-muted)] sm:text-[15px]">{headlineSub}</p>
+                ) : null}
+
+                {about?.specialtiesLine ? (
+                  <p className="mt-2 text-sm font-semibold leading-snug text-[#2d528d] sm:text-[15px]">{about.specialtiesLine}</p>
+                ) : null}
+
+                {about?.text ? (
+                  <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)] line-clamp-3 sm:text-[15px]">{about.text}</p>
                 ) : null}
 
                 {rating != null && reviewCount != null ? (
@@ -93,7 +108,7 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
                 ) : null}
 
                 {hero.badges.length > 0 ? (
-                  <ul className="mt-4 flex flex-wrap gap-2">
+                  <ul className="mt-3 flex flex-wrap gap-2">
                     {hero.badges.map((b) => (
                       <li
                         key={`${b.kind}-${b.label}`}
@@ -108,8 +123,24 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
                   </ul>
                 ) : null}
 
-                {hero.locationSummary ? (
-                  <p className="mt-4 flex items-start gap-2 text-sm text-[color:var(--lx-text-2)]">
+                {heroFacts.length > 0 ? (
+                  <ul className="mt-3 flex flex-wrap gap-2">
+                    {heroFacts.map((f) => (
+                      <li
+                        key={`${f.kind}-${f.label}`}
+                        className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-full border border-[#3B66AD]/20 bg-[#3B66AD]/[0.06] px-2.5 py-1 text-[11px] font-semibold text-[color:var(--lx-text)] sm:text-xs"
+                      >
+                        <span className="text-[#3B66AD]" aria-hidden>
+                          ✓
+                        </span>
+                        <span className="min-w-0 break-words leading-snug">{f.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                {hero.locationSummary && !headlineSub?.includes(hero.locationSummary) ? (
+                  <p className="mt-3 flex items-start gap-2 text-sm text-[color:var(--lx-text-2)]">
                     <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#3B66AD]" aria-hidden />
                     <span className="min-w-0 break-words">{hero.locationSummary}</span>
                   </p>

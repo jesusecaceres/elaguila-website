@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
   clearAutosPrivadoDraft,
@@ -16,14 +17,8 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { buildVehicleTitle } from "@/app/publicar/autos/negocios/lib/autoDealerTitle";
 import { createEmptyListing, normalizeLoadedListing } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
 import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
-import {
-  AUTOS_PRIVADO_EDITOR_SESSION_KEY,
-  shouldResetAutosDraftForFreshEditorTab,
-} from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
-import {
-  clearAutosDraftNamespaceHint,
-  rememberAutosDraftNamespaceHint,
-} from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
+import { AUTOS_PRIVADO_EDITOR_SESSION_KEY } from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
+import { clearAutosDraftNamespaceHint, rememberAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
 
 function applyAutoTitle(listing: AutoDealerListing, override: boolean): AutoDealerListing {
   if (override) return listing;
@@ -31,7 +26,17 @@ function applyAutoTitle(listing: AutoDealerListing, override: boolean): AutoDeal
   return { ...listing, vehicleTitle: t || undefined };
 }
 
+function isAutosConfirmRoute(pathname: string | null): boolean {
+  return Boolean(pathname && pathname.startsWith("/publicar/autos") && pathname.includes("/confirm"));
+}
+
+function resumeQueryFlag(): boolean {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("resume") === "1";
+}
+
 export function useAutoPrivadoDraft() {
+  const pathname = usePathname();
   const [hydrated, setHydrated] = useState(false);
   const [vehicleTitleOverride, setVehicleTitleOverride] = useState(false);
   const [listing, setListing] = useState<AutoDealerListing>(() => ({
@@ -58,12 +63,9 @@ export function useAutoPrivadoDraft() {
     }
   }, []);
 
-  const persist = useCallback(async (next: AutoDealerListing, override: boolean) => {
-    const ns = namespaceRef.current;
-    if (!ns) return;
-    const normalized = normalizeLoadedListing({ ...next, autosLane: "privado" });
-    const payload: AutosPrivadoDraftV1 = { v: 1, vehicleTitleOverride: override, listing: normalized };
-    await saveAutosPrivadoDraftResolved(ns, payload);
+  const emptyPrivado = useCallback(() => {
+    setVehicleTitleOverride(false);
+    setListing({ ...createEmptyListing(), autosLane: "privado" });
   }, []);
 
   useEffect(() => {
@@ -74,11 +76,19 @@ export function useAutoPrivadoDraft() {
       const ns = await resolveAutosPrivadoDraftNamespace();
       if (cancelled) return;
       namespaceRef.current = ns;
-      if (shouldResetAutosDraftForFreshEditorTab(AUTOS_PRIVADO_EDITOR_SESSION_KEY)) {
-        clearAutosDraftNamespaceHint("privado");
-        await clearAutosPrivadoDraft(ns);
+
+      const confirmRoute = isAutosConfirmRoute(pathname);
+      const resume = resumeQueryFlag();
+
+      if (confirmRoute || resume) {
+        await hydrateFromNamespace(ns);
+        if (!cancelled) setHydrated(true);
+        return;
       }
-      await hydrateFromNamespace(ns);
+
+      clearAutosDraftNamespaceHint("privado");
+      await clearAutosPrivadoDraft(ns);
+      emptyPrivado();
       if (!cancelled) setHydrated(true);
     };
 
@@ -93,42 +103,33 @@ export function useAutoPrivadoDraft() {
         : autosPrivadoDraftNamespaceFromUserId(null);
       if (namespaceRef.current === nextNs) return;
       namespaceRef.current = nextNs;
-      await hydrateFromNamespace(nextNs);
+      clearAutosDraftNamespaceHint("privado");
+      await clearAutosPrivadoDraft(nextNs);
+      emptyPrivado();
     });
 
     return () => {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, [hydrateFromNamespace]);
+  }, [pathname, hydrateFromNamespace, emptyPrivado]);
 
-  const setListingPatch = useCallback(
-    (patch: Partial<AutoDealerListing>) => {
-      setListing((prev) => {
-        const merged: AutoDealerListing = { ...prev, ...patch, autosLane: "privado" };
-        if (patch.dealerSocials !== undefined) {
-          merged.dealerSocials = { ...prev.dealerSocials, ...patch.dealerSocials };
-        }
-        const withTitle = applyAutoTitle(merged, overrideRef.current);
-        void persist(withTitle, overrideRef.current);
-        return normalizeLoadedListing(withTitle);
-      });
-    },
-    [persist],
-  );
+  const setListingPatch = useCallback((patch: Partial<AutoDealerListing>) => {
+    setListing((prev) => {
+      const merged: AutoDealerListing = { ...prev, ...patch, autosLane: "privado" };
+      if (patch.dealerSocials !== undefined) {
+        merged.dealerSocials = { ...prev.dealerSocials, ...patch.dealerSocials };
+      }
+      const withTitle = applyAutoTitle(merged, overrideRef.current);
+      return normalizeLoadedListing(withTitle);
+    });
+  }, []);
 
-  const setVehicleTitleOverrideState = useCallback(
-    (v: boolean) => {
-      overrideRef.current = v;
-      setVehicleTitleOverride(v);
-      setListing((prev) => {
-        const next = normalizeLoadedListing(applyAutoTitle({ ...prev, autosLane: "privado" }, v));
-        void persist(next, v);
-        return next;
-      });
-    },
-    [persist],
-  );
+  const setVehicleTitleOverrideState = useCallback((v: boolean) => {
+    overrideRef.current = v;
+    setVehicleTitleOverride(v);
+    setListing((prev) => normalizeLoadedListing(applyAutoTitle({ ...prev, autosLane: "privado" }, v)));
+  }, []);
 
   const resetDraft = useCallback(async () => {
     const ns = namespaceRef.current;
@@ -146,7 +147,6 @@ export function useAutoPrivadoDraft() {
     setListing(empty);
   }, []);
 
-  /** Await before navigating to preview so IDB + localStorage reflect the latest media. */
   const flushDraft = useCallback(async () => {
     const ns = namespaceRef.current;
     if (!ns) return;

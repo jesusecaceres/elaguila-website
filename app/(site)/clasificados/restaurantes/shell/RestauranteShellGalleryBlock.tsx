@@ -43,13 +43,17 @@ export function RestauranteShellGalleryBlock({
   const current: ShellMediaSlide | null = slides[Math.min(active, Math.max(0, slides.length - 1))] ?? null;
 
   return (
-    <section id="media" aria-labelledby="gallery-heading">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <h2 id="gallery-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
-          Galería
+    <section id="media" aria-labelledby="gallery-heading" className="scroll-mt-24">
+      <div className="max-w-2xl">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Ambiente</p>
+        <h2 id="gallery-heading" className="mt-1 text-2xl font-bold tracking-tight text-[color:var(--lx-text)]">
+          Galería del restaurante
         </h2>
+        <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+          Fotos y video del listado — el tono del lugar en una sola pasada.
+        </p>
       </div>
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {gallery.map((g, idx) => (
           <ShellGalleryThumb key={`${g.alt}-${idx}`} g={g} onOpen={() => openAt(idx)} />
         ))}

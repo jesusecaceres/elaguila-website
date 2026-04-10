@@ -1,5 +1,6 @@
 "use client";
 
+import { useEnVentaDetailField } from "@/app/clasificados/en-venta/publish/EnVentaDetailFieldCopyContext";
 import SectionShell from "@/app/clasificados/en-venta/shared/components/SectionShell";
 import type { EnVentaFreeApplicationState } from "../schema/enVentaFreeFormState";
 import type { EnVentaFreeSectionProps } from "../types/sectionProps";
@@ -56,6 +57,9 @@ export function BasicInfoSection<S extends EnVentaFreeApplicationState>({
   setState,
 }: EnVentaFreeSectionProps<S>) {
   const t = COPY[lang];
+  const ovNeg = useEnVentaDetailField("negotiable");
+  const ovBrand = useEnVentaDetailField("brand");
+  const ovModel = useEnVentaDetailField("model");
   const money = !state.priceIsFree;
 
   return (
@@ -129,7 +133,8 @@ export function BasicInfoSection<S extends EnVentaFreeApplicationState>({
               </div>
             </div>
             <div>
-              <label className={labelClass}>{t.neg}</label>
+              <label className={labelClass}>{ovNeg?.label ?? t.neg}</label>
+              {ovNeg?.help ? <p className="mt-1 text-xs text-[#111111]/60">{ovNeg.help}</p> : null}
               <select
                 className={`${inputClass} mt-2`}
                 value={state.negotiable}
@@ -162,19 +167,23 @@ export function BasicInfoSection<S extends EnVentaFreeApplicationState>({
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className={labelClass}>{t.brand}</label>
+          <label className={labelClass}>{ovBrand?.label ?? t.brand}</label>
+          {ovBrand?.help ? <p className="mt-1 text-xs text-[#111111]/60">{ovBrand.help}</p> : null}
           <input
             className={`${inputClass} mt-2`}
             value={state.brand}
             onChange={(e) => setState((s) => ({ ...s, brand: e.target.value }))}
+            placeholder={ovBrand?.placeholder}
           />
         </div>
         <div>
-          <label className={labelClass}>{t.model}</label>
+          <label className={labelClass}>{ovModel?.label ?? t.model}</label>
+          {ovModel?.help ? <p className="mt-1 text-xs text-[#111111]/60">{ovModel.help}</p> : null}
           <input
             className={`${inputClass} mt-2`}
             value={state.model}
             onChange={(e) => setState((s) => ({ ...s, model: e.target.value }))}
+            placeholder={ovModel?.placeholder}
           />
         </div>
       </div>

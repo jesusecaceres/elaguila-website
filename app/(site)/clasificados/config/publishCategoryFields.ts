@@ -15,6 +15,10 @@ function applyDetailFieldOverrides(
   return fields.map((f) => {
     const o = overrides[f.key];
     if (!o) return f;
+    const helpFromOverride =
+      o.help?.es?.trim() || o.help?.en?.trim()
+        ? { es: o.help?.es ?? f.help?.es ?? "", en: o.help?.en ?? f.help?.en ?? "" }
+        : f.help;
     return {
       ...f,
       label: {
@@ -27,6 +31,7 @@ function applyDetailFieldOverrides(
             en: o.placeholder?.en ?? f.placeholder.en,
           }
         : f.placeholder,
+      help: helpFromOverride,
     };
   });
 }

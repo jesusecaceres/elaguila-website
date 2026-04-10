@@ -5,6 +5,16 @@ import { FiVideo } from "react-icons/fi";
 import { isRestauranteLocalVideoDataUrl } from "@/app/clasificados/restaurantes/application/restauranteMediaDisplay";
 import type { ShellGalleryItem } from "./restaurantDetailShellTypes";
 
+function safeVideoHost(raw: string | undefined): string {
+  const t = raw?.trim();
+  if (!t) return "";
+  try {
+    return new URL(t).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
 export function youtubeEmbedId(raw: string): string | null {
   try {
     const u = new URL(raw.trim());
@@ -118,6 +128,16 @@ export function ShellGalleryThumb({
           preload="metadata"
           src={g.videoSrc}
         />
+      ) : g.category === "video" && g.videoRemoteUrl?.trim() ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#1f1c17] via-[#2a2620] to-[#141210] p-3 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/12 text-white shadow-lg ring-1 ring-white/20">
+            <FiVideo className="h-6 w-6" aria-hidden />
+          </span>
+          <p className="mt-3 line-clamp-2 px-1 text-[11px] font-semibold leading-snug text-white/92">
+            {safeVideoHost(g.videoRemoteUrl) || "Video enlazado"}
+          </p>
+          <p className="mt-1 text-[10px] font-medium text-white/55">Se abre al ampliar</p>
+        </div>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-[#2a2620] to-[#1a1814]" aria-hidden />
       )}
@@ -126,7 +146,8 @@ export function ShellGalleryThumb({
           +{g.countOverlay}
         </span>
       ) : null}
-      {g.category === "video" ? (
+      {g.category === "video" &&
+      (g.imageUrl || (g.videoSrc && isRestauranteLocalVideoDataUrl(g.videoSrc))) ? (
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/92 text-[color:var(--lx-text)] shadow-lg sm:h-12 sm:w-12">
             <FiVideo className="h-5 w-5" aria-hidden />

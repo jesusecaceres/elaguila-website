@@ -10,7 +10,7 @@ import { peekAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib
 import { mockAutosPrivadoListing } from "../mock/mockAutosPrivadoListing";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { AutosPrivadoPreviewLocaleProvider, useAutosPrivadoPreviewCopy } from "../lib/AutosPrivadoPreviewLocaleContext";
-import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import { withAutosEditorResumeFromPreview } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 
 const EDIT_BASE = "/publicar/autos/privado";
 
@@ -70,7 +70,7 @@ function AutosPrivadoPreviewInner({
   listing: AutoDealerListing;
 }) {
   const { lang } = useAutosPrivadoPreviewCopy();
-  const editBackHref = withLangParam(EDIT_BASE, lang);
+  const editBackHref = withAutosEditorResumeFromPreview(EDIT_BASE, lang);
 
   if (!ready) {
     return <div className="min-h-[50vh] bg-[color:var(--lx-page)]" aria-busy="true" />;

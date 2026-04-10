@@ -12,8 +12,9 @@ import { ViajesLangSwitch } from "@/app/(site)/clasificados/viajes/components/Vi
 import { useViajesLocalHeroObjectUrl } from "@/app/(site)/clasificados/viajes/lib/useViajesLocalHeroObjectUrl";
 import { newViajesDraftMediaId, viajesDraftMediaDelete, viajesDraftMediaPut } from "@/app/(site)/clasificados/viajes/lib/viajesDraftMediaIdb";
 
+import { ViajesDateRangeFields } from "../../components/ViajesDateRangeFields";
 import { getPublicarViajesPrivadoCopy } from "../data/publicarViajesPrivadoCopy";
-import { VIAJES_PRIVADO_MAX_IMAGE_STORAGE } from "../lib/viajesPrivadoDraftDefaults";
+import { VIAJES_PRIVADO_GALLERY_MAX, VIAJES_PRIVADO_MAX_IMAGE_STORAGE } from "../lib/viajesPrivadoDraftDefaults";
 import { useViajesPrivadoDraft } from "../lib/useViajesPrivadoDraft";
 import type { ViajesPrivadoCtaType } from "../lib/viajesPrivadoDraftTypes";
 
@@ -32,6 +33,7 @@ export function ViajesPrivadoApplicationShell() {
   const heroBlobUrl = useViajesLocalHeroObjectUrl("privado", draft.localHeroBlobId);
   const [publishOpen, setPublishOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryFileRef = useRef<HTMLInputElement>(null);
   const modalTitleId = useId();
 
   const BLOB_PATH_BYTES = 360_000;
@@ -41,6 +43,7 @@ export function ViajesPrivadoApplicationShell() {
   }, [c.documentTitle]);
 
   const branchHref = appendLangToPath("/publicar/viajes", lang);
+  const negociosHref = appendLangToPath("/publicar/viajes/negocios", lang);
   const previewHref = appendLangToPath("/clasificados/viajes/preview/privado", lang);
 
   const chk = (id: string, checked: boolean, onChange: (v: boolean) => void, label: string) => (
@@ -91,6 +94,36 @@ export function ViajesPrivadoApplicationShell() {
     reader.readAsDataURL(file);
   }
 
+  function onGalleryFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    e.target.value = "";
+    if (draft.galeriaUrls.length >= VIAJES_PRIVADO_GALLERY_MAX) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const r = String(reader.result ?? "");
+      if (r.length > 120_000) {
+        window.alert(
+          lang === "en" ? "Image too large. Use a URL or a smaller file." : "Imagen demasiado grande. Usa una URL o un archivo más pequeño."
+        );
+        return;
+      }
+      update({ galeriaUrls: [...draft.galeriaUrls, r] });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function addGalleryUrl() {
+    if (draft.galeriaUrls.length >= VIAJES_PRIVADO_GALLERY_MAX) return;
+    const raw =
+      typeof window !== "undefined"
+        ? window.prompt(lang === "en" ? "Paste image URL" : "Pega URL de imagen")
+        : null;
+    const u = raw?.trim();
+    if (!u) return;
+    update({ galeriaUrls: [...draft.galeriaUrls, u] });
+  }
+
   const a = c.audience;
   const heroPreview = draft.localImageDataUrl || heroBlobUrl || draft.imagenUrl.trim();
 
@@ -128,6 +161,24 @@ export function ViajesPrivadoApplicationShell() {
               </li>
             ))}
           </ol>
+          <div className="mt-5 rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-50/90 to-[color:var(--lx-card)] p-4 shadow-sm">
+            <p className="text-sm font-bold text-[color:var(--lx-text)]">{c.recovery.title}</p>
+            <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-text-2)]">{c.recovery.wrongLaneBody}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link
+                href={negociosHref}
+                className="inline-flex min-h-[44px] items-center rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-2 text-xs font-bold text-[color:var(--lx-text)] shadow-sm hover:bg-[color:var(--lx-nav-hover)]"
+              >
+                {c.recovery.goNegocios}
+              </Link>
+              <Link
+                href={branchHref}
+                className="inline-flex min-h-[44px] items-center rounded-xl border border-dashed border-emerald-400/60 bg-[color:var(--lx-section)]/60 px-4 py-2 text-xs font-bold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
+              >
+                {c.recovery.hubViajes}
+              </Link>
+            </div>
+          </div>
         </header>
 
         <div className="mt-6 space-y-3">
@@ -230,10 +281,19 @@ export function ViajesPrivadoApplicationShell() {
                 </div>
               </div>
               <div className="mt-4">
-                <label className={LABEL} htmlFor="fechasPriv">
-                  {c.dates.label}
-                </label>
-                <input id="fechasPriv" className={INPUT} value={draft.fechas} onChange={(e) => update({ fechas: e.target.value })} placeholder={c.dates.placeholder} />
+                <span className={LABEL}>{c.dates.label}</span>
+                <div className="mt-3">
+                  <ViajesDateRangeFields
+                    lang={lang}
+                    dateMode={draft.dateMode}
+                    fechaInicio={draft.fechaInicio}
+                    fechaFin={draft.fechaFin}
+                    fechasNota={draft.fechasNota}
+                    fechas={draft.fechas}
+                    onPatch={(p) => update(p)}
+                    copy={c.dateUx}
+                  />
+                </div>
               </div>
               <div className="mt-4">
                 <label className={LABEL} htmlFor="descPriv">
@@ -319,41 +379,111 @@ export function ViajesPrivadoApplicationShell() {
             <section className={CARD}>
               <h2 className="text-base font-bold text-[color:var(--lx-text)]">{c.sections.media}</h2>
               <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{c.sectionHints.media}</p>
-              <div className="mt-4">
-                <label className={LABEL} htmlFor="imgUrlPriv">
-                  {c.multimedia.heroUrl.label}
-                </label>
-                <input
-                  id="imgUrlPriv"
-                  className={INPUT}
-                  value={draft.imagenUrl}
-                  onChange={(e) => update({ imagenUrl: e.target.value })}
-                  placeholder={c.multimedia.heroUrl.placeholder}
-                />
-              </div>
-              <div className="mt-4">
-                <span className={LABEL}>{c.multimedia.localFile.label}</span>
-                <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{c.multimedia.localFile.helper}</p>
-                <input ref={fileInputRef} type="file" accept="image/*" className="mt-2 block w-full text-sm" onChange={onPickImageFile} />
-                <div className="mt-3 flex flex-wrap items-center gap-2">
+
+              <div className="mt-6 space-y-3 rounded-2xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/35 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{c.multimedia.blocks.hero}</p>
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-xs font-bold text-[color:var(--lx-text)]"
-                    onClick={() => {
-                      if (draft.localHeroBlobId) void viajesDraftMediaDelete("privado", draft.localHeroBlobId);
-                      update({ localImageDataUrl: null, localHeroBlobId: null });
-                      if (fileInputRef.current) fileInputRef.current.value = "";
-                    }}
+                    className={`rounded-xl border px-3 py-2 text-xs font-bold ${
+                      draft.heroSourceMode === "url"
+                        ? "border-[#D97706] bg-[#D97706]/12"
+                        : "border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] text-[color:var(--lx-muted)]"
+                    }`}
+                    onClick={() => update({ heroSourceMode: "url" })}
                   >
-                    {c.multimedia.clearImage}
+                    {c.multimedia.tabUrl}
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded-xl border px-3 py-2 text-xs font-bold ${
+                      draft.heroSourceMode === "file"
+                        ? "border-[#D97706] bg-[#D97706]/12"
+                        : "border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] text-[color:var(--lx-muted)]"
+                    }`}
+                    onClick={() => update({ heroSourceMode: "file", imagenUrl: "" })}
+                  >
+                    {c.multimedia.tabFile}
                   </button>
                 </div>
+                {draft.heroSourceMode === "url" ? (
+                  <div>
+                    <label className={LABEL} htmlFor="imgUrlPriv">
+                      {c.multimedia.heroUrl.label}
+                    </label>
+                    <input
+                      id="imgUrlPriv"
+                      className={INPUT}
+                      value={draft.imagenUrl}
+                      onChange={(e) => update({ imagenUrl: e.target.value })}
+                      placeholder={c.multimedia.heroUrl.placeholder}
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <span className={LABEL}>{c.multimedia.localFile.label}</span>
+                    <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{c.multimedia.localFile.helper}</p>
+                    <input ref={fileInputRef} type="file" accept="image/*" className="mt-2 block w-full text-sm" onChange={onPickImageFile} />
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-xs font-bold text-[color:var(--lx-text)]"
+                        onClick={() => {
+                          if (draft.localHeroBlobId) void viajesDraftMediaDelete("privado", draft.localHeroBlobId);
+                          update({ localImageDataUrl: null, localHeroBlobId: null });
+                          if (fileInputRef.current) fileInputRef.current.value = "";
+                        }}
+                      >
+                        {c.multimedia.clearImage}
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {heroPreview ? (
                   <div className="mt-4 overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={heroPreview} alt="" className="max-h-56 w-full object-cover" />
                   </div>
                 ) : null}
+              </div>
+
+              <div className="mt-6 space-y-3 rounded-2xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/35 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{c.multimedia.blocks.gallery}</p>
+                <p className="text-xs text-[color:var(--lx-muted)]">{c.multimedia.gallery.helper}</p>
+                <p className="text-[11px] font-semibold text-[color:var(--lx-muted)]">{c.multimedia.galleryMaxNote}</p>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" className="rounded-xl bg-[#D97706] px-3 py-2 text-xs font-bold text-white" onClick={addGalleryUrl}>
+                    {c.multimedia.galleryAddUrl}
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-xs font-bold"
+                    onClick={() => galleryFileRef.current?.click()}
+                  >
+                    {c.multimedia.galleryAddFile}
+                  </button>
+                  <input ref={galleryFileRef} type="file" accept="image/*" className="hidden" onChange={onGalleryFile} />
+                </div>
+                <ul className="space-y-2">
+                  {draft.galeriaUrls.map((url, idx) => (
+                    <li key={`g-${idx}`} className="flex flex-wrap items-center gap-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-2">
+                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-[color:var(--lx-nav-border)] bg-black/5">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt="" className="h-full w-full object-cover" />
+                      </div>
+                      <span className="min-w-0 flex-1 truncate text-xs text-[color:var(--lx-muted)]">
+                        {url.startsWith("data:") ? (lang === "en" ? "Local image" : "Imagen local") : url}
+                      </span>
+                      <button
+                        type="button"
+                        className="text-xs font-bold text-red-700 underline"
+                        onClick={() => update({ galeriaUrls: draft.galeriaUrls.filter((_, i) => i !== idx) })}
+                      >
+                        {c.multimedia.galleryRemove}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </section>
 
@@ -371,6 +501,9 @@ export function ViajesPrivadoApplicationShell() {
                   onChange={(e) => update({ displayName: e.target.value })}
                   placeholder={c.contact.displayName.placeholder}
                 />
+              </div>
+              <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-section)]/50 p-3 text-xs leading-relaxed text-[color:var(--lx-text-2)]">
+                {c.contactUx.ctaExplain}
               </div>
               <div className="mt-4">
                 <label className={LABEL} htmlFor="ctaPriv">
@@ -395,6 +528,7 @@ export function ViajesPrivadoApplicationShell() {
                     {c.contact.whatsapp.label}
                   </label>
                   <input id="waPriv" className={INPUT} value={draft.whatsapp} onChange={(e) => update({ whatsapp: e.target.value })} placeholder={c.contact.whatsapp.placeholder} />
+                  <p className="mt-1 text-[11px] text-[color:var(--lx-muted)]">{c.contactUx.whatsappHint}</p>
                 </div>
                 <div>
                   <label className={LABEL} htmlFor="telPriv">
@@ -404,10 +538,58 @@ export function ViajesPrivadoApplicationShell() {
                 </div>
               </div>
               <div className="mt-4">
-                <label className={LABEL} htmlFor="emailPriv">
-                  {c.contact.email.label}
+                <label className={LABEL} htmlFor="telOffPriv">
+                  {c.contact.phoneOffice.label}
                 </label>
-                <input id="emailPriv" className={INPUT} value={draft.email} onChange={(e) => update({ email: e.target.value })} placeholder={c.contact.email.placeholder} />
+                <input id="telOffPriv" className={INPUT} value={draft.phoneOffice} onChange={(e) => update({ phoneOffice: e.target.value })} placeholder={c.contact.phoneOffice.placeholder} />
+              </div>
+              <div className={`mt-4 ${GRID2}`}>
+                <div>
+                  <label className={LABEL} htmlFor="emailPriv">
+                    {c.contact.email.label}
+                  </label>
+                  <input id="emailPriv" type="email" className={INPUT} value={draft.email} onChange={(e) => update({ email: e.target.value })} placeholder={c.contact.email.placeholder} />
+                </div>
+                <div>
+                  <label className={LABEL} htmlFor="webPriv">
+                    {c.contact.website.label}
+                  </label>
+                  <input id="webPriv" className={INPUT} value={draft.website} onChange={(e) => update({ website: e.target.value })} placeholder={c.contact.website.placeholder} />
+                  <p className="mt-1 text-[11px] text-[color:var(--lx-muted)]">{c.contactUx.websiteHint}</p>
+                </div>
+              </div>
+              <p className="mt-4 text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{c.socialSection}</p>
+              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className={LABEL} htmlFor="sfPr">
+                    {c.socialFacebook.label}
+                  </label>
+                  <input id="sfPr" className={INPUT} value={draft.socialFacebook} onChange={(e) => update({ socialFacebook: e.target.value })} placeholder="https://…" />
+                </div>
+                <div>
+                  <label className={LABEL} htmlFor="siPr">
+                    {c.socialInstagram.label}
+                  </label>
+                  <input id="siPr" className={INPUT} value={draft.socialInstagram} onChange={(e) => update({ socialInstagram: e.target.value })} placeholder="https://…" />
+                </div>
+                <div>
+                  <label className={LABEL} htmlFor="stPr">
+                    {c.socialTiktok.label}
+                  </label>
+                  <input id="stPr" className={INPUT} value={draft.socialTiktok} onChange={(e) => update({ socialTiktok: e.target.value })} placeholder="https://…" />
+                </div>
+                <div>
+                  <label className={LABEL} htmlFor="syPr">
+                    {c.socialYoutube.label}
+                  </label>
+                  <input id="syPr" className={INPUT} value={draft.socialYoutube} onChange={(e) => update({ socialYoutube: e.target.value })} placeholder="https://…" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className={LABEL} htmlFor="sxPr">
+                    {c.socialTwitter.label}
+                  </label>
+                  <input id="sxPr" className={INPUT} value={draft.socialTwitter} onChange={(e) => update({ socialTwitter: e.target.value })} placeholder="https://…" />
+                </div>
               </div>
             </section>
 

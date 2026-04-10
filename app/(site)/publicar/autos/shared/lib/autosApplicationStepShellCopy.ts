@@ -13,25 +13,29 @@ export function getAutosApplicationStepShellCopy(lang: AutosNegociosLang) {
     mobileStepLabel: isEs ? "Ir al paso" : "Go to step",
     reviewTitle: isEs ? "Revisión final" : "Final review",
     reviewIntro: isEs
-      ? "Revisa la lista de completitud y, cuando esté todo listo, usa los botones de abajo para vista previa o publicación."
-      : "Review the checklist below; when you’re ready, use the buttons at the bottom for preview or publishing.",
+      ? "Completa la lista de arriba; luego usa vista previa o publicar (con las confirmaciones requeridas)."
+      : "Finish the checklist above; then use preview or publish (with the required confirmations).",
+    finalStepPublishHeading: isEs ? "Antes de publicar" : "Before publishing",
     finalStepActionsIntro: isEs
-      ? "Primero se guarda el borrador en este navegador; luego se abre la vista previa en esta misma ventana."
-      : "Your draft is saved in this browser first; preview opens in this same window.",
+      ? "La vista previa guarda el borrador una vez en este navegador y abre la vista en esta misma ventana."
+      : "Preview saves the draft once in this browser and opens in this window.",
     reviewChecklistTitle: isEs ? "Lista de completitud" : "Completeness",
     reviewAllGood: isEs
       ? "Los datos mínimos para una vista previa sólida están listos."
       : "Minimum data for a solid preview is in place.",
     reviewNotReadyTitle: isEs ? "Aún no está listo para vista previa" : "Not ready for preview yet",
     reviewNotReadyIntro: isEs
-      ? "Completa los requisitos estructurales en los pasos indicados abajo. Vista previa y publicación se desbloquean cuando la ficha esté completa."
-      : "Finish the structural requirements in the steps below. Preview and publish unlock once the listing shell is complete.",
+      ? "Completa los pasos indicados; luego podrás abrir vista previa o publicar."
+      : "Complete the steps below; then you can open preview or publish.",
     gatingPreviewTapBlocked: isEs
       ? "Te llevamos al primer paso pendiente. Completa la lista antes de abrir la vista previa."
       : "We moved you to the first step that still needs work. Finish the checklist before opening preview.",
     gatingPublishTapBlocked: isEs
       ? "Te llevamos al primer paso pendiente. Completa la lista antes de continuar a publicar."
       : "We moved you to the first step that still needs work. Finish the checklist before publishing.",
+    gatingPublishChecksBlocked: isEs
+      ? "Marca las tres confirmaciones para continuar a confirmar y pago."
+      : "Check all three confirmations to continue to confirmation and payment.",
     stepNeedsAttentionShort: isEs ? "Pendiente" : "Needs attention",
   };
 }

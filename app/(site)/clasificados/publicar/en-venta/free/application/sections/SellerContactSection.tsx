@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { useEnVentaDetailField } from "@/app/clasificados/en-venta/publish/EnVentaDetailFieldCopyContext";
 import SectionShell from "@/app/clasificados/en-venta/shared/components/SectionShell";
 import type { EnVentaFreeApplicationState } from "../schema/enVentaFreeFormState";
 import type { EnVentaFreeSectionProps } from "../types/sectionProps";
@@ -76,6 +77,7 @@ export function SellerContactSection<S extends EnVentaFreeApplicationState>({
   showSellerKind = true,
 }: EnVentaFreeSectionProps<S> & { showSellerKind?: boolean }) {
   const t = COPY[lang];
+  const ovKind = useEnVentaDetailField("seller_kind");
   const [accountUi, setAccountUi] = useState<{
     ready: boolean;
     loggedIn: boolean;
@@ -157,7 +159,8 @@ export function SellerContactSection<S extends EnVentaFreeApplicationState>({
       ) : null}
       {showSellerKind ? (
         <div>
-          <label className={labelClass}>{t.kind}</label>
+          <label className={labelClass}>{ovKind?.label ?? t.kind}</label>
+          {ovKind?.help ? <p className="mt-1 text-xs text-[#111111]/60">{ovKind.help}</p> : null}
           <select
             className={`${inputClass} mt-2`}
             value={state.seller_kind}

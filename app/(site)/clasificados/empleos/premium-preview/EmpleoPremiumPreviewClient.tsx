@@ -13,7 +13,10 @@ import { EMPLEOS_SESSION_KEYS } from "@/app/publicar/empleos/shared/constants/em
 import { EMPLEOS_PUBLISH_ROUTES } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
 import { EMPLEOS_PUBLISH_SHARED_COPY } from "@/app/publicar/empleos/shared/copy/empleosPublishSharedCopy";
 import { mapPremiumDraftToShell } from "@/app/publicar/empleos/shared/mappers/mapPremiumDraftToShell";
-import { emptyEmpleosPremiumDraft, type EmpleosPremiumDraft } from "@/app/publicar/empleos/shared/types/empleosPremiumDraft";
+import {
+  normalizeEmpleosPremiumDraft,
+  type EmpleosPremiumDraft,
+} from "@/app/publicar/empleos/shared/types/empleosPremiumDraft";
 
 export function EmpleoPremiumPreviewClient() {
   const sp = useSearchParams();
@@ -33,7 +36,7 @@ export function EmpleoPremiumPreviewClient() {
       if (!raw) setDraft(null);
       else {
         const parsed = JSON.parse(raw) as Partial<EmpleosPremiumDraft>;
-        setDraft({ ...emptyEmpleosPremiumDraft(), ...parsed });
+        setDraft(normalizeEmpleosPremiumDraft(parsed));
       }
     } catch {
       setDraft(null);

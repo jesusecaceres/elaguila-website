@@ -56,6 +56,12 @@ export type ClasificadosEnVentaContentPatch = {
   staffModerationNotes?: BilingualPatch;
 };
 
+/** Detail labels + staff only — used for categories without a full hub/publish-hub editor yet. */
+export type ClasificadosCategoryDetailOnlyPatch = {
+  detailFields?: Record<string, ClasificadosDetailFieldCopyPatch>;
+  staffModerationNotes?: BilingualPatch;
+};
+
 export type ClasificadosCategoryContentRootPayload = {
   categories?: Record<string, unknown>;
 };

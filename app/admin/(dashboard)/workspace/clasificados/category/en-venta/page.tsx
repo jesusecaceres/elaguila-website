@@ -201,9 +201,11 @@ export default async function AdminEnVentaCategoryContentPage(props: { searchPar
         <section>
           <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Campos del formulario publicar (overrides)</h2>
           <p className="mt-1 text-xs text-[#7A7164]">
-            Etiquetas / placeholders / ayuda por campo (grupo <code className="rounded bg-[#FBF7EF] px-1">en-venta</code> en código). Lo
-            guardado aquí se almacena en BD; el orquestador unificado aún debe pasar estos overrides a{" "}
-            <code className="rounded bg-[#FBF7EF] px-1">getPublishCategoryFields</code> para verse en el flujo en vivo.
+            Etiquetas / placeholders / ayuda por campo (grupo <code className="rounded bg-[#FBF7EF] px-1">en-venta</code> en código). En el sitio
+            público, el asistente Gratis/Pro en{" "}
+            <code className="rounded bg-[#FBF7EF] px-1">/clasificados/publicar/en-venta/free|pro</code> fusiona estos valores en servidor y los
+            aplica en los pasos (categoría, precio, entrega, contacto, etc.). <code className="rounded bg-[#FBF7EF] px-1">getPublishCategoryFields</code>{" "}
+            también acepta los mismos overrides para anexos / utilidades que los pasen.
           </p>
           <div className="mt-4 space-y-6">
             {(DETAIL_FIELDS["en-venta"] ?? []).map((row) => {

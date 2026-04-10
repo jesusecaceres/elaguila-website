@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import { withAutosEditorResumeFromPreview } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import { useAutoPrivadoDraft } from "../hooks/useAutoPrivadoDraft";
 import { AutosPublishConfirmCore } from "../../shared/components/AutosPublishConfirmCore";
 
@@ -9,7 +9,7 @@ export function AutosPrivadoPublishConfirm() {
   const sp = useSearchParams();
   const lang = (sp ?? new URLSearchParams()).get("lang") === "en" ? "en" : "es";
   const { hydrated, listing, flushDraft } = useAutoPrivadoDraft();
-  const editHref = withLangParam("/publicar/autos/privado", lang);
+  const editHref = withAutosEditorResumeFromPreview("/publicar/autos/privado", lang);
 
   return (
     <div

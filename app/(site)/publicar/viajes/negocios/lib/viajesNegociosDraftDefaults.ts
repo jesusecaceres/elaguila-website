@@ -4,6 +4,9 @@ export const VIAJES_NEGOCIOS_DRAFT_STORAGE_KEY = "leonix:viajes:negocios:draft:v
 
 export const VIAJES_NEGOCIOS_MAX_INLINE_IMAGE = 200_000;
 
+/** Max gallery images (URLs or small inline data URLs) */
+export const VIAJES_NEGOCIOS_GALLERY_MAX = 8;
+
 export function emptyViajesNegociosDraft(): ViajesNegociosDraft {
   return {
     schemaVersion: 1,
@@ -14,6 +17,10 @@ export function emptyViajesNegociosDraft(): ViajesNegociosDraft {
     precio: "",
     duracion: "",
     fechas: "",
+    dateMode: "flexible",
+    fechaInicio: "",
+    fechaFin: "",
+    fechasNota: "",
     descripcion: "",
     incluye: "",
     ctaType: "whatsapp",
@@ -29,14 +36,26 @@ export function emptyViajesNegociosDraft(): ViajesNegociosDraft {
     imagenPrincipal: "",
     localHeroImageId: null,
     localImageDataUrl: null,
+    heroSourceMode: "url",
+    galeriaUrls: [],
     galeriaNota: "",
     logoSocio: "",
+    logoLocalDataUrl: null,
+    logoSourceMode: "url",
     videoUrl: "",
+    videoLocalLabel: "",
     businessName: "",
     phone: "",
+    phoneOffice: "",
+    email: "",
     website: "",
     whatsapp: "",
     socials: "",
+    socialFacebook: "",
+    socialInstagram: "",
+    socialTiktok: "",
+    socialYoutube: "",
+    socialTwitter: "",
     destinationsServed: "",
     languages: "",
   };

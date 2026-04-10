@@ -3,6 +3,8 @@ import type { ViajesHeroVisualKind } from "@/app/(site)/clasificados/viajes/lib/
 
 import type { PublicarViajesNegociosUi } from "../data/publicarViajesNegociosCopy";
 import type { ViajesNegociosDraft } from "./viajesNegociosDraftTypes";
+import { viajesBuildNegociosContactChannels } from "../../lib/viajesContactChannelsFromDraft";
+import { viajesResolveFechasDisplay } from "../../lib/viajesResolveFechasDisplay";
 
 const FALLBACK_HERO =
   "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80";
@@ -37,13 +39,16 @@ function buildCta(
     return { label: c.ctaType.options.whatsapp, href: "https://wa.me/" };
   }
   if (d.ctaType === "telefono") {
-    const p = d.phone.trim();
+    const p = d.phone.trim() || d.phoneOffice.trim();
     const num = digitsOnly(p);
     if (num.length >= 8) return { label: c.ctaType.options.telefono, href: `tel:${num}` };
     return { label: c.ctaType.options.telefono, href: "tel:" };
   }
   if (d.ctaType === "correo") {
-    const candidate = d.website.trim().includes("@") ? d.website.trim() : d.socials.trim().includes("@") ? d.socials.trim().split(/\s+/).find((x) => x.includes("@")) ?? "" : "";
+    const candidate =
+      d.email.trim() ||
+      (d.website.trim().includes("@") ? d.website.trim() : "") ||
+      (d.socials.trim().includes("@") ? d.socials.trim().split(/\s+/).find((x) => x.includes("@")) ?? "" : "");
     if (candidate.includes("@")) {
       return { label: c.ctaType.options.correo, href: `mailto:${encodeURIComponent(candidate)}` };
     }
@@ -129,12 +134,46 @@ export function mapViajesNegociosDraftToOffer(
 
   const notesParts: string[] = [];
   if (d.galeriaNota.trim()) notesParts.push(`${c.multimedia.gallery.label}: ${d.galeriaNota.trim()}`);
+  if (d.galeriaUrls?.length) {
+    const urlOnly = d.galeriaUrls.filter((u) => u.startsWith("http"));
+    if (urlOnly.length) notesParts.push(`${c.multimedia.gallery.label}: ${urlOnly.slice(0, 6).join(" · ")}`);
+  }
   if (d.videoUrl.trim()) notesParts.push(`${c.multimedia.video.label}: ${d.videoUrl.trim()}`);
+  if (d.videoLocalLabel.trim()) {
+    notesParts.push(
+      lang === "en" ? `Video file (local): ${d.videoLocalLabel.trim()}` : `Archivo de video (local): ${d.videoLocalLabel.trim()}`
+    );
+  }
   if (d.socials.trim()) notesParts.push(`${c.business.socials.label}: ${d.socials.trim()}`);
   const notes = notesParts.length ? notesParts.join(" · ") : undefined;
 
-  const logoTrim = d.logoSocio.trim();
+  const logoTrim = (d.logoLocalDataUrl?.trim() || d.logoSocio.trim()) || "";
   const heroVisualKind = negociosOfferTypeToHeroKind(d.offerType);
+
+  const dateRangeRaw = viajesResolveFechasDisplay(
+    {
+      dateMode: d.dateMode,
+      fechas: d.fechas,
+      fechaInicio: d.fechaInicio,
+      fechaFin: d.fechaFin,
+      fechasNota: d.fechasNota,
+    },
+    lang
+  );
+  const dateRange = dateRangeRaw.trim() || undefined;
+
+  const contactChannels = viajesBuildNegociosContactChannels({
+    phone: d.phone,
+    phoneOffice: d.phoneOffice,
+    whatsapp: d.whatsapp,
+    website: d.website,
+    email: d.email,
+    socialFacebook: d.socialFacebook,
+    socialInstagram: d.socialInstagram,
+    socialTiktok: d.socialTiktok,
+    socialYoutube: d.socialYoutube,
+    socialTwitter: d.socialTwitter,
+  });
 
   return {
     slug: "preview-negocios",
@@ -161,8 +200,9 @@ export function mapViajesNegociosDraftToOffer(
       ctaHref: cta.href,
       secondaryCtaLabel: secondaryLabel,
       secondaryCtaHref: secondaryHref,
+      ...(contactChannels.length ? { contactChannels } : {}),
     },
-    dateRange: d.fechas.trim() || undefined,
+    dateRange,
     notes,
     description,
     trustNote:

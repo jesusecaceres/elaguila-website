@@ -1,7 +1,15 @@
 import { Suspense } from "react";
+import { getMergedEnVentaDetailFieldsUi } from "@/app/lib/clasificados/enVentaCategoryContentServer";
+import { EnVentaDetailFieldCopyProvider } from "@/app/clasificados/en-venta/publish/EnVentaDetailFieldCopyContext";
 import LeonixEnVentaProApplication from "./application/LeonixEnVentaProApplication";
 
-export default function EnVentaProPublishPage() {
+export const dynamic = "force-dynamic";
+
+export default async function EnVentaProPublishPage(props: { searchParams?: Promise<{ lang?: string }> }) {
+  const sp = (await props.searchParams) ?? {};
+  const lang = sp.lang === "en" ? "en" : "es";
+  const detailFieldsUi = await getMergedEnVentaDetailFieldsUi(lang);
+
   return (
     <Suspense
       fallback={
@@ -10,7 +18,9 @@ export default function EnVentaProPublishPage() {
         </main>
       }
     >
-      <LeonixEnVentaProApplication />
+      <EnVentaDetailFieldCopyProvider value={detailFieldsUi}>
+        <LeonixEnVentaProApplication />
+      </EnVentaDetailFieldCopyProvider>
     </Suspense>
   );
 }

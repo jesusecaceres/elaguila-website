@@ -7,6 +7,7 @@ import {
   getItemTypesForSelection,
 } from "@/app/clasificados/en-venta/shared/fields/enVentaTaxonomy";
 import { getSubcategoriesForDept } from "@/app/clasificados/en-venta/taxonomy/subcategories";
+import { useEnVentaDetailField } from "@/app/clasificados/en-venta/publish/EnVentaDetailFieldCopyContext";
 import type { EnVentaFreeApplicationState } from "../schema/enVentaFreeFormState";
 import type { EnVentaFreeSectionProps } from "../types/sectionProps";
 import { cx, inputClass, labelClass } from "../helpers/fieldCx";
@@ -59,14 +60,18 @@ export function CategorySelectionSection<S extends EnVentaFreeApplicationState>(
   setState,
 }: EnVentaFreeSectionProps<S>) {
   const t = COPY[lang];
+  const ovRama = useEnVentaDetailField("rama");
+  const ovEvSub = useEnVentaDetailField("evSub");
+  const ovItem = useEnVentaDetailField("itemType");
+  const ovCond = useEnVentaDetailField("condition");
   const subs = state.rama ? getSubcategoriesForDept(state.rama) : [];
   const articles = state.rama ? getItemTypesForSelection(state.rama, state.evSub) : [];
 
   return (
     <SectionShell lang={lang} title={t.title} description={t.desc}>
       <div>
-        <label className={labelClass}>{t.dept}</label>
-        <p className="mt-1 text-xs text-[#111111]/60">{t.hints[0]}</p>
+        <label className={labelClass}>{ovRama?.label ?? t.dept}</label>
+        <p className="mt-1 text-xs text-[#111111]/60">{ovRama?.help ?? t.hints[0]}</p>
         <select
           className={cx(inputClass, "mt-2")}
           value={state.rama}
@@ -84,8 +89,8 @@ export function CategorySelectionSection<S extends EnVentaFreeApplicationState>(
       </div>
 
       <div>
-        <label className={labelClass}>{t.sub}</label>
-        <p className="mt-1 text-xs text-[#111111]/60">{t.hints[1]}</p>
+        <label className={labelClass}>{ovEvSub?.label ?? t.sub}</label>
+        <p className="mt-1 text-xs text-[#111111]/60">{ovEvSub?.help ?? t.hints[1]}</p>
         <select
           className={cx(inputClass, "mt-2")}
           value={state.evSub}
@@ -127,8 +132,8 @@ export function CategorySelectionSection<S extends EnVentaFreeApplicationState>(
       </div>
 
       <div>
-        <label className={labelClass}>{t.cond}</label>
-        <p className="mt-1 text-xs text-[#111111]/60">{t.hints[3]}</p>
+        <label className={labelClass}>{ovCond?.label ?? t.cond}</label>
+        <p className="mt-1 text-xs text-[#111111]/60">{ovCond?.help ?? t.hints[3]}</p>
         <select
           className={cx(inputClass, "mt-2")}
           value={state.condition}

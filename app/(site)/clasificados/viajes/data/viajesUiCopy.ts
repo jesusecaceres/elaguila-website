@@ -163,6 +163,7 @@ export type ViajesUi = {
     detailsTitle: string;
     calendar: string;
     trustIntegratedTitle: string;
+    contactChannelsHeading: string;
     affiliateIdentityKicker: string;
     affiliateReferralHint: string;
     businessIdentityKicker: string;
@@ -425,6 +426,7 @@ function es(): Omit<ViajesUi, "lang"> {
       detailsTitle: "Detalles del viaje",
       calendar: "Calendario:",
       trustIntegratedTitle: "Confianza y detalles",
+      contactChannelsHeading: "Canales de contacto",
       affiliateIdentityKicker: "Socio comercial",
       affiliateReferralHint:
         "Leonix te acerca a esta oferta; la reserva o el pago suelen completarse en el sitio del socio.",
@@ -692,6 +694,7 @@ function en(): Omit<ViajesUi, "lang"> {
       detailsTitle: "Trip details",
       calendar: "Dates:",
       trustIntegratedTitle: "Trust & details",
+      contactChannelsHeading: "Contact channels",
       affiliateIdentityKicker: "Commercial partner",
       affiliateReferralHint:
         "Leonix connects you to this offer; booking or payment usually happens on the partner’s site.",

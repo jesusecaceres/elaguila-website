@@ -54,9 +54,9 @@ export function ServiciosProfileView({
         ) : null}
         {hasHeroIdentityResolved(profile) ? <ServiciosHero profile={profile} lang={lang} /> : null}
 
-        {hasQuickFactsResolved(profile) ? (
+        {hasQuickFactsResolved(profile) && profile.quickFacts.length > 3 ? (
           <div className="mt-5 md:mt-8">
-            <ServiciosQuickFacts facts={profile.quickFacts} />
+            <ServiciosQuickFacts facts={profile.quickFacts.slice(3)} lang={lang} />
           </div>
         ) : null}
 

@@ -16,6 +16,8 @@ export type DetailField = {
   label: { es: string; en: string };
   type: "text" | "number" | "select";
   placeholder?: { es: string; en: string };
+  /** Optional helper line (e.g. admin override) — rare in code defaults; often from DB patch. */
+  help?: { es: string; en: string };
   options?: Array<{ value: string; label: { es: string; en: string } }>;
 };
 

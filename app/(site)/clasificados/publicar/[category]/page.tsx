@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
 import ClasificadosCategoryComingSoon from "@/app/clasificados/publicar/components/ClasificadosCategoryComingSoon";
-import RentasPublicarPage from "@/app/clasificados/rentas/publish/RentasPublicarPage";
+import { RENTAS_LANDING } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 
 function normalizeCategory(raw: string): CategoryKey | "" {
   const v = (raw ?? "").trim().toLowerCase();
@@ -15,8 +15,8 @@ function normalizeCategory(raw: string): CategoryKey | "" {
 }
 
 /**
- * Dispatcher: known categories with dedicated publish routes redirect there; `rentas` renders
- * the live Rentas publish app; other valid slugs fall back to Coming Soon. Invalid slug or `all` → chooser.
+ * Dispatcher: known categories with dedicated publish routes redirect there; `rentas` → Rentas landing
+ * (Privado / Negocio publish CTAs). Other valid slugs fall back to Coming Soon. Invalid slug or `all` → chooser.
  */
 export default function PublicarCategoryPage() {
   const params = useParams<{ category?: string }>();
@@ -56,6 +56,10 @@ export default function PublicarCategoryPage() {
       router.replace(`/clasificados/publicar/empleos?lang=${lang}`);
       return;
     }
+    if (categoryFromUrl === "rentas") {
+      router.replace(`${RENTAS_LANDING}?lang=${lang}`);
+      return;
+    }
     if (!categoryFromUrl) {
       router.replace(`/clasificados/publicar?lang=${lang}`);
     }
@@ -70,17 +74,14 @@ export default function PublicarCategoryPage() {
     categoryFromUrl === "servicios" ||
     categoryFromUrl === "restaurantes" ||
     categoryFromUrl === "travel" ||
-    categoryFromUrl === "empleos"
+    categoryFromUrl === "empleos" ||
+    categoryFromUrl === "rentas"
   ) {
     return (
       <main className="min-h-[50vh] pt-28 flex items-center justify-center text-[#111111]/70 text-sm">
         {lang === "es" ? "Redirigiendo…" : "Redirecting…"}
       </main>
     );
-  }
-
-  if (categoryFromUrl === "rentas") {
-    return <RentasPublicarPage />;
   }
 
   return <ClasificadosCategoryComingSoon categorySlug={categoryFromUrl} lang={lang} />;

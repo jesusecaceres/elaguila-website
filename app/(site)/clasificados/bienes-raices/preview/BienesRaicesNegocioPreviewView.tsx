@@ -12,7 +12,8 @@ import {
   leonixSlideIndexForVideoSlot,
 } from "@/app/clasificados/lib/leonixGallerySlides";
 import { LeonixPreviewGalleryLightbox } from "@/app/clasificados/lib/LeonixPreviewGalleryLightbox";
-import { BrNegocioStreamableVideo } from "@/app/clasificados/bienes-raices/preview/negocio/components/BrNegocioStreamableVideo";
+import { LeonixPreviewGalleryVideoTile } from "@/app/clasificados/lib/leonixPreviewGalleryVideoTile";
+import { LeonixPreviewQuickFactsStrip } from "@/app/clasificados/lib/leonixPrivadoPreviewQuickFacts";
 
 const IVORY = "#F9F6F1";
 const CREAM_CARD = "#FDFBF7";
@@ -162,14 +163,6 @@ function IconEye({ className }: { className?: string }) {
   );
 }
 
-function IconPlay({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M8 5v14l11-7L8 5z" />
-    </svg>
-  );
-}
-
 function IconVr({ className, style }: { className?: string; style?: CSSProperties }) {
   return (
     <svg className={className} style={style} width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -197,101 +190,6 @@ const QUICK_FACT_ICONS: Record<BienesRaicesPreviewQuickFactVm["icon"], typeof Ic
   pin: IconPin,
   sparkle: IconSparkle,
 };
-
-function GalleryVideoTile({
-  index,
-  vm,
-}: {
-  index: 0 | 1;
-  vm: BienesRaicesNegocioPreviewVm;
-}) {
-  const m = vm.media;
-  const hasVideo = index === 0 ? Boolean(m?.hasVideo1) : Boolean(m?.hasVideo2);
-  const thumb = m?.videoThumbUrls?.[index] ?? null;
-  const playback = m?.videoPlaybackUrls?.[index] ?? null;
-  const yt = m?.youtubeIds?.[index] ?? null;
-  const watchUrl = yt ? `https://www.youtube.com/watch?v=${yt}` : playback ?? "";
-
-  if (!hasVideo) {
-    return (
-      <div className="aspect-[4/3] w-full">
-        <EmptyMedia
-          title={`Video ${index + 1}`}
-          subtitle="Sin video en este espacio."
-          icon={<IconPlay className="h-7 w-7" />}
-        />
-      </div>
-    );
-  }
-
-  if (yt && thumb) {
-    return (
-      <a
-        href={watchUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="relative block overflow-hidden rounded-2xl border shadow-md"
-        style={{ borderColor: BORDER }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={thumb} alt="" className="aspect-[4/3] w-full object-cover brightness-[0.92]" />
-        <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-[#1a2744] shadow-lg">
-            <IconPlay />
-          </div>
-        </div>
-      </a>
-    );
-  }
-
-  if (playback && /\.m3u8|\.mp4(\?|$)|blob:/i.test(playback)) {
-    return (
-      <div className="overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
-        {playback.includes(".m3u8") || playback.startsWith("blob:") ? (
-          <BrNegocioStreamableVideo url={playback} className="aspect-[4/3] w-full object-cover" />
-        ) : (
-          <video poster={thumb ?? undefined} controls playsInline className="aspect-[4/3] w-full object-cover" src={playback} />
-        )}
-      </div>
-    );
-  }
-
-  if (thumb && !playback) {
-    return (
-      <div className="relative overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={thumb} alt="" className="aspect-[4/3] w-full object-cover brightness-[0.92]" />
-      </div>
-    );
-  }
-
-  if (playback) {
-    return (
-      <a
-        href={playback}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="relative block overflow-hidden rounded-2xl border shadow-md"
-        style={{ borderColor: BORDER }}
-      >
-        <div className="flex aspect-[4/3] w-full items-center justify-center bg-black/80 text-center text-xs font-semibold text-white px-2">
-          Ver video en nueva pestaña
-        </div>
-        <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-[#1a2744] shadow-lg">
-            <IconPlay />
-          </div>
-        </div>
-      </a>
-    );
-  }
-
-  return (
-    <div className="aspect-[4/3] w-full">
-      <EmptyMedia title={`Video ${index + 1}`} subtitle="No hay reproducción disponible para este archivo." icon={<IconPlay className="h-7 w-7" />} />
-    </div>
-  );
-}
 
 function SectionIcon({ children }: { children: React.ReactNode }) {
   return (
@@ -609,7 +507,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                     </button>
                   ) : (
                     <div className="relative aspect-[4/3] w-full">
-                      <GalleryVideoTile index={spec.slot} vm={vm} />
+                      <LeonixPreviewGalleryVideoTile slot={spec.slot} media={vm.media} whenEmpty="placeholder" />
                       <button
                         type="button"
                         className="absolute right-2 top-2 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide shadow-md sm:text-[11px]"
@@ -760,30 +658,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
               </p>
             ) : null}
 
-            <div
-              className="mt-5 grid grid-cols-2 gap-2 rounded-2xl border p-3 sm:flex sm:flex-wrap sm:gap-2.5 sm:p-3.5"
-              style={{ borderColor: BORDER, background: CREAM_CARD, boxShadow: "0 10px 36px -16px rgba(42,36,22,0.12)" }}
-            >
-              {quickFacts.map(({ Icon, label, value }, qfIdx) => (
-                <div
-                  key={`${label}-${qfIdx}`}
-                  className="flex min-h-[44px] min-w-0 items-center gap-2 rounded-lg border px-2.5 py-2 sm:min-h-0 sm:min-w-[128px] sm:flex-1"
-                  style={{ borderColor: BORDER }}
-                >
-                  <span style={{ color: BRONZE }} className="shrink-0">
-                    <Icon className="block h-[18px] w-[18px] sm:h-5 sm:w-5" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
-                      {label}
-                    </p>
-                    <p className="break-words text-sm font-bold leading-snug" style={{ color: CHARCOAL }}>
-                      {value}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <LeonixPreviewQuickFactsStrip quickFacts={quickFacts} />
           </div>
 
           <aside

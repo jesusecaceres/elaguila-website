@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import { withAutosEditorResumeFromPreview } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import { useAutoDealerDraft } from "../hooks/useAutoDealerDraft";
 import { AutosPublishConfirmCore } from "../../shared/components/AutosPublishConfirmCore";
 
@@ -9,7 +9,7 @@ export function AutosNegociosPublishConfirm() {
   const sp = useSearchParams();
   const lang = (sp ?? new URLSearchParams()).get("lang") === "en" ? "en" : "es";
   const { hydrated, listing, flushDraft } = useAutoDealerDraft();
-  const editHref = withLangParam("/publicar/autos/negocios", lang);
+  const editHref = withAutosEditorResumeFromPreview("/publicar/autos/negocios", lang);
 
   return (
     <div

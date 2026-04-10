@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import type { AutoDealerListing, DealerHoursEntry } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
   clearAutosNegociosDraft,
@@ -18,14 +19,8 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { buildVehicleTitle } from "../lib/autoDealerTitle";
 import { createEmptyListing, normalizeLoadedListing } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
 import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
-import {
-  AUTOS_NEGOCIOS_EDITOR_SESSION_KEY,
-  shouldResetAutosDraftForFreshEditorTab,
-} from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
-import {
-  clearAutosDraftNamespaceHint,
-  rememberAutosDraftNamespaceHint,
-} from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
+import { clearAutosDraftNamespaceHint, rememberAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
+import { AUTOS_NEGOCIOS_EDITOR_SESSION_KEY } from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
 
 function applyAutoTitle(listing: AutoDealerListing, override: boolean): AutoDealerListing {
   if (override) return listing;
@@ -33,7 +28,17 @@ function applyAutoTitle(listing: AutoDealerListing, override: boolean): AutoDeal
   return { ...listing, vehicleTitle: t || undefined };
 }
 
+function isAutosConfirmRoute(pathname: string | null): boolean {
+  return Boolean(pathname && pathname.startsWith("/publicar/autos") && pathname.includes("/confirm"));
+}
+
+function resumeQueryFlag(): boolean {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("resume") === "1";
+}
+
 export function useAutoDealerDraft() {
+  const pathname = usePathname();
   const [hydrated, setHydrated] = useState(false);
   const [vehicleTitleOverride, setVehicleTitleOverride] = useState(false);
   const [listing, setListing] = useState<AutoDealerListing>(() => createEmptyListing());
@@ -58,12 +63,9 @@ export function useAutoDealerDraft() {
     }
   }, []);
 
-  const persist = useCallback(async (next: AutoDealerListing, override: boolean) => {
-    const ns = namespaceRef.current;
-    if (!ns) return;
-    const normalized = normalizeLoadedListing(next);
-    const payload: AutosNegociosDraftV1 = { v: 1, vehicleTitleOverride: override, listing: normalized };
-    await saveAutosNegociosDraftResolved(ns, payload);
+  const emptyListing = useCallback(() => {
+    setVehicleTitleOverride(false);
+    setListing(createEmptyListing());
   }, []);
 
   useEffect(() => {
@@ -75,18 +77,23 @@ export function useAutoDealerDraft() {
       if (cancelled) return;
       namespaceRef.current = ns;
 
-      if (shouldResetAutosDraftForFreshEditorTab(AUTOS_NEGOCIOS_EDITOR_SESSION_KEY)) {
-        try {
-          window.localStorage.removeItem(LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY);
-        } catch {
-          /* ignore */
-        }
-        clearAutosDraftNamespaceHint("negocios");
-        await clearAutosNegociosDraft(ns);
+      const confirmRoute = isAutosConfirmRoute(pathname);
+      const resume = resumeQueryFlag();
+
+      if (confirmRoute || resume) {
+        await hydrateFromNamespace(ns);
+        if (!cancelled) setHydrated(true);
+        return;
       }
 
-      migrateLegacyAutosNegociosDraftJsonToNamespace(ns);
-      await hydrateFromNamespace(ns);
+      try {
+        window.localStorage.removeItem(LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY);
+      } catch {
+        /* ignore */
+      }
+      clearAutosDraftNamespaceHint("negocios");
+      await clearAutosNegociosDraft(ns);
+      emptyListing();
       if (!cancelled) setHydrated(true);
     };
 
@@ -101,15 +108,21 @@ export function useAutoDealerDraft() {
         : autosNegociosDraftNamespaceFromUserId(null);
       if (namespaceRef.current === nextNs) return;
       namespaceRef.current = nextNs;
-      migrateLegacyAutosNegociosDraftJsonToNamespace(nextNs);
-      await hydrateFromNamespace(nextNs);
+      clearAutosDraftNamespaceHint("negocios");
+      try {
+        window.localStorage.removeItem(LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY);
+      } catch {
+        /* ignore */
+      }
+      await clearAutosNegociosDraft(nextNs);
+      emptyListing();
     });
 
     return () => {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, [hydrateFromNamespace]);
+  }, [pathname, hydrateFromNamespace, emptyListing]);
 
   const setListingPatch = useCallback(
     (patch: Partial<AutoDealerListing>) => {
@@ -119,63 +132,47 @@ export function useAutoDealerDraft() {
           merged.dealerSocials = { ...prev.dealerSocials, ...patch.dealerSocials };
         }
         const next = applyAutoTitle(merged, overrideRef.current);
-        void persist(next, overrideRef.current);
         return normalizeLoadedListing(next);
       });
     },
-    [persist],
+    [],
   );
 
-  const replaceListing = useCallback(
-    (next: AutoDealerListing) => {
-      const withTitle = applyAutoTitle(next, overrideRef.current);
-      const normalized = normalizeLoadedListing(withTitle);
-      setListing(normalized);
-      void persist(normalized, overrideRef.current);
-    },
-    [persist],
-  );
+  const replaceListing = useCallback((next: AutoDealerListing) => {
+    const withTitle = applyAutoTitle(next, overrideRef.current);
+    const normalized = normalizeLoadedListing(withTitle);
+    setListing(normalized);
+  }, []);
 
-  const setVehicleTitleOverrideState = useCallback(
-    (v: boolean) => {
-      setVehicleTitleOverride(v);
-      setListing((prev) => {
-        const next = applyAutoTitle(prev, v);
-        void persist(next, v);
-        return normalizeLoadedListing(next);
-      });
-    },
-    [persist],
-  );
+  const setVehicleTitleOverrideState = useCallback((v: boolean) => {
+    overrideRef.current = v;
+    setVehicleTitleOverride(v);
+    setListing((prev) => {
+      const next = applyAutoTitle(prev, v);
+      return normalizeLoadedListing(next);
+    });
+  }, []);
 
-  const updateDealerHourRow = useCallback(
-    (rowId: string, patch: Partial<DealerHoursEntry>) => {
-      setListing((prev) => {
-        const rows = [...(prev.dealerHours ?? [])];
-        const i = rows.findIndex((r) => r.rowId === rowId);
-        if (i < 0) return prev;
-        rows[i] = { ...rows[i]!, ...patch };
-        const next = applyAutoTitle({ ...prev, dealerHours: rows }, overrideRef.current);
-        void persist(next, overrideRef.current);
-        return normalizeLoadedListing(next);
-      });
-    },
-    [persist],
-  );
+  const updateDealerHourRow = useCallback((rowId: string, patch: Partial<DealerHoursEntry>) => {
+    setListing((prev) => {
+      const rows = [...(prev.dealerHours ?? [])];
+      const i = rows.findIndex((r) => r.rowId === rowId);
+      if (i < 0) return prev;
+      rows[i] = { ...rows[i]!, ...patch };
+      const next = applyAutoTitle({ ...prev, dealerHours: rows }, overrideRef.current);
+      return normalizeLoadedListing(next);
+    });
+  }, []);
 
-  const removeDealerHourRow = useCallback(
-    (rowId: string) => {
-      setListing((prev) => {
-        const before = prev.dealerHours ?? [];
-        const rows = before.filter((r) => r.rowId !== rowId);
-        if (rows.length === before.length) return prev;
-        const next = applyAutoTitle({ ...prev, dealerHours: rows }, overrideRef.current);
-        void persist(next, overrideRef.current);
-        return normalizeLoadedListing(next);
-      });
-    },
-    [persist],
-  );
+  const removeDealerHourRow = useCallback((rowId: string) => {
+    setListing((prev) => {
+      const before = prev.dealerHours ?? [];
+      const rows = before.filter((r) => r.rowId !== rowId);
+      if (rows.length === before.length) return prev;
+      const next = applyAutoTitle({ ...prev, dealerHours: rows }, overrideRef.current);
+      return normalizeLoadedListing(next);
+    });
+  }, []);
 
   const resetDraft = useCallback(async () => {
     const ns = namespaceRef.current;
@@ -185,9 +182,7 @@ export function useAutoDealerDraft() {
     setListing(empty);
     clearAutosDraftNamespaceHint("negocios");
     try {
-      // Keep the tab "warm" so the next refresh does not run `shouldResetAutosDraftForFreshEditorTab`
-      // and wipe a new draft the user starts after reset.
-      window.sessionStorage.setItem(AUTOS_NEGOCIOS_EDITOR_SESSION_KEY, "1");
+      window.sessionStorage.removeItem(AUTOS_NEGOCIOS_EDITOR_SESSION_KEY);
     } catch {
       /* ignore */
     }
@@ -196,7 +191,6 @@ export function useAutoDealerDraft() {
     }
   }, []);
 
-  /** Flush latest listing to localStorage + IndexedDB before navigating away (matches Privado). */
   const flushDraft = useCallback(async () => {
     const ns = namespaceRef.current;
     if (!ns) return;

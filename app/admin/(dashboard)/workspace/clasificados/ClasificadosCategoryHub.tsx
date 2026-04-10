@@ -93,14 +93,24 @@ export function ClasificadosCategoryHub({ registry }: { registry: ClasificadosCa
 
                 <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                   <Link
-                    href={`/admin/workspace/clasificados/category/${encodeURIComponent(entry.slug)}`}
+                    href={
+                      isEnVenta
+                        ? "/admin/workspace/clasificados/category/en-venta"
+                        : `/admin/workspace/clasificados/category/editor/${encodeURIComponent(entry.slug)}`
+                    }
                     className={`inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl px-4 py-2.5 text-center text-sm font-bold text-[#1E1810] sm:min-h-0 ${
                       isEnVenta
                         ? "bg-emerald-700 text-white hover:bg-emerald-800"
-                        : "border border-[#C9B46A]/50 bg-[#FBF7EF] hover:bg-[#F4EFE4]"
+                        : "border border-[#7A9E6F]/45 bg-[#F4FAF2] hover:bg-[#E8F4E4]"
                     }`}
                   >
-                    Espacio de categoría →
+                    {isEnVenta ? "Editor de contenido →" : "Campos & notas (BD) →"}
+                  </Link>
+                  <Link
+                    href={`/admin/workspace/clasificados/category/${encodeURIComponent(entry.slug)}`}
+                    className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-4 py-2.5 text-center text-sm font-semibold text-[#1E1810] hover:bg-[#F4EFE4] sm:min-h-0"
+                  >
+                    Espacio operativo →
                   </Link>
                   <Link
                     href={`/admin/workspace/clasificados?category=${encodeURIComponent(entry.slug)}`}

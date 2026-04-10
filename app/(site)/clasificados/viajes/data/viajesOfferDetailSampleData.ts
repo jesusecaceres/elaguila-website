@@ -4,6 +4,24 @@
 
 import type { ViajesHeroVisualKind } from "../lib/viajesOfferHeroFallbacks";
 
+export type ViajesContactChannelKind =
+  | "tel"
+  | "telOffice"
+  | "whatsapp"
+  | "email"
+  | "website"
+  | "facebook"
+  | "instagram"
+  | "tiktok"
+  | "youtube"
+  | "twitter";
+
+export type ViajesContactChannel = {
+  kind: ViajesContactChannelKind;
+  href: string;
+  label: string;
+};
+
 export type ViajesOfferPartnerBlock = {
   name: string;
   isAffiliate: boolean;
@@ -16,6 +34,8 @@ export type ViajesOfferPartnerBlock = {
   ctaHref: string;
   secondaryCtaLabel?: string;
   secondaryCtaHref?: string;
+  /** Extra contact/social links for icon row (draft previews / mapped listings) */
+  contactChannels?: ViajesContactChannel[];
 };
 
 export type ViajesOfferDetailModel = {

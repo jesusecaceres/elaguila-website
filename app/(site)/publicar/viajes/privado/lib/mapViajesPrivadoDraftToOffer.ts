@@ -2,6 +2,8 @@ import type { ViajesOfferDetailModel } from "@/app/(site)/clasificados/viajes/da
 
 import type { PublicarViajesPrivadoCopy } from "../data/publicarViajesPrivadoCopy";
 import type { ViajesPrivadoDraft } from "./viajesPrivadoDraftTypes";
+import { viajesBuildPrivadoContactChannels } from "../../lib/viajesContactChannelsFromDraft";
+import { viajesResolveFechasDisplay } from "../../lib/viajesResolveFechasDisplay";
 
 const FALLBACK_HERO =
   "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80";
@@ -19,7 +21,7 @@ function buildCta(d: ViajesPrivadoDraft, c: PublicarViajesPrivadoCopy): { label:
     return { label: c.contact.ctaType.options.whatsapp, href: "https://wa.me/" };
   }
   if (d.ctaType === "phone") {
-    const p = d.phone.trim();
+    const p = d.phone.trim() || d.phoneOffice.trim();
     const num = digitsOnly(p);
     if (num.length >= 8) return { label: c.contact.ctaType.options.phone, href: `tel:${num}` };
     return { label: c.contact.ctaType.options.phone, href: "tel:" };
@@ -92,6 +94,39 @@ export function mapViajesPrivadoDraftToOffer(
   const titleFallback = lang === "en" ? "Your travel offer" : "Tu oferta de viaje";
   const untitled = lang === "en" ? "Untitled offer" : "Sin título";
 
+  const notesParts: string[] = [];
+  if (d.politicaReserva.trim()) notesParts.push(d.politicaReserva.trim());
+  if (d.galeriaUrls?.length) {
+    const urlOnly = d.galeriaUrls.filter((u) => u.startsWith("http"));
+    if (urlOnly.length) notesParts.push(`${c.multimedia.gallery.label}: ${urlOnly.slice(0, 6).join(" · ")}`);
+  }
+  const notesMerged = notesParts.length ? notesParts.join("\n\n") : undefined;
+
+  const dateRangeRaw = viajesResolveFechasDisplay(
+    {
+      dateMode: d.dateMode,
+      fechas: d.fechas,
+      fechaInicio: d.fechaInicio,
+      fechaFin: d.fechaFin,
+      fechasNota: d.fechasNota,
+    },
+    lang
+  );
+  const dateRange = dateRangeRaw.trim() || undefined;
+
+  const contactChannels = viajesBuildPrivadoContactChannels({
+    phone: d.phone,
+    phoneOffice: d.phoneOffice,
+    whatsapp: d.whatsapp,
+    email: d.email,
+    website: d.website,
+    socialFacebook: d.socialFacebook,
+    socialInstagram: d.socialInstagram,
+    socialTiktok: d.socialTiktok,
+    socialYoutube: d.socialYoutube,
+    socialTwitter: d.socialTwitter,
+  });
+
   return {
     slug: "preview-privado",
     heroImageSrc: heroSrc,
@@ -113,9 +148,10 @@ export function mapViajesPrivadoDraftToOffer(
       privateSeller: true,
       ctaLabel: cta.label,
       ctaHref: cta.href,
+      ...(contactChannels.length ? { contactChannels } : {}),
     },
-    dateRange: d.fechas.trim() || undefined,
-    notes: d.politicaReserva.trim() || undefined,
+    dateRange,
+    notes: notesMerged,
     description:
       d.descripcion
         .trim()

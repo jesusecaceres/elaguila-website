@@ -2,7 +2,6 @@
 
 import { useState, type CSSProperties } from "react";
 import type { BienesRaicesPreviewQuickFactVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
-import { BrNegocioStreamableVideo } from "@/app/clasificados/bienes-raices/preview/negocio/components/BrNegocioStreamableVideo";
 import {
   leonixGalleryPhotoSlidesWithCaptions,
   leonixSlideIndexForCoverPhoto,
@@ -10,6 +9,8 @@ import {
   leonixSlideIndexForVideoSlot,
 } from "@/app/clasificados/lib/leonixGallerySlides";
 import { LeonixPreviewGalleryLightbox } from "@/app/clasificados/lib/LeonixPreviewGalleryLightbox";
+import { LeonixPreviewGalleryVideoTile } from "@/app/clasificados/lib/leonixPreviewGalleryVideoTile";
+import { LeonixPrivadoPreviewQuickFactsStrip } from "@/app/clasificados/lib/leonixPrivadoPreviewQuickFacts";
 import type { BienesRaicesPrivadoPreviewVm } from "./model/bienesRaicesPrivadoPreviewVm";
 
 const IVORY = "#F9F6F1";
@@ -113,14 +114,6 @@ function IconSparkle({ className }: { className?: string }) {
   );
 }
 
-function IconPlay({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M8 5v14l11-7L8 5z" />
-    </svg>
-  );
-}
-
 function IconVr({ className, style }: { className?: string; style?: CSSProperties }) {
   return (
     <svg className={className} style={style} width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -139,100 +132,6 @@ const QUICK_FACT_ICONS: Record<BienesRaicesPreviewQuickFactVm["icon"], typeof Ic
   pin: IconPin,
   sparkle: IconSparkle,
 };
-
-function GalleryVideoTile({
-  index,
-  vm,
-  aspectClass = "aspect-[4/3]",
-}: {
-  index: 0 | 1;
-  vm: BienesRaicesPrivadoPreviewVm;
-  aspectClass?: string;
-}) {
-  const m = vm.media;
-  const hasVideo = index === 0 ? Boolean(m?.hasVideo1) : Boolean(m?.hasVideo2);
-  const thumb = m?.videoThumbUrls?.[index] ?? null;
-  const playback = m?.videoPlaybackUrls?.[index] ?? null;
-  const yt = m?.youtubeIds?.[index] ?? null;
-  const watchUrl = yt ? `https://www.youtube.com/watch?v=${yt}` : playback ?? "";
-
-  if (!hasVideo) {
-    return null;
-  }
-
-  if (yt && thumb) {
-    return (
-      <a
-        href={watchUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`relative block overflow-hidden rounded-2xl border text-left shadow-md ${aspectClass}`}
-        style={{ borderColor: BORDER }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={thumb} alt="" className="h-full w-full object-cover brightness-[0.92]" />
-        <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-[#1a2744] shadow-lg">
-            <IconPlay />
-          </div>
-        </div>
-      </a>
-    );
-  }
-
-  /** Draft local file (data URL) — not Mux; same-tab only. */
-  if (playback && /^data:video\//i.test(playback)) {
-    return (
-      <div className={`overflow-hidden rounded-2xl border shadow-md ${aspectClass}`} style={{ borderColor: BORDER }}>
-        <video controls playsInline className="h-full w-full object-cover" src={playback} />
-      </div>
-    );
-  }
-
-  if (playback && /\.m3u8|\.mp4(\?|$)|blob:/i.test(playback)) {
-    return (
-      <div className={`overflow-hidden rounded-2xl border shadow-md ${aspectClass}`} style={{ borderColor: BORDER }}>
-        {playback.includes(".m3u8") || playback.startsWith("blob:") ? (
-          <BrNegocioStreamableVideo url={playback} className="h-full w-full object-cover" />
-        ) : (
-          <video poster={thumb ?? undefined} controls playsInline className="h-full w-full object-cover" src={playback} />
-        )}
-      </div>
-    );
-  }
-
-  if (thumb && !playback) {
-    return (
-      <div className={`relative overflow-hidden rounded-2xl border shadow-md ${aspectClass}`} style={{ borderColor: BORDER }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={thumb} alt="" className="h-full w-full object-cover brightness-[0.92]" />
-      </div>
-    );
-  }
-
-  if (playback) {
-    return (
-      <a
-        href={playback}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`relative block overflow-hidden rounded-2xl border shadow-md ${aspectClass}`}
-        style={{ borderColor: BORDER }}
-      >
-        <div className="flex h-full w-full items-center justify-center bg-black/80 px-2 text-center text-xs font-semibold text-white">
-          Ver video en nueva pestaña
-        </div>
-        <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-[#1a2744] shadow-lg">
-            <IconPlay />
-          </div>
-        </div>
-      </a>
-    );
-  }
-
-  return null;
-}
 
 function SectionIcon({ children }: { children: React.ReactNode }) {
   return (
@@ -428,7 +327,12 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
     return (
       <div key={`vid-${spec.slot}`} className="relative min-h-0 overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
         <div className="relative aspect-[4/3] w-full">
-          <GalleryVideoTile index={spec.slot} vm={vm} />
+          <LeonixPreviewGalleryVideoTile
+            slot={spec.slot}
+            media={vm.media}
+            aspectClass="h-full w-full"
+            whenEmpty="placeholder"
+          />
           <button
             type="button"
             className="absolute right-2 top-2 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide shadow-md sm:text-[11px]"
@@ -504,7 +408,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
 
   return (
     <div className="w-full min-w-0 max-w-[100vw] overflow-x-hidden antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
-      <main className="mx-auto w-full min-w-0 max-w-[1240px] px-4 pb-[max(3.25rem,env(safe-area-inset-bottom,0px))] pt-2.5 sm:px-6 sm:pb-14 sm:pt-3.5 lg:px-8">
+      <main className="mx-auto w-full min-w-0 max-w-[1240px] px-4 pb-[max(3rem,env(safe-area-inset-bottom,0px))] pt-2 sm:px-5 sm:pb-12 sm:pt-3 lg:px-7">
         {showGallerySection ? (
           <section className="mb-0" id="galeria-multimedia">
             <div className="mb-1.5 flex flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
@@ -571,7 +475,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                       <div className="relative overflow-hidden rounded-2xl border shadow-lg" style={{ borderColor: BORDER }}>
                         <div className="relative aspect-[16/10] w-full">
                           <div className="absolute inset-0 overflow-hidden rounded-2xl">
-                            <GalleryVideoTile index={0} vm={vm} aspectClass="h-full w-full" />
+                            <LeonixPreviewGalleryVideoTile slot={0} media={vm.media} aspectClass="h-full w-full" />
                           </div>
                           <button
                             type="button"
@@ -605,12 +509,12 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
         ) : null}
 
         <section
-          className={`grid min-w-0 grid-cols-1 gap-4 lg:items-start lg:gap-5 ${showGallerySection ? "mt-5 border-t pt-5" : "mt-0 border-0 pt-1.5"} ${
-            showMainSellerAside ? "lg:grid-cols-[1fr_minmax(280px,340px)]" : ""
+          className={`grid min-w-0 grid-cols-1 gap-3 lg:items-start lg:gap-5 ${showGallerySection ? "mt-2 border-t pt-3" : "mt-0 border-0 pt-1"} ${
+            showMainSellerAside ? "lg:grid-cols-[1fr_minmax(260px,320px)]" : ""
           }`}
           style={{ borderColor: BORDER }}
         >
-          <div className="min-w-0">
+          <div className="min-w-0 lg:min-h-0">
             {heroTitleShown ? (
               <h1
                 className="max-w-full text-[1.65rem] font-bold leading-[1.15] tracking-tight [overflow-wrap:anywhere] sm:text-[2rem] lg:max-w-[720px] lg:text-[2.35rem]"
@@ -655,40 +559,12 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
               </p>
             ) : null}
 
-            {quickFacts.length > 0 ? (
-              <div
-                className="mt-3.5 grid grid-cols-2 gap-1.5 rounded-xl border p-2 sm:flex sm:flex-wrap sm:gap-2 sm:p-2.5"
-                style={{ borderColor: BORDER, background: CREAM_CARD, boxShadow: "0 10px 36px -16px rgba(42,36,22,0.12)" }}
-              >
-                {quickFacts.map(({ Icon, label, value }, qfIdx) => (
-                  <div
-                    key={`${label}-${qfIdx}`}
-                    className="flex min-h-[44px] min-w-0 items-center gap-1.5 rounded-lg border px-2 py-1.5 sm:min-h-0 sm:min-w-[7.5rem] sm:flex-1 sm:px-2.5 sm:py-2"
-                    style={{ borderColor: BORDER }}
-                  >
-                    <span style={{ color: BRONZE }} className="shrink-0">
-                      <Icon className="block h-[18px] w-[18px] sm:h-5 sm:w-5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
-                        {label}
-                      </p>
-                      <p
-                        className="text-sm font-bold leading-tight [font-variant-numeric:tabular-nums] [overflow-wrap:anywhere] sm:leading-snug"
-                        style={{ color: CHARCOAL }}
-                      >
-                        {value}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
+            <LeonixPrivadoPreviewQuickFactsStrip quickFacts={quickFacts} />
           </div>
 
           {showMainSellerAside ? (
             <aside
-              className="min-w-0 rounded-xl border p-3 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.14)] sm:p-3.5 lg:sticky lg:top-4 lg:self-start"
+              className="min-w-0 rounded-xl border p-3 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.18)] sm:p-3.5 lg:sticky lg:top-4 lg:self-start"
               style={{ borderColor: BORDER, background: CREAM_CARD }}
             >
               {showSellerPhotoAside && vm.seller.photoUrl ? (
@@ -753,11 +629,11 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
         </section>
 
         <section
-          className={`mt-5 grid min-w-0 grid-cols-1 gap-3.5 sm:mt-7 lg:items-stretch lg:gap-3.5 ${
+          className={`mt-3 grid min-w-0 grid-cols-1 gap-3 sm:mt-4 lg:items-stretch lg:gap-3 ${
             hasDetailRows && vm.hasHighlights
-              ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(280px,340px)]"
+              ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(260px,320px)]"
               : hasDetailRows || vm.hasHighlights
-                ? "lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)]"
+                ? "lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]"
                 : "lg:grid-cols-1"
           }`}
         >
@@ -821,7 +697,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
         </section>
 
         {vm.hasDescription ? (
-          <section className="mt-4 min-w-0 sm:mt-5">
+          <section className="mt-3 min-w-0 sm:mt-4">
             <div
               className="min-w-0 rounded-xl border p-4 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)] sm:p-5 md:p-5"
               style={{ borderColor: BORDER, background: CREAM_CARD }}
@@ -840,7 +716,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
         ) : null}
 
         {vm.location.hasMeaningfulAddress ? (
-          <section className="mt-7 min-w-0 sm:mt-9">
+          <section className="mt-5 min-w-0 sm:mt-6">
             <div className="px-1 text-center">
               <h2
                 className="text-lg font-bold uppercase tracking-[0.12em] sm:text-xl"
@@ -849,7 +725,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                 Ubicación
               </h2>
             </div>
-            <div className="mx-auto mt-5 max-w-2xl sm:mt-6">
+            <div className="mx-auto mt-4 w-full max-w-3xl sm:mt-5">
               <LowerModuleCard eyebrow="Referencia" title="Ubicación aproximada">
                 {vm.location.line1 ? (
                   <p className="break-words text-sm font-semibold leading-snug [overflow-wrap:anywhere]" style={{ color: CHARCOAL }}>

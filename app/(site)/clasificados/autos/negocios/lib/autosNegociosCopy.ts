@@ -12,7 +12,6 @@ export type AutosNegociosCopy = {
     pageTitle: string;
     intro: string;
     badgeLocal: string;
-    badgeAutosave: string;
     noteTitle: string;
     noteBody: string;
     sections: {
@@ -180,17 +179,14 @@ export type AutosNegociosCopy = {
 const OTHER = AUTOS_NEGOCIOS_OTHER;
 
 const ES: AutosNegociosCopy = {
-  meta: { applicationTitle: "Autos · Negocio — Publicar", previewTitle: "Vista previa — Auto · Negocio" },
+  meta: { applicationTitle: "Autos · Negocios — Publicar", previewTitle: "Vista previa — Auto · Negocios" },
   app: {
-    kicker: "Publicar · Clasificados",
-    pageTitle: "Autos · Negocio",
-    intro:
-      "Completa el anuncio de tu inventario. La vista previa muestra la misma página que verá el comprador en Leonix.",
-    badgeLocal: "Borrador local",
-    badgeAutosave: "Guardado automático",
-    noteTitle: "Vista previa fiel al publicado",
-    noteBody:
-      "Los campos que completes aparecerán en la vista previa. Los campos vacíos no se muestran al comprador: el anuncio se adapta y solo se muestra lo que añades.",
+    kicker: "Clasificados",
+    pageTitle: "Autos · Negocios",
+    intro: "Completa la ficha de inventario; la vista previa refleja lo que ingreses en esta sesión.",
+    badgeLocal: "Borrador · esta sesión",
+    noteTitle: "",
+    noteBody: "",
     sections: {
       main: "Información principal del vehículo",
       mainSub: "Datos básicos del anuncio.",
@@ -498,18 +494,16 @@ const ES: AutosNegociosCopy = {
 
 const EN: AutosNegociosCopy = {
   meta: {
-    applicationTitle: "Autos · Dealership — Publish",
-    previewTitle: "Preview — Auto · Dealership",
+    applicationTitle: "Autos · Business — Publish",
+    previewTitle: "Preview — Auto · Business",
   },
   app: {
-    kicker: "Publish · Classifieds",
-    pageTitle: "Autos · Dealership",
-    intro: "Complete your inventory listing. Preview shows the same page buyers will see on Leonix.",
-    badgeLocal: "Local draft",
-    badgeAutosave: "Auto-saved",
-    noteTitle: "Preview matches the published page",
-    noteBody:
-      "Fields you fill appear in preview. Empty fields stay hidden for buyers—the listing adapts and only shows what you add.",
+    kicker: "Classifieds",
+    pageTitle: "Autos · Business",
+    intro: "Complete your inventory listing; preview reflects what you enter in this session.",
+    badgeLocal: "Draft · this session",
+    noteTitle: "",
+    noteBody: "",
     sections: {
       main: "Main vehicle information",
       mainSub: "Basic listing details.",

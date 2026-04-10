@@ -14,3 +14,13 @@ export function withLangParam(path: string, lang: AutosNegociosLang): string {
   const qs = params.toString();
   return qs ? `${pathname}?${qs}` : `${pathname}?lang=${lang}`;
 }
+
+/** Editor return link from preview: restores last explicit flush (`resume=1`), plus `lang`. */
+export function withAutosEditorResumeFromPreview(path: string, lang: AutosNegociosLang): string {
+  const [pathname, queryString] = path.split("?");
+  const params = new URLSearchParams(queryString ?? "");
+  params.set("lang", lang);
+  params.set("resume", "1");
+  const qs = params.toString();
+  return `${pathname}?${qs}`;
+}

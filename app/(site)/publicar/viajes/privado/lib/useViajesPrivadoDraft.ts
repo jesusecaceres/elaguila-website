@@ -5,10 +5,25 @@ import { useCallback, useEffect, useState } from "react";
 import { viajesDraftMediaDelete } from "@/app/(site)/clasificados/viajes/lib/viajesDraftMediaIdb";
 
 import type { ViajesPrivadoDraft } from "./viajesPrivadoDraftTypes";
-import { emptyViajesPrivadoDraft, VIAJES_PRIVADO_DRAFT_STORAGE_KEY, VIAJES_PRIVADO_MAX_IMAGE_STORAGE } from "./viajesPrivadoDraftDefaults";
+import {
+  emptyViajesPrivadoDraft,
+  VIAJES_PRIVADO_DRAFT_STORAGE_KEY,
+  VIAJES_PRIVADO_GALLERY_MAX,
+  VIAJES_PRIVADO_MAX_IMAGE_STORAGE,
+} from "./viajesPrivadoDraftDefaults";
 
 function mergeDraft(parsed: Partial<ViajesPrivadoDraft>): ViajesPrivadoDraft {
-  return { ...emptyViajesPrivadoDraft(), ...parsed, schemaVersion: 1 };
+  const e = emptyViajesPrivadoDraft();
+  return {
+    ...e,
+    ...parsed,
+    schemaVersion: 1,
+    galeriaUrls: Array.isArray(parsed.galeriaUrls)
+      ? parsed.galeriaUrls.filter(Boolean).slice(0, VIAJES_PRIVADO_GALLERY_MAX)
+      : e.galeriaUrls,
+    dateMode: parsed.dateMode ?? e.dateMode,
+    heroSourceMode: parsed.heroSourceMode ?? e.heroSourceMode,
+  };
 }
 
 export function useViajesPrivadoDraft() {
@@ -34,6 +49,9 @@ export function useViajesPrivadoDraft() {
       const toSave: ViajesPrivadoDraft = { ...draft };
       if (toSave.localImageDataUrl && toSave.localImageDataUrl.length > VIAJES_PRIVADO_MAX_IMAGE_STORAGE) {
         toSave.localImageDataUrl = null;
+      }
+      if (toSave.galeriaUrls?.length) {
+        toSave.galeriaUrls = toSave.galeriaUrls.map((u) => (u.length > 130_000 ? "" : u)).filter(Boolean);
       }
       localStorage.setItem(VIAJES_PRIVADO_DRAFT_STORAGE_KEY, JSON.stringify(toSave));
     } catch {
