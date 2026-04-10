@@ -250,13 +250,13 @@ function FactBlock({ title, rows }: { title: string; rows: Array<{ label: string
   if (safeRows.length === 0) return null;
   return (
     <div
-      className="min-w-0 rounded-2xl border p-3.5 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)] sm:p-5"
+      className="min-w-0 rounded-xl border p-3.5 shadow-[0_10px_36px_-14px_rgba(42,36,22,0.08)] sm:p-4"
       style={{ borderColor: BORDER, background: CREAM_CARD }}
     >
       <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
         {title}
       </h3>
-      <dl className="mt-3 grid gap-x-5 gap-y-3.5 sm:mt-3.5 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-4">
+      <dl className="mt-2.5 grid gap-x-5 gap-y-3 sm:mt-3 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-3.5">
         {safeRows.map((r) => (
           <div key={`${r.label}-${r.value}`} className="min-w-0">
             <dt className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
@@ -288,7 +288,7 @@ function LowerModuleCard({
 }) {
   return (
     <div
-      className="rounded-2xl border p-4 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)] sm:p-5"
+      className="rounded-xl border p-4 shadow-[0_10px_36px_-14px_rgba(42,36,22,0.08)] sm:p-4"
       style={{ borderColor: BORDER, background: CREAM_CARD }}
     >
       {eyebrow ? (
@@ -605,7 +605,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
         ) : null}
 
         <section
-          className={`grid min-w-0 grid-cols-1 gap-5 lg:items-start lg:gap-6 ${showGallerySection ? "mt-6 border-t pt-6" : "mt-0 border-0 pt-1.5"} ${
+          className={`grid min-w-0 grid-cols-1 gap-4 lg:items-start lg:gap-5 ${showGallerySection ? "mt-5 border-t pt-5" : "mt-0 border-0 pt-1.5"} ${
             showMainSellerAside ? "lg:grid-cols-[1fr_minmax(280px,340px)]" : ""
           }`}
           style={{ borderColor: BORDER }}
@@ -657,7 +657,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
 
             {quickFacts.length > 0 ? (
               <div
-                className="mt-4 grid grid-cols-2 gap-1.5 rounded-2xl border p-2 sm:flex sm:flex-wrap sm:gap-2 sm:p-3"
+                className="mt-3.5 grid grid-cols-2 gap-1.5 rounded-xl border p-2 sm:flex sm:flex-wrap sm:gap-2 sm:p-2.5"
                 style={{ borderColor: BORDER, background: CREAM_CARD, boxShadow: "0 10px 36px -16px rgba(42,36,22,0.12)" }}
               >
                 {quickFacts.map(({ Icon, label, value }, qfIdx) => (
@@ -688,7 +688,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
 
           {showMainSellerAside ? (
             <aside
-              className="min-w-0 rounded-2xl border p-3.5 shadow-[0_16px_44px_-12px_rgba(42,36,22,0.15)] sm:p-4 lg:sticky lg:top-4 lg:self-start"
+              className="min-w-0 rounded-xl border p-3 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.14)] sm:p-3.5 lg:sticky lg:top-4 lg:self-start"
               style={{ borderColor: BORDER, background: CREAM_CARD }}
             >
               {showSellerPhotoAside && vm.seller.photoUrl ? (
@@ -753,7 +753,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
         </section>
 
         <section
-          className={`mt-6 grid min-w-0 grid-cols-1 gap-4 sm:mt-8 lg:items-stretch lg:gap-4 ${
+          className={`mt-5 grid min-w-0 grid-cols-1 gap-3.5 sm:mt-7 lg:items-stretch lg:gap-3.5 ${
             hasDetailRows && vm.hasHighlights
               ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(280px,340px)]"
               : hasDetailRows || vm.hasHighlights
@@ -774,7 +774,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
               className="flex flex-1 flex-col overflow-hidden rounded-2xl border shadow-[0_24px_64px_-20px_rgba(26,24,20,0.35)]"
               style={{ borderColor: "rgba(255,255,255,0.08)" }}
             >
-              <div className="px-5 py-3.5" style={{ background: CHARCOAL_DEEP }}>
+              <div className="px-4 py-3 sm:px-5" style={{ background: CHARCOAL_DEEP }}>
                 <p className="text-center text-xs font-bold uppercase tracking-[0.2em] text-[#F5F0E8]">{vm.contactRailTitle}</p>
               </div>
               {vm.contact.instructionsLine ? (
@@ -821,9 +821,9 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
         </section>
 
         {vm.hasDescription ? (
-          <section className="mt-5 min-w-0 sm:mt-6">
+          <section className="mt-4 min-w-0 sm:mt-5">
             <div
-              className="min-w-0 rounded-2xl border p-4 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)] sm:p-5 md:p-6"
+              className="min-w-0 rounded-xl border p-4 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)] sm:p-5 md:p-5"
               style={{ borderColor: BORDER, background: CREAM_CARD }}
             >
               <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
@@ -840,7 +840,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
         ) : null}
 
         {vm.location.hasMeaningfulAddress ? (
-          <section className="mt-8 min-w-0 sm:mt-10">
+          <section className="mt-7 min-w-0 sm:mt-9">
             <div className="px-1 text-center">
               <h2
                 className="text-lg font-bold uppercase tracking-[0.12em] sm:text-xl"
@@ -878,7 +878,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
         ) : null}
 
         {String(vm.footerNote ?? "").trim() ? (
-          <footer className="mt-9 border-t pt-5 text-center text-xs" style={{ borderColor: BORDER, color: MUTED }}>
+          <footer className="mt-8 border-t pt-4 text-center text-xs" style={{ borderColor: BORDER, color: MUTED }}>
             <p>{vm.footerNote}</p>
           </footer>
         ) : null}
