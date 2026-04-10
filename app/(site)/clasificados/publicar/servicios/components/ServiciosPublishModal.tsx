@@ -26,7 +26,7 @@ export function ServiciosPublishModal({
   lang: ServiciosLang;
   copy: ClasificadosServiciosCopy;
   /** Ensure latest draft is flushed before publishing */
-  onPersistDraft: () => void;
+  onPersistDraft: () => void | Promise<void>;
   /** Same-tick snapshot (avoids stale closure if user publishes within debounce window) */
   getLatestState?: () => ClasificadosServiciosApplicationState;
 }) {
@@ -47,7 +47,7 @@ export function ServiciosPublishModal({
     }
     setBusy(true);
     setError(null);
-    onPersistDraft();
+    await Promise.resolve(onPersistDraft());
     try {
       const res = await fetch("/api/clasificados/servicios/publish", {
         method: "POST",

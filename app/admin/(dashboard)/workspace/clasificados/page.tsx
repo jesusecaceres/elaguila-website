@@ -5,8 +5,10 @@ import {
   fetchListingCategoriesDistinct,
   isUuidString,
 } from "@/app/admin/_lib/listingsAdminSelect";
+import { getClasificadosCategoryRegistryMerged } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import AdminListingsTable from "./AdminListingsTable";
+import { ClasificadosCategoryHub } from "./ClasificadosCategoryHub";
 import { EnVentaModerationFields } from "@/app/clasificados/en-venta/admin/EnVentaModerationFields";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { AdminSectionCard } from "../../../_components/AdminSectionCard";
@@ -58,7 +60,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   const limitRaw = Number(sp.limit ?? "300");
   const queueLimit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 50), 500) : 300;
 
-  const [{ data: listings, error, detailPairsAvailable, boostExpiresAvailable }, cats] = await Promise.all([
+  const [{ data: listings, error, detailPairsAvailable, boostExpiresAvailable }, cats, registry] = await Promise.all([
     fetchListingsForAdminWorkspaceFiltered(supabase, {
       q: qRaw || undefined,
       category: catFilter || undefined,
@@ -67,6 +69,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
       limit: queueLimit,
     }),
     fetchListingCategoriesDistinct(supabase),
+    getClasificadosCategoryRegistryMerged(),
   ]);
 
   let rows = (listings ?? []) as Row[];
@@ -86,11 +89,13 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   return (
     <>
       <AdminPageHeader
-        title="Clasificados — anuncios"
-        subtitle="Cola operativa para todas las categorías. En Venta es el estándar vivo — usa las herramientas de moderación abajo. El registro de categorías y reportes siguen enlazados aquí."
+        title="Clasificados — centro de operaciones"
+        subtitle="Arriba: mapa por categoría (esquema en código + postura en Supabase). Abajo: la misma cola global de anuncios con filtros — moderación, reportes y En Venta siguen aquí."
         eyebrow="Workspace · Clasificados"
-        helperText={`Búsqueda en Postgres (hasta ${queueLimit} filas): título, ciudad, descripción, id y owner. Filtros Leonix BR (rama/operación/tipo) siguen en cliente sobre detail_pairs JSON. Tienda es otro workspace.`}
+        helperText={`Elige una categoría para ver planes, campos y atajos; o baja directo a la cola. Postgres (hasta ${queueLimit} filas): título, ciudad, descripción, id y owner. BR/Rentas refinan en cliente vía detail_pairs.`}
       />
+
+      <ClasificadosCategoryHub registry={registry} />
 
       {!detailPairsAvailable ? (
         <div

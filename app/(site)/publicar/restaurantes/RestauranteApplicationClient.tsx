@@ -21,6 +21,7 @@ import {
 } from "@/app/clasificados/restaurantes/application/restauranteTaxonomy";
 import { RestauranteUploadRow } from "@/app/clasificados/restaurantes/application/RestauranteUploadRow";
 import { useRestauranteDraft } from "@/app/clasificados/restaurantes/application/useRestauranteDraft";
+import { saveRestauranteDraftToStorageResolved } from "@/app/clasificados/restaurantes/application/restauranteDraftStorage";
 import { satisfiesRestauranteMinimumValidPreview, satisfiesRestauranteServiceModes } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
 import { readRestauranteImageAsDataUrl } from "@/app/clasificados/restaurantes/application/compressRestauranteImage";
@@ -146,15 +147,16 @@ export default function RestauranteApplicationClient() {
     }
   }, [phonePresent, draft.allowMessageCTA, setDraftPatch]);
 
-  const goPreview = useCallback(() => {
-    if (!satisfiesRestauranteServiceModes(draft.serviceModes)) {
+  const goPreview = useCallback(async () => {
+    if (!satisfiesRestauranteServiceModes(draftRef.current.serviceModes)) {
       setServiceErr(true);
       setActiveSectionId("restaurantes-section-b");
       return;
     }
     setServiceErr(false);
+    await saveRestauranteDraftToStorageResolved(draftRef.current);
     window.location.href = PREVIEW_HREF;
-  }, [draft.serviceModes]);
+  }, [draftRef]);
 
   const toggleHighlight = useCallback(
     (key: string) => {
@@ -264,7 +266,12 @@ export default function RestauranteApplicationClient() {
       <ClasificadosApplicationTopActions
         onPreviewValidated={goPreview}
         openPreviewHref={PREVIEW_HREF}
-        onDeleteApplication={resetDraft}
+        onBeforeOpenUnvalidatedPreview={() => {
+          void saveRestauranteDraftToStorageResolved(draftRef.current);
+        }}
+        onDeleteApplication={() => {
+          void resetDraft();
+        }}
         disableValidatedPreview={!serviceOk}
       />
 
@@ -1936,7 +1943,12 @@ export default function RestauranteApplicationClient() {
           <ClasificadosApplicationTopActions
             onPreviewValidated={goPreview}
             openPreviewHref={PREVIEW_HREF}
-            onDeleteApplication={resetDraft}
+            onBeforeOpenUnvalidatedPreview={() => {
+              void saveRestauranteDraftToStorageResolved(draftRef.current);
+            }}
+            onDeleteApplication={() => {
+              void resetDraft();
+            }}
             disableValidatedPreview={!serviceOk}
           />
           <p className="text-xs text-[color:var(--lx-muted)] sm:max-w-xl">

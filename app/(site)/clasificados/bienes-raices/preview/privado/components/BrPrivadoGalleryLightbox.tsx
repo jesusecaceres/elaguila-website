@@ -157,14 +157,18 @@ export function BrPrivadoGalleryLightbox({
       aria-label="Galería de fotos y videos"
     >
       <div className="flex h-full max-h-[96vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0f0d09] shadow-2xl">
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-3 py-2 sm:px-4">
-          <p className="text-xs font-semibold text-white/80">
+        <div
+          className="sticky top-0 z-[92] flex shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#0f0d09]/98 px-3 py-2.5 backdrop-blur-md sm:px-4"
+          style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top, 0px))" }}
+        >
+          <p className="min-w-0 truncate text-xs font-semibold text-white/90">
             Galería · {active + 1} / {slides.length}
           </p>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/15"
+            className="shrink-0 rounded-xl border border-white/25 bg-white/15 px-3 py-2 text-xs font-bold text-white shadow-md hover:bg-white/25"
+            aria-label="Cerrar galería"
           >
             Cerrar
           </button>

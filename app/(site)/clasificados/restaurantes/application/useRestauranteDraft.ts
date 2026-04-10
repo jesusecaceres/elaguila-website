@@ -3,16 +3,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createEmptyRestauranteDraft } from "./createEmptyRestauranteDraft";
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
+import {
+  clearRestauranteDraftStorageAndIdb,
+  loadRestauranteDraftFromStorageResolved,
+  resetRestauranteDraftInStorage,
+  saveRestauranteDraftToStorageResolved,
+} from "./restauranteDraftStorage";
 
 export type RestauranteDraftPatch =
   | Partial<RestauranteListingDraft>
   | ((prev: RestauranteListingDraft) => Partial<RestauranteListingDraft>);
-import {
-  clearRestauranteDraftStorage,
-  loadRestauranteDraftFromStorage,
-  resetRestauranteDraftInStorage,
-  saveRestauranteDraftToStorage,
-} from "./restauranteDraftStorage";
 
 function trimDraftStrings(d: RestauranteListingDraft): RestauranteListingDraft {
   const t = (s: string | undefined) => {
@@ -67,13 +67,19 @@ export function useRestauranteDraft() {
   draftRef.current = draft;
 
   useEffect(() => {
-    const loaded = loadRestauranteDraftFromStorage();
-    if (loaded) setDraft(loaded);
-    setHydrated(true);
+    let cancelled = false;
+    void (async () => {
+      const loaded = await loadRestauranteDraftFromStorageResolved();
+      if (!cancelled && loaded) setDraft(loaded);
+      if (!cancelled) setHydrated(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const persist = useCallback((next: RestauranteListingDraft) => {
-    return saveRestauranteDraftToStorage(next);
+    void saveRestauranteDraftToStorageResolved(next);
   }, []);
 
   const setDraftPatch = useCallback(
@@ -85,26 +91,25 @@ export function useRestauranteDraft() {
         return merged;
       });
     },
-    [persist]
+    [persist],
   );
 
   const replaceDraft = useCallback(
     (next: RestauranteListingDraft) => {
       setDraft(next);
-      persist(next);
+      void saveRestauranteDraftToStorageResolved(next);
     },
-    [persist]
+    [],
   );
 
-  const resetDraft = useCallback(() => {
-    const next = resetRestauranteDraftInStorage();
+  const resetDraft = useCallback(async () => {
+    const next = await resetRestauranteDraftInStorage();
     setDraft(next);
   }, []);
 
-  const clearStorageOnly = useCallback(() => {
-    clearRestauranteDraftStorage();
-    const next = createEmptyRestauranteDraft();
-    setDraft(next);
+  const clearStorageOnly = useCallback(async () => {
+    await clearRestauranteDraftStorageAndIdb();
+    setDraft(createEmptyRestauranteDraft());
   }, []);
 
   return {

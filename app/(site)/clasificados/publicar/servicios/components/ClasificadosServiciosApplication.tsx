@@ -37,13 +37,13 @@ import type {
 } from "../lib/clasificadosServiciosApplicationTypes";
 import { LANGUAGE_OPTION_CHIPS } from "../lib/clasificadosServiciosApplicationTypes";
 import {
-  bootstrapServiciosApplicationState,
+  bootstrapServiciosApplicationStateAsync,
   clearServiciosPreviewReturnHandoff,
   persistServiciosDraftForPreviewNavigation,
 } from "../lib/clasificadosServiciosPreviewHandoff";
 import {
-  clearClasificadosServiciosApplicationFromBrowser,
-  writeClasificadosServiciosApplicationToBrowser,
+  clearServiciosDraftStorageAndIdb,
+  saveClasificadosServiciosApplicationResolved,
 } from "../lib/clasificadosServiciosStorage";
 import {
   getServiciosApplicationStepLabels,
@@ -192,14 +192,23 @@ export function ClasificadosServiciosApplication() {
     clearLeonixReturningToEditSessionFlag();
   }, []);
 
-  useLayoutEffect(() => {
-    setState(bootstrapServiciosApplicationState());
-    setHydrated(true);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const next = await bootstrapServiciosApplicationStateAsync();
+      if (!cancelled) {
+        setState(next);
+        setHydrated(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
-    const t = window.setTimeout(() => writeClasificadosServiciosApplicationToBrowser(state), DEBOUNCE_MS);
+    const t = window.setTimeout(() => void saveClasificadosServiciosApplicationResolved(state), DEBOUNCE_MS);
     return () => window.clearTimeout(t);
   }, [state, hydrated]);
 
@@ -225,7 +234,7 @@ export function ClasificadosServiciosApplication() {
 
   useEffect(() => {
     if (!hydrated) return;
-    writeClasificadosServiciosApplicationToBrowser(state);
+    void saveClasificadosServiciosApplicationResolved(state);
   }, [
     hydrated,
     state.gallery,
@@ -246,7 +255,7 @@ export function ClasificadosServiciosApplication() {
   const previewHref = `/clasificados/publicar/servicios/preview?lang=${lang}`;
   const publicarHref = `/clasificados/publicar?lang=${lang}`;
 
-  const goStrictPreview = useCallback(() => {
+  const goStrictPreview = useCallback(async () => {
     const r = evaluateServiciosPreviewReadiness(stateRef.current, lang);
     if (!r.ok) {
       setPreviewGateMissing(r.missing);
@@ -259,12 +268,12 @@ export function ClasificadosServiciosApplication() {
     }
     setPreviewGateMissing(null);
     markPublishFlowOpeningPreview();
-    if (!persistServiciosDraftForPreviewNavigation(stateRef.current)) {
+    if (!(await persistServiciosDraftForPreviewNavigation(stateRef.current))) {
       setMediaFlash(copy.storageWriteFailed);
       return;
     }
     router.push(previewHref);
-  }, [copy.storageWriteFailed, lang, previewHref, router]);
+  }, [copy.storageWriteFailed, lang, previewHref, router, goToStep]);
 
   const openPublishModalFromFinalStep = useCallback(() => {
     const s = stateRef.current;
@@ -276,10 +285,10 @@ export function ClasificadosServiciosApplication() {
     setPublishOpen(true);
   }, [copy.publishConfirmMissing]);
 
-  const deleteApplicationDraft = useCallback(() => {
+  const deleteApplicationDraft = useCallback(async () => {
     if (!window.confirm(copy.deleteConfirm)) return;
     clearServiciosPreviewReturnHandoff();
-    clearClasificadosServiciosApplicationFromBrowser();
+    await clearServiciosDraftStorageAndIdb();
     setState(createDefaultClasificadosServiciosState());
     setPreviewGateMissing(null);
   }, [copy.deleteConfirm]);
@@ -2188,7 +2197,9 @@ export function ClasificadosServiciosApplication() {
         state={state}
         lang={lang}
         copy={copy}
-        onPersistDraft={() => writeClasificadosServiciosApplicationToBrowser(stateRef.current)}
+        onPersistDraft={async () => {
+          await saveClasificadosServiciosApplicationResolved(stateRef.current);
+        }}
         getLatestState={() => stateRef.current}
       />
     </div>

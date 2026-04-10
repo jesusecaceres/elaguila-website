@@ -1,9 +1,12 @@
 import type { ClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationTypes";
 import { normalizeClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationNormalize";
 import { createDefaultClasificadosServiciosState } from "./defaultClasificadosServiciosState";
+import { inlineServiciosHeavyMediaFromIdb } from "./clasificadosServiciosDraftMedia";
 import {
+  loadClasificadosServiciosApplicationResolved,
   readClasificadosServiciosApplicationFromBrowser,
-  writeClasificadosServiciosApplicationToBrowser,
+  saveClasificadosServiciosApplicationResolved,
+  SERVICIOS_DRAFT_MEDIA_NAMESPACE,
 } from "./clasificadosServiciosStorage";
 
 /**
@@ -28,7 +31,7 @@ function scheduleClearReturnMemory() {
   }, 30000);
 }
 
-/** Write immediately before navigating to preview (alongside the main session draft). */
+/** Write immediately before navigating to preview (alongside the main session draft). Payload is compact (IDB refs). */
 export function saveServiciosPreviewReturnDraft(state: ClasificadosServiciosApplicationState): boolean {
   if (typeof window === "undefined") return false;
   previewReturnMemory = null;
@@ -46,13 +49,15 @@ export function saveServiciosPreviewReturnDraft(state: ClasificadosServiciosAppl
 
 /**
  * Dual-write session draft + one-shot return payload before opening preview.
- * Both must succeed; otherwise the in-session roundtrip can lose large media payloads.
+ * Both must succeed; heavy media lives in IndexedDB.
  */
-export function persistServiciosDraftForPreviewNavigation(state: ClasificadosServiciosApplicationState): boolean {
+export async function persistServiciosDraftForPreviewNavigation(state: ClasificadosServiciosApplicationState): Promise<boolean> {
   const normalized = normalizeClasificadosServiciosApplicationState(state);
-  const sessionOk = writeClasificadosServiciosApplicationToBrowser(normalized);
-  const returnOk = saveServiciosPreviewReturnDraft(normalized);
-  return sessionOk && returnOk;
+  const sessionOk = await saveClasificadosServiciosApplicationResolved(normalized);
+  if (!sessionOk) return false;
+  const stripped = readClasificadosServiciosApplicationFromBrowser();
+  if (!stripped) return false;
+  return saveServiciosPreviewReturnDraft(stripped);
 }
 
 export function clearServiciosPreviewReturnHandoff(): void {
@@ -71,14 +76,14 @@ export function clearServiciosPreviewReturnHandoff(): void {
  * Application bootstrap order (matches BR Negocio intent):
  * 1. In-memory return payload (React Strict Mode double-mount)
  * 2. Else session `SERVICIOS_PREVIEW_RETURN_KEY` (set when opening preview)
- * 3. Else main session draft (`readClasificadosServiciosApplicationFromBrowser`)
+ * 3. Else main session draft (`loadClasificadosServiciosApplicationResolved`)
  * 4. Else empty defaults
  */
-export function bootstrapServiciosApplicationState(): ClasificadosServiciosApplicationState {
+export async function bootstrapServiciosApplicationStateAsync(): Promise<ClasificadosServiciosApplicationState> {
   if (typeof window === "undefined") return createDefaultClasificadosServiciosState();
   if (previewReturnMemory) {
     scheduleClearReturnMemory();
-    writeClasificadosServiciosApplicationToBrowser(previewReturnMemory);
+    await saveClasificadosServiciosApplicationResolved(previewReturnMemory);
     return previewReturnMemory;
   }
   try {
@@ -88,16 +93,30 @@ export function bootstrapServiciosApplicationState(): ClasificadosServiciosAppli
       if (data.state && typeof data.state === "object") {
         const merged = normalizeClasificadosServiciosApplicationState(data.state);
         window.sessionStorage.removeItem(SERVICIOS_PREVIEW_RETURN_KEY);
-        previewReturnMemory = merged;
+        let full: ClasificadosServiciosApplicationState;
+        try {
+          full = await inlineServiciosHeavyMediaFromIdb(SERVICIOS_DRAFT_MEDIA_NAMESPACE, merged);
+        } catch {
+          full = merged;
+        }
+        previewReturnMemory = full;
         scheduleClearReturnMemory();
-        writeClasificadosServiciosApplicationToBrowser(merged);
-        return merged;
+        await saveClasificadosServiciosApplicationResolved(full);
+        return full;
       }
     }
   } catch {
     /* fall through */
   }
-  const sessionDraft = readClasificadosServiciosApplicationFromBrowser();
+  const sessionDraft = await loadClasificadosServiciosApplicationResolved();
   if (sessionDraft) return sessionDraft;
+  return createDefaultClasificadosServiciosState();
+}
+
+/** @deprecated Use `bootstrapServiciosApplicationStateAsync` — sync bootstrap cannot rehydrate IndexedDB. */
+export function bootstrapServiciosApplicationState(): ClasificadosServiciosApplicationState {
+  if (typeof window === "undefined") return createDefaultClasificadosServiciosState();
+  const sync = readClasificadosServiciosApplicationFromBrowser();
+  if (sync) return normalizeClasificadosServiciosApplicationState(sync);
   return createDefaultClasificadosServiciosState();
 }

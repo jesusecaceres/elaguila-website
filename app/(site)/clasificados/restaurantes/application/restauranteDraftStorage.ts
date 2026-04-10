@@ -1,13 +1,14 @@
 import { createEmptyRestauranteDraft, mergeRestauranteDraft } from "./createEmptyRestauranteDraft";
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
+import {
+  clearRestauranteDraftMediaNamespace,
+  inlineRestauranteDraftMedia,
+  offloadRestauranteDraftMedia,
+} from "./restauranteDraftMedia";
 
 /**
  * Session-scoped key: survives edit ↔ preview, in-tab refresh, and "Volver a editar" while the tab/session lasts.
- * Clears when the browsing session ends (tab closed). Not long-lived across days/weeks.
- *
- * **Media (pre-publish):** Imágenes y video local se guardan como data URLs dentro del JSON del borrador en
- * `sessionStorage` (cuota del navegador). No hay adjunto final a MUX/CDN en este paso: la publicación copia el snapshot
- * (`listing_json`) cuando Supabase está configurado; hasta entonces todo es local a la sesión.
+ * Heavy `data:` media is stored in IndexedDB; JSON in sessionStorage holds refs + form fields.
  */
 export const RESTAURANTES_DRAFT_STORAGE_KEY = "restaurantes-draft";
 
@@ -28,6 +29,11 @@ function removeLegacyLocalDraft(): void {
   }
 }
 
+function draftMediaNamespace(d: RestauranteListingDraft): string {
+  return `rt-${d.draftListingId}`;
+}
+
+/** Sync read: compact JSON (may contain `__LX_RT_IDB__` refs or legacy inline data URLs). */
 export function loadRestauranteDraftFromStorage(): RestauranteListingDraft | null {
   if (typeof window === "undefined") return null;
   try {
@@ -57,6 +63,17 @@ export function loadRestauranteDraftFromStorage(): RestauranteListingDraft | nul
   }
 }
 
+/** Full rehydration for editor/preview (merges JSON + IndexedDB blobs). */
+export async function loadRestauranteDraftFromStorageResolved(): Promise<RestauranteListingDraft | null> {
+  const sync = loadRestauranteDraftFromStorage();
+  if (!sync) return null;
+  try {
+    return await inlineRestauranteDraftMedia(draftMediaNamespace(sync), sync);
+  } catch {
+    return sync;
+  }
+}
+
 export function saveRestauranteDraftToStorage(draft: RestauranteListingDraft): boolean {
   if (typeof window === "undefined") return false;
   try {
@@ -69,6 +86,13 @@ export function saveRestauranteDraftToStorage(draft: RestauranteListingDraft): b
   }
 }
 
+/** Offload large `data:` payloads to IndexedDB, then persist JSON. */
+export async function saveRestauranteDraftToStorageResolved(draft: RestauranteListingDraft): Promise<boolean> {
+  const ns = draftMediaNamespace(draft);
+  const stripped = await offloadRestauranteDraftMedia(ns, draft);
+  return saveRestauranteDraftToStorage(stripped);
+}
+
 export function clearRestauranteDraftStorage(): void {
   if (typeof window === "undefined") return;
   try {
@@ -79,8 +103,22 @@ export function clearRestauranteDraftStorage(): void {
   }
 }
 
-export function resetRestauranteDraftInStorage(): RestauranteListingDraft {
+/** Remove session JSON and all IndexedDB blobs for the current draft id. */
+export async function clearRestauranteDraftStorageAndIdb(): Promise<void> {
+  const cur = loadRestauranteDraftFromStorage();
+  clearRestauranteDraftStorage();
+  if (cur?.draftListingId) {
+    await clearRestauranteDraftMediaNamespace(draftMediaNamespace(cur));
+  }
+}
+
+export async function resetRestauranteDraftInStorage(): Promise<RestauranteListingDraft> {
+  const before = loadRestauranteDraftFromStorage();
   const next = createEmptyRestauranteDraft();
+  clearRestauranteDraftStorage();
+  if (before?.draftListingId) {
+    await clearRestauranteDraftMediaNamespace(draftMediaNamespace(before));
+  }
   saveRestauranteDraftToStorage(next);
   return next;
 }

@@ -13,7 +13,7 @@ import type { ServiciosApplicationDraft } from "@/app/servicios/types/serviciosA
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationTypes";
 import { normalizeClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationNormalize";
-import { readClasificadosServiciosApplicationFromBrowser } from "../lib/clasificadosServiciosStorage";
+import { loadClasificadosServiciosApplicationResolved } from "../lib/clasificadosServiciosStorage";
 import { mapClasificadosServiciosApplicationToServiciosDraft } from "../lib/mapClasificadosServiciosApplicationToServiciosDraft";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
 
@@ -51,17 +51,24 @@ export function ClasificadosServiciosPreviewClient() {
       setAppState(null);
       return;
     }
-    const raw = readClasificadosServiciosApplicationFromBrowser();
-    if (raw == null) {
-      setSource("expert");
-      setAppDraft(null);
-      setAppState(null);
-      return;
-    }
-    const normalized = normalizeClasificadosServiciosApplicationState(raw);
-    setAppState(normalized);
-    setAppDraft(mapClasificadosServiciosApplicationToServiciosDraft(normalized, lang));
-    setSource("application");
+    let cancelled = false;
+    void (async () => {
+      const raw = await loadClasificadosServiciosApplicationResolved();
+      if (cancelled) return;
+      if (raw == null) {
+        setSource("expert");
+        setAppDraft(null);
+        setAppState(null);
+        return;
+      }
+      const normalized = normalizeClasificadosServiciosApplicationState(raw);
+      setAppState(normalized);
+      setAppDraft(mapClasificadosServiciosApplicationToServiciosDraft(normalized, lang));
+      setSource("application");
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [lang, forceExpert]);
 
   const previewReadiness = useMemo(() => {
