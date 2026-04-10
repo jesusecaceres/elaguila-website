@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { AUTOS_PUBLIC_BLUEPRINT_COPY } from "../../lib/autosPublicBlueprintCopy";
 import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
 import { parseAutosBrowseUrl, serializeAutosBrowseUrl, type AutosBrowseUrlBundle } from "../../filters/autosBrowseFilterContract";
 import { emptyAutosPublicFilters } from "../../filters/autosPublicFilterTypes";
-import { getFeaturedDealerListings, getStandardListings } from "../../data/sampleAutosPublicInventory";
 import { AutosPublicFeaturedCard } from "./AutosPublicFeaturedCard";
 import { AutosPublicStandardCard } from "./AutosPublicStandardCard";
 import { useAutosPublicListingsFetch } from "./useAutosPublicListingsFetch";
@@ -20,6 +19,10 @@ import {
   type AutosPublicSortKey,
 } from "./autosPublicFilters";
 import { AutosPublicFilterRail, type AutosPublicFilterOptions } from "./AutosPublicFilterRail";
+import { partitionAutosResultsVisibility } from "../../lib/autosPublicResultsVisibility";
+import { AutosPublicResultsActiveFilters } from "./AutosPublicResultsActiveFilters";
+import { AutosGeolocationButton } from "./AutosGeolocationButton";
+
 const RESULTADOS_PATH = "/clasificados/autos/resultados";
 const PAGE_SIZE = 9;
 
@@ -84,8 +87,12 @@ export function AutosPublicResultsShell() {
 
   const sorted = useMemo(() => sortAutosPublicListings(filtered, applied.sort), [filtered, applied.sort]);
 
-  const featuredBand = useMemo(() => getFeaturedDealerListings(sorted), [sorted]);
-  const gridListings = useMemo(() => getStandardListings(sorted), [sorted]);
+  const { featuredDealerBand, recentLane, mainGridPool } = useMemo(
+    () => partitionAutosResultsVisibility(sorted, applied.sort),
+    [sorted, applied.sort],
+  );
+
+  const gridListings = mainGridPool;
 
   const totalPages = Math.max(1, Math.ceil(gridListings.length / PAGE_SIZE));
   const currentPage = Math.min(Math.max(1, applied.page), totalPages);
@@ -114,7 +121,8 @@ export function AutosPublicResultsShell() {
   const resetFiltersUrl = useCallback(() => {
     const empty = emptyAutosPublicFilters();
     setDraftFilters(empty);
-    pushBundle({ ...applied, filters: empty, page: 1 });
+    setQDraft("");
+    pushBundle({ ...applied, filters: empty, q: "", page: 1 });
     setMobileFiltersOpen(false);
   }, [applied, pushBundle]);
 
@@ -125,12 +133,18 @@ export function AutosPublicResultsShell() {
     [applied, pushBundle],
   );
 
+  const displayCity = useMemo(() => {
+    const raw = applied.filters.city.trim();
+    return getCanonicalCityName(raw) || raw || "San Jose";
+  }, [applied.filters.city]);
+
   const nearLine = useMemo(() => {
     const cityQ = applied.filters.city.trim();
     const zip5 = applied.filters.zip.replace(/\D/g, "").slice(0, 5);
     if (cityQ) {
-      const hit = sorted.find((x) => x.city.toLowerCase().includes(cityQ.toLowerCase()));
-      return copy.resultsNear.replace("{city}", hit?.city ?? cityQ).replace("{state}", hit?.state ?? "CA");
+      const canon = getCanonicalCityName(cityQ) || cityQ;
+      const hit = sorted.find((x) => listingCityMatchesCanon(x.city, canon));
+      return copy.resultsNear.replace("{city}", hit ? getCanonicalCityName(hit.city) || hit.city : canon).replace("{state}", hit?.state ?? "CA");
     }
     if (zip5.length === 5) {
       const hit = sorted.find((x) => x.zip === zip5);
@@ -139,12 +153,26 @@ export function AutosPublicResultsShell() {
     return copy.resultsNear.replace("{city}", "San Jose").replace("{state}", "CA");
   }, [applied.filters.city, applied.filters.zip, copy.resultsNear, sorted]);
 
-  const pageQs = (page: number) =>
-    `${RESULTADOS_PATH}?${serializeAutosBrowseUrl({ ...applied, page })}`;
+  const featuredTitle = useMemo(
+    () => copy.featuredZoneTitle.replace("{city}", displayCity).replace("{state}", "CA"),
+    [copy.featuredZoneTitle, displayCity],
+  );
+
+  const pageQs = (page: number) => `${RESULTADOS_PATH}?${serializeAutosBrowseUrl({ ...applied, page })}`;
+
+  const onGeoResolved = useCallback(
+    (patch: { city: string; zip: string }) => {
+      const city = patch.city.trim();
+      const zip = patch.zip.replace(/\D/g, "").slice(0, 5);
+      const nextFilters = { ...applied.filters, city, zip };
+      setDraftFilters(nextFilters);
+      pushBundle({ ...applied, filters: nextFilters, page: 1 });
+    },
+    [applied, pushBundle],
+  );
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] pb-[calc(6rem+env(safe-area-inset-bottom,0px))] text-[color:var(--lx-text)]">
-      <Navbar />
       <div className="border-b border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-bg)] backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
           <nav className="text-[11px] font-medium text-[color:var(--lx-muted)]">
@@ -177,53 +205,108 @@ export function AutosPublicResultsShell() {
 
       <div className="mx-auto max-w-7xl px-[max(1rem,env(safe-area-inset-left))] py-6 pr-[max(1rem,env(safe-area-inset-right))] sm:px-5 lg:py-8">
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-3xl">{copy.resultsTitle}</h1>
             <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{nearLine}</p>
             <p className="mt-2 text-sm font-semibold text-[color:var(--lx-text-2)]">
               {copy.resultCount.replace("{n}", String(resultCount))}
             </p>
+            <p className="mt-1 text-[11px] text-[color:var(--lx-muted)]">{copy.resultsControlHint}</p>
           </div>
-          <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-            <div className="relative min-w-0 flex-1 sm:max-w-md">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--lx-muted)]" aria-hidden>
-                ⌕
-              </span>
-              <input
-                className="w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] py-2.5 pl-9 pr-3 text-sm outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2"
-                value={qDraft}
-                onChange={(e) => setQDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    pushBundle({ ...applied, q: qDraft.trim(), page: 1 });
-                  }
-                }}
-                placeholder={copy.searchPlaceholder}
-                aria-label={copy.searchPlaceholder}
-              />
+        </div>
+
+        <div className="mb-5 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:gap-4">
+            <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="min-w-0 sm:col-span-2 lg:col-span-1">
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]" htmlFor="autos-res-q">
+                  {copy.heroSearchFieldLabel}
+                </label>
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--lx-muted)]" aria-hidden>
+                    ⌕
+                  </span>
+                  <input
+                    id="autos-res-q"
+                    className="min-h-[44px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] py-2.5 pl-9 pr-3 text-sm outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2"
+                    value={qDraft}
+                    onChange={(e) => setQDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        applyDraftToUrl();
+                      }
+                    }}
+                    placeholder={copy.searchPlaceholder}
+                    aria-label={copy.searchPlaceholder}
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+              <div className="min-w-0">
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]" htmlFor="autos-res-city">
+                  {copy.cityLabel}
+                </label>
+                <input
+                  id="autos-res-city"
+                  className="min-h-[44px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
+                  value={draftFilters.city}
+                  onChange={(e) => patchDraft({ city: e.target.value })}
+                  placeholder={copy.cityPlaceholder}
+                  autoComplete="address-level2"
+                />
+              </div>
+              <div className="min-w-0">
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]" htmlFor="autos-res-zip">
+                  {copy.zipLabel}
+                </label>
+                <input
+                  id="autos-res-zip"
+                  className="min-h-[44px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
+                  inputMode="numeric"
+                  maxLength={5}
+                  value={draftFilters.zip}
+                  onChange={(e) => patchDraft({ zip: e.target.value.replace(/\D/g, "").slice(0, 5) })}
+                  placeholder={copy.zipPlaceholder}
+                  autoComplete="postal-code"
+                />
+              </div>
             </div>
-            <label className="flex shrink-0 items-center gap-2 text-sm text-[color:var(--lx-text-2)]">
-              <span className="whitespace-nowrap font-medium">{copy.sortLabel}</span>
-              <select
-                className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-sm font-medium outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
-                value={applied.sort}
-                onChange={(e) => setSortUrl(e.target.value as AutosPublicSortKey)}
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center xl:w-auto xl:shrink-0">
+              <AutosGeolocationButton copy={copy} onResolved={onGeoResolved} className="w-full sm:w-auto" />
+              <button
+                type="button"
+                className="min-h-[44px] w-full rounded-xl bg-[color:var(--lx-cta-dark)] px-5 text-sm font-bold text-[#FFFCF7] shadow-sm sm:w-auto"
+                onClick={applyDraftToUrl}
               >
-                <option value="newest">{copy.sortNewest}</option>
-                <option value="priceAsc">{copy.sortPriceLow}</option>
-                <option value="priceDesc">{copy.sortPriceHigh}</option>
-                <option value="mileage">{copy.sortMileage}</option>
-              </select>
-            </label>
-            <button
-              type="button"
-              className="flex min-h-[44px] shrink-0 items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] px-4 text-sm font-bold text-[color:var(--lx-text)] shadow-sm lg:hidden"
-              onClick={() => setMobileFiltersOpen(true)}
-            >
-              {copy.filtersOpen}
-            </button>
+                {copy.searchCta}
+              </button>
+              <label className="flex w-full min-w-0 shrink-0 items-center gap-2 text-sm text-[color:var(--lx-text-2)] sm:w-auto">
+                <span className="whitespace-nowrap font-medium">{copy.sortLabel}</span>
+                <select
+                  className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2 text-sm font-medium outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
+                  value={applied.sort}
+                  onChange={(e) => setSortUrl(e.target.value as AutosPublicSortKey)}
+                >
+                  <option value="newest">{copy.sortNewest}</option>
+                  <option value="priceAsc">{copy.sortPriceLow}</option>
+                  <option value="priceDesc">{copy.sortPriceHigh}</option>
+                  <option value="mileage">{copy.sortMileage}</option>
+                </select>
+              </label>
+              <button
+                type="button"
+                className="flex min-h-[44px] w-full shrink-0 items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] px-4 text-sm font-bold text-[color:var(--lx-text)] shadow-sm lg:hidden"
+                onClick={() => setMobileFiltersOpen(true)}
+              >
+                {copy.filtersOpen}
+              </button>
+            </div>
           </div>
+        </div>
+
+        <div className="mb-5">
+          <AutosPublicResultsActiveFilters bundle={applied} pushBundle={pushBundle} copy={copy} />
         </div>
 
         <div className="flex gap-8 lg:gap-10">
@@ -243,19 +326,37 @@ export function AutosPublicResultsShell() {
           </aside>
 
           <div className="min-w-0 flex-1">
-            {featuredBand.length > 0 ? (
+            {featuredDealerBand.length > 0 ? (
               <section className="mb-10">
-                <h2 className="mb-4 text-lg font-bold text-[color:var(--lx-text)]">{copy.featuredZoneTitle}</h2>
+                <h2 className="mb-1 text-lg font-bold text-[color:var(--lx-text)]">{featuredTitle}</h2>
+                <p className="mb-4 text-xs text-[color:var(--lx-muted)]">
+                  {lang === "es"
+                    ? "Zona reservada para inventario de concesionarios promocionado — el resto del listado mezcla particulares y dealers con visibilidad equitativa."
+                    : "Reserved zone for promoted dealership inventory — the rest of the feed mixes private and dealer listings fairly."}
+                </p>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-4">
-                  {featuredBand.map((l) => (
+                  {featuredDealerBand.map((l) => (
                     <AutosPublicFeaturedCard key={l.id} listing={l} copy={copy} lang={lang} />
                   ))}
                 </div>
               </section>
             ) : null}
 
+            {recentLane.length > 0 ? (
+              <section className="mb-10">
+                <h2 className="mb-4 text-base font-bold text-[color:var(--lx-text)]">{copy.resultsRecentSection}</h2>
+                <div className="-mx-1 flex gap-4 overflow-x-auto pb-2 pl-1 pr-1 pt-1 [scrollbar-width:thin]">
+                  {recentLane.map((l) => (
+                    <div key={l.id} className="w-[min(18rem,calc(100vw-2.5rem))] shrink-0">
+                      <AutosPublicStandardCard listing={l} copy={copy} lang={lang} compact />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
             <section>
-              <h2 className="sr-only">{copy.resultsTitle}</h2>
+              <h2 className="mb-4 text-base font-bold text-[color:var(--lx-text)]">{copy.resultsMainSection}</h2>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {pagedGrid.map((l) => (
                   <AutosPublicStandardCard key={l.id} listing={l} copy={copy} lang={lang} />
@@ -366,4 +467,9 @@ export function AutosPublicResultsShell() {
       ) : null}
     </div>
   );
+}
+
+function listingCityMatchesCanon(listingCity: string, canon: string): boolean {
+  const a = getCanonicalCityName(listingCity) || listingCity.trim();
+  return a.toLowerCase() === canon.toLowerCase();
 }

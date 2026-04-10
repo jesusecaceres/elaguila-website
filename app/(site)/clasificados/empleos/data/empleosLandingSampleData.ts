@@ -131,6 +131,20 @@ export const sampleCompanyTypeOptions: readonly { value: string; label: string }
   { value: "enterprise", label: "Gran empresa / corporativo" },
 ];
 
+/** US state (value = USPS code). Expand with full 50-state list when live data covers national inventory. */
+export const sampleUsStateSelectOptions: readonly { value: string; labelEs: string; labelEn: string }[] = [
+  { value: "", labelEs: "Todos los estados", labelEn: "All states" },
+  { value: "CA", labelEs: "California", labelEn: "California" },
+  { value: "TX", labelEs: "Texas", labelEn: "Texas" },
+  { value: "FL", labelEs: "Florida", labelEn: "Florida" },
+  { value: "NY", labelEs: "Nueva York", labelEn: "New York" },
+  { value: "AZ", labelEs: "Arizona", labelEn: "Arizona" },
+  { value: "NV", labelEs: "Nevada", labelEn: "Nevada" },
+  { value: "OR", labelEs: "Oregón", labelEn: "Oregon" },
+  { value: "WA", labelEs: "Washington", labelEn: "Washington" },
+  { value: "IL", labelEs: "Illinois", labelEn: "Illinois" },
+];
+
 /** Fixed “now” for stable relative time labels at build/prerender. */
 const LANDING_TIME_REF = new Date("2026-04-10T18:00:00.000Z");
 

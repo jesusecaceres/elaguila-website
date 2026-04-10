@@ -12,8 +12,11 @@ import {
   sampleCategorySelectOptions,
   sampleJobTypeSelectOptions,
   samplePopularSearches,
+  sampleUsStateSelectOptions,
 } from "../../data/empleosLandingSampleData";
+import { EmpleosUseLocationButton } from "../EmpleosUseLocationButton";
 import { EMPLEOS_CTA_PRIMARY, EMPLEOS_FIELD } from "../../lib/empleosPremiumUi";
+import { normalizeZip5 } from "../../lib/empleosResultsQuery";
 import { buildEmpleosResultadosUrl } from "../../shared/utils/empleosListaUrl";
 
 /** Wide workplace photo — hero atmosphere (distinct from En Venta property imagery). */
@@ -31,19 +34,24 @@ export function HeroAndSearch({ lang }: Props) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [zip, setZip] = useState("");
   const [category, setCategory] = useState("");
   const [jobType, setJobType] = useState("");
 
   const submit = useCallback(() => {
+    const z = normalizeZip5(zip);
     router.push(
       buildEmpleosResultadosUrl(lang, {
         q: q.trim() || undefined,
         city: city.trim() || undefined,
+        state: state.trim() || undefined,
+        zip: z.length === 5 ? z : undefined,
         category: category || undefined,
         jobType: jobType || undefined,
       }),
     );
-  }, [router, lang, q, city, category, jobType]);
+  }, [router, lang, q, city, state, zip, category, jobType]);
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -134,8 +142,8 @@ export function HeroAndSearch({ lang }: Props) {
       {/* Search: separated band — no negative overlap with hero body */}
       <div className="relative border-t border-[#E8DFD0]/70 bg-[#FFFBF7]/97 px-4 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] backdrop-blur-md sm:px-6 sm:py-6 lg:px-9 xl:px-11">
         <form onSubmit={onSubmit} className="relative z-10 mx-auto max-w-[1400px]">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12 xl:items-end xl:gap-x-4 xl:gap-y-4">
-            <label className="min-w-0 sm:col-span-2 xl:col-span-3">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-12 xl:items-end xl:gap-x-4 xl:gap-y-4">
+            <label className="min-w-0 xl:col-span-5">
               <span className="mb-1.5 block text-xs font-semibold text-[#4A4744]">
                 {lang === "es" ? "¿Qué trabajo buscas?" : "What job are you looking for?"}
               </span>
@@ -153,14 +161,14 @@ export function HeroAndSearch({ lang }: Props) {
 
             <label className="min-w-0 sm:col-span-1 xl:col-span-3">
               <span className="mb-1.5 block text-xs font-semibold text-[#4A4744]">
-                {lang === "es" ? "Ciudad o ubicación" : "City or location"}
+                {lang === "es" ? "Ciudad" : "City"}
               </span>
               <span className="relative block">
                 <FaMapMarkerAlt className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5B6F82]" aria-hidden />
                 <input
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  placeholder={lang === "es" ? "Ej: Downey, CA o 90241" : "e.g. Downey, CA or 90241"}
+                  placeholder={lang === "es" ? "Ej: Downey" : "e.g. Downey"}
                   className={`${fieldClass} py-3 pl-10 pr-3 placeholder:text-[#7A756E]`}
                   autoComplete="address-level2"
                 />
@@ -168,6 +176,30 @@ export function HeroAndSearch({ lang }: Props) {
             </label>
 
             <label className="min-w-0 sm:col-span-1 xl:col-span-2">
+              <span className="mb-1.5 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Estado" : "State"}</span>
+              <select value={state} onChange={(e) => setState(e.target.value)} className={fieldClass}>
+                {sampleUsStateSelectOptions.map((o) => (
+                  <option key={o.value || "all"} value={o.value}>
+                    {lang === "es" ? o.labelEs : o.labelEn}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="min-w-0 sm:col-span-1 xl:col-span-2">
+              <span className="mb-1.5 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "CP (ZIP)" : "ZIP code"}</span>
+              <input
+                value={zip}
+                inputMode="numeric"
+                onChange={(e) => setZip(normalizeZip5(e.target.value))}
+                placeholder={lang === "es" ? "Ej: 90241" : "e.g. 90241"}
+                maxLength={5}
+                className={`${fieldClass} placeholder:text-[#7A756E]`}
+                autoComplete="postal-code"
+              />
+            </label>
+
+            <label className="min-w-0 sm:col-span-1 xl:col-span-3">
               <span className="mb-1.5 block text-xs font-semibold text-[#4A4744]">
                 {lang === "es" ? "Categoría / Industria" : "Category / industry"}
               </span>
@@ -180,7 +212,7 @@ export function HeroAndSearch({ lang }: Props) {
               </select>
             </label>
 
-            <label className="min-w-0 sm:col-span-1 xl:col-span-2">
+            <label className="min-w-0 sm:col-span-1 xl:col-span-3">
               <span className="mb-1.5 block text-xs font-semibold text-[#4A4744]">
                 {lang === "es" ? "Tipo de empleo" : "Employment type"}
               </span>
@@ -193,7 +225,18 @@ export function HeroAndSearch({ lang }: Props) {
               </select>
             </label>
 
-            <div className="sm:col-span-1 xl:col-span-2">
+            <div className="min-w-0 sm:col-span-2 xl:col-span-3">
+              <EmpleosUseLocationButton
+                lang={lang}
+                onFilled={(p) => {
+                  setCity(p.city);
+                  setState(p.state);
+                  setZip(p.zip);
+                }}
+              />
+            </div>
+
+            <div className="min-w-0 sm:col-span-1 xl:col-span-3">
               <span className="mb-1.5 hidden text-xs font-semibold text-transparent xl:block" aria-hidden>
                 &nbsp;
               </span>

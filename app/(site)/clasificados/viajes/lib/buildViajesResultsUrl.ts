@@ -1,30 +1,48 @@
+import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+
+import {
+  buildViajesBrowseUrl,
+  buildViajesResultsUrlCompat,
+  defaultViajesBrowseState,
+  legacyQueryToBrowseState,
+  type ViajesBrowseState,
+} from "./viajesBrowseContract";
+
+const DEFAULT_BASE = "/clasificados/viajes/resultados";
+
+/** @deprecated Use `ViajesBrowseState` from `viajesBrowseContract` */
 export type ViajesResultsQuery = {
   destination?: string;
+  destinationQuery?: string;
   departure?: string;
   tripType?: string;
   budget?: string;
   audience?: string;
-  lang?: "es" | "en";
+  lang?: Lang;
+  sort?: ViajesBrowseState["sort"];
+  originByGeo?: boolean;
 };
 
-const DEFAULT_BASE = "/clasificados/viajes/resultados";
-
 /**
- * Build results URL with stable query keys (`dest`, `from`, `t`, `budget`, `audience`, `lang`).
+ * Build results URL with stable query keys (`dest`, `q`, `from`, `t`, `budget`, `audience`, `lang`, …).
+ * Delegates to the shared Viajes browse contract.
  */
 export function buildViajesResultsUrl(query: ViajesResultsQuery, basePath: string = DEFAULT_BASE): string {
-  const q = new URLSearchParams();
-  if (query.lang) q.set("lang", query.lang);
-  const dest = query.destination?.trim();
-  if (dest) q.set("dest", dest);
-  const from = query.departure?.trim();
-  if (from) q.set("from", from);
-  const t = query.tripType?.trim();
-  if (t) q.set("t", t);
-  const budget = query.budget?.trim();
-  if (budget) q.set("budget", budget);
-  const audience = query.audience?.trim();
-  if (audience) q.set("audience", audience);
-  const qs = q.toString();
-  return qs ? `${basePath}?${qs}` : basePath;
+  return buildViajesResultsUrlCompat(
+    {
+      destination: query.destination,
+      destinationQuery: query.destinationQuery,
+      departure: query.departure,
+      tripType: query.tripType,
+      budget: query.budget,
+      audience: query.audience,
+      lang: query.lang,
+      sort: query.sort,
+      originByGeo: query.originByGeo,
+    },
+    basePath
+  );
 }
+
+export { buildViajesBrowseUrl, defaultViajesBrowseState, legacyQueryToBrowseState };
+export type { ViajesBrowseState };

@@ -112,8 +112,8 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
   const hrefBrowseNear = buildEnVentaResultsUrl(lang, { city: DEFAULT_CITY });
   const hrefBrowseShip = buildEnVentaResultsUrl(lang, { ship: "1" });
   const hrefBrowsePickup = buildEnVentaResultsUrl(lang, { pickup: "1" });
-  /** Results surface shows boosted listings first when present; no separate boost URL param. */
-  const hrefBrowseFeatured = buildEnVentaResultsUrl(lang);
+  /** Featured-only browse: `featured=1` matches active `boost_expires` (Pro visibility). */
+  const hrefBrowseFeatured = buildEnVentaResultsUrl(lang, { featured: "1" });
   const hrefSellerIndividual = buildEnVentaResultsUrl(lang, { seller: "individual" });
   const hrefSellerBusiness = buildEnVentaResultsUrl(lang, { seller: "business" });
 
@@ -160,7 +160,7 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
           <div className="absolute inset-0 min-h-[240px] sm:min-h-[260px] md:min-h-[280px] lg:min-h-[300px]">
             <HeroBackdrop src={backdropSrc} />
             <div
-              className="absolute inset-0 bg-gradient-to-b from-[#F8F1E4]/90 via-[#F5EFE3]/80 to-[#F3EBDD]/95 max-md:from-[#F8F1E4]/92"
+              className="absolute inset-0 bg-gradient-to-b from-[#F8F1E4]/86 via-[#F5EFE3]/74 to-[#F3EBDD]/92 max-md:from-[#F8F1E4]/88"
               aria-hidden
             />
             <div
@@ -173,7 +173,7 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
             />
           </div>
 
-          <div className="relative z-10 mx-auto flex w-full min-w-0 max-w-3xl flex-col items-center px-3 pb-8 pt-6 text-center sm:max-w-none sm:px-6 sm:pb-12 sm:pt-10 md:px-8 md:pb-14 md:pt-12 lg:pb-16 lg:pt-14">
+          <div className="relative z-10 mx-auto flex w-full min-w-0 max-w-3xl flex-col items-center px-3 pb-7 pt-5 text-center sm:max-w-none sm:px-6 sm:pb-11 sm:pt-9 md:px-8 md:pb-12 md:pt-11 lg:pb-14 lg:pt-12">
             <span
               className={cx(
                 "mb-4 inline-flex min-h-[36px] items-center rounded-full px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white sm:mb-5",
@@ -205,9 +205,9 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
               role="search"
             >
               <input type="hidden" name="lang" value={lang} />
-              <div
+                <div
                 className={cx(
-                  "flex flex-col gap-0 overflow-hidden rounded-[22px] border border-white/85 bg-white/92 shadow-[0_18px_56px_-20px_rgba(47,74,101,0.35),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-md",
+                  "flex flex-col gap-0 overflow-hidden rounded-[22px] border border-white/80 bg-white/[0.94] shadow-[0_14px_48px_-22px_rgba(47,74,101,0.22),inset_0_1px_0_rgba(255,255,255,0.92)] backdrop-blur-md",
                   "md:rounded-[24px]",
                   "xl:flex-row xl:items-stretch xl:rounded-full"
                 )}
@@ -284,8 +284,8 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
         </section>
 
         {/* Success layer: seller trust + browse chips + results handoff (all links real) */}
-        <section className="mt-7 sm:mt-10" aria-label={lang === "es" ? "Cómo explorar En Venta" : "How to explore For Sale"}>
-          <div className="rounded-[22px] border border-white/75 bg-[#FFFCF7]/90 px-4 py-3.5 shadow-[0_10px_36px_-16px_rgba(47,74,101,0.14)] sm:px-6 sm:py-5">
+        <section className="mt-8 sm:mt-10" aria-label={lang === "es" ? "Cómo explorar En Venta" : "How to explore For Sale"}>
+          <div className="rounded-[22px] border border-white/70 bg-[#FFFCF7]/92 px-4 py-4 shadow-[0_8px_32px_-14px_rgba(47,74,101,0.12)] sm:px-6 sm:py-5">
             <p className="text-center text-[14px] leading-snug text-[#2C2416] sm:text-[15px] sm:leading-relaxed">{t.sellerTrust}</p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
               <Link

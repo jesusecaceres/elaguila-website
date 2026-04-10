@@ -61,17 +61,22 @@ export function AutosPublicStandardCard({
         <p className="text-xs text-[color:var(--lx-text-2)]">
           {formatAutosMiles(listing.mileage)} · {loc}
         </p>
-        <div className="mt-auto flex items-center justify-between gap-2 border-t border-[color:var(--lx-nav-border)] pt-2.5">
-          <span className="truncate text-[11px] font-semibold text-[color:var(--lx-text-2)]">{sellerLabel}</span>
-          <span
-            className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
-              listing.sellerType === "dealer"
-                ? "border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] text-[color:var(--lx-text-2)]"
-                : "bg-[color:var(--lx-section)] text-[color:var(--lx-muted)]"
-            }`}
-          >
-            {listing.sellerType === "dealer" ? copy.sellerDealerFooter : copy.sellerPrivateFooter}
-          </span>
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-[color:var(--lx-nav-border)] pt-2.5">
+          <span className="min-w-0 truncate text-[11px] font-semibold text-[color:var(--lx-text-2)]">{sellerLabel}</span>
+          <div className="flex shrink-0 items-center gap-2">
+            <span
+              className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
+                listing.sellerType === "dealer"
+                  ? "border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] text-[color:var(--lx-text-2)]"
+                  : "bg-[color:var(--lx-section)] text-[color:var(--lx-muted)]"
+              }`}
+            >
+              {listing.sellerType === "dealer" ? copy.sellerDealerFooter : copy.sellerPrivateFooter}
+            </span>
+            <span className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-2.5 py-1 text-[10px] font-bold text-[color:var(--lx-text)]">
+              {copy.cardViewDetails}
+            </span>
+          </div>
         </div>
       </div>
     </Link>

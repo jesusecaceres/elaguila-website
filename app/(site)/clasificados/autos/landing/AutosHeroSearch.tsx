@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { FaSearch } from "react-icons/fa";
+import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import type { AutosPublicBlueprintCopy } from "../lib/autosPublicBlueprintCopy";
+import { AutosGeolocationButton } from "../components/public/AutosGeolocationButton";
 import { autosLandingSectionClass } from "./autosLandingLayout";
 
 export function AutosHeroSearch({
@@ -61,7 +63,7 @@ export function AutosHeroSearch({
             </div>
           </div>
 
-          <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto] xl:gap-4 xl:pl-5 2xl:pl-6">
+          <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(11rem,14rem)_auto] xl:gap-4 xl:pl-5 2xl:pl-6">
             <div className="min-w-0 sm:col-span-1">
               <label className="mb-1 block text-left text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]" htmlFor="autos-landing-city">
                 {copy.cityLabel}
@@ -92,7 +94,21 @@ export function AutosHeroSearch({
                 autoComplete="postal-code"
               />
             </div>
-            <div className="hidden items-end xl:flex">
+            <div className="flex flex-col gap-1 sm:col-span-2 xl:col-span-1">
+              <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)] xl:hidden">
+                {copy.resultsUseLocation}
+              </span>
+              <AutosGeolocationButton
+                copy={copy}
+                className="w-full sm:max-w-xs"
+                onResolved={({ city: c, zip: z }) => {
+                  const canon = c.trim() ? getCanonicalCityName(c.trim()) || c.trim() : "";
+                  setCity(canon || c);
+                  setZip(z.replace(/\D/g, "").slice(0, 5));
+                }}
+              />
+            </div>
+            <div className="hidden items-end xl:flex xl:col-span-1">
               <p className="pb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">{copy.heroRadiusShort}</p>
             </div>
           </div>

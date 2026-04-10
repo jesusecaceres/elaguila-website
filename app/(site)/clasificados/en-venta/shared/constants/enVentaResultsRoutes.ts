@@ -3,6 +3,7 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 /** Category-owned En Venta browse/search surface (not the landing page). */
 export const EN_VENTA_RESULTS_PATH = "/clasificados/en-venta/results";
 
+/** Builds `/clasificados/en-venta/results` with optional filters (`evDept`, `evSub`, `city`, `zip`, `featured`, etc.). */
 export function buildEnVentaResultsUrl(lang: Lang, extra?: Record<string, string | undefined>): string {
   const sp = new URLSearchParams();
   sp.set("lang", lang);

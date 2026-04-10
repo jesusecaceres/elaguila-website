@@ -71,6 +71,24 @@ export function ServiciosResultsActiveSummary({
       label: lang === "en" ? "Contact: Phone listed" : "Contacto: Teléfono en vitrina",
     });
   }
+  if (query.verified === "1") {
+    items.push({
+      key: "verified",
+      label: lang === "en" ? "Leonix verified only" : "Solo verificados Leonix",
+    });
+  }
+  if (query.web === "1") {
+    items.push({
+      key: "web",
+      label: lang === "en" ? "Has website on profile" : "Con sitio web en vitrina",
+    });
+  }
+  if (query.bilingual === "1") {
+    items.push({
+      key: "bilingual",
+      label: lang === "en" ? "Bilingual quick-fact" : "Dato rápido bilingüe",
+    });
+  }
 
   if (items.length === 0) return null;
 

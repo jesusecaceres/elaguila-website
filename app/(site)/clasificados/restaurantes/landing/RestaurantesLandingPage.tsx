@@ -227,43 +227,46 @@ export function RestaurantesLandingPage() {
         </div>
       </div>
 
-      <header className="mx-auto max-w-[1280px] space-y-6 px-4 pb-8 pt-6 sm:px-5 sm:pb-12 sm:pt-8 md:pb-14 md:pt-9 lg:px-6 lg:space-y-8 lg:pb-16">
+      <header className="mx-auto max-w-[1280px] space-y-5 px-4 pb-8 pt-5 sm:space-y-6 sm:px-5 sm:pb-11 sm:pt-7 md:space-y-7 md:pb-12 md:pt-8 lg:px-6 lg:space-y-8 lg:pb-14">
         <CategoryHeroFrame
           imageSrc={RESTAURANTES_HERO_IMAGE}
           overlay="leonix-cream"
           contentJustify="center"
-          minHeightClass="min-h-[min(34vh,280px)] sm:min-h-[min(38vh,340px)] md:min-h-[min(40vh,380px)] lg:min-h-[min(42vh,420px)]"
-          objectClassName="object-cover object-[center_42%] sm:object-[center_40%] md:object-[center_38%]"
+          minHeightClass="min-h-[min(32vh,260px)] sm:min-h-[min(36vh,320px)] md:min-h-[min(38vh,360px)] lg:min-h-[min(40vh,400px)]"
+          objectClassName="object-cover object-[center_44%] sm:object-[center_40%] md:object-[center_38%]"
           contentClassName="text-center"
         >
           <div className="mx-auto w-full max-w-3xl">
-            <h1 className="text-balance font-serif text-[clamp(1.55rem,3.5vw+0.5rem,2.55rem)] font-semibold leading-[1.12] tracking-tight text-[#2D241E] drop-shadow-[0_1px_0_rgba(255,252,247,0.88)]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#5c4a3d]/80 sm:text-[11px]">
+              {lang === "en" ? "Dining · Leonix" : "Restaurantes · Leonix"}
+            </p>
+            <h1 className="mt-2 text-balance font-serif text-[clamp(1.55rem,3.5vw+0.5rem,2.55rem)] font-semibold leading-[1.12] tracking-tight text-[#2D241E] drop-shadow-[0_1px_0_rgba(255,252,247,0.88)] sm:mt-2.5">
               {copy.heroLead}
               <span className="font-serif font-semibold" style={{ color: ACCENT }}>
                 {copy.heroAccent}
               </span>
             </h1>
-            <p className="mx-auto mt-3 max-w-2xl text-[0.9375rem] leading-relaxed text-[#2D241E]/88 sm:mt-4 sm:text-base">
+            <p className="mx-auto mt-3 max-w-2xl text-[0.9375rem] leading-relaxed text-[#2D241E]/86 sm:mt-3.5 sm:text-base">
               {copy.heroSub}
             </p>
           </div>
         </CategoryHeroFrame>
 
-        <div className="mx-auto max-w-[960px] rounded-[20px] border border-[#2D241E]/[0.1] bg-[#FFFCF7]/95 p-4 shadow-[0_20px_56px_-28px_rgba(45,36,30,0.45)] backdrop-blur-sm sm:rounded-[22px] sm:p-5 md:p-6 lg:rounded-[24px]">
+        <div className="mx-auto max-w-[960px] rounded-[20px] border border-[#2D241E]/[0.08] bg-[#FFFCF7]/97 p-4 shadow-[0_14px_44px_-26px_rgba(45,36,30,0.28)] backdrop-blur-sm sm:rounded-[22px] sm:p-5 md:p-6 lg:rounded-[24px]">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               router.push(searchResultsHref);
             }}
-            className="flex flex-col gap-3 sm:gap-4 xl:flex-row xl:items-start"
+            className="flex flex-col gap-3.5 sm:gap-4 xl:flex-row xl:items-start"
           >
-            <div className="grid min-w-0 w-full flex-1 grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:contents">
+            <div className="grid min-w-0 w-full flex-1 grid-cols-1 gap-3 sm:gap-3.5 md:grid-cols-2 xl:contents">
               <div className="min-w-0 md:min-w-0 xl:flex-1">
                 <label className="sr-only" htmlFor="rx-landing-q">
                   {copy.searchPh}
                 </label>
                 <div className="relative">
-                  <FaSearch className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2D241E]/40" aria-hidden />
+                  <FaSearch className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2D241E]/38" aria-hidden />
                   <input
                     id="rx-landing-q"
                     value={searchQ}
@@ -271,10 +274,10 @@ export function RestaurantesLandingPage() {
                     placeholder={copy.searchPh}
                     autoComplete="off"
                     aria-describedby="rx-landing-q-hint"
-                    className="min-h-[52px] w-full min-w-0 rounded-[16px] border border-[#2D241E]/[0.12] bg-[#FFFCF7] py-3 pl-11 pr-3 text-sm text-[#2D241E] outline-none ring-[#D97706]/30 transition-shadow focus:ring-2"
+                    className="min-h-[50px] w-full min-w-0 rounded-[14px] border border-[#2D241E]/[0.1] bg-[#FFFCF7] py-3 pl-11 pr-3 text-sm text-[#2D241E] outline-none ring-[#D97706]/25 transition-shadow focus:ring-2"
                   />
                 </div>
-                <p id="rx-landing-q-hint" className="mt-2 text-left text-[11px] leading-snug text-[#2D241E]/55 sm:text-xs">
+                <p id="rx-landing-q-hint" className="mt-1.5 text-left text-[11px] leading-snug text-[#2D241E]/52 sm:text-xs">
                   {copy.searchHelper}
                 </p>
               </div>
@@ -294,18 +297,18 @@ export function RestaurantesLandingPage() {
                     placeholder={copy.locationPh}
                     autoComplete="address-level2"
                     aria-describedby="rx-landing-loc-hint"
-                    className="min-h-[52px] w-full min-w-0 rounded-[16px] border border-[#2D241E]/[0.12] bg-[#FFFCF7] py-3 pl-11 pr-3 text-sm text-[#2D241E] outline-none ring-[#D97706]/30 transition-shadow focus:ring-2"
+                    className="min-h-[50px] w-full min-w-0 rounded-[14px] border border-[#2D241E]/[0.1] bg-[#FFFCF7] py-3 pl-11 pr-3 text-sm text-[#2D241E] outline-none ring-[#D97706]/25 transition-shadow focus:ring-2"
                   />
                 </div>
-                <p id="rx-landing-loc-hint" className="mt-2 text-left text-[11px] leading-snug text-[#2D241E]/55 sm:text-xs">
+                <p id="rx-landing-loc-hint" className="mt-1.5 text-left text-[11px] leading-snug text-[#2D241E]/52 sm:text-xs">
                   {copy.locationHelper}
                 </p>
               </div>
             </div>
-            <div className="w-full shrink-0 xl:w-[min(100%,200px)] xl:self-center">
+            <div className="w-full shrink-0 xl:w-[min(100%,188px)] xl:self-center">
               <button
                 type="submit"
-                className="inline-flex min-h-[52px] w-full items-center justify-center rounded-[16px] px-6 text-sm font-bold text-[#FFFCF7] shadow-[0_12px_36px_-10px_rgba(180,83,9,0.6)] transition hover:brightness-[1.04] hover:shadow-[0_14px_40px_-10px_rgba(180,83,9,0.58)] active:scale-[0.99] active:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 touch-manipulation"
+                className="inline-flex min-h-[50px] w-full items-center justify-center rounded-[14px] px-6 text-sm font-bold text-[#FFFCF7] shadow-[0_10px_32px_-12px_rgba(180,83,9,0.5)] transition hover:brightness-[1.04] hover:shadow-[0_12px_36px_-12px_rgba(180,83,9,0.52)] active:scale-[0.99] active:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 touch-manipulation"
                 style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
               >
                 {copy.searchCta}

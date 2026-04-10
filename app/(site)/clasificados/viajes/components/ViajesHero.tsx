@@ -30,14 +30,14 @@ export function ViajesHero({ searchBar, tripPills, ui }: ViajesHeroProps) {
               sizes="(max-width:640px) 100vw, (max-width:1024px) 100vw, min(1280px, 100vw)"
               className="object-cover object-[center_28%] min-[480px]:object-[center_32%] sm:object-[center_34%] md:object-[center_36%] lg:object-[center_38%]"
             />
-            <div className="absolute inset-0 bg-gradient-to-br from-[#0c2a38]/70 via-[#1a4a5c]/25 to-transparent" aria-hidden />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#f3ebdd] via-[#f3ebdd]/60 to-[#0a1f2a]/38" aria-hidden />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#0c2a38]/62 via-[#1a4a5c]/22 to-transparent" aria-hidden />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#f3ebdd] via-[#f3ebdd]/48 to-[#0a1f2a]/32" aria-hidden />
             <div
-              className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_0%,rgba(255,252,247,0.18),transparent_58%)]"
+              className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_0%,rgba(255,252,247,0.22),transparent_58%)]"
               aria-hidden
             />
 
-            <div className="absolute inset-0 flex flex-col justify-end pb-5 pt-12 sm:pb-6 sm:pt-16 md:pb-7 md:pt-20">
+            <div className="absolute inset-0 flex flex-col justify-end pb-4 pt-10 sm:pb-6 sm:pt-16 md:pb-7 md:pt-20">
               <div className="mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-5 lg:px-6">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="min-w-0 text-[10px] font-bold uppercase tracking-[0.18em] text-white/90 drop-shadow-sm sm:text-[11px] sm:tracking-[0.2em]">
@@ -58,9 +58,9 @@ export function ViajesHero({ searchBar, tripPills, ui }: ViajesHeroProps) {
           </div>
         </div>
 
-        <div className="border-t border-[color:var(--lx-gold-border)]/40 bg-[#fffdf9]/[0.99] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,252,247,0.85)] sm:px-5 sm:py-5 md:px-6 md:py-6">
+        <div className="border-t border-[color:var(--lx-gold-border)]/35 bg-[#fffdf9]/[0.99] px-3 py-3.5 shadow-[inset_0_1px_0_rgba(255,252,247,0.88)] sm:px-5 sm:py-5 md:px-6 md:py-5">
           <div className="min-w-0">{searchBar}</div>
-          <div className="mt-3 min-w-0 sm:mt-4">{tripPills}</div>
+          <div className="mt-3 min-w-0 sm:mt-3.5">{tripPills}</div>
         </div>
       </div>
     </section>

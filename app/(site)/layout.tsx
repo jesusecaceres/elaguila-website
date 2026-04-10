@@ -1,6 +1,7 @@
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { SiteWideBanners } from "../components/SiteWideBanners";
+import { LeonixCookieConsent } from "../components/LeonixCookieConsent";
 import { Suspense } from "react";
 
 /**
@@ -14,6 +15,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       <SiteWideBanners />
       <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
       <Footer />
+      <LeonixCookieConsent />
     </>
   );
 }

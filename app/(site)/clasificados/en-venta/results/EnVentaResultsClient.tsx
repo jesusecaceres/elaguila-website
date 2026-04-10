@@ -17,6 +17,10 @@ import {
   enVentaDepartmentFilterOptions,
 } from "../filters/enVentaFilterGroups";
 import { buildEnVentaResultsUrl, EN_VENTA_RESULTS_PATH } from "../shared/constants/enVentaResultsRoutes";
+import { getCityZips } from "@/app/data/locations/californiaLocationHelpers";
+import { listingMatchesCityFilter, listingMatchesZipFilter } from "./utils/enVentaLocationMatch";
+import { nearestCanonicalCityFromLatLng } from "./utils/enVentaNearestCity";
+import { EV_RESULTS_PARAM } from "./contracts/enVentaResultsUrlParams";
 import newLogo from "../../../../../public/logo.png";
 import { EnVentaResultListingCard } from "./EnVentaResultListingCard";
 import { EnVentaResultsEmpty } from "./EnVentaResultsEmpty";
@@ -27,6 +31,7 @@ type SortId = "newest" | "price-asc" | "price-desc";
 
 const PAGE_SIZE = 24;
 const PROMO_CAP = 2;
+const VIEW_PREF_KEY = "en-venta-results-view";
 
 type RowPack = {
   row: Record<string, unknown>;
@@ -75,6 +80,8 @@ export function EnVentaResultsClient() {
   const evDept = (sp?.get("evDept") ?? "").trim();
   const evSub = (sp?.get("evSub") ?? "").trim();
   const city = (sp?.get("city") ?? "").trim();
+  const zip = (sp?.get("zip") ?? "").trim();
+  const featuredOnly = sp?.get(EV_RESULTS_PARAM.featured) === "1";
   const cond = (sp?.get("cond") ?? "").trim();
   const priceMin = sp?.get("priceMin") ?? "";
   const priceMax = sp?.get("priceMax") ?? "";
@@ -90,6 +97,35 @@ export function EnVentaResultsClient() {
   const [loading, setLoading] = useState(true);
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [favTick, setFavTick] = useState(0);
+  const [geoHint, setGeoHint] = useState<string | null>(null);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileFiltersOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileFiltersOpen]);
+
+  useEffect(() => {
+    if (!mobileFiltersOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileFiltersOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileFiltersOpen]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => {
+      if (mq.matches) setMobileFiltersOpen(false);
+    };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(() => {
     return onSavedListingsChange(() => setFavTick((t) => t + 1));
@@ -105,7 +141,7 @@ export function EnVentaResultsClient() {
         const { data, error } = await supabase
           .from("listings")
           .select(
-            "id, owner_id, title, description, city, category, price, is_free, detail_pairs, seller_type, business_name, status, is_published, created_at, images, boost_expires, views, rentas_tier"
+            "id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, status, is_published, created_at, images, boost_expires, views, rentas_tier"
           )
           .eq("category", "en-venta")
           .eq("status", "active")
@@ -152,11 +188,14 @@ export function EnVentaResultsClient() {
   }, []);
 
   const filtered = useMemo(() => {
+    const cityFilterOn = Boolean(city.trim());
     let list = rows.filter(({ dto, effectiveDept, priceNum }) => {
       if (!textMatch(q, dto)) return false;
       if (evDept && effectiveDept !== evDept) return false;
       if (evSub && (dto.subKey ?? "").trim() !== evSub) return false;
-      if (city && !dto.city.toLowerCase().includes(city.toLowerCase())) return false;
+      const cityOk = listingMatchesCityFilter(dto.city, city);
+      if (cityFilterOn && !cityOk) return false;
+      if (!listingMatchesZipFilter(dto.zip, zip, cityFilterOn, cityOk)) return false;
       if (cond && (dto.conditionKey ?? "").trim().toLowerCase() !== cond.toLowerCase()) return false;
       if (pickup && !dto.fulfillment.pickup) return false;
       if (ship && !dto.fulfillment.shipping) return false;
@@ -172,6 +211,10 @@ export function EnVentaResultsClient() {
       return true;
     });
 
+    if (featuredOnly) {
+      list = list.filter((p) => p.boosted);
+    }
+
     list = [...list].sort((a, b) => {
       if (sort === "price-asc") return a.priceNum - b.priceNum;
       if (sort === "price-desc") return b.priceNum - a.priceNum;
@@ -181,15 +224,19 @@ export function EnVentaResultsClient() {
     });
 
     return list;
-  }, [rows, q, evDept, evSub, city, cond, pickup, ship, delivery, seller, priceMin, priceMax, sort]);
+  }, [rows, q, evDept, evSub, city, zip, featuredOnly, cond, pickup, ship, delivery, seller, priceMin, priceMax, sort]);
 
-  const promotedPool = useMemo(() => filtered.filter((p) => p.boosted).slice(0, PROMO_CAP), [filtered]);
+  const promotedPool = useMemo(() => {
+    if (featuredOnly) return [];
+    return filtered.filter((p) => p.boosted).slice(0, PROMO_CAP);
+  }, [filtered, featuredOnly]);
+
   const promotedIds = useMemo(() => new Set(promotedPool.map((p) => p.dto.id)), [promotedPool]);
 
-  const restFiltered = useMemo(
-    () => filtered.filter((p) => !promotedIds.has(p.dto.id)),
-    [filtered, promotedIds]
-  );
+  const restFiltered = useMemo(() => {
+    if (featuredOnly) return filtered;
+    return filtered.filter((p) => !promotedIds.has(p.dto.id));
+  }, [filtered, featuredOnly, promotedIds]);
 
   const total = filtered.length;
   const totalRest = restFiltered.length;
@@ -225,6 +272,22 @@ export function EnVentaResultsClient() {
       ind: "Particular",
       biz: "Negocio",
       trust: "Comunidad Leonix · anuncios moderados · contacto directo",
+      zip: "CP / ZIP",
+      featuredMode: "Solo destacados Pro",
+      clearAll: "Limpiar filtros",
+      useLocation: "Usar mi ubicación",
+      geoDenied: "Permiso denegado — elige ciudad o CP manualmente.",
+      geoUnavailable: "Ubicación no disponible.",
+      geoNeedHttps: "Usa HTTPS para compartir ubicación.",
+      filtersOpen: "Filtros",
+      close: "Cerrar",
+      activeFilters: "Filtros activos",
+      privacyNote:
+        "La ubicación solo se usa si la solicitas; no guardamos tu posición exacta en el servidor.",
+      applyFilters: "Aplicar filtros",
+      mapRadiusSoon: "Radio en mapa (próximamente)",
+      mapRadiusBody:
+        "El refinamiento por distancia real vendrá con mapa. Mientras tanto, usa ciudad y CP para acotar.",
     },
     en: {
       title: "For Sale",
@@ -252,6 +315,21 @@ export function EnVentaResultsClient() {
       ind: "Individual",
       biz: "Business",
       trust: "Leonix community · moderated listings · direct contact",
+      zip: "ZIP",
+      featuredMode: "Pro featured only",
+      clearAll: "Clear filters",
+      useLocation: "Use my location",
+      geoDenied: "Permission denied — choose city or ZIP manually.",
+      geoUnavailable: "Location not available.",
+      geoNeedHttps: "Use HTTPS to share location.",
+      filtersOpen: "Filters",
+      close: "Close",
+      activeFilters: "Active filters",
+      privacyNote: "Location is only used when you ask; we do not store your precise position on the server.",
+      applyFilters: "Apply filters",
+      mapRadiusSoon: "Map radius (coming soon)",
+      mapRadiusBody:
+        "True distance search will ship with a map. For now, use city and ZIP to narrow results.",
     },
   }[lang];
 
@@ -264,6 +342,7 @@ export function EnVentaResultsClient() {
         evDept: evDept || undefined,
         evSub: evSub || undefined,
         city: city || undefined,
+        zip: zip || undefined,
         cond: cond || undefined,
         priceMin: priceMin || undefined,
         priceMax: priceMax || undefined,
@@ -274,6 +353,7 @@ export function EnVentaResultsClient() {
         sort,
         view,
         page: String(safePage),
+        featured: featuredOnly ? "1" : undefined,
         ...next,
       };
       for (const [k, v] of Object.entries(merged)) {
@@ -281,7 +361,7 @@ export function EnVentaResultsClient() {
       }
       router.push(`${EN_VENTA_RESULTS_PATH}?${sp2.toString()}`);
     },
-    [router, lang, q, evDept, evSub, city, cond, priceMin, priceMax, pickup, ship, delivery, seller, sort, view, safePage]
+    [router, lang, q, evDept, evSub, city, zip, featuredOnly, cond, priceMin, priceMax, pickup, ship, delivery, seller, sort, view, safePage]
   );
 
   const onSubmitSearch = (formEvent: React.FormEvent<HTMLFormElement>) => {
@@ -291,9 +371,11 @@ export function EnVentaResultsClient() {
     const pickupOn = (el.elements.namedItem("pickup") as HTMLInputElement | null)?.checked ?? false;
     const shipOn = (el.elements.namedItem("ship") as HTMLInputElement | null)?.checked ?? false;
     const deliveryOn = (el.elements.namedItem("delivery") as HTMLInputElement | null)?.checked ?? false;
+    const featuredOn = fd.get("featured") === "on" || fd.get("featured") === "1";
     pushParams({
       q: String(fd.get("q") ?? "").trim() || undefined,
       city: String(fd.get("city") ?? "").trim() || undefined,
+      zip: String(fd.get("zip") ?? "").trim() || undefined,
       sort: String(fd.get("sort") ?? "newest"),
       view: String(fd.get("view") ?? view),
       evDept: String(fd.get("evDept") ?? "").trim() || undefined,
@@ -305,6 +387,7 @@ export function EnVentaResultsClient() {
       ship: shipOn ? "1" : undefined,
       delivery: deliveryOn ? "1" : undefined,
       seller: String(fd.get("seller") ?? "").trim() || undefined,
+      featured: featuredOn ? "1" : undefined,
       page: "1",
     });
   };
@@ -313,17 +396,132 @@ export function EnVentaResultsClient() {
     router.push(buildEnVentaResultsUrl(lang));
   };
 
+  const applyViewPreference = useCallback(
+    (v: "grid" | "list") => {
+      try {
+        localStorage.setItem(VIEW_PREF_KEY, v);
+      } catch {
+        /* ignore */
+      }
+      pushParams({ view: v, page: "1" });
+    },
+    [pushParams]
+  );
+
+  const onUseMyLocation = useCallback(() => {
+    setGeoHint(null);
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
+      setGeoHint(lang === "es" ? "Ubicación no disponible." : "Location not available.");
+      return;
+    }
+    if (!window.isSecureContext) {
+      setGeoHint(lang === "es" ? "Usa HTTPS para compartir ubicación." : "Use HTTPS to share location.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const cityGuess = nearestCanonicalCityFromLatLng(pos.coords.latitude, pos.coords.longitude);
+        if (!cityGuess) {
+          setGeoHint(lang === "es" ? "No se pudo aproximar una ciudad." : "Could not approximate a city.");
+          return;
+        }
+        const zips = getCityZips(cityGuess);
+        const zipGuess = zips[0];
+        pushParams({ city: cityGuess, zip: zipGuess || undefined, page: "1" });
+      },
+      () =>
+        setGeoHint(
+          lang === "es"
+            ? "Permiso denegado — elige ciudad o CP manualmente."
+            : "Permission denied — choose city or ZIP manually."
+        ),
+      { enableHighAccuracy: false, timeout: 12_000, maximumAge: 120_000 }
+    );
+  }, [lang, pushParams]);
+
   const deptOptions = enVentaDepartmentFilterOptions(lang);
   const condOptions = enVentaConditionFilterOptions(lang);
   const subOptions = EN_VENTA_SUBCATEGORY_ROWS.filter((r) => !evDept || r.dept === evDept);
+
+  const activeChips = useMemo(() => {
+    const out: Array<{ key: string; label: string; onRemove: () => void }> = [];
+    const rm = (patch: Record<string, string | undefined>) => pushParams({ ...patch, page: "1" });
+    if (q.trim()) out.push({ key: "q", label: `“${q.trim()}”`, onRemove: () => rm({ q: undefined }) });
+    if (city.trim())
+      out.push({
+        key: "city",
+        label: `${lang === "es" ? "Ciudad" : "City"}: ${city}`,
+        onRemove: () => rm({ city: undefined }),
+      });
+    if (zip.trim()) out.push({ key: "zip", label: `ZIP: ${zip}`, onRemove: () => rm({ zip: undefined }) });
+    if (evDept) {
+      const dn = EN_VENTA_DEPARTMENTS.find((d) => d.key === evDept)?.label[lang] ?? evDept;
+      out.push({
+        key: "evDept",
+        label: dn,
+        onRemove: () => rm({ evDept: undefined, evSub: undefined }),
+      });
+    }
+    if (evSub) {
+      const sn = subOptions.find((s) => s.key === evSub)?.label[lang] ?? evSub;
+      out.push({ key: "evSub", label: sn, onRemove: () => rm({ evSub: undefined }) });
+    }
+    if (cond) {
+      const cn = condOptions.find((c) => c.value === cond)?.label ?? cond;
+      out.push({ key: "cond", label: cn, onRemove: () => rm({ cond: undefined }) });
+    }
+    if (seller === "individual") out.push({ key: "seller", label: t.ind, onRemove: () => rm({ seller: undefined }) });
+    if (seller === "business") out.push({ key: "seller", label: t.biz, onRemove: () => rm({ seller: undefined }) });
+    if (pickup) out.push({ key: "pickup", label: lang === "es" ? "Recogida" : "Pickup", onRemove: () => rm({ pickup: undefined }) });
+    if (ship) out.push({ key: "ship", label: lang === "es" ? "Envío" : "Shipping", onRemove: () => rm({ ship: undefined }) });
+    if (delivery)
+      out.push({
+        key: "delivery",
+        label: lang === "es" ? "Entrega local" : "Local delivery",
+        onRemove: () => rm({ delivery: undefined }),
+      });
+    if (priceMin.trim()) out.push({ key: "pmin", label: `≥ ${priceMin}`, onRemove: () => rm({ priceMin: undefined }) });
+    if (priceMax.trim()) out.push({ key: "pmax", label: `≤ ${priceMax}`, onRemove: () => rm({ priceMax: undefined }) });
+    if (featuredOnly)
+      out.push({
+        key: "featured",
+        label: lang === "es" ? "Solo destacados Pro" : "Pro featured only",
+        onRemove: () => rm({ featured: undefined }),
+      });
+    return out;
+  }, [
+    q,
+    city,
+    zip,
+    evDept,
+    evSub,
+    cond,
+    seller,
+    pickup,
+    ship,
+    delivery,
+    priceMin,
+    priceMax,
+    featuredOnly,
+    lang,
+    pushParams,
+    condOptions,
+    subOptions,
+    t.ind,
+    t.biz,
+  ]);
 
   const countLine =
     total === 0
       ? lang === "es"
         ? "Sin resultados"
         : "No results"
-      : t.count(startIdx + 1, Math.min(startIdx + standardSlice.length, totalRest), totalRest) +
-        (promotedPool.length ? (lang === "es" ? ` · ${promotedPool.length} destacado(s)` : ` · ${promotedPool.length} featured`) : "");
+      : featuredOnly
+        ? lang === "es"
+          ? `${total} destacado(s) Pro (visibilidad activa)`
+          : `${total} Pro featured (active visibility)`
+        : t.count(startIdx + 1, Math.min(startIdx + standardSlice.length, totalRest), totalRest) +
+          (promotedPool.length ? (lang === "es" ? ` · ${promotedPool.length} destacado(s)` : ` · ${promotedPool.length} featured`) : "");
 
   const isFav = (id: string) => isListingSaved(id);
   const onFav = (id: string) => {
@@ -350,16 +548,50 @@ export function EnVentaResultsClient() {
         }}
         aria-hidden
       />
-      <main className="relative mx-auto max-w-6xl px-4 pb-24 pt-24 sm:px-6 lg:max-w-7xl lg:px-8">
+      <main className="relative mx-auto min-w-0 max-w-6xl overflow-x-hidden px-4 pb-28 pt-20 sm:px-6 lg:max-w-7xl lg:px-8">
         <div className="flex flex-col items-center text-center">
+          <Link
+            href={`/clasificados/en-venta?lang=${lang}`}
+            className="mb-2 text-[13px] font-semibold text-[#2F4A65] underline-offset-4 hover:underline"
+          >
+            {lang === "es" ? "← Inicio En Venta" : "← For Sale home"}
+          </Link>
           <Image src={newLogo} alt="Leonix" width={120} height={120} className="h-auto w-[min(120px,36vw)]" priority />
           <h1 className="mt-4 text-3xl font-bold tracking-tight text-[#1E1810] sm:text-4xl">{t.title}</h1>
-          <p className="mt-2 text-sm font-medium text-[#5C5346]">{loading ? t.loading : countLine}</p>
+          <p className="mt-2 max-w-2xl text-sm font-medium text-[#5C5346]">{loading ? t.loading : countLine}</p>
+          <p className="mt-1 text-[11px] text-[#5C5346]/90">{t.privacyNote}</p>
         </div>
 
+        {activeChips.length > 0 ? (
+          <div className="mx-auto mt-6 flex max-w-5xl flex-wrap items-center justify-center gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.activeFilters}</span>
+            {activeChips.map((c) => (
+              <button
+                key={`${c.key}:${c.label}`}
+                type="button"
+                onClick={c.onRemove}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-3 py-1.5 text-xs font-semibold text-[#2F4A65] transition hover:bg-[#E8EEF3]"
+              >
+                {c.label}
+                <span aria-hidden className="text-[#B8891A]">
+                  ×
+                </span>
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="text-xs font-semibold text-[#2F4A65] underline underline-offset-2"
+            >
+              {t.clearAll}
+            </button>
+          </div>
+        ) : null}
+
         <form
+          id="ev-results-form"
           onSubmit={onSubmitSearch}
-          className="mx-auto mt-8 max-w-5xl rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-4 shadow-[0_12px_48px_-16px_rgba(42,36,22,0.15)] backdrop-blur-sm sm:p-6"
+          className="mx-auto mt-6 max-w-5xl rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-4 shadow-[0_12px_48px_-16px_rgba(42,36,22,0.15)] backdrop-blur-sm sm:mt-8 sm:p-6"
         >
           <input type="hidden" name="lang" value={lang} />
           <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
@@ -377,7 +609,7 @@ export function EnVentaResultsClient() {
                 className="min-w-0 flex-1 bg-transparent py-1 text-sm text-[#1E1810] outline-none"
               />
             </div>
-            <div className="flex min-w-[140px] flex-1 items-center gap-2 rounded-full border border-[#E8DFD0] bg-white/95 px-3 py-2 shadow-inner">
+            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-[#E8DFD0] bg-white/95 px-3 py-2 shadow-inner sm:min-w-[140px]">
               <span aria-hidden>📍</span>
               <input
                 name="city"
@@ -386,10 +618,23 @@ export function EnVentaResultsClient() {
                 className="min-w-0 flex-1 bg-transparent py-1 text-sm outline-none"
               />
             </div>
+            <div className="flex min-w-[100px] flex-1 items-center gap-2 rounded-full border border-[#E8DFD0] bg-white/95 px-3 py-2 shadow-inner">
+              <span className="text-[#4A6678]" aria-hidden>
+                #
+              </span>
+              <input
+                name="zip"
+                defaultValue={zip}
+                placeholder={t.zip}
+                inputMode="numeric"
+                maxLength={5}
+                className="min-w-0 flex-1 bg-transparent py-1 text-sm outline-none"
+              />
+            </div>
             <select
               name="sort"
               defaultValue={sort}
-              className="rounded-full border border-[#E8DFD0] bg-white px-4 py-2.5 text-sm font-medium text-[#2C2416]"
+              className="min-h-[44px] rounded-full border border-[#E8DFD0] bg-white px-4 py-2.5 text-sm font-medium text-[#2C2416]"
             >
               {EN_VENTA_SORT_OPTIONS.map((o) => (
                 <option key={o.id} value={o.id}>
@@ -400,14 +645,14 @@ export function EnVentaResultsClient() {
             <div className="flex items-center gap-1 rounded-full border border-[#E8DFD0] bg-[#FAF7F2] p-1">
               <button
                 type="button"
-                onClick={() => pushParams({ view: "grid", page: "1" })}
+                onClick={() => applyViewPreference("grid")}
                 className={`rounded-full px-3 py-2 text-xs font-semibold ${view === "grid" ? "bg-white shadow-sm" : "text-[#5C5346]"}`}
               >
                 {t.grid}
               </button>
               <button
                 type="button"
-                onClick={() => pushParams({ view: "list", page: "1" })}
+                onClick={() => applyViewPreference("list")}
                 className={`rounded-full px-3 py-2 text-xs font-semibold ${view === "list" ? "bg-white shadow-sm" : "text-[#5C5346]"}`}
               >
                 {t.list}
@@ -416,13 +661,62 @@ export function EnVentaResultsClient() {
             <input type="hidden" name="view" value={view} readOnly />
             <button
               type="submit"
-              className="rounded-full bg-[#2A2620] px-6 py-2.5 text-sm font-semibold text-[#FAF7F2] shadow-md hover:bg-[#1a1814]"
+              className="min-h-[44px] rounded-full bg-gradient-to-br from-[#F0D78C] via-[#D4A03E] to-[#C18A2E] px-6 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md"
             >
               {t.go}
             </button>
           </div>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#E8DFD0]/70 pt-3">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={onUseMyLocation}
+                className="rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-4 py-2 text-xs font-semibold text-[#2F4A65] hover:bg-[#E8EEF3]"
+              >
+                {t.useLocation}
+              </button>
+              {geoHint ? <span className="text-xs text-[#8B4513]">{geoHint}</span> : null}
+            </div>
+            <button
+              type="button"
+              onClick={() => setMobileFiltersOpen(true)}
+              className="shrink-0 rounded-full border border-[#E8DFD0] bg-white px-4 py-2 text-xs font-semibold text-[#2C2416] shadow-sm lg:hidden"
+            >
+              {t.filtersOpen}
+            </button>
+          </div>
+
+          {mobileFiltersOpen ? (
+            <button
+              type="button"
+              className="fixed inset-0 z-[60] bg-black/35 lg:hidden"
+              aria-label={t.close}
+              onClick={() => setMobileFiltersOpen(false)}
+            />
+          ) : null}
+
+          <div
+            className={
+              "relative z-[61] mt-4 space-y-4 max-lg:flex max-lg:min-h-0 max-lg:flex-col " +
+              (mobileFiltersOpen
+                ? "max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:top-[6vh] max-lg:overflow-hidden max-lg:rounded-t-[28px] max-lg:border max-lg:border-[#E8DFD0] max-lg:bg-[#FFFCF7] max-lg:shadow-[0_-12px_48px_-16px_rgba(42,36,22,0.28)] "
+                : "max-lg:hidden ") +
+              "lg:block"
+            }
+          >
+            <div className="flex items-center justify-between border-b border-[#E8DFD0]/80 pb-3 lg:hidden">
+              <span className="text-sm font-bold text-[#2C2416]">{t.filters}</span>
+              <button
+                type="button"
+                onClick={() => setMobileFiltersOpen(false)}
+                className="text-sm font-semibold text-[#2F4A65] underline underline-offset-2"
+              >
+                {t.close}
+              </button>
+            </div>
+            <div className="max-lg:min-h-0 max-lg:flex-1 max-lg:overflow-y-auto max-lg:overscroll-contain lg:overflow-visible">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
               {t.dept}
               <select
@@ -507,13 +801,30 @@ export function EnVentaResultsClient() {
             </label>
           </div>
 
-          <div className="mt-4">
-            <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
-              <span>{t.radius}</span>
-              <span>200 {t.km}</span>
+          <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl border border-[#C9A84A]/35 bg-gradient-to-br from-[#FFFBF0]/90 to-[#F5F8FB]/80 px-4 py-3 text-sm font-medium text-[#2F4A65]">
+            <input type="checkbox" name="featured" value="1" defaultChecked={featuredOnly} className="mt-0.5 rounded border-[#C9B46A]" />
+            <span>{t.featuredMode}</span>
+          </label>
+
+          <details className="mt-4 rounded-2xl border border-[#E8DFD0]/90 bg-white/60 p-4 text-left text-sm text-[#5C5346]">
+            <summary className="cursor-pointer list-none font-semibold text-[#7A7164] [&::-webkit-details-marker]:hidden">
+              {t.mapRadiusSoon}
+            </summary>
+            <p className="mt-2 text-[11px] leading-relaxed text-[#7A7164]/95">{t.mapRadiusBody}</p>
+          </details>
             </div>
-            <input type="range" min={5} max={200} defaultValue={200} className="mt-2 w-full accent-[#C9B46A]" disabled readOnly title="Próximamente" />
-            <p className="mt-1 text-[11px] text-[#7A7164]/90">{lang === "es" ? "El radio refinado llegará con ubicación en mapa." : "Radius filtering will use map location in a future update."}</p>
+            <div className="border-t border-[#E8DFD0] bg-[#FFFCF7] p-4 lg:hidden">
+              <button
+                type="button"
+                className="w-full rounded-full bg-gradient-to-br from-[#F0D78C] via-[#D4A03E] to-[#C18A2E] px-6 py-3 text-sm font-semibold text-[#1E1810] shadow-md"
+                onClick={() => {
+                  setMobileFiltersOpen(false);
+                  (document.getElementById("ev-results-form") as HTMLFormElement | null)?.requestSubmit();
+                }}
+              >
+                {t.applyFilters}
+              </button>
+            </div>
           </div>
         </form>
 
@@ -521,13 +832,13 @@ export function EnVentaResultsClient() {
 
         {!loading && !loadErr && total === 0 ? (
           <div className="mt-12">
-            <EnVentaResultsEmpty lang={lang} onReset={resetFilters} />
+            <EnVentaResultsEmpty lang={lang} onReset={resetFilters} featuredOnly={featuredOnly} />
           </div>
         ) : null}
 
         {!loading && !loadErr && total > 0 ? (
           <>
-            {promotedPool.length > 0 ? (
+            {!featuredOnly && promotedPool.length > 0 ? (
               <section className="mt-10">
                 <h2 className="mb-4 text-left text-sm font-bold uppercase tracking-wide text-[#5C5346]">{t.promoted}</h2>
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -552,7 +863,9 @@ export function EnVentaResultsClient() {
 
             <section className="mt-10">
               <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-                <h2 className="text-left text-sm font-bold uppercase tracking-wide text-[#5C5346]">{t.latest}</h2>
+                <h2 className="text-left text-sm font-bold uppercase tracking-wide text-[#5C5346]">
+                  {featuredOnly ? t.featuredMode : t.latest}
+                </h2>
                 <div className="flex items-center gap-2 text-xs font-medium text-[#5C5346]">
                   <button
                     type="button"
@@ -580,7 +893,7 @@ export function EnVentaResultsClient() {
                     model={buildEnVentaResultsCardModel(p.dto, {
                       lang,
                       effectiveDeptKey: p.effectiveDept,
-                      boosted: false,
+                      boosted: featuredOnly ? p.boosted : false,
                     })}
                     lang={lang}
                     isFav={isFav(p.dto.id)}

@@ -269,17 +269,31 @@ export function AutosPublicFilterRail({
           ))}
         </select>
       </div>
-      <div>
-        <label className={lab} htmlFor={`${idPrefix}-mile`}>
-          {copy.filterMileage}
-        </label>
-        <input
-          id={`${idPrefix}-mile`}
-          className={inp}
-          inputMode="numeric"
-          value={value.mileageMax}
-          onChange={(e) => onChange({ mileageMax: e.target.value })}
-        />
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className={lab} htmlFor={`${idPrefix}-mile-min`}>
+            {copy.mileageMin}
+          </label>
+          <input
+            id={`${idPrefix}-mile-min`}
+            className={inp}
+            inputMode="numeric"
+            value={value.mileageMin}
+            onChange={(e) => onChange({ mileageMin: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className={lab} htmlFor={`${idPrefix}-mile-max`}>
+            {copy.mileageMax}
+          </label>
+          <input
+            id={`${idPrefix}-mile-max`}
+            className={inp}
+            inputMode="numeric"
+            value={value.mileageMax}
+            onChange={(e) => onChange({ mileageMax: e.target.value })}
+          />
+        </div>
       </div>
       <div>
         <label className={lab} htmlFor={`${idPrefix}-title`}>

@@ -14,6 +14,10 @@ export function buildEmpleosListaUrl(cat: string, lang: Lang, q?: string, city?:
 export type EmpleosResultadosParams = {
   q?: string;
   city?: string;
+  /** US state (2-letter), matches `EmpleosJobRecord.state`. */
+  state?: string;
+  /** 5-digit US ZIP, matches `EmpleosJobRecord.postalCode` when present. */
+  zip?: string;
   category?: string;
   jobType?: string;
   modality?: string;
@@ -24,7 +28,13 @@ export type EmpleosResultadosParams = {
   featured?: string;
   recent?: string;
   quickApply?: string;
+  /** `1` → verified employer only. */
+  verified?: string;
+  /** `1` → premium/business employer only. */
+  premium?: string;
   sort?: string;
+  /** Staged: km radius — not applied until lat/lng + geo index (see filter contract). */
+  radiusKm?: string;
 };
 
 /**

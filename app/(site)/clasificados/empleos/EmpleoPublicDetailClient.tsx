@@ -119,6 +119,7 @@ export function EmpleoPublicDetailClient({ job }: Props) {
                   </dt>
                   <dd className="mt-0.5 font-medium">
                     {job.city}, {job.state}
+                    {job.postalCode ? ` ${job.postalCode}` : ""}
                   </dd>
                 </div>
                 <div>

@@ -20,6 +20,7 @@ export type AutosPublicFilterState = {
   transmission: string;
   drivetrain: string;
   fuelType: string;
+  mileageMin: string;
   mileageMax: string;
   titleStatus: string;
   /** Scaffold: reserved for radius filter (see `autosBrowseFilterContract`). */
@@ -42,6 +43,7 @@ export function emptyAutosPublicFilters(): AutosPublicFilterState {
     transmission: "",
     drivetrain: "",
     fuelType: "",
+    mileageMin: "",
     mileageMax: "",
     titleStatus: "",
     radiusMiles: "",

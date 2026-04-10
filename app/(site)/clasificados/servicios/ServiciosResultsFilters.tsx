@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
+import { ServiciosUseMyLocationButton } from "./ServiciosUseMyLocationButton";
+import { writeServiciosDiscoveryPrefs } from "./lib/serviciosLocalPreferences";
 import {
   serviciosResultsHasActiveFilters,
   type ServiciosResultsFilterQuery,
@@ -8,6 +12,8 @@ import {
   formatServiciosInternalGroupForDiscovery,
   SERVICIOS_INTERNAL_GROUP_IDS,
 } from "./lib/serviciosInternalGroupDisplay";
+
+const RESULTS_FORM_ID = "servicios-results-filter-form";
 
 export function ServiciosResultsFilters({
   lang,
@@ -25,10 +31,19 @@ export function ServiciosResultsFilters({
       className="rounded-[22px] border border-[#e5ddd2]/90 bg-[#FFFCF7] p-4 shadow-[0_18px_48px_-32px_rgba(20,38,58,0.35)] sm:p-6"
     >
       <form
+        id={RESULTS_FORM_ID}
         method="get"
         action="/clasificados/servicios/resultados"
         aria-label={lang === "en" ? "Search and filter Servicios results" : "Buscar y filtrar resultados de Servicios"}
         className="space-y-5"
+        onSubmit={(e) => {
+          const fd = new FormData(e.currentTarget);
+          writeServiciosDiscoveryPrefs({
+            lastQ: String(fd.get("q") ?? "").trim() || undefined,
+            lastCity: String(fd.get("city") ?? "").trim() || undefined,
+            lastGroup: String(fd.get("group") ?? "").trim() || undefined,
+          });
+        }}
       >
         <input type="hidden" name="lang" value={lang} />
 
@@ -50,27 +65,32 @@ export function ServiciosResultsFilters({
                 className="mt-1 min-h-[48px] w-full rounded-xl border border-[#e5ddd2] bg-white px-3 py-2 text-sm text-[#142a42] outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
               />
             </label>
-            <label className="min-w-0 flex-1">
-              <span className="text-xs font-semibold text-[#3d4f62]">
-                {lang === "en" ? "City / service area" : "Ciudad o zona de servicio"}
-              </span>
-              <input
-                name="city"
-                type="text"
-                defaultValue={current.city ?? ""}
-                placeholder={lang === "en" ? "e.g. San José, 95112" : "ej. San José, 95112"}
-                aria-describedby="servicios-city-filter-hint"
-                className="mt-1 min-h-[48px] w-full rounded-xl border border-[#e5ddd2] bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              />
+            <div className="min-w-0 flex-1">
+              <label className="block">
+                <span className="text-xs font-semibold text-[#3d4f62]">
+                  {lang === "en" ? "City / ZIP / area" : "Ciudad, CP o zona"}
+                </span>
+                <input
+                  name="city"
+                  type="text"
+                  defaultValue={current.city ?? ""}
+                  placeholder={lang === "en" ? "e.g. San José, 95112" : "ej. San José, 95112"}
+                  aria-describedby="servicios-city-filter-hint"
+                  className="mt-1 min-h-[48px] w-full rounded-xl border border-[#e5ddd2] bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+                />
+              </label>
               <span id="servicios-city-filter-hint" className="mt-1 block text-[11px] leading-snug text-[#64748b]">
                 {lang === "en"
-                  ? "Matches the city stored on each published listing (same field as the advertiser chose)."
-                  : "Coincide con la ciudad guardada en cada anuncio (el mismo campo que eligió el anunciante)."}
+                  ? "Matches listing city plus postal, service-area lines, and location text from published profiles when present."
+                  : "Coincide con la ciudad del anuncio y, si existe en la vitrina, código postal, zonas de servicio y texto de ubicación."}
               </span>
-            </label>
+              <div className="mt-2">
+                <ServiciosUseMyLocationButton lang={lang} formId={RESULTS_FORM_ID} />
+              </div>
+            </div>
             <button
               type="submit"
-              className="inline-flex min-h-[48px] w-full shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#EA580C] to-[#C2410C] px-6 text-sm font-bold text-white shadow-md transition hover:brightness-[1.03] sm:w-auto"
+              className="inline-flex min-h-[48px] w-full shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#EA580C] to-[#C2410C] px-6 text-sm font-bold text-white shadow-md transition hover:brightness-[1.03] md:w-auto"
             >
               {lang === "en" ? "Search" : "Buscar"}
             </button>
@@ -136,6 +156,53 @@ export function ServiciosResultsFilters({
 
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#64748b]">
+            {lang === "en" ? "Trust & reach (from published profile)" : "Confianza y alcance (según vitrina)"}
+          </p>
+          <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">
+                {lang === "en" ? "Leonix verified" : "Verificado Leonix"}
+              </span>
+              <select
+                name="verified"
+                defaultValue={current.verified === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Verified listings only" : "Solo anuncios verificados"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">
+                {lang === "en" ? "Website on profile" : "Sitio web en vitrina"}
+              </span>
+              <select
+                name="web"
+                defaultValue={current.web === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Has website link" : "Con enlace a web"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">
+                {lang === "en" ? "Bilingual signal" : "Señal bilingüe"}
+              </span>
+              <select
+                name="bilingual"
+                defaultValue={current.bilingual === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Bilingual quick-fact" : "Dato rápido bilingüe"}</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#64748b]">
             {lang === "en" ? "Contact signals on the profile" : "Señales de contacto en la vitrina"}
           </p>
           <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -175,10 +242,10 @@ export function ServiciosResultsFilters({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="-mx-1 flex flex-wrap gap-3 overflow-x-auto pb-1 pt-0.5 [-webkit-overflow-scrolling:touch]">
           <button
             type="submit"
-            className="inline-flex min-h-[48px] min-w-[160px] items-center justify-center rounded-xl bg-[#3B66AD] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699]"
+            className="inline-flex min-h-[48px] min-w-[160px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699]"
           >
             {lang === "en" ? "Apply filters" : "Aplicar filtros"}
           </button>
@@ -186,8 +253,13 @@ export function ServiciosResultsFilters({
 
         <p className="text-[11px] leading-relaxed text-neutral-500">
           {lang === "en"
-            ? "Provider type is inferred from published contact fields. Keyword search matches name, city, trade line, and about text."
-            : "El tipo de proveedor se infiere de los datos de contacto publicados. La búsqueda coincide con nombre, ciudad, giro y texto «Acerca»."}
+            ? "Provider type is inferred from published address/website fields. Keyword search includes name, city, ZIP/area text, trade line, and about. Preferences can be saved on this device when you submit — see Legal."
+            : "El tipo de proveedor se infiere de dirección o web publicadas. La búsqueda incluye nombre, ciudad, CP/zona, giro y «Acerca». Al enviar puedes guardar preferencias en este dispositivo — ver Legal."}
+        </p>
+        <p className="text-[11px] leading-relaxed text-neutral-500">
+          <Link href={`/legal?lang=${lang}`} className="font-semibold text-[#3B66AD] underline-offset-2 hover:underline">
+            {lang === "en" ? "Privacy & optional local preferences" : "Privacidad y preferencias locales opcionales"}
+          </Link>
         </p>
       </form>
     </div>

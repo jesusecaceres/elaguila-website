@@ -46,6 +46,8 @@ export type ViajesUi = {
     moduleHint: string;
     /** Short heading inside the search module (primary action) */
     moduleTitle: string;
+    /** Honest one-liner: geolocation is one-shot, used only to pick nearest departure bucket */
+    geoExplainer: string;
   };
   carousel: { prev: string; next: string };
   topOffers: { title: string; subtitle: string };
@@ -98,6 +100,7 @@ export type ViajesUi = {
     audience: string;
     sort: string;
     sortFeatured: string;
+    sortNewest: string;
     sortPriceAsc: string;
     sortPriceDesc: string;
     destPlaceholder: string;
@@ -123,6 +126,15 @@ export type ViajesUi = {
     noResults: string;
     /** e.g. “salida SFO” vs “from SFO” in result lines */
     departurePrefix: string;
+    /** Line under the H1 describing current query */
+    activeSearchLabel: string;
+    /** Shown under empty state — link target is clear-all URL */
+    emptyRecoveryHint: string;
+    discoveryStripTitle: string;
+    discoveryStripSubtitle: string;
+    discoveryLastMinute: string;
+    discoveryFamilies: string;
+    discoveryWeekend: string;
   };
   filterRail: {
     destination: string;
@@ -272,6 +284,8 @@ function es(): Omit<ViajesUi, "lang"> {
       destPlaceholder: "Playa, ciudad, país…",
       moduleTitle: "Buscar viajes",
       moduleHint: "Ajusta destino, salida, tipo y presupuesto; el botón naranja abre resultados al instante.",
+      geoExplainer:
+        "“Usar mi ubicación” pide permiso al navegador una sola vez para sugerir la salida (SFO / SJC / OAK) más cercana. No guardamos tu ruta ni te rastreamos; si niegas el permiso, puedes elegir la salida manualmente.",
     },
     carousel: { prev: "Ver categorías anteriores", next: "Ver categorías siguientes" },
     topOffers: {
@@ -383,6 +397,7 @@ function es(): Omit<ViajesUi, "lang"> {
       audience: "Público",
       sort: "Orden",
       sortFeatured: "Destacado",
+      sortNewest: "Más recientes",
       sortPriceAsc: "Precio ↑",
       sortPriceDesc: "Precio ↓",
       destPlaceholder: "Ciudad, país…",
@@ -407,6 +422,13 @@ function es(): Omit<ViajesUi, "lang"> {
       closeOverlay: "Cerrar",
       noResults: "Sin resultados con estos filtros.",
       departurePrefix: "salida",
+      activeSearchLabel: "Criterios activos",
+      emptyRecoveryHint: "Prueba quitar un filtro o explora las sugerencias abajo.",
+      discoveryStripTitle: "Sigue explorando",
+      discoveryStripSubtitle: "Atajos acordes a lo que la gente busca ahora — mismos filtros que en el buscador.",
+      discoveryLastMinute: "Último minuto",
+      discoveryFamilies: "Tours en familia",
+      discoveryWeekend: "Fin de semana · salida SFO",
     },
     filterRail: {
       destination: "Destino",
@@ -566,6 +588,8 @@ function en(): Omit<ViajesUi, "lang"> {
       destPlaceholder: "Beach, city, country…",
       moduleTitle: "Search trips",
       moduleHint: "Set destination, departure, trip type, and budget; the orange button opens results instantly.",
+      geoExplainer:
+        "“Use my location” asks your browser once to suggest the nearest departure hub (SFO / SJC / OAK). We don’t store your path or track you; if you deny permission, pick a departure manually.",
     },
     carousel: { prev: "Show previous categories", next: "Show next categories" },
     topOffers: {
@@ -677,6 +701,7 @@ function en(): Omit<ViajesUi, "lang"> {
       audience: "Audience",
       sort: "Sort",
       sortFeatured: "Featured",
+      sortNewest: "Newest",
       sortPriceAsc: "Price ↑",
       sortPriceDesc: "Price ↓",
       destPlaceholder: "City, country…",
@@ -701,6 +726,13 @@ function en(): Omit<ViajesUi, "lang"> {
       closeOverlay: "Close",
       noResults: "No results for these filters.",
       departurePrefix: "from",
+      activeSearchLabel: "Active criteria",
+      emptyRecoveryHint: "Try removing a filter or use the suggestions below.",
+      discoveryStripTitle: "Keep exploring",
+      discoveryStripSubtitle: "Shortcuts aligned with common intent — same filter contract as search.",
+      discoveryLastMinute: "Last minute",
+      discoveryFamilies: "Family tours",
+      discoveryWeekend: "Weekend · depart SFO",
     },
     filterRail: {
       destination: "Destination",

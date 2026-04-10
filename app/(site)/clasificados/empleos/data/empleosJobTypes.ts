@@ -24,6 +24,8 @@ export type EmpleosJobRecord = {
   company: string;
   city: string;
   state: string;
+  /** US ZIP (5 digits). Optional for adapter rows without geocoding yet. */
+  postalCode?: string;
   category: string;
   modality: JobModalitySlug;
   jobType: JobTypeSlug;

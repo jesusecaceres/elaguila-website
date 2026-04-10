@@ -1,6 +1,8 @@
 import type { AutosPublicListing } from "../../data/autosPublicSampleTypes";
 import { parseAutosBrowseUrl } from "../../filters/autosBrowseFilterContract";
 import type { AutosPublicFilterState, AutosPublicSortKey } from "../../filters/autosPublicFilterTypes";
+import { listingMatchesAutosCityFilter, listingMatchesAutosZipFilter } from "../../filters/autosPublicLocationMatch";
+import { compareAutosListingFairTieBreak } from "../../lib/autosPublicListingScore";
 
 export type { AutosPublicFilterState, AutosPublicSortKey } from "../../filters/autosPublicFilterTypes";
 export { emptyAutosPublicFilters } from "../../filters/autosPublicFilterTypes";
@@ -19,15 +21,21 @@ export function applyAutosPublicFilters(
   f: AutosPublicFilterState,
   searchQ = "",
 ): AutosPublicListing[] {
-  const zipNorm = f.zip.replace(/\D/g, "").slice(0, 5);
   return listings.filter((row) => {
     if (searchQ.trim()) {
       const q = searchQ.toLowerCase();
-      const hay = `${row.make} ${row.model} ${row.year} ${row.vehicleTitle}`.toLowerCase();
+      const hay =
+        `${row.make} ${row.model} ${row.year} ${row.trim ?? ""} ${row.vehicleTitle}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
-    if (f.city.trim() && !row.city.toLowerCase().includes(f.city.trim().toLowerCase())) return false;
-    if (zipNorm.length === 5 && row.zip !== zipNorm) return false;
+    const cityActive = Boolean(f.city.trim());
+    const cityOk = listingMatchesAutosCityFilter(row.city, f.city);
+    if (cityActive && !cityOk) return false;
+    if (
+      !listingMatchesAutosZipFilter(row.zip, f.zip, cityActive, cityOk)
+    ) {
+      return false;
+    }
     if (f.priceMin.trim()) {
       const n = Number(f.priceMin);
       if (Number.isFinite(n) && row.price < n) return false;
@@ -52,6 +60,10 @@ export function applyAutosPublicFilters(
     if (f.transmission && row.transmission !== f.transmission) return false;
     if (f.drivetrain && row.drivetrain !== f.drivetrain) return false;
     if (f.fuelType && row.fuelType !== f.fuelType) return false;
+    if (f.mileageMin.trim()) {
+      const n = Number(f.mileageMin);
+      if (Number.isFinite(n) && row.mileage < n) return false;
+    }
     if (f.mileageMax.trim()) {
       const n = Number(f.mileageMax);
       if (Number.isFinite(n) && row.mileage > n) return false;
@@ -63,15 +75,18 @@ export function applyAutosPublicFilters(
 
 export function sortAutosPublicListings(listings: AutosPublicListing[], sort: AutosPublicSortKey): AutosPublicListing[] {
   const out = [...listings];
+  const tie = (a: AutosPublicListing, b: AutosPublicListing) => compareAutosListingFairTieBreak(a, b);
   switch (sort) {
     case "priceAsc":
-      return out.sort((a, b) => a.price - b.price);
+      return out.sort((a, b) => (a.price !== b.price ? a.price - b.price : tie(a, b)));
     case "priceDesc":
-      return out.sort((a, b) => b.price - a.price);
+      return out.sort((a, b) => (a.price !== b.price ? b.price - a.price : tie(a, b)));
     case "mileage":
-      return out.sort((a, b) => a.mileage - b.mileage);
+      return out.sort((a, b) => (a.mileage !== b.mileage ? a.mileage - b.mileage : tie(a, b)));
     case "newest":
     default:
-      return out.sort((a, b) => b.year - a.year || b.price - a.price);
+      return out.sort((a, b) =>
+        b.year !== a.year ? b.year - a.year : b.price !== a.price ? b.price - a.price : tie(a, b),
+      );
   }
 }

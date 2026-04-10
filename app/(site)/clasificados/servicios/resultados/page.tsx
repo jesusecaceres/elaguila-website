@@ -30,6 +30,9 @@ type PageProps = {
     q?: string;
     sort?: string;
     seller?: string;
+    verified?: string;
+    web?: string;
+    bilingual?: string;
   }>;
 };
 
@@ -55,6 +58,9 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
     q: sp.q,
     sort: parseSort(sp.sort),
     seller: parseSeller(sp.seller),
+    verified: sp.verified === "1" ? "1" : undefined,
+    web: sp.web === "1" ? "1" : undefined,
+    bilingual: sp.bilingual === "1" ? "1" : undefined,
   };
 
   const allRows = await listServiciosPublicListingsFromDb(120);

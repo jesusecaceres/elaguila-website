@@ -68,6 +68,11 @@ export function AutosPublicFeaturedCard({
             </div>
           </div>
         ) : null}
+        <div className="mt-3 flex justify-end border-t border-[color:var(--lx-nav-border)] pt-3">
+          <span className="inline-flex min-h-[40px] min-w-[7rem] items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 text-xs font-bold text-[color:var(--lx-text)]">
+            {copy.cardViewDetails}
+          </span>
+        </div>
       </div>
     </Link>
   );

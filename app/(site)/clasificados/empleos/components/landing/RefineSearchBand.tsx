@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useCallback, useState } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
@@ -12,6 +12,7 @@ import {
   sampleModalityOptions,
   sampleSalaryBandOptions,
 } from "../../data/empleosLandingSampleData";
+import { empleosParamsFromSearchParams } from "../../lib/empleosResultsQuery";
 import { buildEmpleosResultadosUrl, type EmpleosResultadosParams } from "../../shared/utils/empleosListaUrl";
 import { LandingSection } from "./empleosLandingUi";
 
@@ -21,6 +22,7 @@ type Props = {
 
 export function RefineSearchBand({ lang }: Props) {
   const router = useRouter();
+  const sp = useSearchParams();
   const [salaryBand, setSalaryBand] = useState("");
   const [modality, setModality] = useState("");
   const [jobType, setJobType] = useState("");
@@ -31,7 +33,9 @@ export function RefineSearchBand({ lang }: Props) {
 
   const apply = useCallback(() => {
     const band = sampleSalaryBandOptions.find((b) => b.value === salaryBand);
+    const base = empleosParamsFromSearchParams(sp ?? new URLSearchParams());
     const params: EmpleosResultadosParams = {
+      ...base,
       modality: modality || undefined,
       jobType: jobType || undefined,
       experience: experience || undefined,
@@ -42,7 +46,7 @@ export function RefineSearchBand({ lang }: Props) {
       quickApply: quickApply ? "1" : undefined,
     };
     router.push(buildEmpleosResultadosUrl(lang, params));
-  }, [router, lang, salaryBand, modality, jobType, experience, companyType, recent, quickApply]);
+  }, [router, lang, sp, salaryBand, modality, jobType, experience, companyType, recent, quickApply]);
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();

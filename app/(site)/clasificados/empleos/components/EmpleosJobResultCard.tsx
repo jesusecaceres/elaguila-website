@@ -84,6 +84,7 @@ export function EmpleosJobResultCard({ job, lang, variant = "list" }: Props) {
         <div className="mt-2 flex flex-wrap gap-2 text-xs text-[#4A4744]">
           <span>
             {job.city}, {job.state}
+            {job.postalCode ? ` · ${job.postalCode}` : ""}
           </span>
           <span aria-hidden>·</span>
           <span>{lang === "es" ? modalityEs(job.modality) : job.modality}</span>

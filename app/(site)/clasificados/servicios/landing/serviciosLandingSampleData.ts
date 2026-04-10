@@ -1,6 +1,9 @@
 /**
  * Blueprint sample data for `/clasificados/servicios`.
  * Shape mirrors future API rows so arrays can be swapped without layout changes.
+ *
+ * **Destacados / Recientes** here are **static presentation shells**; live ordering for DB results
+ * is `sortServiciosResultsForDisplay` + filters in `serviciosResultsFilter.ts` (see `serviciosResultsRanking.ts`).
  */
 
 export type ServiciosLandingCtaKind = "call" | "detail";
@@ -77,6 +80,7 @@ export const SERVICIOS_LANDING_EXPLORE_CATEGORIES: ServiciosLandingExploreCatego
   { id: "reparacion-auto", labelEs: "Reparación Auto", icon: "🚗", resultsGroup: "automotive" },
   { id: "tutoria", labelEs: "Tutoría", icon: "📚", resultsGroup: "education" },
   { id: "jardineria", labelEs: "Jardinería", icon: "🌿", resultsGroup: "home_trade" },
+  { id: "mascotas", labelEs: "Mascotas", icon: "🐾", resultsGroup: "pets" },
 ];
 
 export const SERVICIOS_LANDING_FEATURED: ServiciosLandingFeaturedBusiness[] = [

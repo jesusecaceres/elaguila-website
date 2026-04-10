@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
+import { FaChevronDown } from "react-icons/fa";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
@@ -14,18 +15,23 @@ import {
   sampleJobTypeSelectOptions,
   sampleModalityOptions,
   sampleSalaryBandOptions,
+  sampleUsStateSelectOptions,
 } from "../data/empleosLandingSampleData";
 import { EMPLEOS_JOB_CATALOG } from "../data/empleosSampleCatalog";
+import { saveEmpleosFilterPrefs } from "../lib/empleosFunctionalStorage";
 import {
   EMPLEOS_SAMPLE_NOW_MS,
   empleosParamsFromSearchParams,
   filterEmpleosJobs,
+  normalizeZip5,
   parseEmpleosResultsQuery,
   sortEmpleosJobs,
 } from "../lib/empleosResultsQuery";
 import { buildEmpleosResultadosUrl, type EmpleosResultadosParams } from "../shared/utils/empleosListaUrl";
 import { EMPLEOS_CTA_PRIMARY, EMPLEOS_CTA_SECONDARY, EMPLEOS_FIELD, EMPLEOS_LINK_MUTED } from "../lib/empleosPremiumUi";
+import { EmpleosFunctionalPrefsNotice } from "./EmpleosFunctionalPrefsNotice";
 import { EmpleosJobResultCard } from "./EmpleosJobResultCard";
+import { EmpleosUseLocationButton } from "./EmpleosUseLocationButton";
 
 const COPY = {
   es: {
@@ -44,10 +50,11 @@ const COPY = {
     emptyTitle: "No encontramos vacantes con esta combinación",
     emptyHint: "Amplía ciudad o palabra clave, o restablece filtros para volver a explorar.",
     emptyExplore: "Volver a Empleos",
-    mobileFilters: "Filtros y opciones",
     featuredBlock: "Destacados y promocionados",
     allBlock: "Todas las vacantes",
     formAria: "Filtros de búsqueda de empleos",
+    rememberPrefs: "Recordar ciudad y estado en este dispositivo",
+    filtersToggle: "Más filtros y señales de confianza",
   },
   en: {
     hub: "Classifieds",
@@ -65,16 +72,19 @@ const COPY = {
     emptyTitle: "No openings match this combination",
     emptyHint: "Broaden your city or keyword, or reset filters to explore again.",
     emptyExplore: "Back to Jobs home",
-    mobileFilters: "Filters & options",
     featuredBlock: "Featured & promoted",
     allBlock: "All openings",
     formAria: "Job search filters",
+    rememberPrefs: "Remember city and state on this device",
+    filtersToggle: "More filters & trust signals",
   },
 } as const;
 
 const CHIP_KEYS: (keyof EmpleosResultadosParams)[] = [
   "q",
   "city",
+  "state",
+  "zip",
   "category",
   "jobType",
   "modality",
@@ -85,6 +95,8 @@ const CHIP_KEYS: (keyof EmpleosResultadosParams)[] = [
   "featured",
   "recent",
   "quickApply",
+  "verified",
+  "premium",
 ];
 
 function chipLabel(lang: Lang, key: string, val: string): string {
@@ -116,7 +128,14 @@ function chipLabel(lang: Lang, key: string, val: string): string {
     return band?.label ?? val;
   }
   if (key === "q") return `${lang === "es" ? "Palabra" : "Keyword"}: ${val}`;
-  if (key === "city") return `${lang === "es" ? "Ubicación" : "Location"}: ${val}`;
+  if (key === "city") return `${lang === "es" ? "Ciudad" : "City"}: ${val}`;
+  if (key === "state") {
+    const o = sampleUsStateSelectOptions.find((x) => x.value === val);
+    return lang === "es" ? `Estado: ${o?.labelEs ?? val}` : `State: ${o?.labelEn ?? val}`;
+  }
+  if (key === "zip") return lang === "es" ? `CP: ${val}` : `ZIP: ${val}`;
+  if (key === "verified" && val === "1") return lang === "es" ? "Solo verificados" : "Verified only";
+  if (key === "premium" && val === "1") return lang === "es" ? "Negocio premium" : "Premium business";
   return `${key}: ${val}`;
 }
 
@@ -125,6 +144,58 @@ function countLine(lang: Lang, n: number): string {
     return n === 1 ? "Se encontró 1 vacante" : `Se encontraron ${n} vacantes`;
   }
   return n === 1 ? "1 opening found" : `${n} openings found`;
+}
+
+function EmpleosFilterToggles({
+  lang,
+  featured,
+  recent,
+  quickApply,
+  verifiedBox,
+  premiumBox,
+  setFeatured,
+  setRecent,
+  setQuickApply,
+  setVerifiedBox,
+  setPremiumBox,
+}: {
+  lang: Lang;
+  featured: boolean;
+  recent: boolean;
+  quickApply: boolean;
+  verifiedBox: boolean;
+  premiumBox: boolean;
+  setFeatured: (v: boolean) => void;
+  setRecent: (v: boolean) => void;
+  setQuickApply: (v: boolean) => void;
+  setVerifiedBox: (v: boolean) => void;
+  setPremiumBox: (v: boolean) => void;
+}) {
+  const cb = "flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-transparent px-1 py-1 text-sm font-medium text-[#2A2826] hover:border-[#E8DFD0]/80";
+  return (
+    <>
+      <label className={cb}>
+        <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} className="h-4 w-4 rounded" />
+        {lang === "es" ? "Solo destacados / promocionados" : "Featured / promoted only"}
+      </label>
+      <label className={cb}>
+        <input type="checkbox" checked={recent} onChange={(e) => setRecent(e.target.checked)} className="h-4 w-4 rounded" />
+        {lang === "es" ? "Últimos 7 días" : "Last 7 days"}
+      </label>
+      <label className={cb}>
+        <input type="checkbox" checked={quickApply} onChange={(e) => setQuickApply(e.target.checked)} className="h-4 w-4 rounded" />
+        {lang === "es" ? "Aplicación rápida" : "Quick apply"}
+      </label>
+      <label className={cb}>
+        <input type="checkbox" checked={verifiedBox} onChange={(e) => setVerifiedBox(e.target.checked)} className="h-4 w-4 rounded" />
+        {lang === "es" ? "Empleador verificado" : "Verified employer"}
+      </label>
+      <label className={cb}>
+        <input type="checkbox" checked={premiumBox} onChange={(e) => setPremiumBox(e.target.checked)} className="h-4 w-4 rounded" />
+        {lang === "es" ? "Negocio premium" : "Premium business"}
+      </label>
+    </>
+  );
 }
 
 export function EmpleosResultsView() {
@@ -148,6 +219,8 @@ export function EmpleosResultsView() {
 
   const [q, setQ] = useState(parsed.q);
   const [city, setCity] = useState(parsed.city);
+  const [stateCode, setStateCode] = useState(parsed.state);
+  const [zipInput, setZipInput] = useState(parsed.zip);
   const [category, setCategory] = useState(parsed.category);
   const [jobType, setJobType] = useState(parsed.jobType);
   const [modality, setModality] = useState(parsed.modality);
@@ -162,10 +235,15 @@ export function EmpleosResultsView() {
   const [recent, setRecent] = useState(parsed.recentOnly);
   const [quickApply, setQuickApply] = useState(parsed.quickApplyOnly);
   const [featured, setFeatured] = useState(parsed.featuredOnly);
+  const [verifiedBox, setVerifiedBox] = useState(parsed.verifiedOnly);
+  const [premiumBox, setPremiumBox] = useState(parsed.premiumOnly);
+  const [rememberPrefs, setRememberPrefs] = useState(false);
 
   useEffect(() => {
     setQ(parsed.q);
     setCity(parsed.city);
+    setStateCode(parsed.state);
+    setZipInput(parsed.zip);
     setCategory(parsed.category);
     setJobType(parsed.jobType);
     setModality(parsed.modality);
@@ -174,6 +252,8 @@ export function EmpleosResultsView() {
     setRecent(parsed.recentOnly);
     setQuickApply(parsed.quickApplyOnly);
     setFeatured(parsed.featuredOnly);
+    setVerifiedBox(parsed.verifiedOnly);
+    setPremiumBox(parsed.premiumOnly);
     const smin = parsed.salaryMin;
     const smax = parsed.salaryMax;
     const hit = sampleSalaryBandOptions.find((b) => b.min === smin && (b.max === smax || (!b.max && !smax)));
@@ -187,9 +267,12 @@ export function EmpleosResultsView() {
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const band = sampleSalaryBandOptions.find((b) => b.value === salaryBand);
+    const z = normalizeZip5(zipInput);
     const next: EmpleosResultadosParams = {
       q: q.trim() || undefined,
       city: city.trim() || undefined,
+      state: stateCode.trim() || undefined,
+      zip: z.length === 5 ? z : undefined,
       category: category || undefined,
       jobType: jobType || undefined,
       modality: modality || undefined,
@@ -200,8 +283,13 @@ export function EmpleosResultsView() {
       recent: recent ? "1" : undefined,
       quickApply: quickApply ? "1" : undefined,
       featured: featured ? "1" : undefined,
+      verified: verifiedBox ? "1" : undefined,
+      premium: premiumBox ? "1" : undefined,
       sort: parsed.sort,
     };
+    if (rememberPrefs && (city.trim() || stateCode.trim())) {
+      saveEmpleosFilterPrefs({ city: city.trim() || undefined, state: stateCode.trim() || undefined });
+    }
     pushParams(next);
   };
 
@@ -253,7 +341,8 @@ export function EmpleosResultsView() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 pt-24 sm:px-6 sm:pt-28 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 pt-[calc(6.5rem+env(safe-area-inset-top,0px))] sm:px-6 sm:pt-[calc(7.25rem+env(safe-area-inset-top,0px))] lg:px-8">
+        <EmpleosFunctionalPrefsNotice lang={lang} />
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t.resultsTitle}</h1>
@@ -267,30 +356,40 @@ export function EmpleosResultsView() {
           onSubmit={submitSearch}
           className="mt-7 rounded-[1.25rem] border border-[#E8DFD0] bg-white p-4 shadow-[0_14px_40px_rgba(42,40,38,0.075)] ring-1 ring-[#F0E8DC]/90 sm:p-7"
         >
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <label className="md:col-span-2">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <label className="md:col-span-2 xl:col-span-2">
               <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Palabra clave" : "Keyword"}</span>
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                className={EMPLEOS_FIELD}
-              />
+              <input value={q} onChange={(e) => setQ(e.target.value)} className={EMPLEOS_FIELD} />
             </label>
             <label>
               <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Ciudad" : "City"}</span>
+              <input value={city} onChange={(e) => setCity(e.target.value)} className={EMPLEOS_FIELD} autoComplete="address-level2" />
+            </label>
+            <label>
+              <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Estado" : "State"}</span>
+              <select value={stateCode} onChange={(e) => setStateCode(e.target.value)} className={EMPLEOS_FIELD}>
+                {sampleUsStateSelectOptions.map((o) => (
+                  <option key={o.value || "all"} value={o.value}>
+                    {lang === "es" ? o.labelEs : o.labelEn}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "CP (ZIP)" : "ZIP"}</span>
               <input
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
+                value={zipInput}
+                inputMode="numeric"
+                maxLength={5}
+                onChange={(e) => setZipInput(normalizeZip5(e.target.value))}
                 className={EMPLEOS_FIELD}
+                autoComplete="postal-code"
+                placeholder={lang === "es" ? "5 dígitos" : "5 digits"}
               />
             </label>
             <label>
               <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Categoría" : "Category"}</span>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className={EMPLEOS_FIELD}
-              >
+              <select value={category} onChange={(e) => setCategory(e.target.value)} className={EMPLEOS_FIELD}>
                 {sampleCategorySelectOptions.map((o) => (
                   <option key={o.value || "all"} value={o.value}>
                     {o.label}
@@ -300,11 +399,7 @@ export function EmpleosResultsView() {
             </label>
             <label>
               <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Tipo de empleo" : "Job type"}</span>
-              <select
-                value={jobType}
-                onChange={(e) => setJobType(e.target.value)}
-                className={EMPLEOS_FIELD}
-              >
+              <select value={jobType} onChange={(e) => setJobType(e.target.value)} className={EMPLEOS_FIELD}>
                 {sampleJobTypeSelectOptions.map((o) => (
                   <option key={o.value || "any"} value={o.value}>
                     {o.label}
@@ -314,11 +409,7 @@ export function EmpleosResultsView() {
             </label>
             <label>
               <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Modalidad" : "Modality"}</span>
-              <select
-                value={modality}
-                onChange={(e) => setModality(e.target.value)}
-                className={EMPLEOS_FIELD}
-              >
+              <select value={modality} onChange={(e) => setModality(e.target.value)} className={EMPLEOS_FIELD}>
                 {sampleModalityOptions.map((o) => (
                   <option key={o.value || "all"} value={o.value}>
                     {o.label}
@@ -328,11 +419,7 @@ export function EmpleosResultsView() {
             </label>
             <label>
               <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Salario (rango)" : "Salary band"}</span>
-              <select
-                value={salaryBand}
-                onChange={(e) => setSalaryBand(e.target.value)}
-                className={EMPLEOS_FIELD}
-              >
+              <select value={salaryBand} onChange={(e) => setSalaryBand(e.target.value)} className={EMPLEOS_FIELD}>
                 {sampleSalaryBandOptions.map((o) => (
                   <option key={o.value || "any"} value={o.value}>
                     {o.label}
@@ -342,11 +429,7 @@ export function EmpleosResultsView() {
             </label>
             <label>
               <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Experiencia" : "Experience"}</span>
-              <select
-                value={experience}
-                onChange={(e) => setExperience(e.target.value)}
-                className={EMPLEOS_FIELD}
-              >
+              <select value={experience} onChange={(e) => setExperience(e.target.value)} className={EMPLEOS_FIELD}>
                 {sampleExperienceOptions.map((o) => (
                   <option key={o.value || "any"} value={o.value}>
                     {o.label}
@@ -354,13 +437,9 @@ export function EmpleosResultsView() {
                 ))}
               </select>
             </label>
-            <label>
+            <label className="md:col-span-2 xl:col-span-2">
               <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Tipo de empresa" : "Company type"}</span>
-              <select
-                value={companyType}
-                onChange={(e) => setCompanyType(e.target.value)}
-                className={EMPLEOS_FIELD}
-              >
+              <select value={companyType} onChange={(e) => setCompanyType(e.target.value)} className={EMPLEOS_FIELD}>
                 {sampleCompanyTypeOptions.map((o) => (
                   <option key={o.value || "any"} value={o.value}>
                     {o.label}
@@ -370,40 +449,59 @@ export function EmpleosResultsView() {
             </label>
           </div>
 
-          <details className="mt-4 rounded-xl border border-[#F0E8DC] bg-[#FFFBF7] p-3 lg:hidden">
-            <summary className="flex min-h-12 cursor-pointer list-none items-center text-sm font-semibold text-[#2A2826] [&::-webkit-details-marker]:hidden">
-              {t.mobileFilters}
+          <div className="mt-4 max-w-xl">
+            <EmpleosUseLocationButton
+              lang={lang}
+              onFilled={(p) => {
+                setCity(p.city);
+                setStateCode(p.state);
+                setZipInput(p.zip);
+              }}
+            />
+          </div>
+
+          <details className="group mt-4 rounded-xl border border-[#F0E8DC] bg-[#FFFBF7] p-3 lg:hidden">
+            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 text-sm font-semibold text-[#2A2826] [&::-webkit-details-marker]:hidden">
+              <span>{t.filtersToggle}</span>
+              <FaChevronDown className="h-4 w-4 shrink-0 text-[#5B6F82] transition group-open:rotate-180" aria-hidden />
             </summary>
             <div className="mt-3 flex flex-col gap-3 border-t border-[#F0E8DC] pt-3">
-              <label className="flex cursor-pointer items-center gap-2 text-sm">
-                <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} className="h-4 w-4 rounded" />
-                {lang === "es" ? "Solo destacados" : "Featured only"}
-              </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm">
-                <input type="checkbox" checked={recent} onChange={(e) => setRecent(e.target.checked)} className="h-4 w-4 rounded" />
-                {lang === "es" ? "Publicados recientemente (7 días)" : "Posted in last 7 days"}
-              </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm">
-                <input type="checkbox" checked={quickApply} onChange={(e) => setQuickApply(e.target.checked)} className="h-4 w-4 rounded" />
-                {lang === "es" ? "Aplicación rápida" : "Quick apply"}
-              </label>
+              <EmpleosFilterToggles
+                lang={lang}
+                featured={featured}
+                recent={recent}
+                quickApply={quickApply}
+                verifiedBox={verifiedBox}
+                premiumBox={premiumBox}
+                setFeatured={setFeatured}
+                setRecent={setRecent}
+                setQuickApply={setQuickApply}
+                setVerifiedBox={setVerifiedBox}
+                setPremiumBox={setPremiumBox}
+              />
             </div>
           </details>
 
-          <div className="mt-4 hidden flex-wrap gap-4 lg:flex">
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
-              <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} className="h-4 w-4 rounded" />
-              {lang === "es" ? "Solo destacados" : "Featured only"}
-            </label>
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
-              <input type="checkbox" checked={recent} onChange={(e) => setRecent(e.target.checked)} className="h-4 w-4 rounded" />
-              {lang === "es" ? "Publicados recientemente (7 días)" : "Posted in last 7 days"}
-            </label>
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
-              <input type="checkbox" checked={quickApply} onChange={(e) => setQuickApply(e.target.checked)} className="h-4 w-4 rounded" />
-              {lang === "es" ? "Aplicación rápida" : "Quick apply"}
-            </label>
+          <div className="mt-4 hidden flex-wrap gap-x-5 gap-y-3 lg:flex">
+            <EmpleosFilterToggles
+              lang={lang}
+              featured={featured}
+              recent={recent}
+              quickApply={quickApply}
+              verifiedBox={verifiedBox}
+              premiumBox={premiumBox}
+              setFeatured={setFeatured}
+              setRecent={setRecent}
+              setQuickApply={setQuickApply}
+              setVerifiedBox={setVerifiedBox}
+              setPremiumBox={setPremiumBox}
+            />
           </div>
+
+          <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm text-[#4A4744]">
+            <input type="checkbox" checked={rememberPrefs} onChange={(e) => setRememberPrefs(e.target.checked)} className="mt-0.5 h-4 w-4 rounded" />
+            <span>{t.rememberPrefs}</span>
+          </label>
 
           <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <button type="submit" className={`${EMPLEOS_CTA_PRIMARY} min-w-[10rem] px-6`}>

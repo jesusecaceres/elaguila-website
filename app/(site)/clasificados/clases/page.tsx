@@ -20,7 +20,7 @@ const CLASES_HERO_IMAGE =
 
 const COPY = {
   es: {
-    eyebrow: "Leonix · Clasificados",
+    eyebrow: "Aprendizaje · Leonix",
     title: "Clases",
     subtitle: "Clases, talleres y aprendizaje comunitario.",
     searchPlaceholder: "Buscar: idiomas, música, tutoría…",
@@ -34,7 +34,7 @@ const COPY = {
     heroImageAlt: "Personas aprendiendo en un taller",
   },
   en: {
-    eyebrow: "Leonix · Classifieds",
+    eyebrow: "Learning · Leonix",
     title: "Classes",
     subtitle: "Classes, workshops and community learning.",
     searchPlaceholder: "Search: languages, music, tutoring…",
@@ -83,25 +83,26 @@ export default function Page() {
         </div>
       </div>
 
-      <main className="mx-auto w-full max-w-[min(100%,960px)] min-w-0 px-4 pb-12 pt-5 sm:px-5 sm:pt-6 md:pt-7">
+      <main className="mx-auto w-full max-w-[min(100%,960px)] min-w-0 space-y-5 px-4 pb-12 pt-4 sm:space-y-6 sm:px-5 sm:pt-5 md:space-y-7 md:pt-6">
         <CategoryHeroFrame
           imageSrc={CLASES_HERO_IMAGE}
           imageAlt={t.heroImageAlt}
           overlay="leonix-warm"
           contentJustify="end"
           minHeightClass="min-h-[min(36vh,300px)] sm:min-h-[min(40vh,360px)] md:min-h-[min(44vh,400px)]"
-          objectClassName="object-cover object-[center_38%] sm:object-[center_36%] md:object-[center_34%]"
+          objectClassName="object-cover object-[center_36%] sm:object-[center_34%] md:object-[center_32%]"
+          contentClassName="sm:max-w-[46rem]"
         >
           <div className="w-full max-w-2xl">
-            <p className="text-[11px] font-bold uppercase tracking-[0.26em] text-[#6B5A38]">{t.eyebrow}</p>
-            <h1 className="mt-3 text-balance font-serif text-[clamp(1.65rem,4vw+0.5rem,2.65rem)] font-semibold leading-[1.1] tracking-tight text-[#1E1810] drop-shadow-[0_1px_0_rgba(255,252,247,0.85)]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#5c4a38]/90 sm:text-[11px] sm:tracking-[0.24em]">{t.eyebrow}</p>
+            <h1 className="mt-2.5 text-balance font-serif text-[clamp(1.6rem,3.8vw+0.45rem,2.6rem)] font-semibold leading-[1.08] tracking-tight text-[#1E1810] drop-shadow-[0_1px_0_rgba(255,252,247,0.85)] sm:mt-3">
               {t.title}
             </h1>
-            <p className="mt-3 max-w-xl text-[0.9375rem] leading-relaxed text-[#2a241c]/92 sm:text-base">{t.subtitle}</p>
+            <p className="mt-2.5 max-w-xl text-[0.9375rem] leading-relaxed text-[#2a241c]/90 sm:mt-3 sm:text-base">{t.subtitle}</p>
           </div>
         </CategoryHeroFrame>
 
-        <section className="mt-6 rounded-2xl border border-[#C9B46A]/22 bg-[#FFFCF7]/95 px-4 py-4 shadow-[0_12px_40px_-28px_rgba(42,36,22,0.35)] ring-1 ring-[#C9B46A]/10 sm:px-5">
+        <section className="rounded-2xl border border-[#C9B46A]/20 bg-[#FFFCF7]/96 px-4 py-4 shadow-[0_10px_36px_-24px_rgba(42,36,22,0.22)] ring-1 ring-[#C9B46A]/08 sm:px-5 sm:py-4.5">
           <p className="text-center text-xs font-semibold uppercase tracking-[0.14em] text-[#3d5a73]/80 sm:text-left">{t.exploreCategory}</p>
           <div className="mt-3">
             <CategoryLandingChipsRail label={t.exploreCategory}>
@@ -118,8 +119,8 @@ export default function Page() {
           </div>
         </section>
 
-        <section className="mt-4 rounded-2xl border border-[#C9B46A]/28 bg-[#FFFCF7]/98 p-4 shadow-sm ring-1 ring-[#C9B46A]/12 sm:p-5">
-          <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-stretch sm:gap-2.5">
+        <section className="rounded-2xl border border-[#C9B46A]/22 bg-[#FFFCF7]/98 p-4 shadow-[0_6px_28px_-18px_rgba(42,36,22,0.14)] ring-1 ring-[#C9B46A]/10 sm:p-5">
+          <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-stretch sm:gap-3">
             <div className="relative min-w-0">
               <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#111111]/50 text-sm" aria-hidden>
                 ⌕
@@ -156,7 +157,7 @@ export default function Page() {
           <p className="mt-2 text-[11px] leading-snug text-[#111111]/68">{t.hint}</p>
         </section>
 
-        <div className="mt-8 flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-3">
+        <div className="flex min-w-0 flex-col gap-3 pt-1 sm:flex-row sm:flex-wrap sm:gap-3">
           <Link
             href={listaHref}
             className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[#111111] px-5 py-3 text-sm font-semibold text-[#F5F5F5] transition hover:opacity-95 sm:w-auto sm:min-w-[11rem]"

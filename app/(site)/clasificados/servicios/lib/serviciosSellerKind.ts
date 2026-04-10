@@ -3,8 +3,10 @@ import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBu
 export type ServiciosSellerPresentation = "business" | "independent";
 
 /**
- * Public seller presentation derived from published profile contact fields (no separate DB column).
- * Negocio: storefront or strong web presence. Independiente: leaner solo / mobile-first profile.
+ * Public “Negocio” vs “Independiente” for discovery cards and the results `seller` filter.
+ * Derived only from **published** `contact` fields (no advertiser self-label column):
+ * - **business**: physical street/suite **or** public website URL present.
+ * - **independent**: neither — still a full profile; badges must not imply verification beyond `leonixVerified`.
  */
 export function inferServiciosSellerPresentation(profile: ServiciosBusinessProfile): ServiciosSellerPresentation {
   const c = profile.contact;

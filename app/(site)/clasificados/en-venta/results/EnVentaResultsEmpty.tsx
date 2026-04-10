@@ -5,7 +5,15 @@ import { buildEnVentaResultsUrl } from "../shared/constants/enVentaResultsRoutes
 
 type Lang = "es" | "en";
 
-export function EnVentaResultsEmpty({ lang, onReset }: { lang: Lang; onReset?: () => void }) {
+export function EnVentaResultsEmpty({
+  lang,
+  onReset,
+  featuredOnly,
+}: {
+  lang: Lang;
+  onReset?: () => void;
+  featuredOnly?: boolean;
+}) {
   const home = buildEnVentaResultsUrl(lang);
   return (
     <div className="mx-auto max-w-lg rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/95 px-6 py-12 text-center shadow-[0_12px_40px_-12px_rgba(42,36,22,0.12)]">
@@ -13,12 +21,22 @@ export function EnVentaResultsEmpty({ lang, onReset }: { lang: Lang; onReset?: (
         🛒
       </div>
       <h2 className="mt-4 text-lg font-semibold text-[#1E1810]">
-        {lang === "es" ? "No hay resultados que coincidan" : "No matching results"}
+        {featuredOnly
+          ? lang === "es"
+            ? "No hay destacados Pro activos"
+            : "No active Pro featured listings"
+          : lang === "es"
+            ? "No hay resultados que coincidan"
+            : "No matching results"}
       </h2>
       <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">
-        {lang === "es"
-          ? "Prueba otra búsqueda, ajusta filtros o amplía la ciudad."
-          : "Try another search, adjust filters, or widen your city."}
+        {featuredOnly
+          ? lang === "es"
+            ? "Ningún anuncio con visibilidad destacada coincide con estos filtros. Quita el modo solo destacados Pro, amplía la zona o vuelve al listado general."
+            : "No boosted listings match these filters. Turn off “Pro featured only”, widen location, or browse all listings."
+          : lang === "es"
+            ? "Prueba otra búsqueda, ajusta filtros o amplía la ciudad."
+            : "Try another search, adjust filters, or widen your city."}
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <Link

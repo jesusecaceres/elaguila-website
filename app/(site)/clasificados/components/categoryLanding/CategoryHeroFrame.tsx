@@ -14,28 +14,29 @@ function HeroOverlays({ variant }: { variant: CategoryHeroOverlayId }) {
   if (variant === "leonix-warm") {
     return (
       <>
-        <div className="absolute inset-0 bg-gradient-to-b from-[#F8F1E4]/92 via-[#F5EFE3]/82 to-[#F3EBDD]/94" aria-hidden />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#3D5A73]/[0.07] via-transparent to-[#3D5A73]/[0.05]" aria-hidden />
-        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#F3EBDD] via-[#F3EBDD]/94 to-transparent sm:h-36" aria-hidden />
-        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#FFFCF7]/50 to-transparent sm:h-24" aria-hidden />
+        {/* Slightly lighter wash so photography retains destination presence while copy stays readable */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#F8F1E4]/86 via-[#F5EFE3]/72 to-[#F3EBDD]/90" aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#3D5A73]/[0.06] via-transparent to-[#3D5A73]/[0.04]" aria-hidden />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#F3EBDD] via-[#F3EBDD]/88 to-transparent sm:h-32" aria-hidden />
+        <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#FFFCF7]/42 to-transparent sm:h-20" aria-hidden />
       </>
     );
   }
   if (variant === "leonix-cream") {
     return (
       <>
-        <div className="absolute inset-0 bg-gradient-to-b from-[#FBF7F0]/[0.96] via-[#F8F3EA]/[0.9] to-[#F1E9DE]/[0.97]" aria-hidden />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_65%_at_50%_8%,rgba(255,255,255,0.62),transparent_55%)]" aria-hidden />
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#efe6db] to-transparent sm:h-32" aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#FBF7F0]/[0.92] via-[#F8F3EA]/[0.82] to-[#F1E9DE]/[0.94]" aria-hidden />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_65%_at_50%_8%,rgba(255,255,255,0.55),transparent_56%)]" aria-hidden />
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#efe6db] to-transparent sm:h-28" aria-hidden />
       </>
     );
   }
   if (variant === "leonix-slate") {
     return (
       <>
-        <div className="absolute inset-0 bg-gradient-to-b from-[#FAF7F2]/95 via-[#F5EFE6]/88 to-[#F0E8DC]/95" aria-hidden />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#5B7C99]/[0.08] via-transparent to-[#C45C26]/[0.05]" aria-hidden />
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#F4EDE3] via-[#F4EDE3]/90 to-transparent" aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#FAF7F2]/92 via-[#F5EFE6]/80 to-[#F0E8DC]/92" aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#5B7C99]/[0.07] via-transparent to-[#C45C26]/[0.045]" aria-hidden />
+        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#F4EDE3] via-[#F4EDE3]/85 to-transparent sm:h-30" aria-hidden />
       </>
     );
   }
@@ -118,7 +119,7 @@ export function CategoryHeroFrame({
       </div>
       {children ? (
         <div
-          className={`relative z-10 flex w-full flex-1 flex-col ${justify} px-4 py-8 sm:px-7 sm:py-10 md:px-9 md:py-11 ${contentClassName}`.trim()}
+          className={`relative z-10 flex w-full flex-1 flex-col ${justify} px-4 py-7 sm:px-6 sm:py-9 md:px-8 md:py-10 lg:px-9 lg:py-11 ${contentClassName}`.trim()}
         >
           {children}
         </div>

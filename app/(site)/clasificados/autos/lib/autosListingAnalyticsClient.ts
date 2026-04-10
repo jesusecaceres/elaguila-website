@@ -1,6 +1,7 @@
 "use client";
 
 import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
+import { leonixAnalyticsAllowed } from "@/app/lib/leonixPublicConsent";
 
 /** Best-effort fire-and-forget; never throws to callers. */
 export function trackAutosListingEvent(
@@ -8,7 +9,7 @@ export function trackAutosListingEvent(
   eventType: string,
   opts?: { lane?: AutosClassifiedsLane; metadata?: Record<string, unknown> },
 ): void {
-  if (typeof window === "undefined" || !listingId) return;
+  if (typeof window === "undefined" || !listingId || !leonixAnalyticsAllowed()) return;
   try {
     const body = JSON.stringify({
       listingId,

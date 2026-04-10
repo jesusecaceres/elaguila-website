@@ -136,10 +136,10 @@ function LandingSearchForm({
       <p className="mb-4 px-1 text-center font-serif text-lg text-[#3D3630]/90 sm:px-0 sm:text-left sm:text-xl">{copy.searchModuleLead}</p>
       <form
         onSubmit={onSubmit}
-        className="relative overflow-hidden rounded-[1.35rem] border border-white/70 bg-gradient-to-br from-white/95 via-[#FDFBF7]/98 to-[#f3ebe6]/90 shadow-[0_28px_80px_-36px_rgba(42,36,22,0.45)] ring-1 ring-[#C9B46A]/15 backdrop-blur-md"
+        className="relative overflow-hidden rounded-[1.35rem] border border-white/65 bg-gradient-to-br from-white/94 via-[#FDFBF7]/97 to-[#f3ebe6]/88 shadow-[0_20px_64px_-32px_rgba(42,36,22,0.28)] ring-1 ring-[#C9B46A]/12 backdrop-blur-md"
       >
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-[#C2542D] via-[#C9B46A] to-[#dfe9f4]/80" aria-hidden />
-        <div className="p-5 sm:p-7">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[#C2542D]/90 via-[#C9B46A] to-[#dfe9f4]/75" aria-hidden />
+        <div className="p-5 sm:p-6 md:p-7">
           <label className="block min-w-0">
             <span className="mb-2.5 block text-[10px] font-bold uppercase tracking-[0.18em] text-[#5C5346]/68">
               {copy.searchKeywordLabel}
@@ -156,9 +156,9 @@ function LandingSearchForm({
             </div>
           </label>
 
-          <div className="my-6 h-px w-full bg-gradient-to-r from-transparent via-[#E8DFD0]/85 to-transparent" aria-hidden />
+          <div className="my-5 h-px w-full bg-gradient-to-r from-transparent via-[#E8DFD0]/80 to-transparent" aria-hidden />
 
-          <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 sm:items-end lg:grid-cols-4 lg:gap-4">
+          <div className="grid grid-cols-1 items-stretch gap-3.5 sm:grid-cols-2 sm:items-end sm:gap-4 lg:grid-cols-4 lg:gap-4">
             <label className="min-w-0 sm:col-span-1">
               <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.18em] text-[#5C5346]/68">
                 {copy.searchOperationLabel}
@@ -333,7 +333,7 @@ export function BienesRaicesLandingView() {
             </div>
             {/* Stronger scenic read: warm scrim on copy side, lighter veil on the right so the neighborhood stays visible */}
             <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#FCF9F4]/[0.96] via-[#F6EFE6]/[0.72] to-[#e6d8c8]/[0.22] sm:via-[#F3EBE2]/[0.58]"
+              className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#FCF9F4]/[0.94] via-[#F6EFE6]/[0.66] to-[#e6d8c8]/[0.26] sm:via-[#F3EBE2]/[0.54]"
               aria-hidden
             />
             <div

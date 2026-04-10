@@ -7,6 +7,8 @@ import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
+import { buildViajesBrowseUrl, defaultViajesBrowseState } from "../lib/buildViajesResultsUrl";
+
 import { getViajesUi } from "../data/viajesUiCopy";
 import { ViajesAudienceBuckets } from "./ViajesAudienceBuckets";
 import { ViajesCategoryPillsPanel } from "./ViajesCategoryPillsPanel";
@@ -31,7 +33,7 @@ export function ViajesLandingPage() {
   const clasificadosHref = appendLangToPath("/clasificados", lang);
   const publicarHref = appendLangToPath("/publicar/viajes", lang);
   const homeBackHref = appendLangToPath("/clasificados/viajes", lang);
-  const browseAllHref = appendLangToPath("/clasificados/viajes/resultados", lang);
+  const browseAllHref = buildViajesBrowseUrl(defaultViajesBrowseState(lang));
 
   return (
     <div className="relative min-h-screen overflow-x-hidden pb-16 text-[color:var(--lx-text)] sm:pb-20">
@@ -67,7 +69,7 @@ export function ViajesLandingPage() {
           tripPills={<ViajesCategoryPillsPanel lang={lang} ui={ui} />}
         />
 
-        <main className="relative mx-auto max-w-7xl min-w-0 px-3 pb-10 pt-8 sm:px-5 sm:pt-10 lg:px-6 lg:pt-12">
+        <main className="relative mx-auto max-w-7xl min-w-0 px-3 pb-10 pt-6 sm:px-5 sm:pt-9 lg:px-6 lg:pt-11">
           <ViajesTopOffers homeBackHref={homeBackHref} browseAllHref={browseAllHref} ui={ui} />
           <ViajesLocalDepartures ui={ui} browseAllHref={browseAllHref} />
 

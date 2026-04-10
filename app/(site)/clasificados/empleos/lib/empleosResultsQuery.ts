@@ -1,5 +1,6 @@
 /**
  * URL query ↔ sample catalog filtering (adapter-ready for API later).
+ * Filter contract: `empleosFilterContract.ts`.
  */
 
 import type { EmpleosJobRecord } from "../data/empleosJobTypes";
@@ -13,6 +14,8 @@ export type EmpleosSortKey = "relevance" | "date_desc" | "salary_desc";
 export type ParsedEmpleosResultsQuery = {
   q: string;
   city: string;
+  state: string;
+  zip: string;
   category: string;
   jobType: string;
   modality: string;
@@ -23,6 +26,10 @@ export type ParsedEmpleosResultsQuery = {
   featuredOnly: boolean;
   recentOnly: boolean;
   quickApplyOnly: boolean;
+  verifiedOnly: boolean;
+  premiumOnly: boolean;
+  /** Parsed but not used for filtering until geo pipeline exists. */
+  radiusKm: string;
   sort: EmpleosSortKey;
 };
 
@@ -34,6 +41,8 @@ export function parseEmpleosResultsQuery(sp: URLSearchParams): ParsedEmpleosResu
   return {
     q: (sp.get("q") ?? "").trim(),
     city: (sp.get("city") ?? "").trim(),
+    state: (sp.get("state") ?? "").trim(),
+    zip: (sp.get("zip") ?? "").trim(),
     category: (sp.get("category") ?? "").trim(),
     jobType: (sp.get("jobType") ?? "").trim(),
     modality: (sp.get("modality") ?? "").trim(),
@@ -44,6 +53,9 @@ export function parseEmpleosResultsQuery(sp: URLSearchParams): ParsedEmpleosResu
     featuredOnly: sp.get("featured") === "1",
     recentOnly: sp.get("recent") === "1",
     quickApplyOnly: sp.get("quickApply") === "1",
+    verifiedOnly: sp.get("verified") === "1",
+    premiumOnly: sp.get("premium") === "1",
+    radiusKm: (sp.get("radiusKm") ?? "").trim(),
     sort,
   };
 }
@@ -53,21 +65,37 @@ function num(v: string): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+/** Normalize user ZIP input to 5 digits (US). */
+export function normalizeZip5(raw: string): string {
+  return raw.replace(/\D/g, "").slice(0, 5);
+}
+
 const RECENT_MS = 7 * 24 * 3600 * 1000;
 
 export function filterEmpleosJobs(jobs: EmpleosJobRecord[], p: ParsedEmpleosResultsQuery, nowMs: number): EmpleosJobRecord[] {
   const qLower = p.q.toLowerCase();
   const cityLower = p.city.toLowerCase();
+  const stateUpper = p.state.trim().toUpperCase();
+  const zip5 = normalizeZip5(p.zip);
 
   return jobs.filter((j) => {
     if (p.featuredOnly && j.listingTier === "standard") return false;
     if (p.recentOnly && nowMs - new Date(j.publishedAt).getTime() > RECENT_MS) return false;
     if (p.quickApplyOnly && !j.quickApply) return false;
+    if (p.verifiedOnly && !j.verifiedEmployer) return false;
+    if (p.premiumOnly && !j.premiumEmployer) return false;
     if (p.category && j.category !== p.category) return false;
     if (p.jobType && j.jobType !== p.jobType) return false;
     if (p.modality && j.modality !== p.modality) return false;
     if (p.experience && j.experience !== p.experience) return false;
     if (p.companyType && j.companyType !== p.companyType) return false;
+
+    if (stateUpper && j.state.toUpperCase() !== stateUpper) return false;
+
+    if (zip5.length === 5) {
+      const jobZip = j.postalCode ? normalizeZip5(j.postalCode) : "";
+      if (!jobZip || jobZip !== zip5) return false;
+    }
 
     const smin = num(p.salaryMin);
     const smax = num(p.salaryMax);
@@ -83,6 +111,9 @@ export function filterEmpleosJobs(jobs: EmpleosJobRecord[], p: ParsedEmpleosResu
       const loc = `${j.city} ${j.state}`.toLowerCase();
       if (!loc.includes(cityLower)) return false;
     }
+
+    // radiusKm: staged — requires lat/lng + geo index; do not fake proximity in sample phase.
+    // if (p.radiusKm && Number(p.radiusKm) > 0) { /* future */ }
 
     return true;
   });

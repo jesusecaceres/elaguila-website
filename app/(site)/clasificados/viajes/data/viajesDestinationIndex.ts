@@ -77,6 +77,18 @@ function buildIndex(): ViajesDestinationRecord[] {
   }
 
   for (const row of VIAJES_RESULTS_SAMPLE) {
+    if (row.kind === "editorial") {
+      const dest = row.destinationLabel;
+      const first = dest.split(/[,·]/)[0]?.trim() ?? dest;
+      const destParam = normalizeViajesDestinationKey(first).replace(/\s+/g, "-");
+      mergeRecord(map, {
+        destParam,
+        label: first,
+        detail: dest,
+        searchBlob: viajesDestinationMatchBlob([row.title, dest, destParam]),
+      });
+      continue;
+    }
     const dest = row.destination;
     const first = dest.split(/[,·]/)[0]?.trim() ?? dest;
     const destParam = normalizeViajesDestinationKey(first).replace(/\s+/g, "-");

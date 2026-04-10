@@ -31,6 +31,7 @@ export const AUTOS_BROWSE_URL_KEYS = {
   transmission: "transmission",
   drivetrain: "drivetrain",
   fuelType: "fuelType",
+  mileageMin: "mileageMin",
   mileageMax: "mileageMax",
   titleStatus: "titleStatus",
   sort: "sort",
@@ -92,6 +93,7 @@ export function parseAutosBrowseUrl(sp: URLSearchParams): AutosBrowseUrlBundle {
   filters.transmission = sp.get(K.transmission) ?? "";
   filters.drivetrain = sp.get(K.drivetrain) ?? "";
   filters.fuelType = sp.get(K.fuelType) ?? "";
+  filters.mileageMin = sp.get(K.mileageMin) ?? "";
   filters.mileageMax = sp.get(K.mileageMax) ?? "";
   filters.titleStatus = sp.get(K.titleStatus) ?? "";
 
@@ -128,6 +130,7 @@ export function serializeAutosBrowseUrl(bundle: AutosBrowseUrlBundle): string {
   setIfNonEmpty(params, K.transmission, bundle.filters.transmission);
   setIfNonEmpty(params, K.drivetrain, bundle.filters.drivetrain);
   setIfNonEmpty(params, K.fuelType, bundle.filters.fuelType);
+  setIfNonEmpty(params, K.mileageMin, bundle.filters.mileageMin);
   setIfNonEmpty(params, K.mileageMax, bundle.filters.mileageMax);
   setIfNonEmpty(params, K.titleStatus, bundle.filters.titleStatus);
   if (bundle.sort !== "newest") params.set(K.sort, bundle.sort);

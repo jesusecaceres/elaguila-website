@@ -54,11 +54,11 @@ export function ServiciosLandingPage({ lang }: { lang: Lang }) {
         {/* Hero + chips: one composed entry block */}
         <section
           id="servicios-hero"
-          className={`overflow-hidden ${sectionShell} shadow-[0_36px_90px_-50px_rgba(20,38,58,0.5)]`}
+          className={`overflow-hidden ${sectionShell} shadow-[0_22px_72px_-44px_rgba(20,38,58,0.32)]`}
           aria-label={lang === "en" ? "Search services" : "Buscar servicios"}
         >
           <ServiciosHeroSearch lang={lang} />
-          <div className="relative border-t border-[#e8e0d4]/80 bg-gradient-to-b from-[#faf6f0]/95 to-[#f4ebe3]/98 px-3 py-6 sm:px-8 sm:py-8 md:px-10 md:py-9">
+          <div className="relative border-t border-[#e8e0d4]/70 bg-gradient-to-b from-[#faf6f0]/96 to-[#f4ebe3]/97 px-3 py-5 sm:px-8 sm:py-7 md:px-10 md:py-8">
             <div
               className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/90 to-transparent"
               aria-hidden
@@ -67,7 +67,7 @@ export function ServiciosLandingPage({ lang }: { lang: Lang }) {
           </div>
         </section>
 
-        <div className="mt-8 sm:mt-10 md:mt-12">
+        <div className="mt-7 sm:mt-9 md:mt-11">
           <ServiciosLandingBrowseRow lang={lang} />
         </div>
 

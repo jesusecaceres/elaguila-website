@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AutosPublicListing } from "../../data/autosPublicSampleTypes";
+import { resolveAutosLandingInventory } from "../../data/sampleAutosPublicInventory";
 
 type ApiPayload = { ok?: boolean; listings?: AutosPublicListing[]; configured?: boolean };
 
 /**
- * Active public Autos listings (no sample fallback). Empty when DB is off or there are no active rows.
+ * Active public Autos listings, with the same blueprint fallback as the landing page when the API is empty.
  */
 export function useAutosPublicListingsFetch() {
   const [listings, setListings] = useState<AutosPublicListing[]>([]);
@@ -33,5 +34,7 @@ export function useAutosPublicListingsFetch() {
     };
   }, []);
 
-  return { listings, configured, loaded };
+  const inventory = useMemo(() => resolveAutosLandingInventory(listings), [listings]);
+
+  return { listings: inventory, configured, loaded };
 }

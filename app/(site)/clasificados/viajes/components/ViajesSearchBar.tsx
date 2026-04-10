@@ -33,25 +33,32 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
   const [departure, setDeparture] = useState("");
   const [tripType, setTripType] = useState("");
   const [budget, setBudget] = useState("");
+  const [departureFromGeo, setDepartureFromGeo] = useState(false);
   const { state: geoState, requestLocation } = useBrowserLocationForViajes();
 
   useEffect(() => {
-    if (geoState.status === "ready") setDeparture(geoState.originId);
+    if (geoState.status === "ready") {
+      setDeparture(geoState.originId);
+      setDepartureFromGeo(true);
+    }
   }, [geoState]);
 
   const exploreHref = useMemo(() => {
-    const dest = (canonicalDest ?? destinationLabel).trim();
+    const canon = canonicalDest?.trim();
+    const label = destinationLabel.trim();
     return buildViajesResultsUrl(
       {
-        destination: dest || undefined,
+        destination: canon || undefined,
+        destinationQuery: !canon && label ? label : undefined,
         departure: departure || undefined,
         tripType: tripType || undefined,
         budget: budget || undefined,
         lang,
+        originByGeo: departureFromGeo && Boolean(departure),
       },
       resultsBasePath
     );
-  }, [budget, canonicalDest, departure, destinationLabel, lang, resultsBasePath, tripType]);
+  }, [budget, canonicalDest, departure, departureFromGeo, destinationLabel, lang, resultsBasePath, tripType]);
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -65,18 +72,18 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
       onSubmit={onSubmit}
       aria-describedby={hintId}
       aria-label={s.moduleTitle}
-      className="max-w-full min-w-0 overflow-hidden rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-[#fffdf9]/98 p-3 shadow-[0_28px_64px_-32px_rgba(25,50,70,0.28)] backdrop-blur-md ring-offset-2 ring-offset-[#f3ebdd] focus-within:ring-2 focus-within:ring-[color:var(--lx-focus-ring)] sm:rounded-3xl sm:p-5 md:p-6 lg:p-7"
+      className="max-w-full min-w-0 overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)]/70 bg-[#fffdf9]/98 p-3 shadow-[0_18px_48px_-28px_rgba(25,50,70,0.14)] backdrop-blur-sm ring-offset-2 ring-offset-[#f3ebdd] focus-within:ring-2 focus-within:ring-[color:var(--lx-focus-ring)] sm:rounded-3xl sm:p-4 md:p-5 lg:p-6"
       style={{
         boxShadow:
-          "0 28px 56px -18px rgba(30, 40, 55, 0.16), 0 0 0 1px rgba(201, 168, 74, 0.18), inset 0 1px 0 rgba(255,252,247,0.9)",
+          "0 20px 48px -22px rgba(30, 40, 55, 0.12), 0 0 0 1px rgba(201, 168, 74, 0.12), inset 0 1px 0 rgba(255,252,247,0.92)",
       }}
     >
-      <div className="mb-3 border-b border-[color:var(--lx-gold-border)]/35 pb-3 sm:mb-4 sm:pb-4">
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-sky-900/80 sm:tracking-[0.2em]">{s.moduleTitle}</p>
+      <div className="mb-2.5 border-b border-[color:var(--lx-gold-border)]/28 pb-2.5 sm:mb-3 sm:pb-3">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-sky-900/75 sm:tracking-[0.2em]">{s.moduleTitle}</p>
       </div>
 
       {/* <lg: stacked; md–lg: 2-col; lg+: 12-col row with dividers */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-x-4 md:gap-y-4 lg:grid-cols-12 lg:items-end lg:gap-0 lg:divide-x lg:divide-[color:var(--lx-nav-border)]">
+      <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 md:gap-x-4 md:gap-y-3.5 lg:grid-cols-12 lg:items-end lg:gap-0 lg:divide-x lg:divide-[color:var(--lx-nav-border)]">
         <label className="min-w-0 md:col-span-2 lg:col-span-3 lg:pr-5">
           <span className={`${LABEL} flex flex-wrap items-center gap-1.5`}>
             <span aria-hidden>⌕</span>
@@ -99,7 +106,15 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
         <div className="min-w-0 md:col-span-2 lg:col-span-3 lg:px-5">
           <span className={LABEL}>{s.departureFrom}</span>
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-stretch">
-            <select className={`${FIELD} min-h-[48px] flex-1`} value={departure} onChange={(e) => setDeparture(e.target.value)} aria-label={s.departureAria}>
+            <select
+              className={`${FIELD} min-h-[48px] flex-1`}
+              value={departure}
+              onChange={(e) => {
+                setDeparture(e.target.value);
+                setDepartureFromGeo(false);
+              }}
+              aria-label={s.departureAria}
+            >
               <option value="">{s.anyOrigin}</option>
               {VIAJES_ORIGIN_BUCKETS.map((o) => (
                 <option key={o.id} value={o.id}>
@@ -126,6 +141,7 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
           ) : null}
           {geoState.status === "denied" ? <p className="mt-1 text-[11px] text-amber-800/90">{s.geoDenied}</p> : null}
           {geoState.status === "unavailable" ? <p className="mt-1 text-[11px] text-[color:var(--lx-muted)]">{s.geoUnavailable}</p> : null}
+          <p className="mt-2 text-[10px] leading-snug text-[color:var(--lx-muted)] sm:text-[11px]">{s.geoExplainer}</p>
         </div>
 
         <label className="min-w-0 md:col-span-1 lg:col-span-2 lg:px-5">

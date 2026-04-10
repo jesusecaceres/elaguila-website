@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { AUTOS_PUBLIC_BLUEPRINT_COPY } from "../lib/autosPublicBlueprintCopy";
 import type { AutosPublicLang } from "../lib/autosPublicBlueprintCopy";
 import { parseAutosBrowseUrl, serializeAutosBrowseUrl } from "../filters/autosBrowseFilterContract";
@@ -73,7 +74,8 @@ export function AutosLandingPage() {
 
   const searchHref = useMemo(() => {
     const filters = emptyAutosPublicFilters();
-    filters.city = city.trim();
+    const rawCity = city.trim();
+    filters.city = getCanonicalCityName(rawCity) || rawCity;
     filters.zip = zip.replace(/\D/g, "").slice(0, 5);
     return resultsHref({
       filters,
