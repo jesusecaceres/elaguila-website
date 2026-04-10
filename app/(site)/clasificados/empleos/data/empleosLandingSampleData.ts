@@ -3,16 +3,14 @@
  * Structured sample inventory; replace with loaders/adapters without changing page layout.
  */
 
-export type JobModalitySlug = "presencial" | "hibrido" | "remoto";
+import { EMPLEOS_JOB_CATALOG } from "./empleosSampleCatalog";
+import type { JobModalitySlug, JobTypeSlug } from "./empleosJobTypes";
 
-export type JobTypeSlug =
-  | "tiempo-completo"
-  | "medio-tiempo"
-  | "temporal"
-  | "por-contrato";
+export type { JobModalitySlug, JobTypeSlug } from "./empleosJobTypes";
 
 export type SampleFeaturedJob = {
   id: string;
+  slug: string;
   title: string;
   company: string;
   city: string;
@@ -31,6 +29,7 @@ export type SampleFeaturedJob = {
 
 export type SampleRecentJob = {
   id: string;
+  slug: string;
   title: string;
   company: string;
   city: string;
@@ -132,114 +131,53 @@ export const sampleCompanyTypeOptions: readonly { value: string; label: string }
   { value: "enterprise", label: "Gran empresa / corporativo" },
 ];
 
-export const sampleFeaturedJobs: SampleFeaturedJob[] = [
-  {
-    id: "feat-rn-downey",
-    title: "Enfermero(a) registrado(a)",
-    company: "HealthPlus Medical Group",
-    city: "Downey",
-    state: "CA",
-    category: "salud",
-    modality: "presencial",
-    jobType: "tiempo-completo",
-    salaryMin: 65000,
-    salaryMax: 78000,
-    salaryLabel: "$65,000 – $78,000 / año",
-    featured: true,
-    quickApply: true,
-    benefitChips: ["Tiempo completo", "Seguro médico", "401(k)"],
-    companyInitials: "HP",
-  },
-  {
-    id: "feat-sales-montebello",
-    title: "Ejecutivo de ventas B2B",
-    company: "Distribuidora del Valle",
-    city: "Montebello",
-    state: "CA",
-    category: "ventas",
-    modality: "hibrido",
-    jobType: "tiempo-completo",
-    salaryMin: 55000,
-    salaryMax: 72000,
-    salaryLabel: "$55,000 – $72,000 / año + comisiones",
-    featured: true,
-    quickApply: false,
-    benefitChips: ["Híbrido", "Comisiones", "Vehículo de demostración"],
-    companyInitials: "DV",
-  },
-  {
-    id: "feat-dev-remote",
-    title: "Desarrollador full stack (mid)",
-    company: "Nimbus Apps",
-    city: "Remoto",
-    state: "CA",
-    category: "tecnologia",
-    modality: "remoto",
-    jobType: "tiempo-completo",
-    salaryMin: 95000,
-    salaryMax: 118000,
-    salaryLabel: "$95,000 – $118,000 / año",
-    featured: true,
-    quickApply: true,
-    benefitChips: ["Remoto", "Equipo pequeño", "Seguro dental"],
-    companyInitials: "NA",
-  },
-];
+/** Fixed “now” for stable relative time labels at build/prerender. */
+const LANDING_TIME_REF = new Date("2026-04-10T18:00:00.000Z");
 
-export const sampleRecentJobs: SampleRecentJob[] = [
-  {
-    id: "recent-warehouse-sgv",
-    title: "Ayudante de bodega",
-    company: "Logística Sur",
-    city: "South Gate",
-    state: "CA",
-    modality: "presencial",
-    jobType: "tiempo-completo",
-    salaryLabel: "$19.50 – $21 / hora",
-    category: "bodega",
-    publishedAtLabel: "Hace 2 horas",
-    quickApply: true,
-  },
-  {
-    id: "recent-cook-lynnwood",
-    title: "Cocinero de línea",
-    company: "Mariscos El Puerto",
-    city: "Lynwood",
-    state: "CA",
-    modality: "presencial",
-    jobType: "tiempo-completo",
-    salaryLabel: "$20 – $22 / hora + propinas",
-    category: "restaurante",
-    publishedAtLabel: "Hace 5 horas",
-    quickApply: false,
-  },
-  {
-    id: "recent-csr-remote",
-    title: "Representante de servicio al cliente",
-    company: "Brightline Support",
-    city: "Remoto",
-    state: "CA",
-    modality: "remoto",
-    jobType: "medio-tiempo",
-    salaryLabel: "$18 – $20 / hora",
-    category: "oficina",
-    publishedAtLabel: "Hace 8 horas",
-    quickApply: true,
-  },
-  {
-    id: "recent-driver-local",
-    title: "Conductor de rutas locales (Clase C)",
-    company: "Envíos Rápidos CA",
-    city: "Commerce",
-    state: "CA",
-    modality: "presencial",
-    jobType: "tiempo-completo",
-    salaryLabel: "$22 – $24 / hora",
-    category: "transporte",
-    publishedAtLabel: "Hace 1 día",
-    quickApply: false,
-  },
-];
+function publishedLabelEs(iso: string): string {
+  const diffH = Math.floor((LANDING_TIME_REF.getTime() - new Date(iso).getTime()) / 3600000);
+  if (diffH < 48) return `Hace ${Math.max(1, diffH)} horas`;
+  const days = Math.floor(diffH / 24);
+  return days === 1 ? "Hace 1 día" : `Hace ${days} días`;
+}
+
+export const sampleFeaturedJobs: SampleFeaturedJob[] = EMPLEOS_JOB_CATALOG.filter((j) => j.showOnLandingFeatured).map(
+  (j) => ({
+    id: j.id,
+    slug: j.slug,
+    title: j.title,
+    company: j.company,
+    city: j.city,
+    state: j.state,
+    category: j.category,
+    modality: j.modality,
+    jobType: j.jobType,
+    salaryMin: j.salaryMin,
+    salaryMax: j.salaryMax,
+    salaryLabel: j.salaryLabel,
+    featured: true,
+    quickApply: j.quickApply,
+    benefitChips: j.benefitChips,
+    companyInitials: j.companyInitials,
+  }),
+);
+
+export const sampleRecentJobs: SampleRecentJob[] = EMPLEOS_JOB_CATALOG.filter((j) => j.showOnLandingRecent)
+  .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
+  .map((j) => ({
+    id: j.id,
+    slug: j.slug,
+    title: j.title,
+    company: j.company,
+    city: j.city,
+    state: j.state,
+    modality: j.modality,
+    jobType: j.jobType,
+    salaryLabel: j.salaryLabel,
+    category: j.category,
+    publishedAtLabel: publishedLabelEs(j.publishedAt),
+    quickApply: j.quickApply,
+  }));
 
 export const sampleJobCategories: SampleJobCategory[] = [
   { slug: "salud", title: "Salud", count: 428, icon: "heart" },

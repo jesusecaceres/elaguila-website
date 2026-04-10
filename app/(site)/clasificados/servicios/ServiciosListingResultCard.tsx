@@ -7,6 +7,8 @@ import { getServiciosProfileLabels } from "@/app/servicios/copy/serviciosProfile
 import type { ServiciosPublicListingRow } from "./lib/serviciosPublicListingsServer";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import { formatServiciosInternalGroupForDiscovery } from "./lib/serviciosInternalGroupDisplay";
+import { inferServiciosSellerPresentation } from "./lib/serviciosSellerKind";
+import { isServiciosListingPromoted } from "./lib/serviciosResultsFilter";
 
 /**
  * Discovery card — only fields that exist on the resolved profile; empty data hides cleanly.
@@ -37,6 +39,8 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
   const groupDiscovery = formatServiciosInternalGroupForDiscovery(row.internal_group, lang);
   const groupLabel = groupDiscovery?.trim() ?? "";
   const showGroupChip = Boolean(groupLabel) && (!category || groupLabel !== category.trim());
+  const sellerKind = inferServiciosSellerPresentation(row.profile_json);
+  const promoted = isServiciosListingPromoted(row);
 
   return (
     <li>
@@ -52,11 +56,33 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
               Leonix
             </div>
           )}
-          {row.leonix_verified ? (
-            <span className="absolute left-2 top-2 rounded-full border border-white/80 bg-white/95 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#2d528d] shadow-sm">
-              {lang === "en" ? "Verified" : "Verificado"}
+          <div className="absolute left-2 top-2 flex max-w-[calc(100%-1rem)] flex-wrap gap-1">
+            {promoted ? (
+              <span className="rounded-full border border-white/70 bg-gradient-to-r from-[#EA580C] to-[#C2410C] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                {lang === "en" ? "Featured" : "Destacado"}
+              </span>
+            ) : null}
+            {row.leonix_verified ? (
+              <span className="rounded-full border border-white/80 bg-white/95 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#2d528d] shadow-sm">
+                {lang === "en" ? "Verified" : "Verificado"}
+              </span>
+            ) : null}
+            <span
+              className={
+                sellerKind === "business"
+                  ? "rounded-full border border-white/80 bg-[#1a3352]/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm"
+                  : "rounded-full border border-white/80 bg-white/95 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#3D2C12] shadow-sm"
+              }
+            >
+              {sellerKind === "business"
+                ? lang === "en"
+                  ? "Business"
+                  : "Negocio"
+                : lang === "en"
+                  ? "Independent"
+                  : "Independiente"}
             </span>
-          ) : null}
+          </div>
           {promo ? (
             <span className="absolute bottom-2 left-2 right-2 truncate rounded-lg bg-black/55 px-2 py-1 text-center text-[11px] font-semibold text-white backdrop-blur-sm">
               {promo}

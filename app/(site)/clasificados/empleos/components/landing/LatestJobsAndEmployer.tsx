@@ -50,19 +50,14 @@ export function LatestJobsAndEmployer({ lang }: Props) {
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.45fr)] lg:items-start">
         <div className="rounded-[1.25rem] border border-[#E8DFD0] bg-white shadow-[0_12px_36px_rgba(42,40,38,0.07)]">
           {sampleRecentJobs.map((job, i) => {
-            const rowHref = buildEmpleosResultadosUrl(lang, {
-              q: job.title,
-              category: job.category,
-              modality: job.modality,
-              jobType: job.jobType,
-            });
+            const detailHref = appendLangToPath(`/clasificados/empleos/${job.slug}`, lang);
             const categoryHref = buildEmpleosResultadosUrl(lang, { category: job.category });
             return (
               <div
                 key={job.id}
                 className={`flex flex-col gap-3 border-[#F0E8DC] px-4 py-4 sm:flex-row sm:items-center sm:gap-4 sm:px-5 ${i > 0 ? "border-t" : ""}`}
               >
-                <Link href={rowHref} className="group flex min-w-0 flex-1 flex-col gap-1 rounded-xl outline-none ring-[#D9A23A]/0 transition hover:bg-[#FFFBF7] focus-visible:ring-4 focus-visible:ring-[#D9A23A]/25">
+                <Link href={detailHref} className="group flex min-w-0 flex-1 flex-col gap-1 rounded-xl outline-none ring-[#D9A23A]/0 transition hover:bg-[#FFFBF7] focus-visible:ring-4 focus-visible:ring-[#D9A23A]/25">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-base font-bold text-[#2A2826] group-hover:underline">{job.title}</h3>
                     {job.quickApply ? (
@@ -80,7 +75,7 @@ export function LatestJobsAndEmployer({ lang }: Props) {
                 </Link>
                 <div className="flex shrink-0 items-center justify-end gap-3 sm:flex-col sm:items-end">
                   <Link
-                    href={rowHref}
+                    href={detailHref}
                     className="inline-flex min-h-11 min-w-[7rem] items-center justify-center rounded-xl bg-gradient-to-r from-[#E8A54B] via-[#D9A23A] to-[#C9942E] px-4 text-sm font-bold text-[#2A2826] shadow-sm transition hover:brightness-[1.03]"
                   >
                     {lang === "es" ? "Ver" : "View"}

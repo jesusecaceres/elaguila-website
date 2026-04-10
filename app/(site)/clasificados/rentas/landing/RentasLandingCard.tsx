@@ -44,7 +44,7 @@ export function RentasLandingCard({ listing, layout = "vertical", copy, lang }: 
 
   if (horizontal) {
     return (
-      <article className={`group overflow-hidden ${rentasCardSurfaceClass} ring-1 ring-[#C4B8A8]/25`}>
+      <article className={`group overflow-hidden ${rentasCardSurfaceClass} ring-1 ring-[#D4C4A8]/32`}>
         <div className="flex flex-col sm:flex-row sm:items-stretch">
           <div className="relative sm:w-[42%] sm:max-w-[300px]">
             <div className="relative aspect-[16/10] sm:aspect-auto sm:h-full sm:min-h-[180px]">
@@ -93,7 +93,7 @@ export function RentasLandingCard({ listing, layout = "vertical", copy, lang }: 
   }
 
   return (
-    <article className={`group flex h-full flex-col overflow-hidden ${rentasCardSurfaceClass} ring-1 ring-[#C4B8A8]/25`}>
+    <article className={`group flex h-full flex-col overflow-hidden ${rentasCardSurfaceClass} ring-1 ring-[#D4C4A8]/32`}>
       <div className="relative aspect-[16/11] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

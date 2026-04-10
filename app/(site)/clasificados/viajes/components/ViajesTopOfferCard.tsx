@@ -17,6 +17,13 @@ function StarRow({ count, ariaLabel }: { count: number; ariaLabel: string }) {
   );
 }
 
+function resolvePrimaryCta(offer: ViajesTopOffer, ui: ViajesUi): { label: string; variant: "affiliate" | "business" | "editorial" } {
+  if (offer.listingKind === "editorial") return { label: ui.cards.explore, variant: "editorial" };
+  if (offer.listingKind === "affiliate") return { label: ui.cards.affiliateCta, variant: "affiliate" };
+  if (offer.href.includes("/negocio/")) return { label: ui.cards.businessViewListing, variant: "business" };
+  return { label: ui.cards.viewOffers, variant: "business" };
+}
+
 export function ViajesTopOfferCard({ offer, homeBackHref, ui }: { offer: ViajesTopOffer; homeBackHref: string; ui: ViajesUi }) {
   const affiliateDisclosure =
     ui.lang === "en" && offer.affiliateDisclosureShortEn ? offer.affiliateDisclosureShortEn : offer.affiliateDisclosureShort;
@@ -28,6 +35,8 @@ export function ViajesTopOfferCard({ offer, homeBackHref, ui }: { offer: ViajesT
       ? withViajesOfferBackParam(offer.href, homeBackHref)
       : offer.href;
 
+  const cta = resolvePrimaryCta(offer, ui);
+
   const shell =
     offer.listingKind === "affiliate"
       ? "border-amber-200/80 bg-[#fffdf9] shadow-[0_10px_36px_-18px_rgba(30,50,70,0.12)]"
@@ -37,20 +46,27 @@ export function ViajesTopOfferCard({ offer, homeBackHref, ui }: { offer: ViajesT
 
   const sourcePill =
     offer.listingKind === "affiliate" ? (
-      <span className="rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-        {ui.cards.sourceAffiliate}
-      </span>
+      <span className="rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">{ui.cards.partnerInventory}</span>
     ) : offer.listingKind === "business" ? (
       <span className="rounded-full bg-[color:var(--lx-section)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text-2)]">
-        {ui.cards.sourceBusiness}
+        {ui.cards.businessListing}
       </span>
     ) : (
       <span className="rounded-full bg-[#2A2620] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#FAF7F2]">{ui.cards.sourceIdeas}</span>
     );
 
+  const ctaClass =
+    cta.variant === "editorial"
+      ? "inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border-2 border-dashed border-[color:var(--lx-gold)] bg-white/90 px-4 py-2 text-xs font-bold text-[color:var(--lx-text)] shadow-sm transition hover:bg-[color:var(--lx-section)] sm:w-auto"
+      : cta.variant === "affiliate"
+        ? "inline-flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 py-2 text-xs font-bold text-white shadow-[0_10px_22px_-8px_rgba(234,88,12,0.45)] transition hover:brightness-105 sm:w-auto"
+        : "inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[color:var(--lx-cta-dark)] px-4 py-2 text-xs font-bold text-[#FFFCF7] shadow-md transition hover:bg-[color:var(--lx-cta-dark-hover)] sm:w-auto";
+
+  const ctaStyle = cta.variant === "affiliate" ? { backgroundColor: VIAJES_LANDING_CTA_ORANGE } : undefined;
+
   return (
     <article
-      className={`group flex h-full flex-col overflow-hidden rounded-2xl border transition hover:-translate-y-[2px] hover:shadow-[0_22px_48px_-20px_rgba(30,50,80,0.18)] ${shell}`}
+      className={`group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border transition hover:-translate-y-[2px] hover:shadow-[0_22px_48px_-20px_rgba(30,50,80,0.18)] ${shell}`}
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden">
         <Image
@@ -60,14 +76,14 @@ export function ViajesTopOfferCard({ offer, homeBackHref, ui }: { offer: ViajesT
           sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 25vw"
           className="object-cover transition duration-500 group-hover:scale-[1.03]"
         />
-        <div className="absolute left-3 top-3 flex flex-wrap items-center gap-2">
+        <div className="absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-2">
           <span className="rounded-full bg-white/95 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text)] shadow-sm backdrop-blur-sm">
             {viajesBadgeLabel(offer.badge, ui)}
           </span>
           {sourcePill}
         </div>
       </div>
-      <div className="flex flex-1 flex-col p-4 sm:p-5">
+      <div className="flex min-w-0 flex-1 flex-col p-4 sm:p-5">
         <h3 className="line-clamp-2 text-lg font-bold leading-snug text-[color:var(--lx-text)]">{offer.title}</h3>
         <p className="mt-1 line-clamp-2 text-sm text-[color:var(--lx-text-2)]">{offer.supportingLine}</p>
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[color:var(--lx-muted)]">
@@ -88,26 +104,18 @@ export function ViajesTopOfferCard({ offer, homeBackHref, ui }: { offer: ViajesT
             {offer.departureContext}
           </span>
           {offer.listingKind === "affiliate" && affiliateDisclosure ? (
-            <p className="mt-1 rounded-lg border border-amber-200/60 bg-amber-50/80 px-2 py-1.5 text-[10px] font-medium leading-snug text-amber-950">
-              {affiliateDisclosure}
-            </p>
+            <p className="mt-1 rounded-lg border border-amber-200/60 bg-amber-50/80 px-2 py-1.5 text-[10px] font-medium leading-snug text-amber-950">{affiliateDisclosure}</p>
           ) : null}
           {offer.listingKind === "business" && offer.businessName ? (
-            <span className="mt-1 rounded-lg bg-[color:var(--lx-section)] px-2 py-1 text-[11px] font-medium text-[color:var(--lx-text-2)]">
-              {offer.businessName}
-            </span>
+            <span className="mt-1 rounded-lg bg-[color:var(--lx-section)] px-2 py-1 text-[11px] font-medium text-[color:var(--lx-text-2)]">{offer.businessName}</span>
           ) : null}
           {offer.partnerLabel && offer.listingKind === "affiliate" ? (
             <span className="mt-1 rounded-lg bg-[rgba(212,188,106,0.15)] px-2 py-1 text-[11px] font-medium text-[color:var(--lx-text-2)]">{offer.partnerLabel}</span>
           ) : null}
         </div>
         <div className="mt-auto flex justify-end pt-4">
-          <Link
-            href={href}
-            className="inline-flex min-h-[40px] items-center justify-center rounded-xl px-4 py-2 text-xs font-bold text-white shadow-[0_10px_22px_-8px_rgba(234,88,12,0.45)] transition hover:brightness-105"
-            style={{ backgroundColor: VIAJES_LANDING_CTA_ORANGE }}
-          >
-            {offer.listingKind === "editorial" ? ui.cards.explore : ui.cards.viewOffer}
+          <Link href={href} className={ctaClass} style={ctaStyle}>
+            {cta.label}
           </Link>
         </div>
       </div>

@@ -5,10 +5,13 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import type { ViajesUi } from "../data/viajesUiCopy";
 import { ViajesCategoryCarousel } from "./ViajesCategoryCarousel";
 
+/** Trip-type shortcuts — visually subordinate to the main search module (Phase 2). */
 export function ViajesCategoryPillsPanel({ lang, ui }: { lang: Lang; ui: ViajesUi }) {
   return (
-    <div className="rounded-2xl border border-[color:var(--lx-gold-border)] bg-[#fffaf3]/95 p-4 shadow-[0_16px_40px_-24px_rgba(30,24,16,0.25)] backdrop-blur-[2px] sm:rounded-3xl sm:p-5">
-      <p className="mb-3 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--lx-muted)] sm:mb-4 sm:text-left">{ui.exploreByTripType}</p>
+    <div className="rounded-xl border border-dashed border-[color:var(--lx-gold-border)]/80 bg-[#fffdfb]/85 p-3 shadow-sm sm:rounded-2xl sm:p-4">
+      <p className="mb-2.5 text-center text-[9px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)] sm:mb-3 sm:text-left sm:text-[10px]">
+        {ui.searchShortcutsLabel}
+      </p>
       <ViajesCategoryCarousel lang={lang} ui={ui} />
     </div>
   );

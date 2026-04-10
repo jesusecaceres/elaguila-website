@@ -24,6 +24,7 @@ export type EmpleosResultadosParams = {
   featured?: string;
   recent?: string;
   quickApply?: string;
+  sort?: string;
 };
 
 /**

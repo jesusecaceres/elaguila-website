@@ -1,41 +1,26 @@
 import type { RestauranteCuisineKey } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
+import {
+  getRestaurantesBlueprintLandingFeatured,
+  getRestaurantesBlueprintLandingRecent,
+} from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
+import type {
+  RestaurantesBlueprintCard,
+  RestaurantesCategoryTile,
+  RestaurantesCuisineChip,
+  RestaurantesQuickFilter,
+} from "@/app/clasificados/restaurantes/lib/restaurantesBlueprintTypes";
+
+export type {
+  RestaurantesBlueprintCard,
+  RestaurantesCategoryTile,
+  RestaurantesCuisineChip,
+  RestaurantesQuickFilter,
+} from "@/app/clasificados/restaurantes/lib/restaurantesBlueprintTypes";
 
 /**
- * Blueprint-only sample records. Replace arrays with API/DB data later without redesigning the shell.
+ * Landing-only chips and tiles (not the full results inventory).
+ * Featured / Recientes rows come from `getRestaurantesBlueprintLandingFeatured|Recent()` (shared pool).
  */
-
-export type RestaurantesBlueprintCard = {
-  id: string;
-  name: string;
-  cuisineLine: string;
-  cityLine: string;
-  rating: number;
-  imageSrc: string;
-};
-
-export type RestaurantesCuisineChip = {
-  id: string;
-  labelEs: string;
-  labelEn: string;
-  /** Canonical cuisine key for `cuisine=` on resultados (see `DISCOVERY_CUISINE_ALIASES` + taxonomy). */
-  cuisineKey: string;
-};
-
-export type RestaurantesCategoryTile = {
-  id: string;
-  labelEs: string;
-  labelEn: string;
-  cuisineKey: RestauranteCuisineKey;
-  imageSrc: string;
-};
-
-export type RestaurantesQuickFilter = {
-  id: string;
-  labelEs: string;
-  labelEn: string;
-  /** Query params for `buildRestaurantesResultsHref` — must map to real listing fields when wired. */
-  resultParams: Record<string, string | undefined>;
-};
 
 export const RESTAURANTES_BLUEPRINT_QUICK_FILTERS: RestaurantesQuickFilter[] = [
   {
@@ -72,7 +57,7 @@ export const RESTAURANTES_BLUEPRINT_QUICK_FILTERS: RestaurantesQuickFilter[] = [
     id: "top_rated",
     labelEs: "Mejor valorados",
     labelEn: "Top rated",
-    resultParams: { top: "1" },
+    resultParams: { top: "1", sort: "rating-desc" },
   },
   {
     id: "price",
@@ -142,62 +127,8 @@ export const RESTAURANTES_BLUEPRINT_CATEGORY_TILES: RestaurantesCategoryTile[] =
   },
 ];
 
-export const RESTAURANTES_BLUEPRINT_FEATURED: RestaurantesBlueprintCard[] = [
-  {
-    id: "feat-1",
-    name: "Casa Tapatía",
-    cuisineLine: "Mexicana regional · barbacoa y antojitos",
-    cityLine: "San José",
-    rating: 4.9,
-    imageSrc:
-      "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "feat-2",
-    name: "Sushi Naru",
-    cuisineLine: "Japonesa · omakase y rolls",
-    cityLine: "Escazú",
-    rating: 4.8,
-    imageSrc:
-      "https://images.unsplash.com/photo-1579584425555-c7ce17fd4351?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "feat-3",
-    name: "Santa Pasta",
-    cuisineLine: "Italiana · pasta fresca y vinos",
-    cityLine: "Heredia",
-    rating: 4.7,
-    imageSrc:
-      "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=900&q=80",
-  },
-];
+/** Data-driven from shared blueprint pool (`restaurantesPublicBlueprintData`). */
+export const RESTAURANTES_BLUEPRINT_FEATURED: RestaurantesBlueprintCard[] = getRestaurantesBlueprintLandingFeatured();
 
-export const RESTAURANTES_BLUEPRINT_RECENT: RestaurantesBlueprintCard[] = [
-  {
-    id: "rec-1",
-    name: "La Trattoria Roma",
-    cuisineLine: "Italiana · horno de leña",
-    cityLine: "Cartago",
-    rating: 4.6,
-    imageSrc:
-      "https://images.unsplash.com/photo-1595299585323-38d6b0865b47?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "rec-2",
-    name: "El Sabor del Norte",
-    cuisineLine: "Latina norteña · cortes y mariscos",
-    cityLine: "Alajuela",
-    rating: 4.5,
-    imageSrc:
-      "https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "rec-3",
-    name: "Ramen House",
-    cuisineLine: "Japonesa · ramen y donburi",
-    cityLine: "Curridabat",
-    rating: 4.8,
-    imageSrc:
-      "https://images.unsplash.com/photo-1569718216969-217a2d9e1a6c?auto=format&fit=crop&w=900&q=80",
-  },
-];
+/** Data-driven from shared blueprint pool (`restaurantesPublicBlueprintData`). */
+export const RESTAURANTES_BLUEPRINT_RECENT: RestaurantesBlueprintCard[] = getRestaurantesBlueprintLandingRecent();

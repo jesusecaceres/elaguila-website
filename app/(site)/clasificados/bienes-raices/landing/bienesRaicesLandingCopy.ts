@@ -24,6 +24,10 @@ export type BrLandingCopy = {
   searchCityLabel: string;
   searchCityPlaceholder: string;
   searchSubmit: string;
+  /** Visual anchor line above the discovery module */
+  searchModuleLead: string;
+  /** Short line above quick chips */
+  quickChipsLead: string;
   quickFiltersHeading: string;
   chipLabel: Record<
     "sale" | "rent" | "house" | "apartment" | "land" | "private" | "business" | "pool" | "pets" | "furnished",
@@ -82,6 +86,8 @@ const ES: BrLandingCopy = {
   searchCityLabel: "Ciudad o zona",
   searchCityPlaceholder: "Ej. Monterrey",
   searchSubmit: "Buscar",
+  searchModuleLead: "Descubre propiedades con precisión",
+  quickChipsLead: "Atajos de exploración",
   quickFiltersHeading: "Filtros rápidos",
   chipLabel: {
     sale: "Venta",
@@ -152,6 +158,8 @@ const EN: BrLandingCopy = {
   searchCityLabel: "City or area",
   searchCityPlaceholder: "e.g. Monterrey",
   searchSubmit: "Search",
+  searchModuleLead: "Discover listings with precision",
+  quickChipsLead: "Quick exploration",
   quickFiltersHeading: "Quick filters",
   chipLabel: {
     sale: "Sale",

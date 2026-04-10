@@ -12,7 +12,7 @@ import {
   getRentasLandingPrivado,
   getRentasLandingRecientes,
   rentasLandingFeaturedListing,
-} from "@/app/clasificados/rentas/data/rentasLandingSampleData";
+} from "@/app/clasificados/rentas/data/rentasPublicData";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
 import { RentasLandingCard } from "@/app/clasificados/rentas/landing/RentasLandingCard";
 import { RentasLandingCategoryHeader } from "@/app/clasificados/rentas/landing/RentasLandingCategoryHeader";
@@ -33,7 +33,7 @@ import {
 import { RENTAS_RESULTS } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { buildRentasResultsUrl } from "@/app/clasificados/rentas/shared/utils/rentasResultsRoutes";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
-import { rentasLinkSupportClass } from "@/app/clasificados/rentas/rentasLandingTheme";
+import { rentasLandingHeroPanelClass, rentasLinkSupportClass } from "@/app/clasificados/rentas/rentasLandingTheme";
 
 export function RentasLandingHub() {
   const router = useRouter();
@@ -79,27 +79,31 @@ export function RentasLandingHub() {
 
   return (
     <RentasLandingShell>
-      <RentasLandingCategoryHeader copy={copy} lang={lang} />
+      <div className="relative z-[2]">
+        <div className={rentasLandingHeroPanelClass}>
+          <RentasLandingCategoryHeader copy={copy} lang={lang} />
+        </div>
 
-      <div className="mt-10 max-w-[1200px]">
-        <RentasSearchBar
-          query={query}
-          onQuery={setQuery}
-          propertyType={propertyType}
-          onPropertyType={setPropertyType}
-          priceBand={priceBand}
-          onPriceBand={setPriceBand}
-          beds={beds}
-          onBeds={setBeds}
-          onSearch={runSearch}
-          copy={copy.search}
-          priceOptions={copy.priceOptions}
-        />
-        <p className="mt-3 text-center text-sm text-[#5C5346]/85 sm:text-left">
-          <Link href={resultsBase} className={rentasLinkSupportClass}>
-            {copy.searchHelperLink}
-          </Link>
-        </p>
+        <div className="relative z-[3] mx-auto mt-5 max-w-[1180px] sm:-mt-8 lg:-mt-10">
+          <RentasSearchBar
+            query={query}
+            onQuery={setQuery}
+            propertyType={propertyType}
+            onPropertyType={setPropertyType}
+            priceBand={priceBand}
+            onPriceBand={setPriceBand}
+            beds={beds}
+            onBeds={setBeds}
+            onSearch={runSearch}
+            copy={copy.search}
+            priceOptions={copy.priceOptions}
+          />
+          <p className="mt-3 text-center text-sm text-[#4A4338]/88 sm:text-left">
+            <Link href={resultsBase} className={rentasLinkSupportClass}>
+              {copy.searchHelperLink}
+            </Link>
+          </p>
+        </div>
       </div>
 
       <RentasLandingQuickChips copy={copy.quickExplore} chips={quickChipLinks} />

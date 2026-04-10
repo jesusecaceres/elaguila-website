@@ -11,8 +11,11 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { RentasSearchBar } from "@/app/clasificados/rentas/components/RentasSearchBar";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
-import { BienesRaicesResultsShell } from "@/app/clasificados/bienes-raices/resultados/components/BienesRaicesResultsShell";
-import { BienesRaicesResultsHeader } from "@/app/clasificados/bienes-raices/resultados/components/BienesRaicesResultsHeader";
+import {
+  rentasCtaPrimaryClass,
+  rentasCtaSecondaryClass,
+  rentasLandingHeroPanelClass,
+} from "@/app/clasificados/rentas/rentasLandingTheme";
 import {
   RENTAS_QUERY_AMUEBLADO,
   RENTAS_QUERY_MASCOTAS,
@@ -30,13 +33,15 @@ import {
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { RentasResultCard } from "./cards/RentasResultCard";
 import { RentasPropiedadFilterChips } from "./components/RentasPropiedadFilterChips";
+import { RentasResultsShell } from "./components/RentasResultsShell";
+import { RentasResultsToolbar } from "./components/RentasResultsToolbar";
 import { RentasResultsTopBar } from "./components/RentasResultsTopBar";
 import {
-  rentasResultsFeatured,
-  rentasResultsGridDemo,
-  RENTAS_RESULTS_DEMO_TOTAL,
-  type RentasResultsDemoListing,
-} from "./rentasResultsDemoData";
+  getRentasResultsDemoTotal,
+  getRentasResultsFeaturedListing,
+  getRentasResultsGridListings,
+} from "@/app/clasificados/rentas/data/rentasPublicData";
+import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 
 function rentDemoMonthlyNumber(rentDisplay: string): number {
   const n = Number(String(rentDisplay).replace(/[^0-9.]/g, ""));
@@ -72,8 +77,9 @@ export function RentasResultsClient() {
   const [branchFilter, setBranchFilter] = useState<"all" | "privado" | "negocio">("all");
   const [sort, setSort] = useState("reciente");
   const [view, setView] = useState<"grid" | "list">("grid");
-  const [showMap, setShowMap] = useState(false);
   const [propiedadFilter, setPropiedadFilter] = useState<BrNegocioCategoriaPropiedad | null>(null);
+
+  const resultsQueryString = searchParams?.toString() ?? "";
 
   useEffect(() => {
     if (!searchParams) return;
@@ -91,8 +97,12 @@ export function RentasResultsClient() {
     setPropiedadFilter(prop);
   }, [searchParams]);
 
+  const resultsGrid = useMemo(() => getRentasResultsGridListings(), []);
+  const resultsFeatured = useMemo(() => getRentasResultsFeaturedListing(), []);
+  const resultsDemoTotal = useMemo(() => getRentasResultsDemoTotal(), []);
+
   const filteredListings = useMemo(() => {
-    let rows = [...rentasResultsGridDemo];
+    let rows = [...resultsGrid];
     if (propiedadFilter) rows = rows.filter((l) => l.categoriaPropiedad === propiedadFilter);
     if (branchFilter !== "all") rows = rows.filter((l) => l.branch === branchFilter);
     const q = query.trim().toLowerCase();
@@ -136,20 +146,20 @@ export function RentasResultsClient() {
     return rows;
   }, [branchFilter, propiedadFilter, query, searchParams, sort]);
 
-  const featuredListing = useMemo((): RentasResultsDemoListing | null => {
+  const featuredListing = useMemo((): RentasPublicListing | null => {
     if (!filteredListings.length) return null;
-    if (propiedadFilter && rentasResultsFeatured.categoriaPropiedad !== propiedadFilter) {
+    if (propiedadFilter && resultsFeatured.categoriaPropiedad !== propiedadFilter) {
       const promoted = filteredListings.find((l) => l.promoted);
       return promoted ?? filteredListings[0];
     }
-    if (branchFilter === "privado" && rentasResultsFeatured.branch !== "privado") {
+    if (branchFilter === "privado" && resultsFeatured.branch !== "privado") {
       return filteredListings[0];
     }
-    if (branchFilter === "negocio" && rentasResultsFeatured.branch !== "negocio") {
+    if (branchFilter === "negocio" && resultsFeatured.branch !== "negocio") {
       return filteredListings[0];
     }
-    return rentasResultsFeatured;
-  }, [filteredListings, propiedadFilter, branchFilter]);
+    return resultsFeatured;
+  }, [filteredListings, propiedadFilter, branchFilter, resultsFeatured]);
 
   const displayedListings = useMemo(() => {
     if (view === "list") return filteredListings.map((l) => ({ ...l, layout: "horizontal" as const }));
@@ -157,7 +167,7 @@ export function RentasResultsClient() {
   }, [filteredListings, view]);
 
   const totalLabel =
-    propiedadFilter || branchFilter !== "all" || query.trim() ? filteredListings.length : RENTAS_RESULTS_DEMO_TOTAL;
+    propiedadFilter || branchFilter !== "all" || query.trim() ? filteredListings.length : resultsDemoTotal;
   const showingTo = displayedListings.length ? Math.min(20, displayedListings.length) : 0;
 
   const propiedadLabel =
@@ -170,43 +180,39 @@ export function RentasResultsClient() {
           : null;
 
   return (
-    <BienesRaicesResultsShell>
+    <RentasResultsShell>
       <RentasResultsTopBar copy={copy} lang={lang} />
 
-      <div className="max-w-3xl">
-        <h1 className="font-serif text-4xl font-semibold tracking-tight text-[#1E1810] sm:text-[2.75rem] sm:leading-tight">
-          {copy.title}
-        </h1>
-        <p className="mt-2 text-base text-[#5C5346]/90 sm:text-lg">
-          {copy.results.introPart1}
-          {copy.results.introPart2}
-          <Link href={withRentasLandingLang(RENTAS_PREVIEW_PRIVADO, lang)} className="font-semibold text-[#B8954A] underline">
-            {copy.card.sellerPrivado}
-          </Link>{" "}
-          /{" "}
-          <Link href={withRentasLandingLang(RENTAS_PREVIEW_NEGOCIO, lang)} className="font-semibold text-[#B8954A] underline">
-            {copy.card.sellerNegocio}
+      <div className={rentasLandingHeroPanelClass}>
+        <div className="max-w-3xl">
+          <h1 className="font-serif text-[2.1rem] font-semibold leading-tight tracking-tight text-[#1E1810] sm:text-[2.65rem]">
+            {copy.title}
+          </h1>
+          <p className="mt-3 text-base text-[#3D3830]/92 sm:text-lg">
+            {copy.results.introPart1}
+            {copy.results.introPart2}
+            <Link href={withRentasLandingLang(RENTAS_PREVIEW_PRIVADO, lang)} className="font-semibold text-[#C45C26] underline decoration-[#C45C26]/35">
+              {copy.card.sellerPrivado}
+            </Link>{" "}
+            /{" "}
+            <Link href={withRentasLandingLang(RENTAS_PREVIEW_NEGOCIO, lang)} className="font-semibold text-[#C45C26] underline decoration-[#C45C26]/35">
+              {copy.card.sellerNegocio}
+            </Link>
+            .
+          </p>
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-2.5">
+          <Link href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, lang)} className={rentasCtaPrimaryClass}>
+            {copy.publishPrivado}
           </Link>
-          .
-        </p>
+          <Link href={withRentasLandingLang(RENTAS_PUBLICAR_NEGOCIO, lang)} className={rentasCtaSecondaryClass}>
+            {copy.publishNegocio}
+          </Link>
+        </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-2">
-        <Link
-          href={RENTAS_PUBLICAR_PRIVADO}
-          className="rounded-full border border-[#C9B46A]/50 bg-[#2A2620] px-4 py-2 text-sm font-semibold text-[#FAF7F2] hover:bg-[#1E1810]"
-        >
-          {copy.publishPrivado}
-        </Link>
-        <Link
-          href={RENTAS_PUBLICAR_NEGOCIO}
-          className="rounded-full border border-[#E8DFD0] bg-[#FDFBF7] px-4 py-2 text-sm font-bold text-[#1E1810] hover:border-[#C9B46A]/45"
-        >
-          {copy.publishNegocio}
-        </Link>
-      </div>
-
-      <div className="mt-8 max-w-5xl">
+      <div className="relative z-[2] mx-auto mt-2 max-w-[1180px] sm:-mt-6 lg:-mt-8">
         <RentasSearchBar
           query={query}
           onQuery={setQuery}
@@ -219,8 +225,8 @@ export function RentasResultsClient() {
           copy={copy.search}
           priceOptions={copy.priceOptions}
         />
-        <RentasPropiedadFilterChips active={propiedadFilter} />
-        <div className="mt-4 flex flex-wrap gap-2">
+        <RentasPropiedadFilterChips active={propiedadFilter} lang={lang} copy={copy} queryString={resultsQueryString} />
+        <div className="mt-5 flex flex-wrap gap-2">
           <span className="w-full text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/75">
             {copy.results.branchLabel}
           </span>
@@ -243,10 +249,10 @@ export function RentasResultsClient() {
                 href={href}
                 scroll={false}
                 className={
-                  "rounded-full border px-3 py-1.5 text-xs font-semibold sm:text-sm " +
+                  "rounded-full border px-3.5 py-2 text-xs font-semibold transition sm:text-sm " +
                   (isOn
-                    ? "border-[#C9B46A]/70 bg-[#2A2620] text-[#FAF7F2]"
-                    : "border-[#E8DFD0] bg-white/90 text-[#3D3630] hover:border-[#C9B46A]/45")
+                    ? "border-[#C45C26]/45 bg-[#C45C26] text-[#FFFBF7] shadow-[0_6px_18px_-8px_rgba(196,92,38,0.5)]"
+                    : "border-[#C9D4E0]/85 bg-gradient-to-b from-[#FBFCFE] to-[#F4F7FA] text-[#3D3630] hover:border-[#5B7C99]/35")
                 }
               >
                 {opt.label}
@@ -256,7 +262,9 @@ export function RentasResultsClient() {
         </div>
       </div>
 
-      <BienesRaicesResultsHeader
+      <RentasResultsToolbar
+        copy={copy.results}
+        lang={lang}
         showingFrom={displayedListings.length ? 1 : 0}
         showingTo={showingTo}
         total={totalLabel}
@@ -264,8 +272,6 @@ export function RentasResultsClient() {
         onSort={setSort}
         view={view}
         onView={setView}
-        mapOn={showMap}
-        onMapOn={setShowMap}
       />
 
       {featuredListing ? (
@@ -276,7 +282,7 @@ export function RentasResultsClient() {
             </h2>
             {propiedadFilter ? <p className="text-xs text-[#5C5346]/75">{propiedadLabel}</p> : null}
           </div>
-          <RentasResultCard listing={{ ...featuredListing, layout: "horizontal" }} />
+          <RentasResultCard listing={{ ...featuredListing, layout: "horizontal" }} copy={copy} lang={lang} />
         </section>
       ) : (
         <p className="mt-8 rounded-2xl border border-dashed border-[#E8DFD0] bg-[#FDFBF7]/80 p-6 text-center text-sm text-[#5C5346]">
@@ -298,23 +304,23 @@ export function RentasResultsClient() {
         ) : view === "list" ? (
           <div className="mt-6 flex flex-col gap-5">
             {displayedListings.map((l) => (
-              <RentasResultCard key={l.id} listing={l} />
+              <RentasResultCard key={l.id} listing={l} copy={copy} lang={lang} />
             ))}
           </div>
         ) : (
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {displayedListings.map((l) => (
-              <RentasResultCard key={l.id} listing={l} />
+              <RentasResultCard key={l.id} listing={l} copy={copy} lang={lang} />
             ))}
           </div>
         )}
       </section>
 
-      <footer className="mt-14 border-t border-[#E8DFD0]/70 pt-8 text-center text-sm text-[#5C5346]/85">
-        <Link href={withRentasLandingLang(RENTAS_LANDING, lang)} className="font-semibold text-[#B8954A] underline">
+      <footer className="mt-14 border-t border-[#D4C4A8]/50 pt-8 text-center text-sm text-[#4A4338]/88">
+        <Link href={withRentasLandingLang(RENTAS_LANDING, lang)} className="font-semibold text-[#C45C26] underline decoration-[#C45C26]/35">
           {copy.results.backToHub}
         </Link>
       </footer>
-    </BienesRaicesResultsShell>
+    </RentasResultsShell>
   );
 }

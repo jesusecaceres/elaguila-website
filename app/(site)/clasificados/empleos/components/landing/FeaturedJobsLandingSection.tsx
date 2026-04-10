@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FaBookmark } from "react-icons/fa";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 import { sampleFeaturedJobs, type SampleFeaturedJob } from "../../data/empleosLandingSampleData";
 import { buildEmpleosResultadosUrl } from "../../shared/utils/empleosListaUrl";
@@ -21,7 +22,8 @@ function modalityLabel(m: SampleFeaturedJob["modality"], lang: Lang) {
 }
 
 function FeaturedLandingCard({ job, lang }: { job: SampleFeaturedJob; lang: Lang }) {
-  const href = buildEmpleosResultadosUrl(lang, {
+  const detailHref = appendLangToPath(`/clasificados/empleos/${job.slug}`, lang);
+  const similarHref = buildEmpleosResultadosUrl(lang, {
     q: job.title,
     category: job.category,
     modality: job.modality,
@@ -35,7 +37,7 @@ function FeaturedLandingCard({ job, lang }: { job: SampleFeaturedJob; lang: Lang
           {lang === "es" ? "Destacado" : "Featured"}
         </span>
         <Link
-          href={href}
+          href={similarHref}
           className="rounded-lg p-2 text-[#5B6F82] transition hover:bg-[#F5F0E8] hover:text-[#2A2826]"
           aria-label={lang === "es" ? "Ver ofertas similares" : "View similar listings"}
         >
@@ -49,7 +51,11 @@ function FeaturedLandingCard({ job, lang }: { job: SampleFeaturedJob; lang: Lang
             {job.companyInitials}
           </div>
           <div className="min-w-0">
-            <h3 className="text-base font-bold leading-snug text-[#2A2826]">{job.title}</h3>
+            <h3 className="text-base font-bold leading-snug text-[#2A2826]">
+              <Link href={detailHref} className="hover:underline">
+                {job.title}
+              </Link>
+            </h3>
             <p className="text-sm font-semibold text-[#4F6B82]">{job.company}</p>
           </div>
         </div>
@@ -72,7 +78,7 @@ function FeaturedLandingCard({ job, lang }: { job: SampleFeaturedJob; lang: Lang
 
         <div className="mt-5 flex justify-end">
           <Link
-            href={href}
+            href={detailHref}
             className="inline-flex min-h-11 min-w-[7.5rem] items-center justify-center rounded-xl bg-gradient-to-r from-[#E8A54B] via-[#D9A23A] to-[#C9942E] px-4 text-sm font-bold text-[#2A2826] shadow-[0_8px_22px_rgba(201,148,46,0.3)] transition hover:brightness-[1.03]"
           >
             {lang === "es" ? "Ver trabajo" : "View job"}

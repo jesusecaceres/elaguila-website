@@ -6,9 +6,8 @@ import { useSearchParams } from "next/navigation";
 
 import type { ViajesUi } from "../data/viajesUiCopy";
 import type { ViajesAffiliateResult } from "../data/viajesResultsSampleData";
+import { VIAJES_LANDING_CTA_ORANGE } from "../lib/viajesLandingVisual";
 import { withViajesOfferBackParam } from "../lib/viajesOfferLink";
-
-const VIAJES_ACCENT = "#D97706";
 
 export function ViajesResultsAffiliateCard({ row, ui }: { row: ViajesAffiliateResult; ui: ViajesUi }) {
   const sp = useSearchParams();
@@ -39,7 +38,7 @@ export function ViajesResultsAffiliateCard({ row, ui }: { row: ViajesAffiliateRe
           <Link
             href={offerHref}
             className="flex min-h-[44px] w-full items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm transition hover:brightness-105"
-            style={{ backgroundColor: VIAJES_ACCENT }}
+            style={{ backgroundColor: VIAJES_LANDING_CTA_ORANGE }}
           >
             {ui.cards.affiliateCta}
           </Link>

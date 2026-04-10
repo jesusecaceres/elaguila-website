@@ -18,11 +18,11 @@ export function RentasLandingCategoryHeader({ copy, lang }: Props) {
   const landingEn = "/clasificados/rentas?lang=en";
 
   return (
-    <header className="border-b border-[#C4B8A8]/40 pb-8">
+    <header className="pb-0">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 max-w-3xl">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <nav className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#5B7C99]/85">
+            <nav className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/90">
               <Link href={clasificadosHref} className="transition hover:text-[#C45C26]">
                 {copy.breadcrumbClasificados}
               </Link>
@@ -61,10 +61,10 @@ export function RentasLandingCategoryHeader({ copy, lang }: Props) {
               </Link>
             </div>
           </div>
-          <h1 className="mt-4 font-serif text-[2.65rem] font-semibold leading-[1.08] tracking-tight text-[#1E1810] sm:text-[3.1rem]">
+          <h1 className="mt-4 font-serif text-[2.35rem] font-semibold leading-[1.06] tracking-tight text-[#1E1810] sm:text-[2.85rem] lg:text-[3.15rem]">
             {copy.title}
           </h1>
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-[#4A5568] sm:text-lg">{copy.intro}</p>
+          <p className="mt-3 max-w-2xl text-base leading-relaxed text-[#3D3830]/92 sm:text-lg">{copy.intro}</p>
         </div>
         <div className="flex w-full flex-shrink-0 flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-center">
           <Link href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, lang)} className={rentasCtaPrimaryClass}>

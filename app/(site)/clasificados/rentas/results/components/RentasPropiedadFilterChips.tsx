@@ -5,35 +5,53 @@ import {
   BR_NEGOCIO_Q_PROPIEDAD,
   type BrNegocioCategoriaPropiedad,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
-import { buildRentasResultsUrl } from "@/app/clasificados/rentas/shared/utils/rentasResultsRoutes";
+import type { RentasLandingCopy } from "@/app/clasificados/rentas/rentasLandingCopy";
+import { RENTAS_LANDING_LANG_QUERY, type RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
+import { RENTAS_RESULTS } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 
-const ITEMS: { id: BrNegocioCategoriaPropiedad | ""; label: string }[] = [
-  { id: "", label: "Todas" },
-  { id: "residencial", label: "Residencial" },
-  { id: "comercial", label: "Comercial" },
-  { id: "terreno_lote", label: "Terreno / lote" },
-];
+type Props = {
+  active: BrNegocioCategoriaPropiedad | null;
+  lang: RentasLandingLang;
+  copy: RentasLandingCopy;
+  /** Current results query string (preserves filters when switching category). */
+  queryString: string;
+};
 
-export function RentasPropiedadFilterChips({ active }: { active: BrNegocioCategoriaPropiedad | null }) {
+export function RentasPropiedadFilterChips({ active, lang, copy, queryString }: Props) {
+  const qe = copy.quickExplore;
+  const items: { id: BrNegocioCategoriaPropiedad | ""; label: string }[] = [
+    { id: "", label: copy.results.categoryAll },
+    { id: "residencial", label: qe.chipResidencial },
+    { id: "comercial", label: qe.chipComercial },
+    { id: "terreno_lote", label: qe.chipTerreno },
+  ];
+
+  const buildHref = (id: BrNegocioCategoriaPropiedad | "") => {
+    const sp = new URLSearchParams(queryString || "");
+    sp.set(RENTAS_LANDING_LANG_QUERY, lang);
+    if (id === "") sp.delete(BR_NEGOCIO_Q_PROPIEDAD);
+    else sp.set(BR_NEGOCIO_Q_PROPIEDAD, id);
+    const qs = sp.toString();
+    return qs ? `${RENTAS_RESULTS}?${qs}` : `${RENTAS_RESULTS}?${RENTAS_LANDING_LANG_QUERY}=${lang}`;
+  };
+
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-2" role="navigation" aria-label="Tipo estructural (rentas)">
-      <span className="w-full text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/75 sm:w-auto sm:mr-1">
-        Categoría
+    <div className="mt-5 flex flex-wrap items-center gap-2" role="navigation" aria-label={copy.results.categoryLabel}>
+      <span className="w-full text-[10px] font-bold uppercase tracking-[0.12em] text-[#5B7C99]/85 sm:mr-1 sm:w-auto">
+        {copy.results.categoryLabel}
       </span>
-      {ITEMS.map((item) => {
+      {items.map((item) => {
         const isOn = item.id === "" ? active == null : active === item.id;
-        const href =
-          item.id === "" ? buildRentasResultsUrl() : buildRentasResultsUrl({ [BR_NEGOCIO_Q_PROPIEDAD]: item.id });
         return (
           <Link
             key={item.label}
-            href={href}
+            href={buildHref(item.id)}
             scroll={false}
             className={
-              "rounded-full border px-3 py-1.5 text-xs font-semibold transition sm:text-sm " +
+              "rounded-full border px-3.5 py-2 text-xs font-semibold transition sm:text-sm " +
               (isOn
-                ? "border-[#C9B46A]/70 bg-[#2A2620] text-[#FAF7F2] shadow-sm"
-                : "border-[#E8DFD0] bg-white/90 text-[#3D3630] hover:border-[#C9B46A]/45")
+                ? "border-[#C45C26]/45 bg-[#C45C26] text-[#FFFBF7] shadow-[0_6px_18px_-8px_rgba(196,92,38,0.55)]"
+                : "border-[#C9D4E0]/85 bg-gradient-to-b from-[#FBFCFE] to-[#F4F7FA] text-[#3D3630] hover:border-[#5B7C99]/35")
             }
           >
             {item.label}

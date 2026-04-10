@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FaMapMarkerAlt, FaSearch, FaStar } from "react-icons/fa";
 
 import Navbar from "@/app/components/Navbar";
@@ -11,7 +11,7 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { ViajesLangSwitch } from "@/app/clasificados/viajes/components/ViajesLangSwitch";
 
-import { buildRestaurantesResultsHref, splitLocationInput } from "./buildRestaurantesResultsHref";
+import { buildRestaurantesResultsHref, splitLocationInput } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
 import {
   type RestaurantesBlueprintCard,
   RESTAURANTES_BLUEPRINT_CATEGORY_TILES,
@@ -53,8 +53,13 @@ function ListingCard({
   const cuisine = card.cuisineLine;
   const city = card.cityLine;
 
+  const shell =
+    variant === "recent"
+      ? "group flex h-full flex-col overflow-hidden rounded-[20px] border border-dashed border-[#D97706]/35 bg-[#FFFCF7] shadow-[0_8px_28px_-18px_rgba(45,36,30,0.28)] ring-2 ring-[#D97706]/15 transition hover:-translate-y-0.5 hover:shadow-[0_12px_36px_-16px_rgba(45,36,30,0.34)]"
+      : "group flex h-full flex-col overflow-hidden rounded-[20px] border border-[#2D241E]/[0.08] bg-[#FFFCF7] shadow-[0_12px_40px_-20px_rgba(45,36,30,0.35)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_44px_-18px_rgba(45,36,30,0.4)]";
+
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-[20px] border border-[#2D241E]/[0.08] bg-[#FFFCF7] shadow-[0_12px_40px_-20px_rgba(45,36,30,0.35)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_44px_-18px_rgba(45,36,30,0.4)]">
+    <article className={shell}>
       <div className="relative aspect-[16/10] w-full overflow-hidden">
         <Image
           src={card.imageSrc}
@@ -100,12 +105,21 @@ function ListingCard({
 }
 
 export function RestaurantesLandingPage() {
+  const router = useRouter();
   const sp = useSearchParams();
   const spStr = sp?.toString() ?? "";
   const lang: Lang = useMemo(() => (new URLSearchParams(spStr).get("lang") === "en" ? "en" : "es"), [spStr]);
 
   const [searchQ, setSearchQ] = useState("");
   const [location, setLocation] = useState("");
+
+  useEffect(() => {
+    const q = sp?.get("q") ?? "";
+    const city = sp?.get("city") ?? "";
+    const zip = sp?.get("zip") ?? "";
+    if (q) setSearchQ(q);
+    if (city || zip) setLocation(zip || city);
+  }, [sp]);
 
   const clasificadosHref = appendLangToPath("/clasificados", lang);
   const publishHref = appendLangToPath("/publicar/restaurantes", lang);
@@ -179,7 +193,7 @@ export function RestaurantesLandingPage() {
             <ViajesLangSwitch compact />
             <Link
               href={publishHref}
-              className="hidden min-h-[40px] items-center rounded-full border border-[#2D241E]/15 bg-[#FFFCF7] px-4 text-[11px] font-bold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/45 sm:inline-flex"
+              className="inline-flex min-h-[40px] items-center rounded-full border border-[#2D241E]/15 bg-[#FFFCF7] px-4 text-[11px] font-bold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/45"
             >
               {lang === "es" ? "Anunciar" : "Advertise"}
             </Link>
@@ -199,7 +213,13 @@ export function RestaurantesLandingPage() {
         </div>
 
         <div className="mx-auto mt-8 max-w-[960px] rounded-[24px] border border-[#2D241E]/[0.1] bg-[#FFFCF7]/95 p-4 shadow-[0_20px_56px_-28px_rgba(45,36,30,0.45)] backdrop-blur-sm sm:p-5 md:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              router.push(searchResultsHref);
+            }}
+            className="flex flex-col gap-4 lg:flex-row lg:items-stretch"
+          >
             <div className="min-w-0 flex-1">
               <label className="sr-only" htmlFor="rx-landing-q">
                 {copy.searchPh}
@@ -236,15 +256,15 @@ export function RestaurantesLandingPage() {
               </div>
             </div>
             <div className="flex items-stretch lg:w-[200px]">
-              <Link
-                href={searchResultsHref}
+              <button
+                type="submit"
                 className="inline-flex min-h-[52px] w-full flex-1 items-center justify-center rounded-[16px] px-6 text-sm font-bold text-[#FFFCF7] shadow-[0_10px_32px_-12px_rgba(180,83,9,0.55)] transition hover:brightness-[1.03] active:opacity-95"
                 style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
               >
                 {copy.searchCta}
-              </Link>
+              </button>
             </div>
-          </div>
+          </form>
 
           <div className="mt-5 flex flex-wrap gap-2">
             {RESTAURANTES_BLUEPRINT_QUICK_FILTERS.map((f) => (

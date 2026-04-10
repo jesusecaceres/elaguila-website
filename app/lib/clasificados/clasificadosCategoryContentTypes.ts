@@ -43,6 +43,17 @@ export type ClasificadosEnVentaContentPatch = {
     bottomSellTitle?: BilingualPatch;
     bottomSellSub?: BilingualPatch;
     bottomSellCta?: BilingualPatch;
+    /** Marketplace success layer (landing → results handoff) */
+    sellerTrust?: BilingualPatch;
+    sellerLinkInd?: BilingualPatch;
+    sellerLinkBiz?: BilingualPatch;
+    handoff?: BilingualPatch;
+    browseChipNewest?: BilingualPatch;
+    browseChipNear?: BilingualPatch;
+    browseChipShip?: BilingualPatch;
+    browseChipFeatured?: BilingualPatch;
+    mobileStickyPublish?: BilingualPatch;
+    mobileStickyBrowse?: BilingualPatch;
     /** Optional emoji prefix for hero (display-only) */
     heroEmoji?: string;
     /** Optional hero / branding image (https or site path) */

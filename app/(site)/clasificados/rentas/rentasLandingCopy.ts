@@ -86,6 +86,36 @@ export type RentasLandingCopy = {
     noMatches: string;
     clearFiltersDemo: string;
     backToHub: string;
+    /** Toolbar / listing chrome */
+    categoryLabel: string;
+    categoryAll: string;
+    countShowing: string;
+    countOf: string;
+    countResults: string;
+    sortLabel: string;
+    sortRecent: string;
+    sortPriceAsc: string;
+    sortPriceDesc: string;
+    viewGridAria: string;
+    viewListAria: string;
+  };
+  /** Public listing detail shell */
+  detail: {
+    metaTitleSuffix: string;
+    backToResults: string;
+    rentLabel: string;
+    specsTitle: string;
+    descriptionTitle: string;
+    sellerTitle: string;
+    furnished: string;
+    pets: string;
+    yes: string;
+    no: string;
+    ctaContact: string;
+    ctaPublish: string;
+    trustNote: string;
+    relatedTitle: string;
+    relatedBody: string;
   };
 };
 
@@ -198,6 +228,34 @@ const ES: RentasLandingCopy = {
     noMatches: "Sin coincidencias.",
     clearFiltersDemo: "Limpiar filtros (demo)",
     backToHub: "Volver al hub Rentas",
+    categoryLabel: "Categoría",
+    categoryAll: "Todas",
+    countShowing: "Mostrando",
+    countOf: "de",
+    countResults: "resultados",
+    sortLabel: "Orden",
+    sortRecent: "Más reciente",
+    sortPriceAsc: "Renta: menor a mayor",
+    sortPriceDesc: "Renta: mayor a menor",
+    viewGridAria: "Vista cuadrícula",
+    viewListAria: "Vista lista",
+  },
+  detail: {
+    metaTitleSuffix: "Rentas | Leonix",
+    backToResults: "Volver a resultados",
+    rentLabel: "Renta mensual",
+    specsTitle: "Características",
+    descriptionTitle: "Descripción",
+    sellerTitle: "Anunciante",
+    furnished: "Amueblado",
+    pets: "Mascotas",
+    yes: "Sí",
+    no: "No",
+    ctaContact: "Enviar mensaje",
+    ctaPublish: "Publicar una renta",
+    trustNote: "Leonix Clasificados · Anuncios revisados · Contacto directo entre partes",
+    relatedTitle: "Más en Rentas",
+    relatedBody: "Próximamente: recomendaciones basadas en tu búsqueda.",
   },
 };
 
@@ -310,6 +368,34 @@ const EN: RentasLandingCopy = {
     noMatches: "No matches.",
     clearFiltersDemo: "Clear filters (demo)",
     backToHub: "Back to Rentals hub",
+    categoryLabel: "Category",
+    categoryAll: "All",
+    countShowing: "Showing",
+    countOf: "of",
+    countResults: "results",
+    sortLabel: "Sort",
+    sortRecent: "Newest",
+    sortPriceAsc: "Rent: low to high",
+    sortPriceDesc: "Rent: high to low",
+    viewGridAria: "Grid view",
+    viewListAria: "List view",
+  },
+  detail: {
+    metaTitleSuffix: "Rentals | Leonix",
+    backToResults: "Back to results",
+    rentLabel: "Monthly rent",
+    specsTitle: "Highlights",
+    descriptionTitle: "Description",
+    sellerTitle: "Posted by",
+    furnished: "Furnished",
+    pets: "Pets",
+    yes: "Yes",
+    no: "No",
+    ctaContact: "Send message",
+    ctaPublish: "Post a rental",
+    trustNote: "Leonix Classifieds · Listings reviewed · Direct contact between parties",
+    relatedTitle: "More in Rentals",
+    relatedBody: "Coming soon: recommendations based on your search.",
   },
 };
 

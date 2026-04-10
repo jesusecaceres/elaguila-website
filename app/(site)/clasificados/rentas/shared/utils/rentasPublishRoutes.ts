@@ -16,3 +16,10 @@ export const RENTAS_RESULTS = "/clasificados/rentas/results";
 
 /** Exploratory landing (not results). */
 export const RENTAS_LANDING = "/clasificados/rentas";
+
+/** Public listing detail shell (sample / future live rows). */
+export const RENTAS_LISTING_PUBLIC_BASE = "/clasificados/rentas/listing";
+
+export function rentasListingPublicPath(id: string): string {
+  return `${RENTAS_LISTING_PUBLIC_BASE}/${encodeURIComponent(id)}`;
+}

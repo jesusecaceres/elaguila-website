@@ -77,8 +77,14 @@ export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
           action={resultsAction}
           method="get"
           role="search"
+          aria-describedby="servicios-search-hint"
           className="mx-auto mt-10 w-full max-w-[920px] sm:mt-12 md:mt-14"
         >
+          <p id="servicios-search-hint" className="sr-only">
+            {lang === "en"
+              ? "Submits your keywords and location to the Servicios results page where you can refine filters."
+              : "Envía tu búsqueda y ubicación a la página de resultados de Servicios, donde podrás afinar filtros."}
+          </p>
           <input type="hidden" name="lang" value={lang} />
           <div className="flex flex-col gap-0 overflow-hidden rounded-[22px] border border-white/95 bg-white/[0.97] shadow-[0_22px_56px_-28px_rgba(25,45,70,0.42),inset_0_1px_0_rgba(255,255,255,0.95)] backdrop-blur-md sm:flex-row sm:items-stretch sm:rounded-full">
             <label className="flex min-h-[58px] min-w-0 flex-1 cursor-text items-center gap-3 border-b border-[#E5DED4]/90 px-4 sm:min-h-[60px] sm:border-b-0 sm:border-r sm:pl-7 sm:pr-4">

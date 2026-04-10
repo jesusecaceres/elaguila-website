@@ -32,6 +32,23 @@ export function RecentServiceCard({ row, lang }: { row: ServiciosLandingRecentLi
           sizes="(max-width: 768px) 100vw, 33vw"
           className="object-cover"
         />
+        {row.sellerPresentation ? (
+          <span
+            className={
+              row.sellerPresentation === "business"
+                ? "absolute left-2 top-2 rounded-full bg-[#1a3352]/92 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm"
+                : "absolute left-2 top-2 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#142a42] shadow-sm ring-1 ring-[#e5ddd2]"
+            }
+          >
+            {row.sellerPresentation === "business"
+              ? lang === "en"
+                ? "Business"
+                : "Negocio"
+              : lang === "en"
+                ? "Independent"
+                : "Independiente"}
+          </span>
+        ) : null}
       </div>
       <div className="flex flex-1 flex-col p-5 sm:p-6">
         <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#64748b]">{row.businessNameEs}</p>

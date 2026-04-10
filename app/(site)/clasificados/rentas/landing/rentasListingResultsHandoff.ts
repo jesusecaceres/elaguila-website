@@ -1,14 +1,10 @@
-import { BR_NEGOCIO_Q_PROPIEDAD } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
-import type { RentasResultsDemoListing } from "@/app/clasificados/rentas/results/rentasResultsDemoData";
+import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import type { RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
-import { buildRentasResultsUrl } from "@/app/clasificados/rentas/shared/utils/rentasResultsRoutes";
+import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
+import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 
-/** Hand off to the results grid with enough context to surface this row in demo data (no live detail route in Phase 1). */
-export function rentasListingResultsHandoff(listing: RentasResultsDemoListing, lang?: RentasLandingLang): string {
-  return buildRentasResultsUrl({
-    q: listing.title,
-    branch: listing.branch,
-    [BR_NEGOCIO_Q_PROPIEDAD]: listing.categoriaPropiedad,
-    ...(lang ? { lang } : {}),
-  });
+/** Public listing detail shell (sample data); preserves `lang` when provided. */
+export function rentasListingResultsHandoff(listing: RentasPublicListing, lang?: RentasLandingLang): string {
+  const path = rentasListingPublicPath(listing.id);
+  return lang ? withRentasLandingLang(path, lang) : path;
 }

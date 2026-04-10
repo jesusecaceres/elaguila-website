@@ -31,13 +31,21 @@ export function PublishServiceCTA({ lang }: { lang: "es" | "en" }) {
             </p>
           </div>
         </div>
-        <Link
-          href={publishHref}
-          className="inline-flex min-h-[54px] w-full min-w-[240px] items-center justify-center gap-2 rounded-full bg-gradient-to-br from-[#EA580C] to-[#C2410C] px-9 text-[16px] font-bold tracking-wide text-white shadow-[0_16px_40px_-14px_rgba(194,65,12,0.55)] transition hover:brightness-[1.04] active:scale-[0.99] lg:w-auto"
-        >
-          {lang === "en" ? "Publish your service" : "Publica tu Servicio"}
-          <span aria-hidden>→</span>
-        </Link>
+        <div className="flex w-full flex-col items-stretch gap-3 lg:w-auto lg:items-end">
+          <Link
+            href={publishHref}
+            className="inline-flex min-h-[54px] w-full min-w-[240px] items-center justify-center gap-2 rounded-full bg-gradient-to-br from-[#EA580C] to-[#C2410C] px-9 text-[16px] font-bold tracking-wide text-white shadow-[0_16px_40px_-14px_rgba(194,65,12,0.55)] transition hover:brightness-[1.04] active:scale-[0.99] lg:w-auto"
+          >
+            {lang === "en" ? "Publish your service" : "Publica tu Servicio"}
+            <span aria-hidden>→</span>
+          </Link>
+          <Link
+            href={`/clasificados/servicios/resultados?lang=${lang}`}
+            className="text-center text-[13px] font-semibold text-[#3B66AD] underline-offset-4 hover:underline lg:text-right"
+          >
+            {lang === "en" ? "Preview how listings look in results" : "Ver cómo se ven los anuncios en resultados"}
+          </Link>
+        </div>
       </div>
     </section>
   );

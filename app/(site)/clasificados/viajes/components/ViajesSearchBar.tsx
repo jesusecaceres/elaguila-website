@@ -54,10 +54,13 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
     router.push(exploreHref);
   };
 
+  const hintId = "viajes-search-module-hint";
+
   return (
     <form
       onSubmit={onSubmit}
-      className="rounded-3xl border border-[color:var(--lx-gold-border)] bg-[#fffdf9]/98 p-4 shadow-[0_28px_64px_-32px_rgba(25,50,70,0.28)] backdrop-blur-md sm:p-6 md:p-7"
+      aria-describedby={hintId}
+      className="rounded-3xl border-2 border-[color:var(--lx-gold-border)] bg-[#fffdf9]/98 p-4 shadow-[0_28px_64px_-32px_rgba(25,50,70,0.28)] backdrop-blur-md ring-offset-2 ring-offset-[#f3ebdd] focus-within:ring-2 focus-within:ring-[color:var(--lx-focus-ring)] sm:p-6 md:p-7"
       style={{
         boxShadow:
           "0 28px 56px -18px rgba(30, 40, 55, 0.16), 0 0 0 1px rgba(201, 168, 74, 0.18), inset 0 1px 0 rgba(255,252,247,0.9)",
@@ -159,6 +162,9 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
           </button>
         </div>
       </div>
+      <p id={hintId} className="mx-auto mt-4 max-w-3xl text-center text-[11px] leading-snug text-[color:var(--lx-muted)] sm:mx-0 sm:text-left">
+        {s.moduleHint}
+      </p>
     </form>
   );
 }

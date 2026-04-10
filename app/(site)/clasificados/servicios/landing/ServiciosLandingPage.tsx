@@ -4,6 +4,7 @@ import { FeaturedBusinessSection } from "./FeaturedBusinessSection";
 import { PublishServiceCTA } from "./PublishServiceCTA";
 import { RecentServicesSection } from "./RecentServicesSection";
 import { ServiceCategoriesGrid } from "./ServiceCategoriesGrid";
+import { ServiciosLandingBrowseRow } from "./ServiciosLandingBrowseRow";
 import { ServiciosHeroSearch } from "./ServiciosHeroSearch";
 import { ServiciosQuickChips } from "./ServiciosQuickChips";
 import { TrustValueStrip } from "./TrustValueStrip";
@@ -64,6 +65,10 @@ export function ServiciosLandingPage({ lang }: { lang: Lang }) {
             <ServiciosQuickChips lang={lang} chips={SERVICIOS_LANDING_QUICK_CHIPS} />
           </div>
         </section>
+
+        <div className="mt-6 sm:mt-8">
+          <ServiciosLandingBrowseRow lang={lang} />
+        </div>
 
         <div className="mt-14 space-y-14 sm:mt-16 sm:space-y-16 md:mt-[4.5rem] md:space-y-[4.5rem]">
           <div className={`${sectionShell} p-7 sm:p-9 md:p-11 lg:p-12`}>

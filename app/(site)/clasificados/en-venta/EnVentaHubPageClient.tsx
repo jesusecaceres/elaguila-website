@@ -8,6 +8,7 @@ import type { EnVentaDepartmentKey } from "./taxonomy/categories";
 import { EN_VENTA_DEPARTMENTS } from "./taxonomy/categories";
 import type { EnVentaHubLandingResolved } from "@/app/lib/clasificados/mergeClasificadosCategoryContent";
 import { EN_VENTA_HUB_CITY_PRESETS } from "./enVentaHubCityPresets";
+import { DEFAULT_CITY } from "@/app/data/locations/norcal";
 
 /** Default hero: welcoming outdoor marketplace / promenade (no lion). Muted blues in scene; Unsplash license. */
 const DEFAULT_HERO_BACKDROP =
@@ -45,13 +46,13 @@ function HeroBackdrop({ src }: { src: string }) {
         fill
         priority
         sizes="(max-width: 1152px) 100vw, 1152px"
-        className="object-cover object-[center_42%]"
+        className="object-cover object-[center_42%] max-sm:object-[center_38%]"
       />
     );
   }
   return (
     // eslint-disable-next-line @next/next/no-img-element -- admin may set arbitrary HTTPS hero URLs not in `images.remotePatterns`
-    <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover object-[center_42%]" />
+    <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover object-[center_42%] max-sm:object-[center_38%]" />
   );
 }
 
@@ -104,6 +105,13 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
 
   const publishHref = `/clasificados/publicar/en-venta?lang=${lang}`;
   const allListingsHref = buildEnVentaResultsUrl(lang);
+  const hrefBrowseNewest = buildEnVentaResultsUrl(lang, { sort: "newest" });
+  const hrefBrowseNear = buildEnVentaResultsUrl(lang, { city: DEFAULT_CITY });
+  const hrefBrowseShip = buildEnVentaResultsUrl(lang, { ship: "1" });
+  /** Results surface shows boosted listings first when present; no separate boost URL param. */
+  const hrefBrowseFeatured = buildEnVentaResultsUrl(lang);
+  const hrefSellerIndividual = buildEnVentaResultsUrl(lang, { seller: "individual" });
+  const hrefSellerBusiness = buildEnVentaResultsUrl(lang, { seller: "business" });
 
   const t = hub;
   const backdropSrc = t.heroImageUrl?.trim() ? t.heroImageUrl.trim() : DEFAULT_HERO_BACKDROP;
@@ -137,7 +145,7 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
         aria-hidden
       />
 
-      <main className="relative mx-auto max-w-6xl px-4 pb-20 pt-8 sm:px-6 sm:pb-24 sm:pt-10 lg:px-8">
+      <main className="relative mx-auto max-w-6xl px-4 pb-32 pt-8 sm:px-6 sm:pb-24 sm:pt-10 lg:px-8">
         {/* Hero */}
         <section className="relative overflow-hidden rounded-[28px] border border-white/50 bg-[#E8E0D4]/40 shadow-[0_24px_80px_-32px_rgba(47,74,101,0.35)] sm:rounded-[32px]">
           <div className="absolute inset-0">
@@ -153,7 +161,7 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
             <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#F3EBDD] via-[#F3EBDD]/90 to-transparent" aria-hidden />
           </div>
 
-          <div className="relative z-10 flex flex-col items-center px-4 pb-12 pt-10 text-center sm:px-8 sm:pb-14 sm:pt-12 md:pb-16 md:pt-14">
+          <div className="relative z-10 flex min-h-0 flex-col items-center px-4 pb-11 pt-9 text-center sm:min-h-0 sm:px-8 sm:pb-14 sm:pt-12 md:pb-16 md:pt-14">
             <span
               className={cx(
                 "mb-5 inline-flex min-h-[36px] items-center rounded-full px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white",
@@ -244,18 +252,70 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
 
             <p className="mt-5 max-w-lg text-[13px] font-medium leading-snug text-[#4A6678] sm:text-sm">{t.socialProof}</p>
 
-            <div className="mt-8 flex w-full max-w-xl flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center sm:gap-4">
-              <Link href={publishHref} className={cx(goldBtn, "w-full sm:w-auto")}>
+            <div className="mt-8 flex w-full max-w-xl flex-col gap-3 sm:max-w-2xl sm:flex-row sm:justify-center sm:gap-4">
+              <Link href={publishHref} className={cx(goldBtn, "w-full sm:w-auto sm:min-w-[200px]")}>
                 <span aria-hidden className="text-lg font-light">
                   +
                 </span>
                 {t.publish}
               </Link>
-              <Link href={allListingsHref} className={cx(ivoryBtn, "w-full sm:w-auto")}>
+              <Link href={allListingsHref} className={cx(ivoryBtn, "w-full sm:w-auto sm:min-w-[200px]")}>
                 {t.lista}
               </Link>
             </div>
           </div>
+        </section>
+
+        {/* Success layer: seller trust + browse chips + results handoff (all links real) */}
+        <section className="mt-8 sm:mt-10" aria-label={lang === "es" ? "Cómo explorar En Venta" : "How to explore For Sale"}>
+          <div className="rounded-[22px] border border-white/75 bg-[#FFFCF7]/90 px-4 py-4 shadow-[0_10px_36px_-16px_rgba(47,74,101,0.14)] sm:px-6 sm:py-5">
+            <p className="text-center text-[14px] leading-snug text-[#2C2416] sm:text-[15px] sm:leading-relaxed">{t.sellerTrust}</p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href={hrefSellerIndividual}
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-5 text-[13px] font-semibold text-[#2F4A65] transition hover:bg-[#E8EEF3] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
+              >
+                {t.sellerLinkInd}
+              </Link>
+              <Link
+                href={hrefSellerBusiness}
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-5 text-[13px] font-semibold text-[#2F4A65] transition hover:bg-[#E8EEF3] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
+              >
+                {t.sellerLinkBiz}
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap justify-center gap-2 sm:mt-6 sm:gap-2.5">
+            <Link
+              href={hrefBrowseNewest}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#E8DFD0] bg-white/90 px-4 py-2 text-[13px] font-semibold text-[#2C2416] shadow-sm transition hover:border-[#C9B46A]/45 hover:bg-white focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:text-sm"
+            >
+              {t.browseChipNewest}
+            </Link>
+            <Link
+              href={hrefBrowseNear}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#E8DFD0] bg-white/90 px-4 py-2 text-[13px] font-semibold text-[#2C2416] shadow-sm transition hover:border-[#C9B46A]/45 hover:bg-white focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:text-sm"
+            >
+              {t.browseChipNear}
+            </Link>
+            <Link
+              href={hrefBrowseShip}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#E8DFD0] bg-white/90 px-4 py-2 text-[13px] font-semibold text-[#2C2416] shadow-sm transition hover:border-[#C9B46A]/45 hover:bg-white focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:text-sm"
+            >
+              {t.browseChipShip}
+            </Link>
+            <Link
+              href={hrefBrowseFeatured}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#D4E0EA] bg-gradient-to-br from-[#F5F8FB] to-[#E8EEF3] px-4 py-2 text-[13px] font-semibold text-[#2F4A65] shadow-sm transition hover:border-[#C9B46A]/35 focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:text-sm"
+            >
+              {t.browseChipFeatured}
+            </Link>
+          </div>
+
+          <p className="mx-auto mt-5 max-w-2xl text-center text-[13px] leading-relaxed text-[#4A6678] sm:mt-6 sm:text-sm">
+            {t.handoff}
+          </p>
         </section>
 
         {/* Categories */}
@@ -345,6 +405,29 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
           </div>
         </section>
       </main>
+
+      {/* Mobile: persistent publish + browse — high visibility without duplicating full hero labels */}
+      <div
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E8DFD0]/90 bg-[#FFFCF7]/96 shadow-[0_-10px_40px_-12px_rgba(42,36,22,0.18)] backdrop-blur-md md:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        role="navigation"
+        aria-label={lang === "es" ? "Acciones rápidas" : "Quick actions"}
+      >
+        <div className="mx-auto flex max-w-6xl gap-2 px-3 py-2.5">
+          <Link
+            href={publishHref}
+            className={cx(goldBtn, "min-h-[48px] flex-1 justify-center px-4 text-[15px] font-semibold")}
+          >
+            {t.mobileStickyPublish}
+          </Link>
+          <Link
+            href={allListingsHref}
+            className={cx(ivoryBtn, "min-h-[48px] flex-1 justify-center px-4 text-[15px] font-semibold")}
+          >
+            {t.mobileStickyBrowse}
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

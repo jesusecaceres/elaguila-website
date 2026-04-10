@@ -15,7 +15,7 @@ export function ServiciosQuickChips({
       <p className="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#3d5a73]/80">
         {lang === "en" ? "Popular services" : "Servicios populares"}
       </p>
-      <div className="flex flex-wrap justify-center gap-2 sm:gap-2.5 md:gap-3">
+      <div className="-mx-1 flex max-w-full flex-nowrap justify-start gap-2 overflow-x-auto pb-1 pt-0.5 [-webkit-overflow-scrolling:touch] sm:mx-0 sm:flex-wrap sm:justify-center sm:overflow-visible sm:gap-2.5 md:gap-3">
         {chips.map((c) => {
           const isMore = c.id === "more";
           const href = isMore

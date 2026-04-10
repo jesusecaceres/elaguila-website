@@ -50,6 +50,16 @@ export type EnVentaHubLandingResolved = {
   bottomSellTitle: string;
   bottomSellSub: string;
   bottomSellCta: string;
+  sellerTrust: string;
+  sellerLinkInd: string;
+  sellerLinkBiz: string;
+  handoff: string;
+  browseChipNewest: string;
+  browseChipNear: string;
+  browseChipShip: string;
+  browseChipFeatured: string;
+  mobileStickyPublish: string;
+  mobileStickyBrowse: string;
   heroEmoji: string;
   heroImageUrl: string;
 };
@@ -81,6 +91,16 @@ export function mergeEnVentaHubLanding(
     bottomSellTitle: mergeBilingualKey(lang, d.es.bottomSellTitle, d.en.bottomSellTitle, h?.bottomSellTitle),
     bottomSellSub: mergeBilingualKey(lang, d.es.bottomSellSub, d.en.bottomSellSub, h?.bottomSellSub),
     bottomSellCta: mergeBilingualKey(lang, d.es.bottomSellCta, d.en.bottomSellCta, h?.bottomSellCta),
+    sellerTrust: mergeBilingualKey(lang, d.es.sellerTrust, d.en.sellerTrust, h?.sellerTrust),
+    sellerLinkInd: mergeBilingualKey(lang, d.es.sellerLinkInd, d.en.sellerLinkInd, h?.sellerLinkInd),
+    sellerLinkBiz: mergeBilingualKey(lang, d.es.sellerLinkBiz, d.en.sellerLinkBiz, h?.sellerLinkBiz),
+    handoff: mergeBilingualKey(lang, d.es.handoff, d.en.handoff, h?.handoff),
+    browseChipNewest: mergeBilingualKey(lang, d.es.browseChipNewest, d.en.browseChipNewest, h?.browseChipNewest),
+    browseChipNear: mergeBilingualKey(lang, d.es.browseChipNear, d.en.browseChipNear, h?.browseChipNear),
+    browseChipShip: mergeBilingualKey(lang, d.es.browseChipShip, d.en.browseChipShip, h?.browseChipShip),
+    browseChipFeatured: mergeBilingualKey(lang, d.es.browseChipFeatured, d.en.browseChipFeatured, h?.browseChipFeatured),
+    mobileStickyPublish: mergeBilingualKey(lang, d.es.mobileStickyPublish, d.en.mobileStickyPublish, h?.mobileStickyPublish),
+    mobileStickyBrowse: mergeBilingualKey(lang, d.es.mobileStickyBrowse, d.en.mobileStickyBrowse, h?.mobileStickyBrowse),
     heroEmoji: (h?.heroEmoji ?? "").trim(),
     heroImageUrl: (h?.heroImageUrl ?? "").trim(),
   };

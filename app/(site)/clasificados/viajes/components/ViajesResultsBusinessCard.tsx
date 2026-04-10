@@ -8,8 +8,6 @@ import type { ViajesUi } from "../data/viajesUiCopy";
 import type { ViajesBusinessResult } from "../data/viajesResultsSampleData";
 import { withViajesOfferBackParam } from "../lib/viajesOfferLink";
 
-const VIAJES_ACCENT = "#D97706";
-
 export function ViajesResultsBusinessCard({ row, ui }: { row: ViajesBusinessResult; ui: ViajesUi }) {
   const sp = useSearchParams();
   const backHref = `/clasificados/viajes/resultados${sp?.toString() ? `?${sp.toString()}` : ""}`;
@@ -36,8 +34,7 @@ export function ViajesResultsBusinessCard({ row, ui }: { row: ViajesBusinessResu
         <div className="mt-auto flex flex-col gap-2 pt-4 sm:flex-row sm:flex-wrap">
           <Link
             href={offerHref}
-            className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm transition hover:brightness-105"
-            style={{ backgroundColor: VIAJES_ACCENT }}
+            className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-[color:var(--lx-cta-dark)] text-sm font-bold text-[#FFFCF7] shadow-md transition hover:bg-[color:var(--lx-cta-dark-hover)]"
           >
             {ui.cards.businessViewListing}
           </Link>

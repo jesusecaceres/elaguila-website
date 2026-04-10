@@ -48,6 +48,8 @@ export type ServiciosLandingRecentListing = {
   coverImageSrc: string;
   coverImageAlt: string;
   rating: number;
+  /** Shell hint for future seller mapping — independiente vs negocio balance on landing */
+  sellerPresentation?: "business" | "independent";
   cta: {
     kind: ServiciosLandingCtaKind;
     labelEs: string;
@@ -147,6 +149,7 @@ export const SERVICIOS_LANDING_RECENT: ServiciosLandingRecentListing[] = [
       "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?auto=format&fit=crop&w=900&q=80",
     coverImageAlt: "Técnico reparando computadora",
     rating: 4.6,
+    sellerPresentation: "independent",
     cta: { kind: "detail", labelEs: "Ver más", detailHref: "/clasificados/servicios/resultados" },
   },
   {
@@ -158,6 +161,7 @@ export const SERVICIOS_LANDING_RECENT: ServiciosLandingRecentListing[] = [
       "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=900&q=80",
     coverImageAlt: "Tutoría y estudio",
     rating: 4.9,
+    sellerPresentation: "business",
     cta: { kind: "call", labelEs: "Llamar", telHref: "tel:+16505550111" },
   },
   {
@@ -169,6 +173,7 @@ export const SERVICIOS_LANDING_RECENT: ServiciosLandingRecentListing[] = [
       "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=900&q=80",
     coverImageAlt: "Cerrajero con herramientas",
     rating: 4.5,
+    sellerPresentation: "business",
     cta: { kind: "detail", labelEs: "Ver más", detailHref: "/clasificados/servicios/resultados" },
   },
 ];

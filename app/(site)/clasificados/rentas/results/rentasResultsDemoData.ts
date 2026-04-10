@@ -1,31 +1,20 @@
-import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 
-export type RentasResultsDemoListing = {
-  id: string;
-  imageUrl: string;
-  rentDisplay: string;
-  title: string;
-  addressLine: string;
-  beds: string;
-  baths: string;
-  sqft: string;
-  categoriaPropiedad: BrNegocioCategoriaPropiedad;
-  branch: "privado" | "negocio";
-  badges: string[];
-  promoted?: boolean;
-  layout?: "vertical" | "horizontal";
-  /** Demo-only: higher = newer for "Recientes" band. */
-  recencyRank?: number;
-  amueblado?: boolean;
-  mascotasPermitidas?: boolean;
-};
+/** @deprecated Prefer `RentasPublicListing` — kept for incremental import migration. */
+export type RentasResultsDemoListing = RentasPublicListing;
 
 export const RENTAS_RESULTS_DEMO_TOTAL = 842;
 
 /** Featured / promoted — Negocio-first for shell strategy; still mixed elsewhere on landing. */
-export const rentasResultsFeatured: RentasResultsDemoListing = {
+export const rentasResultsFeatured: RentasPublicListing = {
   id: "r-mty-hero",
+  slug: "oficina-ejecutiva-recepcion-spgg",
   imageUrl: "https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=1200&q=80&auto=format&fit=crop",
+  galleryUrls: [
+    "https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=1200&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=1200&q=80&auto=format&fit=crop",
+  ],
   rentDisplay: "$3,200 / mes",
   title: "Oficina ejecutiva con recepción",
   addressLine: "San Pedro Garza García, NL",
@@ -39,9 +28,17 @@ export const rentasResultsFeatured: RentasResultsDemoListing = {
   recencyRank: 100,
   amueblado: true,
   mascotasPermitidas: false,
+  description: {
+    es: "Espacio listo para operar: recepción, dos sanitarios y estacionamiento cercano. Ideal para consultorios o firma boutique. Acceso controlado y buena señalética en zona corporativa.",
+    en: "Move-in ready: reception, two restrooms, and parking nearby. Great for boutique firms or clinics. Controlled access in a strong business district.",
+  },
+  sellerDisplay: {
+    es: "Inmobiliaria Corporativa Norte · cuenta verificada",
+    en: "Corporativa Norte Realty · verified business account",
+  },
 };
 
-export const rentasResultsGridDemo: RentasResultsDemoListing[] = [
+export const rentasResultsGridDemo: RentasPublicListing[] = [
   {
     id: "r-gdl-1",
     imageUrl: "https://images.unsplash.com/photo-1600607687644-c7171b42498f?w=900&q=80&auto=format&fit=crop",
@@ -62,6 +59,10 @@ export const rentasResultsGridDemo: RentasResultsDemoListing[] = [
   {
     id: "r-mty-1",
     imageUrl: "https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=900&q=80&auto=format&fit=crop",
+    galleryUrls: [
+      "https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1200&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&q=80&auto=format&fit=crop",
+    ],
     rentDisplay: "$45,000 MXN/mes",
     title: "Residencia con alberca y jardín",
     addressLine: "Monterrey, NL",
@@ -75,10 +76,22 @@ export const rentasResultsGridDemo: RentasResultsDemoListing[] = [
     recencyRank: 95,
     amueblado: false,
     mascotasPermitidas: true,
+    description: {
+      es: "Residencia con excelente luz natural, jardín y alberca. Lista para habitar; mantenimiento de áreas comunes al corriente. Se solicita póliza jurídica.",
+      en: "Residence with strong daylight, garden, and pool. Move-in ready; HOA fees current. Legal policy requested.",
+    },
+    sellerDisplay: {
+      es: "Familia M. · anuncio privado",
+      en: "M. family · private listing",
+    },
   },
   {
     id: "r-cdmx-1",
     imageUrl: "https://images.unsplash.com/photo-1600585154084-4e5fe7c39198?w=900&q=80&auto=format&fit=crop",
+    galleryUrls: [
+      "https://images.unsplash.com/photo-1600585154084-4e5fe7c39198?w=1200&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1600566753088-00a18aa0b0a0?w=1200&q=80&auto=format&fit=crop",
+    ],
     rentDisplay: "$22,000 / mes",
     title: "Loft tipo estudio amueblado",
     addressLine: "Roma Norte, CDMX",
@@ -91,6 +104,14 @@ export const rentasResultsGridDemo: RentasResultsDemoListing[] = [
     recencyRank: 90,
     amueblado: true,
     mascotasPermitidas: false,
+    description: {
+      es: "Loft amueblado con cocina integral y blackout. Excelente ubicación peatonal; ideal para profesionista o pareja. Sin mascotas de talla grande.",
+      en: "Furnished loft with kitchenette and blackout shades. Walkable neighborhood; great for a professional or couple. No large pets.",
+    },
+    sellerDisplay: {
+      es: "María G. · particular",
+      en: "María G. · private seller",
+    },
   },
   {
     id: "r-agu-1",

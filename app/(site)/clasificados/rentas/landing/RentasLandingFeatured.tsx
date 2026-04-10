@@ -5,7 +5,12 @@ import { IconBath, IconBed, IconRuler } from "@/app/clasificados/bienes-raices/r
 import type { RentasLandingCopy } from "@/app/clasificados/rentas/rentasLandingCopy";
 import type { RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
-import { rentasCardSurfaceClass, rentasCtaSecondaryClass, rentasLinkSupportClass } from "@/app/clasificados/rentas/rentasLandingTheme";
+import {
+  rentasCardSurfaceClass,
+  rentasCtaSecondaryClass,
+  rentasLinkSupportClass,
+  rentasSectionHeadingClass,
+} from "@/app/clasificados/rentas/rentasLandingTheme";
 import type { RentasResultsDemoListing } from "@/app/clasificados/rentas/results/rentasResultsDemoData";
 import { RENTAS_RESULTS } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { buildRentasResultsUrl } from "@/app/clasificados/rentas/shared/utils/rentasResultsRoutes";
@@ -50,18 +55,15 @@ export function RentasLandingFeatured({ copy, lang, primary, supporting }: Props
   const fc = copy.featured;
 
   return (
-    <section className="mt-14" aria-labelledby="rentas-landing-featured-heading">
-      <h2
-        id="rentas-landing-featured-heading"
-        className="border-l-[3px] border-[#C45C26]/50 pl-3 font-serif text-2xl font-semibold tracking-tight text-[#1E1810] sm:text-[1.85rem]"
-      >
+    <section className="mt-12 sm:mt-16" aria-labelledby="rentas-landing-featured-heading">
+      <h2 id="rentas-landing-featured-heading" className={rentasSectionHeadingClass}>
         {fc.title}
       </h2>
-      <p className="mt-2 max-w-2xl text-sm text-[#5C5346]/88">{fc.subtitle}</p>
+      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#4A4338]/90">{fc.subtitle}</p>
 
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-stretch lg:gap-8">
+      <div className="mt-9 grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-stretch lg:gap-8">
         <div className="lg:col-span-8">
-          <div className={`overflow-hidden rounded-[1.25rem] ${rentasCardSurfaceClass} ring-1 ring-[#C4B8A8]/30`}>
+          <div className={`overflow-hidden rounded-[1.35rem] ${rentasCardSurfaceClass} ring-1 ring-[#D4C4A8]/35`}>
             <div className="flex flex-col lg:flex-row lg:items-stretch">
               <div className="relative lg:w-[58%]">
                 <div className="relative aspect-[16/10] lg:aspect-auto lg:min-h-[340px] lg:h-full">

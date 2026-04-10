@@ -12,7 +12,7 @@ type ViajesPublishCtaBandProps = {
 export function ViajesPublishCtaBand({ ui, href }: ViajesPublishCtaBandProps) {
   const copy = ui.publishCtaBand;
   return (
-    <section className="relative mt-16 sm:mt-20" aria-labelledby="viajes-publish-cta-heading">
+    <section className="relative mt-10 sm:mt-12" aria-labelledby="viajes-publish-cta-heading">
       <div className="overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)] bg-gradient-to-br from-[#fffdf9] via-[#faf3e8] to-[#f0f4f8] shadow-[0_20px_50px_-28px_rgba(30,60,80,0.18)]">
         <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(234,88,12,0.06)_0%,transparent_45%,rgba(14,116,144,0.05)_100%)]" aria-hidden />
         <div className="relative grid gap-6 px-6 py-8 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-10 sm:px-10 sm:py-10">

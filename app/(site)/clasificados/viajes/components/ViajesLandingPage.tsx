@@ -13,6 +13,7 @@ import { ViajesCategoryPillsPanel } from "./ViajesCategoryPillsPanel";
 import { ViajesDestinations } from "./ViajesDestinations";
 import { ViajesHero } from "./ViajesHero";
 import { ViajesLandingAmbience } from "./ViajesLandingAmbience";
+import { ViajesLandingTierBreak } from "./ViajesLandingTierBreak";
 import { ViajesLangSwitch } from "./ViajesLangSwitch";
 import { ViajesLocalDepartures } from "./ViajesLocalDepartures";
 import { ViajesLowerSections } from "./ViajesLowerSections";
@@ -30,17 +31,18 @@ export function ViajesLandingPage() {
   const clasificadosHref = appendLangToPath("/clasificados", lang);
   const publicarHref = appendLangToPath("/publicar/viajes", lang);
   const homeBackHref = appendLangToPath("/clasificados/viajes", lang);
+  const browseAllHref = appendLangToPath("/clasificados/viajes/resultados", lang);
 
   return (
     <div className="relative min-h-screen overflow-x-hidden pb-16 text-[color:var(--lx-text)] sm:pb-20">
       <ViajesLandingAmbience />
 
-      <div className="relative z-[2]">
+      <div className="relative z-[2] min-w-0">
         <Navbar />
 
         <div className="relative z-30 border-b border-[color:var(--lx-gold-border)]/55 bg-[#fffdf9]/88 backdrop-blur-md">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5 lg:px-6">
-            <nav className="text-[11px] font-medium text-[color:var(--lx-muted)]" aria-label="Breadcrumb">
+          <div className="mx-auto flex max-w-7xl min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5 lg:px-6">
+            <nav className="min-w-0 text-[11px] font-medium text-[color:var(--lx-muted)]" aria-label="Breadcrumb">
               <Link href={clasificadosHref} className="transition hover:text-sky-900 hover:underline">
                 {ui.breadcrumbClassifieds}
               </Link>
@@ -65,15 +67,20 @@ export function ViajesLandingPage() {
           tripPills={<ViajesCategoryPillsPanel lang={lang} ui={ui} />}
         />
 
-        <main className="relative mx-auto max-w-7xl px-4 pb-10 pt-12 sm:px-5 sm:pt-14 lg:px-6">
-          <ViajesTopOffers homeBackHref={homeBackHref} ui={ui} />
+        <main className="relative mx-auto max-w-7xl min-w-0 px-4 pb-10 pt-10 sm:px-5 sm:pt-12 lg:px-6">
+          <ViajesTopOffers homeBackHref={homeBackHref} browseAllHref={browseAllHref} ui={ui} />
+          <ViajesLocalDepartures ui={ui} browseAllHref={browseAllHref} />
 
-          <ViajesTrustStrip ui={ui} className="mt-14 sm:mt-16" />
+          <ViajesLandingTierBreak label={ui.landing.tier2Eyebrow} />
 
-          <ViajesLocalDepartures ui={ui} />
-          <ViajesDestinations ui={ui} />
-          <ViajesAudienceBuckets ui={ui} />
+          <ViajesDestinations ui={ui} browseAllHref={browseAllHref} />
+          <ViajesAudienceBuckets ui={ui} browseAllHref={browseAllHref} />
+
           <ViajesLowerSections homeBackHref={homeBackHref} ui={ui} />
+
+          <ViajesLandingTierBreak label={ui.landing.trustTransitionBreak} />
+
+          <ViajesTrustStrip ui={ui} className="mt-0" />
 
           <ViajesPublishCtaBand ui={ui} href={publicarHref} />
         </main>

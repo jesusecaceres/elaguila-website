@@ -7,8 +7,19 @@ export type ViajesUi = {
   categoryViajes: string;
   postListing: string;
   exploreByTripType: string;
+  /** Landing-only: trip-type chips are search shortcuts, not a second search UI */
+  searchShortcutsLabel: string;
   heroTitle: string;
   heroSubtitle: string;
+  /** Tier labels for landing visual hierarchy (desktop-first; mobile-safe) */
+  landing: {
+    tier1Eyebrow: string;
+    tier2Eyebrow: string;
+    tier3Eyebrow: string;
+    /** Separator before trust + publish (distinct from editorial tier label) */
+    trustTransitionBreak: string;
+    browseAllTrips: string;
+  };
   search: {
     whereTo: string;
     departureFrom: string;
@@ -27,12 +38,14 @@ export type ViajesUi = {
     geoDenied: string;
     geoUnavailable: string;
     destPlaceholder: string;
+    /** One line under the module — clarifies that submit opens results with current filters */
+    moduleHint: string;
   };
   carousel: { prev: string; next: string };
   topOffers: { title: string; subtitle: string };
-  localDepartures: { title: string; cta: string; byId: Record<string, { title: string; description: string }> };
-  destinations: { title: string; cta: string; byId: Record<string, { supportingLine: string }> };
-  audience: { title: string; byId: Record<string, { label: string; subline: string }> };
+  localDepartures: { title: string; subtitle: string; cta: string; byId: Record<string, { title: string; description: string }> };
+  destinations: { title: string; subtitle: string; cta: string; byId: Record<string, { supportingLine: string }> };
+  audience: { title: string; subtitle: string; byId: Record<string, { label: string; subline: string }> };
   lower: {
     partnersTitle: string;
     partnersSubtitle: string;
@@ -218,6 +231,14 @@ function es(): Omit<ViajesUi, "lang"> {
     categoryViajes: "Viajes",
     postListing: "Publicar",
     exploreByTripType: "Explora por tipo de viaje",
+    searchShortcutsLabel: "Atajos de categoría — abren resultados con tus mismos filtros",
+    landing: {
+      tier1Eyebrow: "Descubrir ahora",
+      tier2Eyebrow: "Explorar más",
+      tier3Eyebrow: "Ideas, temporada y confianza",
+      trustTransitionBreak: "Transparencia y publicación",
+      browseAllTrips: "Ver todos los viajes en resultados →",
+    },
     heroTitle: "Descubre tu próxima escapada",
     heroSubtitle:
       "Resorts, tours y ofertas curadas en un solo lugar: socios comerciales, negocios en Leonix e ideas editoriales. Leonix no vende el viaje final aquí — te acerca a la oferta correcta.",
@@ -239,15 +260,16 @@ function es(): Omit<ViajesUi, "lang"> {
       geoDenied: "No pudimos leer tu ubicación. Elige un origen manualmente.",
       geoUnavailable: "Ubicación no disponible en este dispositivo.",
       destPlaceholder: "Playa, ciudad, país…",
+      moduleHint: "Los filtros se aplican al explorar. El botón naranja abre resultados con lo que elegiste.",
     },
     carousel: { prev: "Ver categorías anteriores", next: "Ver categorías siguientes" },
     topOffers: {
       title: "Top ofertas de la semana",
-      subtitle:
-        "Cada tarjeta muestra el origen: socio comercial (suele abrir en el sitio del socio), negocio con anuncio en Leonix, o guía editorial.",
+      subtitle: "Curado semanal. Revisa el etiquetado: socio (sigue al sitio del socio), negocio (contacto en Leonix) o editorial (inspiración).",
     },
     localDepartures: {
       title: "Saliendo desde tu área",
+      subtitle: "Salto rápido a resultados filtrados por origen o cercanía.",
       cta: "Ver ofertas",
       byId: {
         sjo: { title: "Desde San José", description: "Escapadas a México, Caribe y ciudades de conexión desde SJO." },
@@ -258,6 +280,7 @@ function es(): Omit<ViajesUi, "lang"> {
     },
     destinations: {
       title: "Explora destinos populares",
+      subtitle: "Colecciones para entrar en resultados con un clic.",
       cta: "Ver ofertas",
       byId: {
         "cancun-col": { supportingLine: "Playas, arrecifes y vida nocturna con paquetes curados." },
@@ -268,6 +291,7 @@ function es(): Omit<ViajesUi, "lang"> {
     },
     audience: {
       title: "Viajes para cada plan",
+      subtitle: "Filtra por intención — familia, pareja, grupo o romance.",
       byId: {
         families: {
           label: "Para familias",
@@ -289,17 +313,16 @@ function es(): Omit<ViajesUi, "lang"> {
     },
     lower: {
       partnersTitle: "Agencias y socios destacados",
-      partnersSubtitle: "Negocios y operadores con perfil en Leonix — contacto directo y especialidades visibles.",
+      partnersSubtitle: "Perfiles publicados en Leonix: contacto directo; Leonix no procesa la reserva por ti.",
       businessPublished: "Negocio publicado",
       verified: "Verificado",
       viewProfile: "Ver perfil →",
       editorialTitle: "Guías e ideas para tu próximo viaje",
-      editorialSubtitle:
-        "Contenido editorial Leonix — enlaces de inspiración hasta que existan rutas de lectura dedicadas.",
+      editorialSubtitle: "Inspiración Leonix — no es una reserva; te lleva a explorar más en Viajes.",
       editorialPill: "Editorial",
       readTime: (n) => `${n} de lectura`,
       seasonalTitle: "Ofertas de temporada",
-      seasonalSubtitle: "Campañas agrupadas — mezcla de inventario de socios y anuncios de negocios locales.",
+      seasonalSubtitle: "Campañas temáticas: mezcla de socios (sigue al socio) y negocios (contacto directo).",
       sourcePartner: "Socio comercial",
       sourceBusiness: "Negocio",
     },
@@ -466,7 +489,7 @@ function es(): Omit<ViajesUi, "lang"> {
     ],
     trustWhy: {
       title: "Por qué Leonix Viajes",
-      body: "Unimos inspiración con inventario real: socios comerciales, negocios que publican en Leonix e ideas editoriales. No somos la agencia de reservas — te acercamos a la oferta y al contacto correcto.",
+      body: "Leonix es vitrina: con socios sueles completar reserva en su sitio; con negocios publicados el contacto es directo. Siempre ves el origen del listado.",
     },
     trustFooter: {
       aboutViajes: "Sobre Viajes",
@@ -497,6 +520,14 @@ function en(): Omit<ViajesUi, "lang"> {
     categoryViajes: "Viajes",
     postListing: "Post a listing",
     exploreByTripType: "Explore by trip type",
+    searchShortcutsLabel: "Category shortcuts — open results with the same filters",
+    landing: {
+      tier1Eyebrow: "Start here",
+      tier2Eyebrow: "Keep exploring",
+      tier3Eyebrow: "Ideas, seasonality, and trust",
+      trustTransitionBreak: "Transparency & publishing",
+      browseAllTrips: "Browse all trips in results →",
+    },
     heroTitle: "Find your next getaway",
     heroSubtitle:
       "Resorts, tours, and curated offers in one place: commercial partners, Leonix businesses, and editorial ideas. Leonix doesn’t sell the final trip here — we connect you to the right next step.",
@@ -518,15 +549,16 @@ function en(): Omit<ViajesUi, "lang"> {
       geoDenied: "We couldn’t read your location. Please choose an origin manually.",
       geoUnavailable: "Location isn’t available on this device.",
       destPlaceholder: "Beach, city, country…",
+      moduleHint: "Filters apply when you explore. The orange button opens results with your choices.",
     },
     carousel: { prev: "Show previous categories", next: "Show next categories" },
     topOffers: {
       title: "Top offers this week",
-      subtitle:
-        "Each card shows the source: commercial partner (often opens on the partner site), a business listing on Leonix, or editorial.",
+      subtitle: "Weekly picks. Check the label: partner (often continues on the partner site), business (Leonix contact), or editorial (inspiration).",
     },
     localDepartures: {
       title: "Departing near you",
+      subtitle: "Jump to results filtered by origin or “near you”.",
       cta: "View offers",
       byId: {
         sjo: { title: "From San José", description: "Getaways to Mexico, the Caribbean, and connecting hubs from SJO." },
@@ -537,6 +569,7 @@ function en(): Omit<ViajesUi, "lang"> {
     },
     destinations: {
       title: "Explore popular destinations",
+      subtitle: "Collections that drop you into filtered results.",
       cta: "View offers",
       byId: {
         "cancun-col": { supportingLine: "Beaches, reefs, and nightlife with curated packages." },
@@ -547,6 +580,7 @@ function en(): Omit<ViajesUi, "lang"> {
     },
     audience: {
       title: "Trips for every plan",
+      subtitle: "Filter by intent — family, couple, group, or romance.",
       byId: {
         families: {
           label: "For families",
@@ -568,16 +602,16 @@ function en(): Omit<ViajesUi, "lang"> {
     },
     lower: {
       partnersTitle: "Featured agencies & partners",
-      partnersSubtitle: "Businesses and operators on Leonix — direct contact and clear specialties.",
+      partnersSubtitle: "Published profiles on Leonix — direct contact; Leonix doesn’t process the booking for you.",
       businessPublished: "Business listing",
       verified: "Verified",
       viewProfile: "View profile →",
       editorialTitle: "Guides & ideas for your next trip",
-      editorialSubtitle: "Leonix editorial content — inspiration links until dedicated reading routes ship.",
+      editorialSubtitle: "Leonix editorial inspiration — not a booking; it’s meant to help you explore further in Viajes.",
       editorialPill: "Editorial",
       readTime: (n) => `${n} read`,
       seasonalTitle: "Seasonal offers",
-      seasonalSubtitle: "Grouped campaigns — a mix of partner inventory and local business listings.",
+      seasonalSubtitle: "Themed campaigns: partners (often continue off-site) and businesses (direct contact).",
       sourcePartner: "Commercial partner",
       sourceBusiness: "Business",
     },
@@ -744,7 +778,7 @@ function en(): Omit<ViajesUi, "lang"> {
     ],
     trustWhy: {
       title: "Why Leonix Viajes",
-      body: "We blend inspiration with real inventory: commercial partners, businesses that publish on Leonix, and editorial ideas. We’re not the booking agency — we surface the offer and the right next step.",
+      body: "Leonix is a showcase: partner offers usually continue on the partner site; published businesses are direct contact. The source label is always visible.",
     },
     trustFooter: {
       aboutViajes: "About Viajes",

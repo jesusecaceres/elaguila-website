@@ -31,7 +31,7 @@ export function ViajesHero({ searchBar, tripPills, ui }: ViajesHeroProps) {
           <div className="absolute inset-0 flex flex-col justify-end pb-6 pt-24 sm:pb-8 sm:pt-28 md:pb-10">
             <div className="mx-auto w-full max-w-7xl px-4 sm:px-5 lg:px-6">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/85 drop-shadow-sm sm:text-[11px]">Leonix · Viajes</p>
-              <h1 className="mt-3 max-w-[22ch] text-[clamp(1.75rem,5.2vw,3rem)] font-bold leading-[1.08] tracking-tight text-[#FFFCF7] drop-shadow-md">
+              <h1 className="mt-3 max-w-[min(22ch,100%)] text-[clamp(1.5rem,4.8vw,3rem)] font-bold leading-[1.08] tracking-tight text-[#FFFCF7] drop-shadow-md">
                 {ui.heroTitle}
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/95 shadow-black/20 drop-shadow sm:max-w-3xl sm:text-base md:text-[1.05rem]">
