@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
 import ClasificadosCategoryComingSoon from "@/app/clasificados/publicar/components/ClasificadosCategoryComingSoon";
+import RentasPublicarPage from "@/app/clasificados/rentas/publish/RentasPublicarPage";
 
 function normalizeCategory(raw: string): CategoryKey | "" {
   const v = (raw ?? "").trim().toLowerCase();
@@ -14,7 +15,8 @@ function normalizeCategory(raw: string): CategoryKey | "" {
 }
 
 /**
- * Category terminal: Coming Soon only. Invalid slug or `all` → chooser.
+ * Dispatcher: known categories with dedicated publish routes redirect there; `rentas` renders
+ * the live Rentas publish app; other valid slugs fall back to Coming Soon. Invalid slug or `all` → chooser.
  */
 export default function PublicarCategoryPage() {
   const params = useParams<{ category?: string }>();
@@ -46,6 +48,10 @@ export default function PublicarCategoryPage() {
       router.replace(`/publicar/restaurantes?lang=${lang}`);
       return;
     }
+    if (categoryFromUrl === "travel") {
+      router.replace(`/publicar/viajes?lang=${lang}`);
+      return;
+    }
     if (categoryFromUrl === "empleos") {
       router.replace(`/clasificados/publicar/empleos?lang=${lang}`);
       return;
@@ -63,6 +69,7 @@ export default function PublicarCategoryPage() {
     categoryFromUrl === "autos" ||
     categoryFromUrl === "servicios" ||
     categoryFromUrl === "restaurantes" ||
+    categoryFromUrl === "travel" ||
     categoryFromUrl === "empleos"
   ) {
     return (
@@ -70,6 +77,10 @@ export default function PublicarCategoryPage() {
         {lang === "es" ? "Redirigiendo…" : "Redirecting…"}
       </main>
     );
+  }
+
+  if (categoryFromUrl === "rentas") {
+    return <RentasPublicarPage />;
   }
 
   return <ClasificadosCategoryComingSoon categorySlug={categoryFromUrl} lang={lang} />;

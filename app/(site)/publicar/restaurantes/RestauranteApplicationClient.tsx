@@ -1526,10 +1526,10 @@ export default function RestauranteApplicationClient() {
                   <FieldLabel optional>{lab}</FieldLabel>
                   <HelperText>
                     {field === "interiorImages"
-                      ? "Ambiente y espacio; se agrupa en la galería del detalle."
+                      ? "Ambiente y espacio; se agrupa en la galería del detalle. Mismo control de orden ⋮⋮ que la galería general."
                       : field === "foodImages"
-                        ? "Platos y mesa; refuerza la sección de comida en la ficha."
-                        : "Fachada y entorno; se muestra en la categoría exterior."}
+                        ? "Platos y mesa; refuerza la sección de comida en la ficha. Reordena con ⋮⋮ como arriba."
+                        : "Fachada y entorno; categoría exterior en la ficha. Reordena con ⋮⋮ como arriba."}
                   </HelperText>
                   <RestauranteSubGalleryBucket
                     field={field}

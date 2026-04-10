@@ -6,13 +6,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import type { JobFairModality } from "@/app/clasificados/empleos/data/empleoJobFairSampleData";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
-import { EmpleosApplicationTopActions } from "@/app/publicar/empleos/shared/components/EmpleosApplicationTopActions";
+import { EmpleosApplicationFinalStep } from "@/app/publicar/empleos/shared/components/EmpleosApplicationFinalStep";
+import { EmpleosReadinessBanner } from "@/app/publicar/empleos/shared/components/EmpleosReadinessBanner";
 import { EMPLEOS_PUBLISH_SHARED_COPY } from "@/app/publicar/empleos/shared/copy/empleosPublishSharedCopy";
 import { useEmpleosDraftSession } from "@/app/publicar/empleos/shared/hooks/useEmpleosDraftSession";
 import { EmpleosSingleImageField } from "@/app/publicar/empleos/shared/media/EmpleosSingleImageField";
 import { buildEmpleosPublishEnvelopeFromFeria } from "@/app/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope";
 import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publish/EmpleosPublishConfirmModal";
-import { writeEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
+import { clearEmpleosStagedPublish, writeEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
+import { flushEmpleosDraftToSession } from "@/app/publicar/empleos/shared/lib/flushEmpleosDraftToSession";
 import { gateEmpleosFeriaPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
 import { EMPLEOS_SESSION_KEYS } from "@/app/publicar/empleos/shared/constants/empleosSessionKeys";
 import { empleosHandoffPreviewUrl } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
@@ -44,19 +46,20 @@ export default function EmpleoFeriaApplicationClient() {
 
   const gate = useMemo(() => gateEmpleosFeriaPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;
-  const previewDisabledReason = gate.ok ? null : `${copy.gateFail} ${gate.issues.join(", ")}`;
+  const previewIssues = gate.ok ? [] : gate.issues;
 
   const goPreview = useCallback(() => {
     if (previewDisabled) return;
+    flushEmpleosDraftToSession(EMPLEOS_SESSION_KEYS.feria, state);
     markPublishFlowOpeningPreview();
     router.push(empleosHandoffPreviewUrl("feria", lang));
-  }, [lang, previewDisabled, router]);
+  }, [lang, previewDisabled, router, state]);
 
-  const openPreviewTab = useCallback(() => {
-    if (previewDisabled) return;
-    markPublishFlowOpeningPreview();
-    window.open(empleosHandoffPreviewUrl("feria", lang), "_blank", "noopener,noreferrer");
-  }, [lang, previewDisabled]);
+  const handleDeleteApplication = useCallback(() => {
+    reset();
+    setStagedNotice(false);
+    clearEmpleosStagedPublish();
+  }, [reset]);
 
   const flyerCopy =
     lang === "es"
@@ -82,23 +85,12 @@ export default function EmpleoFeriaApplicationClient() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] px-4 pb-24 pt-24 text-[color:var(--lx-text)] sm:px-5">
       <div className="mx-auto min-w-0 max-w-3xl">
-        <header className="mb-8">
+        <header className="mb-6">
           <h1 className="text-2xl font-bold sm:text-3xl">{lang === "es" ? "Feria de empleo" : "Job fair"}</h1>
-          <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">
-            {lang === "es"
-              ? "Anuncio centrado en el flyer. Completa los campos con * para una vista previa limpia."
-              : "Flyer-first listing. Complete * fields for a clean preview."}
-          </p>
+          <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{copy.applicationPage.feriaSubtitle}</p>
         </header>
 
-        <EmpleosApplicationTopActions
-          copy={copy.topActions}
-          onVistaPrevia={goPreview}
-          onAbrirVistaPrevia={openPreviewTab}
-          onDelete={reset}
-          previewDisabled={previewDisabled}
-          previewDisabledReason={previewDisabledReason}
-        />
+        <EmpleosReadinessBanner visible={!gate.ok} intro={copy.gateFail} issues={previewIssues} />
 
         <div className="space-y-6">
           <EmpleosSectionCard title={lang === "es" ? "1. Información principal" : "1. Main details"}>
@@ -234,28 +226,18 @@ export default function EmpleoFeriaApplicationClient() {
           </EmpleosSectionCard>
         </div>
 
-        <div className="mt-10 rounded-[16px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 sm:p-5">
-          <p className="text-sm text-[color:var(--lx-text-2)]">
-            {lang === "es" ? "Confirmación final (sin pago todavía)." : "Final confirmation (no payment yet)."}
-          </p>
-          {stagedNotice ? (
-            <p className="mt-3 rounded-xl border border-emerald-200/80 bg-emerald-50/95 px-3 py-2 text-sm text-emerald-950" role="status">
-              {copy.stagedSuccess}
-            </p>
-          ) : null}
-          <button
-            type="button"
-            className="mt-3 inline-flex min-h-[48px] w-full max-w-full items-center justify-center rounded-[12px] bg-[color:var(--lx-cta-dark)] px-5 text-sm font-bold text-[#FFFCF7] disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
-            disabled={previewDisabled}
-            title={previewDisabled ? copy.publishBlocked : undefined}
-            onClick={() => {
-              if (previewDisabled) return;
-              setPublishOpen(true);
-            }}
-          >
-            {lang === "es" ? "Revisión final antes de publicar" : "Final review before publish"}
-          </button>
-        </div>
+        <EmpleosApplicationFinalStep
+          copy={copy.finalStep}
+          previewDisabled={previewDisabled}
+          onVistaPrevia={goPreview}
+          onPublicar={() => {
+            if (previewDisabled) return;
+            setPublishOpen(true);
+          }}
+          onDelete={handleDeleteApplication}
+          stagedSuccessText={stagedNotice ? copy.stagedSuccess : null}
+          publishGateBlockedHint={previewDisabled ? copy.publishBlocked : null}
+        />
       </div>
 
       <EmpleosPublishConfirmModal

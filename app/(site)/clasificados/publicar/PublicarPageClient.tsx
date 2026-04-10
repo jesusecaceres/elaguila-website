@@ -95,7 +95,9 @@ export default function PublicarPageClient({
             ? `/clasificados/publicar/servicios?${p.toString()}`
             : deepLinkCat === "restaurantes"
               ? `/publicar/restaurantes?${p.toString()}`
-              : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
+              : deepLinkCat === "travel"
+                ? `/publicar/viajes?${p.toString()}`
+                : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
     router.replace(dest);
   }, [deepLinkCat, lang, router, searchParams]);
 
@@ -199,9 +201,11 @@ export default function PublicarPageClient({
                     ? `/clasificados/publicar/servicios?lang=${lang}`
                     : key === "restaurantes"
                       ? withLangParam("/publicar/restaurantes", lang)
-                      : key === "empleos"
-                        ? `/clasificados/publicar/empleos?lang=${lang}`
-                        : `/clasificados/publicar/${key}?lang=${lang}`;
+                      : key === "travel"
+                        ? withLangParam("/publicar/viajes", lang)
+                        : key === "empleos"
+                          ? `/clasificados/publicar/empleos?lang=${lang}`
+                          : `/clasificados/publicar/${key}?lang=${lang}`;
               return (
                 <Link
                   key={key}

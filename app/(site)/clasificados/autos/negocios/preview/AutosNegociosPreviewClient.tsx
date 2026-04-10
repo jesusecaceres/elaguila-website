@@ -11,11 +11,10 @@ import {
 } from "../lib/autosNegociosDraftNamespace";
 import { mockAutoDealerListing } from "../mock/mockAutoDealerListing";
 import type { AutoDealerListing } from "../types/autoDealerListing";
-import { isMeaningfulAutoDealerDraft } from "../lib/isMeaningfulAutoDealerDraft";
 import { AutosNegociosPreviewLocaleProvider, useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { withLangParam } from "../lib/autosNegociosLang";
 import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
-import { consumeAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
+import { peekAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
 import { AutosDraftPreviewErrorBoundary } from "@/app/clasificados/autos/shared/components/AutosDraftPreviewErrorBoundary";
 
 const EDIT_BASE = "/publicar/autos/negocios";
@@ -27,14 +26,6 @@ function isDemoQuery(): boolean {
   const q = new URLSearchParams(window.location.search);
   const v = q.get("demo");
   return v === "1" || v === "true";
-}
-
-function listingIsMeaningfulDraft(listing: AutoDealerListing): boolean {
-  try {
-    return isMeaningfulAutoDealerDraft(listing);
-  } catch {
-    return false;
-  }
 }
 
 async function resolvePreviewState(): Promise<{
@@ -53,16 +44,26 @@ async function resolvePreviewState(): Promise<{
       };
     }
 
-    const hinted = consumeAutosDraftNamespaceHint("negocios");
-    const namespace = hinted ?? (await resolveAutosNegociosDraftNamespace());
-    migrateLegacyAutosNegociosDraftJsonToNamespace(namespace);
-    const d = await loadAutosNegociosDraftResolved(namespace);
-    const normalized = safeNormalizeAutosDraftListing(d?.listing, "negocios");
-    if (listingIsMeaningfulDraft(normalized)) {
-      return { mode: "draft", listing: normalized };
+    const hint = peekAutosDraftNamespaceHint("negocios");
+    const resolved = await resolveAutosNegociosDraftNamespace();
+    migrateLegacyAutosNegociosDraftJsonToNamespace(resolved);
+
+    let d = null as Awaited<ReturnType<typeof loadAutosNegociosDraftResolved>>;
+    if (hint) {
+      migrateLegacyAutosNegociosDraftJsonToNamespace(hint);
+      d = await loadAutosNegociosDraftResolved(hint);
+    }
+    if (!d) {
+      migrateLegacyAutosNegociosDraftJsonToNamespace(resolved);
+      d = await loadAutosNegociosDraftResolved(resolved);
     }
 
-    return { mode: "empty", listing: normalized };
+    if (!d) {
+      return { mode: "empty", listing: safeNormalizeAutosDraftListing(undefined, "negocios") };
+    }
+
+    const normalized = safeNormalizeAutosDraftListing(d.listing, "negocios");
+    return { mode: "draft", listing: normalized };
   } catch {
     return { mode: "empty", listing: safeNormalizeAutosDraftListing(undefined, "negocios") };
   }

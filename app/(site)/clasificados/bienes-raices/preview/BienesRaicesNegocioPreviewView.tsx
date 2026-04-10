@@ -5,7 +5,13 @@ import type {
   BienesRaicesNegocioPreviewVm,
   BienesRaicesPreviewQuickFactVm,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
-import { BrNegocioGalleryLightbox } from "@/app/clasificados/bienes-raices/preview/negocio/components/BrNegocioGalleryLightbox";
+import {
+  leonixGalleryPhotoSlidesWithCaptions,
+  leonixSlideIndexForCoverPhoto,
+  leonixSlideIndexForPhotoUrl,
+  leonixSlideIndexForVideoSlot,
+} from "@/app/clasificados/lib/leonixGallerySlides";
+import { LeonixPreviewGalleryLightbox } from "@/app/clasificados/lib/LeonixPreviewGalleryLightbox";
 import { BrNegocioStreamableVideo } from "@/app/clasificados/bienes-raices/preview/negocio/components/BrNegocioStreamableVideo";
 
 const IVORY = "#F9F6F1";
@@ -476,12 +482,6 @@ function galleryTopCells(vm: BienesRaicesNegocioPreviewVm): [GalleryTopSpec | nu
   return [cellA, cellB];
 }
 
-function photoIndexInGallery(vm: BienesRaicesNegocioPreviewVm, url: string): number {
-  const urls = vm.media?.allPhotoUrls ?? [];
-  const i = urls.indexOf(url);
-  return i >= 0 ? i : 0;
-}
-
 /** Publishable ad canvas only — chrome (“Volver a editar”) lives in `LeonixPreviewPageShell`. */
 export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocioPreviewVm }) {
   const [galleryOpen, setGalleryOpen] = useState(false);
@@ -492,18 +492,19 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
     setGalleryOpen(true);
   };
 
-  const gallerySlideIndexForVideo = (slot: 0 | 1) => {
-    const n = vm.media?.allPhotoUrls?.length ?? 0;
-    if (slot === 0) return n;
-    return n + (vm.media?.hasVideo1 ? 1 : 0);
-  };
-
   const quickFacts = (vm.quickFacts ?? []).map((qf) => ({
     Icon: QUICK_FACT_ICONS[qf.icon] ?? IconSparkle,
     label: qf.label,
     value: qf.value,
   }));
   const [gTopA, gTopB] = galleryTopCells(vm);
+
+  const dedupedPhotoSlides = leonixGalleryPhotoSlidesWithCaptions(vm.media?.allPhotoUrls, vm.media?.photoCaptionsFull);
+  const uniquePhotoCount = dedupedPhotoSlides.length;
+  const galleryMetaLine =
+    uniquePhotoCount > 0
+      ? `${uniquePhotoCount} foto${uniquePhotoCount === 1 ? "" : "s"} en la galería`
+      : String(vm.media?.metaLine ?? "").trim();
 
   return (
     <div className="w-full min-w-0 max-w-[100vw] overflow-x-hidden antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
@@ -519,7 +520,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
               </h2>
             </div>
             <p className="text-[11px] font-medium sm:text-xs" style={{ color: MUTED }}>
-              {vm.media?.metaLine ?? ""}
+              {galleryMetaLine}
             </p>
           </div>
           <div className="grid gap-3 lg:grid-cols-12 lg:gap-4">
@@ -529,7 +530,16 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                   type="button"
                   className="group relative w-full overflow-hidden rounded-2xl border text-left shadow-lg transition hover:opacity-[0.98]"
                   style={{ borderColor: BORDER }}
-                  onClick={() => vm.media?.hasPhotos && vm.media?.heroUrl && openGallery(vm.media.coverPhotoIndex ?? 0)}
+                  onClick={() => {
+                    if (!vm.media?.hasPhotos || !vm.media?.heroUrl) return;
+                    openGallery(
+                      leonixSlideIndexForCoverPhoto(
+                        vm.media.allPhotoUrls,
+                        vm.media.coverPhotoIndex ?? 0,
+                        vm.media.photoCaptionsFull,
+                      ),
+                    );
+                  }}
                   disabled={!vm.media?.hasPhotos || !vm.media?.heroUrl}
                   aria-label="Abrir galería de fotos"
                 >
@@ -545,18 +555,24 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                     <span className="pointer-events-none absolute inset-0 bg-black/0 transition group-hover:bg-black/[0.06]" aria-hidden />
                   ) : null}
                 </button>
-                {vm.media && vm.media.photoCount > 0 ? (
+                {vm.media && uniquePhotoCount > 0 ? (
                   <button
                     type="button"
                     className="absolute bottom-3 right-3 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wide shadow-md transition hover:brightness-95"
                     style={{ borderColor: BORDER, background: "rgba(253,251,247,0.94)", color: CHARCOAL_DEEP }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      openGallery(vm.media?.coverPhotoIndex ?? 0);
+                      openGallery(
+                        leonixSlideIndexForCoverPhoto(
+                          vm.media?.allPhotoUrls,
+                          vm.media?.coverPhotoIndex ?? 0,
+                          vm.media?.photoCaptionsFull,
+                        ),
+                      );
                     }}
                     aria-label="Abrir galería completa"
                   >
-                    {vm.media?.photoCount ?? 0} fotos
+                    {uniquePhotoCount} fotos
                   </button>
                 ) : null}
               </div>
@@ -581,7 +597,11 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                     <button
                       type="button"
                       className="block w-full text-left"
-                      onClick={() => openGallery(photoIndexInGallery(vm, spec.url))}
+                      onClick={() =>
+                        openGallery(
+                          leonixSlideIndexForPhotoUrl(vm.media?.allPhotoUrls, vm.media?.photoCaptionsFull, spec.url),
+                        )
+                      }
                       aria-label="Abrir foto en galería"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -594,7 +614,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                         type="button"
                         className="absolute right-2 top-2 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide shadow-md sm:text-[11px]"
                         style={{ borderColor: BORDER, background: "rgba(253,251,247,0.95)", color: CHARCOAL_DEEP }}
-                        onClick={() => openGallery(gallerySlideIndexForVideo(spec.slot))}
+                        onClick={() => openGallery(leonixSlideIndexForVideoSlot(vm.media, spec.slot))}
                       >
                         Galería
                       </button>
@@ -1202,7 +1222,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
         )}
       </main>
 
-      <BrNegocioGalleryLightbox vm={vm} open={galleryOpen} initialIndex={galleryIndex} onClose={() => setGalleryOpen(false)} />
+      <LeonixPreviewGalleryLightbox vm={vm} open={galleryOpen} initialIndex={galleryIndex} onClose={() => setGalleryOpen(false)} />
     </div>
   );
 }

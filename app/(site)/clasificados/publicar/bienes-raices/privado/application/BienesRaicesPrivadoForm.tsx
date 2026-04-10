@@ -39,6 +39,7 @@ import {
   compressImageFileToJpegDataUrl,
   readVideoFileAsDataUrlLimited,
 } from "./utils/brPrivadoMediaCompress";
+import { LeonixRealEstateSortablePhotoStrip } from "@/app/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
 import { BrPrivadoCiudadZonaCombobox } from "./components/BrPrivadoCiudadZonaCombobox";
 import {
   COMERCIAL_DESTACADOS_DEFS,
@@ -210,28 +211,6 @@ export function BienesRaicesPrivadoForm() {
       return out;
     });
     if (photosInputRef.current) photosInputRef.current.value = "";
-  };
-
-  const movePhoto = (index: number, delta: -1 | 1) => {
-    setState((s) => {
-      const urls = [...s.media.photoDataUrls];
-      const j = index + delta;
-      if (j < 0 || j >= urls.length) return s;
-      const a = urls[index];
-      const b = urls[j];
-      if (a === undefined || b === undefined) return s;
-      urls[index] = b;
-      urls[j] = a;
-      let pi = s.media.primaryImageIndex;
-      if (pi === index) pi = j;
-      else if (pi === j) pi = index;
-      const out: BienesRaicesPrivadoFormState = {
-        ...s,
-        media: { ...s.media, photoDataUrls: urls, primaryImageIndex: pi },
-      };
-      queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
-      return out;
-    });
   };
 
   const onVideoFile = async (files: FileList | null) => {
@@ -532,79 +511,48 @@ export function BienesRaicesPrivadoForm() {
                 {state.media.photoDataUrls.length}/{MAX_PHOTOS} seleccionadas
               </span>
             </div>
+            <p className="mt-2 text-xs leading-relaxed text-[#5C5346]">
+              Cada foto es una tarjeta con vista previa. Usa el control <strong className="text-[#1E1810]">⋮⋮ Orden</strong>{" "}
+              para arrastrar y reordenar. La portada puede ser distinta del primer casillero.
+            </p>
             {state.media.photoDataUrls.length > 0 ? (
-              <ul className="mt-3 space-y-2">
-                {state.media.photoDataUrls.map((url, i) => (
-                  <li
-                    key={`${i}-${url.slice(0, 24)}`}
-                    className="flex min-w-0 flex-col gap-2 rounded-lg border border-[#E8DFD0] bg-white p-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={url} alt="" className="h-16 w-[5.5rem] shrink-0 rounded-md object-cover" />
-                      <div className="flex min-w-0 flex-col gap-2">
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            className="inline-flex min-h-[44px] min-w-[44px] shrink-0 touch-manipulation items-center justify-center rounded-full border border-[#E8DFD0] text-sm font-bold text-[#5C5346] disabled:opacity-40"
-                            disabled={i === 0}
-                            onClick={() => movePhoto(i, -1)}
-                            aria-label="Mover foto arriba"
-                          >
-                            ↑
-                          </button>
-                          <button
-                            type="button"
-                            className="inline-flex min-h-[44px] min-w-[44px] shrink-0 touch-manipulation items-center justify-center rounded-full border border-[#E8DFD0] text-sm font-bold text-[#5C5346] disabled:opacity-40"
-                            disabled={i >= state.media.photoDataUrls.length - 1}
-                            onClick={() => movePhoto(i, 1)}
-                            aria-label="Mover foto abajo"
-                          >
-                            ↓
-                          </button>
-                        </div>
-                        <div className="flex min-w-0 flex-wrap gap-x-3 gap-y-1">
-                          <button
-                            type="button"
-                            className="text-left text-xs font-bold text-[#B8954A] underline"
-                            onClick={() =>
-                              setState((s) => {
-                                const urls = s.media.photoDataUrls.filter((_, j) => j !== i);
-                                let pi = s.media.primaryImageIndex;
-                                if (pi >= urls.length) pi = Math.max(0, urls.length - 1);
-                                const out: BienesRaicesPrivadoFormState = {
-                                  ...s,
-                                  media: { ...s.media, photoDataUrls: urls, primaryImageIndex: pi },
-                                };
-                                queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
-                                return out;
-                              })
-                            }
-                          >
-                            Quitar
-                          </button>
-                          <button
-                            type="button"
-                            className="text-left text-xs font-bold text-[#5C5346] underline"
-                            onClick={() =>
-                              setState((s) => {
-                                const out: BienesRaicesPrivadoFormState = {
-                                  ...s,
-                                  media: { ...s.media, primaryImageIndex: i },
-                                };
-                                queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
-                                return out;
-                              })
-                            }
-                          >
-                            {i === state.media.primaryImageIndex ? "Portada (principal)" : "Usar como portada"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <LeonixRealEstateSortablePhotoStrip
+                urls={state.media.photoDataUrls}
+                primaryImageIndex={state.media.primaryImageIndex}
+                onReorder={(nextUrls, nextPrimary) => {
+                  setState((s) => {
+                    const out: BienesRaicesPrivadoFormState = {
+                      ...s,
+                      media: { ...s.media, photoDataUrls: nextUrls, primaryImageIndex: nextPrimary },
+                    };
+                    queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
+                    return out;
+                  });
+                }}
+                onRemove={(i) =>
+                  setState((s) => {
+                    const urls = s.media.photoDataUrls.filter((_, j) => j !== i);
+                    let pi = s.media.primaryImageIndex;
+                    if (pi >= urls.length) pi = Math.max(0, urls.length - 1);
+                    const out: BienesRaicesPrivadoFormState = {
+                      ...s,
+                      media: { ...s.media, photoDataUrls: urls, primaryImageIndex: pi },
+                    };
+                    queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
+                    return out;
+                  })
+                }
+                onSetPrimary={(i) =>
+                  setState((s) => {
+                    const out: BienesRaicesPrivadoFormState = {
+                      ...s,
+                      media: { ...s.media, primaryImageIndex: i },
+                    };
+                    queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
+                    return out;
+                  })
+                }
+              />
             ) : null}
           </div>
           <div className="mt-6 border-t border-[#E8DFD0] pt-5">

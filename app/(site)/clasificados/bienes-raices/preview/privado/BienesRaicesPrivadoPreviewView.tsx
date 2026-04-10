@@ -3,7 +3,13 @@
 import { useState, type CSSProperties } from "react";
 import type { BienesRaicesPreviewQuickFactVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { BrNegocioStreamableVideo } from "@/app/clasificados/bienes-raices/preview/negocio/components/BrNegocioStreamableVideo";
-import { BrPrivadoGalleryLightbox } from "./components/BrPrivadoGalleryLightbox";
+import {
+  leonixGalleryPhotoSlidesWithCaptions,
+  leonixSlideIndexForCoverPhoto,
+  leonixSlideIndexForPhotoUrl,
+  leonixSlideIndexForVideoSlot,
+} from "@/app/clasificados/lib/leonixGallerySlides";
+import { LeonixPreviewGalleryLightbox } from "@/app/clasificados/lib/LeonixPreviewGalleryLightbox";
 import type { BienesRaicesPrivadoPreviewVm } from "./model/bienesRaicesPrivadoPreviewVm";
 
 const IVORY = "#F9F6F1";
@@ -239,19 +245,6 @@ function SectionIcon({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** View-only: unique photo count for labels (duplicate URLs in draft should not inflate totals). */
-function uniquePhotoCountFromVmMedia(m: BienesRaicesPrivadoPreviewVm["media"] | undefined): number {
-  return new Set(m?.allPhotoUrls ?? []).size;
-}
-
-function gallerySubtitleFromMedia(m: BienesRaicesPrivadoPreviewVm["media"] | undefined): string {
-  const n = uniquePhotoCountFromVmMedia(m);
-  const hasVid = Boolean(m?.hasVideo1 || m?.hasVideo2);
-  if (n > 0) return `${n} foto${n === 1 ? "" : "s"} en la galería`;
-  if (hasVid) return "Video en el anuncio";
-  return "";
-}
-
 function FactBlock({ title, rows }: { title: string; rows: Array<{ label: string; value: string }> | undefined }) {
   const safeRows = Array.isArray(rows) ? rows : [];
   if (safeRows.length === 0) return null;
@@ -359,12 +352,6 @@ function galleryTopCellsSidebarOnly(vm: BienesRaicesPrivadoPreviewVm): [GalleryT
   });
 }
 
-function photoIndexInGallery(vm: BienesRaicesPrivadoPreviewVm, url: string): number {
-  const urls = vm.media?.allPhotoUrls ?? [];
-  const i = urls.indexOf(url);
-  return i >= 0 ? i : 0;
-}
-
 /** Publishable ad canvas only — preview chrome (`LeonixPreviewPageShell`) wraps edit back-link. */
 export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivadoPreviewVm }) {
   const [galleryOpen, setGalleryOpen] = useState(false);
@@ -373,12 +360,6 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
   const openGallery = (index: number) => {
     setGalleryIndex(index);
     setGalleryOpen(true);
-  };
-
-  const gallerySlideIndexForVideo = (slot: 0 | 1) => {
-    const n = vm.media?.allPhotoUrls?.length ?? 0;
-    if (slot === 0) return n;
-    return n + (vm.media?.hasVideo1 ? 1 : 0);
   };
 
   const quickFacts = (vm.quickFacts ?? []).map((qf) => ({
@@ -393,9 +374,15 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
   const videoOnlyHero = !hasPhotos && hasPrimaryVideo;
   const [gTopA, gTopB] = videoOnlyHero ? galleryTopCellsSidebarOnly(vm) : galleryTopCells(vm);
 
+  const dedupedPhotoSlides = leonixGalleryPhotoSlidesWithCaptions(media?.allPhotoUrls, media?.photoCaptionsFull);
+  const uniquePhotoCount = dedupedPhotoSlides.length;
+  const hasVidMeta = Boolean(media?.hasVideo1 || media?.hasVideo2);
   const galleryMetaLineDisplay =
-    gallerySubtitleFromMedia(media) || String(media?.metaLine ?? "").trim();
-  const uniquePhotoCount = uniquePhotoCountFromVmMedia(media);
+    uniquePhotoCount > 0
+      ? `${uniquePhotoCount} foto${uniquePhotoCount === 1 ? "" : "s"} en la galería`
+      : hasVidMeta
+        ? "Video en el anuncio"
+        : String(media?.metaLine ?? "").trim();
   const showGallerySection =
     hasPhotos ||
     hasPrimaryVideo ||
@@ -427,7 +414,9 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
           <button
             type="button"
             className="block w-full text-left"
-            onClick={() => openGallery(photoIndexInGallery(vm, spec.url))}
+            onClick={() =>
+              openGallery(leonixSlideIndexForPhotoUrl(vm.media?.allPhotoUrls, vm.media?.photoCaptionsFull, spec.url))
+            }
             aria-label="Abrir foto en galería"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -444,7 +433,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
             type="button"
             className="absolute right-2 top-2 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide shadow-md sm:text-[11px]"
             style={{ borderColor: BORDER, background: "rgba(253,251,247,0.95)", color: CHARCOAL_DEEP }}
-            onClick={() => openGallery(gallerySlideIndexForVideo(spec.slot))}
+            onClick={() => openGallery(leonixSlideIndexForVideoSlot(vm.media, spec.slot))}
           >
             Galería
           </button>
@@ -543,7 +532,15 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                           type="button"
                           className="group relative w-full overflow-hidden rounded-2xl border text-left shadow-lg transition hover:opacity-[0.98]"
                           style={{ borderColor: BORDER }}
-                          onClick={() => openGallery(media.coverPhotoIndex ?? 0)}
+                          onClick={() =>
+                            openGallery(
+                              leonixSlideIndexForCoverPhoto(
+                                media?.allPhotoUrls,
+                                media?.coverPhotoIndex ?? 0,
+                                media?.photoCaptionsFull,
+                              ),
+                            )
+                          }
                           aria-label="Abrir galería de fotos"
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -555,7 +552,15 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                             type="button"
                             className="absolute bottom-3 right-3 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wide shadow-md transition hover:brightness-95"
                             style={{ borderColor: BORDER, background: "rgba(253,251,247,0.94)", color: CHARCOAL_DEEP }}
-                            onClick={() => openGallery(media.coverPhotoIndex ?? 0)}
+                            onClick={() =>
+                              openGallery(
+                                leonixSlideIndexForCoverPhoto(
+                                  media?.allPhotoUrls,
+                                  media?.coverPhotoIndex ?? 0,
+                                  media?.photoCaptionsFull,
+                                ),
+                              )
+                            }
                             aria-label="Abrir galería completa"
                           >
                             {uniquePhotoCount} fotos
@@ -572,7 +577,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                             type="button"
                             className="absolute bottom-3 right-3 z-10 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wide shadow-md transition hover:brightness-95"
                             style={{ borderColor: BORDER, background: "rgba(253,251,247,0.94)", color: CHARCOAL_DEEP }}
-                            onClick={() => openGallery(gallerySlideIndexForVideo(0))}
+                            onClick={() => openGallery(leonixSlideIndexForVideoSlot(media, 0))}
                             aria-label="Abrir video en galería"
                           >
                             Galería
@@ -879,7 +884,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
         ) : null}
       </main>
 
-      <BrPrivadoGalleryLightbox vm={vm} open={galleryOpen} initialIndex={galleryIndex} onClose={() => setGalleryOpen(false)} />
+      <LeonixPreviewGalleryLightbox vm={vm} open={galleryOpen} initialIndex={galleryIndex} onClose={() => setGalleryOpen(false)} />
     </div>
   );
 }

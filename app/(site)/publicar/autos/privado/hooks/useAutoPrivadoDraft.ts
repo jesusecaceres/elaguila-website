@@ -134,7 +134,7 @@ export function useAutoPrivadoDraft() {
     const ns = namespaceRef.current;
     clearAutosDraftNamespaceHint("privado");
     try {
-      window.sessionStorage.setItem(AUTOS_PRIVADO_EDITOR_SESSION_KEY, "1");
+      window.sessionStorage.removeItem(AUTOS_PRIVADO_EDITOR_SESSION_KEY);
     } catch {
       /* ignore */
     }

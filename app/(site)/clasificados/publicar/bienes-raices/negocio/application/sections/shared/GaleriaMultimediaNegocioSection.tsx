@@ -15,6 +15,7 @@ import {
   brSectionTitleClass,
   brSubTitleClass,
 } from "./brFormPrimitives";
+import { LeonixRealEstateSortablePhotoStrip } from "@/app/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
 
 const MAX_PHOTOS = 50;
 const MAX_PLANS = 3;
@@ -206,19 +207,6 @@ export function GaleriaMultimediaNegocioSection({
     setState((s) => ({ ...s, media: { ...s.media, primaryImageIndex: index } }));
   }
 
-  function movePhoto(index: number, dir: -1 | 1) {
-    const j = index + dir;
-    if (j < 0 || j >= photos.length) return;
-    setState((s) => {
-      const imgs = [...s.media.photoUrls];
-      [imgs[index], imgs[j]] = [imgs[j]!, imgs[index]!];
-      let pi = s.media.primaryImageIndex;
-      if (pi === index) pi = j;
-      else if (pi === j) pi = index;
-      return { ...s, media: { ...s.media, photoUrls: imgs, primaryImageIndex: pi } };
-    });
-  }
-
   function addPhotoFromUrl() {
     const u = photoUrlDraft.trim();
     if (!u || photos.length >= MAX_PHOTOS) return;
@@ -408,10 +396,10 @@ export function GaleriaMultimediaNegocioSection({
     <section className={brCardClass}>
       <h2 className={brSectionTitleClass}>Galería multimedia</h2>
       <p className={brSubTitleClass}>
-        Sube fotos y ordénalas con las flechas. Elige cuál es la portada (hero) con un clic — no tiene que ser la primera de la
-        lista. <span className="font-semibold text-[#6E5418]">Al menos una foto *</span> para una vista previa completa. Los
-        archivos de video en borrador se guardan solo en esta sesión (sin Mux) salvo que el entorno active subidas Mux en
-        borrador.
+        Sube fotos y reordénalas con el control <span className="font-semibold text-[#1E1810]">⋮⋮ Orden</span> (mismo
+        patrón que restaurantes). Elige la portada con un clic — no tiene que ser la primera tarjeta.{" "}
+        <span className="font-semibold text-[#6E5418]">Al menos una foto *</span> para una vista previa completa. Los archivos
+        de video en borrador se guardan solo en esta sesión (sin Mux) salvo que el entorno active subidas Mux en borrador.
       </p>
       <BrPreviewHint>
         <span className="font-semibold text-[#4A3F2E]">Portada</span> es la foto grande del encabezado del anuncio. El orden en
@@ -423,7 +411,7 @@ export function GaleriaMultimediaNegocioSection({
           <div>
             <span className={brLabelClass}>Fotos</span>
             <p className={brHintClass}>
-              {`Hasta ${MAX_PHOTOS}. Las flechas cambian el orden; “Portada” define el hero (independiente del primer casillero).`}
+              {`Hasta ${MAX_PHOTOS}. Arrastra con ⋮⋮ Orden; “Portada activa” define el hero (independiente del primer casillero).`}
             </p>
           </div>
           <input
@@ -452,61 +440,18 @@ export function GaleriaMultimediaNegocioSection({
               Aún no hay fotos. Usa “Agregar fotos” o pega un enlace abajo.
             </p>
           ) : (
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {photos.map((url, i) => (
-                <li
-                  key={`${i}-${url.slice(0, 48)}`}
-                  className={`overflow-hidden rounded-xl border bg-white p-2 shadow-sm ${
-                    i === primaryIdx ? "ring-2 ring-[#C9B46A] ring-offset-2 ring-offset-[#FFFCF7]" : "border-[#E8DFD0]"
-                  }`}
-                >
-                  <div className="mb-1.5 flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-[#8A7B62]">
-                      Foto {i + 1}
-                      {i === primaryIdx ? " · Hero / portada" : ""}
-                    </span>
-                  </div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt="" className="aspect-[4/3] w-full rounded-lg object-cover" />
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    <button
-                      type="button"
-                      className="rounded-lg border border-[#E8DFD0] px-2 py-1 text-[11px] font-semibold text-[#2C2416] disabled:opacity-30"
-                      disabled={i === 0}
-                      onClick={() => movePhoto(i, -1)}
-                    >
-                      ←
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-lg border border-[#E8DFD0] px-2 py-1 text-[11px] font-semibold text-[#2C2416] disabled:opacity-30"
-                      disabled={i >= n - 1}
-                      onClick={() => movePhoto(i, 1)}
-                    >
-                      →
-                    </button>
-                    <button
-                      type="button"
-                      className={`rounded-lg px-2 py-1 text-[11px] font-bold ${
-                        i === primaryIdx
-                          ? "bg-[#C9B46A]/25 text-[#6E5418]"
-                          : "border border-[#C9B46A]/40 text-[#6E5418]"
-                      }`}
-                      onClick={() => setPrimary(i)}
-                    >
-                      {i === primaryIdx ? "Portada activa" : "Usar como portada"}
-                    </button>
-                    <button
-                      type="button"
-                      className="ml-auto rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-800"
-                      onClick={() => removePhoto(i)}
-                    >
-                      Quitar
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <LeonixRealEstateSortablePhotoStrip
+              urls={photos}
+              primaryImageIndex={primaryIdx}
+              onReorder={(nextUrls, nextPrimary) =>
+                setState((s) => ({
+                  ...s,
+                  media: { ...s.media, photoUrls: nextUrls, primaryImageIndex: nextPrimary },
+                }))
+              }
+              onRemove={removePhoto}
+              onSetPrimary={setPrimary}
+            />
           )}
           <div className="mt-4 flex flex-wrap gap-2">
             <input

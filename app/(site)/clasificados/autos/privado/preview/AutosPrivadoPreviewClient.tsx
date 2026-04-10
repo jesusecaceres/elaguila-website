@@ -6,10 +6,9 @@ import { AutosPrivadoPreviewEmptyState } from "../components/AutosPrivadoPreview
 import { AutosDraftPreviewErrorBoundary } from "@/app/clasificados/autos/shared/components/AutosDraftPreviewErrorBoundary";
 import { loadAutosPrivadoDraftResolved, safeNormalizePrivadoListing } from "../lib/autosPrivadoDraftStorage";
 import { resolveAutosPrivadoDraftNamespace, storageEventAffectsAutosPrivadoDraft } from "../lib/autosPrivadoDraftNamespace";
-import { consumeAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
+import { peekAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
 import { mockAutosPrivadoListing } from "../mock/mockAutosPrivadoListing";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
-import { isMeaningfulAutoDealerDraft } from "@/app/clasificados/autos/negocios/lib/isMeaningfulAutoDealerDraft";
 import { AutosPrivadoPreviewLocaleProvider, useAutosPrivadoPreviewCopy } from "../lib/AutosPrivadoPreviewLocaleContext";
 import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 
@@ -22,14 +21,6 @@ function isDemoQuery(): boolean {
   const q = new URLSearchParams(window.location.search);
   const v = q.get("demo");
   return v === "1" || v === "true";
-}
-
-function listingIsMeaningfulDraft(listing: AutoDealerListing): boolean {
-  try {
-    return isMeaningfulAutoDealerDraft(listing);
-  } catch {
-    return false;
-  }
 }
 
 async function resolvePreviewState(): Promise<{
@@ -45,15 +36,25 @@ async function resolvePreviewState(): Promise<{
       };
     }
 
-    const hinted = consumeAutosDraftNamespaceHint("privado");
-    const namespace = hinted ?? (await resolveAutosPrivadoDraftNamespace());
-    const d = await loadAutosPrivadoDraftResolved(namespace);
-    const normalized = safeNormalizePrivadoListing({ ...d?.listing, autosLane: "privado" });
-    if (listingIsMeaningfulDraft(normalized)) {
-      return { mode: "draft", listing: normalized };
+    const hint = peekAutosDraftNamespaceHint("privado");
+    const resolved = await resolveAutosPrivadoDraftNamespace();
+
+    let d = null as Awaited<ReturnType<typeof loadAutosPrivadoDraftResolved>>;
+    if (hint) {
+      d = await loadAutosPrivadoDraftResolved(hint);
+    }
+    if (!d) {
+      d = await loadAutosPrivadoDraftResolved(resolved);
     }
 
-    return { mode: "empty", listing: normalized };
+    if (!d) {
+      return { mode: "empty", listing: safeNormalizePrivadoListing(undefined) };
+    }
+
+    const normalized = safeNormalizePrivadoListing({ ...d.listing, autosLane: "privado" });
+    // Persisted draft record exists → show real preview (do not gate on `isMeaningful*`; it can disagree
+    // with lane-specific / IDB-hydrated payloads and incorrectly force the empty fallback).
+    return { mode: "draft", listing: normalized };
   } catch {
     return { mode: "empty", listing: safeNormalizePrivadoListing(undefined) };
   }

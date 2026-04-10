@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, type ReactNode } from "react";
+import { useCallback, useMemo } from "react";
 import {
   DndContext,
   closestCenter,
@@ -10,8 +10,7 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { arrayMove, SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { arrayMove, SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 import { isRestauranteDisplayableImageRef, isRestauranteLocalVideoDataUrl } from "./restauranteMediaDisplay";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
@@ -23,63 +22,13 @@ import {
   resolveRestauranteGallerySequence,
   type RestauranteGallerySeqEntry,
 } from "./restauranteGalleryMediaSequence";
+import { RestauranteSortableMediaTile } from "./RestauranteSortableMediaTile";
 import { RestauranteUploadRow } from "./RestauranteUploadRow";
 
 const MAX_GALLERY = 24;
 
 function entryToId(e: RestauranteGallerySeqEntry): string {
   return e === "v" ? "v" : `g-${e}`;
-}
-
-function SortableGalleryTile({
-  id,
-  children,
-  onRemove,
-  dragLabel,
-}: {
-  id: string;
-  children: ReactNode;
-  onRemove: () => void;
-  dragLabel: string;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.55 : 1,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="relative overflow-hidden rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]"
-    >
-      {children}
-      <div className="absolute right-1 top-1 z-10 flex max-w-[calc(100%-8px)] flex-wrap items-center justify-end gap-1">
-        <button
-          type="button"
-          className="touch-none flex min-h-[36px] min-w-[36px] cursor-grab items-center justify-center rounded-lg border-2 border-black/25 bg-white px-2 py-1 text-xs font-extrabold leading-none text-[#111] shadow-md active:cursor-grabbing"
-          aria-label={dragLabel}
-          title={dragLabel}
-          {...attributes}
-          {...listeners}
-        >
-          <span aria-hidden>⋮⋮</span>
-          <span className="ml-1 hidden font-bold sm:inline">Orden</span>
-        </button>
-        <button
-          type="button"
-          onClick={onRemove}
-          className="min-h-[36px] min-w-[36px] rounded-full bg-red-700 text-sm font-bold leading-none text-white shadow-md"
-          aria-label="Quitar"
-        >
-          ×
-        </button>
-      </div>
-    </div>
-  );
 }
 
 type Props = {
@@ -161,35 +110,33 @@ export function RestaurantePublishMediaStrip({
     });
   };
 
+  /** Append one image at a time so the UI shows progress instead of blocking until all compress+read finish. */
   const addGalleryFiles = async (files: FileList | null) => {
     const list = files ? Array.from(files) : [];
     const toRead = list.slice(0, MAX_GALLERY);
-    const urls: string[] = [];
     for (const f of toRead) {
       const u = await readRestauranteImageAsDataUrl(f);
-      if (isRestauranteDisplayableImageRef(u)) urls.push(u.trim());
+      if (!isRestauranteDisplayableImageRef(u)) continue;
+      const trimmed = u.trim();
+      setDraftPatch((prev) => {
+        const prevImgs = prev.galleryImages ?? [];
+        if (prevImgs.length >= MAX_GALLERY) return {};
+        const imgs = [...prevImgs, trimmed];
+        const prevSeq = resolveRestauranteGallerySequence(prev);
+        const hadV = prevSeq.includes("v");
+        const withoutV: number[] = prevSeq.filter((e): e is number => e !== "v");
+        const newIdx = prevImgs.length;
+        withoutV.push(newIdx);
+        const hasV = !!(prev.videoFile?.trim() || prev.videoUrl?.trim());
+        const nextSeq: RestauranteGallerySeqEntry[] =
+          hadV || hasV ? [...withoutV, "v" as const] : withoutV;
+        return {
+          galleryImages: imgs,
+          galleryMediaSequence: nextSeq,
+          galleryOrder: imgs.map((_, i) => String(i)),
+        };
+      });
     }
-    if (!urls.length) return;
-    setDraftPatch((prev) => {
-      const prevImgs = prev.galleryImages ?? [];
-      const room = MAX_GALLERY - prevImgs.length;
-      const slice = urls.slice(0, Math.max(0, room));
-      if (!slice.length) return {};
-      const imgs = [...prevImgs, ...slice];
-      const prevSeq = resolveRestauranteGallerySequence(prev);
-      const hadV = prevSeq.includes("v");
-      const withoutV: number[] = prevSeq.filter((e): e is number => e !== "v");
-      const start = prevImgs.length;
-      for (let i = 0; i < slice.length; i++) withoutV.push(start + i);
-      const hasV = !!(prev.videoFile?.trim() || prev.videoUrl?.trim());
-      const nextSeq: RestauranteGallerySeqEntry[] =
-        hadV || hasV ? [...withoutV, "v" as const] : withoutV;
-      return {
-        galleryImages: imgs,
-        galleryMediaSequence: nextSeq,
-        galleryOrder: imgs.map((_, i) => String(i)),
-      };
-    });
   };
 
   const addVideoFile = async (files: FileList | null) => {
@@ -272,10 +219,10 @@ export function RestaurantePublishMediaStrip({
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
               <SortableContext items={ids} strategy={rectSortingStrategy}>
                 <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                  {displaySequence.map((entry) => {
+                  {displaySequence.map((entry, seqPos) => {
                     if (entry === "v") {
                       return (
-                        <SortableGalleryTile
+                        <RestauranteSortableMediaTile
                           key="v"
                           id="v"
                           dragLabel="Arrastrar video"
@@ -315,14 +262,15 @@ export function RestaurantePublishMediaStrip({
                                   : "Video"}
                             </span>
                           </div>
-                        </SortableGalleryTile>
+                        </RestauranteSortableMediaTile>
                       );
                     }
                     const url = draft.galleryImages?.[entry];
                     if (!isRestauranteDisplayableImageRef(url)) return null;
                     const isCoverHint = heroEmpty && entry === firstImageEntry;
+                    const loadHint = seqPos < 8 ? "eager" : "lazy";
                     return (
-                      <SortableGalleryTile
+                      <RestauranteSortableMediaTile
                         key={`g-${entry}`}
                         id={`g-${entry}`}
                         dragLabel="Arrastrar imagen"
@@ -335,8 +283,9 @@ export function RestaurantePublishMediaStrip({
                             alt=""
                             className="absolute inset-0 h-full w-full object-cover"
                             draggable={false}
-                            loading="lazy"
+                            loading={loadHint}
                             decoding="async"
+                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                           />
                           {isCoverHint ? (
                             <span className="absolute bottom-2 left-2 rounded bg-[color:var(--lx-gold)]/95 px-1.5 py-0.5 text-[10px] font-bold text-[#1a1814]">
@@ -344,7 +293,7 @@ export function RestaurantePublishMediaStrip({
                             </span>
                           ) : null}
                         </div>
-                      </SortableGalleryTile>
+                      </RestauranteSortableMediaTile>
                     );
                   })}
                 </div>
