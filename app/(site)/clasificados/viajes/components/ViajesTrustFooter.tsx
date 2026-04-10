@@ -9,7 +9,7 @@ export function ViajesTrustFooter({ ui }: { ui: ViajesUi }) {
   const legalHref = appendLangToPath("/legal", ui.lang);
 
   return (
-    <footer className="mt-14 border-t border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]/60 px-4 py-10 sm:px-5 lg:px-6">
+    <footer className="relative mt-16 border-t border-[color:var(--lx-gold-border)]/70 bg-gradient-to-b from-[#faf3e8]/95 to-[#f3ebdd] px-4 py-12 sm:px-5 lg:px-6">
       <div className="mx-auto max-w-7xl space-y-4 text-sm text-[color:var(--lx-text-2)]">
         <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{ui.trustFooter.aboutViajes}</p>
         <p className="max-w-3xl leading-relaxed">{ui.trustFooter.aboutBody}</p>

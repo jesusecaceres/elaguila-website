@@ -3,9 +3,8 @@ import Link from "next/link";
 
 import type { ViajesTopOffer } from "../data/viajesLandingSampleData";
 import { type ViajesUi, viajesBadgeLabel } from "../data/viajesUiCopy";
+import { VIAJES_LANDING_CTA_ORANGE } from "../lib/viajesLandingVisual";
 import { withViajesOfferBackParam } from "../lib/viajesOfferLink";
-
-const VIAJES_ACCENT = "#D97706";
 
 function StarRow({ count, ariaLabel }: { count: number; ariaLabel: string }) {
   if (count <= 0) return null;
@@ -31,10 +30,10 @@ export function ViajesTopOfferCard({ offer, homeBackHref, ui }: { offer: ViajesT
 
   const shell =
     offer.listingKind === "affiliate"
-      ? "border-amber-200/70 bg-[color:var(--lx-card)]"
+      ? "border-amber-200/80 bg-[#fffdf9] shadow-[0_10px_36px_-18px_rgba(30,50,70,0.12)]"
       : offer.listingKind === "business"
-        ? "border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)]"
-        : "border-dashed border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)]/70";
+        ? "border-[color:var(--lx-gold-border)] bg-[#fffefb] shadow-[0_10px_36px_-18px_rgba(30,24,16,0.1)]"
+        : "border-dashed border-[color:var(--lx-gold-border)] bg-[#faf7f0] shadow-[0_8px_28px_-16px_rgba(30,24,16,0.08)]";
 
   const sourcePill =
     offer.listingKind === "affiliate" ? (
@@ -51,7 +50,7 @@ export function ViajesTopOfferCard({ offer, homeBackHref, ui }: { offer: ViajesT
 
   return (
     <article
-      className={`group flex h-full flex-col overflow-hidden rounded-2xl border shadow-[0_12px_40px_-16px_rgba(42,36,22,0.2)] transition hover:shadow-[0_20px_48px_-14px_rgba(42,36,22,0.22)] ${shell}`}
+      className={`group flex h-full flex-col overflow-hidden rounded-2xl border transition hover:-translate-y-[2px] hover:shadow-[0_22px_48px_-20px_rgba(30,50,80,0.18)] ${shell}`}
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden">
         <Image
@@ -105,8 +104,8 @@ export function ViajesTopOfferCard({ offer, homeBackHref, ui }: { offer: ViajesT
         <div className="mt-auto flex justify-end pt-4">
           <Link
             href={href}
-            className="inline-flex min-h-[40px] items-center justify-center rounded-xl px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:brightness-105"
-            style={{ backgroundColor: VIAJES_ACCENT }}
+            className="inline-flex min-h-[40px] items-center justify-center rounded-xl px-4 py-2 text-xs font-bold text-white shadow-[0_10px_22px_-8px_rgba(234,88,12,0.45)] transition hover:brightness-105"
+            style={{ backgroundColor: VIAJES_LANDING_CTA_ORANGE }}
           >
             {offer.listingKind === "editorial" ? ui.cards.explore : ui.cards.viewOffer}
           </Link>

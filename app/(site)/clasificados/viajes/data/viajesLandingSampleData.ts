@@ -73,6 +73,14 @@ export const VIAJES_HERO_IMAGE = {
   alt: "Resort tropical al atardecer con bungalows sobre el agua",
 };
 
+/** Soft scenic wash for mid/lower page — keeps hero as the primary focal image. */
+export const VIAJES_PAGE_AMBIENCE = {
+  midScenicSrc:
+    "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2200&q=75",
+  lowerWashSrc:
+    "https://images.unsplash.com/photo-1439066615861-d1af74d74000?auto=format&fit=crop&w=2000&q=75",
+} as const;
+
 export const VIAJES_CATEGORY_PILLS: ViajesCategoryPill[] = [
   { id: "weekend", label: "Escapadas de fin de semana", icon: "🌴", href: "/clasificados/viajes/resultados?t=fin-de-semana" },
   { id: "day", label: "Viajes de un día", icon: "☀️", href: "/clasificados/viajes/resultados?t=dia" },

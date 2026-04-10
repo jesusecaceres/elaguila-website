@@ -341,3 +341,22 @@ export function getStandardListings(listings: AutosPublicListing[]): AutosPublic
 export function getAutosPublicListingById(id: string): AutosPublicListing | undefined {
   return AUTOS_PUBLIC_SAMPLE_LISTINGS.find((l) => l.id === id);
 }
+
+/** Landing featured row: promoted/featured first, then fill to `max` for a full marketplace strip. */
+export function getLandingFeaturedRow(listings: AutosPublicListing[], max = 6): AutosPublicListing[] {
+  const featured = listings.filter((l) => l.featured);
+  const rest = listings.filter((l) => !l.featured);
+  return [...featured, ...rest].slice(0, max);
+}
+
+/** “Recién agregados” — non-featured slice, newest-first by year/price. */
+export function getLandingRecentListings(listings: AutosPublicListing[], max = 8): AutosPublicListing[] {
+  const pool = listings.filter((l) => !l.featured);
+  const sorted = [...pool].sort((a, b) => b.year - a.year || b.price - a.price);
+  return sorted.slice(0, max);
+}
+
+/** Blueprint: show structured sample inventory when the public API returns no rows (swap later for API-only). */
+export function resolveAutosLandingInventory(apiListings: AutosPublicListing[]): AutosPublicListing[] {
+  return apiListings.length > 0 ? apiListings : AUTOS_PUBLIC_SAMPLE_LISTINGS;
+}

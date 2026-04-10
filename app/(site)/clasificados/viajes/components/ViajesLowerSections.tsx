@@ -20,9 +20,9 @@ export function ViajesLowerSections({ homeBackHref, ui }: ViajesLowerSectionsPro
   const L = ui.lower;
 
   return (
-    <div className="mt-12 space-y-10 sm:mt-14 sm:space-y-12 md:mt-16">
-      <section className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 shadow-sm sm:p-8">
-        <ViajesSectionHeader title={L.partnersTitle} subtitle={L.partnersSubtitle} className="mb-6" />
+    <div className="mt-14 space-y-12 sm:mt-16 sm:space-y-14 md:mt-[4.5rem]">
+      <section className="rounded-2xl border border-[color:var(--lx-gold-border)] bg-[#fffdf9]/98 p-6 shadow-[0_14px_44px_-24px_rgba(30,50,70,0.12)] sm:p-8">
+        <ViajesSectionHeader title={L.partnersTitle} subtitle={L.partnersSubtitle} showRail className="mb-7" />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {partners.map((p) => (
             <Link
@@ -47,8 +47,8 @@ export function ViajesLowerSections({ homeBackHref, ui }: ViajesLowerSectionsPro
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 shadow-sm sm:p-8">
-        <ViajesSectionHeader title={L.editorialTitle} subtitle={L.editorialSubtitle} className="mb-6" />
+      <section className="rounded-2xl border border-[color:var(--lx-gold-border)] bg-[#fffdf9]/98 p-6 shadow-[0_14px_44px_-24px_rgba(30,50,70,0.12)] sm:p-8">
+        <ViajesSectionHeader title={L.editorialTitle} subtitle={L.editorialSubtitle} showRail className="mb-7" />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {editorial.map((card) => (
             <Link
@@ -71,11 +71,11 @@ export function ViajesLowerSections({ homeBackHref, ui }: ViajesLowerSectionsPro
       </section>
 
       <section className="space-y-8">
-        <ViajesSectionHeader title={L.seasonalTitle} subtitle={L.seasonalSubtitle} className="mb-2" />
+        <ViajesSectionHeader title={L.seasonalTitle} subtitle={L.seasonalSubtitle} showRail className="mb-2" />
         {seasonal.map((camp) => (
           <div
             key={camp.id}
-            className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-gradient-to-br from-[color:var(--lx-card)] to-[color:var(--lx-section)]/80 p-5 sm:p-6"
+            className="rounded-2xl border border-[color:var(--lx-gold-border)] bg-gradient-to-br from-[#fffefb] to-[#f4f7fa]/90 p-5 shadow-[0_12px_40px_-22px_rgba(30,50,70,0.1)] sm:p-6"
           >
             <div className="mb-4">
               <h3 className="text-lg font-bold text-[color:var(--lx-text)]">{camp.headline}</h3>

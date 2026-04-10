@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Restaurantes",
-  description: "Descubre restaurantes locales, reseñas positivas y ofertas — LEONIX.",
+  title: "Restaurantes — Leonix Clasificados",
+  description:
+    "Encuentra restaurantes cerca de ti: búsqueda, cocinas y listados en Leonix. Explora destacados y recientes.",
   alternates: {
     canonical: "/clasificados/restaurantes",
   },
   openGraph: {
-    title: "Restaurantes — LEONIX",
-    description: "Descubre restaurantes locales, reseñas positivas y ofertas — LEONIX.",
+    title: "Restaurantes — Leonix Clasificados",
+    description:
+      "Encuentra restaurantes cerca de ti: búsqueda, cocinas y listados en Leonix. Explora destacados y recientes.",
     url: "/clasificados/restaurantes",
     siteName: "LEONIX",
     type: "website",

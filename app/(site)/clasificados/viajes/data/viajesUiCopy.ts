@@ -185,6 +185,8 @@ export type ViajesUi = {
     trustBody: string;
   };
   trustStrip: string;
+  /** Short bullets for landing reassurance row (ES/EN). */
+  trustLandingPoints: string[];
   /** Short “why this exists” line for reviewers (screenshots / trust). */
   trustWhy: {
     title: string;
@@ -196,6 +198,12 @@ export type ViajesUi = {
     contact: string;
     privacy: string;
     terms: string;
+  };
+  /** Lower-page band encouraging businesses to publish travel offers */
+  publishCtaBand: {
+    title: string;
+    body: string;
+    cta: string;
   };
   legal: { privacy: string; terms: string };
   /** Offer detail / return navigation */
@@ -210,9 +218,9 @@ function es(): Omit<ViajesUi, "lang"> {
     categoryViajes: "Viajes",
     postListing: "Publicar",
     exploreByTripType: "Explora por tipo de viaje",
-    heroTitle: "Escapadas, resorts, tours y ofertas para tu próxima aventura",
+    heroTitle: "Descubre tu próxima escapada",
     heroSubtitle:
-      "En Leonix Clasificados, Viajes reúne escapadas visuales y ofertas curadas: inventario de socios comerciales, negocios publicados e ideas editoriales. Leonix no vende el viaje final aquí.",
+      "Resorts, tours y ofertas curadas en un solo lugar: socios comerciales, negocios en Leonix e ideas editoriales. Leonix no vende el viaje final aquí — te acerca a la oferta correcta.",
     search: {
       whereTo: "¿A dónde quieres ir?",
       departureFrom: "Salida desde",
@@ -451,6 +459,11 @@ function es(): Omit<ViajesUi, "lang"> {
     },
     trustStrip:
       "Leonix Viajes es una vitrina de descubrimiento dentro de Clasificados: ofertas de socios comerciales, anuncios de agencias/operadores e ideas editoriales. Leonix no es el vendedor final — con socios, la reserva ocurre en su sitio; con negocios locales, el contacto es directo.",
+    trustLandingPoints: [
+      "Orígenes visibles: socio comercial, negocio en Leonix o editorial",
+      "Explora por categoría, destino o intención — siempre con enlaces claros",
+      "Reservas con socios suelen completarse fuera de Leonix; con negocios, contacto directo",
+    ],
     trustWhy: {
       title: "Por qué Leonix Viajes",
       body: "Unimos inspiración con inventario real: socios comerciales, negocios que publican en Leonix e ideas editoriales. No somos la agencia de reservas — te acercamos a la oferta y al contacto correcto.",
@@ -462,6 +475,11 @@ function es(): Omit<ViajesUi, "lang"> {
       contact: "Contacto",
       privacy: "Privacidad",
       terms: "Términos",
+    },
+    publishCtaBand: {
+      title: "¿Ofreces paquetes o viajes organizados?",
+      body: "Publica en Viajes y llega a personas que buscan salidas desde su zona. Listados transparentes: tú controlas el contacto y las condiciones.",
+      cta: "Publicar oferta",
     },
     legal: {
       privacy: "Política de privacidad",
@@ -479,9 +497,9 @@ function en(): Omit<ViajesUi, "lang"> {
     categoryViajes: "Viajes",
     postListing: "Post a listing",
     exploreByTripType: "Explore by trip type",
-    heroTitle: "Getaways, resorts, tours, and deals for your next adventure",
+    heroTitle: "Find your next getaway",
     heroSubtitle:
-      "Inside Leonix Classifieds, Viajes is your visual lane for getaways: partner offers, business listings, and editorial picks. Leonix does not sell the final trip here.",
+      "Resorts, tours, and curated offers in one place: commercial partners, Leonix businesses, and editorial ideas. Leonix doesn’t sell the final trip here — we connect you to the right next step.",
     search: {
       whereTo: "Where do you want to go?",
       departureFrom: "Departing from",
@@ -719,6 +737,11 @@ function en(): Omit<ViajesUi, "lang"> {
     },
     trustStrip:
       "Leonix Viajes is a discovery showcase inside Classifieds: partner offers, agency/operator listings, and editorial ideas. Leonix is not the final seller — partner bookings happen on partner sites; local businesses are contacted directly.",
+    trustLandingPoints: [
+      "Visible sources: commercial partner, Leonix business, or editorial",
+      "Browse by category, destination, or intent — links stay clear",
+      "Partner bookings usually finish off Leonix; local businesses are direct contact",
+    ],
     trustWhy: {
       title: "Why Leonix Viajes",
       body: "We blend inspiration with real inventory: commercial partners, businesses that publish on Leonix, and editorial ideas. We’re not the booking agency — we surface the offer and the right next step.",
@@ -730,6 +753,11 @@ function en(): Omit<ViajesUi, "lang"> {
       contact: "Contact",
       privacy: "Privacy",
       terms: "Terms",
+    },
+    publishCtaBand: {
+      title: "Do you sell packages or organized trips?",
+      body: "Publish on Viajes and reach people searching for departures near them. Transparent listings — you keep control of contact and terms.",
+      cta: "Post a listing",
     },
     legal: {
       privacy: "Privacy policy",

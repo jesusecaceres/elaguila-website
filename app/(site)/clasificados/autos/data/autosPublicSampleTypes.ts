@@ -13,6 +13,8 @@ export type AutosPublicCondition = "new" | "used" | "certified";
  */
 export type AutosPublicListing = {
   id: string;
+  /** Future detail URL slug; optional in blueprint samples. */
+  slug?: string;
   sellerType: AutosPublicSellerType;
   /** Promoted dealership placement (Tier 1 band). Private listings should remain false. */
   featured: boolean;

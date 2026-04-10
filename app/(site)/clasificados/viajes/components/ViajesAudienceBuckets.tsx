@@ -8,8 +8,8 @@ import { ViajesSectionHeader } from "./ViajesSectionHeader";
 
 export function ViajesAudienceBuckets({ ui }: { ui: ViajesUi }) {
   return (
-    <section className="mt-12 sm:mt-14 md:mt-16">
-      <ViajesSectionHeader title={ui.audience.title} className="mb-6 sm:mb-8" />
+    <section className="mt-14 sm:mt-16 md:mt-[4.5rem]">
+      <ViajesSectionHeader title={ui.audience.title} showRail className="mb-7 sm:mb-9" />
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
         {VIAJES_AUDIENCE_BUCKETS.map((card) => {
           const copy = ui.audience.byId[card.id];
@@ -17,7 +17,7 @@ export function ViajesAudienceBuckets({ ui }: { ui: ViajesUi }) {
             <Link
               key={card.id}
               href={setLangOnHref(card.href, ui.lang)}
-              className="group block overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_12px_40px_-16px_rgba(42,36,22,0.2)] transition hover:shadow-[0_20px_48px_-14px_rgba(42,36,22,0.22)]"
+              className="group block overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)] bg-[#fffefb] shadow-[0_12px_40px_-20px_rgba(30,24,16,0.12)] transition hover:-translate-y-[2px] hover:shadow-[0_22px_52px_-24px_rgba(30,50,80,0.16)]"
             >
               <div className="relative aspect-[5/4] w-full overflow-hidden">
                 <Image

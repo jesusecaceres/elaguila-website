@@ -10,9 +10,8 @@ import type { ViajesUi } from "../data/viajesUiCopy";
 import { buildViajesResultsUrl } from "../lib/buildViajesResultsUrl";
 import { getViajesOriginById, VIAJES_ORIGIN_BUCKETS } from "../lib/viajesOrigins";
 import { useBrowserLocationForViajes } from "../lib/useBrowserLocationForViajes";
+import { VIAJES_LANDING_CTA_ORANGE } from "../lib/viajesLandingVisual";
 import { ViajesDestinationAutocomplete } from "./ViajesDestinationAutocomplete";
-
-const VIAJES_ACCENT = "#D97706";
 
 type ViajesSearchBarProps = {
   resultsBasePath?: string;
@@ -58,11 +57,14 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
   return (
     <form
       onSubmit={onSubmit}
-      className="rounded-2xl border border-white/80 bg-white/95 p-4 shadow-[0_20px_50px_-20px_rgba(42,36,22,0.25)] backdrop-blur-md sm:p-5 md:p-6"
-      style={{ boxShadow: "0 24px 48px -12px rgba(42, 36, 22, 0.18), 0 0 0 1px rgba(201, 180, 106, 0.12)" }}
+      className="rounded-3xl border border-[color:var(--lx-gold-border)] bg-[#fffdf9]/98 p-4 shadow-[0_28px_64px_-32px_rgba(25,50,70,0.28)] backdrop-blur-md sm:p-6 md:p-7"
+      style={{
+        boxShadow:
+          "0 28px 56px -18px rgba(30, 40, 55, 0.16), 0 0 0 1px rgba(201, 168, 74, 0.18), inset 0 1px 0 rgba(255,252,247,0.9)",
+      }}
     >
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-12 md:items-end md:gap-4">
-        <label className="md:col-span-3">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-12 md:items-end md:gap-0 md:divide-x md:divide-[color:var(--lx-nav-border)]">
+        <label className="md:col-span-3 md:pr-5">
           <span className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]">
             <span aria-hidden>⌕</span>
             {s.whereTo}
@@ -80,7 +82,7 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
             placeholder={s.destPlaceholder}
           />
         </label>
-        <div className="md:col-span-3">
+        <div className="md:col-span-3 md:px-5">
           <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]">{s.departureFrom}</span>
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-stretch">
             <select
@@ -120,7 +122,7 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
             <p className="mt-1 text-[11px] text-[color:var(--lx-muted)]">{s.geoUnavailable}</p>
           ) : null}
         </div>
-        <label className="md:col-span-2">
+        <label className="md:col-span-2 md:px-5">
           <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]">{s.tripType}</span>
           <select
             className="w-full cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2"
@@ -134,7 +136,7 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
             ))}
           </select>
         </label>
-        <label className="md:col-span-2">
+        <label className="md:col-span-2 md:px-5">
           <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]">{s.budget}</span>
           <select
             className="w-full cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2"
@@ -147,11 +149,11 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
             <option value="premium">{s.budgetPremium}</option>
           </select>
         </label>
-        <div className="md:col-span-2">
+        <div className="md:col-span-2 md:flex md:flex-col md:justify-end md:pl-5">
           <button
             type="submit"
-            className="flex min-h-[48px] w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-bold text-white shadow-md transition hover:brightness-[1.05] active:brightness-95"
-            style={{ backgroundColor: VIAJES_ACCENT }}
+            className="flex min-h-[52px] w-full items-center justify-center rounded-2xl px-4 py-3.5 text-sm font-bold text-white shadow-[0_14px_32px_-10px_rgba(234,88,12,0.55)] transition hover:brightness-[1.05] active:brightness-95 md:min-h-[56px]"
+            style={{ backgroundColor: VIAJES_LANDING_CTA_ORANGE }}
           >
             {s.exploreCta}
           </button>
