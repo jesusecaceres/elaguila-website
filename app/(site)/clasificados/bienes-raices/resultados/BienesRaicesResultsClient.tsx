@@ -1,29 +1,49 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
+import { useRouter, useSearchParams } from "next/navigation";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import {
   BR_NEGOCIO_Q_PROPIEDAD,
   parseBrNegocioPropiedadParam,
   type BrNegocioCategoriaPropiedad,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import type { BrPrimaryChipId, BrSecondaryChipId } from "./search/filterTypes";
-import { brNegocioFeaturedListing, brNegocioGridListings, BR_NEGOCIO_DEMO_TOTAL } from "./demoData";
+import { brNegocioFeaturedListing, brNegocioGridListings } from "./demoData";
 import type { BrNegocioListing } from "./cards/listingTypes";
 import { BienesRaicesNegocioCard } from "./cards/BienesRaicesNegocioCard";
 import { BienesRaicesCategoryNav } from "./components/BienesRaicesCategoryNav";
-import { BienesRaicesFeaturedSection } from "./components/BienesRaicesFeaturedSection";
 import { BienesRaicesFilterChips } from "./components/BienesRaicesFilterChips";
+import { BienesRaicesNegociosSpotlightBand } from "./components/BienesRaicesNegociosSpotlightBand";
 import { BienesRaicesPropiedadFilterChips } from "./components/BienesRaicesPropiedadFilterChips";
+import { BienesRaicesResultsActiveFilters } from "./components/BienesRaicesResultsActiveFilters";
+import { BienesRaicesResultsFilterDrawer } from "./components/BienesRaicesResultsFilterDrawer";
+import { BienesRaicesResultsFilters } from "./components/BienesRaicesResultsFilters";
 import { BienesRaicesResultsHeader } from "./components/BienesRaicesResultsHeader";
+import { BienesRaicesResultsHero } from "./components/BienesRaicesResultsHero";
 import { BienesRaicesResultsShell } from "./components/BienesRaicesResultsShell";
 import { BienesRaicesResultsTopBar } from "./components/BienesRaicesResultsTopBar";
-import { BienesRaicesSearchBar } from "./components/BienesRaicesSearchBar";
+import { BienesRaicesMapPreview } from "./map/BienesRaicesMapPreview";
+import { getBrResultsCopy } from "./bienesRaicesResultsCopy";
+import {
+  filterBrListings,
+  paginateListings,
+  pickNegociosSpotlight,
+} from "./lib/brResultsFilters";
+import { mergeBrResultsHref, parseBrResultsUrl } from "./lib/brResultsUrlState";
 
-const PRIMARY_IDS: BrPrimaryChipId[] = ["casas", "departamentos", "venta", "renta", "comerciales", "terrenos"];
-const SECONDARY_IDS: BrSecondaryChipId[] = [
+const PRIMARY_IDS: readonly BrPrimaryChipId[] = [
+  "casas",
+  "departamentos",
+  "venta",
+  "renta",
+  "comerciales",
+  "terrenos",
+] as const;
+
+const SECONDARY_IDS: readonly BrSecondaryChipId[] = [
   "piscina",
   "mascotas",
   "nuevo_desarrollo",
@@ -33,289 +53,230 @@ const SECONDARY_IDS: BrSecondaryChipId[] = [
   "planos",
   "financiamiento",
   "segundo_agente",
-];
+] as const;
 
-function parsePrimaryFromSearch(raw: string | null): Set<BrPrimaryChipId> | null {
-  if (!raw?.trim()) return null;
-  const next = new Set<BrPrimaryChipId>();
-  for (const part of raw.split(",").map((s) => s.trim()).filter(Boolean)) {
-    if ((PRIMARY_IDS as readonly string[]).includes(part)) next.add(part as BrPrimaryChipId);
-  }
-  return next.size ? next : null;
+const PAGE_SIZE = 9;
+
+function buildListingPool(): BrNegocioListing[] {
+  const ids = new Set(brNegocioGridListings.map((l) => l.id));
+  const extra = !ids.has(brNegocioFeaturedListing.id) ? [brNegocioFeaturedListing] : [];
+  return [...extra, ...brNegocioGridListings];
 }
 
-function parseSecondaryFromSearch(raw: string | null): Set<BrSecondaryChipId> | null {
-  if (!raw?.trim()) return null;
-  const next = new Set<BrSecondaryChipId>();
-  for (const part of raw.split(",").map((s) => s.trim()).filter(Boolean)) {
-    if ((SECONDARY_IDS as readonly string[]).includes(part)) next.add(part as BrSecondaryChipId);
-  }
-  return next.size ? next : null;
-}
-
-function brDemoPriceNumber(price: string): number {
-  const n = Number(String(price).replace(/[^0-9.]/g, ""));
-  return Number.isFinite(n) ? n : 0;
-}
-
-function listingOperation(listing: BrNegocioListing): "venta" | "renta" {
-  if (listing.operationLabel === "Renta") return "renta";
-  return "venta";
-}
-
-function listingMatchesPrimaryChips(listing: BrNegocioListing, primary: Set<BrPrimaryChipId>): boolean {
-  if (primary.size === 0) return true;
-  const op = listingOperation(listing);
-  const wantsVenta = primary.has("venta");
-  const wantsRenta = primary.has("renta");
-  if (wantsVenta && !wantsRenta && op !== "venta") return false;
-  if (wantsRenta && !wantsVenta && op !== "renta") return false;
-  for (const id of primary) {
-    if (id === "venta" || id === "renta") continue;
-    if (id === "comerciales") {
-      if (!(listing.categoriaPropiedad === "comercial" || listing.badges.includes("comercial"))) return false;
-    } else if (id === "terrenos") {
-      if (listing.categoriaPropiedad !== "terreno_lote") return false;
-    } else if (id === "casas" || id === "departamentos") {
-      if (listing.categoriaPropiedad !== "residencial") return false;
-    }
-  }
-  return true;
-}
-
-function pickFeaturedForFilter(
-  filtered: BrNegocioListing[],
-  fallback: BrNegocioListing
-): BrNegocioListing | null {
-  if (!filtered.length) return null;
-  const promoted = filtered.find((l) => l.badges.includes("promocionada"));
-  if (promoted) return promoted;
-  if (filtered.some((l) => l.id === fallback.id)) return fallback;
-  return filtered[0];
-}
-
-/** Category-owned results UI for `/clasificados/bienes-raices/resultados` (demo grid; `propiedad` = residencial|comercial|terreno_lote). */
+/** Category-owned results UI for `/clasificados/bienes-raices/resultados` — URL-driven demo grid. */
 export function BienesRaicesResultsClient() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const [query, setQuery] = useState("");
-  const [propertyType, setPropertyType] = useState("");
-  const [priceBand, setPriceBand] = useState("");
-  const [beds, setBeds] = useState("");
-  const [primary, setPrimary] = useState<Set<BrPrimaryChipId>>(() => new Set());
-  const [secondary, setSecondary] = useState<Set<BrSecondaryChipId>>(() => new Set());
-  const [sort, setSort] = useState("reciente");
+  const sp = searchParams ?? new URLSearchParams();
+
+  const parsed = useMemo(() => parseBrResultsUrl(sp), [sp]);
+  const lang = parsed.lang;
+  const copy = useMemo(() => getBrResultsCopy(lang), [lang]);
+
   const [view, setView] = useState<"grid" | "list">("grid");
   const [showMap, setShowMap] = useState(false);
-  const [propiedadFilter, setPropiedadFilter] = useState<BrNegocioCategoriaPropiedad | null>(null);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
-  useEffect(() => {
-    if (!searchParams) return;
-    const q = searchParams.get("q");
-    const city = searchParams.get("city");
-    if (q != null && q !== "") setQuery(q);
-    else if (city != null && city !== "") setQuery(city);
+  const propiedadFilter: BrNegocioCategoriaPropiedad | null = useMemo(
+    () => parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD)),
+    [sp]
+  );
 
-    const tipo = searchParams.get("tipo");
-    const propertyTypeParam = searchParams.get("propertyType");
-    if (tipo != null && tipo !== "") setPropertyType(tipo);
-    else if (propertyTypeParam === "casa") setPropertyType("casa");
-    else if (propertyTypeParam === "departamento") setPropertyType("depto");
-    else if (propertyTypeParam === "terreno") setPropertyType("terreno");
-    else if (propertyTypeParam === "comercial") setPropertyType("comercial");
+  const propiedadLabelActive = useMemo(() => {
+    if (!propiedadFilter) return null;
+    if (propiedadFilter === "residencial") return copy.categoryResidential;
+    if (propiedadFilter === "comercial") return copy.categoryCommercial;
+    return copy.categoryLand;
+  }, [propiedadFilter, copy]);
 
-    const precio = searchParams.get("precio");
-    if (precio != null) setPriceBand(precio);
-    const recs = searchParams.get("recs");
-    if (recs != null) setBeds(recs);
-    const bedsParam = searchParams.get("beds");
-    if (bedsParam != null && bedsParam !== "") setBeds(bedsParam);
+  const listingPool = useMemo(() => buildListingPool(), []);
 
-    const primaryParsed = parsePrimaryFromSearch(searchParams.get("primary"));
-    if (primaryParsed) setPrimary(primaryParsed);
+  const filtered = useMemo(
+    () => filterBrListings(listingPool, parsed, propiedadFilter),
+    [listingPool, parsed, propiedadFilter]
+  );
 
-    const op = searchParams.get("operationType");
-    if (op === "venta" || op === "renta") {
-      setPrimary((prev) => {
-        const next = new Set(prev);
-        if (op === "venta") next.add("venta");
-        if (op === "renta") next.add("renta");
-        return next;
-      });
-    }
+  const spotlight = useMemo(() => pickNegociosSpotlight(filtered, 3), [filtered]);
+  const spotlightIds = useMemo(() => new Set(spotlight.map((s) => s.id)), [spotlight]);
 
-    const pt = propertyTypeParam ?? tipo;
-    if (pt === "casa" || pt === "departamento" || pt === "terreno" || pt === "comercial" || pt === "depto") {
-      setPrimary((prev) => {
-        const next = new Set(prev);
-        const map: Record<string, BrPrimaryChipId> = {
-          casa: "casas",
-          departamento: "departamentos",
-          depto: "departamentos",
-          terreno: "terrenos",
-          comercial: "comerciales",
-        };
-        const chip = map[pt];
-        if (chip) next.add(chip);
-        return next;
-      });
-    }
+  const mainList = useMemo(
+    () => filtered.filter((l) => !spotlightIds.has(l.id)),
+    [filtered, spotlightIds]
+  );
 
-    const secondaryParsed = parseSecondaryFromSearch(searchParams.get("secondary"));
-    if (secondaryParsed) setSecondary(secondaryParsed);
-
-    const prop = parseBrNegocioPropiedadParam(searchParams.get(BR_NEGOCIO_Q_PROPIEDAD));
-    setPropiedadFilter(prop);
-  }, [searchParams]);
-
-  const togglePrimary = (id: BrPrimaryChipId) => {
-    setPrimary((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleSecondary = (id: BrSecondaryChipId) => {
-    setSecondary((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const filteredListings = useMemo(() => {
-    let rows = brNegocioGridListings.filter((l) => listingMatchesPrimaryChips(l, primary));
-    if (propiedadFilter) rows = rows.filter((l) => l.categoriaPropiedad === propiedadFilter);
-    if (secondary.has("reducida")) rows = rows.filter((l) => l.badges.includes("reducida"));
-    if (secondary.has("open_house")) rows = rows.filter((l) => l.openHouse || l.badges.includes("open_house"));
-    if (secondary.has("tour_virtual")) rows = rows.filter((l) => l.badges.includes("tour_virtual"));
-    if (secondary.has("nuevo_desarrollo")) rows = rows.filter((l) => l.badges.includes("nuevo"));
-    if (secondary.has("planos")) rows = rows.filter((l) => l.badges.includes("planos"));
-    if (secondary.has("piscina")) {
-      rows = rows.filter(
-        (l) =>
-          l.title.toLowerCase().includes("piscina") ||
-          l.metaLines?.some((m) => {
-            const x = m.toLowerCase();
-            return x.includes("piscina") || x.includes("alberca");
-          })
-      );
-    }
-    if (secondary.has("mascotas")) {
-      rows = rows.filter((l) => l.metaLines?.some((m) => m.toLowerCase().includes("mascota")));
-    }
-
-    const sellerType = searchParams?.get("sellerType");
-    if (sellerType === "privado" || sellerType === "negocio") {
-      rows = rows.filter((l) => {
-        const sk = l.sellerKind ?? (l.badges.includes("negocio") ? "negocio" : "privado");
-        return sk === sellerType;
-      });
-    }
-
-    if (searchParams?.get("pool") === "true") {
-      rows = rows.filter(
-        (l) =>
-          l.title.toLowerCase().includes("piscina") ||
-          l.metaLines?.some((m) => {
-            const x = m.toLowerCase();
-            return x.includes("piscina") || x.includes("alberca");
-          })
-      );
-    }
-    if (searchParams?.get("pets") === "true") {
-      rows = rows.filter((l) => l.metaLines?.some((m) => m.toLowerCase().includes("mascota")));
-    }
-    if (searchParams?.get("furnished") === "true") {
-      rows = rows.filter((l) => l.metaLines?.some((m) => m.toLowerCase().includes("amueblado")));
-    }
-
-    const q = query.trim().toLowerCase();
-    if (q) rows = rows.filter((l) => l.title.toLowerCase().includes(q) || l.addressLine.toLowerCase().includes(q));
-    const sorted = [...rows];
-    if (sort === "precio_asc") sorted.sort((a, b) => brDemoPriceNumber(a.price) - brDemoPriceNumber(b.price));
-    if (sort === "precio_desc") sorted.sort((a, b) => brDemoPriceNumber(b.price) - brDemoPriceNumber(a.price));
-    return sorted;
-  }, [primary, propiedadFilter, secondary, query, sort, searchParams]);
-
-  const featuredListing = useMemo(
-    () => pickFeaturedForFilter(filteredListings, brNegocioFeaturedListing),
-    [filteredListings]
+  const { page: pageNum, slice: pageSlice, total: mainTotal } = useMemo(
+    () => paginateListings(mainList, parsed.page, PAGE_SIZE),
+    [mainList, parsed.page]
   );
 
   const displayedListings = useMemo(() => {
-    if (view === "list") {
-      return filteredListings.map((l) => ({ ...l, layout: "horizontal" as const }));
-    }
-    return filteredListings;
-  }, [filteredListings, view]);
+    const rows = pageSlice.map((l) =>
+      view === "list" ? { ...l, layout: "horizontal" as const } : l
+    );
+    return rows;
+  }, [pageSlice, view]);
 
-  const totalLabel = propiedadFilter || primary.size || query.trim() ? filteredListings.length : BR_NEGOCIO_DEMO_TOTAL;
-  const showingTo = displayedListings.length ? Math.min(20, displayedListings.length) : 0;
+  const primarySet = useMemo(() => {
+    const next = new Set<BrPrimaryChipId>();
+    for (const part of parsed.primary
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)) {
+      if ((PRIMARY_IDS as readonly string[]).includes(part)) next.add(part as BrPrimaryChipId);
+    }
+    return next;
+  }, [parsed.primary]);
+
+  const secondarySet = useMemo(() => {
+    const next = new Set<BrSecondaryChipId>();
+    for (const part of parsed.secondary
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)) {
+      if ((SECONDARY_IDS as readonly string[]).includes(part)) next.add(part as BrSecondaryChipId);
+    }
+    return next;
+  }, [parsed.secondary]);
+
+  const patchUrl = useCallback(
+    (patch: Record<string, string | null>) => {
+      const next: Record<string, string | null> = { ...patch };
+      if (!("page" in patch)) next.page = "1";
+      router.replace(mergeBrResultsHref(sp, next, lang));
+    },
+    [router, sp, lang]
+  );
+
+  const patchPageOnly = useCallback(
+    (patch: Record<string, string | null>) => {
+      router.replace(mergeBrResultsHref(sp, patch, lang));
+    },
+    [router, sp, lang]
+  );
+
+  const clearAllFilters = useCallback(() => {
+    router.replace(appendLangToPath(BR_RESULTS, lang));
+  }, [router, lang]);
+
+  const togglePrimary = (id: BrPrimaryChipId) => {
+    const next = new Set(primarySet);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    patchUrl({ primary: next.size ? [...next].join(",") : null });
+  };
+
+  const toggleSecondary = (id: BrSecondaryChipId) => {
+    const next = new Set(secondarySet);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    patchUrl({ secondary: next.size ? [...next].join(",") : null });
+  };
+
+  const totalCount = filtered.length;
+  const totalForHeader = totalCount;
+
+  const showingFrom = mainTotal === 0 ? 0 : (pageNum - 1) * PAGE_SIZE + 1;
+  const showingTo = mainTotal === 0 ? 0 : Math.min(pageNum * PAGE_SIZE, mainTotal);
+
+  const maxPage = Math.max(1, Math.ceil(mainTotal / PAGE_SIZE) || 1);
 
   return (
     <BienesRaicesResultsShell>
-      <BienesRaicesResultsTopBar />
-      <BienesRaicesCategoryNav />
+      <BienesRaicesResultsTopBar copy={copy} lang={lang} />
+      <BienesRaicesCategoryNav lang={lang} />
 
-      <div className="max-w-3xl">
-        <h1 className="font-serif text-4xl font-semibold tracking-tight text-[#1E1810] sm:text-[2.75rem] sm:leading-tight">
-          Bienes Raíces
-        </h1>
-        <p className="mt-2 text-base text-[#5C5346]/90 sm:text-lg">Encuentra propiedades con claridad y confianza.</p>
-      </div>
+      <BienesRaicesResultsHero copy={copy} />
 
-      <div className="mt-8 max-w-5xl">
-        <BienesRaicesSearchBar
-          query={query}
-          onQuery={setQuery}
-          propertyType={propertyType}
-          onPropertyType={setPropertyType}
-          priceBand={priceBand}
-          onPriceBand={setPriceBand}
-          beds={beds}
-          onBeds={setBeds}
-        />
-        <BienesRaicesPropiedadFilterChips active={propiedadFilter} />
+      <div className="mt-8 max-w-5xl space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end lg:hidden">
+          <button
+            type="button"
+            onClick={() => setFilterDrawerOpen(true)}
+            className="inline-flex w-full items-center justify-center rounded-2xl border border-[#E8DFD0] bg-[#2A2620] px-4 py-3 text-sm font-bold text-[#FAF7F2] shadow-md sm:w-auto"
+          >
+            {copy.filterOpenMobile}
+          </button>
+        </div>
+
+        <div className="hidden lg:block">
+          <BienesRaicesResultsFilters parsed={parsed} copy={copy} onPatch={(patch) => patchUrl(patch)} />
+        </div>
+
+        <BienesRaicesPropiedadFilterChips active={propiedadFilter} copy={copy} />
+
         <BienesRaicesFilterChips
-          primary={primary}
-          secondary={secondary}
+          copy={copy}
+          primary={primarySet}
+          secondary={secondarySet}
           onTogglePrimary={togglePrimary}
           onToggleSecondary={toggleSecondary}
+          onMoreFilters={() => setFilterDrawerOpen(true)}
+          matchCount={totalCount}
+        />
+
+        <BienesRaicesResultsActiveFilters
+          parsed={parsed}
+          copy={copy}
+          onPatch={(p) => patchUrl(p)}
+          onClearAll={clearAllFilters}
+          propiedadActive={propiedadLabelActive}
         />
       </div>
 
       <BienesRaicesResultsHeader
-        showingFrom={displayedListings.length ? 1 : 0}
+        showingFrom={showingFrom}
         showingTo={showingTo}
-        total={totalLabel}
-        sort={sort}
-        onSort={setSort}
+        total={totalForHeader}
+        sort={parsed.sort || "reciente"}
+        onSort={(v) => patchUrl({ sort: v || null })}
         view={view}
         onView={setView}
         mapOn={showMap}
         onMapOn={setShowMap}
+        copy={copy}
+        lang={lang}
       />
 
-      <BienesRaicesFeaturedSection listing={featuredListing} showMap={showMap} />
+      {showMap ? (
+        <section
+          className="mt-6 overflow-hidden rounded-2xl border border-[#E8DFD0]/90 bg-[#FDFBF7]/90 shadow-[0_12px_40px_-24px_rgba(42,36,22,0.25)]"
+          aria-label={copy.mapAsideTitle}
+        >
+          <div className="grid gap-0 lg:grid-cols-12 lg:items-stretch">
+            <div className="min-h-[240px] lg:col-span-7 xl:col-span-8">
+              <BienesRaicesMapPreview />
+            </div>
+            <div className="border-t border-[#E8DFD0]/80 p-5 lg:col-span-5 lg:border-l lg:border-t-0 xl:col-span-4">
+              <p className="font-serif text-lg font-semibold text-[#1E1810]">{copy.mapAsideTitle}</p>
+              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/88">{copy.mapAsideBody}</p>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <BienesRaicesNegociosSpotlightBand listings={spotlight} copy={copy} lang={lang} />
 
       <section className="mt-14" aria-labelledby="br-more-heading">
         <h2 id="br-more-heading" className="font-serif text-xl font-semibold text-[#1E1810] sm:text-2xl">
-          Más resultados en Guadalajara, Jalisco
+          {copy.moreResultsTitle}
         </h2>
+
         {displayedListings.length === 0 ? (
           <p className="mt-6 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7]/90 p-6 text-center text-sm text-[#5C5346]">
-            Sin coincidencias en esta combinación.{" "}
-            <Link href={BR_RESULTS} className="font-semibold text-[#B8954A] underline">
-              Ver todas (demo)
+            {copy.emptyState}{" "}
+            <Link href={appendLangToPath(BR_RESULTS, lang)} className="font-semibold text-[#B8954A] underline">
+              {copy.emptyCta}
             </Link>
           </p>
         ) : view === "list" ? (
           <div className="mt-6 flex flex-col gap-5">
             {displayedListings.map((listing) => (
-              <BienesRaicesNegocioCard key={listing.id} listing={listing} />
+              <BienesRaicesNegocioCard
+                key={listing.id}
+                listing={listing}
+                sellerKindLabels={copy.sellerKindLabels}
+                lang={lang}
+              />
             ))}
           </div>
         ) : (
@@ -327,29 +288,63 @@ export function BienesRaicesResultsClient() {
                   listing.layout === "horizontal" ? "sm:col-span-2 xl:col-span-3" : "sm:col-span-1 xl:col-span-2"
                 }
               >
-                <BienesRaicesNegocioCard listing={listing} />
+                <BienesRaicesNegocioCard listing={listing} sellerKindLabels={copy.sellerKindLabels} lang={lang} />
               </div>
             ))}
           </div>
         )}
+
+        {mainTotal > PAGE_SIZE ? (
+          <nav
+            className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-[#E8DFD0]/70 pt-6"
+            aria-label={copy.pageIndicator}
+          >
+            <p className="text-sm text-[#5C5346]">
+              {copy.pageIndicator} {pageNum} / {maxPage}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={pageNum <= 1}
+                onClick={() => patchPageOnly({ page: String(Math.max(1, pageNum - 1)) })}
+                className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#1E1810] disabled:opacity-40"
+              >
+                {copy.paginationPrev}
+              </button>
+              <button
+                type="button"
+                disabled={pageNum >= maxPage}
+                onClick={() => patchPageOnly({ page: String(Math.min(maxPage, pageNum + 1)) })}
+                className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#1E1810] disabled:opacity-40"
+              >
+                {copy.paginationNext}
+              </button>
+            </div>
+          </nav>
+        ) : null}
       </section>
 
       <footer className="mt-16 border-t border-[#E8DFD0]/70 pt-8 text-center">
-        <p className="text-sm text-[#5C5346]/85">
-          Comunidad Leonix · Anuncios moderados · Contacto directo · Listado demo (venta) separado de{" "}
-          <Link href="/clasificados/bienes-raices/preview/privado" className="font-semibold text-[#B8954A] underline">
-            vista previa Privado
-          </Link>
-        </p>
+        <p className="text-sm text-[#5C5346]/85">{copy.footerLine}</p>
         <div className="mt-4 flex flex-wrap justify-center gap-3 text-sm font-semibold">
           <Link
-            href={BR_PUBLICAR_HUB}
+            href={appendLangToPath(BR_PUBLICAR_HUB, lang)}
             className="rounded-lg text-[#B8954A] underline decoration-[#C9B46A]/50 underline-offset-4 hover:text-[#8A6F3A]"
           >
-            Publicar anuncio
+            {copy.footerPublish}
           </Link>
         </div>
       </footer>
+
+      <BienesRaicesResultsFilterDrawer
+        open={filterDrawerOpen}
+        onClose={() => setFilterDrawerOpen(false)}
+        parsed={parsed}
+        copy={copy}
+        onPatch={(patch) => {
+          patchUrl(patch);
+        }}
+      />
     </BienesRaicesResultsShell>
   );
 }

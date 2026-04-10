@@ -1,6 +1,8 @@
 "use client";
 
+import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { BienesRaicesMapToggle } from "../map/BienesRaicesMapToggle";
+import type { BrResultsCopy } from "../bienesRaicesResultsCopy";
 
 type Props = {
   showingFrom: number;
@@ -12,6 +14,8 @@ type Props = {
   onView: (v: "grid" | "list") => void;
   mapOn: boolean;
   onMapOn: (v: boolean) => void;
+  copy: BrResultsCopy;
+  lang: Lang;
 };
 
 function IconGrid({ className }: { className?: string }) {
@@ -46,36 +50,32 @@ export function BienesRaicesResultsHeader({
   onView,
   mapOn,
   onMapOn,
+  copy,
+  lang,
 }: Props) {
+  const loc = lang === "en" ? "en-US" : "es-MX";
   return (
     <div className="mt-8 flex flex-col gap-4 border-b border-[#E8DFD0]/60 pb-4 sm:flex-row sm:items-center sm:justify-between">
       <p className="text-sm text-[#5C5346]">
-        Mostrando{" "}
+        {copy.resultsCountLine}{" "}
         <span className="font-semibold text-[#1E1810]">
           {showingFrom} – {showingTo}
         </span>{" "}
-        de <span className="font-semibold text-[#1E1810]">{total.toLocaleString("es-MX")}</span> resultados
+        {copy.resultsCountOf} <span className="font-semibold text-[#1E1810]">{total.toLocaleString(loc)}</span>{" "}
+        {copy.resultsWord}
       </p>
       <div className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-sm text-[#5C5346]">
-          <span className="sr-only">Ordenar</span>
-          <span className="hidden sm:inline">Orden</span>
+        <label className="flex min-w-0 items-center gap-2 text-sm text-[#5C5346]">
+          <span className="sr-only">{copy.sortLabel}</span>
+          <span className="hidden sm:inline">{copy.sortLabel}</span>
           <select
             value={sort}
             onChange={(e) => onSort(e.target.value)}
-            className="rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm font-medium text-[#1E1810] outline-none focus:border-[#C9B46A]/65"
+            className="max-w-[min(100vw-2rem,220px)] rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm font-medium text-[#1E1810] outline-none focus:border-[#C9B46A]/65"
           >
-            <option value="reciente">Más reciente</option>
-            <option value="precio_asc">Precio: menor a mayor</option>
-            <option value="precio_desc">Precio: mayor a menor</option>
-          </select>
-        </label>
-        <label className="flex items-center gap-2 text-sm text-[#5C5346]">
-          <span className="sr-only">Precio</span>
-          <span className="hidden sm:inline">Precio</span>
-          <select className="rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm font-medium text-[#1E1810] outline-none focus:border-[#C9B46A]/65">
-            <option>Lista</option>
-            <option>Por m²</option>
+            <option value="reciente">{copy.sortRecent}</option>
+            <option value="precio_asc">{copy.sortPriceAsc}</option>
+            <option value="precio_desc">{copy.sortPriceDesc}</option>
           </select>
         </label>
         <div className="flex rounded-lg border border-[#E8DFD0] bg-[#FFFCF7] p-0.5">
@@ -87,7 +87,7 @@ export function BienesRaicesResultsHeader({
               "rounded-md p-2 " +
               (view === "grid" ? "bg-white text-[#1E1810] shadow-sm" : "text-[#5C5346] hover:text-[#1E1810]")
             }
-            aria-label="Vista cuadrícula"
+            aria-label={copy.viewGridAria}
           >
             <IconGrid />
           </button>
@@ -99,12 +99,12 @@ export function BienesRaicesResultsHeader({
               "rounded-md p-2 " +
               (view === "list" ? "bg-white text-[#1E1810] shadow-sm" : "text-[#5C5346] hover:text-[#1E1810]")
             }
-            aria-label="Vista lista"
+            aria-label={copy.viewListAria}
           >
             <IconList />
           </button>
         </div>
-        <BienesRaicesMapToggle active={mapOn} onChange={onMapOn} />
+        <BienesRaicesMapToggle active={mapOn} onChange={onMapOn} label={copy.mapToggle} />
       </div>
     </div>
   );

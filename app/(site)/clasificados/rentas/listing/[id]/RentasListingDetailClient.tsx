@@ -9,8 +9,10 @@ import type { RentasListingDetailExtra } from "@/app/clasificados/rentas/listing
 import {
   rentasCtaPrimaryClass,
   rentasCtaSecondaryClass,
+  rentasDetailConversionPanelClass,
+  rentasLandingContainerClass,
   rentasLandingPaperBgClass,
-  rentasLinkSupportClass,
+  rentasSectionHeaderActionClass,
 } from "@/app/clasificados/rentas/rentasLandingTheme";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import {
@@ -42,7 +44,7 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
 
   return (
     <div className={"min-h-screen pb-16 pt-6 sm:pb-20 sm:pt-8 " + rentasLandingPaperBgClass}>
-      <div className="mx-auto max-w-[1100px] px-4 sm:px-5">
+      <div className={rentasLandingContainerClass}>
         <Link
           href={resultsHref}
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#4A6680] transition hover:text-[#C45C26]"
@@ -53,21 +55,25 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
 
         <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-7">
-            <div className="overflow-hidden rounded-[1.35rem] border border-[#E2D5C4]/90 bg-[#FFFCF7] shadow-[0_20px_50px_-28px_rgba(44,36,28,0.22)]">
+            <div className="overflow-hidden rounded-[1.45rem] border border-[#E2D5C4]/90 bg-[#FFFCF7] shadow-[0_24px_56px_-30px_rgba(44,36,28,0.26)] ring-1 ring-[#D4C4A8]/35">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <div className="relative aspect-[16/10] w-full bg-[#E8E0D4]">
-                <img src={mainSrc} alt="" className="h-full w-full object-cover" />
+                <div
+                  className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-[#1E1810]/28 via-transparent to-[#F4EDE3]/25"
+                  aria-hidden
+                />
+                <img src={mainSrc} alt="" className="relative z-0 h-full w-full object-cover" />
               </div>
               {gallery.length > 1 ? (
-                <div className="flex gap-2 overflow-x-auto border-t border-[#E4D9C8]/80 bg-[#FAF7F2]/95 p-3">
+                <div className="flex gap-2 overflow-x-auto border-t border-[#E4D9C8]/80 bg-[#FAF7F2]/95 p-3 sm:p-3.5">
                   {gallery.map((src, i) => (
                     <button
                       key={src + i}
                       type="button"
                       onClick={() => setPhotoIx(i)}
                       className={
-                        "relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2 transition " +
-                        (i === photoIx ? "border-[#C45C26] ring-1 ring-[#C45C26]/30" : "border-transparent opacity-80 hover:opacity-100")
+                        "relative h-[4.25rem] w-[6.5rem] shrink-0 overflow-hidden rounded-xl border-2 transition " +
+                        (i === photoIx ? "border-[#C45C26] ring-2 ring-[#C45C26]/25" : "border-transparent opacity-85 hover:opacity-100")
                       }
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -82,39 +88,46 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
           <div className="flex flex-col gap-6 lg:col-span-5">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5B7C99]/85">Leonix · {copy.breadcrumbRentas}</p>
-              <h1 className="mt-2 font-serif text-3xl font-semibold leading-tight tracking-tight text-[#1E1810] sm:text-[2.1rem]">
+              <h1 className="mt-2 font-serif text-3xl font-semibold leading-tight tracking-tight text-[#1E1810] sm:text-[2.15rem]">
                 {listing.title}
               </h1>
               <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-[#4A4338]/92">
                 <FiMapPin className="h-4 w-4 shrink-0 text-[#5B7C99]" aria-hidden />
                 {listing.addressLine}
               </p>
-              <p className="mt-4 text-3xl font-bold tracking-tight text-[#B8893C]">{listing.rentDisplay}</p>
+              <p className="mt-5 text-[1.85rem] font-bold tracking-tight text-[#B8893C] sm:text-[2rem]">{listing.rentDisplay}</p>
               <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#5C5346]/75">{copy.detail.rentLabel}</p>
             </div>
 
             <div
               className={
-                "rounded-2xl border px-4 py-3 text-sm " +
+                "rounded-2xl border px-4 py-3.5 text-sm shadow-sm " +
                 (listing.branch === "privado"
-                  ? "border-[#5B7C99]/25 bg-[#EEF3F7]/90 text-[#2C3E4D]"
-                  : "border-[#D4A84B]/35 bg-[#FFF8E8]/95 text-[#6B4E1D]")
+                  ? "border-[#5B7C99]/28 bg-[#EEF3F7]/95 text-[#2C3E4D]"
+                  : "border-[#D4A84B]/40 bg-[#FFF8E8]/95 text-[#6B4E1D]")
               }
             >
               <p className="text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/75">{copy.detail.sellerTitle}</p>
-              <p className="mt-1 font-medium">{sellerLine}</p>
+              <p className="mt-1.5 font-medium leading-snug">{sellerLine}</p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <Link href={contactHref} className={rentasCtaPrimaryClass}>
-                {copy.detail.ctaContact}
-              </Link>
-              <Link href={listing.branch === "privado" ? publishPrivado : publishNegocio} className={rentasCtaSecondaryClass}>
-                {copy.detail.ctaPublish}
-              </Link>
+            <div className={rentasDetailConversionPanelClass}>
+              <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <Link
+                  href={contactHref}
+                  className={`inline-flex items-center justify-center ${rentasCtaPrimaryClass} w-full sm:w-auto sm:min-w-[11rem]`}
+                >
+                  {copy.detail.ctaContact}
+                </Link>
+                <Link
+                  href={listing.branch === "privado" ? publishPrivado : publishNegocio}
+                  className={`inline-flex items-center justify-center ${rentasCtaSecondaryClass} w-full sm:w-auto sm:min-w-[11rem]`}
+                >
+                  {copy.detail.ctaPublish}
+                </Link>
+              </div>
+              <p className="mt-4 text-xs leading-relaxed text-[#5C5346]/88">{copy.detail.trustNote}</p>
             </div>
-
-            <p className="text-xs leading-relaxed text-[#5C5346]/88">{copy.detail.trustNote}</p>
           </div>
         </div>
 
@@ -147,12 +160,14 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
           <p className="mt-3 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-[#4A4338]/95">{description}</p>
         </section>
 
-        <section className="mt-10 rounded-[1.15rem] border border-dashed border-[#C9D4E0]/70 bg-[#F8FAFC]/80 p-6 text-center sm:p-8">
+        <section className="mt-10 rounded-[1.2rem] border border-[#C9D4E0]/55 bg-gradient-to-b from-[#F8FAFC]/95 to-[#FFFCF7]/90 p-6 text-center shadow-sm sm:p-8">
           <h2 className="font-serif text-lg font-semibold text-[#1E1810]">{copy.detail.relatedTitle}</h2>
           <p className="mt-2 text-sm text-[#5C5346]/88">{copy.detail.relatedBody}</p>
-          <Link href={resultsHref} className={`mt-4 inline-block text-sm ${rentasLinkSupportClass}`}>
-            {copy.trust.ctaResults}
-          </Link>
+          <div className="mt-5 flex justify-center">
+            <Link href={resultsHref} className={rentasSectionHeaderActionClass}>
+              {copy.trust.ctaResults}
+            </Link>
+          </div>
         </section>
       </div>
     </div>

@@ -3,7 +3,11 @@ import type { RentasLandingCopy } from "@/app/clasificados/rentas/rentasLandingC
 import type { RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingResultsHandoff } from "@/app/clasificados/rentas/landing/rentasListingResultsHandoff";
 import { IconBath, IconBed, IconRuler } from "@/app/clasificados/bienes-raices/resultados/cards/cardIcons";
-import { rentasCardSurfaceClass, rentasLinkSupportClass } from "@/app/clasificados/rentas/rentasLandingTheme";
+import {
+  rentasCardSurfaceClass,
+  rentasLinkSupportClass,
+  rentasResultCardPromotedClass,
+} from "@/app/clasificados/rentas/rentasLandingTheme";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 
 function badgeLabel(b: string, copy: RentasLandingCopy["card"]) {
@@ -81,7 +85,10 @@ export function RentasResultCard({ listing, copy, lang }: Props) {
   const horizontal = listing.layout === "horizontal";
   const seller = listing.branch === "privado" ? copy.card.sellerPrivado : copy.card.sellerNegocio;
   const cat = categoriaLabel(listing, copy);
-  const cardRing = `${rentasCardSurfaceClass} ring-1 ring-[#D4C4A8]/32`;
+  const elevated = listing.promoted === true || listing.badges.includes("destacada");
+  const cardRing = elevated
+    ? `${rentasCardSurfaceClass} ${rentasResultCardPromotedClass}`
+    : `${rentasCardSurfaceClass} ring-1 ring-[#D4C4A8]/32`;
 
   if (horizontal) {
     return (

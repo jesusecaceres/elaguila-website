@@ -1,4 +1,6 @@
 import Link from "next/link";
+import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import type { BrNegocioListing } from "./listingTypes";
 import { BadgeStack } from "./BadgeStack";
 import { IconBath, IconBed, IconCalendar, IconRuler } from "./cardIcons";
@@ -83,17 +85,26 @@ function IdentityRow({
   );
 }
 
+function listingDetailHref(id: string, lang?: Lang) {
+  const base = `/clasificados/bienes-raices/anuncio/${id}`;
+  return lang ? appendLangToPath(base, lang) : base;
+}
+
 export function BienesRaicesNegocioCard({
   listing,
   className,
   sellerKindLabels,
+  lang,
 }: {
   listing: BrNegocioListing;
   /** Optional extra classes (e.g. landing-only polish). */
   className?: string;
   sellerKindLabels?: { privado: string; negocio: string };
+  /** When set, detail links preserve `?lang=`. */
+  lang?: Lang;
 }) {
   const horizontal = listing.layout === "horizontal";
+  const href = listingDetailHref(listing.id, lang);
   const surface =
     "group overflow-hidden rounded-2xl border border-[#E8DFD0]/95 bg-[#FDFBF7] shadow-[0_10px_36px_-16px_rgba(42,36,22,0.22)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_44px_-14px_rgba(42,36,22,0.28)]";
   const articleClass = className ? `${surface} ${className}` : surface;
@@ -116,7 +127,7 @@ export function BienesRaicesNegocioCard({
           <div className="flex min-w-0 flex-1 flex-col p-4 sm:py-4 sm:pl-5 sm:pr-4">
             <p className="text-lg font-bold tracking-tight text-[#B8954A] sm:text-xl">{listing.price}</p>
             <Link
-              href={`/clasificados/bienes-raices/anuncio/${listing.id}`}
+              href={href}
               className="mt-1 font-serif text-lg font-semibold leading-snug text-[#1E1810] decoration-[#C9B46A]/45 underline-offset-2 hover:underline"
             >
               {listing.title}
@@ -152,7 +163,7 @@ export function BienesRaicesNegocioCard({
       <div className="flex flex-1 flex-col p-4">
         <p className="text-xl font-bold tracking-tight text-[#B8954A]">{listing.price}</p>
         <Link
-          href={`/clasificados/bienes-raices/anuncio/${listing.id}`}
+          href={href}
           className="mt-1 font-serif text-lg font-semibold leading-snug text-[#1E1810] decoration-[#C9B46A]/45 underline-offset-2 hover:underline"
         >
           {listing.title}

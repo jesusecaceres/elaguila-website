@@ -4,9 +4,11 @@ type Props = {
   active: boolean;
   onChange: (next: boolean) => void;
   compact?: boolean;
+  /** Defaults to Spanish for legacy call sites. */
+  label?: string;
 };
 
-export function BienesRaicesMapToggle({ active, onChange, compact }: Props) {
+export function BienesRaicesMapToggle({ active, onChange, compact, label = "Mapa" }: Props) {
   return (
     <button
       type="button"
@@ -21,7 +23,7 @@ export function BienesRaicesMapToggle({ active, onChange, compact }: Props) {
       }
     >
       <span className="inline-block h-2 w-2 rounded-full bg-[#B8954A]/80" aria-hidden />
-      Mapa
+      {label}
     </button>
   );
 }

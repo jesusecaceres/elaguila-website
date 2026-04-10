@@ -13,6 +13,7 @@ const copy: Record<
     phService: string;
     phLocation: string;
     search: string;
+    continuity: string;
   }
 > = {
   es: {
@@ -20,12 +21,16 @@ const copy: Record<
     phService: "¿Qué servicio buscas?",
     phLocation: "Ciudad o Código Postal",
     search: "Buscar",
+    continuity:
+      "Lo que escribas aquí llega a Resultados con los mismos campos: podrás afinar giro, tipo de anunciante y contacto.",
   },
   en: {
     sub: "Trusted professionals for home, family, and business — clear profiles and direct contact.",
     phService: "What service are you looking for?",
     phLocation: "City or ZIP",
     search: "Search",
+    continuity:
+      "Your keywords and area carry into Results unchanged — then you can refine trade, seller type, and contact options.",
   },
 };
 
@@ -127,6 +132,9 @@ export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
             </div>
           </div>
         </form>
+        <p className="mx-auto mt-6 max-w-[640px] text-center text-[12px] leading-relaxed text-[#5a6b7c] sm:mt-7 sm:text-[13px]">
+          {t.continuity}
+        </p>
       </div>
     </div>
   );

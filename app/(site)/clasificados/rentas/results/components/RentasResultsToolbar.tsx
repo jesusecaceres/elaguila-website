@@ -2,6 +2,7 @@
 
 import type { RentasLandingCopy } from "@/app/clasificados/rentas/rentasLandingCopy";
 import type { RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
+import { rentasResultsToolbarPanelClass } from "@/app/clasificados/rentas/rentasLandingTheme";
 
 type Props = {
   copy: RentasLandingCopy["results"];
@@ -52,8 +53,14 @@ export function RentasResultsToolbar({
   const locale = lang === "en" ? "en-US" : "es-MX";
 
   return (
-    <div className="mt-8 flex flex-col gap-4 border-b border-[#D4C4A8]/45 pb-5 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-sm text-[#4A4338]/92">
+    <div className="mt-10">
+      <div className={rentasResultsToolbarPanelClass}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm leading-snug text-[#4A4338]/92">
+        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#5B7C99]/85">{copy.topBarResults}</span>
+        <span className="mx-2 text-[#D4C4A8]" aria-hidden>
+          ·
+        </span>
         {copy.countShowing}{" "}
         <span className="font-semibold text-[#1E1810]">
           {showingFrom} – {showingTo}
@@ -62,26 +69,30 @@ export function RentasResultsToolbar({
         {copy.countResults}
       </p>
       <div className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-sm text-[#4A4338]/92">
+        <label className="flex min-h-[44px] items-center gap-2 text-sm text-[#4A4338]/92 sm:min-h-0">
           <span className="sr-only">{copy.sortLabel}</span>
-          <span className="hidden sm:inline">{copy.sortLabel}</span>
+          <span className="hidden font-semibold sm:inline">{copy.sortLabel}</span>
           <select
             value={sort}
             onChange={(e) => onSort(e.target.value)}
-            className="rounded-full border border-[#C9D4E0]/80 bg-white px-3 py-2 text-sm font-medium text-[#1E1810] shadow-sm outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/15"
+            className="min-h-[44px] rounded-full border-2 border-[#C9D4E0]/85 bg-white px-4 py-2 text-sm font-semibold text-[#1E1810] shadow-sm outline-none focus:border-[#C45C26]/35 focus:ring-2 focus:ring-[#C45C26]/12 sm:min-h-0"
           >
             <option value="reciente">{copy.sortRecent}</option>
             <option value="precio_asc">{copy.sortPriceAsc}</option>
             <option value="precio_desc">{copy.sortPriceDesc}</option>
           </select>
         </label>
-        <div className="flex rounded-full border border-[#C9D4E0]/70 bg-[#FFFCF7]/95 p-0.5 shadow-sm">
+        <div
+          className="flex rounded-full border-2 border-[#C9D4E0]/75 bg-[#FFFCF7]/95 p-1 shadow-sm"
+          role="group"
+          aria-label={`${copy.viewGridAria} / ${copy.viewListAria}`}
+        >
           <button
             type="button"
             aria-pressed={view === "grid"}
             onClick={() => onView("grid")}
             className={
-              "rounded-full p-2 transition " +
+              "flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-2 transition sm:min-h-0 sm:min-w-0 " +
               (view === "grid" ? "bg-white text-[#1E1810] shadow-sm" : "text-[#5C5346] hover:text-[#1E1810]")
             }
             aria-label={copy.viewGridAria}
@@ -93,13 +104,15 @@ export function RentasResultsToolbar({
             aria-pressed={view === "list"}
             onClick={() => onView("list")}
             className={
-              "rounded-full p-2 transition " +
+              "flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-2 transition sm:min-h-0 sm:min-w-0 " +
               (view === "list" ? "bg-white text-[#1E1810] shadow-sm" : "text-[#5C5346] hover:text-[#1E1810]")
             }
             aria-label={copy.viewListAria}
           >
             <IconList />
           </button>
+        </div>
+      </div>
         </div>
       </div>
     </div>

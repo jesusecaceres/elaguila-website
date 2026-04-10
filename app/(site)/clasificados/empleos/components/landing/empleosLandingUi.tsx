@@ -76,14 +76,14 @@ export function LandingSection({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           {eyebrow ? (
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5B6F82]">{eyebrow}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#5B6F82]">{eyebrow}</p>
           ) : null}
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-[#2A2826] sm:text-[1.65rem]">{title}</h2>
+          <h2 className="mt-1 text-balance text-2xl font-bold tracking-tight text-[#2A2826] sm:text-[1.65rem]">{title}</h2>
           {subtitle ? <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#4A4744]/90">{subtitle}</p> : null}
         </div>
         {rightSlot ? <div className="shrink-0">{rightSlot}</div> : null}
       </div>
-      <div className="mt-8">{children}</div>
+      <div className="mt-9 sm:mt-10">{children}</div>
     </section>
   );
 }

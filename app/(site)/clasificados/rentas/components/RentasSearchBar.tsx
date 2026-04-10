@@ -35,7 +35,11 @@ export function RentasSearchBar({
   priceOptions,
 }: Props) {
   return (
-    <div className={rentasSearchShellClass}>
+    <div>
+      <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-[#5B7C99]/95 sm:text-left">
+        {copy.moduleHeadline}
+      </p>
+      <div className={rentasSearchShellClass}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:gap-4">
         <label className="min-w-0 flex-1 lg:flex-[1.15]">
           <span className="sr-only">{copy.labelSearch}</span>
@@ -99,6 +103,7 @@ export function RentasSearchBar({
           <FiSearch className="h-4 w-4 opacity-95 lg:hidden" aria-hidden />
           {copy.buscar}
         </button>
+      </div>
       </div>
     </div>
   );

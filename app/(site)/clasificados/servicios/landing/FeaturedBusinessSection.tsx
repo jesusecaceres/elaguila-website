@@ -23,8 +23,8 @@ export function FeaturedBusinessSection({
           </h2>
           <p className="mt-3 text-[15px] leading-relaxed text-[#4a5d6e] sm:text-[16px]">
             {lang === "en"
-              ? "Premium visibility for partners — structured profiles, not anonymous listings."
-              : "Visibilidad premium para socios — perfiles estructurados, no listados anónimos."}
+              ? "Prime shelf space for partners who want to be seen first — full Leonix showcase, bilingual-ready copy, and direct calls to your phone, WhatsApp, and website."
+              : "Espacio preferente para socios que quieren verse primero: vitrina completa en Leonix, texto listo para bilingüe y llamadas directas a teléfono, WhatsApp y web."}
           </p>
         </div>
       </div>

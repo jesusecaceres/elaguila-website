@@ -52,6 +52,10 @@ export type ClasificadosEnVentaContentPatch = {
     browseChipNear?: BilingualPatch;
     browseChipShip?: BilingualPatch;
     browseChipFeatured?: BilingualPatch;
+    browseChipPickup?: BilingualPatch;
+    premiumTagline?: BilingualPatch;
+    exposureHint?: BilingualPatch;
+    browseSectionLabel?: BilingualPatch;
     mobileStickyPublish?: BilingualPatch;
     mobileStickyBrowse?: BilingualPatch;
     /** Optional emoji prefix for hero (display-only) */

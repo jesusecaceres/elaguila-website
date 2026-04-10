@@ -12,6 +12,13 @@ import type { EmpleosJobRecord } from "./data/empleosJobTypes";
 import { getRelatedJobs } from "./data/empleosSampleCatalog";
 import { buildEmpleosResultadosUrl } from "./shared/utils/empleosListaUrl";
 import { EmpleosJobResultCard } from "./components/EmpleosJobResultCard";
+import {
+  EMPLEOS_BADGE_PREMIUM,
+  EMPLEOS_BADGE_QUICK,
+  EMPLEOS_BADGE_VERIFIED,
+  EMPLEOS_CTA_PRIMARY,
+  EMPLEOS_LINK_MUTED,
+} from "./lib/empleosPremiumUi";
 
 type Props = {
   job: EmpleosJobRecord;
@@ -29,7 +36,7 @@ export function EmpleoPublicDetailClient({ job }: Props) {
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FAF7F2] pb-20 text-[#2A2826]">
       <header className="border-b border-[#E8DFD0] bg-[#FFFBF7]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <nav className="text-xs font-semibold text-[#4A4744] sm:text-sm" aria-label="Breadcrumb">
             <Link href={appendLangToPath("/clasificados", lang)} className="hover:underline">
               {lang === "es" ? "Clasificados" : "Classifieds"}
@@ -41,14 +48,17 @@ export function EmpleoPublicDetailClient({ job }: Props) {
             <span className="mx-1.5 text-[#9A948C]">&gt;</span>
             <span className="text-[#2A2826]">{lang === "es" ? "Vacante" : "Opening"}</span>
           </nav>
-          <Link href={resultsHref} className="text-xs font-semibold text-[#4F6B82] hover:underline sm:text-sm">
+          <Link
+            href={resultsHref}
+            className="text-xs font-semibold text-[#4F6B82] underline-offset-2 transition hover:text-[#2A2826] hover:underline sm:text-sm"
+          >
             ← {lang === "es" ? "Volver a resultados" : "Back to results"}
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 pt-24 sm:px-6 sm:pt-28">
-        <div className="overflow-hidden rounded-[1.35rem] border border-[#E8DFD0] bg-white shadow-[0_16px_48px_rgba(42,40,38,0.08)]">
+      <main className="mx-auto max-w-6xl px-4 pt-24 sm:px-6 sm:pt-28 lg:px-8">
+        <div className="overflow-hidden rounded-[1.35rem] border border-[#E8DFD0] bg-white shadow-[0_18px_52px_rgba(42,40,38,0.085)] ring-1 ring-[#F0E8DC]/80">
           <div className="relative aspect-[21/9] max-h-72 w-full bg-[#EDE8E0] sm:aspect-[24/9]">
             <Image src={job.imageSrc} alt={job.imageAlt} fill className="object-cover" priority sizes="100vw" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#2A2826]/55 to-transparent" />
@@ -59,7 +69,7 @@ export function EmpleoPublicDetailClient({ job }: Props) {
               </div>
               <div className="flex flex-wrap gap-2">
                 {job.listingTier !== "standard" ? (
-                  <span className="rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-[#6B5320] shadow">
+                  <span className="rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-[#6B5320] shadow-[0_4px_14px_rgba(0,0,0,0.12)] ring-1 ring-white/60 backdrop-blur-sm">
                     {job.listingTier === "promoted"
                       ? lang === "es"
                         ? "Promocionado"
@@ -69,23 +79,40 @@ export function EmpleoPublicDetailClient({ job }: Props) {
                         : "Featured"}
                   </span>
                 ) : null}
-                {job.verifiedEmployer ? (
-                  <span className="rounded-full bg-[#E8F4EA] px-3 py-1 text-xs font-bold text-[#1F5F2F]">
-                    {lang === "es" ? "Verificado" : "Verified"}
-                  </span>
-                ) : null}
-                {job.premiumEmployer ? (
-                  <span className="rounded-full bg-[#FFF4E0] px-3 py-1 text-xs font-bold text-[#7A5210]">
-                    {lang === "es" ? "Negocio premium" : "Premium business"}
+                {job.quickApply ? (
+                  <span className={`${EMPLEOS_BADGE_QUICK} bg-white/90 backdrop-blur-sm`}>
+                    {lang === "es" ? "Aplicación rápida" : "Quick apply"}
                   </span>
                 ) : null}
               </div>
             </div>
           </div>
 
-          <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_260px]">
+          <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_280px]">
             <div className="min-w-0 space-y-6">
-              <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+              <div className="rounded-2xl border border-[#F0E8DC] bg-gradient-to-br from-[#FFFBF7] via-[#FFF9F0] to-[#FFF3E6] p-5 shadow-[0_10px_32px_rgba(42,40,38,0.06)] sm:p-6">
+                <div className="flex flex-wrap items-start gap-4">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#FFF8EC] to-[#F3E0C0] text-base font-bold text-[#6B5320] shadow-inner ring-1 ring-[#E8DFD0]/90">
+                    {job.companyInitials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#5B6F82]">
+                      {lang === "es" ? "Empleador" : "Employer"}
+                    </p>
+                    <p className="mt-0.5 text-xl font-bold tracking-tight text-[#2A2826]">{job.company}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {job.verifiedEmployer ? (
+                        <span className={EMPLEOS_BADGE_VERIFIED}>{lang === "es" ? "Empleador verificado" : "Verified employer"}</span>
+                      ) : null}
+                      {job.premiumEmployer ? (
+                        <span className={EMPLEOS_BADGE_PREMIUM}>{lang === "es" ? "Negocio premium" : "Premium business"}</span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 sm:gap-x-8">
                 <div>
                   <dt className="text-xs font-semibold uppercase tracking-wide text-[#5B6F82]">
                     {lang === "es" ? "Ubicación" : "Location"}
@@ -115,12 +142,12 @@ export function EmpleoPublicDetailClient({ job }: Props) {
               </dl>
 
               <section>
-                <h2 className="text-lg font-bold">{lang === "es" ? "Descripción" : "Description"}</h2>
+                <h2 className="text-lg font-bold tracking-tight">{lang === "es" ? "Descripción" : "Description"}</h2>
                 <p className="mt-2 text-sm leading-relaxed text-[#4A4744]">{job.description}</p>
               </section>
 
               <section>
-                <h2 className="text-lg font-bold">{lang === "es" ? "Requisitos" : "Requirements"}</h2>
+                <h2 className="text-lg font-bold tracking-tight">{lang === "es" ? "Requisitos" : "Requirements"}</h2>
                 <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-[#4A4744]">
                   {job.requirements.map((r) => (
                     <li key={r}>{r}</li>
@@ -129,7 +156,7 @@ export function EmpleoPublicDetailClient({ job }: Props) {
               </section>
 
               <section>
-                <h2 className="text-lg font-bold">{lang === "es" ? "Beneficios" : "Benefits"}</h2>
+                <h2 className="text-lg font-bold tracking-tight">{lang === "es" ? "Beneficios" : "Benefits"}</h2>
                 <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-[#4A4744]">
                   {job.benefits.map((b) => (
                     <li key={b}>{b}</li>
@@ -138,34 +165,49 @@ export function EmpleoPublicDetailClient({ job }: Props) {
               </section>
             </div>
 
-            <aside className="flex flex-col gap-4 rounded-2xl border border-[#F0E8DC] bg-[#FFFBF7] p-5 lg:sticky lg:top-28">
-              {job.quickApply ? (
-                <p className="text-xs font-semibold text-[#4F6B82]">
-                  {lang === "es" ? "Esta vacante acepta aplicación rápida (demo)." : "Quick apply available (demo)."}
+            <aside className="flex flex-col gap-4 rounded-2xl border border-[#F0E8DC] bg-gradient-to-b from-[#FFFBF7] to-[#FFF8EC] p-5 shadow-[0_12px_36px_rgba(42,40,38,0.07)] ring-1 ring-[#E8DFD0]/60 lg:sticky lg:top-28">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#5B6F82]">
+                  {lang === "es" ? "Tu siguiente paso" : "Your next step"}
                 </p>
-              ) : null}
-              <Link
-                href={appendLangToPath("/contacto", lang)}
-                className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#E8A54B] via-[#D9A23A] to-[#C9942E] px-4 text-sm font-bold text-[#2A2826] shadow-md"
-              >
-                {lang === "es" ? "Aplicar o contactar" : "Apply or contact"}
+                {job.quickApply ? (
+                  <p className="mt-1 text-xs font-medium leading-relaxed text-[#4A4744]">
+                    {lang === "es"
+                      ? "Esta vacante admite aplicación rápida: Leonix canaliza tu mensaje al equipo correspondiente."
+                      : "Quick apply is enabled — Leonix routes your message to the right team for this listing."}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs font-medium leading-relaxed text-[#4A4744]">
+                    {lang === "es"
+                      ? "Envía tu interés por Leonix; un asesor o el empleador te contactará con los siguientes pasos."
+                      : "Send your interest through Leonix — an advisor or the employer will follow up with next steps."}
+                  </p>
+                )}
+              </div>
+              <Link href={appendLangToPath("/contacto", lang)} className={`${EMPLEOS_CTA_PRIMARY} w-full px-4 text-center`}>
+                {lang === "es" ? "Enviar interés por Leonix" : "Send interest via Leonix"}
               </Link>
+              <p className="text-center text-[11px] leading-relaxed text-[#7A756E]">
+                {lang === "es"
+                  ? "Te lleva a contacto seguro; no compartimos tu información fuera de este flujo."
+                  : "Opens our secure contact flow — we do not share your details outside this path."}
+              </p>
               <Link
                 href={buildEmpleosResultadosUrl(lang, { category: job.category })}
-                className="text-center text-sm font-semibold text-[#4F6B82] hover:underline"
+                className={`${EMPLEOS_LINK_MUTED} text-center`}
               >
                 {lang === "es" ? "Más empleos en esta categoría" : "More jobs in this category"}
               </Link>
-              <Link href={publishHref} className="text-center text-sm font-semibold text-[#4F6B82] hover:underline">
-                {lang === "es" ? "¿Publicar una vacante?" : "Post a job?"}
+              <Link href={publishHref} className={`${EMPLEOS_LINK_MUTED} text-center`}>
+                {lang === "es" ? "¿Eres empleador? Publica una vacante" : "Employer? Post a job"}
               </Link>
             </aside>
           </div>
         </div>
 
         {related.length > 0 ? (
-          <section className="mt-12" aria-labelledby="rel">
-            <h2 id="rel" className="text-xl font-bold">
+          <section className="mt-14 sm:mt-16" aria-labelledby="rel">
+            <h2 id="rel" className="text-xl font-bold tracking-tight">
               {lang === "es" ? "Empleos relacionados" : "Related jobs"}
             </h2>
             <div className="mt-4 flex flex-col gap-4">

@@ -127,12 +127,12 @@ export function AutosLandingPage() {
     const n = copy.needBrowse;
     const h = copy.needBrowseHint;
     return [
-      { title: n.firstCar, hint: h.firstCar, href: chipHref({ priceMax: "22000", yearMax: "2019" }) },
-      { title: n.lowMiles, hint: h.lowMiles, href: chipHref({ mileageMax: "35000" }) },
-      { title: n.economical, hint: h.economical, href: chipHref({ priceMax: "23000" }) },
-      { title: n.family, hint: h.family, href: chipHref({ bodyStyle: "SUV", mileageMax: "60000" }) },
-      { title: n.work, hint: h.work, href: chipHref({ bodyStyle: "Truck" }) },
-      { title: n.luxury, hint: h.luxury, href: chipHref({ priceMin: "45000" }) },
+      { key: "firstCar", title: n.firstCar, hint: h.firstCar, href: chipHref({ priceMax: "22000", yearMax: "2019" }) },
+      { key: "lowMiles", title: n.lowMiles, hint: h.lowMiles, href: chipHref({ mileageMax: "35000" }) },
+      { key: "economical", title: n.economical, hint: h.economical, href: chipHref({ priceMax: "23000" }) },
+      { key: "family", title: n.family, hint: h.family, href: chipHref({ bodyStyle: "SUV", mileageMax: "60000" }) },
+      { key: "work", title: n.work, hint: h.work, href: chipHref({ bodyStyle: "Truck" }) },
+      { key: "luxury", title: n.luxury, hint: h.luxury, href: chipHref({ priceMin: "45000" }) },
     ];
   }, [copy, chipHref]);
 
@@ -177,7 +177,7 @@ export function AutosLandingPage() {
         </div>
       </div>
 
-      <main className="mx-auto flex max-w-[1280px] flex-col gap-10 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] pt-8 sm:gap-12 sm:pt-10 md:gap-14 md:pt-12">
+      <main className="mx-auto flex min-w-0 max-w-[1280px] flex-col gap-8 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] pt-7 sm:gap-10 sm:pt-9 md:gap-12 md:pt-11">
         <AutosHeroSearch
           copy={copy}
           searchQ={searchQ}

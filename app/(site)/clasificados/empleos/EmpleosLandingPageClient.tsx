@@ -25,8 +25,8 @@ export function EmpleosLandingPage() {
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_15%_-10%,rgba(232,165,75,0.2),transparent_55%),radial-gradient(ellipse_at_90%_0%,rgba(91,111,130,0.07),transparent_45%)]"
           aria-hidden
         />
-        <main className="relative mx-auto w-full max-w-7xl px-4 pb-20 pt-24 sm:px-6 sm:pt-28 lg:px-8">
-          <div className="flex flex-col gap-14 sm:gap-16 lg:gap-20">
+        <main className="relative mx-auto w-full max-w-7xl px-4 pb-24 pt-24 sm:px-6 sm:pt-28 lg:px-8">
+          <div className="flex flex-col gap-16 sm:gap-[4.5rem] lg:gap-24">
             <HeroAndSearch lang={lang} />
             <QuickSearchTiles lang={lang} />
             <FeaturedJobsLandingSection lang={lang} />

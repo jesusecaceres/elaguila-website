@@ -42,11 +42,15 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
   const sellerKind = inferServiciosSellerPresentation(row.profile_json);
   const promoted = isServiciosListingPromoted(row);
 
+  const cardSurface = promoted
+    ? "border-[#C9A84A]/35 bg-white shadow-[0_22px_52px_-32px_rgba(201,168,74,0.28)] ring-2 ring-[#C9A84A]/20 transition hover:border-[#C9A84A]/45 hover:shadow-[0_26px_58px_-30px_rgba(201,168,74,0.35)]"
+    : "border-neutral-200/90 bg-white shadow-sm transition hover:border-[#3B66AD]/35 hover:shadow-md";
+
   return (
     <li>
       <Link
         href={href}
-        className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-neutral-200/90 bg-white shadow-sm transition hover:border-[#3B66AD]/35 hover:shadow-md"
+        className={`flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border ${cardSurface}`}
       >
         <div className="relative aspect-[16/9] w-full bg-gradient-to-br from-[#3B66AD]/8 to-[#F6F0E2]/40">
           {thumb ? (
@@ -100,6 +104,12 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
             <span className="line-clamp-2 text-[11px] font-bold uppercase tracking-wide text-[#3B66AD]">{category}</span>
           ) : null}
           <span className="text-base font-bold leading-snug text-[#3D2C12]">{profile.identity.businessName}</span>
+          {row.city?.trim() ? (
+            <span className="text-[11px] font-medium uppercase tracking-wide text-[#64748b]">
+              {lang === "en" ? "Listing base:" : "Base del anuncio:"}{" "}
+              <span className="font-semibold text-[#3d4f62]">{row.city.trim()}</span>
+            </span>
+          ) : null}
           {location ? (
             <span className="flex items-start gap-1.5 text-sm text-neutral-600">
               <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#3B66AD]" aria-hidden />
@@ -109,31 +119,36 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
           {qf ? <span className="text-xs font-medium text-neutral-500">{qf}</span> : null}
           {hasSnippet ? <p className="line-clamp-3 text-sm leading-relaxed text-neutral-600">{snippet}</p> : null}
 
-          <div className="mt-auto flex flex-wrap gap-1.5 border-t border-neutral-100 pt-2.5 sm:gap-2 sm:pt-3">
+          <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-neutral-100 pt-2.5 sm:gap-2 sm:pt-3">
+            <span className="text-[12px] font-bold text-[#3B66AD]">
+              {lang === "en" ? "View profile →" : "Ver vitrina →"}
+            </span>
+            <div className="flex flex-wrap justify-end gap-1.5 sm:gap-2">
             {phone && tel ? (
-              <span className="inline-flex min-h-[36px] items-center gap-1 rounded-full border border-neutral-200 bg-[#F9F8F6] px-2.5 py-1 text-[11px] font-semibold text-neutral-800">
+              <span className="inline-flex min-h-[40px] items-center gap-1 rounded-full border border-neutral-200 bg-[#F9F8F6] px-2.5 py-1.5 text-[11px] font-semibold text-neutral-800">
                 <FiPhone className="h-3.5 w-3.5 text-[#3B66AD]" aria-hidden />
                 {L.call}
               </span>
             ) : null}
             {wa ? (
-              <span className="inline-flex min-h-[36px] items-center gap-1 rounded-full border border-neutral-200 bg-[#F9F8F6] px-2.5 py-1 text-[11px] font-semibold text-neutral-800">
+              <span className="inline-flex min-h-[40px] items-center gap-1 rounded-full border border-neutral-200 bg-[#F9F8F6] px-2.5 py-1.5 text-[11px] font-semibold text-neutral-800">
                 <FaWhatsapp className="h-3.5 w-3.5 text-[#25D366]" aria-hidden />
                 WhatsApp
               </span>
             ) : null}
             {msg ? (
-              <span className="inline-flex min-h-[36px] items-center gap-1 rounded-full border border-neutral-200 bg-[#F9F8F6] px-2.5 py-1 text-[11px] font-semibold text-neutral-800">
+              <span className="inline-flex min-h-[40px] items-center gap-1 rounded-full border border-neutral-200 bg-[#F9F8F6] px-2.5 py-1.5 text-[11px] font-semibold text-neutral-800">
                 <FiMessageCircle className="h-3.5 w-3.5 text-[#3B66AD]" aria-hidden />
                 {L.message}
               </span>
             ) : null}
             {web ? (
-              <span className="inline-flex min-h-[36px] items-center gap-1 rounded-full border border-neutral-200 bg-[#F9F8F6] px-2.5 py-1 text-[11px] font-semibold text-neutral-800">
+              <span className="inline-flex min-h-[40px] items-center gap-1 rounded-full border border-neutral-200 bg-[#F9F8F6] px-2.5 py-1.5 text-[11px] font-semibold text-neutral-800">
                 <FiGlobe className="h-3.5 w-3.5 text-[#3B66AD]" aria-hidden />
                 {L.visitWebsite}
               </span>
             ) : null}
+            </div>
           </div>
         </div>
       </Link>

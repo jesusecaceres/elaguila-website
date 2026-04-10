@@ -55,8 +55,8 @@ function ListingCard({
 
   const shell =
     variant === "recent"
-      ? "group flex h-full flex-col overflow-hidden rounded-[20px] border border-dashed border-[#D97706]/35 bg-[#FFFCF7] shadow-[0_8px_28px_-18px_rgba(45,36,30,0.28)] ring-2 ring-[#D97706]/15 transition hover:-translate-y-0.5 hover:shadow-[0_12px_36px_-16px_rgba(45,36,30,0.34)]"
-      : "group flex h-full flex-col overflow-hidden rounded-[20px] border border-[#2D241E]/[0.08] bg-[#FFFCF7] shadow-[0_12px_40px_-20px_rgba(45,36,30,0.35)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_44px_-18px_rgba(45,36,30,0.4)]";
+      ? "group flex h-full flex-col overflow-hidden rounded-[20px] border border-dashed border-[#D97706]/30 bg-[#FDFBF7] shadow-[0_6px_24px_-16px_rgba(45,36,30,0.22)] ring-1 ring-[#D97706]/20 transition hover:-translate-y-0.5 hover:shadow-[0_10px_32px_-14px_rgba(45,36,30,0.3)]"
+      : "group flex h-full flex-col overflow-hidden rounded-[20px] border border-[#2D241E]/[0.08] bg-[#FFFCF7] shadow-[0_14px_48px_-22px_rgba(45,36,30,0.38)] ring-1 ring-[#D97706]/15 transition hover:-translate-y-0.5 hover:shadow-[0_18px_52px_-20px_rgba(45,36,30,0.42)]";
 
   return (
     <article className={shell}>
@@ -70,12 +70,16 @@ function ListingCard({
         />
         {variant === "featured" ? (
           <span
-            className="absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-bold text-[#FFFCF7] shadow-sm"
+            className="absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-bold text-[#FFFCF7] shadow-[0_4px_14px_-4px_rgba(180,83,9,0.55)] ring-1 ring-white/25"
             style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
           >
             {lang === "es" ? "Destacado" : "Featured"}
           </span>
-        ) : null}
+        ) : (
+          <span className="absolute left-3 top-3 rounded-full border border-[#2D241E]/10 bg-[#FFFCF7]/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#2D241E]/75 shadow-sm backdrop-blur-sm">
+            {lang === "es" ? "Recién publicado" : "New listing"}
+          </span>
+        )}
       </div>
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         <h3 className="font-serif text-lg font-semibold leading-snug text-[#2D241E]">{name}</h3>
@@ -93,7 +97,7 @@ function ListingCard({
           </span>
           <Link
             href={detailHref}
-            className="inline-flex min-h-[40px] min-w-[96px] items-center justify-center rounded-full px-4 text-xs font-bold text-[#FFFCF7] shadow-[0_8px_20px_-10px_rgba(180,83,9,0.55)] transition hover:brightness-[1.04] active:opacity-95"
+            className="inline-flex min-h-[40px] min-w-[96px] items-center justify-center rounded-full px-4 text-xs font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(180,83,9,0.58)] transition hover:brightness-[1.05] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2"
             style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
           >
             {lang === "es" ? "Ver más" : "See more"}
@@ -129,6 +133,8 @@ export function RestaurantesLandingPage() {
     return buildRestaurantesResultsHref(lang, { q: searchQ.trim(), ...loc });
   }, [lang, searchQ, location]);
 
+  const allResultsHref = useMemo(() => buildRestaurantesResultsHref(lang, {}), [lang]);
+
   const copy = useMemo(() => {
     if (lang === "en") {
       return {
@@ -136,21 +142,28 @@ export function RestaurantesLandingPage() {
         breadcrumbCurrent: "Restaurants",
         heroLead: "Find the best restaurants ",
         heroAccent: "near you",
-        heroSub: "Search trusted spots for any craving or occasion.",
-        searchPh: "E.g. pizza, sushi, vegetarian…",
-        locationPh: "E.g. city or ZIP code",
+        heroSub: "Trusted local spots for every craving—search by name, cuisine, or dish.",
+        searchPh: "Restaurant, cuisine, or dish…",
+        locationPh: "City or 5-digit ZIP",
+        searchHelper: "Search by restaurant name, cuisine type, or a specific dish.",
+        locationHelper: "Add a city or U.S. ZIP to focus results near that area.",
         searchCta: "Search",
         trust: [
-          "Call, text, and directions in one tap",
-          "Verified and featured businesses",
-          "Find food near you in seconds",
+          "Discover options near you with phone, text, and directions in one place.",
+          "Verified and featured businesses on Leonix—confidence before you choose.",
+          "Quick paths to delivery, takeout, family-friendly picks, and more in results.",
         ],
         featuredTitle: "Featured restaurants",
+        featuredIntro: "Premium placements—hand-picked visibility for standout listings.",
         browseTitle: "Explore cuisine types",
-        recentTitle: "Recent restaurants",
-        ctaHeadline: "Do you own a restaurant?",
-        ctaSub: "Reach more diners by showcasing your restaurant on Leonix.",
+        browseIntro: "Jump straight into results with a cuisine in mind.",
+        recentTitle: "Recently added",
+        recentIntro: "New listings on Leonix—fresh places to try first.",
+        ctaHeadline: "Own a restaurant?",
+        ctaSub:
+          "Put your menu in front of diners actively searching Leonix—premium exposure, clear discovery, and room to grow with featured placement.",
         ctaBtn: "Advertise your restaurant",
+        exploreAll: "Explore all results",
       };
     }
     return {
@@ -158,21 +171,28 @@ export function RestaurantesLandingPage() {
       breadcrumbCurrent: "Restaurantes",
       heroLead: "Encuentra los mejores restaurantes ",
       heroAccent: "cerca de ti",
-      heroSub: "Busca lugares de confianza para cualquier antojo o necesidad.",
-      searchPh: "Ej. pizza, sushi, vegetariano…",
-      locationPh: "Ej. Ciudad o Código Postal",
+      heroSub: "Lugares de confianza para cada antojo: busca por nombre, cocina o platillo.",
+      searchPh: "Restaurante, cocina o platillo…",
+      locationPh: "Ciudad o código postal (5 dígitos)",
+      searchHelper: "Puedes buscar por nombre del lugar, tipo de cocina o un platillo concreto.",
+      locationHelper: "Indica ciudad o código postal de EE. UU. para acotar la zona.",
       searchCta: "Buscar",
       trust: [
-        "Llama, texto y direcciones al instante",
-        "Negocios verificados y destacados",
-        "Encuentra comida cerca de ti en segundos",
+        "Encuentra opciones cerca de ti con llamada, mensaje y direcciones en un solo lugar.",
+        "Negocios verificados y destacados en Leonix: confianza antes de elegir.",
+        "Atajos útiles a delivery, para llevar, ambiente familiar y más desde resultados.",
       ],
       featuredTitle: "Restaurantes Destacados",
+      featuredIntro: "Ubicaciones premium: mayor visibilidad para anuncios destacados.",
       browseTitle: "Explora los tipos de cocina",
-      recentTitle: "Restaurantes Recientes",
+      browseIntro: "Entra a resultados con una cocina ya seleccionada.",
+      recentTitle: "Restaurantes recientes",
+      recentIntro: "Nuevas fichas en Leonix: lugares recién publicados para descubrir.",
       ctaHeadline: "¿Tienes un restaurante?",
-      ctaSub: "Atrae más comensales anunciando tu restaurante en Leonix.",
+      ctaSub:
+        "Llega a comensales que ya buscan en Leonix: visibilidad clara, descubrimiento premium y espacio para crecer con destacados.",
       ctaBtn: "Anuncia tu Restaurante",
+      exploreAll: "Explorar todos los resultados",
     };
   }, [lang]);
 
@@ -193,7 +213,7 @@ export function RestaurantesLandingPage() {
             <ViajesLangSwitch compact />
             <Link
               href={publishHref}
-              className="inline-flex min-h-[40px] items-center rounded-full border border-[#2D241E]/15 bg-[#FFFCF7] px-4 text-[11px] font-bold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/45"
+              className="inline-flex min-h-[40px] items-center rounded-full border border-[#2D241E]/12 bg-[#FFFCF7] px-4 text-[11px] font-bold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/60 focus-visible:ring-offset-2"
             >
               {lang === "es" ? "Anunciar" : "Advertise"}
             </Link>
@@ -218,7 +238,7 @@ export function RestaurantesLandingPage() {
               e.preventDefault();
               router.push(searchResultsHref);
             }}
-            className="flex flex-col gap-4 lg:flex-row lg:items-stretch"
+            className="flex flex-col gap-4 lg:flex-row lg:items-start"
           >
             <div className="min-w-0 flex-1">
               <label className="sr-only" htmlFor="rx-landing-q">
@@ -232,9 +252,13 @@ export function RestaurantesLandingPage() {
                   onChange={(e) => setSearchQ(e.target.value)}
                   placeholder={copy.searchPh}
                   autoComplete="off"
-                  className="min-h-[52px] w-full rounded-[16px] border border-[#2D241E]/[0.12] bg-[#FFFCF7] py-3 pl-11 pr-3 text-sm text-[#2D241E] outline-none ring-[#D97706]/30 focus:ring-2"
+                  aria-describedby="rx-landing-q-hint"
+                  className="min-h-[52px] w-full rounded-[16px] border border-[#2D241E]/[0.12] bg-[#FFFCF7] py-3 pl-11 pr-3 text-sm text-[#2D241E] outline-none ring-[#D97706]/30 transition-shadow focus:ring-2"
                 />
               </div>
+              <p id="rx-landing-q-hint" className="mt-2 text-left text-[11px] leading-snug text-[#2D241E]/55 sm:text-xs">
+                {copy.searchHelper}
+              </p>
             </div>
             <div className="min-w-0 flex-1">
               <label className="sr-only" htmlFor="rx-landing-loc">
@@ -251,14 +275,18 @@ export function RestaurantesLandingPage() {
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder={copy.locationPh}
                   autoComplete="address-level2"
-                  className="min-h-[52px] w-full rounded-[16px] border border-[#2D241E]/[0.12] bg-[#FFFCF7] py-3 pl-11 pr-3 text-sm text-[#2D241E] outline-none ring-[#D97706]/30 focus:ring-2"
+                  aria-describedby="rx-landing-loc-hint"
+                  className="min-h-[52px] w-full rounded-[16px] border border-[#2D241E]/[0.12] bg-[#FFFCF7] py-3 pl-11 pr-3 text-sm text-[#2D241E] outline-none ring-[#D97706]/30 transition-shadow focus:ring-2"
                 />
               </div>
+              <p id="rx-landing-loc-hint" className="mt-2 text-left text-[11px] leading-snug text-[#2D241E]/55 sm:text-xs">
+                {copy.locationHelper}
+              </p>
             </div>
-            <div className="flex items-stretch lg:w-[200px]">
+            <div className="flex items-stretch self-center lg:w-[200px] lg:self-center">
               <button
                 type="submit"
-                className="inline-flex min-h-[52px] w-full flex-1 items-center justify-center rounded-[16px] px-6 text-sm font-bold text-[#FFFCF7] shadow-[0_10px_32px_-12px_rgba(180,83,9,0.55)] transition hover:brightness-[1.03] active:opacity-95"
+                className="inline-flex min-h-[52px] w-full flex-1 items-center justify-center rounded-[16px] px-6 text-sm font-bold text-[#FFFCF7] shadow-[0_12px_36px_-10px_rgba(180,83,9,0.6)] transition hover:brightness-[1.04] hover:shadow-[0_14px_40px_-10px_rgba(180,83,9,0.58)] active:scale-[0.99] active:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2"
                 style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
               >
                 {copy.searchCta}
@@ -271,7 +299,7 @@ export function RestaurantesLandingPage() {
               <Link
                 key={f.id}
                 href={buildRestaurantesResultsHref(lang, f.resultParams)}
-                className="inline-flex min-h-[40px] items-center rounded-full border border-[#D97706]/35 bg-[#FFFCF7] px-3.5 py-2 text-xs font-semibold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/55 hover:bg-[#FFF7ED] touch-manipulation"
+                className="inline-flex min-h-[40px] items-center rounded-full border border-[#D97706]/35 bg-[#FFFCF7] px-4 py-2 text-xs font-semibold text-[#2D241E] shadow-sm transition-all duration-200 hover:-translate-y-px hover:border-[#D97706]/60 hover:bg-[#FFF7ED] hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/70 focus-visible:ring-offset-2 touch-manipulation"
               >
                 {lang === "es" ? f.labelEs : f.labelEn}
               </Link>
@@ -286,7 +314,7 @@ export function RestaurantesLandingPage() {
               <Link
                 key={c.id}
                 href={buildRestaurantesResultsHref(lang, { cuisine: c.cuisineKey })}
-                className="inline-flex min-h-[40px] items-center rounded-full border border-white/15 bg-white/10 px-3.5 py-2 text-xs font-semibold text-[#FFFCF7] backdrop-blur-sm transition hover:bg-white/16 touch-manipulation"
+                className="inline-flex min-h-[40px] items-center rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold text-[#FFFCF7] backdrop-blur-sm transition-all duration-200 hover:-translate-y-px hover:border-amber-300/45 hover:bg-white/[0.18] hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FBBF24]/85 focus-visible:ring-offset-2 focus-visible:ring-offset-[#2D241E] touch-manipulation"
               >
                 {lang === "es" ? c.labelEs : c.labelEn}
               </Link>
@@ -296,20 +324,28 @@ export function RestaurantesLandingPage() {
       </header>
 
       <main className="mx-auto max-w-[1280px] space-y-12 bg-[#FDFBF7] px-4 pb-16 text-[#2D241E] sm:space-y-16 sm:px-5 sm:pb-20 lg:px-6">
-        <section className="grid grid-cols-1 gap-4 rounded-[20px] border border-[#2D241E]/[0.06] bg-[#FFFCF7]/80 p-5 shadow-sm sm:grid-cols-3 sm:gap-6 sm:p-6">
+        <section
+          className="grid grid-cols-1 gap-6 rounded-[20px] border border-[#2D241E]/[0.06] bg-[#FFFCF7]/90 p-6 shadow-sm sm:grid-cols-3 sm:gap-8 sm:p-8"
+          aria-label={lang === "es" ? "Por qué Leonix Restaurantes" : "Why search Leonix Restaurants"}
+        >
           {copy.trust.map((line) => (
-            <p key={line} className="text-center text-xs font-medium leading-relaxed text-[#2D241E]/72 sm:text-sm">
+            <p key={line} className="text-center text-sm font-medium leading-relaxed text-[#2D241E]/80">
               {line}
             </p>
           ))}
         </section>
 
         <section aria-labelledby="rx-featured-heading">
-          <div className="flex items-center gap-2">
-            <FaStar className="h-4 w-4 shrink-0" style={{ color: ACCENT }} aria-hidden />
-            <h2 id="rx-featured-heading" className="font-serif text-xl font-semibold tracking-tight sm:text-2xl">
-              {copy.featuredTitle}
-            </h2>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <FaStar className="h-4 w-4 shrink-0" style={{ color: ACCENT }} aria-hidden />
+                <h2 id="rx-featured-heading" className="font-serif text-xl font-semibold tracking-tight sm:text-2xl">
+                  {copy.featuredTitle}
+                </h2>
+              </div>
+              <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#2D241E]/60 sm:text-sm">{copy.featuredIntro}</p>
+            </div>
           </div>
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {RESTAURANTES_BLUEPRINT_FEATURED.map((card) => (
@@ -325,11 +361,14 @@ export function RestaurantesLandingPage() {
         </section>
 
         <section aria-labelledby="rx-browse-heading">
-          <div className="flex items-center gap-2">
-            <FaStar className="h-4 w-4 shrink-0" style={{ color: ACCENT }} aria-hidden />
-            <h2 id="rx-browse-heading" className="font-serif text-xl font-semibold tracking-tight sm:text-2xl">
-              {copy.browseTitle}
-            </h2>
+          <div>
+            <div className="flex items-center gap-2">
+              <FaStar className="h-4 w-4 shrink-0" style={{ color: ACCENT }} aria-hidden />
+              <h2 id="rx-browse-heading" className="font-serif text-xl font-semibold tracking-tight sm:text-2xl">
+                {copy.browseTitle}
+              </h2>
+            </div>
+            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#2D241E]/60 sm:text-sm">{copy.browseIntro}</p>
           </div>
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 lg:gap-4">
             {RESTAURANTES_BLUEPRINT_CATEGORY_TILES.map((tile) => (
@@ -358,11 +397,14 @@ export function RestaurantesLandingPage() {
         </section>
 
         <section aria-labelledby="rx-recent-heading">
-          <div className="flex items-center gap-2">
-            <FaStar className="h-4 w-4 shrink-0" style={{ color: ACCENT }} aria-hidden />
-            <h2 id="rx-recent-heading" className="font-serif text-xl font-semibold tracking-tight sm:text-2xl">
-              {copy.recentTitle}
-            </h2>
+          <div>
+            <div className="flex items-center gap-2">
+              <FaStar className="h-4 w-4 shrink-0" style={{ color: ACCENT }} aria-hidden />
+              <h2 id="rx-recent-heading" className="font-serif text-xl font-semibold tracking-tight sm:text-2xl">
+                {copy.recentTitle}
+              </h2>
+            </div>
+            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#2D241E]/60 sm:text-sm">{copy.recentIntro}</p>
           </div>
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {RESTAURANTES_BLUEPRINT_RECENT.map((card) => (
@@ -376,6 +418,15 @@ export function RestaurantesLandingPage() {
             ))}
           </div>
         </section>
+
+        <div className="mt-10 flex justify-center sm:mt-12">
+          <Link
+            href={allResultsHref}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#D97706]/40 bg-[#FFFCF7] px-6 text-sm font-semibold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/65 hover:bg-[#FFF7ED] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/70 focus-visible:ring-offset-2"
+          >
+            {copy.exploreAll}
+          </Link>
+        </div>
 
         <section
           className="relative overflow-hidden rounded-[24px] border border-[#2D241E]/[0.08] shadow-[0_20px_50px_-28px_rgba(45,36,30,0.35)]"
@@ -393,11 +444,11 @@ export function RestaurantesLandingPage() {
               <h2 id="rx-owner-cta" className="font-serif text-2xl font-semibold leading-tight text-[#2D241E] sm:text-3xl">
                 {copy.ctaHeadline}
               </h2>
-              <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-[#2D241E]/75 sm:mx-0 sm:text-base">{copy.ctaSub}</p>
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-[#2D241E]/78 sm:mx-0 sm:text-base">{copy.ctaSub}</p>
               <div className="mt-6 flex justify-center sm:justify-start">
                 <Link
                   href={publishHref}
-                  className="inline-flex min-h-[52px] min-w-[200px] items-center justify-center rounded-[16px] px-8 text-sm font-bold text-[#FFFCF7] shadow-[0_12px_36px_-14px_rgba(180,83,9,0.55)] transition hover:brightness-[1.03] active:opacity-95"
+                  className="inline-flex min-h-[52px] min-w-[220px] items-center justify-center rounded-[16px] px-8 text-sm font-bold text-[#FFFCF7] shadow-[0_14px_40px_-12px_rgba(180,83,9,0.58)] transition hover:brightness-[1.04] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2"
                   style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
                 >
                   {copy.ctaBtn}

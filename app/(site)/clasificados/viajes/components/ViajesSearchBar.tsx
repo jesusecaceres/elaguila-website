@@ -60,12 +60,16 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
     <form
       onSubmit={onSubmit}
       aria-describedby={hintId}
+      aria-label={s.moduleTitle}
       className="rounded-3xl border-2 border-[color:var(--lx-gold-border)] bg-[#fffdf9]/98 p-4 shadow-[0_28px_64px_-32px_rgba(25,50,70,0.28)] backdrop-blur-md ring-offset-2 ring-offset-[#f3ebdd] focus-within:ring-2 focus-within:ring-[color:var(--lx-focus-ring)] sm:p-6 md:p-7"
       style={{
         boxShadow:
           "0 28px 56px -18px rgba(30, 40, 55, 0.16), 0 0 0 1px rgba(201, 168, 74, 0.18), inset 0 1px 0 rgba(255,252,247,0.9)",
       }}
     >
+      <div className="mb-4 border-b border-[color:var(--lx-gold-border)]/35 pb-4 sm:mb-5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-900/80">{s.moduleTitle}</p>
+      </div>
       <div className="grid grid-cols-1 gap-5 md:grid-cols-12 md:items-end md:gap-0 md:divide-x md:divide-[color:var(--lx-nav-border)]">
         <label className="md:col-span-3 md:pr-5">
           <span className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]">

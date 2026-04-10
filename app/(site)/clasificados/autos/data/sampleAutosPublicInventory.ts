@@ -342,11 +342,19 @@ export function getAutosPublicListingById(id: string): AutosPublicListing | unde
   return AUTOS_PUBLIC_SAMPLE_LISTINGS.find((l) => l.id === id);
 }
 
-/** Landing featured row: promoted/featured first, then fill to `max` for a full marketplace strip. */
+/** Landing featured row: promoted first, then fill — ensures at least one private listing when inventory includes both lanes. */
 export function getLandingFeaturedRow(listings: AutosPublicListing[], max = 6): AutosPublicListing[] {
   const featured = listings.filter((l) => l.featured);
   const rest = listings.filter((l) => !l.featured);
-  return [...featured, ...rest].slice(0, max);
+  const row = [...featured, ...rest].slice(0, max);
+  const hasPrivate = row.some((l) => l.sellerType === "private");
+  if (!hasPrivate) {
+    const priv = listings.find((l) => l.sellerType === "private");
+    if (priv && !row.some((l) => l.id === priv.id) && row.length > 0) {
+      row[row.length - 1] = priv;
+    }
+  }
+  return row;
 }
 
 /** “Recién agregados” — non-featured slice, newest-first by year/price. */

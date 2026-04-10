@@ -24,6 +24,7 @@ import {
   sortEmpleosJobs,
 } from "../lib/empleosResultsQuery";
 import { buildEmpleosResultadosUrl, type EmpleosResultadosParams } from "../shared/utils/empleosListaUrl";
+import { EMPLEOS_CTA_PRIMARY, EMPLEOS_CTA_SECONDARY, EMPLEOS_FIELD, EMPLEOS_LINK_MUTED } from "../lib/empleosPremiumUi";
 import { EmpleosJobResultCard } from "./EmpleosJobResultCard";
 
 const COPY = {
@@ -31,37 +32,43 @@ const COPY = {
     hub: "Clasificados",
     landing: "Empleos",
     resultsTitle: "Resultados de empleos",
-    countLabel: "vacantes",
+    resultsSubtitle: "Ajusta filtros para acercarte a la vacante ideal.",
     search: "Buscar",
     clear: "Limpiar filtros",
-    sortLabel: "Ordenar",
+    sortLabel: "Ordenar lista por",
     sortRelevance: "Relevancia",
     sortDate: "Más recientes",
     sortSalary: "Salario mayor",
+    sortHint: "Se aplica a los resultados ya filtrados.",
     activeFilters: "Filtros activos",
-    emptyTitle: "No hay vacantes con estos filtros",
-    emptyHint: "Prueba quitar filtros o amplía la ciudad o palabra clave.",
+    emptyTitle: "No encontramos vacantes con esta combinación",
+    emptyHint: "Amplía ciudad o palabra clave, o restablece filtros para volver a explorar.",
+    emptyExplore: "Volver a Empleos",
     mobileFilters: "Filtros y opciones",
     featuredBlock: "Destacados y promocionados",
     allBlock: "Todas las vacantes",
+    formAria: "Filtros de búsqueda de empleos",
   },
   en: {
     hub: "Classifieds",
     landing: "Jobs",
     resultsTitle: "Job results",
-    countLabel: "openings",
+    resultsSubtitle: "Refine filters to get closer to the right role.",
     search: "Search",
     clear: "Clear filters",
-    sortLabel: "Sort",
+    sortLabel: "Sort list by",
     sortRelevance: "Relevance",
     sortDate: "Newest",
     sortSalary: "Highest salary",
+    sortHint: "Applies to your filtered results.",
     activeFilters: "Active filters",
-    emptyTitle: "No jobs match these filters",
-    emptyHint: "Try removing filters or broadening your keyword or city.",
+    emptyTitle: "No openings match this combination",
+    emptyHint: "Broaden your city or keyword, or reset filters to explore again.",
+    emptyExplore: "Back to Jobs home",
     mobileFilters: "Filters & options",
     featuredBlock: "Featured & promoted",
     allBlock: "All openings",
+    formAria: "Job search filters",
   },
 } as const;
 
@@ -111,6 +118,13 @@ function chipLabel(lang: Lang, key: string, val: string): string {
   if (key === "q") return `${lang === "es" ? "Palabra" : "Keyword"}: ${val}`;
   if (key === "city") return `${lang === "es" ? "Ubicación" : "Location"}: ${val}`;
   return `${key}: ${val}`;
+}
+
+function countLine(lang: Lang, n: number): string {
+  if (lang === "es") {
+    return n === 1 ? "Se encontró 1 vacante" : `Se encontraron ${n} vacantes`;
+  }
+  return n === 1 ? "1 opening found" : `${n} openings found`;
 }
 
 export function EmpleosResultsView() {
@@ -216,9 +230,9 @@ export function EmpleosResultsView() {
   const listMain = parsed.featuredOnly ? filtered : showFeaturedBlock ? standardRows : filtered;
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#FAF7F2] pb-20 text-[#2A2826]">
+    <div className="min-h-screen overflow-x-hidden bg-[#FAF7F2] pb-24 text-[#2A2826]">
       <header className="border-b border-[#E8DFD0] bg-[#FFFBF7]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-6 lg:px-8">
           <nav className="text-xs font-semibold text-[#4A4744] sm:text-sm" aria-label="Breadcrumb">
             <Link href={hubHref} className="hover:text-[#2A2826] hover:underline">
               {t.hub}
@@ -232,7 +246,7 @@ export function EmpleosResultsView() {
           </nav>
           <Link
             href={publishHref}
-            className="rounded-full bg-gradient-to-r from-[#E8A54B] to-[#D9A23A] px-4 py-2 text-xs font-bold text-[#2A2826] shadow-sm transition hover:brightness-105 sm:text-sm"
+            className="rounded-full bg-gradient-to-r from-[#E8A54B] to-[#D9A23A] px-4 py-2.5 text-xs font-bold text-[#2A2826] shadow-[0_6px_18px_rgba(201,148,46,0.28)] transition hover:brightness-105 active:scale-[0.99] sm:text-sm"
           >
             {lang === "es" ? "Publicar vacante" : "Post a job"}
           </Link>
@@ -240,16 +254,18 @@ export function EmpleosResultsView() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 pt-24 sm:px-6 sm:pt-28 lg:px-8">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t.resultsTitle}</h1>
-          <p className="text-sm font-medium text-[#5B6F82]">
-            {filtered.length} {t.countLabel}
-          </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t.resultsTitle}</h1>
+            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-[#4A4744]/95">{t.resultsSubtitle}</p>
+          </div>
+          <p className="shrink-0 text-sm font-semibold tabular-nums text-[#5B6F82]">{countLine(lang, filtered.length)}</p>
         </div>
 
         <form
+          aria-label={t.formAria}
           onSubmit={submitSearch}
-          className="mt-6 rounded-[1.25rem] border border-[#E8DFD0] bg-white p-4 shadow-[0_12px_36px_rgba(42,40,38,0.07)] sm:p-6"
+          className="mt-7 rounded-[1.25rem] border border-[#E8DFD0] bg-white p-4 shadow-[0_14px_40px_rgba(42,40,38,0.075)] ring-1 ring-[#F0E8DC]/90 sm:p-7"
         >
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <label className="md:col-span-2">
@@ -257,7 +273,7 @@ export function EmpleosResultsView() {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                className="min-h-11 w-full rounded-xl border border-[#E5DCCD] bg-[#FFFBF7] px-3 text-sm outline-none focus:border-[#D9A23A]/70 focus:ring-4 focus:ring-[#D9A23A]/15"
+                className={EMPLEOS_FIELD}
               />
             </label>
             <label>
@@ -265,7 +281,7 @@ export function EmpleosResultsView() {
               <input
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                className="min-h-11 w-full rounded-xl border border-[#E5DCCD] bg-[#FFFBF7] px-3 text-sm outline-none focus:border-[#D9A23A]/70 focus:ring-4 focus:ring-[#D9A23A]/15"
+                className={EMPLEOS_FIELD}
               />
             </label>
             <label>
@@ -273,7 +289,7 @@ export function EmpleosResultsView() {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="min-h-11 w-full rounded-xl border border-[#E5DCCD] bg-[#FFFBF7] px-3 text-sm outline-none focus:border-[#D9A23A]/70 focus:ring-4 focus:ring-[#D9A23A]/15"
+                className={EMPLEOS_FIELD}
               >
                 {sampleCategorySelectOptions.map((o) => (
                   <option key={o.value || "all"} value={o.value}>
@@ -287,7 +303,7 @@ export function EmpleosResultsView() {
               <select
                 value={jobType}
                 onChange={(e) => setJobType(e.target.value)}
-                className="min-h-11 w-full rounded-xl border border-[#E5DCCD] bg-[#FFFBF7] px-3 text-sm outline-none focus:border-[#D9A23A]/70 focus:ring-4 focus:ring-[#D9A23A]/15"
+                className={EMPLEOS_FIELD}
               >
                 {sampleJobTypeSelectOptions.map((o) => (
                   <option key={o.value || "any"} value={o.value}>
@@ -301,7 +317,7 @@ export function EmpleosResultsView() {
               <select
                 value={modality}
                 onChange={(e) => setModality(e.target.value)}
-                className="min-h-11 w-full rounded-xl border border-[#E5DCCD] bg-[#FFFBF7] px-3 text-sm outline-none focus:border-[#D9A23A]/70 focus:ring-4 focus:ring-[#D9A23A]/15"
+                className={EMPLEOS_FIELD}
               >
                 {sampleModalityOptions.map((o) => (
                   <option key={o.value || "all"} value={o.value}>
@@ -315,7 +331,7 @@ export function EmpleosResultsView() {
               <select
                 value={salaryBand}
                 onChange={(e) => setSalaryBand(e.target.value)}
-                className="min-h-11 w-full rounded-xl border border-[#E5DCCD] bg-[#FFFBF7] px-3 text-sm outline-none focus:border-[#D9A23A]/70 focus:ring-4 focus:ring-[#D9A23A]/15"
+                className={EMPLEOS_FIELD}
               >
                 {sampleSalaryBandOptions.map((o) => (
                   <option key={o.value || "any"} value={o.value}>
@@ -329,7 +345,7 @@ export function EmpleosResultsView() {
               <select
                 value={experience}
                 onChange={(e) => setExperience(e.target.value)}
-                className="min-h-11 w-full rounded-xl border border-[#E5DCCD] bg-[#FFFBF7] px-3 text-sm outline-none focus:border-[#D9A23A]/70 focus:ring-4 focus:ring-[#D9A23A]/15"
+                className={EMPLEOS_FIELD}
               >
                 {sampleExperienceOptions.map((o) => (
                   <option key={o.value || "any"} value={o.value}>
@@ -343,7 +359,7 @@ export function EmpleosResultsView() {
               <select
                 value={companyType}
                 onChange={(e) => setCompanyType(e.target.value)}
-                className="min-h-11 w-full rounded-xl border border-[#E5DCCD] bg-[#FFFBF7] px-3 text-sm outline-none focus:border-[#D9A23A]/70 focus:ring-4 focus:ring-[#D9A23A]/15"
+                className={EMPLEOS_FIELD}
               >
                 {sampleCompanyTypeOptions.map((o) => (
                   <option key={o.value || "any"} value={o.value}>
@@ -355,7 +371,9 @@ export function EmpleosResultsView() {
           </div>
 
           <details className="mt-4 rounded-xl border border-[#F0E8DC] bg-[#FFFBF7] p-3 lg:hidden">
-            <summary className="cursor-pointer text-sm font-semibold text-[#2A2826]">{t.mobileFilters}</summary>
+            <summary className="flex min-h-12 cursor-pointer list-none items-center text-sm font-semibold text-[#2A2826] [&::-webkit-details-marker]:hidden">
+              {t.mobileFilters}
+            </summary>
             <div className="mt-3 flex flex-col gap-3 border-t border-[#F0E8DC] pt-3">
               <label className="flex cursor-pointer items-center gap-2 text-sm">
                 <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} className="h-4 w-4 rounded" />
@@ -387,31 +405,21 @@ export function EmpleosResultsView() {
             </label>
           </div>
 
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              type="submit"
-              className="inline-flex min-h-11 min-w-[10rem] items-center justify-center rounded-xl bg-gradient-to-r from-[#E8A54B] via-[#D9A23A] to-[#C9942E] px-6 text-sm font-bold text-[#2A2826] shadow-md transition hover:brightness-105"
-            >
+          <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <button type="submit" className={`${EMPLEOS_CTA_PRIMARY} min-w-[10rem] px-6`}>
               {t.search}
             </button>
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-2 text-sm font-medium text-[#4A4744]">
-                <span>{t.sortLabel}</span>
-                <select
-                  value={parsed.sort}
-                  onChange={(e) => onSortChange(e.target.value)}
-                  className="min-h-10 rounded-lg border border-[#E5DCCD] bg-white px-2 text-sm"
-                >
+            <div className="flex min-w-0 flex-col gap-2 sm:items-end">
+              <label className="flex w-full flex-col gap-1.5 text-sm font-medium text-[#4A4744] sm:flex-row sm:items-center sm:gap-2">
+                <span className="shrink-0">{t.sortLabel}</span>
+                <select value={parsed.sort} onChange={(e) => onSortChange(e.target.value)} className={`${EMPLEOS_FIELD} min-h-11 max-w-full sm:w-56`}>
                   <option value="relevance">{t.sortRelevance}</option>
                   <option value="date_desc">{t.sortDate}</option>
                   <option value="salary_desc">{t.sortSalary}</option>
                 </select>
               </label>
-              <button
-                type="button"
-                onClick={() => router.push(buildEmpleosResultadosUrl(lang, { sort: parsed.sort }))}
-                className="text-sm font-semibold text-[#4F6B82] underline-offset-2 hover:underline"
-              >
+              <p className="text-right text-[11px] text-[#7A756E] sm:max-w-xs">{t.sortHint}</p>
+              <button type="button" onClick={() => router.push(buildEmpleosResultadosUrl(lang, { sort: parsed.sort }))} className={`${EMPLEOS_LINK_MUTED} self-end`}>
                 {t.clear}
               </button>
             </div>
@@ -426,7 +434,7 @@ export function EmpleosResultsView() {
                 <Link
                   key={c.key}
                   href={c.href}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-medium text-[#2A2826] transition hover:border-[#D9A23A]/50"
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-medium text-[#2A2826] shadow-sm transition hover:border-[#D9A23A]/45 hover:shadow-[0_4px_14px_rgba(42,40,38,0.06)]"
                 >
                   {c.label}
                   <span className="text-[#9A948C]" aria-hidden>
@@ -439,25 +447,26 @@ export function EmpleosResultsView() {
         ) : null}
 
         {filtered.length === 0 ? (
-          <div className="mt-10 rounded-2xl border border-[#E8DFD0] bg-white px-6 py-12 text-center shadow-sm">
-            <p className="text-lg font-bold text-[#2A2826]">{t.emptyTitle}</p>
-            <p className="mt-2 text-sm text-[#5C564E]">{t.emptyHint}</p>
-            <button
-              type="button"
-              onClick={() => router.push(buildEmpleosResultadosUrl(lang, { sort: parsed.sort }))}
-              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#2F3438] px-5 text-sm font-bold text-[#FFFBF5]"
-            >
-              {t.clear}
-            </button>
+          <div className="mt-12 rounded-2xl border border-[#E8DFD0] bg-white px-6 py-12 text-center shadow-[0_14px_40px_rgba(42,40,38,0.07)] ring-1 ring-[#F0E8DC]/80 sm:px-10">
+            <p className="text-lg font-bold tracking-tight text-[#2A2826]">{t.emptyTitle}</p>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#5C564E]">{t.emptyHint}</p>
+            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+              <button type="button" onClick={() => router.push(buildEmpleosResultadosUrl(lang, { sort: parsed.sort }))} className={EMPLEOS_CTA_SECONDARY}>
+                {t.clear}
+              </button>
+              <Link href={landingHref} className={`${EMPLEOS_LINK_MUTED} text-center`}>
+                {t.emptyExplore}
+              </Link>
+            </div>
           </div>
         ) : (
           <>
             {showFeaturedBlock ? (
-              <section className="mt-10" aria-labelledby="empleos-res-featured">
-                <h2 id="empleos-res-featured" className="text-lg font-bold text-[#2A2826]">
+              <section className="mt-11 sm:mt-12" aria-labelledby="empleos-res-featured">
+                <h2 id="empleos-res-featured" className="text-lg font-bold tracking-tight text-[#2A2826]">
                   {t.featuredBlock}
                 </h2>
-                <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-2">
                   {featuredRows.map((job) => (
                     <EmpleosJobResultCard key={job.id} job={job} lang={lang} variant="grid" />
                   ))}
@@ -466,11 +475,11 @@ export function EmpleosResultsView() {
             ) : null}
 
             {listMain.length > 0 ? (
-              <section className="mt-10" aria-labelledby="empleos-res-all">
-                <h2 id="empleos-res-all" className="text-lg font-bold text-[#2A2826]">
+              <section className="mt-11 sm:mt-12" aria-labelledby="empleos-res-all">
+                <h2 id="empleos-res-all" className="text-lg font-bold tracking-tight text-[#2A2826]">
                   {parsed.featuredOnly ? t.featuredBlock : t.allBlock}
                 </h2>
-                <div className="mt-4 flex flex-col gap-4">
+                <div className="mt-5 flex flex-col gap-4 sm:gap-5">
                   {listMain.map((job) => (
                     <EmpleosJobResultCard key={job.id} job={job} lang={lang} variant="list" />
                   ))}

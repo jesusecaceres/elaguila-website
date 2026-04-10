@@ -3,6 +3,19 @@ import Link from "next/link";
 export function PublishServiceCTA({ lang }: { lang: "es" | "en" }) {
   const publishHref = `/clasificados/publicar/servicios?lang=${lang}`;
 
+  const bullets =
+    lang === "en"
+      ? [
+          "Premium layout designed to convert — not a plain text dump.",
+          "Bilingual-ready fields so you reach more households in one listing.",
+          "Direct phone, WhatsApp, and web exits — Leonix is your traffic bridge, not a walled garden.",
+        ]
+      : [
+          "Maquetación premium pensada para convertir — no un bloque de texto plano.",
+          "Campos listos para bilingüe y llegar a más hogares con un solo anuncio.",
+          "Salidas directas a teléfono, WhatsApp y web: Leonix es tu puente de tráfico, no una isla cerrada.",
+        ];
+
   return (
     <section
       className="relative overflow-hidden rounded-[22px] border border-white/90 bg-gradient-to-br from-[#FFFCF7] via-[#faf6ef] to-[#f0e8dc]/95 px-6 py-11 shadow-[0_32px_85px_-50px_rgba(20,38,58,0.48)] ring-1 ring-[#1e3a5f]/[0.05] sm:rounded-[26px] sm:px-11 sm:py-12"
@@ -10,7 +23,7 @@ export function PublishServiceCTA({ lang }: { lang: "es" | "en" }) {
     >
       <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-[#EA580C]/[0.06] blur-3xl" aria-hidden />
       <div className="relative mx-auto flex max-w-[1080px] flex-col items-start justify-between gap-9 lg:flex-row lg:items-center">
-        <div className="flex gap-5 sm:gap-6">
+        <div className="min-w-0 flex gap-5 sm:gap-6">
           <div
             className="flex h-[4.25rem] w-[4.25rem] shrink-0 items-center justify-center rounded-full border border-[#EA580C]/20 bg-white shadow-[0_10px_28px_-16px_rgba(194,65,12,0.35)]"
             aria-hidden
@@ -26,9 +39,17 @@ export function PublishServiceCTA({ lang }: { lang: "es" | "en" }) {
             </h2>
             <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[#4a5d6e] sm:text-[16px]">
               {lang === "en"
-                ? "Reach thousands of people by publishing your showcase on Leonix — structured, bilingual-ready, and built to drive traffic to your own site and channels."
-                : "Llega a miles de personas publicando tu vitrina en Leonix — estructurada, lista para bilingüe y pensada para llevar tráfico a tu web y tus redes."}
+                ? "Put your business in front of people actively searching — with a profile worthy of your brand."
+                : "Pon tu negocio frente a quien ya está buscando — con un perfil a la altura de tu marca."}
             </p>
+            <ul className="mt-4 max-w-xl list-none space-y-2.5 text-[14px] leading-snug text-[#3d4f62]">
+              {bullets.map((b) => (
+                <li key={b} className="flex gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#EA580C]" aria-hidden />
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
         <div className="flex w-full flex-col items-stretch gap-3 lg:w-auto lg:items-end">

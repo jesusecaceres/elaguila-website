@@ -58,6 +58,10 @@ export type EnVentaHubLandingResolved = {
   browseChipNear: string;
   browseChipShip: string;
   browseChipFeatured: string;
+  browseChipPickup: string;
+  premiumTagline: string;
+  exposureHint: string;
+  browseSectionLabel: string;
   mobileStickyPublish: string;
   mobileStickyBrowse: string;
   heroEmoji: string;
@@ -99,6 +103,10 @@ export function mergeEnVentaHubLanding(
     browseChipNear: mergeBilingualKey(lang, d.es.browseChipNear, d.en.browseChipNear, h?.browseChipNear),
     browseChipShip: mergeBilingualKey(lang, d.es.browseChipShip, d.en.browseChipShip, h?.browseChipShip),
     browseChipFeatured: mergeBilingualKey(lang, d.es.browseChipFeatured, d.en.browseChipFeatured, h?.browseChipFeatured),
+    browseChipPickup: mergeBilingualKey(lang, d.es.browseChipPickup, d.en.browseChipPickup, h?.browseChipPickup),
+    premiumTagline: mergeBilingualKey(lang, d.es.premiumTagline, d.en.premiumTagline, h?.premiumTagline),
+    exposureHint: mergeBilingualKey(lang, d.es.exposureHint, d.en.exposureHint, h?.exposureHint),
+    browseSectionLabel: mergeBilingualKey(lang, d.es.browseSectionLabel, d.en.browseSectionLabel, h?.browseSectionLabel),
     mobileStickyPublish: mergeBilingualKey(lang, d.es.mobileStickyPublish, d.en.mobileStickyPublish, h?.mobileStickyPublish),
     mobileStickyBrowse: mergeBilingualKey(lang, d.es.mobileStickyBrowse, d.en.mobileStickyBrowse, h?.mobileStickyBrowse),
     heroEmoji: (h?.heroEmoji ?? "").trim(),

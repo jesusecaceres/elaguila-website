@@ -45,7 +45,8 @@ export function FeaturedBusinessCard({ row, lang }: { row: ServiciosLandingFeatu
     );
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-[18px] border border-[#e5ddd2]/90 bg-white shadow-[0_22px_50px_-36px_rgba(20,38,58,0.42)] ring-1 ring-[#1e3a5f]/[0.04] transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_60px_-34px_rgba(20,38,58,0.48)]">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-[20px] border border-[#e5ddd2]/90 bg-white shadow-[0_26px_58px_-38px_rgba(20,38,58,0.48)] ring-2 ring-[#C9A84A]/20 ring-offset-2 ring-offset-[#faf6ef] transition duration-300 hover:-translate-y-1 hover:ring-[#C9A84A]/35 hover:shadow-[0_32px_70px_-36px_rgba(20,38,58,0.52)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 rounded-t-[20px] bg-gradient-to-r from-[#C9A84A]/90 via-[#E8D5A3] to-[#C9A84A]/90" aria-hidden />
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#e8e4dc]">
         <Image
           src={row.coverImageSrc}
@@ -59,9 +60,14 @@ export function FeaturedBusinessCard({ row, lang }: { row: ServiciosLandingFeatu
           aria-hidden
         />
         {row.featured ? (
-          <span className="absolute left-3 top-3 rounded-full border border-white/40 bg-gradient-to-r from-[#EA580C] to-[#C2410C] px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_6px_16px_-6px_rgba(194,65,12,0.65)]">
-            Destacado
-          </span>
+          <div className="absolute left-3 top-3 flex flex-col items-start gap-1.5">
+            <span className="rounded-full border border-white/50 bg-black/35 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-white/95 backdrop-blur-sm">
+              {lang === "en" ? "Preferred placement" : "Espacio preferente"}
+            </span>
+            <span className="rounded-full border border-white/40 bg-gradient-to-r from-[#EA580C] to-[#C2410C] px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_6px_16px_-6px_rgba(194,65,12,0.65)]">
+              {lang === "en" ? "Featured" : "Destacado"}
+            </span>
+          </div>
         ) : null}
       </div>
       <div className="flex flex-1 flex-col p-6 sm:p-6">

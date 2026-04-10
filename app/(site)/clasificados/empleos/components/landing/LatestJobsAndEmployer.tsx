@@ -12,6 +12,7 @@ import {
 } from "../../empleosLandingRoutes";
 import { sampleRecentJobs, type SampleRecentJob } from "../../data/empleosLandingSampleData";
 import { buildEmpleosResultadosUrl } from "../../shared/utils/empleosListaUrl";
+import { EMPLEOS_BADGE_QUICK, EMPLEOS_CTA_PRIMARY } from "../../lib/empleosPremiumUi";
 import { LandingSection } from "./empleosLandingUi";
 
 type Props = {
@@ -61,9 +62,7 @@ export function LatestJobsAndEmployer({ lang }: Props) {
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-base font-bold text-[#2A2826] group-hover:underline">{job.title}</h3>
                     {job.quickApply ? (
-                      <span className="rounded-full border border-[#D4E3F0] bg-[#F4F8FB] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#4F6B82]">
-                        {lang === "es" ? "Rápida" : "Quick"}
-                      </span>
+                      <span className={`${EMPLEOS_BADGE_QUICK} text-[10px]`}>{lang === "es" ? "Rápida" : "Quick"}</span>
                     ) : null}
                   </div>
                   <p className="text-sm font-semibold text-[#4F6B82]">{job.company}</p>
@@ -74,10 +73,7 @@ export function LatestJobsAndEmployer({ lang }: Props) {
                   <p className="text-xs font-medium text-[#7A756E]">{job.publishedAtLabel}</p>
                 </Link>
                 <div className="flex shrink-0 items-center justify-end gap-3 sm:flex-col sm:items-end">
-                  <Link
-                    href={detailHref}
-                    className="inline-flex min-h-11 min-w-[7rem] items-center justify-center rounded-xl bg-gradient-to-r from-[#E8A54B] via-[#D9A23A] to-[#C9942E] px-4 text-sm font-bold text-[#2A2826] shadow-sm transition hover:brightness-[1.03]"
-                  >
+                  <Link href={detailHref} className={`${EMPLEOS_CTA_PRIMARY} min-w-[7rem] px-4`}>
                     {lang === "es" ? "Ver" : "View"}
                   </Link>
                   <Link
@@ -93,7 +89,7 @@ export function LatestJobsAndEmployer({ lang }: Props) {
           })}
         </div>
 
-        <aside className="rounded-[1.35rem] border border-[#E8DFD0] bg-gradient-to-b from-[#FFF9F0] to-[#FFFBF7] p-6 shadow-[0_16px_44px_rgba(42,40,38,0.08)]">
+        <aside className="rounded-[1.35rem] border border-[#E8DFD0] bg-gradient-to-b from-[#FFF9F0] to-[#FFFBF7] p-6 shadow-[0_16px_44px_rgba(42,40,38,0.08)] ring-1 ring-[#D9A23A]/15">
           <div className="flex items-start gap-3">
             <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EDE4D8] text-[#5C4A32] shadow-inner">
               <FaBriefcase className="h-6 w-6" aria-hidden />
@@ -104,8 +100,8 @@ export function LatestJobsAndEmployer({ lang }: Props) {
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-[#4A4744]/95">
                 {lang === "es"
-                  ? "Publica tu vacante y conecta con candidatos calificados en tu zona."
-                  : "Post your opening and connect with qualified candidates nearby."}
+                  ? "Tu marca merece presentación premium: publica y llega a candidatos con intención real de aplicar."
+                  : "Your brand deserves a premium presentation — post and reach candidates ready to apply."}
               </p>
             </div>
           </div>
@@ -124,10 +120,7 @@ export function LatestJobsAndEmployer({ lang }: Props) {
           </ul>
 
           <div className="mt-6 flex flex-col gap-3">
-            <Link
-              href={publishHref}
-              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-gradient-to-r from-[#E8A54B] via-[#D9A23A] to-[#C9942E] px-4 text-center text-sm font-bold text-[#2A2826] shadow-[0_10px_26px_rgba(201,148,46,0.35)] transition hover:brightness-[1.03]"
-            >
+            <Link href={publishHref} className={`${EMPLEOS_CTA_PRIMARY} w-full justify-center px-4 text-center`}>
               {lang === "es" ? "Publicar vacante" : "Post a job"}
             </Link>
             <Link

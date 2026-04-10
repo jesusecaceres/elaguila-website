@@ -75,7 +75,10 @@ export function ServiciosLandingPage({ lang }: { lang: Lang }) {
             <FeaturedBusinessSection lang={lang} items={SERVICIOS_LANDING_FEATURED} />
           </div>
 
-          <div className={`${sectionShell} p-7 sm:p-9 md:p-11 lg:p-12`}>
+          <div
+            id="categorias"
+            className={`scroll-mt-24 ${sectionShell} p-7 sm:p-9 md:p-11 lg:p-12`}
+          >
             <ServiceCategoriesGrid lang={lang} categories={SERVICIOS_LANDING_EXPLORE_CATEGORIES} />
           </div>
 

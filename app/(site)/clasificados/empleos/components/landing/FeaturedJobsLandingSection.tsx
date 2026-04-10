@@ -8,6 +8,7 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 import { sampleFeaturedJobs, type SampleFeaturedJob } from "../../data/empleosLandingSampleData";
 import { buildEmpleosResultadosUrl } from "../../shared/utils/empleosListaUrl";
+import { EMPLEOS_CTA_PRIMARY } from "../../lib/empleosPremiumUi";
 import { LandingSection } from "./empleosLandingUi";
 
 type Props = {
@@ -31,9 +32,9 @@ function FeaturedLandingCard({ job, lang }: { job: SampleFeaturedJob; lang: Lang
   });
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#E8DFD0] bg-white shadow-[0_14px_40px_rgba(42,40,38,0.08)]">
-      <div className="flex items-start justify-between gap-3 border-b border-[#F0E8DC] px-4 py-3">
-        <span className="rounded-full bg-gradient-to-r from-[#F6E0A8] to-[#E8C56A] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#3A3220]">
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#E5D4B8]/80 bg-white ring-1 ring-[#D9A23A]/28 shadow-[0_20px_52px_rgba(42,40,38,0.085)] transition hover:ring-[#D9A23A]/38 hover:shadow-[0_24px_58px_rgba(42,40,38,0.1)]">
+      <div className="flex items-start justify-between gap-3 border-b border-[#F0E8DC] bg-gradient-to-r from-[#FFFBF7] via-[#FFF8EC] to-[#FFFBF7] px-4 py-3.5">
+        <span className="rounded-full bg-gradient-to-r from-[#F6E0A8] to-[#E8C56A] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#3A3220] shadow-[0_4px_12px_rgba(201,148,46,0.22)]">
           {lang === "es" ? "Destacado" : "Featured"}
         </span>
         <Link
@@ -69,7 +70,7 @@ function FeaturedLandingCard({ job, lang }: { job: SampleFeaturedJob; lang: Lang
           {job.benefitChips.map((chip) => (
             <span
               key={chip}
-              className="rounded-full border border-[#E8DFD0] bg-[#FFFBF5] px-2 py-0.5 text-[11px] font-medium text-[#3A3220]"
+              className="rounded-full border border-[#E8DFD0]/90 bg-[#FFFBF5] px-2.5 py-1 text-[11px] font-medium text-[#3A3220]"
             >
               {chip}
             </span>
@@ -77,10 +78,7 @@ function FeaturedLandingCard({ job, lang }: { job: SampleFeaturedJob; lang: Lang
         </div>
 
         <div className="mt-5 flex justify-end">
-          <Link
-            href={detailHref}
-            className="inline-flex min-h-11 min-w-[7.5rem] items-center justify-center rounded-xl bg-gradient-to-r from-[#E8A54B] via-[#D9A23A] to-[#C9942E] px-4 text-sm font-bold text-[#2A2826] shadow-[0_8px_22px_rgba(201,148,46,0.3)] transition hover:brightness-[1.03]"
-          >
+          <Link href={detailHref} className={`${EMPLEOS_CTA_PRIMARY} min-w-[7.5rem] px-4`}>
             {lang === "es" ? "Ver trabajo" : "View job"}
           </Link>
         </div>

@@ -33,7 +33,7 @@ import {
 import { RENTAS_RESULTS } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { buildRentasResultsUrl } from "@/app/clasificados/rentas/shared/utils/rentasResultsRoutes";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
-import { rentasLandingHeroPanelClass, rentasLinkSupportClass } from "@/app/clasificados/rentas/rentasLandingTheme";
+import { rentasLandingHeroPanelClass, rentasSectionHeaderActionClass } from "@/app/clasificados/rentas/rentasLandingTheme";
 
 export function RentasLandingHub() {
   const router = useRouter();
@@ -84,7 +84,7 @@ export function RentasLandingHub() {
           <RentasLandingCategoryHeader copy={copy} lang={lang} />
         </div>
 
-        <div className="relative z-[3] mx-auto mt-5 max-w-[1180px] sm:-mt-8 lg:-mt-10">
+        <div className="relative z-[3] mx-auto mt-6 w-full max-w-[min(100%,1200px)] sm:-mt-10 lg:-mt-12 xl:max-w-[min(100%,1280px)]">
           <RentasSearchBar
             query={query}
             onQuery={setQuery}
@@ -98,8 +98,8 @@ export function RentasLandingHub() {
             copy={copy.search}
             priceOptions={copy.priceOptions}
           />
-          <p className="mt-3 text-center text-sm text-[#4A4338]/88 sm:text-left">
-            <Link href={resultsBase} className={rentasLinkSupportClass}>
+          <p className="mt-4 flex justify-center sm:justify-start">
+            <Link href={resultsBase} className={rentasSectionHeaderActionClass}>
               {copy.searchHelperLink}
             </Link>
           </p>
@@ -115,12 +115,12 @@ export function RentasLandingHub() {
         title={copy.sections.destacadas.title}
         description={copy.sections.destacadas.description}
         action={
-          <Link href={resultsBase} className={`text-sm ${rentasLinkSupportClass}`}>
+          <Link href={resultsBase} className={rentasSectionHeaderActionClass}>
             {copy.sections.destacadas.action}
           </Link>
         }
       >
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 sm:gap-8 xl:grid-cols-3">
           {destacadas.map((l) => (
             <RentasLandingCard key={l.id} listing={l} copy={copy} lang={lang} />
           ))}
@@ -132,12 +132,12 @@ export function RentasLandingHub() {
         title={copy.sections.recientes.title}
         description={copy.sections.recientes.description}
         action={
-          <Link href={buildRentasResultsUrl({ lang })} className={`text-sm ${rentasLinkSupportClass}`}>
+          <Link href={buildRentasResultsUrl({ lang })} className={rentasSectionHeaderActionClass}>
             {copy.sections.recientes.action}
           </Link>
         }
       >
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 sm:gap-8 xl:grid-cols-3">
           {recientes.map((l) => (
             <RentasLandingCard key={`rec-${l.id}`} listing={l} copy={copy} lang={lang} />
           ))}
@@ -149,12 +149,12 @@ export function RentasLandingHub() {
         title={copy.sections.negocios.title}
         description={copy.sections.negocios.description}
         action={
-          <Link href={buildRentasResultsUrl({ branch: "negocio", lang })} className={`text-sm ${rentasLinkSupportClass}`}>
+          <Link href={buildRentasResultsUrl({ branch: "negocio", lang })} className={rentasSectionHeaderActionClass}>
             {copy.sections.negocios.action}
           </Link>
         }
       >
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-7 lg:grid-cols-2 lg:gap-8">
           {negocios.map((l) => (
             <RentasLandingCard key={`neg-${l.id}`} listing={l} layout="horizontal" copy={copy} lang={lang} />
           ))}
@@ -166,12 +166,12 @@ export function RentasLandingHub() {
         title={copy.sections.privado.title}
         description={copy.sections.privado.description}
         action={
-          <Link href={buildRentasResultsUrl({ branch: "privado", lang })} className={`text-sm ${rentasLinkSupportClass}`}>
+          <Link href={buildRentasResultsUrl({ branch: "privado", lang })} className={rentasSectionHeaderActionClass}>
             {copy.sections.privado.action}
           </Link>
         }
       >
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 sm:gap-8">
           {privadoRows.map((l) => (
             <RentasLandingCard key={`pv-${l.id}`} listing={l} layout="horizontal" copy={copy} lang={lang} />
           ))}

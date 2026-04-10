@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import {
+  rentasLandingContainerClass,
   rentasLandingHeroBandClass,
   rentasLandingHeroGradientClass,
   rentasLandingHeroPhotoLayerClass,
@@ -19,7 +20,7 @@ export function RentasLandingShell({ children }: { children: ReactNode }) {
         <div className={rentasLandingHeroGradientClass} />
         <div className={rentasLandingHeroVignetteClass} />
       </div>
-      <div className="relative z-[1] mx-auto max-w-[1320px] px-4 pb-16 pt-14 sm:px-5 sm:pb-20 sm:pt-16 lg:pt-20">
+      <div className={"relative z-[1] pb-20 pt-14 sm:pb-24 sm:pt-16 lg:pb-28 lg:pt-[4.75rem] " + rentasLandingContainerClass}>
         {children}
       </div>
     </div>

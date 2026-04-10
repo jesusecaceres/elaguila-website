@@ -66,11 +66,17 @@ export function RentasLandingCategoryHeader({ copy, lang }: Props) {
           </h1>
           <p className="mt-3 max-w-2xl text-base leading-relaxed text-[#3D3830]/92 sm:text-lg">{copy.intro}</p>
         </div>
-        <div className="flex w-full flex-shrink-0 flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-center">
-          <Link href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, lang)} className={rentasCtaPrimaryClass}>
+        <div className="flex w-full flex-shrink-0 flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+          <Link
+            href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, lang)}
+            className={`${rentasCtaPrimaryClass} w-full text-center sm:min-w-[12.5rem] sm:w-auto`}
+          >
             {copy.publishPrivado}
           </Link>
-          <Link href={withRentasLandingLang(RENTAS_PUBLICAR_NEGOCIO, lang)} className={rentasCtaSecondaryClass}>
+          <Link
+            href={withRentasLandingLang(RENTAS_PUBLICAR_NEGOCIO, lang)}
+            className={`${rentasCtaSecondaryClass} w-full text-center sm:min-w-[12.5rem] sm:w-auto`}
+          >
             {copy.publishNegocio}
           </Link>
         </div>

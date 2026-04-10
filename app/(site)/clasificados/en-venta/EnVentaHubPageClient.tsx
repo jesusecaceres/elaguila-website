@@ -108,6 +108,7 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
   const hrefBrowseNewest = buildEnVentaResultsUrl(lang, { sort: "newest" });
   const hrefBrowseNear = buildEnVentaResultsUrl(lang, { city: DEFAULT_CITY });
   const hrefBrowseShip = buildEnVentaResultsUrl(lang, { ship: "1" });
+  const hrefBrowsePickup = buildEnVentaResultsUrl(lang, { pickup: "1" });
   /** Results surface shows boosted listings first when present; no separate boost URL param. */
   const hrefBrowseFeatured = buildEnVentaResultsUrl(lang);
   const hrefSellerIndividual = buildEnVentaResultsUrl(lang, { seller: "individual" });
@@ -124,6 +125,11 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
   const ivoryBtn =
     "inline-flex min-h-[48px] min-w-[44px] items-center justify-center rounded-full border border-white/80 bg-[#FFFCF7] px-6 text-[15px] font-semibold text-[#2C2416] " +
     "shadow-[0_8px_24px_-10px_rgba(42,36,22,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] transition hover:bg-white active:scale-[0.99]";
+
+  const chipNeutral =
+    "inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#E8DFD0] bg-white/95 px-3.5 py-2 text-[12px] font-semibold text-[#2C2416] shadow-[0_2px_8px_-2px_rgba(47,74,101,0.08)] transition hover:border-[#C9B46A]/45 hover:bg-white hover:shadow-[0_4px_14px_-4px_rgba(47,74,101,0.12)] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:px-4 sm:text-[13px]";
+  const chipFeaturedCls =
+    "inline-flex min-h-[44px] items-center gap-1.5 justify-center rounded-full border border-[#C9A84A]/45 bg-gradient-to-br from-[#FFFBF0] via-[#F5F8FB] to-[#E8EEF3] px-3.5 py-2 text-[12px] font-semibold text-[#2F4A65] shadow-[0_4px_16px_-6px_rgba(201,168,74,0.35)] ring-1 ring-[#C9A84A]/25 transition hover:ring-[#C9A84A]/40 focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:px-4 sm:text-[13px]";
 
   return (
     <div
@@ -145,7 +151,7 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
         aria-hidden
       />
 
-      <main className="relative mx-auto max-w-6xl px-4 pb-32 pt-8 sm:px-6 sm:pb-24 sm:pt-10 lg:px-8">
+      <main className="relative mx-auto max-w-6xl px-4 pb-32 pt-6 sm:px-6 sm:pb-24 sm:pt-10 lg:px-8">
         {/* Hero */}
         <section className="relative overflow-hidden rounded-[28px] border border-white/50 bg-[#E8E0D4]/40 shadow-[0_24px_80px_-32px_rgba(47,74,101,0.35)] sm:rounded-[32px]">
           <div className="absolute inset-0">
@@ -158,20 +164,20 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
               className="absolute inset-0 bg-gradient-to-r from-[#3D5A73]/[0.07] via-transparent to-[#3D5A73]/[0.05]"
               aria-hidden
             />
-            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#F3EBDD] via-[#F3EBDD]/90 to-transparent" aria-hidden />
+            <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#F3EBDD] via-[#F3EBDD]/92 to-transparent sm:h-40" aria-hidden />
           </div>
 
-          <div className="relative z-10 flex min-h-0 flex-col items-center px-4 pb-11 pt-9 text-center sm:min-h-0 sm:px-8 sm:pb-14 sm:pt-12 md:pb-16 md:pt-14">
+          <div className="relative z-10 flex min-h-0 flex-col items-center px-4 pb-9 pt-7 text-center sm:min-h-0 sm:px-8 sm:pb-14 sm:pt-12 md:pb-16 md:pt-14">
             <span
               className={cx(
-                "mb-5 inline-flex min-h-[36px] items-center rounded-full px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white",
+                "mb-4 inline-flex min-h-[36px] items-center rounded-full px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white sm:mb-5",
                 "bg-gradient-to-r from-[#E09A2D] to-[#C97A1E] shadow-[0_8px_24px_-6px_rgba(200,120,30,0.45)]"
               )}
             >
               {t.badge}
             </span>
 
-            <h1 className="font-serif text-[2.25rem] font-bold leading-[1.08] tracking-tight text-[#1E1810] sm:text-5xl md:text-[3.35rem]">
+            <h1 className="font-serif text-[2.1rem] font-bold leading-[1.08] tracking-tight text-[#1E1810] sm:text-5xl md:text-[3.35rem]">
               {t.heroEmoji ? (
                 <span className="mr-2 inline-block" aria-hidden>
                   {t.heroEmoji}
@@ -179,10 +185,13 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
               ) : null}
               {t.hero}
             </h1>
-            <p className="mt-4 max-w-xl text-base leading-relaxed text-[#3D3428]/95 sm:text-lg">{t.sub}</p>
+            <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[#3D3428]/95 sm:mt-4 sm:text-lg">{t.sub}</p>
+            <p className="mt-2.5 max-w-md text-[11px] font-semibold uppercase leading-snug tracking-[0.14em] text-[#4A6678] sm:mt-3 sm:text-[12px] sm:tracking-[0.16em]">
+              {t.premiumTagline}
+            </p>
 
             <form
-              className="mt-9 w-full max-w-3xl text-left"
+              className="mt-7 w-full max-w-3xl text-left sm:mt-9"
               action="/clasificados/en-venta/results"
               method="get"
               role="search"
@@ -250,9 +259,9 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
               </div>
             </form>
 
-            <p className="mt-5 max-w-lg text-[13px] font-medium leading-snug text-[#4A6678] sm:text-sm">{t.socialProof}</p>
+            <p className="mt-4 max-w-lg text-[12px] font-medium leading-snug text-[#4A6678] sm:mt-5 sm:text-sm">{t.socialProof}</p>
 
-            <div className="mt-8 flex w-full max-w-xl flex-col gap-3 sm:max-w-2xl sm:flex-row sm:justify-center sm:gap-4">
+            <div className="mt-6 flex w-full max-w-xl flex-col gap-3 sm:mt-8 sm:max-w-2xl sm:flex-row sm:justify-center sm:gap-4">
               <Link href={publishHref} className={cx(goldBtn, "w-full sm:w-auto sm:min-w-[200px]")}>
                 <span aria-hidden className="text-lg font-light">
                   +
@@ -267,8 +276,8 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
         </section>
 
         {/* Success layer: seller trust + browse chips + results handoff (all links real) */}
-        <section className="mt-8 sm:mt-10" aria-label={lang === "es" ? "Cómo explorar En Venta" : "How to explore For Sale"}>
-          <div className="rounded-[22px] border border-white/75 bg-[#FFFCF7]/90 px-4 py-4 shadow-[0_10px_36px_-16px_rgba(47,74,101,0.14)] sm:px-6 sm:py-5">
+        <section className="mt-7 sm:mt-10" aria-label={lang === "es" ? "Cómo explorar En Venta" : "How to explore For Sale"}>
+          <div className="rounded-[22px] border border-white/75 bg-[#FFFCF7]/90 px-4 py-3.5 shadow-[0_10px_36px_-16px_rgba(47,74,101,0.14)] sm:px-6 sm:py-5">
             <p className="text-center text-[14px] leading-snug text-[#2C2416] sm:text-[15px] sm:leading-relaxed">{t.sellerTrust}</p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
               <Link
@@ -286,44 +295,43 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap justify-center gap-2 sm:mt-6 sm:gap-2.5">
-            <Link
-              href={hrefBrowseNewest}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#E8DFD0] bg-white/90 px-4 py-2 text-[13px] font-semibold text-[#2C2416] shadow-sm transition hover:border-[#C9B46A]/45 hover:bg-white focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:text-sm"
-            >
+          <h3 className="mb-2.5 mt-6 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[#5C5346] sm:mb-3 sm:mt-7 sm:tracking-[0.16em]">
+            {t.browseSectionLabel}
+          </h3>
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-2.5">
+            <Link href={hrefBrowseNewest} className={chipNeutral}>
               {t.browseChipNewest}
             </Link>
-            <Link
-              href={hrefBrowseNear}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#E8DFD0] bg-white/90 px-4 py-2 text-[13px] font-semibold text-[#2C2416] shadow-sm transition hover:border-[#C9B46A]/45 hover:bg-white focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:text-sm"
-            >
+            <Link href={hrefBrowseNear} className={chipNeutral}>
               {t.browseChipNear}
             </Link>
-            <Link
-              href={hrefBrowseShip}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#E8DFD0] bg-white/90 px-4 py-2 text-[13px] font-semibold text-[#2C2416] shadow-sm transition hover:border-[#C9B46A]/45 hover:bg-white focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:text-sm"
-            >
+            <Link href={hrefBrowseShip} className={chipNeutral}>
               {t.browseChipShip}
             </Link>
-            <Link
-              href={hrefBrowseFeatured}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#D4E0EA] bg-gradient-to-br from-[#F5F8FB] to-[#E8EEF3] px-4 py-2 text-[13px] font-semibold text-[#2F4A65] shadow-sm transition hover:border-[#C9B46A]/35 focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:text-sm"
-            >
+            <Link href={hrefBrowsePickup} className={chipNeutral}>
+              {t.browseChipPickup}
+            </Link>
+            <Link href={hrefBrowseFeatured} className={chipFeaturedCls}>
+              <svg width="14" height="14" viewBox="0 0 24 24" className="shrink-0 text-[#B8891A]" aria-hidden fill="currentColor">
+                <path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z" />
+              </svg>
               {t.browseChipFeatured}
             </Link>
           </div>
 
-          <p className="mx-auto mt-5 max-w-2xl text-center text-[13px] leading-relaxed text-[#4A6678] sm:mt-6 sm:text-sm">
+          <p className="mx-auto mt-3 max-w-xl text-center text-[11px] leading-relaxed text-[#5C5346] sm:mt-4 sm:text-[12px]">{t.exposureHint}</p>
+
+          <p className="mx-auto mt-4 max-w-2xl text-center text-[13px] leading-relaxed text-[#4A6678] sm:mt-5 sm:text-sm">
             {t.handoff}
           </p>
         </section>
 
         {/* Categories */}
-        <section className="mt-14 sm:mt-16">
-          <h2 className="text-center font-serif text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">
+        <section className="mt-11 sm:mt-16">
+          <h2 className="text-center font-serif text-[1.35rem] font-bold tracking-tight text-[#1E1810] sm:text-3xl">
             {t.categoriesTitle}
           </h2>
-          <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+          <div className="mt-7 grid grid-cols-2 gap-2.5 sm:mt-10 sm:gap-5 lg:grid-cols-4">
             {EN_VENTA_DEPARTMENTS.map((d) => {
               const href = buildEnVentaResultsUrl(lang, { evDept: d.key });
               const title = d.label[lang];
@@ -336,8 +344,8 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
                   key={d.key}
                   href={href}
                   className={cx(
-                    "group flex min-h-[140px] flex-col items-center rounded-[20px] border border-white/70 bg-[#FFFCF7]/95 p-4 text-center shadow-[0_12px_36px_-16px_rgba(47,74,101,0.22)] transition",
-                    "hover:-translate-y-0.5 hover:border-[#C9B46A]/35 hover:shadow-[0_20px_48px_-14px_rgba(201,180,106,0.28)]",
+                    "group flex min-h-[136px] flex-col items-center rounded-[20px] border border-white/70 bg-[#FFFCF7]/95 p-3.5 text-center shadow-[0_12px_36px_-16px_rgba(47,74,101,0.2)] ring-1 ring-transparent transition sm:min-h-[140px] sm:p-4",
+                    "hover:-translate-y-0.5 hover:border-[#C9B46A]/38 hover:shadow-[0_20px_48px_-14px_rgba(201,180,106,0.26)] hover:ring-[#C9B46A]/22",
                     "focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
                   )}
                 >
@@ -361,44 +369,44 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
         </section>
 
         {/* Trust */}
-        <section className="mt-14 sm:mt-16">
-          <div className="rounded-[24px] border border-white/75 bg-[#FFFCF7]/90 px-4 py-8 shadow-[0_14px_44px_-18px_rgba(42,36,22,0.14)] sm:px-8">
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-6">
+        <section className="mt-11 sm:mt-16">
+          <div className="rounded-[24px] border border-white/75 bg-[#FFFCF7]/90 px-4 py-7 shadow-[0_14px_44px_-18px_rgba(42,36,22,0.14)] sm:px-8 sm:py-8">
+            <div className="grid grid-cols-1 gap-7 md:grid-cols-3 md:gap-8">
               <div className="flex flex-col items-center text-center md:items-start md:text-left">
                 <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#FFF3D6] to-[#E8C96A]/50 text-[#B8891A]">
                   <TrustIconGift className="h-6 w-6" />
                 </span>
                 <h3 className="text-[16px] font-bold text-[#1E1810]">{t.trust1Title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-[#4A6678]">{t.trust1Sub}</p>
+                <p className="mt-1 text-[13px] leading-relaxed text-[#3d556b] sm:text-sm">{t.trust1Sub}</p>
               </div>
               <div className="flex flex-col items-center text-center md:items-start md:text-left">
                 <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#E8EEF3] to-[#D4E0EA]/70 text-[#2F4A65]">
                   <TrustIconShield className="h-6 w-6" />
                 </span>
                 <h3 className="text-[16px] font-bold text-[#1E1810]">{t.trust2Title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-[#4A6678]">{t.trust2Sub}</p>
+                <p className="mt-1 text-[13px] leading-relaxed text-[#3d556b] sm:text-sm">{t.trust2Sub}</p>
               </div>
               <div className="flex flex-col items-center text-center md:items-start md:text-left">
                 <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#FFF3D6] to-[#E8C96A]/45 text-[#B8891A]">
                   <TrustIconPeople className="h-6 w-6" />
                 </span>
                 <h3 className="text-[16px] font-bold text-[#1E1810]">{t.trust3Title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-[#4A6678]">{t.trust3Sub}</p>
+                <p className="mt-1 text-[13px] leading-relaxed text-[#3d556b] sm:text-sm">{t.trust3Sub}</p>
               </div>
             </div>
           </div>
         </section>
 
         {/* Bottom sell CTA */}
-        <section className="mt-12 sm:mt-14">
-          <div className="flex flex-col items-start justify-between gap-6 rounded-[24px] border border-white/75 bg-[#FFFCF7]/95 px-6 py-8 shadow-[0_16px_48px_-20px_rgba(47,74,101,0.18)] sm:flex-row sm:items-center sm:gap-8 sm:px-10 sm:py-10">
+        <section className="mt-10 sm:mt-14">
+          <div className="flex flex-col items-start justify-between gap-5 rounded-[24px] border border-white/75 bg-[#FFFCF7]/95 px-5 py-7 shadow-[0_16px_48px_-20px_rgba(47,74,101,0.18)] sm:flex-row sm:items-center sm:gap-8 sm:px-10 sm:py-10">
             <div className="max-w-xl">
-              <h2 className="font-serif text-xl font-bold text-[#1E1810] sm:text-2xl">{t.bottomSellTitle}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-[#4A6678] sm:text-base">{t.bottomSellSub}</p>
+              <h2 className="font-serif text-[1.15rem] font-bold text-[#1E1810] sm:text-2xl">{t.bottomSellTitle}</h2>
+              <p className="mt-2 text-[13px] leading-relaxed text-[#3d556b] sm:text-base">{t.bottomSellSub}</p>
             </div>
             <Link
               href={publishHref}
-              className={cx(goldBtn, "w-full shrink-0 px-8 sm:w-auto")}
+              className={cx(goldBtn, "w-full shrink-0 px-8 shadow-[0_12px_32px_-10px_rgba(196,140,50,0.45)] sm:w-auto")}
             >
               {t.bottomSellCta}
             </Link>

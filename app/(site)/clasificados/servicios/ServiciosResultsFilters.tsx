@@ -20,11 +20,13 @@ export function ServiciosResultsFilters({
   const hasFilters = serviciosResultsHasActiveFilters(current);
 
   return (
-    <div className="rounded-[22px] border border-[#e5ddd2]/90 bg-[#FFFCF7] p-4 shadow-[0_18px_48px_-32px_rgba(20,38,58,0.35)] sm:p-6">
+    <div
+      id="servicios-resultados-filtros"
+      className="rounded-[22px] border border-[#e5ddd2]/90 bg-[#FFFCF7] p-4 shadow-[0_18px_48px_-32px_rgba(20,38,58,0.35)] sm:p-6"
+    >
       <form
         method="get"
         action="/clasificados/servicios/resultados"
-        id="servicios-results-filters-form"
         aria-label={lang === "en" ? "Search and filter Servicios results" : "Buscar y filtrar resultados de Servicios"}
         className="space-y-5"
       >
@@ -49,14 +51,22 @@ export function ServiciosResultsFilters({
               />
             </label>
             <label className="min-w-0 flex-1">
-              <span className="text-xs font-semibold text-[#3d4f62]">{lang === "en" ? "City / area" : "Ciudad / zona"}</span>
+              <span className="text-xs font-semibold text-[#3d4f62]">
+                {lang === "en" ? "City / service area" : "Ciudad o zona de servicio"}
+              </span>
               <input
                 name="city"
                 type="text"
                 defaultValue={current.city ?? ""}
-                placeholder={lang === "en" ? "e.g. San José" : "ej. San José"}
+                placeholder={lang === "en" ? "e.g. San José, 95112" : "ej. San José, 95112"}
+                aria-describedby="servicios-city-filter-hint"
                 className="mt-1 min-h-[48px] w-full rounded-xl border border-[#e5ddd2] bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
               />
+              <span id="servicios-city-filter-hint" className="mt-1 block text-[11px] leading-snug text-[#64748b]">
+                {lang === "en"
+                  ? "Matches the city stored on each published listing (same field as the advertiser chose)."
+                  : "Coincide con la ciudad guardada en cada anuncio (el mismo campo que eligió el anunciante)."}
+              </span>
             </label>
             <button
               type="submit"
@@ -74,9 +84,9 @@ export function ServiciosResultsFilters({
           {hasFilters ? (
             <Link
               href={resetHref}
-              className="min-h-[40px] touch-manipulation text-xs font-semibold text-[#3B66AD] underline underline-offset-2"
+              className="min-h-[44px] touch-manipulation text-xs font-semibold text-[#3B66AD] underline underline-offset-2"
             >
-              {lang === "en" ? "Reset filters" : "Restablecer filtros"}
+              {lang === "en" ? "Clear all filters" : "Quitar todos los filtros"}
             </Link>
           ) : null}
         </div>
@@ -89,24 +99,26 @@ export function ServiciosResultsFilters({
               defaultValue={current.sort === "name" ? "name" : "newest"}
               className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
             >
-              <option value="newest">{lang === "en" ? "Newest" : "Más recientes"}</option>
+              <option value="newest">{lang === "en" ? "Newest first" : "Más recientes primero"}</option>
               <option value="name">{lang === "en" ? "Name (A–Z)" : "Nombre (A–Z)"}</option>
             </select>
           </label>
           <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Seller type" : "Tipo de anunciante"}</span>
+            <span className="text-xs font-semibold text-neutral-700">
+              {lang === "en" ? "Provider type" : "Tipo de proveedor"}
+            </span>
             <select
               name="seller"
               defaultValue={current.seller ?? "all"}
               className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
             >
               <option value="all">{lang === "en" ? "All" : "Todos"}</option>
-              <option value="business">{lang === "en" ? "Business / storefront" : "Negocio / vitrina"}</option>
-              <option value="independent">{lang === "en" ? "Independent" : "Independiente"}</option>
+              <option value="business">{lang === "en" ? "Business (web or address)" : "Negocio (web o dirección)"}</option>
+              <option value="independent">{lang === "en" ? "Independent professional" : "Profesional independiente"}</option>
             </select>
           </label>
           <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Trade group" : "Giro"}</span>
+            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Trade family" : "Familia de giro"}</span>
             <select
               name="group"
               defaultValue={current.group ?? ""}
@@ -120,45 +132,53 @@ export function ServiciosResultsFilters({
               ))}
             </select>
           </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">WhatsApp</span>
-            <select
-              name="whatsapp"
-              defaultValue={current.whatsapp === "1" ? "1" : ""}
-              className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-            >
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Listed" : "Disponible"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Offer / promo" : "Oferta"}</span>
-            <select
-              name="promo"
-              defaultValue={current.promo === "1" ? "1" : ""}
-              className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-            >
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Has offer" : "Con oferta"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Phone" : "Teléfono"}</span>
-            <select
-              name="call"
-              defaultValue={current.call === "1" ? "1" : ""}
-              className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-            >
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Listed" : "Disponible"}</option>
-            </select>
-          </label>
+        </div>
+
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#64748b]">
+            {lang === "en" ? "Contact signals on the profile" : "Señales de contacto en la vitrina"}
+          </p>
+          <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">WhatsApp</span>
+              <select
+                name="whatsapp"
+                defaultValue={current.whatsapp === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "WhatsApp shown" : "Con WhatsApp visible"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Offer / promo" : "Oferta"}</span>
+              <select
+                name="promo"
+                defaultValue={current.promo === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Has offer line" : "Con línea de oferta"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Phone" : "Teléfono"}</span>
+              <select
+                name="call"
+                defaultValue={current.call === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Phone shown" : "Con teléfono visible"}</option>
+              </select>
+            </label>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-3">
           <button
             type="submit"
-            className="inline-flex min-h-[48px] min-w-[140px] items-center justify-center rounded-xl bg-[#3B66AD] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699]"
+            className="inline-flex min-h-[48px] min-w-[160px] items-center justify-center rounded-xl bg-[#3B66AD] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699]"
           >
             {lang === "en" ? "Apply filters" : "Aplicar filtros"}
           </button>
@@ -166,8 +186,8 @@ export function ServiciosResultsFilters({
 
         <p className="text-[11px] leading-relaxed text-neutral-500">
           {lang === "en"
-            ? "Seller type uses your published contact signals (website or storefront address vs lean solo profile). Keyword search matches name, city, trade line, and about text."
-            : "El tipo de anunciante usa señales de contacto publicadas (web o dirección de vitrina frente a perfil más ligero). La búsqueda coincide con nombre, ciudad, giro y texto “Acerca”."}
+            ? "Provider type is inferred from published contact fields. Keyword search matches name, city, trade line, and about text."
+            : "El tipo de proveedor se infiere de los datos de contacto publicados. La búsqueda coincide con nombre, ciudad, giro y texto «Acerca»."}
         </p>
       </form>
     </div>

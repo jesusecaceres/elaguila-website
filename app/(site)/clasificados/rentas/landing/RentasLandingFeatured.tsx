@@ -8,8 +8,8 @@ import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLa
 import {
   rentasCardSurfaceClass,
   rentasCtaSecondaryClass,
-  rentasLinkSupportClass,
   rentasSectionHeadingClass,
+  rentasSectionHeaderActionClass,
 } from "@/app/clasificados/rentas/rentasLandingTheme";
 import type { RentasResultsDemoListing } from "@/app/clasificados/rentas/results/rentasResultsDemoData";
 import { RENTAS_RESULTS } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
@@ -55,13 +55,13 @@ export function RentasLandingFeatured({ copy, lang, primary, supporting }: Props
   const fc = copy.featured;
 
   return (
-    <section className="mt-12 sm:mt-16" aria-labelledby="rentas-landing-featured-heading">
+    <section className="mt-14 sm:mt-[4.25rem]" aria-labelledby="rentas-landing-featured-heading">
       <h2 id="rentas-landing-featured-heading" className={rentasSectionHeadingClass}>
         {fc.title}
       </h2>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#4A4338]/90">{fc.subtitle}</p>
 
-      <div className="mt-9 grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-stretch lg:gap-8">
+      <div className="mt-10 grid grid-cols-1 gap-7 lg:grid-cols-12 lg:items-stretch lg:gap-10">
         <div className="lg:col-span-8">
           <div className={`overflow-hidden rounded-[1.35rem] ${rentasCardSurfaceClass} ring-1 ring-[#D4C4A8]/35`}>
             <div className="flex flex-col lg:flex-row lg:items-stretch">
@@ -147,8 +147,8 @@ export function RentasLandingFeatured({ copy, lang, primary, supporting }: Props
         ) : null}
       </div>
 
-      <p className="mt-8 text-center text-sm text-[#5C5346]/85">
-        <Link href={resultsHref} className={rentasLinkSupportClass}>
+      <p className="mt-9 flex justify-center">
+        <Link href={resultsHref} className={rentasSectionHeaderActionClass}>
           {fc.viewAllResults}
         </Link>
       </p>

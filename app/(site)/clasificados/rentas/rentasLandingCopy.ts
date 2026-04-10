@@ -10,6 +10,8 @@ export type RentasLandingCopy = {
   langEs: string;
   langEn: string;
   search: {
+    /** Visible heading above the search module (hierarchy + affordance). */
+    moduleHeadline: string;
     labelSearch: string;
     placeholder: string;
     tipo: string;
@@ -124,12 +126,13 @@ const ES: RentasLandingCopy = {
   breadcrumbRentas: "Rentas",
   title: "Rentas",
   intro:
-    "Encuentra rentas residenciales, comerciales y terrenos. Explora con claridad; publica como particular o negocio cuando quieras listar.",
+    "Rentas residenciales, comerciales y terrenos en un solo lugar. Navega con claridad y publica como particular o negocio cuando quieras listar.",
   publishPrivado: "Publicar — Privado",
   publishNegocio: "Publicar — Negocio",
   langEs: "ES",
   langEn: "EN",
   search: {
+    moduleHeadline: "Buscar rentas",
     labelSearch: "Búsqueda",
     placeholder: "Buscar en Bienes Raíces…",
     tipo: "Tipo",
@@ -153,7 +156,7 @@ const ES: RentasLandingCopy = {
   ],
   quickExplore: {
     title: "Explorar rápido",
-    subtitle: "Atajos a la cuadrícula de resultados con filtros ya aplicados en la URL.",
+    subtitle: "Abre la cuadrícula de resultados con filtros listos: tipo de propiedad, particular o negocio, y comodidades.",
     chipResidencial: "Residencial",
     chipComercial: "Comercial",
     chipTerreno: "Terreno / lote",
@@ -208,7 +211,7 @@ const ES: RentasLandingCopy = {
   },
   searchHelperLink: "Ver resultados sin filtros",
   trust: {
-    line: "Comunidad Leonix · Anuncios moderados ·",
+    line: "Leonix Clasificados · Listados moderados ·",
     contact: "Contacto directo",
     ctaResults: "Ver resultados",
     backClasificados: "Volver a Clasificados",
@@ -264,12 +267,13 @@ const EN: RentasLandingCopy = {
   breadcrumbRentas: "Rentals",
   title: "Rentals",
   intro:
-    "Find residential, commercial, and land rentals. Browse with clarity; publish as an individual or business when you are ready to list.",
+    "Residential, commercial, and land rentals in one place. Browse with clarity and publish as an individual or business when you are ready to list.",
   publishPrivado: "List — Private",
   publishNegocio: "List — Business",
   langEs: "ES",
   langEn: "EN",
   search: {
+    moduleHeadline: "Find rentals",
     labelSearch: "Search",
     placeholder: "Search real estate…",
     tipo: "Type",
@@ -293,7 +297,7 @@ const EN: RentasLandingCopy = {
   ],
   quickExplore: {
     title: "Quick explore",
-    subtitle: "Shortcuts to the results grid with filters preset in the URL.",
+    subtitle: "Open the results grid with filters ready: property type, seller branch, and amenities.",
     chipResidencial: "Residential",
     chipComercial: "Commercial",
     chipTerreno: "Land / lot",
@@ -348,7 +352,7 @@ const EN: RentasLandingCopy = {
   },
   searchHelperLink: "View results without filters",
   trust: {
-    line: "Leonix community · Moderated listings ·",
+    line: "Leonix Classifieds · Moderated listings ·",
     contact: "Direct contact",
     ctaResults: "View results",
     backClasificados: "Back to Classifieds",

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ServiciosDirectoryLocalSection } from "../ServiciosDirectoryLocalSection";
 import { ServiciosListingResultCard } from "../ServiciosListingResultCard";
+import { ServiciosResultsActiveSummary } from "../ServiciosResultsActiveSummary";
 import { ServiciosResultsFilters } from "../ServiciosResultsFilters";
 import {
   filterServiciosPublicListingRows,
@@ -75,9 +76,9 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
         aria-hidden
       />
 
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+      <div className="relative mx-auto max-w-6xl px-4 py-6 pb-24 sm:px-6 sm:py-10 sm:pb-10 lg:px-8">
         {/* Top bar: dedicated results context + CTAs */}
-        <header className="mb-6 flex flex-col gap-4 rounded-[22px] border border-[#e5ddd2]/90 bg-[#FFFCF7] p-4 shadow-[0_20px_56px_-40px_rgba(20,38,58,0.4)] sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-5">
+        <header className="mb-6 flex flex-col gap-4 rounded-[22px] border border-[#e5ddd2]/90 bg-[#FFFCF7] p-4 shadow-[0_22px_60px_-42px_rgba(20,38,58,0.42)] ring-1 ring-[#1e3a5f]/[0.04] sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-5">
           <div className="min-w-0">
             <Link
               href={landingHref}
@@ -117,12 +118,27 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
           </aside>
 
           <div className="mt-6 min-w-0 lg:mt-0">
+            <ServiciosResultsActiveSummary lang={lang} query={filterQuery} />
+
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2 border-b border-[#dcd3c7]/80 pb-3">
               <p className="text-sm font-semibold text-[#142a42]">
                 {lang === "en" ? "Listings" : "Anuncios"}
                 <span className="ml-2 tabular-nums text-[#64748b]">({displayRows.length})</span>
               </p>
+              {filterQuery.sort === "name" ? (
+                <span className="text-xs font-medium text-[#64748b]">
+                  {lang === "en" ? "Sorted A–Z within featured + standard." : "Orden A–Z dentro de destacados y resto."}
+                </span>
+              ) : null}
             </div>
+
+            {displayRows.length > 0 && displayRows.length < 4 && hasActiveFilters ? (
+              <p className="mb-4 rounded-xl border border-[#dfe6ef] bg-white/90 px-4 py-3 text-[13px] leading-relaxed text-[#4a5d6e]">
+                {lang === "en"
+                  ? "Few matches — try clearing one filter, removing keywords, or browsing all services from the landing page."
+                  : "Pocos resultados: prueba quitar un filtro, acortar palabras clave o volver al inicio para explorar todo."}
+              </p>
+            ) : null}
 
             {displayRows.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[#c9b8a4] bg-[#FFFCF7] px-4 py-14 text-center shadow-sm">
@@ -150,7 +166,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                       href={`/clasificados/servicios/resultados?lang=${lang}`}
                       className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[#3B66AD]/30 bg-white px-5 text-sm font-bold text-[#3B66AD] shadow-sm transition hover:bg-[#3B66AD]/5"
                     >
-                      {lang === "en" ? "Reset filters" : "Restablecer filtros"}
+                      {lang === "en" ? "Show all listings" : "Ver todos los anuncios"}
                     </Link>
                   ) : null}
                   <Link
@@ -159,6 +175,14 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                   >
                     {lang === "en" ? "Back to landing" : "Volver al inicio"}
                   </Link>
+                  {hasActiveFilters ? (
+                    <Link
+                      href={`/clasificados/servicios?lang=${lang}#categorias`}
+                      className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[#e5ddd2] bg-[#FFFCF7] px-5 text-sm font-bold text-[#142a42] shadow-sm transition hover:bg-white"
+                    >
+                      {lang === "en" ? "Explore categories" : "Explorar categorías"}
+                    </Link>
+                  ) : null}
                 </div>
               </div>
             ) : (
@@ -172,6 +196,16 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
         </div>
 
         <ServiciosDirectoryLocalSection lang={lang} dbSlugs={dbSlugList} />
+
+        <a
+          href="#servicios-resultados-filtros"
+          className="fixed bottom-5 left-1/2 z-40 flex min-h-[48px] -translate-x-1/2 items-center gap-2 rounded-full border border-[#1a3352]/12 bg-[#FFFCF7]/95 px-6 text-sm font-bold text-[#142a42] shadow-[0_14px_44px_-12px_rgba(20,38,58,0.45)] backdrop-blur-md transition hover:bg-white lg:hidden"
+        >
+          {lang === "en" ? "Refine search" : "Refinar búsqueda"}
+          <span aria-hidden className="text-[#3B66AD]">
+            ↑
+          </span>
+        </a>
       </div>
     </div>
   );

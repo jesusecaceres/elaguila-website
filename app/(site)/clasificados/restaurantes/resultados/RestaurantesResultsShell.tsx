@@ -27,6 +27,19 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 const ACCENT = "#D97706";
 const PAGE_SIZE = 9;
 
+function labelForSvcParam(svc: string, lang: RestaurantesDiscoveryLang): string {
+  switch (svc) {
+    case "dine_in":
+      return lang === "es" ? "Comer en local" : "Dine-in";
+    case "takeout":
+      return lang === "es" ? "Para llevar" : "Takeout";
+    case "delivery":
+      return lang === "es" ? "Entrega a domicilio" : "Delivery";
+    default:
+      return svc;
+  }
+}
+
 function mergeDiscovery(
   base: RestaurantesDiscoveryState,
   patch: Partial<RestaurantesDiscoveryState>,
@@ -98,20 +111,24 @@ export function RestaurantesResultsShell() {
     if (lang === "en") {
       return {
         title: "Restaurants",
-        subtitle: "Browse Leonix listings; filters match fields stored on each restaurant profile.",
-        searchPh: "Restaurant, dish, or cuisine…",
-        locationPh: "City or ZIP",
+        subtitle: "Same search and filters as the Restaurants home—refine what you started on Leonix.",
+        journeyLine: "Tune cuisine, service mode, and location; every control maps to profile data as listings grow.",
+        searchPh: "Name, cuisine, or dish…",
+        locationPh: "City or 5-digit ZIP",
         search: "Search",
         filters: "Filters",
         close: "Close",
         count: "Showing",
         results: "places",
+        resultsMatching: "matching places",
         sort: "Sort",
         sortNew: "Newest",
         sortName: "Name A–Z",
         sortRating: "Highest rated",
         loadMore: "Load more",
-        empty: "No restaurants match these filters. Try widening your search.",
+        emptyTitle: "Nothing matched yet",
+        emptyBody: "Loosen a filter, clear a chip, or return to the Restaurants page to start fresh—Leonix keeps your search intent intact.",
+        emptyCta: "Back to Restaurants home",
         featured: "Featured on Leonix",
         promotedBadge: "Destacado",
         verMas: "See more",
@@ -120,6 +137,8 @@ export function RestaurantesResultsShell() {
         zip: "ZIP",
         price: "Price range",
         service: "Service",
+        serviceFull: "Service mode",
+        dietFull: "Diet or preference",
         any: "Any",
         all: "All",
         openNow: "Open now",
@@ -135,20 +154,25 @@ export function RestaurantesResultsShell() {
     }
     return {
       title: "Restaurantes",
-      subtitle: "Explora listados en Leonix; los filtros corresponden a datos guardados en cada perfil.",
-      searchPh: "Restaurante, platillo o cocina…",
-      locationPh: "Ciudad o código postal",
+      subtitle: "La misma búsqueda y filtros que en el inicio de Restaurantes—continúa lo que empezaste en Leonix.",
+      journeyLine: "Ajusta cocina, modo de servicio y ubicación; cada control refleja datos del perfil cuando los anuncios crezcan.",
+      searchPh: "Nombre, cocina o platillo…",
+      locationPh: "Ciudad o código postal (5 dígitos)",
       search: "Buscar",
       filters: "Filtros",
       close: "Cerrar",
       count: "Mostrando",
       results: "lugares",
+      resultsMatching: "lugares que coinciden",
       sort: "Orden",
       sortNew: "Más recientes",
       sortName: "Nombre A–Z",
       sortRating: "Mejor valorados",
       loadMore: "Cargar más",
-      empty: "Ningún restaurante coincide con estos filtros. Prueba ampliar la búsqueda.",
+      emptyTitle: "Aún no hay coincidencias",
+      emptyBody:
+        "Afloja un filtro, quita una etiqueta o vuelve al inicio de Restaurantes para reorientar la búsqueda—Leonix mantiene tu intención.",
+      emptyCta: "Volver al inicio de Restaurantes",
       featured: "Destacados en Leonix",
       promotedBadge: "Destacado",
       verMas: "Ver más",
@@ -157,6 +181,8 @@ export function RestaurantesResultsShell() {
       zip: "Código postal",
       price: "Precio",
       service: "Servicio",
+      serviceFull: "Modo de servicio",
+      dietFull: "Dieta o preferencia",
       any: "Cualquiera",
       all: "Todas",
       openNow: "Abierto ahora",
@@ -178,7 +204,7 @@ export function RestaurantesResultsShell() {
       <div>
         <label className="text-xs font-semibold text-[#2D241E]/60">{t.cuisine}</label>
         <select
-          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm"
+          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
           value={parsed.cuisine}
           onChange={(e) => pushState(mergeDiscovery(parsed, { cuisine: e.target.value, page: 1 }))}
         >
@@ -193,7 +219,7 @@ export function RestaurantesResultsShell() {
       <div>
         <label className="text-xs font-semibold text-[#2D241E]/60">{t.city}</label>
         <input
-          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm"
+          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
           defaultValue={parsed.city}
           key={`city-${parsed.city}`}
           onBlur={(e) => pushState(mergeDiscovery(parsed, { city: e.target.value.trim(), page: 1 }))}
@@ -202,7 +228,7 @@ export function RestaurantesResultsShell() {
       <div>
         <label className="text-xs font-semibold text-[#2D241E]/60">{t.zip}</label>
         <input
-          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm"
+          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
           defaultValue={parsed.zip}
           key={`zip-${parsed.zip}`}
           inputMode="numeric"
@@ -215,7 +241,7 @@ export function RestaurantesResultsShell() {
       <div>
         <label className="text-xs font-semibold text-[#2D241E]/60">{t.price}</label>
         <select
-          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm"
+          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
           value={parsed.price}
           onChange={(e) => pushState(mergeDiscovery(parsed, { price: e.target.value, page: 1 }))}
         >
@@ -228,16 +254,16 @@ export function RestaurantesResultsShell() {
         </select>
       </div>
       <div>
-        <label className="text-xs font-semibold text-[#2D241E]/60">{t.service}</label>
+        <label className="text-xs font-semibold text-[#2D241E]/60">{t.serviceFull}</label>
         <select
-          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm"
+          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
           value={parsed.svc}
           onChange={(e) => pushState(mergeDiscovery(parsed, { svc: e.target.value, page: 1 }))}
         >
           <option value="">{t.any}</option>
-          <option value="dine_in">Comer en local</option>
-          <option value="takeout">Para llevar</option>
-          <option value="delivery">Entrega</option>
+          <option value="dine_in">{lang === "es" ? "Comer en local" : "Dine-in"}</option>
+          <option value="takeout">{lang === "es" ? "Para llevar" : "Takeout"}</option>
+          <option value="delivery">{lang === "es" ? "Entrega a domicilio" : "Delivery"}</option>
         </select>
       </div>
       <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
@@ -259,9 +285,9 @@ export function RestaurantesResultsShell() {
         {t.family}
       </label>
       <div>
-        <label className="text-xs font-semibold text-[#2D241E]/60">{t.diet}</label>
+        <label className="text-xs font-semibold text-[#2D241E]/60">{t.dietFull}</label>
         <select
-          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm"
+          className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
           value={parsed.diet}
           onChange={(e) =>
             pushState(
@@ -300,7 +326,7 @@ export function RestaurantesResultsShell() {
       });
     if (parsed.svc)
       chips.push({
-        label: parsed.svc,
+        label: labelForSvcParam(parsed.svc, lang),
         clear: () => pushState(mergeDiscovery(parsed, { svc: "", page: 1 })),
       });
     if (parsed.family) chips.push({ label: t.family, clear: () => pushState(mergeDiscovery(parsed, { family: false, page: 1 })) });
@@ -310,7 +336,7 @@ export function RestaurantesResultsShell() {
     if (parsed.top) chips.push({ label: t.sortRating, clear: () => pushState(mergeDiscovery(parsed, { top: false, page: 1 })) });
     if (parsed.near) chips.push({ label: t.nearReserved, clear: () => pushState(mergeDiscovery(parsed, { near: false, page: 1 })) });
     return chips;
-  }, [parsed, pushState, t]);
+  }, [parsed, pushState, t, lang]);
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FDFBF7] text-[#2D241E]">
@@ -321,6 +347,7 @@ export function RestaurantesResultsShell() {
             <p className="text-xs font-semibold uppercase tracking-wide text-[#2D241E]/50">{t.eyebrow}</p>
             <h1 className="mt-2 font-serif text-2xl font-semibold tracking-tight sm:text-3xl">{t.title}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#2D241E]/72">{t.subtitle}</p>
+            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#2D241E]/58 sm:text-sm">{t.journeyLine}</p>
             <Link href={landingHref} className="mt-3 inline-flex text-sm font-semibold text-[#D97706] underline-offset-4 hover:underline">
               ← {t.backLanding}
             </Link>
@@ -338,7 +365,7 @@ export function RestaurantesResultsShell() {
                 value={qInput}
                 onChange={(e) => setQInput(e.target.value)}
                 placeholder={t.searchPh}
-                className="min-h-[52px] w-full rounded-[16px] border border-[#2D241E]/12 bg-[#FFFCF7] py-3 pl-10 pr-3 text-sm outline-none ring-[#D97706]/30 focus:ring-2"
+                className="min-h-[52px] w-full rounded-[16px] border border-[#2D241E]/12 bg-[#FFFCF7] py-3 pl-10 pr-3 text-sm outline-none transition-shadow ring-[#D97706]/30 focus:ring-2"
                 autoComplete="off"
               />
             </div>
@@ -348,7 +375,7 @@ export function RestaurantesResultsShell() {
                 value={locInput}
                 onChange={(e) => setLocInput(e.target.value)}
                 placeholder={t.locationPh}
-                className="min-h-[52px] w-full rounded-[16px] border border-[#2D241E]/12 bg-[#FFFCF7] py-3 pl-10 pr-3 text-sm outline-none ring-[#D97706]/30 focus:ring-2"
+                className="min-h-[52px] w-full rounded-[16px] border border-[#2D241E]/12 bg-[#FFFCF7] py-3 pl-10 pr-3 text-sm outline-none transition-shadow ring-[#D97706]/30 focus:ring-2"
               />
             </div>
             <button
@@ -362,14 +389,16 @@ export function RestaurantesResultsShell() {
         </form>
 
         <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-[#2D241E]/75">
-            {t.count} <span className="font-semibold text-[#2D241E]">{sorted.length}</span> {t.results}
+          <p className="text-sm text-[#2D241E]/80">
+            <span className="font-semibold text-[#2D241E]">{sorted.length}</span>{" "}
+            <span className="text-[#2D241E]/72">{t.resultsMatching}</span>
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-2 text-sm">
               <span className="text-[#2D241E]/55">{t.sort}</span>
               <select
-                className="min-h-[48px] min-w-[180px] rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm"
+                aria-label={t.sort}
+                className="min-h-[48px] min-w-[180px] rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none transition focus:border-[#D97706]/45 focus:ring-2 focus:ring-[#D97706]/25"
                 value={parsed.top ? "rating-desc" : parsed.sort}
                 onChange={(e) => {
                   const v = e.target.value as RestaurantesDiscoveryState["sort"];
@@ -383,7 +412,7 @@ export function RestaurantesResultsShell() {
             </label>
             <button
               type="button"
-              className="inline-flex min-h-[48px] items-center justify-center rounded-[12px] border border-[#2D241E]/15 bg-[#FFFCF7] px-4 text-sm font-semibold text-[#2D241E] lg:hidden"
+              className="inline-flex min-h-[48px] items-center justify-center rounded-[12px] border border-[#2D241E]/15 bg-[#FFFCF7] px-4 text-sm font-semibold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/35 lg:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/45"
               onClick={() => setMobileFiltersOpen(true)}
             >
               {t.filters}
@@ -399,7 +428,7 @@ export function RestaurantesResultsShell() {
                 key={c.label}
                 type="button"
                 onClick={c.clear}
-                className="inline-flex min-h-[36px] items-center gap-1 rounded-full border border-[#D97706]/35 bg-[#FFF7ED] px-3 text-xs font-semibold text-[#2D241E]"
+                className="inline-flex min-h-[40px] items-center gap-1 rounded-full border border-[#D97706]/35 bg-[#FFF7ED] px-3 text-xs font-semibold text-[#2D241E] transition hover:bg-[#FFEDD5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/50"
               >
                 {c.label} <span aria-hidden>×</span>
               </button>
@@ -428,8 +457,15 @@ export function RestaurantesResultsShell() {
             ) : null}
 
             {shown.length === 0 ? (
-              <div className="rounded-[20px] border border-dashed border-[#2D241E]/20 bg-[#FFFCF7]/80 px-6 py-16 text-center text-sm text-[#2D241E]/70">
-                {t.empty}
+              <div className="rounded-[20px] border border-dashed border-[#2D241E]/25 bg-gradient-to-b from-[#FFFCF7] to-[#FDFBF7] px-6 py-14 text-center sm:px-10">
+                <p className="font-serif text-lg font-semibold text-[#2D241E]">{t.emptyTitle}</p>
+                <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#2D241E]/72">{t.emptyBody}</p>
+                <Link
+                  href={landingHref}
+                  className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-[14px] border border-[#D97706]/45 bg-[#FFFCF7] px-6 text-sm font-semibold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/65 hover:bg-[#FFF7ED] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/50"
+                >
+                  {t.emptyCta}
+                </Link>
               </div>
             ) : (
               <ul className="grid list-none grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -493,8 +529,8 @@ function ResultCard({
   const moreHref = buildRestaurantesResultsHref(lang, { q: row.name, lang });
   return (
     <article
-      className={`flex h-full max-w-[100%] flex-col overflow-hidden rounded-[20px] border border-[#2D241E]/10 bg-[#FFFCF7] shadow-[0_12px_40px_-22px_rgba(45,36,30,0.3)] ${
-        badge ? "w-[min(100vw-2rem,320px)] shrink-0" : "w-full"
+      className={`flex h-full max-w-[100%] flex-col overflow-hidden rounded-[20px] border border-[#2D241E]/10 bg-[#FFFCF7] shadow-[0_12px_40px_-22px_rgba(45,36,30,0.3)] transition-shadow duration-300 hover:shadow-[0_16px_44px_-20px_rgba(45,36,30,0.36)] ${
+        badge ? "w-[min(100vw-2rem,320px)] shrink-0 ring-1 ring-[#D97706]/22" : "w-full"
       }`}
     >
       <div className="relative aspect-[16/10] w-full overflow-hidden">
@@ -533,7 +569,7 @@ function ResultCard({
         <div className="mt-4 border-t border-[#2D241E]/8 pt-4">
           <Link
             href={moreHref}
-            className="flex min-h-[48px] w-full items-center justify-center rounded-[14px] text-sm font-bold text-[#FFFCF7]"
+            className="flex min-h-[48px] w-full items-center justify-center rounded-[14px] text-sm font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(180,83,9,0.45)] transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2"
             style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
           >
             {cta}
