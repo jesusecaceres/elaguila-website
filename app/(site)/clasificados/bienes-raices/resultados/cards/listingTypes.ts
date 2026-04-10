@@ -23,6 +23,8 @@ export type BrNegocioListing = {
   baths: string;
   sqft: string;
   year?: string;
+  /** Particular vs negocio / inmobiliaria — URL `sellerType` + card rhythm. */
+  sellerKind?: "privado" | "negocio";
   /** Structural category (residencial / comercial / terreno_lote) — filters on results, not Negocio application logic. */
   categoriaPropiedad: BrNegocioCategoriaPropiedad;
   badges: BrListingBadge[];

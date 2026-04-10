@@ -1,6 +1,15 @@
 import Link from "next/link";
 import type { RentasResultsDemoListing } from "../rentasResultsDemoData";
-import { IconBath, IconBed, IconRuler } from "@/app/clasificados/bienes-raices/results/cards/cardIcons";
+import { IconBath, IconBed, IconRuler } from "@/app/clasificados/bienes-raices/resultados/cards/cardIcons";
+
+function badgeLabel(b: string) {
+  if (b === "destacada") return "Destacada";
+  if (b === "promo") return "PROMO";
+  if (b === "privado") return "Privado";
+  if (b === "negocio") return "Negocio";
+  if (b === "comercial") return "Comercial";
+  return b;
+}
 
 function BadgeRow({ listing }: { listing: RentasResultsDemoListing }) {
   if (!listing.badges.length) return null;
@@ -11,14 +20,18 @@ function BadgeRow({ listing }: { listing: RentasResultsDemoListing }) {
           key={b}
           className={
             "rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide shadow-sm " +
-            (b === "privado"
-              ? "bg-[#4A7C59]/90 text-white"
-              : b === "promo"
-                ? "bg-[#8B6914]/95 text-[#FFFCF7]"
-                : "bg-[#2A2620]/92 text-[#FAF7F2]")
+            (b === "destacada"
+              ? "bg-[#C9B46A]/95 text-[#1E1810]"
+              : b === "privado"
+                ? "bg-[#4A7C59]/90 text-white"
+                : b === "promo"
+                  ? "bg-[#8B6914]/95 text-[#FFFCF7]"
+                  : b === "negocio" || b === "comercial"
+                    ? "bg-[#4A7C59]/92 text-[#FAF7F2]"
+                    : "bg-[#2A2620]/92 text-[#FAF7F2]")
           }
         >
-          {b === "promo" ? "PROMO" : b}
+          {badgeLabel(b)}
         </span>
       ))}
     </div>

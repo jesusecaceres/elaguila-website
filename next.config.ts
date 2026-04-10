@@ -48,6 +48,11 @@ const nextConfig: NextConfig = {
         destination: "/clasificados/publicar",
         permanent: true,
       },
+      {
+        source: "/clasificados/bienes-raices/results",
+        destination: "/clasificados/bienes-raices/resultados",
+        permanent: true,
+      },
     ];
   },
 

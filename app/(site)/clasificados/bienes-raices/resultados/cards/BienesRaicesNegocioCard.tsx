@@ -3,6 +3,11 @@ import type { BrNegocioListing } from "./listingTypes";
 import { BadgeStack } from "./BadgeStack";
 import { IconBath, IconBed, IconCalendar, IconRuler } from "./cardIcons";
 
+function sellerKindUi(listing: BrNegocioListing): "privado" | "negocio" {
+  if (listing.sellerKind) return listing.sellerKind;
+  return listing.badges.includes("negocio") ? "negocio" : "privado";
+}
+
 function FactsRow({ listing }: { listing: BrNegocioListing }) {
   return (
     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#5C5346]">
@@ -52,6 +57,15 @@ function IdentityRow({ listing }: { listing: BrNegocioListing }) {
           <p className="truncate text-[11px] text-[#5C5346]/75">{listing.advertiser.subtitle}</p>
         ) : null}
       </div>
+      <span
+        className={
+          sellerKindUi(listing) === "negocio"
+            ? "shrink-0 rounded-md border border-[#C9B46A]/40 bg-[#FFFCF7] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#8A6F3A]"
+            : "shrink-0 rounded-md border border-[#E8DFD0] bg-white/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#5C5346]"
+        }
+      >
+        {sellerKindUi(listing) === "negocio" ? "Negocio" : "Privado"}
+      </span>
       {listing.trustChip ? (
         <span className="shrink-0 rounded-md border border-[#E8DFD0] bg-[#FFFCF7] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#6E5418]">
           {listing.trustChip}

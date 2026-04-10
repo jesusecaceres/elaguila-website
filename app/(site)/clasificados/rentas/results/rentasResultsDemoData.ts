@@ -14,23 +14,31 @@ export type RentasResultsDemoListing = {
   badges: string[];
   promoted?: boolean;
   layout?: "vertical" | "horizontal";
+  /** Demo-only: higher = newer for "Recientes" band. */
+  recencyRank?: number;
+  amueblado?: boolean;
+  mascotasPermitidas?: boolean;
 };
 
 export const RENTAS_RESULTS_DEMO_TOTAL = 842;
 
+/** Featured / promoted — Negocio-first for shell strategy; still mixed elsewhere on landing. */
 export const rentasResultsFeatured: RentasResultsDemoListing = {
-  id: "rentas-feat-1",
-  imageUrl: "https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1200&q=80&auto=format&fit=crop",
-  rentDisplay: "$2,850 / mes",
-  title: "Departamento amueblado céntrico",
-  addressLine: "Zapopan, Jalisco",
-  beds: "2",
+  id: "r-mty-hero",
+  imageUrl: "https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=1200&q=80&auto=format&fit=crop",
+  rentDisplay: "$3,200 / mes",
+  title: "Oficina ejecutiva con recepción",
+  addressLine: "San Pedro Garza García, NL",
+  beds: "—",
   baths: "2",
-  sqft: "980 ft²",
-  categoriaPropiedad: "residencial",
+  sqft: "1,100 ft²",
+  categoriaPropiedad: "comercial",
   branch: "negocio",
-  badges: ["negocio", "promo"],
+  badges: ["destacada", "negocio"],
   promoted: true,
+  recencyRank: 100,
+  amueblado: true,
+  mascotasPermitidas: false,
 };
 
 export const rentasResultsGridDemo: RentasResultsDemoListing[] = [
@@ -47,25 +55,32 @@ export const rentasResultsGridDemo: RentasResultsDemoListing[] = [
     branch: "privado",
     badges: ["privado"],
     layout: "horizontal",
+    recencyRank: 88,
+    amueblado: false,
+    mascotasPermitidas: true,
   },
   {
     id: "r-mty-1",
-    imageUrl: "https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=900&q=80&auto=format&fit=crop",
-    rentDisplay: "$3,200 / mes",
-    title: "Oficina ejecutiva con recepción",
-    addressLine: "San Pedro Garza García, NL",
-    beds: "—",
-    baths: "2",
-    sqft: "1,100 ft²",
-    categoriaPropiedad: "comercial",
-    branch: "negocio",
-    badges: ["negocio", "comercial"],
+    imageUrl: "https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=900&q=80&auto=format&fit=crop",
+    rentDisplay: "$45,000 MXN/mes",
+    title: "Residencia con alberca y jardín",
+    addressLine: "Monterrey, NL",
+    beds: "3",
+    baths: "4",
+    sqft: "1,200 m²",
+    categoriaPropiedad: "residencial",
+    branch: "privado",
+    badges: ["destacada", "privado"],
+    promoted: true,
+    recencyRank: 95,
+    amueblado: false,
+    mascotasPermitidas: true,
   },
   {
     id: "r-cdmx-1",
     imageUrl: "https://images.unsplash.com/photo-1600585154084-4e5fe7c39198?w=900&q=80&auto=format&fit=crop",
     rentDisplay: "$22,000 / mes",
-    title: "Loft tipo estudio",
+    title: "Loft tipo estudio amueblado",
     addressLine: "Roma Norte, CDMX",
     beds: "1",
     baths: "1",
@@ -73,6 +88,9 @@ export const rentasResultsGridDemo: RentasResultsDemoListing[] = [
     categoriaPropiedad: "residencial",
     branch: "privado",
     badges: ["privado"],
+    recencyRank: 90,
+    amueblado: true,
+    mascotasPermitidas: false,
   },
   {
     id: "r-agu-1",
@@ -87,6 +105,9 @@ export const rentasResultsGridDemo: RentasResultsDemoListing[] = [
     branch: "negocio",
     badges: ["negocio"],
     layout: "horizontal",
+    recencyRank: 72,
+    amueblado: false,
+    mascotasPermitidas: false,
   },
   {
     id: "r-gdl-2",
@@ -100,5 +121,24 @@ export const rentasResultsGridDemo: RentasResultsDemoListing[] = [
     categoriaPropiedad: "residencial",
     branch: "negocio",
     badges: ["negocio"],
+    recencyRank: 80,
+    amueblado: false,
+    mascotasPermitidas: true,
+  },
+  {
+    id: "r-qro-1",
+    imageUrl: "https://images.unsplash.com/photo-1600585154340-0ef3c08dc8e4?w=900&q=80&auto=format&fit=crop",
+    rentDisplay: "$28,500 / mes",
+    title: "Showroom avenida principal",
+    addressLine: "Querétaro, Qro.",
+    beds: "—",
+    baths: "3",
+    sqft: "2,400 ft²",
+    categoriaPropiedad: "comercial",
+    branch: "negocio",
+    badges: ["negocio", "comercial"],
+    recencyRank: 78,
+    amueblado: false,
+    mascotasPermitidas: false,
   },
 ];

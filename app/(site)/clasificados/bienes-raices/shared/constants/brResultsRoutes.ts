@@ -7,7 +7,7 @@ export { BR_URL_QUERY_CIUDAD, brCanonicalNorCalCity } from "../brNorCalCity";
 export const BR_RESULTS_PATH = BR_RESULTS;
 
 /**
- * Source of truth for links to the refined results surface (`/clasificados/bienes-raices/results`).
+ * Source of truth for links to the refined results surface (`/clasificados/bienes-raices/resultados`).
  * Exploratory category entry stays `/clasificados/bienes-raices` (see `page.tsx` / `BienesRaicesLandingHub`).
  */
 export function buildBrResultsUrl(extra?: Record<string, string | undefined>): string {
@@ -19,4 +19,40 @@ export function buildBrResultsUrl(extra?: Record<string, string | undefined>): s
   }
   const q = sp.toString();
   return q ? `${BR_RESULTS_PATH}?${q}` : BR_RESULTS_PATH;
+}
+
+/**
+ * Canonical query keys for BR landing → results handoff (aligned with future filters).
+ * Values are always strings in the URL; results UI maps them to typed state.
+ */
+export type BrResultsQueryKey =
+  | "q"
+  | "operationType"
+  | "city"
+  | "zip"
+  | "propertyType"
+  | "sellerType"
+  | "priceMin"
+  | "priceMax"
+  | "beds"
+  | "baths"
+  | "parking"
+  | "pets"
+  | "furnished"
+  | "pool"
+  | "sort"
+  | "page"
+  /** Legacy / exploratory keys used by the results demo grid */
+  | "tipo"
+  | "precio"
+  | "recs"
+  | "primary"
+  | "secondary"
+  | "propiedad";
+
+/** Typed handoff builder (same encoding as `buildBrResultsUrl`). */
+export function buildBrResultsHandoff(
+  params: Partial<Record<BrResultsQueryKey, string | undefined>>
+): string {
+  return buildBrResultsUrl(params as Record<string, string | undefined>);
 }

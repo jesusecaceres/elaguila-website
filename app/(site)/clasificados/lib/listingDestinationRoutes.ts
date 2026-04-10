@@ -9,7 +9,7 @@ export const CLASIFICADOS_ANUNCIO_LIVE = "/clasificados/anuncio";
 /** BR exploratory entry (landing). */
 export const BR_LANDING = "/clasificados/bienes-raices";
 /** BR filtered grid (separate from preview + from anuncio detail). */
-export const BR_RESULTS = "/clasificados/bienes-raices/results";
+export const BR_RESULTS = "/clasificados/bienes-raices/resultados";
 
 /** Rentas exploratory entry. */
 export const RENTAS_LANDING = "/clasificados/rentas";

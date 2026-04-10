@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { BR_PUBLICAR_HUB } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
+import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import {
   BR_NEGOCIO_Q_PROPIEDAD,
   parseBrNegocioPropiedadParam,
@@ -58,9 +58,18 @@ function brDemoPriceNumber(price: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function listingOperation(listing: BrNegocioListing): "venta" | "renta" {
+  if (listing.operationLabel === "Renta") return "renta";
+  return "venta";
+}
+
 function listingMatchesPrimaryChips(listing: BrNegocioListing, primary: Set<BrPrimaryChipId>): boolean {
   if (primary.size === 0) return true;
-  if (primary.has("renta") && !primary.has("venta")) return false;
+  const op = listingOperation(listing);
+  const wantsVenta = primary.has("venta");
+  const wantsRenta = primary.has("renta");
+  if (wantsVenta && !wantsRenta && op !== "venta") return false;
+  if (wantsRenta && !wantsVenta && op !== "renta") return false;
   for (const id of primary) {
     if (id === "venta" || id === "renta") continue;
     if (id === "comerciales") {
@@ -85,7 +94,7 @@ function pickFeaturedForFilter(
   return filtered[0];
 }
 
-/** Category-owned results UI for `/clasificados/bienes-raices/results` (demo grid; `propiedad` = residencial|comercial|terreno_lote). */
+/** Category-owned results UI for `/clasificados/bienes-raices/resultados` (demo grid; `propiedad` = residencial|comercial|terreno_lote). */
 export function BienesRaicesResultsClient() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
@@ -102,17 +111,58 @@ export function BienesRaicesResultsClient() {
   useEffect(() => {
     if (!searchParams) return;
     const q = searchParams.get("q");
-    if (q != null) setQuery(q);
+    const city = searchParams.get("city");
+    if (q != null && q !== "") setQuery(q);
+    else if (city != null && city !== "") setQuery(city);
+
     const tipo = searchParams.get("tipo");
-    if (tipo != null) setPropertyType(tipo);
+    const propertyTypeParam = searchParams.get("propertyType");
+    if (tipo != null && tipo !== "") setPropertyType(tipo);
+    else if (propertyTypeParam === "casa") setPropertyType("casa");
+    else if (propertyTypeParam === "departamento") setPropertyType("depto");
+    else if (propertyTypeParam === "terreno") setPropertyType("terreno");
+    else if (propertyTypeParam === "comercial") setPropertyType("comercial");
+
     const precio = searchParams.get("precio");
     if (precio != null) setPriceBand(precio);
     const recs = searchParams.get("recs");
     if (recs != null) setBeds(recs);
+    const bedsParam = searchParams.get("beds");
+    if (bedsParam != null && bedsParam !== "") setBeds(bedsParam);
+
     const primaryParsed = parsePrimaryFromSearch(searchParams.get("primary"));
     if (primaryParsed) setPrimary(primaryParsed);
+
+    const op = searchParams.get("operationType");
+    if (op === "venta" || op === "renta") {
+      setPrimary((prev) => {
+        const next = new Set(prev);
+        if (op === "venta") next.add("venta");
+        if (op === "renta") next.add("renta");
+        return next;
+      });
+    }
+
+    const pt = propertyTypeParam ?? tipo;
+    if (pt === "casa" || pt === "departamento" || pt === "terreno" || pt === "comercial" || pt === "depto") {
+      setPrimary((prev) => {
+        const next = new Set(prev);
+        const map: Record<string, BrPrimaryChipId> = {
+          casa: "casas",
+          departamento: "departamentos",
+          depto: "departamentos",
+          terreno: "terrenos",
+          comercial: "comerciales",
+        };
+        const chip = map[pt];
+        if (chip) next.add(chip);
+        return next;
+      });
+    }
+
     const secondaryParsed = parseSecondaryFromSearch(searchParams.get("secondary"));
     if (secondaryParsed) setSecondary(secondaryParsed);
+
     const prop = parseBrNegocioPropiedadParam(searchParams.get(BR_NEGOCIO_Q_PROPIEDAD));
     setPropiedadFilter(prop);
   }, [searchParams]);
@@ -143,13 +193,52 @@ export function BienesRaicesResultsClient() {
     if (secondary.has("tour_virtual")) rows = rows.filter((l) => l.badges.includes("tour_virtual"));
     if (secondary.has("nuevo_desarrollo")) rows = rows.filter((l) => l.badges.includes("nuevo"));
     if (secondary.has("planos")) rows = rows.filter((l) => l.badges.includes("planos"));
+    if (secondary.has("piscina")) {
+      rows = rows.filter(
+        (l) =>
+          l.title.toLowerCase().includes("piscina") ||
+          l.metaLines?.some((m) => {
+            const x = m.toLowerCase();
+            return x.includes("piscina") || x.includes("alberca");
+          })
+      );
+    }
+    if (secondary.has("mascotas")) {
+      rows = rows.filter((l) => l.metaLines?.some((m) => m.toLowerCase().includes("mascota")));
+    }
+
+    const sellerType = searchParams?.get("sellerType");
+    if (sellerType === "privado" || sellerType === "negocio") {
+      rows = rows.filter((l) => {
+        const sk = l.sellerKind ?? (l.badges.includes("negocio") ? "negocio" : "privado");
+        return sk === sellerType;
+      });
+    }
+
+    if (searchParams?.get("pool") === "true") {
+      rows = rows.filter(
+        (l) =>
+          l.title.toLowerCase().includes("piscina") ||
+          l.metaLines?.some((m) => {
+            const x = m.toLowerCase();
+            return x.includes("piscina") || x.includes("alberca");
+          })
+      );
+    }
+    if (searchParams?.get("pets") === "true") {
+      rows = rows.filter((l) => l.metaLines?.some((m) => m.toLowerCase().includes("mascota")));
+    }
+    if (searchParams?.get("furnished") === "true") {
+      rows = rows.filter((l) => l.metaLines?.some((m) => m.toLowerCase().includes("amueblado")));
+    }
+
     const q = query.trim().toLowerCase();
     if (q) rows = rows.filter((l) => l.title.toLowerCase().includes(q) || l.addressLine.toLowerCase().includes(q));
     const sorted = [...rows];
     if (sort === "precio_asc") sorted.sort((a, b) => brDemoPriceNumber(a.price) - brDemoPriceNumber(b.price));
     if (sort === "precio_desc") sorted.sort((a, b) => brDemoPriceNumber(b.price) - brDemoPriceNumber(a.price));
     return sorted;
-  }, [primary, propiedadFilter, secondary, query, sort]);
+  }, [primary, propiedadFilter, secondary, query, sort, searchParams]);
 
   const featuredListing = useMemo(
     () => pickFeaturedForFilter(filteredListings, brNegocioFeaturedListing),
@@ -219,7 +308,7 @@ export function BienesRaicesResultsClient() {
         {displayedListings.length === 0 ? (
           <p className="mt-6 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7]/90 p-6 text-center text-sm text-[#5C5346]">
             Sin coincidencias en esta combinación.{" "}
-            <Link href="/clasificados/bienes-raices/results" className="font-semibold text-[#B8954A] underline">
+            <Link href={BR_RESULTS} className="font-semibold text-[#B8954A] underline">
               Ver todas (demo)
             </Link>
           </p>

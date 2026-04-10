@@ -8,9 +8,16 @@ import {
   parseBrNegocioPropiedadParam,
   type BrNegocioCategoriaPropiedad,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
-import { BienesRaicesResultsShell } from "@/app/clasificados/bienes-raices/results/components/BienesRaicesResultsShell";
-import { BienesRaicesSearchBar } from "@/app/clasificados/bienes-raices/results/components/BienesRaicesSearchBar";
-import { BienesRaicesResultsHeader } from "@/app/clasificados/bienes-raices/results/components/BienesRaicesResultsHeader";
+import { RentasSearchBar } from "@/app/clasificados/rentas/components/RentasSearchBar";
+import { BienesRaicesResultsShell } from "@/app/clasificados/bienes-raices/resultados/components/BienesRaicesResultsShell";
+import { BienesRaicesResultsHeader } from "@/app/clasificados/bienes-raices/resultados/components/BienesRaicesResultsHeader";
+import {
+  RENTAS_QUERY_AMUEBLADO,
+  RENTAS_QUERY_MASCOTAS,
+  RENTAS_QUERY_PRECIO,
+  RENTAS_QUERY_RENT_MAX,
+  RENTAS_QUERY_RENT_MIN,
+} from "@/app/clasificados/rentas/shared/rentasResultsQueryKeys";
 import {
   RENTAS_LANDING,
   RENTAS_PUBLICAR_NEGOCIO,
@@ -29,6 +36,24 @@ import {
 function rentDemoMonthlyNumber(rentDisplay: string): number {
   const n = Number(String(rentDisplay).replace(/[^0-9.]/g, ""));
   return Number.isFinite(n) ? n : 0;
+}
+
+function listingBedsNumeric(beds: string): number | null {
+  if (beds === "—" || beds.trim() === "") return 0;
+  const n = Number(String(beds).replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Demo-only: monthly precio band from landing search (`precio`). */
+function precioBandMatches(rentDisplay: string, band: string): boolean {
+  if (!band) return true;
+  const n = rentDemoMonthlyNumber(rentDisplay);
+  if (band === "r0-15k") return n > 0 && n <= 15000;
+  if (band === "r15-25k") return n > 15000 && n <= 25000;
+  if (band === "r25-40k") return n > 25000 && n <= 40000;
+  if (band === "r40-60k") return n > 40000 && n <= 60000;
+  if (band === "r60k+") return n > 60000;
+  return true;
 }
 
 function categoryLabelEs(c: BrNegocioCategoriaPropiedad): string {
@@ -72,10 +97,44 @@ export function RentasResultsClient() {
     if (branchFilter !== "all") rows = rows.filter((l) => l.branch === branchFilter);
     const q = query.trim().toLowerCase();
     if (q) rows = rows.filter((l) => l.title.toLowerCase().includes(q) || l.addressLine.toLowerCase().includes(q));
+
+    const sp = searchParams;
+    const precioBand = sp?.get(RENTAS_QUERY_PRECIO) ?? "";
+    if (precioBand) rows = rows.filter((l) => precioBandMatches(l.rentDisplay, precioBand));
+
+    const recs = sp?.get("recs") ?? "";
+    if (recs) {
+      const minBeds = recs === "4" ? 4 : Number(recs);
+      if (Number.isFinite(minBeds)) {
+        rows = rows.filter((l) => {
+          const bn = listingBedsNumeric(l.beds);
+          if (bn === null) return false;
+          return bn >= minBeds;
+        });
+      }
+    }
+
+    const amuebladoOn = sp?.get(RENTAS_QUERY_AMUEBLADO) === "1";
+    if (amuebladoOn) rows = rows.filter((l) => l.amueblado === true);
+
+    const mascotasOn = sp?.get(RENTAS_QUERY_MASCOTAS) === "1";
+    if (mascotasOn) rows = rows.filter((l) => l.mascotasPermitidas === true);
+
+    const rMinRaw = sp?.get(RENTAS_QUERY_RENT_MIN);
+    const rMaxRaw = sp?.get(RENTAS_QUERY_RENT_MAX);
+    const rMin = rMinRaw != null && rMinRaw !== "" ? Number(rMinRaw) : null;
+    const rMax = rMaxRaw != null && rMaxRaw !== "" ? Number(rMaxRaw) : null;
+    if (rMin !== null && Number.isFinite(rMin)) {
+      rows = rows.filter((l) => rentDemoMonthlyNumber(l.rentDisplay) >= rMin);
+    }
+    if (rMax !== null && Number.isFinite(rMax)) {
+      rows = rows.filter((l) => rentDemoMonthlyNumber(l.rentDisplay) <= rMax);
+    }
+
     if (sort === "precio_asc") rows.sort((a, b) => rentDemoMonthlyNumber(a.rentDisplay) - rentDemoMonthlyNumber(b.rentDisplay));
     if (sort === "precio_desc") rows.sort((a, b) => rentDemoMonthlyNumber(b.rentDisplay) - rentDemoMonthlyNumber(a.rentDisplay));
     return rows;
-  }, [propiedadFilter, branchFilter, query, sort]);
+  }, [branchFilter, propiedadFilter, query, searchParams, sort]);
 
   const featuredListing = useMemo((): RentasResultsDemoListing | null => {
     if (!filteredListings.length) return null;
@@ -138,7 +197,7 @@ export function RentasResultsClient() {
       </div>
 
       <div className="mt-8 max-w-5xl">
-        <BienesRaicesSearchBar
+        <RentasSearchBar
           query={query}
           onQuery={setQuery}
           propertyType={propertyType}
@@ -147,6 +206,7 @@ export function RentasResultsClient() {
           onPriceBand={setPriceBand}
           beds={beds}
           onBeds={setBeds}
+          searchPlaceholder="Buscar en Bienes Raíces…"
         />
         <RentasPropiedadFilterChips active={propiedadFilter} />
         <div className="mt-4 flex flex-wrap gap-2">
