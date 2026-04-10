@@ -1,43 +1,77 @@
 import Link from "next/link";
+import type { RentasLandingCopy } from "@/app/clasificados/rentas/rentasLandingCopy";
+import { withRentasLandingLang, type RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
+import { rentasCtaPrimaryClass, rentasCtaSecondaryClass } from "@/app/clasificados/rentas/rentasLandingTheme";
 import {
   RENTAS_PUBLICAR_NEGOCIO,
   RENTAS_PUBLICAR_PRIVADO,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 
-export function RentasLandingCategoryHeader() {
+type Props = {
+  copy: RentasLandingCopy;
+  lang: RentasLandingLang;
+};
+
+export function RentasLandingCategoryHeader({ copy, lang }: Props) {
+  const clasificadosHref = withRentasLandingLang("/clasificados", lang);
+  const landingEs = "/clasificados/rentas?lang=es";
+  const landingEn = "/clasificados/rentas?lang=en";
+
   return (
-    <header className="border-b border-[#E8DFD0]/80 pb-8">
+    <header className="border-b border-[#C4B8A8]/40 pb-8">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 max-w-3xl">
-          <nav className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#5C5346]">
-            <Link href="/clasificados" className="hover:text-[#B8954A]">
-              Clasificados
-            </Link>
-            <span className="text-[#C9B46A]" aria-hidden>
-              ›
-            </span>
-            <span className="text-[#1E1810]">Rentas</span>
-          </nav>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <nav className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#5B7C99]/85">
+              <Link href={clasificadosHref} className="transition hover:text-[#C45C26]">
+                {copy.breadcrumbClasificados}
+              </Link>
+              <span className="text-[#C9B46A]" aria-hidden>
+                ›
+              </span>
+              <span className="text-[#1E1810]">{copy.breadcrumbRentas}</span>
+            </nav>
+            <div
+              className="flex items-center gap-1 rounded-full border border-[#C9D4E0]/80 bg-white/90 px-1.5 py-0.5 text-[11px] font-bold shadow-sm"
+              role="group"
+              aria-label="Language"
+            >
+              <Link
+                href={landingEs}
+                className={
+                  "rounded-full px-2 py-0.5 transition " +
+                  (lang === "es" ? "bg-[#E8EEF4] text-[#2C3E4D]" : "text-[#6B7280] hover:text-[#1E1810]")
+                }
+                hrefLang="es"
+              >
+                {copy.langEs}
+              </Link>
+              <span className="text-[#D4C4A8]/90" aria-hidden>
+                |
+              </span>
+              <Link
+                href={landingEn}
+                className={
+                  "rounded-full px-2 py-0.5 transition " +
+                  (lang === "en" ? "bg-[#E8EEF4] text-[#2C3E4D]" : "text-[#6B7280] hover:text-[#1E1810]")
+                }
+                hrefLang="en"
+              >
+                {copy.langEn}
+              </Link>
+            </div>
+          </div>
           <h1 className="mt-4 font-serif text-[2.65rem] font-semibold leading-[1.08] tracking-tight text-[#1E1810] sm:text-[3.1rem]">
-            Rentas
+            {copy.title}
           </h1>
-          <p className="mt-3 text-base leading-relaxed text-[#5C5346]/92 sm:text-lg">
-            Encuentra rentas residenciales, comerciales y terrenos. Explora con claridad; publica como particular o negocio cuando
-            quieras listar.
-          </p>
+          <p className="mt-3 max-w-2xl text-base leading-relaxed text-[#4A5568] sm:text-lg">{copy.intro}</p>
         </div>
         <div className="flex w-full flex-shrink-0 flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-center">
-          <Link
-            href={RENTAS_PUBLICAR_PRIVADO}
-            className="rounded-full bg-[#4A7C59] px-5 py-2.5 text-center text-sm font-semibold text-[#FAF7F2] shadow-sm transition hover:bg-[#3d6a4b]"
-          >
-            Publicar — Privado
+          <Link href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, lang)} className={rentasCtaPrimaryClass}>
+            {copy.publishPrivado}
           </Link>
-          <Link
-            href={RENTAS_PUBLICAR_NEGOCIO}
-            className="rounded-full border border-[#D4C4A8]/90 bg-[#EDE6D8] px-5 py-2.5 text-center text-sm font-semibold text-[#1E1810] shadow-sm transition hover:border-[#C9B46A] hover:bg-[#E8DFD0]/80"
-          >
-            Publicar — Negocio
+          <Link href={withRentasLandingLang(RENTAS_PUBLICAR_NEGOCIO, lang)} className={rentasCtaSecondaryClass}>
+            {copy.publishNegocio}
           </Link>
         </div>
       </div>

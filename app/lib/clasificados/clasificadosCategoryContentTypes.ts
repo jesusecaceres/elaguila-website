@@ -28,7 +28,21 @@ export type ClasificadosEnVentaContentPatch = {
     search?: BilingualPatch;
     publish?: BilingualPatch;
     lista?: BilingualPatch;
+    /** Legacy single-line trust (optional; hub also supports structured trust rows) */
     trust?: BilingualPatch;
+    badge?: BilingualPatch;
+    socialProof?: BilingualPatch;
+    cityPh?: BilingualPatch;
+    categoriesTitle?: BilingualPatch;
+    trust1Title?: BilingualPatch;
+    trust1Sub?: BilingualPatch;
+    trust2Title?: BilingualPatch;
+    trust2Sub?: BilingualPatch;
+    trust3Title?: BilingualPatch;
+    trust3Sub?: BilingualPatch;
+    bottomSellTitle?: BilingualPatch;
+    bottomSellSub?: BilingualPatch;
+    bottomSellCta?: BilingualPatch;
     /** Optional emoji prefix for hero (display-only) */
     heroEmoji?: string;
     /** Optional hero / branding image (https or site path) */

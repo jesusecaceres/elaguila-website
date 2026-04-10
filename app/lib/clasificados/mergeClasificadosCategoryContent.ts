@@ -37,6 +37,19 @@ export type EnVentaHubLandingResolved = {
   publish: string;
   lista: string;
   trust: string;
+  badge: string;
+  socialProof: string;
+  cityPh: string;
+  categoriesTitle: string;
+  trust1Title: string;
+  trust1Sub: string;
+  trust2Title: string;
+  trust2Sub: string;
+  trust3Title: string;
+  trust3Sub: string;
+  bottomSellTitle: string;
+  bottomSellSub: string;
+  bottomSellCta: string;
   heroEmoji: string;
   heroImageUrl: string;
 };
@@ -55,6 +68,19 @@ export function mergeEnVentaHubLanding(
     publish: mergeBilingualKey(lang, d.es.publish, d.en.publish, h?.publish),
     lista: mergeBilingualKey(lang, d.es.lista, d.en.lista, h?.lista),
     trust: mergeBilingualKey(lang, d.es.trust, d.en.trust, h?.trust),
+    badge: mergeBilingualKey(lang, d.es.badge, d.en.badge, h?.badge),
+    socialProof: mergeBilingualKey(lang, d.es.socialProof, d.en.socialProof, h?.socialProof),
+    cityPh: mergeBilingualKey(lang, d.es.cityPh, d.en.cityPh, h?.cityPh),
+    categoriesTitle: mergeBilingualKey(lang, d.es.categoriesTitle, d.en.categoriesTitle, h?.categoriesTitle),
+    trust1Title: mergeBilingualKey(lang, d.es.trust1Title, d.en.trust1Title, h?.trust1Title),
+    trust1Sub: mergeBilingualKey(lang, d.es.trust1Sub, d.en.trust1Sub, h?.trust1Sub),
+    trust2Title: mergeBilingualKey(lang, d.es.trust2Title, d.en.trust2Title, h?.trust2Title),
+    trust2Sub: mergeBilingualKey(lang, d.es.trust2Sub, d.en.trust2Sub, h?.trust2Sub),
+    trust3Title: mergeBilingualKey(lang, d.es.trust3Title, d.en.trust3Title, h?.trust3Title),
+    trust3Sub: mergeBilingualKey(lang, d.es.trust3Sub, d.en.trust3Sub, h?.trust3Sub),
+    bottomSellTitle: mergeBilingualKey(lang, d.es.bottomSellTitle, d.en.bottomSellTitle, h?.bottomSellTitle),
+    bottomSellSub: mergeBilingualKey(lang, d.es.bottomSellSub, d.en.bottomSellSub, h?.bottomSellSub),
+    bottomSellCta: mergeBilingualKey(lang, d.es.bottomSellCta, d.en.bottomSellCta, h?.bottomSellCta),
     heroEmoji: (h?.heroEmoji ?? "").trim(),
     heroImageUrl: (h?.heroImageUrl ?? "").trim(),
   };

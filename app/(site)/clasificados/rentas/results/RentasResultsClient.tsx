@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { withRentasLandingLang, RENTAS_LANDING_LANG_QUERY } from "@/app/clasificados/rentas/rentasLandingLang";
 import {
   BR_NEGOCIO_Q_PROPIEDAD,
   parseBrNegocioPropiedadParam,
   type BrNegocioCategoriaPropiedad,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { RentasSearchBar } from "@/app/clasificados/rentas/components/RentasSearchBar";
+import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
 import { BienesRaicesResultsShell } from "@/app/clasificados/bienes-raices/resultados/components/BienesRaicesResultsShell";
 import { BienesRaicesResultsHeader } from "@/app/clasificados/bienes-raices/resultados/components/BienesRaicesResultsHeader";
 import {
@@ -20,8 +22,11 @@ import {
 } from "@/app/clasificados/rentas/shared/rentasResultsQueryKeys";
 import {
   RENTAS_LANDING,
+  RENTAS_PREVIEW_NEGOCIO,
+  RENTAS_PREVIEW_PRIVADO,
   RENTAS_PUBLICAR_NEGOCIO,
   RENTAS_PUBLICAR_PRIVADO,
+  RENTAS_RESULTS,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { RentasResultCard } from "./cards/RentasResultCard";
 import { RentasPropiedadFilterChips } from "./components/RentasPropiedadFilterChips";
@@ -56,14 +61,9 @@ function precioBandMatches(rentDisplay: string, band: string): boolean {
   return true;
 }
 
-function categoryLabelEs(c: BrNegocioCategoriaPropiedad): string {
-  if (c === "residencial") return "Residencial";
-  if (c === "comercial") return "Comercial";
-  return "Terreno / lote";
-}
-
 /** Category-owned results for `/clasificados/rentas/results` — separado de vista previa y del detalle vivo. */
 export function RentasResultsClient() {
+  const { copy, lang } = useRentasLandingLang();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const [propertyType, setPropertyType] = useState("");
@@ -160,22 +160,32 @@ export function RentasResultsClient() {
     propiedadFilter || branchFilter !== "all" || query.trim() ? filteredListings.length : RENTAS_RESULTS_DEMO_TOTAL;
   const showingTo = displayedListings.length ? Math.min(20, displayedListings.length) : 0;
 
+  const propiedadLabel =
+    propiedadFilter === "residencial"
+      ? copy.quickExplore.chipResidencial
+      : propiedadFilter === "comercial"
+        ? copy.quickExplore.chipComercial
+        : propiedadFilter === "terreno_lote"
+          ? copy.quickExplore.chipTerreno
+          : null;
+
   return (
     <BienesRaicesResultsShell>
-      <RentasResultsTopBar />
+      <RentasResultsTopBar copy={copy} lang={lang} />
 
       <div className="max-w-3xl">
         <h1 className="font-serif text-4xl font-semibold tracking-tight text-[#1E1810] sm:text-[2.75rem] sm:leading-tight">
-          Rentas
+          {copy.title}
         </h1>
         <p className="mt-2 text-base text-[#5C5346]/90 sm:text-lg">
-          Resultados de renta (demo). No es vista previa de publicación:{" "}
-          <Link href="/clasificados/rentas/preview/privado" className="font-semibold text-[#B8954A] underline">
-            Privado
+          {copy.results.introPart1}
+          {copy.results.introPart2}
+          <Link href={withRentasLandingLang(RENTAS_PREVIEW_PRIVADO, lang)} className="font-semibold text-[#B8954A] underline">
+            {copy.card.sellerPrivado}
           </Link>{" "}
           /{" "}
-          <Link href="/clasificados/rentas/preview/negocio" className="font-semibold text-[#B8954A] underline">
-            Negocio
+          <Link href={withRentasLandingLang(RENTAS_PREVIEW_NEGOCIO, lang)} className="font-semibold text-[#B8954A] underline">
+            {copy.card.sellerNegocio}
           </Link>
           .
         </p>
@@ -186,13 +196,13 @@ export function RentasResultsClient() {
           href={RENTAS_PUBLICAR_PRIVADO}
           className="rounded-full border border-[#C9B46A]/50 bg-[#2A2620] px-4 py-2 text-sm font-semibold text-[#FAF7F2] hover:bg-[#1E1810]"
         >
-          Publicar — Privado
+          {copy.publishPrivado}
         </Link>
         <Link
           href={RENTAS_PUBLICAR_NEGOCIO}
           className="rounded-full border border-[#E8DFD0] bg-[#FDFBF7] px-4 py-2 text-sm font-bold text-[#1E1810] hover:border-[#C9B46A]/45"
         >
-          Publicar — Negocio
+          {copy.publishNegocio}
         </Link>
       </div>
 
@@ -206,23 +216,27 @@ export function RentasResultsClient() {
           onPriceBand={setPriceBand}
           beds={beds}
           onBeds={setBeds}
-          searchPlaceholder="Buscar en Bienes Raíces…"
+          copy={copy.search}
+          priceOptions={copy.priceOptions}
         />
         <RentasPropiedadFilterChips active={propiedadFilter} />
         <div className="mt-4 flex flex-wrap gap-2">
-          <span className="w-full text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/75">Rama</span>
+          <span className="w-full text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/75">
+            {copy.results.branchLabel}
+          </span>
           {(
             [
-              { id: "all" as const, label: "Todas" },
-              { id: "privado" as const, label: "Privado" },
-              { id: "negocio" as const, label: "Negocio" },
+              { id: "all" as const, label: copy.results.branchAll },
+              { id: "privado" as const, label: copy.results.branchPrivado },
+              { id: "negocio" as const, label: copy.results.branchNegocio },
             ] as const
           ).map((opt) => {
             const isOn = branchFilter === opt.id;
             const sp = new URLSearchParams(searchParams?.toString() ?? "");
+            sp.set(RENTAS_LANDING_LANG_QUERY, lang);
             if (opt.id === "all") sp.delete("branch");
             else sp.set("branch", opt.id);
-            const href = sp.toString() ? `/clasificados/rentas/results?${sp.toString()}` : "/clasificados/rentas/results";
+            const href = `${RENTAS_RESULTS}?${sp.toString()}`;
             return (
               <Link
                 key={opt.id}
@@ -258,29 +272,27 @@ export function RentasResultsClient() {
         <section className="mt-8" aria-labelledby="rentas-feat-heading">
           <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
             <h2 id="rentas-feat-heading" className="font-serif text-lg font-semibold text-[#1E1810] sm:text-xl">
-              Destacado (demo)
+              {copy.results.featuredHeadingDemo}
             </h2>
-            {propiedadFilter ? (
-              <p className="text-xs text-[#5C5346]/75">{categoryLabelEs(propiedadFilter)}</p>
-            ) : null}
+            {propiedadFilter ? <p className="text-xs text-[#5C5346]/75">{propiedadLabel}</p> : null}
           </div>
           <RentasResultCard listing={{ ...featuredListing, layout: "horizontal" }} />
         </section>
       ) : (
         <p className="mt-8 rounded-2xl border border-dashed border-[#E8DFD0] bg-[#FDFBF7]/80 p-6 text-center text-sm text-[#5C5346]">
-          Sin destacado en esta vista.
+          {copy.results.noFeatured}
         </p>
       )}
 
       <section className="mt-12" aria-labelledby="rentas-grid-heading">
         <h2 id="rentas-grid-heading" className="font-serif text-xl font-semibold text-[#1E1810] sm:text-2xl">
-          Más rentas
+          {copy.results.moreRentals}
         </h2>
         {displayedListings.length === 0 ? (
           <p className="mt-6 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7]/90 p-6 text-center text-sm text-[#5C5346]">
-            Sin coincidencias.{" "}
-            <Link href="/clasificados/rentas/results" className="font-semibold text-[#B8954A] underline">
-              Limpiar filtros (demo)
+            {copy.results.noMatches}{" "}
+            <Link href={withRentasLandingLang(RENTAS_RESULTS, lang)} className="font-semibold text-[#B8954A] underline">
+              {copy.results.clearFiltersDemo}
             </Link>
           </p>
         ) : view === "list" ? (
@@ -299,8 +311,8 @@ export function RentasResultsClient() {
       </section>
 
       <footer className="mt-14 border-t border-[#E8DFD0]/70 pt-8 text-center text-sm text-[#5C5346]/85">
-        <Link href={RENTAS_LANDING} className="font-semibold text-[#B8954A] underline">
-          Volver al hub Rentas
+        <Link href={withRentasLandingLang(RENTAS_LANDING, lang)} className="font-semibold text-[#B8954A] underline">
+          {copy.results.backToHub}
         </Link>
       </footer>
     </BienesRaicesResultsShell>

@@ -10,12 +10,34 @@ export function buildEmpleosListaUrl(cat: string, lang: Lang, q?: string, city?:
   return buildCategoryBrowseUrl(cat, lang, { q, city });
 }
 
-/** Public job results listing (Phase 1 shell; later wired to search). */
-export function buildEmpleosResultadosUrl(lang: Lang, extra?: { q?: string }): string {
+/** Stable query keys shared with future Empleos search API. */
+export type EmpleosResultadosParams = {
+  q?: string;
+  city?: string;
+  category?: string;
+  jobType?: string;
+  modality?: string;
+  salaryMin?: string;
+  salaryMax?: string;
+  experience?: string;
+  companyType?: string;
+  featured?: string;
+  recent?: string;
+  quickApply?: string;
+};
+
+/**
+ * Public job results listing. Merges filters into the URL alongside `lang`.
+ */
+export function buildEmpleosResultadosUrl(lang: Lang, extra?: EmpleosResultadosParams): string {
   const base = appendLangToPath("/clasificados/empleos/resultados", lang);
-  if (extra?.q) {
-    const joiner = base.includes("?") ? "&" : "?";
-    return `${base}${joiner}q=${encodeURIComponent(extra.q)}`;
+  const url = new URL(base, "https://leonix.local");
+  if (extra) {
+    for (const [k, v] of Object.entries(extra)) {
+      if (v != null && String(v).trim() !== "") {
+        url.searchParams.set(k, String(v));
+      }
+    }
   }
-  return base;
+  return `${url.pathname}${url.search}`;
 }

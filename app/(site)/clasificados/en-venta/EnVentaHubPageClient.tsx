@@ -7,22 +7,26 @@ import { buildEnVentaResultsUrl } from "./shared/constants/enVentaResultsRoutes"
 import type { EnVentaDepartmentKey } from "./taxonomy/categories";
 import { EN_VENTA_DEPARTMENTS } from "./taxonomy/categories";
 import type { EnVentaHubLandingResolved } from "@/app/lib/clasificados/mergeClasificadosCategoryContent";
-import newLogo from "../../../../public/logo.png";
+import { EN_VENTA_HUB_CITY_PRESETS } from "./enVentaHubCityPresets";
 
-/** Emoji panels per department — visuals only; labels/hints come from taxonomy. */
-const DEPT_VISUAL: Record<EnVentaDepartmentKey, { icon: string; panel: string }> = {
-  electronicos: { icon: "📱", panel: "📲" },
-  hogar: { icon: "🏠", panel: "🪴" },
-  muebles: { icon: "🛋️", panel: "✨" },
-  "ropa-accesorios": { icon: "👕", panel: "👜" },
-  "bebes-ninos": { icon: "🧸", panel: "🍼" },
-  "vehiculos-partes": { icon: "🚗", panel: "🔧" },
-  deportes: { icon: "⚽", panel: "🚴" },
-  herramientas: { icon: "🔧", panel: "⚙️" },
-  "juguetes-juegos": { icon: "🎲", panel: "📦" },
-  coleccionables: { icon: "✨", panel: "🏺" },
-  "musica-foto-video": { icon: "🎸", panel: "📷" },
-  otros: { icon: "📌", panel: "✨" },
+/** Default hero: welcoming outdoor marketplace / promenade (no lion). Muted blues in scene; Unsplash license. */
+const DEFAULT_HERO_BACKDROP =
+  "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=2400&q=82";
+
+/** Emoji + optional cool (muted blue) icon plate for category balance. */
+const DEPT_VISUAL: Record<EnVentaDepartmentKey, { icon: string; cool?: boolean }> = {
+  electronicos: { icon: "📱" },
+  hogar: { icon: "🏠" },
+  muebles: { icon: "🛋️" },
+  "ropa-accesorios": { icon: "👕" },
+  "bebes-ninos": { icon: "🧸" },
+  herramientas: { icon: "🔧" },
+  "vehiculos-partes": { icon: "🚗", cool: true },
+  deportes: { icon: "⚽", cool: true },
+  "juguetes-juegos": { icon: "🎲" },
+  coleccionables: { icon: "🏺" },
+  "musica-foto-video": { icon: "🎸" },
+  otros: { icon: "⭐" },
 };
 
 function cx(...parts: Array<string | false | undefined>) {
@@ -31,6 +35,69 @@ function cx(...parts: Array<string | false | undefined>) {
 
 type Lang = "es" | "en";
 
+function HeroBackdrop({ src }: { src: string }) {
+  const useNextImage = src.startsWith("/") || src.includes("images.unsplash.com");
+  if (useNextImage) {
+    return (
+      <Image
+        src={src}
+        alt=""
+        fill
+        priority
+        sizes="(max-width: 1152px) 100vw, 1152px"
+        className="object-cover object-[center_42%]"
+      />
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- admin may set arbitrary HTTPS hero URLs not in `images.remotePatterns`
+    <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover object-[center_42%]" />
+  );
+}
+
+function TrustIconGift({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 7V20M12 7H7.5a2.5 2.5 0 010-5H9a3 3 0 013 3 3 3 0 013-3h1.5a2.5 2.5 0 010 5H12z"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M8 11h8v9H8v-9z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TrustIconShield({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 3l7 3v6c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6l7-3z"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+      />
+      <path d="M9.5 12.5l1.75 1.75L15 10.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TrustIconPeople({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M8 11a2.5 2.5 0 100-5 2.5 2.5 0 000 5zm8 0a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM3 20v-1.5A3.5 3.5 0 016.5 15H9M21 20v-1.5A3.5 3.5 0 0017.5 15H15"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }) {
   const sp = useSearchParams();
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
@@ -38,9 +105,17 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
   const publishHref = `/clasificados/publicar/en-venta?lang=${lang}`;
   const allListingsHref = buildEnVentaResultsUrl(lang);
 
-  const departments = EN_VENTA_DEPARTMENTS;
-
   const t = hub;
+  const backdropSrc = t.heroImageUrl?.trim() ? t.heroImageUrl.trim() : DEFAULT_HERO_BACKDROP;
+
+  const goldBtn =
+    "inline-flex min-h-[48px] min-w-[44px] items-center justify-center gap-2 rounded-full px-6 text-[15px] font-semibold text-[#1E1810] " +
+    "bg-gradient-to-br from-[#F0D78C] via-[#D4A03E] to-[#C18A2E] shadow-[0_10px_28px_-8px_rgba(196,140,50,0.55),inset_0_1px_0_rgba(255,255,255,0.45)] " +
+    "transition hover:brightness-[1.04] active:scale-[0.99]";
+
+  const ivoryBtn =
+    "inline-flex min-h-[48px] min-w-[44px] items-center justify-center rounded-full border border-white/80 bg-[#FFFCF7] px-6 text-[15px] font-semibold text-[#2C2416] " +
+    "shadow-[0_8px_24px_-10px_rgba(42,36,22,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] transition hover:bg-white active:scale-[0.99]";
 
   return (
     <div
@@ -48,150 +123,227 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
       style={{
         backgroundColor: "#F3EBDD",
         backgroundImage: `
-          radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 180, 106, 0.2), transparent 55%),
-          radial-gradient(ellipse 55% 40% at 100% 30%, rgba(255, 255, 255, 0.45), transparent 52%),
-          radial-gradient(ellipse 45% 35% at 0% 75%, rgba(201, 164, 74, 0.1), transparent 50%)
+          radial-gradient(ellipse 120% 70% at 50% -15%, rgba(201, 180, 106, 0.16), transparent 55%),
+          radial-gradient(ellipse 50% 40% at 100% 20%, rgba(255, 255, 255, 0.4), transparent 50%),
+          radial-gradient(ellipse 45% 35% at 0% 80%, rgba(61, 90, 115, 0.06), transparent 52%)
         `,
       }}
     >
       <div
-        className="pointer-events-none fixed inset-0 opacity-[0.035]"
+        className="pointer-events-none fixed inset-0 opacity-[0.028]"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
         }}
         aria-hidden
       />
 
-      <main className="relative mx-auto max-w-6xl px-4 pb-24 pt-28 sm:px-6 lg:px-8">
-        <section className="flex flex-col items-center text-center">
-          <div className="mb-8 flex flex-col items-center justify-center gap-4">
-            {t.heroImageUrl ? (
-              <div className="relative h-[120px] w-[min(100%,360px)] overflow-hidden rounded-2xl border border-[#E8DFD0]/80 bg-white/60 shadow-sm">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={t.heroImageUrl} alt="" className="h-full w-full object-cover" />
-              </div>
-            ) : null}
-            <Image
-              src={newLogo}
-              alt="Leonix"
-              width={200}
-              height={200}
-              priority
-              className="h-auto w-[min(200px,52vw)] drop-shadow-[0_8px_32px_rgba(42,36,22,0.12)]"
+      <main className="relative mx-auto max-w-6xl px-4 pb-20 pt-8 sm:px-6 sm:pb-24 sm:pt-10 lg:px-8">
+        {/* Hero */}
+        <section className="relative overflow-hidden rounded-[28px] border border-white/50 bg-[#E8E0D4]/40 shadow-[0_24px_80px_-32px_rgba(47,74,101,0.35)] sm:rounded-[32px]">
+          <div className="absolute inset-0">
+            <HeroBackdrop src={backdropSrc} />
+            <div
+              className="absolute inset-0 bg-gradient-to-b from-[#F8F1E4]/88 via-[#F5EFE3]/78 to-[#F3EBDD]"
+              aria-hidden
             />
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-[#3D5A73]/[0.07] via-transparent to-[#3D5A73]/[0.05]"
+              aria-hidden
+            />
+            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#F3EBDD] via-[#F3EBDD]/90 to-transparent" aria-hidden />
           </div>
 
-          <h1 className="text-[2.35rem] font-bold tracking-tight text-[#1E1810] sm:text-5xl md:text-[3.25rem]">
-            {t.heroEmoji ? (
-              <span className="mr-2 inline-block" aria-hidden>
-                {t.heroEmoji}
-              </span>
-            ) : null}
-            {t.hero}
-          </h1>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-[#3D3428]/90 sm:text-lg">{t.sub}</p>
-
-          <form
-            className="mt-10 w-full max-w-2xl"
-            action="/clasificados/en-venta/results"
-            method="get"
-            role="search"
-          >
-            <input type="hidden" name="lang" value={lang} />
-            <div
+          <div className="relative z-10 flex flex-col items-center px-4 pb-12 pt-10 text-center sm:px-8 sm:pb-14 sm:pt-12 md:pb-16 md:pt-14">
+            <span
               className={cx(
-                "flex items-center gap-2 rounded-full border border-[#E8DFD0] bg-white/90 pl-4 pr-2 py-2 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.15),inset_0_1px_0_rgba(255,255,255,0.85)]",
-                "backdrop-blur-sm transition focus-within:border-[#C9B46A]/50 focus-within:shadow-[0_16px_48px_-12px_rgba(201,180,106,0.35)]"
+                "mb-5 inline-flex min-h-[36px] items-center rounded-full px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white",
+                "bg-gradient-to-r from-[#E09A2D] to-[#C97A1E] shadow-[0_8px_24px_-6px_rgba(200,120,30,0.45)]"
               )}
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#5C5346]/80" aria-hidden>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M20 20l-3-3" strokeLinecap="round" />
-                </svg>
-              </span>
-              <input
-                name="q"
-                type="search"
-                autoComplete="off"
-                placeholder={t.searchPh}
-                className="min-w-0 flex-1 bg-transparent py-2 text-[15px] text-[#1E1810] placeholder:text-[#8A8070] outline-none"
-              />
-              <button
-                type="submit"
-                className="shrink-0 rounded-full bg-[#2A2620] px-5 py-2.5 text-sm font-semibold text-[#FAF7F2] shadow-md transition hover:bg-[#1a1814] active:scale-[0.98]"
+              {t.badge}
+            </span>
+
+            <h1 className="font-serif text-[2.25rem] font-bold leading-[1.08] tracking-tight text-[#1E1810] sm:text-5xl md:text-[3.35rem]">
+              {t.heroEmoji ? (
+                <span className="mr-2 inline-block" aria-hidden>
+                  {t.heroEmoji}
+                </span>
+              ) : null}
+              {t.hero}
+            </h1>
+            <p className="mt-4 max-w-xl text-base leading-relaxed text-[#3D3428]/95 sm:text-lg">{t.sub}</p>
+
+            <form
+              className="mt-9 w-full max-w-3xl text-left"
+              action="/clasificados/en-venta/results"
+              method="get"
+              role="search"
+            >
+              <input type="hidden" name="lang" value={lang} />
+              <div
+                className={cx(
+                  "flex flex-col gap-0 overflow-hidden rounded-[24px] border border-white/85 bg-white/92 shadow-[0_18px_56px_-20px_rgba(47,74,101,0.35),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-md",
+                  "sm:flex-row sm:items-stretch sm:rounded-full sm:gap-0"
+                )}
               >
-                {t.search}
-              </button>
-            </div>
-          </form>
+                <label className="flex min-h-[52px] min-w-0 flex-1 cursor-text items-center gap-3 px-4 sm:pl-6 sm:pr-2">
+                  <span className="shrink-0 text-[#4A6678]" aria-hidden>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="7" />
+                      <path d="M20 20l-3-3" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                  <input
+                    name="q"
+                    type="search"
+                    autoComplete="off"
+                    placeholder={t.searchPh}
+                    className="min-h-[44px] min-w-0 flex-1 bg-transparent py-2 text-[15px] text-[#1E1810] placeholder:text-[#7A7164] outline-none"
+                  />
+                </label>
 
-          <div className="mt-10 flex flex-col items-stretch gap-3 sm:flex-row sm:justify-center sm:gap-5">
-            <Link
-              href={publishHref}
-              className={cx(
-                "inline-flex min-h-[52px] items-center justify-center rounded-2xl px-8 text-[15px] font-semibold text-[#1E1810]",
-                "bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A]",
-                "shadow-[0_8px_32px_-4px_rgba(201,164,74,0.55),0_0_0_1px_rgba(255,255,255,0.35)_inset]",
-                "transition hover:brightness-[1.03] hover:shadow-[0_12px_40px_-4px_rgba(201,164,74,0.6)] active:scale-[0.99]"
-              )}
-            >
-              {t.publish}
-            </Link>
-            <Link
-              href={allListingsHref}
-              className={cx(
-                "inline-flex min-h-[52px] items-center justify-center rounded-2xl border border-white/70 bg-[#FFFCF7] px-8 text-[15px] font-semibold text-[#2C2416]",
-                "shadow-[0_6px_24px_-6px_rgba(42,36,22,0.12),inset_0_1px_0_rgba(255,255,255,0.9)]",
-                "transition hover:bg-white hover:shadow-[0_10px_28px_-6px_rgba(42,36,22,0.14)] active:scale-[0.99]"
-              )}
-            >
-              {t.lista}
-            </Link>
+                <div
+                  className="hidden h-auto w-px shrink-0 bg-[#E5DDD0] sm:my-3 sm:block"
+                  aria-hidden
+                />
+
+                <div className="flex min-h-[52px] items-center gap-2 border-t border-[#EDE6DA] px-4 sm:w-[min(100%,220px)] sm:border-t-0 sm:px-3">
+                  <span className="shrink-0 text-[#4A6678]" aria-hidden>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 21s7-4.5 7-11a7 7 0 10-14 0c0 6.5 7 11 7 11z" strokeLinejoin="round" />
+                      <circle cx="12" cy="10" r="2.5" />
+                    </svg>
+                  </span>
+                  <select
+                    name="city"
+                    defaultValue=""
+                    aria-label={t.cityPh}
+                    className="min-h-[44px] w-full cursor-pointer appearance-none rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] py-2 pl-3 pr-8 text-[14px] font-medium text-[#2C2416] outline-none transition focus:border-[#C9B46A]/60"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234A6678' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 10px center",
+                    }}
+                  >
+                    <option value="">{t.cityPh}</option>
+                    {EN_VENTA_HUB_CITY_PRESETS.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="border-t border-[#EDE6DA] p-2 sm:border-t-0 sm:border-l sm:border-[#EDE6DA] sm:p-2">
+                  <button type="submit" className={cx(goldBtn, "h-[48px] w-full sm:w-auto sm:px-8")}>
+                    {t.search}
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            <p className="mt-5 max-w-lg text-[13px] font-medium leading-snug text-[#4A6678] sm:text-sm">{t.socialProof}</p>
+
+            <div className="mt-8 flex w-full max-w-xl flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center sm:gap-4">
+              <Link href={publishHref} className={cx(goldBtn, "w-full sm:w-auto")}>
+                <span aria-hidden className="text-lg font-light">
+                  +
+                </span>
+                {t.publish}
+              </Link>
+              <Link href={allListingsHref} className={cx(ivoryBtn, "w-full sm:w-auto")}>
+                {t.lista}
+              </Link>
+            </div>
           </div>
         </section>
 
-        <section className="mt-20">
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-6">
-            {departments.map((d) => {
+        {/* Categories */}
+        <section className="mt-14 sm:mt-16">
+          <h2 className="text-center font-serif text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">
+            {t.categoriesTitle}
+          </h2>
+          <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+            {EN_VENTA_DEPARTMENTS.map((d) => {
               const href = buildEnVentaResultsUrl(lang, { evDept: d.key });
               const title = d.label[lang];
               const hint = d.browseHint[lang];
               const vis = DEPT_VISUAL[d.key];
+              const cool = vis.cool;
 
               return (
                 <Link
                   key={d.key}
                   href={href}
                   className={cx(
-                    "group flex min-h-[132px] flex-row overflow-hidden rounded-3xl border border-white/60 bg-white/85 p-5 shadow-[0_10px_40px_-12px_rgba(42,36,22,0.12)]",
-                    "transition duration-300 hover:-translate-y-0.5 hover:border-[#E8D9B8] hover:shadow-[0_20px_48px_-12px_rgba(201,180,106,0.22)]"
+                    "group flex min-h-[140px] flex-col items-center rounded-[20px] border border-white/70 bg-[#FFFCF7]/95 p-4 text-center shadow-[0_12px_36px_-16px_rgba(47,74,101,0.22)] transition",
+                    "hover:-translate-y-0.5 hover:border-[#C9B46A]/35 hover:shadow-[0_20px_48px_-14px_rgba(201,180,106,0.28)]",
+                    "focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
                   )}
                 >
-                  <div className="flex min-w-0 flex-1 flex-col items-start justify-center text-left">
-                    <span className="text-2xl leading-none" aria-hidden>
-                      {vis.icon}
-                    </span>
-                    <span className="mt-2 text-[17px] font-bold tracking-tight text-[#1E1810]">{title}</span>
-                    <span className="mt-1 line-clamp-2 text-[13px] leading-snug text-[#5C5346]/90">{hint}</span>
-                  </div>
-                  <div
+                  <span
                     className={cx(
-                      "relative ml-3 flex h-[100px] w-[100px] shrink-0 items-center justify-center rounded-2xl",
-                      "bg-gradient-to-br from-[#FAF4EA] to-[#EDE4D4]",
-                      "border border-[#E8DFD0]/80 shadow-inner"
+                      "mb-3 flex h-14 w-14 items-center justify-center rounded-2xl text-3xl shadow-inner transition group-hover:scale-[1.04]",
+                      cool
+                        ? "border border-[#D4E0EA]/90 bg-gradient-to-br from-[#EEF3F7] to-[#E2EBF2] text-[#2F4A65]"
+                        : "border border-[#F0E8D8] bg-gradient-to-br from-[#FFF9EE] to-[#F3E9D4]"
                     )}
                     aria-hidden
                   >
-                    <span className="text-4xl opacity-95 transition group-hover:scale-105">{vis.panel}</span>
-                  </div>
+                    {vis.icon}
+                  </span>
+                  <span className="text-[15px] font-bold leading-tight text-[#1E1810]">{title}</span>
+                  <span className="mt-1.5 line-clamp-2 text-[12px] leading-snug text-[#5C5346] sm:text-[13px]">{hint}</span>
                 </Link>
               );
             })}
           </div>
         </section>
 
-        <p className="mt-20 text-center text-[13px] font-medium tracking-wide text-[#7A7164]">{t.trust}</p>
+        {/* Trust */}
+        <section className="mt-14 sm:mt-16">
+          <div className="rounded-[24px] border border-white/75 bg-[#FFFCF7]/90 px-4 py-8 shadow-[0_14px_44px_-18px_rgba(42,36,22,0.14)] sm:px-8">
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-6">
+              <div className="flex flex-col items-center text-center md:items-start md:text-left">
+                <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#FFF3D6] to-[#E8C96A]/50 text-[#B8891A]">
+                  <TrustIconGift className="h-6 w-6" />
+                </span>
+                <h3 className="text-[16px] font-bold text-[#1E1810]">{t.trust1Title}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-[#4A6678]">{t.trust1Sub}</p>
+              </div>
+              <div className="flex flex-col items-center text-center md:items-start md:text-left">
+                <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#E8EEF3] to-[#D4E0EA]/70 text-[#2F4A65]">
+                  <TrustIconShield className="h-6 w-6" />
+                </span>
+                <h3 className="text-[16px] font-bold text-[#1E1810]">{t.trust2Title}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-[#4A6678]">{t.trust2Sub}</p>
+              </div>
+              <div className="flex flex-col items-center text-center md:items-start md:text-left">
+                <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#FFF3D6] to-[#E8C96A]/45 text-[#B8891A]">
+                  <TrustIconPeople className="h-6 w-6" />
+                </span>
+                <h3 className="text-[16px] font-bold text-[#1E1810]">{t.trust3Title}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-[#4A6678]">{t.trust3Sub}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Bottom sell CTA */}
+        <section className="mt-12 sm:mt-14">
+          <div className="flex flex-col items-start justify-between gap-6 rounded-[24px] border border-white/75 bg-[#FFFCF7]/95 px-6 py-8 shadow-[0_16px_48px_-20px_rgba(47,74,101,0.18)] sm:flex-row sm:items-center sm:gap-8 sm:px-10 sm:py-10">
+            <div className="max-w-xl">
+              <h2 className="font-serif text-xl font-bold text-[#1E1810] sm:text-2xl">{t.bottomSellTitle}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#4A6678] sm:text-base">{t.bottomSellSub}</p>
+            </div>
+            <Link
+              href={publishHref}
+              className={cx(goldBtn, "w-full shrink-0 px-8 sm:w-auto")}
+            >
+              {t.bottomSellCta}
+            </Link>
+          </div>
+        </section>
       </main>
     </div>
   );

@@ -11,13 +11,21 @@ function sellerKindUi(listing: BrNegocioListing): "privado" | "negocio" {
 export function BienesRaicesNegocioFeaturedCard({
   listing,
   titleAsLink = true,
+  className,
+  sellerKindLabels,
 }: {
   listing: BrNegocioListing;
   /** When false, title is plain text (e.g. landing hero before live detail routes). */
   titleAsLink?: boolean;
+  className?: string;
+  sellerKindLabels?: { privado: string; negocio: string };
 }) {
+  const priv = sellerKindLabels?.privado ?? "Privado";
+  const neg = sellerKindLabels?.negocio ?? "Negocio";
+  const surface =
+    "group overflow-hidden rounded-2xl border border-[#E8DFD0]/95 bg-[#FDFBF7] shadow-[0_16px_48px_-20px_rgba(42,36,22,0.28)] transition duration-300 hover:shadow-[0_22px_56px_-18px_rgba(42,36,22,0.32)]";
   return (
-    <article className="group overflow-hidden rounded-2xl border border-[#E8DFD0]/95 bg-[#FDFBF7] shadow-[0_16px_48px_-20px_rgba(42,36,22,0.28)] transition duration-300 hover:shadow-[0_22px_56px_-18px_rgba(42,36,22,0.32)]">
+    <article className={className ? `${surface} ${className}` : surface}>
       <div className="flex flex-col lg:flex-row lg:items-stretch">
         <div className="relative lg:w-[52%]">
           <div className="relative aspect-[16/11] overflow-hidden lg:aspect-auto lg:min-h-[280px] lg:h-full">
@@ -96,7 +104,7 @@ export function BienesRaicesNegocioFeaturedCard({
                       : "rounded-full border border-[#E8DFD0] bg-white/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#5C5346]"
                   }
                 >
-                  {sellerKindUi(listing) === "negocio" ? "Negocio" : "Privado"}
+                  {sellerKindUi(listing) === "negocio" ? neg : priv}
                 </span>
                 {listing.operationLabel ? (
                   <span className="rounded-full bg-[#4A7C59]/12 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#4A7C59]">

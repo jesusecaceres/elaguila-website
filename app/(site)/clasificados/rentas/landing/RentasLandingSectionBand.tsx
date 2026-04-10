@@ -11,12 +11,15 @@ type Props = {
 export function RentasLandingSectionBand({ id, title, description, action, children }: Props) {
   return (
     <section className="mt-14 sm:mt-16" aria-labelledby={id}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h2 id={id} className="font-serif text-2xl font-semibold tracking-tight text-[#1E1810] sm:text-[1.85rem]">
+          <h2
+            id={id}
+            className="border-l-[3px] border-[#5B7C99]/40 pl-3 font-serif text-2xl font-semibold tracking-tight text-[#1E1810] sm:text-[1.85rem]"
+          >
             {title}
           </h2>
-          {description ? <p className="mt-2 max-w-2xl text-sm text-[#5C5346]/88">{description}</p> : null}
+          {description ? <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#5C5346]/88">{description}</p> : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>

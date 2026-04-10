@@ -38,7 +38,15 @@ function FactsRow({ listing }: { listing: BrNegocioListing }) {
   );
 }
 
-function IdentityRow({ listing }: { listing: BrNegocioListing }) {
+function IdentityRow({
+  listing,
+  sellerKindLabels,
+}: {
+  listing: BrNegocioListing;
+  sellerKindLabels?: { privado: string; negocio: string };
+}) {
+  const priv = sellerKindLabels?.privado ?? "Privado";
+  const neg = sellerKindLabels?.negocio ?? "Negocio";
   return (
     <div className="mt-3 flex items-center gap-2.5 border-t border-[#E8DFD0]/70 pt-3">
       <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-[#E8DFD0] bg-[#FFFCF7]">
@@ -64,7 +72,7 @@ function IdentityRow({ listing }: { listing: BrNegocioListing }) {
             : "shrink-0 rounded-md border border-[#E8DFD0] bg-white/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#5C5346]"
         }
       >
-        {sellerKindUi(listing) === "negocio" ? "Negocio" : "Privado"}
+        {sellerKindUi(listing) === "negocio" ? neg : priv}
       </span>
       {listing.trustChip ? (
         <span className="shrink-0 rounded-md border border-[#E8DFD0] bg-[#FFFCF7] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#6E5418]">
@@ -75,12 +83,24 @@ function IdentityRow({ listing }: { listing: BrNegocioListing }) {
   );
 }
 
-export function BienesRaicesNegocioCard({ listing }: { listing: BrNegocioListing }) {
+export function BienesRaicesNegocioCard({
+  listing,
+  className,
+  sellerKindLabels,
+}: {
+  listing: BrNegocioListing;
+  /** Optional extra classes (e.g. landing-only polish). */
+  className?: string;
+  sellerKindLabels?: { privado: string; negocio: string };
+}) {
   const horizontal = listing.layout === "horizontal";
+  const surface =
+    "group overflow-hidden rounded-2xl border border-[#E8DFD0]/95 bg-[#FDFBF7] shadow-[0_10px_36px_-16px_rgba(42,36,22,0.22)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_44px_-14px_rgba(42,36,22,0.28)]";
+  const articleClass = className ? `${surface} ${className}` : surface;
 
   if (horizontal) {
     return (
-      <article className="group overflow-hidden rounded-2xl border border-[#E8DFD0]/95 bg-[#FDFBF7] shadow-[0_10px_36px_-16px_rgba(42,36,22,0.22)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_44px_-14px_rgba(42,36,22,0.28)]">
+      <article className={articleClass}>
         <div className="flex flex-col sm:flex-row sm:items-stretch">
           <div className="relative sm:w-[42%] sm:max-w-[320px]">
             <div className="relative aspect-[16/10] sm:aspect-auto sm:h-full sm:min-h-[200px]">
@@ -110,7 +130,7 @@ export function BienesRaicesNegocioCard({ listing }: { listing: BrNegocioListing
               <p className="mt-1 text-[11px] text-[#5C5346]/75">{listing.metaLines[0]}</p>
             ) : null}
             <div className="mt-auto pt-3">
-              <IdentityRow listing={listing} />
+              <IdentityRow listing={listing} sellerKindLabels={sellerKindLabels} />
             </div>
           </div>
         </div>
@@ -119,7 +139,7 @@ export function BienesRaicesNegocioCard({ listing }: { listing: BrNegocioListing
   }
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#E8DFD0]/95 bg-[#FDFBF7] shadow-[0_10px_36px_-16px_rgba(42,36,22,0.22)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_44px_-14px_rgba(42,36,22,0.28)]">
+    <article className={`${articleClass} flex h-full flex-col`}>
       <div className="relative aspect-[16/11] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -146,7 +166,7 @@ export function BienesRaicesNegocioCard({ listing }: { listing: BrNegocioListing
           <p className="mt-1 text-[11px] text-[#5C5346]/75">{listing.metaLines[0]}</p>
         ) : null}
         <div className="mt-auto pt-3">
-          <IdentityRow listing={listing} />
+          <IdentityRow listing={listing} sellerKindLabels={sellerKindLabels} />
         </div>
       </div>
     </article>

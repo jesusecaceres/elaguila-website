@@ -42,18 +42,31 @@ export const brLandingNegocios: BrNegocioListing[] = brNegocioGridListings
   .filter((l) => sellerKindOf(l) === "negocio")
   .slice(0, 3);
 
-export type BrQuickChip = { label: string; params: Record<string, string> };
+/** Stable ids for i18n labels via `getBrLandingCopy(lang).chipLabel[id]`. */
+export type BrLandingChipId =
+  | "sale"
+  | "rent"
+  | "house"
+  | "apartment"
+  | "land"
+  | "private"
+  | "business"
+  | "pool"
+  | "pets"
+  | "furnished";
 
-/** Premium quick filters → results query contract. */
+export type BrQuickChip = { id: BrLandingChipId; params: Record<string, string> };
+
+/** Premium quick filters → results query contract (labels localized in the view). */
 export const BR_LANDING_QUICK_CHIPS: BrQuickChip[] = [
-  { label: "Venta", params: { operationType: "venta" } },
-  { label: "Renta", params: { operationType: "renta" } },
-  { label: "Casa", params: { propertyType: "casa", operationType: "venta" } },
-  { label: "Departamento", params: { propertyType: "departamento" } },
-  { label: "Terreno", params: { propertyType: "terreno" } },
-  { label: "Privado", params: { sellerType: "privado" } },
-  { label: "Negocio", params: { sellerType: "negocio" } },
-  { label: "Piscina", params: { pool: "true" } },
-  { label: "Mascotas", params: { pets: "true" } },
-  { label: "Amueblado", params: { furnished: "true" } },
+  { id: "sale", params: { operationType: "venta" } },
+  { id: "rent", params: { operationType: "renta" } },
+  { id: "house", params: { propertyType: "casa", operationType: "venta" } },
+  { id: "apartment", params: { propertyType: "departamento" } },
+  { id: "land", params: { propertyType: "terreno" } },
+  { id: "private", params: { sellerType: "privado" } },
+  { id: "business", params: { sellerType: "negocio" } },
+  { id: "pool", params: { pool: "true" } },
+  { id: "pets", params: { pets: "true" } },
+  { id: "furnished", params: { furnished: "true" } },
 ];

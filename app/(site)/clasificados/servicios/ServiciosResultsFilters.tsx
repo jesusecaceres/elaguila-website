@@ -13,7 +13,7 @@ export function ServiciosResultsFilters({
   lang: ServiciosLang;
   current: ServiciosResultsFilterQuery;
 }) {
-  const resetHref = `/clasificados/servicios?lang=${lang}`;
+  const resetHref = `/clasificados/servicios/resultados?lang=${lang}`;
   const hasFilters = Boolean(
     current.city?.trim() ||
       current.group?.trim() ||
@@ -40,7 +40,7 @@ export function ServiciosResultsFilters({
 
       <form
         method="get"
-        action="/clasificados/servicios"
+        action="/clasificados/servicios/resultados"
         aria-label={lang === "en" ? "Filter Servicios results" : "Filtrar resultados de Servicios"}
         className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
       >
