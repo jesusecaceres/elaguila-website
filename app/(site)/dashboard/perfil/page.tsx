@@ -7,6 +7,7 @@ import CityAutocomplete from "../../../components/CityAutocomplete";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 import { getCanonicalCityName } from "../../../data/locations/californiaLocationHelpers";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { fetchDashboardProfile } from "../lib/dashboardProfile";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -92,8 +93,10 @@ export default function ProfilePage() {
         securityTitle: "Seguridad",
         securityBody: "Cambio de contraseña y sesiones: próximamente en esta vista.",
         billingTitle: "Facturación",
-        billingBody: "Portal de cliente (Stripe) se conectará aquí para suscripciones Leonix Pro.",
-        billingCta: "Abrir portal (próximamente)",
+        billingBody:
+          "Portal de cliente (Stripe): configura `NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL_URL` o un endpoint interno que cree la sesión del portal.",
+        billingCta: "Abrir portal de facturación",
+        billingUnavailable: "Portal no configurado — revisa variables de entorno o despliega el endpoint de sesión.",
         planTitle: "Plan y membresía",
         notifShortcut: "Preferencias de notificación",
         bizTitle: "Perfil de negocio",
@@ -129,8 +132,10 @@ export default function ProfilePage() {
         securityTitle: "Security",
         securityBody: "Password changes and sessions will appear here soon.",
         billingTitle: "Billing",
-        billingBody: "Stripe Customer Portal will connect here for Leonix Pro subscriptions.",
-        billingCta: "Open portal (coming soon)",
+        billingBody:
+          "Stripe Customer Portal: set `NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL_URL` or add an API route that creates a portal session.",
+        billingCta: "Open billing portal",
+        billingUnavailable: "Portal not configured — add env var or deploy the billing session endpoint.",
         planTitle: "Plan & membership",
         notifShortcut: "Notification preferences",
         bizTitle: "Business profile",
@@ -157,6 +162,7 @@ export default function ProfilePage() {
   const [city, setCity] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [whatsapp, setWhatsapp] = useState("");
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -185,38 +191,49 @@ export default function ProfilePage() {
       setName(existingName);
       setShellName(existingName.trim() || null);
 
-      const existingPhone =
-        (u.user_metadata?.phone as string | undefined) ||
-        (u.user_metadata?.contact_phone as string | undefined) ||
-        "";
-      setPhone(formatPhoneInput(existingPhone));
-
-      const existingCity =
-        (u.user_metadata?.city as string | undefined) ||
-        (u.user_metadata?.location as string | undefined) ||
-        "";
-      setCity(String(existingCity ?? "").trim());
+      const waMeta = (u.user_metadata?.whatsapp as string | undefined) || "";
+      setWhatsapp(String(waMeta ?? "").trim());
 
       try {
-        const { data: pData } = await supabase
-          .from("profiles")
-          .select("display_name, email, membership_tier")
-          .eq("id", u.id)
-          .maybeSingle();
+        const { row: pData } = await fetchDashboardProfile(supabase, u.id);
         if (pData && mounted) {
-          const row = pData as {
-            display_name?: string | null;
-            email?: string | null;
-            membership_tier?: string | null;
-          };
-          const dn = row.display_name?.trim();
+          const dn = pData.display_name?.trim();
           if (dn) {
             setShellName(dn);
             setName((n) => (n.trim() ? n : dn));
           }
-          if (row.email?.trim()) setEmail(row.email.trim());
-          setAccountPlan(normalizePlanFromMembershipTier(row.membership_tier));
-          setMembershipTier(typeof row.membership_tier === "string" ? row.membership_tier : null);
+          if (pData.email?.trim()) setEmail(pData.email.trim());
+          setAccountPlan(normalizePlanFromMembershipTier(pData.membership_tier));
+          setMembershipTier(typeof pData.membership_tier === "string" ? pData.membership_tier : null);
+
+          if (pData.phone?.trim()) setPhone(formatPhoneInput(pData.phone));
+          else {
+            const existingPhone =
+              (u.user_metadata?.phone as string | undefined) ||
+              (u.user_metadata?.contact_phone as string | undefined) ||
+              "";
+            setPhone(formatPhoneInput(existingPhone));
+          }
+
+          if (pData.home_city?.trim()) setCity(pData.home_city.trim());
+          else {
+            const existingCity =
+              (u.user_metadata?.city as string | undefined) ||
+              (u.user_metadata?.location as string | undefined) ||
+              "";
+            setCity(String(existingCity ?? "").trim());
+          }
+        } else {
+          const existingPhone =
+            (u.user_metadata?.phone as string | undefined) ||
+            (u.user_metadata?.contact_phone as string | undefined) ||
+            "";
+          setPhone(formatPhoneInput(existingPhone));
+          const existingCity =
+            (u.user_metadata?.city as string | undefined) ||
+            (u.user_metadata?.location as string | undefined) ||
+            "";
+          setCity(String(existingCity ?? "").trim());
         }
       } catch {
         /* ignore */
@@ -290,6 +307,7 @@ export default function ProfilePage() {
             full_name: trimmedName,
             phone: formattedPhone,
             city: canonicalCity,
+            ...(whatsapp.trim() ? { whatsapp: whatsapp.trim() } : {}),
           },
         });
         if (updErr) throw updErr;
@@ -334,6 +352,7 @@ export default function ProfilePage() {
       const updateData: Record<string, string> = { full_name: trimmedName };
       if (formattedPhone) updateData.phone = formattedPhone;
       if (canonicalCity) updateData.city = canonicalCity;
+      if (whatsapp.trim()) updateData.whatsapp = whatsapp.trim();
 
       const { error: updErr } = await supabase.auth.updateUser({
         data: updateData,
@@ -525,18 +544,41 @@ export default function ProfilePage() {
               <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/80 p-6">
                 <h2 className="text-sm font-bold text-[#1E1810]">{L.billingTitle}</h2>
                 <p className="mt-2 text-sm text-[#5C5346]/95">{L.billingBody}</p>
-                <button
-                  type="button"
-                  disabled
-                  className="mt-4 inline-flex cursor-not-allowed rounded-2xl border border-dashed border-[#C9B46A]/45 bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[#7A7164]"
-                >
-                  {L.billingCta}
-                </button>
+                {process.env.NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL_URL ? (
+                  <a
+                    href={process.env.NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-flex rounded-2xl border border-[#C9B46A]/45 bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[#1E1810] shadow-sm transition hover:bg-[#FAF7F2]"
+                  >
+                    {L.billingCta}
+                  </a>
+                ) : (
+                  <>
+                    <p className="mt-2 text-xs text-[#7A7164]/95">{L.billingUnavailable}</p>
+                    <button
+                      type="button"
+                      disabled
+                      className="mt-2 inline-flex cursor-not-allowed rounded-2xl border border-dashed border-[#C9B46A]/45 bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[#7A7164]"
+                    >
+                      {L.billingCta}
+                    </button>
+                  </>
+                )}
               </div>
 
               <div className="rounded-3xl border border-[#C9B46A]/25 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 lg:col-span-2">
                 <h2 className="text-sm font-bold text-[#1E1810]">{L.waHint}</h2>
                 <p className="mt-2 text-sm text-[#5C5346]/95">{L.waBody}</p>
+                <label className="mt-4 block">
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">WhatsApp</span>
+                  <input
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    placeholder={lang === "es" ? "+1 o enlace wa.me" : "+1 or wa.me link"}
+                    className="mt-2 w-full rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-4 py-3 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/70"
+                  />
+                </label>
               </div>
 
               <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 lg:col-span-2">

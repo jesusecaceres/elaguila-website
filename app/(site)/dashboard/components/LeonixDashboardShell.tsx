@@ -204,11 +204,13 @@ export function LeonixDashboardShell({
 
         <div
           className={cx(
-            "grid gap-8 lg:gap-10",
-            rightPanel ? "lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,300px)]" : "lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]"
+            "grid gap-6 sm:gap-8 lg:gap-10",
+            rightPanel
+              ? "lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,280px)]"
+              : "lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)]"
           )}
         >
-          <aside className="h-fit rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/90 p-5 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.14)]">
+          <aside className="h-fit rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/90 p-4 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.14)] sm:p-5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{L.plan}</span>
               {plan === "pro" ? (
@@ -272,7 +274,11 @@ export function LeonixDashboardShell({
 
           <div className="min-w-0">{children}</div>
 
-          {rightPanel ? <div className="min-w-0 lg:pt-0">{rightPanel}</div> : null}
+          {rightPanel ? (
+            <div className="hidden min-w-0 2xl:block 2xl:pt-0" aria-hidden={false}>
+              {rightPanel}
+            </div>
+          ) : null}
         </div>
       </main>
     </div>

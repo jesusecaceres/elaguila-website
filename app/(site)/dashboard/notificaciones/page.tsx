@@ -1,5 +1,7 @@
 "use client";
 
+/** Notification feed: no `notifications` table in repo yet — prefs use localStorage; in-app feed remains illustrative until backend events exist. */
+
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";

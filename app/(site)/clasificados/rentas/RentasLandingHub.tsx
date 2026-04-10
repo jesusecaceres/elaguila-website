@@ -25,12 +25,15 @@ import { RentasLandingTrustFooter } from "@/app/clasificados/rentas/landing/Rent
 import {
   RENTAS_QUERY_AMUEBLADO,
   RENTAS_QUERY_BRANCH,
+  RENTAS_QUERY_CITY,
   RENTAS_QUERY_MASCOTAS,
   RENTAS_QUERY_PRECIO,
   RENTAS_QUERY_Q,
   RENTAS_QUERY_RECS,
   RENTAS_QUERY_TIPO,
+  RENTAS_QUERY_ZIP,
 } from "@/app/clasificados/rentas/shared/rentasResultsQueryKeys";
+import { splitLocationIntent } from "@/app/clasificados/rentas/shared/rentasBrowseContract";
 import { RENTAS_RESULTS } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { buildRentasResultsUrl } from "@/app/clasificados/rentas/shared/utils/rentasResultsRoutes";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
@@ -40,6 +43,7 @@ export function RentasLandingHub() {
   const router = useRouter();
   const { lang, copy } = useRentasLandingLang();
   const [query, setQuery] = useState("");
+  const [locationLine, setLocationLine] = useState("");
   const [propertyType, setPropertyType] = useState("");
   const [priceBand, setPriceBand] = useState("");
   const [beds, setBeds] = useState("");
@@ -50,9 +54,12 @@ export function RentasLandingHub() {
     if (propertyType) extra[RENTAS_QUERY_TIPO] = propertyType;
     if (priceBand) extra[RENTAS_QUERY_PRECIO] = priceBand;
     if (beds) extra[RENTAS_QUERY_RECS] = beds;
+    const loc = splitLocationIntent(locationLine);
+    if (loc.city) extra[RENTAS_QUERY_CITY] = loc.city;
+    if (loc.zip) extra[RENTAS_QUERY_ZIP] = loc.zip;
     extra.lang = lang;
     router.push(buildRentasResultsUrl(extra));
-  }, [beds, lang, priceBand, propertyType, query, router]);
+  }, [beds, lang, locationLine, priceBand, propertyType, query, router]);
 
   const destacadas = useMemo(() => getRentasLandingDestacadas(), []);
   const recientes = useMemo(() => getRentasLandingRecientes(), []);
@@ -89,6 +96,8 @@ export function RentasLandingHub() {
           <RentasSearchBar
             query={query}
             onQuery={setQuery}
+            location={locationLine}
+            onLocation={setLocationLine}
             propertyType={propertyType}
             onPropertyType={setPropertyType}
             priceBand={priceBand}

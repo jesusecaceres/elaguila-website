@@ -9,6 +9,11 @@ export const RENTAS_RESULTS_DEMO_TOTAL = 842;
 export const rentasResultsFeatured: RentasPublicListing = {
   id: "r-mty-hero",
   slug: "oficina-ejecutiva-recepcion-spgg",
+  browseActive: true,
+  city: "San Pedro Garza García",
+  stateRegion: "NL",
+  postalCode: "66260",
+  publishedAt: "2025-03-12T15:00:00.000Z",
   imageUrl: "https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=1200&q=80&auto=format&fit=crop",
   galleryUrls: [
     "https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=1200&q=80&auto=format&fit=crop",
@@ -41,6 +46,11 @@ export const rentasResultsFeatured: RentasPublicListing = {
 export const rentasResultsGridDemo: RentasPublicListing[] = [
   {
     id: "r-gdl-1",
+    browseActive: true,
+    city: "Tlaquepaque",
+    stateRegion: "Jal.",
+    postalCode: "45500",
+    publishedAt: "2025-03-10T10:00:00.000Z",
     imageUrl: "https://images.unsplash.com/photo-1600607687644-c7171b42498f?w=900&q=80&auto=format&fit=crop",
     rentDisplay: "$1,950 / mes",
     title: "Casa en renta con patio",
@@ -58,6 +68,11 @@ export const rentasResultsGridDemo: RentasPublicListing[] = [
   },
   {
     id: "r-mty-1",
+    browseActive: true,
+    city: "Monterrey",
+    stateRegion: "NL",
+    postalCode: "64000",
+    publishedAt: "2025-03-14T09:30:00.000Z",
     imageUrl: "https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=900&q=80&auto=format&fit=crop",
     galleryUrls: [
       "https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1200&q=80&auto=format&fit=crop",
@@ -87,6 +102,11 @@ export const rentasResultsGridDemo: RentasPublicListing[] = [
   },
   {
     id: "r-cdmx-1",
+    browseActive: true,
+    city: "Ciudad de México",
+    stateRegion: "CDMX",
+    postalCode: "06700",
+    publishedAt: "2025-03-11T14:20:00.000Z",
     imageUrl: "https://images.unsplash.com/photo-1600585154084-4e5fe7c39198?w=900&q=80&auto=format&fit=crop",
     galleryUrls: [
       "https://images.unsplash.com/photo-1600585154084-4e5fe7c39198?w=1200&q=80&auto=format&fit=crop",
@@ -115,6 +135,11 @@ export const rentasResultsGridDemo: RentasPublicListing[] = [
   },
   {
     id: "r-agu-1",
+    browseActive: true,
+    city: "Aguascalientes",
+    stateRegion: "Ags.",
+    postalCode: "20000",
+    publishedAt: "2025-02-28T11:00:00.000Z",
     imageUrl: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=900&q=80&auto=format&fit=crop",
     rentDisplay: "$18,000 / mes",
     title: "Terreno en renta para eventos",
@@ -132,6 +157,11 @@ export const rentasResultsGridDemo: RentasPublicListing[] = [
   },
   {
     id: "r-gdl-2",
+    browseActive: true,
+    city: "Guadalajara",
+    stateRegion: "Jal.",
+    postalCode: "44100",
+    publishedAt: "2025-03-09T16:45:00.000Z",
     imageUrl: "https://images.unsplash.com/photo-1605146769289-440113cc31d0?w=900&q=80&auto=format&fit=crop",
     rentDisplay: "$2,400 / mes",
     title: "Townhouse en fraccionamiento",
@@ -148,6 +178,11 @@ export const rentasResultsGridDemo: RentasPublicListing[] = [
   },
   {
     id: "r-qro-1",
+    browseActive: true,
+    city: "Querétaro",
+    stateRegion: "Qro.",
+    postalCode: "76000",
+    publishedAt: "2025-03-08T13:10:00.000Z",
     imageUrl: "https://images.unsplash.com/photo-1600585154340-0ef3c08dc8e4?w=900&q=80&auto=format&fit=crop",
     rentDisplay: "$28,500 / mes",
     title: "Showroom avenida principal",

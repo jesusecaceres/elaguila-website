@@ -2,7 +2,10 @@
 
 type Lang = "es" | "en";
 
-/** Decorative phone frame suggesting mobile listing management — metrics are illustrative or from first listing. */
+/**
+ * Compact preview of the first listing’s metrics — data comes from parent when listings exist.
+ * The shell only shows this panel from `2xl` breakpoints up so laptop/tablet layouts stay single-main-column.
+ */
 export function DashboardMobilePreview({
   lang,
   title,

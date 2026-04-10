@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * Server-side drafts: `listings` rows owned by the user with `is_published === false` or draft-like `status`.
+ * Category publish flows may still keep additional state in browser storage or separate tables — those are not listed here.
+ */
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";

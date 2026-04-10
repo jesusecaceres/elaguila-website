@@ -17,6 +17,8 @@ type MsgRow = {
   listing_id: string;
   message: string;
   created_at: string;
+  /** Present when `messages.read_at` migration applied */
+  read_at?: string | null;
 };
 
 type ProfileRow = {
@@ -140,20 +142,32 @@ export default function MensajesPage() {
     if (pr?.email?.trim()) setEmail(pr.email.trim());
     setPlan(normalizePlanFromMembershipTier(pr?.membership_tier));
 
-    const { data: msgs, error } = await supabase
+    const selFull = "id, sender_id, receiver_id, listing_id, message, created_at, read_at";
+    const selLegacy = "id, sender_id, receiver_id, listing_id, message, created_at";
+    let list: MsgRow[] = [];
+    const first = await supabase
       .from("messages")
-      .select("id, sender_id, receiver_id, listing_id, message, created_at")
+      .select(selFull)
       .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`)
       .order("created_at", { ascending: false })
       .limit(300);
-
-    if (error) {
-      setRows([]);
-      setLoading(false);
-      return;
+    if (first.error) {
+      const second = await supabase
+        .from("messages")
+        .select(selLegacy)
+        .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`)
+        .order("created_at", { ascending: false })
+        .limit(300);
+      if (second.error) {
+        setRows([]);
+        setLoading(false);
+        return;
+      }
+      list = (second.data ?? []) as MsgRow[];
+    } else {
+      list = (first.data ?? []) as MsgRow[];
     }
 
-    const list = (msgs ?? []) as MsgRow[];
     setRows(list);
 
     const otherIds = [...new Set(list.map((m) => (m.sender_id === user.id ? m.receiver_id : m.sender_id)))];
@@ -195,6 +209,20 @@ export default function MensajesPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (!selectedId || !userId) return;
+    const m = rows.find((x) => x.id === selectedId);
+    if (!m || m.receiver_id !== userId || m.read_at) return;
+    const sb = createSupabaseBrowserClient();
+    const ts = new Date().toISOString();
+    void (async () => {
+      const { error } = await sb.from("messages").update({ read_at: ts }).eq("id", selectedId).eq("receiver_id", userId);
+      if (!error) {
+        setRows((prev) => prev.map((r) => (r.id === selectedId ? { ...r, read_at: ts } : r)));
+      }
+    })();
+  }, [selectedId, userId, rows]);
+
   const filtered = useMemo(() => {
     if (!userId) return [];
     const weekMs = 7 * 24 * 3600 * 1000;
@@ -204,6 +232,7 @@ export default function MensajesPage() {
       if (tab === "buying") return m.sender_id === userId;
       if (tab === "selling") return m.receiver_id === userId;
       if (tab === "unread") {
+        if (m.receiver_id === userId && m.read_at == null) return true;
         const t0 = new Date(m.created_at).getTime();
         return Number.isFinite(t0) && Date.now() - t0 < weekMs;
       }

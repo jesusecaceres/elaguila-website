@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { computeBusinessCompleteness } from "../lib/businessProfileCompleteness";
+import { fetchDashboardProfile } from "../lib/dashboardProfile";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -45,6 +47,8 @@ export default function BusinessToolsPage() {
             ctaProfile: "Completar perfil",
             ctaConcierge: "Solicitar información",
             loading: "Cargando…",
+            completeness: "Completitud del perfil",
+            nextSteps: "Siguientes pasos sugeridos",
           }
         : {
             title: "Business tools",
@@ -60,6 +64,8 @@ export default function BusinessToolsPage() {
             ctaProfile: "Complete profile",
             ctaConcierge: "Request information",
             loading: "Loading…",
+            completeness: "Profile completeness",
+            nextSteps: "Suggested next steps",
           },
     [lang]
   );
@@ -69,6 +75,7 @@ export default function BusinessToolsPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>("free");
   const [userId, setUserId] = useState<string | null>(null);
+  const [completeness, setCompleteness] = useState<ReturnType<typeof computeBusinessCompleteness> | null>(null);
 
   useEffect(() => {
     const sb = createSupabaseBrowserClient();
@@ -89,11 +96,13 @@ export default function BusinessToolsPage() {
           null
       );
       try {
-        const { data: p } = await sb.from("profiles").select("display_name, email, membership_tier").eq("id", u.id).maybeSingle();
-        const row = p as { display_name?: string | null; email?: string | null; membership_tier?: string | null } | null;
+        const { row } = await fetchDashboardProfile(sb, u.id);
         if (row?.display_name?.trim()) setName(row.display_name.trim());
         if (row?.email?.trim()) setEmail(row.email.trim());
         setPlan(normalizePlanFromMembershipTier(row?.membership_tier));
+        const meta = u.user_metadata as Record<string, unknown> | undefined;
+        const wa = typeof meta?.whatsapp === "string" ? meta.whatsapp : "";
+        setCompleteness(computeBusinessCompleteness(row ?? null, { lang, whatsappHint: wa }));
       } catch {
         /* ignore */
       }
@@ -118,6 +127,21 @@ export default function BusinessToolsPage() {
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5C5346]/95">{t.subtitle}</p>
             <p className="mt-4 text-sm text-[#3D3428]/90">{t.lead}</p>
           </header>
+
+          {completeness ? (
+            <div className="mt-8 rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#F3EBDD]/90 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.12)]">
+              <h2 className="text-sm font-bold text-[#1E1810]">{t.completeness}</h2>
+              <p className="mt-2 text-3xl font-bold tabular-nums text-[#1E1810]">
+                {completeness.score}/{completeness.max}
+              </p>
+              <p className="mt-3 text-sm font-semibold text-[#5C5346]">{t.nextSteps}</p>
+              <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-[#3D3428]/95">
+                {completeness.recommendations.slice(0, 4).map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             {t.cards.map((c) => (

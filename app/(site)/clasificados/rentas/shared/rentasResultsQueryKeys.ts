@@ -1,14 +1,25 @@
 /**
  * URL query keys for `/clasificados/rentas/results`.
- * Baseline: q, tipo, precio, recs — extended keys are optional and demo-filtered until backend exists.
+ * @see rentasBrowseContract.ts — canonical definitions and parsing.
  */
-export const RENTAS_QUERY_Q = "q";
-export const RENTAS_QUERY_TIPO = "tipo";
-export const RENTAS_QUERY_PRECIO = "precio";
-export const RENTAS_QUERY_RECS = "recs";
-export const RENTAS_QUERY_BRANCH = "branch";
-export const RENTAS_QUERY_PROPIEDAD = "propiedad";
-export const RENTAS_QUERY_AMUEBLADO = "amueblado";
-export const RENTAS_QUERY_MASCOTAS = "mascotas";
-export const RENTAS_QUERY_RENT_MIN = "rent_min";
-export const RENTAS_QUERY_RENT_MAX = "rent_max";
+export {
+  RENTAS_QUERY_AMUEBLADO,
+  RENTAS_QUERY_BATHS_MIN,
+  RENTAS_QUERY_BRANCH,
+  RENTAS_QUERY_CITY,
+  RENTAS_QUERY_LAT,
+  RENTAS_QUERY_LNG,
+  RENTAS_QUERY_MASCOTAS,
+  RENTAS_QUERY_PAGE,
+  RENTAS_QUERY_PRECIO,
+  RENTAS_QUERY_PROPIEDAD,
+  RENTAS_QUERY_Q,
+  RENTAS_QUERY_RADIUS_KM,
+  RENTAS_QUERY_RECS,
+  RENTAS_QUERY_RENT_MAX,
+  RENTAS_QUERY_RENT_MIN,
+  RENTAS_QUERY_SORT,
+  RENTAS_QUERY_STATE,
+  RENTAS_QUERY_TIPO,
+  RENTAS_QUERY_ZIP,
+} from "./rentasBrowseContract";

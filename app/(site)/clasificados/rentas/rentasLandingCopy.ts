@@ -12,6 +12,9 @@ export type RentasLandingCopy = {
   search: {
     /** Visible heading above the search module (hierarchy + affordance). */
     moduleHeadline: string;
+    /** Optional city / CP line (handoff → `city` or `zip` query). */
+    locationLabel: string;
+    locationPlaceholder: string;
     labelSearch: string;
     placeholder: string;
     tipo: string;
@@ -100,6 +103,16 @@ export type RentasLandingCopy = {
     sortPriceDesc: string;
     viewGridAria: string;
     viewListAria: string;
+    filterRefine: string;
+    applyFilters: string;
+    cityLabel: string;
+    zipLabel: string;
+    bathsMinLabel: string;
+    bathsAny: string;
+    locationUseMine: string;
+    locationDenied: string;
+    locationPending: string;
+    locationScaffoldNote: string;
   };
   /** Public listing detail shell */
   detail: {
@@ -133,8 +146,10 @@ const ES: RentasLandingCopy = {
   langEn: "EN",
   search: {
     moduleHeadline: "Buscar rentas",
+    locationLabel: "Ciudad o código postal",
+    locationPlaceholder: "Ej. Monterrey o 64000",
     labelSearch: "Búsqueda",
-    placeholder: "Buscar en Bienes Raíces…",
+    placeholder: "Palabras clave, colonia, ciudad…",
     tipo: "Tipo",
     tipoPlaceholder: "Tipo de propiedad",
     optCasa: "Casa",
@@ -242,6 +257,17 @@ const ES: RentasLandingCopy = {
     sortPriceDesc: "Renta: mayor a menor",
     viewGridAria: "Vista cuadrícula",
     viewListAria: "Vista lista",
+    filterRefine: "Ubicación y baños",
+    applyFilters: "Aplicar filtros",
+    cityLabel: "Ciudad",
+    zipLabel: "CP",
+    bathsMinLabel: "Baños mín.",
+    bathsAny: "Cualquiera",
+    locationUseMine: "Usar mi ubicación",
+    locationDenied: "No pudimos usar tu ubicación. Prueba ciudad o CP.",
+    locationPending: "Solicitando permiso…",
+    locationScaffoldNote:
+      "Coordenadas guardadas en la URL. El orden por distancia y radio se activará cuando el índice geográfico esté en producción.",
   },
   detail: {
     metaTitleSuffix: "Rentas | Leonix",
@@ -274,8 +300,10 @@ const EN: RentasLandingCopy = {
   langEn: "EN",
   search: {
     moduleHeadline: "Find rentals",
+    locationLabel: "City or ZIP",
+    locationPlaceholder: "e.g. Monterrey or 64000",
     labelSearch: "Search",
-    placeholder: "Search real estate…",
+    placeholder: "Keywords, neighborhood, city…",
     tipo: "Type",
     tipoPlaceholder: "Property type",
     optCasa: "House",
@@ -383,6 +411,17 @@ const EN: RentasLandingCopy = {
     sortPriceDesc: "Rent: high to low",
     viewGridAria: "Grid view",
     viewListAria: "List view",
+    filterRefine: "Location & baths",
+    applyFilters: "Apply filters",
+    cityLabel: "City",
+    zipLabel: "ZIP",
+    bathsMinLabel: "Min baths",
+    bathsAny: "Any",
+    locationUseMine: "Use my location",
+    locationDenied: "We couldn’t use your location. Try city or ZIP.",
+    locationPending: "Requesting permission…",
+    locationScaffoldNote:
+      "Coordinates saved in the URL. Sort-by-distance and radius search will activate when the geo index ships.",
   },
   detail: {
     metaTitleSuffix: "Rentals | Leonix",

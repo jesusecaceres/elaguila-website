@@ -12,6 +12,8 @@ import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEst
 import { LeonixRealEstateListingManageCard } from "../components/LeonixRealEstateListingManageCard";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { DashboardMobilePreview } from "../components/DashboardMobilePreview";
+import { aggregateListingAnalyticsEvents, type ListingAnalyticsBucket } from "../lib/listingAnalyticsAggregate";
+import { fetchOwnerListingsForDashboard, mapOwnerListingRow } from "../lib/ownerListingsQuery";
 import { isListingBoosted, listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
 import {
   resolveListingUiStatus,
@@ -37,7 +39,11 @@ type ListingRow = {
   zip?: string | null;
   status?: string | null;
   created_at?: string | null;
+  updated_at?: string | null;
+  published_at?: string | null;
+  expires_at?: string | null;
   category?: string | null;
+  business_name?: string | null;
   images?: unknown;
   detail_pairs?: unknown;
   boost_expires?: unknown;
@@ -236,9 +242,7 @@ export default function MyListingsPage() {
   const [listingsLoading, setListingsLoading] = useState(false);
   const [listings, setListings] = useState<ListingRow[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [analyticsByListing, setAnalyticsByListing] = useState<
-    Record<string, { views: number; uniqueViews: number; messages: number; saves: number; shares: number; profileClicks: number }>
-  >({});
+  const [analyticsByListing, setAnalyticsByListing] = useState<Record<string, ListingAnalyticsBucket>>({});
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
@@ -288,13 +292,7 @@ export default function MyListingsPage() {
       setListingsLoading(true);
       setError(null);
 
-      const { data: rows, error: qErr } = await supabase
-        .from("listings")
-        .select(
-          "id,title,price,city,zip,status,created_at,category,images,detail_pairs,boost_expires,views,original_price,current_price,price_last_updated,is_published"
-        )
-        .eq("owner_id", u.id)
-        .order("created_at", { ascending: false });
+      const { data: rows, error: qErr } = await fetchOwnerListingsForDashboard(supabase, u.id);
 
       if (!mounted) return;
 
@@ -305,7 +303,7 @@ export default function MyListingsPage() {
         return;
       }
 
-      const list = (rows as ListingRow[]) ?? [];
+      const list = ((rows ?? []) as Record<string, unknown>[]).map((r) => mapOwnerListingRow(r)) as ListingRow[];
       setListings(list);
       setListingsLoading(false);
 
@@ -317,27 +315,7 @@ export default function MyListingsPage() {
           .in("listing_id", ids);
 
         if (!mounted) return;
-        const byId: Record<string, { views: number; uniqueViews: number; messages: number; saves: number; shares: number; profileClicks: number }> = {};
-        for (const id of ids) {
-          byId[id] = { views: 0, uniqueViews: 0, messages: 0, saves: 0, shares: 0, profileClicks: 0 };
-        }
-        const viewUserIdsByListing: Record<string, Set<string>> = {};
-        for (const id of ids) viewUserIdsByListing[id] = new Set<string>();
-        for (const row of events ?? []) {
-          const r = row as { listing_id: string; event_type: string; user_id?: string | null };
-          const lid = r.listing_id;
-          const type = r.event_type;
-          if (!byId[lid]) continue;
-          if (type === "listing_view") {
-            byId[lid].views += 1;
-            if (r.user_id) viewUserIdsByListing[lid].add(r.user_id);
-          } else if (type === "message_sent") byId[lid].messages += 1;
-          else if (type === "listing_save") byId[lid].saves += 1;
-          else if (type === "listing_share") byId[lid].shares += 1;
-          else if (type === "profile_view") byId[lid].profileClicks += 1;
-        }
-        for (const id of ids) byId[id].uniqueViews = viewUserIdsByListing[id].size;
-        setAnalyticsByListing(byId);
+        setAnalyticsByListing(aggregateListingAnalyticsEvents(events ?? [], ids));
       }
     }
 
@@ -461,8 +439,10 @@ export default function MyListingsPage() {
     return filteredByTab.filter((x) => (x.title ?? "").toLowerCase().includes(needle));
   }, [filteredByTab, needle]);
 
-  function resolveViews(_x: ListingRow, stats?: { views: number }) {
-    return stats?.views ?? 0;
+  function resolveViews(x: ListingRow, stats?: ListingAnalyticsBucket) {
+    const fromEvents = stats?.views ?? 0;
+    const db = typeof x.views === "number" ? x.views : 0;
+    return Math.max(fromEvents, db);
   }
 
   const maxViews = useMemo(() => {
@@ -535,15 +515,17 @@ export default function MyListingsPage() {
       email={email}
       accountRef={accountRef}
       rightPanel={
-        <DashboardMobilePreview
-          lang={lang}
-          title={previewTitle}
-          priceLine={previewPrice}
-          city={previewCity}
-          views={pv}
-          saves={ps}
-          messages={pm}
-        />
+        listings.length > 0 ? (
+          <DashboardMobilePreview
+            lang={lang}
+            title={previewTitle}
+            priceLine={previewPrice}
+            city={previewCity}
+            views={pv}
+            saves={ps}
+            messages={pm}
+          />
+        ) : null
       }
     >
       {showLoading ? (

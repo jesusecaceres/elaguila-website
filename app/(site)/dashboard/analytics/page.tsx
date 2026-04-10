@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { fetchOwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -34,18 +35,34 @@ export default function DashboardAnalyticsPage() {
         ? {
             title: "Analíticas",
             subtitle: "Mide el rendimiento de tus anuncios y ajusta tu estrategia.",
-            body: "Aquí conectaremos vistas, guardados, mensajes y tendencias por anuncio. Mientras tanto, revisa el resumen en tu panel y en cada publicación.",
+            body: "Totales basados en eventos guardados en `listing_analytics` (vistas, guardados, compartidos, mensajes, aperturas). No incluye métricas que la base aún no registra.",
             ctaListings: "Ir a Mis anuncios",
             ctaHome: "Volver al resumen",
             loading: "Cargando…",
+            views: "Vistas (eventos)",
+            unique: "Vistas únicas (usuarios)",
+            saves: "Guardados",
+            shares: "Compartidos",
+            msgs: "Mensajes (evento)",
+            profiles: "Vistas de perfil",
+            opens: "Aperturas de ficha",
+            listings: "Anuncios",
           }
         : {
             title: "Analytics",
             subtitle: "Measure listing performance and refine your strategy.",
-            body: "We’ll connect views, saves, messages, and per-listing trends here. For now, use your overview and each listing for metrics.",
+            body: "Totals from persisted `listing_analytics` events (views, saves, shares, messages, opens). Metrics not stored in the database are not shown.",
             ctaListings: "Go to My ads",
             ctaHome: "Back to overview",
             loading: "Loading…",
+            views: "Views (events)",
+            unique: "Unique viewers (users)",
+            saves: "Saves",
+            shares: "Shares",
+            msgs: "Messages (event)",
+            profiles: "Profile views",
+            opens: "Listing opens",
+            listings: "Listings",
           },
     [lang]
   );
@@ -55,6 +72,17 @@ export default function DashboardAnalyticsPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>("free");
   const [userId, setUserId] = useState<string | null>(null);
+  const [totals, setTotals] = useState<{
+    listingViews: number;
+    uniqueListingViewsEstimate: number;
+    saves: number;
+    shares: number;
+    messages: number;
+    profileViews: number;
+    listingOpens: number;
+  } | null>(null);
+  const [listingCount, setListingCount] = useState<number | null>(null);
+  const [aggErr, setAggErr] = useState<string | null>(null);
 
   useEffect(() => {
     const sb = createSupabaseBrowserClient();
@@ -83,6 +111,14 @@ export default function DashboardAnalyticsPage() {
       } catch {
         /* ignore */
       }
+
+      const agg = await fetchOwnerAnalyticsTotals(sb, u.id);
+      if (!mounted) return;
+      if (agg.error) setAggErr(agg.error);
+      else setAggErr(null);
+      setTotals(agg.totals);
+      setListingCount(agg.listingCount);
+
       setLoading(false);
     }
     void run();
@@ -105,6 +141,28 @@ export default function DashboardAnalyticsPage() {
           </header>
           <div className="mt-6 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-inner">
             <p className="text-sm leading-relaxed text-[#3D3428]/95">{t.body}</p>
+            {aggErr ? (
+              <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950">{aggErr}</p>
+            ) : null}
+            {totals ? (
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  { k: t.listings, v: listingCount ?? 0 },
+                  { k: t.views, v: totals.listingViews },
+                  { k: t.unique, v: totals.uniqueListingViewsEstimate },
+                  { k: t.saves, v: totals.saves },
+                  { k: t.shares, v: totals.shares },
+                  { k: t.msgs, v: totals.messages },
+                  { k: t.profiles, v: totals.profileViews },
+                  { k: t.opens, v: totals.listingOpens },
+                ].map((row) => (
+                  <div key={row.k} className="rounded-2xl border border-[#E8DFD0]/80 bg-white/90 px-4 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{row.k}</p>
+                    <p className="mt-1 text-2xl font-bold tabular-nums text-[#1E1810]">{row.v}</p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 href={`/dashboard/mis-anuncios?${q}`}

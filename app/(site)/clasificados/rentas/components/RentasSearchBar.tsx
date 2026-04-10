@@ -7,6 +7,9 @@ import { rentasSearchShellClass, rentasSearchSubmitClass } from "@/app/clasifica
 type Props = {
   query: string;
   onQuery: (v: string) => void;
+  /** Optional city or ZIP line — maps to `city` / `zip` on results via `splitLocationIntent`. */
+  location?: string;
+  onLocation?: (v: string) => void;
   propertyType: string;
   onPropertyType: (v: string) => void;
   priceBand: string;
@@ -24,6 +27,8 @@ const fieldClass =
 export function RentasSearchBar({
   query,
   onQuery,
+  location = "",
+  onLocation,
   propertyType,
   onPropertyType,
   priceBand,
@@ -39,6 +44,20 @@ export function RentasSearchBar({
       <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-[#5B7C99]/95 sm:text-left">
         {copy.moduleHeadline}
       </p>
+      {onLocation ? (
+        <label className="mb-3 block min-w-0">
+          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">
+            {copy.locationLabel}
+          </span>
+          <input
+            value={location}
+            onChange={(e) => onLocation(e.target.value)}
+            placeholder={copy.locationPlaceholder}
+            className={`${fieldClass} min-h-[44px]`}
+            autoComplete="address-level2"
+          />
+        </label>
+      ) : null}
       <div className={rentasSearchShellClass}>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:gap-4">
           <label className="min-w-0 w-full flex-1 xl:min-w-0 xl:flex-[1.2]">
