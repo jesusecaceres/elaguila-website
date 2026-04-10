@@ -10,6 +10,8 @@ export const SITE_SECTION_KEYS = [
   "iglesias_page",
   "cupones_page",
   "revista_issue_registry",
+  /** Per-category Clasificados copy overrides (nested `categories.<slug>` in payload). */
+  "clasificados_category_content",
 ] as const;
 
 export type SiteSectionKey = (typeof SITE_SECTION_KEYS)[number];
