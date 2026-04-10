@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminCtaDestinationHint, AdminCtaRoutingCallout } from "@/app/admin/_components/AdminCtaDestinationHint";
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { adminBtnPrimary, adminBtnSecondary, adminCardBase, adminInputClass } from "@/app/admin/_components/adminTheme";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
@@ -7,6 +8,23 @@ import { mergeHomeMarketing } from "@/app/lib/siteSectionContent/homeMarketingMe
 import { saveHomeMarketingAction } from "@/app/admin/homeMarketingActions";
 
 export const dynamic = "force-dynamic";
+
+function homeFeaturedCalloutHint(href: string): { effectiveLine: string; whenBlank?: string } {
+  const t = href.trim();
+  if (!t) {
+    return {
+      effectiveLine: "— no aparece en público",
+      whenBlank: "Hace falta una URL que empiece por / o https:// para que el chip se liste en /home.",
+    };
+  }
+  if (!(t.startsWith("/") || t.startsWith("https://"))) {
+    return {
+      effectiveLine: "— no aparece en público",
+      whenBlank: "Solo se publican chips cuyo href empiece por / o https:// (mergeHomeMarketing).",
+    };
+  }
+  return { effectiveLine: t };
+}
 
 export default async function AdminHomeContentPage(props: { searchParams?: Promise<{ saved?: string }> }) {
   const sp = props.searchParams ? await props.searchParams : {};
@@ -81,6 +99,37 @@ export default async function AdminHomeContentPage(props: { searchParams?: Promi
           />
         </div>
 
+        <div className="space-y-2">
+          <AdminCtaDestinationHint
+            label="CTA primario (botón + imagen del hero)"
+            hrefStored={patch.ctaPrimaryHref ?? ""}
+            effectiveLine={
+              patch.ctaPrimaryHref?.trim()
+                ? `${patch.ctaPrimaryHref.trim()} (se usa tal cual; no se añade ?lang automáticamente en /home).`
+                : "`/magazine?lang={es|en}` según el idioma activo en `/home` (mismo enlace para la imagen y el botón)."
+            }
+            whenBlank={
+              !patch.ctaPrimaryHref?.trim()
+                ? "Vacío = revista digital; coincide con el comportamiento por defecto del código."
+                : undefined
+            }
+          />
+          <AdminCtaDestinationHint
+            label="CTA secundario (línea bajo el primario)"
+            hrefStored={patch.ctaSecondaryHref ?? ""}
+            effectiveLine={
+              patch.ctaSecondaryHref?.trim()
+                ? `${patch.ctaSecondaryHref.trim()} (enlace directo).`
+                : "Texto sin enlace: se muestra como párrafo debajo del botón primario."
+            }
+            whenBlank={
+              !patch.ctaSecondaryHref?.trim()
+                ? "Sin URL: no es clicable. Guarda una URL arriba para activar el enlace."
+                : undefined
+            }
+          />
+        </div>
+
         <h2 className="pt-4 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Franja bajo el botón (opcional)</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
@@ -126,6 +175,16 @@ export default async function AdminHomeContentPage(props: { searchParams?: Promi
           <code className="rounded bg-[#FBF7EF] px-1">https://</code>. El orden guardado es el de los renglones #1–#5 (de izquierda a
           derecha en la página).
         </p>
+        <AdminCtaRoutingCallout title="Orden y zona de la fila de chips (un solo bloque)">
+          <p>
+            <strong>Orden:</strong> el renglón #1 es la primera chip a la izquierda; #5 es la última a la derecha. No hay drag-and-drop:
+            el orden es el de los campos en este formulario.
+          </p>
+          <p>
+            <strong>Posición vertical:</strong> el selector de abajo mueve <strong>toda la fila</strong> de chips a la vez (no hay
+            posición distinta por chip). Solo afecta la plantilla de <code className="rounded bg-white/80 px-1">/home</code>.
+          </p>
+        </AdminCtaRoutingCallout>
         <div>
           <label className="text-xs font-semibold text-[#5C5346]">Posición de la fila de chips en el hero</label>
           <select name="callouts_placement" className={`${adminInputClass} mt-1`} defaultValue={m.calloutsPlacement}>
@@ -134,13 +193,24 @@ export default async function AdminHomeContentPage(props: { searchParams?: Promi
           </select>
           <p className="mt-1 text-xs text-[#7A7164]">Solo afecta `/home`; no cambia categorías de Tienda ni Clasificados automáticamente.</p>
         </div>
-        {callouts.slice(0, 5).map((c, idx) => (
-          <div key={idx} className="grid gap-2 rounded-xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/80 p-3 sm:grid-cols-3">
-            <Field label={`Etiqueta ES #${idx + 1}`} name={`callout_${idx + 1}_es`} defaultValue={c.labelEs} />
-            <Field label={`Etiqueta EN #${idx + 1}`} name={`callout_${idx + 1}_en`} defaultValue={c.labelEn} />
-            <Field label="URL" name={`callout_${idx + 1}_href`} defaultValue={c.href} />
-          </div>
-        ))}
+        {callouts.slice(0, 5).map((c, idx) => {
+          const co = homeFeaturedCalloutHint(c.href ?? "");
+          return (
+            <div key={idx} className="space-y-2 rounded-xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/80 p-3">
+              <div className="grid gap-2 sm:grid-cols-3">
+                <Field label={`Etiqueta ES #${idx + 1}`} name={`callout_${idx + 1}_es`} defaultValue={c.labelEs} />
+                <Field label={`Etiqueta EN #${idx + 1}`} name={`callout_${idx + 1}_en`} defaultValue={c.labelEn} />
+                <Field label="URL" name={`callout_${idx + 1}_href`} defaultValue={c.href} />
+              </div>
+              <AdminCtaDestinationHint
+                label={`Chip #${idx + 1} — destino`}
+                hrefStored={c.href ?? ""}
+                effectiveLine={co.effectiveLine}
+                whenBlank={co.whenBlank}
+              />
+            </div>
+          );
+        })}
 
         <button type="submit" className={`${adminBtnPrimary} mt-4`}>
           Guardar

@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { AdminCtaDestinationHint, AdminCtaRoutingCallout } from "@/app/admin/_components/AdminCtaDestinationHint";
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { adminBtnPrimary, adminBtnSecondary, adminCardBase, adminInputClass } from "@/app/admin/_components/adminTheme";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type { ContactoPayload } from "@/app/lib/siteSectionContent/payloadTypes";
 import { mergeContactoCopy } from "@/app/lib/siteSectionContent/contactoMerge";
 import { saveContactoSectionAction } from "@/app/admin/contactoSectionActions";
+import { LEONIX_TIENDA_CONTACT_PATH } from "@/app/tienda/data/leonixContact";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +85,20 @@ export default async function AdminContactoContentPage(props: { searchParams?: P
             <textarea name="address_en" className={adminInputClass} rows={2} defaultValue={patch.address?.en ?? ""} />
           </div>
           <Field label="URL de mapa (Maps u otra)" name="map_url" defaultValue={patch.mapUrl ?? ""} />
+          <div className="sm:col-span-2">
+            <AdminCtaDestinationHint
+              label="Enlace «Abrir mapa» (bloque datos)"
+              hrefStored={patch.mapUrl ?? ""}
+              effectiveLine={
+                patch.mapUrl?.trim()
+                  ? `${patch.mapUrl.trim()} — se abre en pestaña nueva.`
+                  : "— no se muestra el enlace «Abrir mapa» / «Open map»."
+              }
+              whenBlank={
+                !patch.mapUrl?.trim() ? "Vacío = sin enlace a mapas; el resto del bloque (email, teléfono, etc.) sigue visible." : undefined
+              }
+            />
+          </div>
         </div>
         <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Aviso superior (opcional)</h2>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -110,6 +126,13 @@ export default async function AdminContactoContentPage(props: { searchParams?: P
           <Field label="CTA ES" name="tienda_cta_es" defaultValue={patch.tiendaCard?.cta?.es ?? ""} placeholder={es.tiendaCta} />
           <Field label="CTA EN" name="tienda_cta_en" defaultValue={patch.tiendaCard?.cta?.en ?? ""} placeholder={en.tiendaCta} />
         </div>
+        <AdminCtaRoutingCallout title="Tarjeta Tienda — URL del botón (no editable aquí)">
+          <p>
+            El texto del CTA se edita arriba; el destino está fijado en código:{" "}
+            <code className="rounded bg-white/80 px-1">{LEONIX_TIENDA_CONTACT_PATH}</code> con{" "}
+            <code className="rounded bg-white/80 px-1">?lang=</code> (misma ruta que usa la página pública de contacto Tienda).
+          </p>
+        </AdminCtaRoutingCallout>
 
         <button type="submit" className={`${adminBtnPrimary} mt-4`}>
           Guardar contacto

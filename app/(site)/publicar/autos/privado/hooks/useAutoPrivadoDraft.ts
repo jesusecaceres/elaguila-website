@@ -132,6 +132,12 @@ export function useAutoPrivadoDraft() {
 
   const resetDraft = useCallback(async () => {
     const ns = namespaceRef.current;
+    clearAutosDraftNamespaceHint("privado");
+    try {
+      window.sessionStorage.setItem(AUTOS_PRIVADO_EDITOR_SESSION_KEY, "1");
+    } catch {
+      /* ignore */
+    }
     if (ns) await clearAutosPrivadoDraft(ns);
     setVehicleTitleOverride(false);
     overrideRef.current = false;

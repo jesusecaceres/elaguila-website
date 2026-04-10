@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminCtaRoutingCallout } from "@/app/admin/_components/AdminCtaDestinationHint";
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { adminBtnPrimary, adminBtnSecondary, adminCardBase, adminInputClass } from "@/app/admin/_components/adminTheme";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
@@ -7,6 +8,7 @@ import { mergeTiendaStorefrontCopy } from "@/app/lib/tienda/mergeTiendaStorefron
 import { saveTiendaStorefrontFormAction } from "@/app/admin/tiendaStorefrontAdminActions";
 import { TIENDA_CATEGORY_SLUGS } from "@/app/tienda/data/tiendaCategories";
 import { TIENDA_HOMEPAGE_CATEGORY_SLUGS } from "@/app/tienda/data/tiendaMerchandising";
+import { tiendaPublicContactPath } from "@/app/tienda/utils/tiendaRouting";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +87,15 @@ export default async function AdminTiendaStorefrontPage(props: { searchParams?: 
               <textarea name="hero_supporting_en" className={adminInputClass} rows={2} defaultValue={m.hero.supportingLine.en} />
             </div>
           </div>
+          <AdminCtaRoutingCallout title="Hero — destinos de los botones (fijos en código)">
+            <p>
+              Esta pantalla solo edita <strong>etiquetas</strong>. En público (`/tienda`) el primario apunta al ancla{" "}
+              <code className="rounded bg-white/80 px-1">#shop</code> y el secundario a{" "}
+              <code className="rounded bg-white/80 px-1">{tiendaPublicContactPath()}</code> con{" "}
+              <code className="rounded bg-white/80 px-1">?lang=</code> — igual que en{" "}
+              <code className="rounded bg-white/80 px-1">app/(site)/tienda/page.tsx</code>.
+            </p>
+          </AdminCtaRoutingCallout>
         </section>
 
         <section className={`${adminCardBase} space-y-4 p-6`}>
@@ -252,6 +263,13 @@ export default async function AdminTiendaStorefrontPage(props: { searchParams?: 
             <Field label="Botón secundario ES" name="fc_secondary_es" defaultValue={m.sections.finalCta.secondary.es} />
             <Field label="Botón secundario EN" name="fc_secondary_en" defaultValue={m.sections.finalCta.secondary.en} />
           </div>
+          <AdminCtaRoutingCallout title="CTA final — destinos (fijos en código)">
+            <p>
+              Los botones usan las mismas rutas que el hero: primario → <code className="rounded bg-white/80 px-1">#shop</code>,
+              secundario → <code className="rounded bg-white/80 px-1">{tiendaPublicContactPath()}</code> + idioma. No hay campos de
+              URL en este formulario.
+            </p>
+          </AdminCtaRoutingCallout>
         </section>
 
         <section className={`${adminCardBase} space-y-4 p-6`}>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminCtaRoutingCallout } from "@/app/admin/_components/AdminCtaDestinationHint";
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { adminBtnPrimary, adminBtnSecondary, adminCardBase, adminInputClass } from "@/app/admin/_components/adminTheme";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
@@ -76,6 +77,14 @@ export default async function AdminCuponesContentPage(props: { searchParams?: Pr
           <label className="text-xs font-semibold text-[#5C5346]">Intro EN</label>
           <textarea name="intro_en" className={adminInputClass} rows={2} defaultValue={patch.intro?.en ?? ""} placeholder={merged.introEn} />
         </div>
+
+        <AdminCtaRoutingCallout title="Enlaces por tarjeta de cupón">
+          <p>
+            Este editor <strong>no define URL por cupón</strong>: las tarjetas en público son informativas (imagen + texto en{" "}
+            <code className="rounded bg-white/80 px-1">CouponCard</code>). No hay CTA con destino configurable aquí hasta que el
+            modelo de datos lo soporte.
+          </p>
+        </AdminCtaRoutingCallout>
 
         {Array.from({ length: SLOTS }, (_, idx) => {
           const i = idx + 1;

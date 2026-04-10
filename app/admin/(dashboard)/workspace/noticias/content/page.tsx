@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminCtaRoutingCallout } from "@/app/admin/_components/AdminCtaDestinationHint";
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { adminBtnPrimary, adminBtnSecondary, adminCardBase, adminInputClass } from "@/app/admin/_components/adminTheme";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
@@ -42,6 +43,12 @@ export default async function AdminNoticiasContentPage(props: { searchParams?: P
       </p>
 
       <form action={saveNoticiasPageAction} className={`${adminCardBase} space-y-4 p-6`}>
+        <AdminCtaRoutingCallout title="CTAs con URL">
+          <p>
+            Esta pantalla solo ajusta el marco textual de <code className="rounded bg-white/80 px-1">/noticias</code>. No hay campos de
+            botón ni URL: el listado enlaza a fuentes RSS/API según el código de la página.
+          </p>
+        </AdminCtaRoutingCallout>
         <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Titulares</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Título página ES" name="page_title_es" defaultValue={patch.pageTitle?.es ?? ""} placeholder={m.es.pageTitle} />

@@ -21,6 +21,16 @@ function readDraftRaw(): string | null {
       }
       return fromFallback;
     }
+    const legacy = localStorage.getItem(RENTAS_NEGOCIO_DRAFT_STORAGE_KEY);
+    if (legacy) {
+      try {
+        sessionStorage.setItem(RENTAS_NEGOCIO_DRAFT_STORAGE_KEY, legacy);
+      } catch {
+        /* ignore */
+      }
+      localStorage.removeItem(RENTAS_NEGOCIO_DRAFT_STORAGE_KEY);
+      return legacy;
+    }
   } catch {
     /* ignore */
   }
@@ -66,6 +76,7 @@ export function clearRentasNegocioDraft(): void {
   try {
     sessionStorage.removeItem(RENTAS_NEGOCIO_DRAFT_STORAGE_KEY);
     localStorage.removeItem(RENTAS_NEGOCIO_DRAFT_LS_FALLBACK_KEY);
+    localStorage.removeItem(RENTAS_NEGOCIO_DRAFT_STORAGE_KEY);
   } catch {
     /* ignore */
   }

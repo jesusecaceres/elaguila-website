@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 const IVORY = "#F9F6F1";
 const BORDER = "rgba(61, 54, 48, 0.12)";
@@ -14,6 +15,8 @@ export function LeonixPreviewPageShell({
   editHref,
   onBeforeNavigateToEdit,
   backLabel = "Volver a editar",
+  /** Optional primary action (e.g. publish to live) rendered before “Volver a editar”. */
+  publishSlot,
   children,
 }: {
   editHref?: string;
@@ -21,6 +24,7 @@ export function LeonixPreviewPageShell({
   onBeforeNavigateToEdit?: () => void;
   /** Defaults to Spanish; pass `Back to edit` for EN flows. */
   backLabel?: string;
+  publishSlot?: ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -33,7 +37,8 @@ export function LeonixPreviewPageShell({
           paddingTop: "max(0.75rem, env(safe-area-inset-top, 0px))",
         }}
       >
-        <div className="mx-auto flex w-full max-w-[1240px] min-w-0 justify-stretch sm:justify-end">
+        <div className="mx-auto flex w-full max-w-[1240px] min-w-0 flex-wrap items-center justify-stretch gap-2 sm:justify-end">
+          {publishSlot}
           {editHref ? (
             <Link
               href={editHref}

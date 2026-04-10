@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminCtaRoutingCallout } from "@/app/admin/_components/AdminCtaDestinationHint";
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { adminBtnPrimary, adminBtnSecondary, adminCardBase, adminInputClass } from "@/app/admin/_components/adminTheme";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
@@ -65,6 +66,13 @@ export default async function AdminIglesiasContentPage(props: { searchParams?: P
           <Field label="Texto botón volver ES" name="back_es" defaultValue={patch.backCta?.es ?? ""} placeholder={m.es.backCta} />
           <Field label="Back button EN" name="back_en" defaultValue={patch.backCta?.en ?? ""} placeholder={m.en.backCta} />
         </div>
+        <AdminCtaRoutingCallout title="Botón — destino (fijo en código)">
+          <p>
+            Solo editas el texto del botón. En público el enlace es siempre{" "}
+            <code className="rounded bg-white/80 px-1">/clasificados?lang=…</code> (componente{" "}
+            <code className="rounded bg-white/80 px-1">IglesiasPageClient</code>) — no hay campo de URL en este editor.
+          </p>
+        </AdminCtaRoutingCallout>
         <button type="submit" className={adminBtnPrimary}>
           Guardar
         </button>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { AutosApplicationTopActions } from "@/app/publicar/autos/shared/components/AutosApplicationTopActions";
+import { AutosApplicationFinalActions } from "@/app/publicar/autos/shared/components/AutosApplicationFinalActions";
+import { AutosApplicationMissingItemsBanner } from "@/app/publicar/autos/shared/components/AutosApplicationMissingItemsBanner";
 import { useEffect, useMemo } from "react";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
@@ -161,21 +162,12 @@ export function AutosPrivadoApplication() {
         </header>
       }
       topActions={(stepCtx) => (
-        <AutosApplicationTopActions
-          lane="privado"
-          lang={lang}
-          copy={t}
-          listing={listing}
-          stepCtx={stepCtx}
-          onPreview={async () => {
-            await flushDraft();
-            router.push(previewHref);
-          }}
-          onDeleteApplication={resetDraft}
-        />
+        <AutosApplicationMissingItemsBanner lane="privado" lang={lang} copy={t} listing={listing} stepCtx={stepCtx} />
       )}
     >
-      {({ activeStep }) => (
+      {(ctx) => {
+        const { activeStep } = ctx;
+        return (
         <>
           {/* A — Principal (alineado con Negocios; sin pago mensual ni stock) */}
           <section className={`${CARD} ${activeStep === 0 ? "" : "hidden"}`} aria-hidden={activeStep !== 0}>
@@ -545,9 +537,22 @@ export function AutosPrivadoApplication() {
 
           <div className={activeStep === 6 ? "" : "hidden"} aria-hidden={activeStep !== 6}>
             <AutosApplicationReviewStep lane="privado" listing={listing} copy={t} lang={lang} />
+            <AutosApplicationFinalActions
+              lane="privado"
+              lang={lang}
+              copy={t}
+              listing={listing}
+              stepCtx={ctx}
+              onPreview={async () => {
+                await flushDraft();
+                router.push(previewHref);
+              }}
+              onDeleteApplication={resetDraft}
+            />
           </div>
         </>
-      )}
+        );
+      }}
     </AutosApplicationSteppedShell>
   );
 }

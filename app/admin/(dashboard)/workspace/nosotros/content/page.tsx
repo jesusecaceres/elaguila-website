@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminCtaDestinationHint } from "@/app/admin/_components/AdminCtaDestinationHint";
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { adminBtnPrimary, adminBtnSecondary, adminCardBase, adminInputClass } from "@/app/admin/_components/adminTheme";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
@@ -99,6 +100,29 @@ export default async function AdminNosotrosContentPage(props: { searchParams?: P
           <Field label="CTA secundario EN" name="cta_secondary_en" defaultValue={patch.ctaSecondary?.en ?? ""} />
           <Field label="URL CTA primario" name="cta_primary_href" defaultValue={patch.ctaPrimaryHref ?? "/contacto"} />
           <Field label="URL CTA secundario" name="cta_secondary_href" defaultValue={patch.ctaSecondaryHref ?? "/tienda"} />
+        </div>
+
+        <div className="space-y-2">
+          <AdminCtaDestinationHint
+            label="CTA primario"
+            hrefStored={patch.ctaPrimaryHref ?? ""}
+            effectiveLine={`Resuelto a «${m.ctaPrimaryHref}» en /about. Rutas internas reciben ?lang= según el visitante (salvo https o ?lang= ya en la URL).`}
+            whenBlank={
+              !patch.ctaPrimaryHref?.trim()
+                ? "Si el campo queda vacío al guardar, mergeNosotrosCopy sigue aplicando /contacto desde el código base."
+                : undefined
+            }
+          />
+          <AdminCtaDestinationHint
+            label="CTA secundario"
+            hrefStored={patch.ctaSecondaryHref ?? ""}
+            effectiveLine={`Resuelto a «${m.ctaSecondaryHref}» en /about (mismas reglas de ?lang= que el primario).`}
+            whenBlank={
+              !patch.ctaSecondaryHref?.trim()
+                ? "Si el campo queda vacío al guardar, el merge aplica /tienda por defecto."
+                : undefined
+            }
+          />
         </div>
 
         <button type="submit" className={adminBtnPrimary}>

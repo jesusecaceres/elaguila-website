@@ -13,8 +13,11 @@ export function getAutosApplicationStepShellCopy(lang: AutosNegociosLang) {
     mobileStepLabel: isEs ? "Ir al paso" : "Go to step",
     reviewTitle: isEs ? "Revisión final" : "Final review",
     reviewIntro: isEs
-      ? "Arriba tienes Vista previa, Publicar anuncio y Eliminar solicitud. La vista previa abre en esta ventana después de guardar el borrador."
-      : "Above you’ll find Preview, Publish listing, and Delete application. Preview opens in this window after saving your draft.",
+      ? "Revisa la lista de completitud y, cuando esté todo listo, usa los botones de abajo para vista previa o publicación."
+      : "Review the checklist below; when you’re ready, use the buttons at the bottom for preview or publishing.",
+    finalStepActionsIntro: isEs
+      ? "Primero se guarda el borrador en este navegador; luego se abre la vista previa en esta misma ventana."
+      : "Your draft is saved in this browser first; preview opens in this same window.",
     reviewChecklistTitle: isEs ? "Lista de completitud" : "Completeness",
     reviewAllGood: isEs
       ? "Los datos mínimos para una vista previa sólida están listos."

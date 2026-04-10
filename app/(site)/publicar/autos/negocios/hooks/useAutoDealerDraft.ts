@@ -185,7 +185,9 @@ export function useAutoDealerDraft() {
     setListing(empty);
     clearAutosDraftNamespaceHint("negocios");
     try {
-      window.sessionStorage.removeItem(AUTOS_NEGOCIOS_EDITOR_SESSION_KEY);
+      // Keep the tab "warm" so the next refresh does not run `shouldResetAutosDraftForFreshEditorTab`
+      // and wipe a new draft the user starts after reset.
+      window.sessionStorage.setItem(AUTOS_NEGOCIOS_EDITOR_SESSION_KEY, "1");
     } catch {
       /* ignore */
     }
