@@ -87,6 +87,19 @@ export default function ProfilePage() {
         errCityOptional: "Si escribes ciudad, debe ser una de la lista (California).",
         accountRef: "Cuenta #",
         loading: "Cargando…",
+        langLabel: "Idioma del panel",
+        langVal: "Español / English vía ?lang=en",
+        securityTitle: "Seguridad",
+        securityBody: "Cambio de contraseña y sesiones: próximamente en esta vista.",
+        billingTitle: "Facturación",
+        billingBody: "Portal de cliente (Stripe) se conectará aquí para suscripciones Leonix Pro.",
+        billingCta: "Abrir portal (próximamente)",
+        planTitle: "Plan y membresía",
+        notifShortcut: "Preferencias de notificación",
+        bizTitle: "Perfil de negocio",
+        bizBody: "Nombre público, horario y enlaces cuando actives una cuenta business.",
+        waHint: "WhatsApp",
+        waBody: "Mostrado en anuncios cuando lo configures en publicación.",
       },
       en: {
         titlePost: "Complete your profile to post",
@@ -111,6 +124,19 @@ export default function ProfilePage() {
         errCityOptional: "If you enter a city, it must be from the list (California).",
         accountRef: "Account #",
         loading: "Loading…",
+        langLabel: "Dashboard language",
+        langVal: "Spanish / English via ?lang=en",
+        securityTitle: "Security",
+        securityBody: "Password changes and sessions will appear here soon.",
+        billingTitle: "Billing",
+        billingBody: "Stripe Customer Portal will connect here for Leonix Pro subscriptions.",
+        billingCta: "Open portal (coming soon)",
+        planTitle: "Plan & membership",
+        notifShortcut: "Notification preferences",
+        bizTitle: "Business profile",
+        bizBody: "Public name, hours, and links when you enable a business account.",
+        waHint: "WhatsApp",
+        waBody: "Shown on listings when set in publishing flows.",
       },
     }),
     []
@@ -125,6 +151,7 @@ export default function ProfilePage() {
   const [email, setEmail] = useState<string | null>(null);
   const [shellName, setShellName] = useState<string | null>(null);
   const [accountPlan, setAccountPlan] = useState<Plan>("free");
+  const [membershipTier, setMembershipTier] = useState<string | null>(null);
   const [name, setName] = useState<string>("");
   const [phone, setPhone] = useState<string>("");
   const [city, setCity] = useState<string>("");
@@ -189,6 +216,7 @@ export default function ProfilePage() {
           }
           if (row.email?.trim()) setEmail(row.email.trim());
           setAccountPlan(normalizePlanFromMembershipTier(row.membership_tier));
+          setMembershipTier(typeof row.membership_tier === "string" ? row.membership_tier : null);
         }
       } catch {
         /* ignore */
@@ -463,6 +491,74 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
+
+          {!onboarding && !requirePost ? (
+            <div className="mt-8 grid gap-6 lg:grid-cols-2">
+              <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.1)]">
+                <h2 className="text-sm font-bold text-[#1E1810]">{L.langLabel}</h2>
+                <p className="mt-2 text-sm text-[#5C5346]/95">{L.langVal}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link href={`/dashboard/perfil?lang=es`} className={secondaryLink}>
+                    Español
+                  </Link>
+                  <Link href={`/dashboard/perfil?lang=en`} className={secondaryLink}>
+                    English
+                  </Link>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.1)]">
+                <h2 className="text-sm font-bold text-[#1E1810]">{L.planTitle}</h2>
+                <p className="mt-2 text-sm font-semibold capitalize text-[#3D3428]">
+                  {accountPlan === "pro" ? "LEONIX Pro" : "Gratis / Free"}
+                </p>
+                {membershipTier ? (
+                  <p className="mt-1 font-mono text-[11px] text-[#7A7164]">{membershipTier}</p>
+                ) : null}
+              </div>
+
+              <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/80 p-6">
+                <h2 className="text-sm font-bold text-[#1E1810]">{L.securityTitle}</h2>
+                <p className="mt-2 text-sm text-[#5C5346]/95">{L.securityBody}</p>
+              </div>
+
+              <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/80 p-6">
+                <h2 className="text-sm font-bold text-[#1E1810]">{L.billingTitle}</h2>
+                <p className="mt-2 text-sm text-[#5C5346]/95">{L.billingBody}</p>
+                <button
+                  type="button"
+                  disabled
+                  className="mt-4 inline-flex cursor-not-allowed rounded-2xl border border-dashed border-[#C9B46A]/45 bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[#7A7164]"
+                >
+                  {L.billingCta}
+                </button>
+              </div>
+
+              <div className="rounded-3xl border border-[#C9B46A]/25 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 lg:col-span-2">
+                <h2 className="text-sm font-bold text-[#1E1810]">{L.waHint}</h2>
+                <p className="mt-2 text-sm text-[#5C5346]/95">{L.waBody}</p>
+              </div>
+
+              <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 lg:col-span-2">
+                <h2 className="text-sm font-bold text-[#1E1810]">{L.bizTitle}</h2>
+                <p className="mt-2 text-sm text-[#5C5346]/95">{L.bizBody}</p>
+                {(membershipTier ?? "").toLowerCase().includes("business") ? (
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[#6B5B2E]">
+                    {lang === "es" ? "Cuenta business detectada — campos ampliados próximamente." : "Business account detected — expanded fields soon."}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 lg:col-span-2">
+                <Link
+                  href={`/dashboard/notificaciones?${q}`}
+                  className="text-sm font-bold text-[#2A2620] underline decoration-[#C9B46A]/55"
+                >
+                  {L.notifShortcut} →
+                </Link>
+              </div>
+            </div>
+          ) : null}
         </>
       )}
     </LeonixDashboardShell>

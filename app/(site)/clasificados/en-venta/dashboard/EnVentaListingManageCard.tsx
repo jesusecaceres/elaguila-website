@@ -1,6 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import {
+  expiresInDaysLabel,
+  listingUiStatusChipClass,
+  listingUiStatusLabel,
+  type ListingUiStatus,
+} from "@/app/(site)/dashboard/lib/listingDisplayStatus";
 
 type Lang = "es" | "en";
 type ListingPlan = "free" | "pro";
@@ -22,6 +28,8 @@ export type EnVentaManageRow = {
   city?: string | null;
   status?: string | null;
   created_at?: string | null;
+  /** When available from `listings` row */
+  is_published?: boolean | null;
   thumbUrl?: string | null;
   views?: number;
   messages?: number;
@@ -69,6 +77,15 @@ export function EnVentaListingManageCard({
   priceDropLabel,
   showDraftBadge,
   visibilityRenewal,
+  uiStatus,
+  listingRefShort,
+  expiresIso,
+  updatedLine,
+  workspaceHref,
+  messagesHref,
+  analyticsHref,
+  onArchive,
+  onDuplicate,
 }: {
   row: EnVentaManageRow;
   lang: Lang;
@@ -90,9 +107,29 @@ export function EnVentaListingManageCard({
   showDraftBadge?: boolean;
   /** Pro-only manual visibility renewal (dashboard); omitted for Free. */
   visibilityRenewal?: EnVentaVisibilityRenewalUi | null;
+  /** Richer lifecycle chip when provided (dashboard command center). */
+  uiStatus?: ListingUiStatus;
+  /** Short public reference (e.g. first 8 hex). */
+  listingRefShort?: string | null;
+  /** Boost / visibility end (ISO) — shows “expires in X days” when parseable. */
+  expiresIso?: string | null;
+  /** e.g. “Updated …” from price_last_updated or created_at. */
+  updatedLine?: string | null;
+  workspaceHref?: string | null;
+  messagesHref?: string | null;
+  analyticsHref?: string | null;
+  onArchive?: () => void;
+  onDuplicate?: () => void;
 }) {
   const isPro = listingPlan === "pro";
   const isSold = (row.status || "active").toLowerCase() === "sold";
+  const resolvedUi: ListingUiStatus | null =
+    uiStatus ??
+    (showDraftBadge
+      ? "draft"
+      : isSold
+        ? "sold"
+        : "active");
   const L =
     lang === "es"
       ? {
@@ -116,6 +153,15 @@ export function EnVentaListingManageCard({
           shares: "Compartidos",
           prof: "Clics perfil",
           details: "Ver detalles",
+          workspace: "Espacio",
+          ref: "Ref.",
+          exp: "Expira",
+          updated: "Actualizado",
+          msgs: "Mensajes",
+          analytics: "Analíticas",
+          boost: "Promoción",
+          archive: "Archivar",
+          dup: "Duplicar",
           perf: "Rendimiento",
           insights: "Revisa vistas y mensajes para afinar precio o fotos.",
           visH: "Visibilidad Pro",
@@ -145,6 +191,15 @@ export function EnVentaListingManageCard({
           shares: "Shares",
           prof: "Profile clicks",
           details: "View details",
+          workspace: "Workspace",
+          ref: "Ref.",
+          exp: "Expires",
+          updated: "Updated",
+          msgs: "Messages",
+          analytics: "Analytics",
+          boost: "Boost",
+          archive: "Archive",
+          dup: "Duplicate",
           perf: "Performance",
           insights: "Compare views and messages to tune price or photos.",
           visH: "Pro visibility",
@@ -159,6 +214,7 @@ export function EnVentaListingManageCard({
     : "rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 shadow-[0_10px_36px_-14px_rgba(42,36,22,0.12)]";
 
   const v = analytics.views;
+  const expireLbl = expiresIso ? expiresInDaysLabel(expiresIso, lang) : null;
 
   return (
     <div className={`${frame} p-4 sm:p-5`}>
@@ -190,19 +246,22 @@ export function EnVentaListingManageCard({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start gap-2">
               <h3 className="line-clamp-2 text-base font-bold text-[#1E1810] sm:text-lg">{row.title || "—"}</h3>
-              <span
-                className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                  isSold ? "bg-[#E8DFD0] text-[#5C5346]" : "bg-emerald-100 text-emerald-900"
-                }`}
-              >
-                {isSold ? L.soldSt : L.activeSt}
-              </span>
-              {showDraftBadge ? (
+              {resolvedUi ? (
+                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${listingUiStatusChipClass(resolvedUi)}`}>
+                  {listingUiStatusLabel(resolvedUi, lang)}
+                </span>
+              ) : null}
+              {showDraftBadge && resolvedUi !== "draft" ? (
                 <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-900">
                   {L.draft}
                 </span>
               ) : null}
             </div>
+            {listingRefShort ? (
+              <p className="mt-1 font-mono text-[11px] text-[#7A7164]">
+                {L.ref} {listingRefShort}
+              </p>
+            ) : null}
             <p className="mt-1 text-lg font-bold text-[#1E1810]">{priceText}</p>
             {priceDropLabel ? (
               <p className="mt-1 inline-flex rounded-full border border-[#C9B46A]/40 bg-[#FBF7EF] px-2 py-0.5 text-[11px] font-bold text-[#5C4E2E]">
@@ -213,6 +272,12 @@ export function EnVentaListingManageCard({
               {(row.city || "").trim()}
               {dateText ? ` · ${dateText}` : ""}
             </p>
+            {updatedLine ? <p className="mt-1 text-[11px] text-[#7A7164]/95">{updatedLine}</p> : null}
+            {expireLbl ? (
+              <p className="mt-2 inline-flex rounded-full border border-[#C9B46A]/35 bg-[#FFFCF7] px-2.5 py-1 text-[11px] font-bold text-[#5C4E2E]">
+                {L.exp}: {expireLbl}
+              </p>
+            ) : null}
 
             {!isPro ? (
               <div className="mt-3 rounded-2xl border border-[#C9B46A]/30 bg-[#FBF7EF]/80 p-3">
@@ -303,6 +368,14 @@ export function EnVentaListingManageCard({
             >
               {L.details} →
             </Link>
+            {workspaceHref ? (
+              <Link
+                href={workspaceHref}
+                className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
+              >
+                {L.workspace} →
+              </Link>
+            ) : null}
             {canEdit ? (
               <Link href={editHref} className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]">
                 {L.edit}
@@ -312,6 +385,22 @@ export function EnVentaListingManageCard({
                 {L.editLocked}
               </span>
             )}
+            {messagesHref ? (
+              <Link href={messagesHref} className="inline-flex rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-sm font-semibold text-[#2C2416]">
+                {L.msgs}
+              </Link>
+            ) : null}
+            {analyticsHref ? (
+              <Link href={analyticsHref} className="inline-flex rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-sm font-semibold text-[#2C2416]">
+                {L.analytics}
+              </Link>
+            ) : null}
+            <Link
+              href={`/clasificados/publicar/en-venta/pro?lang=${lang}`}
+              className="inline-flex rounded-xl border border-[#C9B46A]/30 bg-[#FFFCF7] px-4 py-2 text-xs font-bold text-[#6B5B2E]"
+            >
+              {L.boost}
+            </Link>
             {isSold ? (
               <button
                 type="button"
@@ -331,6 +420,26 @@ export function EnVentaListingManageCard({
                 {L.sold}
               </button>
             )}
+            {onArchive ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={onArchive}
+                className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#5C5346] disabled:opacity-50"
+              >
+                {L.archive}
+              </button>
+            ) : null}
+            {onDuplicate ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={onDuplicate}
+                className="rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[#2C2416] disabled:opacity-50"
+              >
+                {L.dup}
+              </button>
+            ) : null}
             <button
               type="button"
               disabled={busy}

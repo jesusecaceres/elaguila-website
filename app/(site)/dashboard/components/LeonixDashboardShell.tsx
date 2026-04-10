@@ -3,14 +3,30 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import ProBadge from "@/app/clasificados/components/ProBadge";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import newLogo from "../../../../public/logo.png";
+import { fetchDashboardNavCounts } from "../lib/dashboardNavCounts";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
-type ActiveNav = "home" | "listings" | "messages" | "profile" | "saved" | "recent";
+
+/** Primary dashboard sections (sidebar). */
+export type LeonixDashboardActiveNav =
+  | "home"
+  | "listings"
+  | "messages"
+  | "drafts"
+  | "saved"
+  | "analytics"
+  | "profile"
+  | "notifications"
+  | "business"
+  | "recent";
+
+/** @deprecated Use LeonixDashboardActiveNav */
+type ActiveNav = LeonixDashboardActiveNav;
 
 const PAGE_BG: CSSProperties = {
   backgroundColor: "#F3EBDD",
@@ -45,6 +61,38 @@ export function LeonixDashboardShell({
   rightPanel?: ReactNode;
 }) {
   const router = useRouter();
+  const [navCounts, setNavCounts] = useState<{ messages: number | null; drafts: number | null; expiring: number | null }>({
+    messages: null,
+    drafts: null,
+    expiring: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    async function run() {
+      try {
+        const sb = createSupabaseBrowserClient();
+        const {
+          data: { user },
+        } = await sb.auth.getUser();
+        if (!user || cancelled) return;
+        const c = await fetchDashboardNavCounts(sb, user.id);
+        if (cancelled) return;
+        setNavCounts({
+          messages: c.messageInbox,
+          drafts: c.drafts,
+          expiring: c.expiringSoon,
+        });
+      } catch {
+        /* ignore */
+      }
+    }
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const L =
     lang === "es"
       ? {
@@ -52,28 +100,42 @@ export function LeonixDashboardShell({
           free: "Gratis",
           pro: "LEONIX Pro",
           home: "Resumen",
-          profile: "Mi cuenta",
+          profile: "Perfil y cuenta",
           listings: "Mis anuncios",
           messages: "Mensajes",
-          saved: "Anuncios guardados",
+          drafts: "Borradores",
+          analytics: "Analíticas",
+          notifications: "Notificaciones",
+          businessTools: "Herramientas de negocio",
+          saved: "Guardados",
           recent: "Vistos recientemente",
           activity: "Mi actividad",
           publish: "Publicar anuncio",
           signOut: "Cerrar sesión",
+          badgeInbox: "Consultas en bandeja",
+          badgeDrafts: "Borradores sin publicar",
+          badgeExpiring: "Visibilidad por expirar",
         }
       : {
           plan: "Plan",
           free: "Free",
           pro: "LEONIX Pro",
           home: "Overview",
-          profile: "My account",
-          listings: "My listings",
+          profile: "Profile & account",
+          listings: "My ads",
           messages: "Messages",
-          saved: "Saved listings",
+          drafts: "Drafts",
+          analytics: "Analytics",
+          notifications: "Notifications",
+          businessTools: "Business tools",
+          saved: "Saved",
           recent: "Recently viewed",
-          activity: "My activity",
+          activity: "Activity",
           publish: "Post an ad",
           signOut: "Sign out",
+          badgeInbox: "Inquiries in inbox",
+          badgeDrafts: "Unpublished drafts",
+          badgeExpiring: "Visibility expiring soon",
         };
 
   const planLabel = plan === "pro" ? L.pro : L.free;
@@ -90,17 +152,31 @@ export function LeonixDashboardShell({
     router.refresh();
   }, [router]);
 
-  const navItem = (key: ActiveNav, href: string, label: string) => (
+  function badgePill(n: number | null | undefined, title: string) {
+    if (n == null || n <= 0) return null;
+    const text = n > 99 ? "99+" : String(n);
+    return (
+      <span
+        title={title}
+        className="ml-auto inline-flex min-w-[1.25rem] justify-center rounded-full bg-[#C9A84A]/25 px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums text-[#4A3F26]"
+      >
+        {text}
+      </span>
+    );
+  }
+
+  const navItem = (key: ActiveNav, href: string, label: string, badge?: number | null, badgeTitle?: string) => (
     <Link
       href={href}
       className={cx(
-        "block rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
+        "flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
         activeNav === key
           ? "bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] text-[#1E1810] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9B46A]/35"
           : "text-[#3D3428]/90 hover:bg-[#FFFCF7]/80"
       )}
     >
-      {label}
+      <span className="min-w-0 flex-1 leading-snug">{label}</span>
+      {badge != null ? badgePill(badge, badgeTitle ?? "") : null}
     </Link>
   );
 
@@ -156,10 +232,14 @@ export function LeonixDashboardShell({
 
             <nav className="mt-5 space-y-1">
               {navItem("home", `/dashboard?${q}`, L.home)}
-              {navItem("profile", `/dashboard/perfil?${q}`, L.profile)}
-              {navItem("listings", `/dashboard/mis-anuncios?${q}`, L.listings)}
-              {navItem("messages", `/dashboard/mensajes?${q}`, L.messages)}
+              {navItem("listings", `/dashboard/mis-anuncios?${q}`, L.listings, navCounts.expiring, L.badgeExpiring)}
+              {navItem("messages", `/dashboard/mensajes?${q}`, L.messages, navCounts.messages, L.badgeInbox)}
+              {navItem("drafts", `/dashboard/drafts?${q}`, L.drafts, navCounts.drafts, L.badgeDrafts)}
               {navItem("saved", `/dashboard/guardados?${q}`, L.saved)}
+              {navItem("analytics", `/dashboard/analytics?${q}`, L.analytics)}
+              {navItem("profile", `/dashboard/perfil?${q}`, L.profile)}
+              {navItem("notifications", `/dashboard/notificaciones?${q}`, L.notifications)}
+              {navItem("business", `/dashboard/business-tools?${q}`, L.businessTools)}
               <div className="pt-3">
                 <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]/90">{L.activity}</p>
                 {navItem("recent", `/dashboard/vistos-recientes?${q}`, L.recent)}

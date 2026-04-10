@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
 import { LeonixDashboardShell } from "./components/LeonixDashboardShell";
 import { supabase } from "../../lib/supabaseClient";
+import { fetchDashboardNavCounts } from "./lib/dashboardNavCounts";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -59,6 +60,29 @@ export default function DashboardPage() {
             enVentaCta: "Gestionar anuncios En Venta",
             enVentaPost: "Publicar en En Venta",
             freeHint: "En Gratis: menos fotos por anuncio y sin video. Pro desbloquea más medios, visibilidad y métricas por publicación.",
+            cmdSubtitle: "Tu centro de comando Leonix: publica, mide y haz crecer tus anuncios.",
+            totalMsg: "Mensajes totales",
+            expSoon: "Por expirar (7 días)",
+            quickOpenMsg: "Abrir mensajes",
+            quickDrafts: "Borradores",
+            quickProfile: "Completar perfil",
+            quickAnalytics: "Analíticas",
+            attention: "Requiere atención",
+            attExpire: "Visibilidad próxima a vencer",
+            attProfile: "Perfil incompleto",
+            attLow: "Revisa anuncios con pocas vistas",
+            attUnread: "Mensajes recientes en bandeja",
+            attDrafts: "Borradores sin publicar",
+            recent: "Actividad reciente",
+            recentPh: "Historial completo próximamente. Mientras tanto revisa tus anuncios.",
+            notifPrev: "Alertas",
+            notifPh: "Centro de notificaciones en evolución.",
+            bizTeaser: "Herramientas de negocio",
+            bizBody: "WhatsApp, perfil, SEO local y Leonix Concierge.",
+            bizCta: "Explorar",
+            sampleApprove: "Anuncio aprobado",
+            sampleMsg: "Nuevo mensaje",
+            sampleExp: "Recordatorio de expiración",
           }
         : {
             title: "Account overview",
@@ -89,6 +113,29 @@ export default function DashboardPage() {
             enVentaPost: "Post in For Sale",
             freeHint:
               "Free: fewer photos per listing and no video. Pro unlocks more media, visibility, and metrics per listing.",
+            cmdSubtitle: "Your Leonix command center: publish, measure, and grow your ads.",
+            totalMsg: "Total messages",
+            expSoon: "Expiring soon (7 days)",
+            quickOpenMsg: "Open messages",
+            quickDrafts: "Drafts",
+            quickProfile: "Complete profile",
+            quickAnalytics: "Analytics",
+            attention: "Needs attention",
+            attExpire: "Visibility ending soon",
+            attProfile: "Incomplete profile",
+            attLow: "Review low-traffic listings",
+            attUnread: "Recent inbox messages",
+            attDrafts: "Drafts not published",
+            recent: "Recent activity",
+            recentPh: "Full history coming soon. Manage listings for now.",
+            notifPrev: "Alerts",
+            notifPh: "Notification center evolving.",
+            bizTeaser: "Business tools",
+            bizBody: "WhatsApp, profile, local SEO, and Leonix Concierge.",
+            bizCta: "Explore",
+            sampleApprove: "Listing approved",
+            sampleMsg: "New message",
+            sampleExp: "Expiration reminder",
           },
     [lang]
   );
@@ -104,6 +151,10 @@ export default function DashboardPage() {
   const [totalViews, setTotalViews] = useState<number | null>(null);
   const [totalSaves, setTotalSaves] = useState<number | null>(null);
   const [enVentaActiveCount, setEnVentaActiveCount] = useState<number | null>(null);
+  const [totalMessages, setTotalMessages] = useState<number | null>(null);
+  const [expiringSoon, setExpiringSoon] = useState<number | null>(null);
+  const [draftCount, setDraftCount] = useState<number | null>(null);
+  const [membershipTier, setMembershipTier] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -163,6 +214,9 @@ export default function DashboardPage() {
             setName(row.display_name ?? inferredName);
             setEmail(row.email ?? u.email ?? null);
             setPlan(normalizePlanFromMembershipTier(row.membership_tier));
+            setMembershipTier(
+              typeof row.membership_tier === "string" ? row.membership_tier : null
+            );
             setHomeCity(row.home_city?.trim() || null);
           }
         } catch {
@@ -217,6 +271,21 @@ export default function DashboardPage() {
         }
 
         try {
+          const navCt = await fetchDashboardNavCounts(supabase, u.id);
+          if (mounted) {
+            setTotalMessages(navCt.messageInbox);
+            setExpiringSoon(navCt.expiringSoon);
+            setDraftCount(navCt.drafts);
+          }
+        } catch {
+          if (mounted) {
+            setTotalMessages(null);
+            setExpiringSoon(null);
+            setDraftCount(null);
+          }
+        }
+
+        try {
           const base = supabase.from("listings").select("id", { count: "exact", head: true }).eq("category", "en-venta");
           let r = await base.eq("owner_id", u.id).eq("status", "active");
           if (r.error) {
@@ -251,6 +320,12 @@ export default function DashboardPage() {
   const fmtNum = (n: number | null) =>
     n == null ? "—" : new Intl.NumberFormat(lang === "es" ? "es-US" : "en-US").format(n);
 
+  const showBizTeaser =
+    plan === "pro" || (membershipTier ?? "").toLowerCase().includes("business");
+
+  const summaryCardClass =
+    "block rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF7F2] p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)] transition hover:border-[#C9B46A]/45 hover:shadow-[0_14px_40px_-12px_rgba(201,164,74,0.18)]";
+
   return (
     <LeonixDashboardShell
       lang={lang}
@@ -279,6 +354,7 @@ export default function DashboardPage() {
           <header className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.12)] sm:p-8">
             <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{t.title}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5C5346]/95">{t.subtitle}</p>
+            <p className="mt-3 max-w-2xl text-sm font-medium leading-relaxed text-[#3D3428]/90">{t.cmdSubtitle}</p>
             {homeCity ? (
               <p className="mt-3 text-sm font-medium text-[#3D3428]/90">
                 {lang === "es" ? "Ciudad" : "City"}: {homeCity}
@@ -286,25 +362,52 @@ export default function DashboardPage() {
             ) : null}
           </header>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            {[
-              { label: t.activeAds, value: fmtNum(activeListings), icon: "📣" },
-              { label: t.totalViews, value: fmtNum(totalViews), icon: "👁" },
-              { label: t.totalSaves, value: fmtNum(totalSaves), icon: "★" },
-            ].map((c) => (
-              <div
-                key={c.label}
-                className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF7F2] p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{c.label}</p>
-                  <span className="text-lg opacity-80" aria-hidden>
-                    {c.icon}
-                  </span>
-                </div>
-                <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{c.value}</p>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <Link href={`/dashboard/mis-anuncios?${q}`} className={summaryCardClass}>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.activeAds}</p>
+                <span className="text-lg opacity-80" aria-hidden>
+                  📣
+                </span>
               </div>
-            ))}
+              <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{fmtNum(activeListings)}</p>
+            </Link>
+            <Link href={`/dashboard/analytics?${q}`} className={summaryCardClass}>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.totalViews}</p>
+                <span className="text-lg opacity-80" aria-hidden>
+                  👁
+                </span>
+              </div>
+              <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{fmtNum(totalViews)}</p>
+            </Link>
+            <Link href={`/dashboard/mis-anuncios?${q}`} className={summaryCardClass}>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.totalSaves}</p>
+                <span className="text-lg opacity-80" aria-hidden>
+                  ★
+                </span>
+              </div>
+              <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{fmtNum(totalSaves)}</p>
+            </Link>
+            <Link href={`/dashboard/mensajes?${q}`} className={summaryCardClass}>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.totalMsg}</p>
+                <span className="text-lg opacity-80" aria-hidden>
+                  💬
+                </span>
+              </div>
+              <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{fmtNum(totalMessages)}</p>
+            </Link>
+            <Link href={`/dashboard/mis-anuncios?${q}`} className={summaryCardClass}>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.expSoon}</p>
+                <span className="text-lg opacity-80" aria-hidden>
+                  ⏱
+                </span>
+              </div>
+              <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{fmtNum(expiringSoon)}</p>
+            </Link>
           </div>
 
           <div className="mt-4 rounded-3xl border border-dashed border-[#C9B46A]/40 bg-[#FBF7EF]/50 p-4 text-center text-xs text-[#7A7164]">
@@ -327,6 +430,30 @@ export default function DashboardPage() {
                 {t.myAds}
               </Link>
               <Link
+                href={`/dashboard/mensajes?${q}`}
+                className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+              >
+                {t.quickOpenMsg}
+              </Link>
+              <Link
+                href={`/dashboard/drafts?${q}`}
+                className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+              >
+                {t.quickDrafts}
+              </Link>
+              <Link
+                href={`/dashboard/perfil?${q}`}
+                className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+              >
+                {t.quickProfile}
+              </Link>
+              <Link
+                href={`/dashboard/analytics?${q}`}
+                className="inline-flex rounded-2xl border border-transparent px-5 py-2.5 text-sm font-semibold text-[#5C5346] hover:text-[#1E1810]"
+              >
+                {t.quickAnalytics}
+              </Link>
+              <Link
                 href={`/clasificados?${q}`}
                 className="inline-flex rounded-2xl border border-transparent px-5 py-2.5 text-sm font-semibold text-[#5C5346] hover:text-[#1E1810]"
               >
@@ -334,6 +461,116 @@ export default function DashboardPage() {
               </Link>
             </div>
           </div>
+
+          <div className="mt-8 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.08)]">
+            <h2 className="text-lg font-bold text-[#1E1810]">{t.attention}</h2>
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+              {(expiringSoon ?? 0) > 0 ? (
+                <li className="rounded-2xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
+                  <Link href={`/dashboard/mis-anuncios?${q}`} className="font-semibold underline decoration-amber-300">
+                    {t.attExpire}
+                  </Link>
+                  <span className="ml-2 tabular-nums">({fmtNum(expiringSoon)})</span>
+                </li>
+              ) : null}
+              {!homeCity ? (
+                <li className="rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/80 px-4 py-3 text-sm text-[#2C2416]">
+                  <Link href={`/dashboard/perfil?${q}`} className="font-semibold underline decoration-[#C9B46A]/50">
+                    {t.attProfile}
+                  </Link>
+                </li>
+              ) : null}
+              {(activeListings ?? 0) > 0 && (totalViews ?? 0) === 0 ? (
+                <li className="rounded-2xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm text-[#5C5346]">{t.attLow}</li>
+              ) : null}
+              {(totalMessages ?? 0) > 0 ? (
+                <li className="rounded-2xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm text-[#5C5346]">
+                  <Link href={`/dashboard/mensajes?${q}`} className="font-semibold underline decoration-[#C9B46A]/50">
+                    {t.attUnread}
+                  </Link>
+                </li>
+              ) : null}
+              {(draftCount ?? 0) > 0 ? (
+                <li className="rounded-2xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm text-[#5C5346]">
+                  <Link href={`/dashboard/drafts?${q}`} className="font-semibold underline decoration-[#C9B46A]/50">
+                    {t.attDrafts}
+                  </Link>
+                  <span className="ml-2 tabular-nums">({fmtNum(draftCount)})</span>
+                </li>
+              ) : null}
+            </ul>
+          </div>
+
+          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+            <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.1)]">
+              <h2 className="text-lg font-bold text-[#1E1810]">{t.recent}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.recentPh}</p>
+              <ul className="mt-4 space-y-2 text-sm text-[#3D3428]/95">
+                <li className="flex gap-2">
+                  <span className="text-[#C9A84A]" aria-hidden>
+                    ✦
+                  </span>
+                  {t.sampleApprove}
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-[#C9A84A]" aria-hidden>
+                    ✦
+                  </span>
+                  {t.sampleMsg}
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-[#C9A84A]" aria-hidden>
+                    ✦
+                  </span>
+                  {t.sampleExp}
+                </li>
+              </ul>
+              <Link
+                href={`/dashboard/mis-anuncios?${q}`}
+                className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#2A2620] underline decoration-[#C9B46A]/60 underline-offset-4 hover:decoration-[#C9B46A]"
+              >
+                {t.ctaManage} →
+              </Link>
+            </div>
+
+            <div className="rounded-3xl border border-[#C9B46A]/25 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_12px_36px_-12px_rgba(201,164,74,0.15)]">
+              <h2 className="text-lg font-bold text-[#1E1810]">{t.notifPrev}</h2>
+              <p className="mt-2 text-sm text-[#5C5346]/95">{t.notifPh}</p>
+              <ul className="mt-4 space-y-2 text-sm text-[#3D3428]/95">
+                <li>{lang === "es" ? "Resumen semanal de analíticas disponible" : "Weekly analytics summary available"}</li>
+                <li>{lang === "es" ? "Anuncio expira en 7 días" : "Listing expires in 7 days"}</li>
+                <li>{lang === "es" ? "Anuncio expira en 3 días" : "Listing expires in 3 days"}</li>
+                <li>{lang === "es" ? "Cambios de moderación" : "Moderation changes"}</li>
+              </ul>
+              <Link
+                href={`/dashboard/notificaciones?${q}`}
+                className="mt-5 inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+              >
+                {lang === "es" ? "Ver notificaciones →" : "View notifications →"}
+              </Link>
+            </div>
+          </div>
+
+          {showBizTeaser ? (
+            <div className="mt-8 rounded-3xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] via-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_14px_44px_-14px_rgba(201,164,74,0.22)]">
+              <h2 className="text-lg font-bold text-[#1E1810]">{t.bizTeaser}</h2>
+              <p className="mt-2 text-sm text-[#5C5346]/95">{t.bizBody}</p>
+              <Link
+                href={`/dashboard/business-tools?${q}`}
+                className="mt-4 inline-flex rounded-2xl bg-[#2A2620] px-5 py-2.5 text-sm font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+              >
+                {t.bizCta} →
+              </Link>
+            </div>
+          ) : (
+            <div className="mt-8 rounded-3xl border border-dashed border-[#E8DFD0] bg-[#FAF7F2]/60 p-6 text-sm text-[#5C5346]/95">
+              <p className="font-semibold text-[#1E1810]">{t.bizTeaser}</p>
+              <p className="mt-2">{t.bizBody}</p>
+              <Link href={`/dashboard/business-tools?${q}`} className="mt-3 inline-flex font-bold text-[#2A2620] underline decoration-[#C9B46A]/50">
+                {t.bizCta} →
+              </Link>
+            </div>
+          )}
 
           <div className="mt-8 grid gap-6 lg:grid-cols-2">
             <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.1)]">

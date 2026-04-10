@@ -14,6 +14,11 @@ import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { DashboardMobilePreview } from "../components/DashboardMobilePreview";
 import { isListingBoosted, listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
 import {
+  resolveListingUiStatus,
+  shortListingRef,
+  type ListingUiStatus,
+} from "../lib/listingDisplayStatus";
+import {
   computeEnVentaVisibilityRenewalVm,
   EN_VENTA_VISIBILITY_LAST_RENEWAL_LABEL,
   EN_VENTA_VISIBILITY_WINDOW_MS,
@@ -94,6 +99,31 @@ function formatDateTimeMs(ms: number, lang: Lang) {
   });
 }
 
+function formatUpdatedLine(row: ListingRow, lang: Lang): string | null {
+  const iso = row.price_last_updated ?? row.created_at;
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const lbl = d.toLocaleString(lang === "es" ? "es-US" : "en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+  return lang === "es" ? `Actualizado: ${lbl}` : `Updated: ${lbl}`;
+}
+
+function boostExpiresIso(row: ListingRow): string | null {
+  const b = row.boost_expires;
+  if (b == null) return null;
+  return typeof b === "string" ? b : String(b);
+}
+
+function normalizeUiStatus(st: ListingUiStatus, row: ListingRow): ListingUiStatus {
+  if (String(row.status ?? "").toLowerCase() === "expired") return "expired";
+  if (String(row.status ?? "").toLowerCase() === "paused") return "paused";
+  return st;
+}
+
 function canEditListing(createdAtIso?: string | null) {
   if (!createdAtIso) return false;
   const createdMs = new Date(createdAtIso).getTime();
@@ -121,8 +151,9 @@ function normalizeStatus(s: string | null | undefined): string {
 function passesTab(row: ListingRow, tab: Tab): boolean {
   const st = normalizeStatus(row.status);
   if (st === "removed") return false;
+  const isDraft = row.is_published === false || st === "draft";
   if (tab === "all") return true;
-  if (tab === "active") return st === "active";
+  if (tab === "active") return st === "active" && !isDraft;
   if (tab === "expired") return st === "sold" || st === "expired";
   if (tab === "moderation") return st === "pending" || st === "flagged";
   return true;
@@ -721,6 +752,7 @@ export default function MyListingsPage() {
                 }
 
                 if (x.category === "en-venta") {
+                  const uiSt = normalizeUiStatus(resolveListingUiStatus(x), x);
                   return (
                     <EnVentaListingManageCard
                       key={x.id}
@@ -731,6 +763,7 @@ export default function MyListingsPage() {
                         city: x.city,
                         status: x.status,
                         created_at: x.created_at,
+                        is_published: x.is_published,
                         thumbUrl,
                         views: viewsTotal,
                         messages: stats?.messages,
@@ -760,6 +793,17 @@ export default function MyListingsPage() {
                       priceDropLabel={listingPriceDropLabel(x, lang)}
                       showDraftBadge={x.is_published === false}
                       visibilityRenewal={visibilityRenewal}
+                      uiStatus={uiSt}
+                      listingRefShort={shortListingRef(x.id)}
+                      expiresIso={boostExpiresIso(x)}
+                      updatedLine={formatUpdatedLine(x, lang)}
+                      workspaceHref={`/dashboard/mis-anuncios/${x.id}?${q}`}
+                      messagesHref={`/dashboard/mensajes?${q}`}
+                      analyticsHref={`/dashboard/mis-anuncios/${x.id}?${q}`}
+                      onArchive={() => void markUnpublish(x.id)}
+                      onDuplicate={() => {
+                        void navigator.clipboard.writeText(x.id);
+                      }}
                     />
                   );
                 }
