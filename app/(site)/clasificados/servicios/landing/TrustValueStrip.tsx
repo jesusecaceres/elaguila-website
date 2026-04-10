@@ -48,7 +48,7 @@ const ITEMS: Record<Lang, { title: string; body: string; icon: "map" | "globe" |
 };
 
 function Icon({ kind }: { kind: "map" | "globe" | "shield" | "link" }) {
-  const cls = "h-6 w-6 text-[#1e3a5f]";
+  const cls = "h-6 w-6 text-[#1a3352]";
   switch (kind) {
     case "map":
       return (
@@ -84,21 +84,21 @@ export function TrustValueStrip({ lang }: { lang: Lang }) {
   const items = ITEMS[lang];
   return (
     <section
-      className="rounded-2xl border border-[#E8E2D8] bg-[#FFFCF7] px-4 py-8 shadow-[0_12px_36px_-24px_rgba(30,52,78,0.35)] sm:px-8"
+      className="rounded-[22px] border border-white/90 bg-[#FFFCF7] px-5 py-9 shadow-[0_28px_80px_-48px_rgba(20,38,58,0.45)] ring-1 ring-[#1e3a5f]/[0.05] sm:rounded-[26px] sm:px-9 sm:py-10 md:px-11"
       aria-labelledby="servicios-trust-heading"
     >
       <h2 id="servicios-trust-heading" className="sr-only">
         {lang === "en" ? "Why Leonix Servicios" : "Por qué Leonix Servicios"}
       </h2>
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+      <div className="grid gap-8 sm:grid-cols-2 sm:gap-9 lg:grid-cols-4 lg:gap-10">
         {items.map((it) => (
           <div key={it.title} className="flex gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#E8EDF4]/90">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-b from-[#eef4fb] to-[#dfe9f4] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-[#1e3a5f]/[0.06]">
               <Icon kind={it.icon} />
             </div>
             <div>
-              <h3 className="text-[15px] font-bold text-[#1a2f4a]">{it.title}</h3>
-              <p className="mt-1 text-[13px] leading-relaxed text-[#5b6b7b]">{it.body}</p>
+              <h3 className="text-[15px] font-bold leading-snug text-[#142a42]">{it.title}</h3>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-[#4a5d6e]">{it.body}</p>
             </div>
           </div>
         ))}
