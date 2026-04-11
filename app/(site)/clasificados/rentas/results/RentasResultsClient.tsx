@@ -9,10 +9,8 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { RentasLocationButton } from "@/app/clasificados/rentas/components/RentasLocationButton";
 import { RentasSearchBar } from "@/app/clasificados/rentas/components/RentasSearchBar";
-import {
-  getRentasResultsDemoTotal,
-  getRentasResultsGridListings,
-} from "@/app/clasificados/rentas/data/rentasPublicData";
+import { RENTAS_PUBLIC_DATA_SOURCE } from "@/app/clasificados/rentas/data/rentasPublicLoader";
+import { getRentasResultsGridListings } from "@/app/clasificados/rentas/data/rentasPublicData";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
 import {
   rentasCtaPrimaryClass,
@@ -23,8 +21,9 @@ import {
 import { RENTAS_LANDING_LANG_QUERY, withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import {
   parseRentasBrowseParams,
-  rentasBrowseHasActiveFilters,
+  RENTAS_RESULTS_PAGE_SIZE,
 } from "@/app/clasificados/rentas/shared/rentasBrowseContract";
+import { normalizeCityForBrowse, normalizeZipForBrowse } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
 import {
   filterRentasPublicListings,
   sortRentasPublicListings,
@@ -34,6 +33,7 @@ import {
   RENTAS_QUERY_BATHS_MIN,
   RENTAS_QUERY_CITY,
   RENTAS_QUERY_MASCOTAS,
+  RENTAS_QUERY_PAGE,
   RENTAS_QUERY_PRECIO,
   RENTAS_QUERY_Q,
   RENTAS_QUERY_RECS,
@@ -98,12 +98,20 @@ export function RentasResultsClient() {
   }, [searchParams]);
 
   const resultsGrid = useMemo(() => getRentasResultsGridListings(), []);
-  const resultsDemoTotal = useMemo(() => getRentasResultsDemoTotal(), []);
 
   const filteredSorted = useMemo(() => {
     const filtered = filterRentasPublicListings(resultsGrid, parsed);
     return sortRentasPublicListings(filtered, parsed.sort);
   }, [parsed, resultsGrid]);
+
+  const totalCount = filteredSorted.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / RENTAS_RESULTS_PAGE_SIZE) || 1);
+  const safePage = Math.min(Math.max(1, parsed.page), totalPages);
+
+  const pageSlice = useMemo(() => {
+    const start = (safePage - 1) * RENTAS_RESULTS_PAGE_SIZE;
+    return filteredSorted.slice(start, start + RENTAS_RESULTS_PAGE_SIZE);
+  }, [filteredSorted, safePage]);
 
   const branchFilter = parsed.branch;
   const propiedadFilter: BrNegocioCategoriaPropiedad | null = parsed.propiedad;
@@ -119,8 +127,18 @@ export function RentasResultsClient() {
     [lang, router, searchParams]
   );
 
+  useEffect(() => {
+    if (parsed.page !== safePage) {
+      pushUrl((sp) => {
+        if (safePage <= 1) sp.delete(RENTAS_QUERY_PAGE);
+        else sp.set(RENTAS_QUERY_PAGE, String(safePage));
+      });
+    }
+  }, [parsed.page, pushUrl, safePage]);
+
   const applySearchAndRefine = useCallback(() => {
     pushUrl((sp) => {
+      sp.delete(RENTAS_QUERY_PAGE);
       const setOrDel = (k: string, v: string) => {
         if (!v.trim()) sp.delete(k);
         else sp.set(k, v.trim());
@@ -129,8 +147,10 @@ export function RentasResultsClient() {
       setOrDel(RENTAS_QUERY_TIPO, propertyType);
       setOrDel(RENTAS_QUERY_PRECIO, priceBand);
       setOrDel(RENTAS_QUERY_RECS, beds);
-      setOrDel(RENTAS_QUERY_CITY, cityDraft);
-      const zipNorm = zipDraft.replace(/\D/g, "").slice(0, 10);
+      const cityNorm = normalizeCityForBrowse(cityDraft);
+      if (!cityNorm) sp.delete(RENTAS_QUERY_CITY);
+      else sp.set(RENTAS_QUERY_CITY, cityNorm);
+      const zipNorm = normalizeZipForBrowse(zipDraft);
       if (!zipNorm) sp.delete(RENTAS_QUERY_ZIP);
       else sp.set(RENTAS_QUERY_ZIP, zipNorm);
       const bm = bathsMinDraft.trim();
@@ -172,6 +192,7 @@ export function RentasResultsClient() {
   const onSort = useCallback(
     (v: string) => {
       pushUrl((sp) => {
+        sp.delete(RENTAS_QUERY_PAGE);
         if (!v || v === "reciente") sp.delete(RENTAS_QUERY_SORT);
         else sp.set(RENTAS_QUERY_SORT, v);
       });
@@ -180,19 +201,19 @@ export function RentasResultsClient() {
   );
 
   const featuredListing = useMemo((): RentasPublicListing | null => {
-    if (!filteredSorted.length) return null;
+    if (safePage !== 1 || !filteredSorted.length) return null;
     const promoted = filteredSorted.find((l) => l.promoted);
     return promoted ?? filteredSorted[0];
-  }, [filteredSorted]);
+  }, [filteredSorted, safePage]);
 
   const displayedListings = useMemo(() => {
-    if (view === "list") return filteredSorted.map((l) => ({ ...l, layout: "horizontal" as const }));
-    return filteredSorted.map((l) => ({ ...l, layout: l.layout ?? ("vertical" as const) }));
-  }, [filteredSorted, view]);
+    if (view === "list") return pageSlice.map((l) => ({ ...l, layout: "horizontal" as const }));
+    return pageSlice.map((l) => ({ ...l, layout: l.layout ?? ("vertical" as const) }));
+  }, [pageSlice, view]);
 
-  const hasActiveBrowse = rentasBrowseHasActiveFilters(parsed);
-  const totalLabel = hasActiveBrowse ? filteredSorted.length : resultsDemoTotal;
-  const showingTo = displayedListings.length ? Math.min(20, displayedListings.length) : 0;
+  const totalLabel = totalCount;
+  const showingFrom = totalCount === 0 ? 0 : (safePage - 1) * RENTAS_RESULTS_PAGE_SIZE + 1;
+  const showingTo = totalCount === 0 ? 0 : Math.min(safePage * RENTAS_RESULTS_PAGE_SIZE, totalCount);
 
   const propiedadLabel =
     propiedadFilter === "residencial"
@@ -227,6 +248,9 @@ export function RentasResultsClient() {
               </Link>
               .
             </p>
+            {RENTAS_PUBLIC_DATA_SOURCE === "demo" ? (
+              <p className="mt-3 text-sm text-[#5C5346]/90">{copy.results.dataSourceNote}</p>
+            ) : null}
           </div>
           <aside
             className="flex w-full min-w-0 flex-shrink-0 flex-col gap-3 rounded-[1.25rem] border border-[#C9D4E0]/55 bg-gradient-to-br from-white/95 via-[#FFFCF7]/92 to-[#EEF3F7]/55 p-4 shadow-[0_18px_48px_-34px_rgba(44,36,28,0.22)] ring-1 ring-white/80 sm:p-5 lg:max-w-[min(100%,26rem)]"
@@ -413,7 +437,7 @@ export function RentasResultsClient() {
       <RentasResultsToolbar
         copy={copy.results}
         lang={lang}
-        showingFrom={displayedListings.length ? 1 : 0}
+        showingFrom={showingFrom}
         showingTo={showingTo}
         total={totalLabel}
         sort={sortValue}
@@ -422,7 +446,7 @@ export function RentasResultsClient() {
         onView={setView}
       />
 
-      {featuredListing ? (
+      {safePage === 1 && featuredListing ? (
         <section className="mt-10" aria-labelledby="rentas-feat-heading">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-[#E4D9C8]/80 pb-3">
             <h2 id="rentas-feat-heading" className="font-serif text-xl font-semibold tracking-tight text-[#1E1810] sm:text-2xl">
@@ -432,11 +456,7 @@ export function RentasResultsClient() {
           </div>
           <RentasResultCard listing={{ ...featuredListing, layout: "horizontal" }} copy={copy} lang={lang} />
         </section>
-      ) : (
-        <p className="mt-8 rounded-2xl border border-dashed border-[#E8DFD0] bg-[#FDFBF7]/80 p-6 text-center text-sm text-[#5C5346]">
-          {copy.results.noFeatured}
-        </p>
-      )}
+      ) : null}
 
       <section className="mt-14 border-t border-[#E8DFD0]/90 pt-10" aria-labelledby="rentas-grid-heading">
         <h2 id="rentas-grid-heading" className="font-serif text-xl font-semibold tracking-tight text-[#1E1810] sm:text-2xl">
@@ -462,6 +482,55 @@ export function RentasResultsClient() {
             ))}
           </div>
         )}
+        {totalPages > 1 ? (
+          <nav
+            className="mt-10 flex flex-col items-center justify-center gap-4 border-t border-[#E8DFD0]/80 pt-8 sm:flex-row sm:justify-between"
+            aria-label="Pagination"
+          >
+            <p className="text-sm text-[#4A4338]/88">
+              {copy.results.paginationPageOf.replace("{current}", String(safePage)).replace("{total}", String(totalPages))}
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {safePage > 1 ? (
+                <Link
+                  href={(() => {
+                    const sp = new URLSearchParams(searchParams?.toString() ?? "");
+                    sp.set(RENTAS_LANDING_LANG_QUERY, lang);
+                    if (safePage - 1 <= 1) sp.delete(RENTAS_QUERY_PAGE);
+                    else sp.set(RENTAS_QUERY_PAGE, String(safePage - 1));
+                    return `${RENTAS_RESULTS}?${sp.toString()}`;
+                  })()}
+                  scroll={false}
+                  className="inline-flex min-h-[44px] items-center rounded-full border border-[#C9D4E0]/85 bg-white px-5 text-sm font-semibold text-[#1E1810] hover:border-[#5B7C99]/35"
+                >
+                  {copy.results.paginationPrev}
+                </Link>
+              ) : (
+                <span className="inline-flex min-h-[44px] cursor-not-allowed items-center rounded-full border border-[#E8DFD0] px-5 text-sm font-semibold text-[#A89888]">
+                  {copy.results.paginationPrev}
+                </span>
+              )}
+              {safePage < totalPages ? (
+                <Link
+                  href={(() => {
+                    const sp = new URLSearchParams(searchParams?.toString() ?? "");
+                    sp.set(RENTAS_LANDING_LANG_QUERY, lang);
+                    sp.set(RENTAS_QUERY_PAGE, String(safePage + 1));
+                    return `${RENTAS_RESULTS}?${sp.toString()}`;
+                  })()}
+                  scroll={false}
+                  className="inline-flex min-h-[44px] items-center rounded-full border border-[#C45C26]/40 bg-[#C45C26] px-5 text-sm font-semibold text-[#FFFBF7] shadow-sm hover:border-[#C45C26]/55"
+                >
+                  {copy.results.paginationNext}
+                </Link>
+              ) : (
+                <span className="inline-flex min-h-[44px] cursor-not-allowed items-center rounded-full border border-[#E8DFD0] px-5 text-sm font-semibold text-[#A89888]">
+                  {copy.results.paginationNext}
+                </span>
+              )}
+            </div>
+          </nav>
+        ) : null}
       </section>
 
       <footer className="mt-14 border-t border-[#D4C4A8]/50 pt-8 text-center text-sm text-[#4A4338]/88">

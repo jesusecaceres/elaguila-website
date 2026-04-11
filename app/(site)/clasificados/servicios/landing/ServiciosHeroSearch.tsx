@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { ServiciosUseMyLocationButton } from "../ServiciosUseMyLocationButton";
+import { normalizeServiciosDiscoveryLocationInput } from "../lib/serviciosLocationNormalize";
 import { readServiciosDiscoveryPrefs, writeServiciosDiscoveryPrefs } from "../lib/serviciosLocalPreferences";
 
 /** Skilled local service / trades — human, trustworthy work (not retail, travel, or marketplace). */
@@ -113,8 +114,13 @@ export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
           className="mx-auto mt-8 w-full max-w-[min(100%,920px)] sm:mt-10 md:mt-12"
           onSubmit={() => {
             const q = qRef.current?.value?.trim() ?? "";
-            const city = cityRef.current?.value?.trim() ?? "";
-            writeServiciosDiscoveryPrefs({ lastQ: q || undefined, lastCity: city || undefined });
+            const cityRaw = cityRef.current?.value?.trim() ?? "";
+            const cityNorm = normalizeServiciosDiscoveryLocationInput(cityRaw);
+            if (cityRef.current && cityNorm !== cityRaw) cityRef.current.value = cityNorm;
+            writeServiciosDiscoveryPrefs({
+              lastQ: q || undefined,
+              lastCity: cityNorm || undefined,
+            });
           }}
         >
           <p id="servicios-search-hint" className="sr-only">

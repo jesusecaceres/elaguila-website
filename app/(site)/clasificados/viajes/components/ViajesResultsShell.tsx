@@ -10,7 +10,9 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 import { getViajesUi } from "../data/viajesUiCopy";
 import type { ViajesUi } from "../data/viajesUiCopy";
-import { VIAJES_RESULTS_SAMPLE, type ViajesResultRow } from "../data/viajesResultsSampleData";
+import type { ViajesResultRow } from "../data/viajesResultsSampleData";
+import { runViajesBrowseContractSanityCheck } from "../lib/viajesBrowseContractSelfCheck";
+import { getViajesPublicResultRows, isViajesPublicInventoryDemoMode } from "../lib/viajesPublicInventory";
 import { getViajesTripTypeHeroOptions } from "../data/viajesTripTypes";
 import {
   buildViajesBrowseUrl,
@@ -103,6 +105,10 @@ export function ViajesResultsShell() {
   }, [browse.q, browse.dest]);
 
   useEffect(() => {
+    runViajesBrowseContractSanityCheck();
+  }, []);
+
+  useEffect(() => {
     const id = window.setTimeout(() => {
       const b = browseRef.current;
       const v = destInput.trim();
@@ -138,9 +144,10 @@ export function ViajesResultsShell() {
 
   const filterRailValue = useMemo(() => browseToFilterRail(browse, destInput), [browse, destInput]);
 
+  const publicRows = useMemo(() => getViajesPublicResultRows(), []);
   const filtered = useMemo(
-    () => VIAJES_RESULTS_SAMPLE.filter((row) => viajesRowMatchesBrowse(row, browse)),
-    [browse]
+    () => publicRows.filter((row) => viajesRowMatchesBrowse(row, browse)),
+    [browse, publicRows]
   );
 
   const sorted = useMemo(() => sortViajesResultRows(filtered, browse.sort), [filtered, browse.sort]);
@@ -232,11 +239,20 @@ export function ViajesResultsShell() {
           </p>
         </header>
 
-        <ViajesTrustStrip ui={ui} className="mt-3 mb-6 sm:mt-4 sm:mb-7" />
+        {isViajesPublicInventoryDemoMode() ? (
+          <div
+            className="mb-6 rounded-2xl border border-amber-200/90 bg-gradient-to-r from-amber-50/95 to-[#fffdf9] px-3 py-3 text-xs leading-snug text-amber-950 shadow-sm sm:px-4"
+            role="status"
+          >
+            {R.inventoryDemoBanner}
+          </div>
+        ) : null}
+
+        <ViajesTrustStrip ui={ui} className="mt-0 mb-6 sm:mb-7" />
 
         <section className="mb-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)]/40 bg-[#fffdf9]/95 p-4 shadow-[0_20px_48px_-28px_rgba(25,50,70,0.12)] backdrop-blur-sm sm:p-5">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:items-end lg:gap-3">
-            <label className="min-w-0 sm:col-span-1 lg:col-span-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-12 xl:items-end xl:gap-3">
+            <label className="min-w-0 sm:col-span-1 xl:col-span-2">
               <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.destination}</span>
               <input
                 className="w-full min-w-0 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
@@ -246,7 +262,7 @@ export function ViajesResultsShell() {
                 autoComplete="off"
               />
             </label>
-            <label className="min-w-0 sm:col-span-1 lg:col-span-2">
+            <label className="min-w-0 sm:col-span-1 xl:col-span-2">
               <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.departureCity}</span>
               <select
                 className="w-full min-w-0 cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
@@ -258,8 +274,9 @@ export function ViajesResultsShell() {
                 <option value="san-francisco">San Francisco (SFO)</option>
                 <option value="oakland">Oakland (OAK)</option>
               </select>
+              <p className="mt-1.5 text-[10px] leading-snug text-[color:var(--lx-muted)]">{R.departureFieldNote}</p>
             </label>
-            <label className="min-w-0 sm:col-span-1 lg:col-span-2">
+            <label className="min-w-0 sm:col-span-1 xl:col-span-2">
               <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.datesSeason}</span>
               <select
                 className="w-full min-w-0 cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
@@ -273,7 +290,7 @@ export function ViajesResultsShell() {
                 <option value="winter">{R.winter}</option>
               </select>
             </label>
-            <label className="min-w-0 sm:col-span-1 lg:col-span-2">
+            <label className="min-w-0 sm:col-span-1 xl:col-span-2">
               <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.tripType}</span>
               <select
                 className="w-full min-w-0 cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
@@ -287,7 +304,7 @@ export function ViajesResultsShell() {
                 ))}
               </select>
             </label>
-            <label className="min-w-0 sm:col-span-1 lg:col-span-2">
+            <label className="min-w-0 sm:col-span-1 xl:col-span-2">
               <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.budget}</span>
               <select
                 className="w-full min-w-0 cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
@@ -300,7 +317,7 @@ export function ViajesResultsShell() {
                 <option value="premium">{R.premium}</option>
               </select>
             </label>
-            <label className="min-w-0 sm:col-span-1 lg:col-span-1">
+            <label className="min-w-0 sm:col-span-1 xl:col-span-1">
               <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.audience}</span>
               <select
                 className="w-full min-w-0 cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
@@ -313,7 +330,7 @@ export function ViajesResultsShell() {
                 <option value="grupos">{R.audienceGroups}</option>
               </select>
             </label>
-            <label className="min-w-0 sm:col-span-1 lg:col-span-1">
+            <label className="min-w-0 sm:col-span-1 xl:col-span-1">
               <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.sort}</span>
               <select
                 className="w-full min-w-0 cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"

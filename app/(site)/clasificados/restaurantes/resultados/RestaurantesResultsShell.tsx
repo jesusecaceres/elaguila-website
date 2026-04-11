@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FaMapMarkerAlt, FaSearch, FaStar } from "react-icons/fa";
+import { FaHeart, FaMapMarkerAlt, FaSearch, FaStar } from "react-icons/fa";
 
 import Navbar from "@/app/components/Navbar";
 import {
@@ -23,6 +23,7 @@ import {
   buildRestaurantesResultsHref,
   clearRestaurantesDiscoveryFilters,
   parseRestaurantesResultsSearchParams,
+  restaurantesDiscoveryParamsForRowDeepLink,
   restaurantesDiscoveryStateToParams,
   splitLocationInput,
   type RestaurantesDiscoveryLang,
@@ -32,6 +33,7 @@ import { requestCoarsePlaceFromBrowserGeolocation } from "@/app/clasificados/res
 import {
   readRestaurantesSavedIds,
   rememberRestaurantesDiscoveryFromState,
+  writeRestaurantesSavedIds,
 } from "@/app/clasificados/restaurantes/lib/restaurantesFirstPartyPreferences";
 import {
   RESTAURANTES_RESULTS_PROMOTED_BAND_MAX,
@@ -126,6 +128,18 @@ export function RestaurantesResultsShell() {
     [lang, router],
   );
 
+  const toggleSavedId = useCallback(
+    (id: string) => {
+      if (!leonixPersonalizationAllowed()) return;
+      const next = new Set(savedIds);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      writeRestaurantesSavedIds(next);
+      setSavedIds(next);
+    },
+    [savedIds],
+  );
+
   const onSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
     const loc = splitLocationInput(locInput);
@@ -203,6 +217,8 @@ export function RestaurantesResultsShell() {
         clearAll: "Clear all",
         nearReserved: "Near me",
         cookiePrefs: "Cookie preferences",
+        saveListingAria: "Save restaurant to device",
+        unsaveListingAria: "Remove restaurant from saved",
       };
     }
     return {
@@ -267,6 +283,8 @@ export function RestaurantesResultsShell() {
       clearAll: "Limpiar todo",
       nearReserved: "Cerca de mí",
       cookiePrefs: "Preferencias de cookies",
+      saveListingAria: "Guardar restaurante en este dispositivo",
+      unsaveListingAria: "Quitar de guardados",
     };
   }, [lang]);
 
@@ -573,7 +591,14 @@ export function RestaurantesResultsShell() {
         clear: () => pushState(mergeDiscovery(parsed, { svc: "", page: 1 })),
       });
     if (parsed.family) chips.push({ id: "family", label: t.family, clear: () => pushState(mergeDiscovery(parsed, { family: false, page: 1 })) });
-    if (parsed.price) chips.push({ id: "price", label: parsed.price, clear: () => pushState(mergeDiscovery(parsed, { price: "", page: 1 })) });
+    if (parsed.price) {
+      const priceLabel = RESTAURANTE_PRICE_LEVELS.find((p) => p.key === parsed.price)?.labelEs ?? parsed.price;
+      chips.push({
+        id: "price",
+        label: priceLabel,
+        clear: () => pushState(mergeDiscovery(parsed, { price: "", page: 1 })),
+      });
+    }
     if (parsed.open) chips.push({ id: "open", label: t.openNow, clear: () => pushState(mergeDiscovery(parsed, { open: false, page: 1 })) });
     if (parsed.diet) chips.push({ id: "diet", label: parsed.diet, clear: () => pushState(mergeDiscovery(parsed, { diet: "", page: 1 })) });
     if (parsed.hl)
@@ -779,7 +804,16 @@ export function RestaurantesResultsShell() {
                 <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden">
                   {promotedBand.map((row) => (
                     <div key={row.id} className="snap-start">
-                      <ResultCard row={row} lang={lang} badge={t.promotedBadge} cta={t.verMas} />
+                      <ResultCard
+                        row={row}
+                        lang={lang}
+                        badge={t.promotedBadge}
+                        cta={t.verMas}
+                        isSaved={savedIds.has(row.id)}
+                        onToggleSave={leonixPersonalizationAllowed() ? () => toggleSavedId(row.id) : undefined}
+                        saveAria={t.saveListingAria}
+                        unsaveAria={t.unsaveListingAria}
+                      />
                     </div>
                   ))}
                 </div>
@@ -801,7 +835,15 @@ export function RestaurantesResultsShell() {
               <ul className="grid list-none grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 md:gap-6 lg:grid-cols-3">
                 {shown.map((row) => (
                   <li key={row.id}>
-                    <ResultCard row={row} lang={lang} cta={t.verMas} />
+                    <ResultCard
+                      row={row}
+                      lang={lang}
+                      cta={t.verMas}
+                      isSaved={savedIds.has(row.id)}
+                      onToggleSave={leonixPersonalizationAllowed() ? () => toggleSavedId(row.id) : undefined}
+                      saveAria={t.saveListingAria}
+                      unsaveAria={t.unsaveListingAria}
+                    />
                   </li>
                 ))}
               </ul>
@@ -850,13 +892,23 @@ function ResultCard({
   lang,
   badge,
   cta,
+  isSaved,
+  onToggleSave,
+  saveAria,
+  unsaveAria,
 }: {
   row: RestaurantesPublicBlueprintRow;
   lang: RestaurantesDiscoveryLang;
   badge?: string;
   cta: string;
+  isSaved?: boolean;
+  onToggleSave?: () => void;
+  saveAria?: string;
+  unsaveAria?: string;
 }) {
-  const moreHref = buildRestaurantesResultsHref(lang, { q: row.name, lang });
+  const moreHref = buildRestaurantesResultsHref(lang, {
+    ...restaurantesDiscoveryParamsForRowDeepLink(row),
+  });
   return (
     <article
       className={`flex h-full max-w-full flex-col overflow-hidden rounded-[20px] border border-[#2D241E]/[0.09] bg-[#FFFCF7] shadow-[0_12px_40px_-22px_rgba(45,36,30,0.3)] transition-shadow duration-300 hover:shadow-[0_16px_44px_-20px_rgba(45,36,30,0.36)] ${
@@ -910,13 +962,26 @@ function ResultCard({
           </span>
         </div>
         <div className="mt-4 border-t border-[#2D241E]/8 pt-4">
-          <Link
-            href={moreHref}
-            className="flex min-h-[48px] w-full items-center justify-center rounded-[14px] text-sm font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(180,83,9,0.45)] transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2"
-            style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
-          >
-            {cta}
-          </Link>
+          <div className={`flex flex-col gap-2 sm:flex-row ${onToggleSave ? "sm:items-stretch sm:gap-2" : ""}`}>
+            {onToggleSave ? (
+              <button
+                type="button"
+                onClick={onToggleSave}
+                aria-pressed={Boolean(isSaved)}
+                aria-label={isSaved ? unsaveAria : saveAria}
+                className="inline-flex min-h-[48px] min-w-[48px] shrink-0 items-center justify-center rounded-[14px] border border-[#2D241E]/15 bg-[#FFFCF7] text-[#D97706] shadow-sm transition hover:border-[#D97706]/35 hover:bg-[#FFF7ED] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/50"
+              >
+                <FaHeart className={`h-5 w-5 ${isSaved ? "" : "opacity-40"}`} aria-hidden />
+              </button>
+            ) : null}
+            <Link
+              href={moreHref}
+              className={`flex min-h-[48px] w-full items-center justify-center rounded-[14px] text-sm font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(180,83,9,0.45)] transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 ${onToggleSave ? "sm:flex-1" : ""}`}
+              style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
+            >
+              {cta}
+            </Link>
+          </div>
         </div>
       </div>
     </article>

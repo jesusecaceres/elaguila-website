@@ -141,6 +141,7 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
           ) : null}
           {geoState.status === "denied" ? <p className="mt-1 text-[11px] text-amber-800/90">{s.geoDenied}</p> : null}
           {geoState.status === "unavailable" ? <p className="mt-1 text-[11px] text-[color:var(--lx-muted)]">{s.geoUnavailable}</p> : null}
+          {geoState.status === "timeout" ? <p className="mt-1 text-[11px] text-amber-800/85">{s.geoTimeout}</p> : null}
           <p className="mt-2 text-[10px] leading-snug text-[color:var(--lx-muted)] sm:text-[11px]">{s.geoExplainer}</p>
         </div>
 
@@ -176,9 +177,13 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
         </div>
       </div>
 
+      <p className="mx-auto mt-3 max-w-full break-words text-center text-[10px] leading-snug text-[color:var(--lx-muted)] sm:mx-0 sm:text-left">
+        {s.searchScopeNote}
+      </p>
+
       <p
         id={hintId}
-        className="mx-auto mt-3 max-w-full break-words text-center text-[11px] leading-snug text-[color:var(--lx-muted)] sm:mx-0 sm:mt-4 sm:text-left"
+        className="mx-auto mt-2 max-w-full break-words text-center text-[11px] leading-snug text-[color:var(--lx-muted)] sm:mx-0 sm:mt-3 sm:text-left"
       >
         {s.moduleHint}
       </p>

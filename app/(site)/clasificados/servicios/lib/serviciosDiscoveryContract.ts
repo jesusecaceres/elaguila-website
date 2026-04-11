@@ -2,6 +2,10 @@
  * Servicios public discovery — how published profile + listing row fields map to discovery UX.
  * Source of truth: `servicios_public_listings` row + `profile_json` (ServiciosBusinessProfile).
  *
+ * **Location query normalization** — hero and results forms normalize city/ZIP text with
+ * `serviciosLocationNormalize.ts` (canonical CA cities + 5-digit ZIP from `app/data/locations/*`)
+ * before URL params; matching against listings remains substring-based in `rowMatchesLocationQuery`.
+ *
  * | Field source                         | Discovery role |
  * |-------------------------------------|------------------|
  * | business_name (row)                 | keyword search, card title |

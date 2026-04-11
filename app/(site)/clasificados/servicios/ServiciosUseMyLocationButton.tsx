@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { normalizeServiciosDiscoveryLocationInput } from "./lib/serviciosLocationNormalize";
 
 type Lang = "es" | "en";
 
@@ -79,7 +80,8 @@ export function ServiciosUseMyLocationButton({
           const form = document.getElementById(formId);
           const input = form?.querySelector<HTMLInputElement>(`input[name="${cityInputName}"]`);
           if (line && input) {
-            input.value = line;
+            const normalized = normalizeServiciosDiscoveryLocationInput(line) || line;
+            input.value = normalized;
             input.dispatchEvent(new Event("input", { bubbles: true }));
             setHint(null);
           } else {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useCallback, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 
@@ -12,7 +12,7 @@ import {
   sampleModalityOptions,
   sampleSalaryBandOptions,
 } from "../../data/empleosLandingSampleData";
-import { empleosParamsFromSearchParams } from "../../lib/empleosResultsQuery";
+import { empleosParamsFromSearchParams, parseEmpleosResultsQuery } from "../../lib/empleosResultsQuery";
 import { buildEmpleosResultadosUrl, type EmpleosResultadosParams } from "../../shared/utils/empleosListaUrl";
 import { LandingSection } from "./empleosLandingUi";
 
@@ -23,6 +23,8 @@ type Props = {
 export function RefineSearchBand({ lang }: Props) {
   const router = useRouter();
   const sp = useSearchParams();
+  const parsed = useMemo(() => parseEmpleosResultsQuery(sp ?? new URLSearchParams()), [sp]);
+
   const [salaryBand, setSalaryBand] = useState("");
   const [modality, setModality] = useState("");
   const [jobType, setJobType] = useState("");
@@ -30,6 +32,20 @@ export function RefineSearchBand({ lang }: Props) {
   const [companyType, setCompanyType] = useState("");
   const [recent, setRecent] = useState(false);
   const [quickApply, setQuickApply] = useState(false);
+
+  useEffect(() => {
+    const p = parsed;
+    setModality(p.modality);
+    setJobType(p.jobType);
+    setExperience(p.experience);
+    setCompanyType(p.companyType);
+    setRecent(p.recentOnly);
+    setQuickApply(p.quickApplyOnly);
+    const smin = p.salaryMin;
+    const smax = p.salaryMax;
+    const hit = sampleSalaryBandOptions.find((b) => b.min === smin && (b.max === smax || (!b.max && !smax)));
+    setSalaryBand(hit?.value ?? "");
+  }, [parsed]);
 
   const apply = useCallback(() => {
     const band = sampleSalaryBandOptions.find((b) => b.value === salaryBand);

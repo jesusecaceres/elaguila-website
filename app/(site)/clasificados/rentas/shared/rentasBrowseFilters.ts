@@ -4,6 +4,7 @@
 
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import type { RentasBrowseParamsParsed } from "@/app/clasificados/rentas/shared/rentasBrowseContract";
+import { normalizeCityForBrowse } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
 function rentDemoMonthlyNumber(rentDisplay: string): number {
   const n = Number(String(rentDisplay).replace(/[^0-9.]/g, ""));
   return Number.isFinite(n) ? n : 0;
@@ -44,11 +45,11 @@ function textMatchesListing(l: RentasPublicListing, q: string): boolean {
 }
 
 function cityMatches(l: RentasPublicListing, city: string): boolean {
-  if (!city.trim()) return true;
-  const c = city.trim().toLowerCase();
-  const lc = (l.city ?? "").toLowerCase();
+  const needle = normalizeCityForBrowse(city).toLowerCase();
+  if (!needle) return true;
+  const lc = normalizeCityForBrowse(l.city ?? "").toLowerCase();
   const addr = l.addressLine.toLowerCase();
-  return lc.includes(c) || addr.includes(c);
+  return lc.includes(needle) || addr.includes(needle);
 }
 
 function zipMatches(l: RentasPublicListing, zip: string): boolean {

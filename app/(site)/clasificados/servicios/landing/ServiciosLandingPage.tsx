@@ -1,5 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import { selectLandingDestacadosRecientes } from "../lib/serviciosLandingBuild";
+import { mapServiciosRowToLandingFeatured, mapServiciosRowToLandingRecent } from "../lib/serviciosLandingPublicMappers";
+import type { ServiciosPublicListingRow } from "../lib/serviciosPublicListingsServer";
 import { FeaturedBusinessSection } from "./FeaturedBusinessSection";
 import { PublishServiceCTA } from "./PublishServiceCTA";
 import { RecentServicesSection } from "./RecentServicesSection";
@@ -8,12 +11,7 @@ import { ServiciosLandingBrowseRow } from "./ServiciosLandingBrowseRow";
 import { ServiciosHeroSearch } from "./ServiciosHeroSearch";
 import { ServiciosQuickChips } from "./ServiciosQuickChips";
 import { TrustValueStrip } from "./TrustValueStrip";
-import {
-  SERVICIOS_LANDING_EXPLORE_CATEGORIES,
-  SERVICIOS_LANDING_FEATURED,
-  SERVICIOS_LANDING_QUICK_CHIPS,
-  SERVICIOS_LANDING_RECENT,
-} from "./serviciosLandingSampleData";
+import { SERVICIOS_LANDING_EXPLORE_CATEGORIES, SERVICIOS_LANDING_QUICK_CHIPS } from "./serviciosLandingSampleData";
 
 type Lang = "es" | "en";
 
@@ -24,7 +22,18 @@ const PAGE_ATMOSPHERE =
 const sectionShell =
   "rounded-[22px] border border-white/90 bg-[#FFFCF7] shadow-[0_28px_80px_-48px_rgba(20,38,58,0.45)] ring-1 ring-[#1e3a5f]/[0.05] sm:rounded-[26px]";
 
-export function ServiciosLandingPage({ lang }: { lang: Lang }) {
+export function ServiciosLandingPage({
+  lang,
+  liveRows,
+}: {
+  lang: Lang;
+  /** Published `servicios_public_listings` rows (may be empty when DB is empty or offline). */
+  liveRows: ServiciosPublicListingRow[];
+}) {
+  const { destacadosRows, recientesRows } = selectLandingDestacadosRecientes(liveRows, lang);
+  const destacadosItems = destacadosRows.map((r) => mapServiciosRowToLandingFeatured(r, lang));
+  const recientesItems = recientesRows.map((r) => mapServiciosRowToLandingRecent(r, lang));
+
   return (
     <div className="relative min-h-screen overflow-x-hidden text-[#142a42]">
       {/* Quiet service-world atmosphere (global); stays behind content */}
@@ -73,7 +82,7 @@ export function ServiciosLandingPage({ lang }: { lang: Lang }) {
 
         <div className="mt-16 space-y-16 sm:mt-20 sm:space-y-20 md:mt-24 md:space-y-[5.5rem]">
           <div className={`${sectionShell} p-7 sm:p-9 md:p-11 lg:p-12`}>
-            <FeaturedBusinessSection lang={lang} items={SERVICIOS_LANDING_FEATURED} />
+            <FeaturedBusinessSection lang={lang} items={destacadosItems} />
           </div>
 
           <div
@@ -84,7 +93,7 @@ export function ServiciosLandingPage({ lang }: { lang: Lang }) {
           </div>
 
           <div className={`${sectionShell} p-7 sm:p-9 md:p-11 lg:p-12`}>
-            <RecentServicesSection lang={lang} items={SERVICIOS_LANDING_RECENT} />
+            <RecentServicesSection lang={lang} items={recientesItems} />
           </div>
 
           <TrustValueStrip lang={lang} />

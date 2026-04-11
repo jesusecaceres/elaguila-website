@@ -41,7 +41,7 @@ export function LatestJobsAndEmployer({ lang }: Props) {
       }
       rightSlot={
         <Link
-          href={buildEmpleosResultadosUrl(lang)}
+          href={buildEmpleosResultadosUrl(lang, { sort: "date_desc" })}
           className="text-sm font-semibold text-[#4F6B82] underline-offset-4 transition hover:text-[#2A2826] hover:underline"
         >
           {lang === "es" ? "Ver todos los empleos →" : "See all jobs →"}

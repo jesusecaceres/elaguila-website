@@ -31,15 +31,15 @@ export function EmpleosFunctionalPrefsNotice({ lang }: Props) {
       <p className="text-sm leading-relaxed text-[#4A4744]">
         {lang === "es" ? (
           <>
-            <span className="font-semibold text-[#2A2826]">Preferencias en tu dispositivo.</span> Si guardas ciudad o filtros, Leonix puede
-            recordarlos solo en este navegador para acelerar tu próxima visita. No usamos esto para publicidad de terceros ni vendemos datos
-            personales. Puedes borrar datos del sitio en cualquier momento desde tu navegador.
+            <span className="font-semibold text-[#2A2826]">Preferencias en tu dispositivo.</span> Si eliges recordar ciudad o estado al
+            publicar una búsqueda, Leonix puede guardarlos solo en este navegador para acelerar tu próxima visita. No usamos esto para publicidad
+            de terceros ni vendemos datos personales. Puedes borrar datos del sitio en cualquier momento desde tu navegador.
           </>
         ) : (
           <>
-            <span className="font-semibold text-[#2A2826]">Device preferences.</span> If you save city or filters, Leonix may remember them
-            only in this browser to speed your next visit. We do not use this for third‑party ads or sell personal data. You can clear site
-            data anytime in your browser settings.
+            <span className="font-semibold text-[#2A2826]">Device preferences.</span> If you choose to remember city or state when you run a
+            search, Leonix may store them only in this browser to speed your next visit. We do not use this for third‑party ads or sell personal
+            data. You can clear site data anytime in your browser settings.
           </>
         )}
       </p>

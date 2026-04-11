@@ -28,6 +28,7 @@ export function EnVentaResultsListingSections({
   onPageNext,
   isFav,
   onFav,
+  listingHref,
   t,
 }: {
   lang: Lang;
@@ -42,12 +43,15 @@ export function EnVentaResultsListingSections({
   onPageNext: () => void;
   isFav: (id: string) => boolean;
   onFav: (id: string) => void;
+  /** Preserves current results query string on the listing detail page for back navigation. */
+  listingHref: (listingId: string) => string;
   t: {
     promoted: string;
     featuredMode: string;
     latest: string;
     catalog: string;
     catalogSub: string;
+    standardEngineLine: string;
     page: (p: number, pc: number) => string;
     featuredBanner: string;
   };
@@ -79,7 +83,7 @@ export function EnVentaResultsListingSections({
                 lang={lang}
                 isFav={isFav(p.dto.id)}
                 onToggleFav={onFav}
-                href={`/clasificados/anuncio/${p.dto.id}?lang=${lang}`}
+                href={listingHref(p.dto.id)}
                 layout="grid"
               />
             ))}
@@ -107,6 +111,9 @@ export function EnVentaResultsListingSections({
             </h2>
             {!featuredOnly ? <p className="mt-1 max-w-2xl text-sm text-[#5C5346]">{t.catalogSub}</p> : null}
             <p className="mt-2 text-xs font-medium text-[#5C5346]/95">{sortSectionCaption(sort, lang)}</p>
+            {!featuredOnly ? (
+              <p className="mt-1.5 max-w-2xl text-[11px] leading-relaxed text-[#7A7164]">{t.standardEngineLine}</p>
+            ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-2 text-xs font-medium text-[#5C5346]">
             <button
@@ -143,7 +150,7 @@ export function EnVentaResultsListingSections({
               lang={lang}
               isFav={isFav(p.dto.id)}
               onToggleFav={onFav}
-              href={`/clasificados/anuncio/${p.dto.id}?lang=${lang}`}
+              href={listingHref(p.dto.id)}
               layout={view}
             />
           ))}

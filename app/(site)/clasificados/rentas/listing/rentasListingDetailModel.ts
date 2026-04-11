@@ -1,7 +1,4 @@
-import {
-  rentasResultsFeatured,
-  rentasResultsGridDemo,
-} from "@/app/clasificados/rentas/results/rentasResultsDemoData";
+import { resolveRentasPublicListingById } from "@/app/clasificados/rentas/data/rentasPublicLoader";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 
 export type RentasListingDetailExtra = {
@@ -12,16 +9,9 @@ export type RentasListingDetailExtra = {
   gallery: string[];
 };
 
-function allListings(): RentasPublicListing[] {
-  const map = new Map<string, RentasPublicListing>();
-  for (const l of [rentasResultsFeatured, ...rentasResultsGridDemo]) {
-    map.set(l.id, l);
-  }
-  return [...map.values()];
-}
-
+/** @deprecated Prefer `getRentasListingById` from `rentasPublicData` — kept for call sites. */
 export function findRentasDemoListingById(id: string): RentasPublicListing | undefined {
-  return allListings().find((l) => l.id === id);
+  return resolveRentasPublicListingById(id);
 }
 
 function defaultExtra(listing: RentasPublicListing): RentasListingDetailExtra {

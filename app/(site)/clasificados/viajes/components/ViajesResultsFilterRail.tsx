@@ -56,6 +56,7 @@ export function ViajesResultsFilterRail({ value, onChange, onReset, idPrefix, ui
           <option value="san-francisco">San Francisco (SFO)</option>
           <option value="oakland">Oakland (OAK)</option>
         </select>
+        <p className="mt-1.5 text-[10px] leading-snug text-[color:var(--lx-muted)]">{r.departureFieldNote}</p>
       </div>
       <div>
         <label htmlFor={id("budget")} className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">

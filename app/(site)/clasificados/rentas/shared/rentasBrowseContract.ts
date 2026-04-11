@@ -24,6 +24,7 @@ import {
   BR_NEGOCIO_Q_PROPIEDAD,
   parseBrNegocioPropiedadParam,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import { normalizeCityForBrowse, normalizeZipForBrowse } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
 
 // --- Canonical query keys (results + landing handoff) ---
 
@@ -51,6 +52,9 @@ export const RENTAS_QUERY_BATHS_MIN = "baths_min";
 
 export const RENTAS_QUERY_SORT = "sort";
 export const RENTAS_QUERY_PAGE = "page";
+
+/** Results grid: items per page (`page` in the URL is 1-based). */
+export const RENTAS_RESULTS_PAGE_SIZE = 6;
 
 /** Scaffold: browser geolocation (only set after explicit user action; not auto-read). */
 export const RENTAS_QUERY_LAT = "lat";
@@ -128,8 +132,8 @@ export function parseRentasBrowseParams(sp: URLSearchParams | null | undefined):
     mascotas: g(RENTAS_QUERY_MASCOTAS) === "1",
     rentMin: rentMinRaw !== "" && Number.isFinite(Number(rentMinRaw)) ? Number(rentMinRaw) : null,
     rentMax: rentMaxRaw !== "" && Number.isFinite(Number(rentMaxRaw)) ? Number(rentMaxRaw) : null,
-    city: g(RENTAS_QUERY_CITY).trim(),
-    zip: g(RENTAS_QUERY_ZIP).replace(/\D/g, "").slice(0, 10),
+    city: normalizeCityForBrowse(g(RENTAS_QUERY_CITY)),
+    zip: normalizeZipForBrowse(g(RENTAS_QUERY_ZIP)),
     state: g(RENTAS_QUERY_STATE).trim(),
     bathsMin: bathsRaw !== "" && Number.isFinite(Number(bathsRaw)) ? Number(bathsRaw) : null,
     sort: g(RENTAS_QUERY_SORT) || "reciente",
@@ -147,9 +151,9 @@ export function splitLocationIntent(raw: string): { city?: string; zip?: string 
   const t = raw.trim();
   if (!t) return {};
   if (/^\d{4,6}(-?\d{4})?$/.test(t.replace(/\s/g, ""))) {
-    return { zip: t.replace(/\D/g, "").slice(0, 10) };
+    return { zip: normalizeZipForBrowse(t) };
   }
-  return { city: t };
+  return { city: normalizeCityForBrowse(t) };
 }
 
 /** True when URL carries any browse narrowing beyond defaults (for demo total vs live count). */

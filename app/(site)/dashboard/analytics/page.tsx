@@ -6,6 +6,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { fetchOwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
+import { fetchOwnerListingViewLeaders, type ListingViewRow } from "../lib/ownerListingAnalyticsInsights";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -38,6 +39,10 @@ export default function DashboardAnalyticsPage() {
             body: "Totales basados en eventos guardados en `listing_analytics` (vistas, guardados, compartidos, mensajes, aperturas). No incluye métricas que la base aún no registra.",
             ctaListings: "Ir a Mis anuncios",
             ctaHome: "Volver al resumen",
+            ctaNotif: "Avisos y recordatorios",
+            topPerformers: "Anuncios con más vistas (eventos)",
+            needsWork: "Necesitan más vistas",
+            viewsLabel: "vistas",
             loading: "Cargando…",
             views: "Vistas (eventos)",
             unique: "Vistas únicas (usuarios)",
@@ -54,6 +59,10 @@ export default function DashboardAnalyticsPage() {
             body: "Totals from persisted `listing_analytics` events (views, saves, shares, messages, opens). Metrics not stored in the database are not shown.",
             ctaListings: "Go to My ads",
             ctaHome: "Back to overview",
+            ctaNotif: "Alerts & reminders",
+            topPerformers: "Listings with the most views (events)",
+            needsWork: "Need more views",
+            viewsLabel: "views",
             loading: "Loading…",
             views: "Views (events)",
             unique: "Unique viewers (users)",
@@ -83,6 +92,9 @@ export default function DashboardAnalyticsPage() {
   } | null>(null);
   const [listingCount, setListingCount] = useState<number | null>(null);
   const [aggErr, setAggErr] = useState<string | null>(null);
+  const [leaders, setLeaders] = useState<ListingViewRow[]>([]);
+  const [laggards, setLaggards] = useState<ListingViewRow[]>([]);
+  const [insightErr, setInsightErr] = useState<string | null>(null);
 
   useEffect(() => {
     const sb = createSupabaseBrowserClient();
@@ -119,6 +131,12 @@ export default function DashboardAnalyticsPage() {
       setTotals(agg.totals);
       setListingCount(agg.listingCount);
 
+      const ins = await fetchOwnerListingViewLeaders(sb, u.id);
+      if (!mounted) return;
+      setInsightErr(ins.error);
+      setLeaders(ins.leaders);
+      setLaggards(ins.laggards);
+
       setLoading(false);
     }
     void run();
@@ -145,7 +163,7 @@ export default function DashboardAnalyticsPage() {
               <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950">{aggErr}</p>
             ) : null}
             {totals ? (
-              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
                 {[
                   { k: t.listings, v: listingCount ?? 0 },
                   { k: t.views, v: totals.listingViews },
@@ -163,12 +181,59 @@ export default function DashboardAnalyticsPage() {
                 ))}
               </div>
             ) : null}
+            {insightErr ? (
+              <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950">{insightErr}</p>
+            ) : null}
+            {(leaders.length > 0 || laggards.length > 0) && !insightErr ? (
+              <div className="mt-8 grid gap-6 lg:grid-cols-2">
+                {leaders.length > 0 ? (
+                  <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/80 p-5">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.topPerformers}</p>
+                    <ul className="mt-3 space-y-2 text-sm">
+                      {leaders.map((r) => (
+                        <li key={r.id}>
+                          <Link href={`/dashboard/mis-anuncios/${r.id}?${q}`} className="flex justify-between gap-2 font-medium text-[#1E1810] underline decoration-[#C9B46A]/50">
+                            <span className="min-w-0 truncate">{(r.title ?? "").trim() || r.id}</span>
+                            <span className="shrink-0 tabular-nums text-[#5C5346]">
+                              {r.views} {t.viewsLabel}
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {laggards.length > 0 ? (
+                  <div className="rounded-3xl border border-amber-200/80 bg-amber-50/50 p-5">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.needsWork}</p>
+                    <ul className="mt-3 space-y-2 text-sm">
+                      {laggards.map((r) => (
+                        <li key={r.id}>
+                          <Link href={`/dashboard/mis-anuncios/${r.id}?${q}`} className="flex justify-between gap-2 font-medium text-[#1E1810] underline decoration-amber-300/80">
+                            <span className="min-w-0 truncate">{(r.title ?? "").trim() || r.id}</span>
+                            <span className="shrink-0 tabular-nums text-[#5C5346]">
+                              {r.views} {t.viewsLabel}
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 href={`/dashboard/mis-anuncios?${q}`}
                 className="inline-flex rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md hover:brightness-[1.03]"
               >
                 {t.ctaListings}
+              </Link>
+              <Link
+                href={`/dashboard/notificaciones?${q}`}
+                className="inline-flex rounded-2xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-5 py-2.5 text-sm font-semibold text-[#5C4E2E] shadow-sm hover:bg-[#FAF7F2]"
+              >
+                {t.ctaNotif}
               </Link>
               <Link href={`/dashboard?${q}`} className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]">
                 {t.ctaHome}

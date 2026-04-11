@@ -1,9 +1,11 @@
 /**
- * Blueprint sample data for `/clasificados/servicios`.
- * Shape mirrors future API rows so arrays can be swapped without layout changes.
+ * Data shapes for `/clasificados/servicios` landing cards.
  *
- * **Destacados / Recientes** here are **static presentation shells**; live ordering for DB results
- * is `sortServiciosResultsForDisplay` + filters in `serviciosResultsFilter.ts` (see `serviciosResultsRanking.ts`).
+ * **Live listings** — `page.tsx` loads `servicios_public_listings` and maps rows via
+ * `lib/serviciosLandingPublicMappers.ts` (Destacados / Recientes).
+ *
+ * **Quick chips & category tiles** — navigation shortcuts only: they send users to `/resultados`
+ * with `group` (and `lang`), not live listing feeds.
  */
 
 export type ServiciosLandingCtaKind = "call" | "detail";
@@ -12,18 +14,18 @@ export type ServiciosLandingFeaturedBusiness = {
   id: string;
   businessName: string;
   categoryKey: string;
-  categoryLabelEs: string;
+  /** Localized trade / category line for current locale */
+  categoryLine: string;
   city: string;
   zipOrArea: string;
   coverImageSrc: string;
   coverImageAlt: string;
-  rating: number;
-  reviewCount: number;
+  /** Omitted when the published profile has no hero rating/reviews — do not fabricate stars */
+  ratingSummary?: { rating: number; reviewCount: number };
   featured: boolean;
   cta: {
     kind: ServiciosLandingCtaKind;
-    labelEs: string;
-    /** Future: listing slug for detail */
+    label: string;
     detailHref?: string;
     telHref?: string;
   };
@@ -45,17 +47,17 @@ export type ServiciosLandingExploreCategory = {
 
 export type ServiciosLandingRecentListing = {
   id: string;
-  serviceTitleEs: string;
-  businessNameEs: string;
-  descriptionEs: string;
+  serviceTitle: string;
+  businessName: string;
+  description: string;
   coverImageSrc: string;
   coverImageAlt: string;
-  rating: number;
-  /** Shell hint for future seller mapping — independiente vs negocio balance on landing */
+  /** Omitted when no published rating on hero */
+  rating?: number;
   sellerPresentation?: "business" | "independent";
   cta: {
     kind: ServiciosLandingCtaKind;
-    labelEs: string;
+    label: string;
     telHref?: string;
     detailHref?: string;
   };
@@ -83,101 +85,3 @@ export const SERVICIOS_LANDING_EXPLORE_CATEGORIES: ServiciosLandingExploreCatego
   { id: "mascotas", labelEs: "Mascotas", icon: "🐾", resultsGroup: "pets" },
 ];
 
-export const SERVICIOS_LANDING_FEATURED: ServiciosLandingFeaturedBusiness[] = [
-  {
-    id: "fb-1",
-    businessName: "Soluciones Eléctricas Bay Area",
-    categoryKey: "home_trade",
-    categoryLabelEs: "Electricidad residencial",
-    city: "San José",
-    zipOrArea: "95112",
-    coverImageSrc:
-      "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=900&q=80",
-    coverImageAlt: "Electricista revisando panel eléctrico",
-    rating: 4.8,
-    reviewCount: 126,
-    featured: true,
-    cta: {
-      kind: "call",
-      labelEs: "Llamar",
-      telHref: "tel:+14085550123",
-    },
-  },
-  {
-    id: "fb-2",
-    businessName: "Fontanería Express 24h",
-    categoryKey: "home_trade",
-    categoryLabelEs: "Plomería y fugas",
-    city: "Fremont",
-    zipOrArea: "94536",
-    coverImageSrc:
-      "https://images.unsplash.com/photo-1585704032915-c3400ca88ae2?auto=format&fit=crop&w=900&q=80",
-    coverImageAlt: "Plomero trabajando en instalación de tuberías",
-    rating: 4.9,
-    reviewCount: 89,
-    featured: true,
-    cta: {
-      kind: "detail",
-      labelEs: "Ver más",
-      detailHref: "/clasificados/servicios/resultados",
-    },
-  },
-  {
-    id: "fb-3",
-    businessName: "Limpieza Pro Hogar",
-    categoryKey: "cleaning",
-    categoryLabelEs: "Limpieza profunda",
-    city: "Oakland",
-    zipOrArea: "94607",
-    coverImageSrc:
-      "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=900&q=80",
-    coverImageAlt: "Profesional de limpieza en hogar",
-    rating: 4.7,
-    reviewCount: 204,
-    featured: true,
-    cta: {
-      kind: "call",
-      labelEs: "Llamar",
-      telHref: "tel:+15105550987",
-    },
-  },
-];
-
-export const SERVICIOS_LANDING_RECENT: ServiciosLandingRecentListing[] = [
-  {
-    id: "rc-1",
-    serviceTitleEs: "Reparación de PC y redes",
-    businessNameEs: "TechHelp Local",
-    descriptionEs: "Diagnóstico, upgrades y soporte remoto el mismo día en el Área de la Bahía.",
-    coverImageSrc:
-      "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?auto=format&fit=crop&w=900&q=80",
-    coverImageAlt: "Técnico reparando computadora",
-    rating: 4.6,
-    sellerPresentation: "independent",
-    cta: { kind: "detail", labelEs: "Ver más", detailHref: "/clasificados/servicios/resultados" },
-  },
-  {
-    id: "rc-2",
-    serviceTitleEs: "Clases de inglés para negocios",
-    businessNameEs: "Bridge Language Studio",
-    descriptionEs: "Sesiones híbridas, material bilingüe y enfoque en presentaciones profesionales.",
-    coverImageSrc:
-      "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=900&q=80",
-    coverImageAlt: "Tutoría y estudio",
-    rating: 4.9,
-    sellerPresentation: "business",
-    cta: { kind: "call", labelEs: "Llamar", telHref: "tel:+16505550111" },
-  },
-  {
-    id: "rc-3",
-    serviceTitleEs: "Cerrajería de urgencia",
-    businessNameEs: "Llaves & Seguridad 7/7",
-    descriptionEs: "Apertura, cambio de cerraduras y copias móviles con llegada en menos de 45 min.",
-    coverImageSrc:
-      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=900&q=80",
-    coverImageAlt: "Cerrajero con herramientas",
-    rating: 4.5,
-    sellerPresentation: "business",
-    cta: { kind: "detail", labelEs: "Ver más", detailHref: "/clasificados/servicios/resultados" },
-  },
-];

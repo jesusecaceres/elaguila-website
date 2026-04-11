@@ -4,9 +4,16 @@
  * Maps a future persisted `RestauranteListingApplication` (or API DTO) into the public
  * `RestaurantesPublicBlueprintRow`-compatible shape used by landing/results shells.
  *
- * **Current:** Blueprint data in `data/restaurantesPublicBlueprintData.ts` stands in until listings API exists.
- * **Future:** Replace blueprint imports with `listPublishedRestaurantes()` → map each row through
- * `applicationToRestauranteDiscoveryRow`.
+ * ## Launch readiness (read this before claiming “live listings”)
+ *
+ * - **Adapter:** `applicationToRestauranteDiscoveryRow` is complete for mapping app → card row shape
+ *   (name, cuisines, city/ZIP, service modes, highlights, promoted signals, `listedAt`, etc.).
+ * - **Blocker:** `RestaurantesResultsShell` and the landing page still read **`RESTAURANTES_PUBLIC_BLUEPRINT_ROWS`**
+ *   (static demo inventory), not Supabase/API rows. Published listings do **not** appear in discovery until
+ *   the shell swaps blueprint import for `listPublishedRestaurantes()` (or equivalent) and maps each row
+ *   through this adapter.
+ * - **Exposure:** Landing destacados/recientes and the results promoted band are driven by
+ *   `restaurantesListingExposurePolicy` over whatever row array is passed in (today: blueprint only).
  *
  * @see `application/restauranteListingApplicationModel.ts`
  * @see `data/restaurantesPublicBlueprintData.ts`

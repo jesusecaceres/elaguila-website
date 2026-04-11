@@ -220,13 +220,36 @@ export function buildRestaurantesResultsHref(
   return `${RESTAURANTES_RESULTADOS_PATH}?${sp.toString()}`;
 }
 
+/** Trim and collapse inner spaces before splitting city vs ZIP (matches `cityCanonical` hygiene at publish). */
+export function normalizeDiscoveryLocationText(raw: string): string {
+  return raw.trim().replace(/\s+/g, " ");
+}
+
+/**
+ * Params to reopen results focused on one listing (name + location + primary cuisine).
+ * Demo: narrows blueprint rows; live: same query against indexed listings.
+ */
+export function restaurantesDiscoveryParamsForRowDeepLink(row: {
+  name: string;
+  city: string;
+  zip?: string;
+  primaryCuisineKey: string;
+}): Record<string, string | undefined> {
+  return {
+    q: row.name,
+    city: row.city,
+    zip: row.zip?.trim() || undefined,
+    cuisine: row.primaryCuisineKey || undefined,
+  };
+}
+
 /**
  * Single “ciudad o código postal” field → `city` or `zip` URL params.
  * - Exactly five digits → `zip` (`zipCode` on the listing).
  * - Any other non-empty text → `city` (substring match to display/canonical city in demo; server will normalize to `cityCanonical` when wired).
  */
 export function splitLocationInput(raw: string): { city?: string; zip?: string } {
-  const t = raw.trim();
+  const t = normalizeDiscoveryLocationText(raw);
   if (/^\d{5}$/.test(t)) return { zip: t };
   if (t) return { city: t };
   return {};

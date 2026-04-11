@@ -7,10 +7,10 @@ import { resolveAutosLandingInventory } from "../../data/sampleAutosPublicInvent
 type ApiPayload = { ok?: boolean; listings?: AutosPublicListing[]; configured?: boolean };
 
 /**
- * Active public Autos listings, with the same blueprint fallback as the landing page when the API is empty.
+ * Fetches live public listings; merges demo sample only when `NEXT_PUBLIC_LEONIX_AUTOS_PUBLIC_DEMO=1` and API is empty.
  */
 export function useAutosPublicListingsFetch() {
-  const [listings, setListings] = useState<AutosPublicListing[]>([]);
+  const [apiListings, setApiListings] = useState<AutosPublicListing[]>([]);
   const [configured, setConfigured] = useState(true);
   const [loaded, setLoaded] = useState(false);
 
@@ -22,7 +22,7 @@ export function useAutosPublicListingsFetch() {
         const j = (await r.json()) as ApiPayload;
         if (cancelled) return;
         if (j.ok && Array.isArray(j.listings)) {
-          setListings(j.listings);
+          setApiListings(j.listings);
           setConfigured(j.configured !== false);
         }
       } finally {
@@ -34,7 +34,13 @@ export function useAutosPublicListingsFetch() {
     };
   }, []);
 
-  const inventory = useMemo(() => resolveAutosLandingInventory(listings), [listings]);
+  const listings = useMemo(() => resolveAutosLandingInventory(apiListings), [apiListings]);
 
-  return { listings: inventory, configured, loaded };
+  /** True when demo blueprint is filling an otherwise-empty API response. */
+  const isDemoInventory = useMemo(
+    () => apiListings.length === 0 && listings.length > 0,
+    [apiListings.length, listings.length],
+  );
+
+  return { listings, apiListings, isDemoInventory, configured, loaded };
 }

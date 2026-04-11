@@ -41,6 +41,10 @@ function departureMatches(row: ViajesResultRow, from: string): boolean {
   return needles.some((n) => dep.includes(n));
 }
 
+/**
+ * Note: `browse.zip`, `browse.radiusMiles`, and `browse.nearMe` are **not** applied here until
+ * inventory + API support geo-radius / postal matching — see `viajesBrowseContract.ts`.
+ */
 export function viajesRowMatchesBrowse(row: ViajesResultRow, browse: ViajesBrowseState): boolean {
   const slug = browse.dest.trim();
   const q = browse.q.trim();

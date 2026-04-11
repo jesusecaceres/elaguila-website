@@ -1,22 +1,20 @@
 /**
- * Rentas public data access layer (sample-backed today).
+ * Rentas public data access — **single entry** for UI: delegates to `rentasPublicLoader.ts`.
  *
- * Replace implementations with live loaders (Supabase/API) without changing UI contracts:
- * - `RentasPublicListing` in `../model/rentasPublicListing`
- * - Pages should call these helpers instead of importing demo arrays directly.
+ * **Source today:** `RENTAS_PUBLIC_DATA_SOURCE === "demo"` in the loader — typed demo fixtures only.
+ * When a live published table/API is wired, extend the loader; keep these exports stable.
  *
- * ## Section loading policy (fairness — single reference)
- * Landing sections (`getRentasLandingDestacadas`, `getRentasLandingRecientes`, `getRentasLandingNegocios`,
- * `getRentasLandingPrivado`) and results grid (`getRentasResultsGridListings` + `filterRentasPublicListings`)
- * follow the rules documented in `rentasLandingSampleData.ts` and `rentasBrowseFilters.ts`:
- * - Recientes: newest published/active first.
- * - Negocios / Privado: branch-filtered slices; private inventory stays visible (not buried by business rows).
- * - Destacadas: scored demo fairness (diversity + privado floor), not pure pay-to-win; future billing may add
- *   weight without exclusive business control of all hero slots.
- * - Geo (`lat`/`lng`/`radius_km`): URL scaffold only until a geo index exists (no fake radius filtering).
+ * Section rules: `rentasSectionPolicy.ts` + `rentasSectionSelectors.ts`.
  */
 
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
+import {
+  getRentasPublicBrowsePool,
+  getRentasResultsDemoTotal as loaderGetRentasResultsDemoTotal,
+  getRentasResultsFeaturedListing as loaderGetRentasResultsFeaturedListing,
+  getRentasResultsGridListings as loaderGetRentasResultsGridListings,
+  resolveRentasPublicListingById,
+} from "@/app/clasificados/rentas/data/rentasPublicLoader";
 import {
   getRentasLandingDestacadas,
   getRentasLandingNegocios,
@@ -24,27 +22,23 @@ import {
   getRentasLandingRecientes,
   rentasLandingFeaturedListing,
 } from "@/app/clasificados/rentas/data/rentasLandingSampleData";
-import { findRentasDemoListingById } from "@/app/clasificados/rentas/listing/rentasListingDetailModel";
-import {
-  rentasResultsFeatured,
-  rentasResultsGridDemo,
-  RENTAS_RESULTS_DEMO_TOTAL,
-} from "@/app/clasificados/rentas/results/rentasResultsDemoData";
+
+export { getRentasPublicBrowsePool };
 
 export function getRentasResultsDemoTotal(): number {
-  return RENTAS_RESULTS_DEMO_TOTAL;
+  return loaderGetRentasResultsDemoTotal();
 }
 
 export function getRentasResultsFeaturedListing(): RentasPublicListing {
-  return rentasResultsFeatured;
+  return loaderGetRentasResultsFeaturedListing();
 }
 
 export function getRentasResultsGridListings(): RentasPublicListing[] {
-  return rentasResultsGridDemo;
+  return loaderGetRentasResultsGridListings();
 }
 
 export function getRentasListingById(id: string): RentasPublicListing | undefined {
-  return findRentasDemoListingById(id);
+  return resolveRentasPublicListingById(id);
 }
 
 export {

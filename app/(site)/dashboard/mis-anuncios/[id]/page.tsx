@@ -22,11 +22,15 @@ type Tab = "overview" | "analytics" | "messages" | "edit" | "promotion" | "statu
 
 type ListingRow = {
   id: string;
+  owner_id?: string | null;
   title?: string | null;
   price?: number | string | null;
   city?: string | null;
   status?: string | null;
   created_at?: string | null;
+  updated_at?: string | null;
+  published_at?: string | null;
+  expires_at?: string | null;
   category?: string | null;
   images?: unknown;
   detail_pairs?: unknown;
@@ -35,6 +39,16 @@ type ListingRow = {
   original_price?: number | string | null;
   current_price?: number | string | null;
   price_last_updated?: string | null;
+};
+
+type ListingMsgRow = {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  listing_id: string;
+  message: string;
+  created_at: string;
+  read_at?: string | null;
 };
 
 function accountRefFromId(id: string): string {
@@ -106,6 +120,9 @@ export default function ListingWorkspacePage() {
             publicLink: "Ver público",
             listingRef: "Referencia",
             created: "Creado",
+            updated: "Última actualización",
+            published: "Publicado",
+            listingExpires: "Expiración del anuncio",
             expires: "Visibilidad / boost hasta",
             plan: "Plan del anuncio",
             boost: "Estado de promoción",
@@ -115,8 +132,9 @@ export default function ListingWorkspacePage() {
             msg: "Mensajes",
             shares: "Compartidos",
             prof: "Clics a perfil",
-            msgPlaceholder: "Bandeja por anuncio — pronto podrás filtrar hilos aquí.",
-            openMessages: "Abrir mensajes",
+            msgPlaceholder: "Mensajes que mencionan este anuncio (misma tabla de mensajes que la bandeja).",
+            msgEmpty: "Aún no hay mensajes enlazados a este anuncio.",
+            openMessages: "Abrir bandeja completa",
             editCta: "Ir a editar",
             editHint: "Título, precio, fotos y descripción según ventana de edición.",
             promoHint: "Mejora visibilidad con Leonix Pro y renovaciones de visibilidad.",
@@ -155,8 +173,9 @@ export default function ListingWorkspacePage() {
             msg: "Messages",
             shares: "Shares",
             prof: "Profile clicks",
-            msgPlaceholder: "Per-listing inbox — thread filters coming soon.",
-            openMessages: "Open messages",
+            msgPlaceholder: "Messages tied to this listing ID (same messages table as your inbox).",
+            msgEmpty: "No messages linked to this listing yet.",
+            openMessages: "Open full inbox",
             editCta: "Go to edit",
             editHint: "Title, price, photos, and description within the edit window.",
             promoHint: "Increase visibility with Leonix Pro and visibility renewals.",
@@ -189,13 +208,18 @@ export default function ListingWorkspacePage() {
     shares: number;
     profileClicks: number;
   } | null>(null);
+  const [access, setAccess] = useState<"loading" | "ok" | "missing" | "forbidden">("loading");
+  const [listingMessages, setListingMessages] = useState<ListingMsgRow[]>([]);
 
   const load = useCallback(async () => {
     if (!id || typeof id !== "string") {
       setLoading(false);
       setRow(null);
+      setAccess("missing");
       return;
     }
+    setAccess("loading");
+    setLoading(true);
     const sb = createSupabaseBrowserClient();
     const {
       data: { user },
@@ -221,21 +245,36 @@ export default function ListingWorkspacePage() {
       /* ignore */
     }
 
-    const { data: listing, error } = await sb
-      .from("listings")
-      .select(
-        "id,title,price,city,status,created_at,category,images,detail_pairs,boost_expires,is_published,original_price,current_price,price_last_updated"
-      )
-      .eq("id", id)
-      .maybeSingle();
+    const selFull =
+      "id,owner_id,title,price,city,status,created_at,updated_at,published_at,expires_at,category,images,detail_pairs,boost_expires,is_published,original_price,current_price,price_last_updated";
+    const selBase =
+      "id,owner_id,title,price,city,status,created_at,category,images,detail_pairs,boost_expires,is_published,original_price,current_price,price_last_updated";
 
-    if (error || !listing) {
+    let listing: ListingRow | null = null;
+    let q = await sb.from("listings").select(selFull).eq("id", id).maybeSingle();
+    if (q.error) {
+      q = await sb.from("listings").select(selBase).eq("id", id).maybeSingle();
+    }
+    if (q.error || !q.data) {
       setRow(null);
+      setAccess("missing");
+      setListingMessages([]);
+      setLoading(false);
+      return;
+    }
+    listing = q.data as ListingRow;
+
+    const owner = listing.owner_id;
+    if (owner && owner !== user.id) {
+      setRow(null);
+      setAccess("forbidden");
+      setListingMessages([]);
       setLoading(false);
       return;
     }
 
-    setRow(listing as ListingRow);
+    setRow(listing);
+    setAccess("ok");
 
     const { data: events } = await sb.from("listing_analytics").select("listing_id, event_type, user_id").eq("listing_id", id);
 
@@ -264,6 +303,24 @@ export default function ListingWorkspacePage() {
       shares,
       profileClicks,
     });
+
+    const selMsg = "id, sender_id, receiver_id, listing_id, message, created_at, read_at";
+    const selMsgLegacy = "id, sender_id, receiver_id, listing_id, message, created_at";
+    const mq = await sb.from("messages").select(selMsg).eq("listing_id", id).order("created_at", { ascending: false }).limit(40);
+    const rawMsgs = (
+      mq.error
+        ? (
+            await sb
+              .from("messages")
+              .select(selMsgLegacy)
+              .eq("listing_id", id)
+              .order("created_at", { ascending: false })
+              .limit(40)
+          ).data
+        : mq.data
+    ) as ListingMsgRow[] | null;
+    setListingMessages((rawMsgs ?? []).filter((m) => m.sender_id === user.id || m.receiver_id === user.id));
+
     setLoading(false);
   }, [id, pathname, router]);
 
@@ -285,6 +342,9 @@ export default function ListingWorkspacePage() {
         : String(row.boost_expires)
       : null;
   const expireChip = expiresInDaysLabel(boostIso, lang);
+  const listingExpireIso =
+    row?.expires_at != null ? (typeof row.expires_at === "string" ? row.expires_at : String(row.expires_at)) : null;
+  const listingExpireChip = expiresInDaysLabel(listingExpireIso, lang);
 
   async function markStatus(status: "active" | "sold") {
     if (!row) return;
@@ -353,9 +413,16 @@ export default function ListingWorkspacePage() {
         />
       }
     >
-      {loading ? (
+      {loading || access === "loading" ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
-      ) : !row ? (
+      ) : access === "forbidden" ? (
+        <div className="rounded-3xl border border-amber-200 bg-amber-50/90 p-8 text-center">
+          <p className="text-[#1E1810]">{t.forbidden}</p>
+          <Link href={`/dashboard/mis-anuncios?${q}`} className="mt-4 inline-flex font-semibold text-[#2A2620] underline">
+            {t.back}
+          </Link>
+        </div>
+      ) : !row || access === "missing" ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-8 text-center">
           <p className="text-[#1E1810]">{t.notFound}</p>
           <Link href={`/dashboard/mis-anuncios?${q}`} className="mt-4 inline-flex font-semibold text-[#2A2620] underline">
@@ -421,6 +488,29 @@ export default function ListingWorkspacePage() {
                     </dd>
                   </div>
                   <div className="flex justify-between gap-4">
+                    <dt className="text-[#5C5346]">{t.updated}</dt>
+                    <dd className="text-[#1E1810]">
+                      {row.updated_at ? new Date(row.updated_at).toLocaleString() : "—"}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-[#5C5346]">{t.published}</dt>
+                    <dd className="text-[#1E1810]">
+                      {row.published_at ? new Date(row.published_at).toLocaleString() : "—"}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-[#5C5346]">{t.listingExpires}</dt>
+                    <dd className="text-right text-[#1E1810]">
+                      {listingExpireIso ? new Date(listingExpireIso).toLocaleString() : "—"}
+                      {listingExpireChip ? (
+                        <span className="ml-2 inline-block rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-900">
+                          {listingExpireChip}
+                        </span>
+                      ) : null}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
                     <dt className="text-[#5C5346]">{t.expires}</dt>
                     <dd className="text-right text-[#1E1810]">
                       {boostIso ? new Date(boostIso).toLocaleString() : "—"}
@@ -451,22 +541,47 @@ export default function ListingWorkspacePage() {
           ) : null}
 
           {tab === "analytics" ? (
-            <div className="mt-6 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6">
-              <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.tabs.analytics}</p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {[
-                  { k: t.views, v: stats?.views ?? 0 },
-                  { k: t.uniq, v: stats?.uniqueViews ?? 0 },
-                  { k: t.msg, v: stats?.messages ?? 0 },
-                  { k: t.saves, v: stats?.saves ?? 0 },
-                  { k: t.shares, v: stats?.shares ?? 0 },
-                  { k: t.prof, v: stats?.profileClicks ?? 0 },
-                ].map((x) => (
-                  <div key={x.k} className="rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{x.k}</p>
-                    <p className="mt-2 text-2xl font-bold tabular-nums text-[#1E1810]">{x.v}</p>
-                  </div>
-                ))}
+            <div className="mt-6 space-y-6">
+              <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.tabs.analytics}</p>
+                <p className="mt-2 text-sm text-[#5C5346]/95">
+                  {lang === "es"
+                    ? "Cada métrica cuenta eventos guardados en listing_analytics para este anuncio."
+                    : "Each metric counts persisted listing_analytics events for this listing."}
+                </p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {[
+                    { k: t.views, v: stats?.views ?? 0 },
+                    { k: t.uniq, v: stats?.uniqueViews ?? 0 },
+                    { k: t.msg, v: stats?.messages ?? 0 },
+                    { k: t.saves, v: stats?.saves ?? 0 },
+                    { k: t.shares, v: stats?.shares ?? 0 },
+                    { k: t.prof, v: stats?.profileClicks ?? 0 },
+                  ].map((x) => (
+                    <div key={x.k} className="rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{x.k}</p>
+                      <p className="mt-2 text-2xl font-bold tabular-nums text-[#1E1810]">{x.v}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-3xl border border-[#C9B46A]/30 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#6B5B2E]">
+                  {lang === "es" ? "Siguiente paso sugerido" : "Suggested next step"}
+                </p>
+                <p className="mt-2 text-sm text-[#3D3428]/95">
+                  {(stats?.views ?? 0) === 0
+                    ? lang === "es"
+                      ? "Aún no hay vistas registradas: comparte el enlace público y revisa fotos y título."
+                      : "No views recorded yet: share the public link and review photos and title."
+                    : (stats?.messages ?? 0) === 0
+                      ? lang === "es"
+                        ? "Hay vistas pero pocos mensajes: responde rápido en la bandeja y mejora la descripción de contacto."
+                        : "You have views but few messages: reply quickly in the inbox and improve contact details."
+                      : lang === "es"
+                        ? "Buen tráfico: revisa mensajes sin leer y renueva visibilidad si aplica."
+                        : "Solid traffic: check unread messages and renew visibility when applicable."}
+                </p>
               </div>
             </div>
           ) : null}
@@ -474,9 +589,32 @@ export default function ListingWorkspacePage() {
           {tab === "messages" ? (
             <div className="mt-6 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6">
               <p className="text-sm text-[#3D3428]/95">{t.msgPlaceholder}</p>
+              {listingMessages.length === 0 ? (
+                <p className="mt-4 text-sm font-medium text-[#5C5346]">{t.msgEmpty}</p>
+              ) : (
+                <ul className="mt-4 max-h-[min(60vh,480px)] space-y-3 overflow-y-auto">
+                  {listingMessages.map((m) => (
+                    <li key={m.id} className="rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4 text-sm">
+                      <div className="flex flex-wrap justify-between gap-2 text-[11px] text-[#7A7164]">
+                        <span>
+                          {m.sender_id === userId
+                            ? lang === "es"
+                              ? "Tú →"
+                              : "You →"
+                            : lang === "es"
+                              ? "Recibido"
+                              : "Inbound"}
+                        </span>
+                        <time dateTime={m.created_at}>{new Date(m.created_at).toLocaleString()}</time>
+                      </div>
+                      <p className="mt-2 line-clamp-4 whitespace-pre-wrap text-[#2C2416]">{m.message}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <Link
                 href={`/dashboard/mensajes?${q}`}
-                className="mt-4 inline-flex rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md"
+                className="mt-6 inline-flex rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md"
               >
                 {t.openMessages} →
               </Link>
@@ -504,17 +642,25 @@ export default function ListingWorkspacePage() {
           {tab === "promotion" ? (
             <div className="mt-6 rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6">
               <p className="text-sm text-[#3D3428]/95">{t.promoHint}</p>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <Link
-                  href={`/clasificados/publicar/en-venta/pro?${q}`}
-                  className="inline-flex rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md"
-                >
-                  {t.upgrade}
-                </Link>
-                <Link href={`/dashboard/mis-anuncios?${q}`} className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416]">
-                  {t.renew}
-                </Link>
-              </div>
+              {(row.category ?? "").toLowerCase() === "en-venta" ? (
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Link
+                    href={`/clasificados/publicar/en-venta/pro?${q}`}
+                    className="inline-flex rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md"
+                  >
+                    {t.upgrade}
+                  </Link>
+                  <Link href={`/dashboard/mis-anuncios?${q}`} className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416]">
+                    {t.renew}
+                  </Link>
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-[#5C5346]/95">
+                  {lang === "es"
+                    ? "Las opciones de promoción dependen de la categoría del anuncio. Gestiona visibilidad y plan desde Mis anuncios o el flujo de publicación de tu categoría."
+                    : "Promotion options depend on this listing’s category. Manage visibility from My ads or your category’s publish flow."}
+                </p>
+              )}
             </div>
           ) : null}
 

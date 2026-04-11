@@ -63,7 +63,7 @@ export default function DraftsPage() {
             ref: "Ref.",
             open: "Abrir espacio",
             edit: "Seguir editando",
-            dup: "Duplicar",
+            copyId: "Copiar ID",
             del: "Eliminar",
             pub: "Publicar",
             error: "No pudimos cargar los borradores.",
@@ -79,7 +79,7 @@ export default function DraftsPage() {
             ref: "Ref.",
             open: "Open workspace",
             edit: "Continue editing",
-            dup: "Duplicate",
+            copyId: "Copy ID",
             del: "Delete",
             pub: "Publish",
             error: "We couldn’t load drafts.",
@@ -270,7 +270,7 @@ export default function DraftsPage() {
                           }}
                           className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-3 py-2 text-xs font-semibold text-[#5C5346] disabled:opacity-50"
                         >
-                          {t.dup}
+                          {t.copyId}
                         </button>
                         <button
                           type="button"

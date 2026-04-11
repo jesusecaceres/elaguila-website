@@ -1,4 +1,7 @@
 import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import { normalizeZipInput } from "@/app/data/locations/californiaLocationHelpers";
+import { selectSpotlightNegocios } from "@/app/clasificados/bienes-raices/shared/brLaunchListingPolicy";
+import { cityFilterMatchesListingAddress } from "@/app/clasificados/bienes-raices/shared/brCityMatch";
 import type { BrNegocioListing } from "../cards/listingTypes";
 import type { BrPrimaryChipId, BrSecondaryChipId } from "../search/filterTypes";
 import type { BrResultsParsedState } from "./brResultsUrlState";
@@ -139,23 +142,13 @@ export function getSellerKind(listing: BrNegocioListing): "privado" | "negocio" 
   return listing.badges.includes("negocio") ? "negocio" : "privado";
 }
 
-function isNegocioListing(listing: BrNegocioListing): boolean {
-  return getSellerKind(listing) === "negocio" || listing.badges.includes("negocio");
+function effectivePublishedMsForSort(l: BrNegocioListing): number {
+  return typeof l.demoPublishedAtMs === "number" ? l.demoPublishedAtMs : 0;
 }
 
-/** Spotlight score: promoted Negocios first (demo / future placement hook). */
-export function spotlightScore(listing: BrNegocioListing): number {
-  let s = 0;
-  if (listing.badges.includes("promocionada")) s += 100;
-  if (listing.badges.includes("destacada")) s += 50;
-  if (listing.badges.includes("negocio")) s += 15;
-  if (listing.badges.includes("nuevo")) s += 5;
-  return s;
-}
-
+/** Capped Negocios lane — editorial score in `brLaunchListingPolicy` (not pay-to-win). */
 export function pickNegociosSpotlight(filtered: BrNegocioListing[], max = 3): BrNegocioListing[] {
-  const neg = filtered.filter(isNegocioListing);
-  return [...neg].sort((a, b) => spotlightScore(b) - spotlightScore(a)).slice(0, max);
+  return selectSpotlightNegocios(filtered, max);
 }
 
 export function filterBrListings(
@@ -210,9 +203,14 @@ export function filterBrListings(
     );
   }
 
-  const city = state.city.trim().toLowerCase();
-  if (city) {
-    rows = rows.filter((l) => l.addressLine.toLowerCase().includes(city));
+  if (state.city.trim()) {
+    rows = rows.filter((l) => cityFilterMatchesListingAddress(l.addressLine, state.city));
+  }
+
+  const zipNorm = normalizeZipInput(state.zip);
+  if (zipNorm) {
+    const matched = rows.filter((l) => l.zipCode && normalizeZipInput(l.zipCode) === zipNorm);
+    rows = matched.length ? matched : [];
   }
 
   let minP = state.priceMin ? Number(state.priceMin) : undefined;
@@ -249,6 +247,10 @@ export function filterBrListings(
   const sort = state.sort || "reciente";
   if (sort === "precio_asc") sorted.sort((a, b) => brDemoPriceNumber(a.price) - brDemoPriceNumber(b.price));
   else if (sort === "precio_desc") sorted.sort((a, b) => brDemoPriceNumber(b.price) - brDemoPriceNumber(a.price));
+  else
+    sorted.sort(
+      (a, b) => effectivePublishedMsForSort(b) - effectivePublishedMsForSort(a)
+    );
 
   return sorted;
 }

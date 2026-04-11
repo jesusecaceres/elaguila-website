@@ -1,4 +1,6 @@
 import Link from "next/link";
+import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import type { BrNegocioListing } from "./listingTypes";
 import { BadgeStack } from "./BadgeStack";
 import { IconBath, IconBed, IconCalendar, IconRuler } from "./cardIcons";
@@ -13,12 +15,15 @@ export function BienesRaicesNegocioFeaturedCard({
   titleAsLink = true,
   className,
   sellerKindLabels,
+  lang,
 }: {
   listing: BrNegocioListing;
   /** When false, title is plain text (e.g. landing hero before live detail routes). */
   titleAsLink?: boolean;
   className?: string;
   sellerKindLabels?: { privado: string; negocio: string };
+  /** When `titleAsLink` and set, detail href preserves `?lang=`. */
+  lang?: Lang;
 }) {
   const priv = sellerKindLabels?.privado ?? "Privado";
   const neg = sellerKindLabels?.negocio ?? "Negocio";
@@ -65,7 +70,11 @@ export function BienesRaicesNegocioFeaturedCard({
           <div>
             {titleAsLink ? (
               <Link
-                href={`/clasificados/bienes-raices/anuncio/${listing.id}`}
+                href={
+                  lang
+                    ? appendLangToPath(`/clasificados/bienes-raices/anuncio/${listing.id}`, lang)
+                    : `/clasificados/bienes-raices/anuncio/${listing.id}`
+                }
                 className="block font-serif text-2xl font-semibold leading-tight text-[#1E1810] decoration-[#C9B46A]/50 underline-offset-4 hover:underline"
               >
                 {listing.title}

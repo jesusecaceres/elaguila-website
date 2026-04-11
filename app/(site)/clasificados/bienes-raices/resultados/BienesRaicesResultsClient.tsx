@@ -23,6 +23,7 @@ import { BienesRaicesResultsFilterDrawer } from "./components/BienesRaicesResult
 import { BienesRaicesResultsFilters } from "./components/BienesRaicesResultsFilters";
 import { BienesRaicesResultsHeader } from "./components/BienesRaicesResultsHeader";
 import { BienesRaicesResultsHero } from "./components/BienesRaicesResultsHero";
+import { BienesRaicesBrConsentStrip } from "@/app/clasificados/bienes-raices/components/BienesRaicesBrConsentStrip";
 import { BienesRaicesResultsShell } from "./components/BienesRaicesResultsShell";
 import { BienesRaicesResultsTopBar } from "./components/BienesRaicesResultsTopBar";
 import { BienesRaicesMapPreview } from "./map/BienesRaicesMapPreview";
@@ -188,6 +189,7 @@ export function BienesRaicesResultsClient() {
       <BienesRaicesResultsHero copy={copy} />
 
       <div className="mt-8 max-w-5xl space-y-4">
+        <BienesRaicesBrConsentStrip lang={lang} />
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end lg:hidden">
           <button
             type="button"
@@ -199,7 +201,7 @@ export function BienesRaicesResultsClient() {
         </div>
 
         <div className="hidden lg:block">
-          <BienesRaicesResultsFilters parsed={parsed} copy={copy} onPatch={(patch) => patchUrl(patch)} />
+          <BienesRaicesResultsFilters parsed={parsed} copy={copy} lang={lang} onPatch={(patch) => patchUrl(patch)} />
         </div>
 
         <BienesRaicesPropiedadFilterChips active={propiedadFilter} copy={copy} />
@@ -341,6 +343,7 @@ export function BienesRaicesResultsClient() {
         onClose={() => setFilterDrawerOpen(false)}
         parsed={parsed}
         copy={copy}
+        lang={lang}
         onPatch={(patch) => {
           patchUrl(patch);
         }}

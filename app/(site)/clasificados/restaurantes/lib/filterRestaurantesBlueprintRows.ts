@@ -1,5 +1,8 @@
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
-import type { RestaurantesDiscoveryState } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
+import {
+  normalizeDiscoveryLocationText,
+  type RestaurantesDiscoveryState,
+} from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
 
 /**
  * Free-text `q` matches (case-insensitive substring) against the same fields we intend to index for publish:
@@ -46,7 +49,10 @@ export function filterRestaurantesBlueprintRows(
 ): RestaurantesPublicBlueprintRow[] {
   return rows.filter((row) => {
     if (s.q.trim() && !rowMatchesQuery(s.q, row)) return false;
-    if (s.city && !row.city.toLowerCase().includes(s.city.toLowerCase())) return false;
+    if (s.city) {
+      const needle = normalizeDiscoveryLocationText(s.city).toLowerCase();
+      if (needle && !row.city.toLowerCase().includes(needle)) return false;
+    }
     if (s.zip && (row.zip ?? "").trim() !== s.zip.trim()) return false;
     if (s.cuisine && !rowMatchesCuisineFilter(s.cuisine, row)) return false;
     if (s.biz && (row.businessType ?? "") !== s.biz) return false;

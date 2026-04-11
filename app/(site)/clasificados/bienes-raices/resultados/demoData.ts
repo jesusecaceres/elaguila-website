@@ -2,12 +2,17 @@ import type { BrNegocioListing } from "./cards/listingTypes";
 
 export const BR_NEGOCIO_DEMO_TOTAL = 1432;
 
+/** Synthetic publish timestamps — higher = newer for “recientes” / default sort. */
+const DEMO_MS = 1_720_000_800_000;
+
 export const brNegocioFeaturedListing: BrNegocioListing = {
   id: "feat-encino",
   imageUrl: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80&auto=format&fit=crop",
   price: "$1,250,000",
   title: "Casa moderna con piscina",
   addressLine: "Encino Hills, Los Angeles, CA",
+  zipCode: "91436",
+  demoPublishedAtMs: DEMO_MS + 120 * 86_400_000,
   beds: "4",
   baths: "3.5",
   sqft: "2,450",
@@ -42,6 +47,7 @@ export const brNegocioGridListings: BrNegocioListing[] = [
     categoriaPropiedad: "residencial",
     advertiser: { kind: "agente", name: "Gabriel Soto" },
     trustChip: "Agente verificado",
+    demoPublishedAtMs: DEMO_MS,
   },
   {
     id: "cdmx-1",
@@ -76,6 +82,7 @@ export const brNegocioGridListings: BrNegocioListing[] = [
     openHouse: "Sáb 12 abr · 11:00 – 14:00",
     advertiser: { kind: "equipo", name: "Equipo Domus", subtitle: "2 agentes" },
     trustChip: "Equipo",
+    demoPublishedAtMs: DEMO_MS + 2 * 86_400_000,
   },
   {
     id: "la-2",
@@ -83,6 +90,7 @@ export const brNegocioGridListings: BrNegocioListing[] = [
     price: "$625,000",
     title: "Townhouse con patio privado",
     addressLine: "Pasadena, CA",
+    zipCode: "91101",
     beds: "3",
     baths: "2",
     sqft: "1,760",
@@ -93,6 +101,7 @@ export const brNegocioGridListings: BrNegocioListing[] = [
     advertiser: { kind: "oficina", name: "Brokerage Valle", subtitle: "Oficina central" },
     trustChip: "Oficina",
     metaLines: ["Planos y tour virtual"],
+    demoPublishedAtMs: DEMO_MS + 3 * 86_400_000,
   },
   {
     id: "gdl-2",
@@ -109,6 +118,7 @@ export const brNegocioGridListings: BrNegocioListing[] = [
     categoriaPropiedad: "residencial",
     advertiser: { kind: "agente", name: "Mariana López" },
     trustChip: "Agente verificado",
+    demoPublishedAtMs: DEMO_MS + 4 * 86_400_000,
   },
   {
     id: "mty-2",
@@ -124,6 +134,7 @@ export const brNegocioGridListings: BrNegocioListing[] = [
     categoriaPropiedad: "comercial",
     advertiser: { kind: "oficina", name: "Capital Inmobiliaria" },
     trustChip: "Oficina",
+    demoPublishedAtMs: DEMO_MS + 5 * 86_400_000,
   },
   {
     id: "jal-terreno-1",
@@ -141,6 +152,7 @@ export const brNegocioGridListings: BrNegocioListing[] = [
     advertiser: { kind: "agente", name: "Ricardo Mena" },
     trustChip: "Agente verificado",
     metaLines: ["Esquina · servicios en banqueta"],
+    demoPublishedAtMs: DEMO_MS + 6 * 86_400_000,
   },
   {
     id: "priv-spgg-1",
@@ -159,6 +171,7 @@ export const brNegocioGridListings: BrNegocioListing[] = [
     advertiser: { kind: "agente", name: "Patricia Cantú" },
     trustChip: "Particular",
     metaLines: ["Acepta ofertas razonables"],
+    demoPublishedAtMs: DEMO_MS + 7 * 86_400_000,
   },
   {
     id: "priv-mty-cumbres",
@@ -178,6 +191,7 @@ export const brNegocioGridListings: BrNegocioListing[] = [
     trustChip: "Particular",
     operationLabel: "Renta",
     metaLines: ["Acepta mascotas", "Amueblado"],
+    demoPublishedAtMs: DEMO_MS + 8 * 86_400_000,
   },
   {
     id: "priv-mty-centro",
@@ -197,5 +211,6 @@ export const brNegocioGridListings: BrNegocioListing[] = [
     trustChip: "Particular",
     operationLabel: "Venta",
     metaLines: ["Recién impermeabilizada"],
+    demoPublishedAtMs: DEMO_MS + 9 * 86_400_000,
   },
 ];

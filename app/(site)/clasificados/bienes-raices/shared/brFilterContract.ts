@@ -145,3 +145,41 @@ export const BR_LANDING_QUICK_CHIP_CONTRACT: ReadonlyArray<{
  */
 export const BR_MOBILE_FILTER_STRATEGY_SUMMARY =
   "Resultados: URL-driven state; <lg uses filter drawer; ≥lg inline panel; no separate filter model.";
+
+/** Publish / API backing for each visible filter — single source for launch audits (Phase 2+). */
+export const BR_FILTER_PUBLISH_READINESS: Record<
+  | "q"
+  | "city"
+  | "zip"
+  | "operationType"
+  | "propertyType"
+  | "sellerType"
+  | "priceMin"
+  | "priceMax"
+  | "beds"
+  | "baths"
+  | "pets"
+  | "furnished"
+  | "pool"
+  | "sort"
+  | "page"
+  | "parking",
+  "ready" | "reserved" | "deferred_demo"
+> = {
+  q: "ready",
+  city: "ready",
+  zip: "ready",
+  operationType: "ready",
+  propertyType: "ready",
+  sellerType: "ready",
+  priceMin: "ready",
+  priceMax: "ready",
+  beds: "ready",
+  baths: "ready",
+  pets: "ready",
+  furnished: "ready",
+  pool: "ready",
+  sort: "ready",
+  page: "ready",
+  parking: "reserved",
+};

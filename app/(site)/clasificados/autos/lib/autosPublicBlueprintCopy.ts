@@ -155,6 +155,13 @@ export const AUTOS_PUBLIC_BLUEPRINT_COPY = {
     resultsLaneMainSubtitle: "Listado mixto: particulares y concesionarios con visibilidad equitativa dentro de tus filtros.",
     resultsResetShort: "Restablecer",
     resultsLocationHint: "Solo al tocar el botón. No rastreamos tu ubicación en segundo plano.",
+    resultsLocationInsecure: "Tu navegador requiere HTTPS para ubicación. Usa ciudad o ZIP.",
+    demoInventoryBanner:
+      "Modo demostración: inventario de ejemplo solo para pruebas de interfaz. No son anuncios reales en vivo.",
+    publicNoLiveListingsTitle: "Aún no hay autos públicos en esta vitrina",
+    publicNoLiveListingsBody:
+      "Cuando haya anuncios activos, aparecerán aquí. Mientras tanto puedes explorar filtros o publicar un anuncio.",
+    resultsNoFilterMatches: "Sin resultados con estos filtros. Prueba ampliar criterios o restablecer.",
     cardMonthly: "desde {amount}/mes est.",
     cardMi: "mi",
     sellerDealerFooter: "Concesionario",
@@ -320,6 +327,13 @@ export const AUTOS_PUBLIC_BLUEPRINT_COPY = {
     resultsLaneMainSubtitle: "Mixed feed: private sellers and dealerships with fair visibility within your filters.",
     resultsResetShort: "Reset all",
     resultsLocationHint: "Only when you tap the button. We do not track your location in the background.",
+    resultsLocationInsecure: "Your browser needs HTTPS for location. Use city or ZIP instead.",
+    demoInventoryBanner:
+      "Demo mode: sample inventory for UI testing only. These are not real live listings.",
+    publicNoLiveListingsTitle: "No public vehicles here yet",
+    publicNoLiveListingsBody:
+      "When active listings go live, they will appear here. You can still use filters or post a listing.",
+    resultsNoFilterMatches: "No results match these filters. Try broadening criteria or reset.",
     cardMonthly: "from {amount}/mo est.",
     cardMi: "mi",
     sellerDealerFooter: "Dealership",
@@ -333,4 +347,7 @@ export const AUTOS_PUBLIC_BLUEPRINT_COPY = {
   },
 } as const;
 
-export type AutosPublicBlueprintCopy = (typeof AUTOS_PUBLIC_BLUEPRINT_COPY)[AutosPublicLang];
+/** Intersection ensures launch banners (`demoInventoryBanner`, etc.) are visible on the exported type across `es` | `en`. */
+export type AutosPublicBlueprintCopy = (typeof AUTOS_PUBLIC_BLUEPRINT_COPY)[AutosPublicLang] & {
+  demoInventoryBanner: string;
+};

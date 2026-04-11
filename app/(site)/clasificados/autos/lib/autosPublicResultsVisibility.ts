@@ -1,3 +1,18 @@
+/**
+ * Results lanes (featured / recent / main) — launch rules
+ * ------------------------------------------------------
+ * - **Featured band:** dealer rows with `featured: true`, capped (FEATURED_CAP). Not pay-to-win by itself:
+ *   it is a *visibility band* for promoted dealer inventory; the main grid still lists private sellers and
+ *   non-featured rows. Production should only set `featured` from real entitlement data.
+ * - **Recent lane:** first N non-featured rows when sort is **newest** only, so “recent” matches user sort.
+ *   Duplicates are removed from the main pool so cards do not appear twice.
+ * - **Main grid:** everything else (standard pool minus recent-lane ids when recent lane is shown).
+ * - **Private sellers:** never excluded from the main pool; landing featured row also tries to surface one
+ *   private listing when the sample/API mix allows (`getLandingFeaturedRow`).
+ *
+ * This partition runs on **already filtered** listings; ranking beyond sort order is intentionally minimal
+ * (fair tie-break / lane structure), not a full production search engine.
+ */
 import type { AutosPublicListing } from "../data/autosPublicSampleTypes";
 import { getFeaturedDealerListings, getStandardListings } from "../data/sampleAutosPublicInventory";
 import type { AutosPublicSortKey } from "../filters/autosPublicFilterTypes";

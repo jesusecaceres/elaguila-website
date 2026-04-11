@@ -125,6 +125,12 @@ export type RentasLandingCopy = {
     locationPrimaryNote: string;
     /** Full filter zone title (results). */
     filterZoneTitle: string;
+    /** Shown when `RENTAS_PUBLIC_DATA_SOURCE === "demo"` — does not claim live inventory. */
+    dataSourceNote: string;
+    paginationPrev: string;
+    paginationNext: string;
+    /** Placeholders `{current}` and `{total}` for page indicator. */
+    paginationPageOf: string;
     rentMinLabel: string;
     rentMaxLabel: string;
     filterAmenities: string;
@@ -291,9 +297,14 @@ const ES: RentasLandingCopy = {
     locationDenied: "No pudimos usar tu ubicación. Prueba ciudad o CP.",
     locationPending: "Solicitando permiso…",
     locationScaffoldNote:
-      "Coordenadas guardadas en la URL. El orden por distancia y radio se activará cuando el índice geográfico esté en producción.",
+      "Coordenadas guardadas en la URL para una futura búsqueda por radio. Hoy el listado no se filtra por distancia: sigue usando ciudad o CP arriba.",
     locationPrimaryNote: "Ciudad o código postal arriba sigue siendo la forma principal de acotar.",
     filterZoneTitle: "Ubicación y filtros",
+    dataSourceNote:
+      "Vista con datos de demostración: cuando el inventario publicado esté conectado, verás anuncios reales aquí.",
+    paginationPrev: "Anterior",
+    paginationNext: "Siguiente",
+    paginationPageOf: "Página {current} de {total}",
     rentMinLabel: "Renta mín. / mes",
     rentMaxLabel: "Renta máx. / mes",
     filterAmenities: "Comodidades",
@@ -459,9 +470,14 @@ const EN: RentasLandingCopy = {
     locationDenied: "We couldn’t use your location. Try city or ZIP.",
     locationPending: "Requesting permission…",
     locationScaffoldNote:
-      "Coordinates saved in the URL. Sort-by-distance and radius search will activate when the geo index ships.",
+      "Coordinates are saved in the URL for a future radius search. Today the list is not filtered by distance — keep using city or ZIP above.",
     locationPrimaryNote: "City or ZIP above remains the primary way to narrow results.",
     filterZoneTitle: "Location & filters",
+    dataSourceNote:
+      "Demo data view: when live published inventory is connected, you will see real listings here.",
+    paginationPrev: "Previous",
+    paginationNext: "Next",
+    paginationPageOf: "Page {current} of {total}",
     rentMinLabel: "Min rent / mo",
     rentMaxLabel: "Max rent / mo",
     filterAmenities: "Amenities",

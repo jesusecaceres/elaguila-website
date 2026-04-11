@@ -32,6 +32,8 @@ import { RentasAnuncioMetaGridCards } from "../../rentas/listing/components/Rent
 import { RentasNegocioDesktopBusinessRail } from "../../rentas/listing/components/RentasNegocioDesktopBusinessRail";
 import type { RentasAnuncioListingLike } from "../../rentas/listing/types/rentasAnuncioLiveTypes";
 import { EnVentaAnuncioLayout } from "../../en-venta/listing/EnVentaAnuncioLayout";
+import { EV_LISTING_PARAM } from "../../en-venta/results/contracts/enVentaResultsUrlParams";
+import { parseEnVentaResultsReturnUrl } from "../../en-venta/results/utils/enVentaListingLinks";
 import { resolveLeonixLiveListingContact } from "../../lib/leonixListingContactResolve";
 import { useAutosAnuncioDerived } from "../../autos/listing/hooks/useAutosAnuncioDerived";
 import { AutosAnuncioMetaFactCards } from "../../autos/listing/components/AutosAnuncioMetaFactCards";
@@ -235,6 +237,9 @@ export default function AnuncioDetallePage() {
   const searchParams = sp ?? new URLSearchParams();
 
   const lang = ((searchParams.get("lang") || "es") as Lang) === "en" ? "en" : "es";
+
+  const evReturnRaw = searchParams.get(EV_LISTING_PARAM.evReturn);
+  const enVentaBackHref = useMemo(() => parseEnVentaResultsReturnUrl(evReturnRaw, lang), [evReturnRaw, lang]);
 
   const t = useMemo(() => {
     const ui = {
@@ -943,7 +948,7 @@ export default function AnuncioDetallePage() {
           business_meta: listing.business_meta ?? ev.business_meta ?? null,
         }}
         lang={lang}
-        backHref={`/clasificados/en-venta/results?lang=${lang}`}
+        backHref={enVentaBackHref}
       />
     );
   }

@@ -33,14 +33,14 @@ export function FeaturedBusinessCard({ row, lang }: { row: ServiciosLandingFeatu
             />
           </svg>
         </span>
-        {row.cta.labelEs}
+        {row.cta.label}
       </a>
     ) : (
       <Link
         href={`${row.cta.detailHref ?? "/clasificados/servicios/resultados"}?lang=${lang}`}
         className={ctaClass}
       >
-        {row.cta.labelEs}
+        {row.cta.label}
       </Link>
     );
 
@@ -71,13 +71,19 @@ export function FeaturedBusinessCard({ row, lang }: { row: ServiciosLandingFeatu
         ) : null}
       </div>
       <div className="flex flex-1 flex-col p-6 sm:p-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5a6b7c]">{row.categoryLabelEs}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5a6b7c]">{row.categoryLine}</p>
         <h3 className="mt-2 text-xl font-bold leading-snug tracking-tight text-[#142a42]">{row.businessName}</h3>
-        <div className="mt-4 flex flex-wrap items-baseline gap-2">
-          <Stars rating={row.rating} />
-          <span className="text-[14px] font-bold tabular-nums text-[#142a42]">{row.rating.toFixed(1)}</span>
-          <span className="text-[12px] text-[#64748b]">({row.reviewCount})</span>
-        </div>
+        {row.ratingSummary ? (
+          <div className="mt-4 flex flex-wrap items-baseline gap-2">
+            <Stars rating={row.ratingSummary.rating} />
+            <span className="text-[14px] font-bold tabular-nums text-[#142a42]">{row.ratingSummary.rating.toFixed(1)}</span>
+            <span className="text-[12px] text-[#64748b]">({row.ratingSummary.reviewCount})</span>
+          </div>
+        ) : (
+          <p className="mt-4 text-[12px] font-medium text-[#64748b]">
+            {lang === "en" ? "Leonix showcase — ratings when reviews are published." : "Vitrina Leonix — calificaciones cuando haya reseñas publicadas."}
+          </p>
+        )}
         <p className="mt-4 flex items-start gap-2 border-t border-[#ebe4d9]/90 pt-4 text-[13px] leading-snug text-[#3d4f62]">
           <span className="mt-0.5 shrink-0 text-[#3d5a73]" aria-hidden>
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useCallback, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { FaMapMarkerAlt, FaSearch } from "react-icons/fa";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
@@ -16,7 +16,7 @@ import {
 } from "../../data/empleosLandingSampleData";
 import { EmpleosUseLocationButton } from "../EmpleosUseLocationButton";
 import { EMPLEOS_CTA_PRIMARY, EMPLEOS_FIELD } from "../../lib/empleosPremiumUi";
-import { normalizeZip5 } from "../../lib/empleosResultsQuery";
+import { normalizeZip5, parseEmpleosResultsQuery } from "../../lib/empleosResultsQuery";
 import { buildEmpleosResultadosUrl } from "../../shared/utils/empleosListaUrl";
 
 /** Wide workplace photo — hero atmosphere (distinct from En Venta property imagery). */
@@ -32,12 +32,24 @@ type Props = {
 
 export function HeroAndSearch({ lang }: Props) {
   const router = useRouter();
+  const sp = useSearchParams();
+  const parsed = useMemo(() => parseEmpleosResultsQuery(sp ?? new URLSearchParams()), [sp]);
+
   const [q, setQ] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zip, setZip] = useState("");
   const [category, setCategory] = useState("");
   const [jobType, setJobType] = useState("");
+
+  useEffect(() => {
+    setQ(parsed.q);
+    setCity(parsed.city);
+    setState(parsed.state);
+    setZip(parsed.zip);
+    setCategory(parsed.category);
+    setJobType(parsed.jobType);
+  }, [parsed]);
 
   const submit = useCallback(() => {
     const z = normalizeZip5(zip);

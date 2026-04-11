@@ -11,14 +11,14 @@ export function RecentServiceCard({ row, lang }: { row: ServiciosLandingRecentLi
         href={row.cta.telHref}
         className={`${btnBase} border border-[#1a3352]/16 bg-white text-[#1a3352] shadow-[0_4px_14px_-8px_rgba(26,51,82,0.3)] hover:border-[#1a3352]/28`}
       >
-        {row.cta.labelEs}
+        {row.cta.label}
       </a>
     ) : (
       <Link
         href={`${row.cta.detailHref ?? "/clasificados/servicios/resultados"}?lang=${lang}`}
         className={`${btnBase} bg-gradient-to-br from-[#EA580C] to-[#C2410C] text-white shadow-[0_10px_26px_-12px_rgba(194,65,12,0.45)] hover:brightness-[1.04]`}
       >
-        {row.cta.labelEs}
+        {row.cta.label}
       </Link>
     );
 
@@ -51,16 +51,22 @@ export function RecentServiceCard({ row, lang }: { row: ServiciosLandingRecentLi
         ) : null}
       </div>
       <div className="flex flex-1 flex-col p-5 sm:p-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#64748b]">{row.businessNameEs}</p>
-        <h3 className="mt-2 text-[17px] font-bold leading-snug tracking-tight text-[#142a42] sm:text-lg">{row.serviceTitleEs}</h3>
-        <p className="mt-3 flex-1 text-[14px] leading-relaxed text-[#3d4f62]">{row.descriptionEs}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#64748b]">{row.businessName}</p>
+        <h3 className="mt-2 text-[17px] font-bold leading-snug tracking-tight text-[#142a42] sm:text-lg">{row.serviceTitle}</h3>
+        <p className="mt-3 flex-1 text-[14px] leading-relaxed text-[#3d4f62]">{row.description}</p>
         <div className="mt-5 flex items-center justify-between gap-3 border-t border-[#e8e0d6]/90 pt-5">
-          <span className="text-[13px] font-bold tabular-nums text-[#142a42]">
-            <span className="text-[#EA580C]" aria-hidden>
-              ★{" "}
+          {typeof row.rating === "number" ? (
+            <span className="text-[13px] font-bold tabular-nums text-[#142a42]">
+              <span className="text-[#EA580C]" aria-hidden>
+                ★{" "}
+              </span>
+              {row.rating.toFixed(1)}
             </span>
-            {row.rating.toFixed(1)}
-          </span>
+          ) : (
+            <span className="text-[12px] font-medium text-[#64748b]">
+              {lang === "en" ? "Published showcase" : "Vitrina publicada"}
+            </span>
+          )}
           {btn}
         </div>
       </div>

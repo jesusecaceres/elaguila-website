@@ -1,12 +1,12 @@
 /**
  * Derived destination catalog for Viajes autocomplete.
- * Built from sample datasets — replace with API-backed index when inventory is live.
+ * Built from landing samples + `getViajesPublicResultRows()` — extend when live inventory feeds the adapter.
  */
 
 import { VIAJES_DESTINATION_COLLECTIONS, VIAJES_TOP_OFFERS } from "./viajesLandingSampleData";
 import { VIAJES_NEGOCIO_PROFILES } from "./viajesNegocioProfileSampleData";
 import { VIAJES_OFFER_DETAILS } from "./viajesOfferDetailSampleData";
-import { VIAJES_RESULTS_SAMPLE } from "./viajesResultsSampleData";
+import { getViajesPublicResultRows } from "../lib/viajesPublicInventory";
 import { normalizeViajesDestinationKey, viajesDestinationMatchBlob } from "../lib/normalizeViajesDestination";
 
 export type ViajesDestinationRecord = {
@@ -78,7 +78,7 @@ function buildIndex(): ViajesDestinationRecord[] {
     }
   }
 
-  for (const row of VIAJES_RESULTS_SAMPLE) {
+  for (const row of getViajesPublicResultRows()) {
     if (row.kind === "editorial") {
       const dest = row.destinationLabel;
       const first = dest.split(/[,·]/)[0]?.trim() ?? dest;

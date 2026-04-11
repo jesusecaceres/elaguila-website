@@ -21,6 +21,8 @@ type Props = {
   job: EmpleosJobRecord;
   lang: Lang;
   variant?: "grid" | "list";
+  /** Fair “fresh posting” signal — uses same 7‑day window as results `recent` filter. */
+  showRecentRibbon?: boolean;
 };
 
 function modalityEs(m: EmpleosJobRecord["modality"]) {
@@ -37,7 +39,7 @@ function jobTypeEs(t: EmpleosJobRecord["jobType"]) {
   return map[t];
 }
 
-export function EmpleosJobResultCard({ job, lang, variant = "list" }: Props) {
+export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRibbon = false }: Props) {
   const detailHref = appendLangToPath(`/clasificados/empleos/${job.slug}`, lang);
 
   const isWide = variant === "grid";
@@ -67,6 +69,10 @@ export function EmpleosJobResultCard({ job, lang, variant = "list" }: Props) {
             className={`absolute left-2 top-2 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${tierRibbon}`}
           >
             {job.listingTier === "promoted" ? (lang === "es" ? "Promocionado" : "Promoted") : lang === "es" ? "Destacado" : "Featured"}
+          </span>
+        ) : showRecentRibbon ? (
+          <span className="absolute left-2 top-2 rounded-full border border-emerald-200/90 bg-[#F0FAF3]/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#166534] shadow-sm">
+            {lang === "es" ? "Reciente" : "Recent"}
           </span>
         ) : null}
       </Link>

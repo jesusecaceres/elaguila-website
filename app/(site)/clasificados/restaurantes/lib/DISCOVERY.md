@@ -17,3 +17,12 @@
 **Routes:** `/clasificados/restaurantes` (fast search + chips), `/clasificados/restaurantes/resultados` (full filters + grid).
 
 **Handoff:** Replace blueprint rows with API-backed rows; keep `RestaurantesDiscoveryState` and filter field names aligned with `RestauranteListingApplication`.
+
+## Launch readiness
+
+| Question | Answer |
+| -------- | ------ |
+| Is the discovery **URL contract** ready? | Yes — `restaurantesDiscoveryContract.ts`. |
+| Is **search/filter mapping** ready for real data? | Yes — `filterRestaurantesBlueprintRows.ts` (swap data source). |
+| Are **published listings** shown in `/resultados` today? | **No** — UI still uses `RESTAURANTES_PUBLIC_BLUEPRINT_ROWS` until wired to published query + `applicationToRestauranteDiscoveryRow`. |
+| Are **destacados / recientes / promoted** fair? | Yes — policy in `restaurantesListingExposurePolicy.ts` (over current row pool). |

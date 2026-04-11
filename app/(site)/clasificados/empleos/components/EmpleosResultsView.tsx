@@ -17,10 +17,13 @@ import {
   sampleSalaryBandOptions,
   sampleUsStateSelectOptions,
 } from "../data/empleosLandingSampleData";
+import type { EmpleosJobRecord } from "../data/empleosJobTypes";
 import { EMPLEOS_JOB_CATALOG } from "../data/empleosSampleCatalog";
 import { saveEmpleosFilterPrefs } from "../lib/empleosFunctionalStorage";
 import {
   EMPLEOS_SAMPLE_NOW_MS,
+  type EmpleosSortKey,
+  type ParsedEmpleosResultsQuery,
   empleosParamsFromSearchParams,
   filterEmpleosJobs,
   normalizeZip5,
@@ -56,7 +59,11 @@ const COPY = {
     activeFilters: "Filtros activos",
     emptyTitle: "No encontramos vacantes con esta combinación",
     emptyHint: "Amplía ciudad o palabra clave, o restablece filtros para volver a explorar.",
+    emptySupport: "No es un error tuyo: los listados viven de tus filtros. Prueba una acción de abajo o vuelve al inicio de Empleos.",
     emptyExplore: "Volver a Empleos",
+    keywordHint: "Escribe y pulsa Buscar, o Enter, para aplicar la palabra clave.",
+    fieldBlurHint: "Ciudad y CP se actualizan al salir del campo.",
+    listIntroRecent: "Solo publicaciones de los últimos 7 días, en orden cronológico.",
     featuredBlock: "Destacados y promocionados",
     allBlock: "Todas las vacantes",
     formAria: "Filtros de búsqueda de empleos",
@@ -93,7 +100,11 @@ const COPY = {
     activeFilters: "Active filters",
     emptyTitle: "No openings match this combination",
     emptyHint: "Broaden your city or keyword, or reset filters to explore again.",
+    emptySupport: "This is normal: results follow your filters. Try a recovery action below or return to Jobs home.",
     emptyExplore: "Back to Jobs home",
+    keywordHint: "Type and press Search, or Enter, to apply your keyword.",
+    fieldBlurHint: "City and ZIP update when you leave the field.",
+    listIntroRecent: "Last 7 days only, in chronological order.",
     featuredBlock: "Featured & promoted",
     allBlock: "All openings",
     formAria: "Job search filters",
@@ -117,6 +128,13 @@ const COPY = {
   },
 } as const;
 
+/** Same window as `filterEmpleosJobs` recent filter — for fair “Reciente” ribbon on cards. */
+const RESULTS_RECENT_MS = 7 * 24 * 3600 * 1000;
+
+function isRecentPosting(job: EmpleosJobRecord, nowMs: number): boolean {
+  return nowMs - new Date(job.publishedAt).getTime() <= RESULTS_RECENT_MS;
+}
+
 const CHIP_KEYS: (keyof EmpleosResultadosParams)[] = [
   "q",
   "city",
@@ -136,6 +154,59 @@ const CHIP_KEYS: (keyof EmpleosResultadosParams)[] = [
   "premium",
   "radiusKm",
 ];
+
+type EmpleosFormFields = {
+  q: string;
+  city: string;
+  stateCode: string;
+  zipInput: string;
+  category: string;
+  jobType: string;
+  modality: string;
+  salaryBand: string;
+  experience: string;
+  companyType: string;
+  recent: boolean;
+  quickApply: boolean;
+  featured: boolean;
+  verifiedBox: boolean;
+  premiumBox: boolean;
+};
+
+function toEmpleosParams(sortKey: EmpleosSortKey, f: EmpleosFormFields): EmpleosResultadosParams {
+  const band = sampleSalaryBandOptions.find((b) => b.value === f.salaryBand);
+  const z = normalizeZip5(f.zipInput);
+  return {
+    q: f.q.trim() || undefined,
+    city: f.city.trim() || undefined,
+    state: f.stateCode.trim() || undefined,
+    zip: z.length === 5 ? z : undefined,
+    category: f.category || undefined,
+    jobType: f.jobType || undefined,
+    modality: f.modality || undefined,
+    salaryMin: band?.min || undefined,
+    salaryMax: band?.max || undefined,
+    experience: f.experience || undefined,
+    companyType: f.companyType || undefined,
+    recent: f.recent ? "1" : undefined,
+    quickApply: f.quickApply ? "1" : undefined,
+    featured: f.featured ? "1" : undefined,
+    verified: f.verifiedBox ? "1" : undefined,
+    premium: f.premiumBox ? "1" : undefined,
+    sort: sortKey,
+  };
+}
+
+function withStagedRadius(parsed: ParsedEmpleosResultsQuery, p: EmpleosResultadosParams): EmpleosResultadosParams {
+  if (!parsed.radiusKm) return p;
+  return { ...p, radiusKm: parsed.radiusKm };
+}
+
+function sortChipLabel(lang: Lang, sort: EmpleosSortKey): string {
+  if (sort === "date_desc") return lang === "es" ? "Orden: más recientes" : "Sort: newest first";
+  if (sort === "salary_desc") return lang === "es" ? "Orden: salario mayor" : "Sort: highest salary";
+  return lang === "es" ? "Orden: relevancia" : "Sort: relevance";
+}
 
 function chipLabel(lang: Lang, key: string, val: string): string {
   if (key === "featured" && val === "1") return lang === "es" ? "Solo destacados" : "Featured only";
@@ -193,11 +264,11 @@ function EmpleosFilterToggles({
   quickApply,
   verifiedBox,
   premiumBox,
-  setFeatured,
-  setRecent,
-  setQuickApply,
-  setVerifiedBox,
-  setPremiumBox,
+  onFeaturedChange,
+  onRecentChange,
+  onQuickApplyChange,
+  onVerifiedChange,
+  onPremiumChange,
 }: {
   lang: Lang;
   featured: boolean;
@@ -205,33 +276,36 @@ function EmpleosFilterToggles({
   quickApply: boolean;
   verifiedBox: boolean;
   premiumBox: boolean;
-  setFeatured: (v: boolean) => void;
-  setRecent: (v: boolean) => void;
-  setQuickApply: (v: boolean) => void;
-  setVerifiedBox: (v: boolean) => void;
-  setPremiumBox: (v: boolean) => void;
+  onFeaturedChange: (v: boolean) => void;
+  onRecentChange: (v: boolean) => void;
+  onQuickApplyChange: (v: boolean) => void;
+  onVerifiedChange: (v: boolean) => void;
+  onPremiumChange: (v: boolean) => void;
 }) {
-  const cb = "flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-transparent px-1 py-1 text-sm font-medium text-[#2A2826] hover:border-[#E8DFD0]/80";
+  const cb =
+    "flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-transparent px-2 py-1.5 text-sm font-medium text-[#2A2826] transition hover:border-[#E8DFD0]/80";
+  const cbOn =
+    "border-[#E8DFD0]/90 bg-[#FFF8EC]/90 ring-1 ring-[#D9A23A]/20 hover:border-[#D9A23A]/35";
   return (
     <>
-      <label className={cb}>
-        <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} className="h-4 w-4 rounded" />
+      <label className={`${cb} ${featured ? cbOn : ""}`}>
+        <input type="checkbox" checked={featured} onChange={(e) => onFeaturedChange(e.target.checked)} className="h-4 w-4 rounded" />
         {lang === "es" ? "Solo destacados / promocionados" : "Featured / promoted only"}
       </label>
-      <label className={cb}>
-        <input type="checkbox" checked={recent} onChange={(e) => setRecent(e.target.checked)} className="h-4 w-4 rounded" />
+      <label className={`${cb} ${recent ? cbOn : ""}`}>
+        <input type="checkbox" checked={recent} onChange={(e) => onRecentChange(e.target.checked)} className="h-4 w-4 rounded" />
         {lang === "es" ? "Últimos 7 días" : "Last 7 days"}
       </label>
-      <label className={cb}>
-        <input type="checkbox" checked={quickApply} onChange={(e) => setQuickApply(e.target.checked)} className="h-4 w-4 rounded" />
+      <label className={`${cb} ${quickApply ? cbOn : ""}`}>
+        <input type="checkbox" checked={quickApply} onChange={(e) => onQuickApplyChange(e.target.checked)} className="h-4 w-4 rounded" />
         {lang === "es" ? "Aplicación rápida" : "Quick apply"}
       </label>
-      <label className={cb}>
-        <input type="checkbox" checked={verifiedBox} onChange={(e) => setVerifiedBox(e.target.checked)} className="h-4 w-4 rounded" />
+      <label className={`${cb} ${verifiedBox ? cbOn : ""}`}>
+        <input type="checkbox" checked={verifiedBox} onChange={(e) => onVerifiedChange(e.target.checked)} className="h-4 w-4 rounded" />
         {lang === "es" ? "Empleador verificado" : "Verified employer"}
       </label>
-      <label className={cb}>
-        <input type="checkbox" checked={premiumBox} onChange={(e) => setPremiumBox(e.target.checked)} className="h-4 w-4 rounded" />
+      <label className={`${cb} ${premiumBox ? cbOn : ""}`}>
+        <input type="checkbox" checked={premiumBox} onChange={(e) => onPremiumChange(e.target.checked)} className="h-4 w-4 rounded" />
         {lang === "es" ? "Negocio premium" : "Premium business"}
       </label>
     </>
@@ -300,42 +374,51 @@ export function EmpleosResultsView() {
     setSalaryBand(hit?.value ?? "");
   }, [parsed]);
 
-  const pushParams = (extra: EmpleosResultadosParams) => {
-    router.push(buildEmpleosResultadosUrl(lang, extra));
+  const fieldSnapshot = (): EmpleosFormFields => ({
+    q,
+    city,
+    stateCode,
+    zipInput,
+    category,
+    jobType,
+    modality,
+    salaryBand,
+    experience,
+    companyType,
+    recent,
+    quickApply,
+    featured,
+    verifiedBox,
+    premiumBox,
+  });
+
+  /** Updates URL immediately — keeps filter contract and staged `radiusKm` when present. */
+  const pushFromFields = (patch: Partial<EmpleosFormFields>) => {
+    const next = { ...fieldSnapshot(), ...patch };
+    router.push(buildEmpleosResultadosUrl(lang, withStagedRadius(parsed, toEmpleosParams(parsed.sort, next))));
   };
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const band = sampleSalaryBandOptions.find((b) => b.value === salaryBand);
-    const z = normalizeZip5(zipInput);
-    const next: EmpleosResultadosParams = {
-      q: q.trim() || undefined,
-      city: city.trim() || undefined,
-      state: stateCode.trim() || undefined,
-      zip: z.length === 5 ? z : undefined,
-      category: category || undefined,
-      jobType: jobType || undefined,
-      modality: modality || undefined,
-      salaryMin: band?.min || undefined,
-      salaryMax: band?.max || undefined,
-      experience: experience || undefined,
-      companyType: companyType || undefined,
-      recent: recent ? "1" : undefined,
-      quickApply: quickApply ? "1" : undefined,
-      featured: featured ? "1" : undefined,
-      verified: verifiedBox ? "1" : undefined,
-      premium: premiumBox ? "1" : undefined,
-      sort: parsed.sort,
-    };
-    if (rememberPrefs && (city.trim() || stateCode.trim())) {
-      saveEmpleosFilterPrefs({ city: city.trim() || undefined, state: stateCode.trim() || undefined });
+    const next = fieldSnapshot();
+    const params = withStagedRadius(parsed, toEmpleosParams(parsed.sort, next));
+    if (rememberPrefs && (next.city.trim() || next.stateCode.trim())) {
+      saveEmpleosFilterPrefs({ city: next.city.trim() || undefined, state: next.stateCode.trim() || undefined });
     }
-    pushParams(next);
+    router.push(buildEmpleosResultadosUrl(lang, params));
   };
 
   const onSortChange = (sort: string) => {
     const base = empleosParamsFromSearchParams(sp ?? new URLSearchParams());
-    pushParams({ ...base, sort: sort || undefined });
+    const sk = (sort || "relevance") as EmpleosSortKey;
+    router.push(buildEmpleosResultadosUrl(lang, { ...base, sort: sk }));
+  };
+
+  const onCityZipBlur = () => {
+    const z = normalizeZip5(zipInput);
+    const ct = city.trim();
+    if (ct === parsed.city && z === parsed.zip) return;
+    pushFromFields({});
   };
 
   const hubHref = appendLangToPath("/clasificados", lang);
@@ -351,8 +434,15 @@ export function EmpleosResultsView() {
       const href = buildEmpleosResultadosUrl(lang, empleosParamsFromSearchParams(sp, key as string));
       chips.push({ key: key as string, label: chipLabel(lang, key as string, val), href });
     });
+    if (parsed.sort !== "relevance") {
+      chips.push({
+        key: "sort",
+        label: sortChipLabel(lang, parsed.sort),
+        href: buildEmpleosResultadosUrl(lang, empleosParamsFromSearchParams(sp, "sort")),
+      });
+    }
     return chips;
-  }, [sp, lang]);
+  }, [sp, lang, parsed.sort]);
 
   const emptyRecoveryActions = useMemo(() => {
     if (filtered.length > 0 || !sp) return [] as { label: string; href: string }[];
@@ -435,21 +525,42 @@ export function EmpleosResultsView() {
           <div className="mb-8">
             <label className="block">
               <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#5B6F82]">{lang === "es" ? "Palabra clave" : "Keyword"}</span>
-              <input value={q} onChange={(e) => setQ(e.target.value)} className={EMPLEOS_FIELD} placeholder={lang === "es" ? "Ej. enfermero, ventas, bodega…" : "e.g. nurse, sales, warehouse…"} />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                className={EMPLEOS_FIELD}
+                placeholder={lang === "es" ? "Ej. enfermero, ventas, bodega…" : "e.g. nurse, sales, warehouse…"}
+              />
+              <p className="mt-2 text-[11px] leading-relaxed text-[#7A756E]">{t.keywordHint}</p>
             </label>
           </div>
 
           <div className="space-y-6">
             <div className={EMPLEOS_RESULTS_GROUP}>
               <h3 className="mb-4 text-sm font-bold text-[#2A2826]">{t.locationGroup}</h3>
+              <p className="mb-3 text-[11px] leading-relaxed text-[#7A756E]">{t.fieldBlurHint}</p>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <label className="sm:col-span-1">
                   <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Ciudad" : "City"}</span>
-                  <input value={city} onChange={(e) => setCity(e.target.value)} className={EMPLEOS_FIELD} autoComplete="address-level2" />
+                  <input
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    onBlur={onCityZipBlur}
+                    className={EMPLEOS_FIELD}
+                    autoComplete="address-level2"
+                  />
                 </label>
                 <label>
                   <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Estado" : "State"}</span>
-                  <select value={stateCode} onChange={(e) => setStateCode(e.target.value)} className={EMPLEOS_FIELD}>
+                  <select
+                    value={stateCode}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setStateCode(v);
+                      pushFromFields({ stateCode: v });
+                    }}
+                    className={EMPLEOS_FIELD}
+                  >
                     {sampleUsStateSelectOptions.map((o) => (
                       <option key={o.value || "all"} value={o.value}>
                         {lang === "es" ? o.labelEs : o.labelEn}
@@ -464,6 +575,7 @@ export function EmpleosResultsView() {
                     inputMode="numeric"
                     maxLength={5}
                     onChange={(e) => setZipInput(normalizeZip5(e.target.value))}
+                    onBlur={onCityZipBlur}
                     className={EMPLEOS_FIELD}
                     autoComplete="postal-code"
                     placeholder={lang === "es" ? "5 dígitos" : "5 digits"}
@@ -487,7 +599,15 @@ export function EmpleosResultsView() {
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <label className="lg:col-span-1">
                   <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Categoría" : "Category"}</span>
-                  <select value={category} onChange={(e) => setCategory(e.target.value)} className={EMPLEOS_FIELD}>
+                  <select
+                    value={category}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setCategory(v);
+                      pushFromFields({ category: v });
+                    }}
+                    className={EMPLEOS_FIELD}
+                  >
                     {sampleCategorySelectOptions.map((o) => (
                       <option key={o.value || "all"} value={o.value}>
                         {o.label}
@@ -497,7 +617,15 @@ export function EmpleosResultsView() {
                 </label>
                 <label>
                   <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Tipo de empleo" : "Job type"}</span>
-                  <select value={jobType} onChange={(e) => setJobType(e.target.value)} className={EMPLEOS_FIELD}>
+                  <select
+                    value={jobType}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setJobType(v);
+                      pushFromFields({ jobType: v });
+                    }}
+                    className={EMPLEOS_FIELD}
+                  >
                     {sampleJobTypeSelectOptions.map((o) => (
                       <option key={o.value || "any"} value={o.value}>
                         {o.label}
@@ -507,7 +635,15 @@ export function EmpleosResultsView() {
                 </label>
                 <label>
                   <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Modalidad" : "Modality"}</span>
-                  <select value={modality} onChange={(e) => setModality(e.target.value)} className={EMPLEOS_FIELD}>
+                  <select
+                    value={modality}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setModality(v);
+                      pushFromFields({ modality: v });
+                    }}
+                    className={EMPLEOS_FIELD}
+                  >
                     {sampleModalityOptions.map((o) => (
                       <option key={o.value || "all"} value={o.value}>
                         {o.label}
@@ -523,7 +659,15 @@ export function EmpleosResultsView() {
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <label>
                   <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Salario (rango)" : "Salary band"}</span>
-                  <select value={salaryBand} onChange={(e) => setSalaryBand(e.target.value)} className={EMPLEOS_FIELD}>
+                  <select
+                    value={salaryBand}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setSalaryBand(v);
+                      pushFromFields({ salaryBand: v });
+                    }}
+                    className={EMPLEOS_FIELD}
+                  >
                     {sampleSalaryBandOptions.map((o) => (
                       <option key={o.value || "any"} value={o.value}>
                         {o.label}
@@ -533,7 +677,15 @@ export function EmpleosResultsView() {
                 </label>
                 <label>
                   <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Experiencia" : "Experience"}</span>
-                  <select value={experience} onChange={(e) => setExperience(e.target.value)} className={EMPLEOS_FIELD}>
+                  <select
+                    value={experience}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setExperience(v);
+                      pushFromFields({ experience: v });
+                    }}
+                    className={EMPLEOS_FIELD}
+                  >
                     {sampleExperienceOptions.map((o) => (
                       <option key={o.value || "any"} value={o.value}>
                         {o.label}
@@ -543,7 +695,15 @@ export function EmpleosResultsView() {
                 </label>
                 <label className="md:col-span-2 xl:col-span-1">
                   <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Tipo de empresa" : "Company type"}</span>
-                  <select value={companyType} onChange={(e) => setCompanyType(e.target.value)} className={EMPLEOS_FIELD}>
+                  <select
+                    value={companyType}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setCompanyType(v);
+                      pushFromFields({ companyType: v });
+                    }}
+                    className={EMPLEOS_FIELD}
+                  >
                     {sampleCompanyTypeOptions.map((o) => (
                       <option key={o.value || "any"} value={o.value}>
                         {o.label}
@@ -562,7 +722,15 @@ export function EmpleosResultsView() {
               <div className="mt-4 grid gap-4 border-t border-[#F0E8DC] pt-4">
                 <label>
                   <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Salario (rango)" : "Salary band"}</span>
-                  <select value={salaryBand} onChange={(e) => setSalaryBand(e.target.value)} className={EMPLEOS_FIELD}>
+                  <select
+                    value={salaryBand}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setSalaryBand(v);
+                      pushFromFields({ salaryBand: v });
+                    }}
+                    className={EMPLEOS_FIELD}
+                  >
                     {sampleSalaryBandOptions.map((o) => (
                       <option key={o.value || "any"} value={o.value}>
                         {o.label}
@@ -572,7 +740,15 @@ export function EmpleosResultsView() {
                 </label>
                 <label>
                   <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Experiencia" : "Experience"}</span>
-                  <select value={experience} onChange={(e) => setExperience(e.target.value)} className={EMPLEOS_FIELD}>
+                  <select
+                    value={experience}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setExperience(v);
+                      pushFromFields({ experience: v });
+                    }}
+                    className={EMPLEOS_FIELD}
+                  >
                     {sampleExperienceOptions.map((o) => (
                       <option key={o.value || "any"} value={o.value}>
                         {o.label}
@@ -582,7 +758,15 @@ export function EmpleosResultsView() {
                 </label>
                 <label>
                   <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Tipo de empresa" : "Company type"}</span>
-                  <select value={companyType} onChange={(e) => setCompanyType(e.target.value)} className={EMPLEOS_FIELD}>
+                  <select
+                    value={companyType}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setCompanyType(v);
+                      pushFromFields({ companyType: v });
+                    }}
+                    className={EMPLEOS_FIELD}
+                  >
                     {sampleCompanyTypeOptions.map((o) => (
                       <option key={o.value || "any"} value={o.value}>
                         {o.label}
@@ -606,11 +790,26 @@ export function EmpleosResultsView() {
                   quickApply={quickApply}
                   verifiedBox={verifiedBox}
                   premiumBox={premiumBox}
-                  setFeatured={setFeatured}
-                  setRecent={setRecent}
-                  setQuickApply={setQuickApply}
-                  setVerifiedBox={setVerifiedBox}
-                  setPremiumBox={setPremiumBox}
+                  onFeaturedChange={(v) => {
+                    setFeatured(v);
+                    pushFromFields({ featured: v });
+                  }}
+                  onRecentChange={(v) => {
+                    setRecent(v);
+                    pushFromFields({ recent: v });
+                  }}
+                  onQuickApplyChange={(v) => {
+                    setQuickApply(v);
+                    pushFromFields({ quickApply: v });
+                  }}
+                  onVerifiedChange={(v) => {
+                    setVerifiedBox(v);
+                    pushFromFields({ verifiedBox: v });
+                  }}
+                  onPremiumChange={(v) => {
+                    setPremiumBox(v);
+                    pushFromFields({ premiumBox: v });
+                  }}
                 />
               </div>
             </details>
@@ -623,11 +822,26 @@ export function EmpleosResultsView() {
                 quickApply={quickApply}
                 verifiedBox={verifiedBox}
                 premiumBox={premiumBox}
-                setFeatured={setFeatured}
-                setRecent={setRecent}
-                setQuickApply={setQuickApply}
-                setVerifiedBox={setVerifiedBox}
-                setPremiumBox={setPremiumBox}
+                onFeaturedChange={(v) => {
+                  setFeatured(v);
+                  pushFromFields({ featured: v });
+                }}
+                onRecentChange={(v) => {
+                  setRecent(v);
+                  pushFromFields({ recent: v });
+                }}
+                onQuickApplyChange={(v) => {
+                  setQuickApply(v);
+                  pushFromFields({ quickApply: v });
+                }}
+                onVerifiedChange={(v) => {
+                  setVerifiedBox(v);
+                  pushFromFields({ verifiedBox: v });
+                }}
+                onPremiumChange={(v) => {
+                  setPremiumBox(v);
+                  pushFromFields({ premiumBox: v });
+                }}
               />
             </div>
 
@@ -703,6 +917,7 @@ export function EmpleosResultsView() {
             <div className="mx-auto max-w-lg">
               <p className="text-xl font-bold tracking-tight text-[#2A2826] sm:text-2xl">{t.emptyTitle}</p>
               <p className="mx-auto mt-3 text-sm leading-relaxed text-[#5C564E] sm:text-base">{t.emptyHint}</p>
+              <p className="mx-auto mt-4 text-sm leading-relaxed text-[#5B6F82]">{t.emptySupport}</p>
             </div>
             {emptyRecoveryActions.length > 0 ? (
               <div className="mx-auto mt-10 max-w-2xl text-left">
@@ -764,7 +979,13 @@ export function EmpleosResultsView() {
                 </div>
                 <div className="grid grid-cols-1 gap-7 xl:grid-cols-2 xl:gap-8">
                   {featuredRows.map((job) => (
-                    <EmpleosJobResultCard key={job.id} job={job} lang={lang} variant="grid" />
+                    <EmpleosJobResultCard
+                      key={job.id}
+                      job={job}
+                      lang={lang}
+                      variant="grid"
+                      showRecentRibbon={job.listingTier === "standard" && isRecentPosting(job, EMPLEOS_SAMPLE_NOW_MS)}
+                    />
                   ))}
                 </div>
               </section>
@@ -776,11 +997,21 @@ export function EmpleosResultsView() {
                   <h2 id="empleos-res-all" className="text-2xl font-bold tracking-tight text-[#2A2826] sm:text-3xl">
                     {parsed.featuredOnly ? t.featuredBlock : t.allBlock}
                   </h2>
-                  {!parsed.featuredOnly ? <p className="mt-2 max-w-3xl text-sm text-[#5B6F82] sm:text-base">{t.listIntro}</p> : null}
+                  {!parsed.featuredOnly ? (
+                    <p className="mt-2 max-w-3xl text-sm text-[#5B6F82] sm:text-base">
+                      {parsed.recentOnly ? t.listIntroRecent : t.listIntro}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex flex-col gap-5 sm:gap-6">
                   {listMain.map((job) => (
-                    <EmpleosJobResultCard key={job.id} job={job} lang={lang} variant="list" />
+                    <EmpleosJobResultCard
+                      key={job.id}
+                      job={job}
+                      lang={lang}
+                      variant="list"
+                      showRecentRibbon={job.listingTier === "standard" && isRecentPosting(job, EMPLEOS_SAMPLE_NOW_MS)}
+                    />
                   ))}
                 </div>
               </section>

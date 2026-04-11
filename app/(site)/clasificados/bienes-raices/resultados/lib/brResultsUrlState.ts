@@ -19,6 +19,8 @@ export type BrResultsParsedState = {
   pool: string;
   sort: string;
   page: string;
+  /** US ZIP when listing rows include `zipCode` (publish-backed). */
+  zip: string;
   /** Comma-separated primary chip ids (landing handoff). */
   primary: string;
   secondary: string;
@@ -74,6 +76,7 @@ export function parseBrResultsUrl(searchParams: URLSearchParams): BrResultsParse
     pool: searchParams.get("pool") === "true" ? "true" : "",
     sort,
     page,
+    zip: searchParams.get("zip") ?? "",
     primary: searchParams.get("primary") ?? "",
     secondary: searchParams.get("secondary") ?? "",
     precio: searchParams.get("precio") ?? "",

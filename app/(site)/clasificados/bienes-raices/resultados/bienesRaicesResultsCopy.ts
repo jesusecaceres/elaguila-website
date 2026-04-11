@@ -12,6 +12,8 @@ export type BrResultsCopy = {
   searchPlaceholder: string;
   cityLabel: string;
   cityPlaceholder: string;
+  zipLabel: string;
+  zipPlaceholder: string;
   operationLabel: string;
   operationAny: string;
   operationSale: string;
@@ -95,6 +97,7 @@ export type BrResultsCopy = {
     secondary: string;
     propiedad: string;
     precio: string;
+    zip: string;
   };
   spotlightTitle: string;
   spotlightSubtitle: string;
@@ -125,6 +128,8 @@ const ES: BrResultsCopy = {
   searchPlaceholder: "Palabras clave en título o dirección…",
   cityLabel: "Ciudad o zona",
   cityPlaceholder: "Ej. Monterrey, Polanco…",
+  zipLabel: "Código postal (US)",
+  zipPlaceholder: "Ej. 91101",
   operationLabel: "Operación",
   operationAny: "Todas",
   operationSale: "Venta",
@@ -210,9 +215,11 @@ const ES: BrResultsCopy = {
     secondary: "Detalles",
     propiedad: "Categoría",
     precio: "Rango precio",
+    zip: "CP",
   },
   spotlightTitle: "Negocios en primer plano",
-  spotlightSubtitle: "Ubicaciones premium y visibilidad ampliada dentro de tu búsqueda.",
+  spotlightSubtitle:
+    "Carril limitado para inmobiliarias: orden editorial / confianza / novedad — no es solo quien más paga.",
   spotlightBadge: "Negocios",
   mapAsideTitle: "Mapa",
   mapAsideBody:
@@ -241,6 +248,8 @@ const EN: BrResultsCopy = {
   searchPlaceholder: "Keywords in title or address…",
   cityLabel: "City or area",
   cityPlaceholder: "e.g. Monterrey, Polanco…",
+  zipLabel: "ZIP code (US)",
+  zipPlaceholder: "e.g. 91101",
   operationLabel: "Transaction",
   operationAny: "All",
   operationSale: "Sale",
@@ -326,9 +335,11 @@ const EN: BrResultsCopy = {
     secondary: "Details",
     propiedad: "Category",
     precio: "Price band",
+    zip: "ZIP",
   },
   spotlightTitle: "Business listings first",
-  spotlightSubtitle: "Premium placement and stronger visibility within your search.",
+  spotlightSubtitle:
+    "A capped lane for brokerages: editorial / trust / freshness scoring — not highest bidder only.",
   spotlightBadge: "Business",
   mapAsideTitle: "Map",
   mapAsideBody:

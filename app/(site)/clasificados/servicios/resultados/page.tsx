@@ -140,7 +140,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
           </div>
         </header>
 
-        <div className="min-w-0 lg:grid lg:grid-cols-[minmax(280px,380px)_minmax(0,1fr)] lg:items-start lg:gap-8 xl:gap-10">
+        <div className="min-w-0 lg:grid lg:grid-cols-[minmax(300px,420px)_minmax(0,1fr)] lg:items-start lg:gap-9 xl:gap-11">
           <aside className="lg:sticky lg:top-4">
             <ServiciosResultsFilters lang={lang} current={filterQuery} />
           </aside>

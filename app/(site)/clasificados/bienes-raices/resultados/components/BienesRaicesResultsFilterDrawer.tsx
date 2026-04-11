@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import type { BrResultsCopy } from "../bienesRaicesResultsCopy";
 import type { BrResultsParsedState } from "../lib/brResultsUrlState";
 import { BienesRaicesResultsFilters } from "./BienesRaicesResultsFilters";
@@ -10,10 +11,11 @@ type Props = {
   onClose: () => void;
   parsed: BrResultsParsedState;
   copy: BrResultsCopy;
+  lang: Lang;
   onPatch: (patch: Record<string, string | null>, preservePage?: boolean) => void;
 };
 
-export function BienesRaicesResultsFilterDrawer({ open, onClose, parsed, copy, onPatch }: Props) {
+export function BienesRaicesResultsFilterDrawer({ open, onClose, parsed, copy, lang, onPatch }: Props) {
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -47,7 +49,7 @@ export function BienesRaicesResultsFilterDrawer({ open, onClose, parsed, copy, o
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4">
-          <BienesRaicesResultsFilters parsed={parsed} copy={copy} onPatch={onPatch} idPrefix="br-drawer" />
+          <BienesRaicesResultsFilters parsed={parsed} copy={copy} lang={lang} onPatch={onPatch} idPrefix="br-drawer" />
         </div>
         <div className="border-t border-[#E8DFD0] p-4">
           <button

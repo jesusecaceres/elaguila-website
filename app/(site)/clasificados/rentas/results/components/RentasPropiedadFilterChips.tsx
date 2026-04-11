@@ -7,6 +7,7 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import type { RentasLandingCopy } from "@/app/clasificados/rentas/rentasLandingCopy";
 import { RENTAS_LANDING_LANG_QUERY, type RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
+import { RENTAS_QUERY_PAGE } from "@/app/clasificados/rentas/shared/rentasResultsQueryKeys";
 import { RENTAS_RESULTS } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 
 type Props = {
@@ -31,6 +32,7 @@ export function RentasPropiedadFilterChips({ active, lang, copy, queryString }: 
     sp.set(RENTAS_LANDING_LANG_QUERY, lang);
     if (id === "") sp.delete(BR_NEGOCIO_Q_PROPIEDAD);
     else sp.set(BR_NEGOCIO_Q_PROPIEDAD, id);
+    sp.delete(RENTAS_QUERY_PAGE);
     const qs = sp.toString();
     return qs ? `${RENTAS_RESULTS}?${qs}` : `${RENTAS_RESULTS}?${RENTAS_LANDING_LANG_QUERY}=${lang}`;
   };

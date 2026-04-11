@@ -10,6 +10,7 @@ export type ViajesBrowserLocationState =
   | { status: "requesting" }
   | { status: "denied" }
   | { status: "unavailable" }
+  | { status: "timeout" }
   | { status: "ready"; originId: ViajesOriginId };
 
 /**
@@ -30,7 +31,12 @@ export function useBrowserLocationForViajes() {
         const nearest = resolveNearestViajesOrigin(pos.coords.latitude, pos.coords.longitude);
         setState({ status: "ready", originId: nearest.id });
       },
-      () => setState({ status: "denied" }),
+      (err: GeolocationPositionError) => {
+        // 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
+        if (err.code === 1) setState({ status: "denied" });
+        else if (err.code === 3) setState({ status: "timeout" });
+        else setState({ status: "unavailable" });
+      },
       { enableHighAccuracy: false, timeout: 12_000, maximumAge: 120_000 }
     );
   }, []);

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FiSearch } from "react-icons/fi";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -26,6 +26,9 @@ import {
   brLandingPrivado,
   brLandingRecientes,
 } from "./bienesRaicesLandingSample";
+import { BienesRaicesBrConsentStrip } from "@/app/clasificados/bienes-raices/components/BienesRaicesBrConsentStrip";
+import { getBrLastCity, setBrLastCity } from "@/app/clasificados/bienes-raices/shared/brFirstPartyPrefs";
+import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { getBrLandingCopy, type BrLandingCopy } from "./bienesRaicesLandingCopy";
 
 const BTN_PRIMARY =
@@ -120,12 +123,20 @@ function LandingSearchForm({
   const [propertyType, setPropertyType] = useState("");
   const [city, setCity] = useState("");
 
+  useEffect(() => {
+    const remembered = getBrLastCity();
+    if (remembered) setCity(remembered);
+  }, []);
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const rawCity = city.trim();
+    const cityParam = rawCity ? getCanonicalCityName(rawCity) || rawCity : undefined;
+    if (cityParam) setBrLastCity(cityParam);
     const path = buildBrResultsUrl({
       q: q.trim() || undefined,
       operationType: operationType || undefined,
-      city: city.trim() || undefined,
+      city: cityParam,
       propertyType: propertyType || undefined,
     });
     router.push(withLang(path));
@@ -242,6 +253,7 @@ function ListingBand({
   variant,
   copy,
   sectionIndex,
+  lang,
 }: {
   id: string;
   title: string;
@@ -251,6 +263,7 @@ function ListingBand({
   variant: BandVariant;
   copy: BrLandingCopy;
   sectionIndex: string;
+  lang: Lang;
 }) {
   const sellerLabels = { privado: copy.sellerPrivado, negocio: copy.sellerNegocio };
   return (
@@ -266,7 +279,12 @@ function ListingBand({
           />
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-7 lg:grid-cols-3 [&_article]:rounded-[1.2rem] [&_article]:border-[#E8DFD0]/88 [&_article]:shadow-[0_18px_52px_-22px_rgba(42,36,22,0.26)] [&_article]:ring-1 [&_article]:ring-[#C9B46A]/[0.09] [&_article]:transition [&_article]:duration-300 [&_article]:hover:-translate-y-1 [&_article]:hover:border-[#C9B46A]/38 [&_article]:hover:shadow-[0_26px_64px_-24px_rgba(42,36,22,0.32)]">
             {listings.map((listing) => (
-              <BienesRaicesNegocioCard key={listing.id} listing={listing} sellerKindLabels={sellerLabels} />
+              <BienesRaicesNegocioCard
+                key={listing.id}
+                listing={listing}
+                sellerKindLabels={sellerLabels}
+                lang={lang}
+              />
             ))}
           </div>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -318,6 +336,8 @@ export function BienesRaicesLandingView() {
           </span>
           <span className="text-[#1E1810]">{copy.navBreadcrumbCurrent}</span>
         </nav>
+
+        <BienesRaicesBrConsentStrip lang={lang} />
 
         <ImmersiveBand>
           <header className="relative isolate flex min-h-[min(26rem,92svh)] flex-col overflow-hidden rounded-b-[2rem] border-b border-[#E8DFD0]/50 shadow-[0_32px_100px_-48px_rgba(42,36,22,0.55)] sm:min-h-[min(30rem,88svh)] sm:rounded-[2rem] sm:border sm:border-[#E8DFD0]/40 md:min-h-[min(34rem,86svh)] lg:min-h-[min(38rem,84svh)]">
@@ -431,6 +451,7 @@ export function BienesRaicesLandingView() {
                     listing={brLandingFeaturedHero}
                     titleAsLink={false}
                     sellerKindLabels={sellerLabels}
+                    lang={lang}
                     className="rounded-[1.4rem] border-[#E8DFD0]/80 shadow-[0_28px_80px_-30px_rgba(42,36,22,0.4)] ring-2 ring-[#C9B46A]/15 hover:shadow-[0_36px_96px_-32px_rgba(42,36,22,0.45)]"
                   />
                 </div>
@@ -464,6 +485,7 @@ export function BienesRaicesLandingView() {
           variant="spotlight"
           copy={copy}
           sectionIndex="01"
+          lang={lang}
         />
 
         <ListingBand
@@ -475,6 +497,7 @@ export function BienesRaicesLandingView() {
           variant="neutral"
           copy={copy}
           sectionIndex="02"
+          lang={lang}
         />
 
         <ListingBand
@@ -486,6 +509,7 @@ export function BienesRaicesLandingView() {
           variant="private"
           copy={copy}
           sectionIndex="03"
+          lang={lang}
         />
 
         <ListingBand
@@ -497,6 +521,7 @@ export function BienesRaicesLandingView() {
           variant="business"
           copy={copy}
           sectionIndex="04"
+          lang={lang}
         />
 
         <section className="mt-16 sm:mt-24">

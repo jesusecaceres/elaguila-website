@@ -22,4 +22,5 @@ export {
   RENTAS_QUERY_STATE,
   RENTAS_QUERY_TIPO,
   RENTAS_QUERY_ZIP,
+  RENTAS_RESULTS_PAGE_SIZE,
 } from "./rentasBrowseContract";

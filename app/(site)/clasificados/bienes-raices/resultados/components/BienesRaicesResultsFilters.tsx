@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getCanonicalCityName, normalizeZipInput } from "@/app/data/locations/californiaLocationHelpers";
+import { BienesRaicesUseLocationButton } from "@/app/clasificados/bienes-raices/components/BienesRaicesUseLocationButton";
+import { setBrLastCity } from "@/app/clasificados/bienes-raices/shared/brFirstPartyPrefs";
 import type { BrResultsCopy } from "../bienesRaicesResultsCopy";
 import type { BrResultsParsedState } from "../lib/brResultsUrlState";
+import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 
 const INPUT =
   "w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/65";
@@ -11,28 +15,36 @@ const LABEL = "mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[
 type Props = {
   parsed: BrResultsParsedState;
   copy: BrResultsCopy;
+  lang: Lang;
   /** Merge into URL; omit page reset when `preservePage` true (pagination). */
   onPatch: (patch: Record<string, string | null>, preservePage?: boolean) => void;
   idPrefix?: string;
 };
 
-export function BienesRaicesResultsFilters({ parsed, copy, onPatch, idPrefix = "br-f" }: Props) {
+export function BienesRaicesResultsFilters({ parsed, copy, lang, onPatch, idPrefix = "br-f" }: Props) {
   const [q, setQ] = useState(parsed.q);
   const [city, setCity] = useState(parsed.city);
+  const [zip, setZip] = useState(parsed.zip);
   const [priceMin, setPriceMin] = useState(parsed.priceMin);
   const [priceMax, setPriceMax] = useState(parsed.priceMax);
 
   useEffect(() => {
     setQ(parsed.q);
     setCity(parsed.city);
+    setZip(parsed.zip);
     setPriceMin(parsed.priceMin);
     setPriceMax(parsed.priceMax);
-  }, [parsed.q, parsed.city, parsed.priceMin, parsed.priceMax]);
+  }, [parsed.q, parsed.city, parsed.zip, parsed.priceMin, parsed.priceMax]);
 
   const commitText = () => {
+    const rawCity = city.trim();
+    const canon = rawCity ? getCanonicalCityName(rawCity) || rawCity : "";
+    const zipNorm = normalizeZipInput(zip);
+    if (canon) setBrLastCity(canon);
     onPatch({
       q: q.trim() || null,
-      city: city.trim() || null,
+      city: canon || null,
+      zip: zipNorm || null,
       priceMin: priceMin.trim() || null,
       priceMax: priceMax.trim() || null,
     });
@@ -41,36 +53,50 @@ export function BienesRaicesResultsFilters({ parsed, copy, onPatch, idPrefix = "
   return (
     <div className="rounded-2xl border border-[#E8DFD0]/95 bg-[#FDFBF7] p-3 shadow-[0_12px_40px_-22px_rgba(42,36,22,0.2)] sm:p-4">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
-        <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <label className="min-w-0">
-            <span className={LABEL}>{copy.searchLabel}</span>
-            <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#B8954A]" aria-hidden>
-                ⌕
-              </span>
+        <div className="min-w-0 flex-1 space-y-3">
+          <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <label className="min-w-0 md:col-span-2 xl:col-span-1">
+              <span className={LABEL}>{copy.searchLabel}</span>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#B8954A]" aria-hidden>
+                  ⌕
+                </span>
+                <input
+                  id={`${idPrefix}-q`}
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  onBlur={commitText}
+                  placeholder={copy.searchPlaceholder}
+                  className={INPUT + " pl-9"}
+                />
+              </div>
+            </label>
+            <label className="min-w-0">
+              <span className={LABEL}>{copy.cityLabel}</span>
               <input
-                id={`${idPrefix}-q`}
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
+                id={`${idPrefix}-city`}
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
                 onBlur={commitText}
-                placeholder={copy.searchPlaceholder}
-                className={INPUT + " pl-9"}
+                placeholder={copy.cityPlaceholder}
+                className={INPUT}
               />
-            </div>
-          </label>
-          <label className="min-w-0">
-            <span className={LABEL}>{copy.cityLabel}</span>
-            <input
-              id={`${idPrefix}-city`}
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              onBlur={commitText}
-              placeholder={copy.cityPlaceholder}
-              className={INPUT}
-            />
-          </label>
-          <label>
-            <span className={LABEL}>{copy.operationLabel}</span>
+            </label>
+            <label className="min-w-0">
+              <span className={LABEL}>{copy.zipLabel}</span>
+              <input
+                id={`${idPrefix}-zip`}
+                inputMode="numeric"
+                value={zip}
+                onChange={(e) => setZip(e.target.value)}
+                onBlur={commitText}
+                placeholder={copy.zipPlaceholder}
+                className={INPUT}
+                autoComplete="postal-code"
+              />
+            </label>
+            <label>
+              <span className={LABEL}>{copy.operationLabel}</span>
             <select
               value={parsed.operationType}
               onChange={(e) => {
@@ -106,6 +132,8 @@ export function BienesRaicesResultsFilters({ parsed, copy, onPatch, idPrefix = "
               <option value="comercial">{copy.typeCommercial}</option>
             </select>
           </label>
+          </div>
+          <BienesRaicesUseLocationButton lang={lang} />
         </div>
       </div>
 

@@ -1,9 +1,9 @@
 /**
- * Blueprint/sample inventory for landing, results, and live vehicle routes until a listings API exists.
- * Keep field shapes aligned with `AutosPublicListing` / application draft types so publish wiring can
- * swap this module for `getListingsFromApi()` without touching filter or card UI.
+ * Blueprint/sample inventory for dev/demo when `NEXT_PUBLIC_LEONIX_AUTOS_PUBLIC_DEMO=1`.
+ * Keep field shapes aligned with `AutosPublicListing` / application draft types.
  */
 import type { AutosPublicListing } from "./autosPublicSampleTypes";
+import { autosPublicDemoInventoryAllowed } from "../lib/autosPublicInventoryPolicy";
 
 const IMG = {
   sedan: "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=1200&q=80",
@@ -364,7 +364,12 @@ export function getLandingRecentListings(listings: AutosPublicListing[], max = 8
   return sorted.slice(0, max);
 }
 
-/** Blueprint: show structured sample inventory when the public API returns no rows (swap later for API-only). */
+/**
+ * Resolves public inventory for landing/results.
+ * Production: API rows only. Demo flag: optional blueprint sample when the API returns none.
+ */
 export function resolveAutosLandingInventory(apiListings: AutosPublicListing[]): AutosPublicListing[] {
-  return apiListings.length > 0 ? apiListings : AUTOS_PUBLIC_SAMPLE_LISTINGS;
+  if (apiListings.length > 0) return apiListings;
+  if (autosPublicDemoInventoryAllowed()) return AUTOS_PUBLIC_SAMPLE_LISTINGS;
+  return [];
 }

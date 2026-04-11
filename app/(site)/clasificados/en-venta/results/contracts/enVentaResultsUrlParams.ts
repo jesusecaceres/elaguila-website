@@ -27,4 +27,9 @@ export const EV_RESULTS_PARAM = {
   featured: "featured",
 } as const;
 
+/** Listing detail query: `evReturn` = full `/clasificados/en-venta/results?...` path for back navigation (see `enVentaListingLinks.ts`). */
+export const EV_LISTING_PARAM = {
+  evReturn: "evReturn",
+} as const;
+
 export type EvResultsParamKey = (typeof EV_RESULTS_PARAM)[keyof typeof EV_RESULTS_PARAM];

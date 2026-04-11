@@ -41,6 +41,8 @@ export type ViajesUi = {
     geoReady: (originLabel: string, airportLine: string) => string;
     geoDenied: string;
     geoUnavailable: string;
+    /** Browser took too long to return a fix — user can pick departure manually */
+    geoTimeout: string;
     destPlaceholder: string;
     /** One line under the module — clarifies that submit opens results with current filters */
     moduleHint: string;
@@ -48,6 +50,8 @@ export type ViajesUi = {
     moduleTitle: string;
     /** Honest one-liner: geolocation is one-shot, used only to pick nearest departure bucket */
     geoExplainer: string;
+    /** Launch scope under hero search — no postal/ZIP/radius as live filters yet */
+    searchScopeNote: string;
   };
   carousel: { prev: string; next: string };
   topOffers: { title: string; subtitle: string };
@@ -139,6 +143,10 @@ export type ViajesUi = {
     discoveryLastMinute: string;
     discoveryFamilies: string;
     discoveryWeekend: string;
+    /** Shown when public rows are still demo/sample-backed */
+    inventoryDemoBanner: string;
+    /** Clarifies departure is hub/region — not postal code search */
+    departureFieldNote: string;
   };
   filterRail: {
     destination: string;
@@ -283,13 +291,16 @@ function es(): Omit<ViajesUi, "lang"> {
       locationRequesting: "…",
       departureAria: "Ciudad o aeropuerto de salida",
       geoReady: (originLabel, airportLine) => `Origen por ubicación: ${originLabel} (${airportLine})`,
-      geoDenied: "No pudimos leer tu ubicación. Elige un origen manualmente.",
-      geoUnavailable: "Ubicación no disponible en este dispositivo.",
+      geoDenied: "Permiso denegado: no leemos tu ubicación. Elige un origen manualmente.",
+      geoUnavailable: "No se pudo obtener la ubicación en este momento (señal no disponible). Elige un origen manualmente.",
+      geoTimeout: "Tiempo agotado al pedir ubicación. Elige un origen manualmente o vuelve a intentar.",
       destPlaceholder: "Playa, ciudad, país…",
       moduleTitle: "Buscar viajes",
       moduleHint: "Ajusta destino, salida, tipo y presupuesto; el botón naranja abre resultados al instante.",
       geoExplainer:
         "“Usar mi ubicación” pide permiso al navegador una sola vez para sugerir la salida (SFO / SJC / OAK) más cercana. No guardamos tu ruta ni te rastreamos; si niegas el permiso, puedes elegir la salida manualmente.",
+      searchScopeNote:
+        "Búsqueda por destino en texto y salida por región/aeropuerto (SFO, SJC, OAK). Código postal, radio en millas y “cerca” como filtro geográfico fino no están en esta versión.",
     },
     carousel: { prev: "Ver categorías anteriores", next: "Ver categorías siguientes" },
     topOffers: {
@@ -435,6 +446,9 @@ function es(): Omit<ViajesUi, "lang"> {
       discoveryLastMinute: "Último minuto",
       discoveryFamilies: "Tours en familia",
       discoveryWeekend: "Fin de semana · salida SFO",
+      inventoryDemoBanner:
+        "Listados de demostración: el formato y filtros son los de lanzamiento; el inventario público en vivo se conectará cuando el feed esté operativo. Las publicaciones nuevas aún no aparecen aquí automáticamente.",
+      departureFieldNote: "Salida por hub regional (Bahía / SJC), no por código postal.",
     },
     filterRail: {
       destination: "Destino",
@@ -589,13 +603,16 @@ function en(): Omit<ViajesUi, "lang"> {
       locationRequesting: "…",
       departureAria: "Departure city or airport",
       geoReady: (originLabel, airportLine) => `Location-based origin: ${originLabel} (${airportLine})`,
-      geoDenied: "We couldn’t read your location. Please choose an origin manually.",
-      geoUnavailable: "Location isn’t available on this device.",
+      geoDenied: "Permission denied — we don’t read your location. Please choose an origin manually.",
+      geoUnavailable: "We couldn’t get a location fix right now. Please choose an origin manually.",
+      geoTimeout: "Location request timed out. Choose an origin manually or try again.",
       destPlaceholder: "Beach, city, country…",
       moduleTitle: "Search trips",
       moduleHint: "Set destination, departure, trip type, and budget; the orange button opens results instantly.",
       geoExplainer:
         "“Use my location” asks your browser once to suggest the nearest departure hub (SFO / SJC / OAK). We don’t store your path or track you; if you deny permission, pick a departure manually.",
+      searchScopeNote:
+        "Search uses destination text and hub-based departure (SFO, SJC, OAK). Postal code, mile radius, and fine-grained “near me” filtering are not in this release.",
     },
     carousel: { prev: "Show previous categories", next: "Show next categories" },
     topOffers: {
@@ -741,6 +758,9 @@ function en(): Omit<ViajesUi, "lang"> {
       discoveryLastMinute: "Last minute",
       discoveryFamilies: "Family tours",
       discoveryWeekend: "Weekend · depart SFO",
+      inventoryDemoBanner:
+        "Demo listings: layout and filters match launch behavior; live public inventory will connect when the feed is live. Newly published offers do not appear here automatically yet.",
+      departureFieldNote: "Departure is a regional hub (Bay Area / SJC), not postal-code search.",
     },
     filterRail: {
       destination: "Destination",

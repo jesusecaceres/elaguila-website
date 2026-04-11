@@ -1,9 +1,9 @@
 /**
  * Browser geolocation helpers — **only** call after an explicit user gesture (button tap).
- * Does not run on page load. Does not persist precise coordinates to localStorage by default.
+ * Does not run on page load. Does **not** persist latitude/longitude (no localStorage/session coords).
  *
- * **Coarse place:** Demo implementation maps lat/lng to a rough metro label for URL `city=`.
- * Replace with server reverse-geocode or regional catalog when production-ready.
+ * **Coarse place:** Maps lat/lng to a rough metro label for URL `city=` (demo bounding boxes).
+ * Replace with server reverse-geocode or your canonical regional catalog for production.
  */
 
 export type CoarsePlaceResult = {
@@ -46,14 +46,7 @@ export function requestCoarsePlaceFromBrowserGeolocation(): Promise<CoarsePlaceR
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        try {
-          sessionStorage.setItem(
-            "leonix_restaurantes_last_geo_session",
-            JSON.stringify({ lat: latitude, lng: longitude, at: Date.now() }),
-          );
-        } catch {
-          /* session only, best-effort */
-        }
+        /** Do not persist precise coordinates; only derive coarse `cityLabel` for the URL. */
         resolve(coarseMetroFromLatLng(latitude, longitude));
       },
       (err) => reject(err),

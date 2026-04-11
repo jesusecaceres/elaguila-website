@@ -41,4 +41,11 @@ export type BrNegocioListing = {
   licenseLine?: string;
   /** Card rhythm: wide row vs stacked */
   layout?: "vertical" | "horizontal";
+  /** US ZIP when publish captures it — URL `zip` filter when present. */
+  zipCode?: string;
+  /**
+   * Demo ordering for “recientes”; live listings use DB `published_at`.
+   * Higher = newer for default sort in launch policy helpers.
+   */
+  demoPublishedAtMs?: number;
 };

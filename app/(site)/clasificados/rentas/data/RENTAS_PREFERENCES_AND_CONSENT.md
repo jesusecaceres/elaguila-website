@@ -1,5 +1,11 @@
 # Rentas: preference memory, cookies, and consent (architecture)
 
+## Implemented in this repo (launch-safe)
+
+- **`lang`:** URL query (`?lang=es|en`) is the source of truth for Rentas landing/results/detail. No Rentas `localStorage` mirror is written yet (`RENTAS_LS_LANG_MIRROR` is reserved only).
+- **Browse memory:** Keys in `shared/rentasPreferenceKeys.ts` are **string constants only** — no `localStorage` reads/writes for city, ZIP, or filters until product adds an explicit “remember my area” opt-in near the fields (see below).
+- **Geolocation:** `RentasLocationButton` uses **click-only** `getCurrentPosition`; no `watchPosition` or auto geo on load. Coordinates are URL-only; they do **not** filter the grid until a geo pipeline exists (`rentasBrowseFilters`).
+
 ## What may be stored later (transparent UX)
 
 | Data | Mechanism | Consent |

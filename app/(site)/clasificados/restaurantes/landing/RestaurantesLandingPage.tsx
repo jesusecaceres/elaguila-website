@@ -14,9 +14,11 @@ import { ViajesLangSwitch } from "@/app/clasificados/viajes/components/ViajesLan
 import {
   buildRestaurantesResultsHref,
   defaultRestaurantesDiscoveryState,
+  restaurantesDiscoveryParamsForRowDeepLink,
   restaurantesDiscoveryStateToParams,
   splitLocationInput,
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
+import { RESTAURANTES_PUBLIC_BLUEPRINT_ROWS } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 import { rememberRestaurantesDiscoveryFromState } from "@/app/clasificados/restaurantes/lib/restaurantesFirstPartyPreferences";
 import {
   type RestaurantesBlueprintCard,
@@ -32,6 +34,14 @@ import { CategoryHeroFrame } from "@/app/(site)/clasificados/components/category
 import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
 
 const ACCENT = "#D97706";
+
+function buildLandingCardResultsHref(lang: Lang, card: RestaurantesBlueprintCard): string {
+  const row = RESTAURANTES_PUBLIC_BLUEPRINT_ROWS.find((r) => r.id === card.id);
+  if (!row) {
+    return buildRestaurantesResultsHref(lang, { q: card.name });
+  }
+  return buildRestaurantesResultsHref(lang, restaurantesDiscoveryParamsForRowDeepLink(row));
+}
 
 /** Editorial dining atmosphere — strong hero presence without competing with search module */
 const RESTAURANTES_HERO_IMAGE =
@@ -161,7 +171,7 @@ export function RestaurantesLandingPage() {
           "Quick paths to delivery, takeout, family-friendly picks, and more in results.",
         ],
         featuredTitle: "Featured restaurants",
-        featuredIntro: "Premium placements—hand-picked visibility for standout listings.",
+        featuredIntro: "Premium visibility mixed with strong organic picks—not pay-only.",
         browseTitle: "Explore cuisine types",
         browseIntro: "Jump straight into results with a cuisine in mind.",
         recentTitle: "Recently added",
@@ -192,11 +202,11 @@ export function RestaurantesLandingPage() {
         "Atajos útiles a delivery, para llevar, ambiente familiar y más desde resultados.",
       ],
       featuredTitle: "Restaurantes Destacados",
-      featuredIntro: "Ubicaciones premium: mayor visibilidad para anuncios destacados.",
+      featuredIntro: "Visibilidad premium mezclada con buena señal orgánica—no solo pago.",
       browseTitle: "Explora los tipos de cocina",
       browseIntro: "Entra a resultados con una cocina ya seleccionada.",
       recentTitle: "Restaurantes recientes",
-      recentIntro: "Nuevas fichas en Leonix: lugares recién publicados para descubrir.",
+      recentIntro: "Ordenados por fecha de publicación (más recientes primero).",
       ctaHeadline: "¿Tienes un restaurante?",
       ctaSub:
         "Llega a comensales que ya buscan en Leonix: visibilidad clara, descubrimiento premium y espacio para crecer con destacados.",
@@ -367,7 +377,7 @@ export function RestaurantesLandingPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1280px] space-y-10 bg-[#FDFBF7] px-4 pb-14 text-[#2D241E] sm:space-y-12 sm:px-5 sm:pb-20 md:space-y-14 lg:space-y-16 lg:px-6">
+      <main className="mx-auto max-w-[1280px] space-y-10 overflow-x-hidden bg-[#FDFBF7] px-4 pb-14 text-[#2D241E] sm:space-y-12 sm:px-5 sm:pb-20 md:space-y-14 lg:space-y-16 lg:px-6">
         <section
           className="grid grid-cols-1 gap-5 rounded-[20px] border border-[#2D241E]/[0.06] bg-[#FFFCF7]/90 p-5 shadow-sm sm:gap-6 sm:p-6 md:grid-cols-2 md:gap-6 md:p-7 lg:grid-cols-3 lg:gap-8 lg:p-8"
           aria-label={lang === "es" ? "Por qué Leonix Restaurantes" : "Why search Leonix Restaurants"}
@@ -398,7 +408,7 @@ export function RestaurantesLandingPage() {
                 card={card}
                 lang={lang}
                 variant="featured"
-                detailHref={buildRestaurantesResultsHref(lang, { q: card.name })}
+                detailHref={buildLandingCardResultsHref(lang, card)}
               />
             ))}
           </div>
@@ -457,7 +467,7 @@ export function RestaurantesLandingPage() {
                 card={card}
                 lang={lang}
                 variant="recent"
-                detailHref={buildRestaurantesResultsHref(lang, { q: card.name })}
+                detailHref={buildLandingCardResultsHref(lang, card)}
               />
             ))}
           </div>

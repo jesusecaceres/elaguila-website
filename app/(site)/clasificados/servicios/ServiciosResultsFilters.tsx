@@ -13,6 +13,7 @@ import {
   formatServiciosInternalGroupForDiscovery,
   SERVICIOS_INTERNAL_GROUP_IDS,
 } from "./lib/serviciosInternalGroupDisplay";
+import { normalizeServiciosDiscoveryLocationInput } from "./lib/serviciosLocationNormalize";
 
 const RESULTS_FORM_ID = "servicios-results-filter-form";
 
@@ -28,11 +29,11 @@ function GroupShell({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-[#dfe6ef]/80 bg-white/90 p-3 shadow-[0_8px_28px_-22px_rgba(20,38,58,0.22)] sm:p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#3d5a73]/85">
+    <div className="rounded-2xl border border-[#dfe6ef]/90 bg-white/[0.97] p-4 shadow-[0_10px_32px_-24px_rgba(20,38,58,0.25)] sm:p-5">
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#3d5a73]/90">
         {lang === "en" ? titleEn : titleEs}
       </p>
-      <div className="mt-3">{children}</div>
+      <div className="mt-3.5">{children}</div>
     </div>
   );
 }
@@ -50,16 +51,23 @@ export function ServiciosResultsFilters({
   return (
     <div
       id="servicios-resultados-filtros"
-      className="rounded-[22px] border border-[#e5ddd2]/90 bg-[#FFFCF7] p-4 shadow-[0_22px_56px_-38px_rgba(20,38,58,0.4)] ring-1 ring-[#1e3a5f]/[0.05] sm:p-6"
+      className="rounded-[22px] border border-[#e5ddd2]/90 bg-[#FFFCF7] p-5 shadow-[0_26px_64px_-40px_rgba(20,38,58,0.42)] ring-1 ring-[#1e3a5f]/[0.06] sm:rounded-[24px] sm:p-7"
     >
       <form
         id={RESULTS_FORM_ID}
         method="get"
         action="/clasificados/servicios/resultados"
         aria-label={lang === "en" ? "Search and filter Servicios results" : "Buscar y filtrar resultados de Servicios"}
-        className="space-y-5"
+        className="space-y-6"
         onSubmitCapture={(e) => {
-          const fd = new FormData(e.currentTarget);
+          const form = e.currentTarget;
+          const cityInput = form.querySelector<HTMLInputElement>('input[name="city"]');
+          if (cityInput) {
+            const raw = cityInput.value.trim();
+            const norm = normalizeServiciosDiscoveryLocationInput(raw);
+            if (norm !== raw) cityInput.value = norm;
+          }
+          const fd = new FormData(form);
           writeServiciosDiscoveryPrefs({
             lastQ: String(fd.get("q") ?? "").trim() || undefined,
             lastCity: String(fd.get("city") ?? "").trim() || undefined,

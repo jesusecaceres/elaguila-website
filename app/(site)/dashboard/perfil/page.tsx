@@ -98,6 +98,7 @@ export default function ProfilePage() {
         billingCta: "Abrir portal de facturación",
         billingUnavailable: "Portal no configurado — revisa variables de entorno o despliega el endpoint de sesión.",
         planTitle: "Plan y membresía",
+        savedBanner: "Cambios guardados correctamente.",
         notifShortcut: "Preferencias de notificación",
         bizTitle: "Perfil de negocio",
         bizBody: "Nombre público, horario y enlaces cuando actives una cuenta business.",
@@ -137,6 +138,7 @@ export default function ProfilePage() {
         billingCta: "Open billing portal",
         billingUnavailable: "Portal not configured — add env var or deploy the billing session endpoint.",
         planTitle: "Plan & membership",
+        savedBanner: "Your changes were saved.",
         notifShortcut: "Notification preferences",
         bizTitle: "Business profile",
         bizBody: "Public name, hours, and links when you enable a business account.",
@@ -150,6 +152,7 @@ export default function ProfilePage() {
 
   const title = requirePost ? L.titlePost : onboarding ? L.titleOnboarding : L.titleNormal;
   const subtitle = requirePost ? L.subtitlePost : onboarding ? L.subtitleOnboarding : L.subtitleNormal;
+  const showSavedBanner = searchParams?.get("saved") === "1";
 
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -403,7 +406,7 @@ export default function ProfilePage() {
       if (onboarding) {
         router.replace(`/clasificados?${q}`);
       } else {
-        router.replace(`/dashboard?${q}`);
+        router.replace(`/dashboard/perfil?${q}&saved=1`);
       }
     } catch (e: unknown) {
       setMsg((e as { message?: string })?.message ?? "Unknown error");
@@ -445,6 +448,12 @@ export default function ProfilePage() {
             ) : null}
             {requirePost ? <p className="mt-2 text-sm font-medium text-[#6B5B2E]">{L.postHelper}</p> : null}
           </header>
+
+          {showSavedBanner && !requirePost && !onboarding ? (
+            <div className="mt-6 rounded-2xl border border-emerald-200/90 bg-emerald-50/95 px-4 py-3 text-sm font-semibold text-emerald-950 shadow-sm">
+              {L.savedBanner}
+            </div>
+          ) : null}
 
           <div className="relative mt-8 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-5 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.12)] sm:p-7">
             {showClose ? (

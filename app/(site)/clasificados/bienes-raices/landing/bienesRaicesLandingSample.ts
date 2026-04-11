@@ -1,4 +1,10 @@
 import { BR_LANDING_QUICK_CHIP_CONTRACT } from "../shared/brFilterContract";
+import {
+  selectLandingDestacadas,
+  selectLandingNegocios,
+  selectLandingPrivado,
+  selectLandingRecientes,
+} from "../shared/brLaunchListingPolicy";
 import type { BrNegocioListing } from "../resultados/cards/listingTypes";
 import { brNegocioFeaturedListing, brNegocioGridListings } from "../resultados/demoData";
 
@@ -19,34 +25,17 @@ export const brLandingFeaturedHero: BrNegocioListing = {
   metaLines: ["Escrituras en orden", "Ideal para familia", "Cochera techada para 3 autos"],
 };
 
-function sellerKindOf(l: BrNegocioListing): "privado" | "negocio" {
-  if (l.sellerKind) return l.sellerKind;
-  return l.badges.includes("negocio") ? "negocio" : "privado";
-}
+const landingPool: BrNegocioListing[] = brNegocioGridListings;
 
-/** Premium-facing demo selection (Negocio-friendly merchandising; not a live “promoted” query yet). */
-export const brLandingDestacadas: BrNegocioListing[] = brNegocioGridListings
-  .filter(
-    (l) =>
-      l.badges.includes("negocio") &&
-      (l.openHouse ||
-        l.badges.includes("reducida") ||
-        l.badges.includes("nuevo") ||
-        l.badges.includes("tour_virtual") ||
-        l.badges.includes("destacada") ||
-        l.badges.includes("promocionada"))
-  )
-  .slice(0, 3);
+/** Editorial / trust-weighted destacadas — not highest-bidder only (see `brLaunchListingPolicy`). */
+export const brLandingDestacadas: BrNegocioListing[] = selectLandingDestacadas(landingPool, 4);
 
-export const brLandingRecientes: BrNegocioListing[] = brNegocioGridListings.slice(0, 4);
+/** Newest-first among demo pool (`demoPublishedAtMs` when set). */
+export const brLandingRecientes: BrNegocioListing[] = selectLandingRecientes(landingPool, 6);
 
-export const brLandingPrivado: BrNegocioListing[] = brNegocioGridListings
-  .filter((l) => sellerKindOf(l) === "privado")
-  .slice(0, 3);
+export const brLandingPrivado: BrNegocioListing[] = selectLandingPrivado(landingPool, 6);
 
-export const brLandingNegocios: BrNegocioListing[] = brNegocioGridListings
-  .filter((l) => sellerKindOf(l) === "negocio")
-  .slice(0, 3);
+export const brLandingNegocios: BrNegocioListing[] = selectLandingNegocios(landingPool, 6);
 
 /** Stable ids for i18n labels via `getBrLandingCopy(lang).chipLabel[id]`. */
 export type BrLandingChipId =

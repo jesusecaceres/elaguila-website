@@ -31,6 +31,7 @@ import {
   catalogSectionTitle,
   featuredOnlyBanner,
 } from "./utils/enVentaResultsSummary";
+import { buildEnVentaListingDetailHrefFromResults } from "./utils/enVentaListingLinks";
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
 
 type Lang = "es" | "en";
@@ -301,6 +302,8 @@ export function EnVentaResultsClient() {
       cityZipHelp: "Ciudad canónica NorCal; CP de 5 dígitos acota cuando hay datos.",
       refineIntro: "Categoría, precio y entrega",
       viewLabel: "Vista",
+      standardEngineLine:
+        "Listado principal: respeta tus filtros y la página; no repite los Destacados de arriba.",
     },
     en: {
       title: "For Sale",
@@ -349,6 +352,8 @@ export function EnVentaResultsClient() {
       cityZipHelp: "Canonical NorCal city; 5-digit ZIP narrows when listings include ZIP.",
       refineIntro: "Category, price & fulfillment",
       viewLabel: "View",
+      standardEngineLine:
+        "Main feed: honors your filters and page; listings shown in Destacados above are not duplicated here.",
     },
   }[lang];
 
@@ -550,6 +555,12 @@ export function EnVentaResultsClient() {
 
   const searchSummaryLine = buildSearchSummaryLine(q, lang);
   const locationSummaryLine = buildLocationSummaryLine(city, zip, lang);
+
+  const listingHref = useCallback(
+    (listingId: string) =>
+      buildEnVentaListingDetailHrefFromResults(listingId, lang, sp ?? new URLSearchParams()),
+    [lang, sp]
+  );
 
   return (
     <div
@@ -907,12 +918,14 @@ export function EnVentaResultsClient() {
               onPageNext={() => pushParams({ page: String(Math.min(pageCount, safePage + 1)) })}
               isFav={isFav}
               onFav={onFav}
+              listingHref={listingHref}
               t={{
                 promoted: t.promoted,
                 featuredMode: t.featuredMode,
                 latest: t.latest,
                 catalog: catalogSectionTitle(lang),
                 catalogSub: catalogSectionSubtitle(lang),
+                standardEngineLine: t.standardEngineLine,
                 page: t.page,
                 featuredBanner: featuredOnlyBanner(lang),
               }}

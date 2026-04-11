@@ -22,10 +22,10 @@ export function AutosGeolocationButton({
   onResolved: (patch: GeoPayload) => void;
   className?: string;
 }) {
-  const [status, setStatus] = useState<"idle" | "loading" | "denied">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "denied" | "insecure">("idle");
 
   useEffect(() => {
-    if (status !== "denied") return;
+    if (status !== "denied" && status !== "insecure") return;
     const t = window.setTimeout(() => setStatus("idle"), 6000);
     return () => window.clearTimeout(t);
   }, [status]);
@@ -33,6 +33,10 @@ export function AutosGeolocationButton({
   const onClick = useCallback(() => {
     if (typeof window === "undefined" || !("geolocation" in navigator)) {
       setStatus("denied");
+      return;
+    }
+    if (!window.isSecureContext) {
+      setStatus("insecure");
       return;
     }
     setStatus("loading");
@@ -72,7 +76,9 @@ export function AutosGeolocationButton({
       ? copy.resultsLocationLoading
       : status === "denied"
         ? copy.resultsLocationDenied
-        : copy.resultsUseLocation;
+        : status === "insecure"
+          ? copy.resultsLocationInsecure
+          : copy.resultsUseLocation;
 
   return (
     <div className="flex min-w-0 flex-col gap-1">
@@ -84,8 +90,10 @@ export function AutosGeolocationButton({
       >
         {label}
       </button>
-      {status === "idle" ? (
-        <p className="max-w-[14rem] text-[10px] leading-snug text-[color:var(--lx-muted)]">{copy.resultsLocationHint}</p>
+      {status === "idle" || status === "insecure" ? (
+        <p className="max-w-[16rem] text-[10px] leading-snug text-[color:var(--lx-muted)]">
+          {status === "insecure" ? copy.resultsLocationInsecure : copy.resultsLocationHint}
+        </p>
       ) : null}
     </div>
   );

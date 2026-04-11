@@ -10,11 +10,7 @@ import { AUTOS_PUBLIC_BLUEPRINT_COPY } from "../lib/autosPublicBlueprintCopy";
 import type { AutosPublicLang } from "../lib/autosPublicBlueprintCopy";
 import { parseAutosBrowseUrl, serializeAutosBrowseUrl } from "../filters/autosBrowseFilterContract";
 import { emptyAutosPublicFilters } from "../filters/autosPublicFilterTypes";
-import {
-  getLandingFeaturedRow,
-  getLandingRecentListings,
-  resolveAutosLandingInventory,
-} from "../data/sampleAutosPublicInventory";
+import { getLandingFeaturedRow, getLandingRecentListings } from "../data/sampleAutosPublicInventory";
 import { useAutosPublicListingsFetch } from "../components/public/useAutosPublicListingsFetch";
 import type { AutosLandingDealerSample } from "./autosLandingDealerSamples";
 import { AUTOS_LANDING_DEALER_SAMPLES } from "./autosLandingDealerSamples";
@@ -30,6 +26,7 @@ import { FeaturedDealersSection } from "./FeaturedDealersSection";
 import { RecentAutosSection } from "./RecentAutosSection";
 import { AutosLandingPublishCTA } from "./AutosLandingPublishCTA";
 import { autosLandingSectionClass } from "./autosLandingLayout";
+import { AutosPublicInventoryNotice } from "../components/public/AutosPublicInventoryNotice";
 
 const RESULTADOS_PATH = "/clasificados/autos/resultados";
 
@@ -50,8 +47,7 @@ export function AutosLandingPage() {
     setZip(b.filters.zip);
   }, [spStr]);
 
-  const { listings: apiListings } = useAutosPublicListingsFetch();
-  const inventory = useMemo(() => resolveAutosLandingInventory(apiListings), [apiListings]);
+  const { listings: inventory, loaded, isDemoInventory } = useAutosPublicListingsFetch();
   const featuredRow = useMemo(() => getLandingFeaturedRow(inventory, 6), [inventory]);
   const recentRow = useMemo(() => getLandingRecentListings(inventory, 8), [inventory]);
 
@@ -143,7 +139,8 @@ export function AutosLandingPage() {
     (dealer: AutosLandingDealerSample) => {
       const filters = emptyAutosPublicFilters();
       filters.sellerType = dealer.resultsHandoff.seller;
-      filters.city = dealer.resultsHandoff.city;
+      const raw = dealer.resultsHandoff.city.trim();
+      filters.city = getCanonicalCityName(raw) || raw;
       return resultsHref({
         filters,
         q: dealer.resultsHandoff.q ?? "",
@@ -196,6 +193,15 @@ export function AutosLandingPage() {
         <AutosQuickChips copy={copy} items={quickChipItems} />
 
         <AutosPrimaryDiscoveryCta copy={copy} browseAllHref={browseAllHref} />
+
+        <div className={autosLandingSectionClass}>
+          <AutosPublicInventoryNotice
+            copy={copy}
+            loaded={loaded}
+            isDemoInventory={isDemoInventory}
+            hasAnyListings={inventory.length > 0}
+          />
+        </div>
 
         <FeaturedCarsSection copy={copy} lang={lang} listings={featuredRow} />
 

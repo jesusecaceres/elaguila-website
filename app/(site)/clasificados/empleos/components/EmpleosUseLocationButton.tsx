@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { FaLocationArrow } from "react-icons/fa";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
@@ -14,6 +14,7 @@ type Props = {
 };
 
 export function EmpleosUseLocationButton({ lang, onFilled, className }: Props) {
+  const helpId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,13 +58,14 @@ export function EmpleosUseLocationButton({ lang, onFilled, className }: Props) {
         type="button"
         onClick={onClick}
         disabled={busy}
+        aria-describedby={helpId}
         className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[#D9A23A]/50 bg-[#FFF8EC] px-3 text-sm font-semibold text-[#5C4A32] shadow-sm transition hover:bg-[#FFF0DA] disabled:opacity-60 sm:w-auto"
       >
         <FaLocationArrow className="h-4 w-4 shrink-0 text-[#B8892C]" aria-hidden />
         {busy ? (lang === "es" ? "Ubicando…" : "Locating…") : label}
       </button>
       {error ? <p className="mt-1.5 text-xs text-[#8B4513]">{error}</p> : null}
-      <p className="mt-1 text-[11px] leading-relaxed text-[#7A756E]">
+      <p id={helpId} className="mt-1 text-[11px] leading-relaxed text-[#7A756E]">
         {lang === "es"
           ? "Solo al hacer clic pedimos permiso. Aproximamos ciudad y CP; no vendemos tu ubicación."
           : "We only ask permission when you tap. We approximate city and ZIP; we do not sell your location."}

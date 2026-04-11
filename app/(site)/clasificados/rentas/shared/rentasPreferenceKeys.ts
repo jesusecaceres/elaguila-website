@@ -1,6 +1,6 @@
 /**
- * Reserved localStorage keys for future Rentas preference memory (not written until product enables opt-in).
- * See `data/RENTAS_PREFERENCES_AND_CONSENT.md`.
+ * Reserved localStorage keys for future Rentas preference memory.
+ * **Not read or written anywhere yet** — launch-safe; enable only with visible “remember” opt-in per `RENTAS_PREFERENCES_AND_CONSENT.md`.
  */
 export const RENTAS_LS_LAST_CITY = "leonix.rentas.browse.lastCity";
 export const RENTAS_LS_LAST_ZIP = "leonix.rentas.browse.lastZip";

@@ -23,6 +23,7 @@ import { partitionAutosResultsVisibility } from "../../lib/autosPublicResultsVis
 import { AutosPublicResultsActiveFilters } from "./AutosPublicResultsActiveFilters";
 import { AutosPublicResultsQuickChips } from "./AutosPublicResultsQuickChips";
 import { AutosGeolocationButton } from "./AutosGeolocationButton";
+import { AutosPublicInventoryNotice } from "./AutosPublicInventoryNotice";
 
 const RESULTADOS_PATH = "/clasificados/autos/resultados";
 const PAGE_SIZE = 12;
@@ -61,7 +62,8 @@ export function AutosPublicResultsShell() {
 
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  const { listings: inventory } = useAutosPublicListingsFetch();
+  const { listings: inventory, isDemoInventory, loaded } = useAutosPublicListingsFetch();
+  const emptyCatalog = loaded && inventory.length === 0 && !isDemoInventory;
 
   const filterOptions: AutosPublicFilterOptions = useMemo(() => {
     const rows = inventory;
@@ -110,9 +112,13 @@ export function AutosPublicResultsShell() {
   const patchDraft = (patch: Partial<typeof draftFilters>) => setDraftFilters((f) => ({ ...f, ...patch }));
 
   const applyDraftToUrl = useCallback(() => {
+    const cityRaw = draftFilters.city.trim();
+    const canonCity = getCanonicalCityName(cityRaw) || cityRaw;
+    const nextFilters = { ...draftFilters, city: canonCity };
+    setDraftFilters(nextFilters);
     pushBundle({
       ...applied,
-      filters: draftFilters,
+      filters: nextFilters,
       q: qDraft.trim(),
       page: 1,
     });
@@ -163,7 +169,8 @@ export function AutosPublicResultsShell() {
 
   const onGeoResolved = useCallback(
     (patch: { city: string; zip: string }) => {
-      const city = patch.city.trim();
+      const raw = patch.city.trim();
+      const city = getCanonicalCityName(raw) || raw;
       const zip = patch.zip.replace(/\D/g, "").slice(0, 5);
       const nextFilters = { ...applied.filters, city, zip };
       setDraftFilters(nextFilters);
@@ -318,6 +325,15 @@ export function AutosPublicResultsShell() {
           </div>
         </div>
 
+        <div className="mb-6">
+          <AutosPublicInventoryNotice
+            copy={copy}
+            loaded={loaded}
+            isDemoInventory={isDemoInventory}
+            hasAnyListings={inventory.length > 0}
+          />
+        </div>
+
         <div className="mb-6 rounded-2xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/40 px-4 py-4 sm:px-5">
           <AutosPublicResultsQuickChips bundle={applied} copy={copy} />
         </div>
@@ -377,9 +393,9 @@ export function AutosPublicResultsShell() {
                   <AutosPublicStandardCard key={l.id} listing={l} copy={copy} lang={lang} />
                 ))}
               </div>
-              {gridListings.length === 0 ? (
+              {gridListings.length === 0 && !emptyCatalog ? (
                 <p className="mt-8 rounded-2xl border border-dashed border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-10 text-center text-sm text-[color:var(--lx-muted)]">
-                  {lang === "es" ? "Sin resultados con estos filtros." : "No results match these filters."}
+                  {copy.resultsNoFilterMatches}
                 </p>
               ) : null}
             </section>
