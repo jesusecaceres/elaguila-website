@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
 import ClasificadosCategoryComingSoon from "@/app/clasificados/publicar/components/ClasificadosCategoryComingSoon";
-import { RENTAS_LANDING } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
+import { RENTAS_PUBLICAR_HUB } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 
 function normalizeCategory(raw: string): CategoryKey | "" {
   const v = (raw ?? "").trim().toLowerCase();
@@ -15,8 +15,8 @@ function normalizeCategory(raw: string): CategoryKey | "" {
 }
 
 /**
- * Dispatcher: known categories with dedicated publish routes redirect there; `rentas` → Rentas landing
- * (Privado / Negocio publish CTAs). Other valid slugs fall back to Coming Soon. Invalid slug or `all` → chooser.
+ * Dispatcher: known categories with dedicated publish routes redirect there; `rentas` → Rentas publish hub
+ * (Privado vs Negocio). Other valid slugs fall back to Coming Soon. Invalid slug or `all` → chooser.
  */
 export default function PublicarCategoryPage() {
   const params = useParams<{ category?: string }>();
@@ -57,13 +57,18 @@ export default function PublicarCategoryPage() {
       return;
     }
     if (categoryFromUrl === "rentas") {
-      router.replace(`${RENTAS_LANDING}?lang=${lang}`);
+      const p = new URLSearchParams(searchParams?.toString() ?? "");
+      p.delete("cat");
+      p.delete("categoria");
+      if (!p.get("lang")) p.set("lang", lang);
+      const qs = p.toString();
+      router.replace(qs ? `${RENTAS_PUBLICAR_HUB}?${qs}` : `${RENTAS_PUBLICAR_HUB}?lang=${lang}`);
       return;
     }
     if (!categoryFromUrl) {
       router.replace(`/clasificados/publicar?lang=${lang}`);
     }
-  }, [slug, categoryFromUrl, lang, router]);
+  }, [slug, categoryFromUrl, lang, router, searchParams]);
 
   if (
     slug === "bienes-raices" ||

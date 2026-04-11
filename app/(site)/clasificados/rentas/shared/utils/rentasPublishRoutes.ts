@@ -1,5 +1,8 @@
 /** Canonical publish + preview routes — Rentas (Leonix Clasificados). */
 
+/** Branch chooser only (Privado vs Negocio) — not browse landing, not results. */
+export const RENTAS_PUBLICAR_HUB = "/clasificados/publicar/rentas";
+
 export const RENTAS_PUBLICAR_PRIVADO = "/clasificados/publicar/rentas/privado";
 /** Same Privado entry as `RENTAS_PUBLICAR_PRIVADO`, under `/publicar`. */
 export const RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY = "/publicar/rentas/privado";
