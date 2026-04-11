@@ -4,11 +4,11 @@ import {
   buildViajesBrowseUrl,
   buildViajesResultsUrlCompat,
   defaultViajesBrowseState,
-  legacyQueryToBrowseState,
   type ViajesBrowseState,
+  VIAJES_PUBLIC_RESULTS_PATH,
 } from "./viajesBrowseContract";
 
-const DEFAULT_BASE = "/clasificados/viajes/resultados";
+const DEFAULT_BASE = VIAJES_PUBLIC_RESULTS_PATH;
 
 /** @deprecated Use `ViajesBrowseState` from `viajesBrowseContract` */
 export type ViajesResultsQuery = {
@@ -44,5 +44,12 @@ export function buildViajesResultsUrl(query: ViajesResultsQuery, basePath: strin
   );
 }
 
-export { buildViajesBrowseUrl, defaultViajesBrowseState, legacyQueryToBrowseState };
-export type { ViajesBrowseState };
+export {
+  buildViajesBrowseUrl,
+  defaultViajesBrowseState,
+  legacyQueryToBrowseState,
+  viajesMergeBrowseState,
+  viajesResultsBrowseUrl,
+  VIAJES_PUBLIC_RESULTS_PATH,
+} from "./viajesBrowseContract";
+export type { ViajesBrowseState, ViajesResultsLinkPatch } from "./viajesBrowseContract";

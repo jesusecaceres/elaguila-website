@@ -69,20 +69,29 @@ export function RentasLandingCategoryHeader({ copy, lang }: Props) {
           </h1>
           <p className="mt-3 max-w-2xl text-base leading-relaxed text-[#2e2a24]/95 sm:text-lg">{copy.intro}</p>
         </div>
-        <div className="flex w-full min-w-0 flex-shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 lg:w-auto lg:max-w-[min(100%,24rem)]">
-          <Link
-            href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, lang)}
-            className={`${rentasCtaPrimaryClass} w-full min-w-0 text-center sm:flex-1 lg:w-full lg:min-w-[11.5rem]`}
-          >
-            {copy.publishPrivado}
-          </Link>
-          <Link
-            href={withRentasLandingLang(RENTAS_PUBLICAR_NEGOCIO, lang)}
-            className={`${rentasCtaSecondaryClass} w-full min-w-0 text-center sm:flex-1 lg:w-full lg:min-w-[11.5rem]`}
-          >
-            {copy.publishNegocio}
-          </Link>
-        </div>
+        <aside
+          className="flex w-full min-w-0 flex-shrink-0 flex-col gap-3 rounded-[1.25rem] border border-[#C9D4E0]/55 bg-gradient-to-br from-white/95 via-[#FFFCF7]/92 to-[#EEF3F7]/55 p-4 shadow-[0_18px_48px_-34px_rgba(44,36,28,0.22)] ring-1 ring-white/80 sm:p-5 lg:max-w-[min(100%,26rem)]"
+          aria-label={copy.publishEyebrow}
+        >
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#5B7C99]/90">{copy.publishEyebrow}</p>
+            <p className="mt-1.5 text-sm leading-snug text-[#4A4338]/92">{copy.publishHint}</p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-3">
+            <Link
+              href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, lang)}
+              className={`${rentasCtaPrimaryClass} w-full min-w-0 flex-1 text-center`}
+            >
+              {copy.publishPrivado}
+            </Link>
+            <Link
+              href={withRentasLandingLang(RENTAS_PUBLICAR_NEGOCIO, lang)}
+              className={`${rentasCtaSecondaryClass} w-full min-w-0 flex-1 text-center`}
+            >
+              {copy.publishNegocio}
+            </Link>
+          </div>
+        </aside>
       </div>
     </header>
   );

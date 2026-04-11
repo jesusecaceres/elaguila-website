@@ -6,6 +6,7 @@ import { useSearchParams, usePathname } from "next/navigation";
 import { LeonixDashboardShell } from "./components/LeonixDashboardShell";
 import { supabase } from "../../lib/supabaseClient";
 import { fetchDashboardNavCounts } from "./lib/dashboardNavCounts";
+import { fetchDerivedDashboardFeed, type DerivedFeedItem } from "./lib/derivedDashboardFeed";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -73,16 +74,13 @@ export default function DashboardPage() {
             attLow: "Revisa anuncios con pocas vistas",
             attUnread: "Mensajes recientes en bandeja",
             attDrafts: "Borradores sin publicar",
-            recent: "Actividad reciente",
-            recentPh: "Historial completo próximamente. Mientras tanto revisa tus anuncios.",
-            notifPrev: "Alertas",
-            notifPh: "Centro de notificaciones en evolución.",
+            feedTitle: "Actividad y alertas",
+            feedSubtitle: "Señales reales de tus anuncios, perfil y mensajes (sin centro de notificaciones persistido aún).",
+            feedEmpty: "Todo al día. Publica o revisa analíticas cuando quieras.",
+            notifPrefs: "Preferencias de avisos",
             bizTeaser: "Herramientas de negocio",
             bizBody: "WhatsApp, perfil, SEO local y Leonix Concierge.",
             bizCta: "Explorar",
-            sampleApprove: "Anuncio aprobado",
-            sampleMsg: "Nuevo mensaje",
-            sampleExp: "Recordatorio de expiración",
           }
         : {
             title: "Account overview",
@@ -126,16 +124,13 @@ export default function DashboardPage() {
             attLow: "Review low-traffic listings",
             attUnread: "Recent inbox messages",
             attDrafts: "Drafts not published",
-            recent: "Recent activity",
-            recentPh: "Full history coming soon. Manage listings for now.",
-            notifPrev: "Alerts",
-            notifPh: "Notification center evolving.",
+            feedTitle: "Activity & alerts",
+            feedSubtitle: "Real signals from your listings, profile, and messages (no persisted notification center yet).",
+            feedEmpty: "You are all caught up. Publish or review analytics anytime.",
+            notifPrefs: "Alert preferences",
             bizTeaser: "Business tools",
             bizBody: "WhatsApp, profile, local SEO, and Leonix Concierge.",
             bizCta: "Explore",
-            sampleApprove: "Listing approved",
-            sampleMsg: "New message",
-            sampleExp: "Expiration reminder",
           },
     [lang]
   );
@@ -155,6 +150,8 @@ export default function DashboardPage() {
   const [expiringSoon, setExpiringSoon] = useState<number | null>(null);
   const [draftCount, setDraftCount] = useState<number | null>(null);
   const [membershipTier, setMembershipTier] = useState<string | null>(null);
+  const [accountType, setAccountType] = useState<string | null>(null);
+  const [derivedFeed, setDerivedFeed] = useState<DerivedFeedItem[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -200,7 +197,7 @@ export default function DashboardPage() {
         try {
           const { data: pData, error: pErr } = await supabase
             .from("profiles")
-            .select("display_name, email, membership_tier, home_city")
+            .select("display_name, email, membership_tier, home_city, account_type")
             .eq("id", u.id)
             .maybeSingle();
 
@@ -210,6 +207,7 @@ export default function DashboardPage() {
               email?: string | null;
               membership_tier?: string | null;
               home_city?: string | null;
+              account_type?: string | null;
             };
             setName(row.display_name ?? inferredName);
             setEmail(row.email ?? u.email ?? null);
@@ -217,6 +215,7 @@ export default function DashboardPage() {
             setMembershipTier(
               typeof row.membership_tier === "string" ? row.membership_tier : null
             );
+            setAccountType(typeof row.account_type === "string" ? row.account_type : null);
             setHomeCity(row.home_city?.trim() || null);
           }
         } catch {
@@ -300,6 +299,13 @@ export default function DashboardPage() {
           if (mounted) setEnVentaActiveCount(null);
         }
 
+        try {
+          const feed = await fetchDerivedDashboardFeed(supabase, u.id, lang);
+          if (mounted) setDerivedFeed(feed);
+        } catch {
+          if (mounted) setDerivedFeed([]);
+        }
+
         if (mounted) setLoading(false);
       } catch {
         if (mounted) {
@@ -313,7 +319,7 @@ export default function DashboardPage() {
     return () => {
       mounted = false;
     };
-  }, [pathname]);
+  }, [pathname, lang]);
 
   const accountRef = userId ? accountRefFromId(userId) : null;
 
@@ -334,6 +340,8 @@ export default function DashboardPage() {
       userName={name}
       email={email}
       accountRef={accountRef}
+      membershipTier={membershipTier}
+      accountType={accountType}
     >
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">
@@ -362,7 +370,7 @@ export default function DashboardPage() {
             ) : null}
           </header>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
             <Link href={`/dashboard/mis-anuncios?${q}`} className={summaryCardClass}>
               <div className="flex items-start justify-between gap-2">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.activeAds}</p>
@@ -501,52 +509,62 @@ export default function DashboardPage() {
             </ul>
           </div>
 
-          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
             <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.1)]">
-              <h2 className="text-lg font-bold text-[#1E1810]">{t.recent}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.recentPh}</p>
-              <ul className="mt-4 space-y-2 text-sm text-[#3D3428]/95">
-                <li className="flex gap-2">
-                  <span className="text-[#C9A84A]" aria-hidden>
-                    ✦
-                  </span>
-                  {t.sampleApprove}
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-[#C9A84A]" aria-hidden>
-                    ✦
-                  </span>
-                  {t.sampleMsg}
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-[#C9A84A]" aria-hidden>
-                    ✦
-                  </span>
-                  {t.sampleExp}
-                </li>
-              </ul>
-              <Link
-                href={`/dashboard/mis-anuncios?${q}`}
-                className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#2A2620] underline decoration-[#C9B46A]/60 underline-offset-4 hover:decoration-[#C9B46A]"
-              >
-                {t.ctaManage} →
-              </Link>
+              <h2 className="text-lg font-bold text-[#1E1810]">{t.feedTitle}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.feedSubtitle}</p>
+              {derivedFeed.length === 0 ? (
+                <p className="mt-4 text-sm font-medium text-[#3D3428]/90">{t.feedEmpty}</p>
+              ) : (
+                <ul className="mt-4 space-y-2">
+                  {derivedFeed.slice(0, 8).map((it) => (
+                    <li key={it.id}>
+                      <Link
+                        href={it.href}
+                        className="flex gap-3 rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 px-4 py-3 text-left text-sm text-[#2C2416] transition hover:border-[#C9B46A]/45 hover:bg-[#FFFCF7]"
+                      >
+                        <span className="text-[#C9A84A]" aria-hidden>
+                          ✦
+                        </span>
+                        <span className="min-w-0">
+                          <span className="font-semibold text-[#1E1810]">{it.title}</span>
+                          {it.detail ? (
+                            <span className="mt-0.5 block text-xs text-[#5C5346]/95">{it.detail}</span>
+                          ) : null}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Link
+                  href={`/dashboard/mis-anuncios?${q}`}
+                  className="inline-flex items-center gap-2 text-sm font-bold text-[#2A2620] underline decoration-[#C9B46A]/60 underline-offset-4 hover:decoration-[#C9B46A]"
+                >
+                  {t.ctaManage} →
+                </Link>
+                <Link
+                  href={`/dashboard/notificaciones?${q}`}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-[#5C5346] underline decoration-[#C9B46A]/40 underline-offset-4 hover:text-[#1E1810]"
+                >
+                  {lang === "es" ? "Centro de avisos →" : "Alerts center →"}
+                </Link>
+              </div>
             </div>
 
             <div className="rounded-3xl border border-[#C9B46A]/25 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_12px_36px_-12px_rgba(201,164,74,0.15)]">
-              <h2 className="text-lg font-bold text-[#1E1810]">{t.notifPrev}</h2>
-              <p className="mt-2 text-sm text-[#5C5346]/95">{t.notifPh}</p>
-              <ul className="mt-4 space-y-2 text-sm text-[#3D3428]/95">
-                <li>{lang === "es" ? "Resumen semanal de analíticas disponible" : "Weekly analytics summary available"}</li>
-                <li>{lang === "es" ? "Anuncio expira en 7 días" : "Listing expires in 7 days"}</li>
-                <li>{lang === "es" ? "Anuncio expira en 3 días" : "Listing expires in 3 days"}</li>
-                <li>{lang === "es" ? "Cambios de moderación" : "Moderation changes"}</li>
-              </ul>
+              <h2 className="text-lg font-bold text-[#1E1810]">{lang === "es" ? "Preferencias" : "Preferences"}</h2>
+              <p className="mt-2 text-sm text-[#5C5346]/95">
+                {lang === "es"
+                  ? "Ajusta recordatorios locales; la cuenta persistente llegará con una tabla de preferencias."
+                  : "Tune local reminders; account-wide persistence will ship with a preferences table."}
+              </p>
               <Link
                 href={`/dashboard/notificaciones?${q}`}
                 className="mt-5 inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
               >
-                {lang === "es" ? "Ver notificaciones →" : "View notifications →"}
+                {t.notifPrefs} →
               </Link>
             </div>
           </div>

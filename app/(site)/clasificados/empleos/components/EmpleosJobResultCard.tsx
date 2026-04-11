@@ -60,7 +60,7 @@ export function EmpleosJobResultCard({ job, lang, variant = "list" }: Props) {
         isWide ? "flex h-full flex-col" : "flex flex-col gap-4 sm:flex-row sm:items-stretch"
       }`}
     >
-      <Link href={detailHref} className={`relative shrink-0 bg-[#EDE8E0] ${isWide ? "aspect-[16/9] w-full" : "aspect-[16/10] w-full sm:aspect-auto sm:h-auto sm:w-44 lg:w-52"}`}>
+      <Link href={detailHref} className={`relative shrink-0 bg-[#EDE8E0] ${isWide ? "aspect-[16/9] w-full" : "aspect-[16/10] w-full sm:aspect-auto sm:h-auto sm:w-52 lg:w-60"}`}>
         <Image src={job.imageSrc} alt={job.imageAlt} fill className="object-cover" sizes={isWide ? "(max-width:768px)100vw,33vw" : "200px"} />
         {job.listingTier !== "standard" ? (
           <span
@@ -71,10 +71,10 @@ export function EmpleosJobResultCard({ job, lang, variant = "list" }: Props) {
         ) : null}
       </Link>
 
-      <div className={`flex min-w-0 flex-1 flex-col p-4 ${isWide ? "" : "sm:py-4 sm:pr-4"}`}>
+      <div className={`flex min-w-0 flex-1 flex-col p-4 sm:p-5 ${isWide ? "" : "sm:py-5 sm:pr-5"}`}>
         <div className="flex flex-wrap items-start gap-2">
           <Link href={detailHref} className="min-w-0 flex-1">
-            <h2 className="text-lg font-bold leading-snug text-[#2A2826] group-hover:underline">{job.title}</h2>
+            <h2 className={`font-bold leading-snug text-[#2A2826] group-hover:underline ${isWide ? "text-xl sm:text-2xl" : "text-lg sm:text-xl"}`}>{job.title}</h2>
           </Link>
           {job.quickApply ? (
             <span className={`shrink-0 ${EMPLEOS_BADGE_QUICK}`}>{lang === "es" ? "Aplicación rápida" : "Quick apply"}</span>

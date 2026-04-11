@@ -213,9 +213,7 @@ export function EnVentaResultListingCard({
           </span>
         ) : null}
         {isPro ? (
-          <span className="text-[11px] font-medium text-[#5C5346]/90">
-            <span className="text-[#3D3428]/35">·</span> {model.postedAgo}
-          </span>
+          <span className="text-[11px] font-medium tabular-nums text-[#5C5346]/90">{model.postedAgo}</span>
         ) : null}
         {model.boosted && !isPro ? (
           <span className="rounded-full border border-[#C9B46A]/50 bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#6B5B2E]">
@@ -224,7 +222,7 @@ export function EnVentaResultListingCard({
         ) : null}
       </div>
 
-      {!isPro ? <p className="mt-1 text-xs font-medium text-[#7A7164]">{model.postedAgo}</p> : null}
+      {!isPro ? <p className="mt-1.5 text-xs font-medium tabular-nums text-[#7A7164]">{model.postedAgo}</p> : null}
 
       {isPro && (model.showViews || model.fulfillmentChip) ? (
         <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-[#3D3428]">
@@ -263,15 +261,7 @@ export function EnVentaResultListingCard({
       {isPro ? thumbStrip : null}
 
       {layout === "list" ? (
-        <div
-          className={cx(
-            "mt-4 flex items-center gap-2 border-t border-[#E8DFD0]/50 pt-3",
-            isPro ? "justify-end" : "justify-between"
-          )}
-        >
-          {!isPro ? <span className="text-[12px] font-medium text-[#7A7164]">{model.postedAgo}</span> : null}
-          {favBtn}
-        </div>
+        <div className="mt-4 flex items-center justify-end gap-2 border-t border-[#E8DFD0]/50 pt-3">{favBtn}</div>
       ) : null}
 
       {model.categoryLine ? (

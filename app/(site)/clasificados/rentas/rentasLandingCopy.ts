@@ -5,6 +5,9 @@ export type RentasLandingCopy = {
   breadcrumbRentas: string;
   title: string;
   intro: string;
+  /** Short line above publish CTAs (landlords / inventory). */
+  publishEyebrow: string;
+  publishHint: string;
   publishPrivado: string;
   publishNegocio: string;
   langEs: string;
@@ -27,6 +30,8 @@ export type RentasLandingCopy = {
     recs: string;
     recsAny: string;
     buscar: string;
+    /** Clarifies that city vs ZIP is resolved on the results URL. */
+    locationHint: string;
   };
   priceOptions: { value: string; label: string }[];
   quickExplore: {
@@ -40,6 +45,9 @@ export type RentasLandingCopy = {
     chipAmueblado: string;
     chipMascotas: string;
     chipRecs2: string;
+    groupProperty: string;
+    groupSeller: string;
+    groupDetails: string;
   };
   featured: {
     title: string;
@@ -113,6 +121,16 @@ export type RentasLandingCopy = {
     locationDenied: string;
     locationPending: string;
     locationScaffoldNote: string;
+    /** Shown near “Use my location” — reinforces manual city/ZIP first. */
+    locationPrimaryNote: string;
+    /** Full filter zone title (results). */
+    filterZoneTitle: string;
+    rentMinLabel: string;
+    rentMaxLabel: string;
+    filterAmenities: string;
+    furnishedToggle: string;
+    petsToggle: string;
+    activeFiltersLabel: string;
   };
   /** Public listing detail shell */
   detail: {
@@ -140,12 +158,15 @@ const ES: RentasLandingCopy = {
   title: "Rentas",
   intro:
     "Rentas residenciales, comerciales y terrenos en un solo lugar. Navega con claridad y publica como particular o negocio cuando quieras listar.",
+  publishEyebrow: "Publicar",
+  publishHint: "Listado claro para particulares y cuentas comerciales.",
   publishPrivado: "Publicar — Privado",
   publishNegocio: "Publicar — Negocio",
   langEs: "ES",
   langEn: "EN",
   search: {
     moduleHeadline: "Buscar rentas",
+    locationHint: "En resultados se guarda como ciudad o código postal.",
     locationLabel: "Ciudad o código postal",
     locationPlaceholder: "Ej. Monterrey o 64000",
     labelSearch: "Búsqueda",
@@ -180,6 +201,9 @@ const ES: RentasLandingCopy = {
     chipAmueblado: "Amueblado",
     chipMascotas: "Mascotas",
     chipRecs2: "2+ recámaras",
+    groupProperty: "Tipo de propiedad",
+    groupSeller: "Particular o negocio",
+    groupDetails: "Comodidades y tamaño",
   },
   featured: {
     title: "Destacado",
@@ -268,6 +292,14 @@ const ES: RentasLandingCopy = {
     locationPending: "Solicitando permiso…",
     locationScaffoldNote:
       "Coordenadas guardadas en la URL. El orden por distancia y radio se activará cuando el índice geográfico esté en producción.",
+    locationPrimaryNote: "Ciudad o código postal arriba sigue siendo la forma principal de acotar.",
+    filterZoneTitle: "Ubicación y filtros",
+    rentMinLabel: "Renta mín. / mes",
+    rentMaxLabel: "Renta máx. / mes",
+    filterAmenities: "Comodidades",
+    furnishedToggle: "Solo amueblado",
+    petsToggle: "Mascotas permitidas",
+    activeFiltersLabel: "Filtros activos",
   },
   detail: {
     metaTitleSuffix: "Rentas | Leonix",
@@ -294,12 +326,15 @@ const EN: RentasLandingCopy = {
   title: "Rentals",
   intro:
     "Residential, commercial, and land rentals in one place. Browse with clarity and publish as an individual or business when you are ready to list.",
+  publishEyebrow: "Publish",
+  publishHint: "Clear listings for individuals and business accounts.",
   publishPrivado: "List — Private",
   publishNegocio: "List — Business",
   langEs: "ES",
   langEn: "EN",
   search: {
     moduleHeadline: "Find rentals",
+    locationHint: "On results, this becomes city or postal code.",
     locationLabel: "City or ZIP",
     locationPlaceholder: "e.g. Monterrey or 64000",
     labelSearch: "Search",
@@ -334,6 +369,9 @@ const EN: RentasLandingCopy = {
     chipAmueblado: "Furnished",
     chipMascotas: "Pets",
     chipRecs2: "2+ bedrooms",
+    groupProperty: "Property type",
+    groupSeller: "Private or business",
+    groupDetails: "Amenities & size",
   },
   featured: {
     title: "Featured",
@@ -422,6 +460,14 @@ const EN: RentasLandingCopy = {
     locationPending: "Requesting permission…",
     locationScaffoldNote:
       "Coordinates saved in the URL. Sort-by-distance and radius search will activate when the geo index ships.",
+    locationPrimaryNote: "City or ZIP above remains the primary way to narrow results.",
+    filterZoneTitle: "Location & filters",
+    rentMinLabel: "Min rent / mo",
+    rentMaxLabel: "Max rent / mo",
+    filterAmenities: "Amenities",
+    furnishedToggle: "Furnished only",
+    petsToggle: "Pets allowed",
+    activeFiltersLabel: "Active filters",
   },
   detail: {
     metaTitleSuffix: "Rentals | Leonix",

@@ -98,7 +98,11 @@ export function buildEnVentaResultsCardModel(
   const sellerKindLabel =
     dto.sellerKind === "business"
       ? dto.businessName?.trim() || (lang === "es" ? "Negocio" : "Business")
-      : null;
+      : dto.sellerKind === "individual"
+        ? lang === "es"
+          ? "Particular"
+          : "Individual"
+        : null;
 
   return {
     id: dto.id,

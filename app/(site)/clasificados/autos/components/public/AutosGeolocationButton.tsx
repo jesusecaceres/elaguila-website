@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import type { AutosPublicBlueprintCopy } from "../../lib/autosPublicBlueprintCopy";
 
@@ -23,6 +23,12 @@ export function AutosGeolocationButton({
   className?: string;
 }) {
   const [status, setStatus] = useState<"idle" | "loading" | "denied">("idle");
+
+  useEffect(() => {
+    if (status !== "denied") return;
+    const t = window.setTimeout(() => setStatus("idle"), 6000);
+    return () => window.clearTimeout(t);
+  }, [status]);
 
   const onClick = useCallback(() => {
     if (typeof window === "undefined" || !("geolocation" in navigator)) {
@@ -78,6 +84,9 @@ export function AutosGeolocationButton({
       >
         {label}
       </button>
+      {status === "idle" ? (
+        <p className="max-w-[14rem] text-[10px] leading-snug text-[color:var(--lx-muted)]">{copy.resultsLocationHint}</p>
+      ) : null}
     </div>
   );
 }

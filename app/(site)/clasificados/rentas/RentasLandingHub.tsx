@@ -68,19 +68,25 @@ export function RentasLandingHub() {
 
   const supportingListing = useMemo(() => privadoRows[0] ?? null, [privadoRows]);
 
-  const quickChipLinks = useMemo(() => {
+  const { chipsProperty, chipsSeller, chipsDetails } = useMemo(() => {
     const b = (extra: Record<string, string>) => buildRentasResultsUrl({ ...extra, lang });
     const qe = copy.quickExplore;
-    return [
-      { label: qe.chipResidencial, href: b({ [BR_NEGOCIO_Q_PROPIEDAD]: "residencial" }), Icon: FiHome },
-      { label: qe.chipComercial, href: b({ [BR_NEGOCIO_Q_PROPIEDAD]: "comercial" }), Icon: FiLayers },
-      { label: qe.chipTerreno, href: b({ [BR_NEGOCIO_Q_PROPIEDAD]: "terreno_lote" }), Icon: FiMap },
-      { label: qe.chipPrivado, href: b({ [RENTAS_QUERY_BRANCH]: "privado" }), Icon: FiUsers },
-      { label: qe.chipNegocio, href: b({ [RENTAS_QUERY_BRANCH]: "negocio" }), Icon: FiLayers },
-      { label: qe.chipAmueblado, href: b({ [RENTAS_QUERY_AMUEBLADO]: "1" }), Icon: FiHome },
-      { label: qe.chipMascotas, href: b({ [RENTAS_QUERY_MASCOTAS]: "1" }), Icon: FiHeart },
-      { label: qe.chipRecs2, href: b({ [RENTAS_QUERY_RECS]: "2" }), Icon: FiHome },
-    ];
+    return {
+      chipsProperty: [
+        { label: qe.chipResidencial, href: b({ [BR_NEGOCIO_Q_PROPIEDAD]: "residencial" }), Icon: FiHome },
+        { label: qe.chipComercial, href: b({ [BR_NEGOCIO_Q_PROPIEDAD]: "comercial" }), Icon: FiLayers },
+        { label: qe.chipTerreno, href: b({ [BR_NEGOCIO_Q_PROPIEDAD]: "terreno_lote" }), Icon: FiMap },
+      ],
+      chipsSeller: [
+        { label: qe.chipPrivado, href: b({ [RENTAS_QUERY_BRANCH]: "privado" }), Icon: FiUsers },
+        { label: qe.chipNegocio, href: b({ [RENTAS_QUERY_BRANCH]: "negocio" }), Icon: FiLayers },
+      ],
+      chipsDetails: [
+        { label: qe.chipAmueblado, href: b({ [RENTAS_QUERY_AMUEBLADO]: "1" }), Icon: FiHome },
+        { label: qe.chipMascotas, href: b({ [RENTAS_QUERY_MASCOTAS]: "1" }), Icon: FiHeart },
+        { label: qe.chipRecs2, href: b({ [RENTAS_QUERY_RECS]: "2" }), Icon: FiHome },
+      ],
+    };
   }, [copy.quickExplore, lang]);
 
   const resultsBase = useMemo(() => withRentasLandingLang(RENTAS_RESULTS, lang), [lang]);
@@ -116,7 +122,12 @@ export function RentasLandingHub() {
         </div>
       </RentasLandingHero>
 
-      <RentasLandingQuickChips copy={copy.quickExplore} chips={quickChipLinks} />
+      <RentasLandingQuickChips
+        copy={copy.quickExplore}
+        chipsProperty={chipsProperty}
+        chipsSeller={chipsSeller}
+        chipsDetails={chipsDetails}
+      />
 
       <RentasLandingFeatured copy={copy} lang={lang} primary={rentasLandingFeaturedListing} supporting={supportingListing} />
 

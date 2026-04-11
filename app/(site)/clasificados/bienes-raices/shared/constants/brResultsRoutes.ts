@@ -1,5 +1,7 @@
 import { BR_RESULTS } from "./brPublishRoutes";
 
+/** Canonical filter vocabulary + landing vs results split: `../brFilterContract`. */
+
 /** NorCal canonical city helpers + `ciudad` URL key for BR results filters. */
 export { BR_URL_QUERY_CIUDAD, brCanonicalNorCalCity } from "../brNorCalCity";
 

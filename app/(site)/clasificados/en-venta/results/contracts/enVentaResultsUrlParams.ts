@@ -1,6 +1,9 @@
 /**
  * En Venta results browse surface — URL query contract (`/clasificados/en-venta/results`).
  * URL is the source of truth for filters, sort, view, and pagination.
+ *
+ * Wiring: `EnVentaResultsClient.tsx` (state), `components/EnVentaResultsChipsRow.tsx` (active filters),
+ * `components/EnVentaResultsListingSections.tsx` (promoted + catalog), `utils/enVentaLocationMatch.ts` (city/ZIP).
  */
 
 export const EV_RESULTS_PARAM = {

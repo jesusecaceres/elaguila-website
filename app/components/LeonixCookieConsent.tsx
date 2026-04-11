@@ -7,42 +7,57 @@ const COPY = {
   es: {
     title: "Cookies y preferencias",
     body:
-      "Usamos cookies necesarias para el sitio, y —con tu permiso— mediciones de audiencia en primera persona y preferencias para mejorar tu experiencia. No vendemos tus datos.",
+      "Usamos cookies necesarias para el sitio (sesión, seguridad, idioma y continuidad esencial). Con tu permiso, también podemos usar analíticas de primera parte y preferencias para mejorar tu experiencia de navegación en Leonix.",
+    body2:
+      "La analítica no se activa antes de que elijas. La personalización es opcional y sirve para recordar preferencias en este sitio — no vendemos tus datos ni habilitamos seguimiento entre sitios.",
     acceptAll: "Aceptar todo",
     rejectNonEssential: "Rechazar lo no esencial",
     manage: "Gestionar preferencias",
     save: "Guardar",
+    close: "Cerrar",
     necessary: "Necesarias (siempre activas)",
     necessaryHint: "Sesión, seguridad, idioma y continuidad de rutas esenciales.",
     analytics: "Analíticas",
-    analyticsHint: "Medición agregada del uso (primera parte).",
+    analyticsHint: "Medición agregada del uso en Leonix (primera parte).",
     personalization: "Personalización",
-    personalizationHint: "Recordar preferencias de búsqueda y similares en este sitio.",
+    personalizationHint: "Recordar preferencias de búsqueda y similares solo en este sitio.",
   },
   en: {
     title: "Cookies & preferences",
     body:
-      "We use strictly necessary cookies for the site, and —with your permission— first-party audience measurement and preferences to improve your experience. We do not sell your data.",
+      "We use strictly necessary cookies for the site (session, security, language, and essential continuity). With your permission, we may also use first-party analytics and preferences to improve your Leonix browsing experience.",
+    body2:
+      "Analytics do not run before you choose. Personalization is optional and helps remember preferences on this site — we do not sell your data or enable cross-site tracking.",
     acceptAll: "Accept all",
     rejectNonEssential: "Reject non-essential",
     manage: "Manage preferences",
     save: "Save",
+    close: "Close",
     necessary: "Necessary (always on)",
     necessaryHint: "Session, security, language, and essential route continuity.",
     analytics: "Analytics",
-    analyticsHint: "Aggregated, first-party usage measurement.",
+    analyticsHint: "Aggregated, first-party usage measurement on Leonix.",
     personalization: "Personalization",
-    personalizationHint: "Remember search preferences and similar on this site.",
+    personalizationHint: "Remember search preferences and similar only on this site.",
   },
 } as const;
 
 export function LeonixCookieConsent() {
   const [lang, setLang] = useState<"es" | "en">("es");
   const [mounted, setMounted] = useState(false);
-  const [visible, setVisible] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [manage, setManage] = useState(false);
   const [analytics, setAnalytics] = useState(false);
   const [personalization, setPersonalization] = useState(false);
+  const [preferencesReopen, setPreferencesReopen] = useState(false);
+
+  const syncFromStorage = useCallback(() => {
+    const existing = readLeonixConsent();
+    if (existing) {
+      setAnalytics(existing.analytics);
+      setPersonalization(existing.personalization);
+    }
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -52,36 +67,66 @@ export function LeonixCookieConsent() {
     } catch {
       setLang("es");
     }
-    const existing = readLeonixConsent();
-    setVisible(!existing);
-    if (existing) {
-      setAnalytics(existing.analytics);
-      setPersonalization(existing.personalization);
+    syncFromStorage();
+    if (!readLeonixConsent()) {
+      setPanelOpen(true);
     }
-  }, []);
+  }, [syncFromStorage]);
+
+  useEffect(() => {
+    const onPrefs = () => {
+      setPreferencesReopen(true);
+      syncFromStorage();
+      setPanelOpen(true);
+      setManage(true);
+    };
+    window.addEventListener("leonix-consent-preferences", onPrefs);
+    return () => window.removeEventListener("leonix-consent-preferences", onPrefs);
+  }, [syncFromStorage]);
 
   const t = COPY[lang];
 
   const close = useCallback((rec: Pick<LeonixConsentV1, "analytics" | "personalization">) => {
     persistLeonixConsent(rec);
-    setVisible(false);
+    setPanelOpen(false);
     setManage(false);
   }, []);
 
-  if (!mounted || !visible) return null;
+  const dismiss = useCallback(() => {
+    setPanelOpen(false);
+    setManage(false);
+    setPreferencesReopen(false);
+  }, []);
+
+  const showDismiss = preferencesReopen || readLeonixConsent() !== null;
+
+  if (!mounted || !panelOpen) return null;
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-[200] border-t border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)]/98 p-4 shadow-[0_-8px_32px_rgba(0,0,0,0.12)] backdrop-blur-md sm:p-5"
+      className="fixed inset-x-0 bottom-0 z-[200] max-h-[min(92vh,720px)] overflow-y-auto border-t border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)]/98 shadow-[0_-8px_32px_rgba(0,0,0,0.12)] backdrop-blur-md sm:max-h-[85vh]"
       role="dialog"
       aria-labelledby="lx-consent-title"
+      aria-modal="true"
     >
-      <div className="mx-auto flex max-w-4xl flex-col gap-4">
-        <div>
-          <h2 id="lx-consent-title" className="text-base font-bold text-[color:var(--lx-text)]">
-            {t.title}
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-muted)]">{t.body}</p>
+      <div className="mx-auto flex max-w-4xl flex-col gap-4 p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 id="lx-consent-title" className="text-base font-bold text-[color:var(--lx-text)]">
+              {t.title}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-muted)]">{t.body}</p>
+            <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-muted)]">{t.body2}</p>
+          </div>
+          {showDismiss ? (
+            <button
+              type="button"
+              className="shrink-0 rounded-lg border border-[color:var(--lx-nav-border)] px-2.5 py-1.5 text-xs font-semibold text-[color:var(--lx-text-2)]"
+              onClick={dismiss}
+            >
+              {t.close}
+            </button>
+          ) : null}
         </div>
 
         {manage ? (

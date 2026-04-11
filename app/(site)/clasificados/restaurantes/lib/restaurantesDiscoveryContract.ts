@@ -10,7 +10,7 @@
  *
  * | Param | Maps to (application / listing) | Notes |
  * | ----- | -------------------------------- | ----- |
- * | `q` | `businessName`, cuisines (primary/secondary/additional), dish text in indexed blob | Full-text; blueprint matches name + cuisineLine + city + zip. |
+ * | `q` | `businessName`, cuisine labels/keys, dish text in indexed blob | Substring match on name, `cuisineLine`, primary/secondary keys, city, zip (see `filterRestaurantesBlueprintRows`). |
  * | `city` | `cityCanonical` | Substring match in demo. |
  * | `zip` | `zipCode` | Exact match. |
  * | `cuisine` | `primaryCuisine`, `secondaryCuisine`, `additionalCuisines` | Single taxonomy key. |
@@ -33,8 +33,8 @@
  * | `lang` | UI language | `es` / `en`. |
  *
  * ## Landing vs results
- * - **Landing shortcuts:** quick chips + cuisine chips + search — subset of params (fast path).
- * - **Results:** full filter set + sort + active chips + reset.
+ * - **Landing (fast path only):** hero `q`, combined location → `city`/`zip`, quick chips (`open`, `near`, `svc`, `family`, `top`+`sort`, `price`), cuisine chips/tiles → `cuisine`. No exclusive params.
+ * - **Results:** full filter set + sort + active chips + reset; same URL contract.
  *
  * @module restaurantesDiscoveryContract
  */
@@ -221,8 +221,9 @@ export function buildRestaurantesResultsHref(
 }
 
 /**
- * Single “Ciudad o Código Postal” field → `city` or `zip` for results.
- * Aligns with `RestauranteBusinessIdentity.cityCanonical` + `zipCode`.
+ * Single “ciudad o código postal” field → `city` or `zip` URL params.
+ * - Exactly five digits → `zip` (`zipCode` on the listing).
+ * - Any other non-empty text → `city` (substring match to display/canonical city in demo; server will normalize to `cityCanonical` when wired).
  */
 export function splitLocationInput(raw: string): { city?: string; zip?: string } {
   const t = raw.trim();

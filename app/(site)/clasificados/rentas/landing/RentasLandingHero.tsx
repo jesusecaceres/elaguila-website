@@ -38,6 +38,11 @@ export function RentasLandingHero({ children }: { children: ReactNode }) {
         />
         {/* Top readability for breadcrumb / lang */}
         <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#FFFCF7]/55 to-transparent sm:h-28" aria-hidden />
+        {/* Subtle neighborhood grid — premium structure without photo noise */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.14] mix-blend-multiply [background-image:linear-gradient(to_right,rgba(91,124,153,0.2)_1px,transparent_1px),linear-gradient(to_bottom,rgba(91,124,153,0.16)_1px,transparent_1px)] [background-size:44px_44px]"
+          aria-hidden
+        />
       </div>
 
       <div className="relative z-10 flex w-full min-w-0 flex-col gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10 md:px-8 md:py-11 lg:gap-10 lg:px-10 lg:py-12">

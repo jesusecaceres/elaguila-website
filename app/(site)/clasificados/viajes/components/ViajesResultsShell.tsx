@@ -21,6 +21,7 @@ import {
 } from "../lib/viajesBrowseContract";
 import { sortViajesResultRows } from "../lib/viajesDiscoveryRanking";
 import { viajesRowMatchesBrowse } from "../lib/viajesResultsMatch";
+import { ViajesLandingAmbience } from "./ViajesLandingAmbience";
 import { ViajesLangSwitch } from "./ViajesLangSwitch";
 import { ViajesTrustStrip } from "./ViajesTrustStrip";
 import { ViajesResultsAffiliateCard } from "./ViajesResultsAffiliateCard";
@@ -61,7 +62,7 @@ function filterRailPatchToBrowse(patch: Partial<ViajesResultsFiltersState>, prev
   return next;
 }
 
-function activeSummaryLine(browse: ViajesBrowseState, ui: ViajesUi): string | null {
+function activeSummaryLine(browse: ViajesBrowseState, ui: ViajesUi, tripTypeLabel: (slug: string) => string): string | null {
   const R = ui.results;
   const hub: Record<string, string> = {
     "san-jose": "SJC",
@@ -72,7 +73,7 @@ function activeSummaryLine(browse: ViajesBrowseState, ui: ViajesUi): string | nu
   const destPart = browse.q.trim() || browse.dest.trim();
   if (destPart) parts.push(destPart);
   if (browse.from.trim()) parts.push(`${R.departurePrefix} ${hub[browse.from] ?? browse.from}`);
-  if (browse.t.trim()) parts.push(browse.t);
+  if (browse.t.trim()) parts.push(tripTypeLabel(browse.t));
   if (browse.budget.trim()) parts.push(browse.budget);
   if (browse.audience.trim()) parts.push(browse.audience);
   if (browse.season.trim()) parts.push(browse.season);
@@ -144,7 +145,11 @@ export function ViajesResultsShell() {
 
   const sorted = useMemo(() => sortViajesResultRows(filtered, browse.sort), [filtered, browse.sort]);
 
-  const summary = activeSummaryLine(browse, ui);
+  const tripTypeLabel = useCallback(
+    (slug: string) => tripOptions.find((o) => o.value === slug)?.label ?? slug,
+    [tripOptions]
+  );
+  const summary = useMemo(() => activeSummaryLine(browse, ui, tripTypeLabel), [browse, ui, tripTypeLabel]);
 
   const L = lang;
   const viajesHome = appendLangToPath("/clasificados/viajes", L);
@@ -183,9 +188,11 @@ export function ViajesResultsShell() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] pb-24 text-[color:var(--lx-text)]">
+    <div className="relative min-h-screen overflow-x-hidden pb-24 text-[color:var(--lx-text)] sm:pb-28">
+      <ViajesLandingAmbience />
+      <div className="relative z-[2] min-w-0">
       <Navbar />
-      <div className="border-b border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-bg)] backdrop-blur-md">
+      <div className="border-b border-[color:var(--lx-gold-border)]/50 bg-[#fffdf9]/90 backdrop-blur-md">
         <div className="mx-auto flex min-w-0 max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5 lg:px-6">
           <nav className="min-w-0 flex-1 break-words text-[11px] font-medium text-[color:var(--lx-muted)]">
             <Link href={appendLangToPath("/clasificados", L)} className="hover:text-[color:var(--lx-text)]">
@@ -227,7 +234,7 @@ export function ViajesResultsShell() {
 
         <ViajesTrustStrip ui={ui} className="mt-3 mb-6 sm:mt-4 sm:mb-7" />
 
-        <section className="mb-6 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm sm:p-5">
+        <section className="mb-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)]/40 bg-[#fffdf9]/95 p-4 shadow-[0_20px_48px_-28px_rgba(25,50,70,0.12)] backdrop-blur-sm sm:p-5">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:items-end lg:gap-3">
             <label className="min-w-0 sm:col-span-1 lg:col-span-2">
               <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.destination}</span>
@@ -354,9 +361,10 @@ export function ViajesResultsShell() {
               </div>
             ) : null}
 
-            <ViajesResultsDiscoveryStrip lang={lang} ui={ui} />
+            <ViajesResultsDiscoveryStrip ui={ui} browse={browse} />
           </div>
         </div>
+      </div>
       </div>
 
       {mobileFiltersOpen ? (

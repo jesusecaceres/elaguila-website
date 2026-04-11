@@ -16,13 +16,13 @@ export function RentasResultsShell({ children }: { children: ReactNode }) {
         className="pointer-events-none absolute inset-x-0 top-0 z-0 w-full overflow-hidden rounded-b-[2rem] border-b border-[#C4B8A8]/28 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]"
         aria-hidden
       >
-        <div className="relative min-h-[140px] sm:min-h-[200px]">
+        <div className="relative min-h-[120px] sm:min-h-[min(28vh,240px)] md:min-h-[min(32vh,280px)]">
           <div
-            className={`${rentasLandingHeroPhotoLayerClass} min-h-[140px] sm:min-h-[200px]`}
+            className={`${rentasLandingHeroPhotoLayerClass} min-h-[120px] sm:min-h-[min(28vh,240px)] md:min-h-[min(32vh,280px)]`}
             style={{ backgroundImage: `url('${rentasLandingHeroScenicImage}')` }}
           />
-          <div className={`${rentasLandingHeroGradientClass} min-h-[140px] sm:min-h-[200px]`} />
-          <div className={`${rentasLandingHeroVignetteClass} min-h-[140px] sm:min-h-[200px]`} />
+          <div className={`${rentasLandingHeroGradientClass} min-h-[120px] sm:min-h-[min(28vh,240px)] md:min-h-[min(32vh,280px)]`} />
+          <div className={`${rentasLandingHeroVignetteClass} min-h-[120px] sm:min-h-[min(28vh,240px)] md:min-h-[min(32vh,280px)]`} />
         </div>
       </div>
       <div className={"relative z-[1] pb-16 pt-12 sm:pb-20 sm:pt-14 lg:pb-24 " + rentasLandingContainerClass}>

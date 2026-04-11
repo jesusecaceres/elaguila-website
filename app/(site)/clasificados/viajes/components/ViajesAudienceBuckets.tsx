@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import type { ViajesUi } from "../data/viajesUiCopy";
 import { VIAJES_AUDIENCE_BUCKETS } from "../data/viajesLandingSampleData";
-import { setLangOnHref } from "../lib/viajesLangHref";
+import { viajesResultsBrowseUrl } from "../lib/viajesBrowseContract";
 import { ViajesLandingBrowseMore } from "./ViajesLandingBrowseMore";
 import { ViajesSectionHeader } from "./ViajesSectionHeader";
 
@@ -29,7 +29,7 @@ export function ViajesAudienceBuckets({ ui, browseAllHref }: ViajesAudienceBucke
           return (
             <Link
               key={card.id}
-              href={setLangOnHref(card.href, ui.lang)}
+              href={viajesResultsBrowseUrl(ui.lang, card.browse)}
               className="group block min-w-0 overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)] bg-[#fffefb] shadow-[0_12px_40px_-20px_rgba(30,24,16,0.12)] transition hover:-translate-y-[2px] hover:shadow-[0_22px_52px_-24px_rgba(30,50,80,0.16)]"
             >
               <div className="relative aspect-[5/4] w-full min-w-0 overflow-hidden">

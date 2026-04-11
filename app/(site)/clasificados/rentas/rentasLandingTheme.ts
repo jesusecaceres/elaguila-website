@@ -101,6 +101,15 @@ export const rentasAccentGoldClass = "text-[#B8893C]";
 export const rentasCardSurfaceClass =
   "rounded-2xl border border-[#E2D5C4]/95 bg-[#FFFCF7] shadow-[0_16px_48px_-22px_rgba(44,36,28,0.18)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_56px_-24px_rgba(44,36,28,0.22)]";
 
+/** City / ZIP intent — visually primary, maps to `city` or `zip` on results. */
+export const rentasSearchLocationPanelClass = [
+  "rounded-[1.2rem] border border-[#5B7C99]/22",
+  "bg-gradient-to-br from-[#F3F6FA]/98 via-[#FFFCF7]/96 to-[#FAF6EF]/92",
+  "p-3.5 sm:p-4",
+  "shadow-[inset_0_1px_0_rgba(255,255,255,0.88),0_10px_28px_-22px_rgba(44,36,28,0.2)]",
+  "ring-1 ring-[#C45C26]/12",
+].join(" ");
+
 /** Search module — elevated ivory pill (primary on-page action). */
 export const rentasSearchShellClass = [
   "rounded-[1.45rem] border border-white/95",
@@ -163,6 +172,14 @@ export const rentasSectionHeadingClass =
 
 export const rentasSectionHeadingMutedClass =
   "border-l-[4px] border-[#5B7C99]/45 pl-4 font-serif text-2xl font-semibold tracking-tight text-[#1E1810] sm:text-[1.85rem]";
+
+/** Results page — unified filter / search stack (matches landing warmth). */
+export const rentasResultsFilterCardClass = [
+  "rounded-[1.45rem] border border-[#E4D9C8]/88",
+  "bg-gradient-to-b from-[#FFFCF7]/98 to-[#F4EDE3]/55",
+  "p-4 shadow-[0_24px_64px_-34px_rgba(44,36,28,0.22)] sm:p-6",
+  "ring-1 ring-white/75",
+].join(" ");
 
 /** Results page — category-owned toolbar chrome (sort / view). */
 export const rentasResultsToolbarPanelClass = [

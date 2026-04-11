@@ -139,7 +139,7 @@ export function RentasResultCard({ listing, copy, lang }: Props) {
 
   return (
     <article className={`group flex h-full flex-col overflow-hidden ${cardRing}`}>
-      <div className="relative aspect-[16/11] overflow-hidden">
+      <div className="relative aspect-[16/10] w-full overflow-hidden sm:aspect-[16/10]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={listing.imageUrl}

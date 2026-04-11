@@ -33,7 +33,10 @@ import {
   readRestaurantesSavedIds,
   rememberRestaurantesDiscoveryFromState,
 } from "@/app/clasificados/restaurantes/lib/restaurantesFirstPartyPreferences";
-import { selectPromotedResultsCandidates } from "@/app/clasificados/restaurantes/lib/restaurantesListingExposurePolicy";
+import {
+  RESTAURANTES_RESULTS_PROMOTED_BAND_MAX,
+  selectPromotedResultsCandidates,
+} from "@/app/clasificados/restaurantes/lib/restaurantesListingExposurePolicy";
 import { leonixPersonalizationAllowed } from "@/app/lib/leonixPublicConsent";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
@@ -105,7 +108,10 @@ export function RestaurantesResultsShell() {
 
   const sorted = useMemo(() => sortRestaurantesBlueprintRows(filteredUnsorted, effectiveSort), [filteredUnsorted, effectiveSort]);
 
-  const promotedBand = useMemo(() => selectPromotedResultsCandidates(sorted, 3), [sorted]);
+  const promotedBand = useMemo(
+    () => selectPromotedResultsCandidates(sorted, RESTAURANTES_RESULTS_PROMOTED_BAND_MAX),
+    [sorted],
+  );
   const promotedIds = useMemo(() => new Set(promotedBand.map((r) => r.id)), [promotedBand]);
 
   const gridRows = useMemo(() => sorted.filter((r) => !promotedIds.has(r.id)), [sorted, promotedIds]);
@@ -153,9 +159,11 @@ export function RestaurantesResultsShell() {
         sortRating: "Highest rated",
         loadMore: "Load more",
         emptyTitle: "Nothing matched yet",
-        emptyBody: "Loosen a filter, clear a chip, or return to the Restaurants page to start fresh—Leonix keeps your search intent intact.",
+        emptyBody:
+          "Widen a filter, clear a chip, or go back to Restaurants home to reset—your search terms stay in the URL until you change them.",
         emptyCta: "Back to Restaurants home",
         featured: "Featured on Leonix",
+        promotedCaption: "Sponsored visibility; the main list still follows your sort and filters.",
         promotedBadge: "Destacado",
         verMas: "See more",
         cuisine: "Cuisine",
@@ -180,10 +188,10 @@ export function RestaurantesResultsShell() {
         sectionLocation: "Location",
         sectionService: "Service",
         sectionPrice: "Price",
-        sectionStyle: "Style / business",
+        sectionStyle: "Business type",
         sectionMore: "More filters",
         biz: "Business type",
-        hl: "Highlight",
+        hl: "Feature or atmosphere",
         flagMoving: "Moving vendor",
         flagHome: "Home-based",
         flagTruck: "Food truck",
@@ -191,8 +199,10 @@ export function RestaurantesResultsShell() {
         savedOnly: "Saved only",
         savedPrivacy: "Enable personalization in cookie preferences to filter saved listings.",
         useLocation: "Use my location",
+        useLocationHelp: "Runs only when tapped. We approximate your city—precise GPS is not stored by default.",
         clearAll: "Clear all",
         nearReserved: "Near me",
+        cookiePrefs: "Cookie preferences",
       };
     }
     return {
@@ -214,9 +224,10 @@ export function RestaurantesResultsShell() {
       loadMore: "Cargar más",
       emptyTitle: "Aún no hay coincidencias",
       emptyBody:
-        "Afloja un filtro, quita una etiqueta o vuelve al inicio de Restaurantes para reorientar la búsqueda—Leonix mantiene tu intención.",
+        "Amplía un filtro, quita una etiqueta o vuelve al inicio de Restaurantes para reorientarte; los términos siguen en la URL hasta que los cambies.",
       emptyCta: "Volver al inicio de Restaurantes",
       featured: "Destacados en Leonix",
+      promotedCaption: "Visibilidad patrocinada; el listado principal sigue tu orden y filtros.",
       promotedBadge: "Destacado",
       verMas: "Ver más",
       cuisine: "Cocina",
@@ -241,10 +252,10 @@ export function RestaurantesResultsShell() {
       sectionLocation: "Ubicación",
       sectionService: "Servicio",
       sectionPrice: "Precio",
-      sectionStyle: "Estilo / negocio",
+      sectionStyle: "Tipo de negocio",
       sectionMore: "Más filtros",
       biz: "Tipo de negocio",
-      hl: "Destacado / ambiente",
+      hl: "Ambiente o sello",
       flagMoving: "Vendedor móvil",
       flagHome: "Desde casa",
       flagTruck: "Food truck",
@@ -252,8 +263,10 @@ export function RestaurantesResultsShell() {
       savedOnly: "Solo guardados",
       savedPrivacy: "Activa personalización en cookies para filtrar favoritos guardados.",
       useLocation: "Usar mi ubicación",
+      useLocationHelp: "Solo al pulsar: aproximamos la ciudad; no guardamos GPS preciso por defecto.",
       clearAll: "Limpiar todo",
       nearReserved: "Cerca de mí",
+      cookiePrefs: "Preferencias de cookies",
     };
   }, [lang]);
 
@@ -507,7 +520,16 @@ export function RestaurantesResultsShell() {
               <span>
                 {t.savedOnly}
                 {!leonixPersonalizationAllowed() ? (
-                  <span className="mt-1 block text-xs font-normal text-[#2D241E]/55">{t.savedPrivacy}</span>
+                  <span className="mt-1 block text-xs font-normal text-[#2D241E]/55">
+                    {t.savedPrivacy}{" "}
+                    <button
+                      type="button"
+                      className="font-semibold text-[#D97706] underline decoration-[#D97706]/40 underline-offset-2 hover:text-[#b45309]"
+                      onClick={() => window.dispatchEvent(new CustomEvent("leonix-consent-preferences"))}
+                    >
+                      {t.cookiePrefs}
+                    </button>
+                  </span>
                 ) : null}
               </span>
             </label>
@@ -585,6 +607,7 @@ export function RestaurantesResultsShell() {
         <button
           type="button"
           disabled={geoLoading}
+          aria-describedby="rx-geo-help"
           className="inline-flex min-h-[44px] items-center justify-center rounded-[12px] border border-[#D97706]/35 bg-[#FFFCF7] px-4 text-sm font-semibold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/55 disabled:opacity-60"
           onClick={async () => {
             setGeoNote(null);
@@ -625,6 +648,9 @@ export function RestaurantesResultsShell() {
           </button>
         ) : null}
       </div>
+      <p id="rx-geo-help" className="mt-2 text-xs leading-relaxed text-[#2D241E]/58">
+        {t.useLocationHelp}
+      </p>
       {geoNote ? <p className="mt-2 text-xs leading-relaxed text-[#2D241E]/65">{geoNote}</p> : null}
       {parsed.near && !parsed.city?.trim() && !parsed.zip?.trim() ? (
         <p className="mt-2 text-xs leading-relaxed text-[#2D241E]/65">{t.nearHonest}</p>
@@ -636,22 +662,23 @@ export function RestaurantesResultsShell() {
     <div className="min-h-screen overflow-x-hidden bg-[#FDFBF7] text-[#2D241E]">
       <Navbar />
       <div className="mx-auto max-w-[1280px] min-w-0 px-4 pb-16 pt-5 sm:px-5 sm:pb-20 sm:pt-6 md:px-5 lg:px-6">
-        <div className="flex flex-col gap-4 border-b border-[#2D241E]/10 pb-5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4 sm:pb-6">
-          <div className="min-w-0 max-w-full">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#2D241E]/50">{t.eyebrow}</p>
-            <h1 className="mt-2 font-serif text-2xl font-semibold tracking-tight sm:text-3xl">{t.title}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#2D241E]/72">{t.subtitle}</p>
-            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#2D241E]/58 sm:text-sm">{t.journeyLine}</p>
-            <Link href={landingHref} className="mt-3 inline-flex text-sm font-semibold text-[#D97706] underline-offset-4 hover:underline">
-              ← {t.backLanding}
-            </Link>
+        <div className="rounded-[18px] border border-[#2D241E]/[0.07] bg-[#FFFCF7]/75 p-4 shadow-sm sm:p-5 md:p-6">
+          <div className="flex flex-col gap-3 border-b border-[#2D241E]/10 pb-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4 sm:pb-5">
+            <div className="min-w-0 max-w-full">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#2D241E]/50">{t.eyebrow}</p>
+              <h1 className="mt-2 font-serif text-2xl font-semibold tracking-tight sm:text-3xl">{t.title}</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#2D241E]/72">{t.subtitle}</p>
+              <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#2D241E]/58 sm:text-sm">{t.journeyLine}</p>
+              <Link href={landingHref} className="mt-3 inline-flex text-sm font-semibold text-[#D97706] underline-offset-4 hover:underline">
+                ← {t.backLanding}
+              </Link>
+            </div>
           </div>
-        </div>
 
-        <form
-          onSubmit={onSearchSubmit}
-          className="mt-6 rounded-[18px] border border-[#2D241E]/10 bg-[#FFFCF7] p-4 shadow-[0_16px_48px_-28px_rgba(45,36,30,0.35)] sm:mt-8 sm:rounded-[20px] sm:p-5"
-        >
+          <form
+            onSubmit={onSearchSubmit}
+            className="mt-5 rounded-[18px] border border-[#2D241E]/10 bg-[#FFFCF7] p-4 ring-1 ring-[#D97706]/12 shadow-[0_16px_48px_-28px_rgba(45,36,30,0.35)] sm:mt-6 sm:rounded-[20px] sm:p-5"
+          >
           <div className="flex flex-col gap-3 sm:gap-4 xl:flex-row xl:items-stretch">
             <div className="grid min-w-0 w-full flex-1 grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:contents">
               <div className="relative min-w-0 md:min-w-0 xl:flex-1">
@@ -684,6 +711,7 @@ export function RestaurantesResultsShell() {
           </div>
         </form>
         {locationToolbar}
+        </div>
 
         <div className="mt-5 flex min-w-0 flex-col gap-4 sm:mt-6 md:flex-row md:items-start md:justify-between lg:items-center">
           <p className="min-w-0 shrink text-sm leading-snug text-[#2D241E]/80">
@@ -743,10 +771,11 @@ export function RestaurantesResultsShell() {
           <div className="min-w-0">
             {promotedBand.length ? (
               <section className="mb-6 sm:mb-8" aria-label={t.featured}>
-                <div className="mb-3 flex items-center gap-2 sm:mb-4">
+                <div className="mb-2 flex items-center gap-2 sm:mb-3">
                   <FaStar className="h-4 w-4 shrink-0" style={{ color: ACCENT }} aria-hidden />
                   <h2 className="font-serif text-lg font-semibold">{t.featured}</h2>
                 </div>
+                <p className="mb-3 max-w-2xl text-xs leading-relaxed text-[#2D241E]/60 sm:mb-4">{t.promotedCaption}</p>
                 <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden">
                   {promotedBand.map((row) => (
                     <div key={row.id} className="snap-start">
@@ -830,7 +859,7 @@ function ResultCard({
   const moreHref = buildRestaurantesResultsHref(lang, { q: row.name, lang });
   return (
     <article
-      className={`flex h-full max-w-full flex-col overflow-hidden rounded-[20px] border border-[#2D241E]/10 bg-[#FFFCF7] shadow-[0_12px_40px_-22px_rgba(45,36,30,0.3)] transition-shadow duration-300 hover:shadow-[0_16px_44px_-20px_rgba(45,36,30,0.36)] ${
+      className={`flex h-full max-w-full flex-col overflow-hidden rounded-[20px] border border-[#2D241E]/[0.09] bg-[#FFFCF7] shadow-[0_12px_40px_-22px_rgba(45,36,30,0.3)] transition-shadow duration-300 hover:shadow-[0_16px_44px_-20px_rgba(45,36,30,0.36)] ${
         badge ? "w-[min(100%,320px)] min-w-[260px] shrink-0 ring-1 ring-[#D97706]/22 sm:w-[300px]" : "w-full min-w-0"
       }`}
     >

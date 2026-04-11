@@ -1,3 +1,4 @@
+import { BR_LANDING_QUICK_CHIP_CONTRACT } from "../shared/brFilterContract";
 import type { BrNegocioListing } from "../resultados/cards/listingTypes";
 import { brNegocioFeaturedListing, brNegocioGridListings } from "../resultados/demoData";
 
@@ -62,16 +63,11 @@ export type BrLandingChipId =
 
 export type BrQuickChip = { id: BrLandingChipId; params: Record<string, string> };
 
-/** Premium quick filters → results query contract (labels localized in the view). */
-export const BR_LANDING_QUICK_CHIPS: BrQuickChip[] = [
-  { id: "sale", params: { operationType: "venta" } },
-  { id: "rent", params: { operationType: "renta" } },
-  { id: "house", params: { propertyType: "casa", operationType: "venta" } },
-  { id: "apartment", params: { propertyType: "departamento" } },
-  { id: "land", params: { propertyType: "terreno" } },
-  { id: "private", params: { sellerType: "privado" } },
-  { id: "business", params: { sellerType: "negocio" } },
-  { id: "pool", params: { pool: "true" } },
-  { id: "pets", params: { pets: "true" } },
-  { id: "furnished", params: { furnished: "true" } },
-];
+/**
+ * Premium quick filters → resultados query params.
+ * Payloads are defined in `BR_LANDING_QUICK_CHIP_CONTRACT` (single source of truth).
+ */
+export const BR_LANDING_QUICK_CHIPS: BrQuickChip[] = BR_LANDING_QUICK_CHIP_CONTRACT.map(({ id, params }) => ({
+  id,
+  params,
+}));

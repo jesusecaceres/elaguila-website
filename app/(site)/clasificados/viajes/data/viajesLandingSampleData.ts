@@ -1,7 +1,10 @@
 /**
  * Structured mock data for the Viajes landing shell.
  * Replace with API-mapped data when wiring is added.
+ * Results-bound links use `browse` patches — URLs are built at render via `viajesResultsBrowseUrl` (single contract).
  */
+
+import type { ViajesResultsLinkPatch } from "../lib/viajesBrowseContract";
 
 export type ViajesOfferBadge = "Recomendado" | "Oferta especial" | "Socio de viaje";
 
@@ -20,7 +23,8 @@ export interface ViajesTopOffer {
   duration: string;
   departureContext: string;
   partnerLabel?: string;
-  href: string;
+  /** Offer detail / profile URL — omit when `resultsBrowse` is the primary CTA */
+  href?: string;
   /** Feed / card routing */
   listingKind: ViajesTopOfferListingKind;
   /** Lower = more prominent in curated feed */
@@ -31,6 +35,8 @@ export interface ViajesTopOffer {
   affiliateDisclosureShortEn?: string;
   /** When listingKind is business */
   businessName?: string;
+  /** When set, primary CTA targets `/resultados` with this contract state (canonical handoff). */
+  resultsBrowse?: ViajesResultsLinkPatch;
 }
 
 export interface ViajesLocalDepartureCard {
@@ -39,7 +45,7 @@ export interface ViajesLocalDepartureCard {
   imageAlt: string;
   title: string;
   description: string;
-  href: string;
+  browse: ViajesResultsLinkPatch;
 }
 
 export interface ViajesDestinationCollection {
@@ -48,7 +54,7 @@ export interface ViajesDestinationCollection {
   imageAlt: string;
   name: string;
   supportingLine: string;
-  href: string;
+  browse: ViajesResultsLinkPatch;
 }
 
 export interface ViajesAudienceCard {
@@ -57,15 +63,14 @@ export interface ViajesAudienceCard {
   imageAlt: string;
   label: string;
   subline: string;
-  href: string;
+  browse: ViajesResultsLinkPatch;
 }
 
 export interface ViajesCategoryPill {
   id: string;
   label: string;
   icon: string;
-  /** Trip-type or filter param for results */
-  href: string;
+  browse: ViajesResultsLinkPatch;
 }
 
 export const VIAJES_HERO_IMAGE = {
@@ -82,20 +87,20 @@ export const VIAJES_PAGE_AMBIENCE = {
 } as const;
 
 export const VIAJES_CATEGORY_PILLS: ViajesCategoryPill[] = [
-  { id: "weekend", label: "Escapadas de fin de semana", icon: "🌴", href: "/clasificados/viajes/resultados?t=fin-de-semana" },
-  { id: "day", label: "Viajes de un día", icon: "☀️", href: "/clasificados/viajes/resultados?t=dia" },
-  { id: "resorts", label: "Resorts todo incluido", icon: "🏝️", href: "/clasificados/viajes/resultados?t=resorts" },
-  { id: "hoteles", label: "Hoteles / estadías", icon: "🏨", href: "/clasificados/viajes/resultados?t=hoteles" },
-  { id: "tours", label: "Tours y excursiones", icon: "🧭", href: "/clasificados/viajes/resultados?t=tours" },
-  { id: "actividades", label: "Actividades en destino", icon: "🎯", href: "/clasificados/viajes/resultados?t=actividades" },
-  { id: "cruises", label: "Cruceros", icon: "🚢", href: "/clasificados/viajes/resultados?t=cruceros" },
-  { id: "renta-autos", label: "Renta de autos", icon: "🚗", href: "/clasificados/viajes/resultados?t=renta-autos" },
-  { id: "transporte", label: "Transporte / traslados", icon: "🚌", href: "/clasificados/viajes/resultados?t=transporte" },
-  { id: "ultimo-minuto", label: "Último minuto", icon: "⚡", href: "/clasificados/viajes/resultados?t=ultimo-minuto" },
-  { id: "family", label: "Viajes familiares", icon: "👨‍👩‍👧", href: "/clasificados/viajes/resultados?audience=familias" },
-  { id: "romantic", label: "Viajes románticos", icon: "💛", href: "/clasificados/viajes/resultados?audience=parejas" },
-  { id: "sjo", label: "Salidas desde San José (SJC)", icon: "✈️", href: "/clasificados/viajes/resultados?from=san-jose" },
-  { id: "budget", label: "Ofertas por presupuesto", icon: "💰", href: "/clasificados/viajes/resultados?t=presupuesto" },
+  { id: "weekend", label: "Escapadas de fin de semana", icon: "🌴", browse: { t: "fin-de-semana" } },
+  { id: "day", label: "Viajes de un día", icon: "☀️", browse: { t: "dia" } },
+  { id: "resorts", label: "Resorts todo incluido", icon: "🏝️", browse: { t: "resorts" } },
+  { id: "hoteles", label: "Hoteles / estadías", icon: "🏨", browse: { t: "hoteles" } },
+  { id: "tours", label: "Tours y excursiones", icon: "🧭", browse: { t: "tours" } },
+  { id: "actividades", label: "Actividades en destino", icon: "🎯", browse: { t: "actividades" } },
+  { id: "cruises", label: "Cruceros", icon: "🚢", browse: { t: "cruceros" } },
+  { id: "renta-autos", label: "Renta de autos", icon: "🚗", browse: { t: "renta-autos" } },
+  { id: "transporte", label: "Transporte / traslados", icon: "🚌", browse: { t: "transporte" } },
+  { id: "ultimo-minuto", label: "Último minuto", icon: "⚡", browse: { t: "ultimo-minuto" } },
+  { id: "family", label: "Viajes familiares", icon: "👨‍👩‍👧", browse: { audience: "familias" } },
+  { id: "romantic", label: "Viajes románticos", icon: "💛", browse: { audience: "parejas" } },
+  { id: "sjo", label: "Salidas desde San José (SJC)", icon: "✈️", browse: { from: "san-jose" } },
+  { id: "budget", label: "Ofertas por presupuesto", icon: "💰", browse: { t: "presupuesto" } },
 ];
 
 export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
@@ -169,7 +174,7 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
     duration: "4 días / 3 noches",
     departureContext: "Salidas desde Oakland y SJO",
     partnerLabel: "Tour operador verificado",
-    href: "/clasificados/viajes/resultados?dest=puerto-vallarta",
+    resultsBrowse: { dest: "puerto-vallarta" },
     listingKind: "business",
     featuredRank: 4,
     businessName: "Operadores locales Jalisco",
@@ -186,7 +191,7 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
     priceFrom: "Lectura gratuita",
     duration: "8 min",
     departureContext: "Editorial",
-    href: "/clasificados/viajes/resultados?t=ultimo-minuto",
+    resultsBrowse: { t: "ultimo-minuto" },
     listingKind: "editorial",
     featuredRank: 5,
   },
@@ -199,7 +204,7 @@ export const VIAJES_LOCAL_DEPARTURES: ViajesLocalDepartureCard[] = [
     imageAlt: "Avión despegando al atardecer",
     title: "Desde San José",
     description: "Escapadas a México, Caribe y ciudades de conexión desde SJO.",
-    href: "/clasificados/viajes/resultados?from=san-jose",
+    browse: { from: "san-jose" },
   },
   {
     id: "sfo",
@@ -207,7 +212,7 @@ export const VIAJES_LOCAL_DEPARTURES: ViajesLocalDepartureCard[] = [
     imageAlt: "Horizonte de San Francisco",
     title: "Desde San Francisco",
     description: "Vuelos directos y paquetes con salida desde la Bahía.",
-    href: "/clasificados/viajes/resultados?from=san-francisco",
+    browse: { from: "san-francisco" },
   },
   {
     id: "oak",
@@ -215,7 +220,7 @@ export const VIAJES_LOCAL_DEPARTURES: ViajesLocalDepartureCard[] = [
     imageAlt: "Bahía al atardecer",
     title: "Desde Oakland",
     description: "Opciones cercanas al Este de la Bahía con buen valor.",
-    href: "/clasificados/viajes/resultados?from=oakland",
+    browse: { from: "oakland" },
   },
   {
     id: "near",
@@ -223,7 +228,7 @@ export const VIAJES_LOCAL_DEPARTURES: ViajesLocalDepartureCard[] = [
     imageAlt: "Carretera costera escénica",
     title: "Escapadas cerca de ti",
     description: "Fin de semana, playa, montaña y viñedos sin ir tan lejos.",
-    href: "/clasificados/viajes/resultados?t=cerca",
+    browse: { t: "cerca" },
   },
 ];
 
@@ -234,7 +239,7 @@ export const VIAJES_DESTINATION_COLLECTIONS: ViajesDestinationCollection[] = [
     imageAlt: "Cancún vista aérea",
     name: "Cancún",
     supportingLine: "Playas, arrecifes y vida nocturna con paquetes curados.",
-    href: "/clasificados/viajes/resultados?dest=cancun",
+    browse: { dest: "cancun" },
   },
   {
     id: "cr",
@@ -242,7 +247,7 @@ export const VIAJES_DESTINATION_COLLECTIONS: ViajesDestinationCollection[] = [
     imageAlt: "Volcán y naturaleza en Costa Rica",
     name: "Costa Rica Adventure",
     supportingLine: "Bosque nuboso, canopy y playas del Pacífico.",
-    href: "/clasificados/viajes/resultados?dest=costa-rica",
+    browse: { dest: "costa-rica" },
   },
   {
     id: "sc",
@@ -250,7 +255,7 @@ export const VIAJES_DESTINATION_COLLECTIONS: ViajesDestinationCollection[] = [
     imageAlt: "Playa de Santa Cruz",
     name: "Santa Cruz",
     supportingLine: "Costa Norte de California: surf, senderos y gastronomía.",
-    href: "/clasificados/viajes/resultados?dest=santa-cruz",
+    browse: { dest: "santa-cruz" },
   },
   {
     id: "yosemite",
@@ -258,7 +263,7 @@ export const VIAJES_DESTINATION_COLLECTIONS: ViajesDestinationCollection[] = [
     imageAlt: "Yosemite al amanecer",
     name: "Yosemite",
     supportingLine: "Naturaleza icónica con estancias y tours guiados.",
-    href: "/clasificados/viajes/resultados?dest=yosemite",
+    browse: { dest: "yosemite" },
   },
 ];
 
@@ -269,7 +274,7 @@ export const VIAJES_AUDIENCE_BUCKETS: ViajesAudienceCard[] = [
     imageAlt: "Familia en la playa",
     label: "Para familias",
     subline: "Hoteles con actividades, traslados sencillos y ritmo relajado.",
-    href: "/clasificados/viajes/resultados?audience=familias",
+    browse: { audience: "familias" },
   },
   {
     id: "couples",
@@ -277,7 +282,7 @@ export const VIAJES_AUDIENCE_BUCKETS: ViajesAudienceCard[] = [
     imageAlt: "Pareja en la playa al atardecer",
     label: "Para parejas",
     subline: "Boutique, cenas y experiencias íntimas frente al mar.",
-    href: "/clasificados/viajes/resultados?audience=parejas",
+    browse: { audience: "parejas" },
   },
   {
     id: "groups",
@@ -285,7 +290,7 @@ export const VIAJES_AUDIENCE_BUCKETS: ViajesAudienceCard[] = [
     imageAlt: "Grupo de amigos celebrando",
     label: "Para grupos",
     subline: "Villas, cruceros y paquetes con tarifas por habitación múltiple.",
-    href: "/clasificados/viajes/resultados?audience=grupos",
+    browse: { audience: "grupos" },
   },
   {
     id: "romantic",
@@ -293,6 +298,6 @@ export const VIAJES_AUDIENCE_BUCKETS: ViajesAudienceCard[] = [
     imageAlt: "Cena romántica al aire libre",
     label: "Escapadas románticas",
     subline: "Spa, vistas y detalles para una escapada inolvidable.",
-    href: "/clasificados/viajes/resultados?audience=romanticos",
+    browse: { audience: "romanticos" },
   },
 ];

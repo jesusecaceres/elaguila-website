@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import type { ViajesTopOffer } from "../data/viajesLandingSampleData";
 import { type ViajesUi, viajesBadgeLabel } from "../data/viajesUiCopy";
+import { viajesResultsBrowseUrl } from "../lib/viajesBrowseContract";
 import { VIAJES_LANDING_CTA_ORANGE } from "../lib/viajesLandingVisual";
 import { withViajesOfferBackParam } from "../lib/viajesOfferLink";
 
@@ -20,7 +21,7 @@ function StarRow({ count, ariaLabel }: { count: number; ariaLabel: string }) {
 function resolvePrimaryCta(offer: ViajesTopOffer, ui: ViajesUi): { label: string; variant: "affiliate" | "business" | "editorial" } {
   if (offer.listingKind === "editorial") return { label: ui.cards.explore, variant: "editorial" };
   if (offer.listingKind === "affiliate") return { label: ui.cards.affiliateCta, variant: "affiliate" };
-  if (offer.href.includes("/negocio/")) return { label: ui.cards.businessViewListing, variant: "business" };
+  if (offer.href?.includes("/negocio/")) return { label: ui.cards.businessViewListing, variant: "business" };
   return { label: ui.cards.viewOffers, variant: "business" };
 }
 
@@ -30,10 +31,11 @@ export function ViajesTopOfferCard({ offer, homeBackHref, ui }: { offer: ViajesT
   const starAria =
     ui.lang === "en" ? `${Math.min(5, Math.max(0, Math.round(offer.stars)))} of 5 stars` : `${Math.min(5, Math.max(0, Math.round(offer.stars)))} de 5 estrellas`;
 
-  const href =
-    offer.href.includes("/oferta/") && offer.listingKind !== "editorial"
-      ? withViajesOfferBackParam(offer.href, homeBackHref)
-      : offer.href;
+  const href = offer.resultsBrowse
+    ? viajesResultsBrowseUrl(ui.lang, offer.resultsBrowse)
+    : offer.listingKind !== "editorial" && offer.href?.includes("/oferta/")
+      ? withViajesOfferBackParam(offer.href!, homeBackHref)
+      : offer.href!;
 
   const cta = resolvePrimaryCta(offer, ui);
 

@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import type { ViajesUi } from "../data/viajesUiCopy";
 import { VIAJES_DESTINATION_COLLECTIONS } from "../data/viajesLandingSampleData";
-import { setLangOnHref } from "../lib/viajesLangHref";
+import { viajesResultsBrowseUrl } from "../lib/viajesBrowseContract";
 import { VIAJES_LANDING_CTA_ORANGE } from "../lib/viajesLandingVisual";
 import { ViajesLandingBrowseMore } from "./ViajesLandingBrowseMore";
 import { ViajesSectionHeader } from "./ViajesSectionHeader";
@@ -45,7 +45,7 @@ export function ViajesDestinations({ ui, browseAllHref }: ViajesDestinationsProp
                 <h3 className="text-lg font-bold text-[color:var(--lx-text)]">{d.name}</h3>
                 <p className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{line}</p>
                 <Link
-                  href={setLangOnHref(d.href, ui.lang)}
+                  href={viajesResultsBrowseUrl(ui.lang, d.browse)}
                   className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl text-sm font-bold text-white shadow-[0_12px_26px_-10px_rgba(234,88,12,0.45)] transition hover:brightness-105"
                   style={{ backgroundColor: VIAJES_LANDING_CTA_ORANGE }}
                 >

@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { formatListingPrice } from "@/app/lib/formatListingPrice";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -39,6 +41,7 @@ export default function GuardadosPage() {
             browse: "Explorar clasificados",
             view: "Ver anuncio",
             loading: "Cargando…",
+            category: "Categoría",
           }
         : {
             title: "Saved listings",
@@ -49,12 +52,15 @@ export default function GuardadosPage() {
             browse: "Browse classifieds",
             view: "View listing",
             loading: "Loading…",
+            category: "Category",
           },
     [lang]
   );
 
   const [loading, setLoading] = useState(true);
-  const [saved, setSaved] = useState<Array<{ listing_id: string; title?: string | null }>>([]);
+  const [saved, setSaved] = useState<
+    Array<{ listing_id: string; title?: string | null; city?: string | null; category?: string | null; thumb?: string | null; price?: number | string | null }>
+  >([]);
   const [name, setName] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>("free");
@@ -90,20 +96,66 @@ export default function GuardadosPage() {
       /* ignore */
     }
 
-    const { data: rows } = await supabase
+    const { data: savedRows } = await supabase
       .from("user_saved_listings")
       .select("listing_id")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
-    const ids = (rows ?? []).map((r: { listing_id: string }) => r.listing_id);
+    const ids = (savedRows ?? []).map((r: { listing_id: string }) => r.listing_id);
     if (ids.length === 0) {
       setSaved([]);
       setLoading(false);
       return;
     }
-    const { data: listings } = await supabase.from("listings").select("id, title").in("id", ids);
-    const byId = new Map((listings ?? []).map((l: { id: string; title?: string | null }) => [l.id, l.title]));
-    setSaved(ids.map((id) => ({ listing_id: id, title: byId.get(id) ?? null })));
+    const { data: listings } = await supabase
+      .from("listings")
+      .select("id, title, city, category, images, price")
+      .in("id", ids);
+    const listingRows = (listings ?? []) as Array<{
+      id: string;
+      title?: string | null;
+      city?: string | null;
+      category?: string | null;
+      images?: unknown;
+      price?: number | string | null;
+    }>;
+    const byId = new Map(
+      listingRows.map((l) => {
+        let thumb: string | null = null;
+        const im = l.images;
+        if (Array.isArray(im) && im.length > 0) {
+          const first = im[0];
+          if (typeof first === "string" && first.trim()) thumb = first.trim();
+          else if (first && typeof first === "object") {
+            const u = (first as Record<string, unknown>).url ?? (first as Record<string, unknown>).src;
+            if (typeof u === "string" && u.trim()) thumb = u.trim();
+          }
+        }
+        return [
+          l.id,
+          {
+            title: l.title ?? null,
+            city: l.city ?? null,
+            category: l.category ?? null,
+            thumb,
+            price: l.price ?? null,
+          },
+        ] as const;
+      })
+    );
+    setSaved(
+      ids.map((id) => {
+        const meta = byId.get(id);
+        return {
+          listing_id: id,
+          title: meta?.title ?? null,
+          city: meta?.city ?? null,
+          category: meta?.category ?? null,
+          thumb: meta?.thumb ?? null,
+          price: meta?.price ?? null,
+        };
+      })
+    );
     setLoading(false);
   }, [router, q]);
 
@@ -112,7 +164,7 @@ export default function GuardadosPage() {
   }, [load]);
 
   const listLinkClass =
-    "block rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 px-4 py-3 text-left shadow-sm transition hover:border-[#C9B46A]/45 hover:bg-[#FAF7F2]";
+    "flex gap-4 rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-3 text-left shadow-sm transition hover:border-[#C9B46A]/45 hover:bg-[#FAF7F2]";
 
   return (
     <LeonixDashboardShell
@@ -145,11 +197,28 @@ export default function GuardadosPage() {
             </div>
           ) : (
             <ul className="mt-8 space-y-3">
-              {saved.map(({ listing_id, title }) => (
+              {saved.map(({ listing_id, title, city, category, thumb, price }) => (
                 <li key={listing_id}>
                   <Link href={`/clasificados/anuncio/${listing_id}?${q}`} className={listLinkClass}>
-                    <span className="font-semibold text-[#1E1810]">{title || listing_id}</span>
-                    <span className="mt-1 block text-xs font-medium text-[#6B5B2E]">{t.view} →</span>
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]">
+                      {thumb ? (
+                        <Image src={thumb} alt="" fill className="object-cover" sizes="64px" unoptimized />
+                      ) : (
+                        <span className="flex h-full w-full items-center justify-center text-[10px] text-[#7A7164]">LX</span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="line-clamp-2 font-semibold text-[#1E1810]">{title || listing_id}</span>
+                      <span className="mt-1 block text-sm text-[#5C5346]">
+                        {formatListingPrice(price ?? null, { lang })} · {(city ?? "").trim() || "—"}
+                      </span>
+                      {category ? (
+                        <span className="mt-1 block text-[11px] font-medium uppercase tracking-wide text-[#7A7164]">
+                          {t.category}: {category}
+                        </span>
+                      ) : null}
+                      <span className="mt-1 block text-xs font-medium text-[#6B5B2E]">{t.view} →</span>
+                    </div>
                   </Link>
                 </li>
               ))}

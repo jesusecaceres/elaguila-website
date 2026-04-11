@@ -1,6 +1,6 @@
 "use client";
 
-/** Notification feed: no `notifications` table in repo yet — prefs use localStorage; in-app feed remains illustrative until backend events exist. */
+/** Derived alerts from listings, messages, and profile — prefs stay local until a notifications/preferences table exists. */
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -8,6 +8,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import type { Lang } from "../lib/listingDisplayStatus";
+import { fetchDerivedDashboardFeed, type DerivedFeedItem } from "../lib/derivedDashboardFeed";
 
 type Plan = "free" | "pro";
 
@@ -105,8 +106,9 @@ export default function NotificacionesPage() {
         ? {
             title: "Notificaciones",
             subtitle: "Mantente al día con mensajes, moderación y recordatorios.",
-            feed: "Actividad reciente",
-            placeholder: "Las alertas en tiempo real aparecerán aquí cuando conectemos el centro de eventos.",
+            feed: "Avisos derivados",
+            placeholder:
+              "Generado desde tus anuncios, bandeja y perfil. Un feed persistido llegará cuando exista tabla de notificaciones.",
             prefs: "Preferencias",
             email: "Correo electrónico",
             push: "Navegador / push",
@@ -114,19 +116,14 @@ export default function NotificacionesPage() {
             instant: "Mensajes instantáneos",
             exp: "Recordatorios de expiración",
             loading: "Cargando…",
-            sampleMsg: "Nuevo mensaje sobre tu anuncio",
-            sampleAppr: "Anuncio aprobado",
-            sampleRej: "Cambios de moderación",
-            sample7: "Tu anuncio expira en 7 días",
-            sample3: "Tu anuncio expira en 3 días",
-            sampleBoost: "Promoción finalizada",
-            sampleWeekly: "Resumen semanal de analíticas listo",
+            emptyFeed: "No hay avisos prioritarios ahora.",
           }
         : {
             title: "Notifications",
             subtitle: "Stay on top of messages, moderation, and reminders.",
-            feed: "Recent activity",
-            placeholder: "Live alerts will appear here once the events feed is connected.",
+            feed: "Derived alerts",
+            placeholder:
+              "Built from your listings, inbox, and profile. A persisted feed will ship with a notifications table.",
             prefs: "Preferences",
             email: "Email",
             push: "Browser / push",
@@ -134,13 +131,7 @@ export default function NotificacionesPage() {
             instant: "Instant messages",
             exp: "Expiration reminders",
             loading: "Loading…",
-            sampleMsg: "New message about your listing",
-            sampleAppr: "Listing approved",
-            sampleRej: "Moderation update",
-            sample7: "Your listing expires in 7 days",
-            sample3: "Your listing expires in 3 days",
-            sampleBoost: "Boost ended",
-            sampleWeekly: "Weekly analytics summary ready",
+            emptyFeed: "No priority alerts right now.",
           },
     [lang]
   );
@@ -151,6 +142,7 @@ export default function NotificacionesPage() {
   const [plan, setPlan] = useState<Plan>("free");
   const [userId, setUserId] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
+  const [feedItems, setFeedItems] = useState<DerivedFeedItem[]>([]);
 
   const applyPrefs = useCallback((next: Prefs) => {
     setPrefs(next);
@@ -188,28 +180,21 @@ export default function NotificacionesPage() {
       } catch {
         /* ignore */
       }
+      try {
+        const items = await fetchDerivedDashboardFeed(sb, u.id, lang);
+        setFeedItems(items);
+      } catch {
+        setFeedItems([]);
+      }
       setLoading(false);
     }
     void run();
     return () => {
       mounted = false;
     };
-  }, [router, pathname]);
+  }, [router, pathname, lang]);
 
   const accountRef = userId ? accountRefFromId(userId) : null;
-
-  const samples = useMemo(
-    () => [
-      { k: "m", text: t.sampleMsg },
-      { k: "a", text: t.sampleAppr },
-      { k: "r", text: t.sampleRej },
-      { k: "7", text: t.sample7 },
-      { k: "3", text: t.sample3 },
-      { k: "b", text: t.sampleBoost },
-      { k: "w", text: t.sampleWeekly },
-    ],
-    [t]
-  );
 
   return (
     <LeonixDashboardShell lang={lang} activeNav="notifications" plan={plan} userName={name} email={email} accountRef={accountRef}>
@@ -226,26 +211,37 @@ export default function NotificacionesPage() {
             <section className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.1)]">
               <h2 className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.feed}</h2>
               <p className="mt-2 text-sm text-[#5C5346]/95">{t.placeholder}</p>
-              <ul className="mt-4 space-y-2">
-                {samples.map((s) => (
-                  <li
-                    key={s.k}
-                    className="flex items-start gap-3 rounded-2xl border border-[#E8DFD0]/70 bg-[#FAF7F2]/80 px-4 py-3 text-sm text-[#2C2416]"
-                  >
-                    <span className="mt-0.5 text-[#C9A84A]" aria-hidden>
-                      ✦
-                    </span>
-                    <span>{s.text}</span>
-                  </li>
-                ))}
-              </ul>
+              {feedItems.length === 0 ? (
+                <p className="mt-4 text-sm font-medium text-[#3D3428]/90">{t.emptyFeed}</p>
+              ) : (
+                <ul className="mt-4 space-y-2">
+                  {feedItems.map((it) => (
+                    <li key={it.id}>
+                      <Link
+                        href={it.href}
+                        className="flex items-start gap-3 rounded-2xl border border-[#E8DFD0]/70 bg-[#FAF7F2]/80 px-4 py-3 text-sm text-[#2C2416] transition hover:border-[#C9B46A]/45"
+                      >
+                        <span className="mt-0.5 text-[#C9A84A]" aria-hidden>
+                          ✦
+                        </span>
+                        <span className="min-w-0">
+                          <span className="font-semibold text-[#1E1810]">{it.title}</span>
+                          {it.detail ? <span className="mt-0.5 block text-xs text-[#5C5346]/95">{it.detail}</span> : null}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
           </div>
 
           <aside className="w-full shrink-0 lg:max-w-sm">
             <div className="rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_12px_36px_-12px_rgba(201,164,74,0.2)]">
               <h2 className="text-xs font-bold uppercase tracking-wide text-[#6B5B2E]">{t.prefs}</h2>
-              <p className="mt-1 text-[11px] text-[#7A7164]/95">Local (demo) — listo para persistencia futura.</p>
+              <p className="mt-1 text-[11px] text-[#7A7164]/95">
+                {lang === "es" ? "Solo en este navegador — migrable a Supabase después." : "This browser only — migrates to Supabase later."}
+              </p>
               <div className="mt-4 flex flex-col gap-2">
                 <Toggle checked={prefs.email} onChange={(v) => applyPrefs({ ...prefs, email: v })} label={t.email} />
                 <Toggle checked={prefs.push} onChange={(v) => applyPrefs({ ...prefs, push: v })} label={t.push} />

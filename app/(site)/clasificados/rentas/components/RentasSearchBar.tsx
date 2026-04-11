@@ -1,8 +1,12 @@
 "use client";
 
-import { FiSearch } from "react-icons/fi";
+import { FiMapPin, FiSearch } from "react-icons/fi";
 import type { RentasLandingCopy } from "@/app/clasificados/rentas/rentasLandingCopy";
-import { rentasSearchShellClass, rentasSearchSubmitClass } from "@/app/clasificados/rentas/rentasLandingTheme";
+import {
+  rentasSearchLocationPanelClass,
+  rentasSearchShellClass,
+  rentasSearchSubmitClass,
+} from "@/app/clasificados/rentas/rentasLandingTheme";
 
 type Props = {
   query: string;
@@ -17,6 +21,8 @@ type Props = {
   beds: string;
   onBeds: (v: string) => void;
   onSearch?: () => void;
+  /** When false, the module headline is omitted (parent supplies section context). */
+  showModuleHeadline?: boolean;
   copy: RentasLandingCopy["search"];
   priceOptions: RentasLandingCopy["priceOptions"];
 };
@@ -36,27 +42,34 @@ export function RentasSearchBar({
   beds,
   onBeds,
   onSearch,
+  showModuleHeadline = true,
   copy,
   priceOptions,
 }: Props) {
   return (
     <div className="min-w-0">
-      <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-[#5B7C99]/95 sm:text-left">
-        {copy.moduleHeadline}
-      </p>
+      {showModuleHeadline ? (
+        <p className="mb-1 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-[#5B7C99]/95 sm:text-left">
+          {copy.moduleHeadline}
+        </p>
+      ) : null}
       {onLocation ? (
-        <label className="mb-3 block min-w-0">
-          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">
-            {copy.locationLabel}
-          </span>
-          <input
-            value={location}
-            onChange={(e) => onLocation(e.target.value)}
-            placeholder={copy.locationPlaceholder}
-            className={`${fieldClass} min-h-[44px]`}
-            autoComplete="address-level2"
-          />
-        </label>
+        <div className={`mb-4 min-w-0 ${rentasSearchLocationPanelClass}`}>
+          <label className="block min-w-0">
+            <span className="flex items-center gap-2">
+              <FiMapPin className="h-4 w-4 shrink-0 text-[#C45C26]" aria-hidden />
+              <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#2C3E4D]/95">{copy.locationLabel}</span>
+            </span>
+            <input
+              value={location}
+              onChange={(e) => onLocation(e.target.value)}
+              placeholder={copy.locationPlaceholder}
+              className={`${fieldClass} mt-2 min-h-[48px]`}
+              autoComplete="address-level2"
+            />
+            <p className="mt-2 text-[11px] leading-snug text-[#5C5346]/88">{copy.locationHint}</p>
+          </label>
+        </div>
       ) : null}
       <div className={rentasSearchShellClass}>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:gap-4">

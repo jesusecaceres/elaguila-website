@@ -102,7 +102,9 @@ export default function BusinessToolsPage() {
         setPlan(normalizePlanFromMembershipTier(row?.membership_tier));
         const meta = u.user_metadata as Record<string, unknown> | undefined;
         const wa = typeof meta?.whatsapp === "string" ? meta.whatsapp : "";
-        setCompleteness(computeBusinessCompleteness(row ?? null, { lang, whatsappHint: wa }));
+        setCompleteness(
+          computeBusinessCompleteness(row ?? null, { lang, whatsappHint: wa, businessMeta: meta ?? null })
+        );
       } catch {
         /* ignore */
       }

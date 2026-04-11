@@ -15,6 +15,7 @@ type Props = {
     locationDenied: string;
     locationPending: string;
     locationScaffoldNote: string;
+    locationPrimaryNote: string;
   };
   /** Current query string (preserves filters + `lang`). */
   baseQueryString: string;
@@ -52,6 +53,7 @@ export function RentasLocationButton({ lang, copy, baseQueryString }: Props) {
 
   return (
     <div className="flex flex-col gap-2">
+      <p className="text-xs leading-snug text-[#5C5346]/88">{copy.locationPrimaryNote}</p>
       <button
         type="button"
         onClick={onClick}

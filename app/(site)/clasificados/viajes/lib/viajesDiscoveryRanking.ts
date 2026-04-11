@@ -4,6 +4,7 @@
  * - `newest`: strict recency on `publishedAt` (ISO).
  * - `priceAsc` / `priceDesc`: parse numeric price where present; non-numeric sort to end/start.
  * - `featured`: quality + recency + deterministic rotation (daily seed) + soft diversity by destination slug.
+ *   No sponsored override: future “boost” must be modeled as capped score influence + disclosure, not hard reorder.
  *
  * Live inventory should supply the same signals; swap `VIAJES_RESULTS_SAMPLE` for API rows without changing this API.
  */

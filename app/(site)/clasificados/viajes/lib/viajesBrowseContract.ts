@@ -52,7 +52,10 @@ export type ViajesBrowseState = {
   nearMe: "" | "1";
 };
 
-const DEFAULT_BASE = "/clasificados/viajes/resultados";
+/** Public results route — single source for links and `next/router` base. */
+export const VIAJES_PUBLIC_RESULTS_PATH = "/clasificados/viajes/resultados";
+
+const DEFAULT_BASE = VIAJES_PUBLIC_RESULTS_PATH;
 
 export function defaultViajesBrowseState(lang: Lang): ViajesBrowseState {
   return {
@@ -143,6 +146,28 @@ export function buildViajesBrowseUrl(state: ViajesBrowseState, basePath: string 
   const qs = serializeViajesBrowseToSearchParams(state);
   const s = qs.toString();
   return s ? `${basePath}?${s}` : basePath;
+}
+
+/**
+ * Narrow patch for landing chips/cards — only keys that are safe to set from curated modules.
+ * (ZIP/radius/nearMe are intentionally omitted here; add manually if a module goes live.)
+ */
+export type ViajesResultsLinkPatch = Partial<
+  Pick<
+    ViajesBrowseState,
+    "dest" | "q" | "from" | "t" | "budget" | "audience" | "season" | "duration" | "sort" | "page"
+  >
+>;
+
+/** Merge patch onto defaults for `lang` — use for all landing → results handoffs. */
+export function viajesMergeBrowseState(lang: Lang, patch: ViajesResultsLinkPatch & { lang?: Lang } = {}): ViajesBrowseState {
+  const { lang: patchLang, ...rest } = patch;
+  return { ...defaultViajesBrowseState(patchLang ?? lang), ...rest, lang: patchLang ?? lang };
+}
+
+/** Contract-built results URL (landing sections, chips, discovery). */
+export function viajesResultsBrowseUrl(lang: Lang, patch: ViajesResultsLinkPatch = {}, basePath: string = DEFAULT_BASE): string {
+  return buildViajesBrowseUrl(viajesMergeBrowseState(lang, patch), basePath);
 }
 
 /** Legacy search bar shape → browse state patch (merges with defaults). */

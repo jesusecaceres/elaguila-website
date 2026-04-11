@@ -59,6 +59,20 @@ function previewText(body: string, max = 160): string {
 
 const PLACEHOLDER_THUMB = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56'%3E%3Crect fill='%23EDE6DC' width='56' height='56' rx='12'/%3E%3C/svg%3E";
 
+function threadKey(m: MsgRow, userId: string): string {
+  const other = m.sender_id === userId ? m.receiver_id : m.sender_id;
+  return `${m.listing_id}::${other}`;
+}
+
+type MsgThread = {
+  key: string;
+  listing_id: string;
+  other_id: string;
+  messages: MsgRow[];
+  latest: MsgRow;
+  unreadCount: number;
+};
+
 export default function MensajesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -81,8 +95,10 @@ export default function MensajesPage() {
             tabs: { all: "Todos", buying: "Comprando", selling: "Vendiendo", unread: "Sin leer", archived: "Archivado" },
             pick: "Selecciona una conversación",
             archivedPh: "Archivo próximamente — podrás silenciar hilos aquí.",
-            unreadPh: "Sin estado “leído” en servidor — mostramos recientes como prioridad.",
+            unreadPh:
+              "Con columna read_at: solo hilos con mensajes entrantes sin leer. Sin ella, priorizamos conversaciones recientes.",
             new: "Nuevo",
+            threadMeta: "mensajes en este hilo",
           }
         : {
             title: "Messages",
@@ -97,8 +113,10 @@ export default function MensajesPage() {
             tabs: { all: "All", buying: "Buying", selling: "Selling", unread: "Unread", archived: "Archived" },
             pick: "Select a conversation",
             archivedPh: "Archiving soon — mute threads here.",
-            unreadPh: 'No server-side "read" yet — we surface recent threads first.',
+            unreadPh:
+              'With read_at: threads with unread inbound messages. Without it, we still surface recent threads.',
             new: "New",
+            threadMeta: "messages in this thread",
           },
     [lang]
   );
@@ -115,7 +133,7 @@ export default function MensajesPage() {
   const [accountRef, setAccountRef] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [tab, setTab] = useState<MsgTab>("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedThreadKey, setSelectedThreadKey] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -209,21 +227,7 @@ export default function MensajesPage() {
     void load();
   }, [load]);
 
-  useEffect(() => {
-    if (!selectedId || !userId) return;
-    const m = rows.find((x) => x.id === selectedId);
-    if (!m || m.receiver_id !== userId || m.read_at) return;
-    const sb = createSupabaseBrowserClient();
-    const ts = new Date().toISOString();
-    void (async () => {
-      const { error } = await sb.from("messages").update({ read_at: ts }).eq("id", selectedId).eq("receiver_id", userId);
-      if (!error) {
-        setRows((prev) => prev.map((r) => (r.id === selectedId ? { ...r, read_at: ts } : r)));
-      }
-    })();
-  }, [selectedId, userId, rows]);
-
-  const filtered = useMemo(() => {
+  const filteredRows = useMemo(() => {
     if (!userId) return [];
     const weekMs = 7 * 24 * 3600 * 1000;
     return rows.filter((m) => {
@@ -240,17 +244,62 @@ export default function MensajesPage() {
     });
   }, [rows, tab, userId]);
 
-  const selected = selectedId ? rows.find((x) => x.id === selectedId) : null;
+  const threads = useMemo(() => {
+    if (!userId) return [];
+    const map = new Map<string, MsgRow[]>();
+    for (const m of filteredRows) {
+      const k = threadKey(m, userId);
+      const arr = map.get(k) ?? [];
+      arr.push(m);
+      map.set(k, arr);
+    }
+    const out: MsgThread[] = [];
+    for (const [, msgs] of map) {
+      msgs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const latest = msgs[0];
+      const other = latest.sender_id === userId ? latest.receiver_id : latest.sender_id;
+      const unreadCount = msgs.filter((x) => x.receiver_id === userId && x.read_at == null).length;
+      out.push({
+        key: threadKey(latest, userId),
+        listing_id: latest.listing_id,
+        other_id: other,
+        messages: msgs,
+        latest,
+        unreadCount,
+      });
+    }
+    out.sort((a, b) => new Date(b.latest.created_at).getTime() - new Date(a.latest.created_at).getTime());
+    return out;
+  }, [filteredRows, userId]);
+
+  const selectedThread = selectedThreadKey ? threads.find((x) => x.key === selectedThreadKey) : null;
 
   useEffect(() => {
-    if (filtered.length === 0) {
-      setSelectedId(null);
+    if (threads.length === 0) {
+      setSelectedThreadKey(null);
       return;
     }
-    if (!selectedId || !filtered.some((x) => x.id === selectedId)) {
-      setSelectedId(filtered[0].id);
+    if (!selectedThreadKey || !threads.some((x) => x.key === selectedThreadKey)) {
+      setSelectedThreadKey(threads[0].key);
     }
-  }, [filtered, selectedId]);
+  }, [threads, selectedThreadKey]);
+
+  useEffect(() => {
+    if (!selectedThreadKey || !userId || !selectedThread) return;
+    const inboundUnread = selectedThread.messages.filter(
+      (m) => m.receiver_id === userId && m.read_at == null
+    );
+    if (inboundUnread.length === 0) return;
+    const sb = createSupabaseBrowserClient();
+    const ts = new Date().toISOString();
+    const ids = inboundUnread.map((m) => m.id);
+    void (async () => {
+      const { error } = await sb.from("messages").update({ read_at: ts }).in("id", ids).eq("receiver_id", userId);
+      if (!error) {
+        setRows((prev) => prev.map((r) => (ids.includes(r.id) ? { ...r, read_at: ts } : r)));
+      }
+    })();
+  }, [selectedThreadKey, userId, selectedThread]);
 
   const tabBtn = (id: MsgTab, label: string) => (
     <button
@@ -267,15 +316,15 @@ export default function MensajesPage() {
     </button>
   );
 
+  function rowLabelForOther(other: string) {
+    const prof = senders[other] ?? receivers[other];
+    return prof?.display_name?.trim() || prof?.email?.trim() || `${other.slice(0, 8)}…`;
+  }
+
   function rowLabel(m: MsgRow) {
     if (!userId) return "—";
     const other = m.sender_id === userId ? m.receiver_id : m.sender_id;
-    const prof = senders[other] ?? receivers[other];
-    return (
-      prof?.display_name?.trim() ||
-      prof?.email?.trim() ||
-      `${other.slice(0, 8)}…`
-    );
+    return rowLabelForOther(other);
   }
 
   return (
@@ -299,13 +348,14 @@ export default function MensajesPage() {
 
           {tab === "archived" ? (
             <p className="mt-8 rounded-3xl border border-dashed border-[#E8DFD0] bg-[#FAF7F2]/80 p-8 text-center text-sm text-[#5C5346]">{t.archivedPh}</p>
-          ) : filtered.length === 0 ? (
+          ) : threads.length === 0 ? (
             <p className="mt-8 rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-8 text-center text-sm text-[#5C5346]">{t.empty}</p>
           ) : (
             <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-stretch">
               <div className="w-full shrink-0 lg:max-w-md">
                 <ul className="max-h-[min(70vh,560px)] space-y-2 overflow-y-auto pr-1">
-                  {filtered.map((m) => {
+                  {threads.map((th) => {
+                    const m = th.latest;
                     const titleFromDb = listingTitles[m.listing_id];
                     const titleParsed = parseListingTitleFromBody(m.message);
                     const title = titleFromDb || titleParsed || "—";
@@ -321,16 +371,14 @@ export default function MensajesPage() {
                       /^[0-9a-f-]{36}$/i.test(m.listing_id) && listingThumbs[m.listing_id]
                         ? listingThumbs[m.listing_id]
                         : PLACEHOLDER_THUMB;
-                    const isNew =
-                      tab === "unread" ||
-                      (Number.isFinite(dt.getTime()) && Date.now() - dt.getTime() < 72 * 3600 * 1000);
-                    const active = selectedId === m.id;
+                    const isNew = th.unreadCount > 0;
+                    const active = selectedThreadKey === th.key;
 
                     return (
-                      <li key={m.id}>
+                      <li key={th.key}>
                         <button
                           type="button"
-                          onClick={() => setSelectedId(m.id)}
+                          onClick={() => setSelectedThreadKey(th.key)}
                           className={`flex w-full gap-3 rounded-2xl border p-3 text-left transition ${
                             active
                               ? "border-[#C9B46A]/55 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] shadow-sm"
@@ -344,12 +392,15 @@ export default function MensajesPage() {
                               <p className="line-clamp-2 text-sm font-semibold text-[#1E1810]">{title}</p>
                               {isNew ? (
                                 <span className="shrink-0 rounded-full bg-[#C9A84A]/25 px-2 py-0.5 text-[10px] font-extrabold uppercase text-[#4A3F26]">
-                                  {t.new}
+                                  {th.unreadCount > 1 ? `${th.unreadCount}` : t.new}
                                 </span>
                               ) : null}
                             </div>
-                            <p className="mt-0.5 text-xs font-medium text-[#5C5346]/90">{rowLabel(m)}</p>
+                            <p className="mt-0.5 text-xs font-medium text-[#5C5346]/90">{rowLabelForOther(th.other_id)}</p>
                             <p className="mt-1 line-clamp-2 text-xs text-[#3D3428]/90">{preview}</p>
+                            <p className="mt-0.5 text-[10px] text-[#7A7164]/90">
+                              {th.messages.length} {t.threadMeta}
+                            </p>
                             <time className="mt-1 block text-[10px] text-[#7A7164]" dateTime={m.created_at}>
                               {dateStr}
                             </time>
@@ -362,43 +413,65 @@ export default function MensajesPage() {
               </div>
 
               <div className="min-h-[320px] min-w-0 flex-1 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-inner">
-                {!selected ? (
+                {!selectedThread ? (
                   <p className="text-sm text-[#5C5346]/95">{t.pick}</p>
                 ) : (
                   <>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.from}</p>
-                        <p className="text-lg font-semibold text-[#1E1810]">{rowLabel(selected)}</p>
+                        <p className="text-lg font-semibold text-[#1E1810]">{rowLabelForOther(selectedThread.other_id)}</p>
                       </div>
-                      <time className="text-xs text-[#7A7164]" dateTime={selected.created_at}>
-                        {new Date(selected.created_at).toLocaleString()}
-                      </time>
+                      <p className="text-xs text-[#7A7164]">
+                        {selectedThread.messages.length}{" "}
+                        {lang === "es" ? "mensajes" : "messages"}
+                      </p>
                     </div>
                     <p className="mt-4 text-sm font-semibold text-[#1E1810]">
-                      {listingTitles[selected.listing_id] || parseListingTitleFromBody(selected.message) || "—"}
+                      {listingTitles[selectedThread.listing_id] ||
+                        parseListingTitleFromBody(selectedThread.latest.message) ||
+                        "—"}
                     </p>
                     <p className="mt-1 font-mono text-[11px] text-[#5C5346]">
-                      {t.listingId}: {parseListingIdFromBody(selected.message) || selected.listing_id}
+                      {t.listingId}: {parseListingIdFromBody(selectedThread.latest.message) || selectedThread.listing_id}
                     </p>
                     {tab === "unread" ? <p className="mt-3 text-xs text-[#7A7164]/95">{t.unreadPh}</p> : null}
-                    <pre className="mt-4 max-h-[min(50vh,420px)] overflow-y-auto whitespace-pre-wrap break-words rounded-2xl border border-[#E8DFD0] bg-white p-4 text-sm text-[#2C2416]">
-                      {selected.message}
-                    </pre>
+                    <div className="mt-4 max-h-[min(50vh,420px)] space-y-3 overflow-y-auto">
+                      {[...selectedThread.messages]
+                        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                        .map((msg) => {
+                          const mine = userId && msg.sender_id === userId;
+                          return (
+                            <div
+                              key={msg.id}
+                              className={`rounded-2xl border px-4 py-3 text-sm ${
+                                mine
+                                  ? "ml-4 border-[#C9B46A]/35 bg-[#FBF7EF] text-[#2C2416]"
+                                  : "mr-4 border-[#E8DFD0] bg-white text-[#2C2416]"
+                              }`}
+                            >
+                              <time className="text-[10px] text-[#7A7164]" dateTime={msg.created_at}>
+                                {new Date(msg.created_at).toLocaleString()}
+                              </time>
+                              <pre className="mt-2 whitespace-pre-wrap break-words font-sans text-[#2C2416]">{msg.message}</pre>
+                            </div>
+                          );
+                        })}
+                    </div>
                     <div className="mt-4 flex flex-wrap gap-2">
-                      {/^[0-9a-f-]{36}$/i.test(selected.listing_id) ? (
+                      {/^[0-9a-f-]{36}$/i.test(selectedThread.listing_id) ? (
                         <Link
-                          href={`/clasificados/anuncio/${selected.listing_id}?${q}`}
+                          href={`/clasificados/anuncio/${selectedThread.listing_id}?${q}`}
                           className="inline-flex rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[#1E1810] hover:bg-[#FAF7F2]"
                         >
                           {t.viewListing}
                         </Link>
                       ) : null}
                       <Link
-                        href={`/dashboard/mis-anuncios?${q}`}
+                        href={`/dashboard/mis-anuncios/${selectedThread.listing_id}?${q}`}
                         className="inline-flex rounded-xl border border-[#C9B46A]/35 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E]"
                       >
-                        {lang === "es" ? "Gestionar anuncios →" : "Manage ads →"}
+                        {lang === "es" ? "Espacio del anuncio →" : "Listing workspace →"}
                       </Link>
                     </div>
                   </>

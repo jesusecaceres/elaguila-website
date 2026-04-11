@@ -10,9 +10,16 @@
 
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 
-const LANDING_DESTACADOS_MAX = 3;
-const LANDING_RECIENTES_MAX = 3;
-const PROMOTED_BAND_MAX = 3;
+/** @public Caps for mixed destacados carousel (landing). */
+export const RESTAURANTES_LANDING_DESTACADOS_MAX = 3;
+/** @public Newest-first cap for “recientes” (landing). */
+export const RESTAURANTES_LANDING_RECIENTES_MAX = 3;
+/** @public Promoted strip on results — visibility without crowding organic grid. */
+export const RESTAURANTES_RESULTS_PROMOTED_BAND_MAX = 3;
+
+const LANDING_DESTACADOS_MAX = RESTAURANTES_LANDING_DESTACADOS_MAX;
+const LANDING_RECIENTES_MAX = RESTAURANTES_LANDING_RECIENTES_MAX;
+const PROMOTED_BAND_MAX = RESTAURANTES_RESULTS_PROMOTED_BAND_MAX;
 
 /** Organic score: rating + light recency (demo). */
 function organicScore(row: RestaurantesPublicBlueprintRow): number {

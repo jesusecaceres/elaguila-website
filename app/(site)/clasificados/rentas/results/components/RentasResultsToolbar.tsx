@@ -53,7 +53,7 @@ export function RentasResultsToolbar({
   const locale = lang === "en" ? "en-US" : "es-MX";
 
   return (
-    <div className="mt-10">
+    <div className="mt-10 border-t border-[#E4D9C8]/80 pt-2">
       <div className={rentasResultsToolbarPanelClass}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <p className="text-sm leading-snug text-[#4A4338]/92">

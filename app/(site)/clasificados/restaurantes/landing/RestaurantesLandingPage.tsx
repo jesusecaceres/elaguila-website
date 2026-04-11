@@ -172,7 +172,7 @@ export function RestaurantesLandingPage() {
         ctaBtn: "Advertise your restaurant",
         exploreAll: "Explore all results",
         continuityHint:
-          "Search and quick chips open full results with the same URL filters—you can refine further on the results page.",
+          "Quick search opens results with the same URL parameters; refine cuisine, service, and more on the results page.",
       };
     }
     return {
@@ -203,7 +203,7 @@ export function RestaurantesLandingPage() {
       ctaBtn: "Anuncia tu Restaurante",
       exploreAll: "Explorar todos los resultados",
       continuityHint:
-        "La búsqueda y las fichas rápidas abren resultados con los mismos parámetros de URL; allí sigues refinando.",
+        "La búsqueda rápida abre resultados con los mismos parámetros de URL; allí afinas cocina, servicio y más.",
     };
   }, [lang]);
 
@@ -257,7 +257,7 @@ export function RestaurantesLandingPage() {
           </div>
         </CategoryHeroFrame>
 
-        <div className="mx-auto max-w-[960px] rounded-[20px] border border-[#2D241E]/[0.08] bg-[#FFFCF7]/97 p-4 shadow-[0_14px_44px_-26px_rgba(45,36,30,0.28)] backdrop-blur-sm sm:rounded-[22px] sm:p-5 md:p-6 lg:rounded-[24px]">
+        <div className="mx-auto max-w-[960px] rounded-[20px] border border-[#2D241E]/[0.08] bg-[#FFFCF7]/97 p-4 shadow-[0_14px_44px_-26px_rgba(45,36,30,0.28)] ring-1 ring-[#D97706]/18 backdrop-blur-sm sm:rounded-[22px] sm:p-5 md:p-6 lg:rounded-[24px]">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -341,7 +341,7 @@ export function RestaurantesLandingPage() {
               <Link
                 key={f.id}
                 href={buildRestaurantesResultsHref(lang, f.resultParams)}
-                className="inline-flex min-h-[40px] shrink-0 snap-start items-center whitespace-nowrap rounded-full border border-[#D97706]/35 bg-[#FFFCF7] px-4 py-2 text-xs font-semibold text-[#2D241E] shadow-sm transition-all duration-200 hover:-translate-y-px hover:border-[#D97706]/60 hover:bg-[#FFF7ED] hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/70 focus-visible:ring-offset-2 touch-manipulation sm:shrink"
+                className="inline-flex min-h-[40px] shrink-0 snap-start items-center whitespace-nowrap rounded-full border border-[#D97706]/35 bg-[#FFFCF7] px-4 py-2 text-xs font-semibold text-[#2D241E] shadow-sm transition-all duration-200 hover:-translate-y-px hover:border-[#D97706]/60 hover:bg-[#FFF7ED] hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFFCF7] touch-manipulation sm:shrink"
               >
                 {lang === "es" ? f.labelEs : f.labelEn}
               </Link>

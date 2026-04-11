@@ -41,3 +41,11 @@ export const EMPLEOS_BADGE_PREMIUM =
 /** Quick apply — muted blue accent, single use case. */
 export const EMPLEOS_BADGE_QUICK =
   "rounded-full border border-sky-200/80 bg-[#F4F9FC] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#3D5A73]";
+
+/** Results page primary filter panel — matches landing card weight. */
+export const EMPLEOS_RESULTS_FILTER_PANEL =
+  "rounded-[1.5rem] border border-[#E8DFD0] bg-white p-5 shadow-[0_22px_60px_rgba(42,40,38,0.09)] ring-1 ring-[#D9A23A]/15 sm:p-7 lg:p-9";
+
+/** Soft section grouping inside filter panel. */
+export const EMPLEOS_RESULTS_GROUP =
+  "rounded-2xl border border-[#F0E8DC]/90 bg-[#FFFBF7]/80 p-4 sm:p-5";

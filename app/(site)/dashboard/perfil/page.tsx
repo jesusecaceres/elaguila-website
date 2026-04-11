@@ -163,6 +163,13 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [whatsapp, setWhatsapp] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [businessDescription, setBusinessDescription] = useState("");
+  const [website, setWebsite] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [facebook, setFacebook] = useState("");
+  const [tiktok, setTiktok] = useState("");
+  const [businessHours, setBusinessHours] = useState("");
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -193,6 +200,14 @@ export default function ProfilePage() {
 
       const waMeta = (u.user_metadata?.whatsapp as string | undefined) || "";
       setWhatsapp(String(waMeta ?? "").trim());
+      const um = u.user_metadata as Record<string, unknown> | undefined;
+      setBusinessName(typeof um?.business_name === "string" ? um.business_name : "");
+      setBusinessDescription(typeof um?.business_description === "string" ? um.business_description : "");
+      setWebsite(typeof um?.website === "string" ? um.website : "");
+      setInstagram(typeof um?.instagram === "string" ? um.instagram : "");
+      setFacebook(typeof um?.facebook === "string" ? um.facebook : "");
+      setTiktok(typeof um?.tiktok === "string" ? um.tiktok : "");
+      setBusinessHours(typeof um?.business_hours === "string" ? um.business_hours : "");
 
       try {
         const { row: pData } = await fetchDashboardProfile(supabase, u.id);
@@ -286,6 +301,16 @@ export default function ProfilePage() {
       const digits = phoneDigits(phone);
       const canonicalCity = getCanonicalCityName(city);
 
+      const businessMeta = {
+        business_name: businessName.trim(),
+        business_description: businessDescription.trim(),
+        website: website.trim(),
+        instagram: instagram.trim(),
+        facebook: facebook.trim(),
+        tiktok: tiktok.trim(),
+        business_hours: businessHours.trim(),
+      };
+
       if (requirePost) {
         if (digits.length !== 10) {
           setMsg(L.errPhoneRequired);
@@ -308,6 +333,7 @@ export default function ProfilePage() {
             phone: formattedPhone,
             city: canonicalCity,
             ...(whatsapp.trim() ? { whatsapp: whatsapp.trim() } : {}),
+            ...businessMeta,
           },
         });
         if (updErr) throw updErr;
@@ -349,7 +375,7 @@ export default function ProfilePage() {
       const profileEmailRaw = (u.email ?? "").trim().toLowerCase();
       const profileEmail = profileEmailRaw === "" ? null : profileEmailRaw;
 
-      const updateData: Record<string, string> = { full_name: trimmedName };
+      const updateData: Record<string, string> = { full_name: trimmedName, ...businessMeta };
       if (formattedPhone) updateData.phone = formattedPhone;
       if (canonicalCity) updateData.city = canonicalCity;
       if (whatsapp.trim()) updateData.whatsapp = whatsapp.trim();
@@ -584,11 +610,78 @@ export default function ProfilePage() {
               <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 lg:col-span-2">
                 <h2 className="text-sm font-bold text-[#1E1810]">{L.bizTitle}</h2>
                 <p className="mt-2 text-sm text-[#5C5346]/95">{L.bizBody}</p>
-                {(membershipTier ?? "").toLowerCase().includes("business") ? (
-                  <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[#6B5B2E]">
-                    {lang === "es" ? "Cuenta business detectada — campos ampliados próximamente." : "Business account detected — expanded fields soon."}
-                  </p>
-                ) : null}
+                <p className="mt-2 text-xs text-[#7A7164]/95">
+                  {lang === "es"
+                    ? "Estos campos se guardan en la metadata de tu cuenta (auth) hasta que existan columnas dedicadas en profiles."
+                    : "These fields are stored on your account metadata (auth) until dedicated profiles columns exist."}
+                </p>
+                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                  <label className="block sm:col-span-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
+                      {lang === "es" ? "Nombre comercial" : "Business name"}
+                    </span>
+                    <input
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-4 py-3 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/70"
+                    />
+                  </label>
+                  <label className="block sm:col-span-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
+                      {lang === "es" ? "Descripción" : "Description"}
+                    </span>
+                    <textarea
+                      value={businessDescription}
+                      onChange={(e) => setBusinessDescription(e.target.value)}
+                      rows={3}
+                      className="mt-2 w-full rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-4 py-3 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/70"
+                    />
+                  </label>
+                  <label className="block sm:col-span-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">Website</span>
+                    <input
+                      value={website}
+                      onChange={(e) => setWebsite(e.target.value)}
+                      placeholder="https://"
+                      className="mt-2 w-full rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-4 py-3 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/70"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">Instagram</span>
+                    <input
+                      value={instagram}
+                      onChange={(e) => setInstagram(e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-4 py-3 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/70"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">Facebook</span>
+                    <input
+                      value={facebook}
+                      onChange={(e) => setFacebook(e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-4 py-3 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/70"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">TikTok</span>
+                    <input
+                      value={tiktok}
+                      onChange={(e) => setTiktok(e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-4 py-3 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/70"
+                    />
+                  </label>
+                  <label className="block sm:col-span-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
+                      {lang === "es" ? "Horario" : "Hours"}
+                    </span>
+                    <input
+                      value={businessHours}
+                      onChange={(e) => setBusinessHours(e.target.value)}
+                      placeholder={lang === "es" ? "Ej: Lun–Sáb 9–6" : "e.g. Mon–Sat 9–6"}
+                      className="mt-2 w-full rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-4 py-3 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/70"
+                    />
+                  </label>
+                </div>
               </div>
 
               <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 lg:col-span-2">

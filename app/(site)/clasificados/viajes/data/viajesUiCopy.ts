@@ -132,6 +132,10 @@ export type ViajesUi = {
     emptyRecoveryHint: string;
     discoveryStripTitle: string;
     discoveryStripSubtitle: string;
+    /** When user has dest/q — broaden results */
+    discoveryClearDestination: string;
+    /** Last minute while keeping current departure hub if any */
+    discoveryLastMinuteFromCurrent: string;
     discoveryLastMinute: string;
     discoveryFamilies: string;
     discoveryWeekend: string;
@@ -425,7 +429,9 @@ function es(): Omit<ViajesUi, "lang"> {
       activeSearchLabel: "Criterios activos",
       emptyRecoveryHint: "Prueba quitar un filtro o explora las sugerencias abajo.",
       discoveryStripTitle: "Sigue explorando",
-      discoveryStripSubtitle: "Atajos acordes a lo que la gente busca ahora — mismos filtros que en el buscador.",
+      discoveryStripSubtitle: "Atajos relacionados con tu búsqueda — mismos parámetros que el buscador.",
+      discoveryClearDestination: "Ampliar: quitar destino",
+      discoveryLastMinuteFromCurrent: "Último minuto (misma salida)",
       discoveryLastMinute: "Último minuto",
       discoveryFamilies: "Tours en familia",
       discoveryWeekend: "Fin de semana · salida SFO",
@@ -729,7 +735,9 @@ function en(): Omit<ViajesUi, "lang"> {
       activeSearchLabel: "Active criteria",
       emptyRecoveryHint: "Try removing a filter or use the suggestions below.",
       discoveryStripTitle: "Keep exploring",
-      discoveryStripSubtitle: "Shortcuts aligned with common intent — same filter contract as search.",
+      discoveryStripSubtitle: "Shortcuts related to your search — same parameters as the search bar.",
+      discoveryClearDestination: "Broaden: clear destination",
+      discoveryLastMinuteFromCurrent: "Last minute (same departure)",
       discoveryLastMinute: "Last minute",
       discoveryFamilies: "Family tours",
       discoveryWeekend: "Weekend · depart SFO",

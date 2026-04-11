@@ -247,6 +247,7 @@ export default function MyListingsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
+  const [previewListingId, setPreviewListingId] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -439,6 +440,24 @@ export default function MyListingsPage() {
     return filteredByTab.filter((x) => (x.title ?? "").toLowerCase().includes(needle));
   }, [filteredByTab, needle]);
 
+  useEffect(() => {
+    const fid = visible[0]?.id ?? null;
+    if (!fid) {
+      setPreviewListingId(null);
+      return;
+    }
+    setPreviewListingId((prev) => (prev && visible.some((x) => x.id === prev) ? prev : fid));
+  }, [visible]);
+
+  const previewRow = useMemo(() => {
+    if (visible.length === 0) return null;
+    if (previewListingId) {
+      const hit = visible.find((x) => x.id === previewListingId);
+      if (hit) return hit;
+    }
+    return visible[0];
+  }, [visible, previewListingId]);
+
   function resolveViews(x: ListingRow, stats?: ListingAnalyticsBucket) {
     const fromEvents = stats?.views ?? 0;
     const db = typeof x.views === "number" ? x.views : 0;
@@ -480,14 +499,13 @@ export default function MyListingsPage() {
     return s;
   }, [listings, analyticsByListing]);
 
-  const firstPreview = listings[0];
-  const firstStats = firstPreview ? analyticsByListing[firstPreview.id] : undefined;
-  const previewTitle = firstPreview?.title?.trim() || (lang === "es" ? "Tu anuncio" : "Your listing");
-  const previewPrice = firstPreview ? formatPrice(firstPreview.price, lang) : "—";
-  const previewCity = (firstPreview?.city ?? "").trim() || "—";
-  const pv = firstPreview ? resolveViews(firstPreview, firstStats) : 0;
-  const ps = firstStats?.saves ?? 0;
-  const pm = firstStats?.messages ?? 0;
+  const previewStats = previewRow ? analyticsByListing[previewRow.id] : undefined;
+  const previewTitle = previewRow?.title?.trim() || (lang === "es" ? "Tu anuncio" : "Your listing");
+  const previewPrice = previewRow ? formatPrice(previewRow.price, lang) : "—";
+  const previewCity = (previewRow?.city ?? "").trim() || "—";
+  const pv = previewRow ? resolveViews(previewRow, previewStats) : 0;
+  const ps = previewStats?.saves ?? 0;
+  const pm = previewStats?.messages ?? 0;
 
   const showLoading = authLoading || listingsLoading;
   const accountRef = userId ? accountRefFromId(userId) : null;
@@ -515,7 +533,7 @@ export default function MyListingsPage() {
       email={email}
       accountRef={accountRef}
       rightPanel={
-        listings.length > 0 ? (
+        previewRow ? (
           <DashboardMobilePreview
             lang={lang}
             title={previewTitle}
@@ -578,7 +596,7 @@ export default function MyListingsPage() {
             </p>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
             {[
               { label: t.statActive, value: totalActive, icon: "📣" },
               { label: t.statViews, value: totalViewsSum, icon: "👁" },
@@ -608,14 +626,34 @@ export default function MyListingsPage() {
               {tabBtn("expired", t.tabExpired)}
               {tabBtn("moderation", t.tabMod)}
             </div>
-            <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={t.searchPh}
-                className="w-full rounded-full border border-[#E8DFD0] bg-white py-2 pl-4 pr-10 text-sm text-[#1E1810] outline-none"
-              />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#7A7164]">⌕</span>
+            <div className="flex w-full flex-col gap-3 sm:max-w-none sm:flex-row sm:items-end sm:justify-end">
+              <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t.searchPh}
+                  className="w-full rounded-full border border-[#E8DFD0] bg-white py-2 pl-4 pr-10 text-sm text-[#1E1810] outline-none"
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#7A7164]">⌕</span>
+              </div>
+              {visible.length > 1 ? (
+                <div className="hidden min-w-[220px] 2xl:block">
+                  <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
+                    {lang === "es" ? "Vista previa móvil" : "Mobile preview"}
+                  </label>
+                  <select
+                    value={previewListingId ?? visible[0]?.id ?? ""}
+                    onChange={(e) => setPreviewListingId(e.target.value)}
+                    className="mt-1 w-full rounded-2xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/60"
+                  >
+                    {visible.map((x) => (
+                      <option key={x.id} value={x.id}>
+                        {(x.title ?? "").trim() || shortListingRef(x.id)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
             </div>
           </div>
 

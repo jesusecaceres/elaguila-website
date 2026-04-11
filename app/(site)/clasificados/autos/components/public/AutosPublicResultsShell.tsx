@@ -21,10 +21,11 @@ import {
 import { AutosPublicFilterRail, type AutosPublicFilterOptions } from "./AutosPublicFilterRail";
 import { partitionAutosResultsVisibility } from "../../lib/autosPublicResultsVisibility";
 import { AutosPublicResultsActiveFilters } from "./AutosPublicResultsActiveFilters";
+import { AutosPublicResultsQuickChips } from "./AutosPublicResultsQuickChips";
 import { AutosGeolocationButton } from "./AutosGeolocationButton";
 
 const RESULTADOS_PATH = "/clasificados/autos/resultados";
-const PAGE_SIZE = 9;
+const PAGE_SIZE = 12;
 
 function uniqSort(values: string[]): string[] {
   return [...new Set(values)].filter(Boolean).sort((a, b) => a.localeCompare(b));
@@ -172,9 +173,14 @@ export function AutosPublicResultsShell() {
   );
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] pb-[calc(6rem+env(safe-area-inset-bottom,0px))] text-[color:var(--lx-text)]">
+    <div className="relative min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] pb-[calc(6rem+env(safe-area-inset-bottom,0px))] text-[color:var(--lx-text)]">
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 z-0 min-h-[min(38vh,420px)] bg-[radial-gradient(ellipse_120%_80%_at_50%_-10%,rgba(201,168,74,0.09),transparent_55%),linear-gradient(to_bottom,rgba(243,235,221,0.55),transparent)] sm:min-h-[min(42vh,480px)]"
+        aria-hidden
+      />
+      <div className="relative z-[1]">
       <div className="border-b border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-bg)] backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
+        <div className="mx-auto flex max-w-[min(100%,90rem)] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <nav className="text-[11px] font-medium text-[color:var(--lx-muted)]">
             <Link href={appendLangToPath("/clasificados", L)} className="hover:text-[color:var(--lx-text)]">
               {copy.breadcrumb}
@@ -203,19 +209,19 @@ export function AutosPublicResultsShell() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-[max(1rem,env(safe-area-inset-left))] py-6 pr-[max(1rem,env(safe-area-inset-right))] sm:px-5 lg:py-8">
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mx-auto max-w-[min(100%,90rem)] px-[max(1rem,env(safe-area-inset-left))] py-8 pr-[max(1rem,env(safe-area-inset-right))] sm:px-6 lg:py-11">
+        <div className="mb-8 flex flex-col gap-4 lg:mb-10 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-3xl">{copy.resultsTitle}</h1>
-            <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{nearLine}</p>
-            <p className="mt-2 text-sm font-semibold text-[color:var(--lx-text-2)]">
+            <h1 className="font-serif text-3xl font-semibold tracking-tight text-[color:var(--lx-text)] sm:text-[2rem] lg:text-[2.15rem]">{copy.resultsTitle}</h1>
+            <p className="mt-2 text-base text-[color:var(--lx-muted)]">{nearLine}</p>
+            <p className="mt-3 text-sm font-semibold text-[color:var(--lx-text-2)]">
               {copy.resultCount.replace("{n}", String(resultCount))}
             </p>
-            <p className="mt-1 text-[11px] text-[color:var(--lx-muted)]">{copy.resultsControlHint}</p>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{copy.resultsControlHint}</p>
           </div>
         </div>
 
-        <div className="mb-5 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm sm:p-5">
+        <div className="mb-6 rounded-[22px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)]/95 p-5 shadow-[0_18px_48px_-28px_rgba(42,36,22,0.28)] backdrop-blur-[2px] sm:p-6 lg:p-7">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:gap-4">
             <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="min-w-0 sm:col-span-2 lg:col-span-1">
@@ -276,7 +282,14 @@ export function AutosPublicResultsShell() {
               <AutosGeolocationButton copy={copy} onResolved={onGeoResolved} className="w-full sm:w-auto" />
               <button
                 type="button"
-                className="min-h-[44px] w-full rounded-xl bg-[color:var(--lx-cta-dark)] px-5 text-sm font-bold text-[#FFFCF7] shadow-sm sm:w-auto"
+                className="min-h-[44px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 text-sm font-semibold text-[color:var(--lx-text)] sm:w-auto"
+                onClick={resetFiltersUrl}
+              >
+                {copy.resultsResetShort}
+              </button>
+              <button
+                type="button"
+                className="min-h-[48px] w-full rounded-xl bg-[color:var(--lx-cta-dark)] px-6 text-sm font-bold text-[#FFFCF7] shadow-md sm:w-auto"
                 onClick={applyDraftToUrl}
               >
                 {copy.searchCta}
@@ -305,14 +318,18 @@ export function AutosPublicResultsShell() {
           </div>
         </div>
 
-        <div className="mb-5">
+        <div className="mb-6 rounded-2xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/40 px-4 py-4 sm:px-5">
+          <AutosPublicResultsQuickChips bundle={applied} copy={copy} />
+        </div>
+
+        <div className="mb-7">
           <AutosPublicResultsActiveFilters bundle={applied} pushBundle={pushBundle} copy={copy} />
         </div>
 
-        <div className="flex gap-8 lg:gap-10">
-          <aside className="hidden w-[280px] shrink-0 lg:block">
-            <div className="sticky top-24 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm">
-              <p className="mb-4 text-sm font-bold text-[color:var(--lx-text)]">{copy.filtersTitle}</p>
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-12 xl:gap-14">
+          <aside className="hidden w-[300px] shrink-0 lg:block xl:w-[336px]">
+            <div className="sticky top-28 rounded-[22px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_12px_36px_-20px_rgba(42,36,22,0.2)]">
+              <p className="mb-4 font-serif text-lg font-semibold text-[color:var(--lx-text)]">{copy.filtersTitle}</p>
               <AutosPublicFilterRail
                 value={draftFilters}
                 onChange={patchDraft}
@@ -325,16 +342,12 @@ export function AutosPublicResultsShell() {
             </div>
           </aside>
 
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 lg:min-w-0">
             {featuredDealerBand.length > 0 ? (
-              <section className="mb-10">
-                <h2 className="mb-1 text-lg font-bold text-[color:var(--lx-text)]">{featuredTitle}</h2>
-                <p className="mb-4 text-xs text-[color:var(--lx-muted)]">
-                  {lang === "es"
-                    ? "Zona reservada para inventario de concesionarios promocionado — el resto del listado mezcla particulares y dealers con visibilidad equitativa."
-                    : "Reserved zone for promoted dealership inventory — the rest of the feed mixes private and dealer listings fairly."}
-                </p>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-4">
+              <section className="mb-12 lg:mb-16">
+                <h2 className="font-serif text-xl font-semibold tracking-tight text-[color:var(--lx-text)] sm:text-2xl">{featuredTitle}</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[color:var(--lx-muted)]">{copy.resultsLaneFeaturedSubtitle}</p>
+                <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
                   {featuredDealerBand.map((l) => (
                     <AutosPublicFeaturedCard key={l.id} listing={l} copy={copy} lang={lang} />
                   ))}
@@ -343,11 +356,12 @@ export function AutosPublicResultsShell() {
             ) : null}
 
             {recentLane.length > 0 ? (
-              <section className="mb-10">
-                <h2 className="mb-4 text-base font-bold text-[color:var(--lx-text)]">{copy.resultsRecentSection}</h2>
-                <div className="-mx-1 flex gap-4 overflow-x-auto pb-2 pl-1 pr-1 pt-1 [scrollbar-width:thin]">
+              <section className="mb-12 lg:mb-14">
+                <h2 className="font-serif text-xl font-semibold text-[color:var(--lx-text)] sm:text-2xl">{copy.resultsRecentSection}</h2>
+                <p className="mt-2 max-w-3xl text-sm text-[color:var(--lx-muted)]">{copy.resultsLaneRecentSubtitle}</p>
+                <div className="-mx-1 mt-6 flex gap-4 overflow-x-auto pb-2 pl-1 pr-2 pt-1 [scrollbar-width:thin]">
                   {recentLane.map((l) => (
-                    <div key={l.id} className="w-[min(18rem,calc(100vw-2.5rem))] shrink-0">
+                    <div key={l.id} className="w-[min(20rem,calc(100vw-2.5rem))] shrink-0">
                       <AutosPublicStandardCard listing={l} copy={copy} lang={lang} compact />
                     </div>
                   ))}
@@ -356,8 +370,9 @@ export function AutosPublicResultsShell() {
             ) : null}
 
             <section>
-              <h2 className="mb-4 text-base font-bold text-[color:var(--lx-text)]">{copy.resultsMainSection}</h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              <h2 className="font-serif text-xl font-semibold text-[color:var(--lx-text)] sm:text-2xl">{copy.resultsMainSection}</h2>
+              <p className="mt-2 max-w-3xl text-sm text-[color:var(--lx-muted)]">{copy.resultsLaneMainSubtitle}</p>
+              <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-2 2xl:grid-cols-3">
                 {pagedGrid.map((l) => (
                   <AutosPublicStandardCard key={l.id} listing={l} copy={copy} lang={lang} />
                 ))}
@@ -371,7 +386,7 @@ export function AutosPublicResultsShell() {
 
             {gridListings.length > 0 && totalPages > 1 ? (
               <nav
-                className="mt-10 flex flex-wrap items-center justify-center gap-2 border-t border-[color:var(--lx-nav-border)] pt-8"
+                className="mt-12 flex flex-wrap items-center justify-center gap-2 border-t border-[color:var(--lx-nav-border)] pt-10"
                 aria-label="Pagination"
               >
                 {currentPage > 1 ? (
@@ -442,9 +457,9 @@ export function AutosPublicResultsShell() {
             aria-label="Close"
             onClick={() => setMobileFiltersOpen(false)}
           />
-          <div className="absolute bottom-0 left-0 right-0 max-h-[88vh] overflow-y-auto rounded-t-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-2xl">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-base font-bold">{copy.filtersTitle}</p>
+          <div className="absolute bottom-0 left-0 right-0 max-h-[min(92vh,720px)] overflow-y-auto rounded-t-[22px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className="font-serif text-lg font-semibold">{copy.filtersTitle}</p>
               <button
                 type="button"
                 className="rounded-lg px-3 py-1.5 text-sm font-semibold text-[color:var(--lx-gold)]"
@@ -465,6 +480,7 @@ export function AutosPublicResultsShell() {
           </div>
         </div>
       ) : null}
+      </div>
     </div>
   );
 }

@@ -4,7 +4,9 @@ export type LeonixConsentV1 = {
   version: 1;
   /** Session / security / language / route continuity — always true once decided. */
   necessary: true;
+  /** First-party listing/product measurement; gated until opted in. */
   analytics: boolean;
+  /** Optional first-party memory (city, filters, recents) — gated; no cross-site profiles. */
   personalization: boolean;
   updatedAt: string;
 };

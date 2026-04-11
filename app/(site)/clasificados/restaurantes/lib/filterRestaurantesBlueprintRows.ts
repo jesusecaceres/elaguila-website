@@ -1,6 +1,27 @@
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 import type { RestaurantesDiscoveryState } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
 
+/**
+ * Free-text `q` matches (case-insensitive substring) against the same fields we intend to index for publish:
+ * business name, cuisine copy line, primary/secondary cuisine keys (taxonomy), city display string, ZIP.
+ * **Future:** append `shortSummary`, featured dish titles, and normalized `cityCanonical` when the API provides them.
+ */
+function rowMatchesQuery(q: string, row: RestaurantesPublicBlueprintRow): boolean {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return true;
+  const blob = [
+    row.name,
+    row.cuisineLine,
+    row.primaryCuisineKey,
+    row.secondaryCuisineKey ?? "",
+    row.city,
+    row.zip ?? "",
+  ]
+    .join(" ")
+    .toLowerCase();
+  return blob.includes(needle);
+}
+
 /** Matches `cuisine=` to primary/secondary/additional keys on the row. */
 function rowMatchesCuisineFilter(param: string, row: RestaurantesPublicBlueprintRow): boolean {
   const raw = param.trim();
@@ -24,11 +45,7 @@ export function filterRestaurantesBlueprintRows(
   opts?: FilterRestaurantesBlueprintOptions,
 ): RestaurantesPublicBlueprintRow[] {
   return rows.filter((row) => {
-    const q = s.q.trim().toLowerCase();
-    if (q) {
-      const blob = `${row.name} ${row.cuisineLine} ${row.city} ${row.zip ?? ""}`.toLowerCase();
-      if (!blob.includes(q)) return false;
-    }
+    if (s.q.trim() && !rowMatchesQuery(s.q, row)) return false;
     if (s.city && !row.city.toLowerCase().includes(s.city.toLowerCase())) return false;
     if (s.zip && (row.zip ?? "").trim() !== s.zip.trim()) return false;
     if (s.cuisine && !rowMatchesCuisineFilter(s.cuisine, row)) return false;

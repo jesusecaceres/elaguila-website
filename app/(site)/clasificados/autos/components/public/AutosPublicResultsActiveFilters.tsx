@@ -166,12 +166,12 @@ export function AutosPublicResultsActiveFilters({
   if (chips.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2.5">
       {chips.map((c) => (
         <button
           key={c.key}
           type="button"
-          className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-3 py-1.5 text-left text-[11px] font-semibold text-[color:var(--lx-text)]"
+          className="inline-flex min-h-[44px] max-w-full items-center gap-2 rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-4 py-2 text-left text-xs font-semibold text-[color:var(--lx-text)]"
           onClick={c.onRemove}
         >
           <span className="min-w-0 truncate">{c.label}</span>
@@ -182,7 +182,7 @@ export function AutosPublicResultsActiveFilters({
       ))}
       <button
         type="button"
-        className="inline-flex items-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-1.5 text-[11px] font-bold text-[color:var(--lx-text-2)]"
+        className="inline-flex min-h-[44px] items-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-2 text-xs font-bold text-[color:var(--lx-text-2)]"
         onClick={() =>
           pushBundle({
             ...bundle,

@@ -12,7 +12,7 @@ export type BusinessCompletenessResult = {
 
 export function computeBusinessCompleteness(
   profile: Partial<DashboardProfileRow> | null,
-  opts: { lang: "es" | "en"; whatsappHint?: string | null }
+  opts: { lang: "es" | "en"; whatsappHint?: string | null; businessMeta?: Record<string, unknown> | null }
 ): BusinessCompletenessResult {
   const L =
     opts.lang === "es"
@@ -30,6 +30,9 @@ export function computeBusinessCompleteness(
           wa: "WhatsApp (metadata)",
           tier: "Account type / plan",
         };
+
+  const meta = opts.businessMeta ?? {};
+  const mStr = (k: string) => (typeof meta[k] === "string" ? String(meta[k]).trim() : "");
 
   const checks: Array<{ ok: boolean; key: string; rec: string }> = [
     {
@@ -56,6 +59,31 @@ export function computeBusinessCompleteness(
       ok: Boolean(profile?.membership_tier?.trim()) || Boolean(profile?.account_type?.trim()),
       key: L.tier,
       rec: opts.lang === "es" ? "Revisa plan y tipo de cuenta." : "Review plan and account type.",
+    },
+    {
+      ok: Boolean(mStr("business_name")),
+      key: opts.lang === "es" ? "Nombre comercial" : "Business name",
+      rec: opts.lang === "es" ? "Añade un nombre comercial en Perfil." : "Add a business name in Profile.",
+    },
+    {
+      ok: Boolean(mStr("business_description")),
+      key: opts.lang === "es" ? "Descripción del negocio" : "Business description",
+      rec: opts.lang === "es" ? "Describe tu negocio en pocas líneas." : "Add a short business description.",
+    },
+    {
+      ok: Boolean(mStr("website")),
+      key: opts.lang === "es" ? "Sitio web" : "Website",
+      rec: opts.lang === "es" ? "Enlaza tu sitio o página principal." : "Link your website or main page.",
+    },
+    {
+      ok: Boolean(mStr("instagram") || mStr("facebook") || mStr("tiktok")),
+      key: opts.lang === "es" ? "Redes sociales" : "Social profiles",
+      rec: opts.lang === "es" ? "Conecta al menos una red (Instagram, Facebook o TikTok)." : "Connect at least one social profile.",
+    },
+    {
+      ok: Boolean(mStr("business_hours")),
+      key: opts.lang === "es" ? "Horario" : "Business hours",
+      rec: opts.lang === "es" ? "Indica horario o disponibilidad." : "Add hours or availability.",
     },
   ];
 

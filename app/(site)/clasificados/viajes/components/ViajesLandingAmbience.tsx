@@ -1,3 +1,5 @@
+"use client";
+
 import { VIAJES_PAGE_AMBIENCE } from "../data/viajesLandingSampleData";
 
 /**

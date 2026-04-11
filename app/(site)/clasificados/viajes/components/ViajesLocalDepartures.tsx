@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import type { ViajesUi } from "../data/viajesUiCopy";
 import { VIAJES_LOCAL_DEPARTURES } from "../data/viajesLandingSampleData";
-import { setLangOnHref } from "../lib/viajesLangHref";
+import { viajesResultsBrowseUrl } from "../lib/viajesBrowseContract";
 import { ViajesLandingBrowseMore } from "./ViajesLandingBrowseMore";
 import { ViajesSectionHeader } from "./ViajesSectionHeader";
 
@@ -31,13 +31,13 @@ export function ViajesLocalDepartures({ ui, browseAllHref }: ViajesLocalDepartur
               key={card.id}
               className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)] bg-[#fffefb] shadow-[0_12px_40px_-20px_rgba(30,24,16,0.12)] transition hover:-translate-y-[2px] hover:shadow-[0_20px_48px_-22px_rgba(30,50,70,0.14)]"
             >
-              <div className="relative aspect-[16/10] w-full">
+              <div className="relative aspect-[16/10] w-full min-w-0 overflow-hidden">
                 <Image
                   src={card.imageSrc}
                   alt={card.imageAlt}
                   fill
                   sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 25vw"
-                  className="object-cover"
+                  className="object-cover object-center"
                 />
               </div>
               <div className="flex min-w-0 flex-1 flex-col p-4 sm:p-5">
@@ -48,7 +48,7 @@ export function ViajesLocalDepartures({ ui, browseAllHref }: ViajesLocalDepartur
                     📍
                   </span>
                   <Link
-                    href={setLangOnHref(card.href, ui.lang)}
+                    href={viajesResultsBrowseUrl(ui.lang, card.browse)}
                     className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl bg-[color:var(--lx-cta-dark)] px-4 py-2 text-center text-xs font-bold text-[#FFFCF7] transition hover:bg-[color:var(--lx-cta-dark-hover)] sm:w-auto sm:shrink-0"
                   >
                     {ui.localDepartures.cta}

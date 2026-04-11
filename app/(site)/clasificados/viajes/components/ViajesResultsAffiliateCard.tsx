@@ -15,9 +15,9 @@ export function ViajesResultsAffiliateCard({ row, ui }: { row: ViajesAffiliateRe
   const offerHref = row.href.includes("/oferta/") ? withViajesOfferBackParam(row.href, backHref) : row.href;
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-amber-200/80 bg-[color:var(--lx-card)] shadow-[0_10px_36px_-14px_rgba(42,36,22,0.18)]">
-      <div className="relative aspect-[16/10] w-full">
-        <Image src={row.imageSrc} alt={row.imageAlt} fill className="object-cover" sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw" />
+    <article className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-amber-200/80 bg-[color:var(--lx-card)] shadow-[0_10px_36px_-14px_rgba(42,36,22,0.18)]">
+      <div className="relative aspect-[16/10] w-full min-w-0 overflow-hidden">
+        <Image src={row.imageSrc} alt={row.imageAlt} fill className="object-cover object-center" sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw" />
         <div className="absolute left-0 right-0 top-0 flex flex-wrap items-start justify-between gap-2 p-3">
           <span className="rounded-full bg-[#D97706] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
             {row.inventoryLabel}

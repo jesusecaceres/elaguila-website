@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { ServiciosDirectoryLocalSection } from "../ServiciosDirectoryLocalSection";
 import { ServiciosListingResultCard } from "../ServiciosListingResultCard";
@@ -8,11 +9,19 @@ import {
   filterServiciosPublicListingRows,
   filterServiciosRowsByKeyword,
   filterServiciosRowsBySeller,
+  isServiciosListingPromoted,
   serviciosResultsHasActiveFilters,
   sortServiciosResultsForDisplay,
   type ServiciosResultsFilterQuery,
 } from "../lib/serviciosResultsFilter";
 import { listServiciosPublicListingsFromDb } from "../lib/serviciosPublicListingsServer";
+
+/** Same whisper image family as landing — stays behind content, low contrast */
+const RESULTS_ATMOSPHERE =
+  "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=2400&q=68";
+
+const contentShell =
+  "rounded-[22px] border border-white/90 bg-[#FFFCF7]/95 shadow-[0_28px_80px_-48px_rgba(20,38,58,0.42)] ring-1 ring-[#1e3a5f]/[0.06] sm:rounded-[26px]";
 
 export const metadata: Metadata = {
   title: "Servicios — Resultados · Leonix Clasificados",
@@ -69,6 +78,8 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
   rows = filterServiciosRowsByKeyword(rows, lang, filterQuery.q);
   rows = filterServiciosRowsBySeller(rows, lang, filterQuery.seller);
   const displayRows = sortServiciosResultsForDisplay(rows, lang, filterQuery.sort);
+  const promotedRows = displayRows.filter(isServiciosListingPromoted);
+  const standardRows = displayRows.filter((r) => !isServiciosListingPromoted(r));
 
   const dbSlugList = allRows.map((r) => r.slug);
   const hasActiveFilters = serviciosResultsHasActiveFilters(filterQuery);
@@ -76,64 +87,75 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
   const publishHref = `/clasificados/publicar/servicios?lang=${lang}`;
 
   return (
-    <div className="min-h-screen bg-[#f3ede4] text-[#142a42]">
-      <div
-        className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_90%_50%_at_50%_-10%,rgba(255,255,255,0.5),transparent_55%)]"
-        aria-hidden
-      />
+    <div className="relative min-h-screen overflow-x-hidden bg-[#f3ede4] text-[#142a42]">
+      <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden>
+        <Image
+          src={RESULTS_ATMOSPHERE}
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover object-[center_42%] opacity-[0.07] blur-[1.5px] saturate-[0.72]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#f5efe6] via-[#f3ebe2]/[0.98] to-[#efe6db]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_70%_at_50%_-10%,rgba(255,255,255,0.55),transparent_55%)]" />
+      </div>
 
       <div className="relative mx-auto w-full max-w-7xl px-4 py-6 pb-24 sm:px-6 sm:py-10 sm:pb-10 lg:px-10 xl:px-12 2xl:max-w-[1440px]">
-        {/* Top bar: dedicated results context + CTAs */}
-        <header className="mb-6 flex flex-col gap-4 rounded-[22px] border border-[#e5ddd2]/90 bg-[#FFFCF7] p-4 shadow-[0_22px_60px_-42px_rgba(20,38,58,0.42)] ring-1 ring-[#1e3a5f]/[0.04] sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-5">
+        <header
+          className={`mb-6 flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:p-7 ${contentShell}`}
+        >
           <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3d5a73]/75">
+              {lang === "en" ? "Services · Leonix" : "Servicios · Leonix"}
+            </p>
             <Link
               href={landingHref}
-              className="inline-flex min-h-[44px] items-center gap-2 text-sm font-semibold text-[#3B66AD] underline-offset-4 hover:underline"
+              className="mt-2 inline-flex min-h-[44px] items-center gap-2 text-sm font-semibold text-[#3B66AD] underline-offset-4 hover:underline"
             >
               <span aria-hidden>←</span>
               {lang === "en" ? "Back to Servicios home" : "Volver al inicio de Servicios"}
             </Link>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#142a42] sm:text-3xl">
-              {lang === "en" ? "Service results" : "Resultados de servicios"}
+            <h1 className="mt-2 font-serif text-2xl font-bold tracking-tight text-[#142a42] sm:text-3xl">
+              {lang === "en" ? "Discover local services" : "Descubre servicios locales"}
             </h1>
-            <p className="mt-1 text-sm leading-relaxed text-[#4a5d6e]">
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#4a5d6e]">
               {lang === "en"
-                ? "Refine by trade, city, contact options, and seller type — then open a full profile."
-                : "Afina por giro, ciudad, contacto y tipo de anunciante; luego abre la vitrina completa."}
+                ? "Same search power as the home page — refine by area, trade, trust signals, and how providers want to be reached."
+                : "La misma lógica que en inicio: afinar por zona, giro, señales de confianza y formas de contacto publicadas."}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:shrink-0 sm:items-end">
             <Link
               href={publishHref}
-              className="inline-flex min-h-[48px] min-w-[44px] items-center justify-center rounded-full border-2 border-[#EA580C]/30 bg-gradient-to-br from-[#EA580C] to-[#C2410C] px-5 text-sm font-bold text-white shadow-md transition hover:brightness-[1.03]"
+              className="inline-flex min-h-[48px] w-full min-w-[44px] items-center justify-center rounded-full border-2 border-[#EA580C]/30 bg-gradient-to-br from-[#EA580C] to-[#C2410C] px-6 text-sm font-bold text-white shadow-[0_14px_36px_-12px_rgba(194,65,12,0.45)] transition hover:brightness-[1.03] sm:w-auto"
             >
               {lang === "en" ? "Publish your service" : "Publica tu servicio"}
             </Link>
             <Link
               href={`/clasificados/servicios/resultados?lang=${lang}`}
-              className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-[#1a3352]/20 bg-white px-4 text-sm font-bold text-[#1a3352] shadow-sm transition hover:bg-[#fafcff]"
+              className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#1a3352]/20 bg-white px-5 text-sm font-bold text-[#1a3352] shadow-sm transition hover:bg-[#fafcff] sm:w-auto"
             >
-              {lang === "en" ? "View all" : "Ver todos"}
+              {lang === "en" ? "View all listings" : "Ver todos los anuncios"}
             </Link>
           </div>
         </header>
 
-        <div className="min-w-0 lg:grid lg:grid-cols-[minmax(260px,360px)_minmax(0,1fr)] lg:items-start lg:gap-8 xl:gap-10">
+        <div className="min-w-0 lg:grid lg:grid-cols-[minmax(280px,380px)_minmax(0,1fr)] lg:items-start lg:gap-8 xl:gap-10">
           <aside className="lg:sticky lg:top-4">
             <ServiciosResultsFilters lang={lang} current={filterQuery} />
           </aside>
 
-          <div className="mt-6 min-w-0 lg:mt-0">
+          <div className={`mt-6 min-w-0 p-4 sm:p-6 lg:mt-0 ${contentShell}`}>
             <ServiciosResultsActiveSummary lang={lang} query={filterQuery} />
 
-            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2 border-b border-[#dcd3c7]/80 pb-3">
+            <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2 border-b border-[#dcd3c7]/80 pb-3">
               <p className="text-sm font-semibold text-[#142a42]">
                 {lang === "en" ? "Listings" : "Anuncios"}
                 <span className="ml-2 tabular-nums text-[#64748b]">({displayRows.length})</span>
               </p>
               {filterQuery.sort === "name" ? (
                 <span className="text-xs font-medium text-[#64748b]">
-                  {lang === "en" ? "Sorted A–Z within featured + standard." : "Orden A–Z dentro de destacados y resto."}
+                  {lang === "en" ? "A–Z within each block (featured first)." : "A–Z en cada bloque (destacados primero)."}
                 </span>
               ) : null}
             </div>
@@ -147,7 +169,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
             ) : null}
 
             {displayRows.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#c9b8a4] bg-[#FFFCF7] px-4 py-14 text-center shadow-sm">
+              <div className="rounded-2xl border border-dashed border-[#c9b8a4] bg-gradient-to-b from-[#FFFCF7] to-[#faf6f0] px-4 py-14 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
                 <p className="mx-auto max-w-md text-sm font-medium leading-relaxed text-[#142a42]">
                   {hasActiveFilters
                     ? lang === "en"
@@ -192,11 +214,40 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                 </div>
               </div>
             ) : (
-              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-2 xl:grid-cols-3">
-                {displayRows.map((r) => (
-                  <ServiciosListingResultCard key={r.slug} row={r} lang={lang} />
-                ))}
-              </ul>
+              <div className="space-y-10">
+                {promotedRows.length > 0 ? (
+                  <section aria-labelledby="servicios-res-destacados">
+                    <h2
+                      id="servicios-res-destacados"
+                      className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em] text-[#7a6220]"
+                    >
+                      {lang === "en" ? "Featured on Leonix" : "Destacados en Leonix"}
+                    </h2>
+                    <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-2 xl:grid-cols-3">
+                      {promotedRows.map((r) => (
+                        <ServiciosListingResultCard key={r.slug} row={r} lang={lang} />
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
+                {standardRows.length > 0 ? (
+                  <section aria-labelledby="servicios-res-mas">
+                    {promotedRows.length > 0 ? (
+                      <h2
+                        id="servicios-res-mas"
+                        className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em] text-[#3d5a73]/90"
+                      >
+                        {lang === "en" ? "More showcases" : "Más vitrinas"}
+                      </h2>
+                    ) : null}
+                    <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-2 xl:grid-cols-3">
+                      {standardRows.map((r) => (
+                        <ServiciosListingResultCard key={r.slug} row={r} lang={lang} />
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
+              </div>
             )}
           </div>
         </div>

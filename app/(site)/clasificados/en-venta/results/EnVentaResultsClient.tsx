@@ -9,7 +9,6 @@ import { isListingSaved, onSavedListingsChange, toggleListingSaved } from "@/app
 import { EN_VENTA_DEPARTMENTS } from "../taxonomy/categories";
 import { EN_VENTA_SUBCATEGORY_ROWS } from "../taxonomy/subcategories";
 import { mapDbRowToEnVentaAnuncioDTO } from "../mapping/mapDbRowToEnVentaListingData";
-import { buildEnVentaResultsCardModel } from "./buildEnVentaResultsCardModel";
 import { inferEnVentaDeptFromSubKey } from "../mapping/enVentaInferDeptFromSub";
 import {
   EN_VENTA_SORT_OPTIONS,
@@ -22,8 +21,16 @@ import { listingMatchesCityFilter, listingMatchesZipFilter } from "./utils/enVen
 import { nearestCanonicalCityFromLatLng } from "./utils/enVentaNearestCity";
 import { EV_RESULTS_PARAM } from "./contracts/enVentaResultsUrlParams";
 import newLogo from "../../../../../public/logo.png";
-import { EnVentaResultListingCard } from "./EnVentaResultListingCard";
 import { EnVentaResultsEmpty } from "./EnVentaResultsEmpty";
+import { EnVentaResultsChipsRow } from "./components/EnVentaResultsChipsRow";
+import { EnVentaResultsListingSections } from "./components/EnVentaResultsListingSections";
+import {
+  buildLocationSummaryLine,
+  buildSearchSummaryLine,
+  catalogSectionSubtitle,
+  catalogSectionTitle,
+  featuredOnlyBanner,
+} from "./utils/enVentaResultsSummary";
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
 
 type Lang = "es" | "en";
@@ -255,7 +262,7 @@ export function EnVentaResultsClient() {
       go: "Buscar",
       grid: "Cuadrícula",
       list: "Lista",
-      latest: "Últimos",
+      latest: "Más recientes",
       promoted: "Destacado Pro",
       loading: "Cargando…",
       err: "No se pudieron cargar los anuncios.",
@@ -288,6 +295,12 @@ export function EnVentaResultsClient() {
       mapRadiusSoon: "Radio en mapa (próximamente)",
       mapRadiusBody:
         "El refinamiento por distancia real vendrá con mapa. Mientras tanto, usa ciudad y CP para acotar.",
+      groupSearchLoc: "Buscar y ubicación",
+      groupSortView: "Orden, vista y destacados",
+      groupRefine: "Refinar listado",
+      cityZipHelp: "Ciudad canónica NorCal; CP de 5 dígitos acota cuando hay datos.",
+      refineIntro: "Categoría, precio y entrega",
+      viewLabel: "Vista",
     },
     en: {
       title: "For Sale",
@@ -330,6 +343,12 @@ export function EnVentaResultsClient() {
       mapRadiusSoon: "Map radius (coming soon)",
       mapRadiusBody:
         "True distance search will ship with a map. For now, use city and ZIP to narrow results.",
+      groupSearchLoc: "Search & location",
+      groupSortView: "Sort, view & featured",
+      groupRefine: "Refine listings",
+      cityZipHelp: "Canonical NorCal city; 5-digit ZIP narrows when listings include ZIP.",
+      refineIntro: "Category, price & fulfillment",
+      viewLabel: "View",
     },
   }[lang];
 
@@ -529,6 +548,9 @@ export function EnVentaResultsClient() {
     setFavTick((x) => x + 1);
   };
 
+  const searchSummaryLine = buildSearchSummaryLine(q, lang);
+  const locationSummaryLine = buildLocationSummaryLine(city, zip, lang);
+
   return (
     <div
       className="relative min-h-screen text-[#2C2416]"
@@ -548,131 +570,168 @@ export function EnVentaResultsClient() {
         }}
         aria-hidden
       />
-      <main className="relative mx-auto min-w-0 max-w-6xl overflow-x-hidden px-4 pb-28 pt-20 sm:px-6 lg:max-w-7xl lg:px-8">
-        <div className="flex flex-col items-center text-center">
-          <Link
-            href={`/clasificados/en-venta?lang=${lang}`}
-            className="mb-2 text-[13px] font-semibold text-[#2F4A65] underline-offset-4 hover:underline"
-          >
-            {lang === "es" ? "← Inicio En Venta" : "← For Sale home"}
-          </Link>
-          <Image src={newLogo} alt="Leonix" width={120} height={120} className="h-auto w-[min(120px,36vw)]" priority />
-          <h1 className="mt-4 text-3xl font-bold tracking-tight text-[#1E1810] sm:text-4xl">{t.title}</h1>
-          <p className="mt-2 max-w-2xl text-sm font-medium text-[#5C5346]">{loading ? t.loading : countLine}</p>
-          <p className="mt-1 text-[11px] text-[#5C5346]/90">{t.privacyNote}</p>
-        </div>
+      <main className="relative mx-auto w-full min-w-0 max-w-[min(100%,90rem)] overflow-x-hidden px-4 pb-28 pt-14 sm:px-6 sm:pt-16 lg:px-10 lg:pt-16 xl:px-14">
+        <header className="w-full border-b border-[#E8DFD0]/70 pb-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
+            <div className="flex min-w-0 flex-1 gap-4 sm:gap-5">
+              <Image
+                src={newLogo}
+                alt="Leonix"
+                width={88}
+                height={88}
+                className="h-[72px] w-[72px] shrink-0 sm:h-[88px] sm:w-[88px]"
+                priority
+              />
+              <div className="min-w-0 flex-1 text-left">
+                <Link
+                  href={`/clasificados/en-venta?lang=${lang}`}
+                  className="inline-flex text-[13px] font-semibold text-[#2F4A65] underline-offset-4 hover:underline"
+                >
+                  {lang === "es" ? "← Inicio En Venta" : "← For Sale home"}
+                </Link>
+                <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl lg:text-4xl">{t.title}</h1>
+                <p className="mt-2 text-sm font-semibold text-[#3D3428]">{loading ? t.loading : countLine}</p>
+                {searchSummaryLine ? <p className="mt-1 text-sm text-[#5C5346]">{searchSummaryLine}</p> : null}
+                {locationSummaryLine ? <p className="mt-0.5 text-sm text-[#5C5346]">{locationSummaryLine}</p> : null}
+                <p className="mt-2 max-w-2xl text-[11px] leading-relaxed text-[#5C5346]/90">{t.privacyNote}</p>
+              </div>
+            </div>
+          </div>
+        </header>
 
         {activeChips.length > 0 ? (
-          <div className="mx-auto mt-6 flex max-w-5xl flex-wrap items-center justify-center gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.activeFilters}</span>
-            {activeChips.map((c) => (
-              <button
-                key={`${c.key}:${c.label}`}
-                type="button"
-                onClick={c.onRemove}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-3 py-1.5 text-xs font-semibold text-[#2F4A65] transition hover:bg-[#E8EEF3]"
-              >
-                {c.label}
-                <span aria-hidden className="text-[#B8891A]">
-                  ×
-                </span>
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="text-xs font-semibold text-[#2F4A65] underline underline-offset-2"
-            >
-              {t.clearAll}
-            </button>
+          <div className="mt-6 w-full sm:mt-8">
+            <EnVentaResultsChipsRow
+              label={t.activeFilters}
+              clearLabel={t.clearAll}
+              chips={activeChips}
+              onClearAll={resetFilters}
+            />
           </div>
         ) : null}
 
         <form
           id="ev-results-form"
           onSubmit={onSubmitSearch}
-          className="mx-auto mt-6 max-w-5xl rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-4 shadow-[0_12px_48px_-16px_rgba(42,36,22,0.15)] backdrop-blur-sm sm:mt-8 sm:p-6"
+          className="mt-6 w-full rounded-[28px] border border-[#E8DFD0] bg-[#FFFCF7]/95 p-4 shadow-[0_16px_56px_-20px_rgba(42,36,22,0.18)] backdrop-blur-sm sm:mt-8 sm:p-6 lg:p-8"
         >
           <input type="hidden" name="lang" value={lang} />
-          <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
-            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-[#E8DFD0] bg-white/95 px-3 py-2 shadow-inner">
-              <span className="text-[#5C5346]" aria-hidden>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M20 20l-3-3" strokeLinecap="round" />
-                </svg>
-              </span>
-              <input
-                name="q"
-                defaultValue={q}
-                placeholder={t.searchPh}
-                className="min-w-0 flex-1 bg-transparent py-1 text-sm text-[#1E1810] outline-none"
-              />
+
+          <div className="rounded-2xl border border-[#E8DFD0]/80 bg-gradient-to-br from-white/90 to-[#FAF7F2]/80 p-4 sm:p-5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7A7164]">{t.groupSearchLoc}</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-[#5C5346]/90">{t.cityZipHelp}</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:gap-4">
+              <label className="flex min-h-[48px] min-w-0 flex-col justify-center rounded-2xl border border-[#E8DFD0] bg-white/95 px-3 py-2 shadow-inner sm:col-span-2 lg:col-span-5">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.searchPh}</span>
+                <span className="mt-1 flex items-center gap-2">
+                  <span className="text-[#5C5346]" aria-hidden>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="7" />
+                      <path d="M20 20l-3-3" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                  <input
+                    name="q"
+                    defaultValue={q}
+                    placeholder={t.searchPh}
+                    className="min-w-0 flex-1 bg-transparent py-1 text-sm text-[#1E1810] outline-none"
+                  />
+                </span>
+              </label>
+              <label className="flex min-h-[48px] min-w-0 flex-col justify-center rounded-2xl border border-[#E8DFD0] bg-white/95 px-3 py-2 shadow-inner lg:col-span-4">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.cityPh}</span>
+                <span className="mt-1 flex items-center gap-2">
+                  <span aria-hidden>📍</span>
+                  <input
+                    name="city"
+                    defaultValue={city}
+                    placeholder={t.cityPh}
+                    className="min-w-0 flex-1 bg-transparent py-1 text-sm outline-none"
+                  />
+                </span>
+              </label>
+              <label className="flex min-h-[48px] min-w-0 flex-col justify-center rounded-2xl border border-[#E8DFD0] bg-white/95 px-3 py-2 shadow-inner lg:col-span-3">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.zip}</span>
+                <span className="mt-1 flex items-center gap-2">
+                  <span className="text-[#4A6678]" aria-hidden>
+                    #
+                  </span>
+                  <input
+                    name="zip"
+                    defaultValue={zip}
+                    placeholder={t.zip}
+                    inputMode="numeric"
+                    maxLength={5}
+                    className="min-w-0 flex-1 bg-transparent py-1 text-sm outline-none"
+                  />
+                </span>
+              </label>
             </div>
-            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-[#E8DFD0] bg-white/95 px-3 py-2 shadow-inner sm:min-w-[140px]">
-              <span aria-hidden>📍</span>
-              <input
-                name="city"
-                defaultValue={city}
-                placeholder={t.cityPh}
-                className="min-w-0 flex-1 bg-transparent py-1 text-sm outline-none"
-              />
-            </div>
-            <div className="flex min-w-[100px] flex-1 items-center gap-2 rounded-full border border-[#E8DFD0] bg-white/95 px-3 py-2 shadow-inner">
-              <span className="text-[#4A6678]" aria-hidden>
-                #
-              </span>
-              <input
-                name="zip"
-                defaultValue={zip}
-                placeholder={t.zip}
-                inputMode="numeric"
-                maxLength={5}
-                className="min-w-0 flex-1 bg-transparent py-1 text-sm outline-none"
-              />
-            </div>
-            <select
-              name="sort"
-              defaultValue={sort}
-              className="min-h-[44px] rounded-full border border-[#E8DFD0] bg-white px-4 py-2.5 text-sm font-medium text-[#2C2416]"
-            >
-              {EN_VENTA_SORT_OPTIONS.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.label[lang]}
-                </option>
-              ))}
-            </select>
-            <div className="flex items-center gap-1 rounded-full border border-[#E8DFD0] bg-[#FAF7F2] p-1">
-              <button
-                type="button"
-                onClick={() => applyViewPreference("grid")}
-                className={`rounded-full px-3 py-2 text-xs font-semibold ${view === "grid" ? "bg-white shadow-sm" : "text-[#5C5346]"}`}
-              >
-                {t.grid}
-              </button>
-              <button
-                type="button"
-                onClick={() => applyViewPreference("list")}
-                className={`rounded-full px-3 py-2 text-xs font-semibold ${view === "list" ? "bg-white shadow-sm" : "text-[#5C5346]"}`}
-              >
-                {t.list}
-              </button>
-            </div>
-            <input type="hidden" name="view" value={view} readOnly />
-            <button
-              type="submit"
-              className="min-h-[44px] rounded-full bg-gradient-to-br from-[#F0D78C] via-[#D4A03E] to-[#C18A2E] px-6 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md"
-            >
-              {t.go}
-            </button>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#E8DFD0]/70 pt-3">
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          <div className="mt-4 rounded-2xl border border-[#E8DFD0]/80 bg-white/70 p-4 sm:p-5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7A7164]">{t.groupSortView}</p>
+            <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end lg:gap-4">
+              <label className="min-w-0 lg:min-w-[200px]">
+                <span className="sr-only">{t.sort}</span>
+                <select
+                  name="sort"
+                  defaultValue={sort}
+                  className="min-h-[48px] w-full rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2.5 text-sm font-medium text-[#2C2416] shadow-sm"
+                >
+                  {EN_VENTA_SORT_OPTIONS.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label[lang]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.viewLabel}</span>
+                <div className="flex items-center gap-1 rounded-full border border-[#E8DFD0] bg-[#FAF7F2] p-1">
+                  <button
+                    type="button"
+                    onClick={() => applyViewPreference("grid")}
+                    className={`rounded-full px-3 py-2 text-xs font-semibold ${view === "grid" ? "bg-white shadow-sm" : "text-[#5C5346]"}`}
+                  >
+                    {t.grid}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyViewPreference("list")}
+                    className={`rounded-full px-3 py-2 text-xs font-semibold ${view === "list" ? "bg-white shadow-sm" : "text-[#5C5346]"}`}
+                  >
+                    {t.list}
+                  </button>
+                </div>
+              </div>
+              <label className="flex min-h-[48px] cursor-pointer items-center gap-3 rounded-2xl border border-[#C9A84A]/35 bg-gradient-to-br from-[#FFFBF0]/90 to-[#F5F8FB]/80 px-4 py-2.5 text-sm font-semibold text-[#2F4A65]">
+                <input type="checkbox" name="featured" value="1" defaultChecked={featuredOnly} className="rounded border-[#C9B46A]" />
+                <span>{t.featuredMode}</span>
+              </label>
+              <input type="hidden" name="view" value={view} readOnly />
+              <button
+                type="submit"
+                className="min-h-[48px] flex-1 rounded-full bg-gradient-to-br from-[#F0D78C] via-[#D4A03E] to-[#C18A2E] px-8 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md lg:flex-initial"
+              >
+                {t.go}
+              </button>
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="min-h-[48px] rounded-full border border-[#E8DFD0] bg-white px-5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+              >
+                {t.clearAll}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3 border-t border-[#E8DFD0]/70 pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={onUseMyLocation}
-                className="rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-4 py-2 text-xs font-semibold text-[#2F4A65] hover:bg-[#E8EEF3]"
+                className="rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-4 py-2.5 text-xs font-semibold text-[#2F4A65] hover:bg-[#E8EEF3]"
               >
                 {t.useLocation}
               </button>
@@ -681,7 +740,7 @@ export function EnVentaResultsClient() {
             <button
               type="button"
               onClick={() => setMobileFiltersOpen(true)}
-              className="shrink-0 rounded-full border border-[#E8DFD0] bg-white px-4 py-2 text-xs font-semibold text-[#2C2416] shadow-sm lg:hidden"
+              className="shrink-0 rounded-full border border-[#E8DFD0] bg-white px-4 py-2.5 text-xs font-semibold text-[#2C2416] shadow-sm lg:hidden"
             >
               {t.filtersOpen}
             </button>
@@ -716,7 +775,9 @@ export function EnVentaResultsClient() {
               </button>
             </div>
             <div className="max-lg:min-h-0 max-lg:flex-1 max-lg:overflow-y-auto max-lg:overscroll-contain lg:overflow-visible">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7A7164]">{t.groupRefine}</p>
+              <p className="mt-1 text-sm font-medium text-[#3D3428]">{t.refineIntro}</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
               {t.dept}
               <select
@@ -801,11 +862,6 @@ export function EnVentaResultsClient() {
             </label>
           </div>
 
-          <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl border border-[#C9A84A]/35 bg-gradient-to-br from-[#FFFBF0]/90 to-[#F5F8FB]/80 px-4 py-3 text-sm font-medium text-[#2F4A65]">
-            <input type="checkbox" name="featured" value="1" defaultChecked={featuredOnly} className="mt-0.5 rounded border-[#C9B46A]" />
-            <span>{t.featuredMode}</span>
-          </label>
-
           <details className="mt-4 rounded-2xl border border-[#E8DFD0]/90 bg-white/60 p-4 text-left text-sm text-[#5C5346]">
             <summary className="cursor-pointer list-none font-semibold text-[#7A7164] [&::-webkit-details-marker]:hidden">
               {t.mapRadiusSoon}
@@ -837,74 +893,31 @@ export function EnVentaResultsClient() {
         ) : null}
 
         {!loading && !loadErr && total > 0 ? (
-          <>
-            {!featuredOnly && promotedPool.length > 0 ? (
-              <section className="mt-10">
-                <h2 className="mb-4 text-left text-sm font-bold uppercase tracking-wide text-[#5C5346]">{t.promoted}</h2>
-                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                  {promotedPool.map((p) => (
-                    <EnVentaResultListingCard
-                      key={p.dto.id}
-                      model={buildEnVentaResultsCardModel(p.dto, {
-                        lang,
-                        effectiveDeptKey: p.effectiveDept,
-                        boosted: p.boosted,
-                      })}
-                      lang={lang}
-                      isFav={isFav(p.dto.id)}
-                      onToggleFav={onFav}
-                      href={`/clasificados/anuncio/${p.dto.id}?lang=${lang}`}
-                      layout="grid"
-                    />
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
-            <section className="mt-10">
-              <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-                <h2 className="text-left text-sm font-bold uppercase tracking-wide text-[#5C5346]">
-                  {featuredOnly ? t.featuredMode : t.latest}
-                </h2>
-                <div className="flex items-center gap-2 text-xs font-medium text-[#5C5346]">
-                  <button
-                    type="button"
-                    disabled={safePage <= 1}
-                    onClick={() => pushParams({ page: String(Math.max(1, safePage - 1)) })}
-                    className="rounded-full border border-[#E8DFD0] bg-white px-2 py-1 disabled:opacity-40"
-                  >
-                    ←
-                  </button>
-                  <span>{t.page(safePage, pageCount)}</span>
-                  <button
-                    type="button"
-                    disabled={safePage >= pageCount}
-                    onClick={() => pushParams({ page: String(Math.min(pageCount, safePage + 1)) })}
-                    className="rounded-full border border-[#E8DFD0] bg-white px-2 py-1 disabled:opacity-40"
-                  >
-                    →
-                  </button>
-                </div>
-              </div>
-              <div className={view === "grid" ? "grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-4"}>
-                {standardSlice.map((p) => (
-                  <EnVentaResultListingCard
-                    key={p.dto.id}
-                    model={buildEnVentaResultsCardModel(p.dto, {
-                      lang,
-                      effectiveDeptKey: p.effectiveDept,
-                      boosted: featuredOnly ? p.boosted : false,
-                    })}
-                    lang={lang}
-                    isFav={isFav(p.dto.id)}
-                    onToggleFav={onFav}
-                    href={`/clasificados/anuncio/${p.dto.id}?lang=${lang}`}
-                    layout={view}
-                  />
-                ))}
-              </div>
-            </section>
-          </>
+          <div className="mt-10 w-full sm:mt-12">
+            <EnVentaResultsListingSections
+              lang={lang}
+              featuredOnly={featuredOnly}
+              promotedPool={promotedPool}
+              standardSlice={standardSlice}
+              view={view}
+              sort={sort}
+              safePage={safePage}
+              pageCount={pageCount}
+              onPagePrev={() => pushParams({ page: String(Math.max(1, safePage - 1)) })}
+              onPageNext={() => pushParams({ page: String(Math.min(pageCount, safePage + 1)) })}
+              isFav={isFav}
+              onFav={onFav}
+              t={{
+                promoted: t.promoted,
+                featuredMode: t.featuredMode,
+                latest: t.latest,
+                catalog: catalogSectionTitle(lang),
+                catalogSub: catalogSectionSubtitle(lang),
+                page: t.page,
+                featuredBanner: featuredOnlyBanner(lang),
+              }}
+            />
+          </div>
         ) : null}
 
         {loading ? (

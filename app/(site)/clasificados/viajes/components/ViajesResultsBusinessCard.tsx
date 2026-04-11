@@ -14,16 +14,16 @@ export function ViajesResultsBusinessCard({ row, ui }: { row: ViajesBusinessResu
   const offerHref = row.href.includes("/oferta/") ? withViajesOfferBackParam(row.href, backHref) : row.href;
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] shadow-[0_10px_36px_-14px_rgba(42,36,22,0.18)]">
-      <div className="relative aspect-[16/10] w-full">
-        <Image src={row.imageSrc} alt={row.imageAlt} fill className="object-cover" sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw" />
+    <article className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] shadow-[0_12px_40px_-16px_rgba(42,36,22,0.2)]">
+      <div className="relative aspect-[16/10] w-full min-w-0 overflow-hidden">
+        <Image src={row.imageSrc} alt={row.imageAlt} fill className="object-cover object-center" sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw" />
         <span className="absolute left-3 top-3 rounded-full bg-[color:var(--lx-cta-dark)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#FFFCF7]">
           {ui.cards.businessListing}
         </span>
       </div>
       <div className="flex flex-1 flex-col p-4">
         <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{row.businessName}</p>
-        <h2 className="mt-1 line-clamp-2 text-base font-bold leading-snug text-[color:var(--lx-text)]">{row.offerTitle}</h2>
+        <h2 className="mt-1 line-clamp-2 break-words text-base font-bold leading-snug text-[color:var(--lx-text)]">{row.offerTitle}</h2>
         <p className="mt-1 line-clamp-2 text-sm text-[color:var(--lx-text-2)]">
           {row.destination} · {ui.results.departurePrefix} {row.departureCity}
         </p>

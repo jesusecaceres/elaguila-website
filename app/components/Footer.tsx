@@ -1,4 +1,6 @@
 // Footer.tsx
+import { CookiePreferencesTrigger } from "./CookiePreferencesTrigger";
+
 export default function Footer() {
   return (
     <footer className="w-full bg-[color:var(--lx-section)] text-[color:var(--lx-text)] py-12 mt-20 border-t border-[color:var(--lx-nav-border)]">
@@ -64,9 +66,10 @@ export default function Footer() {
 
       </div>
 
-      <p className="text-center text-[color:var(--lx-muted)] mt-10 text-sm">
-        © 2026 El Águila — Orgullo Latino Sin Fronteras.
-      </p>
+      <div className="mt-10 flex flex-col items-center gap-3 text-center">
+        <CookiePreferencesTrigger />
+        <p className="text-[color:var(--lx-muted)] text-sm">© 2026 El Águila — Orgullo Latino Sin Fronteras.</p>
+      </div>
     </footer>
   );
 }

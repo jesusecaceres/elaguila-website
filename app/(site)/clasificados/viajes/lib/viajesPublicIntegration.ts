@@ -1,6 +1,12 @@
 /**
  * Non-blocking integration points for platform consent / analytics / personalization.
- * Preference flags are written by `LeonixCookieConsent` + `persistLeonixConsent`.
+ * Uses `leonixPublicConsent` (see `LeonixCookieConsent` + `persistLeonixConsent` elsewhere in the app).
+ *
+ * Future (behind `viajesPersonalizationAllowed()` only):
+ * - optional `localStorage` keys such as `leonix_viajes_prefs_v1` for last sort / departure hub / dismissed hints
+ * - never write cross-site identifiers here; keep Viajes prefs separate from ad profiling
+ *
+ * Geolocation remains **only** in `useBrowserLocationForViajes` (user gesture + browser API), not here.
  */
 
 import { leonixAnalyticsAllowed, leonixPersonalizationAllowed } from "@/app/lib/leonixPublicConsent";

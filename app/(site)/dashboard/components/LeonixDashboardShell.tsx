@@ -48,6 +48,8 @@ export function LeonixDashboardShell({
   userName,
   email,
   accountRef,
+  membershipTier,
+  accountType,
   children,
   rightPanel,
 }: {
@@ -57,6 +59,10 @@ export function LeonixDashboardShell({
   userName: string | null;
   email: string | null;
   accountRef: string | null;
+  /** Raw `profiles.membership_tier` when available (sidebar context). */
+  membershipTier?: string | null;
+  /** Raw `profiles.account_type` when available. */
+  accountType?: string | null;
   children: ReactNode;
   rightPanel?: ReactNode;
 }) {
@@ -228,6 +234,16 @@ export function LeonixDashboardShell({
               {accountRef ? (
                 <p className="mt-2 font-mono text-[10px] text-[#7A7164]/90">
                   #{accountRef}
+                </p>
+              ) : null}
+              {membershipTier?.trim() ? (
+                <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-[#7A7164]/90">
+                  {membershipTier.trim()}
+                </p>
+              ) : null}
+              {accountType?.trim() ? (
+                <p className="mt-0.5 text-[10px] text-[#5C5346]/90">
+                  {lang === "es" ? "Tipo" : "Type"}: {accountType.trim()}
                 </p>
               ) : null}
             </div>

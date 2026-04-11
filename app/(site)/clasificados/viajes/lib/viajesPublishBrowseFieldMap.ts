@@ -1,22 +1,22 @@
 /**
  * Maps Viajes **business** publish draft fields (negocios flow) to public browse facets.
- * Source: `mapViajesNegociosDraftToOffer`, `ViajesNegociosDraft` — adjust when DB schema lands.
+ * Source: `mapViajesNegociosDraftToOffer`, `ViajesNegociosDraft` — update when DB schema lands.
  *
  * | Publish / stored (conceptual)     | Public filter key | Status |
  * |----------------------------------|-------------------|--------|
- * | `destino` / primary destination  | `dest`, `q`       | Live (sample + URL) |
- * | `origen` / departure copy        | `from` (buckets)  | Partial — buckets fixed list |
- * | `offerType` (resort, tour, …)    | `t`               | Live — maps to trip-type keys |
- * | `familias` / `parejas` / `grupos`| `audience`        | Live on rows when present |
- * | Price fields                     | `budget` bands    | Partial — heuristic banding until normalized |
- * | Dates / season (draft)           | `season`          | Scaffold — sample only |
- * | Duration text                    | `duration`        | Scaffold — sample keys |
- * | `published_at` (future)          | sort `newest`     | Scaffold — `publishedAt` on sample |
- * | Verification / media flags       | discovery scoring | Scaffold — `discovery` on sample |
+ * | Primary destination text/slug     | `dest`, `q`       | Live (URL + sample rows) |
+ * | Departure / origin copy           | `from` (buckets)  | Live — fixed hub list; geo sets nearest bucket |
+ * | Offer type (resort, tour, …)      | `t`               | Live — `viajesTripTypes` taxonomy |
+ * | Familias / parejas / grupos flags | `audience`        | Live on rows when `audienceKeys` present |
+ * | Price / budget                    | `budget` bands    | Heuristic on sample; normalize when listings store bands |
+ * | Dates / season (draft)            | `season`          | Sample metadata; live when stored |
+ * | Duration text                     | `duration`        | `durationKey` on rows when present |
+ * | `published_at` (future DB)        | sort `newest`     | `publishedAt` on sample |
+ * | Verification / media completeness | `discovery.*`     | Scaffold scores for featured — not pay-to-win |
  *
- * Not exposed publicly (internal / future): exact street address, PII, raw draft JSON.
+ * **Intentionally not public:** street-level address, raw PII, internal draft JSON, unpublished state.
  *
- * Affiliate / partner inventory: separate pipeline; same URL contract, labeled in UI.
+ * **Reserved URL keys (contract only; no list filtering until backend):** `zip`, `radiusMiles`, `nearMe`.
  */
 
 export {};

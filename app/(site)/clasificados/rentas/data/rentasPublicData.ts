@@ -4,6 +4,16 @@
  * Replace implementations with live loaders (Supabase/API) without changing UI contracts:
  * - `RentasPublicListing` in `../model/rentasPublicListing`
  * - Pages should call these helpers instead of importing demo arrays directly.
+ *
+ * ## Section loading policy (fairness — single reference)
+ * Landing sections (`getRentasLandingDestacadas`, `getRentasLandingRecientes`, `getRentasLandingNegocios`,
+ * `getRentasLandingPrivado`) and results grid (`getRentasResultsGridListings` + `filterRentasPublicListings`)
+ * follow the rules documented in `rentasLandingSampleData.ts` and `rentasBrowseFilters.ts`:
+ * - Recientes: newest published/active first.
+ * - Negocios / Privado: branch-filtered slices; private inventory stays visible (not buried by business rows).
+ * - Destacadas: scored demo fairness (diversity + privado floor), not pure pay-to-win; future billing may add
+ *   weight without exclusive business control of all hero slots.
+ * - Geo (`lat`/`lng`/`radius_km`): URL scaffold only until a geo index exists (no fake radius filtering).
  */
 
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";

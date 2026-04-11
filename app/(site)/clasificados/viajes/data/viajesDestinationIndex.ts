@@ -45,7 +45,9 @@ function buildIndex(): ViajesDestinationRecord[] {
   const map = new Map<string, ViajesDestinationRecord>();
 
   for (const col of VIAJES_DESTINATION_COLLECTIONS) {
-    const destParam = destFromResultsHref(col.href) ?? normalizeViajesDestinationKey(col.name).replace(/\s+/g, "-");
+    const destParam =
+      col.browse.dest?.trim() ||
+      normalizeViajesDestinationKey(col.name).replace(/\s+/g, "-");
     mergeRecord(map, {
       destParam,
       label: col.name,
@@ -55,7 +57,7 @@ function buildIndex(): ViajesDestinationRecord[] {
   }
 
   for (const offer of VIAJES_TOP_OFFERS) {
-    const fromHref = destFromResultsHref(offer.href);
+    const fromHref = offer.resultsBrowse?.dest?.trim() || (offer.href ? destFromResultsHref(offer.href) : null);
     if (fromHref) {
       mergeRecord(map, {
         destParam: fromHref,
