@@ -9,7 +9,7 @@ export type LeonixMarketplaceRulesBundle = {
 const ES: LeonixMarketplaceRulesBundle = {
   title: "Reglas de Leonix (marketplace)",
   intro:
-    "Al publicar en LEONIX Clasificados aceptas estas reglas. Leonix debe seguir siendo confiable, claro y apto para toda la familia.",
+    "Al publicar en Leonix Media aceptas estas reglas. La plataforma debe seguir siendo confiable, clara y apta para toda la familia.",
   rules: [
     "Anuncios reales: describe lo que realmente vendes o ofreces. No anuncios falsos ni engañosos.",
     "Si dice gratis, debe ser gratis de verdad. Sin precios engañosos ni cargos ocultos.",
@@ -22,7 +22,7 @@ const ES: LeonixMarketplaceRulesBundle = {
 const EN: LeonixMarketplaceRulesBundle = {
   title: "Leonix marketplace rules",
   intro:
-    "By posting on LEONIX Classifieds you agree to these rules. Leonix must stay trustworthy, clear, and family-appropriate.",
+    "By posting on Leonix Media you agree to these rules. The platform must stay trustworthy, clear, and family-appropriate.",
   rules: [
     "Real listings: describe what you actually sell or offer. No fake or misleading ads.",
     "If it says free, it must really be free—no deceptive pricing or hidden fees.",

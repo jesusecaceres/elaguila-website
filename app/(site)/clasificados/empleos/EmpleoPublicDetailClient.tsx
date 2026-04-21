@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
@@ -10,8 +10,7 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 import type { EmpleosJobRecord } from "./data/empleosJobTypes";
 import { getRelatedJobs } from "./data/empleosSampleCatalog";
-import { bumpEmpleosStagedAnalytics, EMPLEOS_STAGED_REGISTRY_EVENT, getEmpleosCanonicalBySlug } from "./lib/staged/empleosStagedStorage";
-import { readStagedPublishedJobRecords } from "./lib/staged/getEmpleosMergedBrowse";
+import { EmpleosApplyForm, isLiveListingId } from "./components/EmpleosApplyForm";
 import { buildEmpleosResultadosUrl } from "./shared/utils/empleosListaUrl";
 import { EmpleosJobResultCard } from "./components/EmpleosJobResultCard";
 import {
@@ -24,37 +23,17 @@ import {
 
 type Props = {
   slug: string;
-  initialCatalogJob: EmpleosJobRecord | null;
+  initialJob: EmpleosJobRecord | null;
+  relatedExtra?: EmpleosJobRecord[];
 };
 
-function resolvePublicJob(slug: string, catalog: EmpleosJobRecord | null): EmpleosJobRecord | null {
-  if (catalog) return catalog;
-  if (typeof window === "undefined") return null;
-  const staged = getEmpleosCanonicalBySlug(slug);
-  return staged?.status === "published" ? staged.jobRecord : null;
-}
-
-export function EmpleoPublicDetailClient({ slug, initialCatalogJob }: Props) {
+export function EmpleoPublicDetailClient({ slug, initialJob, relatedExtra = [] }: Props) {
   const sp = useSearchParams();
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
 
-  const [job, setJob] = useState<EmpleosJobRecord | null>(initialCatalogJob);
+  const job = initialJob;
 
-  useEffect(() => {
-    setJob(resolvePublicJob(slug, initialCatalogJob));
-    if (typeof window === "undefined") return;
-    const on = () => setJob(resolvePublicJob(slug, initialCatalogJob));
-    window.addEventListener(EMPLEOS_STAGED_REGISTRY_EVENT, on);
-    return () => window.removeEventListener(EMPLEOS_STAGED_REGISTRY_EVENT, on);
-  }, [slug, initialCatalogJob]);
-
-  useEffect(() => {
-    if (!job) return;
-    const c = getEmpleosCanonicalBySlug(job.slug);
-    if (c) bumpEmpleosStagedAnalytics(c.listingId, "views");
-  }, [job]);
-
-  const related = useMemo(() => getRelatedJobs(slug, 3, readStagedPublishedJobRecords()), [slug]);
+  const related = useMemo(() => getRelatedJobs(slug, 3, relatedExtra), [slug, relatedExtra]);
 
   const resultsHref = appendLangToPath("/clasificados/empleos/resultados", lang);
   const publishHref = appendLangToPath("/clasificados/publicar/empleos", lang);
@@ -242,14 +221,20 @@ export function EmpleoPublicDetailClient({ slug, initialCatalogJob }: Props) {
                   </p>
                 )}
               </div>
-              <Link href={appendLangToPath("/contacto", lang)} className={`${EMPLEOS_CTA_PRIMARY} w-full px-4 text-center`}>
-                {lang === "es" ? "Enviar interés por Leonix" : "Send interest via Leonix"}
-              </Link>
-              <p className="text-center text-[11px] leading-relaxed text-[#7A756E]">
-                {lang === "es"
-                  ? "Te lleva a contacto seguro; no compartimos tu información fuera de este flujo."
-                  : "Opens our secure contact flow — we do not share your details outside this path."}
-              </p>
+              {job && isLiveListingId(job.id) ? (
+                <EmpleosApplyForm listingId={job.id} lang={lang} />
+              ) : (
+                <>
+                  <Link href={appendLangToPath("/contacto", lang)} className={`${EMPLEOS_CTA_PRIMARY} w-full px-4 text-center`}>
+                    {lang === "es" ? "Enviar interés por Leonix" : "Send interest via Leonix"}
+                  </Link>
+                  <p className="text-center text-[11px] leading-relaxed text-[#7A756E]">
+                    {lang === "es"
+                      ? "Te lleva a contacto seguro; no compartimos tu información fuera de este flujo."
+                      : "Opens our secure contact flow — we do not share your details outside this path."}
+                  </p>
+                </>
+              )}
               <Link
                 href={buildEmpleosResultadosUrl(lang, { category: job.category })}
                 className={`${EMPLEOS_LINK_MUTED} text-center`}

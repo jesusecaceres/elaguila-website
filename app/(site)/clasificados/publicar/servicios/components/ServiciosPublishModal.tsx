@@ -10,6 +10,7 @@ import type { ClasificadosServiciosCopy } from "../lib/clasificadosServiciosAppl
 import type { ClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationTypes";
 import type { ServiciosLang } from "../lib/clasificadosServiciosApplicationTypes";
 import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadiness";
+import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 import { postServiciosPublishApi } from "../lib/serviciosPublishClient";
 
 export function ServiciosPublishModal({
@@ -50,7 +51,47 @@ export function ServiciosPublishModal({
     setError(null);
     await Promise.resolve(onPersistDraft());
     try {
-      const { res, data } = await postServiciosPublishApi({ state: s, lang });
+      let accessToken: string | null = null;
+      try {
+        const sb = createSupabaseBrowserClient();
+        const { data: sess } = await withAuthTimeout(sb.auth.getSession(), AUTH_CHECK_TIMEOUT_MS);
+        accessToken = sess.session?.access_token ?? null;
+      } catch {
+        accessToken = null;
+      }
+
+      const { res, data } = await postServiciosPublishApi({ state: s, lang, accessToken });
+
+      if (res.status === 401) {
+        setError(
+          lang === "en"
+            ? "Sign in is required to publish in production. Use Log in, then try again."
+            : "En producción debes iniciar sesión para publicar. Entra con tu cuenta e inténtalo de nuevo.",
+        );
+        setBusy(false);
+        return;
+      }
+
+      if (res.status === 503 && (data.error === "persist_failed" || !data.ok)) {
+        setError(
+          (data.message as string | undefined)?.trim() ||
+            (lang === "en"
+              ? "Could not save the listing to Leonix. Check Supabase configuration or try again later."
+              : "No se pudo guardar el anuncio en Leonix. Revisa la configuración de Supabase o inténtalo más tarde."),
+        );
+        setBusy(false);
+        return;
+      }
+
+      if (res.status === 409) {
+        setError(
+          lang === "en"
+            ? "This URL is already used by another provider. Change the business name slightly or contact support."
+            : "Esta URL ya la usa otro proveedor. Cambia un poco el nombre del negocio o contacta a soporte.",
+        );
+        setBusy(false);
+        return;
+      }
 
       if (res.status === 422 && data.missing?.length) {
         setError(copy.publishError);
@@ -74,6 +115,7 @@ export function ServiciosPublishModal({
       const q = new URLSearchParams({ lang });
       q.set("justPublished", "1");
       if (data.persistence) q.set("persistence", data.persistence);
+      if (data.listingStatus) q.set("listingStatus", data.listingStatus);
 
       router.push(`/clasificados/servicios/${encodeURIComponent(data.slug)}?${q.toString()}`);
     } catch {

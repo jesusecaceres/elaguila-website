@@ -52,6 +52,20 @@ function labelForSvcParam(svc: string, lang: RestaurantesDiscoveryLang): string 
       return lang === "es" ? "Para llevar" : "Takeout";
     case "delivery":
       return lang === "es" ? "Entrega a domicilio" : "Delivery";
+    case "catering":
+      return lang === "es" ? "Catering" : "Catering";
+    case "events":
+      return lang === "es" ? "Eventos" : "Events";
+    case "meal_prep":
+      return lang === "es" ? "Meal prep" : "Meal prep";
+    case "personal_chef":
+      return lang === "es" ? "Chef privado" : "Personal chef";
+    case "pop_up":
+      return lang === "es" ? "Pop-up (modo)" : "Pop-up (mode)";
+    case "food_truck":
+      return lang === "es" ? "Food truck (modo)" : "Food truck (mode)";
+    case "other":
+      return lang === "es" ? "Otro modo" : "Other mode";
     default:
       return svc;
   }
@@ -391,6 +405,10 @@ export function RestaurantesResultsShell({
               <option value="dine_in">{lang === "es" ? "Comer en local" : "Dine-in"}</option>
               <option value="takeout">{lang === "es" ? "Para llevar" : "Takeout"}</option>
               <option value="delivery">{lang === "es" ? "Entrega a domicilio" : "Delivery"}</option>
+              <option value="catering">{lang === "es" ? "Catering" : "Catering"}</option>
+              <option value="events">{lang === "es" ? "Eventos" : "Events"}</option>
+              <option value="meal_prep">{lang === "es" ? "Meal prep" : "Meal prep"}</option>
+              <option value="personal_chef">{lang === "es" ? "Chef privado" : "Personal chef"}</option>
             </select>
           </div>
           <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
@@ -709,10 +727,17 @@ export function RestaurantesResultsShell({
       {inventoryBannerNote ? (
         <div className="mx-auto max-w-[1280px] min-w-0 px-4 pt-4 sm:px-5 md:px-5 lg:px-6">
           <p
-            className="rounded-[14px] border border-amber-300/80 bg-amber-50/95 px-4 py-3 text-xs leading-relaxed text-amber-950 shadow-sm sm:text-sm"
+            className={`rounded-[14px] border px-4 py-3 text-xs leading-relaxed shadow-sm sm:text-sm ${
+              inventorySource === "inventory_unavailable"
+                ? "border-red-300/90 bg-red-50/95 text-red-950"
+                : inventorySource === "explicit_demo"
+                  ? "border-amber-300/80 bg-amber-50/95 text-amber-950"
+                  : "border-amber-200/90 bg-amber-50/90 text-amber-950"
+            }`}
             role="status"
           >
-            {inventorySource === "demo_fallback" ? <span className="font-semibold">Demo / servidor: </span> : null}
+            {inventorySource === "explicit_demo" ? <span className="font-semibold">Demo explícito: </span> : null}
+            {inventorySource === "inventory_unavailable" ? <span className="font-semibold">Inventario no disponible: </span> : null}
             {inventoryBannerNote}
           </p>
         </div>
@@ -993,6 +1018,11 @@ function ResultCard({
             style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
           >
             {lang === "es" ? "Destacado" : "Featured"}
+          </span>
+        ) : null}
+        {row.leonixVerified ? (
+          <span className="absolute right-3 top-3 rounded-full border border-sky-400/80 bg-sky-50/95 px-2 py-0.5 text-[10px] font-bold text-sky-950 shadow-sm backdrop-blur-sm">
+            {lang === "es" ? "Verificado" : "Verified"}
           </span>
         ) : null}
       </div>

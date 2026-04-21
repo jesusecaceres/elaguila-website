@@ -1,5 +1,7 @@
 # Restaurantes publish lane — truth audit (dev / QA)
 
+> **Superseded for launch sign-off by** `docs/restaurantes-go-live-audit.md` **and** `docs/restaurantes-field-coverage-audit.md` **(April 2026).** This file is kept for historical comparison only.
+
 Honest checklist for what works in this repo with **Supabase service role + URL** configured on the server, **RLS migration applied** for owner reads, and a **signed-in user** at publish time (so `owner_user_id` is set).
 
 | # | Check | Status | Reason |

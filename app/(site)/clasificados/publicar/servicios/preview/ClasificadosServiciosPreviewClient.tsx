@@ -16,6 +16,7 @@ import { normalizeClasificadosServiciosApplicationState } from "../lib/clasifica
 import { loadClasificadosServiciosApplicationResolved, saveClasificadosServiciosApplicationResolved } from "../lib/clasificadosServiciosStorage";
 import { getBusinessTypePreset } from "../lib/businessTypePresets";
 import { mapClasificadosServiciosApplicationToServiciosDraft } from "../lib/mapClasificadosServiciosApplicationToServiciosDraft";
+import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 import { postServiciosPublishApi } from "../lib/serviciosPublishClient";
 import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadiness";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
@@ -102,7 +103,43 @@ export function ClasificadosServiciosPreviewClient() {
     setPublishErr(null);
     try {
       await saveClasificadosServiciosApplicationResolved(appState);
-      const { res, data } = await postServiciosPublishApi({ state: appState, lang });
+      let accessToken: string | null = null;
+      try {
+        const sb = createSupabaseBrowserClient();
+        const { data: sess } = await withAuthTimeout(sb.auth.getSession(), AUTH_CHECK_TIMEOUT_MS);
+        accessToken = sess.session?.access_token ?? null;
+      } catch {
+        accessToken = null;
+      }
+      const { res, data } = await postServiciosPublishApi({ state: appState, lang, accessToken });
+      if (res.status === 401) {
+        setPublishErr(
+          lang === "en"
+            ? "Sign in is required to publish in production. Open Log in, then return here."
+            : "En producción debes iniciar sesión para publicar. Abre Iniciar sesión y vuelve aquí.",
+        );
+        setPublishBusy(false);
+        return;
+      }
+      if (res.status === 503) {
+        setPublishErr(
+          (data.message as string | undefined)?.trim() ||
+            (lang === "en"
+              ? "Could not save to Leonix. Check Supabase configuration."
+              : "No se pudo guardar en Leonix. Revisa la configuración de Supabase."),
+        );
+        setPublishBusy(false);
+        return;
+      }
+      if (res.status === 409) {
+        setPublishErr(
+          lang === "en"
+            ? "This public URL is already taken by another provider."
+            : "Esta URL pública ya está en uso por otro proveedor.",
+        );
+        setPublishBusy(false);
+        return;
+      }
       if (res.status === 422) {
         setPublishErr(lang === "en" ? "Complete required fields before publishing." : "Completa los campos requeridos antes de publicar.");
         setPublishBusy(false);
@@ -121,6 +158,7 @@ export function ClasificadosServiciosPreviewClient() {
       const q = new URLSearchParams({ lang });
       q.set("justPublished", "1");
       if (data.persistence) q.set("persistence", data.persistence);
+      if (data.listingStatus) q.set("listingStatus", data.listingStatus);
       router.push(`/clasificados/servicios/${encodeURIComponent(data.slug)}?${q.toString()}`);
     } catch {
       setPublishErr(lang === "en" ? "Network error." : "Error de red.");

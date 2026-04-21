@@ -143,7 +143,7 @@ export default function EmpleosPublicarHubClient({ variant = "default" }: Props)
                   {t.backCategories}
                 </Link>
                 <Link
-                  href={appendLangToPath("/dashboard/empleos/staged", lang)}
+                  href={appendLangToPath("/dashboard/empleos", lang)}
                   className="rounded-lg border border-[#2A6B4A]/35 bg-[#E8F5EE] px-4 py-2 text-sm font-semibold text-[#1E4D33] hover:bg-[#d4ecdf]"
                 >
                   {t.myListings}
@@ -165,7 +165,7 @@ export default function EmpleosPublicarHubClient({ variant = "default" }: Props)
           <p className="mx-auto mt-3 max-w-2xl text-sm text-[color:var(--lx-text-2)] sm:text-base">{t.subtitle}</p>
           <div className="mt-4">
             <Link
-              href={appendLangToPath("/dashboard/empleos/staged", lang)}
+              href={appendLangToPath("/dashboard/empleos", lang)}
               className="text-sm font-semibold text-[color:var(--lx-text)] underline underline-offset-2"
             >
               {t.myListings}

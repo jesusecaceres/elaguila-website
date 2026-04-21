@@ -233,6 +233,7 @@ export function BienesRaicesResultsFilters({ parsed, copy, lang, onPatch, idPref
             {copy.togglePool}
           </label>
         </div>
+        <p className="text-[10px] leading-snug text-[#5C5346]/85">{copy.amenityTogglesHint}</p>
       </div>
 
     </div>

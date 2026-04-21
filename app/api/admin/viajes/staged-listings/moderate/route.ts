@@ -1,8 +1,8 @@
-import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 import type { ViajesStagedLifecycleStatus } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
-import { updateViajesStagedListingModeration } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingsDbServer";
+import { revalidateViajesStagedPublicSurfaces } from "@/app/(site)/clasificados/viajes/lib/viajesRevalidatePublicSurfaces";
+import { fetchViajesStagedRowById, updateViajesStagedListingModeration } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingsDbServer";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -49,6 +49,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: "missing_id_or_action" }, { status: 400 });
   }
 
+  const before = await fetchViajesStagedRowById(id);
+  const slug = before?.slug;
+
   const { lifecycle_status, is_public } = mapAction(action);
   const review_notes = typeof b.review_notes === "string" ? b.review_notes.trim() || null : null;
   const moderation_reason = typeof b.moderation_reason === "string" ? b.moderation_reason.trim() || null : null;
@@ -63,7 +66,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!res.ok) {
     return NextResponse.json({ ok: false, error: res.error ?? "update_failed" }, { status: 500 });
   }
-  revalidatePath("/clasificados/viajes/resultados");
-  revalidatePath("/clasificados/viajes");
+  revalidateViajesStagedPublicSurfaces(slug);
   return NextResponse.json({ ok: true });
 }

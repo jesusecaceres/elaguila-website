@@ -31,8 +31,8 @@ function es(): PublicarViajesHubCopy {
     steps: [
       { label: "1. Entrada", detail: "Eliges negocios o privado y lees expectativas de calidad y confianza." },
       { label: "2. Solicitud", detail: "Completas la oferta en borrador (guardado en este dispositivo)." },
-      { label: "3. Vista previa", detail: "Revisas la ficha en Clasificados antes de publicar." },
-      { label: "4. Publicación", detail: "El pago y la publicación en vivo llegarán en la siguiente fase del sistema." },
+      { label: "3. Vista previa", detail: "Revisas la ficha en Clasificados antes de enviar." },
+      { label: "4. Envío y revisión", detail: "Con sesión iniciada, envías a Leonix; revisión interna antes de aparecer en resultados públicos (sin pago de viaje aquí)." },
     ],
     negociosTitle: "Negocios y agencias",
     negociosBody:
@@ -61,8 +61,8 @@ function en(): PublicarViajesHubCopy {
     steps: [
       { label: "1. Entry", detail: "Choose business or private and read quality and trust expectations." },
       { label: "2. Application", detail: "Complete the offer as a draft (saved on this device)." },
-      { label: "3. Preview", detail: "Review your card in Classifieds before publishing." },
-      { label: "4. Publishing", detail: "Payment and live publishing arrive in the next system phase." },
+      { label: "3. Preview", detail: "Review your card in Classifieds before you submit." },
+      { label: "4. Submit & review", detail: "Signed in, you submit to Leonix; internal review before public results (no travel checkout here)." },
     ],
     negociosTitle: "Businesses & agencies",
     negociosBody:

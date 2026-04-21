@@ -7,6 +7,20 @@ export const VIAJES_PRIVADO_MAX_IMAGE_STORAGE = 480_000;
 
 export const VIAJES_PRIVADO_GALLERY_MAX = 8;
 
+export function mergeViajesPrivadoDraftFromPartial(parsed: Partial<ViajesPrivadoDraft>): ViajesPrivadoDraft {
+  const e = emptyViajesPrivadoDraft();
+  return {
+    ...e,
+    ...parsed,
+    schemaVersion: 1,
+    galeriaUrls: Array.isArray(parsed.galeriaUrls)
+      ? parsed.galeriaUrls.filter(Boolean).slice(0, VIAJES_PRIVADO_GALLERY_MAX)
+      : e.galeriaUrls,
+    dateMode: parsed.dateMode ?? e.dateMode,
+    heroSourceMode: parsed.heroSourceMode ?? e.heroSourceMode,
+  };
+}
+
 export function emptyViajesPrivadoDraft(): ViajesPrivadoDraft {
   return {
     schemaVersion: 1,

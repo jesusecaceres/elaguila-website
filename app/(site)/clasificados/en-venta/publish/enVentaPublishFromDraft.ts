@@ -49,6 +49,17 @@ function buildDetailPairs(
 ): Array<{ label: string; value: string }> {
   const pairs: Array<{ label: string; value: string }> = [];
   appendEnVentaDetailPairs(lang, buildDetailsRecord(state), pairs);
+  // Machine-readable flags for results filters / admin parity (human "Entrega" row stays for detail UX).
+  pairs.push({ label: "Leonix:pickup", value: state.pickup ? "1" : "0" });
+  pairs.push({ label: "Leonix:ship", value: state.shipping ? "1" : "0" });
+  pairs.push({ label: "Leonix:delivery", value: state.localDelivery ? "1" : "0" });
+  pairs.push({ label: "Leonix:meetup", value: state.meetup ? "1" : "0" });
+  pairs.push({
+    label: "Leonix:negotiable",
+    value: state.negotiable === "yes" && !state.priceIsFree ? "1" : "0",
+  });
+  if (state.brand.trim()) pairs.push({ label: "Leonix:brand", value: state.brand.trim() });
+  if (state.model.trim()) pairs.push({ label: "Leonix:model", value: state.model.trim() });
   const rama = state.rama.trim();
   if (rama) {
     pairs.push({ label: "Leonix:evDept", value: rama });

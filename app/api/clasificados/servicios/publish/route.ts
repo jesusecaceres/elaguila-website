@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { getBusinessTypePreset } from "@/app/clasificados/publicar/servicios/lib/businessTypePresets";
 import { normalizeClasificadosServiciosApplicationState } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationNormalize";
@@ -12,10 +12,16 @@ import {
   upsertServiciosDevPublishRow,
 } from "@/app/clasificados/servicios/lib/serviciosDevPublishPersistence";
 import { getServiciosPublicListingBySlugFromDb } from "@/app/clasificados/servicios/lib/serviciosPublicListingsServer";
-import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "@/app/clasificados/servicios/lib/serviciosListingLifecycle";
+import {
+  SERVICIOS_LISTING_STATUS_PENDING_REVIEW,
+  SERVICIOS_LISTING_STATUS_PUBLISHED,
+} from "@/app/clasificados/servicios/lib/serviciosListingLifecycle";
 import { mapServiciosApplicationDraftToBusinessProfile } from "@/app/servicios/lib/mapServiciosApplicationDraftToBusinessProfile";
 import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
+import { isServiciosStrictPublishEnvironment, serviciosOwnerIdFromBearer } from "../lib/serviciosPublishServerAuth";
+
+export const runtime = "nodejs";
 
 async function allocateSlug(base: string): Promise<string> {
   if (!isSupabaseAdminConfigured()) return base;
@@ -38,9 +44,13 @@ function stripAdvertiserVerificationFlags(wire: ServiciosBusinessProfile): Servi
   return next;
 }
 
+function initialListingStatus(): typeof SERVICIOS_LISTING_STATUS_PUBLISHED | typeof SERVICIOS_LISTING_STATUS_PENDING_REVIEW {
+  return process.env.SERVICIOS_MODERATION_MODE === "1" ? SERVICIOS_LISTING_STATUS_PENDING_REVIEW : SERVICIOS_LISTING_STATUS_PUBLISHED;
+}
+
 export type ServiciosPublishPersistence = "database" | "dev_workspace" | "none";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   let body: unknown;
   try {
     body = await req.json();
@@ -57,6 +67,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "missing_state" }, { status: 400 });
   }
 
+  const strict = isServiciosStrictPublishEnvironment();
+  const ownerUserId = await serviciosOwnerIdFromBearer(req);
+
+  if (strict && !ownerUserId) {
+    return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+  }
+
   const state = normalizeClasificadosServiciosApplicationState(b.state as ClasificadosServiciosApplicationState);
   const lang: ServiciosLang = b.lang === "en" ? "en" : "es";
 
@@ -66,11 +83,26 @@ export async function POST(req: Request) {
   }
 
   const baseSlug = slugifyServiciosBusinessName(state.businessName || "borrador");
-  const slug = await allocateSlug(baseSlug);
+  const existingSlugRaw = typeof b.existingPublicSlug === "string" ? b.existingPublicSlug.trim() : "";
+
+  let slug = await allocateSlug(baseSlug);
+  if (existingSlugRaw && /^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(existingSlugRaw) && isSupabaseAdminConfigured()) {
+    const row = await getServiciosPublicListingBySlugFromDb(existingSlugRaw, { visibility: "all" });
+    if (row && ownerUserId) {
+      const owner = row.owner_user_id;
+      if (!owner || owner === ownerUserId) {
+        slug = existingSlugRaw;
+      }
+    }
+  }
+
   const draft = mapClasificadosServiciosApplicationToServiciosDraft(state, lang);
   draft.identity.slug = slug;
   let wire = mapServiciosApplicationDraftToBusinessProfile(draft);
   wire = stripAdvertiserVerificationFlags(wire);
+  if (state.leonixVerifiedInterest === true) {
+    wire = { ...wire, opsMeta: { ...wire.opsMeta, leonixVerifiedInterest: true } };
+  }
 
   const preset = getBusinessTypePreset(state.businessTypeId);
   const internalGroup = preset?.internalGroup ?? null;
@@ -78,14 +110,18 @@ export async function POST(req: Request) {
   const businessName = wire.identity.businessName.trim() || slug;
   const city = state.city.trim();
   const now = new Date().toISOString();
+  const listingStatus = initialListingStatus();
 
   let persistedToDatabase = false;
   if (isSupabaseAdminConfigured()) {
     try {
       const supabase = getAdminSupabase();
-      const existing = await getServiciosPublicListingBySlugFromDb(slug);
+      const existing = await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
 
       if (existing) {
+        if (ownerUserId && existing.owner_user_id && existing.owner_user_id !== ownerUserId) {
+          return NextResponse.json({ ok: false, error: "slug_conflict" }, { status: 409 });
+        }
         const { error } = await supabase
           .from("servicios_public_listings")
           .update({
@@ -93,23 +129,26 @@ export async function POST(req: Request) {
             city,
             profile_json: wire,
             internal_group: internalGroup,
-            listing_status: SERVICIOS_LISTING_STATUS_PUBLISHED,
+            listing_status: listingStatus,
             updated_at: now,
+            ...(ownerUserId ? { owner_user_id: ownerUserId } : {}),
           })
           .eq("slug", slug);
         if (!error) persistedToDatabase = true;
       } else {
-        const { error } = await supabase.from("servicios_public_listings").insert({
+        const insertRow: Record<string, unknown> = {
           slug,
           business_name: businessName,
           city,
           profile_json: wire,
           internal_group: internalGroup,
-          listing_status: SERVICIOS_LISTING_STATUS_PUBLISHED,
+          listing_status: listingStatus,
           leonix_verified: false,
           published_at: now,
           updated_at: now,
-        });
+        };
+        if (ownerUserId) insertRow.owner_user_id = ownerUserId;
+        const { error } = await supabase.from("servicios_public_listings").insert(insertRow);
         if (!error) persistedToDatabase = true;
       }
     } catch {
@@ -136,9 +175,36 @@ export async function POST(req: Request) {
       ? "dev_workspace"
       : "none";
 
+  if (strict && !persistedToDatabase) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "persist_failed",
+        persistence,
+        persistedToDatabase,
+        persistedToDevWorkspace,
+      },
+      { status: 503 },
+    );
+  }
+
+  if (!strict && persistence === "none") {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "persist_failed",
+        message:
+          "Configure Supabase (service role) or enable dev persistence (next dev / SERVICIOS_DEV_PUBLISH=1).",
+        persistence,
+      },
+      { status: 503 },
+    );
+  }
+
   return NextResponse.json({
     ok: true,
     slug,
+    listingStatus: persistedToDatabase ? listingStatus : SERVICIOS_LISTING_STATUS_PUBLISHED,
     persistence,
     persistedToDatabase,
     persistedToDevWorkspace,

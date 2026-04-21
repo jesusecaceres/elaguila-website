@@ -1,4 +1,5 @@
 import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import type { BrResultsPropertyKind } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 
 export type NegocioAdvertiserKind = "agente" | "equipo" | "oficina" | "constructor";
 
@@ -43,6 +44,12 @@ export type BrNegocioListing = {
   layout?: "vertical" | "horizontal";
   /** US ZIP when publish captures it — URL `zip` filter when present. */
   zipCode?: string;
+  /** Canonical `propertyType` URL slug when publish wrote `Leonix:results_property_kind`. */
+  resultsPropertyKind?: BrResultsPropertyKind | null;
+  /** Structured amenity signals from `Leonix:*` machine rows (`null` = unknown → results may fall back to text heuristics). */
+  facetPool?: boolean | null;
+  facetPets?: boolean | null;
+  facetFurnished?: boolean | null;
   /**
    * Demo ordering for “recientes”; live listings use DB `published_at`.
    * Higher = newer for default sort in launch policy helpers.

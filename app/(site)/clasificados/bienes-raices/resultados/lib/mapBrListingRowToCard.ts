@@ -3,6 +3,7 @@
  */
 
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
+import { normalizeZipInput } from "@/app/data/locations/californiaLocationHelpers";
 import type { BrNegocioListing } from "../cards/listingTypes";
 import { extractBrFacetsFromDetailPairs } from "./brFacetFromDetailPairs";
 
@@ -83,6 +84,8 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
     (lang === "es" ? "Particular" : "Private seller");
 
   const metaLines = facets.metaHints.length ? facets.metaHints : undefined;
+  const m = facets.machine;
+  const zipNorm = m?.postalCode ? normalizeZipInput(m.postalCode) : "";
 
   return {
     id: String(row.id),
@@ -107,5 +110,10 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
     operationLabel: facets.operation === "renta" ? "Renta" : facets.operation === "venta" ? "Venta" : undefined,
     metaLines,
     demoPublishedAtMs: Number.isFinite(createdMs) ? createdMs : undefined,
+    zipCode: zipNorm || undefined,
+    resultsPropertyKind: m?.resultsPropertyKind ?? null,
+    facetPool: m?.pool ?? null,
+    facetPets: m?.petsAllowed ?? null,
+    facetFurnished: m?.furnished ?? null,
   };
 }

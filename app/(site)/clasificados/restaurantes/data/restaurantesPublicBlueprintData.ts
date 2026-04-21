@@ -1,3 +1,4 @@
+import type { RestauranteServiceMode } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import type { RestaurantesBlueprintCard } from "@/app/clasificados/restaurantes/lib/restaurantesBlueprintTypes";
 import {
   selectLandingDestacadosCandidates,
@@ -25,10 +26,15 @@ export type RestaurantesPublicBlueprintRow = {
   rating: number;
   priceLevel: RestaurantesPublicBlueprintPrice;
   imageSrc: string;
-  serviceModes: Array<"dine_in" | "takeout" | "delivery">;
+  /** All operating service modes from publish (`RestauranteOperatingModel.serviceModes`). */
+  serviceModes: RestauranteServiceMode[];
+  /** Optional extra cuisine keys for discovery search (maps `additionalCuisines` on draft). */
+  additionalCuisineKeys?: string[];
   familyFriendly: boolean;
   /** Paid / featured / boosted stand-in (`RestauranteInternalContract.featured` / `boosted` / tier). */
   promoted: boolean;
+  /** Leonix editorial verification (from `restaurantes_public_listings.leonix_verified`). */
+  leonixVerified?: boolean;
   /** Demo until `weeklyHours` + server “open now” evaluation exists. */
   openNowDemo: boolean;
   veganOptions: boolean;

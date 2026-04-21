@@ -1,4 +1,5 @@
 import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import type { BrResultsPropertyKind } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { normalizeZipInput } from "@/app/data/locations/californiaLocationHelpers";
 import { selectSpotlightNegocios } from "@/app/clasificados/bienes-raices/shared/brLaunchListingPolicy";
 import { cityFilterMatchesListingAddress } from "@/app/clasificados/bienes-raices/shared/brCityMatch";
@@ -37,6 +38,19 @@ function listingOperation(listing: BrNegocioListing): "venta" | "renta" {
   return "venta";
 }
 
+/** URL `propertyType` + chips — prefers `Leonix:results_property_kind` from publish. */
+export function effectiveBrResultsPropertyKind(listing: BrNegocioListing): BrResultsPropertyKind {
+  if (listing.resultsPropertyKind) return listing.resultsPropertyKind;
+  if (listing.categoriaPropiedad === "terreno_lote") return "terreno";
+  if (listing.categoriaPropiedad === "comercial") return "comercial";
+  const t = listing.title.toLowerCase();
+  if (listing.categoriaPropiedad === "residencial") {
+    if (t.includes("departamento") || t.includes("depto")) return "departamento";
+    return "casa";
+  }
+  return "casa";
+}
+
 function parsePrimaryFromString(raw: string): Set<BrPrimaryChipId> {
   const next = new Set<BrPrimaryChipId>();
   if (!raw.trim()) return next;
@@ -70,18 +84,18 @@ function listingMatchesPrimaryChips(listing: BrNegocioListing, primary: Set<BrPr
       if (listing.categoriaPropiedad !== "terreno_lote") return false;
     } else if (id === "casas") {
       if (listing.categoriaPropiedad !== "residencial") return false;
-      const t = listing.title.toLowerCase();
-      if (t.includes("departamento") || t.includes("depto")) return false;
+      if (effectiveBrResultsPropertyKind(listing) !== "casa") return false;
     } else if (id === "departamentos") {
       if (listing.categoriaPropiedad !== "residencial") return false;
-      const t = listing.title.toLowerCase();
-      if (!(t.includes("departamento") || t.includes("depto"))) return false;
+      if (effectiveBrResultsPropertyKind(listing) !== "departamento") return false;
     }
   }
   return true;
 }
 
 function listingHasPool(listing: BrNegocioListing): boolean {
+  if (listing.facetPool === true) return true;
+  if (listing.facetPool === false) return false;
   const title = listing.title.toLowerCase();
   if (title.includes("piscina") || title.includes("alberca")) return true;
   return Boolean(
@@ -93,10 +107,14 @@ function listingHasPool(listing: BrNegocioListing): boolean {
 }
 
 function listingHasPets(listing: BrNegocioListing): boolean {
+  if (listing.facetPets === true) return true;
+  if (listing.facetPets === false) return false;
   return Boolean(listing.metaLines?.some((m) => m.toLowerCase().includes("mascota")));
 }
 
 function listingHasFurnished(listing: BrNegocioListing): boolean {
+  if (listing.facetFurnished === true) return true;
+  if (listing.facetFurnished === false) return false;
   return Boolean(listing.metaLines?.some((m) => m.toLowerCase().includes("amueblado")));
 }
 
@@ -123,17 +141,10 @@ function legacyPrecioBounds(precio: string): { min?: number; max?: number } {
 
 function mapPropertyTypeToFilter(pt: string): ((l: BrNegocioListing) => boolean) | null {
   if (!pt) return null;
-  if (pt === "terreno") return (l) => l.categoriaPropiedad === "terreno_lote";
-  if (pt === "comercial") return (l) => l.categoriaPropiedad === "comercial";
-  if (pt === "casa")
-    return (l) =>
-      l.categoriaPropiedad === "residencial" &&
-      !l.title.toLowerCase().includes("departamento") &&
-      !l.title.toLowerCase().includes("depto");
-  if (pt === "departamento")
-    return (l) =>
-      l.categoriaPropiedad === "residencial" &&
-      (l.title.toLowerCase().includes("departamento") || l.title.toLowerCase().includes("depto"));
+  if (pt === "terreno") return (l) => effectiveBrResultsPropertyKind(l) === "terreno";
+  if (pt === "comercial") return (l) => effectiveBrResultsPropertyKind(l) === "comercial";
+  if (pt === "casa") return (l) => effectiveBrResultsPropertyKind(l) === "casa";
+  if (pt === "departamento") return (l) => effectiveBrResultsPropertyKind(l) === "departamento";
   return null;
 }
 

@@ -37,14 +37,14 @@ const EXCLUDE: CategoryKey[] = ["all"];
 /** Repo-informed defaults: en-venta fully wired first; servicios is NOT special — treat as staged unless marked live elsewhere. */
 function defaultOperationalStatus(slug: string): ClasificadosCategoryOperationalStatus {
   if (slug === "en-venta") return "live";
+  if (slug === "restaurantes") return "live";
   if (slug === "servicios") return "staged";
-  if (slug === "restaurantes") return "staged";
   return "coming_soon";
 }
 
 function defaultReadiness(slug: string): "full" | "partial" | "scaffold" {
   if (slug === "en-venta") return "full";
-  if (slug === "restaurantes") return "partial";
+  if (slug === "restaurantes") return "full";
   return "scaffold";
 }
 
@@ -88,7 +88,7 @@ export function getClasificadosCategoryRegistry(): ClasificadosCategoryRegistryE
         landingTarget: slug === "restaurantes" ? `/clasificados/restaurantes` : `/clasificados/publicar/${slug}`,
         notes:
           slug === "restaurantes"
-            ? "Staged lane: publicación→Supabase, resultados/descubrimiento, ficha pública, admin (tabla lectura) y panel propietario; no lanzamiento masivo formal."
+            ? "Vertical operativa: publicación→Supabase, descubrimiento (resultados/filtros desde DB+listing_json), ficha pública, admin con acciones reales, panel propietario con hidratar borrador."
             : op === "live"
               ? "Primary live Clasificados vertical — taxonomy, publish, preview, dashboard contract."
               : op === "staged"

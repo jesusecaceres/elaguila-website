@@ -26,7 +26,7 @@ export default function PageHero({ title, titleEs }: PageHeroProps) {
       <div className="flex justify-center mb-10">
         <Image
           src="/logo.png"
-          alt="El Águila Logo"
+          alt="Leonix Media logo"
           width={480}
           height={480}
           className="drop-shadow-[0_0_35px_rgba(255,215,0,0.35)]"

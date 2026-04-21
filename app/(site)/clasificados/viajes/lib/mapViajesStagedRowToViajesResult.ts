@@ -1,8 +1,14 @@
 import type { ViajesBusinessResult } from "../data/viajesResultsSampleData";
-import { normalizeViajesDestinationKey } from "./normalizeViajesDestination";
 import type { ViajesStagedListingRow } from "./viajesStagedListingTypes";
 import type { ViajesNegociosDraft } from "@/app/(site)/publicar/viajes/negocios/lib/viajesNegociosDraftTypes";
 import type { ViajesPrivadoDraft } from "@/app/(site)/publicar/viajes/privado/lib/viajesPrivadoDraftTypes";
+import {
+  viajesBudgetBandFromTag,
+  viajesDestSlugsFromDestinationLabel,
+  viajesDurationKeyFromDraft,
+  viajesSeasonKeysFromDraft,
+  viajesTripKeysFromNegociosLike,
+} from "./viajesDraftToPublicBrowseFacets";
 
 const FALLBACK_HERO =
   "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80";
@@ -66,18 +72,9 @@ function privadoAudience(d: ViajesPrivadoDraft): string[] {
   if (d.familias) k.push("familias");
   if (d.parejas) k.push("parejas");
   if (d.grupos) k.push("grupos");
+  const n = parseInt(String(d.numeroPersonas ?? "").replace(/\D/g, ""), 10);
+  if (Number.isFinite(n) && n >= 4 && !k.includes("grupos")) k.push("grupos");
   return k;
-}
-
-function budgetFromTag(tag: string): "" | "economico" | "moderado" | "premium" {
-  if (tag === "economico" || tag === "moderado" || tag === "premium") return tag;
-  return "";
-}
-
-function destSlugsFromLabel(label: string): string[] {
-  const first = label.split(/[,·]/)[0]?.trim() ?? label;
-  const slug = normalizeViajesDestinationKey(first).replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-  return slug ? [slug] : [];
 }
 
 function summarizeIncluye(s: string, max = 180): string {
@@ -96,6 +93,9 @@ export function mapViajesStagedRowToViajesBusinessResult(row: ViajesStagedListin
     const img = row.hero_image_url?.trim() || firstRemoteImageUrl(d) || FALLBACK_HERO;
     const title = d.titulo.trim() || row.title;
     const dest = d.destino.trim() || "—";
+    const durationKey = viajesDurationKeyFromDraft(d.duracion, d.fechaInicio, d.fechaFin);
+    const seasonKeys = viajesSeasonKeysFromDraft(d.fechaInicio, d.fechaFin, d.fechasNota);
+    const tripTypeKeys = viajesTripKeysFromNegociosLike(d.offerType, negociosTripKeys(d.offerType), d.incluyeHotel, d.incluyeTransporte, d.incluyeComida);
     return {
       kind: "business",
       id: row.id,
@@ -104,19 +104,19 @@ export function mapViajesStagedRowToViajesBusinessResult(row: ViajesStagedListin
       businessName: d.businessName.trim() || row.submitter_name?.trim() || "—",
       offerTitle: title,
       destination: dest,
-      destSlugs: destSlugsFromLabel(dest),
+      destSlugs: viajesDestSlugsFromDestinationLabel(dest),
       departureCity: d.ciudadSalida.trim() || "—",
       duration: d.duracion.trim() || "—",
       price: d.precio.trim() || "—",
       includedSummary: summarizeIncluye(d.incluye.trim() || d.descripcion.trim()),
       whatsapp: d.whatsapp.trim() || undefined,
       href,
-      tripTypeKeys: negociosTripKeys(d.offerType),
+      tripTypeKeys,
       publishedAt,
       audienceKeys: negociosAudience(d),
-      budgetBand: budgetFromTag(d.presupuestoTag),
-      durationKey: "",
-      seasonKeys: [],
+      budgetBand: viajesBudgetBandFromTag(d.presupuestoTag),
+      durationKey,
+      seasonKeys,
       discovery: { featuredBase: 46, sourceTrust: 1, completeness: 0.75 },
       sellerLane: "business",
     };
@@ -127,6 +127,9 @@ export function mapViajesStagedRowToViajesBusinessResult(row: ViajesStagedListin
     const img = row.hero_image_url?.trim() || firstRemoteImageUrlPrivado(d) || FALLBACK_HERO;
     const title = d.titulo.trim() || row.title;
     const dest = d.destino.trim() || "—";
+    const durationKey = viajesDurationKeyFromDraft(d.duracion, d.fechaInicio, d.fechaFin);
+    const seasonKeys = viajesSeasonKeysFromDraft(d.fechaInicio, d.fechaFin, d.fechasNota);
+    const tripTypeKeys = viajesTripKeysFromNegociosLike(d.offerType, privadoTripKeys(d.offerType), d.incluyeHotel, d.incluyeTransporte, d.incluyeComida);
     return {
       kind: "business",
       id: row.id,
@@ -135,19 +138,19 @@ export function mapViajesStagedRowToViajesBusinessResult(row: ViajesStagedListin
       businessName: d.displayName.trim() || row.submitter_name?.trim() || "—",
       offerTitle: title,
       destination: dest,
-      destSlugs: destSlugsFromLabel(dest),
+      destSlugs: viajesDestSlugsFromDestinationLabel(dest),
       departureCity: d.ciudadSalida.trim() || "—",
       duration: d.duracion.trim() || "—",
       price: d.precio.trim() || "—",
       includedSummary: summarizeIncluye(d.incluye.trim() || d.descripcion.trim()),
       whatsapp: d.whatsapp.trim() || undefined,
       href,
-      tripTypeKeys: privadoTripKeys(d.offerType),
+      tripTypeKeys,
       publishedAt,
       audienceKeys: privadoAudience(d),
-      budgetBand: budgetFromTag(d.presupuestoTag),
-      durationKey: "",
-      seasonKeys: [],
+      budgetBand: viajesBudgetBandFromTag(d.presupuestoTag),
+      durationKey,
+      seasonKeys,
       discovery: { featuredBase: 44, sourceTrust: 1, completeness: 0.72 },
       sellerLane: "private",
     };

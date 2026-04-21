@@ -198,7 +198,7 @@ export function ServiciosResultsFilters({
         </GroupShell>
 
         <GroupShell titleEs="Confianza y alcance" titleEn="Trust & reach" lang={lang}>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <label className="flex min-w-0 flex-col gap-1">
               <span className="text-xs font-semibold text-neutral-700">
                 {lang === "en" ? "Leonix verified" : "Verificado Leonix"}
@@ -236,6 +236,45 @@ export function ServiciosResultsFilters({
               >
                 <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
                 <option value="1">{lang === "en" ? "Bilingual quick-fact" : "Dato rápido bilingüe"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">
+                {lang === "en" ? "Email on profile" : "Correo en vitrina"}
+              </span>
+              <select
+                name="email"
+                defaultValue={current.email === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Shows email" : "Muestra correo"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">
+                {lang === "en" ? "Emergency / urgent" : "Emergencia / urgente"}
+              </span>
+              <select
+                name="emergency"
+                defaultValue={current.emergency === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Emergency quick-fact" : "Dato rápido emergencia"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">
+                {lang === "en" ? "Mobile / on-site" : "Móvil / a domicilio"}
+              </span>
+              <select
+                name="mobileSvc"
+                defaultValue={current.mobileSvc === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Mobile-service quick-fact" : "Dato rápido servicio móvil"}</option>
               </select>
             </label>
           </div>
@@ -290,8 +329,8 @@ export function ServiciosResultsFilters({
 
         <p className="text-[11px] leading-relaxed text-neutral-500">
           {lang === "en"
-            ? "Provider type is inferred from published address/website fields. Keyword search includes name, city, ZIP/area text, trade line, and about. Submitting can save optional hints on this device — see Legal."
-            : "El tipo de proveedor se infiere de dirección o web publicadas. La búsqueda incluye nombre, ciudad, CP/zona, giro y «Acerca». Al enviar se pueden guardar sugerencias opcionales en este dispositivo — ver Legal."}
+            ? "Provider type is inferred from published address/website fields. Keyword search includes services, trust lines, reviews, quick facts, and about. Submitting can save optional hints on this device — see Legal."
+            : "El tipo de proveedor se infiere de dirección o web publicadas. La búsqueda incluye servicios, confianza, reseñas, datos rápidos y «Acerca». Al enviar se pueden guardar sugerencias opcionales en este dispositivo — ver Legal."}
         </p>
         <p className="text-[11px] leading-relaxed text-neutral-500">
           <Link href={`/legal?lang=${lang}`} className="font-semibold text-[#3B66AD] underline-offset-2 hover:underline">

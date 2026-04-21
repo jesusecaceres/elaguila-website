@@ -12,7 +12,7 @@ import { getViajesUi } from "../data/viajesUiCopy";
 import type { ViajesUi } from "../data/viajesUiCopy";
 import type { ViajesResultRow } from "../data/viajesResultsSampleData";
 import { runViajesBrowseContractSanityCheck } from "../lib/viajesBrowseContractSelfCheck";
-import { getViajesPublicResultRows, isViajesPublicInventoryDemoMode } from "../lib/viajesPublicInventory";
+import { isViajesPublicInventoryDemoMode } from "../lib/viajesPublicInventory";
 import { getViajesTripTypeHeroOptions } from "../data/viajesTripTypes";
 import {
   buildViajesBrowseUrl,
@@ -150,7 +150,7 @@ export function ViajesResultsShell({
 
   const filterRailValue = useMemo(() => browseToFilterRail(browse, destInput), [browse, destInput]);
 
-  const publicRows = useMemo(() => getViajesPublicResultRows(), []);
+  const publicRows = useMemo(() => initialRows, [initialRows]);
   const filtered = useMemo(
     () => publicRows.filter((row) => viajesRowMatchesBrowse(row, browse)),
     [browse, publicRows]
@@ -301,6 +301,7 @@ export function ViajesResultsShell({
                 <option value="summer">{R.summer}</option>
                 <option value="fall">{R.fall}</option>
                 <option value="winter">{R.winter}</option>
+                <option value="holidays">{R.holidays}</option>
               </select>
             </label>
             <label className="min-w-0 sm:col-span-1 xl:col-span-2">

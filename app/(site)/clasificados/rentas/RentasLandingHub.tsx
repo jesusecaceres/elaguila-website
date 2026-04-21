@@ -14,7 +14,8 @@ import {
   selectRentasLandingRecientes,
 } from "@/app/clasificados/rentas/data/rentasSectionSelectors";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
-import { useRentasStagedInventory } from "@/app/clasificados/rentas/hooks/useRentasStagedInventory";
+import { useRentasPublicBrowseInventory } from "@/app/clasificados/rentas/hooks/useRentasPublicBrowseInventory";
+import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import { RentasLandingCard } from "@/app/clasificados/rentas/landing/RentasLandingCard";
 import { RentasLandingCategoryHeader } from "@/app/clasificados/rentas/landing/RentasLandingCategoryHeader";
 import { RentasLandingFeatured } from "@/app/clasificados/rentas/landing/RentasLandingFeatured";
@@ -40,7 +41,12 @@ import { buildRentasResultsUrl } from "@/app/clasificados/rentas/shared/utils/re
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasLandingHeroPanelClass, rentasSectionHeaderActionClass } from "@/app/clasificados/rentas/rentasLandingTheme";
 
-export function RentasLandingHub() {
+export type RentasLandingHubProps = {
+  initialLiveListings: RentasPublicListing[];
+  includeDemoPool: boolean;
+};
+
+export function RentasLandingHub({ initialLiveListings, includeDemoPool }: RentasLandingHubProps) {
   const router = useRouter();
   const { lang, copy } = useRentasLandingLang();
   const [query, setQuery] = useState("");
@@ -62,15 +68,22 @@ export function RentasLandingHub() {
     router.push(buildRentasResultsUrl(extra));
   }, [beds, lang, locationLine, priceBand, propertyType, query, router]);
 
-  /** Staged testing: merged `listings` (rentas) + demo — same selectors as static sample data. */
-  const { mergedPool, staged: stagedFromDb, loading: inventoryLoading, error: inventoryError } = useRentasStagedInventory(lang);
+  const { mergedPool, staged: stagedFromDb, loading: inventoryLoading, error: inventoryError } = useRentasPublicBrowseInventory({
+    initialLiveListings,
+    lang,
+    includeDemoPool,
+  });
 
   const destacadas = useMemo(() => selectRentasLandingDestacadas(mergedPool), [mergedPool]);
   const recientes = useMemo(() => selectRentasLandingRecientes(mergedPool), [mergedPool]);
   const negocios = useMemo(() => selectRentasLandingNegocios(mergedPool), [mergedPool]);
   const privadoRows = useMemo(() => selectRentasLandingPrivado(mergedPool), [mergedPool]);
 
-  const primaryFeatured = useMemo(() => destacadas[0] ?? rentasLandingFeaturedListing, [destacadas]);
+  const primaryFeatured = useMemo(() => {
+    if (destacadas[0]) return destacadas[0];
+    if (includeDemoPool) return rentasLandingFeaturedListing;
+    return null;
+  }, [destacadas, includeDemoPool]);
   const supportingListing = useMemo(() => privadoRows[0] ?? null, [privadoRows]);
 
   const { chipsProperty, chipsSeller, chipsDetails } = useMemo(() => {
@@ -104,13 +117,27 @@ export function RentasLandingHub() {
         </div>
 
         <div className="w-full min-w-0 max-w-[min(100%,1280px)]">
-          {stagedFromDb.length > 0 ? (
+          {includeDemoPool ? (
+            stagedFromDb.length > 0 ? (
+              <p className="mb-3 rounded-xl border border-amber-200/90 bg-amber-50/95 px-3 py-2 text-center text-xs font-medium text-amber-950 sm:text-left">
+                {lang === "es"
+                  ? `Modo demostración: ${stagedFromDb.length} anuncio(s) en vivo + ejemplos (NEXT_PUBLIC_RENTAS_INCLUDE_DEMO_POOL=1).`
+                  : `Demo mode: ${stagedFromDb.length} live listing(s) plus samples (NEXT_PUBLIC_RENTAS_INCLUDE_DEMO_POOL=1).`}
+              </p>
+            ) : null
+          ) : stagedFromDb.length > 0 ? (
             <p className="mb-3 rounded-xl border border-[#2C5F2D]/25 bg-[#F4FAF2]/95 px-3 py-2 text-center text-xs font-medium text-[#1E3D1F] sm:text-left">
               {lang === "es"
-                ? `Inventario de prueba: ${stagedFromDb.length} anuncio(s) publicado(s) en listings aparecen mezclados con ejemplos.`
-                : `Test inventory: ${stagedFromDb.length} published listing(s) from the database are merged with samples.`}
+                ? `Catálogo en vivo: ${stagedFromDb.length} anuncio(s) publicado(s).`
+                : `Live catalog: ${stagedFromDb.length} published listing(s).`}
             </p>
-          ) : null}
+          ) : (
+            <p className="mb-3 text-center text-xs text-[#5C5346] sm:text-left">
+              {lang === "es"
+                ? "Aún no hay rentas publicadas en catálogo. Publica desde Privado o Negocio."
+                : "No published rentals in the catalog yet. Publish from Private or Business."}
+            </p>
+          )}
           {inventoryError ? (
             <p className="mb-3 text-center text-xs text-amber-900 sm:text-left" role="status">
               {lang === "es" ? "Aviso: inventario publicado no disponible (" : "Note: published inventory unavailable ("}
@@ -153,7 +180,9 @@ export function RentasLandingHub() {
         chipsDetails={chipsDetails}
       />
 
-      <RentasLandingFeatured copy={copy} lang={lang} primary={primaryFeatured} supporting={supportingListing} />
+      {primaryFeatured ? (
+        <RentasLandingFeatured copy={copy} lang={lang} primary={primaryFeatured} supporting={supportingListing} />
+      ) : null}
 
       <RentasLandingSectionBand
         id="rentas-landing-destacadas"

@@ -7,25 +7,10 @@ import { viajesDraftMediaDelete } from "@/app/(site)/clasificados/viajes/lib/via
 import type { ViajesNegociosDraft } from "./viajesNegociosDraftTypes";
 import {
   emptyViajesNegociosDraft,
+  mergeViajesNegociosDraftFromPartial,
   VIAJES_NEGOCIOS_DRAFT_STORAGE_KEY,
-  VIAJES_NEGOCIOS_GALLERY_MAX,
   VIAJES_NEGOCIOS_MAX_INLINE_IMAGE,
 } from "./viajesNegociosDraftDefaults";
-
-function mergeDraft(parsed: Partial<ViajesNegociosDraft>): ViajesNegociosDraft {
-  const e = emptyViajesNegociosDraft();
-  return {
-    ...e,
-    ...parsed,
-    schemaVersion: 1,
-    galeriaUrls: Array.isArray(parsed.galeriaUrls)
-      ? parsed.galeriaUrls.filter(Boolean).slice(0, VIAJES_NEGOCIOS_GALLERY_MAX)
-      : e.galeriaUrls,
-    dateMode: parsed.dateMode ?? e.dateMode,
-    heroSourceMode: parsed.heroSourceMode ?? e.heroSourceMode,
-    logoSourceMode: parsed.logoSourceMode ?? e.logoSourceMode,
-  };
-}
 
 export function useViajesNegociosDraft() {
   const [draft, setDraft] = useState<ViajesNegociosDraft>(() => emptyViajesNegociosDraft());
@@ -36,7 +21,7 @@ export function useViajesNegociosDraft() {
       const raw = typeof window !== "undefined" ? localStorage.getItem(VIAJES_NEGOCIOS_DRAFT_STORAGE_KEY) : null;
       if (raw) {
         const p = JSON.parse(raw) as Partial<ViajesNegociosDraft>;
-        if (p && p.schemaVersion === 1) setDraft(mergeDraft(p));
+        if (p && p.schemaVersion === 1) setDraft(mergeViajesNegociosDraftFromPartial(p));
       }
     } catch {
       /* ignore */

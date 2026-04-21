@@ -15,7 +15,8 @@ type MergedRow = {
   businessName: string;
   city: string;
   publishedAt: string;
-  source: "browser" | "dev_server";
+  source: "browser" | "dev_server" | "cloud";
+  listingStatus?: string | null;
 };
 
 function accountRefFromId(id: string): string {
@@ -43,36 +44,40 @@ export default function DashboardServiciosPage() {
         ? {
             title: "Mis vitrinas Servicios",
             subtitle:
-              "Listados publicados desde este navegador o el archivo de pruebas locales del proyecto (solo desarrollo). Para la nube completa configura Supabase.",
+              "Tus anuncios guardados en Leonix (cuenta vinculada) más respaldos locales opcionales en este navegador o archivo dev.",
             loading: "Cargando…",
-            empty: "Aún no hay vitrinas Servicios en esta vista de prueba.",
+            empty: "Aún no hay vitrinas Servicios vinculadas a tu cuenta.",
             slug: "Slug",
             city: "Ciudad",
+            status: "Estado",
             source: "Origen",
             sourceBrowser: "Navegador",
             sourceDev: "Archivo dev",
+            sourceCloud: "Leonix (cuenta)",
             view: "Ver vitrina",
             results: "Buscar en resultados",
             edit: "Seguir editando",
             publish: "Publicar otro",
-            devHint: "Si usas `next dev`, las publicaciones sin base de datos pueden guardarse en `.servicios-dev-publishes.json` y aparecen aquí vía API.",
+            devHint:
+              "Las filas «Leonix» vienen de tu publicación autenticada. «Archivo dev» solo aparece en desarrollo con publicación dev activa.",
           }
         : {
             title: "My Servicios showcases",
-            subtitle:
-              "Listings published from this browser or the project’s local dev file (development only). Configure Supabase for full cloud persistence.",
+            subtitle: "Your Leonix-saved listings (linked account) plus optional local backups on this device or dev file.",
             loading: "Loading…",
-            empty: "No Servicios showcases in this test view yet.",
+            empty: "No Servicios showcases linked to your account yet.",
             slug: "Slug",
             city: "City",
+            status: "Status",
             source: "Source",
             sourceBrowser: "Browser",
             sourceDev: "Dev file",
+            sourceCloud: "Leonix (account)",
             view: "View showcase",
             results: "Search in results",
             edit: "Continue editing",
             publish: "Publish another",
-            devHint: "With `next dev`, publishes without a database may be written to `.servicios-dev-publishes.json` and listed here via API.",
+            devHint: "“Leonix” rows come from authenticated publish. “Dev file” only appears in development when dev publish is on.",
           },
     [lang],
   );
@@ -110,34 +115,73 @@ export default function DashboardServiciosPage() {
         /* ignore */
       }
 
-      const local: MergedRow[] = listLocalServiciosPublishSummaries().map((e) => ({
-        slug: e.slug,
-        businessName: e.businessName,
-        city: e.city,
-        publishedAt: e.publishedAt,
-        source: "browser" as const,
-      }));
+      const bySlug = new Map<string, MergedRow>();
 
-      let dev: MergedRow[] = [];
+      const { data: sess } = await sb.auth.getSession();
+      const token = sess.session?.access_token;
+      if (token) {
+        try {
+          const res = await fetch("/api/clasificados/servicios/my-listings", {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
+          });
+          const j = (await res.json()) as {
+            ok?: boolean;
+            listings?: {
+              slug: string;
+              business_name: string;
+              city: string;
+              published_at: string;
+              listing_status?: string | null;
+            }[];
+          };
+          if (j.ok && Array.isArray(j.listings)) {
+            for (const r of j.listings) {
+              bySlug.set(r.slug, {
+                slug: r.slug,
+                businessName: r.business_name,
+                city: r.city,
+                publishedAt: r.published_at,
+                source: "cloud",
+                listingStatus: r.listing_status ?? null,
+              });
+            }
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+
       try {
         const res = await fetch("/api/clasificados/servicios/dev-listings", { cache: "no-store" });
         const j = (await res.json()) as { listings?: { slug: string; business_name: string; city: string; published_at: string }[] };
-        dev = (j.listings ?? []).map((r) => ({
-          slug: r.slug,
-          businessName: r.business_name,
-          city: r.city,
-          publishedAt: r.published_at,
-          source: "dev_server" as const,
-        }));
+        for (const r of j.listings ?? []) {
+          if (!bySlug.has(r.slug)) {
+            bySlug.set(r.slug, {
+              slug: r.slug,
+              businessName: r.business_name,
+              city: r.city,
+              publishedAt: r.published_at,
+              source: "dev_server",
+            });
+          }
+        }
       } catch {
-        dev = [];
+        /* ignore */
       }
 
-      const bySlug = new Map<string, MergedRow>();
-      for (const r of dev) bySlug.set(r.slug, r);
-      for (const r of local) {
-        if (!bySlug.has(r.slug)) bySlug.set(r.slug, r);
+      for (const e of listLocalServiciosPublishSummaries()) {
+        if (!bySlug.has(e.slug)) {
+          bySlug.set(e.slug, {
+            slug: e.slug,
+            businessName: e.businessName,
+            city: e.city,
+            publishedAt: e.publishedAt,
+            source: "browser",
+          });
+        }
       }
+
       const merged = [...bySlug.values()].sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
 
       if (!mounted) return;
@@ -151,6 +195,12 @@ export default function DashboardServiciosPage() {
   }, [router, pathname]);
 
   const accountRef = userId ? accountRefFromId(userId) : null;
+
+  const sourceLabel = (r: MergedRow) => {
+    if (r.source === "browser") return t.sourceBrowser;
+    if (r.source === "dev_server") return t.sourceDev;
+    return t.sourceCloud;
+  };
 
   return (
     <LeonixDashboardShell lang={lang} activeNav="servicios" plan={plan} userName={name} email={email} accountRef={accountRef}>
@@ -192,6 +242,7 @@ export default function DashboardServiciosPage() {
                     <th className="p-3">{t.slug}</th>
                     <th className="p-3">Negocio / Business</th>
                     <th className="p-3">{t.city}</th>
+                    <th className="p-3">{t.status}</th>
                     <th className="p-3">{t.source}</th>
                     <th className="p-3"> </th>
                   </tr>
@@ -202,9 +253,8 @@ export default function DashboardServiciosPage() {
                       <td className="p-3 font-mono text-xs text-[#3D3428]">{r.slug}</td>
                       <td className="p-3 font-semibold text-[#1E1810]">{r.businessName}</td>
                       <td className="p-3 text-xs text-[#5C5346]">{r.city}</td>
-                      <td className="p-3 text-xs text-[#5C5346]">
-                        {r.source === "browser" ? t.sourceBrowser : t.sourceDev}
-                      </td>
+                      <td className="p-3 text-xs text-[#5C5346]">{r.listingStatus ?? "—"}</td>
+                      <td className="p-3 text-xs text-[#5C5346]">{sourceLabel(r)}</td>
                       <td className="p-3">
                         <div className="flex flex-wrap gap-2">
                           <Link

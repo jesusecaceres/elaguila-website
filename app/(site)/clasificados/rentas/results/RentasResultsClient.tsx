@@ -10,7 +10,7 @@ import {
 import { RentasLocationButton } from "@/app/clasificados/rentas/components/RentasLocationButton";
 import { RentasSearchBar } from "@/app/clasificados/rentas/components/RentasSearchBar";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
-import { useRentasStagedInventory } from "@/app/clasificados/rentas/hooks/useRentasStagedInventory";
+import { useRentasPublicBrowseInventory } from "@/app/clasificados/rentas/hooks/useRentasPublicBrowseInventory";
 import {
   rentasCtaPrimaryClass,
   rentasCtaSecondaryClass,
@@ -58,8 +58,15 @@ import { RentasResultsShell } from "./components/RentasResultsShell";
 import { RentasResultsToolbar } from "./components/RentasResultsToolbar";
 import { RentasResultsTopBar } from "./components/RentasResultsTopBar";
 
+export type RentasResultsClientProps = {
+  /** Server-fetched live catalog (`listings`); never demo. */
+  initialLiveListings: RentasPublicListing[];
+  /** Only when `NEXT_PUBLIC_RENTAS_INCLUDE_DEMO_POOL=1`. */
+  includeDemoPool: boolean;
+};
+
 /** Category-owned results for `/clasificados/rentas/results` — separado de vista previa y del detalle vivo. */
-export function RentasResultsClient() {
+export function RentasResultsClient({ initialLiveListings, includeDemoPool }: RentasResultsClientProps) {
   const router = useRouter();
   const { copy, lang } = useRentasLandingLang();
   const searchParams = useSearchParams();
@@ -97,7 +104,7 @@ export function RentasResultsClient() {
   }, [searchParams]);
 
   const { mergedPool: resultsGrid, staged: stagedFromDb, loading: inventoryLoading, error: inventoryError } =
-    useRentasStagedInventory(lang);
+    useRentasPublicBrowseInventory({ initialLiveListings, lang, includeDemoPool });
 
   const filteredSorted = useMemo(() => {
     const filtered = filterRentasPublicListings(resultsGrid, parsed);
@@ -248,19 +255,39 @@ export function RentasResultsClient() {
               </Link>
               .
             </p>
-            <p className="mt-3 text-sm text-[#5C5346]/90">{copy.results.dataSourceNote}</p>
+            {includeDemoPool ? (
+              <p className="mt-3 text-sm text-[#5C5346]/90">{copy.results.dataSourceNote}</p>
+            ) : (
+              <p className="mt-3 text-sm text-[#5C5346]/90">
+                {lang === "es"
+                  ? "Inventario en vivo: solo anuncios publicados en la base de datos (sin ejemplos de demostración)."
+                  : "Live inventory: published database listings only (no demo fixtures)."}
+              </p>
+            )}
             {stagedFromDb.length > 0 ? (
               <p className="mt-1 text-sm font-semibold text-[#2C5F2D]">
                 {lang === "es"
-                  ? `Incluye ${stagedFromDb.length} anuncio(s) reciente(s) desde la base de prueba (listings), mezclados con ejemplos.`
-                  : `Includes ${stagedFromDb.length} recent listing(s) from the test database (listings), merged with samples.`}
+                  ? `${stagedFromDb.length} anuncio(s) en el catálogo activo.`
+                  : `${stagedFromDb.length} listing(s) in the active catalog.`}
               </p>
-            ) : null}
+            ) : (
+              <p className="mt-1 text-sm text-[#5C5346]/90">
+                {lang === "es"
+                  ? "Aún no hay rentas publicadas visibles en catálogo (o no cumplen filtros de URL)."
+                  : "No published rentals are visible in the catalog yet (or URL filters exclude them)."}
+              </p>
+            )}
             {inventoryError ? (
               <p className="mt-1 text-xs text-amber-900" role="status">
-                {lang === "es" ? "Aviso: no se pudieron cargar anuncios publicados (" : "Note: could not load published listings ("}
+                {lang === "es" ? "Aviso: no se pudo sincronizar el catálogo (" : "Note: could not sync catalog ("}
                 {inventoryError}
-                {lang === "es" ? "). Solo verás ejemplos." : "). Sample rows only."}
+                {includeDemoPool
+                  ? lang === "es"
+                    ? ")."
+                    : ")."
+                  : lang === "es"
+                    ? "). Revisa políticas RLS y variables Supabase."
+                    : "). Check RLS policies and Supabase env."}
               </p>
             ) : null}
             {inventoryLoading ? (

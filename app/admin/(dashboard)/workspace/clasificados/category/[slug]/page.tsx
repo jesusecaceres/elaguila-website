@@ -58,10 +58,10 @@ export default async function ClasificadosCategoryWorkspacePage(props: PageProps
         ) : null}
         {slug === "empleos" ? (
           <Link
-            href="/admin/workspace/clasificados/staged-empleos"
+            href="/admin/workspace/clasificados/empleos"
             className={`${adminCtaChipSecondary} justify-center border-dashed border-amber-800/40 bg-amber-50/90 text-amber-950`}
           >
-            Empleos — listados locales (demo) →
+            Empleos — moderación (Supabase) →
           </Link>
         ) : null}
       </div>

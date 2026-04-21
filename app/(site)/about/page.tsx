@@ -9,6 +9,7 @@ function withLangParam(href: string, lang: string): string {
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type { NosotrosPayload } from "@/app/lib/siteSectionContent/payloadTypes";
 import { mergeNosotrosCopy } from "@/app/lib/siteSectionContent/nosotrosMerge";
+import { LEONIX_MEDIA_SITE_NAME } from "@/app/lib/leonixBrand";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +20,17 @@ export async function generateMetadata(props: {
   const lang = sp.lang === "en" ? "en" : "es";
   const { payload } = await getSiteSectionPayload("nosotros");
   const c = mergeNosotrosCopy(payload as unknown as NosotrosPayload);
-  const title = lang === "en" ? c.en.heroTitle : c.es.heroTitle;
-  return { title, openGraph: { title } };
+  const title = lang === "en" ? "About" : "Nosotros";
+  const description =
+    lang === "en"
+      ? `Who we are: ${LEONIX_MEDIA_SITE_NAME}, a bilingual business visibility and local discovery platform under Leonix Global LLC.`
+      : `Quiénes somos: ${LEONIX_MEDIA_SITE_NAME}, plataforma bilingüe de visibilidad empresarial y descubrimiento local bajo Leonix Global LLC.`;
+  return {
+    title,
+    description,
+    openGraph: { title, description, siteName: LEONIX_MEDIA_SITE_NAME },
+    twitter: { title, description },
+  };
 }
 
 export default async function AboutPage(props: { searchParams?: Promise<{ lang?: string }> }) {

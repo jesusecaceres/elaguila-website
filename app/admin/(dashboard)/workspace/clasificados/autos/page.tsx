@@ -3,6 +3,7 @@ import {
   autosClassifiedsRowToDashboardRow,
   listAllAutosClassifiedsRowsForAdmin,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
+import type { AutosClassifiedsListingRow } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import {
   autosListingAdminVisibilityBucket,
   autosListingStatusLabelEs,
@@ -12,6 +13,18 @@ import { AdminPageHeader } from "../../../../_components/AdminPageHeader";
 import { adminCardBase, adminCtaChipSecondary } from "../../../../_components/adminTheme";
 
 export const dynamic = "force-dynamic";
+
+function autosStripeAdminHint(row: AutosClassifiedsListingRow): string {
+  if (row.stripe_payment_intent_id?.trim()) {
+    const id = row.stripe_payment_intent_id.trim();
+    return `pi…${id.slice(-8)}`;
+  }
+  if (row.stripe_checkout_session_id?.trim()) {
+    const id = row.stripe_checkout_session_id.trim();
+    return `cs…${id.slice(-8)}`;
+  }
+  return "—";
+}
 
 export default async function AdminAutosClassifiedsPage() {
   const rows = await listAllAutosClassifiedsRowsForAdmin(400);
@@ -48,6 +61,8 @@ export default async function AdminAutosClassifiedsPage() {
                 <th className="px-3 py-2">Estado</th>
                 <th className="px-3 py-2">Visibilidad</th>
                 <th className="px-3 py-2">Publicado</th>
+                <th className="px-3 py-2">Stripe</th>
+                <th className="px-3 py-2">Actualizado</th>
                 <th className="px-3 py-2">Owner</th>
                 <th className="px-3 py-2">Img</th>
                 <th className="px-3 py-2">Acciones</th>
@@ -64,6 +79,8 @@ export default async function AdminAutosClassifiedsPage() {
                       ? "Pre-publicación"
                       : "Inactivo / retirado";
                 const pub = r.published_at ? new Date(r.published_at).toLocaleString("es-MX") : "—";
+                const updated = r.updated_at ? new Date(r.updated_at).toLocaleString("es-MX") : "—";
+                const stripeHint = autosStripeAdminHint(r);
                 const liveHref =
                   r.status === "active"
                     ? `${autosLiveVehiclePath(r.id)}?lang=${r.lang === "en" ? "en" : "es"}`
@@ -80,6 +97,13 @@ export default async function AdminAutosClassifiedsPage() {
                     <td className="px-3 py-2">{autosListingStatusLabelEs(r.status)}</td>
                     <td className="px-3 py-2">{vis}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-[10px] text-[#5C5346]">{pub}</td>
+                    <td
+                      className="max-w-[8rem] truncate px-3 py-2 font-mono text-[10px]"
+                      title={[r.stripe_checkout_session_id, r.stripe_payment_intent_id].filter(Boolean).join(" · ") || undefined}
+                    >
+                      {stripeHint}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-[10px] text-[#5C5346]">{updated}</td>
                     <td className="max-w-[6rem] truncate px-3 py-2 font-mono text-[10px]" title={r.owner_user_id}>
                       {r.owner_user_id.slice(0, 8)}…
                     </td>

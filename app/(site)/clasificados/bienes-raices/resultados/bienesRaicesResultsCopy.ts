@@ -39,6 +39,8 @@ export type BrResultsCopy = {
   togglePets: string;
   toggleFurnished: string;
   togglePool: string;
+  /** Honest scope line for amenity toggles (machine facets + legacy text). */
+  amenityTogglesHint: string;
   searchButton: string;
   categoryHeading: string;
   categoryAll: string;
@@ -155,6 +157,8 @@ const ES: BrResultsCopy = {
   togglePets: "Mascotas",
   toggleFurnished: "Amueblado",
   togglePool: "Alberca / piscina",
+  amenityTogglesHint:
+    "Piscina y amueblado usan datos estructurados del anuncio cuando existen. Mascotas: se marca explícito solo si el texto publicado lo indica (no hay campo dedicado en el formulario BR).",
   searchButton: "Aplicar",
   categoryHeading: "Categoría",
   categoryAll: "Todas",
@@ -275,6 +279,8 @@ const EN: BrResultsCopy = {
   togglePets: "Pets",
   toggleFurnished: "Furnished",
   togglePool: "Pool",
+  amenityTogglesHint:
+    "Pool and furnished use structured publish data when present. Pets: only marked when listing text indicates it (BR forms have no dedicated pets field).",
   searchButton: "Apply",
   categoryHeading: "Category",
   categoryAll: "All",

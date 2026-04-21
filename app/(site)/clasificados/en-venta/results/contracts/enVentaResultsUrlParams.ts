@@ -20,6 +20,12 @@ export const EV_RESULTS_PARAM = {
   ship: "ship",
   delivery: "delivery",
   seller: "seller",
+  /** Free listings only (`listings.is_free`). */
+  free: "free",
+  /** Negotiable / OBO (`Leonix:negotiable` or legacy text). */
+  nego: "nego",
+  /** Seller offers meetup (`Leonix:meetup` / Encuentro pair). */
+  meetup: "meetup",
   sort: "sort",
   view: "view",
   page: "page",

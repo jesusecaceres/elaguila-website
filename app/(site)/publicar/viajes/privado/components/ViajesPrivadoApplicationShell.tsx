@@ -15,9 +15,13 @@ import { newViajesDraftMediaId, viajesDraftMediaDelete, viajesDraftMediaPut } fr
 
 import { ViajesDateRangeFields } from "../../components/ViajesDateRangeFields";
 import { getPublicarViajesPrivadoCopy } from "../data/publicarViajesPrivadoCopy";
-import { VIAJES_PRIVADO_GALLERY_MAX, VIAJES_PRIVADO_MAX_IMAGE_STORAGE } from "../lib/viajesPrivadoDraftDefaults";
+import {
+  mergeViajesPrivadoDraftFromPartial,
+  VIAJES_PRIVADO_GALLERY_MAX,
+  VIAJES_PRIVADO_MAX_IMAGE_STORAGE,
+} from "../lib/viajesPrivadoDraftDefaults";
 import { useViajesPrivadoDraft } from "../lib/useViajesPrivadoDraft";
-import type { ViajesPrivadoCtaType } from "../lib/viajesPrivadoDraftTypes";
+import type { ViajesPrivadoDraft, ViajesPrivadoCtaType } from "../lib/viajesPrivadoDraftTypes";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-5";
@@ -31,7 +35,44 @@ export function ViajesPrivadoApplicationShell() {
   const sp = useSearchParams();
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
   const c = getPublicarViajesPrivadoCopy(lang);
-  const { draft, update, reset, hydrated } = useViajesPrivadoDraft();
+  const { draft, update, reset, hydrated, setDraft } = useViajesPrivadoDraft();
+  const stagedIdFromUrl = (sp?.get("stagedId") ?? "").trim();
+  const [stagedBootstrapErr, setStagedBootstrapErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!hydrated || !stagedIdFromUrl) {
+      setStagedBootstrapErr(null);
+      return;
+    }
+    let cancelled = false;
+    async function load() {
+      setStagedBootstrapErr(null);
+      try {
+        const sb = createSupabaseBrowserClient();
+        const sess = await withAuthTimeout(sb.auth.getSession(), AUTH_CHECK_TIMEOUT_MS);
+        const token = sess.data.session?.access_token;
+        if (!token) {
+          if (!cancelled) setStagedBootstrapErr(lang === "en" ? "Sign in to load this submission." : "Inicia sesión para cargar este envío.");
+          return;
+        }
+        const res = await fetch(`/api/clasificados/viajes/staged-owner?id=${encodeURIComponent(stagedIdFromUrl)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = (await res.json()) as { ok?: boolean; row?: { listing_json?: { privado?: ViajesPrivadoDraft } }; error?: string };
+        if (!res.ok || !json.ok || !json.row?.listing_json?.privado) {
+          if (!cancelled) setStagedBootstrapErr(json.error ?? (lang === "en" ? "Could not load submission." : "No se pudo cargar el envío."));
+          return;
+        }
+        if (!cancelled) setDraft(mergeViajesPrivadoDraftFromPartial(json.row.listing_json.privado));
+      } catch {
+        if (!cancelled) setStagedBootstrapErr(lang === "en" ? "Network error." : "Error de red.");
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, lang, setDraft, stagedIdFromUrl]);
   const heroBlobUrl = useViajesLocalHeroObjectUrl("privado", draft.localHeroBlobId);
   const [publishOpen, setPublishOpen] = useState(false);
   const [submitBusy, setSubmitBusy] = useState(false);
@@ -53,16 +94,31 @@ export function ViajesPrivadoApplicationShell() {
       } catch {
         session = null;
       }
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+      if (!session?.access_token) {
+        router.push(`/login?redirect=${encodeURIComponent(`/publicar/viajes/privado${stagedIdFromUrl ? `?stagedId=${encodeURIComponent(stagedIdFromUrl)}` : ""}${lang === "en" ? "&lang=en" : ""}`)}`);
+        return;
+      }
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      };
       const res = await fetch("/api/clasificados/viajes/submit", {
         method: "POST",
         headers,
-        body: JSON.stringify({ lane: "private", lang, privadoDraft: draft }),
+        body: JSON.stringify({
+          lane: "private",
+          lang,
+          privadoDraft: draft,
+          ...(stagedIdFromUrl ? { stagedListingId: stagedIdFromUrl } : {}),
+        }),
       });
       const json = (await res.json()) as { ok?: boolean; error?: string; slug?: string; id?: string };
       if (!res.ok || !json.ok) {
         const code = json.error ?? "unknown";
+        if (code === "auth_required") {
+          router.push(`/login?redirect=${encodeURIComponent(`/publicar/viajes/privado${stagedIdFromUrl ? `?stagedId=${encodeURIComponent(stagedIdFromUrl)}` : ""}`)}`);
+          return;
+        }
         if (code === "supabase_not_configured") {
           window.alert(
             lang === "en"
@@ -207,6 +263,14 @@ export function ViajesPrivadoApplicationShell() {
               </li>
             ))}
           </ol>
+          {stagedIdFromUrl ? (
+            <p className="mt-3 rounded-xl border border-sky-200/80 bg-sky-50/90 px-3 py-2 text-xs leading-relaxed text-sky-950">
+              {lang === "en"
+                ? "You are editing a saved private submission from your dashboard. Submitting updates the same record and returns it to internal review."
+                : "Estás editando un envío particular guardado desde tu panel. Al enviar se actualiza el mismo registro y vuelve a revisión interna."}
+            </p>
+          ) : null}
+          {stagedBootstrapErr ? <p className="mt-2 text-xs font-semibold text-rose-800">{stagedBootstrapErr}</p> : null}
           <div className="mt-5 rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-50/90 to-[color:var(--lx-card)] p-4 shadow-sm">
             <p className="text-sm font-bold text-[color:var(--lx-text)]">{c.recovery.title}</p>
             <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-text-2)]">{c.recovery.wrongLaneBody}</p>

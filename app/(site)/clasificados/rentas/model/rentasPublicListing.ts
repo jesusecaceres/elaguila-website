@@ -18,6 +18,11 @@ export type RentasPublicListing = {
   rentDisplay: string;
   /** Monthly rent as a number when known (for sorting/filters); demo may omit. */
   rentMonthly?: number;
+  /** Deposit in USD whole dollars when persisted (`Leonix:rent:deposit_usd` pair or future column). */
+  depositUsd?: number;
+  /** Public contact surfaced on detail when policy allows (from `listings.contact_*`). */
+  contactPhone?: string;
+  contactEmail?: string;
   addressLine: string;
   /** Normalized city/metro for browse filters (maps from publish `ciudad` + geocoding). */
   city?: string;

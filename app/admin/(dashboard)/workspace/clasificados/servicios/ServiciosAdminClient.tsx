@@ -354,7 +354,11 @@ export default function ServiciosAdminClient() {
           <Link href="/admin/workspace/clasificados?category=servicios" className="font-bold underline">
             Clasificados → category=servicios
           </Link>
-          . Esta pantalla sigue siendo sandbox de UX/tiers hasta reenganchar mutaciones a Supabase.
+          . Operaciones reales:{" "}
+          <Link href="/admin/workspace/clasificados/servicios" className="font-bold underline">
+            Workspace → Servicios
+          </Link>
+          .
         </span>
       </div>
       <h1 className="text-xl font-bold text-[#111111]">Servicios – Create listing</h1>

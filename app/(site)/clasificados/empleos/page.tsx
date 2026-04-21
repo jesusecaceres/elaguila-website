@@ -6,7 +6,7 @@ import { EmpleosLandingPage } from "./EmpleosLandingPageClient";
 export const metadata: Metadata = {
   title: "Empleos | Leonix Clasificados",
   description:
-    "Encuentra trabajo cerca de ti: presencial, híbrido o remoto. Busca por industria, ciudad y tipo de empleo — LEONIX Clasificados.",
+    "Encuentra trabajo cerca de ti: presencial, híbrido o remoto. Busca por industria, ciudad y tipo de empleo en Leonix Media.",
   alternates: {
     canonical: "/clasificados/empleos",
   },

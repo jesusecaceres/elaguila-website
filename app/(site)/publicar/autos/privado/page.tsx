@@ -4,7 +4,7 @@ import { AutosPrivadoApplication } from "./components/AutosPrivadoApplication";
 
 export const metadata: Metadata = {
   title: "Autos · Privado — Publicar",
-  description: "Publica un vehículo de vendedor particular en LEONIX Clasificados.",
+  description: "Publica un vehículo de vendedor particular con Leonix Media — clasificados y autos NorCal.",
   alternates: {
     canonical: "/publicar/autos/privado",
   },

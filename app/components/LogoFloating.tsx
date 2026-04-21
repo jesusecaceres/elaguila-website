@@ -19,7 +19,7 @@ export default function LogoFloating() {
     >
       <Image
         src="/logo.png"
-        alt="El Águila Logo"
+        alt="Leonix Media logo"
         width={180}
         height={180}
         className="drop-shadow-2xl opacity-100"

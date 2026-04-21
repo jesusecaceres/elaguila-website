@@ -6,6 +6,7 @@ import type {
   RestauranteServiceMode,
 } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
+import { isRestauranteOpenNowFromWeeklyHours } from "@/app/clasificados/restaurantes/lib/restauranteOpenNowFromHours";
 import type { RestaurantesPublicListingDbRow } from "./restaurantesPublicListingsServer";
 
 function nonEmpty(s: string | undefined | null): boolean {
@@ -97,10 +98,8 @@ export const RESTAURANTE_PUBLIC_CARD_IMAGE_FALLBACK =
  * `RestaurantesResultsShell` work unchanged. `openNowDemo` stays false until weekly hours are evaluated server-side.
  */
 export function publicResultsRowToShellInventoryRow(r: RestaurantePublicResultsRow): RestaurantesPublicBlueprintRow {
-  const svc = (r.serviceModeKeys ?? []).filter(
-    (m): m is "dine_in" | "takeout" | "delivery" => m === "dine_in" || m === "takeout" || m === "delivery",
-  );
-  const serviceModes: RestaurantesPublicBlueprintRow["serviceModes"] = svc.length ? svc : ["dine_in"];
+  const svc = (r.serviceModeKeys ?? []).filter((m): m is RestauranteServiceMode => typeof m === "string");
+  const serviceModes: RestauranteServiceMode[] = svc.length ? svc : ["dine_in"];
   const familyFriendly = r.highlightKeys.includes("family_friendly");
   const priceLevel = r.priceLevel ?? "$$";
   const rating = typeof r.externalRatingValue === "number" && Number.isFinite(r.externalRatingValue) ? r.externalRatingValue : 0;
@@ -119,6 +118,7 @@ export function publicResultsRowToShellInventoryRow(r: RestaurantePublicResultsR
     serviceModes,
     familyFriendly,
     promoted: r.sponsored === true,
+    leonixVerified: r.leonixVerified === true,
     openNowDemo: false,
     veganOptions: r.highlightKeys.includes("vegan_options"),
     glutenFreeOptions: r.highlightKeys.includes("gluten_free"),
@@ -137,6 +137,67 @@ export function publicResultsRowToShellInventoryRow(r: RestaurantePublicResultsR
 
 export function mapPublicResultsRowsToShellInventory(rows: RestaurantePublicResultsRow[]): RestaurantesPublicBlueprintRow[] {
   return rows.map(publicResultsRowToShellInventoryRow);
+}
+
+/**
+ * Full public discovery row for results/landing: denormalized columns + `listing_json` for
+ * hours-based open signal, full `serviceModes`, and additional cuisine keys for search.
+ */
+export function mapRestaurantesPublicListingDbRowToShellInventoryRow(row: RestaurantesPublicListingDbRow): RestaurantesPublicBlueprintRow {
+  const pr = dbRowToPublicResultsRow(row);
+  const draft = listingJsonToDraft(row.listing_json ?? {});
+
+  const fromDraftModes = Array.isArray(draft.serviceModes)
+    ? draft.serviceModes.filter((m): m is RestauranteServiceMode => typeof m === "string")
+    : [];
+  const fromPr = (pr.serviceModeKeys ?? []).filter((m): m is RestauranteServiceMode => typeof m === "string");
+  const serviceModes: RestauranteServiceMode[] = fromDraftModes.length ? fromDraftModes : fromPr.length ? fromPr : ["dine_in"];
+
+  const openNowDemo = isRestauranteOpenNowFromWeeklyHours(draft);
+  const familyFriendly = pr.highlightKeys.includes("family_friendly");
+  const priceLevel = pr.priceLevel ?? "$$";
+  const rating =
+    typeof pr.externalRatingValue === "number" && Number.isFinite(pr.externalRatingValue) ? pr.externalRatingValue : 0;
+  const summaryLine = (draft.shortSummary ?? "").trim() || pr.summaryShort?.trim() || pr.businessName;
+  const addCuisines = Array.isArray(draft.additionalCuisines)
+    ? draft.additionalCuisines.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+    : undefined;
+
+  return {
+    id: pr.id,
+    name: pr.businessName,
+    slug: pr.slug,
+    primaryCuisineKey: pr.primaryCuisineKey || "other",
+    secondaryCuisineKey: pr.secondaryCuisineKey,
+    cuisineLine: summaryLine,
+    city: pr.cityCanonical,
+    zip: pr.zipCode,
+    rating,
+    priceLevel,
+    imageSrc: (pr.heroImageUrl && pr.heroImageUrl.trim()) || RESTAURANTE_PUBLIC_CARD_IMAGE_FALLBACK,
+    serviceModes,
+    additionalCuisineKeys: addCuisines?.length ? addCuisines : undefined,
+    familyFriendly,
+    promoted: pr.sponsored === true,
+    leonixVerified: pr.leonixVerified === true,
+    openNowDemo,
+    veganOptions: pr.highlightKeys.includes("vegan_options"),
+    glutenFreeOptions: pr.highlightKeys.includes("gluten_free"),
+    halalCuisine: pr.primaryCuisineKey === "halal",
+    listedAt: pr.listedAt,
+    businessType: pr.businessTypeKey || undefined,
+    movingVendor: pr.movingVendor,
+    homeBasedBusiness: pr.homeBasedBusiness,
+    foodTruck: pr.foodTruck,
+    popUp: pr.popUp,
+    neighborhood: pr.neighborhood,
+    highlightKeys: pr.highlightKeys,
+    externalReviewCount: pr.externalReviewCount,
+  };
+}
+
+export function mapRestaurantesPublicListingDbRowsToShellInventory(rows: RestaurantesPublicListingDbRow[]): RestaurantesPublicBlueprintRow[] {
+  return rows.map(mapRestaurantesPublicListingDbRowToShellInventoryRow);
 }
 
 /** Resolve hero URL for denormalized card column (matches preview fallback). */

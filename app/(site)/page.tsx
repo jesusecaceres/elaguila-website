@@ -28,7 +28,7 @@ export default function Home() {
       {/* LOGO */}
       <motion.img
         src="/logo-layer-new.png"
-        alt="LEONIX Media Logo"
+        alt="Leonix Media logo"
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1.5, y: 0 }}
         transition={{ delay: 1, duration: 1.8, ease: "easeOut" }}

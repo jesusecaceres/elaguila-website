@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LEONIX_MEDIA_SITE_NAME } from "@/app/lib/leonixBrand";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -7,22 +8,29 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
 
-  const title = "Anuncio";
+  const segment = "Anuncio";
   const description =
-    "Detalles del anuncio en LEONIX Clasificados. Explora información, fotos y contacto.";
+    "Detalle del anuncio en Leonix Media: fotos, descripción y contacto — clasificados y visibilidad local bajo Leonix Global LLC.";
 
   return {
-    title: `${title} — LEONIX Clasificados`,
+    title: segment,
     description,
-    keywords: ["clasificados", "anuncio", "venta", "renta", "autos", "empleos", "servicios", "LEONIX"],
+    keywords: [
+      "Leonix Media",
+      "clasificados",
+      "anuncio",
+      "Northern California",
+      "Bay Area",
+      "local discovery",
+    ],
     alternates: {
       canonical: `/clasificados/anuncio/${id}`,
     },
     openGraph: {
-      title: `${title} — LEONIX Clasificados`,
+      title: `${segment} | ${LEONIX_MEDIA_SITE_NAME}`,
       description,
       url: `/clasificados/anuncio/${id}`,
-      siteName: "LEONIX Clasificados",
+      siteName: LEONIX_MEDIA_SITE_NAME,
       type: "article",
     },
   };

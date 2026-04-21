@@ -33,6 +33,10 @@ export const AUTOS_PUBLIC_BLUEPRINT_COPY = {
       family: "Familiar",
     },
     featuredZoneTitle: "Inventario premium cerca de {city}, {state}",
+    /** When we know city (from filters or first hit) but not state. */
+    featuredZoneTitleCityOnly: "Inventario premium cerca de {city}",
+    /** No geo signal from filters or inventory — avoid inventing a city/state. */
+    featuredZoneGeneric: "Inventario premium",
     landingFeaturedTitle: "Autos destacados cerca de ti",
     landingFeaturedSubtitle: "Concesionarios y particulares — misma vitrina, distintos vendedores.",
     featuredBadge: "Destacado",
@@ -88,6 +92,9 @@ export const AUTOS_PUBLIC_BLUEPRINT_COPY = {
     langEn: "English",
     resultsTitle: "Autos en venta",
     resultsNear: "cerca de {city}, {state}",
+    resultsNearCity: "cerca de {city}",
+    /** Subhead under results title when URL has no city/ZIP (no fake “San Jose, CA”). */
+    resultsSubheadNoGeo: "Usa ciudad, código postal o filtros para acotar tu búsqueda.",
     resultCount: "{n} resultados",
     sortLabel: "Ordenar",
     sortNewest: "Más reciente",
@@ -205,6 +212,8 @@ export const AUTOS_PUBLIC_BLUEPRINT_COPY = {
       family: "Family",
     },
     featuredZoneTitle: "Premium inventory near {city}, {state}",
+    featuredZoneTitleCityOnly: "Premium inventory near {city}",
+    featuredZoneGeneric: "Premium inventory",
     landingFeaturedTitle: "Featured vehicles near you",
     landingFeaturedSubtitle: "Dealerships and private sellers — one showcase, different sellers.",
     featuredBadge: "Featured",
@@ -260,6 +269,8 @@ export const AUTOS_PUBLIC_BLUEPRINT_COPY = {
     langEn: "English",
     resultsTitle: "Vehicles for sale",
     resultsNear: "near {city}, {state}",
+    resultsNearCity: "near {city}",
+    resultsSubheadNoGeo: "Use city, ZIP, or filters to narrow your search.",
     resultCount: "{n} results",
     sortLabel: "Sort",
     sortNewest: "Newest",

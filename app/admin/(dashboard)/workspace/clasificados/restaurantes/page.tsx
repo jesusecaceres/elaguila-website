@@ -3,6 +3,7 @@ import { listRestaurantesPublicListingsAdminFromDb } from "@/app/clasificados/re
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { adminBtnSecondary, adminCardBase } from "@/app/admin/_components/adminTheme";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { RestauranteAdminRowActions } from "./RestauranteAdminRowActions";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +24,9 @@ export default async function AdminRestaurantesPublicListingsPage() {
     <div className="max-w-[1200px] space-y-6">
       <AdminPageHeader
         eyebrow="Workspace · Clasificados"
-        title="Restaurantes — listados públicos (tabla)"
-        subtitle="Vista de diagnóstico sobre restaurantes_public_listings (rol de servicio). Cobertura fase 1: lectura y enlaces; sin acciones de moderación en UI todavía."
-        helperText="Los cambios de estado (suspender / destacar) siguen siendo SQL o flujos futuros; esta pantalla no simula escritura."
+        title="Restaurantes — listados públicos (operación)"
+        subtitle="Tabla viva sobre `restaurantes_public_listings` con acciones reales (suspender, destacar, verificar). Requiere cookie de admin y Supabase con rol de servicio."
+        helperText="Las acciones escriben en Postgres, invalidan rutas públicas vía revalidatePath y dejan rastro en `admin_audit_log` cuando la tabla existe."
         rightSlot={
           <Link href="/admin/workspace/clasificados" className={adminBtnSecondary}>
             ← Hub Clasificados
@@ -49,6 +50,7 @@ export default async function AdminRestaurantesPublicListingsPage() {
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Slug</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Estado</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Dest.</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Verif.</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Owner</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Plan</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Ciudad</th>
@@ -56,6 +58,7 @@ export default async function AdminRestaurantesPublicListingsPage() {
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Publicado</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Actualizado</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Enlaces</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -69,6 +72,7 @@ export default async function AdminRestaurantesPublicListingsPage() {
                     <td className="px-3 py-2 font-mono text-[10px]">{r.slug}</td>
                     <td className="px-3 py-2">{r.status}</td>
                     <td className="px-3 py-2">{r.promoted ? "sí" : "no"}</td>
+                    <td className="px-3 py-2">{r.leonix_verified ? "sí" : "no"}</td>
                     <td className="max-w-[120px] truncate px-3 py-2 font-mono text-[10px]" title={r.owner_user_id ?? ""}>
                       {r.owner_user_id ?? "—"}
                     </td>
@@ -89,6 +93,14 @@ export default async function AdminRestaurantesPublicListingsPage() {
                       <Link href={resultsHref} className="block text-[#6B5B2E] underline" target="_blank" rel="noreferrer">
                         Resultados
                       </Link>
+                    </td>
+                    <td className="min-w-[200px] px-3 py-2 align-top">
+                      <RestauranteAdminRowActions
+                        listingId={r.id}
+                        status={r.status}
+                        promoted={r.promoted}
+                        verified={r.leonix_verified}
+                      />
                     </td>
                   </tr>
                 );

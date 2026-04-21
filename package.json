@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "prebuild": "node scripts/dup-guard.js",
-    "dup:guard": "node scripts/dup-guard.js"
+    "dup:guard": "node scripts/dup-guard.js",
+    "verify:viajes": "node scripts/verify-viajes-pipeline.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

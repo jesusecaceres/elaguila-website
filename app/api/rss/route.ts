@@ -3,7 +3,7 @@ import Parser from "rss-parser";
 
 const parser = new Parser({
   timeout: 8000,
-  headers: { "User-Agent": "ElAguilaNewsBot/1.0" },
+  headers: { "User-Agent": "LeonixMediaRSSBot/1.0" },
 });
 
 /* -------------------------------------------------------------

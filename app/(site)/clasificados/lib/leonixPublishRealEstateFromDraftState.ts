@@ -14,6 +14,10 @@ import type { BienesRaicesNegocioFormState } from "@/app/clasificados/publicar/b
 import type { RentasNegocioFormState } from "@/app/clasificados/publicar/rentas/negocio/schema/rentasNegocioFormState";
 import { mergeLeonixListingContractDetailPairs } from "@/app/clasificados/lib/leonixRealEstatePersistContract";
 import {
+  buildLeonixMachineFacetPairsFromBienesRaicesNegocioState,
+  buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState,
+} from "@/app/clasificados/lib/leonixBrMachineFacetPairsFromFormState";
+import {
   buildDetailPairsFromBienesRaicesNegocioPreviewVm,
   buildDetailPairsFromBienesRaicesPrivadoPreviewVm,
 } from "@/app/clasificados/lib/leonixRealEstateDetailPairsFromPreviewVm";
@@ -23,6 +27,8 @@ import {
   publishLeonixRealEstateListingCore,
   type PublishLeonixRealEstateListingCoreResult,
 } from "@/app/clasificados/lib/leonixPublishRealEstateListingCore";
+import { mergeRentasNegocioMachinePairs, mergeRentasPrivadoMachinePairs } from "@/app/clasificados/rentas/lib/rentasMachineDetailPairs";
+import { normalizeZipForBrowse } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
 
 function digitsOnly(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "");
@@ -37,6 +43,14 @@ function priceNumberFromDigitsString(raw: string): number {
   const d = String(raw ?? "").replace(/[^0-9.]/g, "");
   const n = Number(d);
   return Number.isFinite(n) && n >= 0 ? Math.round(n) : 0;
+}
+
+function zipFromRentasLocation(ubicacionLinea: string, ciudad: string): string | null {
+  const fromLine = normalizeZipForBrowse(ubicacionLinea);
+  if (fromLine.length >= 4) return fromLine;
+  const fromCity = normalizeZipForBrowse(ciudad);
+  if (fromCity.length >= 4) return fromCity;
+  return null;
 }
 
 function privadoSellerContact(seller: {
@@ -110,6 +124,7 @@ export async function publishLeonixListingFromBienesRaicesPrivadoDraft(
     branch: "bienes_raices_privado",
     operation,
     categoriaPropiedad: state.categoriaPropiedad,
+    machineFacetPairs: buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(state),
   });
   const contact = privadoSellerContact(state.seller);
   return publishLeonixRealEstateListingCore({
@@ -134,7 +149,8 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
   const vm = mapRentasPrivadoStateToPreviewVm(state);
   const human = buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm);
-  const pairs = mergeLeonixListingContractDetailPairs(human, {
+  const withMachine = mergeRentasPrivadoMachinePairs(state, human);
+  const pairs = mergeLeonixListingContractDetailPairs(withMachine, {
     branch: "rentas_privado",
     operation: "rent",
     categoriaPropiedad: state.categoriaPropiedad,
@@ -144,6 +160,7 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
     title: state.titulo,
     description: state.descripcion,
     city: trim(state.ciudad) || trim(state.ubicacionLinea),
+    zip: zipFromRentasLocation(state.ubicacionLinea, state.ciudad),
     price: priceNumberFromDigitsString(state.rentaMensual),
     isFree: false,
     category: "rentas",
@@ -167,6 +184,7 @@ export async function publishLeonixListingFromBienesRaicesNegocioDraft(
     branch: "bienes_raices_negocio",
     operation: negocioOperationFromBienes(state),
     categoriaPropiedad: cat,
+    machineFacetPairs: buildLeonixMachineFacetPairsFromBienesRaicesNegocioState(state),
   });
   const c = negocioContactAndBusinessName(state);
   const meta = buildBusinessMetaJsonFromBienesRaicesNegocioState(state);
@@ -194,7 +212,8 @@ export async function publishLeonixListingFromRentasNegocioDraft(
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
   const vm = mapRentasNegocioStateToPreviewVm(state);
   const human = buildDetailPairsFromBienesRaicesNegocioPreviewVm(vm);
-  const pairs = mergeLeonixListingContractDetailPairs(human, {
+  const withMachine = mergeRentasNegocioMachinePairs(state, human);
+  const pairs = mergeLeonixListingContractDetailPairs(withMachine, {
     branch: "rentas_negocio",
     operation: "rent",
     categoriaPropiedad: state.categoriaPropiedad,
@@ -207,6 +226,7 @@ export async function publishLeonixListingFromRentasNegocioDraft(
     title: state.titulo,
     description: state.descripcion,
     city: trim(state.ciudad) || trim(state.ubicacionLinea),
+    zip: zipFromRentasLocation(state.ubicacionLinea, state.ciudad),
     price: priceNumberFromDigitsString(state.rentaMensual),
     isFree: false,
     category: "rentas",

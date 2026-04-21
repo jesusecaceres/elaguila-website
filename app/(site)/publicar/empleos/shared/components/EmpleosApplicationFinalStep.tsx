@@ -11,6 +11,7 @@ type FinalCopy = {
   sessionDraftLine: string;
   previewCta: string;
   publishCta: string;
+  saveDraftCta?: string;
   deleteRequest: string;
   deleteConfirm: string;
 };
@@ -24,6 +25,8 @@ type Props = {
   stagedSuccessText: string | null;
   /** Shown when user must complete requirements before publish modal (gate). */
   publishGateBlockedHint: string | null;
+  saveDraftCta?: string | null;
+  onSaveDraft?: () => void;
 };
 
 export function EmpleosApplicationFinalStep({
@@ -34,6 +37,8 @@ export function EmpleosApplicationFinalStep({
   onDelete,
   stagedSuccessText,
   publishGateBlockedHint,
+  saveDraftCta,
+  onSaveDraft,
 }: Props) {
   return (
     <section
@@ -68,6 +73,17 @@ export function EmpleosApplicationFinalStep({
           >
             {copy.publishCta}
           </button>
+          {saveDraftCta && onSaveDraft ? (
+            <button
+              type="button"
+              className={BTN_PUBLISH}
+              disabled={previewDisabled}
+              title={previewDisabled ? publishGateBlockedHint ?? undefined : undefined}
+              onClick={() => void onSaveDraft()}
+            >
+              {saveDraftCta}
+            </button>
+          ) : null}
         </div>
         {previewDisabled && publishGateBlockedHint ? (
           <p className="text-sm font-medium text-amber-900" role="status">

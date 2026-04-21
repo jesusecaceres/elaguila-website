@@ -9,12 +9,11 @@ import {
   rentasResultsGridDemo,
 } from "@/app/clasificados/rentas/results/rentasResultsDemoData";
 
-const STAGED_SELECT =
-  "id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, status, is_published, created_at, images";
+const LIVE_SELECT =
+  "id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, status, is_published, created_at, images, contact_phone, contact_email";
 
 /**
- * **Staged testing:** merges `listings` rows (`category=rentas`, active, published) with demo fixtures.
- * Demo IDs are preserved; staged UUID rows are prepended (newest first). Swap for production search later.
+ * Dedup merge: live rows first (newest), optional demo tail for dev (`NEXT_PUBLIC_RENTAS_INCLUDE_DEMO_POOL=1`).
  */
 export function mergeStagedRentasWithDemo(staged: RentasPublicListing[], demo: RentasPublicListing[]): RentasPublicListing[] {
   const seen = new Set<string>();
@@ -45,24 +44,34 @@ export function getDemoRentasBrowsePool(): RentasPublicListing[] {
   return [...map.values()];
 }
 
-export type UseRentasStagedInventoryResult = {
+export type UseRentasPublicBrowseInventoryResult = {
+  /** Live `listings` rows only (subset of merged when demo off). */
   staged: RentasPublicListing[];
-  /** Staged `listings` rows first (newest), then demo pool (deduped by `id`). */
   mergedPool: RentasPublicListing[];
   loading: boolean;
   error: string | null;
   refetch: () => void;
 };
 
-export function useRentasStagedInventory(lang: "es" | "en"): UseRentasStagedInventoryResult {
-  const [staged, setStaged] = useState<RentasPublicListing[]>([]);
-  const [loading, setLoading] = useState(true);
+export function useRentasPublicBrowseInventory(opts: {
+  initialLiveListings: RentasPublicListing[];
+  lang: "es" | "en";
+  includeDemoPool: boolean;
+}): UseRentasPublicBrowseInventoryResult {
+  const { initialLiveListings, lang, includeDemoPool } = opts;
+  const [live, setLive] = useState<RentasPublicListing[]>(initialLiveListings);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
 
   useEffect(() => {
+    setLive(initialLiveListings);
+  }, [initialLiveListings]);
+
+  useEffect(() => {
+    if (tick === 0 && initialLiveListings.length > 0) return;
     let cancelled = false;
     void (async () => {
       setLoading(true);
@@ -71,16 +80,16 @@ export function useRentasStagedInventory(lang: "es" | "en"): UseRentasStagedInve
         const supabase = createSupabaseBrowserClient();
         const { data, error: qErr } = await supabase
           .from("listings")
-          .select(STAGED_SELECT)
+          .select(LIVE_SELECT)
           .eq("category", "rentas")
           .eq("status", "active")
+          .or("is_published.is.null,is_published.eq.true")
           .order("created_at", { ascending: false })
-          .limit(200);
+          .limit(2000);
 
         if (cancelled) return;
         if (qErr) {
           setError(qErr.message);
-          setStaged([]);
           setLoading(false);
           return;
         }
@@ -92,7 +101,7 @@ export function useRentasStagedInventory(lang: "es" | "en"): UseRentasStagedInve
           const m = mapListingRowToRentasPublicListing(row, lang);
           if (m && m.browseActive !== false) mapped.push(m);
         }
-        setStaged(mapped);
+        setLive(mapped);
       } catch (e: unknown) {
         if (!cancelled) setError(e instanceof Error ? e.message : "load error");
       } finally {
@@ -102,13 +111,13 @@ export function useRentasStagedInventory(lang: "es" | "en"): UseRentasStagedInve
     return () => {
       cancelled = true;
     };
-  }, [lang, tick]);
+  }, [initialLiveListings.length, lang, tick]);
 
-  const demoPool = useMemo(() => getDemoRentasBrowsePool(), []);
-  const mergedPool = useMemo(() => mergeStagedRentasWithDemo(staged, demoPool), [staged, demoPool]);
+  const demoPool = useMemo(() => (includeDemoPool ? getDemoRentasBrowsePool() : []), [includeDemoPool]);
+  const mergedPool = useMemo(() => mergeStagedRentasWithDemo(live, demoPool), [live, demoPool]);
 
   return {
-    staged,
+    staged: live,
     mergedPool,
     loading,
     error,

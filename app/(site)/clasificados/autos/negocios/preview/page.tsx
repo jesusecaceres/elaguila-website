@@ -4,7 +4,7 @@ import { AutosNegociosPreviewClient } from "./AutosNegociosPreviewClient";
 export const metadata: Metadata = {
   title: "Vista previa — Auto · Negocio",
   description:
-    "Vista previa del anuncio de concesionario en LEONIX Clasificados — un vehículo, una página.",
+    "Vista previa del anuncio de concesionario en Leonix Media — un vehículo, una página.",
   alternates: {
     canonical: "/clasificados/autos/negocios/preview",
   },

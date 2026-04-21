@@ -6,6 +6,10 @@ import {
   getServiciosDevPublishRowBySlug,
   listServiciosDevPublishRows,
 } from "./serviciosDevPublishPersistence";
+import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "./serviciosListingLifecycle";
+
+const LISTING_SELECT =
+  "slug, business_name, city, published_at, profile_json, leonix_verified, internal_group, listing_status, owner_user_id";
 
 export type ServiciosPublicListingRow = {
   slug: string;
@@ -16,9 +20,16 @@ export type ServiciosPublicListingRow = {
   leonix_verified: boolean;
   /** Matches `BusinessTypePreset.internalGroup` — for future filters */
   internal_group: string | null;
-  /** See `serviciosListingLifecycle.ts` — directory lists `published` only */
+  /** See `serviciosListingLifecycle.ts` */
   listing_status: string;
+  /** Auth user id of provider (nullable legacy) */
+  owner_user_id?: string | null;
 };
+
+/** DB reads for publish/admin — any lifecycle row by slug. */
+export type ServiciosListingSlugDbVisibility = "published_only" | "slug_page" | "all";
+
+const SLUG_PAGE_STATUSES = ["published", "paused_unpublished", "pending_review", "rejected", "suspended"] as const;
 
 export async function listServiciosPublicListingsFromDb(limit = 48): Promise<ServiciosPublicListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
@@ -26,37 +37,66 @@ export async function listServiciosPublicListingsFromDb(limit = 48): Promise<Ser
     const supabase = getAdminSupabase();
     const { data, error } = await supabase
       .from("servicios_public_listings")
-      .select("slug, business_name, city, published_at, profile_json, leonix_verified, internal_group, listing_status")
-      .eq("listing_status", "published")
+      .select(LISTING_SELECT)
+      .eq("listing_status", SERVICIOS_LISTING_STATUS_PUBLISHED)
       .order("published_at", { ascending: false })
       .limit(limit);
     if (error || !data) return [];
     return data.map((r) => ({
       ...r,
       listing_status: typeof (r as ServiciosPublicListingRow).listing_status === "string" ? (r as ServiciosPublicListingRow).listing_status : "published",
+      owner_user_id: (r as ServiciosPublicListingRow).owner_user_id ?? null,
     })) as ServiciosPublicListingRow[];
   } catch {
     return [];
   }
 }
 
-export async function getServiciosPublicListingBySlugFromDb(slug: string): Promise<ServiciosPublicListingRow | null> {
+export async function getServiciosPublicListingBySlugFromDb(
+  slug: string,
+  opts?: { visibility?: ServiciosListingSlugDbVisibility },
+): Promise<ServiciosPublicListingRow | null> {
   if (!isSupabaseAdminConfigured()) return null;
+  const visibility = opts?.visibility ?? "published_only";
   try {
     const supabase = getAdminSupabase();
-    const { data, error } = await supabase
-      .from("servicios_public_listings")
-      .select("slug, business_name, city, published_at, profile_json, leonix_verified, internal_group, listing_status")
-      .eq("slug", slug)
-      .maybeSingle();
+    let q = supabase.from("servicios_public_listings").select(LISTING_SELECT).eq("slug", slug);
+    if (visibility === "published_only") {
+      q = q.eq("listing_status", SERVICIOS_LISTING_STATUS_PUBLISHED);
+    } else if (visibility === "slug_page") {
+      q = q.in("listing_status", [...SLUG_PAGE_STATUSES]);
+    }
+    const { data, error } = await q.maybeSingle();
     if (error || !data) return null;
     const row = data as ServiciosPublicListingRow;
     return {
       ...row,
       listing_status: typeof row.listing_status === "string" ? row.listing_status : "published",
+      owner_user_id: row.owner_user_id ?? null,
     };
   } catch {
     return null;
+  }
+}
+
+export async function listServiciosPublicListingsForOwner(ownerUserId: string, limit = 80): Promise<ServiciosPublicListingRow[]> {
+  if (!isSupabaseAdminConfigured()) return [];
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("servicios_public_listings")
+      .select(LISTING_SELECT)
+      .eq("owner_user_id", ownerUserId)
+      .order("updated_at", { ascending: false })
+      .limit(limit);
+    if (error || !data) return [];
+    return data.map((r) => ({
+      ...r,
+      listing_status: typeof (r as ServiciosPublicListingRow).listing_status === "string" ? (r as ServiciosPublicListingRow).listing_status : "published",
+      owner_user_id: (r as ServiciosPublicListingRow).owner_user_id ?? null,
+    })) as ServiciosPublicListingRow[];
+  } catch {
+    return [];
   }
 }
 
@@ -81,7 +121,7 @@ export async function listServiciosPublicListingsForDiscovery(limit = 48): Promi
 }
 
 export async function getServiciosPublicListingBySlugForDiscovery(slug: string): Promise<ServiciosPublicListingRow | null> {
-  const fromDb = await getServiciosPublicListingBySlugFromDb(slug);
+  const fromDb = await getServiciosPublicListingBySlugFromDb(slug, { visibility: "slug_page" });
   if (fromDb) return fromDb;
   return getServiciosDevPublishRowBySlug(slug);
 }

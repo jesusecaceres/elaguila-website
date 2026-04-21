@@ -1,5 +1,5 @@
 // app/data/rss-events.ts
-// Automatic RSS Event Fetcher for El Águila en Vuelo
+// Automatic RSS event fetcher for Leonix Media editorial surfaces
 // Coach-made system — clean, hybrid, bilingual, cinematic.
 
 // ---------------------------

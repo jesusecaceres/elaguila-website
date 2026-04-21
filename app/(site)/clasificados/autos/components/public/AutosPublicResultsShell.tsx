@@ -142,8 +142,26 @@ export function AutosPublicResultsShell() {
 
   const displayCity = useMemo(() => {
     const raw = applied.filters.city.trim();
-    return getCanonicalCityName(raw) || raw || "San Jose";
-  }, [applied.filters.city]);
+    if (raw) return getCanonicalCityName(raw) || raw;
+    const hit = sorted[0] ?? inventory[0];
+    const c = hit?.city?.trim();
+    return c ? getCanonicalCityName(c) || c : "";
+  }, [applied.filters.city, sorted, inventory]);
+
+  const inferredState = useMemo(() => {
+    const cityQ = applied.filters.city.trim();
+    const zip5 = applied.filters.zip.replace(/\D/g, "").slice(0, 5);
+    if (cityQ) {
+      const canon = getCanonicalCityName(cityQ) || cityQ;
+      const hit = sorted.find((x) => listingCityMatchesCanon(x.city, canon));
+      return (hit?.state ?? sorted.find((x) => x.state?.trim())?.state ?? "").trim();
+    }
+    if (zip5.length === 5) {
+      const hit = sorted.find((x) => x.zip === zip5);
+      return (hit?.state ?? "").trim();
+    }
+    return (sorted[0]?.state ?? inventory[0]?.state ?? "").trim();
+  }, [applied.filters.city, applied.filters.zip, sorted, inventory]);
 
   const nearLine = useMemo(() => {
     const cityQ = applied.filters.city.trim();
@@ -151,19 +169,28 @@ export function AutosPublicResultsShell() {
     if (cityQ) {
       const canon = getCanonicalCityName(cityQ) || cityQ;
       const hit = sorted.find((x) => listingCityMatchesCanon(x.city, canon));
-      return copy.resultsNear.replace("{city}", hit ? getCanonicalCityName(hit.city) || hit.city : canon).replace("{state}", hit?.state ?? "CA");
+      const cityDisplay = hit ? getCanonicalCityName(hit.city) || hit.city : canon;
+      const st = (hit?.state ?? sorted.find((x) => x.state?.trim())?.state ?? "").trim();
+      if (st) return copy.resultsNear.replace("{city}", cityDisplay).replace("{state}", st);
+      return copy.resultsNearCity.replace("{city}", cityDisplay);
     }
     if (zip5.length === 5) {
       const hit = sorted.find((x) => x.zip === zip5);
-      return copy.resultsNear.replace("{city}", hit?.city ?? zip5).replace("{state}", hit?.state ?? "CA");
+      const cityDisplay = hit?.city ?? zip5;
+      const st = (hit?.state ?? "").trim();
+      if (st) return copy.resultsNear.replace("{city}", cityDisplay).replace("{state}", st);
+      return copy.resultsNearCity.replace("{city}", cityDisplay);
     }
-    return copy.resultsNear.replace("{city}", "San Jose").replace("{state}", "CA");
-  }, [applied.filters.city, applied.filters.zip, copy.resultsNear, sorted]);
+    return copy.resultsSubheadNoGeo;
+  }, [applied.filters.city, applied.filters.zip, copy, sorted]);
 
-  const featuredTitle = useMemo(
-    () => copy.featuredZoneTitle.replace("{city}", displayCity).replace("{state}", "CA"),
-    [copy.featuredZoneTitle, displayCity],
-  );
+  const featuredTitle = useMemo(() => {
+    const city = displayCity.trim();
+    const st = inferredState.trim();
+    if (city && st) return copy.featuredZoneTitle.replace("{city}", city).replace("{state}", st);
+    if (city) return copy.featuredZoneTitleCityOnly.replace("{city}", city);
+    return copy.featuredZoneGeneric;
+  }, [copy, displayCity, inferredState]);
 
   const pageQs = (page: number) => `${RESULTADOS_PATH}?${serializeAutosBrowseUrl({ ...applied, page })}`;
 

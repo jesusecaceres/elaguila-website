@@ -147,16 +147,16 @@ function es(): PublicarViajesPrivadoCopy {
       },
       draftNote: {
         title: "Borrador local",
-        body: "Los datos se guardan en este navegador hasta que exista publicación y pago en una fase posterior.",
+        body: "Los datos se guardan en este navegador mientras editas. Al enviar a revisión, Leonix guarda una copia en servidor vinculada a tu cuenta (inicia sesión).",
       },
       publishNext: {
-        title: "Siguiente fase",
-        body: "Publicación en vivo, pago y revisión en servidor conectarán con Supabase u otro backend — aún no activo.",
+        title: "Después de enviar",
+        body: "Tu solicitud entra a cola interna. Si se aprueba, puede aparecer en resultados públicos de Viajes. Leonix no cobra el viaje aquí ni actúa como vendedor final.",
       },
     },
     trustBar: {
       title: "Confianza",
-      body: "Leonix no procesa reservas ni pagos de viajes en esta vitrina. El siguiente paso técnico será pago/publicación cuando el sistema esté listo.",
+      body: "Leonix es descubrimiento y contacto calificado: no procesamos reserva ni pago del viaje en esta vitrina.",
     },
     sections: {
       category: "Categoría de oferta",
@@ -170,9 +170,9 @@ function es(): PublicarViajesPrivadoCopy {
       category: "Elige el tipo que mejor describe tu oferta.",
       main: "Información principal del paquete o cupo.",
       audience: "Opcional — ayuda a los lectores a ubicarse.",
-      media: "URL o archivo local solo para vista previa; sin subida a la nube aún.",
-      contact: "Cómo te contactarán — sin publicar hasta la fase de pago/revisión.",
-      publish: "El botón prepara el siguiente paso; no completa pago ni lista en vivo hoy.",
+      media: "URL o archivo local: las URLs remotas se pueden persistir en la solicitud; archivos locales sirven para vista previa en este dispositivo.",
+      contact: "Cómo te contactarán — la ficha pública solo tras aprobación interna.",
+      publish: "Debes iniciar sesión. Enviar guarda la solicitud en Leonix para revisión; no es pago ni reserva.",
     },
     offerType: {
       label: "Tipo de oferta",
@@ -232,7 +232,7 @@ function es(): PublicarViajesPrivadoCopy {
       localFile: {
         label: "O sube una imagen (solo en este dispositivo)",
         helper:
-          "Vista previa en este navegador. Archivos grandes se guardan en IndexedDB (más fiable que solo localStorage); si el navegador bloquea almacenamiento, usa una URL o una foto más pequeña. No hay subida a la nube.",
+          "Vista previa en este navegador. Archivos grandes se guardan en IndexedDB; las URLs `https://` se incluyen en la solicitud enviada a Leonix. Si necesitas que el hero viaje en la solicitud, usa URL o un archivo pequeño que quepa en el envío.",
       },
       clearImage: "Quitar imagen",
       tabUrl: "Enlace URL",
@@ -323,16 +323,16 @@ function en(): PublicarViajesPrivadoCopy {
       },
       draftNote: {
         title: "Local draft",
-        body: "Data stays in this browser until live publishing and payment ship in a later phase.",
+        body: "Data stays in this browser while you edit. When you submit for review, Leonix stores a server copy linked to your account (sign in required).",
       },
       publishNext: {
-        title: "Next phase",
-        body: "Live listing, payment, and server-side review will connect via Supabase or another backend — not active yet.",
+        title: "After you submit",
+        body: "Your request enters an internal queue. If approved, it may appear in public Viajes results. Leonix does not collect travel payment here or act as the seller of record.",
       },
     },
     trustBar: {
       title: "Trust",
-      body: "Leonix does not process travel bookings or payments in this showcase. The technical next step will be payment/publishing when the system is ready.",
+      body: "Leonix is discovery and qualified contact: we do not process booking or travel payment in this showcase.",
     },
     sections: {
       category: "Offer category",
@@ -346,9 +346,9 @@ function en(): PublicarViajesPrivadoCopy {
       category: "Pick the type that best describes your offer.",
       main: "Core information about the package or spot.",
       audience: "Optional — helps readers self-select.",
-      media: "URL or local file for preview only; no cloud upload yet.",
-      contact: "How people reach you — no live listing until the payment/review phase.",
-      publish: "This button sets up the next step; it does not complete payment or go live today.",
+      media: "URL or local file: remote URLs can be stored on the request; local files power preview on this device.",
+      contact: "How people reach you — public listing only after internal approval.",
+      publish: "You must be signed in. Submit saves the request in Leonix for review — not payment or booking.",
     },
     offerType: {
       label: "Offer type",
@@ -408,7 +408,7 @@ function en(): PublicarViajesPrivadoCopy {
       localFile: {
         label: "Or upload an image (this device only)",
         helper:
-          "Preview in this browser. Large files are stored in IndexedDB (more reliable than localStorage alone); if the browser blocks storage, use a URL or a smaller photo. Nothing is uploaded to the cloud.",
+          "Preview in this browser. Large files stay in IndexedDB; `https://` image URLs are included in the request sent to Leonix. For a portable hero in the submission, prefer a URL or a small file that fits the submit payload.",
       },
       clearImage: "Remove image",
       tabUrl: "Image URL",

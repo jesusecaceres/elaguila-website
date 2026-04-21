@@ -15,6 +15,7 @@ import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
 import { AUTOS_CLASSIFIEDS_EVENT } from "@/app/lib/clasificados/autos/autosClassifiedsEventTypes";
 import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import { trackAutosListingEvent } from "../../lib/autosListingAnalyticsClient";
+import { LeonixInlineListingReport } from "@/app/clasificados/components/LeonixInlineListingReport";
 
 type PublicListingApiOk = {
   ok: true;
@@ -117,6 +118,9 @@ export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
           <Link href={resultsHref} className="text-sm font-semibold text-[color:var(--lx-gold)]">
             {lang === "es" ? "← Volver a resultados" : "← Back to results"}
           </Link>
+          <div className="mx-auto mt-4 max-w-md text-left">
+            <LeonixInlineListingReport listingId={listingId} lang={lang} />
+          </div>
         </div>
       </AutosPrivadoPreviewLocaleProvider>
     );
@@ -129,6 +133,9 @@ export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
         <Link href={resultsHref} className="text-sm font-semibold text-[color:var(--lx-gold)]">
           {lang === "es" ? "← Volver a resultados" : "← Back to results"}
         </Link>
+        <div className="mx-auto mt-4 max-w-md text-left">
+          <LeonixInlineListingReport listingId={listingId} lang={lang} />
+        </div>
       </div>
     </AutosNegociosPreviewLocaleProvider>
   );

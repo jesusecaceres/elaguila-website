@@ -161,8 +161,8 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
     {
       title:
         lang === "es"
-          ? "El Águila lanza nueva plataforma digital"
-          : "El Águila launches new digital platform",
+          ? "Leonix Media amplía su plataforma digital 2026"
+          : "Leonix Media expands its digital platform in 2026",
       img: "/featured.png",
       desc:
         lang === "es"

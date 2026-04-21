@@ -24,8 +24,26 @@ export function applyAutosPublicFilters(
   return listings.filter((row) => {
     if (searchQ.trim()) {
       const q = searchQ.toLowerCase();
-      const hay =
-        `${row.make} ${row.model} ${row.year} ${row.trim ?? ""} ${row.vehicleTitle}`.toLowerCase();
+      const hay = [
+        row.make,
+        row.model,
+        String(row.year),
+        row.trim ?? "",
+        row.vehicleTitle,
+        row.bodyStyle,
+        row.transmission,
+        row.drivetrain,
+        row.fuelType,
+        row.titleStatus ?? "",
+        row.city,
+        row.state,
+        row.zip ?? "",
+        row.dealerName ?? "",
+        row.privateSellerLabel ?? "",
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
       if (!hay.includes(q)) return false;
     }
     const cityActive = Boolean(f.city.trim());
@@ -44,7 +62,7 @@ export function applyAutosPublicFilters(
       const n = Number(f.priceMax);
       if (Number.isFinite(n) && row.price > n) return false;
     }
-    if (f.make && row.make !== f.make) return false;
+    if (f.make.trim() && row.make.trim().toLowerCase() !== f.make.trim().toLowerCase()) return false;
     if (f.model.trim() && !row.model.toLowerCase().includes(f.model.trim().toLowerCase())) return false;
     if (f.yearMin.trim()) {
       const n = Number(f.yearMin);

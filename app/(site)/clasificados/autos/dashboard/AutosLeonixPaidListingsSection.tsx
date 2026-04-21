@@ -5,30 +5,18 @@ import { useCallback, useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import type { AutosClassifiedsDashboardRow } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
-import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
+import type { AutosClassifiedsLane, AutosClassifiedsListingStatus } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
+import {
+  autosListingStatusLabelEn,
+  autosListingStatusLabelEs,
+} from "@/app/lib/clasificados/autos/autosClassifiedsVisibility";
 import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 
 type Lang = "es" | "en";
 
 function statusLabel(status: string, lang: Lang): string {
-  const es: Record<string, string> = {
-    draft: "Borrador",
-    pending_payment: "Pago pendiente",
-    active: "Publicado",
-    payment_failed: "Pago fallido",
-    cancelled: "Cancelado",
-    removed: "Retirado",
-  };
-  const en: Record<string, string> = {
-    draft: "Draft",
-    pending_payment: "Payment pending",
-    active: "Live",
-    payment_failed: "Payment failed",
-    cancelled: "Cancelled",
-    removed: "Removed",
-  };
-  const m = lang === "es" ? es : en;
-  return m[status] ?? status;
+  const s = status as AutosClassifiedsListingStatus;
+  return lang === "es" ? autosListingStatusLabelEs(s) : autosListingStatusLabelEn(s);
 }
 
 function laneLabel(lane: AutosClassifiedsLane, lang: Lang) {

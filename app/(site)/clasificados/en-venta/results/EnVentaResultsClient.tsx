@@ -51,6 +51,7 @@ type RowPack = {
 };
 
 function priceNumFromRow(row: Record<string, unknown>): number {
+  if (row.is_free === true) return 0;
   const raw = row.price;
   if (typeof raw === "number" && Number.isFinite(raw)) return raw;
   return Number(String(raw ?? "").replace(/[^0-9.]/g, "")) || 0;
@@ -76,7 +77,8 @@ function resolveEffectiveDept(dto: EnVentaAnuncioDTO): string | null {
 function textMatch(q: string, dto: EnVentaAnuncioDTO): boolean {
   const needle = q.trim().toLowerCase();
   if (!needle) return true;
-  const blob = `${dto.title.es} ${dto.description} ${dto.city}`.toLowerCase();
+  const blob =
+    `${dto.title.es} ${dto.description} ${dto.city} ${dto.brand ?? ""} ${dto.model ?? ""} ${dto.quantity ?? ""}`.toLowerCase();
   return blob.includes(needle);
 }
 
@@ -98,6 +100,9 @@ export function EnVentaResultsClient() {
   const ship = sp?.get("ship") === "1";
   const delivery = sp?.get("delivery") === "1";
   const seller = (sp?.get("seller") ?? "").trim();
+  const freeOnly = sp?.get(EV_RESULTS_PARAM.free) === "1";
+  const negotiableOnly = sp?.get(EV_RESULTS_PARAM.nego) === "1";
+  const meetupOnly = sp?.get(EV_RESULTS_PARAM.meetup) === "1";
   const sort = (sp?.get("sort") ?? "newest") as SortId;
   const view = sp?.get("view") === "list" ? "list" : "grid";
   const page = Math.max(1, Number(sp?.get("page") ?? "1") || 1);
@@ -198,8 +203,11 @@ export function EnVentaResultsClient() {
 
   const filtered = useMemo(() => {
     const cityFilterOn = Boolean(city.trim());
-    let list = rows.filter(({ dto, effectiveDept, priceNum }) => {
+    let list = rows.filter(({ dto, effectiveDept, priceNum, row }) => {
       if (!textMatch(q, dto)) return false;
+      if (freeOnly && !Boolean(row.is_free)) return false;
+      if (negotiableOnly && !dto.negotiable) return false;
+      if (meetupOnly && !dto.meetupOffered) return false;
       if (evDept && effectiveDept !== evDept) return false;
       if (evSub && (dto.subKey ?? "").trim() !== evSub) return false;
       const cityOk = listingMatchesCityFilter(dto.city, city);
@@ -233,7 +241,26 @@ export function EnVentaResultsClient() {
     });
 
     return list;
-  }, [rows, q, evDept, evSub, city, zip, featuredOnly, cond, pickup, ship, delivery, seller, priceMin, priceMax, sort]);
+  }, [
+    rows,
+    q,
+    evDept,
+    evSub,
+    city,
+    zip,
+    featuredOnly,
+    cond,
+    pickup,
+    ship,
+    delivery,
+    seller,
+    priceMin,
+    priceMax,
+    sort,
+    freeOnly,
+    negotiableOnly,
+    meetupOnly,
+  ]);
 
   const promotedPool = useMemo(() => {
     if (featuredOnly) return [];
@@ -294,14 +321,17 @@ export function EnVentaResultsClient() {
       privacyNote:
         "La ubicación solo se usa si la solicitas; no guardamos tu posición exacta en el servidor.",
       applyFilters: "Aplicar filtros",
-      mapRadiusSoon: "Radio en mapa (próximamente)",
+      mapRadiusSoon: "Mapa / radio (aún no disponible — no filtra resultados)",
       mapRadiusBody:
-        "El refinamiento por distancia real vendrá con mapa. Mientras tanto, usa ciudad y CP para acotar.",
+        "El refinamiento por distancia real vendrá con mapa; esta sección es informativa. Ciudad y CP sí filtran cuando el anuncio tiene esos datos.",
       groupSearchLoc: "Buscar y ubicación",
       groupSortView: "Orden, vista y destacados",
       groupRefine: "Refinar listado",
       cityZipHelp: "Ciudad canónica NorCal; CP de 5 dígitos acota cuando hay datos.",
       refineIntro: "Categoría, precio y entrega",
+      freeOnly: "Solo gratis / regalo",
+      negoOnly: "Solo negociables",
+      meetupOnly: "Solo con encuentro",
       viewLabel: "Vista",
       standardEngineLine:
         "Listado principal: respeta tus filtros y la página; no repite los Destacados de arriba.",
@@ -344,14 +374,17 @@ export function EnVentaResultsClient() {
       activeFilters: "Active filters",
       privacyNote: "Location is only used when you ask; we do not store your precise position on the server.",
       applyFilters: "Apply filters",
-      mapRadiusSoon: "Map radius (coming soon)",
+      mapRadiusSoon: "Map / radius (not available yet — does not filter)",
       mapRadiusBody:
-        "True distance search will ship with a map. For now, use city and ZIP to narrow results.",
+        "True distance search will ship with a map; this panel is informational only. City and ZIP filter when listings store them.",
       groupSearchLoc: "Search & location",
       groupSortView: "Sort, view & featured",
       groupRefine: "Refine listings",
       cityZipHelp: "Canonical NorCal city; 5-digit ZIP narrows when listings include ZIP.",
       refineIntro: "Category, price & fulfillment",
+      freeOnly: "Free / gift only",
+      negoOnly: "Negotiable only",
+      meetupOnly: "Meetup offered",
       viewLabel: "View",
       standardEngineLine:
         "Main feed: honors your filters and page; listings shown in Destacados above are not duplicated here.",
@@ -375,6 +408,9 @@ export function EnVentaResultsClient() {
         ship: ship ? "1" : undefined,
         delivery: delivery ? "1" : undefined,
         seller: seller || undefined,
+        free: freeOnly ? "1" : undefined,
+        nego: negotiableOnly ? "1" : undefined,
+        meetup: meetupOnly ? "1" : undefined,
         sort,
         view,
         page: String(safePage),
@@ -386,7 +422,29 @@ export function EnVentaResultsClient() {
       }
       router.push(`${EN_VENTA_RESULTS_PATH}?${sp2.toString()}`);
     },
-    [router, lang, q, evDept, evSub, city, zip, featuredOnly, cond, priceMin, priceMax, pickup, ship, delivery, seller, sort, view, safePage]
+    [
+      router,
+      lang,
+      q,
+      evDept,
+      evSub,
+      city,
+      zip,
+      featuredOnly,
+      cond,
+      priceMin,
+      priceMax,
+      pickup,
+      ship,
+      delivery,
+      seller,
+      freeOnly,
+      negotiableOnly,
+      meetupOnly,
+      sort,
+      view,
+      safePage,
+    ]
   );
 
   const onSubmitSearch = (formEvent: React.FormEvent<HTMLFormElement>) => {
@@ -396,6 +454,9 @@ export function EnVentaResultsClient() {
     const pickupOn = (el.elements.namedItem("pickup") as HTMLInputElement | null)?.checked ?? false;
     const shipOn = (el.elements.namedItem("ship") as HTMLInputElement | null)?.checked ?? false;
     const deliveryOn = (el.elements.namedItem("delivery") as HTMLInputElement | null)?.checked ?? false;
+    const freeOn = (el.elements.namedItem("free") as HTMLInputElement | null)?.checked ?? false;
+    const negoOn = (el.elements.namedItem("nego") as HTMLInputElement | null)?.checked ?? false;
+    const meetupOn = (el.elements.namedItem("meetupFilter") as HTMLInputElement | null)?.checked ?? false;
     const featuredOn = fd.get("featured") === "on" || fd.get("featured") === "1";
     pushParams({
       q: String(fd.get("q") ?? "").trim() || undefined,
@@ -412,6 +473,9 @@ export function EnVentaResultsClient() {
       ship: shipOn ? "1" : undefined,
       delivery: deliveryOn ? "1" : undefined,
       seller: String(fd.get("seller") ?? "").trim() || undefined,
+      free: freeOn ? "1" : undefined,
+      nego: negoOn ? "1" : undefined,
+      meetup: meetupOn ? "1" : undefined,
       featured: featuredOn ? "1" : undefined,
       page: "1",
     });
@@ -505,6 +569,9 @@ export function EnVentaResultsClient() {
         label: lang === "es" ? "Entrega local" : "Local delivery",
         onRemove: () => rm({ delivery: undefined }),
       });
+    if (freeOnly) out.push({ key: "free", label: t.freeOnly, onRemove: () => rm({ free: undefined }) });
+    if (negotiableOnly) out.push({ key: "nego", label: t.negoOnly, onRemove: () => rm({ nego: undefined }) });
+    if (meetupOnly) out.push({ key: "meetup", label: t.meetupOnly, onRemove: () => rm({ meetup: undefined }) });
     if (priceMin.trim()) out.push({ key: "pmin", label: `≥ ${priceMin}`, onRemove: () => rm({ priceMin: undefined }) });
     if (priceMax.trim()) out.push({ key: "pmax", label: `≤ ${priceMax}`, onRemove: () => rm({ priceMax: undefined }) });
     if (featuredOnly)
@@ -525,6 +592,9 @@ export function EnVentaResultsClient() {
     pickup,
     ship,
     delivery,
+    freeOnly,
+    negotiableOnly,
+    meetupOnly,
     priceMin,
     priceMax,
     featuredOnly,
@@ -534,6 +604,9 @@ export function EnVentaResultsClient() {
     subOptions,
     t.ind,
     t.biz,
+    t.freeOnly,
+    t.negoOnly,
+    t.meetupOnly,
   ]);
 
   const countLine =
@@ -871,6 +944,24 @@ export function EnVentaResultsClient() {
             <label className="inline-flex items-center gap-2">
               <input type="checkbox" name="delivery" defaultChecked={delivery} className="rounded border-[#C9B46A]" />
               {lang === "es" ? "Entrega local" : "Local delivery"}
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input type="checkbox" name="free" value="1" defaultChecked={freeOnly} className="rounded border-[#C9B46A]" />
+              {t.freeOnly}
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input type="checkbox" name="nego" value="1" defaultChecked={negotiableOnly} className="rounded border-[#C9B46A]" />
+              {t.negoOnly}
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                name="meetupFilter"
+                value="1"
+                defaultChecked={meetupOnly}
+                className="rounded border-[#C9B46A]"
+              />
+              {t.meetupOnly}
             </label>
           </div>
 

@@ -7,6 +7,9 @@ export type RentasListingDetailExtra = {
   sellerDisplayEs: string;
   sellerDisplayEn: string;
   gallery: string[];
+  /** When `listings.contact_*` is populated and policy allows public display. */
+  contactPhone?: string;
+  contactEmail?: string;
 };
 
 /** @deprecated Prefer `getRentasListingById` from `rentasPublicData` — kept for call sites. */
@@ -27,6 +30,8 @@ function defaultExtra(listing: RentasPublicListing): RentasListingDetailExtra {
 
 /** Resolves bilingual copy + gallery from the public listing contract (sample or future live rows). */
 export function getRentasListingDetailExtra(listing: RentasPublicListing): RentasListingDetailExtra {
+  const contactPhone = listing.contactPhone?.trim() || undefined;
+  const contactEmail = listing.contactEmail?.trim() || undefined;
   if (listing.description && listing.sellerDisplay) {
     return {
       descriptionEs: listing.description.es,
@@ -34,7 +39,10 @@ export function getRentasListingDetailExtra(listing: RentasPublicListing): Renta
       sellerDisplayEs: listing.sellerDisplay.es,
       sellerDisplayEn: listing.sellerDisplay.en,
       gallery: listing.galleryUrls?.length ? listing.galleryUrls : [listing.imageUrl],
+      contactPhone,
+      contactEmail,
     };
   }
-  return defaultExtra(listing);
+  const base = defaultExtra(listing);
+  return { ...base, contactPhone, contactEmail };
 }

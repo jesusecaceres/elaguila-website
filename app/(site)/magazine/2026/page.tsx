@@ -72,7 +72,7 @@ export default function Editions2026Page() {
         kicker: "ARCHIVO DIGITAL",
         title: "Ediciones 2026",
         subtitle:
-          "Explora todas las ediciones digitales de LEONIX Media para 2026. Haz clic en una portada para abrir la edición.",
+          "Explora todas las ediciones digitales de Leonix Media para 2026. Haz clic en una portada para abrir la edición.",
         back: "← Volver al Hub de Revista",
         loading: "Cargando ediciones…",
         empty: "Aún no hay ediciones publicadas para 2026.",
@@ -82,7 +82,7 @@ export default function Editions2026Page() {
         kicker: "DIGITAL ARCHIVE",
         title: "2026 Editions",
         subtitle:
-          "Browse all LEONIX Media digital editions for 2026. Click any cover to open the issue.",
+          "Browse all Leonix Media digital editions for 2026. Click any cover to open the issue.",
         back: "← Back to Magazine Hub",
         loading: "Loading editions…",
         empty: "No editions have been published for 2026 yet.",

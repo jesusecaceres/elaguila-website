@@ -10,6 +10,11 @@ function rentDemoMonthlyNumber(rentDisplay: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function monthlyRentNumber(l: RentasPublicListing): number {
+  if (typeof l.rentMonthly === "number" && Number.isFinite(l.rentMonthly) && l.rentMonthly > 0) return l.rentMonthly;
+  return rentDemoMonthlyNumber(l.rentDisplay);
+}
+
 function listingBedsNumeric(beds: string): number | null {
   if (beds === "—" || beds.trim() === "") return 0;
   const n = Number(String(beds).replace(/[^0-9.]/g, ""));
@@ -23,9 +28,9 @@ function listingBathsNumeric(baths: string): number | null {
 }
 
 /** Demo precio band from landing search (`precio`). */
-function precioBandMatches(rentDisplay: string, band: string): boolean {
+function precioBandMatches(listing: RentasPublicListing, band: string): boolean {
   if (!band) return true;
-  const n = rentDemoMonthlyNumber(rentDisplay);
+  const n = monthlyRentNumber(listing);
   if (band === "r0-15k") return n > 0 && n <= 15000;
   if (band === "r15-25k") return n > 15000 && n <= 25000;
   if (band === "r25-40k") return n > 25000 && n <= 40000;
@@ -75,7 +80,7 @@ export function filterRentasPublicListings(rows: RentasPublicListing[], p: Renta
 
   if (p.q.trim()) out = out.filter((l) => textMatchesListing(l, p.q));
 
-  if (p.precio) out = out.filter((l) => precioBandMatches(l.rentDisplay, p.precio));
+  if (p.precio) out = out.filter((l) => precioBandMatches(l, p.precio));
 
   if (p.recs) {
     const minBeds = p.recs === "4" ? 4 : Number(p.recs);
@@ -93,11 +98,11 @@ export function filterRentasPublicListings(rows: RentasPublicListing[], p: Renta
 
   if (p.rentMin !== null) {
     const min = p.rentMin;
-    out = out.filter((l) => rentDemoMonthlyNumber(l.rentDisplay) >= min);
+    out = out.filter((l) => monthlyRentNumber(l) >= min);
   }
   if (p.rentMax !== null) {
     const max = p.rentMax;
-    out = out.filter((l) => rentDemoMonthlyNumber(l.rentDisplay) <= max);
+    out = out.filter((l) => monthlyRentNumber(l) <= max);
   }
 
   if (p.city) out = out.filter((l) => cityMatches(l, p.city));
@@ -118,8 +123,8 @@ export function filterRentasPublicListings(rows: RentasPublicListing[], p: Renta
 
 export function sortRentasPublicListings(rows: RentasPublicListing[], sort: string): RentasPublicListing[] {
   const r = [...rows];
-  if (sort === "precio_asc") r.sort((a, b) => rentDemoMonthlyNumber(a.rentDisplay) - rentDemoMonthlyNumber(b.rentDisplay));
-  else if (sort === "precio_desc") r.sort((a, b) => rentDemoMonthlyNumber(b.rentDisplay) - rentDemoMonthlyNumber(a.rentDisplay));
+  if (sort === "precio_asc") r.sort((a, b) => monthlyRentNumber(a) - monthlyRentNumber(b));
+  else if (sort === "precio_desc") r.sort((a, b) => monthlyRentNumber(b) - monthlyRentNumber(a));
   else {
     r.sort((a, b) => (b.recencyRank ?? 0) - (a.recencyRank ?? 0));
   }

@@ -6,8 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import type { JobFairModality } from "@/app/clasificados/empleos/data/empleoJobFairSampleData";
-import { persistEmpleosPublished } from "@/app/clasificados/empleos/lib/staged/empleosPublishService";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { EmpleosApplicationFinalStep } from "@/app/publicar/empleos/shared/components/EmpleosApplicationFinalStep";
 import { EmpleosReadinessBanner } from "@/app/publicar/empleos/shared/components/EmpleosReadinessBanner";
 import { EMPLEOS_PUBLISH_SHARED_COPY } from "@/app/publicar/empleos/shared/copy/empleosPublishSharedCopy";
@@ -47,6 +47,7 @@ export default function EmpleoFeriaApplicationClient() {
 
   const [publishOpen, setPublishOpen] = useState(false);
   const [stagedNotice, setStagedNotice] = useState(false);
+  const [serverListingId, setServerListingId] = useState<string | null>(null);
 
   const gate = useMemo(() => gateEmpleosFeriaPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;
@@ -250,6 +251,37 @@ export default function EmpleoFeriaApplicationClient() {
           onDelete={handleDeleteApplication}
           stagedSuccessText={stagedNotice ? copy.stagedSuccess : null}
           publishGateBlockedHint={previewDisabled ? copy.publishBlocked : null}
+          saveDraftCta={copy.finalStep.saveDraftCta ?? null}
+          onSaveDraft={() => {
+            void (async () => {
+              const g = gateEmpleosFeriaPreview(state, lang);
+              if (!g.ok) return;
+              const sb = createSupabaseBrowserClient();
+              const { data } = await sb.auth.getSession();
+              if (!data.session?.access_token) {
+                window.alert(lang === "es" ? "Inicia sesión para guardar el borrador." : "Sign in to save a draft.");
+                return;
+              }
+              const base = buildEmpleosPublishEnvelopeFromFeria(state, lang);
+              const envelope = serverListingId ? { ...base, listingId: serverListingId } : base;
+              const res = await fetch("/api/clasificados/empleos/listings", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${data.session.access_token}`,
+                },
+                body: JSON.stringify({ envelope, mode: "draft" }),
+              });
+              const json = (await res.json()) as { ok?: boolean; error?: string; id?: string };
+              if (!json.ok) {
+                window.alert(json.error ?? (lang === "es" ? "No se pudo guardar" : "Could not save"));
+                return;
+              }
+              if (json.id) setServerListingId(json.id);
+              clearEmpleosStagedPublish();
+              setStagedNotice(true);
+            })();
+          }}
         />
       </div>
 
@@ -257,14 +289,37 @@ export default function EmpleoFeriaApplicationClient() {
         open={publishOpen}
         onClose={() => setPublishOpen(false)}
         onConfirm={() => {
-          const g = gateEmpleosFeriaPreview(state, lang);
-          if (!g.ok) return;
-          const envelope = buildEmpleosPublishEnvelopeFromFeria(state, lang);
-          const row = persistEmpleosPublished(envelope);
-          clearEmpleosStagedPublish();
-          setPublishOpen(false);
-          setStagedNotice(true);
-          router.push(appendLangToPath(`/clasificados/empleos/${row.slug}`, lang));
+          void (async () => {
+            const g = gateEmpleosFeriaPreview(state, lang);
+            if (!g.ok) return;
+            const sb = createSupabaseBrowserClient();
+            const { data } = await sb.auth.getSession();
+            if (!data.session?.access_token) {
+              window.alert(lang === "es" ? "Inicia sesión para publicar." : "Sign in to publish.");
+              return;
+            }
+            const base = buildEmpleosPublishEnvelopeFromFeria(state, lang);
+            const envelope = serverListingId ? { ...base, listingId: serverListingId } : base;
+            const res = await fetch("/api/clasificados/empleos/listings", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${data.session.access_token}`,
+              },
+              body: JSON.stringify({ envelope, mode: "publish" }),
+            });
+            const json = (await res.json()) as { ok?: boolean; error?: string; id?: string; slug?: string };
+            if (!json.ok || !json.slug) {
+              window.alert(json.error ?? (lang === "es" ? "No se pudo publicar" : "Could not publish"));
+              return;
+            }
+            if (json.id) setServerListingId(json.id);
+            clearEmpleosStagedPublish();
+            setPublishOpen(false);
+            setStagedNotice(true);
+            router.push(appendLangToPath(`/clasificados/empleos/${json.slug}`, lang));
+            router.refresh();
+          })();
         }}
         title={copy.publishModal.title}
         intro={copy.publishModal.intro}

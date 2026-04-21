@@ -1,4 +1,19 @@
+import type { RestauranteServiceMode } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
+
+/** Service modes allowed as `svc=` URL filter values (matches publish taxonomy). */
+const DISCOVERY_SVC_PARAM_WHITELIST = new Set<string>([
+  "dine_in",
+  "takeout",
+  "delivery",
+  "catering",
+  "events",
+  "pop_up",
+  "food_truck",
+  "personal_chef",
+  "meal_prep",
+  "other",
+]);
 import {
   normalizeDiscoveryLocationText,
   type RestaurantesDiscoveryState,
@@ -7,7 +22,7 @@ import {
 /**
  * Free-text `q` matches (case-insensitive substring) against the same fields we intend to index for publish:
  * business name, cuisine copy line, primary/secondary cuisine keys (taxonomy), city display string, ZIP.
- * **Future:** append `shortSummary`, featured dish titles, and normalized `cityCanonical` when the API provides them.
+ * Includes `additionalCuisineKeys` from published `listing_json` when present on the row.
  */
 function rowMatchesQuery(q: string, row: RestaurantesPublicBlueprintRow): boolean {
   const needle = q.trim().toLowerCase();
@@ -17,6 +32,7 @@ function rowMatchesQuery(q: string, row: RestaurantesPublicBlueprintRow): boolea
     row.cuisineLine,
     row.primaryCuisineKey,
     row.secondaryCuisineKey ?? "",
+    ...(row.additionalCuisineKeys ?? []),
     row.city,
     row.zip ?? "",
   ]
@@ -30,7 +46,7 @@ function rowMatchesCuisineFilter(param: string, row: RestaurantesPublicBlueprint
   const raw = param.trim();
   if (!raw) return true;
   if (raw === row.primaryCuisineKey || raw === row.secondaryCuisineKey) return true;
-  return false;
+  return (row.additionalCuisineKeys ?? []).some((k) => k === raw);
 }
 
 export type FilterRestaurantesBlueprintOptions = {
@@ -56,7 +72,13 @@ export function filterRestaurantesBlueprintRows(
     if (s.zip && (row.zip ?? "").trim() !== s.zip.trim()) return false;
     if (s.cuisine && !rowMatchesCuisineFilter(s.cuisine, row)) return false;
     if (s.biz && (row.businessType ?? "") !== s.biz) return false;
-    if (s.svc && !row.serviceModes.includes(s.svc as "dine_in" | "takeout" | "delivery")) return false;
+    if (s.svc) {
+      const raw = s.svc.trim();
+      if (DISCOVERY_SVC_PARAM_WHITELIST.has(raw)) {
+        const want = raw as RestauranteServiceMode;
+        if (!row.serviceModes.includes(want)) return false;
+      }
+    }
     if (s.family && !row.familyFriendly) return false;
     if (s.price && row.priceLevel !== s.price) return false;
     if (s.open && !row.openNowDemo) return false;

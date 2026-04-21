@@ -5,10 +5,7 @@ import {
   RESTAURANTES_PUBLIC_BLUEPRINT_ROWS,
 } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
-import {
-  mapDbRowsToPublicResultsRows,
-  mapPublicResultsRowsToShellInventory,
-} from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
+import { mapRestaurantesPublicListingDbRowsToShellInventory } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import {
   isSupabaseAdminConfigured,
   listRestaurantesPublicListingsFromDb,
@@ -19,54 +16,62 @@ import {
 } from "@/app/clasificados/restaurantes/lib/restaurantesListingExposurePolicy";
 import type { RestaurantesBlueprintCard } from "@/app/clasificados/restaurantes/lib/restaurantesBlueprintTypes";
 
-export type RestaurantesLandingInventoryMode = "live_pool" | "demo_editorial";
+export type RestaurantesLandingInventoryMode = "live_pool" | "empty" | "explicit_demo" | "inventory_unavailable";
 
 export type RestaurantesLandingInventoryPayload = {
   featuredCards: RestaurantesBlueprintCard[];
   recentCards: RestaurantesBlueprintCard[];
   mode: RestaurantesLandingInventoryMode;
-  /** Optional honesty strip under hero modules */
   landingNote?: string;
-  /** Rows used to resolve featured/recent card clicks → results deep links + public slugs. */
   discoveryLookupRows: RestaurantesPublicBlueprintRow[];
 };
 
+function allowBlueprintDemo(): boolean {
+  return process.env.RESTAURANTES_USE_BLUEPRINT_INVENTORY === "true";
+}
+
 /**
- * Featured + recientes cards for the landing page.
- * When published inventory exists, selection uses the same exposure helpers as blueprint (mixed / time-ordered).
- * Otherwise falls back to blueprint editorial pool (design continuity).
+ * Landing cards: live published selection when DB is configured and non-empty;
+ * otherwise empty cards + honest note (no silent blueprint unless explicit demo env).
  */
 export async function loadRestaurantesLandingInventoryForPage(): Promise<RestaurantesLandingInventoryPayload> {
   if (!isSupabaseAdminConfigured()) {
-    const { getRestaurantesBlueprintLandingFeatured, getRestaurantesBlueprintLandingRecent } = await import(
-      "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData"
-    );
+    if (allowBlueprintDemo()) {
+      const { getRestaurantesBlueprintLandingFeatured, getRestaurantesBlueprintLandingRecent } = await import(
+        "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData"
+      );
+      return {
+        featuredCards: getRestaurantesBlueprintLandingFeatured(),
+        recentCards: getRestaurantesBlueprintLandingRecent(),
+        mode: "explicit_demo",
+        landingNote:
+          "Módulos destacados/recientes en modo demostración explícito (`RESTAURANTES_USE_BLUEPRINT_INVENTORY=true`).",
+        discoveryLookupRows: RESTAURANTES_PUBLIC_BLUEPRINT_ROWS,
+      };
+    }
     return {
-      featuredCards: getRestaurantesBlueprintLandingFeatured(),
-      recentCards: getRestaurantesBlueprintLandingRecent(),
-      mode: "demo_editorial",
+      featuredCards: [],
+      recentCards: [],
+      mode: "inventory_unavailable",
       landingNote:
-        "Destacados y recientes de muestra (diseño). Resultados y fichas públicas usan datos reales cuando Supabase está configurado.",
-      discoveryLookupRows: RESTAURANTES_PUBLIC_BLUEPRINT_ROWS,
+        "Sin inventario publicado conectado: configura Supabase con rol de servicio para mostrar restaurantes reales en portada y resultados.",
+      discoveryLookupRows: [],
     };
   }
 
   const dbRows = await listRestaurantesPublicListingsFromDb(200);
   if (dbRows.length === 0) {
-    const { getRestaurantesBlueprintLandingFeatured, getRestaurantesBlueprintLandingRecent } = await import(
-      "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData"
-    );
     return {
-      featuredCards: getRestaurantesBlueprintLandingFeatured(),
-      recentCards: getRestaurantesBlueprintLandingRecent(),
-      mode: "demo_editorial",
+      featuredCards: [],
+      recentCards: [],
+      mode: "empty",
       landingNote:
-        "Sin publicaciones aún: se muestran tarjetas editoriales de muestra. Publica un restaurante para reemplazarlas con datos vivos.",
-      discoveryLookupRows: RESTAURANTES_PUBLIC_BLUEPRINT_ROWS,
+        "Aún no hay publicaciones: las secciones destacadas y recientes aparecerán cuando existan listados «published».",
+      discoveryLookupRows: [],
     };
   }
 
-  const shellRows = mapPublicResultsRowsToShellInventory(mapDbRowsToPublicResultsRows(dbRows));
+  const shellRows = mapRestaurantesPublicListingDbRowsToShellInventory(dbRows);
   const featured = selectLandingDestacadosCandidates(shellRows).map(blueprintRowToLandingCard);
   const recent = selectLandingRecientesCandidates(shellRows).map(blueprintRowToLandingCard);
   return {

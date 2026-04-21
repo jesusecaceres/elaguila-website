@@ -2,15 +2,17 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Publicar anuncio",
-  description: "Publica tu anuncio en minutos con una experiencia guiada — LEONIX Clasificados.",
+  description:
+    "Flujo guiado para publicar clasificados en Leonix Media. Borradores y utilidades de publicación no están pensados para indexación pública.",
+  robots: { index: false, follow: true },
   alternates: {
     canonical: "/clasificados/publicar",
   },
   openGraph: {
-    title: "Publicar anuncio — LEONIX",
-    description: "Publica tu anuncio en minutos con una experiencia guiada — LEONIX Clasificados.",
+    title: "Publicar anuncio | Leonix Media",
+    description: "Publica clasificados con Leonix Media — plataforma bilingüe de visibilidad y descubrimiento local.",
     url: "/clasificados/publicar",
-    siteName: "LEONIX",
+    siteName: "Leonix Media",
     type: "website",
   },
 };

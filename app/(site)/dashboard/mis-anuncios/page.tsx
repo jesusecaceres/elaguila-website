@@ -568,19 +568,19 @@ export default function MyListingsPage() {
           <AutosLeonixPaidListingsSection lang={lang} />
 
           <div className="mt-4 rounded-2xl border border-amber-200/80 bg-amber-50/90 p-4 text-xs leading-relaxed text-[#5C5346]">
-            <p className="font-semibold text-[#1E1810]">Empleos — demostración local</p>
+            <p className="font-semibold text-[#1E1810]">Empleos — producción (Supabase)</p>
             <p className="mt-1">
               Las vacantes publicadas desde los flujos Empleos (rápido / premium / feria) se guardan en{" "}
-              <code className="rounded bg-white/80 px-1 text-[11px]">localStorage</code> de este navegador y aparecen en
-              resultados públicos mezcladas con el catálogo de muestra. Gestión y enlaces:
+              <code className="rounded bg-white/80 px-1 text-[11px]">empleos_public_listings</code> (requiere sesión). Aparecen en
+              resultados mezcladas con el catálogo de muestra. Gestión y enlaces:
             </p>
             <p className="mt-2">
-              <Link href={`/dashboard/empleos/staged?${q}`} className="font-semibold text-[#8A6A1A] underline">
-                {lang === "es" ? "Mis vacantes Empleos (demo) →" : "My Jobs listings (demo) →"}
+              <Link href={`/dashboard/empleos?${q}`} className="font-semibold text-[#8A6A1A] underline">
+                {lang === "es" ? "Mis vacantes Empleos →" : "My job listings (Empleos) →"}
               </Link>
               {" · "}
-              <Link href="/admin/workspace/clasificados/staged-empleos" className="font-semibold text-[#8A6A1A] underline">
-                {lang === "es" ? "Moderación admin (demo) →" : "Admin moderation (demo) →"}
+              <Link href="/admin/workspace/clasificados/empleos" className="font-semibold text-[#8A6A1A] underline">
+                {lang === "es" ? "Moderación Empleos (admin) →" : "Empleos moderation (admin) →"}
               </Link>
             </p>
           </div>

@@ -6,7 +6,13 @@ import type { EmpleosJobRecord } from "../../data/empleosJobTypes";
 /**
  * Staged public lifecycle (demo) — distinct from DB `listings.status` strings.
  */
-export type EmpleosStagedPublicStatus = "draft" | "published" | "paused" | "archived" | "rejected";
+export type EmpleosStagedPublicStatus =
+  | "draft"
+  | "pending_review"
+  | "published"
+  | "paused"
+  | "archived"
+  | "rejected";
 
 export type EmpleosStagedAnalytics = {
   views: number;
@@ -53,8 +59,8 @@ export function empleosStagedListingUrls(listingId: string, slug: string) {
   return {
     listaUrl: `/clasificados/empleos/resultados`,
     anuncioUrl: `/clasificados/empleos/${slug}`,
-    dashboardUrl: `/dashboard/empleos/staged/${listingId}`,
-    adminUrl: `/admin/workspace/clasificados/staged-empleos`,
+    dashboardUrl: `/dashboard/empleos/${listingId}`,
+    adminUrl: `/admin/workspace/clasificados/empleos`,
     publishHubUrl: `/clasificados/publicar/empleos`,
   };
 }

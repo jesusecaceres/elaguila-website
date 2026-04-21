@@ -30,6 +30,12 @@ export const LEONIX_INTERNAL_DETAIL_LABELS: ReadonlySet<string> = new Set([
   "Leonix:evSub",
   "Leonix:itemType",
   "Leonix:plan",
+  /** Boolean logistics flags — surfaced via listing DTO / filters, not as raw 0/1 rows. */
+  "Leonix:pickup",
+  "Leonix:ship",
+  "Leonix:delivery",
+  "Leonix:meetup",
+  "Leonix:negotiable",
 ]);
 
 export function isLeonixInternalDetailLabel(label: string): boolean {

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
+import { saveRestauranteDraftToStorageResolved } from "@/app/clasificados/restaurantes/application/restauranteDraftStorage";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 
@@ -27,6 +29,7 @@ type RestRow = {
   slug: string;
   status: string;
   promoted: boolean;
+  leonix_verified: boolean;
   package_tier: string | null;
   published_at: string;
   updated_at: string;
@@ -57,7 +60,7 @@ export default function DashboardRestaurantesPage() {
         ? {
             title: "Mis restaurantes (Clasificados)",
             subtitle:
-              "Listados publicados en restaurantes_public_listings asociados a tu cuenta. Editar el borrador sigue siendo local en este navegador; para cambios mayores vuelve a publicar desde /publicar/restaurantes con el mismo borrador si aún lo tienes.",
+              "Listados en `restaurantes_public_listings` para tu cuenta. Usa «Cargar en formulario» para traer el `listing_json` publicado al borrador de esta sesión y republicar (mismo `draft_listing_id` = actualización sin duplicar).",
             loading: "Cargando…",
             empty: "Aún no hay restaurantes publicados con esta cuenta.",
             publishCta: "Publicar un restaurante",
@@ -72,12 +75,16 @@ export default function DashboardRestaurantesPage() {
             linkPublic: "Ficha pública",
             linkResults: "Buscar en resultados",
             linkForm: "Formulario publicar",
+            hydrate: "Cargar en formulario",
+            hydrateBusy: "Cargando borrador…",
+            colVerified: "Verificado",
             errRl: "No se pudieron cargar los listados (revisa sesión y políticas RLS en Supabase).",
+            errHydrate: "No se pudo cargar el borrador publicado.",
           }
         : {
             title: "My restaurants (Classifieds)",
             subtitle:
-              "Published rows in restaurantes_public_listings for your account. Draft editing stays in this browser; to update, republish from /publicar/restaurantes using the same draft if you still have it.",
+              "Rows in `restaurantes_public_listings` for your account. Use “Load into form” to copy published `listing_json` into this session’s draft and republish (same `draft_listing_id` updates without duplicates).",
             loading: "Loading…",
             empty: "No restaurant listings are published for this account yet.",
             publishCta: "Publish a restaurant",
@@ -92,7 +99,11 @@ export default function DashboardRestaurantesPage() {
             linkPublic: "Public page",
             linkResults: "Open in results",
             linkForm: "Publish form",
+            hydrate: "Load into form",
+            hydrateBusy: "Loading draft…",
+            colVerified: "Verified",
             errRl: "Could not load listings (check sign-in and Supabase RLS policies).",
+            errHydrate: "Could not load published draft.",
           },
     [lang],
   );
@@ -104,6 +115,8 @@ export default function DashboardRestaurantesPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>("free");
   const [accountRef, setAccountRef] = useState<string | null>(null);
+  const [hydrateId, setHydrateId] = useState<string | null>(null);
+  const [hydrateErr, setHydrateErr] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -140,7 +153,7 @@ export default function DashboardRestaurantesPage() {
     setFetchErr(null);
     const { data, error } = await supabase
       .from("restaurantes_public_listings")
-      .select("id, slug, status, promoted, package_tier, published_at, updated_at, business_name, draft_listing_id")
+      .select("id, slug, status, promoted, leonix_verified, package_tier, published_at, updated_at, business_name, draft_listing_id")
       .eq("owner_user_id", user.id)
       .order("updated_at", { ascending: false });
     if (error) {
@@ -155,6 +168,43 @@ export default function DashboardRestaurantesPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const loadIntoForm = useCallback(
+    async (listingId: string) => {
+      setHydrateErr(null);
+      setHydrateId(listingId);
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data, error } = await supabase
+          .from("restaurantes_public_listings")
+          .select("listing_json, draft_listing_id")
+          .eq("id", listingId)
+          .maybeSingle();
+        if (error || !data?.listing_json) {
+          setHydrateErr(t.errHydrate);
+          setHydrateId(null);
+          return;
+        }
+        const merged = mergeRestauranteDraft(data.listing_json);
+        const stableDraftId =
+          typeof data.draft_listing_id === "string" && data.draft_listing_id.trim()
+            ? data.draft_listing_id.trim()
+            : merged.draftListingId;
+        merged.draftListingId = stableDraftId;
+        const ok = await saveRestauranteDraftToStorageResolved(merged);
+        if (!ok) {
+          setHydrateErr(t.errHydrate);
+          setHydrateId(null);
+          return;
+        }
+        router.push(appendLangToPath("/publicar/restaurantes", lang));
+      } catch {
+        setHydrateErr(t.errHydrate);
+        setHydrateId(null);
+      }
+    },
+    [lang, router, t.errHydrate],
+  );
 
   const previewHref = appendLangToPath("/clasificados/restaurantes/preview", lang);
   const publishHref = appendLangToPath("/publicar/restaurantes", lang);
@@ -193,6 +243,9 @@ export default function DashboardRestaurantesPage() {
         {fetchErr ? (
           <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{fetchErr}</p>
         ) : null}
+        {hydrateErr ? (
+          <p className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{hydrateErr}</p>
+        ) : null}
 
         {loading ? (
           <p className="mt-8 text-sm text-[#5C5346]">{t.loading}</p>
@@ -207,6 +260,7 @@ export default function DashboardRestaurantesPage() {
                   <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colStatus}</th>
                   <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colSlug}</th>
                   <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colPromo}</th>
+                  <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colVerified}</th>
                   <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colPlan}</th>
                   <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colPub}</th>
                   <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colUpd}</th>
@@ -223,6 +277,7 @@ export default function DashboardRestaurantesPage() {
                       <td className="px-3 py-2">{r.status}</td>
                       <td className="px-3 py-2 font-mono text-[10px]">{r.slug}</td>
                       <td className="px-3 py-2">{r.promoted ? (lang === "es" ? "sí" : "yes") : "—"}</td>
+                      <td className="px-3 py-2">{r.leonix_verified ? (lang === "es" ? "sí" : "yes") : "—"}</td>
                       <td className="px-3 py-2">{r.package_tier ?? "—"}</td>
                       <td className="whitespace-nowrap px-3 py-2">{fmt(r.published_at, lang)}</td>
                       <td className="whitespace-nowrap px-3 py-2">{fmt(r.updated_at, lang)}</td>
@@ -236,6 +291,14 @@ export default function DashboardRestaurantesPage() {
                         <Link href={publishHref} className="block text-[11px] text-[#5C5346] underline">
                           {t.linkForm}
                         </Link>
+                        <button
+                          type="button"
+                          disabled={hydrateId === r.id}
+                          onClick={() => void loadIntoForm(r.id)}
+                          className="mt-1 block w-full text-left text-[11px] font-bold text-[#92400E] underline disabled:opacity-50"
+                        >
+                          {hydrateId === r.id ? t.hydrateBusy : t.hydrate}
+                        </button>
                       </td>
                     </tr>
                   );

@@ -1,9 +1,8 @@
 /**
  * Single boundary for Rentas **public** browse data (demo fixtures).
  *
- * **Staged testing:** client surfaces (results, landing) merge Supabase `listings` (`category=rentas`) with this
- * demo pool via `useRentasStagedInventory` + `mergeStagedRentasWithDemo`. This module stays the demo source;
- * server detail for UUID rows uses `fetchRentasListingForPublicDetail`.
+ * **Production:** live browse uses `fetchRentasPublicListingsForBrowse` (server) + optional demo only when
+ * `NEXT_PUBLIC_RENTAS_INCLUDE_DEMO_POOL=1`. This file remains the **demo fixture** source for story/tests and the opt-in pool.
  */
 
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";

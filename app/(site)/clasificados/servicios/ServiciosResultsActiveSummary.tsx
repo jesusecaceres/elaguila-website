@@ -89,6 +89,24 @@ export function ServiciosResultsActiveSummary({
       label: lang === "en" ? "Bilingual quick-fact" : "Dato rápido bilingüe",
     });
   }
+  if (query.email === "1") {
+    items.push({
+      key: "email",
+      label: lang === "en" ? "Email on profile" : "Correo en vitrina",
+    });
+  }
+  if (query.emergency === "1") {
+    items.push({
+      key: "emergency",
+      label: lang === "en" ? "Emergency / urgent signal" : "Señal de urgencia / emergencia",
+    });
+  }
+  if (query.mobileSvc === "1") {
+    items.push({
+      key: "mobileSvc",
+      label: lang === "en" ? "Mobile / on-site service signal" : "Señal de servicio móvil / a domicilio",
+    });
+  }
 
   if (items.length === 0) return null;
 

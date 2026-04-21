@@ -12,6 +12,8 @@ import { EnVentaItemSpecs } from "./EnVentaItemSpecs";
 import { EnVentaRelatedRail } from "./EnVentaRelatedRail";
 import { enVentaClassifiedAdJsonLd } from "../seo/enVentaJsonLd";
 import { RentasNegocioDesktopBusinessRail } from "@/app/clasificados/rentas/listing/components/RentasNegocioDesktopBusinessRail";
+import { BrLiveFactsStrip } from "@/app/clasificados/bienes-raices/listing/BrLiveFactsStrip";
+import { LeonixInlineListingReport } from "@/app/clasificados/components/LeonixInlineListingReport";
 import { buildLeonixBusinessLiveDisplay, parseLeonixBusinessMetaForLive } from "@/app/clasificados/lib/leonixBusinessLiveDisplay";
 import { resolveLeonixLiveListingContact } from "@/app/clasificados/lib/leonixListingContactResolve";
 import {
@@ -77,14 +79,27 @@ function normalizePhoneForTel(raw: string) {
   return String(raw || "").replace(/[^0-9+]/g, "");
 }
 
+export type LeonixAnuncioListingSurface = "en-venta" | "bienes-raices";
+
 export function EnVentaAnuncioLayout({
   listing,
   lang,
   backHref,
+  surface = "en-venta",
+  moreInCategoryHref,
+  moreInCategoryLabel,
+  showListingReport = false,
 }: {
   listing: AnuncioListingLike;
   lang: Lang;
   backHref: string;
+  /** Which vertical this live listing belongs to (drives BR facts strip + browse CTA defaults). */
+  surface?: LeonixAnuncioListingSurface;
+  /** Override “more in category” link (defaults to En Venta results). */
+  moreInCategoryHref?: string;
+  moreInCategoryLabel?: string;
+  /** Inline moderation report (Leonix `submitListingReportAction`). */
+  showListingReport?: boolean;
 }) {
   const images = listing.images ?? [];
   const rows = useMemo(() => pairsFromListing(listing), [listing]);
@@ -235,6 +250,10 @@ export function EnVentaAnuncioLayout({
       : "Save this listing to your account to see it on your dashboard.";
   const shareLabel = lang === "es" ? "Compartir" : "Share";
 
+  const browseMoreHref = moreInCategoryHref ?? `/clasificados/en-venta/results?lang=${lang}`;
+  const browseMoreLabel =
+    moreInCategoryLabel ?? (lang === "es" ? "Más en En Venta" : "More in For Sale");
+
   return (
     <div className="min-h-screen bg-[#D9D9D9] pb-24 text-[#111111]">
       <Navbar />
@@ -248,11 +267,8 @@ export function EnVentaAnuncioLayout({
           >
             ← {lang === "es" ? "Volver" : "Back"}
           </Link>
-          <Link
-            href={`/clasificados/en-venta/results?lang=${lang}`}
-            className="text-sm font-semibold text-[#111111]/70 underline"
-          >
-            {lang === "es" ? "Más en En Venta" : "More in For Sale"}
+          <Link href={browseMoreHref} className="text-sm font-semibold text-[#111111]/70 underline">
+            {browseMoreLabel}
           </Link>
         </div>
 
@@ -363,6 +379,7 @@ export function EnVentaAnuncioLayout({
                       : "“Email (Leonix)” saves the inquiry to your account. From the same modal you can open Gmail, Yahoo, or your default mail app."}
                   </p>
                 ) : null}
+                {showListingReport ? <LeonixInlineListingReport listingId={listing.id} lang={lang} /> : null}
               </div>
             </div>
           </div>
@@ -370,6 +387,7 @@ export function EnVentaAnuncioLayout({
 
         <div className="mt-10 grid gap-6 lg:grid-cols-12">
           <div className="space-y-6 lg:col-span-8">
+            {surface === "bienes-raices" ? <BrLiveFactsStrip detailPairs={listing.detailPairs} lang={lang} /> : null}
             <section className="rounded-2xl border border-black/10 bg-white p-5">
               <h2 className="text-sm font-bold text-[#111111]">{lang === "es" ? "Descripción" : "Description"}</h2>
               <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-[#111111]/85">{listing.blurb[lang]}</p>

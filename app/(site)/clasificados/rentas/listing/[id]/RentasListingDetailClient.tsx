@@ -144,12 +144,37 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
 
               <div className={rentasDetailConversionPanelClass}>
                 <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap">
-                  <Link
-                    href={contactHref}
-                    className={`inline-flex items-center justify-center ${rentasCtaPrimaryClass} w-full sm:w-auto sm:min-w-[11rem]`}
-                  >
-                    {copy.detail.ctaContact}
-                  </Link>
+                  {extra.contactPhone ? (
+                    <a
+                      href={`tel:${extra.contactPhone.replace(/\D/g, "")}`}
+                      className={`inline-flex items-center justify-center ${rentasCtaPrimaryClass} w-full sm:w-auto sm:min-w-[11rem]`}
+                    >
+                      {lang === "es" ? "Llamar al anunciante" : "Call landlord"}
+                    </a>
+                  ) : (
+                    <Link
+                      href={contactHref}
+                      className={`inline-flex items-center justify-center ${rentasCtaPrimaryClass} w-full sm:w-auto sm:min-w-[11rem]`}
+                    >
+                      {copy.detail.ctaContact}
+                    </Link>
+                  )}
+                  {extra.contactEmail ? (
+                    <a
+                      href={`mailto:${encodeURIComponent(extra.contactEmail)}`}
+                      className={`inline-flex items-center justify-center ${rentasCtaSecondaryClass} w-full sm:w-auto sm:min-w-[11rem]`}
+                    >
+                      {lang === "es" ? "Enviar correo" : "Send email"}
+                    </a>
+                  ) : null}
+                  {extra.contactPhone ? (
+                    <Link
+                      href={contactHref}
+                      className={`inline-flex items-center justify-center ${rentasCtaSecondaryClass} w-full sm:w-auto sm:min-w-[11rem]`}
+                    >
+                      {copy.detail.ctaContact}
+                    </Link>
+                  ) : null}
                   <Link
                     href={listing.branch === "privado" ? publishPrivado : publishNegocio}
                     className={`inline-flex items-center justify-center ${rentasCtaSecondaryClass} w-full sm:w-auto sm:min-w-[11rem]`}

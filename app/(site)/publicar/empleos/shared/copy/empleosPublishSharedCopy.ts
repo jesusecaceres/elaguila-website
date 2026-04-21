@@ -22,14 +22,15 @@ export const EMPLEOS_PUBLISH_SHARED_COPY = {
       title: "Revisión final",
       intro:
         "Cuando hayas revisado el contenido, usa los botones de abajo para ver el anuncio en la vista previa real o iniciar la publicación (confirmación y casillas en el siguiente paso).",
-      sessionDraftLine: "Borrador guardado solo en esta pestaña del navegador.",
+      sessionDraftLine: "Inicia sesión para guardar o publicar en tu cuenta Leonix (Supabase).",
       previewCta: "Vista previa",
       publishCta: "Publicar",
+      saveDraftCta: "Guardar borrador",
       deleteRequest: "Eliminar solicitud",
       deleteConfirm: "¿Eliminar esta solicitud de la sesión? Se perderán los cambios no publicados.",
     },
     stagedSuccess:
-      "Listo para el siguiente paso: tu intención de publicación quedó registrada solo en esta sesión (sin pago ni anuncio en vivo).",
+      "Publicación guardada en Leonix. Si activaste revisión manual (EMPLEOS_REQUIRE_LISTING_REVIEW), un administrador debe aprobar antes de aparecer en resultados.",
     publishModal: {
       title: "Confirmar publicación",
       intro: "El pago y la publicación en vivo llegarán en una fase posterior. Por ahora confirma que revisaste tu anuncio.",
@@ -67,14 +68,15 @@ export const EMPLEOS_PUBLISH_SHARED_COPY = {
       title: "Final review",
       intro:
         "When your content is ready, use the buttons below to open the real preview or start publishing (confirmation and checkboxes in the next step).",
-      sessionDraftLine: "Draft is saved only in this browser tab.",
+      sessionDraftLine: "Sign in to save or publish to your Leonix account (Supabase).",
       previewCta: "Preview",
       publishCta: "Publish",
+      saveDraftCta: "Save draft",
       deleteRequest: "Delete application",
       deleteConfirm: "Delete this application from the session? Unpublished changes will be lost.",
     },
     stagedSuccess:
-      "Ready for the next step: your publish intent was recorded for this session only (no payment or live listing yet).",
+      "Saved to Leonix. If manual review is enabled (EMPLEOS_REQUIRE_LISTING_REVIEW), an admin must approve before it appears in results.",
     publishModal: {
       title: "Confirm publish",
       intro: "Payment and live listing will arrive in a later phase. For now confirm you reviewed your listing.",

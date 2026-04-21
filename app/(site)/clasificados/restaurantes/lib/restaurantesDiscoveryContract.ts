@@ -15,7 +15,7 @@
  * | `zip` | `zipCode` | Exact match. |
  * | `cuisine` | `primaryCuisine`, `secondaryCuisine`, `additionalCuisines` | Single taxonomy key. |
  * | `biz` | `businessType` | Taxonomy key (`RESTAURANTE_BUSINESS_TYPES`). |
- * | `svc` | `serviceModes` | Subset: dine_in, takeout, delivery (shell filters; full taxonomy at publish). |
+ * | `svc` | `serviceModes` | Whitelisted modes in `filterRestaurantesBlueprintRows` (incl. catering, events, meal_prep, personal_chef, pop_up, food_truck, other); UI exposes a subset. |
  * | `family` | `highlights` includes family_friendly OR family signal | Blueprint uses `familyFriendly` boolean. |
  * | `price` | `priceLevel` | `$` … `$$$$`. |
  * | `diet` | vegan/gluten/halal signals | Maps to diet flags + cuisine. |

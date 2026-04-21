@@ -1,5 +1,6 @@
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
+import { parseEnVentaDetailPairSignals } from "./enVentaDetailPairSignals";
 
 function stripLeonixImages(desc: string): string {
   return desc.replace(/\s*\[LEONIX_IMAGES\][\s\S]*?\[\/LEONIX_IMAGES\]\s*/g, "\n").trim();
@@ -149,7 +150,8 @@ export function mapDbRowToEnVentaAnuncioDTO(row: Record<string, unknown>): EnVen
 
   const specRows = pairs.filter((p) => !/^leonix:/i.test(p.label));
 
-  const negotiable = /negociable|negotiable|obo|best offer/i.test(`${titleStr} ${description}`);
+  const signals = parseEnVentaDetailPairSignals(pairs, { title: titleStr, description });
+  const negotiable = signals.negotiable;
 
   const postedAgoOut = postedAgoBilingual(typeof row.created_at === "string" ? row.created_at : null);
 
@@ -160,18 +162,10 @@ export function mapDbRowToEnVentaAnuncioDTO(row: Record<string, unknown>): EnVen
   const planTier = resolvePlanTier(row, pairs, rawDesc);
   const hasListingVideo = rowHasMuxVideo(row) || listingHasVideo(rawDesc);
 
-  let pickup = false;
-  let shipping = false;
-  let delivery = false;
-  for (const p of pairs) {
-    if (/entrega|fulfillment/i.test(p.label)) {
-      const v = p.value.toLowerCase();
-      if (v.includes("recogida") || v.includes("pickup")) pickup = true;
-      if (v.includes("envío") || v.includes("envio") || v.includes("shipping")) shipping = true;
-      if (v.includes("entrega") && !v.includes("envío") && !v.includes("envio")) delivery = true;
-      if (v.includes("delivery")) delivery = true;
-    }
-  }
+  const { pickup, shipping, delivery, meetup } = signals.fulfillment;
+  const brand = signals.brand ?? null;
+  const model = signals.model ?? null;
+  const quantity = signals.quantity ?? null;
 
   return {
     id: String(row.id ?? ""),
@@ -188,7 +182,11 @@ export function mapDbRowToEnVentaAnuncioDTO(row: Record<string, unknown>): EnVen
     articleKey: articleKey || null,
     specRows,
     fulfillment: { pickup, shipping, delivery },
+    meetupOffered: meetup,
     negotiable,
+    brand,
+    model,
+    quantity,
     sellerKind: sellerType,
     businessName,
     contactPhone: phone,

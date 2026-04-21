@@ -60,22 +60,22 @@ export function viajesRowMatchesBrowse(row: ViajesResultRow, browse: ViajesBrows
 
   if (browse.budget && row.kind !== "editorial") {
     const band = row.budgetBand?.trim() ?? "";
-    if (band && band !== browse.budget) return false;
+    if (!band || band !== browse.budget) return false;
   }
 
   if (browse.audience) {
     const keys = row.audienceKeys ?? [];
-    if (keys.length > 0 && !keys.includes(browse.audience)) return false;
+    if (!keys.includes(browse.audience)) return false;
   }
 
   if (browse.season) {
     const sk = row.seasonKeys ?? [];
-    if (sk.length > 0 && !sk.includes(browse.season)) return false;
+    if (!sk.includes(browse.season)) return false;
   }
 
   if (browse.duration) {
     const dk = row.durationKey?.trim() ?? "";
-    if (dk && dk !== browse.duration) return false;
+    if (!dk || dk !== browse.duration) return false;
   }
 
   return true;

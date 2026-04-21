@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { SAMPLE_LISTINGS } from "@/app/data/classifieds/sampleListings";
 import { ServiciosProfileView } from "@/app/servicios/components/ServiciosProfileView";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
@@ -14,7 +15,7 @@ function findLegacyServiciosListing(id: string): { id: string; category: string;
 
 type PageProps = {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ lang?: string; justPublished?: string; persistence?: string }>;
+  searchParams?: Promise<{ lang?: string; justPublished?: string; persistence?: string; listingStatus?: string }>;
 };
 
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
@@ -61,6 +62,43 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
 
   const row = await getServiciosPublicListingBySlugForDiscovery(slug);
   if (row) {
+    const q = `lang=${lang}`;
+    if (row.listing_status === "pending_review") {
+      const justPublished = sp.justPublished === "1";
+      return (
+        <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col justify-center gap-4 px-4 py-16 text-center text-[#1E1810]">
+          <h1 className="text-xl font-bold">{lang === "en" ? "Listing under review" : "Anuncio en revisión"}</h1>
+          <p className="text-sm text-[#5C5346]">
+            {justPublished
+              ? lang === "en"
+                ? "Received — thank you. Leonix will review before this appears in public Servicios search."
+                : "Recibido — gracias. Leonix revisará antes de que aparezca en la búsqueda pública de Servicios."
+              : lang === "en"
+                ? "Leonix is reviewing this showcase before it appears in public search. You can track status from your dashboard."
+                : "Leonix está revisando esta vitrina antes de mostrarla en la búsqueda pública. Puedes ver el estado en tu panel."}
+          </p>
+          <Link href={`/dashboard/servicios?${q}`} className="text-sm font-bold text-[#3B66AD] underline">
+            {lang === "en" ? "Open dashboard" : "Abrir panel"}
+          </Link>
+        </div>
+      );
+    }
+    if (row.listing_status === "rejected" || row.listing_status === "suspended") {
+      return (
+        <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col justify-center gap-4 px-4 py-16 text-center text-[#1E1810]">
+          <h1 className="text-xl font-bold">{lang === "en" ? "Listing unavailable" : "Anuncio no disponible"}</h1>
+          <p className="text-sm text-[#5C5346]">
+            {lang === "en"
+              ? "This profile is not available on Leonix right now. If you are the provider, check your dashboard or contact support."
+              : "Este perfil no está disponible en Leonix en este momento. Si eres el proveedor, revisa tu panel o contacta a soporte."}
+          </p>
+          <Link href={`/clasificados/servicios/resultados?${q}`} className="text-sm font-bold text-[#3B66AD] underline">
+            {lang === "en" ? "Browse Servicios" : "Explorar Servicios"}
+          </Link>
+        </div>
+      );
+    }
+
     const wire = { ...row.profile_json };
     wire.identity.leonixVerified = row.leonix_verified === true;
     const profile = resolveServiciosProfile(wire, lang);

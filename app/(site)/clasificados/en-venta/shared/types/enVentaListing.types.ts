@@ -34,7 +34,13 @@ export type EnVentaAnuncioDTO = {
   articleKey?: string | null;
   specRows: Array<{ label: string; value: string }>;
   fulfillment: { pickup: boolean; shipping: boolean; delivery: boolean };
+  /** True when seller offers meetup (`Leonix:meetup` / Encuentro pair); distinct from pickup. */
+  meetupOffered: boolean;
   negotiable: boolean;
+  brand?: string | null;
+  model?: string | null;
+  /** Quantity text when captured (user-facing detail + keyword search). */
+  quantity?: string | null;
   sellerKind: EnVentaSellerKind;
   businessName?: string | null;
   contactPhone: string | null;

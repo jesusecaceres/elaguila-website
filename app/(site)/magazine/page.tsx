@@ -141,7 +141,7 @@ export default function MagazineHubPage() {
   const ui = useMemo(
     () => ({
       es: {
-        title: "LEONIX Media — Revista",
+        title: "Leonix Media — Revista",
         subtitle:
           "Revista de Comunidad, Cultura y Negocios. Una experiencia editorial premium.",
         featuredLabel: "Edición destacada",
@@ -152,7 +152,7 @@ export default function MagazineHubPage() {
         modalTitle: "LEONIX — Flipbook",
       },
       en: {
-        title: "LEONIX Media — Magazine",
+        title: "Leonix Media — Magazine",
         subtitle:
           "A premium editorial experience for Community, Culture, and Business.",
         featuredLabel: "Featured edition",

@@ -425,17 +425,25 @@ export function RestaurantesLandingPage({
               <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#2D241E]/60 sm:text-sm">{copy.featuredIntro}</p>
             </div>
           </div>
-          <div className="mt-6 grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {featuredCards.map((card) => (
-              <ListingCard
-                key={card.id}
-                card={card}
-                lang={lang}
-                variant="featured"
-                detailHref={buildLandingCardDetailHref(lang, card, discoveryLookupRows)}
-              />
-            ))}
-          </div>
+          {featuredCards.length ? (
+            <div className="mt-6 grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {featuredCards.map((card) => (
+                <ListingCard
+                  key={card.id}
+                  card={card}
+                  lang={lang}
+                  variant="featured"
+                  detailHref={buildLandingCardDetailHref(lang, card, discoveryLookupRows)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="mt-6 rounded-[14px] border border-[#2D241E]/10 bg-[#FFFCF7] px-4 py-4 text-sm leading-relaxed text-[#2D241E]/70">
+              {lang === "es"
+                ? "Cuando haya listados publicados, aparecerán aquí los destacados según la política de exposición de Leonix."
+                : "When published listings exist, featured picks will appear here using Leonix exposure rules."}
+            </p>
+          )}
         </section>
 
         <section aria-labelledby="rx-browse-heading">
@@ -484,17 +492,25 @@ export function RestaurantesLandingPage({
             </div>
             <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#2D241E]/60 sm:text-sm">{copy.recentIntro}</p>
           </div>
-          <div className="mt-6 grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {recentCards.map((card) => (
-              <ListingCard
-                key={card.id}
-                card={card}
-                lang={lang}
-                variant="recent"
-                detailHref={buildLandingCardDetailHref(lang, card, discoveryLookupRows)}
-              />
-            ))}
-          </div>
+          {recentCards.length ? (
+            <div className="mt-6 grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {recentCards.map((card) => (
+                <ListingCard
+                  key={card.id}
+                  card={card}
+                  lang={lang}
+                  variant="recent"
+                  detailHref={buildLandingCardDetailHref(lang, card, discoveryLookupRows)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="mt-6 rounded-[14px] border border-dashed border-[#D97706]/35 bg-[#FFF7ED]/60 px-4 py-4 text-sm leading-relaxed text-[#2D241E]/72">
+              {lang === "es"
+                ? "Los recientes se rellenan con publicaciones vivas ordenadas por fecha."
+                : "Recent listings fill in from live posts ordered by publish date."}
+            </p>
+          )}
         </section>
 
         <div className="mt-8 flex justify-center sm:mt-10 md:mt-12">

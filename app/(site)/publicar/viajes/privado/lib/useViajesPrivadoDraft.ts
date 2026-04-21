@@ -7,24 +7,10 @@ import { viajesDraftMediaDelete } from "@/app/(site)/clasificados/viajes/lib/via
 import type { ViajesPrivadoDraft } from "./viajesPrivadoDraftTypes";
 import {
   emptyViajesPrivadoDraft,
+  mergeViajesPrivadoDraftFromPartial,
   VIAJES_PRIVADO_DRAFT_STORAGE_KEY,
-  VIAJES_PRIVADO_GALLERY_MAX,
   VIAJES_PRIVADO_MAX_IMAGE_STORAGE,
 } from "./viajesPrivadoDraftDefaults";
-
-function mergeDraft(parsed: Partial<ViajesPrivadoDraft>): ViajesPrivadoDraft {
-  const e = emptyViajesPrivadoDraft();
-  return {
-    ...e,
-    ...parsed,
-    schemaVersion: 1,
-    galeriaUrls: Array.isArray(parsed.galeriaUrls)
-      ? parsed.galeriaUrls.filter(Boolean).slice(0, VIAJES_PRIVADO_GALLERY_MAX)
-      : e.galeriaUrls,
-    dateMode: parsed.dateMode ?? e.dateMode,
-    heroSourceMode: parsed.heroSourceMode ?? e.heroSourceMode,
-  };
-}
 
 export function useViajesPrivadoDraft() {
   const [draft, setDraft] = useState<ViajesPrivadoDraft>(() => emptyViajesPrivadoDraft());
@@ -35,7 +21,7 @@ export function useViajesPrivadoDraft() {
       const raw = typeof window !== "undefined" ? localStorage.getItem(VIAJES_PRIVADO_DRAFT_STORAGE_KEY) : null;
       if (raw) {
         const p = JSON.parse(raw) as Partial<ViajesPrivadoDraft>;
-        if (p && p.schemaVersion === 1) setDraft(mergeDraft(p));
+        if (p && p.schemaVersion === 1) setDraft(mergeViajesPrivadoDraftFromPartial(p));
       }
     } catch {
       /* ignore */

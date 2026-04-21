@@ -5,6 +5,7 @@ import {
   LEONIX_GLOBAL_CONTACT_PATH,
   LEONIX_MEDIA_BRAND,
 } from "@/app/data/leonixGlobalContact";
+import { LEONIX_MEDIA_DESCRIPTOR_EN, LEONIX_MEDIA_DESCRIPTOR_ES, LEONIX_MEDIA_SITE_NAME } from "@/app/lib/leonixBrand";
 import { LEONIX_TIENDA_CONTACT_PATH } from "@/app/tienda/data/leonixContact";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type { ContactoPayload } from "@/app/lib/siteSectionContent/payloadTypes";
@@ -28,12 +29,14 @@ export async function generateMetadata(props: {
 }): Promise<Metadata> {
   const sp = (await props.searchParams) ?? {};
   const lang = normalizeLang(sp.lang);
-  const title = lang === "en" ? `Contact · ${LEONIX_MEDIA_BRAND}` : `Contacto · ${LEONIX_MEDIA_BRAND}`;
-  const description =
-    lang === "en"
-      ? `General inquiries for ${LEONIX_MEDIA_BRAND}.`
-      : `Consultas generales para ${LEONIX_MEDIA_BRAND}.`;
-  return { title, description, openGraph: { title, description } };
+  const title = lang === "en" ? "Contact" : "Contacto";
+  const description = lang === "en" ? LEONIX_MEDIA_DESCRIPTOR_EN : LEONIX_MEDIA_DESCRIPTOR_ES;
+  return {
+    title,
+    description,
+    openGraph: { title, description, siteName: LEONIX_MEDIA_SITE_NAME },
+    twitter: { title, description },
+  };
 }
 
 export default async function ContactoPage(props: {

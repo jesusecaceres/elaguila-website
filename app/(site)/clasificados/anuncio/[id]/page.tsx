@@ -983,6 +983,22 @@ export default function AnuncioDetallePage() {
           }}
           lang={lang}
           backHref={backHref}
+          surface={listing.category === "bienes-raices" ? "bienes-raices" : "en-venta"}
+          moreInCategoryHref={
+            listing.category === "bienes-raices"
+              ? `/clasificados/bienes-raices/resultados?lang=${lang}`
+              : `/clasificados/en-venta/results?lang=${lang}`
+          }
+          moreInCategoryLabel={
+            listing.category === "bienes-raices"
+              ? lang === "es"
+                ? "Más en Bienes Raíces"
+                : "More in Real estate"
+              : lang === "es"
+                ? "Más en En Venta"
+                : "More in For Sale"
+          }
+          showListingReport
         />
       </>
     );

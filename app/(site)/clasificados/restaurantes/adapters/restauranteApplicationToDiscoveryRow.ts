@@ -8,10 +8,9 @@
  *
  * - **Adapter:** `applicationToRestauranteDiscoveryRow` is complete for mapping app → card row shape
  *   (name, cuisines, city/ZIP, service modes, highlights, promoted signals, `listedAt`, etc.).
- * - **Blocker:** `RestaurantesResultsShell` and the landing page still read **`RESTAURANTES_PUBLIC_BLUEPRINT_ROWS`**
- *   (static demo inventory), not Supabase/API rows. Published listings do **not** appear in discovery until
- *   the shell swaps blueprint import for `listPublishedRestaurantes()` (or equivalent) and maps each row
- *   through this adapter.
+ * - **Read path:** production inventory is loaded server-side from `restaurantes_public_listings` and mapped
+ *   via `mapRestaurantesPublicListingDbRowToShellInventoryRow` (this adapter remains useful for tests and
+ *   future “application → row” previews).
  * - **Exposure:** Landing destacados/recientes and the results promoted band are driven by
  *   `restaurantesListingExposurePolicy` over whatever row array is passed in (today: blueprint only).
  *
@@ -22,6 +21,7 @@
 import type {
   RestauranteHighlightKey,
   RestauranteListingApplication,
+  RestauranteServiceMode,
 } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 
@@ -41,10 +41,8 @@ export function applicationToRestauranteDiscoveryRow(
 ): RestauranteDiscoveryRow {
   const primary = app.primaryCuisine;
   const secondary = app.secondaryCuisine;
-  const svc = app.serviceModes.filter((m): m is "dine_in" | "takeout" | "delivery" =>
-    m === "dine_in" || m === "takeout" || m === "delivery",
-  );
-  const serviceModes = (svc.length ? svc : ["dine_in"]) as RestaurantesPublicBlueprintRow["serviceModes"];
+  const svc = (app.serviceModes ?? []).filter((m): m is RestauranteServiceMode => typeof m === "string" && m.length > 0);
+  const serviceModes: RestauranteServiceMode[] = svc.length ? svc : ["dine_in"];
 
   const highlights = (app.highlights ?? []) as RestauranteHighlightKey[];
   const has = (k: RestauranteHighlightKey) => highlights.includes(k);
@@ -65,6 +63,7 @@ export function applicationToRestauranteDiscoveryRow(
     serviceModes,
     familyFriendly,
     promoted: Boolean(app.featured || app.boosted || app.planTier === "featured" || app.planTier === "supporter"),
+    leonixVerified: false,
     openNowDemo: opts.openNowDemo ?? false,
     veganOptions: has("vegan_options"),
     glutenFreeOptions: has("gluten_free"),
@@ -78,5 +77,6 @@ export function applicationToRestauranteDiscoveryRow(
     neighborhood: app.neighborhood,
     highlightKeys: highlights,
     externalReviewCount: app.externalReviewCount,
+    additionalCuisineKeys: app.additionalCuisines?.length ? [...app.additionalCuisines] : undefined,
   };
 }

@@ -27,6 +27,8 @@ export type PublishLeonixRealEstateListingCoreParams = {
   title: string;
   description: string;
   city: string;
+  /** Optional postal/ZIP when `listings.zip` exists (see migration `20260421120000_rentas_listings_zip_and_public_read.sql`). */
+  zip?: string | null;
   price: number;
   isFree: boolean;
   category: "bienes-raices" | "rentas";
@@ -52,6 +54,7 @@ export async function publishLeonixRealEstateListingCore(
     title,
     description,
     city,
+    zip: zipRaw,
     price,
     isFree,
     category,
@@ -100,6 +103,7 @@ export async function publishLeonixRealEstateListingCore(
     contactPhoneDigits && digitsOnly(contactPhoneDigits).length >= 10 ? digitsOnly(contactPhoneDigits).slice(0, 15) : null;
   const email = (contactEmail ?? "").trim() || null;
 
+  const zipTrim = (zipRaw ?? "").trim();
   const insertPayload: Record<string, unknown> = {
     owner_id: userId,
     title: title.trim(),
@@ -115,6 +119,10 @@ export async function publishLeonixRealEstateListingCore(
     seller_type: sellerType,
     detail_pairs: detailPairs.length ? detailPairs : null,
   };
+
+  if (zipTrim) {
+    insertPayload.zip = zipTrim.replace(/\D/g, "").slice(0, 12);
+  }
 
   if (sellerType === "business" && businessName?.trim()) {
     insertPayload.business_name = businessName.trim();

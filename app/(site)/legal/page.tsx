@@ -9,8 +9,8 @@ export default function LegalPage() {
         </h1>
 
         <p className="text-lg leading-relaxed text-gray-300 mb-6">
-          Welcome to El Águila. This page contains our general legal information, including
-          terms of use, privacy considerations, and our community guidelines.
+          Welcome to Leonix Media. This page contains our general legal information, including terms of use, privacy
+          considerations, and our community guidelines.
         </p>
       </div>
     </main>

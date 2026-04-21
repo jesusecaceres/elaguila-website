@@ -164,7 +164,7 @@ export const BR_FILTER_PUBLISH_READINESS: Record<
   | "sort"
   | "page"
   | "parking",
-  "ready" | "reserved" | "deferred_demo"
+  "ready" | "reserved" | "deferred_demo" | "structured_with_text_fallback"
 > = {
   q: "ready",
   city: "ready",
@@ -176,7 +176,8 @@ export const BR_FILTER_PUBLISH_READINESS: Record<
   priceMax: "ready",
   beds: "ready",
   baths: "ready",
-  pets: "ready",
+  /** `Leonix:pets_allowed` when inferred from copy; else description/meta text (see results copy hint). */
+  pets: "structured_with_text_fallback",
   furnished: "ready",
   pool: "ready",
   sort: "ready",
@@ -184,4 +185,8 @@ export const BR_FILTER_PUBLISH_READINESS: Record<
   parking: "reserved",
 };
 
-/** Live rows: facet extraction for filters lives in `resultados/lib/brFacetFromDetailPairs.ts` + `mapBrListingRowToCard.ts`. */
+/**
+ * Live rows: machine keys `Leonix:*` (see `leonixRealEstateListingContract.ts`) are written at publish
+ * via `leonixBrMachineFacetPairsFromFormState.ts`; filters read them through `parseLeonixMachineFacetRead`
+ * → `brFacetFromDetailPairs.ts` → `mapBrListingRowToCard.ts` → `brResultsFilters.ts`.
+ */

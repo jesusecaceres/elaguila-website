@@ -1,37 +1,49 @@
 import "server-only";
 
 import { RESTAURANTES_PUBLIC_BLUEPRINT_ROWS } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
-import {
-  mapDbRowsToPublicResultsRows,
-  mapPublicResultsRowsToShellInventory,
-} from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
+import { mapRestaurantesPublicListingDbRowsToShellInventory } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import {
   isSupabaseAdminConfigured,
   listRestaurantesPublicListingsFromDb,
 } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 
-export type RestaurantesResultsInventorySource = "published" | "demo_fallback";
+/**
+ * `published` — real DB inventory (may be empty array).
+ * `explicit_demo` — only when `RESTAURANTES_USE_BLUEPRINT_INVENTORY=true` (local/storybook); never default.
+ * `inventory_unavailable` — missing server-side Supabase admin config; **no** silent blueprint.
+ */
+export type RestaurantesResultsInventorySource = "published" | "explicit_demo" | "inventory_unavailable";
 
 export type RestaurantesResultsInventoryPayload = {
   rows: RestaurantesPublicBlueprintRow[];
   source: RestaurantesResultsInventorySource;
-  /** Shown above results when non-empty (honest dev / empty states). */
   bannerNote?: string;
 };
 
+function allowBlueprintDemo(): boolean {
+  return process.env.RESTAURANTES_USE_BLUEPRINT_INVENTORY === "true";
+}
+
 /**
- * Primary inventory for `/clasificados/restaurantes/resultados`.
- * - Published rows when service role + table return data.
- * - Explicit demo fallback only when Supabase admin is not configured (local UI QA).
+ * Production path: only published rows from `restaurantes_public_listings`.
+ * Blueprint rows are **opt-in** via `RESTAURANTES_USE_BLUEPRINT_INVENTORY=true` for isolated QA.
  */
 export async function loadRestaurantesResultsInventoryForPage(): Promise<RestaurantesResultsInventoryPayload> {
   if (!isSupabaseAdminConfigured()) {
+    if (allowBlueprintDemo()) {
+      return {
+        rows: RESTAURANTES_PUBLIC_BLUEPRINT_ROWS,
+        source: "explicit_demo",
+        bannerNote:
+          "Inventario de demostración explícito (`RESTAURANTES_USE_BLUEPRINT_INVENTORY=true`). No usar en producción.",
+      };
+    }
     return {
-      rows: RESTAURANTES_PUBLIC_BLUEPRINT_ROWS,
-      source: "demo_fallback",
+      rows: [],
+      source: "inventory_unavailable",
       bannerNote:
-        "Modo demo: falta `SUPABASE_SERVICE_ROLE_KEY` (o URL) en el servidor. Se muestran filas de diseño; la publicación real no aparecerá aquí hasta configurar Supabase.",
+        "Sin conexión a inventario publicado: configura `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` en el servidor. No se muestran filas de muestra.",
     };
   }
 
@@ -41,10 +53,12 @@ export async function loadRestaurantesResultsInventoryForPage(): Promise<Restaur
       rows: [],
       source: "published",
       bannerNote:
-        "Aún no hay restaurantes publicados en la base. Publica desde /publicar/restaurantes → vista previa → Publicar (con sesión iniciada para asociar owner).",
+        "Aún no hay restaurantes con estado «published». Publica desde /publicar/restaurantes (vista previa → Publicar) con sesión iniciada para asociar propietario.",
     };
   }
 
-  const mapped = mapPublicResultsRowsToShellInventory(mapDbRowsToPublicResultsRows(dbRows));
-  return { rows: mapped, source: "published" };
+  return {
+    rows: mapRestaurantesPublicListingDbRowsToShellInventory(dbRows),
+    source: "published",
+  };
 }

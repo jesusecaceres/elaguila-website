@@ -1,74 +1,63 @@
 // Footer.tsx
 import { CookiePreferencesTrigger } from "./CookiePreferencesTrigger";
+import { LEONIX_GLOBAL_EMAIL, LEONIX_MEDIA_BRAND } from "@/app/data/leonixGlobalContact";
+import { LEONIX_GLOBAL_LLC, LEONIX_MEDIA_SLOGAN, LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 
 export default function Footer() {
   return (
     <footer className="w-full bg-[color:var(--lx-section)] text-[color:var(--lx-text)] py-12 mt-20 border-t border-[color:var(--lx-nav-border)]">
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10">
-
-        {/* Social Media */}
         <div>
           <h3 className="text-xl font-bold text-[color:var(--lx-gold)] mb-3">Síguenos</h3>
-          <ul className="space-y-2">
+          <ul className="space-y-2 text-[color:var(--lx-text-2)]/90">
             <li>
               <a
-                href="https://facebook.com/elaguilamagazine"
-                target="_blank"
-              rel="noopener noreferrer"
-                className="hover:text-[color:var(--lx-gold)] transition"
+                href={LEONIX_SITE_ORIGIN}
+                className="hover:text-[color:var(--lx-gold)] transition font-medium"
+                rel="noopener noreferrer"
               >
-                Facebook
+                {LEONIX_SITE_ORIGIN.replace(/^https:\/\//, "")}
               </a>
             </li>
-            <li>
-              <a
-                href="https://instagram.com/elaguila_magazine"
-                target="_blank"
-              rel="noopener noreferrer"
-                className="hover:text-[color:var(--lx-gold)] transition"
-              >
-                Instagram
-              </a>
-            </li>
-            <li>
-              <a href="#" aria-disabled="true" title="Pronto" className="hover:text-yellow-300 opacity-60 cursor-not-allowed pointer-events-none">
-                TikTok
-              </a>
-            </li>
-            <li>
-              <a href="#" aria-disabled="true" title="Pronto" className="hover:text-yellow-300 opacity-60 cursor-not-allowed pointer-events-none">
-                YouTube
-              </a>
+            <li className="text-sm text-[color:var(--lx-muted)]">
+              Enlaces a redes sociales oficiales próximamente.
             </li>
           </ul>
         </div>
 
-        {/* Contact */}
         <div>
           <h3 className="text-xl font-bold text-[color:var(--lx-gold)] mb-3">Contacto</h3>
-          <p>Email: support@elaguilamedia.com</p>
-          <p>Tel: 4081234567</p>
+          <p>
+            <span className="text-[color:var(--lx-text-2)]/90">Email: </span>
+            <a className="underline decoration-[color:var(--lx-gold)]" href={`mailto:${LEONIX_GLOBAL_EMAIL}`}>
+              {LEONIX_GLOBAL_EMAIL}
+            </a>
+          </p>
+          <p className="text-[color:var(--lx-text-2)]/90">Tel: (408) 937-1063</p>
+          <p className="mt-2 text-xs text-[color:var(--lx-muted)]">Una empresa bajo {LEONIX_GLOBAL_LLC}.</p>
         </div>
 
-        {/* Advertising */}
         <div>
-          <h3 className="text-xl font-bold text-[color:var(--lx-gold)] mb-3">Anuncia con Nosotros</h3>
+          <h3 className="text-xl font-bold text-[color:var(--lx-gold)] mb-3">Anuncia con nosotros</h3>
           <p className="text-[color:var(--lx-text-2)]/85">
-            El Águila es tu mejor plataforma para llegar a la comunidad Latina del Área de la Bahía.
+            {LEONIX_MEDIA_BRAND} conecta negocios, clasificados y comunidad en un solo ecosistema bilingüe para el Área
+            de la Bahía y el norte de California.
           </p>
           <a
-            href="/contact?lang=es"
+            href="/contacto?lang=es"
             className="text-[color:var(--lx-text)] underline decoration-[color:var(--lx-gold)] underline-offset-4 mt-2 inline-block hover:text-[color:var(--lx-gold)] transition"
           >
             Más información →
           </a>
         </div>
-
       </div>
 
-      <div className="mt-10 flex flex-col items-center gap-3 text-center">
+      <div className="mt-10 flex flex-col items-center gap-3 text-center px-4">
         <CookiePreferencesTrigger />
-        <p className="text-[color:var(--lx-muted)] text-sm">© 2026 El Águila — Orgullo Latino Sin Fronteras.</p>
+        <p className="text-[color:var(--lx-muted)] text-sm max-w-xl">{LEONIX_MEDIA_SLOGAN}</p>
+        <p className="text-[color:var(--lx-muted)] text-sm">
+          © {new Date().getFullYear()} {LEONIX_MEDIA_BRAND} · {LEONIX_GLOBAL_LLC}
+        </p>
       </div>
     </footer>
   );

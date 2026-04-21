@@ -1,20 +1,20 @@
 import type { EmpleosJobRecord } from "../../data/empleosJobTypes";
 import { EMPLEOS_JOB_CATALOG } from "../../data/empleosSampleCatalog";
 
-import { readAllEmpleosCanonical } from "./empleosStagedStorage";
-
-/** Published staged listings only (draft/paused/etc. excluded from public merge). */
+/** @deprecated Browser-local demo layer — live listings load from Supabase via server props. */
 export function readStagedPublishedJobRecords(): EmpleosJobRecord[] {
-  if (typeof window === "undefined") return [];
-  return readAllEmpleosCanonical()
-    .filter((r) => r.status === "published")
-    .map((r) => r.jobRecord);
+  return [];
 }
 
-/** Sample catalog + staged published jobs (no slug collisions with seed). */
-export function getEmpleosMergedPublishedJobs(): EmpleosJobRecord[] {
+/** Merge curated seed catalog with live DB-backed jobs (live wins on slug collision by excluding seed slug overlap from live side). */
+export function mergeEmpleosSeedWithLiveJobs(live: EmpleosJobRecord[]): EmpleosJobRecord[] {
   const seed = [...EMPLEOS_JOB_CATALOG];
   const seedSlugs = new Set(seed.map((j) => j.slug));
-  const staged = readStagedPublishedJobRecords().filter((j) => !seedSlugs.has(j.slug));
-  return [...seed, ...staged];
+  const liveFiltered = live.filter((j) => !seedSlugs.has(j.slug));
+  return [...seed, ...liveFiltered];
+}
+
+/** @deprecated Use server `fetchEmpleosPublishedJobRecords` + `mergeEmpleosSeedWithLiveJobs`. */
+export function getEmpleosMergedPublishedJobs(): EmpleosJobRecord[] {
+  return [...EMPLEOS_JOB_CATALOG];
 }

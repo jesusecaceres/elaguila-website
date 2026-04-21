@@ -186,6 +186,13 @@ export type ServiciosBusinessProfile = {
   identity: ServiciosIdentity;
   hero: ServiciosHeroBlock;
   contact: ServiciosContactBlock;
+  /**
+   * Ops/admin-only metadata persisted with the listing (never rendered on the public profile shell).
+   * Used for moderation queues and trust-interest signals.
+   */
+  opsMeta?: {
+    leonixVerifiedInterest?: boolean;
+  };
   quickFacts?: ServiciosQuickFact[];
   about?: ServiciosAboutBlock;
   services?: ServiciosServiceCard[];

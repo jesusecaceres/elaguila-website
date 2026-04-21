@@ -42,6 +42,9 @@ type PageProps = {
     verified?: string;
     web?: string;
     bilingual?: string;
+    email?: string;
+    emergency?: string;
+    mobileSvc?: string;
   }>;
 };
 
@@ -70,6 +73,9 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
     verified: sp.verified === "1" ? "1" : undefined,
     web: sp.web === "1" ? "1" : undefined,
     bilingual: sp.bilingual === "1" ? "1" : undefined,
+    email: sp.email === "1" ? "1" : undefined,
+    emergency: sp.emergency === "1" ? "1" : undefined,
+    mobileSvc: sp.mobileSvc === "1" ? "1" : undefined,
   };
 
   const allRows = await listServiciosPublicListingsForDiscovery(120);

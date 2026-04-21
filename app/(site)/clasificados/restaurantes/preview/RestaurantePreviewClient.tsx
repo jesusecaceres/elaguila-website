@@ -24,6 +24,7 @@ export default function RestaurantePreviewClient() {
     resultsUrl?: string;
     dashboardUrl?: string;
     err?: string;
+    errDetail?: string;
     persisted?: boolean;
   }>({ busy: false });
 
@@ -47,10 +48,15 @@ export default function RestaurantePreviewClient() {
         resultsUrl?: string;
         dashboardUrl?: string;
         error?: string;
+        detail?: string;
         persisted?: boolean;
       };
       if (!res.ok || !j.ok) {
-        setPub({ busy: false, err: j.error ?? "publish_failed" });
+        setPub({
+          busy: false,
+          err: j.error ?? "publish_failed",
+          errDetail: typeof j.detail === "string" ? j.detail : undefined,
+        });
         return;
       }
       setPub({
@@ -58,8 +64,9 @@ export default function RestaurantePreviewClient() {
         url: j.publicUrl ?? undefined,
         resultsUrl: j.resultsUrl,
         dashboardUrl: j.dashboardUrl,
-        persisted: j.persisted,
+        persisted: j.persisted ?? true,
         err: undefined,
+        errDetail: undefined,
       });
     } catch {
       setPub({ busy: false, err: "network" });
@@ -114,7 +121,8 @@ export default function RestaurantePreviewClient() {
               <div className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-3">
                 <p className="text-xs font-semibold text-[color:var(--lx-text)]">Publicar en Clasificados</p>
                 <p className="mt-1 text-[11px] text-[color:var(--lx-text-2)]">
-                  Requiere Supabase en el servidor para persistir en resultados y ficha pública.
+                  El servidor debe tener `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`; si falta, verás error 503 y no
+                  se guardará nada.
                 </p>
                 <div className="mt-2 flex flex-wrap items-center gap-3">
                   <button
@@ -153,18 +161,18 @@ export default function RestaurantePreviewClient() {
                   ) : null}
                 </div>
                 {pub.err ? (
-                  <p className="mt-2 text-xs text-red-700">
-                    {pub.err === "not_ready"
-                      ? "Aún no está listo."
-                      : pub.err === "network"
-                        ? "Error de red."
-                        : `No se pudo publicar (${pub.err}).`}
-                  </p>
-                ) : null}
-                {pub.persisted === false && pub.url ? (
-                  <p className="mt-2 text-xs text-[color:var(--lx-muted)]">
-                    Slug generado localmente; conecta Supabase para guardar en resultados y detalle público.
-                  </p>
+                  <div className="mt-2 text-xs text-red-800">
+                    <p>
+                      {pub.err === "not_ready"
+                        ? "Aún no está listo."
+                        : pub.err === "network"
+                          ? "Error de red."
+                          : pub.err === "supabase_admin_unconfigured"
+                            ? "Servidor sin credenciales de Supabase (rol de servicio). No se persistió nada."
+                            : `No se pudo publicar (${pub.err}).`}
+                    </p>
+                    {pub.errDetail ? <p className="mt-1 font-mono text-[11px] opacity-90">{pub.errDetail}</p> : null}
+                  </div>
                 ) : null}
               </div>
             ) : null}

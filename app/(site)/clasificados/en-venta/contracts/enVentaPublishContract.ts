@@ -9,6 +9,24 @@
  * - **Results/detail/admin:** all read this row; filters map from `detail_pairs`, `city`, `zip`, `seller_type`, `price`, `images`, etc.
  * - **Not stored here:** global site banners (`site_section_content`) — those are unrelated to classified publish.
  *
+ * ## Field coverage (Free/Pro application → `listings` / `detail_pairs` → surfaces)
+ * | Field | Stored | Detail | Results filter | Sort | Notes |
+ * |-------|--------|--------|----------------|------|-------|
+ * | title, description (+ wear/accessories/extra lines) | `title`, `description` | ✓ | `q` (text) | — | Long text in description |
+ * | price, priceIsFree | `price`, `is_free` | ✓ | `priceMin`/`priceMax`, `free` | price asc/desc | `priceNumFromRow` uses 0 when `is_free` |
+ * | rama, evSub, itemType, condition | `detail_pairs` + `Leonix:*` | ✓ specs | `evDept`, `evSub`, `cond` | — | Machine keys in `enVentaPublishFromDraft` |
+ * | city, zip | `city`, `zip` (optional col) | ✓ | `city`, `zip`, geo hint | — | Canonical via `validateEnVentaLocation` |
+ * | pickup, shipping, localDelivery | `Leonix:pickup/ship/delivery` + human row | ✓ | `pickup`/`ship`/`delivery` | — | Parsed in `enVentaDetailPairSignals.ts` |
+ * | meetup | `Leonix:meetup` + Encuentro pair | ✓ | `meetup` | — | Distinct from pickup |
+ * | negotiable | `Leonix:negotiable` + label pair | ✓ chip | `nego` | — | |
+ * | brand, model | `Leonix:brand`, `Leonix:model` | ✓ (pretty label) | `q` | — | Not separate facet filters (use search) |
+ * | quantity | Cantidad/Quantity pair | ✓ | `q` | — | |
+ * | seller_kind, displayName | `seller_type`, `business_name` | ✓ | `seller` | — | |
+ * | contact | `contact_phone`, `contact_email` | ✓ (resolver) | — | — | Not publicly filterable |
+ * | images | `images` + description marker | ✓ | — | — | Gallery |
+ * | mux / video | mux_* cols + description | ✓ | — | — | Pro |
+ * | confirmations | not stored | — | — | — | Gate only |
+ *
  * ## Internal QA (dev / staging, signed-in seller)
  * 1. Publish En Venta from `/clasificados/publicar/en-venta/...` — expect real Supabase insert (not only local draft).
  * 2. Success panel: `data-testid="ev-publish-success"` — open detail link, then results scoped links.
@@ -16,6 +34,7 @@
  * 4. Dashboard: `/dashboard/mis-anuncios` — row for same `owner_id`.
  * 5. Admin: `/admin/workspace/clasificados` — same `listings` row.
  * 6. Global site-settings (`/admin/site-settings`) does not publish classifieds; banners only.
+ * 7. Launch checklist page: `/clasificados/en-venta/launch-checklist` (dev or `NEXT_PUBLIC_EV_INTERNAL_QA=1` only).
  */
 
 import type { EnVentaConditionValue } from "../shared/fields/enVentaTaxonomy";

@@ -1,6 +1,6 @@
 /**
  * Maps Supabase `listings` rows (category `rentas`) → `RentasPublicListing` for browse/detail.
- * **Staged testing:** not a final search index; resilient to partial rows and evolving `detail_pairs`.
+ * Resilient to partial rows; discovery filters read numeric rent from `rentMonthly` and machine keys in `detail_pairs`.
  */
 
 import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
@@ -9,6 +9,7 @@ import {
   type LeonixClasificadosBranch,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
+import { RENTAS_DP_DEPOSIT_USD } from "@/app/clasificados/rentas/lib/rentasMachineDetailPairs";
 
 function trim(s: unknown): string {
   if (s == null) return "";
@@ -147,6 +148,15 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
       ? Math.round(row.price)
       : Math.round(Number(String(row.price ?? "").replace(/[^0-9.]/g, "")) || 0);
 
+  const depRaw = pairValue(row.detail_pairs, RENTAS_DP_DEPOSIT_USD);
+  const depNum = depRaw ? Math.round(Number(String(depRaw).replace(/\D/g, "")) || 0) : 0;
+  const depositUsd = depNum > 0 ? depNum : undefined;
+
+  const phoneRaw = trim(row.contact_phone);
+  const emailRaw = trim(row.contact_email);
+  const contactPhone = phoneRaw.replace(/\D/g, "").length >= 10 ? phoneRaw : undefined;
+  const contactEmail = emailRaw.includes("@") ? emailRaw : undefined;
+
   const img = firstImageUrl(row.images);
   const gal = galleryUrls(row.images);
   const imageUrl = img || "https://images.unsplash.com/photo-1600585154340-0ef3c08dc8e4?w=800&q=80&auto=format&fit=crop";
@@ -168,6 +178,9 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     galleryUrls: gal,
     rentDisplay: rentDisplayFromPrice(row.price, lang),
     rentMonthly: priceNum > 0 ? priceNum : undefined,
+    depositUsd,
+    contactPhone,
+    contactEmail,
     addressLine,
     city,
     postalCode,

@@ -36,12 +36,14 @@ function buildCategoryLine(dto: EnVentaAnuncioDTO, effectiveDeptKey: string | nu
 
 function fulfillmentChip(dto: EnVentaAnuncioDTO, lang: "es" | "en"): string | null {
   const { pickup, shipping, delivery } = dto.fulfillment;
-  if (!pickup && !shipping && !delivery) return null;
+  const meetup = dto.meetupOffered;
+  if (!pickup && !shipping && !delivery && !meetup) return null;
   if (lang === "es") {
     const parts: string[] = [];
     if (shipping) parts.push("Envío");
     if (pickup) parts.push("recogida");
     if (delivery) parts.push("entrega local");
+    if (meetup) parts.push("encuentro");
     if (parts.length >= 2 && shipping && pickup) return "Entrega y local disponible";
     return parts.join(" · ");
   }
@@ -49,6 +51,7 @@ function fulfillmentChip(dto: EnVentaAnuncioDTO, lang: "es" | "en"): string | nu
   if (shipping) en.push("Shipping");
   if (pickup) en.push("pickup");
   if (delivery) en.push("local delivery");
+  if (meetup) en.push("meetup");
   if (en.length >= 2 && shipping && pickup) return "Shipping & local pickup";
   return en.join(" · ");
 }

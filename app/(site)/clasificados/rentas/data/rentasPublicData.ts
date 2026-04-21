@@ -1,8 +1,8 @@
 /**
  * Rentas public data access — demo pool + section samples (`rentasLandingSampleData`).
  *
- * **Staged testing:** interactive pages also load `listings` rows on the client (`useRentasStagedInventory`) and
- * run the same section selectors against the merged pool. These sync helpers remain demo-only for SSR/tests.
+ * **Production:** landing/results receive server-fetched live rows; demo merges only with
+ * `NEXT_PUBLIC_RENTAS_INCLUDE_DEMO_POOL=1`. These sync helpers remain demo-only for non-route utilities/tests.
  *
  * Section rules: `rentasSectionPolicy.ts` + `rentasSectionSelectors.ts`.
  */

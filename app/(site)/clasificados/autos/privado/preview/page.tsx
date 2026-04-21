@@ -4,7 +4,7 @@ import { AutosPrivadoPreviewClient } from "./AutosPrivadoPreviewClient";
 export const metadata: Metadata = {
   title: "Vista previa — Auto · Privado",
   description:
-    "Vista previa del anuncio de vendedor particular en LEONIX Clasificados — premium, sin stack de concesionario.",
+    "Vista previa del anuncio de vendedor particular en Leonix Media — premium, sin stack de concesionario.",
   alternates: {
     canonical: "/clasificados/autos/privado/preview",
   },

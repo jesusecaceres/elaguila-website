@@ -13,8 +13,12 @@ import { useViajesLocalHeroObjectUrl } from "@/app/(site)/clasificados/viajes/li
 import { newViajesDraftMediaId, viajesDraftMediaDelete, viajesDraftMediaPut } from "@/app/(site)/clasificados/viajes/lib/viajesDraftMediaIdb";
 import { ViajesDateRangeFields } from "../../components/ViajesDateRangeFields";
 import { getPublicarViajesNegociosCopy } from "../data/publicarViajesNegociosCopy";
-import type { ViajesNegociosCtaType } from "../lib/viajesNegociosDraftTypes";
-import { VIAJES_NEGOCIOS_GALLERY_MAX, VIAJES_NEGOCIOS_MAX_INLINE_IMAGE } from "../lib/viajesNegociosDraftDefaults";
+import type { ViajesNegociosDraft, ViajesNegociosCtaType } from "../lib/viajesNegociosDraftTypes";
+import {
+  mergeViajesNegociosDraftFromPartial,
+  VIAJES_NEGOCIOS_GALLERY_MAX,
+  VIAJES_NEGOCIOS_MAX_INLINE_IMAGE,
+} from "../lib/viajesNegociosDraftDefaults";
 import { useViajesNegociosDraft } from "../lib/useViajesNegociosDraft";
 
 const CARD =
@@ -29,7 +33,44 @@ export function ViajesNegociosApplicationShell() {
   const sp = useSearchParams();
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
   const c = getPublicarViajesNegociosCopy(lang);
-  const { draft, update, reset, hydrated } = useViajesNegociosDraft();
+  const { draft, update, reset, hydrated, setDraft } = useViajesNegociosDraft();
+  const stagedIdFromUrl = (sp?.get("stagedId") ?? "").trim();
+  const [stagedBootstrapErr, setStagedBootstrapErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!hydrated || !stagedIdFromUrl) {
+      setStagedBootstrapErr(null);
+      return;
+    }
+    let cancelled = false;
+    async function load() {
+      setStagedBootstrapErr(null);
+      try {
+        const sb = createSupabaseBrowserClient();
+        const sess = await withAuthTimeout(sb.auth.getSession(), AUTH_CHECK_TIMEOUT_MS);
+        const token = sess.data.session?.access_token;
+        if (!token) {
+          if (!cancelled) setStagedBootstrapErr(lang === "en" ? "Sign in to load this submission." : "Inicia sesión para cargar este envío.");
+          return;
+        }
+        const res = await fetch(`/api/clasificados/viajes/staged-owner?id=${encodeURIComponent(stagedIdFromUrl)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = (await res.json()) as { ok?: boolean; row?: { listing_json?: { negocios?: ViajesNegociosDraft } }; error?: string };
+        if (!res.ok || !json.ok || !json.row?.listing_json?.negocios) {
+          if (!cancelled) setStagedBootstrapErr(json.error ?? (lang === "en" ? "Could not load submission." : "No se pudo cargar el envío."));
+          return;
+        }
+        if (!cancelled) setDraft(mergeViajesNegociosDraftFromPartial(json.row.listing_json.negocios));
+      } catch {
+        if (!cancelled) setStagedBootstrapErr(lang === "en" ? "Network error." : "Error de red.");
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, lang, setDraft, stagedIdFromUrl]);
   const heroBlobUrl = useViajesLocalHeroObjectUrl("negocios", draft.localHeroImageId);
   const [publishOpen, setPublishOpen] = useState(false);
   const [submitBusy, setSubmitBusy] = useState(false);
@@ -72,16 +113,31 @@ export function ViajesNegociosApplicationShell() {
       } catch {
         session = null;
       }
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+      if (!session?.access_token) {
+        router.push(`/login?redirect=${encodeURIComponent(`/publicar/viajes/negocios${stagedIdFromUrl ? `?stagedId=${encodeURIComponent(stagedIdFromUrl)}` : ""}${lang === "en" ? "&lang=en" : ""}`)}`);
+        return;
+      }
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      };
       const res = await fetch("/api/clasificados/viajes/submit", {
         method: "POST",
         headers,
-        body: JSON.stringify({ lane: "business", lang, negociosDraft: draft }),
+        body: JSON.stringify({
+          lane: "business",
+          lang,
+          negociosDraft: draft,
+          ...(stagedIdFromUrl ? { stagedListingId: stagedIdFromUrl } : {}),
+        }),
       });
       const json = (await res.json()) as { ok?: boolean; error?: string; slug?: string; id?: string };
       if (!res.ok || !json.ok) {
         const code = json.error ?? "unknown";
+        if (code === "auth_required") {
+          router.push(`/login?redirect=${encodeURIComponent(`/publicar/viajes/negocios${stagedIdFromUrl ? `?stagedId=${encodeURIComponent(stagedIdFromUrl)}` : ""}`)}`);
+          return;
+        }
         if (code === "supabase_not_configured") {
           window.alert(
             lang === "en"
@@ -238,6 +294,14 @@ export function ViajesNegociosApplicationShell() {
               </li>
             ))}
           </ol>
+          {stagedIdFromUrl ? (
+            <p className="mt-3 rounded-xl border border-sky-200/80 bg-sky-50/90 px-3 py-2 text-xs leading-relaxed text-sky-950">
+              {lang === "en"
+                ? "You are editing a saved submission from your dashboard. Submitting updates the same record and sends it back to internal review before it can appear publicly."
+                : "Estás editando un envío guardado desde tu panel. Al enviar se actualiza el mismo registro y vuelve a revisión interna antes de poder verse en público."}
+            </p>
+          ) : null}
+          {stagedBootstrapErr ? <p className="mt-2 text-xs font-semibold text-rose-800">{stagedBootstrapErr}</p> : null}
           <div className="mt-5 rounded-2xl border border-amber-300/60 bg-gradient-to-r from-amber-50 to-[color:var(--lx-card)] p-4 shadow-sm">
             <p className="text-sm font-bold text-[color:var(--lx-text)]">{c.recovery.title}</p>
             <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-text-2)]">{c.recovery.wrongLaneBody}</p>

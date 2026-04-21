@@ -9,7 +9,7 @@ export type ServiciosResultsFilterQuery = {
   whatsapp?: "1" | "0";
   promo?: "1" | "0";
   call?: "1" | "0";
-  /** Keyword — matched against name, city, category line, about, location strings */
+  /** Keyword — matched against name, city, category line, about, location strings, services, trust, reviews */
   q?: string;
   sort?: "newest" | "name";
   /** Derived from profile contact fields when not `all` */
@@ -20,6 +20,12 @@ export type ServiciosResultsFilterQuery = {
   web?: "1";
   /** `quickFacts` includes bilingual signal */
   bilingual?: "1";
+  /** Public email on profile (mailto-capable) */
+  email?: "1";
+  /** Quick fact kind `emergency` */
+  emergency?: "1";
+  /** Quick fact kind `mobile_service` */
+  mobileSvc?: "1";
 };
 
 function normalize(s: string | undefined): string {
@@ -37,6 +43,9 @@ export function serviciosResultsHasActiveFilters(q: ServiciosResultsFilterQuery)
       q.verified === "1" ||
       q.web === "1" ||
       q.bilingual === "1" ||
+      q.email === "1" ||
+      q.emergency === "1" ||
+      q.mobileSvc === "1" ||
       (q.sort && q.sort !== "newest") ||
       (q.seller && q.seller !== "all"),
   );
@@ -48,6 +57,14 @@ function wireHasPublicWebsite(p: ServiciosBusinessProfile): boolean {
 
 function wireHasBilingualQuickFact(p: ServiciosBusinessProfile): boolean {
   return (p.quickFacts ?? []).some((f) => f.kind === "bilingual");
+}
+
+function wireHasQuickFactKind(p: ServiciosBusinessProfile, kind: string): boolean {
+  return (p.quickFacts ?? []).some((f) => f.kind === kind);
+}
+
+function wireHasPublicEmail(p: ServiciosBusinessProfile): boolean {
+  return Boolean(p.contact?.email?.trim());
 }
 
 /** City/ZIP/area filter: row city + published contact/hero/service-area text (substring match). */
@@ -93,6 +110,9 @@ export function filterServiciosPublicListingRows(
   const wantVerified = q.verified === "1";
   const wantWeb = q.web === "1";
   const wantBilingual = q.bilingual === "1";
+  const wantEmail = q.email === "1";
+  const wantEmergency = q.emergency === "1";
+  const wantMobileSvc = q.mobileSvc === "1";
 
   if (
     !cityQ &&
@@ -102,17 +122,24 @@ export function filterServiciosPublicListingRows(
     !wantCall &&
     !wantVerified &&
     !wantWeb &&
-    !wantBilingual
+    !wantBilingual &&
+    !wantEmail &&
+    !wantEmergency &&
+    !wantMobileSvc
   ) {
     return rows;
   }
 
   return rows.filter((row) => {
+    const pj = row.profile_json;
     if (groupQ && normalize(row.internal_group ?? "") !== groupQ) return false;
     if (cityQ && !rowMatchesLocationQuery(row, cityQ)) return false;
     if (wantVerified && row.leonix_verified !== true) return false;
-    if (wantWeb && !wireHasPublicWebsite(row.profile_json)) return false;
-    if (wantBilingual && !wireHasBilingualQuickFact(row.profile_json)) return false;
+    if (wantWeb && !wireHasPublicWebsite(pj)) return false;
+    if (wantBilingual && !wireHasBilingualQuickFact(pj)) return false;
+    if (wantEmail && !wireHasPublicEmail(pj)) return false;
+    if (wantEmergency && !wireHasQuickFactKind(pj, "emergency")) return false;
+    if (wantMobileSvc && !wireHasQuickFactKind(pj, "mobile_service")) return false;
 
     if (wantWa || wantPromo || wantCall) {
       const profile = resolvedProfile(row, lang);
@@ -139,12 +166,26 @@ export function filterServiciosRowsByKeyword(
     const profile = resolvedProfile(row, lang);
     if (normalize(profile.hero.categoryLine).includes(kw)) return true;
     if (normalize(profile.about?.text).includes(kw)) return true;
+    if (normalize(profile.about?.specialtiesLine).includes(kw)) return true;
     const pj = row.profile_json;
     if (normalize(pj.contact?.physicalPostalCode ?? "").includes(kw)) return true;
     if (normalize(pj.contact?.physicalCity ?? "").includes(kw)) return true;
     if (normalize(pj.hero?.locationSummary ?? "").includes(kw)) return true;
     for (const item of pj.serviceAreas?.items ?? []) {
       if (normalize(item.label).includes(kw)) return true;
+    }
+    for (const s of profile.services ?? []) {
+      if (normalize(s.title).includes(kw)) return true;
+      if (normalize(s.secondaryLine).includes(kw)) return true;
+    }
+    for (const t of profile.trust ?? []) {
+      if (normalize(t.label).includes(kw)) return true;
+    }
+    for (const r of profile.reviews ?? []) {
+      if (normalize(r.quote).includes(kw) || normalize(r.authorName).includes(kw)) return true;
+    }
+    for (const f of profile.quickFacts ?? []) {
+      if (normalize(f.label).includes(kw)) return true;
     }
     return false;
   });
@@ -170,8 +211,7 @@ export function sortServiciosListingRows(
 ): ServiciosPublicListingRow[] {
   const s = sort ?? "newest";
   const copy = [...rows];
-  const tieSlug = (a: ServiciosPublicListingRow, b: ServiciosPublicListingRow) =>
-    a.slug.localeCompare(b.slug, "en");
+  const tieSlug = (a: ServiciosPublicListingRow, b: ServiciosPublicListingRow) => a.slug.localeCompare(b.slug, "en");
 
   if (s === "name") {
     copy.sort((a, b) => {
@@ -198,8 +238,5 @@ export function sortServiciosResultsForDisplay(
 ): ServiciosPublicListingRow[] {
   const promoted = rows.filter(isServiciosListingPromoted);
   const rest = rows.filter((r) => !isServiciosListingPromoted(r));
-  return [
-    ...sortServiciosListingRows(promoted, lang, sort),
-    ...sortServiciosListingRows(rest, lang, sort),
-  ];
+  return [...sortServiciosListingRows(promoted, lang, sort), ...sortServiciosListingRows(rest, lang, sort)];
 }

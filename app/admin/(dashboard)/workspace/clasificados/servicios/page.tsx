@@ -5,7 +5,10 @@ import {
   isServiciosDevPublishPersistenceEnabled,
   listServiciosDevPublishRows,
 } from "@/app/clasificados/servicios/lib/serviciosDevPublishPersistence";
-import ServiciosAdminClient from "./ServiciosAdminClient";
+import {
+  setServiciosListingLeonixVerifiedAction,
+  updateServiciosPublicListingStatusAction,
+} from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +22,8 @@ export type ServiciosPublicAdminRow = {
   leonix_verified: boolean;
   listing_status: string | null;
   internal_group: string | null;
+  owner_user_id?: string | null;
+  profile_json?: { opsMeta?: { leonixVerifiedInterest?: boolean } } | null;
 };
 
 function schemaMissing(msg: string): boolean {
@@ -34,7 +39,9 @@ async function fetchServiciosPublicForAdmin(): Promise<{
     const supabase = getAdminSupabase();
     const full = await supabase
       .from("servicios_public_listings")
-      .select("id, slug, business_name, city, published_at, updated_at, leonix_verified, listing_status, internal_group")
+      .select(
+        "id, slug, business_name, city, published_at, updated_at, leonix_verified, listing_status, internal_group, owner_user_id, profile_json",
+      )
       .order("updated_at", { ascending: false })
       .limit(80);
 
@@ -43,6 +50,7 @@ async function fetchServiciosPublicForAdmin(): Promise<{
         ...r,
         listing_status: r.listing_status ?? null,
         updated_at: r.updated_at ?? null,
+        owner_user_id: r.owner_user_id ?? null,
       }));
       return { rows, unavailable: false, fullSchema: true };
     }
@@ -111,7 +119,7 @@ export default async function AdminServiciosWorkspacePage() {
       {!unavailable ? (
         <div className={`${adminCardBase} overflow-hidden p-0`}>
           <div className="border-b border-[#E8DFD0]/80 bg-[#FAF7F2]/90 px-4 py-2 text-xs font-semibold text-[#5C5346]">
-            servicios_public_listings (lectura)
+            servicios_public_listings (operaciones)
             {!fullSchema ? (
               <span className="ml-2 text-amber-900">
                 — modo reducido (faltan columnas recientes; aplica migraciones Servicios)
@@ -128,8 +136,10 @@ export default async function AdminServiciosWorkspacePage() {
                     <th className="p-3">Negocio</th>
                     <th className="p-3">Ciudad</th>
                     <th className="p-3">Slug</th>
+                    <th className="p-3">Propietario</th>
                     <th className="p-3">Estado</th>
-                    <th className="p-3">Verif.</th>
+                    <th className="p-3">Verif. Leonix</th>
+                    <th className="p-3">Interés verif.</th>
                     <th className="p-3">Actualizado</th>
                     <th className="p-3"> </th>
                   </tr>
@@ -140,8 +150,50 @@ export default async function AdminServiciosWorkspacePage() {
                       <td className="p-3 font-semibold text-[#1E1810]">{r.business_name}</td>
                       <td className="p-3 text-xs text-[#5C5346]">{r.city}</td>
                       <td className="p-3 font-mono text-xs text-[#3D3428]">{r.slug}</td>
-                      <td className="p-3 text-xs">{r.listing_status ?? "—"}</td>
-                      <td className="p-3 text-xs">{r.leonix_verified ? "sí" : "no"}</td>
+                      <td className="p-3 font-mono text-[10px] text-[#7A7164]">{r.owner_user_id?.slice(0, 8) ?? "—"}…</td>
+                      <td className="p-3 text-xs">
+                        <form action={updateServiciosPublicListingStatusAction} className="flex flex-col gap-1">
+                          <input type="hidden" name="listing_id" value={r.id} />
+                          <select
+                            name="listing_status"
+                            defaultValue={r.listing_status ?? "published"}
+                            className="max-w-[11rem] rounded border border-[#E8DFD0] bg-white px-1 py-1 text-[11px]"
+                          >
+                            <option value="pending_review">pending_review</option>
+                            <option value="published">published</option>
+                            <option value="paused_unpublished">paused_unpublished</option>
+                            <option value="rejected">rejected</option>
+                            <option value="suspended">suspended</option>
+                            <option value="draft">draft</option>
+                          </select>
+                          <button
+                            type="submit"
+                            className="rounded border border-[#3B66AD]/40 bg-[#3B66AD]/10 px-2 py-0.5 text-[10px] font-bold text-[#2f5699]"
+                          >
+                            Guardar estado
+                          </button>
+                        </form>
+                      </td>
+                      <td className="p-3 text-xs">
+                        <form action={setServiciosListingLeonixVerifiedAction} className="flex flex-col gap-1">
+                          <input type="hidden" name="listing_id" value={r.id} />
+                          <select
+                            name="leonix_verified"
+                            defaultValue={r.leonix_verified ? "1" : "0"}
+                            className="max-w-[6rem] rounded border border-[#E8DFD0] bg-white px-1 py-1 text-[11px]"
+                          >
+                            <option value="0">no</option>
+                            <option value="1">sí</option>
+                          </select>
+                          <button
+                            type="submit"
+                            className="rounded border border-[#E8DFD0] bg-white px-2 py-0.5 text-[10px] font-semibold"
+                          >
+                            Guardar verif.
+                          </button>
+                        </form>
+                      </td>
+                      <td className="p-3 text-xs">{r.profile_json?.opsMeta?.leonixVerifiedInterest ? "sí" : "—"}</td>
                       <td className="p-3 text-xs text-[#7A7164]">
                         {r.updated_at
                           ? new Date(r.updated_at).toLocaleString()
@@ -213,7 +265,18 @@ export default async function AdminServiciosWorkspacePage() {
         </div>
       ) : null}
 
-      <ServiciosAdminClient />
+      <div className={`${adminCardBase} border-[#E8DFD0] bg-[#FFFCF7]/90 p-4 text-sm text-[#5C5346]`}>
+        <p className="font-semibold text-[#1E1810]">Sandbox de tiers (localStorage)</p>
+        <p className="mt-1 text-xs">
+          Herramienta de diseño histórica — no escribe en Supabase. Para pruebas de boosts/tiers usa la pantalla aislada.
+        </p>
+        <Link
+          href="/admin/workspace/clasificados/servicios/sandbox"
+          className={`${adminCtaChipSecondary} mt-3 inline-flex justify-center text-xs`}
+        >
+          Abrir sandbox tiers →
+        </Link>
+      </div>
     </div>
   );
 }
