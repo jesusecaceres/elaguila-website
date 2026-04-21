@@ -1,21 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
+import { LeonixApplicationDataLossNotice } from "@/app/clasificados/lib/leonixApplicationStandard/LeonixApplicationDataLossNotice";
+import { LeonixApplicationVerAnuncioActions } from "@/app/clasificados/lib/leonixApplicationStandard/LeonixApplicationVerAnuncioActions";
+import { LeonixCategoryApplicationHeader } from "@/app/clasificados/lib/leonixApplicationStandard/LeonixCategoryApplicationHeader";
 import { gateBienesRaicesPrivadoPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import {
   BR_NEGOCIO_Q_PROPIEDAD,
   parseBrNegocioPropiedadParam,
   type BrNegocioCategoriaPropiedad,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
-import {
-  BR_PREVIEW_PRIVADO,
-  BR_PUBLICAR_HUB,
-  BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY,
-} from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
+import { BR_PREVIEW_PRIVADO } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 import {
   AiField,
@@ -76,14 +73,6 @@ function formatPricePreviewUsd(digitsRaw: string): string {
   if (!Number.isFinite(n) || n <= 0) return "";
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
-
-const BR_PRIVADO_PREVIEW_ACTION_LABELS = {
-  preview: "Validar y ver vista previa",
-  openPreview: "Ver vista previa (sin validar)",
-  openPreviewTitle:
-    "Abre la vista previa enseguida con el borrador guardado en esta pestaña. No exige las confirmaciones del final ni todos los campos mínimos.",
-  deleteApplication: "Eliminar borrador",
-} as const;
 
 const CATEGORIAS: { id: BrNegocioCategoriaPropiedad; label: string }[] = [
   { id: "residencial", label: "Residencial" },
@@ -152,23 +141,6 @@ export function BienesRaicesPrivadoForm() {
     }, 280);
     return () => window.clearTimeout(id);
   }, [state, hydrated]);
-
-  /** Flush on tab hide / navigation away so the last keystroke is not lost. */
-  useEffect(() => {
-    if (!hydrated) return;
-    function flush() {
-      saveBienesRaicesPrivadoDraft(stateRef.current);
-    }
-    function onVisibilityChange() {
-      if (document.visibilityState === "hidden") flush();
-    }
-    window.addEventListener("pagehide", flush);
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    return () => {
-      window.removeEventListener("pagehide", flush);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-    };
-  }, [hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -279,66 +251,42 @@ export function BienesRaicesPrivadoForm() {
 
   const pricePreview = formatPricePreviewUsd(state.precio);
 
-  const previewActionsProps = {
-    onPreviewValidated: () => {
-      if (!confirmAll) return;
-      const g = gateBienesRaicesPrivadoPreview(stateRef.current);
-      if (!g.ok) {
-        setPreviewGateMessage(g.message);
-        return;
-      }
-      setPreviewGateMessage(null);
-      flushSave();
-      router.push(previewHref);
-    },
-    openPreviewHref: previewHref,
-    onBeforeOpenUnvalidatedPreview: flushSave,
-    disableValidatedPreview: !confirmAll,
-    validationBlockedMessage: previewGateMessage ?? (!confirmAll ? CONFIRM_PREVIEW_BLOCKED[lang] : null),
-    labels: BR_PRIVADO_PREVIEW_ACTION_LABELS,
-    onDeleteApplication: () => {
-      clearBienesRaicesPrivadoDraft();
-      const empty = createEmptyBienesRaicesPrivadoFormState();
-      try {
-        const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-        const p = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
-        setState(p ? { ...empty, categoriaPropiedad: p } : empty);
-      } catch {
-        setState(empty);
-      }
-      setPreviewGateMessage(null);
-    },
-    deleteConfirmMessage: "¿Eliminar el borrador de esta solicitud y empezar de nuevo?",
+  const onVerAnuncio = () => {
+    if (!confirmAll) return;
+    const g = gateBienesRaicesPrivadoPreview(stateRef.current);
+    if (!g.ok) {
+      setPreviewGateMessage(g.message);
+      return;
+    }
+    setPreviewGateMessage(null);
+    flushSave();
+    router.push(previewHref);
   };
+
+  const onReiniciar = () => {
+    clearBienesRaicesPrivadoDraft();
+    const empty = createEmptyBienesRaicesPrivadoFormState();
+    try {
+      const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+      const p = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
+      setState(p ? { ...empty, categoriaPropiedad: p } : empty);
+    } catch {
+      setState(empty);
+    }
+    setPreviewGateMessage(null);
+  };
+
+  const verAnuncioValidationMessage = previewGateMessage ?? (!confirmAll ? CONFIRM_PREVIEW_BLOCKED[lang] : null);
 
   return (
     <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#F6F0E2] px-4 pb-[max(7rem,env(safe-area-inset-bottom,0px))] pt-24 text-[#2C2416] sm:px-5 sm:pb-24 sm:pt-28">
       <div className="mx-auto w-full min-w-0 max-w-3xl space-y-7 md:space-y-8">
-        <header className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">Leonix · Bienes Raíces · Privado</p>
-          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#1E1810] sm:text-[1.65rem]">Publicar — Particular</h1>
-          <p className={aiSubClass}>
-            La vista previa solo muestra lo que llenes. El borrador vive en esta sesión del navegador (misma pestaña); al
-            cerrarla se descarta.
-          </p>
-        </header>
-
-        <ClasificadosApplicationTopActions {...previewActionsProps} />
-        <p className="text-xs leading-relaxed text-[#5C5346]/88">
-          <strong className="text-[#1E1810]">Validar y ver vista previa</strong> exige las confirmaciones del final y los
-          requisitos mínimos; si pasan, abre tu anuncio de prueba.{" "}
-          <strong className="text-[#1E1810]">Ver vista previa (sin validar)</strong> guarda el borrador y abre al instante
-          (útil mientras terminas campos opcionales).
-        </p>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          <Link
-            href={BR_PUBLICAR_HUB}
-            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#C9B46A]/50 px-6 text-sm font-semibold text-[#6E5418] transition hover:bg-[#FFEFD8] sm:w-auto"
-          >
-            Volver al hub BR
-          </Link>
-        </div>
+        <LeonixCategoryApplicationHeader
+          lang={lang}
+          categoryTitle="Leonix · Bienes Raíces · Privado"
+          headline={lang === "es" ? "Publicar — Particular" : "Post — Private seller"}
+        />
+        <LeonixApplicationDataLossNotice lang={lang} />
 
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>Categoría</h2>
@@ -1146,29 +1094,40 @@ export function BienesRaicesPrivadoForm() {
           </section>
         ) : null}
 
-        <ListingRulesConfirmationSection
-          lang={lang}
-          subject="property"
-          confirmAccurate={state.confirmListingAccurate}
-          confirmPhotos={state.confirmPhotosRepresentItem}
-          confirmRules={state.confirmCommunityRules}
-          onAccurate={(v) => setState((s) => ({ ...s, confirmListingAccurate: v }))}
-          onPhotos={(v) => setState((s) => ({ ...s, confirmPhotosRepresentItem: v }))}
-          onRules={(v) => setState((s) => ({ ...s, confirmCommunityRules: v }))}
-        />
-
-        <div className="min-w-0 space-y-3 rounded-2xl border border-[#E8DFD0] bg-[#FFFBF7] p-4 sm:p-5">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">Vista previa del anuncio</p>
-          <p className="text-xs leading-relaxed text-[#5C5346]/90">
-            Mismas acciones que arriba: no necesitas desplazarte otra vez al inicio del formulario.
-          </p>
-          <ClasificadosApplicationTopActions {...previewActionsProps} />
-        </div>
-
-        <p className="break-words text-center text-xs leading-relaxed text-[#5C5346]/80">
-          Borrador guardado solo en este dispositivo. Ruta:{" "}
-          <code className="break-all rounded bg-[#F9F6F1] px-1.5 py-0.5 text-[11px]">{BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY}</code>
-        </p>
+        <section className="min-w-0 space-y-5 rounded-2xl border border-[#E8DFD0] bg-[#FFFBF7] p-4 sm:p-5">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">
+              {lang === "es" ? "Confirmaciones y vista previa" : "Confirmations and preview"}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-[#5C5346]/90">
+              {lang === "es"
+                ? "Marca las casillas, abre «Ver anuncio» para revisar el borrador y, si todo está bien, publica en vivo desde la pantalla de vista previa."
+                : "Check the boxes, open “View listing” to review your draft, then publish live from the preview screen when you are ready."}
+            </p>
+          </div>
+          <ListingRulesConfirmationSection
+            lang={lang}
+            subject="property"
+            confirmAccurate={state.confirmListingAccurate}
+            confirmPhotos={state.confirmPhotosRepresentItem}
+            confirmRules={state.confirmCommunityRules}
+            onAccurate={(v) => setState((s) => ({ ...s, confirmListingAccurate: v }))}
+            onPhotos={(v) => setState((s) => ({ ...s, confirmPhotosRepresentItem: v }))}
+            onRules={(v) => setState((s) => ({ ...s, confirmCommunityRules: v }))}
+          />
+          <LeonixApplicationVerAnuncioActions
+            lang={lang}
+            onVerAnuncio={onVerAnuncio}
+            disableVerAnuncio={!confirmAll}
+            validationMessage={verAnuncioValidationMessage}
+            onReiniciar={onReiniciar}
+            labels={
+              lang === "en"
+                ? { verAnuncio: "View listing", reiniciar: "Clear progress and restart" }
+                : { verAnuncio: "Ver anuncio", reiniciar: "Borrar progreso y reiniciar" }
+            }
+          />
+        </section>
       </div>
     </main>
   );

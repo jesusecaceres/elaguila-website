@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { publishLeonixListingFromBienesRaicesPrivadoDraft } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
+import { useLeonixPublishFlowExitClear } from "@/app/clasificados/lib/leonixApplicationStandard/useLeonixPublishFlowExitClear";
 import {
   BR_NEGOCIO_Q_PROPIEDAD,
   coerceBrNegocioCategoriaPropiedad,
@@ -12,10 +13,14 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import {
   BR_PREVIEW_PRIVADO,
+  BR_PUBLICAR_PRIVADO,
   BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY,
 } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { mapBienesRaicesPrivadoStateToPreviewVm } from "@/app/clasificados/publicar/bienes-raices/privado/application/mapping/mapBienesRaicesPrivadoStateToPreviewVm";
-import { loadBienesRaicesPrivadoDraft } from "@/app/clasificados/publicar/bienes-raices/privado/application/utils/bienesRaicesPrivadoDraft";
+import {
+  clearBienesRaicesPrivadoDraft,
+  loadBienesRaicesPrivadoDraft,
+} from "@/app/clasificados/publicar/bienes-raices/privado/application/utils/bienesRaicesPrivadoDraft";
 import type { BienesRaicesPrivadoFormState } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
 import { BienesRaicesPrivadoPreviewView } from "../BienesRaicesPrivadoPreviewView";
@@ -28,6 +33,23 @@ const PUBLISH_BTN =
 export default function BienesRaicesPrivadoPreviewClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const suspendExitClearRef = useRef(false);
+
+  const isPathInsideFlow = useCallback((p: string) => {
+    return (
+      p.startsWith(BR_PUBLICAR_PRIVADO) ||
+      p.startsWith(BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY) ||
+      p.startsWith(BR_PREVIEW_PRIVADO)
+    );
+  }, []);
+
+  useLeonixPublishFlowExitClear({
+    getSuspend: () => suspendExitClearRef.current,
+    isPathInsideFlow,
+    onClear: () => {
+      clearBienesRaicesPrivadoDraft();
+    },
+  });
   const urlCategoria = useMemo(
     () => coerceBrNegocioCategoriaPropiedad(searchParams?.get(BR_NEGOCIO_Q_PROPIEDAD) ?? null),
     [searchParams],
@@ -47,6 +69,8 @@ export default function BienesRaicesPrivadoPreviewClient() {
     const r = await publishLeonixListingFromBienesRaicesPrivadoDraft(d, lang);
     setPublishBusy(false);
     if (r.ok) {
+      suspendExitClearRef.current = true;
+      clearBienesRaicesPrivadoDraft();
       if (r.warnings.length) {
         try {
           sessionStorage.setItem("lx_br_publish_warnings", JSON.stringify(r.warnings));
