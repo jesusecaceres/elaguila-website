@@ -12,9 +12,14 @@ import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPre
 import { BienesRaicesPrivadoPreviewView } from "@/app/clasificados/bienes-raices/preview/privado/BienesRaicesPrivadoPreviewView";
 import { buildRentasPrivadoTemplateVm } from "../model/buildRentasPrivadoTemplateVm";
 import { mapRentasPrivadoStateToPreviewVm } from "@/app/clasificados/publicar/rentas/privado/application/mapping/mapRentasPrivadoStateToPreviewVm";
-import { loadRentasPrivadoDraft } from "@/app/clasificados/publicar/rentas/privado/application/utils/rentasPrivadoDraft";
-import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
 import {
+  clearRentasPrivadoDraft,
+  loadRentasPrivadoDraft,
+} from "@/app/clasificados/publicar/rentas/privado/application/utils/rentasPrivadoDraft";
+import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
+import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
+import {
+  rentasListingPublicPath,
   RENTAS_PREVIEW_PRIVADO,
   RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
@@ -47,7 +52,8 @@ export default function RentasPrivadoPreviewClient() {
     const r = await publishLeonixListingFromRentasPrivadoDraft(d, lang);
     setPublishBusy(false);
     if (r.ok) {
-      router.push(`/clasificados/anuncio/${r.listingId}?lang=${lang}`);
+      clearRentasPrivadoDraft();
+      router.push(withRentasLandingLang(`${rentasListingPublicPath(r.listingId)}?published=1`, lang));
     } else {
       setPublishErr(r.error);
     }

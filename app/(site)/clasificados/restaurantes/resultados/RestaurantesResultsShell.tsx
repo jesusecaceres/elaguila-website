@@ -14,10 +14,7 @@ import {
   RESTAURANTE_HIGHLIGHTS,
   RESTAURANTE_PRICE_LEVELS,
 } from "@/app/clasificados/restaurantes/application/restauranteTaxonomy";
-import {
-  RESTAURANTES_PUBLIC_BLUEPRINT_ROWS,
-  type RestaurantesPublicBlueprintRow,
-} from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
+import { type RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 import { filterRestaurantesBlueprintRows, sortRestaurantesBlueprintRows } from "@/app/clasificados/restaurantes/lib/filterRestaurantesBlueprintRows";
 import {
   buildRestaurantesResultsHref,
@@ -40,7 +37,9 @@ import {
   selectPromotedResultsCandidates,
 } from "@/app/clasificados/restaurantes/lib/restaurantesListingExposurePolicy";
 import { leonixPersonalizationAllowed } from "@/app/lib/leonixPublicConsent";
+import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import type { RestaurantesResultsInventorySource } from "@/app/clasificados/restaurantes/lib/restaurantesResultsInventoryServer";
 
 const ACCENT = "#D97706";
 const PAGE_SIZE = 9;
@@ -65,7 +64,15 @@ function mergeDiscovery(
   return { ...base, ...patch };
 }
 
-export function RestaurantesResultsShell() {
+export function RestaurantesResultsShell({
+  initialInventory,
+  inventorySource,
+  inventoryBannerNote,
+}: {
+  initialInventory: RestaurantesPublicBlueprintRow[];
+  inventorySource: RestaurantesResultsInventorySource;
+  inventoryBannerNote?: string;
+}) {
   const router = useRouter();
   const sp = useSearchParams();
   const spStr = sp?.toString() ?? "";
@@ -78,6 +85,7 @@ export function RestaurantesResultsShell() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [geoNote, setGeoNote] = useState<string | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
+  const [dismissPublishFlash, setDismissPublishFlash] = useState(false);
 
   const [qInput, setQInput] = useState(parsed.q);
   const [locInput, setLocInput] = useState(parsed.zip || parsed.city || "");
@@ -100,12 +108,14 @@ export function RestaurantesResultsShell() {
     return parsed.sort;
   }, [parsed.top, parsed.sort]);
 
+  const publishFlash = sp?.get("rx_pub") === "1" && !dismissPublishFlash;
+
   const filteredUnsorted = useMemo(
     () =>
-      filterRestaurantesBlueprintRows(RESTAURANTES_PUBLIC_BLUEPRINT_ROWS, parsed, {
+      filterRestaurantesBlueprintRows(initialInventory, parsed, {
         savedIds: parsed.saved ? savedIds : undefined,
       }),
-    [parsed, savedIds],
+    [parsed, savedIds, initialInventory],
   );
 
   const sorted = useMemo(() => sortRestaurantesBlueprintRows(filteredUnsorted, effectiveSort), [filteredUnsorted, effectiveSort]);
@@ -219,6 +229,11 @@ export function RestaurantesResultsShell() {
         cookiePrefs: "Cookie preferences",
         saveListingAria: "Save restaurant to device",
         unsaveListingAria: "Remove restaurant from saved",
+        publishFlashTitle: "Listing published",
+        publishFlashBody:
+          "If Supabase is configured, your listing is saved. Adjust filters if you do not see it yet.",
+        publishFlashDismiss: "Dismiss",
+        resultNarrowInResults: "Same search in results",
       };
     }
     return {
@@ -285,6 +300,11 @@ export function RestaurantesResultsShell() {
       cookiePrefs: "Preferencias de cookies",
       saveListingAria: "Guardar restaurante en este dispositivo",
       unsaveListingAria: "Quitar de guardados",
+      publishFlashTitle: "Publicación registrada",
+      publishFlashBody:
+        "Si Supabase está configurado, el listado ya está guardado. Ajusta filtros si aún no aparece en esta vista.",
+      publishFlashDismiss: "Cerrar aviso",
+      resultNarrowInResults: "Misma búsqueda en resultados",
     };
   }, [lang]);
 
@@ -686,6 +706,34 @@ export function RestaurantesResultsShell() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FDFBF7] text-[#2D241E]">
       <Navbar />
+      {inventoryBannerNote ? (
+        <div className="mx-auto max-w-[1280px] min-w-0 px-4 pt-4 sm:px-5 md:px-5 lg:px-6">
+          <p
+            className="rounded-[14px] border border-amber-300/80 bg-amber-50/95 px-4 py-3 text-xs leading-relaxed text-amber-950 shadow-sm sm:text-sm"
+            role="status"
+          >
+            {inventorySource === "demo_fallback" ? <span className="font-semibold">Demo / servidor: </span> : null}
+            {inventoryBannerNote}
+          </p>
+        </div>
+      ) : null}
+      {publishFlash ? (
+        <div className="mx-auto max-w-[1280px] min-w-0 px-4 pt-3 sm:px-5 md:px-5 lg:px-6">
+          <div className="flex flex-col gap-2 rounded-[14px] border border-emerald-300/80 bg-emerald-50/95 px-4 py-3 text-emerald-950 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold">{t.publishFlashTitle}</p>
+              <p className="mt-1 text-xs leading-relaxed opacity-90 sm:text-sm">{t.publishFlashBody}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDismissPublishFlash(true)}
+              className="inline-flex min-h-[40px] shrink-0 items-center justify-center rounded-full border border-emerald-700/25 bg-white/80 px-4 text-xs font-bold text-emerald-900 transition hover:bg-white"
+            >
+              {t.publishFlashDismiss}
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div className="mx-auto max-w-[1280px] min-w-0 px-4 pb-16 pt-5 sm:px-5 sm:pb-20 sm:pt-6 md:px-5 lg:px-6">
         <div className="rounded-[18px] border border-[#2D241E]/[0.07] bg-[#FFFCF7]/75 p-4 shadow-sm sm:p-5 md:p-6">
           <div className="flex flex-col gap-3 border-b border-[#2D241E]/10 pb-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4 sm:pb-5">
@@ -809,6 +857,7 @@ export function RestaurantesResultsShell() {
                         lang={lang}
                         badge={t.promotedBadge}
                         cta={t.verMas}
+                        narrowLabel={t.resultNarrowInResults}
                         isSaved={savedIds.has(row.id)}
                         onToggleSave={leonixPersonalizationAllowed() ? () => toggleSavedId(row.id) : undefined}
                         saveAria={t.saveListingAria}
@@ -839,6 +888,7 @@ export function RestaurantesResultsShell() {
                       row={row}
                       lang={lang}
                       cta={t.verMas}
+                      narrowLabel={t.resultNarrowInResults}
                       isSaved={savedIds.has(row.id)}
                       onToggleSave={leonixPersonalizationAllowed() ? () => toggleSavedId(row.id) : undefined}
                       saveAria={t.saveListingAria}
@@ -892,6 +942,7 @@ function ResultCard({
   lang,
   badge,
   cta,
+  narrowLabel,
   isSaved,
   onToggleSave,
   saveAria,
@@ -901,14 +952,20 @@ function ResultCard({
   lang: RestaurantesDiscoveryLang;
   badge?: string;
   cta: string;
+  narrowLabel: string;
   isSaved?: boolean;
   onToggleSave?: () => void;
   saveAria?: string;
   unsaveAria?: string;
 }) {
-  const moreHref = buildRestaurantesResultsHref(lang, {
+  const narrowHref = buildRestaurantesResultsHref(lang, {
     ...restaurantesDiscoveryParamsForRowDeepLink(row),
   });
+  const slug = row.slug?.trim();
+  const primaryHref = slug
+    ? appendLangToPath(`/clasificados/restaurantes/${encodeURIComponent(slug)}`, lang as Lang)
+    : narrowHref;
+  const showNarrowLink = Boolean(slug);
   return (
     <article
       className={`flex h-full max-w-full flex-col overflow-hidden rounded-[20px] border border-[#2D241E]/[0.09] bg-[#FFFCF7] shadow-[0_12px_40px_-22px_rgba(45,36,30,0.3)] transition-shadow duration-300 hover:shadow-[0_16px_44px_-20px_rgba(45,36,30,0.36)] ${
@@ -974,13 +1031,23 @@ function ResultCard({
                 <FaHeart className={`h-5 w-5 ${isSaved ? "" : "opacity-40"}`} aria-hidden />
               </button>
             ) : null}
-            <Link
-              href={moreHref}
-              className={`flex min-h-[48px] w-full items-center justify-center rounded-[14px] text-sm font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(180,83,9,0.45)] transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 ${onToggleSave ? "sm:flex-1" : ""}`}
-              style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
-            >
-              {cta}
-            </Link>
+            <div className={`flex min-w-0 flex-col gap-2 ${onToggleSave ? "sm:flex-1" : "w-full"}`}>
+              <Link
+                href={primaryHref}
+                className="flex min-h-[48px] w-full items-center justify-center rounded-[14px] text-sm font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(180,83,9,0.45)] transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2"
+                style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
+              >
+                {cta}
+              </Link>
+              {showNarrowLink ? (
+                <Link
+                  href={narrowHref}
+                  className="text-center text-[11px] font-semibold text-[#D97706] underline-offset-4 hover:underline sm:text-xs"
+                >
+                  {narrowLabel}
+                </Link>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>

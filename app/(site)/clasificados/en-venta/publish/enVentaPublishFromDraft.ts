@@ -6,6 +6,7 @@ import { appendEnVentaDetailPairs } from "@/app/clasificados/en-venta/mapping/ap
 import { mapEnVentaSellerKindToDb } from "@/app/clasificados/en-venta/mapping/mapEnVentaDraftToInsert";
 import { getOrderedEnVentaImageUrls } from "@/app/clasificados/en-venta/preview/buildEnVentaPreviewModel";
 import type { PublishLang } from "@/app/clasificados/lib/buildDetailsAppendix";
+import { validateEnVentaLocation } from "@/app/clasificados/en-venta/shared/utils/validateEnVentaLocation";
 
 function resolveContactForInsert(state: EnVentaFreeApplicationState): {
   contact_phone: string | null;
@@ -126,8 +127,11 @@ async function fetchAsBlob(src: string): Promise<Blob> {
   return res.blob();
 }
 
+/** Gallery upload outcome after insert (listing row always exists on `ok`). */
+export type EnVentaGalleryUploadOutcome = "none" | "full" | "partial" | "failed";
+
 export type EnVentaPublishFromDraftResult =
-  | { ok: true; listingId: string }
+  | { ok: true; listingId: string; gallery: EnVentaGalleryUploadOutcome }
   | { ok: false; error: string };
 
 /**
@@ -144,11 +148,13 @@ export async function publishEnVentaFromDraft(
   if (!state.title.trim()) {
     return { ok: false, error: lang === "es" ? "Añade un título." : "Add a title." };
   }
-  if (!state.city.trim()) {
-    return { ok: false, error: lang === "es" ? "Añade una ciudad." : "Add a city." };
-  }
   if (!state.priceIsFree && !String(state.price).trim()) {
     return { ok: false, error: lang === "es" ? "Indica un precio o marca gratis." : "Set a price or mark as free." };
+  }
+
+  const loc = validateEnVentaLocation(state.city, state.zip);
+  if (!loc.ok) {
+    return { ok: false, error: lang === "es" ? loc.messageEs : loc.messageEn };
   }
 
   let supabase: ReturnType<typeof createSupabaseBrowserClient>;
@@ -177,7 +183,7 @@ export async function publishEnVentaFromDraft(
     owner_id: userId,
     title: state.title.trim(),
     description: descriptionBase,
-    city: state.city.trim(),
+    city: loc.canonicalCity,
     category: "en-venta",
     price: state.priceIsFree ? 0 : Number(String(state.price).replace(/[^0-9.]/g, "")) || 0,
     is_free: state.priceIsFree,
@@ -190,11 +196,28 @@ export async function publishEnVentaFromDraft(
     ...muxCols,
   };
 
+  if (loc.zipNormalized) {
+    insertPayload.zip = loc.zipNormalized;
+  }
+
   if (state.seller_kind === "business" && state.displayName.trim()) {
     insertPayload.business_name = state.displayName.trim();
   }
 
-  const { data: row, error: insErr } = await supabase.from("listings").insert([insertPayload]).select("id").single();
+  // `listings.zip` is used by En Venta results filters; if an older DB lacks the column, retry without it.
+  const firstIns = await supabase.from("listings").insert([insertPayload]).select("id").single();
+  let row = firstIns.data as { id?: string } | null;
+  let insErr = firstIns.error;
+  if (insErr && insertPayload.zip != null) {
+    const m = (insErr.message ?? "").toLowerCase();
+    if (m.includes("zip")) {
+      const retryPayload = { ...insertPayload };
+      delete retryPayload.zip;
+      const second = await supabase.from("listings").insert([retryPayload]).select("id").single();
+      row = second.data as { id?: string } | null;
+      insErr = second.error;
+    }
+  }
 
   if (insErr) {
     return { ok: false, error: insErr.message };
@@ -208,6 +231,7 @@ export async function publishEnVentaFromDraft(
   const ordered = getOrderedEnVentaImageUrls(state);
   const photoUrls: string[] = [];
   const basePath = `${userId}/${listingId}/photos`;
+  let gallery: EnVentaGalleryUploadOutcome = ordered.length === 0 ? "none" : "failed";
 
   try {
     for (let i = 0; i < ordered.length; i++) {
@@ -224,6 +248,12 @@ export async function publishEnVentaFromDraft(
       }
       const url = supabase.storage.from("listing-images").getPublicUrl(path).data.publicUrl;
       if (url) photoUrls.push(url);
+    }
+
+    if (ordered.length > 0) {
+      if (photoUrls.length === ordered.length) gallery = "full";
+      else if (photoUrls.length > 0) gallery = "partial";
+      else gallery = "failed";
     }
 
     if (photoUrls.length) {
@@ -244,7 +274,8 @@ export async function publishEnVentaFromDraft(
     }
   } catch (e: unknown) {
     console.warn("en-venta media upload error", e);
+    if (ordered.length > 0) gallery = photoUrls.length > 0 ? "partial" : "failed";
   }
 
-  return { ok: true, listingId };
+  return { ok: true, listingId, gallery };
 }

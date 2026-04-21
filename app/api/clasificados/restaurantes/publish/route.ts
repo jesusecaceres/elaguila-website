@@ -4,6 +4,11 @@ import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/ap
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import { satisfiesRestauranteMinimumValidPreview } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import { draftToRestaurantePublicListingInsert } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
+import {
+  buildRestaurantesResultsHref,
+  restaurantesDiscoveryParamsForRowDeepLink,
+  type RestaurantesDiscoveryLang,
+} from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
 import { slugifyRestauranteBusinessName } from "@/app/clasificados/restaurantes/lib/restaurantesSlug";
 
 async function allocateSlug(base: string): Promise<string> {
@@ -44,6 +49,7 @@ export async function POST(req: Request) {
   const ownerUserId = typeof b.owner_user_id === "string" ? b.owner_user_id : null;
   const packageTier = typeof b.package_tier === "string" ? b.package_tier : null;
   const promoted = b.promoted === true;
+  const lang: RestaurantesDiscoveryLang = b.lang === "en" ? "en" : "es";
 
   let persisted = false;
   let slugOut = slugifyRestauranteBusinessName(draft.businessName);
@@ -72,7 +78,7 @@ export async function POST(req: Request) {
             ...row,
             updated_at: now,
           })
-          .eq("slug", slugOut);
+          .eq("draft_listing_id", draft.draftListingId);
         if (!error) persisted = true;
       } else {
         const requested = typeof b.slug === "string" ? b.slug.trim() : "";
@@ -97,10 +103,21 @@ export async function POST(req: Request) {
     slugOut = slugifyRestauranteBusinessName(draft.businessName);
   }
 
+  const deep = restaurantesDiscoveryParamsForRowDeepLink({
+    name: draft.businessName.trim(),
+    city: draft.cityCanonical.trim(),
+    zip: draft.zipCode?.trim(),
+    primaryCuisineKey: (draft.primaryCuisine ?? "").trim(),
+  });
+  const resultsUrl = buildRestaurantesResultsHref(lang, { ...deep, rx_pub: "1" });
+  const publicPath = slugOut ? `/clasificados/restaurantes/${encodeURIComponent(slugOut)}` : null;
+
   return NextResponse.json({
     ok: true,
     slug: slugOut,
     persisted,
-    publicUrl: slugOut ? `/clasificados/restaurantes/${slugOut}` : null,
+    publicUrl: publicPath,
+    resultsUrl,
+    dashboardUrl: "/dashboard/restaurantes?lang=" + lang,
   });
 }

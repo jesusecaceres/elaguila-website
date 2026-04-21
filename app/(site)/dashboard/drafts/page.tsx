@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { DashboardAutosPaidDraftsBand } from "../components/DashboardAutosPaidDraftsBand";
 import { resolveListingUiStatus, listingUiStatusLabel, listingUiStatusChipClass, shortListingRef } from "../lib/listingDisplayStatus";
 import type { Lang } from "../lib/listingDisplayStatus";
 
@@ -58,7 +59,8 @@ export default function DraftsPage() {
             searchPh: "Buscar…",
             loading: "Cargando…",
             emptyTitle: "Sin borradores por ahora",
-            emptyBody: "Cuando guardes un anuncio sin publicar, aparecerá aquí.",
+            emptyBody:
+              "Cuando guardes un anuncio sin publicar, aparecerá aquí. Los borradores de Bienes Raíces (Privado/Negocio) en vista previa viven en el navegador hasta que pulses Publicar; no aparecen aquí hasta que exista una fila `listings` con is_published=false.",
             ctaPublish: "Publicar anuncio",
             ref: "Ref.",
             open: "Abrir espacio",
@@ -74,7 +76,8 @@ export default function DraftsPage() {
             searchPh: "Search…",
             loading: "Loading…",
             emptyTitle: "No drafts yet",
-            emptyBody: "When you save a listing without publishing, it will show up here.",
+            emptyBody:
+              "When you save a listing without publishing, it will show up here. BR preview drafts (private/business) stay in the browser until you publish; they do not appear here until a `listings` row exists with is_published=false.",
             ctaPublish: "Post an ad",
             ref: "Ref.",
             open: "Open workspace",
@@ -211,6 +214,8 @@ export default function DraftsPage() {
               <p className="mt-1 opacity-90">{err}</p>
             </div>
           ) : null}
+
+          <DashboardAutosPaidDraftsBand lang={lang} />
 
           {visible.length === 0 ? (
             <div className="mt-10 rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-10 text-center shadow-[0_12px_40px_-14px_rgba(42,36,22,0.1)]">

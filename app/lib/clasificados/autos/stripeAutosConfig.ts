@@ -1,6 +1,9 @@
 /**
  * Lane-specific Stripe Price IDs for Autos classifieds checkout.
  * Set in Vercel env: STRIPE_PRICE_AUTOS_NEGOCIOS, STRIPE_PRICE_AUTOS_PRIVADO
+ *
+ * Internal QA without Stripe (never production): set `AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS=1`
+ * (see `autosInternalPublishConfig.ts` and `AUTOS_PUBLISH_LIFECYCLE.md`).
  */
 import type { AutosClassifiedsLane } from "./autosClassifiedsTypes";
 

@@ -6,11 +6,16 @@ import { mapClasificadosServiciosApplicationToServiciosDraft } from "@/app/clasi
 import { evaluateServiciosPublishReadiness } from "@/app/clasificados/publicar/servicios/lib/serviciosPublishReadiness";
 import { slugifyServiciosBusinessName } from "@/app/clasificados/publicar/servicios/lib/serviciosSlug";
 import type { ClasificadosServiciosApplicationState } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
+import {
+  buildServiciosPublicRowForPersistence,
+  isServiciosDevPublishPersistenceEnabled,
+  upsertServiciosDevPublishRow,
+} from "@/app/clasificados/servicios/lib/serviciosDevPublishPersistence";
 import { getServiciosPublicListingBySlugFromDb } from "@/app/clasificados/servicios/lib/serviciosPublicListingsServer";
+import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "@/app/clasificados/servicios/lib/serviciosListingLifecycle";
 import { mapServiciosApplicationDraftToBusinessProfile } from "@/app/servicios/lib/mapServiciosApplicationDraftToBusinessProfile";
 import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
-import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "@/app/clasificados/servicios/lib/serviciosListingLifecycle";
 
 async function allocateSlug(base: string): Promise<string> {
   if (!isSupabaseAdminConfigured()) return base;
@@ -32,6 +37,8 @@ function stripAdvertiserVerificationFlags(wire: ServiciosBusinessProfile): Servi
   delete next.identity.leonixVerified;
   return next;
 }
+
+export type ServiciosPublishPersistence = "database" | "dev_workspace" | "none";
 
 export async function POST(req: Request) {
   let body: unknown;
@@ -68,14 +75,15 @@ export async function POST(req: Request) {
   const preset = getBusinessTypePreset(state.businessTypeId);
   const internalGroup = preset?.internalGroup ?? null;
 
-  let persisted = false;
+  const businessName = wire.identity.businessName.trim() || slug;
+  const city = state.city.trim();
+  const now = new Date().toISOString();
+
+  let persistedToDatabase = false;
   if (isSupabaseAdminConfigured()) {
     try {
       const supabase = getAdminSupabase();
       const existing = await getServiciosPublicListingBySlugFromDb(slug);
-      const businessName = wire.identity.businessName.trim() || slug;
-      const city = state.city.trim();
-      const now = new Date().toISOString();
 
       if (existing) {
         const { error } = await supabase
@@ -89,7 +97,7 @@ export async function POST(req: Request) {
             updated_at: now,
           })
           .eq("slug", slug);
-        if (!error) persisted = true;
+        if (!error) persistedToDatabase = true;
       } else {
         const { error } = await supabase.from("servicios_public_listings").insert({
           slug,
@@ -102,17 +110,40 @@ export async function POST(req: Request) {
           published_at: now,
           updated_at: now,
         });
-        if (!error) persisted = true;
+        if (!error) persistedToDatabase = true;
       }
     } catch {
-      persisted = false;
+      persistedToDatabase = false;
     }
   }
+
+  let persistedToDevWorkspace = false;
+  if (!persistedToDatabase && isServiciosDevPublishPersistenceEnabled()) {
+    const row = buildServiciosPublicRowForPersistence({
+      slug,
+      businessName,
+      city,
+      profileJson: wire,
+      internalGroup,
+      publishedAt: now,
+    });
+    persistedToDevWorkspace = upsertServiciosDevPublishRow(row);
+  }
+
+  const persistence: ServiciosPublishPersistence = persistedToDatabase
+    ? "database"
+    : persistedToDevWorkspace
+      ? "dev_workspace"
+      : "none";
 
   return NextResponse.json({
     ok: true,
     slug,
-    persisted,
+    persistence,
+    persistedToDatabase,
+    persistedToDevWorkspace,
+    /** @deprecated use persistedToDatabase */
+    persisted: persistedToDatabase,
     profile: wire,
   });
 }

@@ -209,8 +209,10 @@ export function filterBrListings(
 
   const zipNorm = normalizeZipInput(state.zip);
   if (zipNorm) {
-    const matched = rows.filter((l) => l.zipCode && normalizeZipInput(l.zipCode) === zipNorm);
-    rows = matched.length ? matched : [];
+    const poolHasZip = rows.some((l) => Boolean(l.zipCode && normalizeZipInput(l.zipCode)));
+    if (poolHasZip) {
+      rows = rows.filter((l) => l.zipCode && normalizeZipInput(l.zipCode) === zipNorm);
+    }
   }
 
   let minP = state.priceMin ? Number(state.priceMin) : undefined;

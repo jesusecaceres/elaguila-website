@@ -33,6 +33,7 @@ import {
 } from "./utils/enVentaResultsSummary";
 import { buildEnVentaListingDetailHrefFromResults } from "./utils/enVentaListingLinks";
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
+import { isEnVentaListingPubliclyVisible } from "../lib/enVentaListingVisibility";
 
 type Lang = "es" | "en";
 type SortId = "newest" | "price-asc" | "price-desc";
@@ -167,7 +168,7 @@ export function EnVentaResultsClient() {
         const packs: RowPack[] = [];
         for (const raw of data ?? []) {
           const row = raw as Record<string, unknown>;
-          if (row.is_published === false) continue;
+          if (!isEnVentaListingPubliclyVisible(row)) continue;
           try {
             const dto = mapDbRowToEnVentaAnuncioDTO(row);
             if (!dto.id) continue;

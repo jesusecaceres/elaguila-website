@@ -44,6 +44,7 @@ type Lang = "es" | "en";
 
 type CategoryKey =
   | "en-venta"
+  | "bienes-raices"
   | "rentas"
   | "autos"
   | "servicios"
@@ -116,6 +117,7 @@ function formatPostedAgo(createdAt: string | null | undefined, lang: Lang): stri
 
 const CATEGORY_KEYS: readonly CategoryKey[] = [
   "en-venta",
+  "bienes-raices",
   "rentas",
   "autos",
   "servicios",
@@ -127,7 +129,7 @@ const CATEGORY_KEYS: readonly CategoryKey[] = [
 
 function coerceCategoryKey(raw: unknown): CategoryKey {
   const s = typeof raw === "string" ? raw : "";
-  if (s === "bienes-raices") return "en-venta";
+  if (s === "bienes-raices") return "bienes-raices";
   return (CATEGORY_KEYS as readonly string[]).includes(s) ? (s as CategoryKey) : "en-venta";
 }
 
@@ -330,6 +332,7 @@ export default function AnuncioDetallePage() {
   const categoryLabel = useMemo(() => {
     const map: Record<CategoryKey, { es: string; en: string }> = {
       "en-venta": { es: "En Venta", en: "For Sale" },
+      "bienes-raices": { es: "Bienes Raíces", en: "Real estate" },
       rentas: { es: "Rentas", en: "Rentals" },
       autos: { es: "Autos", en: "Autos" },
       servicios: { es: "Servicios", en: "Services" },
@@ -350,6 +353,7 @@ export default function AnuncioDetallePage() {
   const [fetchedListing, setFetchedListing] = useState<Listing | undefined>(undefined);
   const [remoteState, setRemoteState] = useState<"uninitialized" | "loading" | "ready" | "error">("uninitialized");
   const [remoteError, setRemoteError] = useState<string | null>(null);
+  const [brPublishBanner, setBrPublishBanner] = useState<string | null>(null);
 
   useEffect(() => {
     const id = params?.id;
@@ -422,6 +426,26 @@ export default function AnuncioDetallePage() {
   }, [params?.id]);
 
   const listing: Listing | undefined = sampleListing ?? fetchedListing;
+
+  useEffect(() => {
+    setBrPublishBanner(null);
+    if (!listing?.id || sampleListing) return;
+    try {
+      const raw = sessionStorage.getItem("lx_br_publish_warnings");
+      if (!raw) return;
+      const w = JSON.parse(raw) as unknown;
+      sessionStorage.removeItem("lx_br_publish_warnings");
+      if (Array.isArray(w) && w.every((x) => typeof x === "string")) {
+        setBrPublishBanner((w as string[]).join(" "));
+      }
+    } catch {
+      try {
+        sessionStorage.removeItem("lx_br_publish_warnings");
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [listing?.id, sampleListing]);
 
   const leonixLiveContact = useMemo(
     () => (listing ? resolveLeonixLiveListingContact(listing as Listing & { business_meta?: string | null }) : null),
@@ -920,36 +944,47 @@ export default function AnuncioDetallePage() {
     );
   }
 
-  if (listing.category === "en-venta") {
+  if (listing.category === "en-venta" || listing.category === "bienes-raices") {
     const ev = listing as Listing & {
       detailPairs?: unknown;
       contact_phone?: string | null;
       contact_email?: string | null;
       business_meta?: string | null;
     };
+    const backHref =
+      listing.category === "bienes-raices"
+        ? `/clasificados/bienes-raices/resultados?lang=${lang}`
+        : enVentaBackHref;
     return (
-      <EnVentaAnuncioLayout
-        listing={{
-          id: listing.id,
-          title: listing.title,
-          priceLabel: listing.priceLabel,
-          city: listing.city,
-          blurb: listing.blurb,
-          images: listing.images ?? null,
-          sellerType: listing.sellerType,
-          businessName: listing.businessName ?? null,
-          business_name: listing.business_name ?? null,
-          detailPairs: Array.isArray(ev.detailPairs) ? (ev.detailPairs as Array<{ label: string; value: string }>) : null,
-          created_at: listing.created_at ?? null,
-          status: listing.status,
-          contact_phone: ev.contact_phone ?? null,
-          contact_email: ev.contact_email ?? null,
-          owner_id: listing.owner_id ?? null,
-          business_meta: listing.business_meta ?? ev.business_meta ?? null,
-        }}
-        lang={lang}
-        backHref={enVentaBackHref}
-      />
+      <>
+        {brPublishBanner ? (
+          <div className="bg-amber-100 px-4 py-3 text-center text-sm text-amber-950" role="status">
+            {brPublishBanner}
+          </div>
+        ) : null}
+        <EnVentaAnuncioLayout
+          listing={{
+            id: listing.id,
+            title: listing.title,
+            priceLabel: listing.priceLabel,
+            city: listing.city,
+            blurb: listing.blurb,
+            images: listing.images ?? null,
+            sellerType: listing.sellerType,
+            businessName: listing.businessName ?? null,
+            business_name: listing.business_name ?? null,
+            detailPairs: Array.isArray(ev.detailPairs) ? (ev.detailPairs as Array<{ label: string; value: string }>) : null,
+            created_at: listing.created_at ?? null,
+            status: listing.status,
+            contact_phone: ev.contact_phone ?? null,
+            contact_email: ev.contact_email ?? null,
+            owner_id: listing.owner_id ?? null,
+            business_meta: listing.business_meta ?? ev.business_meta ?? null,
+          }}
+          lang={lang}
+          backHref={backHref}
+        />
+      </>
     );
   }
 

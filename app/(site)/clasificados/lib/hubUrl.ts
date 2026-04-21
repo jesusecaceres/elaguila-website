@@ -1,5 +1,7 @@
 import type { HubCategoryKey, Lang } from "../config/clasificadosHub";
 
+export type { Lang };
+
 /** Canonical path for each hub category (category-owned listing surface). */
 export const HUB_CATEGORY_PATH: Record<HubCategoryKey, string> = {
   "en-venta": "/clasificados/en-venta",

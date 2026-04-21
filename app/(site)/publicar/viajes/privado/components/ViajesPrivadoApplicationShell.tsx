@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import Navbar from "@/app/components/Navbar";
+import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { ViajesLangSwitch } from "@/app/(site)/clasificados/viajes/components/ViajesLangSwitch";
@@ -26,17 +27,62 @@ const INPUT =
 const GRID2 = "grid gap-4 sm:grid-cols-2";
 
 export function ViajesPrivadoApplicationShell() {
+  const router = useRouter();
   const sp = useSearchParams();
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
   const c = getPublicarViajesPrivadoCopy(lang);
   const { draft, update, reset, hydrated } = useViajesPrivadoDraft();
   const heroBlobUrl = useViajesLocalHeroObjectUrl("privado", draft.localHeroBlobId);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [submitBusy, setSubmitBusy] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const galleryFileRef = useRef<HTMLInputElement>(null);
   const modalTitleId = useId();
 
   const BLOB_PATH_BYTES = 360_000;
+
+  async function submitStagedReview() {
+    if (!hydrated || submitBusy) return;
+    setSubmitBusy(true);
+    try {
+      let session: { access_token?: string } | null = null;
+      try {
+        const sb = createSupabaseBrowserClient();
+        const res = await withAuthTimeout(sb.auth.getSession(), AUTH_CHECK_TIMEOUT_MS);
+        session = res.data.session;
+      } catch {
+        session = null;
+      }
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+      const res = await fetch("/api/clasificados/viajes/submit", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ lane: "private", lang, privadoDraft: draft }),
+      });
+      const json = (await res.json()) as { ok?: boolean; error?: string; slug?: string; id?: string };
+      if (!res.ok || !json.ok) {
+        const code = json.error ?? "unknown";
+        if (code === "supabase_not_configured") {
+          window.alert(
+            lang === "en"
+              ? "Server persistence is not configured (Supabase)."
+              : "No está configurada la persistencia en servidor (Supabase)."
+          );
+        } else {
+          window.alert(lang === "en" ? `Could not submit: ${code}` : `No se pudo enviar: ${code}`);
+        }
+        return;
+      }
+      const q = new URLSearchParams({ slug: String(json.slug), id: String(json.id), lane: "private", lang });
+      setPublishOpen(false);
+      router.push(`/publicar/viajes/enviado?${q.toString()}`);
+    } catch {
+      window.alert(lang === "en" ? "Network error while submitting." : "Error de red al enviar.");
+    } finally {
+      setSubmitBusy(false);
+    }
+  }
 
   useEffect(() => {
     document.title = c.documentTitle;
@@ -640,15 +686,17 @@ export function ViajesPrivadoApplicationShell() {
                 type="button"
                 className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] px-4 text-sm font-bold text-[color:var(--lx-text)]"
                 onClick={() => setPublishOpen(false)}
+                disabled={submitBusy}
               >
                 {c.publishModalDismiss}
               </button>
               <button
                 type="button"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#D97706] px-5 text-sm font-bold text-white shadow-md"
-                onClick={() => setPublishOpen(false)}
+                className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#D97706] px-5 text-sm font-bold text-white shadow-md disabled:opacity-60"
+                onClick={() => void submitStagedReview()}
+                disabled={submitBusy || !hydrated}
               >
-                {c.publishModalCta}
+                {submitBusy ? c.publishModalSubmitting : c.publishModalSubmitReview}
               </button>
             </div>
           </div>

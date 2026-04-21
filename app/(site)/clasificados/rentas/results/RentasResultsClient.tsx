@@ -9,9 +9,8 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { RentasLocationButton } from "@/app/clasificados/rentas/components/RentasLocationButton";
 import { RentasSearchBar } from "@/app/clasificados/rentas/components/RentasSearchBar";
-import { RENTAS_PUBLIC_DATA_SOURCE } from "@/app/clasificados/rentas/data/rentasPublicLoader";
-import { getRentasResultsGridListings } from "@/app/clasificados/rentas/data/rentasPublicData";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
+import { useRentasStagedInventory } from "@/app/clasificados/rentas/hooks/useRentasStagedInventory";
 import {
   rentasCtaPrimaryClass,
   rentasCtaSecondaryClass,
@@ -97,7 +96,8 @@ export function RentasResultsClient() {
     setMascotasDraft(p.mascotas);
   }, [searchParams]);
 
-  const resultsGrid = useMemo(() => getRentasResultsGridListings(), []);
+  const { mergedPool: resultsGrid, staged: stagedFromDb, loading: inventoryLoading, error: inventoryError } =
+    useRentasStagedInventory(lang);
 
   const filteredSorted = useMemo(() => {
     const filtered = filterRentasPublicListings(resultsGrid, parsed);
@@ -248,8 +248,23 @@ export function RentasResultsClient() {
               </Link>
               .
             </p>
-            {RENTAS_PUBLIC_DATA_SOURCE === "demo" ? (
-              <p className="mt-3 text-sm text-[#5C5346]/90">{copy.results.dataSourceNote}</p>
+            <p className="mt-3 text-sm text-[#5C5346]/90">{copy.results.dataSourceNote}</p>
+            {stagedFromDb.length > 0 ? (
+              <p className="mt-1 text-sm font-semibold text-[#2C5F2D]">
+                {lang === "es"
+                  ? `Incluye ${stagedFromDb.length} anuncio(s) reciente(s) desde la base de prueba (listings), mezclados con ejemplos.`
+                  : `Includes ${stagedFromDb.length} recent listing(s) from the test database (listings), merged with samples.`}
+              </p>
+            ) : null}
+            {inventoryError ? (
+              <p className="mt-1 text-xs text-amber-900" role="status">
+                {lang === "es" ? "Aviso: no se pudieron cargar anuncios publicados (" : "Note: could not load published listings ("}
+                {inventoryError}
+                {lang === "es" ? "). Solo verás ejemplos." : "). Sample rows only."}
+              </p>
+            ) : null}
+            {inventoryLoading ? (
+              <p className="mt-1 text-xs text-[#5B7C99]">{lang === "es" ? "Sincronizando inventario…" : "Syncing inventory…"}</p>
             ) : null}
           </div>
           <aside

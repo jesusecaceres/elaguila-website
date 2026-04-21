@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
+import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { LeonixDashboardShell } from "./components/LeonixDashboardShell";
 import { supabase } from "../../lib/supabaseClient";
 import { fetchDashboardNavCounts } from "./lib/dashboardNavCounts";
@@ -60,12 +61,18 @@ export default function DashboardPage() {
             enVentaActive: "Activos en En Venta",
             enVentaCta: "Gestionar anuncios En Venta",
             enVentaPost: "Publicar en En Venta",
+            brTitle: "Bienes Raíces",
+            brBody: "Anuncios de propiedades (Privado o Negocio) viven en la misma tabla `listings` con `detail_pairs` Leonix.",
+            brActive: "Activos en Bienes Raíces",
+            brPost: "Publicar BR",
+            brResults: "Ver resultados BR",
             freeHint: "En Gratis: menos fotos por anuncio y sin video. Pro desbloquea más medios, visibilidad y métricas por publicación.",
             cmdSubtitle: "Tu centro de comando Leonix: publica, mide y haz crecer tus anuncios.",
             totalMsg: "Mensajes totales",
             expSoon: "Por expirar (7 días)",
             quickOpenMsg: "Abrir mensajes",
             quickDrafts: "Borradores",
+            quickServicios: "Servicios (prueba)",
             quickProfile: "Completar perfil",
             quickAnalytics: "Analíticas",
             attention: "Requiere atención",
@@ -109,6 +116,11 @@ export default function DashboardPage() {
             enVentaActive: "Active For Sale listings",
             enVentaCta: "Manage For Sale listings",
             enVentaPost: "Post in For Sale",
+            brTitle: "Real estate",
+            brBody: "Property listings (private or business) use the same `listings` table with Leonix `detail_pairs`.",
+            brActive: "Active real estate listings",
+            brPost: "Post BR listing",
+            brResults: "Browse BR results",
             freeHint:
               "Free: fewer photos per listing and no video. Pro unlocks more media, visibility, and metrics per listing.",
             cmdSubtitle: "Your Leonix command center: publish, measure, and grow your ads.",
@@ -116,6 +128,7 @@ export default function DashboardPage() {
             expSoon: "Expiring soon (7 days)",
             quickOpenMsg: "Open messages",
             quickDrafts: "Drafts",
+            quickServicios: "Servicios (test)",
             quickProfile: "Complete profile",
             quickAnalytics: "Analytics",
             attention: "Needs attention",
@@ -146,6 +159,7 @@ export default function DashboardPage() {
   const [totalViews, setTotalViews] = useState<number | null>(null);
   const [totalSaves, setTotalSaves] = useState<number | null>(null);
   const [enVentaActiveCount, setEnVentaActiveCount] = useState<number | null>(null);
+  const [brActiveCount, setBrActiveCount] = useState<number | null>(null);
   const [totalMessages, setTotalMessages] = useState<number | null>(null);
   const [expiringSoon, setExpiringSoon] = useState<number | null>(null);
   const [draftCount, setDraftCount] = useState<number | null>(null);
@@ -300,6 +314,19 @@ export default function DashboardPage() {
         }
 
         try {
+          const br = await supabase
+            .from("listings")
+            .select("id", { count: "exact", head: true })
+            .eq("owner_id", u.id)
+            .eq("category", "bienes-raices")
+            .eq("status", "active");
+          if (!br.error && mounted) setBrActiveCount(typeof br.count === "number" ? br.count : 0);
+          if (br.error && mounted) setBrActiveCount(null);
+        } catch {
+          if (mounted) setBrActiveCount(null);
+        }
+
+        try {
           const feed = await fetchDerivedDashboardFeed(supabase, u.id, lang);
           if (mounted) setDerivedFeed(feed);
         } catch {
@@ -432,6 +459,12 @@ export default function DashboardPage() {
                 {t.post}
               </Link>
               <Link
+                href={`${BR_PUBLICAR_HUB}?${q}`}
+                className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+              >
+                {lang === "es" ? "Publicar Bienes Raíces" : "Post real estate"}
+              </Link>
+              <Link
                 href={`/dashboard/mis-anuncios?${q}`}
                 className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
               >
@@ -448,6 +481,12 @@ export default function DashboardPage() {
                 className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
               >
                 {t.quickDrafts}
+              </Link>
+              <Link
+                href={`/dashboard/servicios?${q}`}
+                className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+              >
+                {t.quickServicios}
               </Link>
               <Link
                 href={`/dashboard/perfil?${q}`}
@@ -590,7 +629,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          <div className="mt-8 grid gap-6 lg:grid-cols-3">
             <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.1)]">
               <h2 className="text-lg font-bold text-[#1E1810]">{t.activity}</h2>
               <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.activityBody}</p>
@@ -621,6 +660,28 @@ export default function DashboardPage() {
                   className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
                 >
                   {t.enVentaPost}
+                </Link>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#eef3f9]/40 p-6 shadow-[0_12px_36px_-12px_rgba(201,164,74,0.18)]">
+              <h2 className="text-lg font-bold text-[#1E1810]">{t.brTitle}</h2>
+              <p className="mt-2 text-sm text-[#5C5346]/95">{t.brBody}</p>
+              <p className="mt-4 text-sm font-semibold text-[#3D3428]">
+                {typeof brActiveCount === "number" ? `${t.brActive}: ${fmtNum(brActiveCount)}` : `${t.brActive}: —`}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link
+                  href={`${BR_PUBLICAR_HUB}?${q}`}
+                  className="inline-flex rounded-2xl bg-[#2A2620] px-4 py-2.5 text-sm font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                >
+                  {t.brPost}
+                </Link>
+                <Link
+                  href={`${BR_RESULTS}?${q}`}
+                  className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+                >
+                  {t.brResults}
                 </Link>
               </div>
             </div>

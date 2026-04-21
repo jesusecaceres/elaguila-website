@@ -10,6 +10,7 @@ import type { ClasificadosServiciosCopy } from "../lib/clasificadosServiciosAppl
 import type { ClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationTypes";
 import type { ServiciosLang } from "../lib/clasificadosServiciosApplicationTypes";
 import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadiness";
+import { postServiciosPublishApi } from "../lib/serviciosPublishClient";
 
 export function ServiciosPublishModal({
   open,
@@ -49,18 +50,7 @@ export function ServiciosPublishModal({
     setError(null);
     await Promise.resolve(onPersistDraft());
     try {
-      const res = await fetch("/api/clasificados/servicios/publish", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ state: s, lang }),
-      });
-      const data = (await res.json()) as {
-        ok?: boolean;
-        slug?: string;
-        persisted?: boolean;
-        profile?: ServiciosBusinessProfile;
-        missing?: { label: string }[];
-      };
+      const { res, data } = await postServiciosPublishApi({ state: s, lang });
 
       if (res.status === 422 && data.missing?.length) {
         setError(copy.publishError);
@@ -74,12 +64,18 @@ export function ServiciosPublishModal({
         return;
       }
 
-      if (!data.persisted) {
+      const persistedToDatabase = data.persistedToDatabase === true || data.persisted === true;
+      const persistedToDevWorkspace = data.persistedToDevWorkspace === true;
+      if (!persistedToDatabase) {
         const ig = getBusinessTypePreset(s.businessTypeId)?.internalGroup;
         upsertLocalServiciosPublish(data.profile, s.city, ig ?? null);
       }
 
-      router.push(`/clasificados/servicios/${encodeURIComponent(data.slug)}?lang=${lang}`);
+      const q = new URLSearchParams({ lang });
+      q.set("justPublished", "1");
+      if (data.persistence) q.set("persistence", data.persistence);
+
+      router.push(`/clasificados/servicios/${encodeURIComponent(data.slug)}?${q.toString()}`);
     } catch {
       setError(copy.publishError);
       setBusy(false);

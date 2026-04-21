@@ -1,4 +1,13 @@
-/** Canonical publish + preview routes — Bienes Raíces (Leonix Clasificados). */
+/**
+ * Canonical publish + preview routes — Bienes Raíces (Leonix Clasificados).
+ *
+ * Route map (active paths — use these in links; avoid hardcoding duplicates):
+ * - Privado form: `BR_PUBLICAR_PRIVADO` (`/clasificados/...`) and public entry `BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY` (`/publicar/...`).
+ * - Negocio form: `BR_PUBLICAR_NEGOCIO` + selector `BR_PUBLICAR_NEGOCIO_SELECTOR` / `BR_PUBLICAR_NEGOCIOS_PUBLIC_ENTRY`.
+ * - Preview (pre-live): `BR_PREVIEW_PRIVADO`, `BR_PREVIEW_NEGOCIO`, hub `BR_PREVIEW_HUB`.
+ * - Live listing detail (canonical after publish): `leonixLiveAnuncioPath(id)` → `/clasificados/anuncio/:id` (see `leonixRealEstateListingContract.ts`).
+ * - Category browse: `BR_CATEGORY_HOME`, results `BR_RESULTS`.
+ */
 
 export const BR_PUBLICAR_HUB = "/clasificados/publicar/bienes-raices";
 export const BR_PUBLICAR_PRIVADO = "/clasificados/publicar/bienes-raices/privado";

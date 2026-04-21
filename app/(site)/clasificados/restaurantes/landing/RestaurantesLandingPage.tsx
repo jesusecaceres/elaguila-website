@@ -18,15 +18,13 @@ import {
   restaurantesDiscoveryStateToParams,
   splitLocationInput,
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
-import { RESTAURANTES_PUBLIC_BLUEPRINT_ROWS } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
+import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 import { rememberRestaurantesDiscoveryFromState } from "@/app/clasificados/restaurantes/lib/restaurantesFirstPartyPreferences";
 import {
   type RestaurantesBlueprintCard,
   RESTAURANTES_BLUEPRINT_CATEGORY_TILES,
   RESTAURANTES_BLUEPRINT_CUISINE_CHIPS,
-  RESTAURANTES_BLUEPRINT_FEATURED,
   RESTAURANTES_BLUEPRINT_QUICK_FILTERS,
-  RESTAURANTES_BLUEPRINT_RECENT,
 } from "./restaurantesBlueprintSampleData";
 import { RESTAURANTES_LANDING_CTA_BG, RESTAURANTES_LANDING_CTA_TEAM } from "./restaurantesLandingAssets";
 import { RestaurantesLandingShell } from "./RestaurantesLandingShell";
@@ -35,8 +33,16 @@ import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/c
 
 const ACCENT = "#D97706";
 
-function buildLandingCardResultsHref(lang: Lang, card: RestaurantesBlueprintCard): string {
-  const row = RESTAURANTES_PUBLIC_BLUEPRINT_ROWS.find((r) => r.id === card.id);
+function buildLandingCardDetailHref(
+  lang: Lang,
+  card: RestaurantesBlueprintCard,
+  discoveryLookupRows: RestaurantesPublicBlueprintRow[],
+): string {
+  const row = discoveryLookupRows.find((r) => r.id === card.id);
+  const slug = row?.slug?.trim();
+  if (slug) {
+    return appendLangToPath(`/clasificados/restaurantes/${encodeURIComponent(slug)}`, lang);
+  }
   if (!row) {
     return buildRestaurantesResultsHref(lang, { q: card.name });
   }
@@ -130,7 +136,17 @@ function ListingCard({
   );
 }
 
-export function RestaurantesLandingPage() {
+export function RestaurantesLandingPage({
+  featuredCards,
+  recentCards,
+  landingNote,
+  discoveryLookupRows,
+}: {
+  featuredCards: RestaurantesBlueprintCard[];
+  recentCards: RestaurantesBlueprintCard[];
+  landingNote?: string;
+  discoveryLookupRows: RestaurantesPublicBlueprintRow[];
+}) {
   const router = useRouter();
   const sp = useSearchParams();
   const spStr = sp?.toString() ?? "";
@@ -342,6 +358,14 @@ export function RestaurantesLandingPage() {
           <p className="mt-3 border-t border-[#2D241E]/[0.06] pt-3 text-center text-[11px] leading-relaxed text-[#2D241E]/55 sm:text-xs">
             {copy.continuityHint}
           </p>
+          {landingNote ? (
+            <p
+              className="mt-3 rounded-[12px] border border-amber-300/70 bg-amber-50/90 px-3 py-2.5 text-left text-[11px] leading-relaxed text-amber-950 sm:text-xs"
+              role="note"
+            >
+              {landingNote}
+            </p>
+          ) : null}
 
           <CategoryLandingChipsRail
             className="mt-4 sm:mt-5"
@@ -402,13 +426,13 @@ export function RestaurantesLandingPage() {
             </div>
           </div>
           <div className="mt-6 grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {RESTAURANTES_BLUEPRINT_FEATURED.map((card) => (
+            {featuredCards.map((card) => (
               <ListingCard
                 key={card.id}
                 card={card}
                 lang={lang}
                 variant="featured"
-                detailHref={buildLandingCardResultsHref(lang, card)}
+                detailHref={buildLandingCardDetailHref(lang, card, discoveryLookupRows)}
               />
             ))}
           </div>
@@ -461,13 +485,13 @@ export function RestaurantesLandingPage() {
             <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#2D241E]/60 sm:text-sm">{copy.recentIntro}</p>
           </div>
           <div className="mt-6 grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {RESTAURANTES_BLUEPRINT_RECENT.map((card) => (
+            {recentCards.map((card) => (
               <ListingCard
                 key={card.id}
                 card={card}
                 lang={lang}
                 variant="recent"
-                detailHref={buildLandingCardResultsHref(lang, card)}
+                detailHref={buildLandingCardDetailHref(lang, card, discoveryLookupRows)}
               />
             ))}
           </div>

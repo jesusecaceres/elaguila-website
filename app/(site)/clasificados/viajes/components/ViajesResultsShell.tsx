@@ -86,7 +86,13 @@ function activeSummaryLine(browse: ViajesBrowseState, ui: ViajesUi, tripTypeLabe
 
 export type { ViajesSortKey };
 
-export function ViajesResultsShell() {
+export function ViajesResultsShell({
+  initialRows,
+  stagedApprovedCount = 0,
+}: {
+  initialRows: ViajesResultRow[];
+  stagedApprovedCount?: number;
+}) {
   const sp = useSearchParams();
   const router = useRouter();
   const pathname = usePathname() ?? "/clasificados/viajes/resultados";
@@ -244,7 +250,14 @@ export function ViajesResultsShell() {
             className="mb-6 rounded-2xl border border-amber-200/90 bg-gradient-to-r from-amber-50/95 to-[#fffdf9] px-3 py-3 text-xs leading-snug text-amber-950 shadow-sm sm:px-4"
             role="status"
           >
-            {R.inventoryDemoBanner}
+            <p>{R.inventoryDemoBanner}</p>
+            {stagedApprovedCount > 0 ? (
+              <p className="mt-2 font-medium text-amber-950/95">
+                {lang === "en"
+                  ? `${stagedApprovedCount} approved submission(s) from the Viajes publish pipeline are included in this list alongside curated examples.`
+                  : `${stagedApprovedCount} envío(s) aprobado(s) del flujo de publicación Viajes se muestran junto a ejemplos curados.`}
+              </p>
+            ) : null}
           </div>
         ) : null}
 

@@ -104,9 +104,11 @@ export async function publishLeonixListingFromBienesRaicesPrivadoDraft(
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
   const vm = mapBienesRaicesPrivadoStateToPreviewVm(state);
   const human = buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm);
+  const opSummary = String(vm.operationSummary ?? "").toLowerCase();
+  const operation = opSummary.includes("renta") ? "rent" : "sale";
   const pairs = mergeLeonixListingContractDetailPairs(human, {
     branch: "bienes_raices_privado",
-    operation: "sale",
+    operation,
     categoriaPropiedad: state.categoriaPropiedad,
   });
   const contact = privadoSellerContact(state.seller);

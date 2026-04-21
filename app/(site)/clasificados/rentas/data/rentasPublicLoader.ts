@@ -1,13 +1,9 @@
 /**
- * Single boundary for Rentas **public** browse data (landing, results grid, detail).
+ * Single boundary for Rentas **public** browse data (demo fixtures).
  *
- * **Current status:** `RENTAS_PUBLIC_DATA_SOURCE === "demo"` — inventory comes from typed demo fixtures
- * (`rentasResultsDemoData`). No live rows are merged yet.
- *
- * **Live path (future):** Add a server loader that queries published Rentas rows (e.g. Supabase `listings` or a
- * dedicated `rentas_public_listings` table), maps rows → `RentasPublicListing`, then **merge + dedupe by id** with
- * or instead of demo. Gate with env (e.g. `RENTAS_PUBLIC_LIVE_ENABLED=1`) and keep this module the only import
- * site for public grids/detail resolution.
+ * **Staged testing:** client surfaces (results, landing) merge Supabase `listings` (`category=rentas`) with this
+ * demo pool via `useRentasStagedInventory` + `mergeStagedRentasWithDemo`. This module stays the demo source;
+ * server detail for UUID rows uses `fetchRentasListingForPublicDetail`.
  */
 
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";

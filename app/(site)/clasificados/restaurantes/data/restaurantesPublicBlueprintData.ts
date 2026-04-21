@@ -345,7 +345,7 @@ export const RESTAURANTES_PUBLIC_BLUEPRINT_ROWS: RestaurantesPublicBlueprintRow[
   }),
 );
 
-function rowToLandingCard(row: RestaurantesPublicBlueprintRow): RestaurantesBlueprintCard {
+export function blueprintRowToLandingCard(row: RestaurantesPublicBlueprintRow): RestaurantesBlueprintCard {
   return {
     id: row.id,
     name: row.name,
@@ -357,11 +357,11 @@ function rowToLandingCard(row: RestaurantesPublicBlueprintRow): RestaurantesBlue
 }
 
 export function getRestaurantesBlueprintLandingFeatured(): RestaurantesBlueprintCard[] {
-  return selectLandingDestacadosCandidates(RESTAURANTES_PUBLIC_BLUEPRINT_ROWS).map(rowToLandingCard);
+  return selectLandingDestacadosCandidates(RESTAURANTES_PUBLIC_BLUEPRINT_ROWS).map(blueprintRowToLandingCard);
 }
 
 export function getRestaurantesBlueprintLandingRecent(): RestaurantesBlueprintCard[] {
-  return selectLandingRecientesCandidates(RESTAURANTES_PUBLIC_BLUEPRINT_ROWS).map(rowToLandingCard);
+  return selectLandingRecientesCandidates(RESTAURANTES_PUBLIC_BLUEPRINT_ROWS).map(blueprintRowToLandingCard);
 }
 
 export function isBlueprintPromotedId(id: string): boolean {

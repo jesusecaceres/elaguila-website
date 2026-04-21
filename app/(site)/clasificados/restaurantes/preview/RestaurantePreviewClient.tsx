@@ -11,13 +11,21 @@ import { useRestauranteDraft } from "@/app/clasificados/restaurantes/application
 import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
 import { RestauranteDetailShell } from "@/app/clasificados/restaurantes/shell/RestauranteDetailShell";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { supabase } from "@/app/lib/supabaseClient";
 
 const EDIT_HREF = "/publicar/restaurantes";
 
 export default function RestaurantePreviewClient() {
   const { hydrated, draft } = useRestauranteDraft();
-  const [pub, setPub] = useState<{ busy: boolean; url?: string; err?: string; persisted?: boolean }>({ busy: false });
+  const [pub, setPub] = useState<{
+    busy: boolean;
+    url?: string;
+    resultsUrl?: string;
+    dashboardUrl?: string;
+    err?: string;
+    persisted?: boolean;
+  }>({ busy: false });
 
   const pristine = useMemo(() => isRestauranteDraftPristineEmpty(draft), [draft]);
   const shellData = useMemo(() => mapRestauranteDraftToShellData(draft), [draft]);
@@ -31,11 +39,13 @@ export default function RestaurantePreviewClient() {
       const res = await fetch("/api/clasificados/restaurantes/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ draft, ...(owner_user_id ? { owner_user_id } : {}) }),
+        body: JSON.stringify({ draft, lang: "es", ...(owner_user_id ? { owner_user_id } : {}) }),
       });
       const j = (await res.json()) as {
         ok?: boolean;
-        publicUrl?: string;
+        publicUrl?: string | null;
+        resultsUrl?: string;
+        dashboardUrl?: string;
         error?: string;
         persisted?: boolean;
       };
@@ -43,7 +53,14 @@ export default function RestaurantePreviewClient() {
         setPub({ busy: false, err: j.error ?? "publish_failed" });
         return;
       }
-      setPub({ busy: false, url: j.publicUrl, persisted: j.persisted, err: undefined });
+      setPub({
+        busy: false,
+        url: j.publicUrl ?? undefined,
+        resultsUrl: j.resultsUrl,
+        dashboardUrl: j.dashboardUrl,
+        persisted: j.persisted,
+        err: undefined,
+      });
     } catch {
       setPub({ busy: false, err: "network" });
     }
@@ -109,12 +126,30 @@ export default function RestaurantePreviewClient() {
                     {pub.busy ? "Publicando…" : "Publicar listado"}
                   </button>
                   {pub.url ? (
-                    <Link
-                      href={pub.url}
-                      className="text-sm font-semibold text-[color:var(--lx-gold)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4"
-                    >
-                      Abrir anuncio público →
-                    </Link>
+                    <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                      <Link
+                        href={appendLangToPath(pub.url, "es")}
+                        className="text-sm font-semibold text-[color:var(--lx-gold)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4"
+                      >
+                        Abrir ficha pública →
+                      </Link>
+                      {pub.resultsUrl ? (
+                        <Link
+                          href={pub.resultsUrl}
+                          className="text-sm font-semibold text-[color:var(--lx-text)] underline decoration-[color:var(--lx-nav-border)] underline-offset-4"
+                        >
+                          Ver en resultados (misma búsqueda) →
+                        </Link>
+                      ) : null}
+                      {pub.dashboardUrl ? (
+                        <Link
+                          href={pub.dashboardUrl}
+                          className="text-sm font-semibold text-[color:var(--lx-text)] underline decoration-[color:var(--lx-nav-border)] underline-offset-4"
+                        >
+                          Mi panel de restaurantes →
+                        </Link>
+                      ) : null}
+                    </div>
                   ) : null}
                 </div>
                 {pub.err ? (

@@ -334,8 +334,9 @@ export function getEmpleoJobBySlug(slug: string): EmpleosJobRecord | undefined {
   return EMPLEOS_JOB_CATALOG.find((j) => j.slug === slug);
 }
 
-export function getRelatedJobs(slug: string, limit = 3): EmpleosJobRecord[] {
-  const cur = getEmpleoJobBySlug(slug);
+export function getRelatedJobs(slug: string, limit = 3, extraPool: EmpleosJobRecord[] = []): EmpleosJobRecord[] {
+  const pool = [...EMPLEOS_JOB_CATALOG, ...extraPool];
+  const cur = pool.find((j) => j.slug === slug);
   if (!cur) return [];
-  return EMPLEOS_JOB_CATALOG.filter((j) => j.slug !== slug && j.category === cur.category).slice(0, limit);
+  return pool.filter((j) => j.slug !== slug && j.category === cur.category).slice(0, limit);
 }

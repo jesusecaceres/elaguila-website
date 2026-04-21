@@ -38,6 +38,15 @@ export default async function AdminGlobalSiteSettingsPage(props: { searchParams?
         </div>
       ) : null}
 
+      <div className={`${adminCardBase} mb-6 border-[#D8C79A]/60 bg-[#FFFCF4] p-4 text-xs text-[#5C5346]`}>
+        <strong className="font-semibold text-[#3D3428]">Clasificados (En Venta, etc.):</strong> la publicación de anuncios ocurre en el flujo público de
+        publicar y en el espacio de moderación{" "}
+        <Link href="/admin/workspace/clasificados" className="font-semibold text-[#2F4A65] underline underline-offset-2">
+          /admin/workspace/clasificados
+        </Link>
+        . Esta pantalla solo guarda avisos globales del sitio (franjas bajo el menú), no crea ni aprueba anuncios.
+      </div>
+
       <p className="mb-4 text-xs text-[#7A7164]">Última actualización: {updatedAt ? new Date(updatedAt).toLocaleString() : "—"}</p>
 
       <form action={saveGlobalSiteAction} className={`${adminCardBase} space-y-6 p-6`}>

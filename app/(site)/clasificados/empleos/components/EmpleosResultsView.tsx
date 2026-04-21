@@ -18,7 +18,8 @@ import {
   sampleUsStateSelectOptions,
 } from "../data/empleosLandingSampleData";
 import type { EmpleosJobRecord } from "../data/empleosJobTypes";
-import { EMPLEOS_JOB_CATALOG } from "../data/empleosSampleCatalog";
+import { EMPLEOS_STAGED_REGISTRY_EVENT } from "../lib/staged/empleosStagedStorage";
+import { getEmpleosMergedPublishedJobs } from "../lib/staged/getEmpleosMergedBrowse";
 import { saveEmpleosFilterPrefs } from "../lib/empleosFunctionalStorage";
 import {
   EMPLEOS_SAMPLE_NOW_MS,
@@ -313,6 +314,7 @@ function EmpleosFilterToggles({
 }
 
 export function EmpleosResultsView() {
+  const [browseTick, setBrowseTick] = useState(0);
   const router = useRouter();
   const sp = useSearchParams();
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
@@ -320,10 +322,15 @@ export function EmpleosResultsView() {
 
   const parsed = useMemo(() => parseEmpleosResultsQuery(sp ?? new URLSearchParams()), [sp]);
 
+  const mergedCatalog = useMemo(() => {
+    void browseTick;
+    return getEmpleosMergedPublishedJobs();
+  }, [parsed, browseTick]);
+
   const filtered = useMemo(() => {
-    const f = filterEmpleosJobs(EMPLEOS_JOB_CATALOG, parsed, EMPLEOS_SAMPLE_NOW_MS);
+    const f = filterEmpleosJobs(mergedCatalog, parsed, EMPLEOS_SAMPLE_NOW_MS);
     return sortEmpleosJobs(f, parsed.sort);
-  }, [parsed]);
+  }, [mergedCatalog, parsed]);
 
   const featuredRows = useMemo(
     () => filtered.filter((j) => j.listingTier === "featured" || j.listingTier === "promoted"),
@@ -352,6 +359,13 @@ export function EmpleosResultsView() {
   const [verifiedBox, setVerifiedBox] = useState(parsed.verifiedOnly);
   const [premiumBox, setPremiumBox] = useState(parsed.premiumOnly);
   const [rememberPrefs, setRememberPrefs] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onStaged = () => setBrowseTick((t) => t + 1);
+    window.addEventListener(EMPLEOS_STAGED_REGISTRY_EVENT, onStaged);
+    return () => window.removeEventListener(EMPLEOS_STAGED_REGISTRY_EVENT, onStaged);
+  }, []);
 
   useEffect(() => {
     setQ(parsed.q);

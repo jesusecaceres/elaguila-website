@@ -1,17 +1,23 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { fetchRentasListingForPublicDetail } from "@/app/clasificados/rentas/lib/fetchRentasListingForPublicDetail";
 import {
   findRentasDemoListingById,
   getRentasListingDetailExtra,
 } from "@/app/clasificados/rentas/listing/rentasListingDetailModel";
 import { RentasListingDetailClient } from "./RentasListingDetailClient";
 
-type Props = { params: Promise<{ id: string }> };
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ lang?: string }>;
+};
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const { id } = await props.params;
-  const listing = findRentasDemoListingById(id);
+  const sp = props.searchParams ? await props.searchParams : {};
+  const lang = sp.lang === "en" ? "en" : "es";
+  const listing = (await fetchRentasListingForPublicDetail(id, lang)) ?? findRentasDemoListingById(id);
   if (!listing) return { title: "Rentas | Leonix" };
   return {
     title: `${listing.title} — ${listing.rentDisplay} | Leonix`,
@@ -21,7 +27,9 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
 export default async function RentasListingDetailPage(props: Props) {
   const { id } = await props.params;
-  const listing = findRentasDemoListingById(id);
+  const sp = props.searchParams ? await props.searchParams : {};
+  const lang = sp.lang === "en" ? "en" : "es";
+  const listing = (await fetchRentasListingForPublicDetail(id, lang)) ?? findRentasDemoListingById(id);
   if (!listing) notFound();
   const extra = getRentasListingDetailExtra(listing);
   return (

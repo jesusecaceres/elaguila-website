@@ -7,6 +7,8 @@ import {
   parseLeonixListingContract,
   type LeonixClasificadosBranch,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
+import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import {
   isListingBoosted,
   leonixPromotedFromDetailPairs,
@@ -79,6 +81,11 @@ export function LeonixRealEstateListingManageCard({
   const st = String(row.status ?? "active").toLowerCase();
   const isUnpublished = st === "unpublished" || row.is_published === false;
 
+  const publicViewHref =
+    (row.category ?? "").toLowerCase() === "rentas"
+      ? withRentasLandingLang(rentasListingPublicPath(row.id), lang)
+      : leonixLiveAnuncioPath(row.id);
+
   return (
     <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -130,7 +137,7 @@ export function LeonixRealEstateListingManageCard({
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            href={leonixLiveAnuncioPath(row.id)}
+            href={publicViewHref}
             className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
           >
             {lang === "es" ? "Ver público" : "Live"}

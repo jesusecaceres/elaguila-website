@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { listServiciosPublicListingsFromDb } from "./lib/serviciosPublicListingsServer";
+import { listServiciosPublicListingsForDiscovery } from "./lib/serviciosPublicListingsServer";
 import { ServiciosLandingPage } from "./landing/ServiciosLandingPage";
 
 export const metadata: Metadata = {
@@ -26,6 +26,6 @@ type PageProps = {
 export default async function ClasificadosServiciosLandingPage(props: PageProps) {
   const sp = (await props.searchParams) ?? {};
   const lang = sp.lang === "en" ? "en" : "es";
-  const liveRows = await listServiciosPublicListingsFromDb(120);
+  const liveRows = await listServiciosPublicListingsForDiscovery(120);
   return <ServiciosLandingPage lang={lang} liveRows={liveRows} />;
 }

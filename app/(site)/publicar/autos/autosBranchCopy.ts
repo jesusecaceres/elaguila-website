@@ -41,8 +41,8 @@ const ES: AutosBranchCopy = {
     cta: "Continuar como negocio",
   },
   privadoPlaceholder: {
-    title: "Privado — próximamente",
-    body: "Estamos preparando el flujo para vendedores particulares. Mientras tanto, usa Negocios si publicas desde un concesionario.",
+    title: "Privado — flujo activo (QA)",
+    body: "El flujo particular comparte el mismo sistema de borrador, confirmación y publicación que Negocios. Usa «Continuar como particular» desde la pantalla anterior.",
     back: "Volver a Autos",
     branch: "Elegir otra opción",
   },
@@ -65,8 +65,8 @@ const EN: AutosBranchCopy = {
     cta: "Continue as business",
   },
   privadoPlaceholder: {
-    title: "Private seller — coming soon",
-    body: "We are building the private-seller flow. For now, use Dealership if you publish from a dealer lot.",
+    title: "Private seller — live flow (QA)",
+    body: "The private lane uses the same draft, confirm, and publish pipeline as the business lane. Use “Continue as private seller” from the branch screen.",
     back: "Back to Autos",
     branch: "Choose another path",
   },

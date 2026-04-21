@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { clearLeonixPreviewNavSessionFlag, markPublishFlowReturningToEdit } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
 import { ServiciosProfileView } from "@/app/servicios/components/ServiciosProfileView";
@@ -13,9 +13,13 @@ import type { ServiciosApplicationDraft } from "@/app/servicios/types/serviciosA
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationTypes";
 import { normalizeClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationNormalize";
-import { loadClasificadosServiciosApplicationResolved } from "../lib/clasificadosServiciosStorage";
+import { loadClasificadosServiciosApplicationResolved, saveClasificadosServiciosApplicationResolved } from "../lib/clasificadosServiciosStorage";
+import { getBusinessTypePreset } from "../lib/businessTypePresets";
 import { mapClasificadosServiciosApplicationToServiciosDraft } from "../lib/mapClasificadosServiciosApplicationToServiciosDraft";
+import { postServiciosPublishApi } from "../lib/serviciosPublishClient";
+import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadiness";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
+import { upsertLocalServiciosPublish } from "@/app/clasificados/servicios/lib/localServiciosPublishStorage";
 
 type Source = "loading" | "expert" | "application";
 
@@ -30,11 +34,14 @@ const EDIT_LINK =
  * Outer bar holds only “Volver a editar”; the publishable ad canvas is `ServiciosProfileView` without the global Servicios top bar.
  */
 export function ClasificadosServiciosPreviewClient() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const lang: ServiciosLang = searchParams?.get("lang") === "en" ? "en" : "es";
   const forceExpert = searchParams?.get("sample") === "expert";
 
   const editHref = `/clasificados/publicar/servicios?lang=${lang}`;
+  const [publishBusy, setPublishBusy] = useState(false);
+  const [publishErr, setPublishErr] = useState<string | null>(null);
 
   useLayoutEffect(() => {
     clearLeonixPreviewNavSessionFlag();
@@ -75,6 +82,51 @@ export function ClasificadosServiciosPreviewClient() {
     if (source !== "application" || !appState) return { ok: true as const, missing: [] as { id: string; label: string }[] };
     return evaluateServiciosPreviewReadiness(appState, lang);
   }, [source, appState, lang]);
+
+  const publishReadiness = useMemo(() => {
+    if (source !== "application" || !appState) return { ok: false as const, missing: [] as { id: string; label: string }[] };
+    return evaluateServiciosPublishReadiness(appState, lang);
+  }, [source, appState, lang]);
+
+  const canPublishFromPreview =
+    source === "application" &&
+    appState &&
+    publishReadiness.ok &&
+    appState.confirmListingAccurate &&
+    appState.confirmPhotosRepresentBusiness &&
+    appState.confirmCommunityRules;
+
+  const handlePublishFromPreview = useCallback(async () => {
+    if (!appState || !canPublishFromPreview) return;
+    setPublishBusy(true);
+    setPublishErr(null);
+    try {
+      await saveClasificadosServiciosApplicationResolved(appState);
+      const { res, data } = await postServiciosPublishApi({ state: appState, lang });
+      if (res.status === 422) {
+        setPublishErr(lang === "en" ? "Complete required fields before publishing." : "Completa los campos requeridos antes de publicar.");
+        setPublishBusy(false);
+        return;
+      }
+      if (!data.ok || !data.slug || !data.profile) {
+        setPublishErr(lang === "en" ? "Publish failed. Try again from the application." : "No se pudo publicar. Intenta de nuevo desde el formulario.");
+        setPublishBusy(false);
+        return;
+      }
+      const persistedToDatabase = data.persistedToDatabase === true || data.persisted === true;
+      if (!persistedToDatabase) {
+        const ig = getBusinessTypePreset(appState.businessTypeId)?.internalGroup;
+        upsertLocalServiciosPublish(data.profile, appState.city, ig ?? null);
+      }
+      const q = new URLSearchParams({ lang });
+      q.set("justPublished", "1");
+      if (data.persistence) q.set("persistence", data.persistence);
+      router.push(`/clasificados/servicios/${encodeURIComponent(data.slug)}?${q.toString()}`);
+    } catch {
+      setPublishErr(lang === "en" ? "Network error." : "Error de red.");
+      setPublishBusy(false);
+    }
+  }, [appState, canPublishFromPreview, lang, router]);
 
   const profile = useMemo(() => {
     if (source === "loading") return null;
@@ -135,11 +187,33 @@ export function ClasificadosServiciosPreviewClient() {
   return (
     <div className="min-h-screen bg-[#F9F8F6]">
       <div className={PREVIEW_BAR}>
-        <div className="mx-auto flex max-w-[1280px] justify-end px-4 py-3 md:px-6">
+        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-end gap-2 px-4 py-3 md:px-6">
+          {source === "application" && !forceExpert ? (
+            <button
+              type="button"
+              disabled={!canPublishFromPreview || publishBusy}
+              title={
+                !canPublishFromPreview
+                  ? lang === "en"
+                    ? "Complete publish checklist and the three confirmations on the last step, then try again."
+                    : "Completa el checklist de publicación y las tres confirmaciones del último paso."
+                  : undefined
+              }
+              onClick={() => void handlePublishFromPreview()}
+              className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {publishBusy ? (lang === "en" ? "Publishing…" : "Publicando…") : lang === "en" ? "Publish" : "Publicar"}
+            </button>
+          ) : null}
           <Link href={editHref} onClick={markPublishFlowReturningToEdit} className={EDIT_LINK}>
             {backLabel}
           </Link>
         </div>
+        {publishErr ? (
+          <div className="mx-auto max-w-[1280px] px-4 pb-2 md:px-6">
+            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{publishErr}</p>
+          </div>
+        ) : null}
       </div>
       <div className="mx-auto max-w-[1280px] px-4 pb-12 pt-2 md:px-6">
         <ClasificadosPreviewAdCanvas className="overflow-hidden">

@@ -220,14 +220,14 @@ const es: ClasificadosServiciosCopy = {
   publishCta: "Publicar",
   publishModalTitle: "Publicar listado",
   publishModalIntro:
-    "Revisamos que tu perfil tenga lo esencial. Esto es una base de publicación; el pago y el panel completo vienen después.",
+    "Revisamos que tu perfil tenga lo esencial para la vitrina pública. Al publicar verás si quedó en la base de datos, en el archivo de pruebas locales (solo desarrollo), o como respaldo en este navegador.",
   publishMissingTitle: "Completa lo siguiente para continuar:",
   publishClose: "Seguir editando",
   publishSubmit: "Publicar ahora",
   publishBusy: "Publicando…",
   publishError: "No se pudo publicar. Intenta de nuevo.",
   publishLocalNote:
-    "Se guardó en este navegador porque la nube no está disponible. Otros dispositivos no verán el listado hasta que haya servidor.",
+    "Si no hay base de datos configurada, en desarrollo Leonix puede guardar en un archivo local del proyecto para que resultados y pruebas lo vean. Si tampoco aplica, queda respaldo en este navegador.",
   publishConfirmMissing:
     "Marca las tres casillas de confirmación arriba para poder publicar.",
   deleteApplication: "Eliminar solicitud",
@@ -428,14 +428,14 @@ const en: ClasificadosServiciosCopy = {
   publishCta: "Publish",
   publishModalTitle: "Publish listing",
   publishModalIntro:
-    "We check that your profile has the essentials. This is a publish foundation; payments and the full dashboard come later.",
+    "We verify essentials for your public showcase. After publishing you’ll see whether it saved to the database, the local dev file (development only), or browser-only fallback.",
   publishMissingTitle: "Complete the following to continue:",
   publishClose: "Keep editing",
   publishSubmit: "Publish now",
   publishBusy: "Publishing…",
   publishError: "Could not publish. Please try again.",
   publishLocalNote:
-    "Saved on this browser because cloud publish isn’t available. Other devices won’t see it until the server is configured.",
+    "Without a database, `next dev` can still persist to a local project file so results and QA see it. Otherwise a browser-only copy is kept on this device.",
   publishConfirmMissing:
     "Check all three confirmation boxes above before publishing.",
   deleteApplication: "Delete application",

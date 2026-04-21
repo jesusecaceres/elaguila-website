@@ -144,6 +144,13 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
 
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Link
+          href="/admin/workspace/clasificados/autos"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-[#C9B46A]/55 bg-[#FBF7EF] px-4 py-2.5 text-center text-sm font-bold text-[#5C4E2E] shadow-sm transition hover:bg-[#F4EFE4] sm:min-h-10"
+          title="Tabla autos_classifieds_listings: estados de pago y publicación en /clasificados/autos"
+        >
+          Autos (pagos Leonix) →
+        </Link>
+        <Link
           href="/admin/workspace/clasificados/servicios"
           className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-dashed border-[#7A9E6F]/55 bg-[#F4FAF2] px-4 py-2.5 text-center text-sm font-bold text-[#2C4A22] shadow-sm transition hover:bg-[#E8F4E4] sm:min-h-10"
           title="Simulación en navegador (localStorage), no es la cola real de Supabase"

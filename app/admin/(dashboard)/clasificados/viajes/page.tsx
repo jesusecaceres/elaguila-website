@@ -3,25 +3,36 @@ import Link from "next/link";
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { AdminStatCard } from "@/app/admin/_components/AdminStatCard";
 import { adminCardBase, adminCtaChipSecondary } from "@/app/admin/_components/adminTheme";
+import { countViajesStagedByStatuses } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingsDbServer";
+import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { AdminViajesAnalyticsPlaceholders } from "./_components/AdminViajesAnalyticsPlaceholders";
 import { ADMIN_VIAJES_OVERVIEW_MOCK } from "@/app/admin/_lib/adminViajesOverviewMock";
 
-export default function AdminViajesOverviewPage() {
+export default async function AdminViajesOverviewPage() {
   const m = ADMIN_VIAJES_OVERVIEW_MOCK;
+  let approvedViajes: number;
+  let pendingViajes: number;
+  if (isSupabaseAdminConfigured()) {
+    approvedViajes = await countViajesStagedByStatuses(["approved"]);
+    pendingViajes = await countViajesStagedByStatuses(["submitted", "in_review", "changes_requested"]);
+  } else {
+    approvedViajes = m.businessOffers;
+    pendingViajes = m.pendingBusinessReviews;
+  }
 
   return (
     <>
       <AdminPageHeader
         eyebrow="Viajes · internal"
         title="Overview"
-        subtitle="Operational snapshot for launch-phase manual curation. Counts are illustrative until feeds and queues are connected."
+        subtitle="Viajes staged queue counts load from Supabase when configured; other tiles may remain illustrative."
         helperText="Affiliate cards are authored only in Admin → Viajes → Affiliate Cards. Business listings use the public business branch and moderation tools below."
       />
 
       <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <AdminStatCard title="Affiliate offers (live)" value={m.affiliateOffers} hint="Partner-managed inventory" accent="amber" />
-        <AdminStatCard title="Business offers" value={m.businessOffers} hint="Approved operator listings" />
-        <AdminStatCard title="Pending business review" value={m.pendingBusinessReviews} hint="Queue placeholder" accent="rose" />
+        <AdminStatCard title="Business offers (approved)" value={approvedViajes} hint="viajes_staged_listings · approved" />
+        <AdminStatCard title="Pending Viajes review" value={pendingViajes} hint="Submitted / in review / changes requested" accent="rose" />
         <AdminStatCard title="Expired / paused" value={m.expiredOffers} hint="Needs refresh or unpublish" />
       </div>
 

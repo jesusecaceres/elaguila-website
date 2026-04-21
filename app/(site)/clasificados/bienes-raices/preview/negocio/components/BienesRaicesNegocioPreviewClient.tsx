@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { publishLeonixListingFromBienesRaicesNegocioDraft } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
 import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
 import { BienesRaicesNegocioPreviewView } from "@/app/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView";
@@ -51,7 +53,6 @@ export default function BienesRaicesNegocioPreviewClient() {
   const [retryKey, setRetryKey] = useState(0);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
-
   const onPublishLive = useCallback(async () => {
     const st = loadBienesRaicesNegocioPreviewDraft();
     if (!st) return;
@@ -60,7 +61,14 @@ export default function BienesRaicesNegocioPreviewClient() {
     const r = await publishLeonixListingFromBienesRaicesNegocioDraft(st, lang);
     setPublishBusy(false);
     if (r.ok) {
-      router.push(`/clasificados/anuncio/${r.listingId}?lang=${lang}`);
+      if (r.warnings.length) {
+        try {
+          sessionStorage.setItem("lx_br_publish_warnings", JSON.stringify(r.warnings));
+        } catch {
+          /* ignore */
+        }
+      }
+      router.push(appendLangToPath(leonixLiveAnuncioPath(r.listingId), lang));
     } else {
       setPublishErr(r.error);
     }

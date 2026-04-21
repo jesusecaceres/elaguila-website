@@ -10,6 +10,7 @@ import { ViajesOfferDetailLayout } from "../../components/ViajesOfferDetailLayou
 import { getViajesOfferDetailBySlug, VIAJES_OFFER_SLUGS } from "../../data/viajesOfferDetailSampleData";
 import { getViajesUi } from "../../data/viajesUiCopy";
 import { resolveViajesOfferBack } from "../../lib/viajesOfferLink";
+import { resolveViajesOfferDetailFromStagedSlug } from "../../lib/resolveViajesOfferDetailFromStagedServer";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -26,9 +27,12 @@ export function generateStaticParams() {
   return VIAJES_OFFER_SLUGS.map((slug) => ({ slug }));
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const offer = getViajesOfferDetailBySlug(slug);
+  const sp = await searchParams;
+  const lang = pickLang(sp);
+  const staged = await resolveViajesOfferDetailFromStagedSlug(slug, lang);
+  const offer = staged ?? getViajesOfferDetailBySlug(slug);
   if (!offer) return { title: "Oferta | Leonix Viajes" };
   return {
     title: `${offer.title} | Leonix Viajes`,
@@ -38,11 +42,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ClasificadosViajesOfertaPage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const offer = getViajesOfferDetailBySlug(slug);
-  if (!offer) notFound();
-
   const sp = await searchParams;
   const lang = pickLang(sp);
+  const staged = await resolveViajesOfferDetailFromStagedSlug(slug, lang);
+  const offer = staged ?? getViajesOfferDetailBySlug(slug);
+  if (!offer) notFound();
   const ui = getViajesUi(lang);
   const fallback = appendLangToPath("/clasificados/viajes", lang);
   const { href: backHref, label: backLabel } = resolveViajesOfferBack(sp.back, fallback, lang);

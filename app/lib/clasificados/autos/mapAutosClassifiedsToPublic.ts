@@ -30,7 +30,7 @@ export function autosClassifiedsRowToPublicListing(row: AutosClassifiedsListingR
     mileage: L.mileage ?? 0,
     city: L.city ?? "",
     state: L.state ?? "",
-    zip: L.zip,
+    zip: L.zip != null && L.zip !== "" ? String(L.zip).replace(/\D/g, "").slice(0, 5) : "",
     bodyStyle: L.bodyStyle ?? "",
     transmission: L.transmission ?? "",
     drivetrain: L.drivetrain ?? "",

@@ -5,6 +5,9 @@ export type EmpleosListingLifecycleStatus =
   | "draft"
   | "ready_for_publish"
   | "published"
+  | "paused"
+  | "archived"
+  | "rejected"
   | "unpublished"
   | "removed"
   | "expired";

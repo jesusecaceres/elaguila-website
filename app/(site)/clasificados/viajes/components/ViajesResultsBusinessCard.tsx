@@ -17,8 +17,15 @@ export function ViajesResultsBusinessCard({ row, ui }: { row: ViajesBusinessResu
     <article className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] shadow-[0_12px_40px_-16px_rgba(42,36,22,0.2)]">
       <div className="relative aspect-[16/10] w-full min-w-0 overflow-hidden">
         <Image src={row.imageSrc} alt={row.imageAlt} fill className="object-cover object-center" sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw" />
-        <span className="absolute left-3 top-3 rounded-full bg-[color:var(--lx-cta-dark)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#FFFCF7]">
-          {ui.cards.businessListing}
+        <span className="absolute left-3 top-3 flex flex-wrap gap-1">
+          {row.sellerLane === "private" ? (
+            <span className="rounded-full bg-violet-900/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#FFFCF7]">
+              {ui.offerDetail.privatePostedBy}
+            </span>
+          ) : null}
+          <span className="rounded-full bg-[color:var(--lx-cta-dark)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#FFFCF7]">
+            {ui.cards.businessListing}
+          </span>
         </span>
       </div>
       <div className="flex flex-1 flex-col p-4">

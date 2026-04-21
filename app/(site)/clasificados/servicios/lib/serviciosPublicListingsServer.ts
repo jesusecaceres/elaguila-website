@@ -2,6 +2,10 @@ import "server-only";
 
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
+import {
+  getServiciosDevPublishRowBySlug,
+  listServiciosDevPublishRows,
+} from "./serviciosDevPublishPersistence";
 
 export type ServiciosPublicListingRow = {
   slug: string;
@@ -54,4 +58,30 @@ export async function getServiciosPublicListingBySlugFromDb(slug: string): Promi
   } catch {
     return null;
   }
+}
+
+/**
+ * Supabase published rows + optional dev-workspace file (`serviciosDevPublishPersistence`) for local testing.
+ * DB row wins when the same slug exists in both.
+ */
+export async function listServiciosPublicListingsForDiscovery(limit = 48): Promise<ServiciosPublicListingRow[]> {
+  const db = await listServiciosPublicListingsFromDb(limit);
+  const dev = listServiciosDevPublishRows();
+  const dbSlugs = new Set(db.map((r) => r.slug));
+  const merged = [...db];
+  for (const r of dev) {
+    if (!dbSlugs.has(r.slug)) merged.push(r);
+  }
+  merged.sort((a, b) => {
+    if (a.published_at < b.published_at) return 1;
+    if (a.published_at > b.published_at) return -1;
+    return a.slug.localeCompare(b.slug);
+  });
+  return merged.slice(0, limit);
+}
+
+export async function getServiciosPublicListingBySlugForDiscovery(slug: string): Promise<ServiciosPublicListingRow | null> {
+  const fromDb = await getServiciosPublicListingBySlugFromDb(slug);
+  if (fromDb) return fromDb;
+  return getServiciosDevPublishRowBySlug(slug);
 }

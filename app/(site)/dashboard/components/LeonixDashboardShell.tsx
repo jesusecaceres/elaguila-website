@@ -16,6 +16,9 @@ type Plan = "free" | "pro";
 export type LeonixDashboardActiveNav =
   | "home"
   | "listings"
+  | "restaurantes"
+  | "servicios"
+  | "viajes"
   | "messages"
   | "drafts"
   | "saved"
@@ -108,6 +111,7 @@ export function LeonixDashboardShell({
           home: "Resumen",
           profile: "Perfil y cuenta",
           listings: "Mis anuncios",
+          restaurants: "Mis restaurantes",
           messages: "Mensajes",
           drafts: "Borradores",
           analytics: "Analíticas",
@@ -115,6 +119,8 @@ export function LeonixDashboardShell({
           businessTools: "Herramientas de negocio",
           saved: "Guardados",
           recent: "Vistos recientemente",
+          servicios: "Servicios (prueba)",
+          viajesStaged: "Viajes (revisión)",
           activity: "Mi actividad",
           publish: "Publicar anuncio",
           signOut: "Cerrar sesión",
@@ -129,6 +135,7 @@ export function LeonixDashboardShell({
           home: "Overview",
           profile: "Profile & account",
           listings: "My ads",
+          restaurants: "My restaurants",
           messages: "Messages",
           drafts: "Drafts",
           analytics: "Analytics",
@@ -136,6 +143,8 @@ export function LeonixDashboardShell({
           businessTools: "Business tools",
           saved: "Saved",
           recent: "Recently viewed",
+          servicios: "Servicios (test)",
+          viajesStaged: "Viajes (review)",
           activity: "Activity",
           publish: "Post an ad",
           signOut: "Sign out",
@@ -251,6 +260,9 @@ export function LeonixDashboardShell({
             <nav className="mt-5 space-y-1">
               {navItem("home", `/dashboard?${q}`, L.home)}
               {navItem("listings", `/dashboard/mis-anuncios?${q}`, L.listings, navCounts.expiring, L.badgeExpiring)}
+              {navItem("restaurantes", `/dashboard/restaurantes?${q}`, L.restaurants)}
+              {navItem("servicios", `/dashboard/servicios?${q}`, L.servicios)}
+              {navItem("viajes", `/dashboard/viajes?${q}`, L.viajesStaged)}
               {navItem("messages", `/dashboard/mensajes?${q}`, L.messages, navCounts.messages, L.badgeInbox)}
               {navItem("drafts", `/dashboard/drafts?${q}`, L.drafts, navCounts.drafts, L.badgeDrafts)}
               {navItem("saved", `/dashboard/guardados?${q}`, L.saved)}

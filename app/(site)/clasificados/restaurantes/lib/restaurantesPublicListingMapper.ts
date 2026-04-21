@@ -5,6 +5,7 @@ import type {
   RestauranteHighlightKey,
   RestauranteServiceMode,
 } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
+import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 import type { RestaurantesPublicListingDbRow } from "./restaurantesPublicListingsServer";
 
 function nonEmpty(s: string | undefined | null): boolean {
@@ -85,6 +86,57 @@ export function dbRowToPublicResultsRow(row: RestaurantesPublicListingDbRow): Re
 
 export function mapDbRowsToPublicResultsRows(rows: RestaurantesPublicListingDbRow[]): RestaurantePublicResultsRow[] {
   return rows.map(dbRowToPublicResultsRow);
+}
+
+/** Hero fallback when publish did not set `hero_image_url` (matches blueprint card quality). */
+export const RESTAURANTE_PUBLIC_CARD_IMAGE_FALLBACK =
+  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=900&q=80";
+
+/**
+ * Map published discovery row → `RestaurantesPublicBlueprintRow` so filters, sort, exposure policy, and
+ * `RestaurantesResultsShell` work unchanged. `openNowDemo` stays false until weekly hours are evaluated server-side.
+ */
+export function publicResultsRowToShellInventoryRow(r: RestaurantePublicResultsRow): RestaurantesPublicBlueprintRow {
+  const svc = (r.serviceModeKeys ?? []).filter(
+    (m): m is "dine_in" | "takeout" | "delivery" => m === "dine_in" || m === "takeout" || m === "delivery",
+  );
+  const serviceModes: RestaurantesPublicBlueprintRow["serviceModes"] = svc.length ? svc : ["dine_in"];
+  const familyFriendly = r.highlightKeys.includes("family_friendly");
+  const priceLevel = r.priceLevel ?? "$$";
+  const rating = typeof r.externalRatingValue === "number" && Number.isFinite(r.externalRatingValue) ? r.externalRatingValue : 0;
+  return {
+    id: r.id,
+    name: r.businessName,
+    slug: r.slug,
+    primaryCuisineKey: r.primaryCuisineKey || "other",
+    secondaryCuisineKey: r.secondaryCuisineKey,
+    cuisineLine: r.summaryShort?.trim() || r.businessName,
+    city: r.cityCanonical,
+    zip: r.zipCode,
+    rating,
+    priceLevel,
+    imageSrc: (r.heroImageUrl && r.heroImageUrl.trim()) || RESTAURANTE_PUBLIC_CARD_IMAGE_FALLBACK,
+    serviceModes,
+    familyFriendly,
+    promoted: r.sponsored === true,
+    openNowDemo: false,
+    veganOptions: r.highlightKeys.includes("vegan_options"),
+    glutenFreeOptions: r.highlightKeys.includes("gluten_free"),
+    halalCuisine: r.primaryCuisineKey === "halal",
+    listedAt: r.listedAt,
+    businessType: r.businessTypeKey || undefined,
+    movingVendor: r.movingVendor,
+    homeBasedBusiness: r.homeBasedBusiness,
+    foodTruck: r.foodTruck,
+    popUp: r.popUp,
+    neighborhood: r.neighborhood,
+    highlightKeys: r.highlightKeys,
+    externalReviewCount: r.externalReviewCount,
+  };
+}
+
+export function mapPublicResultsRowsToShellInventory(rows: RestaurantePublicResultsRow[]): RestaurantesPublicBlueprintRow[] {
+  return rows.map(publicResultsRowToShellInventoryRow);
 }
 
 /** Resolve hero URL for denormalized card column (matches preview fallback). */

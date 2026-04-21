@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { FiChevronLeft, FiMapPin } from "react-icons/fi";
 import { IconBath, IconBed, IconRuler } from "@/app/clasificados/bienes-raices/resultados/cards/cardIcons";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
@@ -29,6 +30,8 @@ type Props = {
 
 export function RentasListingDetailClient({ listing, extra }: Props) {
   const { lang, copy } = useRentasLandingLang();
+  const searchParams = useSearchParams();
+  const showPublishedBanner = searchParams?.get("published") === "1";
   const [photoIx, setPhotoIx] = useState(0);
   const gallery = extra.gallery.length ? extra.gallery : [listing.imageUrl];
   const mainSrc = gallery[photoIx] ?? listing.imageUrl;
@@ -37,6 +40,7 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
   const sellerLine = lang === "en" ? extra.sellerDisplayEn : extra.sellerDisplayEs;
 
   const resultsHref = useMemo(() => withRentasLandingLang(RENTAS_RESULTS, lang), [lang]);
+  const dashboardHref = useMemo(() => withRentasLandingLang("/dashboard/mis-anuncios", lang), [lang]);
   const contactHref = useMemo(() => withRentasLandingLang("/contact", lang), [lang]);
 
   const publishPrivado = withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, lang);
@@ -52,6 +56,30 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
           <FiChevronLeft className="h-4 w-4" aria-hidden />
           {copy.detail.backToResults}
         </Link>
+
+        {showPublishedBanner ? (
+          <div
+            className="mt-5 rounded-2xl border border-[#2C5F2D]/30 bg-[#F4FAF2] px-4 py-3 text-sm text-[#1E3D1F] shadow-sm sm:px-5"
+            role="status"
+          >
+            <p className="font-semibold">
+              {lang === "es" ? "Tu anuncio quedó publicado (prueba)." : "Your listing was published (test)."}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-[#2C4A2E]/95">
+              {lang === "es"
+                ? "Aparece en resultados y en Mis anuncios. Esto es inventario de prueba, no el índice público final."
+                : "It appears in results and in My Listings. This is staged inventory, not the final public index."}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link href={dashboardHref} className={rentasSectionHeaderActionClass}>
+                {lang === "es" ? "Ir a Mis anuncios" : "Go to My Listings"}
+              </Link>
+              <Link href={resultsHref} className={rentasCtaSecondaryClass + " inline-flex items-center justify-center px-4 py-2 text-xs font-bold"}>
+                {lang === "es" ? "Ver en resultados" : "Browse results"}
+              </Link>
+            </div>
+          </div>
+        ) : null}
 
         <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-7">

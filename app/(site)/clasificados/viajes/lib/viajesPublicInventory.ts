@@ -1,27 +1,27 @@
 /**
- * Public Viajes inventory for `/clasificados/viajes/resultados` — **single adapter** for result rows.
+ * Public Viajes inventory for `/clasificados/viajes/resultados` — merge **approved staged** rows + curated seed.
  *
- * **Launch reality (read before changing):**
- * - Live DB/API feed for approved business listings is **not wired** in this repo yet.
- * - Until `fetchApprovedViajesPublicRows()` exists, rows come from curated **sample data** that
- *   mirrors the normalized `ViajesResultRow` shape so filters, sort, and cards behave like production.
- *
- * **Swap procedure (future):**
- * 1. Implement server fetch (e.g. Supabase) returning rows compatible with `ViajesResultRow`.
- * 2. Merge partner/affiliate feeds + editorial index in this module only.
- * 3. Keep `viajesRowMatchesBrowse` + `sortViajesResultRows` unchanged — they operate on `ViajesResultRow[]`.
- *
- * Do not import `VIAJES_RESULTS_SAMPLE` directly in UI shells — use `getViajesPublicResultRows()` always.
+ * - Approved submissions live in `public.viajes_staged_listings` (see migration).
+ * - Curated `VIAJES_RESULTS_SAMPLE` remains as discovery seed / affiliate+editorial examples until fully replaced.
+ * - Server entry: `fetchViajesPublicBrowseRowsMerged()` passes merged rows into `ViajesResultsShell`.
  */
 
 import { VIAJES_RESULTS_SAMPLE, type ViajesResultRow } from "../data/viajesResultsSampleData";
 
-/** True while public rows are demo/sample-backed (show honest banner in UI). */
-export function isViajesPublicInventoryDemoMode(): boolean {
-  return true;
+/** Merge approved staged cards first, then curated seed (IDs are disjoint). */
+export function mergeViajesPublicResultRows(stagedApproved: ViajesResultRow[]): ViajesResultRow[] {
+  return [...stagedApproved, ...VIAJES_RESULTS_SAMPLE];
 }
 
-/** All rows shown on the public results page (demo or live). */
+/** @deprecated Use server `fetchViajesPublicBrowseRowsMerged()` + props; fallback for non-SSR callers. */
 export function getViajesPublicResultRows(): ViajesResultRow[] {
   return VIAJES_RESULTS_SAMPLE;
+}
+
+/**
+ * When true, UI may emphasize that results still include curated examples (not only user submissions).
+ * Set false when you hide the seed column-wide via env (optional).
+ */
+export function isViajesPublicInventoryDemoMode(): boolean {
+  return process.env.NEXT_PUBLIC_VIAJES_HIDE_CURATED_SEED !== "1";
 }

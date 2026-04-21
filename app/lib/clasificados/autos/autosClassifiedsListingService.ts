@@ -182,6 +182,20 @@ export async function listActiveAutosClassifiedsRows(): Promise<AutosClassifieds
   return data.map((r) => rowFromDb(r as Record<string, unknown>));
 }
 
+/** Admin workspace: all paid Autos rows (any status), newest first. */
+export async function listAllAutosClassifiedsRowsForAdmin(limit = 300): Promise<AutosClassifiedsListingRow[]> {
+  if (!isSupabaseAdminConfigured()) return [];
+  const supabase = getAdminSupabase();
+  const cap = Math.min(Math.max(Math.floor(limit), 1), 500);
+  const { data, error } = await supabase
+    .from("autos_classifieds_listings")
+    .select("*")
+    .order("updated_at", { ascending: false })
+    .limit(cap);
+  if (error || !data?.length) return [];
+  return data.map((r) => rowFromDb(r as Record<string, unknown>));
+}
+
 export async function updateAutosListingStatus(
   id: string,
   status: AutosClassifiedsListingStatus,

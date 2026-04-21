@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { getAutosSiteOrigin } from "@/app/lib/clasificados/autos/autosSiteOrigin";
 import { getAutosPublishUserIdFromRequest } from "@/app/lib/clasificados/autos/autosListingBearerAuth";
 import {
+  activateAutosClassifiedsListing,
   assertAutosListingOwner,
   isAutosClassifiedsDbConfigured,
   setAutosListingPendingPayment,
@@ -12,6 +13,8 @@ import {
   getStripeSecretKey,
   isStripeAutosConfigured,
 } from "@/app/lib/clasificados/autos/stripeAutosConfig";
+import { isAutosInternalPublishPaymentBypassEnabled } from "@/app/lib/clasificados/autos/autosInternalPublishConfig";
+import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import type { AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +25,8 @@ export async function POST(request: Request) {
   if (!isAutosClassifiedsDbConfigured()) {
     return NextResponse.json({ ok: false, error: "db_not_configured" }, { status: 503 });
   }
-  if (!isStripeAutosConfigured()) {
+  const internalBypass = isAutosInternalPublishPaymentBypassEnabled();
+  if (!internalBypass && !isStripeAutosConfigured()) {
     return NextResponse.json({ ok: false, error: "stripe_not_configured" }, { status: 503 });
   }
   const userId = await getAutosPublishUserIdFromRequest(request);
@@ -43,10 +47,29 @@ export async function POST(request: Request) {
   if (!row) {
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   }
-  if (row.status !== "draft" && row.status !== "pending_payment") {
+  if (row.status !== "draft" && row.status !== "pending_payment" && row.status !== "payment_failed") {
     return NextResponse.json({ ok: false, error: "invalid_status" }, { status: 409 });
   }
   const lang: AutosClassifiedsLang = body.lang === "en" || row.lang === "en" ? "en" : "es";
+
+  if (internalBypass) {
+    const okAct = await activateAutosClassifiedsListing(listingId);
+    if (!okAct) {
+      return NextResponse.json({ ok: false, error: "activate_failed" }, { status: 500 });
+    }
+    const origin = getAutosSiteOrigin();
+    const qLang = lang === "en" ? "lang=en" : "lang=es";
+    const laneQ = `lane=${encodeURIComponent(row.lane)}`;
+    const livePath = `${autosLiveVehiclePath(listingId)}?${qLang}`;
+    const successUrl = `${origin}/clasificados/autos/pago/exito?internal=1&listing_id=${encodeURIComponent(listingId)}&${qLang}&${laneQ}`;
+    return NextResponse.json({
+      ok: true,
+      internalBypass: true as const,
+      liveUrl: `${origin}${livePath}`,
+      successUrl,
+    });
+  }
+
   const priceId = getStripePriceIdForAutosLane(row.lane);
   if (!priceId) {
     return NextResponse.json({ ok: false, error: "stripe_price_missing", lane: row.lane }, { status: 503 });

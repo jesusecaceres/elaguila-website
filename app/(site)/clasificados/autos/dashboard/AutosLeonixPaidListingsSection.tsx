@@ -119,7 +119,30 @@ export function AutosLeonixPaidListingsSection({ lang }: { lang: Lang }) {
   }
 
   if (rows.length === 0) {
-    return null;
+    const emptyT =
+      lang === "es"
+        ? {
+            title: "Sin anuncios de Autos (flujo de pago)",
+            body: "Los anuncios de /publicar/autos se guardan aquí cuando inicias confirmación. Publica un vehículo (privado o negocio) para verlo en esta lista y en /clasificados/autos.",
+            cta: "Publicar en Autos",
+          }
+        : {
+            title: "No Leonix Autos paid listings yet",
+            body: "Listings from /publicar/autos appear here once you start the confirm flow. Publish a vehicle (private or business) to see it here and on /clasificados/autos.",
+            cta: "Publish in Autos",
+          };
+    return (
+      <div className="mt-6 rounded-2xl border border-dashed border-[#C9B46A]/45 bg-[#FFFCF7]/80 p-5 text-sm text-[#5C5346]">
+        <p className="font-bold text-[#1E1810]">{emptyT.title}</p>
+        <p className="mt-2 leading-relaxed">{emptyT.body}</p>
+        <Link
+          href={withLangParam("/publicar/autos", lang)}
+          className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#2A2620] px-4 text-sm font-bold text-[#FAF7F2]"
+        >
+          {emptyT.cta}
+        </Link>
+      </div>
+    );
   }
 
   return (

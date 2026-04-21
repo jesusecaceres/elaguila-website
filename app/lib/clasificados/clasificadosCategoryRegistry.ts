@@ -38,11 +38,13 @@ const EXCLUDE: CategoryKey[] = ["all"];
 function defaultOperationalStatus(slug: string): ClasificadosCategoryOperationalStatus {
   if (slug === "en-venta") return "live";
   if (slug === "servicios") return "staged";
+  if (slug === "restaurantes") return "staged";
   return "coming_soon";
 }
 
 function defaultReadiness(slug: string): "full" | "partial" | "scaffold" {
   if (slug === "en-venta") return "full";
+  if (slug === "restaurantes") return "partial";
   return "scaffold";
 }
 
@@ -55,6 +57,7 @@ export function getClasificadosCategoryRegistry(): ClasificadosCategoryRegistryE
       const slug = key;
       const op = defaultOperationalStatus(slug);
       const visibility: "public" | "hidden" = op === "hidden" ? "hidden" : "public";
+      const readiness = defaultReadiness(slug);
       return {
         slug,
         displayNameEs: cfg.label.es,
@@ -82,14 +85,16 @@ export function getClasificadosCategoryRegistry(): ClasificadosCategoryRegistryE
         sortOrder: i,
         visibility,
         operationalStatus: op,
-        landingTarget: slug === "restaurantes" ? `/publicar/restaurantes` : `/clasificados/publicar/${slug}`,
+        landingTarget: slug === "restaurantes" ? `/clasificados/restaurantes` : `/clasificados/publicar/${slug}`,
         notes:
-          op === "live"
-            ? "Primary live Clasificados vertical — taxonomy, publish, preview, dashboard contract."
-            : op === "staged"
-              ? "Partial flows exist; activate carefully after QA."
-              : "Route-ready registry entry — not fully operational.",
-        readiness: defaultReadiness(slug),
+          slug === "restaurantes"
+            ? "Staged lane: publicación→Supabase, resultados/descubrimiento, ficha pública, admin (tabla lectura) y panel propietario; no lanzamiento masivo formal."
+            : op === "live"
+              ? "Primary live Clasificados vertical — taxonomy, publish, preview, dashboard contract."
+              : op === "staged"
+                ? "Partial flows exist; activate carefully after QA."
+                : "Route-ready registry entry — not fully operational.",
+        readiness,
         highlight: false,
       };
     })

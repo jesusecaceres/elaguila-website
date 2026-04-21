@@ -63,5 +63,16 @@ export function getAutosPublishFlowCopy(lang: AutosPublishFlowLang, lane: AutosC
       ? "El anuncio no se activó. Revisa tu método de pago o inténtalo más tarde."
       : "Your listing was not activated. Check your payment method or try again later.",
     continueToPublish: isEs ? "Publicar anuncio" : "Publish listing",
+    checkoutErrorGeneric: isEs ? "No pudimos iniciar el pago. Revisa la consola de red o inténtalo de nuevo." : "We could not start checkout. Check the network response or try again.",
+    checkoutErrorStripe: isEs
+      ? "Stripe no está configurado en este entorno. Para pruebas internas sin pago, define AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS=1 (solo fuera de producción)."
+      : "Stripe is not configured in this environment. For internal testing without payment, set AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS=1 (non-production only).",
+    checkoutErrorPrice: isEs
+      ? "Falta el precio de Stripe para esta vía (STRIPE_PRICE_AUTOS_PRIVADO o STRIPE_PRICE_AUTOS_NEGOCIOS)."
+      : "Missing Stripe price for this lane (STRIPE_PRICE_AUTOS_PRIVADO or STRIPE_PRICE_AUTOS_NEGOCIOS).",
+    successTitleInternal: isEs ? "¡Anuncio activado!" : "Listing activated!",
+    successBodyInternal: isEs
+      ? "Modo interno: publicación sin pago. Tu anuncio ya está activo en Clasificados Autos."
+      : "Internal mode: published without payment. Your listing is now live on Autos classifieds.",
   };
 }

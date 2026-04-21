@@ -112,8 +112,11 @@ export type PublicarViajesPrivadoCopy = {
   publishDisabledHint: string;
   publishModalTitle: string;
   publishModalBody: string;
+  /** Legacy dismiss-only label */
   publishModalCta: string;
   publishModalDismiss: string;
+  publishModalSubmitReview: string;
+  publishModalSubmitting: string;
   laneSummary: string;
   ctaRowHint: string;
 };
@@ -282,11 +285,13 @@ function es(): PublicarViajesPrivadoCopy {
     resetDraft: "Restablecer borrador",
     publishCta: "Continuar hacia publicación (siguiente fase)",
     publishDisabledHint: "",
-    publishModalTitle: "Siguiente fase: pago y publicación",
+    publishModalTitle: "Enviar a revisión",
     publishModalBody:
-      "Aún no procesamos pago ni publicamos en el catálogo en vivo. En la siguiente fase del sistema, este paso enlazará con revisión, pago y publicación (por ejemplo mediante Supabase y pasarela). Tu borrador sigue guardado solo en este dispositivo.",
-    publishModalCta: "Entendido",
+      "Al enviar, guardamos tu borrador como solicitud en Leonix (staging / moderación). No aparece en el catálogo público hasta aprobación. Leonix no es vendedor final ni procesa el pago del viaje.",
+    publishModalCta: "Cerrar información",
     publishModalDismiss: "Cerrar",
+    publishModalSubmitReview: "Enviar a revisión",
+    publishModalSubmitting: "Enviando…",
     laneSummary: "Particular — no es socio comercial ni negocio.",
     ctaRowHint: "La vista previa usa tu borrador local. Afiliados solo en equipo Leonix.",
   };
@@ -456,11 +461,13 @@ function en(): PublicarViajesPrivadoCopy {
     resetDraft: "Reset draft",
     publishCta: "Continue to publishing (next phase)",
     publishDisabledHint: "",
-    publishModalTitle: "Next phase: payment & publishing",
+    publishModalTitle: "Submit for review",
     publishModalBody:
-      "We do not process payment or publish to the live catalog yet. In the next system phase, this step will link to review, payment, and publishing (e.g. via Supabase and a payment provider). Your draft remains only on this device.",
-    publishModalCta: "Got it",
+      "Submitting saves your draft as a staged Viajes request in Leonix. It does not appear in public results until approval. Leonix is not the merchant of record and does not process travel payment.",
+    publishModalCta: "Close info",
     publishModalDismiss: "Close",
+    publishModalSubmitReview: "Submit for review",
+    publishModalSubmitting: "Submitting…",
     laneSummary: "Private seller — not a commercial partner or business listing.",
     ctaRowHint: "Preview uses your local draft. Affiliates are Leonix-internal only.",
   };

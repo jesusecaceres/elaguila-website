@@ -6,7 +6,9 @@ import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en
 import { clearAllClassifiedsDrafts } from "@/app/clasificados/lib/classifiedsDraftStorage";
 import { clearEnVentaPublishTempState } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
 import { buildEnVentaPublishSuccessUrls } from "@/app/clasificados/en-venta/shared/constants/enVentaResultsRoutes";
-import { publishEnVentaFromDraft } from "./enVentaPublishFromDraft";
+import { buildEnVentaListingDetailHrefFromResults } from "@/app/clasificados/en-venta/results/utils/enVentaListingLinks";
+import { validateEnVentaLocation } from "@/app/clasificados/en-venta/shared/utils/validateEnVentaLocation";
+import { publishEnVentaFromDraft, type EnVentaGalleryUploadOutcome } from "./enVentaPublishFromDraft";
 
 const COPY = {
   es: {
@@ -16,6 +18,12 @@ const COPY = {
     successTitle: "¡Tu anuncio ya está publicado!",
     successScoped: "Ver en resultados de esta categoría",
     successAll: "Ver todos los anuncios de En Venta",
+    successDetail: "Ver mi anuncio publicado",
+    successDashboard: "Ir a Mis anuncios",
+    galleryPartial:
+      "El anuncio quedó publicado, pero algunas fotos no se subieron. Edita desde Mis anuncios o vuelve a intentar subir imágenes.",
+    galleryFailed:
+      "El anuncio quedó publicado, pero no se pudieron subir las fotos al almacenamiento. Revisa permisos de Storage o inténtalo de nuevo desde Mis anuncios.",
     errPrefix: "No se pudo publicar:",
     blocked: "Marca las confirmaciones y completa categoría, tipo de artículo y condición para publicar.",
   },
@@ -26,6 +34,12 @@ const COPY = {
     successTitle: "Your listing is live!",
     successScoped: "View results in this category",
     successAll: "Browse all For Sale listings",
+    successDetail: "View my published listing",
+    successDashboard: "Go to My listings",
+    galleryPartial:
+      "Your listing is live, but some photos failed to upload. Edit from My listings or retry image upload.",
+    galleryFailed:
+      "Your listing is live, but photos could not be uploaded to storage. Check Storage permissions or retry from My listings.",
     errPrefix: "Could not publish:",
     blocked: "Confirm the checkboxes and complete category, item type, and condition to publish.",
   },
@@ -49,7 +63,10 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
   const t = COPY[lang];
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [published, setPublished] = useState(false);
+  const [publishOutcome, setPublishOutcome] = useState<{
+    listingId: string;
+    gallery: EnVentaGalleryUploadOutcome;
+  } | null>(null);
 
   const ready = canAttemptPublish(state);
   const { generalUrl, scopedUrl } = buildEnVentaPublishSuccessUrls(lang, state);
@@ -66,7 +83,7 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
       }
       clearEnVentaPublishTempState();
       clearAllClassifiedsDrafts();
-      setPublished(true);
+      setPublishOutcome({ listingId: res.listingId, gallery: res.gallery });
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Error");
     } finally {
@@ -74,18 +91,59 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
     }
   };
 
-  if (published) {
+  if (publishOutcome) {
+    const browseQs = new URLSearchParams();
+    browseQs.set("lang", lang);
+    const rama = state.rama.trim();
+    if (rama) browseQs.set("evDept", rama);
+    const sub = state.evSub.trim();
+    if (sub) browseQs.set("evSub", sub);
+    const loc = validateEnVentaLocation(state.city, state.zip);
+    if (loc.ok) {
+      if (loc.canonicalCity) browseQs.set("city", loc.canonicalCity);
+      if (loc.zipNormalized) browseQs.set("zip", loc.zipNormalized);
+    }
+
+    const detailHref = buildEnVentaListingDetailHrefFromResults(publishOutcome.listingId, lang, browseQs);
+    const dashboardHref = `/dashboard/mis-anuncios?lang=${lang}`;
+    const galleryWarn =
+      publishOutcome.gallery === "partial" ? t.galleryPartial : publishOutcome.gallery === "failed" ? t.galleryFailed : null;
+
     return (
-      <div className="rounded-2xl border border-[#C9B46A]/45 bg-[#FFFCF7] p-5 shadow-sm ring-1 ring-[#C9B46A]/18">
+      <div
+        className="rounded-2xl border border-[#C9B46A]/45 bg-[#FFFCF7] p-5 shadow-sm ring-1 ring-[#C9B46A]/18"
+        data-testid="ev-publish-success"
+      >
         <p className="text-base font-bold text-[#3D2C12]">{t.successTitle}</p>
+        {galleryWarn ? (
+          <p className="mt-2 text-sm font-medium text-amber-900" role="status">
+            {galleryWarn}
+          </p>
+        ) : null}
         <div className="mt-4 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
           <Link
+            data-testid="ev-publish-success-detail"
+            href={detailHref}
+            className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-[#2F4A65]/35 bg-gradient-to-br from-[#F5F8FB] to-[#E8EEF3] px-4 py-2.5 text-sm font-semibold text-[#2F4A65] transition hover:brightness-[1.02]"
+          >
+            {t.successDetail}
+          </Link>
+          <Link
+            data-testid="ev-publish-success-dashboard"
+            href={dashboardHref}
+            className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-[#B28A2F]/50 bg-[#B28A2F]/15 px-4 py-2.5 text-sm font-semibold text-[#3D2C12] transition hover:bg-[#B28A2F]/25"
+          >
+            {t.successDashboard}
+          </Link>
+          <Link
+            data-testid="ev-publish-success-scoped-results"
             href={scopedUrl}
             className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-[#B28A2F]/50 bg-[#B28A2F]/15 px-4 py-2.5 text-sm font-semibold text-[#3D2C12] transition hover:bg-[#B28A2F]/25"
           >
             {t.successScoped}
           </Link>
           <Link
+            data-testid="ev-publish-success-all-results"
             href={generalUrl}
             className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-[#D8C79A]/70 bg-[#FFFCF4] px-4 py-2.5 text-sm font-semibold text-[#3D2C12] transition hover:bg-[#FFF6E7]"
           >

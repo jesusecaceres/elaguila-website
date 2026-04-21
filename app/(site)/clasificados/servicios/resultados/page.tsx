@@ -14,7 +14,7 @@ import {
   sortServiciosResultsForDisplay,
   type ServiciosResultsFilterQuery,
 } from "../lib/serviciosResultsFilter";
-import { listServiciosPublicListingsFromDb } from "../lib/serviciosPublicListingsServer";
+import { listServiciosPublicListingsForDiscovery } from "../lib/serviciosPublicListingsServer";
 
 /** Same whisper image family as landing — stays behind content, low contrast */
 const RESULTS_ATMOSPHERE =
@@ -72,7 +72,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
     bilingual: sp.bilingual === "1" ? "1" : undefined,
   };
 
-  const allRows = await listServiciosPublicListingsFromDb(120);
+  const allRows = await listServiciosPublicListingsForDiscovery(120);
 
   let rows = filterServiciosPublicListingRows(allRows, lang, filterQuery);
   rows = filterServiciosRowsByKeyword(rows, lang, filterQuery.q);

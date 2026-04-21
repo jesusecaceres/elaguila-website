@@ -92,6 +92,14 @@ export function ClasificadosCategoryHub({ registry }: { registry: ClasificadosCa
                 </dl>
 
                 <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                  {entry.slug === "restaurantes" ? (
+                    <Link
+                      href="/admin/workspace/clasificados/restaurantes"
+                      className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-[#C9B46A]/55 bg-[#FFF7ED] px-4 py-2.5 text-center text-sm font-bold text-[#92400E] hover:bg-[#FFEDD5] sm:min-h-0"
+                    >
+                      Tabla listados públicos (DB) →
+                    </Link>
+                  ) : null}
                   <Link
                     href={
                       isEnVenta

@@ -6,14 +6,15 @@ import { useRouter } from "next/navigation";
 import { FiHeart, FiHome, FiLayers, FiMap, FiUsers } from "react-icons/fi";
 import { BR_NEGOCIO_Q_PROPIEDAD } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { RentasSearchBar } from "@/app/clasificados/rentas/components/RentasSearchBar";
+import { rentasLandingFeaturedListing } from "@/app/clasificados/rentas/data/rentasLandingSampleData";
 import {
-  getRentasLandingDestacadas,
-  getRentasLandingNegocios,
-  getRentasLandingPrivado,
-  getRentasLandingRecientes,
-  rentasLandingFeaturedListing,
-} from "@/app/clasificados/rentas/data/rentasPublicData";
+  selectRentasLandingDestacadas,
+  selectRentasLandingNegocios,
+  selectRentasLandingPrivado,
+  selectRentasLandingRecientes,
+} from "@/app/clasificados/rentas/data/rentasSectionSelectors";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
+import { useRentasStagedInventory } from "@/app/clasificados/rentas/hooks/useRentasStagedInventory";
 import { RentasLandingCard } from "@/app/clasificados/rentas/landing/RentasLandingCard";
 import { RentasLandingCategoryHeader } from "@/app/clasificados/rentas/landing/RentasLandingCategoryHeader";
 import { RentasLandingFeatured } from "@/app/clasificados/rentas/landing/RentasLandingFeatured";
@@ -61,11 +62,15 @@ export function RentasLandingHub() {
     router.push(buildRentasResultsUrl(extra));
   }, [beds, lang, locationLine, priceBand, propertyType, query, router]);
 
-  const destacadas = useMemo(() => getRentasLandingDestacadas(), []);
-  const recientes = useMemo(() => getRentasLandingRecientes(), []);
-  const negocios = useMemo(() => getRentasLandingNegocios(), []);
-  const privadoRows = useMemo(() => getRentasLandingPrivado(), []);
+  /** Staged testing: merged `listings` (rentas) + demo — same selectors as static sample data. */
+  const { mergedPool, staged: stagedFromDb, loading: inventoryLoading, error: inventoryError } = useRentasStagedInventory(lang);
 
+  const destacadas = useMemo(() => selectRentasLandingDestacadas(mergedPool), [mergedPool]);
+  const recientes = useMemo(() => selectRentasLandingRecientes(mergedPool), [mergedPool]);
+  const negocios = useMemo(() => selectRentasLandingNegocios(mergedPool), [mergedPool]);
+  const privadoRows = useMemo(() => selectRentasLandingPrivado(mergedPool), [mergedPool]);
+
+  const primaryFeatured = useMemo(() => destacadas[0] ?? rentasLandingFeaturedListing, [destacadas]);
   const supportingListing = useMemo(() => privadoRows[0] ?? null, [privadoRows]);
 
   const { chipsProperty, chipsSeller, chipsDetails } = useMemo(() => {
@@ -99,6 +104,25 @@ export function RentasLandingHub() {
         </div>
 
         <div className="w-full min-w-0 max-w-[min(100%,1280px)]">
+          {stagedFromDb.length > 0 ? (
+            <p className="mb-3 rounded-xl border border-[#2C5F2D]/25 bg-[#F4FAF2]/95 px-3 py-2 text-center text-xs font-medium text-[#1E3D1F] sm:text-left">
+              {lang === "es"
+                ? `Inventario de prueba: ${stagedFromDb.length} anuncio(s) publicado(s) en listings aparecen mezclados con ejemplos.`
+                : `Test inventory: ${stagedFromDb.length} published listing(s) from the database are merged with samples.`}
+            </p>
+          ) : null}
+          {inventoryError ? (
+            <p className="mb-3 text-center text-xs text-amber-900 sm:text-left" role="status">
+              {lang === "es" ? "Aviso: inventario publicado no disponible (" : "Note: published inventory unavailable ("}
+              {inventoryError}
+              {lang === "es" ? ")." : ")."}
+            </p>
+          ) : null}
+          {inventoryLoading ? (
+            <p className="mb-3 text-center text-[11px] text-[#5B7C99] sm:text-left">
+              {lang === "es" ? "Cargando inventario publicado…" : "Loading published inventory…"}
+            </p>
+          ) : null}
           <RentasSearchBar
             query={query}
             onQuery={setQuery}
@@ -129,7 +153,7 @@ export function RentasLandingHub() {
         chipsDetails={chipsDetails}
       />
 
-      <RentasLandingFeatured copy={copy} lang={lang} primary={rentasLandingFeaturedListing} supporting={supportingListing} />
+      <RentasLandingFeatured copy={copy} lang={lang} primary={primaryFeatured} supporting={supportingListing} />
 
       <RentasLandingSectionBand
         id="rentas-landing-destacadas"

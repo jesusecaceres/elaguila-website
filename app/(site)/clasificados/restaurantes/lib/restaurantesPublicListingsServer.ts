@@ -2,6 +2,8 @@ import "server-only";
 
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
+export { isSupabaseAdminConfigured };
+
 /** Row shape returned from Supabase (snake_case). */
 export type RestaurantesPublicListingDbRow = {
   id: string;
@@ -104,5 +106,45 @@ export async function getRestaurantePublicListingBySlugFromDb(slug: string): Pro
     return data as RestaurantesPublicListingDbRow;
   } catch {
     return null;
+  }
+}
+
+/** Admin workspace (service role): all statuses, newest updates first. */
+export async function listRestaurantesPublicListingsAdminFromDb(limit = 300): Promise<RestaurantesPublicListingDbRow[]> {
+  if (!isSupabaseAdminConfigured()) return [];
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("restaurantes_public_listings")
+      .select(LIST_SELECT)
+      .order("updated_at", { ascending: false })
+      .limit(limit);
+    if (error || !data) return [];
+    return data as RestaurantesPublicListingDbRow[];
+  } catch {
+    return [];
+  }
+}
+
+/** Service role: rows for a specific owner (admin diagnostics). */
+export async function listRestaurantesPublicListingsByOwnerIdFromDb(
+  ownerUserId: string,
+  limit = 100,
+): Promise<RestaurantesPublicListingDbRow[]> {
+  if (!isSupabaseAdminConfigured()) return [];
+  const id = ownerUserId.trim();
+  if (!id) return [];
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("restaurantes_public_listings")
+      .select(LIST_SELECT)
+      .eq("owner_user_id", id)
+      .order("updated_at", { ascending: false })
+      .limit(limit);
+    if (error || !data) return [];
+    return data as RestaurantesPublicListingDbRow[];
+  } catch {
+    return [];
   }
 }

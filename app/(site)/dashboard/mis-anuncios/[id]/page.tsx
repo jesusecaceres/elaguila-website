@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { deleteMuxAssetsForListingRecordClient } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
+import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
 import { DashboardMobilePreview } from "../../components/DashboardMobilePreview";
 import { isListingBoosted, listingPlanFromDetailPairs } from "../../lib/dashboardListingMeta";
@@ -393,6 +395,13 @@ export default function ListingWorkspacePage() {
 
   const previewTitle = row?.title?.trim() || (lang === "es" ? "Tu anuncio" : "Your listing");
 
+  const publicListingHref =
+    row && (row.category ?? "").toLowerCase() === "rentas"
+      ? withRentasLandingLang(rentasListingPublicPath(row.id), lang)
+      : row
+        ? `/clasificados/anuncio/${row.id}?${q}`
+        : "#";
+
   return (
     <LeonixDashboardShell
       lang={lang}
@@ -444,10 +453,7 @@ export default function ListingWorkspacePage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link
-                href={`/clasificados/anuncio/${row.id}?${q}`}
-                className="inline-flex rounded-2xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E]"
-              >
+              <Link href={publicListingHref} className="inline-flex rounded-2xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E]">
                 {t.publicLink} →
               </Link>
               <Link

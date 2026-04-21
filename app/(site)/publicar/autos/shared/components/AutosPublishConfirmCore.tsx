@@ -41,6 +41,7 @@ export function AutosPublishConfirmCore({
   const c = getAutosPublishFlowCopy(lang, lane);
   const [listingId, setListingId] = useState<string | null>(null);
   const [phase, setPhase] = useState<"idle" | "preparing" | "ready" | "error">("idle");
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [checks, setChecks] = useState([false, false, false]);
   const [payBusy, setPayBusy] = useState(false);
   const [sessionMissing, setSessionMissing] = useState(false);
@@ -52,6 +53,7 @@ export function AutosPublishConfirmCore({
     let cancelled = false;
     setPhase("preparing");
     void (async () => {
+      setErrorDetail(null);
       const supabase = createSupabaseBrowserClient();
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
@@ -99,6 +101,7 @@ export function AutosPublishConfirmCore({
       const j = (await res.json()) as { ok?: boolean; id?: string };
       if (cancelled) return;
       if (!res.ok || !j.id) {
+        setErrorDetail(c.createError);
         setPhase("error");
         return;
       }
@@ -146,7 +149,7 @@ export function AutosPublishConfirmCore({
   if (phase === "error") {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center text-[color:var(--lx-text)]">
-        <p className="font-semibold">{c.createError}</p>
+        <p className="font-semibold">{errorDetail ?? c.createError}</p>
         <Link href={editHref} className="mt-6 inline-block text-sm font-bold text-[color:var(--lx-gold)]">
           {c.backEdit}
         </Link>
@@ -188,6 +191,7 @@ export function AutosPublishConfirmCore({
     });
     if (!sync.ok) {
       setPayBusy(false);
+      setErrorDetail(c.createError);
       setPhase("error");
       return;
     }
@@ -196,12 +200,30 @@ export function AutosPublishConfirmCore({
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ listingId, lang }),
     });
-    const j = (await res.json()) as { ok?: boolean; url?: string };
+    const j = (await res.json()) as {
+      ok?: boolean;
+      url?: string;
+      internalBypass?: boolean;
+      successUrl?: string;
+      error?: string;
+    };
     setPayBusy(false);
+    if (res.ok && j.internalBypass && typeof j.successUrl === "string" && j.successUrl) {
+      window.location.href = j.successUrl;
+      return;
+    }
     if (res.ok && j.url) {
       window.location.href = j.url;
       return;
     }
+    const code = j.error ?? "";
+    const msg =
+      code === "stripe_not_configured"
+        ? c.checkoutErrorStripe
+        : code === "stripe_price_missing"
+          ? c.checkoutErrorPrice
+          : c.checkoutErrorGeneric;
+    setErrorDetail(msg);
     setPhase("error");
   }
 

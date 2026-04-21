@@ -9,6 +9,8 @@ import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/
 import { AutosClassifiedListingManageCard } from "@/app/clasificados/autos/dashboard/AutosClassifiedListingManageCard";
 import { AutosLeonixPaidListingsSection } from "@/app/clasificados/autos/dashboard/AutosLeonixPaidListingsSection";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
+import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { LeonixRealEstateListingManageCard } from "../components/LeonixRealEstateListingManageCard";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { DashboardMobilePreview } from "../components/DashboardMobilePreview";
@@ -565,6 +567,24 @@ export default function MyListingsPage() {
 
           <AutosLeonixPaidListingsSection lang={lang} />
 
+          <div className="mt-4 rounded-2xl border border-amber-200/80 bg-amber-50/90 p-4 text-xs leading-relaxed text-[#5C5346]">
+            <p className="font-semibold text-[#1E1810]">Empleos — demostración local</p>
+            <p className="mt-1">
+              Las vacantes publicadas desde los flujos Empleos (rápido / premium / feria) se guardan en{" "}
+              <code className="rounded bg-white/80 px-1 text-[11px]">localStorage</code> de este navegador y aparecen en
+              resultados públicos mezcladas con el catálogo de muestra. Gestión y enlaces:
+            </p>
+            <p className="mt-2">
+              <Link href={`/dashboard/empleos/staged?${q}`} className="font-semibold text-[#8A6A1A] underline">
+                {lang === "es" ? "Mis vacantes Empleos (demo) →" : "My Jobs listings (demo) →"}
+              </Link>
+              {" · "}
+              <Link href="/admin/workspace/clasificados/staged-empleos" className="font-semibold text-[#8A6A1A] underline">
+                {lang === "es" ? "Moderación admin (demo) →" : "Admin moderation (demo) →"}
+              </Link>
+            </p>
+          </div>
+
           <div className="mt-4 rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-4 text-xs leading-relaxed text-[#5C5346]">
             <p className="font-semibold text-[#1E1810]">BR / Rentas — gestión</p>
             <p className="mt-1">
@@ -859,7 +879,11 @@ export default function MyListingsPage() {
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <Link
-                          href={`/clasificados/anuncio/${x.id}?${q}`}
+                          href={
+                            (x.category ?? "").toLowerCase() === "rentas"
+                              ? withRentasLandingLang(rentasListingPublicPath(x.id), lang)
+                              : `/clasificados/anuncio/${x.id}?${q}`
+                          }
                           className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                         >
                           {lang === "es" ? "Ver" : "View"}

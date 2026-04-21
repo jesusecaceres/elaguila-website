@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import Navbar from "@/app/components/Navbar";
+import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { ViajesLangSwitch } from "@/app/(site)/clasificados/viajes/components/ViajesLangSwitch";
@@ -24,12 +25,14 @@ const INPUT =
 const GRID2 = "grid gap-4 sm:grid-cols-2";
 
 export function ViajesNegociosApplicationShell() {
+  const router = useRouter();
   const sp = useSearchParams();
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
   const c = getPublicarViajesNegociosCopy(lang);
   const { draft, update, reset, hydrated } = useViajesNegociosDraft();
   const heroBlobUrl = useViajesLocalHeroObjectUrl("negocios", draft.localHeroImageId);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [submitBusy, setSubmitBusy] = useState(false);
   const heroFileRef = useRef<HTMLInputElement>(null);
   const logoFileRef = useRef<HTMLInputElement>(null);
   const galleryFileRef = useRef<HTMLInputElement>(null);
@@ -56,6 +59,49 @@ export function ViajesNegociosApplicationShell() {
   const onReset = () => {
     if (typeof window !== "undefined" && window.confirm(c.resetDraft)) reset();
   };
+
+  async function submitStagedReview() {
+    if (!hydrated || submitBusy) return;
+    setSubmitBusy(true);
+    try {
+      let session: { access_token?: string } | null = null;
+      try {
+        const sb = createSupabaseBrowserClient();
+        const res = await withAuthTimeout(sb.auth.getSession(), AUTH_CHECK_TIMEOUT_MS);
+        session = res.data.session;
+      } catch {
+        session = null;
+      }
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+      const res = await fetch("/api/clasificados/viajes/submit", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ lane: "business", lang, negociosDraft: draft }),
+      });
+      const json = (await res.json()) as { ok?: boolean; error?: string; slug?: string; id?: string };
+      if (!res.ok || !json.ok) {
+        const code = json.error ?? "unknown";
+        if (code === "supabase_not_configured") {
+          window.alert(
+            lang === "en"
+              ? "Server persistence is not configured (Supabase). Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY for staging."
+              : "No está configurada la persistencia en servidor (Supabase). Configura NEXT_PUBLIC_SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY para staging."
+          );
+        } else {
+          window.alert(lang === "en" ? `Could not submit: ${code}` : `No se pudo enviar: ${code}`);
+        }
+        return;
+      }
+      const q = new URLSearchParams({ slug: String(json.slug), id: String(json.id), lane: "business", lang });
+      setPublishOpen(false);
+      router.push(`/publicar/viajes/enviado?${q.toString()}`);
+    } catch {
+      window.alert(lang === "en" ? "Network error while submitting." : "Error de red al enviar.");
+    } finally {
+      setSubmitBusy(false);
+    }
+  }
 
   const heroThumb = draft.localImageDataUrl || heroBlobUrl || draft.imagenPrincipal.trim();
 
@@ -701,13 +747,6 @@ export function ViajesNegociosApplicationShell() {
             >
               {c.publishHandoffCta}
             </button>
-            <button
-              type="button"
-              className="inline-flex min-h-[52px] flex-1 items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-6 text-sm font-bold text-[color:var(--lx-muted)]"
-              disabled
-            >
-              {c.submitSoon}
-            </button>
           </div>
           <p className="text-center text-xs text-[color:var(--lx-muted)]">{c.ctaRowHint}</p>
         </form>
@@ -726,13 +765,24 @@ export function ViajesNegociosApplicationShell() {
               </ul>
               <p className="mt-4 rounded-xl border border-dashed border-amber-300/80 bg-amber-50/90 p-3 text-sm text-amber-950">{c.publishModal.standardPlus}</p>
               <p className="mt-3 text-xs font-medium text-[color:var(--lx-muted)]">{c.publishModal.honestNote}</p>
-              <button
-                type="button"
-                className="mt-5 w-full rounded-xl bg-[#D97706] px-4 py-3 text-sm font-bold text-white shadow-md transition hover:brightness-105"
-                onClick={() => setPublishOpen(false)}
-              >
-                {c.publishModal.close}
-              </button>
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] px-4 text-sm font-bold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                  onClick={() => setPublishOpen(false)}
+                  disabled={submitBusy}
+                >
+                  {c.publishModal.close}
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-[#D97706] px-4 text-sm font-bold text-white shadow-md transition hover:brightness-105 disabled:opacity-60"
+                  onClick={() => void submitStagedReview()}
+                  disabled={submitBusy || !hydrated}
+                >
+                  {submitBusy ? c.publishModal.submitting : c.publishModal.submitReview}
+                </button>
+              </div>
             </div>
           </div>
         ) : null}

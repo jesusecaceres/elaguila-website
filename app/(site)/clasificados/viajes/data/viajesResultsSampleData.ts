@@ -38,6 +38,8 @@ export interface ViajesAffiliateResult {
 
 export interface ViajesBusinessResult {
   kind: "business";
+  /** Staged publish lane — cards may show “private seller” when `private`. */
+  sellerLane?: "business" | "private";
   id: string;
   imageSrc: string;
   imageAlt: string;

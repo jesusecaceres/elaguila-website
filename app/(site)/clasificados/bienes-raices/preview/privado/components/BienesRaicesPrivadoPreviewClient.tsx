@@ -8,6 +8,8 @@ import {
   BR_NEGOCIO_Q_PROPIEDAD,
   coerceBrNegocioCategoriaPropiedad,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import {
   BR_PREVIEW_PRIVADO,
   BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY,
@@ -35,7 +37,6 @@ export default function BienesRaicesPrivadoPreviewClient() {
   const [draft, setDraft] = useState<BienesRaicesPrivadoFormState | null>(null);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
-
   const lang = searchParams?.get("lang") === "en" ? "en" : "es";
 
   const onPublishLive = useCallback(async () => {
@@ -46,7 +47,14 @@ export default function BienesRaicesPrivadoPreviewClient() {
     const r = await publishLeonixListingFromBienesRaicesPrivadoDraft(d, lang);
     setPublishBusy(false);
     if (r.ok) {
-      router.push(`/clasificados/anuncio/${r.listingId}?lang=${lang}`);
+      if (r.warnings.length) {
+        try {
+          sessionStorage.setItem("lx_br_publish_warnings", JSON.stringify(r.warnings));
+        } catch {
+          /* ignore */
+        }
+      }
+      router.push(appendLangToPath(leonixLiveAnuncioPath(r.listingId), lang));
     } else {
       setPublishErr(r.error);
     }

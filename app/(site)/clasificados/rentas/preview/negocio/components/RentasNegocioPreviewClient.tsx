@@ -11,13 +11,18 @@ import {
 import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
 import { BienesRaicesNegocioPreviewView } from "@/app/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView";
 import { mapRentasNegocioStateToPreviewVm } from "@/app/clasificados/publicar/rentas/negocio/application/mapping/mapRentasNegocioStateToPreviewVm";
-import { loadRentasNegocioDraft } from "@/app/clasificados/publicar/rentas/negocio/application/utils/rentasNegocioDraft";
+import {
+  clearRentasNegocioDraft,
+  loadRentasNegocioDraft,
+} from "@/app/clasificados/publicar/rentas/negocio/application/utils/rentasNegocioDraft";
 import {
   createEmptyRentasNegocioFormState,
   mergePartialRentasNegocioState,
   type RentasNegocioFormState,
 } from "@/app/clasificados/publicar/rentas/negocio/schema/rentasNegocioFormState";
+import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import {
+  rentasListingPublicPath,
   RENTAS_PREVIEW_NEGOCIO,
   RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
@@ -50,7 +55,8 @@ export default function RentasNegocioPreviewClient() {
     const r = await publishLeonixListingFromRentasNegocioDraft(d, lang);
     setPublishBusy(false);
     if (r.ok) {
-      router.push(`/clasificados/anuncio/${r.listingId}?lang=${lang}`);
+      clearRentasNegocioDraft();
+      router.push(withRentasLandingLang(`${rentasListingPublicPath(r.listingId)}?published=1`, lang));
     } else {
       setPublishErr(r.error);
     }

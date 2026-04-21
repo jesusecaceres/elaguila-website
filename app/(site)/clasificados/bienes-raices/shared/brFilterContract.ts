@@ -183,3 +183,5 @@ export const BR_FILTER_PUBLISH_READINESS: Record<
   page: "ready",
   parking: "reserved",
 };
+
+/** Live rows: facet extraction for filters lives in `resultados/lib/brFacetFromDetailPairs.ts` + `mapBrListingRowToCard.ts`. */

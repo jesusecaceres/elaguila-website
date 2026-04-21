@@ -7,6 +7,7 @@ import { emptyAutosPublicFilters } from "@/app/clasificados/autos/filters/autosP
 import { serializeAutosBrowseUrl } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import { getAutosPublishFlowCopy } from "@/app/clasificados/autos/lib/autosPublishFlowCopy";
 import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 function laneFromParam(raw: string | null): AutosClassifiedsLane {
   return raw === "negocios" ? "negocios" : "privado";
@@ -17,6 +18,8 @@ export function AutosPagoExitoClient() {
   const qs = sp ?? new URLSearchParams();
   const lang = qs.get("lang") === "en" ? "en" : "es";
   const sessionId = qs.get("session_id")?.trim() ?? "";
+  const internal = qs.get("internal") === "1";
+  const internalListingId = qs.get("listing_id")?.trim() ?? "";
   const [laneOverride, setLaneOverride] = useState<AutosClassifiedsLane | null>(null);
   const lane = laneOverride ?? laneFromParam(qs.get("lane"));
   const c = getAutosPublishFlowCopy(lang, lane);
@@ -24,6 +27,36 @@ export function AutosPagoExitoClient() {
   const [err, setErr] = useState(false);
 
   useEffect(() => {
+    if (internal && internalListingId) {
+      let cancelled = false;
+      void (async () => {
+        const supabase = createSupabaseBrowserClient();
+        const { data } = await supabase.auth.getSession();
+        const token = data.session?.access_token;
+        if (!token) {
+          if (!cancelled) setErr(true);
+          return;
+        }
+        const r = await fetch(
+          `/api/clasificados/autos/checkout/verify-internal?listing_id=${encodeURIComponent(internalListingId)}&lang=${lang}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const j = (await r.json()) as { ok?: boolean; liveUrl?: string; lane?: string };
+        if (cancelled) return;
+        if (j.lane === "negocios" || j.lane === "privado") {
+          setLaneOverride(j.lane);
+        }
+        if (r.ok && j.liveUrl) {
+          setLiveUrl(j.liveUrl);
+          return;
+        }
+        setErr(true);
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
+
     if (!sessionId) {
       setErr(true);
       return;
@@ -47,7 +80,7 @@ export function AutosPagoExitoClient() {
     return () => {
       cancelled = true;
     };
-  }, [sessionId, lang]);
+  }, [sessionId, lang, internal, internalListingId]);
 
   const resultsQs = serializeAutosBrowseUrl({
     filters: emptyAutosPublicFilters(),
@@ -59,10 +92,18 @@ export function AutosPagoExitoClient() {
   const resultsHref = `/clasificados/autos/resultados?${resultsQs}`;
   const dashboardHref = `/dashboard/mis-anuncios?lang=${lang}`;
 
-  if (!sessionId || err) {
+  if ((!sessionId && !(internal && internalListingId)) || err) {
     return (
       <div className="mx-auto max-w-md px-4 py-20 text-center text-[color:var(--lx-text)]">
-        <p className="font-semibold">{lang === "es" ? "No pudimos confirmar el pago." : "We could not confirm payment."}</p>
+        <p className="font-semibold">
+          {internal
+            ? lang === "es"
+              ? "No pudimos confirmar la publicación interna."
+              : "We could not confirm the internal publish."
+            : lang === "es"
+              ? "No pudimos confirmar el pago."
+              : "We could not confirm payment."}
+        </p>
         <Link href={resultsHref} className="mt-6 inline-block text-sm font-bold text-[color:var(--lx-gold)]">
           {c.browseMore}
         </Link>
@@ -87,8 +128,8 @@ export function AutosPagoExitoClient() {
 
   return (
     <div className="mx-auto max-w-md px-[max(1rem,env(safe-area-inset-left))] py-16 pb-[max(4rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] pt-12 text-center text-[color:var(--lx-text)] sm:py-20">
-      <h1 className="text-2xl font-bold tracking-tight">{c.successTitle}</h1>
-      <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{c.successBody}</p>
+      <h1 className="text-2xl font-bold tracking-tight">{internal ? c.successTitleInternal : c.successTitle}</h1>
+      <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{internal ? c.successBodyInternal : c.successBody}</p>
       <Link
         href={livePath}
         className="mt-8 inline-flex min-h-[48px] w-full max-w-sm items-center justify-center rounded-2xl bg-[color:var(--lx-cta-dark)] px-6 text-sm font-bold text-[#FFFCF7] transition active:opacity-90"

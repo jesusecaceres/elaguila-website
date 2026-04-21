@@ -117,8 +117,10 @@ export type PublicarViajesNegociosUi = {
     standardPlus: string;
     honestNote: string;
     close: string;
+    /** Primary action — persists staged row and routes to success */
+    submitReview: string;
+    submitting: string;
   };
-  submitSoon: string;
   ctaRowHint: string;
 };
 
@@ -128,7 +130,7 @@ function es(): PublicarViajesNegociosUi {
     navBack: "Volver a publicar Viajes",
     h1: "Solicitud de oferta — negocio de viajes",
     intro:
-      "Completa un borrador de calidad comercial. Los datos están pensados para mapear a la ficha pública de Viajes en Clasificados. El envío en vivo y la moderación se activarán en una siguiente fase — hoy solo entrenas el flujo y la vista previa.",
+      "Completa un borrador de calidad comercial. Los datos se guardan en Leonix como solicitud en revisión: no es publicación libre al catálogo; un administrador aprueba antes de que aparezca en Viajes público. Leonix no es agencia de reservas ni vendedor final.",
     workflowKicker: "Paso 2 de 4 · Borrador de oferta",
     sections: {
       main: "1. Oferta y logística del viaje",
@@ -173,7 +175,7 @@ function es(): PublicarViajesNegociosUi {
     },
     productMode: {
       title: "Modo producto actual",
-      body: "V1: vitrina de descubrimiento — sin checkout de viajes en Leonix, sin publicación libre para consumidor, con revisión para nuevas fichas de negocio. Contenido editorial y socios comerciales se muestran aparte en la categoría pública.",
+      body: "Vitrina de descubrimiento: sin checkout de viajes en Leonix. El envío crea un registro en cola de moderación; tras aprobación puede aparecer en resultados públicos. Socios comerciales y piezas editoriales siguen gestionándose por canales internos.",
     },
     stepLabels: ["Entrada", "Borrador", "Vista previa", "Envío"],
     activeStepIndex: 1,
@@ -295,23 +297,23 @@ function es(): PublicarViajesNegociosUi {
     resetDraft: "Borrar borrador local",
     publishHandoffCta: "Publicar — qué sigue",
     publishModal: {
-      title: "Envío y publicación (próxima fase)",
+      title: "Enviar solicitud a revisión",
       intro:
-        "Hoy no se envía nada al servidor. Este paso explica el recorrido real cuando exista backend, pagos y moderación.",
+        "Al enviar, guardamos tu borrador como solicitud en Leonix (staging / moderación). No aparece en el catálogo público hasta aprobación.",
       bullets: [
-        "Revisión manual de identidad del negocio, oferta y medios.",
-        "Posible verificación de sitio web, WhatsApp o documentos.",
-        "Activación en Clasificados Viajes solo tras aprobación.",
-        "Integración futura con Supabase u otro almacén para borradores y estados.",
+        "Revisión de identidad del negocio, oferta y medios antes de aprobar.",
+        "Si iniciaste sesión, la solicitud queda en tu panel de Viajes con su estado.",
+        "Tras aprobación puede mostrarse en resultados públicos con el mismo modelo de descubrimiento (sin checkout en Leonix).",
       ],
       standardPlus:
-        "Planes Standard / Plus (cuando existan) definirán visibilidad, destacados y renovación. Aquí no se cobra ni se activa ningún plan.",
-      honestNote: "No estás publicando aún: al cerrar este cuadro sigues en borrador local.",
-      close: "Entendido — volver al borrador",
+        "Planes Standard / Plus definen visibilidad cuando el billing esté activo; aquí no se cobra al enviar la solicitud.",
+      honestNote: "Esto no es “ya estás en vivo al mundo”: es envío a revisión interna.",
+      close: "Cerrar",
+      submitReview: "Enviar a revisión",
+      submitting: "Enviando…",
     },
-    submitSoon: "Enviar solicitud (próximamente)",
     ctaRowHint:
-      "La vista previa usa tu borrador guardado en este dispositivo (clave leonix:viajes:negocios:draft:v1). El envío en vivo llegará con backend y moderación.",
+      "La vista previa sigue usando tu borrador local (leonix:viajes:negocios:draft:v1). El envío guarda una copia en servidor para la cola de moderación.",
   };
 }
 
@@ -321,7 +323,7 @@ function en(): PublicarViajesNegociosUi {
     navBack: "Back to Viajes publishing",
     h1: "Business travel offer application",
     intro:
-      "Complete a commercial-quality draft. Fields are designed to map to your public Viajes listing in Classifieds. Live submit and moderation will ship in a later phase — today you practice the flow and preview only.",
+      "Complete a commercial-quality draft. Submitting saves a staged request in Leonix for review — it is not free-for-all publishing. After admin approval it can appear on public Viajes. Leonix is not the merchant of record.",
     workflowKicker: "Step 2 of 4 · Offer draft",
     sections: {
       main: "1. Trip offer & logistics",
@@ -366,7 +368,7 @@ function en(): PublicarViajesNegociosUi {
     },
     productMode: {
       title: "Current product mode",
-      body: "V1: discovery showcase — no travel checkout on Leonix, no open consumer free-post, with review for new business listings. Editorial and commercial partner surfaces are labeled separately on the public category.",
+      body: "Discovery-first: no travel checkout on Leonix. Submit creates a moderation-queue record; after approval it may appear in public results. Partner and editorial inventory still use internal tooling.",
     },
     stepLabels: ["Entry", "Draft", "Preview", "Submit"],
     activeStepIndex: 1,
@@ -487,22 +489,23 @@ function en(): PublicarViajesNegociosUi {
     resetDraft: "Clear local draft",
     publishHandoffCta: "Publish — what happens next",
     publishModal: {
-      title: "Submission & publishing (next phase)",
-      intro: "Nothing is sent to the server today. This describes the real path once backend, billing, and moderation exist.",
+      title: "Submit for review",
+      intro:
+        "Submitting saves your draft as a staged Viajes request in Leonix. It does not appear in public results until an administrator approves it.",
       bullets: [
-        "Manual review of business identity, offer, and media.",
-        "Possible checks for website, WhatsApp, or documents.",
-        "Activation on Clasificados Viajes only after approval.",
-        "Future Supabase or similar storage for drafts and workflow states.",
+        "Manual review of business identity, offer, and media before approval.",
+        "If you are signed in, the request appears in your Viajes dashboard with status.",
+        "After approval it can show in public discovery (still no checkout on Leonix).",
       ],
       standardPlus:
-        "Standard / Plus plans (when shipped) will control visibility, featuring, and renewal. No charge or plan activation happens here.",
-      honestNote: "You are not publishing yet — closing this dialog keeps you on the local draft.",
-      close: "Got it — back to draft",
+        "Standard / Plus plans control visibility when billing is active; submitting the request does not charge you.",
+      honestNote: "This is not “you are live to the world” — it is internal review first.",
+      close: "Close",
+      submitReview: "Submit for review",
+      submitting: "Submitting…",
     },
-    submitSoon: "Submit application (soon)",
     ctaRowHint:
-      "Preview uses your draft saved on this device (key leonix:viajes:negocios:draft:v1). Live submit ships with backend and moderation.",
+      "Preview still uses your local draft (leonix:viajes:negocios:draft:v1). Submit also stores a server copy for the moderation queue.",
   };
 }
 

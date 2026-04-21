@@ -1,8 +1,8 @@
 /**
- * Rentas public data access — **single entry** for UI: delegates to `rentasPublicLoader.ts`.
+ * Rentas public data access — demo pool + section samples (`rentasLandingSampleData`).
  *
- * **Source today:** `RENTAS_PUBLIC_DATA_SOURCE === "demo"` in the loader — typed demo fixtures only.
- * When a live published table/API is wired, extend the loader; keep these exports stable.
+ * **Staged testing:** interactive pages also load `listings` rows on the client (`useRentasStagedInventory`) and
+ * run the same section selectors against the merged pool. These sync helpers remain demo-only for SSR/tests.
  *
  * Section rules: `rentasSectionPolicy.ts` + `rentasSectionSelectors.ts`.
  */

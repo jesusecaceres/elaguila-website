@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { adminCardBase, adminCtaChipSecondary } from "@/app/admin/_components/adminTheme";
+import {
+  isServiciosDevPublishPersistenceEnabled,
+  listServiciosDevPublishRows,
+} from "@/app/clasificados/servicios/lib/serviciosDevPublishPersistence";
 import ServiciosAdminClient from "./ServiciosAdminClient";
 
 export const dynamic = "force-dynamic";
@@ -66,8 +70,24 @@ async function fetchServiciosPublicForAdmin(): Promise<{
   }
 }
 
+function devFileRowsAsAdmin(): ServiciosPublicAdminRow[] {
+  if (!isServiciosDevPublishPersistenceEnabled()) return [];
+  return listServiciosDevPublishRows().map((r) => ({
+    id: `dev-file:${r.slug}`,
+    slug: r.slug,
+    business_name: r.business_name,
+    city: r.city,
+    published_at: r.published_at,
+    updated_at: r.published_at,
+    leonix_verified: r.leonix_verified,
+    listing_status: "published_dev_file",
+    internal_group: r.internal_group,
+  }));
+}
+
 export default async function AdminServiciosWorkspacePage() {
   const { rows, unavailable, fullSchema } = await fetchServiciosPublicForAdmin();
+  const devAdminRows = devFileRowsAsAdmin();
 
   return (
     <div className="space-y-8">
@@ -152,6 +172,46 @@ export default async function AdminServiciosWorkspacePage() {
           credenciales).
         </div>
       )}
+
+      {devAdminRows.length > 0 ? (
+        <div className={`${adminCardBase} overflow-hidden border-sky-200 bg-sky-50/90 p-0`}>
+          <div className="border-b border-sky-200/80 bg-sky-100/90 px-4 py-2 text-xs font-semibold text-sky-950">
+            Publicaciones de prueba (archivo local <code className="rounded bg-white/80 px-1">.servicios-dev-publishes.json</code>)
+            — solo desarrollo / <code className="rounded bg-white/80 px-1">SERVICIOS_DEV_PUBLISH=1</code>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse text-sm">
+              <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase text-[#7A7164]">
+                <tr>
+                  <th className="p-3">Negocio</th>
+                  <th className="p-3">Ciudad</th>
+                  <th className="p-3">Slug</th>
+                  <th className="p-3"> </th>
+                </tr>
+              </thead>
+              <tbody>
+                {devAdminRows.map((r) => (
+                  <tr key={r.id} className="border-t border-[#E8DFD0]/80">
+                    <td className="p-3 font-semibold text-[#1E1810]">{r.business_name}</td>
+                    <td className="p-3 text-xs text-[#5C5346]">{r.city}</td>
+                    <td className="p-3 font-mono text-xs text-[#3D3428]">{r.slug}</td>
+                    <td className="p-3">
+                      <Link
+                        href={`/clasificados/servicios/${r.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-bold text-[#6B5B2E] underline"
+                      >
+                        Vista pública ↗
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
 
       <ServiciosAdminClient />
     </div>

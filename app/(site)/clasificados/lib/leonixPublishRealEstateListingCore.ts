@@ -1,8 +1,17 @@
 /**
  * Shared Supabase insert for Leonix BR + Rentas: images, description marker, `detail_pairs`, `business_meta`.
+ *
+ * Dev smoke: publish from BR preview → row in `listings` → `/clasificados/anuncio/:id` → admin workspace
+ * `?category=bienes-raices` + optional `leonix_branch` filters.
  */
 
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+
+const DEV = process.env.NODE_ENV === "development";
+
+function devLog(...args: unknown[]) {
+  if (DEV) console.info("[leonix publish]", ...args);
+}
 
 async function fetchAsBlob(src: string): Promise<Blob> {
   const res = await fetch(src);
@@ -33,7 +42,7 @@ export type PublishLeonixRealEstateListingCoreParams = {
 };
 
 export type PublishLeonixRealEstateListingCoreResult =
-  | { ok: true; listingId: string }
+  | { ok: true; listingId: string; warnings: string[] }
   | { ok: false; error: string };
 
 export async function publishLeonixRealEstateListingCore(
@@ -67,7 +76,15 @@ export async function publishLeonixRealEstateListingCore(
   try {
     supabase = createSupabaseBrowserClient();
   } catch (e: unknown) {
-    return { ok: false, error: e instanceof Error ? e.message : "Supabase error" };
+    const msg = e instanceof Error ? e.message : "Supabase error";
+    devLog("browser client failed", msg);
+    return {
+      ok: false,
+      error:
+        lang === "es"
+          ? `Configuración de Supabase en el navegador no disponible: ${msg}`
+          : `Supabase browser configuration missing: ${msg}`,
+    };
   }
 
   const { data: auth, error: authErr } = await supabase.auth.getUser();
@@ -106,10 +123,19 @@ export async function publishLeonixRealEstateListingCore(
     insertPayload.business_meta = businessMetaJson.trim();
   }
 
+  devLog("insert listings row", { category, sellerType, titleLen: title.trim().length });
+
   const { data: row, error: insErr } = await supabase.from("listings").insert([insertPayload]).select("id").single();
 
   if (insErr) {
-    return { ok: false, error: insErr.message };
+    devLog("insert error", insErr);
+    return {
+      ok: false,
+      error:
+        lang === "es"
+          ? `No se pudo guardar el anuncio: ${insErr.message}`
+          : `Could not save listing: ${insErr.message}`,
+    };
   }
 
   const listingId = (row as { id?: string } | null)?.id;
@@ -117,25 +143,49 @@ export async function publishLeonixRealEstateListingCore(
     return { ok: false, error: lang === "es" ? "No se recibió el ID del anuncio." : "No listing id returned." };
   }
 
+  const warnings: string[] = [];
   const ordered = imageSources.filter((u) => typeof u === "string" && u.trim());
   const photoUrls: string[] = [];
   const basePath = `${userId}/${listingId}/photos`;
+  let uploadFailures = 0;
 
   try {
     for (let i = 0; i < ordered.length; i++) {
       const src = ordered[i]!;
-      const blob = await fetchAsBlob(src);
-      const ext = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
-      const path = `${basePath}/${String(i + 1).padStart(2, "0")}.${ext}`;
-      const up = await supabase.storage
-        .from("listing-images")
-        .upload(path, blob, { upsert: true, contentType: blob.type || "image/jpeg" });
-      if (up.error) {
-        console.warn("[leonix publish] photo upload failed", up.error.message);
-        continue;
+      try {
+        const blob = await fetchAsBlob(src);
+        const ext = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
+        const path = `${basePath}/${String(i + 1).padStart(2, "0")}.${ext}`;
+        const up = await supabase.storage
+          .from("listing-images")
+          .upload(path, blob, { upsert: true, contentType: blob.type || "image/jpeg" });
+        if (up.error) {
+          uploadFailures++;
+          console.warn("[leonix publish] photo upload failed", up.error.message);
+          devLog("storage upload failed", path, up.error.message);
+          continue;
+        }
+        const url = supabase.storage.from("listing-images").getPublicUrl(path).data.publicUrl;
+        if (url) photoUrls.push(url);
+      } catch (e) {
+        uploadFailures++;
+        console.warn("[leonix publish] photo fetch/upload threw", e);
+        devLog("photo iteration error", e);
       }
-      const url = supabase.storage.from("listing-images").getPublicUrl(path).data.publicUrl;
-      if (url) photoUrls.push(url);
+    }
+
+    if (ordered.length > 0 && photoUrls.length === 0) {
+      warnings.push(
+        lang === "es"
+          ? "El anuncio quedó publicado pero ninguna foto se pudo subir (revisa bucket listing-images y políticas)."
+          : "The listing was published but no photos could be uploaded (check listing-images bucket and policies)."
+      );
+    } else if (uploadFailures > 0 && photoUrls.length > 0 && photoUrls.length < ordered.length) {
+      warnings.push(
+        lang === "es"
+          ? `Algunas fotos no se subieron (${uploadFailures} error(es)); el anuncio muestra las que sí se guardaron.`
+          : `Some photos failed to upload (${uploadFailures} error(s)); the listing shows the ones that saved.`
+      );
     }
 
     if (photoUrls.length) {
@@ -145,11 +195,31 @@ export async function publishLeonixRealEstateListingCore(
           ? `\n\n— Fotos —\n${photoUrls.join("\n")}\n${marker}\n`
           : `\n\n— Photos —\n${photoUrls.join("\n")}\n${marker}\n`;
       const descriptionForUpdate = `${description.trim()}${appendix}`.trim();
-      await supabase.from("listings").update({ description: descriptionForUpdate, images: photoUrls }).eq("id", listingId);
+      const { error: updErr } = await supabase
+        .from("listings")
+        .update({ description: descriptionForUpdate, images: photoUrls })
+        .eq("id", listingId);
+      if (updErr) {
+        warnings.push(
+          lang === "es"
+            ? `Fotos subidas pero no se pudo actualizar la descripción: ${updErr.message}`
+            : `Photos uploaded but description update failed: ${updErr.message}`
+        );
+        devLog("description/images update failed", updErr);
+      }
     }
   } catch (e: unknown) {
     console.warn("[leonix publish] media upload error", e);
+    devLog("media block error", e);
+    if (ordered.length) {
+      warnings.push(
+        lang === "es"
+          ? "Error al procesar fotos; el anuncio existe sin galería actualizada."
+          : "Error while processing photos; the listing exists without an updated gallery."
+      );
+    }
   }
 
-  return { ok: true, listingId };
+  devLog("publish ok", listingId, "warnings", warnings.length);
+  return { ok: true, listingId, warnings };
 }

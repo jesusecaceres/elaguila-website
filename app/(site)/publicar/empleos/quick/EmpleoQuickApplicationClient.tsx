@@ -4,7 +4,9 @@ import { useCallback, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import { persistEmpleosPublished } from "@/app/clasificados/empleos/lib/staged/empleosPublishService";
 import { EmpleosApplicationFinalStep } from "@/app/publicar/empleos/shared/components/EmpleosApplicationFinalStep";
 import { EmpleosReadinessBanner } from "@/app/publicar/empleos/shared/components/EmpleosReadinessBanner";
 import { EmpleosCtaFieldGroup } from "@/app/publicar/empleos/shared/components/EmpleosCtaFieldGroup";
@@ -15,7 +17,7 @@ import { EmpleosSingleImageField } from "@/app/publicar/empleos/shared/media/Emp
 import { EmpleosVideoDraftField } from "@/app/publicar/empleos/shared/media/EmpleosVideoDraftField";
 import { buildEmpleosPublishEnvelopeFromQuick } from "@/app/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope";
 import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publish/EmpleosPublishConfirmModal";
-import { clearEmpleosStagedPublish, writeEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
+import { clearEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
 import { flushEmpleosDraftToSession } from "@/app/publicar/empleos/shared/lib/flushEmpleosDraftToSession";
 import { gateEmpleosQuickPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
 import { EMPLEOS_STANDARD_CITY } from "@/app/publicar/empleos/shared/constants/empleosStandardRegion";
@@ -327,8 +329,11 @@ export default function EmpleoQuickApplicationClient() {
           const g = gateEmpleosQuickPreview(state, lang);
           if (!g.ok) return;
           const envelope = buildEmpleosPublishEnvelopeFromQuick(state, lang);
-          writeEmpleosStagedPublish(envelope);
+          const row = persistEmpleosPublished(envelope);
+          clearEmpleosStagedPublish();
+          setPublishOpen(false);
           setStagedNotice(true);
+          router.push(appendLangToPath(`/clasificados/empleos/${row.slug}`, lang));
         }}
         title={copy.publishModal.title}
         intro={copy.publishModal.intro}

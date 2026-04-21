@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -33,7 +33,11 @@ import {
   paginateListings,
   pickNegociosSpotlight,
 } from "./lib/brResultsFilters";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { mapBrListingRowToNegocioCard, type BrListingDbRow } from "./lib/mapBrListingRowToCard";
 import { mergeBrResultsHref, parseBrResultsUrl } from "./lib/brResultsUrlState";
+
+const BR_RESULTS_DEV_LOG = process.env.NODE_ENV === "development";
 
 const PRIMARY_IDS: readonly BrPrimaryChipId[] = [
   "casas",
@@ -58,13 +62,13 @@ const SECONDARY_IDS: readonly BrSecondaryChipId[] = [
 
 const PAGE_SIZE = 9;
 
-function buildListingPool(): BrNegocioListing[] {
+function buildDemoListingPool(): BrNegocioListing[] {
   const ids = new Set(brNegocioGridListings.map((l) => l.id));
   const extra = !ids.has(brNegocioFeaturedListing.id) ? [brNegocioFeaturedListing] : [];
   return [...extra, ...brNegocioGridListings];
 }
 
-/** Category-owned results UI for `/clasificados/bienes-raices/resultados` — URL-driven demo grid. */
+/** Category-owned results UI for `/clasificados/bienes-raices/resultados` — URL + live `listings` merge. */
 export function BienesRaicesResultsClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -72,6 +76,7 @@ export function BienesRaicesResultsClient() {
 
   const parsed = useMemo(() => parseBrResultsUrl(sp), [sp]);
   const lang = parsed.lang;
+  const spKey = sp.toString();
   const copy = useMemo(() => getBrResultsCopy(lang), [lang]);
 
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -90,7 +95,57 @@ export function BienesRaicesResultsClient() {
     return copy.categoryLand;
   }, [propiedadFilter, copy]);
 
-  const listingPool = useMemo(() => buildListingPool(), []);
+  const [liveBrListings, setLiveBrListings] = useState<BrNegocioListing[]>([]);
+  const [liveFetchErr, setLiveFetchErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const sb = createSupabaseBrowserClient();
+        const { data, error } = await sb
+          .from("listings")
+          .select(
+            "id, title, description, city, price, is_free, images, detail_pairs, seller_type, business_name, created_at, status, is_published"
+          )
+          .eq("category", "bienes-raices")
+          .eq("is_published", true)
+          .in("status", ["active", "sold"])
+          .order("created_at", { ascending: false })
+          .limit(80);
+        if (cancelled) return;
+        if (error) {
+          setLiveFetchErr(error.message);
+          setLiveBrListings([]);
+          if (BR_RESULTS_DEV_LOG) console.info("[br resultados] live listings query", error.message);
+          return;
+        }
+        const rows = (data ?? []) as BrListingDbRow[];
+        const mapped = rows
+          .filter((r) => String(r.status ?? "").toLowerCase() === "active")
+          .map((r) => mapBrListingRowToNegocioCard(r, lang));
+        setLiveBrListings(mapped);
+        setLiveFetchErr(null);
+        if (BR_RESULTS_DEV_LOG) console.info("[br resultados] live rows", mapped.length, "query", spKey);
+      } catch (e) {
+        if (!cancelled) {
+          setLiveFetchErr(e instanceof Error ? e.message : String(e));
+          setLiveBrListings([]);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [lang, spKey]);
+
+  const listingPool = useMemo(() => {
+    const demo = buildDemoListingPool();
+    const byId = new Map<string, BrNegocioListing>();
+    for (const d of demo) byId.set(d.id, d);
+    for (const L of liveBrListings) byId.set(L.id, L);
+    return Array.from(byId.values());
+  }, [liveBrListings]);
 
   const filtered = useMemo(
     () => filterBrListings(listingPool, parsed, propiedadFilter),
@@ -190,6 +245,12 @@ export function BienesRaicesResultsClient() {
 
       <div className="mt-8 max-w-5xl space-y-4">
         <BienesRaicesBrConsentStrip lang={lang} />
+        {liveFetchErr ? (
+          <p className="rounded-2xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 text-sm text-amber-950" role="status">
+            {lang === "es" ? "Aviso — no se pudieron cargar anuncios publicados:" : "Notice — could not load published listings:"}{" "}
+            {liveFetchErr}
+          </p>
+        ) : null}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end lg:hidden">
           <button
             type="button"

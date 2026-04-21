@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
@@ -10,6 +10,8 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 import type { EmpleosJobRecord } from "./data/empleosJobTypes";
 import { getRelatedJobs } from "./data/empleosSampleCatalog";
+import { bumpEmpleosStagedAnalytics, EMPLEOS_STAGED_REGISTRY_EVENT, getEmpleosCanonicalBySlug } from "./lib/staged/empleosStagedStorage";
+import { readStagedPublishedJobRecords } from "./lib/staged/getEmpleosMergedBrowse";
 import { buildEmpleosResultadosUrl } from "./shared/utils/empleosListaUrl";
 import { EmpleosJobResultCard } from "./components/EmpleosJobResultCard";
 import {
@@ -21,17 +23,64 @@ import {
 } from "./lib/empleosPremiumUi";
 
 type Props = {
-  job: EmpleosJobRecord;
+  slug: string;
+  initialCatalogJob: EmpleosJobRecord | null;
 };
 
-export function EmpleoPublicDetailClient({ job }: Props) {
+function resolvePublicJob(slug: string, catalog: EmpleosJobRecord | null): EmpleosJobRecord | null {
+  if (catalog) return catalog;
+  if (typeof window === "undefined") return null;
+  const staged = getEmpleosCanonicalBySlug(slug);
+  return staged?.status === "published" ? staged.jobRecord : null;
+}
+
+export function EmpleoPublicDetailClient({ slug, initialCatalogJob }: Props) {
   const sp = useSearchParams();
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
 
-  const related = useMemo(() => getRelatedJobs(job.slug, 3), [job.slug]);
+  const [job, setJob] = useState<EmpleosJobRecord | null>(initialCatalogJob);
+
+  useEffect(() => {
+    setJob(resolvePublicJob(slug, initialCatalogJob));
+    if (typeof window === "undefined") return;
+    const on = () => setJob(resolvePublicJob(slug, initialCatalogJob));
+    window.addEventListener(EMPLEOS_STAGED_REGISTRY_EVENT, on);
+    return () => window.removeEventListener(EMPLEOS_STAGED_REGISTRY_EVENT, on);
+  }, [slug, initialCatalogJob]);
+
+  useEffect(() => {
+    if (!job) return;
+    const c = getEmpleosCanonicalBySlug(job.slug);
+    if (c) bumpEmpleosStagedAnalytics(c.listingId, "views");
+  }, [job]);
+
+  const related = useMemo(() => getRelatedJobs(slug, 3, readStagedPublishedJobRecords()), [slug]);
 
   const resultsHref = appendLangToPath("/clasificados/empleos/resultados", lang);
   const publishHref = appendLangToPath("/clasificados/publicar/empleos", lang);
+
+  if (!job) {
+    return (
+      <div className="min-h-screen overflow-x-hidden bg-[#FAF7F2] px-4 pb-20 pt-28 text-[#2A2826]">
+        <div className="mx-auto max-w-lg rounded-2xl border border-[#E8DFD0] bg-white p-8 text-center shadow-sm">
+          <p className="text-lg font-bold">{lang === "es" ? "Vacante no encontrada" : "Listing not found"}</p>
+          <p className="mt-2 text-sm text-[#5C564E]">
+            {lang === "es"
+              ? "Puede ser un enlace antiguo o una publicación en borrador. Revisa resultados o publica de nuevo."
+              : "The link may be outdated or the listing may still be a draft. Try results or publish again."}
+          </p>
+          <div className="mt-6 flex flex-col gap-3">
+            <Link href={resultsHref} className={`${EMPLEOS_CTA_PRIMARY} justify-center px-4 text-center`}>
+              {lang === "es" ? "Ir a resultados" : "Go to results"}
+            </Link>
+            <Link href={appendLangToPath("/clasificados/empleos", lang)} className={`${EMPLEOS_LINK_MUTED} text-center`}>
+              {lang === "es" ? "Volver a Empleos" : "Back to Jobs"}
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FAF7F2] pb-20 text-[#2A2826]">
@@ -149,20 +198,28 @@ export function EmpleoPublicDetailClient({ job }: Props) {
 
               <section>
                 <h2 className="text-lg font-bold tracking-tight">{lang === "es" ? "Requisitos" : "Requirements"}</h2>
-                <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-[#4A4744]">
-                  {job.requirements.map((r) => (
-                    <li key={r}>{r}</li>
-                  ))}
-                </ul>
+                {job.requirements.length ? (
+                  <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-[#4A4744]">
+                    {job.requirements.map((r) => (
+                      <li key={r}>{r}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-sm text-[#7A756E]">{lang === "es" ? "No especificados en esta publicación." : "Not specified for this listing."}</p>
+                )}
               </section>
 
               <section>
                 <h2 className="text-lg font-bold tracking-tight">{lang === "es" ? "Beneficios" : "Benefits"}</h2>
-                <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-[#4A4744]">
-                  {job.benefits.map((b) => (
-                    <li key={b}>{b}</li>
-                  ))}
-                </ul>
+                {job.benefits.length ? (
+                  <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-[#4A4744]">
+                    {job.benefits.map((b) => (
+                      <li key={b}>{b}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-sm text-[#7A756E]">{lang === "es" ? "No especificados en esta publicación." : "Not specified for this listing."}</p>
+                )}
               </section>
             </div>
 

@@ -1,5 +1,21 @@
 /**
  * En Venta canonical publish / persistence contract (free MVP + boost hooks).
+ *
+ * ## Runtime DB contract (staging / internal QA)
+ * - **Authoritative table:** `public.listings` (Supabase).
+ * - **Browse category:** `category = 'en-venta'`.
+ * - **Public visibility:** `status = 'active'` AND `is_published IS NOT false` (drafts use `is_published = false` or `status = 'draft'` — see dashboard drafts).
+ * - **Ownership:** `owner_id` = `auth.users.id` from the browser session at publish time (same field `fetchOwnerListingsForDashboard` filters on).
+ * - **Results/detail/admin:** all read this row; filters map from `detail_pairs`, `city`, `zip`, `seller_type`, `price`, `images`, etc.
+ * - **Not stored here:** global site banners (`site_section_content`) — those are unrelated to classified publish.
+ *
+ * ## Internal QA (dev / staging, signed-in seller)
+ * 1. Publish En Venta from `/clasificados/publicar/en-venta/...` — expect real Supabase insert (not only local draft).
+ * 2. Success panel: `data-testid="ev-publish-success"` — open detail link, then results scoped links.
+ * 3. Results: `/clasificados/en-venta/results` — listing visible only if `isEnVentaListingPubliclyVisible` (see `en-venta/lib/enVentaListingVisibility.ts`).
+ * 4. Dashboard: `/dashboard/mis-anuncios` — row for same `owner_id`.
+ * 5. Admin: `/admin/workspace/clasificados` — same `listings` row.
+ * 6. Global site-settings (`/admin/site-settings`) does not publish classifieds; banners only.
  */
 
 import type { EnVentaConditionValue } from "../shared/fields/enVentaTaxonomy";
