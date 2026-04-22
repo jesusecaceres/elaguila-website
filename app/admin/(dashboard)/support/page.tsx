@@ -92,7 +92,7 @@ async function fetchSupportTickets(profileId: string | null): Promise<{
 
       const entMsg = ent.error?.message ?? "";
       if (schemaMissing(entMsg)) {
-        let legQ = supabase
+        const legQ = supabase
           .from("support_tickets")
           .select("id, subject, body, status, created_at")
           .order("created_at", { ascending: false })

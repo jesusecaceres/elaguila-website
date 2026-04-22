@@ -547,7 +547,7 @@ export function GaleriaMultimediaNegocioSection({
                   />
                 </div>
                 {sl.status === "ready" && sl.thumbnailUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
+                   
                   <img src={sl.thumbnailUrl} alt="" className="mt-3 max-h-32 rounded-lg border object-cover" />
                 ) : null}
               </div>
@@ -602,7 +602,7 @@ export function GaleriaMultimediaNegocioSection({
             <ul className="mt-3 grid gap-3 sm:grid-cols-3">
               {state.media.floorPlanUrls.map((u, i) => (
                 <li key={i} className="rounded-xl border border-[#E8DFD0] p-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <img src={u} alt="" className="aspect-[3/4] w-full rounded-lg object-contain bg-white" />
                   <button
                     type="button"
@@ -662,7 +662,7 @@ export function GaleriaMultimediaNegocioSection({
             </div>
             {state.media.sitePlanUrl.trim() ? (
               <div className="mt-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+                { }
                 <img
                   src={state.media.sitePlanUrl}
                   alt=""

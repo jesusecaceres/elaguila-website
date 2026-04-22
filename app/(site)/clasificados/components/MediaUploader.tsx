@@ -66,7 +66,7 @@ export type MediaUploaderProps = {
 };
 
 function SortableImageItem({
-  file,
+  file: _file,
   sortableId,
   previewUrl,
   onRemove,
@@ -208,7 +208,9 @@ export function MediaUploader({
         setCompressing(false);
         try {
           (event.target as HTMLInputElement).value = "";
-        } catch {}
+        } catch {
+          /* ignore reset on restricted inputs */
+        }
       }
     },
     [images.length, maxImages]
@@ -229,8 +231,8 @@ export function MediaUploader({
       const overP = parseImageDragId(over.id);
       if (!activeP || activeP.kind !== "item") return;
 
-      let main = images.slice(0, MAIN_GALLERY_MAX);
-      let arch = images.slice(MAIN_GALLERY_MAX);
+      const main = images.slice(0, MAIN_GALLERY_MAX);
+      const arch = images.slice(MAIN_GALLERY_MAX);
 
       if (overP !== null && overP.kind === "item" && activeP.zone === overP.zone) {
         if (activeP.index === overP.index) return;
@@ -287,7 +289,9 @@ export function MediaUploader({
       onVideoChange(idx, f);
       try {
         (event.target as HTMLInputElement).value = "";
-      } catch {}
+      } catch {
+        /* ignore */
+      }
     },
     [onVideoChange]
   );
@@ -519,6 +523,7 @@ export function MediaUploader({
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
+                    aria-label={addVideoLabel}
                     onClick={() => {
                       if (!isPro) {
                         setShowVideoUpgradeModal(true);
@@ -533,6 +538,7 @@ export function MediaUploader({
                   </button>
                   <button
                     type="button"
+                    aria-label={addVideoLabel}
                     onClick={() => {
                       if (!isPro) {
                         setShowVideoUpgradeModal(true);

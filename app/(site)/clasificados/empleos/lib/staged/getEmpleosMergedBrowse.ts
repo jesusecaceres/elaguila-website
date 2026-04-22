@@ -1,6 +1,11 @@
 import type { EmpleosJobRecord } from "../../data/empleosJobTypes";
 import { EMPLEOS_JOB_CATALOG } from "../../data/empleosSampleCatalog";
 
+/** When `EMPLEOS_PUBLIC_LIVE_ONLY=1`, results/browse surfaces omit the marketing sample catalog (live rows only). */
+export function empleosPublicLiveCatalogOnly(): boolean {
+  return process.env.EMPLEOS_PUBLIC_LIVE_ONLY === "1";
+}
+
 /** @deprecated Browser-local demo layer — live listings load from Supabase via server props. */
 export function readStagedPublishedJobRecords(): EmpleosJobRecord[] {
   return [];
@@ -8,6 +13,9 @@ export function readStagedPublishedJobRecords(): EmpleosJobRecord[] {
 
 /** Merge curated seed catalog with live DB-backed jobs (live wins on slug collision by excluding seed slug overlap from live side). */
 export function mergeEmpleosSeedWithLiveJobs(live: EmpleosJobRecord[]): EmpleosJobRecord[] {
+  if (empleosPublicLiveCatalogOnly()) {
+    return [...live];
+  }
   const seed = [...EMPLEOS_JOB_CATALOG];
   const seedSlugs = new Set(seed.map((j) => j.slug));
   const liveFiltered = live.filter((j) => !seedSlugs.has(j.slug));

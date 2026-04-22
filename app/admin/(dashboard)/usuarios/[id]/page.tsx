@@ -707,7 +707,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                 <li key={listing.id} className="flex flex-wrap gap-4 rounded-2xl border border-[#E8DFD0] bg-white/80 p-4">
                   {imgUrl ? (
                     <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-[#EDE6DC]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      { }
                       <img src={imgUrl} alt="" className="h-full w-full object-cover" />
                     </div>
                   ) : null}

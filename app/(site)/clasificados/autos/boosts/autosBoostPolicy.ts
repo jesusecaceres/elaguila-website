@@ -1,5 +1,5 @@
 /**
- * Boost eligibility: free private Autos never boosts; Pro private + dealer eligible when entitlements allow.
+ * Placement / refresh eligibility (internal policy helper — user copy uses “renew/refresh/republish”, never “Boost”).
  */
 
 export type AutosBoostLane = "free_private" | "pro_private" | "dealer";

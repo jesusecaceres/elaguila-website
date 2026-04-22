@@ -22,7 +22,7 @@ export function executeClosePublishFullPreviewModal(params: {
   clearProHighlight: () => void;
 }): void {
   if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
-    // eslint-disable-next-line no-console
+     
     console.log("[publish preview] closeFullPreviewModal called");
   }
   params.setModalOpenTracked(false);

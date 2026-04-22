@@ -288,13 +288,6 @@ export default function ListingView({
   /** Reusable detail card style for right column — category-agnostic; same pattern for seller, trust, location, etc. */
   const detailCardClass = "rounded-2xl border border-black/10 bg-white p-4 sm:p-5 shadow-sm";
 
-  const contactCtaLabel =
-    listing.contactMethod === "phone"
-      ? t.contactPhoneOnly
-      : listing.contactMethod === "email"
-        ? t.contactEmailOnly
-        : t.contactBoth;
-
   const currentSlot = mediaSlots[safeMediaIndex];
   const hasProVideo = effectiveIsPro && (listing.proVideoUrl || listing.proVideoThumbUrl || listing.proVideoUrl2 || listing.proVideoThumbUrl2);
   const getVideoUrl = (index: number) => (index === 0 ? listing.proVideoUrl : listing.proVideoUrl2) ?? null;
@@ -767,13 +760,26 @@ export default function ListingView({
             <div className="mt-1 text-xs text-[#111111]/70">{t.tapToPlay}</div>
             <div className="mt-4">
               {listing.proVideoThumbUrl ? (
-                <button
-                  type="button"
-                  onClick={() => setShowProVideo(true)}
-                  className="block w-full overflow-hidden rounded-xl border border-black/10"
-                >
-                  <img src={listing.proVideoThumbUrl} alt="" className="h-auto w-full object-cover opacity-95 hover:opacity-100" />
-                </button>
+                showProVideo ? (
+                  listing.proVideoUrl ? (
+                    <video
+                      className="w-full rounded-xl border border-black/10"
+                      controls
+                      preload="metadata"
+                      playsInline
+                      poster={listing.proVideoThumbUrl ?? undefined}
+                      src={listing.proVideoUrl}
+                    />
+                  ) : null
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowProVideo(true)}
+                    className="block w-full overflow-hidden rounded-xl border border-black/10"
+                  >
+                    <img src={listing.proVideoThumbUrl} alt="" className="h-auto w-full object-cover opacity-95 hover:opacity-100" />
+                  </button>
+                )
               ) : listing.proVideoUrl ? (
                 <video className="w-full rounded-xl border border-black/10" controls preload="none" playsInline poster={listing.proVideoThumbUrl ?? undefined} src={listing.proVideoUrl} />
               ) : null}

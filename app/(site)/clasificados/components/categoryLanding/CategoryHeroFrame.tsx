@@ -112,7 +112,7 @@ export function CategoryHeroFrame({
             className={objectClassName}
           />
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element -- arbitrary HTTPS heroes from CMS/config
+           
           <img src={imageSrc} alt={imageAlt} className={`absolute inset-0 h-full w-full ${objectClassName}`} />
         )}
         <HeroOverlays variant={overlay} />

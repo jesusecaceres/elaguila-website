@@ -454,7 +454,7 @@ export function Step03Media({
               {photos.map((u, i) => (
                 <div key={`${i}-${u.slice(0, 32)}`} className="flex w-[5.5rem] shrink-0 flex-col gap-1.5 sm:w-auto sm:shrink">
                   <div className="relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    { }
                     <img src={u} alt="" className="h-[5.5rem] w-[5.5rem] rounded-lg border object-cover sm:h-20 sm:w-20" />
                     <button
                       type="button"

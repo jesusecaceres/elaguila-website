@@ -50,7 +50,7 @@ export function RestauranteShellDataUrlModal({
         </div>
         <div className="min-h-0 flex-1 overflow-auto p-2 sm:p-4">
           {isImage ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
+             
             <img src={href} alt="" className="mx-auto max-h-[min(85vh,900px)] max-w-full object-contain" draggable={false} />
           ) : null}
           {isPdf ? (

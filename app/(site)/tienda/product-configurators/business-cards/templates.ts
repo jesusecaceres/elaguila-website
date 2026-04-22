@@ -92,7 +92,7 @@ export function applyBusinessCardTemplateToDocument(
       lineVisible: getTemplateLineVisibilityForSide("front", templateId),
     },
   };
-  let mergedFront = syncFieldsFromBlocks(syncSideBlocksFromFields(mergeFront));
+  const mergedFront = syncFieldsFromBlocks(syncSideBlocksFromFields(mergeFront));
   const canvasBackground = getTemplateCanvasBackground(templateId);
 
   if (!twoSided) {
@@ -117,7 +117,6 @@ export function applyBusinessCardTemplateToDocument(
       lineVisible: getTemplateLineVisibilityForSide("back", templateId),
     },
   };
-  mergedFront = mergedFront;
   const mergedBack = syncFieldsFromBlocks(syncSideBlocksFromFields(mergeBack));
   return { front: mergedFront, back: mergedBack, canvasBackground };
 }

@@ -92,7 +92,7 @@ export function LeonixRealEstateSortablePhotoStrip({
                         {isPrimary ? " · Portada" : ""}
                       </span>
                     </div>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    { }
                     <img
                       src={url}
                       alt=""

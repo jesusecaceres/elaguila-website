@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ServiciosDirectoryLocalSection } from "../ServiciosDirectoryLocalSection";
 import { ServiciosListingResultCard } from "../ServiciosListingResultCard";
 import { ServiciosResultsActiveSummary } from "../ServiciosResultsActiveSummary";
 import { ServiciosResultsFilters } from "../ServiciosResultsFilters";
@@ -110,7 +109,6 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
   const promotedRows = displayRows.filter(isServiciosListingPromoted);
   const standardRows = displayRows.filter((r) => !isServiciosListingPromoted(r));
 
-  const dbSlugList = allRows.map((r) => r.slug);
   const hasActiveFilters = serviciosResultsHasActiveFilters(filterQuery);
   const landingHref = `/clasificados/servicios?lang=${lang}`;
   const publishHref = `/clasificados/publicar/servicios?lang=${lang}`;
@@ -288,8 +286,6 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
             )}
           </div>
         </div>
-
-        <ServiciosDirectoryLocalSection lang={lang} dbSlugs={dbSlugList} />
 
         <a
           href="#servicios-resultados-filtros"

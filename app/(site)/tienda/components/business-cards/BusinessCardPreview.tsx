@@ -233,7 +233,6 @@ export function BusinessCardPreview(props: {
                       <div
                         key={b.id}
                         role="group"
-                        aria-selected={selected}
                         data-bc-text-selected={selected ? "true" : undefined}
                         className={[
                           "absolute rounded-[3px] overflow-visible outline-none",
@@ -286,7 +285,6 @@ export function BusinessCardPreview(props: {
                 {showLogo ? (
                   <div
                     role="group"
-                    aria-selected={editInteraction?.logoSelected}
                     data-bc-logo-selected={editInteraction?.logoSelected ? "true" : undefined}
                     className={[
                       "absolute rounded-md overflow-visible transition-shadow",

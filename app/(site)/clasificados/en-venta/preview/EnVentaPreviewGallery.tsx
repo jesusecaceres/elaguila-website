@@ -62,7 +62,7 @@ export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, phot
         >
           <div className="relative aspect-[4/3] w-full bg-gradient-to-b from-[#FAF7F2] to-[#EDE6DC]">
           {current?.type === "image" ? (
-            // eslint-disable-next-line @next/next/no-img-element
+             
             <img src={current.src} alt="" className="h-full w-full object-cover" />
           ) : current?.type === "video" ? (
             <VideoCover lang={lang} />
@@ -88,7 +88,7 @@ export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, phot
               }`}
             >
               {s.type === "image" ? (
-                // eslint-disable-next-line @next/next/no-img-element
+                 
                 <img src={s.src} alt="" className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center gap-0.5 bg-[#2A2620] text-[10px] font-bold uppercase tracking-wide text-[#FAF7F2]">
@@ -182,7 +182,7 @@ function Lightbox({
 
         <div className="relative aspect-[16/10] w-full bg-black">
           {current?.type === "image" ? (
-            // eslint-disable-next-line @next/next/no-img-element
+             
             <img src={current.src} alt="" className="h-full w-full object-contain" />
           ) : current?.type === "video" ? (
             <VideoPlayer url={current.src} lang={lang} />

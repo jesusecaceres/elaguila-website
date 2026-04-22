@@ -2,6 +2,7 @@ import type { AutosPublicListing } from "../../data/autosPublicSampleTypes";
 import { parseAutosBrowseUrl } from "../../filters/autosBrowseFilterContract";
 import type { AutosPublicFilterState, AutosPublicSortKey } from "../../filters/autosPublicFilterTypes";
 import { listingMatchesAutosCityFilter, listingMatchesAutosZipFilter } from "../../filters/autosPublicLocationMatch";
+import { compareNewestAutosPublic } from "@/app/lib/clasificados/autos/autosPublicRanking";
 import { compareAutosListingFairTieBreak } from "../../lib/autosPublicListingScore";
 
 export type { AutosPublicFilterState, AutosPublicSortKey } from "../../filters/autosPublicFilterTypes";
@@ -104,8 +105,6 @@ export function sortAutosPublicListings(listings: AutosPublicListing[], sort: Au
       return out.sort((a, b) => (a.mileage !== b.mileage ? a.mileage - b.mileage : tie(a, b)));
     case "newest":
     default:
-      return out.sort((a, b) =>
-        b.year !== a.year ? b.year - a.year : b.price !== a.price ? b.price - a.price : tie(a, b),
-      );
+      return out.sort(compareNewestAutosPublic);
   }
 }

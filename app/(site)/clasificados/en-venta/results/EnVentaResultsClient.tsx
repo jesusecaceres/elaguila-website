@@ -118,7 +118,7 @@ export function EnVentaResultsClient() {
   const [rows, setRows] = useState<RowPack[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadErr, setLoadErr] = useState<string | null>(null);
-  const [favTick, setFavTick] = useState(0);
+  const [, setFavTick] = useState(0);
   const [geoHint, setGeoHint] = useState<string | null>(null);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 

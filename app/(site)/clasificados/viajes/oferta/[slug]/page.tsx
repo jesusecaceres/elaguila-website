@@ -11,6 +11,7 @@ import { getViajesOfferDetailBySlug, VIAJES_OFFER_SLUGS } from "../../data/viaje
 import { getViajesUi } from "../../data/viajesUiCopy";
 import { resolveViajesOfferBack } from "../../lib/viajesOfferLink";
 import { resolveViajesOfferDetailFromStagedSlug } from "../../lib/resolveViajesOfferDetailFromStagedServer";
+import { viajesAllowCuratedDemoCatalog } from "../../lib/viajesPublicInventory";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,7 @@ function pickLang(sp: Record<string, string | string[] | undefined>): Lang {
 }
 
 export function generateStaticParams() {
+  if (!viajesAllowCuratedDemoCatalog()) return [];
   return VIAJES_OFFER_SLUGS.map((slug) => ({ slug }));
 }
 
@@ -34,7 +36,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const sp = await searchParams;
   const lang = pickLang(sp);
   const staged = await resolveViajesOfferDetailFromStagedSlug(slug, lang);
-  const offer = staged ?? getViajesOfferDetailBySlug(slug);
+  const offer = staged ?? (viajesAllowCuratedDemoCatalog() ? getViajesOfferDetailBySlug(slug) : null);
   if (!offer) return { title: "Oferta | Leonix Viajes" };
   return {
     title: `${offer.title} | Leonix Viajes`,
@@ -47,7 +49,7 @@ export default async function ClasificadosViajesOfertaPage({ params, searchParam
   const sp = await searchParams;
   const lang = pickLang(sp);
   const staged = await resolveViajesOfferDetailFromStagedSlug(slug, lang);
-  const offer = staged ?? getViajesOfferDetailBySlug(slug);
+  const offer = staged ?? (viajesAllowCuratedDemoCatalog() ? getViajesOfferDetailBySlug(slug) : null);
   if (!offer) notFound();
   const ui = getViajesUi(lang);
   const fallback = appendLangToPath("/clasificados/viajes", lang);

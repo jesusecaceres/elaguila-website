@@ -38,13 +38,13 @@ export function AutosAnuncioLaneContextStrip(props: {
           ? "Privado"
           : "Private";
 
-  const boostHint = autosBoostAllowed(lane)
+  const visibilityRefreshHint = autosBoostAllowed(lane)
     ? lang === "es"
-      ? "Elegible para impulsos"
-      : "Boosts eligible"
+      ? "Renovar o refrescar visibilidad puede estar disponible según tu plan."
+      : "Renew or refresh listing placement may be available on your plan."
     : lang === "es"
-      ? "Sin impulsos (plan gratuito)"
-      : "No boosts (free)";
+      ? "Renovar visibilidad no está incluido en el plan gratuito."
+      : "Listing refresh placement is not included on the free plan.";
 
   const bizName = (listing.businessName ?? listing.business_name ?? "").trim();
 
@@ -70,7 +70,7 @@ export function AutosAnuncioLaneContextStrip(props: {
           {laneLabel}
         </span>
         <span className="rounded-full border border-black/10 bg-white px-2.5 py-1 text-[11px] text-[#111111]/85">
-          {boostHint}
+          {visibilityRefreshHint}
         </span>
       </div>
       {isBiz && bizName ? (

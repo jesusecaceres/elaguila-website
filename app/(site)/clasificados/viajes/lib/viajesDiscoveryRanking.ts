@@ -4,9 +4,9 @@
  * - `newest`: strict recency on `publishedAt` (ISO).
  * - `priceAsc` / `priceDesc`: parse numeric price where present; non-numeric sort to end/start.
  * - `featured`: quality + recency + deterministic rotation (daily seed) + soft diversity by destination slug.
- *   No sponsored override: future “boost” must be modeled as capped score influence + disclosure, not hard reorder.
+ *   No sponsored override: future paid “refresh visibility” must be modeled as capped score influence + disclosure, not hard reorder.
  *
- * Live inventory should supply the same signals; feed rows through `getViajesPublicResultRows()` without changing this API.
+ * Live inventory should supply the same signals via merged browse rows without changing this API.
  */
 
 import type { ViajesSortKey } from "./viajesBrowseContract";
@@ -48,9 +48,9 @@ export function scoreViajesFeatured(row: ViajesResultRow, seed: string): number 
   const base = row.discovery?.featuredBase ?? (row.kind === "affiliate" ? 50 : row.kind === "business" ? 48 : 25);
   const trust = row.discovery?.sourceTrust ?? 1;
   const complete = row.discovery?.completeness ?? 0.7;
-  const recencyBoost = Math.min(18, publishedMs(row) / (86400000 * 120)); // up to ~18 pts over ~4mo
+  const recencyScore = Math.min(18, publishedMs(row) / (86400000 * 120)); // up to ~18 pts over ~4mo
   const rot = (hashString(`${seed}:${row.id}`) % 1000) / 1000;
-  return base * trust * (0.85 + complete * 0.15) + recencyBoost + rot * 2;
+  return base * trust * (0.85 + complete * 0.15) + recencyScore + rot * 2;
 }
 
 function featuredOrdered(rows: ViajesResultRow[]): ViajesResultRow[] {

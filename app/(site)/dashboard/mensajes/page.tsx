@@ -321,12 +321,6 @@ export default function MensajesPage() {
     return prof?.display_name?.trim() || prof?.email?.trim() || `${other.slice(0, 8)}…`;
   }
 
-  function rowLabel(m: MsgRow) {
-    if (!userId) return "—";
-    const other = m.sender_id === userId ? m.receiver_id : m.sender_id;
-    return rowLabelForOther(other);
-  }
-
   return (
     <LeonixDashboardShell lang={lang} activeNav="messages" plan={plan} userName={name} email={email} accountRef={accountRef}>
       {loading ? (
@@ -385,7 +379,7 @@ export default function MensajesPage() {
                               : "border-[#E8DFD0]/90 bg-[#FFFCF7]/95 hover:border-[#C9B46A]/35"
                           }`}
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          { }
                           <img src={thumb ?? PLACEHOLDER_THUMB} alt="" className="h-14 w-14 shrink-0 rounded-xl border border-[#E8DFD0] object-cover" />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start justify-between gap-2">

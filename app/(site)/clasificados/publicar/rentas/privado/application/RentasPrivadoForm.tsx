@@ -736,7 +736,7 @@ export function RentasPrivadoForm() {
                 </button>
                 {state.seller.fotoDataUrl ? (
                   <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    { }
                     <img
                       src={state.seller.fotoDataUrl}
                       alt=""

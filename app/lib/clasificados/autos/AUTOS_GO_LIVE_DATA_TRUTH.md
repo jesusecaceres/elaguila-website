@@ -38,3 +38,18 @@ Generic `listings` rows with `category: autos` are **not** merged into the publi
 | Generic `mis-anuncios` / `listings` | `listings` table | **Different product** — can show legacy `category=autos` without implying paid Autos publish state. |
 
 **Deprecated / non-launch for Leonix Autos category:** using only generic `listings` for `/clasificados/autos` browse — **not implemented**; launch truth is the **paid** table as above.
+
+## 6. Browse ordering vs row lifecycle (this pass)
+
+- Public cards receive `publicSortTimestamp` from `max(published_at, updated_at)` in `mapAutosClassifiedsToPublic.ts`.
+- “Newest” sort (`sortAutosPublicListings` → `compareNewestAutosPublic` in `app/lib/clasificados/autos/autosPublicRanking.ts`) prefers that timestamp, then year/price, then the fairness tie-break in `autosPublicListingScore.ts`.
+- **Republish / renew semantics:** there is no separate `renewed_at` column; any legitimate refresh that bumps `updated_at` (seller edit, admin correction, future explicit “Refresh listing” action) surfaces as more recent in browse **without** implying a consumer “Boost” SKU. Product copy uses “Renew / Refresh / Republish listing” language only.
+
+## 7. Landing vs results arrangement (read paths)
+
+| Surface | Builder | Inputs |
+| ------- | ------- | ------ |
+| Landing dealer band | `getLandingDealerSpotlightListings` | `app/(site)/clasificados/autos/data/autosLandingArrangement.ts` — API or demo inventory |
+| Landing private band | `getLandingPrivateFreshListings` | same |
+| Landing mixed tail | `getLandingMixedLatestListings` | excludes IDs already shown in the two bands above |
+| Results featured/recent/main | `partitionAutosResultsVisibility` | `app/(site)/clasificados/autos/lib/autosPublicResultsVisibility.ts` — recent lane injects a private row if the first slice would otherwise be dealer-only |

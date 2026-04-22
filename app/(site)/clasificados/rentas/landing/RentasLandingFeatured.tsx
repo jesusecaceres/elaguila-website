@@ -70,7 +70,7 @@ export function RentasLandingFeatured({ copy, lang, primary, supporting }: Props
                   <span className="absolute left-3 top-3 z-[2] rounded-md border border-[#E8A849]/40 bg-[#FFF4E0]/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#7A4A12] shadow-sm">
                     {fc.badgeFeatured}
                   </span>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <img src={primary.imageUrl} alt="" className="h-full w-full object-cover" />
                 </div>
               </div>

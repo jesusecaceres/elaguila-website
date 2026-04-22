@@ -4,7 +4,7 @@
  */
 
 import { EN_VENTA_DEPARTMENTS, type EnVentaDepartmentKey } from "../../taxonomy/categories";
-import { findSubcategory, getSubcategoriesForDept } from "../../taxonomy/subcategories";
+import { findSubcategory } from "../../taxonomy/subcategories";
 export { EN_VENTA_DEPARTMENTS, type EnVentaDepartmentKey } from "../../taxonomy/categories";
 export { EN_VENTA_SUBCATEGORY_ROWS, getSubcategoriesForDept, findSubcategory } from "../../taxonomy/subcategories";
 export { expandEnVentaSearchTerms, inferDeptFromQuery, KEYWORD_TO_DEPT_HINT } from "../../taxonomy/synonyms";

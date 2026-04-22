@@ -62,7 +62,7 @@ export function PrintUploadSpecPanel(props: {
         </select>
         {selectedSize ? (
           <p className="mt-2 rounded-lg border border-black/8 bg-white/60 px-3 py-2 text-[11px] leading-relaxed text-[color:rgba(61,52,40,0.78)]">
-            {lang === "en" ? "Nominal trim" : "Tamaño nominal"}: {selectedSize.widthIn}" × {selectedSize.heightIn}" ·{" "}
+            {lang === "en" ? "Nominal trim" : "Tamaño nominal"}: {selectedSize.widthIn} in × {selectedSize.heightIn} in ·{" "}
             {lang === "en" ? "suggested minimum for bitmaps" : "mínimo sugerido (imagen)"} ~
             {Math.round(selectedSize.widthIn * PRINT_UPLOAD_MIN_PPI_PROXY)}×
             {Math.round(selectedSize.heightIn * PRINT_UPLOAD_MIN_PPI_PROXY)} px ({PRINT_UPLOAD_MIN_PPI_PROXY}{" "}

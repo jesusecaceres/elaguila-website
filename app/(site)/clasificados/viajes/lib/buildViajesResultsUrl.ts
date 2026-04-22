@@ -1,9 +1,7 @@
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 
 import {
-  buildViajesBrowseUrl,
   buildViajesResultsUrlCompat,
-  defaultViajesBrowseState,
   type ViajesBrowseState,
   VIAJES_PUBLIC_RESULTS_PATH,
 } from "./viajesBrowseContract";

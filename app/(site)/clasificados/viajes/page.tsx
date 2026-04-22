@@ -1,8 +1,13 @@
 import { Suspense } from "react";
 
+import type { ViajesBusinessResult } from "./data/viajesResultsSampleData";
 import { ViajesLandingPage } from "./components/ViajesLandingPage";
+import { fetchViajesPublicBrowseRowsMerged } from "./lib/viajesPublicBrowseRowsServer";
 
-export default function ClasificadosViajesPage() {
+export default async function ClasificadosViajesPage() {
+  const { rows } = await fetchViajesPublicBrowseRowsMerged();
+  const initialBusinessRows = rows.filter((r): r is ViajesBusinessResult => r.kind === "business");
+
   return (
     <Suspense
       fallback={
@@ -12,7 +17,7 @@ export default function ClasificadosViajesPage() {
         />
       }
     >
-      <ViajesLandingPage />
+      <ViajesLandingPage initialBusinessRows={initialBusinessRows} />
     </Suspense>
   );
 }

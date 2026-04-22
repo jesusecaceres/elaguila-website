@@ -551,7 +551,7 @@ export function ViajesPrivadoApplicationShell() {
                 )}
                 {heroPreview ? (
                   <div className="mt-4 overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    { }
                     <img src={heroPreview} alt="" className="max-h-56 w-full object-cover" />
                   </div>
                 ) : null}
@@ -578,7 +578,7 @@ export function ViajesPrivadoApplicationShell() {
                   {draft.galeriaUrls.map((url, idx) => (
                     <li key={`g-${idx}`} className="flex flex-wrap items-center gap-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-2">
                       <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-[color:var(--lx-nav-border)] bg-black/5">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        { }
                         <img src={url} alt="" className="h-full w-full object-cover" />
                       </div>
                       <span className="min-w-0 flex-1 truncate text-xs text-[color:var(--lx-muted)]">

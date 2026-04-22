@@ -110,7 +110,7 @@ export function buildBusinessCardDocumentFromLeoIntake(
   doc.canvasBackground = leoCanvasBackgroundForIntake(templateId, intake.preferredColors, intake.preferredStyle);
 
   const frontFields = mergeUserIntoSideFields(doc.front.fields, user);
-  let front = syncSideBlocksFromFields({
+  const front = syncSideBlocksFromFields({
     ...doc.front,
     fields: frontFields,
     textLayout: {

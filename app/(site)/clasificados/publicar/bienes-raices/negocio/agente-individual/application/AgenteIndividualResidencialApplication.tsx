@@ -52,7 +52,7 @@ export default function AgenteIndividualResidencialApplication() {
     const boot = bootstrapAgenteIndividualResidencialApplicationState();
     setState(applyBrNegocioBranchQuery(boot, searchParams));
     // Bootstrap + return-draft consume runs once per mount (Strict Mode safe via previewReturnMemory).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const propiedadParam = searchParams?.get(BR_NEGOCIO_Q_PROPIEDAD) ?? null;

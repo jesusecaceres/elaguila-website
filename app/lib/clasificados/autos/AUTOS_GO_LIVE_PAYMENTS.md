@@ -8,8 +8,8 @@
 | `STRIPE_WEBHOOK_SECRET` | Verify `checkout.session.completed` | `app/api/webhooks/stripe/route.ts` |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Client if needed | publish surface (optional) |
 | `NEXT_PUBLIC_SITE_URL` | Success/cancel URLs, absolute links | `app/api/clasificados/autos/checkout/route.ts`, `checkout/verify` |
-| `AUTOS_STRIPE_PRICE_ID_DEALER` | Stripe Price for dealer lane | `app/lib/clasificados/autos/autosStripePriceIds.ts` |
-| `AUTOS_STRIPE_PRICE_ID_PRIVATE` | Stripe Price for private lane | same |
+| `STRIPE_PRICE_AUTOS_NEGOCIOS` | Stripe Price ID for **negocios** lane | `app/lib/clasificados/autos/stripeAutosConfig.ts` |
+| `STRIPE_PRICE_AUTOS_PRIVADO` | Stripe Price ID for **privado** lane | same |
 | `AUTOS_PUBLISH_INTERNAL_BYPASS` | **Dev only** — skip Stripe when `true` + `NODE_ENV !== "production"` | `app/lib/clasificados/autos/autosPublishInternalBypass.ts`, checkout route |
 | `NEXT_PUBLIC_LEONIX_AUTOS_PUBLIC_DEMO` | **Non-production / QA only** — when `1`, empty public Autos API responses are filled with blueprint sample cards for UI | `app/(site)/clasificados/autos/lib/autosPublicInventoryPolicy.ts`, `resolveAutosLandingInventory` |
 
@@ -19,8 +19,8 @@
 
 ## Lane pricing
 
-- `lane` on row: `"dealer"` | `"private"` (DB constraint).
-- Checkout selects price id via `resolveAutosStripePriceId(lane)` in `autosStripePriceIds.ts`. Missing env → checkout returns **500** with message to configure price id (fail closed).
+- `lane` on row: `"negocios"` | `"privado"` (`AutosClassifiedsLane` in `autosClassifiedsTypes.ts`).
+- Checkout selects price id via `stripeAutosConfig.ts` helpers. Missing env → checkout returns **503** / configured error path (`stripe_not_configured` pattern in `app/api/clasificados/autos/checkout/route.ts`).
 
 ## Status transition table
 
@@ -54,7 +54,7 @@ Canonical helpers: `app/lib/clasificados/autos/autosClassifiedsVisibility.ts`.
 - [ ] `STRIPE_SECRET_KEY` = live secret in Vercel production
 - [ ] `STRIPE_WEBHOOK_SECRET` = live signing secret for production webhook endpoint
 - [ ] Webhook URL registered: `{NEXT_PUBLIC_SITE_URL}/api/webhooks/stripe` with event `checkout.session.completed`
-- [ ] `AUTOS_STRIPE_PRICE_ID_DEALER` and `AUTOS_STRIPE_PRICE_ID_PRIVATE` set to **live** Price IDs (mode matches key)
+- [ ] `STRIPE_PRICE_AUTOS_NEGOCIOS` and `STRIPE_PRICE_AUTOS_PRIVADO` set to **live** Price IDs (mode matches key)
 - [ ] `NEXT_PUBLIC_SITE_URL` = production origin (https, no trailing slash issues for Stripe redirects)
 - [ ] `AUTOS_PUBLISH_INTERNAL_BYPASS` **not** set in production
 - [ ] Run one real **private** and one **dealer** checkout in staging/test mode first, then smoke in production with small amount or Stripe test clock as applicable
@@ -75,3 +75,13 @@ Public list + detail loaders query **only** `status === "active"` (see `listActi
 | Duplicate checkout mitigation | **TRUE** — reuse branch when session `open` | **FALSE** | **FALSE** |
 
 **Payment readiness verdict (strict):** **NOT PROVEN** for runtime (test or live) in this environment. Code support is implemented; **execution is a mandatory staging/prod step** before any **GO-LIVE READY** claim that includes payments.
+
+## Publish CTA / button (code inspection — this recovery pass)
+
+| Step | Location | Behavior |
+| ---- | -------- | -------- |
+| Lane choice | `/publicar/autos` | Routes to Negocios vs Privado publish shells. |
+| Draft → review → pay | `AutosPublishConfirmCore` and lane-specific confirm pages under `app/(site)/publicar/autos/` | Creates/updates `autos_classifieds_listings` then redirects to Stripe Checkout when configured; internal bypass only when `AUTOS_PUBLISH_INTERNAL_BYPASS` + non-production per `autosPublishInternalBypass.ts`. |
+| Success | `/clasificados/autos/pago/exito` + verify route | Reactivates listing to `active` when payment verified. |
+
+**Runtime proof:** Stripe Checkout session creation was **not** executed in this agent session (no secret keys in environment log). Treat payment path as **code-ready**, **runtime-unproven** until staging checkout completes.

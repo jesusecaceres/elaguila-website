@@ -12,7 +12,7 @@ export function normalizePriceForState(raw: string): string {
   const intRaw = parts[0]?.replace(/\D/g, "") ?? "";
   const fracRaw = parts.length > 1 ? parts.slice(1).join("").replace(/\D/g, "").slice(0, 2) : "";
 
-  let intPart = intRaw.replace(/^0+(?=\d)/, "");
+  const intPart = intRaw.replace(/^0+(?=\d)/, "");
   if (!intPart && !fracRaw) return "";
   if (!intPart && fracRaw) return `0.${fracRaw}`;
   return fracRaw.length > 0 ? `${intPart}.${fracRaw}` : intPart;

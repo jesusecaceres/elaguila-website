@@ -128,7 +128,7 @@ export default function Editions2026Page() {
 
         setItems(filtered);
         setStatus("ready");
-      } catch (e) {
+      } catch (_e) {
         if (!alive) return;
         setItems([]);
         setStatus("error");

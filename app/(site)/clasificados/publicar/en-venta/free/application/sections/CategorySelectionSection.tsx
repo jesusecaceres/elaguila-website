@@ -62,7 +62,6 @@ export function CategorySelectionSection<S extends EnVentaFreeApplicationState>(
   const t = COPY[lang];
   const ovRama = useEnVentaDetailField("rama");
   const ovEvSub = useEnVentaDetailField("evSub");
-  const ovItem = useEnVentaDetailField("itemType");
   const ovCond = useEnVentaDetailField("condition");
   const subs = state.rama ? getSubcategoriesForDept(state.rama) : [];
   const articles = state.rama ? getItemTypesForSelection(state.rama, state.evSub) : [];

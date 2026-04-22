@@ -159,7 +159,7 @@ function main() {
   const sorted = sortServiciosListingRows(rows, "es", "newest");
   assert(sorted[0]?.leonix_verified === true, "ranking: verified listing should sort ahead at same timestamp");
 
-  // eslint-disable-next-line no-console
+   
   console.log("[servicios-launch-proof] OK — readiness, discovery filters, and verified tie-break verified.");
 }
 

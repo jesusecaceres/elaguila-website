@@ -158,7 +158,7 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
         <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-7">
             <div className="overflow-hidden rounded-[1.45rem] border border-[#E2D5C4]/90 bg-[#FFFCF7] shadow-[0_28px_64px_-32px_rgba(44,36,28,0.28)] ring-2 ring-[#D4C4A8]/28">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <div className="relative aspect-[16/10] w-full bg-[#E8E0D4] sm:aspect-[16/9]">
                 <div
                   className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-[#1E1810]/30 via-transparent to-[#F4EDE3]/28"
@@ -178,7 +178,7 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
                         (i === photoIx ? "border-[#C45C26] ring-2 ring-[#C45C26]/25" : "border-transparent opacity-85 hover:opacity-100")
                       }
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      { }
                       <img src={src} alt="" className="h-full w-full object-cover" />
                     </button>
                   ))}

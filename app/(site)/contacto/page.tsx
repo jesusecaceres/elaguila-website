@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { GlobalContactForm } from "@/app/components/contact/GlobalContactForm";
-import {
-  LEONIX_GLOBAL_CONTACT_PATH,
-  LEONIX_MEDIA_BRAND,
-} from "@/app/data/leonixGlobalContact";
+import { LEONIX_GLOBAL_CONTACT_PATH } from "@/app/data/leonixGlobalContact";
 import { LEONIX_MEDIA_DESCRIPTOR_EN, LEONIX_MEDIA_DESCRIPTOR_ES, LEONIX_MEDIA_SITE_NAME } from "@/app/lib/leonixBrand";
 import { LEONIX_TIENDA_CONTACT_PATH } from "@/app/tienda/data/leonixContact";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";

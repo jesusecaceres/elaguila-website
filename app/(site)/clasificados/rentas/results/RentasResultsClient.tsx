@@ -3,10 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  BR_NEGOCIO_Q_PROPIEDAD,
-  type BrNegocioCategoriaPropiedad,
-} from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 import { RentasLocationButton } from "@/app/clasificados/rentas/components/RentasLocationButton";
 import { RentasSearchBar } from "@/app/clasificados/rentas/components/RentasSearchBar";

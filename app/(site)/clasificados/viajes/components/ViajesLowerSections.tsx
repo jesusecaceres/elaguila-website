@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import type { ViajesUi } from "../data/viajesUiCopy";
 import { selectViajesEditorialFeed, selectViajesPartnerSpotlight, selectViajesSeasonalCampaigns } from "../data/viajesHomeFeedSelectors";
+import { viajesAllowCuratedDemoCatalog } from "../lib/viajesPublicInventory";
 import { setLangOnHref } from "../lib/viajesLangHref";
 import { withViajesOfferBackParam } from "../lib/viajesOfferLink";
 import { ViajesSectionHeader } from "./ViajesSectionHeader";
@@ -14,6 +15,8 @@ type ViajesLowerSectionsProps = {
 };
 
 export function ViajesLowerSections({ homeBackHref, ui }: ViajesLowerSectionsProps) {
+  if (!viajesAllowCuratedDemoCatalog()) return null;
+
   const partners = selectViajesPartnerSpotlight();
   const editorial = selectViajesEditorialFeed();
   const seasonal = selectViajesSeasonalCampaigns();

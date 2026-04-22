@@ -48,4 +48,9 @@ export type AutosPublicListing = {
    * Not shown on cards; populated for API-mapped rows in `mapAutosClassifiedsToPublic`.
    */
   searchableBlurb?: string;
+  /**
+   * ISO instant: `max(published_at, updated_at)` from paid Autos row — drives “newest” / refresh ordering.
+   * When `updated_at` moves after publish (edit, republish, admin touch), listing sorts more recently.
+   */
+  publicSortTimestamp?: string;
 };

@@ -9,6 +9,7 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 import { buildViajesBrowseUrl, defaultViajesBrowseState } from "../lib/buildViajesResultsUrl";
 
+import type { ViajesBusinessResult } from "../data/viajesResultsSampleData";
 import { getViajesUi } from "../data/viajesUiCopy";
 import { ViajesAudienceBuckets } from "./ViajesAudienceBuckets";
 import { ViajesCategoryPillsPanel } from "./ViajesCategoryPillsPanel";
@@ -25,7 +26,11 @@ import { ViajesTopOffers } from "./ViajesTopOffers";
 import { ViajesTrustFooter } from "./ViajesTrustFooter";
 import { ViajesTrustStrip } from "./ViajesTrustStrip";
 
-export function ViajesLandingPage() {
+export type ViajesLandingPageProps = {
+  initialBusinessRows: ViajesBusinessResult[];
+};
+
+export function ViajesLandingPage({ initialBusinessRows }: ViajesLandingPageProps) {
   const sp = useSearchParams();
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
   const ui = getViajesUi(lang);
@@ -70,7 +75,7 @@ export function ViajesLandingPage() {
         />
 
         <main className="relative mx-auto max-w-7xl min-w-0 px-3 pb-10 pt-6 sm:px-5 sm:pt-9 lg:px-6 lg:pt-11">
-          <ViajesTopOffers homeBackHref={homeBackHref} browseAllHref={browseAllHref} ui={ui} />
+          <ViajesTopOffers homeBackHref={homeBackHref} browseAllHref={browseAllHref} ui={ui} initialBusinessRows={initialBusinessRows} />
           <ViajesLocalDepartures ui={ui} browseAllHref={browseAllHref} />
 
           <ViajesLandingTierBreak label={ui.landing.tier2Eyebrow} />

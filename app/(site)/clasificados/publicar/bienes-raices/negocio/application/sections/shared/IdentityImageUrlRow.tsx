@@ -55,7 +55,7 @@ export function IdentityImageUrlRow({
         </div>
         {value.trim() ? (
           <div className="mt-1 flex items-start gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            { }
             <img src={value} alt="" className="h-24 w-24 rounded-lg border border-[#E8DFD0] object-cover" />
             <button
               type="button"

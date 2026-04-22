@@ -25,6 +25,7 @@ Legend: **Detail** = live/preview vehicle page. **Card** = results/landing card.
 | Stripe payment intent | verify/webhook | `stripe_payment_intent_id` | — | — | — | — | hint column | — | |
 | published_at | activation | `published_at` | — | — | — | — | column | published_at | |
 | created_at / updated_at | DB | timestamps | — | — | — | — | updated column | updated_at | |
+| publicSortTimestamp | derived in mapper | `max(published_at, updated_at)` ISO on `AutosPublicListing` | — | — | — | — | — | **This pass:** drives “Más reciente” / landing bands so seller edits or operational touches refresh sort order without a separate paid “boost” product. |
 
 ## `listing_payload` — vehicle + seller
 

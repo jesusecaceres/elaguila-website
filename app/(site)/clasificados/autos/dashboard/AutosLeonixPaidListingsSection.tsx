@@ -153,7 +153,7 @@ export function AutosLeonixPaidListingsSection({ lang }: { lang: Lang }) {
                 <div className="flex min-w-0 gap-3">
                   <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-[#E8DFD0] bg-[#EDE6DC]">
                     {row.thumbUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
+                       
                       <img src={row.thumbUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full items-center justify-center text-xl text-[#2C2416]/20">🚗</div>

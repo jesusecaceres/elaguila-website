@@ -112,7 +112,7 @@ export function AutosClassifiedListingManageCard({
         <div className="flex min-w-0 gap-4">
           <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-[#E8DFD0] bg-[#EDE6DC] sm:h-28 sm:w-28">
             {thumbUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
+               
               <img src={thumbUrl} alt="" className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full items-center justify-center text-2xl text-[#2C2416]/25">🚗</div>

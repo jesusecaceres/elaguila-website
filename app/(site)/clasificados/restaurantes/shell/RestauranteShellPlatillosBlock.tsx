@@ -17,9 +17,11 @@ export function RestauranteShellPlatillosBlock({
 }) {
   const [expanded, setExpanded] = useState(false);
   const n = dishes.length;
-  if (!n) return null;
 
   const { visible, showExpand } = useMemo(() => {
+    if (n === 0) {
+      return { visible: [] as ShellMenuHighlight[], showExpand: false };
+    }
     if (n === 1 || n === 2 || n === 4) {
       return { visible: dishes, showExpand: false };
     }
@@ -31,6 +33,8 @@ export function RestauranteShellPlatillosBlock({
     }
     return { visible: dishes, showExpand: false };
   }, [dishes, expanded, n]);
+
+  if (!n) return null;
 
   const gridClass =
     n === 1

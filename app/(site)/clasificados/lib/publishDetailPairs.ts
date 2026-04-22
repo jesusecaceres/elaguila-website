@@ -15,7 +15,7 @@ export function getDetailPairs(
   cat: string,
   lang: PublishLang,
   details: Record<string, string>,
-  cityDisplay = "",
+  _cityDisplay = "",
   fieldOverrides?: Record<string, ClasificadosDetailFieldCopyPatch>
 ): Array<{ label: string; value: string }> {
   const fields = getPublishCategoryFields(cat, details, fieldOverrides);

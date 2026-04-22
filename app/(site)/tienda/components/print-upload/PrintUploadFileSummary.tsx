@@ -6,7 +6,7 @@ import { PRINT_UPLOAD_MIN_PPI_PROXY } from "../../product-configurators/print-up
 import { needsSeparateBackFile } from "../../product-configurators/print-upload/productConfigs";
 import { puPick, printUploadBuilderCopy } from "../../data/printUploadBuilderCopy";
 
-function fmtBytes(n: number, lang: Lang) {
+function fmtBytes(n: number, _lang: Lang) {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / (1024 * 1024)).toFixed(2)} MB`;
@@ -129,7 +129,7 @@ export function PrintUploadFileSummary(props: {
         </p>
         {size ? (
           <p className="mt-2 text-[11px] text-[color:rgba(61,52,40,0.65)] leading-relaxed">
-            {lang === "en" ? "Trim reference" : "Referencia de corte"}: {size.widthIn}" × {size.heightIn}" —{" "}
+            {lang === "en" ? "Trim reference" : "Referencia de corte"}: {size.widthIn} in × {size.heightIn} in —{" "}
             {lang === "en" ? "bitmap proxy target" : "objetivo proxy (imagen)"} ~
             {Math.round(size.widthIn * PRINT_UPLOAD_MIN_PPI_PROXY)}×{Math.round(size.heightIn * PRINT_UPLOAD_MIN_PPI_PROXY)}{" "}
             px. {puPick(printUploadBuilderCopy.bleedMarginsNote, lang)}

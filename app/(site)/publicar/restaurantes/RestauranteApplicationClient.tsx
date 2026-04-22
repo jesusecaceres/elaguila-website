@@ -1450,7 +1450,7 @@ export default function RestauranteApplicationClient() {
                 <>
                   <div className="relative mt-3 w-full max-w-md overflow-hidden rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] shadow-sm">
                     <div className="relative aspect-[16/9] min-h-[120px] w-full">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      { }
                       <img
                         src={draft.heroImage}
                         alt=""

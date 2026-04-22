@@ -569,7 +569,7 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
                   )}
                 >
                   <div className="relative aspect-[4/3] w-full bg-black/5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    { }
                     <img src={url} alt="" className="h-full w-full object-cover" />
                     {isMain ? (
                       <span className="absolute left-2 top-2 rounded-full bg-[#A98C2A] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white shadow">

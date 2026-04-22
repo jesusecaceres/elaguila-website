@@ -1,4 +1,3 @@
-import type { RestauranteCuisineKey } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import {
   getRestaurantesBlueprintLandingFeatured,
   getRestaurantesBlueprintLandingRecent,

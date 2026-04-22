@@ -360,7 +360,7 @@ export function AutosNegociosMediaManager({
               key={img.id}
               className="flex flex-col gap-3 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] p-2 shadow-sm sm:flex-row sm:items-stretch"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <img
                 src={img.url}
                 alt=""
@@ -558,7 +558,7 @@ export function AutosNegociosMediaManager({
 
           {logo ? (
             <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] p-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <img src={logo} alt="" className="h-16 w-16 rounded-lg border border-[color:var(--lx-nav-border)] object-cover" />
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold text-[color:var(--lx-text)]">{m.logoPreviewTitle}</p>

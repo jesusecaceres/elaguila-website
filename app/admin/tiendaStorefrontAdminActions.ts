@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
 import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
-import { getSiteSectionPayload, upsertSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
+import { upsertSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type { TiendaStorefrontPayload } from "@/app/lib/siteSectionContent/payloadTypes";
 import { TIENDA_CATEGORY_SLUGS } from "@/app/tienda/data/tiendaCategories";
 

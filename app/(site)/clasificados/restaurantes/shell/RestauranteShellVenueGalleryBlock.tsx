@@ -64,7 +64,7 @@ function MediaLightbox({
         </div>
         <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center bg-black p-2 sm:p-4">
           {current?.kind === "image" ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
+             
             <img
               src={current.url}
               alt={current.alt}

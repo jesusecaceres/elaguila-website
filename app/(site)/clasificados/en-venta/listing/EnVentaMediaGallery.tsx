@@ -38,7 +38,7 @@ export function EnVentaMediaGallery({ urls, title }: { urls: string[]; title: st
           else if (dx < -50) go(1);
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+        { }
         <img src={current} alt={title} className="h-full w-full object-contain bg-black/5" />
         {safe.length > 1 ? (
           <>
@@ -70,7 +70,7 @@ export function EnVentaMediaGallery({ urls, title }: { urls: string[]; title: st
               onClick={() => setIdx(i)}
               className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border ${i === idx ? "border-yellow-500 ring-1 ring-yellow-400/40" : "border-black/10"}`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <img src={u} alt="" className="h-full w-full object-cover" />
             </button>
           ))}

@@ -10,7 +10,11 @@ import { AUTOS_PUBLIC_BLUEPRINT_COPY } from "../lib/autosPublicBlueprintCopy";
 import type { AutosPublicLang } from "../lib/autosPublicBlueprintCopy";
 import { parseAutosBrowseUrl, serializeAutosBrowseUrl } from "../filters/autosBrowseFilterContract";
 import { emptyAutosPublicFilters } from "../filters/autosPublicFilterTypes";
-import { getLandingFeaturedRow, getLandingRecentListings } from "../data/sampleAutosPublicInventory";
+import {
+  getLandingDealerSpotlightListings,
+  getLandingMixedLatestListings,
+  getLandingPrivateFreshListings,
+} from "../data/autosLandingArrangement";
 import { useAutosPublicListingsFetch } from "../components/public/useAutosPublicListingsFetch";
 import type { AutosLandingDealerSample } from "./autosLandingDealerSamples";
 import { AUTOS_LANDING_DEALER_SAMPLES } from "./autosLandingDealerSamples";
@@ -48,8 +52,14 @@ export function AutosLandingPage() {
   }, [spStr]);
 
   const { listings: inventory, loaded, isDemoInventory } = useAutosPublicListingsFetch();
-  const featuredRow = useMemo(() => getLandingFeaturedRow(inventory, 6), [inventory]);
-  const recentRow = useMemo(() => getLandingRecentListings(inventory, 8), [inventory]);
+  const dealerSpotlight = useMemo(() => getLandingDealerSpotlightListings(inventory, 6), [inventory]);
+  const privateFresh = useMemo(() => getLandingPrivateFreshListings(inventory, 6), [inventory]);
+  const mixedLatest = useMemo(() => {
+    const exclude = new Set<string>();
+    for (const l of dealerSpotlight) exclude.add(l.id);
+    for (const l of privateFresh) exclude.add(l.id);
+    return getLandingMixedLatestListings(inventory, exclude, 8);
+  }, [inventory, dealerSpotlight, privateFresh]);
 
   const resultsHref = useCallback(
     (bundle: Parameters<typeof serializeAutosBrowseUrl>[0]) => `${RESULTADOS_PATH}?${serializeAutosBrowseUrl(bundle)}`,
@@ -203,7 +213,13 @@ export function AutosLandingPage() {
           />
         </div>
 
-        <FeaturedCarsSection copy={copy} lang={lang} listings={featuredRow} />
+        <FeaturedCarsSection
+          copy={copy}
+          lang={lang}
+          listings={dealerSpotlight}
+          heading={copy.landingDealerSpotlightTitle}
+          subheading={copy.landingDealerSpotlightSubtitle}
+        />
 
         <BodyStyleBrowseSection copy={copy} tiles={bodyStyleTiles} />
 
@@ -211,7 +227,21 @@ export function AutosLandingPage() {
 
         <FeaturedDealersSection copy={copy} dealers={AUTOS_LANDING_DEALER_SAMPLES} buildInventoryHref={buildDealerInventoryHref} />
 
-        <RecentAutosSection copy={copy} lang={lang} listings={recentRow} />
+        <RecentAutosSection
+          copy={copy}
+          lang={lang}
+          listings={privateFresh}
+          heading={copy.landingPrivateFreshTitle}
+          subheading={copy.landingPrivateFreshSubtitle}
+        />
+
+        <RecentAutosSection
+          copy={copy}
+          lang={lang}
+          listings={mixedLatest}
+          heading={copy.landingMixedLatestTitle}
+          subheading={copy.landingMixedLatestSubtitle}
+        />
 
         <AutosLandingPublishCTA copy={copy} publishAutosHref={publishAutosHref} browseAllHref={browseAllHref} />
       </main>

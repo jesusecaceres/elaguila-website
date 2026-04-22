@@ -39,6 +39,15 @@ export const AUTOS_PUBLIC_BLUEPRINT_COPY = {
     featuredZoneGeneric: "Inventario premium",
     landingFeaturedTitle: "Autos destacados cerca de ti",
     landingFeaturedSubtitle: "Concesionarios y particulares — misma vitrina, distintos vendedores.",
+    landingDealerSpotlightTitle: "Concesionarios — destacados y recientes",
+    landingDealerSpotlightSubtitle:
+      "Franja dedicada a inventario de negocio (destacado o recién actualizado). Los particulares tienen su propia sección; el listado completo en resultados sigue siendo mixto.",
+    landingPrivateFreshTitle: "Particulares — recién publicados o renovados",
+    landingPrivateFreshSubtitle:
+      "Visibilidad explícita para vendedores privados: misma vitrina, sin depender solo del scroll general.",
+    landingMixedLatestTitle: "Últimos listados — mezcla abierta",
+    landingMixedLatestSubtitle:
+      "Variedad reciente después de las franjas anteriores. Para el inventario completo, abre resultados y ajusta filtros.",
     featuredBadge: "Destacado",
     freshTitle: "Inventario reciente",
     browseAll: "Explorar todos los autos",
@@ -216,6 +225,15 @@ export const AUTOS_PUBLIC_BLUEPRINT_COPY = {
     featuredZoneGeneric: "Premium inventory",
     landingFeaturedTitle: "Featured vehicles near you",
     landingFeaturedSubtitle: "Dealerships and private sellers — one showcase, different sellers.",
+    landingDealerSpotlightTitle: "Dealerships — featured & recently refreshed",
+    landingDealerSpotlightSubtitle:
+      "A dedicated band for business inventory (featured or recently updated). Private sellers get their own section below; full results remain mixed.",
+    landingPrivateFreshTitle: "Private sellers — recently listed or refreshed",
+    landingPrivateFreshSubtitle:
+      "Explicit visibility for private listings in the same marketplace — not only buried in the general feed.",
+    landingMixedLatestTitle: "Latest listings — open mix",
+    landingMixedLatestSubtitle:
+      "Fresh variety after the bands above. Open full results for the complete inventory and filters.",
     featuredBadge: "Featured",
     freshTitle: "Fresh inventory",
     browseAll: "Explore all vehicles",

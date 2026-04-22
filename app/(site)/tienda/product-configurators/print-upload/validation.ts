@@ -3,7 +3,6 @@ import { getPrintUploadConfig, needsSeparateBackFile } from "./productConfigs";
 import { isAcceptedMime, fileExceedsMaxBytes } from "./fileHelpers";
 import type {
   PrintUploadDocument,
-  PrintUploadProductConfig,
   PrintUploadValidationItem,
   PrintUploadValidationResult,
   SpecOptionSize,

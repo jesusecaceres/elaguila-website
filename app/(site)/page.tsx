@@ -2,11 +2,8 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const router = useRouter();
-
   const handleClick = (lang: string) => {
     setTimeout(() => {
       window.location.href = `/home?lang=${lang}`;

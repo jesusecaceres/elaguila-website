@@ -95,7 +95,7 @@ export function LeonixPreviewGalleryVideoTile({
         className={`relative block overflow-hidden rounded-2xl border text-left shadow-md ${aspectClass}`}
         style={{ borderColor: BORDER }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+        { }
         <img src={thumb} alt="" className="h-full w-full object-cover brightness-[0.92]" />
         <div className="absolute inset-0 flex items-center justify-center bg-black/25">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-[#1a2744] shadow-lg">
@@ -146,7 +146,7 @@ export function LeonixPreviewGalleryVideoTile({
   if (thumb && !playback) {
     return (
       <div className={`relative overflow-hidden rounded-2xl border shadow-md ${aspectClass}`} style={{ borderColor: BORDER }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+        { }
         <img src={thumb} alt="" className="h-full w-full object-cover brightness-[0.92]" />
       </div>
     );

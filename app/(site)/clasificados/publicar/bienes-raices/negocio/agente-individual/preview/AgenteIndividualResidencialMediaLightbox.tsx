@@ -51,7 +51,7 @@ function ZoomablePhoto({
       className="relative flex max-h-[min(78vh,820px)] w-full flex-1 touch-pan-y items-center justify-center overflow-auto"
       onWheel={onWheel}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
+      { }
       <img
         src={url}
         alt=""
@@ -248,7 +248,7 @@ export function AgenteIndividualResidencialMediaLightbox({
                   }`}
                 >
                   {s.kind === "photo" ? (
-                    // eslint-disable-next-line @next/next/no-img-element
+                     
                     <img src={s.url} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full w-full flex-col items-center justify-center bg-[#2A2620] text-[10px] font-bold text-[#F5F0E8]">

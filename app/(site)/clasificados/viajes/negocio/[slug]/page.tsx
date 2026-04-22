@@ -9,6 +9,7 @@ import { ViajesLangSwitch } from "../../components/ViajesLangSwitch";
 import { ViajesNegocioProfileLayout } from "../../components/ViajesNegocioProfileLayout";
 import { getViajesNegocioProfileBySlug, VIAJES_NEGOCIO_SLUGS } from "../../data/viajesNegocioProfileSampleData";
 import { getViajesUi } from "../../data/viajesUiCopy";
+import { viajesAllowCuratedDemoCatalog } from "../../lib/viajesPublicInventory";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -22,10 +23,12 @@ function pickLang(sp: Record<string, string | string[] | undefined>): Lang {
 }
 
 export function generateStaticParams() {
+  if (!viajesAllowCuratedDemoCatalog()) return [];
   return VIAJES_NEGOCIO_SLUGS.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  if (!viajesAllowCuratedDemoCatalog()) return { title: "Negocio | Leonix Viajes" };
   const { slug } = await params;
   const p = getViajesNegocioProfileBySlug(slug);
   if (!p) return { title: "Negocio | Leonix Viajes" };
@@ -36,6 +39,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ClasificadosViajesNegocioPage({ params, searchParams }: Props) {
+  if (!viajesAllowCuratedDemoCatalog()) notFound();
   const { slug } = await params;
   const profile = getViajesNegocioProfileBySlug(slug);
   if (!profile) notFound();

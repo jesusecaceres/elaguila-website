@@ -507,7 +507,7 @@ async function uploadImages() {
     <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 gap-2">
       {getListingImageUrls(listing?.images).slice(0, 8).map((url) => (
         <div key={url} className="aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/40">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          { }
           <img src={url} alt="photo" className="h-full w-full object-cover" />
         </div>
       ))}

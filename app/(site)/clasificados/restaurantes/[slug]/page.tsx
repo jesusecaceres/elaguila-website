@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { mapRestauranteDraftToShellData } from "@/app/clasificados/restaurantes/application/mapRestauranteDraftToShell";
 import { listingJsonToDraft } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
@@ -48,12 +49,12 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
       <div className="mx-auto max-w-[1280px] space-y-3 px-4 pt-4 md:px-5 lg:px-6">
         <p className="text-xs text-[color:var(--lx-muted)]">
           Listado publicado en Leonix Clasificados ·{" "}
-          <a
+          <Link
             href="/clasificados/restaurantes/resultados"
             className="font-semibold text-[color:var(--lx-text-2)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 hover:text-[color:var(--lx-gold)]"
           >
             Ver más restaurantes
-          </a>
+          </Link>
         </p>
         <ClasificadosPreviewAdCanvas className="overflow-hidden">
           <RestauranteDetailShell data={shellData} />

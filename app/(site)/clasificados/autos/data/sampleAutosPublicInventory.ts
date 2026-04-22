@@ -3,6 +3,7 @@
  * Keep field shapes aligned with `AutosPublicListing` / application draft types.
  */
 import type { AutosPublicListing } from "./autosPublicSampleTypes";
+import { compareNewestAutosPublic } from "@/app/lib/clasificados/autos/autosPublicRanking";
 import { autosPublicDemoInventoryAllowed } from "../lib/autosPublicInventoryPolicy";
 
 const IMG = {
@@ -206,6 +207,7 @@ export const AUTOS_PUBLIC_SAMPLE_LISTINGS: AutosPublicListing[] = [
     id: "lx-std-4",
     sellerType: "private",
     featured: false,
+    publicSortTimestamp: "2024-11-01T12:00:00.000Z",
     year: 2018,
     make: "Nissan",
     model: "Leaf",
@@ -256,6 +258,7 @@ export const AUTOS_PUBLIC_SAMPLE_LISTINGS: AutosPublicListing[] = [
     id: "lx-std-6",
     sellerType: "private",
     featured: false,
+    publicSortTimestamp: "2025-04-10T12:00:00.000Z",
     year: 2017,
     make: "Honda",
     model: "Civic",
@@ -360,7 +363,7 @@ export function getLandingFeaturedRow(listings: AutosPublicListing[], max = 6): 
 /** “Recién agregados” — non-featured slice, newest-first by year/price. */
 export function getLandingRecentListings(listings: AutosPublicListing[], max = 8): AutosPublicListing[] {
   const pool = listings.filter((l) => !l.featured);
-  const sorted = [...pool].sort((a, b) => b.year - a.year || b.price - a.price);
+  const sorted = [...pool].sort(compareNewestAutosPublic);
   return sorted.slice(0, max);
 }
 

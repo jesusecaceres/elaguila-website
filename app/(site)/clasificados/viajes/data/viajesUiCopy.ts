@@ -54,7 +54,7 @@ export type ViajesUi = {
     searchScopeNote: string;
   };
   carousel: { prev: string; next: string };
-  topOffers: { title: string; subtitle: string };
+  topOffers: { title: string; subtitle: string; emptyTitle: string; emptyBody: string };
   localDepartures: { title: string; subtitle: string; cta: string; byId: Record<string, { title: string; description: string }> };
   destinations: { title: string; subtitle: string; cta: string; byId: Record<string, { supportingLine: string }> };
   audience: { title: string; subtitle: string; byId: Record<string, { label: string; subline: string }> };
@@ -311,7 +311,10 @@ function es(): Omit<ViajesUi, "lang"> {
     carousel: { prev: "Ver categorías anteriores", next: "Ver categorías siguientes" },
     topOffers: {
       title: "Ofertas destacadas ahora",
-      subtitle: "Selección actual: verás si el listado viene de un socio comercial, un negocio en Leonix o una guía editorial.",
+      subtitle:
+        "Listados de viajes aprobados en Leonix (negocio o particular). En producción no se mezclan anuncios de demostración salvo que actives NEXT_PUBLIC_VIAJES_SHOW_CURATED_SEED=1 en el despliegue.",
+      emptyTitle: "Aún no hay ofertas destacadas",
+      emptyBody: "Publica tu viaje; cuando sea aprobado aparecerá aquí y en resultados. Los visitantes siguen pudiendo explorar con el buscador y los atajos de destino.",
     },
     localDepartures: {
       title: "Salidas cerca de ti",
@@ -453,7 +456,7 @@ function es(): Omit<ViajesUi, "lang"> {
       discoveryFamilies: "Tours en familia",
       discoveryWeekend: "Fin de semana · salida SFO",
       inventoryDemoBanner:
-        "Inventario mezclado: las ofertas aprobadas desde publicaciones Leonix aparecen junto a ejemplos editoriales y de socios. Puedes ocultar la columna de ejemplo con NEXT_PUBLIC_VIAJES_HIDE_CURATED_SEED=1.",
+        "Modo demostración: se están mezclando filas de ejemplo con las aprobadas. En producción, sin NEXT_PUBLIC_VIAJES_SHOW_CURATED_SEED=1, solo ves anuncios reales aprobados. Ocultar por completo: NEXT_PUBLIC_VIAJES_HIDE_CURATED_SEED=1.",
       departureFieldNote: "Salida por hub regional (Bahía / SJC), no por código postal.",
     },
     filterRail: {
@@ -629,7 +632,10 @@ function en(): Omit<ViajesUi, "lang"> {
     carousel: { prev: "Show previous categories", next: "Show next categories" },
     topOffers: {
       title: "Featured offers right now",
-      subtitle: "What’s highlighted today: partner inventory, a Leonix business listing, or an editorial guide.",
+      subtitle:
+        "Leonix-approved trip listings (business or private). Production does not mix demo/sample rows unless the deployment sets NEXT_PUBLIC_VIAJES_SHOW_CURATED_SEED=1.",
+      emptyTitle: "No featured offers yet",
+      emptyBody: "Publish your trip; once approved it appears here and in results. Visitors can still search and use destination shortcuts.",
     },
     localDepartures: {
       title: "Departures near you",
@@ -771,7 +777,7 @@ function en(): Omit<ViajesUi, "lang"> {
       discoveryFamilies: "Family tours",
       discoveryWeekend: "Weekend · depart SFO",
       inventoryDemoBanner:
-        "Mixed inventory: Leonix-approved publisher offers appear alongside editorial and partner examples. Hide the seed column with NEXT_PUBLIC_VIAJES_HIDE_CURATED_SEED=1.",
+        "Demo mode: sample rows are merged with approved listings. In production, without NEXT_PUBLIC_VIAJES_SHOW_CURATED_SEED=1, only real approved ads are shown. To hide all samples: NEXT_PUBLIC_VIAJES_HIDE_CURATED_SEED=1.",
       departureFieldNote: "Departure is a regional hub (Bay Area / SJC), not postal-code search.",
     },
     filterRail: {

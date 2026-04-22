@@ -46,7 +46,6 @@ export default async function TiendaCategoryPage(props: {
 
   const families = getFamiliesForCategory(slug).map(productFamilyToSummary);
   const howWorks = lang === "en" ? category.howOrderingWorks.en : category.howOrderingWorks.es;
-  const supportMsg = lang === "en" ? category.supportMessage.en : category.supportMessage.es;
 
   const { items: catalogItems } = await listTiendaCatalogItemsPublic({ categorySlug: slug });
   const catalogThumbs = await fetchPrimaryImageUrlForItems(catalogItems.map((i) => i.id));

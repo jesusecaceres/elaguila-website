@@ -59,7 +59,7 @@ export default async function AboutPage(props: { searchParams?: Promise<{ lang?:
 
         {c.mediaImageSrc ? (
           <div className="mb-6 overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            { }
             <img src={c.mediaImageSrc} alt={L.mediaAlt} className="max-h-72 w-full object-cover" />
           </div>
         ) : null}

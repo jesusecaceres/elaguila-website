@@ -106,7 +106,7 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
             <div className="relative h-[7rem] w-[7rem] shrink-0 overflow-hidden rounded-[22px] border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] shadow-[0_6px_28px_-6px_rgba(42,36,22,0.14)] max-lg:h-[7.75rem] max-lg:w-[7.75rem] max-lg:rounded-[24px] lg:h-[6.75rem] lg:w-[6.75rem]">
               {data.dealerLogo ? (
                 data.dealerLogo.startsWith("data:") ? (
-                  // eslint-disable-next-line @next/next/no-img-element
+                   
                   <img src={data.dealerLogo} alt={logoAlt} className="h-full w-full object-contain p-2.5" />
                 ) : (
                   <MediaImage

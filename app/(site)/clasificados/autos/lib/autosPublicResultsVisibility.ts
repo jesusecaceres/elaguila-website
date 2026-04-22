@@ -40,8 +40,19 @@ export function partitionAutosResultsVisibility(
   const featuredDealerBand = getFeaturedDealerListings(sortedFiltered).slice(0, FEATURED_CAP);
   const standard = getStandardListings(sortedFiltered);
 
-  const recentLane =
+  let recentLane =
     sort === "newest" ? standard.slice(0, Math.min(RECENT_LANE_CAP, standard.length)) : [];
+
+  if (
+    recentLane.length >= 2 &&
+    recentLane.every((l) => l.sellerType === "dealer") &&
+    standard.some((l) => l.sellerType === "private")
+  ) {
+    const firstPrivate = standard.find((l) => l.sellerType === "private");
+    if (firstPrivate && !recentLane.some((l) => l.id === firstPrivate.id)) {
+      recentLane = [...recentLane.slice(0, -1), firstPrivate];
+    }
+  }
 
   const recentIds = new Set(recentLane.map((r) => r.id));
   const mainGridPool = recentLane.length > 0 ? standard.filter((l) => !recentIds.has(l.id)) : standard;

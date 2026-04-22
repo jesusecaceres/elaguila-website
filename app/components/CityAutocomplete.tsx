@@ -200,6 +200,8 @@ export default function CityAutocomplete({
         </div>
       )}
       <input
+        role="combobox"
+        aria-haspopup="listbox"
         value={value}
         onChange={(e) => {
           onChange(e.target.value);

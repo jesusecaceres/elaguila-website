@@ -8,7 +8,7 @@
  * - `familias` / `parejas` / `grupos` → `audience`.
  * - `presupuestoTag` → `budget` band when stored as economico|moderado|premium.
  * - `duracion` / date fields → `duration` / `season` when normalized from stored values.
- * - **Newest:** requires `published_at` from DB at approval time — sample rows use `publishedAt` ISO.
+ * - **Newest:** requires `published_at` from DB at approval time — curated sample rows (non-production only) use `publishedAt` ISO.
  * - **Featured:** uses `discovery` signals on rows — not pay-to-win; see `viajesDiscoveryRanking.ts`.
  *
  * **What is not wired yet:**

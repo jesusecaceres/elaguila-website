@@ -226,7 +226,7 @@ export function EnVentaListingManageCard({
             }`}
           >
             {row.thumbUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
+               
               <img src={row.thumbUrl} alt="" className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full items-center justify-center text-2xl text-[#2C2416]/25">📦</div>

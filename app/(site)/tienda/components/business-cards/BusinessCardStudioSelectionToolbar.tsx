@@ -18,13 +18,11 @@ import {
   clampTextLineHeight,
 } from "../../product-configurators/business-cards/preview/textBlockPreviewStyles";
 import {
-  clampNativeCenterPct,
   clampNativeCornerRadiusPx,
   clampNativeImageOpacity,
   clampNativeLayerZIndex,
   clampNativeRotationDeg,
   clampNativeFillOpacity,
-  clampNativeObjectPositionPct,
   clampNativeStrokeWidthPx,
 } from "../../product-configurators/business-cards/designer-v2/studio/geometryClamp";
 import { withStrokeColorIfWidthActive } from "../../product-configurators/business-cards/designer-v2/studio/nativeShapeStroke";
@@ -143,6 +141,7 @@ export function BusinessCardStudioSelectionToolbar(props: Props) {
             type="button"
             disabled={locked}
             className={`${TB_CX.btn} px-2 py-1 text-[11px]`}
+            title={`${posX}% ${posY}%`}
             onClick={() => patch({ objectPositionXPct: 50, objectPositionYPct: 50 })}
           >
             {bcPick(businessCardBuilderCopy.nativeImageFramingCenter, lg)}

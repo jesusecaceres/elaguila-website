@@ -53,7 +53,7 @@ function IdentityRow({
     <div className="mt-3 flex items-center gap-2.5 border-t border-[#E8DFD0]/70 pt-3">
       <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-[#E8DFD0] bg-[#FFFCF7]">
         {listing.advertiser.photoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
+           
           <img src={listing.advertiser.photoUrl} alt="" className="h-full w-full object-cover" />
         ) : (
           <span className="flex h-full w-full items-center justify-center text-[11px] font-bold text-[#B8954A]">
@@ -115,7 +115,7 @@ export function BienesRaicesNegocioCard({
         <div className="flex flex-col sm:flex-row sm:items-stretch">
           <div className="relative sm:w-[42%] sm:max-w-[320px]">
             <div className="relative aspect-[16/10] sm:aspect-auto sm:h-full sm:min-h-[200px]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <img
                 src={listing.imageUrl}
                 alt=""
@@ -152,7 +152,7 @@ export function BienesRaicesNegocioCard({
   return (
     <article className={`${articleClass} flex h-full flex-col`}>
       <div className="relative aspect-[16/11] overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+        { }
         <img
           src={listing.imageUrl}
           alt=""

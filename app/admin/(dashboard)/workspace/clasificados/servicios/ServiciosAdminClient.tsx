@@ -145,13 +145,6 @@ const STYPE_GROUPS: StypeGroup[] = [
   },
 ];
 
-function findStypeGroup(stypeKey: string): StypeGroup {
-  for (const g of STYPE_GROUPS) {
-    if (g.options.some((o) => o.key === stypeKey)) return g;
-  }
-  return STYPE_GROUPS[0];
-}
-
 function nextBusinessIdNumber(listings: AdminServiciosListing[]): number {
   let max = 0;
   for (const l of listings) {

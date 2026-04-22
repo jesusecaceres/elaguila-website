@@ -45,7 +45,7 @@ export function computeShellHoursPreview(
     };
   }
   const n = minutesNow(now);
-  let open = openM;
+  const open = openM;
   let close = closeM;
   if (close < open) close += 24 * 60;
   let nn = n;
@@ -76,7 +76,7 @@ export function computeShellHoursPreview(
 function fmt12(hm: string): string {
   const p = parseHm(hm);
   if (p == null) return hm;
-  let h = Math.floor(p / 60) % 24;
+  const h = Math.floor(p / 60) % 24;
   const m = p % 60;
   const am = h < 12;
   const h12 = h % 12 === 0 ? 12 : h % 12;

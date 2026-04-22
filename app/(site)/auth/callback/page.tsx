@@ -150,7 +150,7 @@ export default function AuthCallbackPage() {
     }
 
     run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const langDisplay = redirectTo ? redirectLang : lang;

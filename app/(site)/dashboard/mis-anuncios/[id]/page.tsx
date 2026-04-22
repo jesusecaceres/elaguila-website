@@ -638,7 +638,7 @@ export default function ListingWorkspacePage() {
               </Link>
               {thumbUrl ? (
                 <div className="mt-6">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <img src={thumbUrl} alt="" className="h-40 w-full max-w-sm rounded-2xl border border-[#E8DFD0] object-cover" />
                 </div>
               ) : null}

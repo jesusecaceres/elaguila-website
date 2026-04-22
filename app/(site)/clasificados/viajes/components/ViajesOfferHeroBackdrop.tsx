@@ -55,7 +55,7 @@ export function ViajesOfferHeroBackdrop({
     <div className="relative min-h-[min(56vh,560px)] w-full overflow-hidden sm:min-h-[min(58vh,580px)]">
       {showImage ? (
         heroUseNativeImg && (activeSrc.startsWith("blob:") || activeSrc.startsWith("data:")) ? (
-          // eslint-disable-next-line @next/next/no-img-element -- draft blob/data
+           
           <img
             src={activeSrc}
             alt={heroImageAlt}
@@ -63,7 +63,7 @@ export function ViajesOfferHeroBackdrop({
             onError={onImgError}
           />
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element -- fallback chain + error recovery need onError
+           
           <img
             src={activeSrc}
             alt={heroImageAlt}

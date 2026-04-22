@@ -1,8 +1,4 @@
-import {
-  getCanonicalCityName,
-  getZipRecord,
-  normalizeZipInput,
-} from "@/app/data/locations/californiaLocationHelpers";
+import { getCanonicalCityName, getZipRecord } from "@/app/data/locations/californiaLocationHelpers";
 
 export type EnVentaLocationIssueCode =
   | "missing_both"

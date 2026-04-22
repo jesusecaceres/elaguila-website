@@ -318,7 +318,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
             }
             aria-label="Abrir foto en galería"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            { }
             <img src={spec.url} alt="" className="aspect-[4/3] w-full object-cover" />
           </button>
         </div>
@@ -370,7 +370,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
       </a>
     ) : media?.floorPlanUrls?.[0] ? (
       <div key="floor" className="overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+        { }
         <img src={media.floorPlanUrls[0]!} alt="" className="aspect-[4/3] w-full object-cover" />
         <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
           Plano de planta
@@ -378,7 +378,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
       </div>
     ) : media?.hasSitePlan && media?.sitePlanUrl ? (
       <div key="site" className="overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+        { }
         <img src={media.sitePlanUrl} alt="" className="aspect-[4/3] w-full object-contain bg-white" />
         <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
           Plano de sitio
@@ -447,7 +447,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                           }
                           aria-label="Abrir galería de fotos"
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          { }
                           <img src={media.heroUrl} alt="" className="aspect-[16/10] w-full object-cover" />
                           <span className="pointer-events-none absolute inset-0 bg-black/0 transition group-hover:bg-black/[0.06]" aria-hidden />
                         </button>
@@ -569,7 +569,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
             >
               {showSellerPhotoAside && vm.seller.photoUrl ? (
                 <div className="overflow-hidden rounded-2xl border shadow-sm" style={{ borderColor: BORDER }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <img
                     src={vm.seller.photoUrl}
                     alt=""

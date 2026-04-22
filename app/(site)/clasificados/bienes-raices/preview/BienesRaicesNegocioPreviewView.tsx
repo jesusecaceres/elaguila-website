@@ -442,7 +442,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                   aria-label="Abrir galería de fotos"
                 >
                   {vm.media?.hasPhotos && vm.media?.heroUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
+                     
                     <img src={vm.media.heroUrl} alt="" className="aspect-[16/10] w-full object-cover" />
                   ) : (
                     <div className="aspect-[16/10] w-full">
@@ -502,7 +502,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                       }
                       aria-label="Abrir foto en galería"
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      { }
                       <img src={spec.url} alt="" className="aspect-[4/3] w-full object-cover" />
                     </button>
                   ) : (
@@ -571,7 +571,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                 </a>
               ) : vm.media?.floorPlanUrls?.[0] ? (
                 <div className="overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <img src={vm.media.floorPlanUrls[0]!} alt="" className="aspect-[4/3] w-full object-cover" />
                   <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
                     Plano de planta
@@ -579,7 +579,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                 </div>
               ) : vm.media?.hasSitePlan && vm.media?.sitePlanUrl ? (
                 <div className="overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <img src={vm.media.sitePlanUrl} alt="" className="aspect-[4/3] w-full object-contain bg-white" />
                   <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
                     Plano de sitio
@@ -610,7 +610,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
               </p>
               <div className="grid gap-2 p-3 sm:grid-cols-2">
                 {(vm.media?.floorPlanUrls ?? []).slice(1).map((u) => (
-                  // eslint-disable-next-line @next/next/no-img-element
+                   
                   <img key={u.slice(0, 48)} src={u} alt="" className="max-h-56 w-full rounded-lg border object-contain" style={{ borderColor: BORDER }} />
                 ))}
               </div>
@@ -621,7 +621,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
               <p className="px-3 py-2 text-xs font-bold uppercase tracking-wide" style={{ color: MUTED }}>
                 Plano de sitio / comunidad
               </p>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <img src={vm.media.sitePlanUrl} alt="" className="max-h-64 w-full object-contain bg-white" />
             </div>
           ) : null}
@@ -667,7 +667,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
           >
             <div className="overflow-hidden rounded-2xl border shadow-sm" style={{ borderColor: BORDER }}>
               {vm.identity.hasPhoto && vm.identity.photoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
+                 
                 <img
                   src={vm.identity.photoUrl}
                   alt=""
@@ -701,7 +701,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
               >
                 {vm.identity.brokerageLogoUrl &&
                 !(vm.identity.photoUrl && vm.identity.brokerageLogoUrl && vm.identity.photoUrl === vm.identity.brokerageLogoUrl) ? (
-                  // eslint-disable-next-line @next/next/no-img-element
+                   
                   <img
                     src={vm.identity.brokerageLogoUrl}
                     alt=""
@@ -866,7 +866,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                 {vm.identity.contactPhone || vm.identity.contactEmail ? (
                   <div className="flex gap-3 rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
                     {vm.identity.hasPhoto && vm.identity.photoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
+                       
                       <img src={vm.identity.photoUrl} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
                     ) : (
                       <div className="h-11 w-11 shrink-0 rounded-full bg-[#5c5348]" />
@@ -883,7 +883,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                 {vm.contact.secondAgent ? (
                   <div className="flex gap-3 rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
                     {vm.contact.secondAgent.photoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
+                       
                       <img src={vm.contact.secondAgent.photoUrl} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
                     ) : (
                       <div className="h-11 w-11 shrink-0 rounded-full bg-[#5c5348]" />
@@ -904,7 +904,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                 {vm.contact.lender ? (
                   <div className="flex gap-3 rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
                     {vm.contact.lender.photoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
+                       
                       <img src={vm.contact.lender.photoUrl} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
                     ) : (
                       <div className="h-11 w-11 shrink-0 rounded-full bg-[#5c5348]" />

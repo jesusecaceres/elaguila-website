@@ -5,7 +5,7 @@ type Entry = Record<string, any> & { submittedAt: string };
 // Dev-only in-memory storage.
 // NOTE: In serverless deployments this may reset between invocations.
 // Replace with Supabase later.
-let entries: Entry[] = [];
+const entries: Entry[] = [];
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "GET") {
@@ -22,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
       return res.status(200).json({ success: true });
-    } catch (e) {
+    } catch (_e) {
       return res.status(400).json({ success: false, error: "Invalid submission" });
     }
   }

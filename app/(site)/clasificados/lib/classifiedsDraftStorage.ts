@@ -35,9 +35,6 @@ import {
   RENTAS_NEGOCIO_DRAFT_STORAGE_KEY,
 } from "@/app/clasificados/publicar/rentas/negocio/application/utils/rentasNegocioDraft";
 
-/** Same value as preview-nav flag in publish flow client (avoid importing a `"use client"` module here). */
-const LEONIX_PREVIEW_NAV_SESSION_FLAG = "leonix-publish-flow-opening-preview";
-
 /** SessionStorage: draft passed to BR branch preview routes or shared preview hub (legacy). */
 export { PREVIEW_LISTING_DRAFT_KEY };
 

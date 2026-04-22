@@ -294,7 +294,7 @@ export function RestaurantePublishMediaStrip({
                         onRemove={() => removeGalleryAt(entry)}
                       >
                         <div className="relative aspect-square w-full min-h-[100px] bg-[color:var(--lx-section)]">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          { }
                           <img
                             src={url}
                             alt=""

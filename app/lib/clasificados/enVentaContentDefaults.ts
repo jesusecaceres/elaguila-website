@@ -1,5 +1,3 @@
-import type { BilingualPair } from "@/app/lib/clasificados/clasificadosCategoryContentTypes";
-
 /** Defaults for `/clasificados/en-venta` hub — must match previous inline copy in `en-venta/page.tsx`. */
 export const EN_VENTA_HUB_LANDING_DEFAULTS: {
   es: Record<string, string>;

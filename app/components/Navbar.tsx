@@ -77,7 +77,7 @@ function NavbarContent() {
   useEffect(() => {
     setMobileOpen(false);
     setAccountOpen(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [pathname, urlLang, searchParams?.toString()]);
 
   useEffect(() => {

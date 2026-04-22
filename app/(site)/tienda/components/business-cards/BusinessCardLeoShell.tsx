@@ -421,7 +421,7 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
             {intake.logoDataUrl ? (
               <div className="mt-4 rounded-2xl border border-[rgba(201,168,74,0.25)] bg-[rgba(0,0,0,0.35)] p-4">
                 <div className="flex items-start gap-4">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- user-uploaded data URL preview */}
+                  { }
                   <img
                     src={intake.logoDataUrl}
                     alt=""

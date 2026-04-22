@@ -9,6 +9,7 @@ import { resolveAutosLandingInventory } from "../app/(site)/clasificados/autos/d
 import { emptyAutosPublicFilters } from "../app/(site)/clasificados/autos/filters/autosPublicFilterTypes";
 import { autosPublicDemoInventoryAllowed } from "../app/(site)/clasificados/autos/lib/autosPublicInventoryPolicy";
 import { autosPublicSellerTypeFromLane } from "../app/lib/clasificados/autos/autosPublicSellerFromLane";
+import { partitionAutosResultsVisibility } from "../app/(site)/clasificados/autos/lib/autosPublicResultsVisibility";
 
 const base: AutosPublicListing = {
   id: "test-1",
@@ -56,6 +57,30 @@ function run() {
     "newest",
   );
   assert.equal(sorted[0].id, "b", "newest sort should prefer newer year");
+
+  const sortedByRefresh = sortAutosPublicListings(
+    [
+      { ...base, id: "old", year: 2020, price: 15000, publicSortTimestamp: "2024-01-01T00:00:00.000Z" },
+      { ...base, id: "new", year: 2020, price: 15000, publicSortTimestamp: "2025-06-01T00:00:00.000Z" },
+    ],
+    "newest",
+  );
+  assert.equal(sortedByRefresh[0].id, "new", "newest sort must honor publicSortTimestamp (republish/refresh)");
+
+  const dealerOnlyFront = [
+    { ...base, id: "d1", sellerType: "dealer" as const, featured: true, year: 2025, price: 50000 },
+    { ...base, id: "d2", sellerType: "dealer" as const, featured: false, year: 2024, price: 40000 },
+    { ...base, id: "d3", sellerType: "dealer" as const, featured: false, year: 2023, price: 35000 },
+    { ...base, id: "d4", sellerType: "dealer" as const, featured: false, year: 2022, price: 30000 },
+    { ...base, id: "d5", sellerType: "dealer" as const, featured: false, year: 2021, price: 25000 },
+    { ...base, id: "p1", sellerType: "private" as const, featured: false, year: 2018, price: 8000 },
+  ];
+  const sortedFront = sortAutosPublicListings(dealerOnlyFront, "newest");
+  const part = partitionAutosResultsVisibility(sortedFront, "newest");
+  assert.ok(
+    part.recentLane.some((r) => r.sellerType === "private"),
+    "recent lane must surface a private row when the pool contains one but the top slice is dealer-only",
+  );
 
   const prodDemoOff =
     process.env.NODE_ENV === "production" ? true : autosPublicDemoInventoryAllowed() === (process.env.NEXT_PUBLIC_LEONIX_AUTOS_PUBLIC_DEMO === "1");

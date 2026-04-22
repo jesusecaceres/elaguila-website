@@ -6,7 +6,7 @@
 import { VIAJES_DESTINATION_COLLECTIONS, VIAJES_TOP_OFFERS } from "./viajesLandingSampleData";
 import { VIAJES_NEGOCIO_PROFILES } from "./viajesNegocioProfileSampleData";
 import { VIAJES_OFFER_DETAILS } from "./viajesOfferDetailSampleData";
-import { getViajesPublicResultRows } from "../lib/viajesPublicInventory";
+import { getViajesPublicResultRows, viajesAllowCuratedDemoCatalog } from "../lib/viajesPublicInventory";
 import { normalizeViajesDestinationKey, viajesDestinationMatchBlob } from "../lib/normalizeViajesDestination";
 
 export type ViajesDestinationRecord = {
@@ -43,6 +43,7 @@ function mergeRecord(map: Map<string, ViajesDestinationRecord>, rec: ViajesDesti
 
 function buildIndex(): ViajesDestinationRecord[] {
   const map = new Map<string, ViajesDestinationRecord>();
+  const allowDemoCatalog = viajesAllowCuratedDemoCatalog();
 
   for (const col of VIAJES_DESTINATION_COLLECTIONS) {
     const destParam =
@@ -56,25 +57,27 @@ function buildIndex(): ViajesDestinationRecord[] {
     });
   }
 
-  for (const offer of VIAJES_TOP_OFFERS) {
-    const fromHref = offer.resultsBrowse?.dest?.trim() || (offer.href ? destFromResultsHref(offer.href) : null);
-    if (fromHref) {
-      mergeRecord(map, {
-        destParam: fromHref,
-        label: offer.title,
-        detail: offer.locationLine,
-        searchBlob: viajesDestinationMatchBlob([offer.title, offer.locationLine, fromHref]),
-      });
-    } else {
-      const parts = offer.locationLine.split(",").map((s) => s.trim());
-      const city = parts[0] ?? offer.title;
-      const destParam = normalizeViajesDestinationKey(city).replace(/\s+/g, "-");
-      mergeRecord(map, {
-        destParam,
-        label: city,
-        detail: parts.slice(1).join(", ") || offer.locationLine,
-        searchBlob: viajesDestinationMatchBlob([offer.title, offer.locationLine, destParam]),
-      });
+  if (allowDemoCatalog) {
+    for (const offer of VIAJES_TOP_OFFERS) {
+      const fromHref = offer.resultsBrowse?.dest?.trim() || (offer.href ? destFromResultsHref(offer.href) : null);
+      if (fromHref) {
+        mergeRecord(map, {
+          destParam: fromHref,
+          label: offer.title,
+          detail: offer.locationLine,
+          searchBlob: viajesDestinationMatchBlob([offer.title, offer.locationLine, fromHref]),
+        });
+      } else {
+        const parts = offer.locationLine.split(",").map((s) => s.trim());
+        const city = parts[0] ?? offer.title;
+        const destParam = normalizeViajesDestinationKey(city).replace(/\s+/g, "-");
+        mergeRecord(map, {
+          destParam,
+          label: city,
+          detail: parts.slice(1).join(", ") || offer.locationLine,
+          searchBlob: viajesDestinationMatchBlob([offer.title, offer.locationLine, destParam]),
+        });
+      }
     }
   }
 
@@ -103,38 +106,43 @@ function buildIndex(): ViajesDestinationRecord[] {
     });
   }
 
-  for (const offer of Object.values(VIAJES_OFFER_DETAILS)) {
-    const dest = offer.destination;
-    const head = dest.split(",")[0]?.trim() ?? dest;
-    const destParam = normalizeViajesDestinationKey(head).replace(/\s+/g, "-");
-    mergeRecord(map, {
-      destParam,
-      label: head,
-      detail: dest,
-      searchBlob: viajesDestinationMatchBlob([offer.title, dest, dest, offer.slug]),
-    });
-  }
-
-  for (const profile of Object.values(VIAJES_NEGOCIO_PROFILES)) {
-    for (const d of profile.destinationsServed) {
-      const destParam = normalizeViajesDestinationKey(d).replace(/\s+/g, "-");
+  if (allowDemoCatalog) {
+    for (const offer of Object.values(VIAJES_OFFER_DETAILS)) {
+      const dest = offer.destination;
+      const head = dest.split(",")[0]?.trim() ?? dest;
+      const destParam = normalizeViajesDestinationKey(head).replace(/\s+/g, "-");
       mergeRecord(map, {
         destParam,
-        label: d,
-        detail: `Cobertura · ${profile.businessName}`,
-        searchBlob: viajesDestinationMatchBlob([d, profile.businessName, destParam]),
+        label: head,
+        detail: dest,
+        searchBlob: viajesDestinationMatchBlob([offer.title, dest, dest, offer.slug]),
       });
+    }
+
+    for (const profile of Object.values(VIAJES_NEGOCIO_PROFILES)) {
+      for (const d of profile.destinationsServed) {
+        const destParam = normalizeViajesDestinationKey(d).replace(/\s+/g, "-");
+        mergeRecord(map, {
+          destParam,
+          label: d,
+          detail: `Cobertura · ${profile.businessName}`,
+          searchBlob: viajesDestinationMatchBlob([d, profile.businessName, destParam]),
+        });
+      }
     }
   }
 
   return [...map.values()].sort((a, b) => a.label.localeCompare(b.label, "es"));
 }
 
-let cached: ViajesDestinationRecord[] | null = null;
+let cached: { allow: boolean; rows: ViajesDestinationRecord[] } | null = null;
 
 export function getViajesDestinationIndex(): ViajesDestinationRecord[] {
-  if (!cached) cached = buildIndex();
-  return cached;
+  const allow = viajesAllowCuratedDemoCatalog();
+  if (!cached || cached.allow !== allow) {
+    cached = { allow, rows: buildIndex() };
+  }
+  return cached.rows;
 }
 
 export function filterViajesDestinations(rawQuery: string, limit = 8): ViajesDestinationRecord[] {

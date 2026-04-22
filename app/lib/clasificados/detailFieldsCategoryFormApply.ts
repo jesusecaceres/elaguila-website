@@ -3,7 +3,7 @@ import type {
   ClasificadosCategoryDetailOnlyPatch,
   ClasificadosDetailFieldCopyPatch,
 } from "@/app/lib/clasificados/clasificadosCategoryContentTypes";
-import { DETAIL_FIELDS, type DetailField } from "@/app/clasificados/config/publishDetailFields";
+import type { DetailField } from "@/app/clasificados/config/publishDetailFields";
 
 function str(f: FormData, k: string): string {
   const v = f.get(k);

@@ -153,7 +153,7 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
 
   useEffect(() => {
     loadNews();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [activeCategory, lang]);
 
   const featured: NewsArticle =

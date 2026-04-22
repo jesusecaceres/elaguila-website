@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { BusinessRailData, ListingData } from "./ListingView";
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -39,8 +38,8 @@ export default function BusinessListingIdentityRail({
   const agentName = businessRail.agent?.trim() || businessName;
   const agentRole = businessRail.role?.trim() || "";
   const agentNameLen = agentName.length;
-  const ownerIdTrim = (ownerId ?? "").trim();
-  const returnToTrim = (agentProfileReturnUrl ?? "").trim();
+  void ownerId;
+  void agentProfileReturnUrl;
   const imageBoxClass = "h-12 w-12 rounded-xl border border-black/10 object-cover bg-white shadow-sm shrink-0";
   const agentNameClass =
     agentNameLen > 72

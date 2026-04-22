@@ -23,7 +23,7 @@ export function LeoBrandMark(props: LeoBrandMarkProps) {
         .filter(Boolean)
         .join(" ")}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- brand mark + intentional PNG/SVG fallback */}
+      { }
       <img
         src={src}
         alt=""

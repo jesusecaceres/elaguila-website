@@ -406,7 +406,7 @@ export function AgenteIndividualResidencialPreviewPage({
                         onClick={() => openMediaAt(data.fotoPortadaIndex)}
                         aria-label={p.galeria}
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        { }
                         <img
                           src={g.mainUrl}
                           alt=""
@@ -433,7 +433,7 @@ export function AgenteIndividualResidencialPreviewPage({
                         onClick={() => openMediaAt(idxSecondaryA)}
                         aria-label={p.foto2}
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        { }
                         <img
                           src={g.secondary1}
                           alt=""
@@ -458,7 +458,7 @@ export function AgenteIndividualResidencialPreviewPage({
                         onClick={() => openMediaAt(idxSecondaryB)}
                         aria-label={p.foto3}
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        { }
                         <img
                           src={g.secondary2}
                           alt=""
@@ -691,7 +691,7 @@ export function AgenteIndividualResidencialPreviewPage({
                         </h4>
                         {brokerSupportBlock.fotoDataUrl ? (
                           <div className="mb-2 max-w-[100px]">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            { }
                             <img
                               src={brokerSupportBlock.fotoDataUrl}
                               alt=""
@@ -850,7 +850,7 @@ export function AgenteIndividualResidencialPreviewPage({
                 >
                   {trim(data.marcaLogoDataUrl) ? (
                     <div className="mx-auto mb-2.5 flex h-[4.25rem] w-full max-w-[200px] items-center justify-center sm:h-[4.75rem] sm:max-w-[220px]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      { }
                       <img
                         src={trim(data.marcaLogoDataUrl)}
                         alt=""
@@ -887,7 +887,7 @@ export function AgenteIndividualResidencialPreviewPage({
                 {showPrimaryAgentVisual ? (
                   <div className="mx-auto w-full max-w-[236px]">
                     {trim(data.agenteFotoDataUrl) ? (
-                      // eslint-disable-next-line @next/next/no-img-element
+                       
                       <img
                         src={trim(data.agenteFotoDataUrl)}
                         alt=""
@@ -940,7 +940,7 @@ export function AgenteIndividualResidencialPreviewPage({
                     </p>
                     {trim(data.agente2FotoDataUrl) ? (
                       <div className="mx-auto mt-2 flex max-w-[120px] justify-center">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        { }
                         <img
                           src={trim(data.agente2FotoDataUrl)}
                           alt=""

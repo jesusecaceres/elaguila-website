@@ -235,7 +235,7 @@ export function ClasificadosServiciosApplication() {
   useEffect(() => {
     if (!hydrated) return;
     void saveClasificadosServiciosApplicationResolved(state);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- full `state` would autosave every keystroke; media fields gate persistence
+   
   }, [
     hydrated,
     state.gallery,

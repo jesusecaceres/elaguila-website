@@ -38,6 +38,13 @@ export function autosClassifiedsRowToPublicListing(row: AutosClassifiedsListingR
   const drivetrain = resolveDrivetrain(L) ?? "";
   const fuelType = resolveFuelType(L) ?? "";
   const titleStatus = resolveTitleStatus(L);
+  const publishedMs = row.published_at ? Date.parse(row.published_at) : NaN;
+  const updatedMs = row.updated_at ? Date.parse(row.updated_at) : NaN;
+  const recencyMs = Math.max(
+    Number.isFinite(publishedMs) ? publishedMs : 0,
+    Number.isFinite(updatedMs) ? updatedMs : 0,
+  );
+  const publicSortTimestamp = recencyMs > 0 ? new Date(recencyMs).toISOString() : undefined;
   return {
     id: row.id,
     sellerType,
@@ -65,5 +72,6 @@ export function autosClassifiedsRowToPublicListing(row: AutosClassifiedsListingR
     dealerLogoUrl: sellerType === "dealer" && typeof L.dealerLogo === "string" ? L.dealerLogo : undefined,
     privateSellerLabel: sellerType === "private" ? L.dealerName : undefined,
     searchableBlurb: buildSearchableBlurb(L),
+    publicSortTimestamp,
   };
 }

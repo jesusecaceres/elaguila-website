@@ -427,7 +427,7 @@ function PhotoOrFileRow({
       </div>
       {value ? (
         <div className="mt-2 flex items-start gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          { }
           <img src={value} alt="" className="h-24 w-24 rounded-lg border object-cover" />
           <button type="button" className="text-xs font-semibold text-red-800" onClick={() => onChange("")}>
             {quitar}
@@ -483,7 +483,7 @@ function PhotoOrUrlBlock({
       </div>
       {value ? (
         <div className="mt-2 flex items-start gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          { }
           <img src={value} alt="" className="h-16 w-16 rounded-lg border object-cover" />
           <button type="button" className="text-xs font-semibold text-red-800" onClick={() => onChange("")}>
             {quitar}

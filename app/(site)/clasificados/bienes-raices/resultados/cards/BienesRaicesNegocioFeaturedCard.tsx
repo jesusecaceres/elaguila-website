@@ -34,7 +34,7 @@ export function BienesRaicesNegocioFeaturedCard({
       <div className="flex flex-col lg:flex-row lg:items-stretch">
         <div className="relative lg:w-[52%]">
           <div className="relative aspect-[16/11] overflow-hidden lg:aspect-auto lg:min-h-[280px] lg:h-full">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            { }
             <img
               src={listing.imageUrl}
               alt=""
@@ -95,7 +95,7 @@ export function BienesRaicesNegocioFeaturedCard({
           <div className="mt-6 flex items-center gap-3 border-t border-[#E8DFD0]/60 pt-4">
             <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-[#E8DFD0] bg-[#FFFCF7]">
               {listing.advertiser.photoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
+                 
                 <img src={listing.advertiser.photoUrl} alt="" className="h-full w-full object-cover" />
               ) : (
                 <span className="flex h-full w-full items-center justify-center text-xs font-bold text-[#B8954A]">

@@ -1,4 +1,4 @@
-import { DEFAULT_MAX_FILE_MB, DEFAULT_ACCEPTED_MIMES } from "./constants";
+import { DEFAULT_MAX_FILE_MB } from "./constants";
 import type { AcceptedMime, PrintUploadFile, PrintUploadFileSlot } from "./types";
 
 const MIME_MAP: Record<string, AcceptedMime | undefined> = {

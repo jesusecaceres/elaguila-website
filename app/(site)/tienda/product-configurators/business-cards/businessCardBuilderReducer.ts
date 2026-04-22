@@ -12,7 +12,6 @@ import type {
   BusinessCardLogoGeom,
   BusinessCardSide,
   BusinessCardTextBlock,
-  BusinessCardTextLayout,
   LayoutPreset,
   ScalePreset,
   TextFieldRole,

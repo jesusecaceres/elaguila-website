@@ -78,7 +78,7 @@ export function RestauranteBucketSortableGrid({ field, draft, setDraftPatch }: P
                   }
                 >
                   <div className="relative aspect-square w-full min-h-[88px] bg-[color:var(--lx-section)]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    { }
                     <img
                       src={url}
                       alt=""
