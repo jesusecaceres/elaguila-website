@@ -20,14 +20,17 @@
     "verify:empleos": "npx tsx scripts/empleos-jobposting-schema-selftest.ts",
     "verify:empleos:http-smoke": "node scripts/empleos-http-smoke.mjs",
     "verify:restaurantes:http-smoke": "node scripts/restaurantes-http-smoke.mjs",
+    "verify:restaurantes:selftest": "npx tsx scripts/restaurantes-launch-selftest.ts",
+    "verify:restaurantes:e2e": "npx playwright test --config playwright.restaurantes.config.mjs",
     "verify:en-venta": "npx tsx scripts/en-venta-go-live-selftest.ts",
-    "verify:en-venta:e2e": "npx playwright test e2e/en-venta-smoke.spec.ts",
-    "verify:restaurantes:launch": "npm run typecheck && npm run build && node scripts/restaurantes-http-smoke.mjs",
+    "verify:en-venta:e2e": "npx playwright test \"e2e/en-venta*.spec.ts\"",
+    "verify:restaurantes:launch": "npm run typecheck && npm run build && node scripts/restaurantes-http-smoke.mjs && npm run verify:restaurantes:selftest",
     "verify:servicios:unit": "npx tsx scripts/serviciosLaunchProof.ts",
     "verify:servicios:http-smoke": "node scripts/servicios-http-smoke.mjs",
     "verify:servicios:e2e": "npx playwright test",
     "verify:servicios": "npm run typecheck && npm run lint:servicios && npm run build && npm run verify:servicios:unit && npm run verify:servicios:http-smoke && npm run verify:servicios:e2e",
-    "verify:rentas": "npx tsx scripts/rentas-launch-selftest.ts"
+    "verify:rentas": "npx tsx scripts/rentas-launch-selftest.ts",
+    "verify:rentas:e2e": "npx tsx scripts/rentas-e2e-pipeline-smoke.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

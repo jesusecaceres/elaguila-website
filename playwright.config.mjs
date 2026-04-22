@@ -27,6 +27,8 @@ export default defineConfig({
       ...process.env,
       NODE_ENV: "production",
       SERVICIOS_DEV_PUBLISH: "1",
+      /** Enables gated `POST /api/clasificados/en-venta/dev-seed-listing` for trace E2E only. */
+      EN_VENTA_DEV_PUBLISH: "1",
     },
   },
 });
