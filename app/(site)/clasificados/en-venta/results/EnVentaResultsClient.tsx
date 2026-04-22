@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * En Venta results — browse contract (defaults):
+ * - Data: Supabase `listings` rows with `category=en-venta`, `status=active`, `is_published!==false`,
+ *   filtered client-side by `isEnVentaListingPubliclyVisible` (same rule as public detail).
+ * - Default sort (`sort=newest` or absent): **newest `created_at` first** among matches — free and Pro
+ *   share the same chronological ordering; Pro “renewed visibility” only affects the small promoted rail
+ *   (up to `PROMO_CAP` boosted rows), which are excluded from the paginated catalog to avoid duplicates.
+ */
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -205,7 +213,7 @@ export function EnVentaResultsClient() {
     const cityFilterOn = Boolean(city.trim());
     let list = rows.filter(({ dto, effectiveDept, priceNum, row }) => {
       if (!textMatch(q, dto)) return false;
-      if (freeOnly && !Boolean(row.is_free)) return false;
+      if (freeOnly && !row.is_free) return false;
       if (negotiableOnly && !dto.negotiable) return false;
       if (meetupOnly && !dto.meetupOffered) return false;
       if (evDept && effectiveDept !== evDept) return false;
@@ -292,7 +300,7 @@ export function EnVentaResultsClient() {
       grid: "Cuadrícula",
       list: "Lista",
       latest: "Más recientes",
-      promoted: "Destacado Pro",
+      promoted: "Visibilidad renovada (Pro)",
       loading: "Cargando…",
       err: "No se pudieron cargar los anuncios.",
       page: (p: number, pc: number) => `Página ${p} de ${pc}`,
@@ -309,7 +317,7 @@ export function EnVentaResultsClient() {
       biz: "Negocio",
       trust: "Comunidad Leonix · anuncios moderados · contacto directo",
       zip: "CP / ZIP",
-      featuredMode: "Solo destacados Pro",
+      featuredMode: "Solo visibilidad Pro renovada",
       clearAll: "Limpiar filtros",
       useLocation: "Usar mi ubicación",
       geoDenied: "Permiso denegado — elige ciudad o CP manualmente.",
@@ -346,7 +354,7 @@ export function EnVentaResultsClient() {
       grid: "Grid",
       list: "List",
       latest: "Latest",
-      promoted: "Pro Featured",
+      promoted: "Renewed visibility (Pro)",
       loading: "Loading…",
       err: "Could not load listings.",
       page: (p: number, pc: number) => `Page ${p} of ${pc}`,
@@ -363,7 +371,7 @@ export function EnVentaResultsClient() {
       biz: "Business",
       trust: "Leonix community · moderated listings · direct contact",
       zip: "ZIP",
-      featuredMode: "Pro featured only",
+      featuredMode: "Renewed Pro visibility only",
       clearAll: "Clear filters",
       useLocation: "Use my location",
       geoDenied: "Permission denied — choose city or ZIP manually.",
@@ -577,7 +585,7 @@ export function EnVentaResultsClient() {
     if (featuredOnly)
       out.push({
         key: "featured",
-        label: lang === "es" ? "Solo destacados Pro" : "Pro featured only",
+        label: lang === "es" ? "Solo visibilidad Pro renovada" : "Renewed Pro visibility only",
         onRemove: () => rm({ featured: undefined }),
       });
     return out;

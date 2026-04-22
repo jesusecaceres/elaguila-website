@@ -54,7 +54,7 @@ function HeroBackdrop({ src }: { src: string }) {
     );
   }
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- admin may set arbitrary HTTPS hero URLs not in `images.remotePatterns`
+     
     <img src={src} alt="" className={`absolute inset-0 h-full w-full ${objectPos}`} />
   );
 }
@@ -113,6 +113,7 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
   const hrefBrowseShip = buildEnVentaResultsUrl(lang, { ship: "1" });
   const hrefBrowsePickup = buildEnVentaResultsUrl(lang, { pickup: "1" });
   /** Featured-only browse: `featured=1` matches active `boost_expires` (Pro visibility). */
+  /** `featured=1` = listings whose `boost_expires` is in the future (Pro renewed visibility), not mock inventory. */
   const hrefBrowseFeatured = buildEnVentaResultsUrl(lang, { featured: "1" });
   const hrefSellerIndividual = buildEnVentaResultsUrl(lang, { seller: "individual" });
   const hrefSellerBusiness = buildEnVentaResultsUrl(lang, { seller: "business" });

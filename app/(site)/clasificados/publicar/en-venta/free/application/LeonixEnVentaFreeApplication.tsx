@@ -99,7 +99,10 @@ export default function LeonixEnVentaFreeApplication() {
   );
 
   return (
-    <main className="min-h-screen bg-[#F6F0E2] text-[#3D2C12] pt-28 pb-16">
+    <main
+      className="min-h-screen bg-[#F6F0E2] text-[#3D2C12] pt-28 pb-16"
+      data-testid="ev-free-publish-root"
+    >
       <div className="mx-auto max-w-2xl px-4">
         <div className="mb-5 rounded-2xl border border-[#D8C79A]/70 bg-[#FFFCF4] p-4 shadow-[0_8px_22px_rgba(113,84,22,0.08)] sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -143,7 +146,7 @@ export default function LeonixEnVentaFreeApplication() {
           />
           <LocationSection lang={lang} state={state} setState={setState} />
           <FulfillmentSection lang={lang} state={state} setState={setState} />
-          <SellerContactSection lang={lang} state={state} setState={setState} showSellerKind={false} />
+          <SellerContactSection lang={lang} state={state} setState={setState} showSellerKind />
           <ItemDetailsSection lang={lang} state={state} setState={setState} />
           <EnVentaPreviewBeforePublishCta lang={lang} variant="light" onBeforePreview={onBeforePreview} />
           <ListingRulesConfirmationSection

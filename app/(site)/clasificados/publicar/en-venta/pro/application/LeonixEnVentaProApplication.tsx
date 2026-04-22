@@ -143,7 +143,7 @@ export default function LeonixEnVentaProApplication() {
           />
           <LocationSection lang={lang} state={state} setState={setState} />
           <FulfillmentSection lang={lang} state={state} setState={setState} />
-          <SellerContactSection lang={lang} state={state} setState={setState} showSellerKind={false} />
+          <SellerContactSection lang={lang} state={state} setState={setState} showSellerKind />
           <ItemDetailsSection lang={lang} state={state} setState={setState} />
           <EnVentaPreviewBeforePublishCta lang={lang} onBeforePreview={onBeforePreview} />
           <ListingRulesConfirmationSection
