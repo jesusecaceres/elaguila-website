@@ -50,7 +50,13 @@ function branchLabel(branch: LeonixClasificadosBranch, lang: Lang): string {
     rentas_privado: "Rentas · Privado",
     rentas_negocio: "Rentas · Negocio",
   };
-  return lang === "es" ? es[branch] : branch;
+  const en: Record<LeonixClasificadosBranch, string> = {
+    bienes_raices_privado: "RE · Private",
+    bienes_raices_negocio: "RE · Business",
+    rentas_privado: "Rentals · Private",
+    rentas_negocio: "Rentals · Business",
+  };
+  return lang === "es" ? es[branch] : en[branch];
 }
 
 export function LeonixRealEstateListingManageCard({
