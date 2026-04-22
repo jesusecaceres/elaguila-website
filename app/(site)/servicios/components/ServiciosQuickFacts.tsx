@@ -1,7 +1,6 @@
 import { FiAward, FiCheck, FiClock, FiTag, FiTruck, FiZap } from "react-icons/fi";
 import { FaShieldAlt, FaGlobeAmericas } from "react-icons/fa";
 import type { ServiciosLang, ServiciosQuickFact, ServiciosQuickFactKind } from "../types/serviciosBusinessProfile";
-import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { SV } from "./serviciosDesignTokens";
 
 function iconFor(kind: ServiciosQuickFactKind) {
@@ -29,7 +28,6 @@ function iconFor(kind: ServiciosQuickFactKind) {
 
 /** Additional quick facts below the hero (first 3 may appear in the hero). */
 export function ServiciosQuickFacts({ facts, lang }: { facts: ServiciosQuickFact[]; lang: ServiciosLang }) {
-  const L = getServiciosProfileLabels(lang);
   if (!facts.length) return null;
   return (
     <section

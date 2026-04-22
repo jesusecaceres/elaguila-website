@@ -46,7 +46,7 @@ export type BrNegocioListing = {
   zipCode?: string;
   /** Canonical `propertyType` URL slug when publish wrote `Leonix:results_property_kind`. */
   resultsPropertyKind?: BrResultsPropertyKind | null;
-  /** Structured amenity signals from `Leonix:*` machine rows (`null` = unknown → results may fall back to text heuristics). */
+  /** Structured amenity signals from `Leonix:*` machine rows (`null` = unknown / not asserted). */
   facetPool?: boolean | null;
   facetPets?: boolean | null;
   facetFurnished?: boolean | null;

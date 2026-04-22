@@ -12,17 +12,45 @@ import { inferServiciosTierFromListing } from "../shared/mapping/serviciosTier";
 
 type Lang = "es" | "en";
 
+type LocalizedText = { es?: string; en?: string };
+type ServicesOfferedGroup = { group: string; items?: string[] };
+type FaqRow = { q?: LocalizedText; a?: LocalizedText };
+
+/** Union of demo `servicios` rows varies by tier; treat optional fields explicitly for this legacy UI. */
+type ServiciosProfileListing = {
+  id: string;
+  category: "servicios";
+  title: LocalizedText & { es: string };
+  priceLabel?: LocalizedText;
+  city?: string;
+  blurb?: LocalizedText;
+  sellerType?: string;
+  servicesTags?: string[];
+  phone?: string;
+  text?: string;
+  email?: string;
+  website?: string;
+  mapsUrl?: string;
+  responseTime?: LocalizedText;
+  highlights?: string[];
+  photos?: string[];
+  servicesOffered?: ServicesOfferedGroup[];
+  about?: LocalizedText;
+  faq?: FaqRow[];
+  hours?: Record<string, string>;
+  amenities?: string[];
+};
+
 /** Legacy sample “servicios” classifieds profile (static data). */
 export function LegacyServiciosSampleProfile({ listingId }: { listingId: string }) {
   const sp = useSearchParams();
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
 
-  const listing = useMemo(() => {
-    const items = SAMPLE_LISTINGS as readonly any[];
-    return items.find((x) => x.id === listingId && x.category === "servicios") || null;
+  const listing = useMemo((): ServiciosProfileListing | null => {
+    const hit = SAMPLE_LISTINGS.find((x) => x.id === listingId);
+    if (!hit || hit.category !== "servicios") return null;
+    return hit as ServiciosProfileListing;
   }, [listingId]);
-
-  const tier = inferServiciosTierFromListing(listing);
 
   if (!listing) {
     return (
@@ -43,6 +71,9 @@ export function LegacyServiciosSampleProfile({ listingId }: { listingId: string 
       </main>
     );
   }
+
+  const tier = inferServiciosTierFromListing(listing);
+  const hoursTable = listing.hours;
 
   const title = listing.title?.[lang] ?? listing.title?.es ?? "Servicio";
   const tags: string[] = Array.isArray(listing.servicesTags) ? listing.servicesTags : [];
@@ -215,6 +246,7 @@ export function LegacyServiciosSampleProfile({ listingId }: { listingId: string 
                 <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {listing.photos.slice(0, tier === "standard" ? 1 : tier === "plus" ? 6 : 9).map((src: string, i: number) => (
                     <div key={src + i} className="aspect-[4/3] overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- legacy classifieds demo */}
                       <img src={src} alt="" className="h-full w-full object-cover" />
                     </div>
                   ))}
@@ -229,7 +261,7 @@ export function LegacyServiciosSampleProfile({ listingId }: { listingId: string 
                 </div>
 
                 <div className="mt-4 space-y-3">
-                  {listing.servicesOffered.slice(0, tier === "plus" ? 2 : 6).map((g: any) => (
+                  {listing.servicesOffered.slice(0, tier === "plus" ? 2 : 6).map((g: ServicesOfferedGroup) => (
                     <div key={g.group} className="rounded-xl border border-black/10 bg-[#F5F5F5] p-4">
                       <div className="text-sm font-semibold text-[#111111]">{g.group}</div>
                       <div className="mt-2 grid gap-1 sm:grid-cols-2">
@@ -261,7 +293,7 @@ export function LegacyServiciosSampleProfile({ listingId }: { listingId: string 
                   {lang === "es" ? "Preguntas frecuentes" : "FAQ"}
                 </div>
                 <div className="mt-4 space-y-4">
-                  {listing.faq.slice(0, 6).map((qa: any, idx: number) => (
+                  {listing.faq.slice(0, 6).map((qa: FaqRow, idx: number) => (
                     <div key={idx} className="rounded-xl border border-black/10 bg-[#F5F5F5] p-4">
                       <div className="text-sm font-semibold text-[#111111]">Q: {qa.q?.[lang] ?? qa.q?.es}</div>
                       <div className="mt-2 text-sm text-[#2B2B2B]">A: {qa.a?.[lang] ?? qa.a?.es}</div>
@@ -273,17 +305,22 @@ export function LegacyServiciosSampleProfile({ listingId }: { listingId: string 
           </div>
 
           <aside className="space-y-6">
-            {listing.hours ? (
+            {hoursTable ? (
               <section className="rounded-2xl border border-black/10 bg-white p-6">
                 <div className="text-lg font-semibold text-[#111111]">{lang === "es" ? "Horario" : "Hours"}</div>
                 <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                   {[
-                    ["Mon", "mon"], ["Tue", "tue"], ["Wed", "wed"], ["Thu", "thu"],
-                    ["Fri", "fri"], ["Sat", "sat"], ["Sun", "sun"],
+                    ["Mon", "mon"],
+                    ["Tue", "tue"],
+                    ["Wed", "wed"],
+                    ["Thu", "thu"],
+                    ["Fri", "fri"],
+                    ["Sat", "sat"],
+                    ["Sun", "sun"],
                   ].map(([label, key]) => (
                     <div key={key} className="flex items-center justify-between gap-3">
                       <span className="text-[#5A5A5A]">{label}</span>
-                      <span className="font-medium text-[#111111]">{listing.hours[key]}</span>
+                      <span className="font-medium text-[#111111]">{hoursTable[key] ?? "—"}</span>
                     </div>
                   ))}
                 </div>

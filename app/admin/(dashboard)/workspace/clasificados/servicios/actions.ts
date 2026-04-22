@@ -100,8 +100,8 @@ export async function setServiciosReviewModerationStatusAction(formData: FormDat
   if (/^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(listingSlug) && listingSlug.length <= 120) {
     await insertServiciosAnalyticsEvent({
       listingSlug,
-      eventType: "admin_moderation",
-      meta: { action: "review_status", reviewId, status },
+      eventType: status === "approved" ? "review_approved" : "review_rejected",
+      meta: { reviewId, channel: "admin_moderation" },
     });
   }
 

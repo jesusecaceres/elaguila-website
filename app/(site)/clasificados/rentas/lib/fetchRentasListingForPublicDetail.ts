@@ -26,5 +26,7 @@ export async function fetchRentasListingForPublicDetail(
   if (String(row.status ?? "").toLowerCase() !== "active" || row.is_published === false) {
     return null;
   }
-  return mapListingRowToRentasPublicListing(row, lang);
+  const mapped = mapListingRowToRentasPublicListing(row, lang);
+  if (!mapped || mapped.browseActive === false) return null;
+  return mapped;
 }

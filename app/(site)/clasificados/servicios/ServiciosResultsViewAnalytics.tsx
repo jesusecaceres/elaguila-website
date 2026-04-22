@@ -2,22 +2,21 @@
 
 import { useEffect, useRef } from "react";
 
-/** Best-effort aggregate event when results grid is shown (no per-slug payload). */
-export function ServiciosResultsViewAnalytics({ listingSlugs }: { listingSlugs: string[] }) {
+/** Global results impression — `listing_slug` is intentionally NULL (see analytics migration). */
+export function ServiciosResultsViewAnalytics({ resultCount }: { resultCount: number }) {
   const sent = useRef(false);
   useEffect(() => {
-    if (sent.current || listingSlugs.length === 0) return;
+    if (sent.current) return;
     sent.current = true;
-    const slug = listingSlugs[0];
     void fetch("/api/clasificados/servicios/analytics", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        listingSlug: slug,
+        listingSlug: null,
         eventType: "search_results_view",
-        meta: { resultCount: listingSlugs.length, sampleSlugs: listingSlugs.slice(0, 12) },
+        meta: { resultCount, path: "/clasificados/servicios/resultados" },
       }),
     }).catch(() => {});
-  }, [listingSlugs]);
+  }, [resultCount]);
   return null;
 }

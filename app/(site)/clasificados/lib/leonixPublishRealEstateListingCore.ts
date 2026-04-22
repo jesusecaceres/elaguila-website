@@ -137,12 +137,32 @@ export async function publishLeonixRealEstateListingCore(
 
   if (insErr) {
     devLog("insert error", insErr);
+    const code = typeof (insErr as { code?: unknown }).code === "string" ? String((insErr as { code: string }).code) : "";
+    const msg = String(insErr.message ?? "");
+    const rls = code === "42501" || /row-level security|RLS|permission denied|violates row-level security/i.test(msg);
+    const missingCol = /column\s+["']?(\w+)["']?\s+of\s+relation\s+["']?listings["']?\s+does not exist/i.test(msg);
+    const hint =
+      lang === "es"
+        ? rls
+          ? " (Supabase: revisa políticas RLS de `listings` para rol `authenticated` + insert.)"
+          : missingCol
+            ? " (Supabase: aplica migraciones de `listings` o alinea columnas con el insert del app.)"
+            : code
+              ? ` (código PostgREST/Postgres: ${code})`
+              : ""
+        : rls
+          ? " (Supabase: check `listings` RLS policies for `authenticated` insert.)"
+          : missingCol
+            ? " (Supabase: apply `listings` migrations or align DB columns with the app insert.)"
+            : code
+              ? ` (PostgREST/Postgres code: ${code})`
+              : "";
     return {
       ok: false,
       error:
         lang === "es"
-          ? `No se pudo guardar el anuncio: ${insErr.message}`
-          : `Could not save listing: ${insErr.message}`,
+          ? `No se pudo guardar el anuncio: ${msg}${hint}`
+          : `Could not save listing: ${msg}${hint}`,
     };
   }
 

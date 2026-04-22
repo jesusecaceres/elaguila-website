@@ -52,6 +52,10 @@ const LABELS = {
     es: "Portada o al menos una imagen destacada en la galería principal",
     en: "Cover image or at least one image in the main gallery strip",
   },
+  legal: {
+    es: "Confirmaciones legales de publicación (exactitud, fotos y reglas)",
+    en: "Legal publish confirmations (accuracy, photos, and community rules)",
+  },
 } as const;
 
 const STEP = {
@@ -63,6 +67,8 @@ const STEP = {
   services: 4,
   /** Contact source fields live on step 2 (index 1) */
   contact: 1,
+  /** Attestations live on final publish step (index 8) */
+  legal_attest: 8,
 } as const;
 
 type ReadinessId = keyof typeof STEP;
@@ -103,6 +109,13 @@ export function evaluateServiciosPublishReadiness(
   }
   if (!hasFeaturedVisual(normalized)) {
     push("media", L("media"));
+  }
+  if (
+    !normalized.confirmListingAccurate ||
+    !normalized.confirmPhotosRepresentBusiness ||
+    !normalized.confirmCommunityRules
+  ) {
+    push("legal_attest", L("legal"));
   }
 
   return { ok: missing.length === 0, missing };

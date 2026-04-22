@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
@@ -25,13 +25,31 @@ type Props = {
   slug: string;
   initialJob: EmpleosJobRecord | null;
   relatedExtra?: EmpleosJobRecord[];
+  /** When set, increments persisted `view_count` once per browser session load (published slug only). */
+  trackPublicViewsForSlug?: string | null;
 };
 
-export function EmpleoPublicDetailClient({ slug, initialJob, relatedExtra = [] }: Props) {
+export function EmpleoPublicDetailClient({ slug, initialJob, relatedExtra = [], trackPublicViewsForSlug = null }: Props) {
   const sp = useSearchParams();
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
-
   const job = initialJob;
+
+  useEffect(() => {
+    const s = trackPublicViewsForSlug?.trim();
+    if (!s) return;
+    try {
+      const key = `empleos_public_view_v1:${s}`;
+      if (typeof sessionStorage !== "undefined" && sessionStorage.getItem(key)) return;
+      if (typeof sessionStorage !== "undefined") sessionStorage.setItem(key, "1");
+    } catch {
+      /* private mode / blocked storage */
+    }
+    void fetch("/api/clasificados/empleos/listings/public-view", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: s }),
+    }).catch(() => {});
+  }, [trackPublicViewsForSlug]);
 
   const related = useMemo(() => getRelatedJobs(slug, 3, relatedExtra), [slug, relatedExtra]);
 

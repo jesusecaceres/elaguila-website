@@ -724,9 +724,10 @@ export function mergePartialBienesRaicesNegocioState(partial: LegacyPartial): Bi
       : base.deepDetails,
     identityAgente: partial.identityAgente
       ? (() => {
-          const { asesorFinancieroActivo: _dropAsesor, ...ia } = partial.identityAgente as typeof partial.identityAgente & {
+          const { asesorFinancieroActivo: _legacyAsesorFlag, ...ia } = partial.identityAgente as typeof partial.identityAgente & {
             asesorFinancieroActivo?: boolean;
           };
+          void _legacyAsesorFlag;
           return {
             ...base.identityAgente,
             ...ia,

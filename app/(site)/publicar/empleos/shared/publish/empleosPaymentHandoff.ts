@@ -1,6 +1,6 @@
 /**
- * Payment / publish handoff — placeholders for Stripe checkout wiring (Phase next).
- * Preview and session drafts stay separate; this attaches only to staged publish envelopes.
+ * Payment / publish handoff metadata on publish envelopes.
+ * Launch behavior: listings persist without Stripe; payment fields are inert until checkout is wired.
  */
 export type EmpleosPaymentState = "none" | "pending" | "paid" | "failed" | "refunded";
 
@@ -16,10 +16,10 @@ export type EmpleosPaymentHandoffPlaceholder = {
 
 export function defaultEmpleosPaymentHandoff(): EmpleosPaymentHandoffPlaceholder {
   return {
-    paymentRequired: true,
+    paymentRequired: false,
     paymentPackage: null,
     stripeSessionId: null,
     paymentState: "none",
-    publishedAfterPayment: true,
+    publishedAfterPayment: false,
   };
 }

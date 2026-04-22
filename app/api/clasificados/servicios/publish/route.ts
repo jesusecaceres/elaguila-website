@@ -19,6 +19,7 @@ import {
 import { mapServiciosApplicationDraftToBusinessProfile } from "@/app/servicios/lib/mapServiciosApplicationDraftToBusinessProfile";
 import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
+import { buildServiciosDiscoveryFacet } from "@/app/clasificados/servicios/lib/serviciosPublishDiscovery";
 import { insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
 import { isServiciosStrictPublishEnvironment, serviciosOwnerIdFromBearer } from "../lib/serviciosPublishServerAuth";
 
@@ -72,6 +73,11 @@ export async function POST(req: NextRequest) {
   const ownerUserId = await serviciosOwnerIdFromBearer(req);
 
   if (strict && !ownerUserId) {
+    await insertServiciosAnalyticsEvent({
+      listingSlug: null,
+      eventType: "publish_failure",
+      meta: { reason: "auth_required" },
+    });
     return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   }
 
@@ -80,6 +86,11 @@ export async function POST(req: NextRequest) {
 
   const readiness = evaluateServiciosPublishReadiness(state, lang);
   if (!readiness.ok) {
+    await insertServiciosAnalyticsEvent({
+      listingSlug: null,
+      eventType: "publish_validation_failed",
+      meta: { missing: readiness.missing },
+    });
     return NextResponse.json({ ok: false, error: "not_ready", missing: readiness.missing }, { status: 422 });
   }
 
@@ -101,9 +112,12 @@ export async function POST(req: NextRequest) {
   draft.identity.slug = slug;
   let wire = mapServiciosApplicationDraftToBusinessProfile(draft);
   wire = stripAdvertiserVerificationFlags(wire);
+  const opsMeta = { ...wire.opsMeta };
   if (state.leonixVerifiedInterest === true) {
-    wire = { ...wire, opsMeta: { ...wire.opsMeta, leonixVerifiedInterest: true } };
+    opsMeta.leonixVerifiedInterest = true;
   }
+  opsMeta.discovery = buildServiciosDiscoveryFacet(state, wire);
+  wire = { ...wire, opsMeta };
 
   const preset = getBusinessTypePreset(state.businessTypeId);
   const internalGroup = preset?.internalGroup ?? null;
@@ -121,6 +135,11 @@ export async function POST(req: NextRequest) {
 
       if (existing) {
         if (ownerUserId && existing.owner_user_id && existing.owner_user_id !== ownerUserId) {
+          await insertServiciosAnalyticsEvent({
+            listingSlug: slug,
+            eventType: "publish_failure",
+            meta: { reason: "slug_conflict" },
+          });
           return NextResponse.json({ ok: false, error: "slug_conflict" }, { status: 409 });
         }
         const { error } = await supabase
@@ -177,6 +196,11 @@ export async function POST(req: NextRequest) {
       : "none";
 
   if (strict && !persistedToDatabase) {
+    await insertServiciosAnalyticsEvent({
+      listingSlug: slug,
+      eventType: "publish_failure",
+      meta: { reason: "persist_failed", persistence, strict: true },
+    });
     return NextResponse.json(
       {
         ok: false,
@@ -190,6 +214,11 @@ export async function POST(req: NextRequest) {
   }
 
   if (!strict && persistence === "none") {
+    await insertServiciosAnalyticsEvent({
+      listingSlug: slug,
+      eventType: "publish_failure",
+      meta: { reason: "persist_failed", persistence, strict: false },
+    });
     return NextResponse.json(
       {
         ok: false,

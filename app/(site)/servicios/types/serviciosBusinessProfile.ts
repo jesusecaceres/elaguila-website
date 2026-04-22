@@ -73,6 +73,15 @@ export type ServiciosTrustItem = {
   icon: "shield" | "shieldCheck" | "star" | "clock" | "heart" | "check";
 };
 
+/** Persisted with listing `profile_json.opsMeta` — discovery filters + trust-adjacent attestations flag. */
+export type ServiciosDiscoveryFacet = {
+  languageChipIds: string[];
+  hasPhysicalAddress: boolean;
+  hasServiceAreaMultiLine: boolean;
+  hasPromoHeadline: boolean;
+  listerAttestationsComplete: boolean;
+};
+
 export type ServiciosReview = {
   id: string;
   authorName: string;
@@ -192,6 +201,7 @@ export type ServiciosBusinessProfile = {
    */
   opsMeta?: {
     leonixVerifiedInterest?: boolean;
+    discovery?: ServiciosDiscoveryFacet;
   };
   quickFacts?: ServiciosQuickFact[];
   about?: ServiciosAboutBlock;

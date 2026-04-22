@@ -73,6 +73,19 @@ export function ServiciosResultsFilters({
             lastCity: String(fd.get("city") ?? "").trim() || undefined,
             lastGroup: String(fd.get("group") ?? "").trim() || undefined,
           });
+          const snap: Record<string, string> = {};
+          for (const [k, v] of fd.entries()) {
+            if (typeof v === "string" && v.trim()) snap[String(k)] = v.trim().slice(0, 240);
+          }
+          void fetch("/api/clasificados/servicios/analytics", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              listingSlug: null,
+              eventType: "filter_change",
+              meta: { path: "/clasificados/servicios/resultados", form: snap },
+            }),
+          }).catch(() => {});
         }}
       >
         <input type="hidden" name="lang" value={lang} />
@@ -314,6 +327,128 @@ export function ServiciosResultsFilters({
               >
                 <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
                 <option value="1">{lang === "en" ? "Phone shown" : "Con teléfono visible"}</option>
+              </select>
+            </label>
+          </div>
+        </GroupShell>
+
+        <GroupShell titleEs="Datos del formulario de publicación" titleEn="Publish-application signals" lang={lang}>
+          <p className="mb-3 text-[11px] leading-relaxed text-neutral-600">
+            {lang === "en"
+              ? "These align with fields captured in Clasificados Servicios — stored on each listing profile for discovery."
+              : "Coinciden con campos del formulario Servicios en Clasificados, guardados en el perfil de cada anuncio."}
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "In-app messages" : "Mensajes en app"}</span>
+              <select
+                name="msg"
+                defaultValue={current.msg === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Messaging enabled" : "Mensajes activados"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Physical address" : "Dirección física"}</span>
+              <select
+                name="phys"
+                defaultValue={current.phys === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Has storefront / mailing address" : "Con dirección publicada"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">
+                {lang === "en" ? "Multi-area coverage" : "Cobertura multi-zona"}
+              </span>
+              <select
+                name="svcMulti"
+                defaultValue={current.svcMulti === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Multiple service areas" : "Varias zonas de servicio"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Offer headline" : "Titular de oferta"}</span>
+              <select
+                name="offer"
+                defaultValue={current.offer === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Has offer / promo line" : "Con oferta / promoción"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Legal attestations" : "Confirmaciones legales"}</span>
+              <select
+                name="legal"
+                defaultValue={current.legal === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "All publish confirmations on file" : "Todas las confirmaciones al publicar"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">Español</span>
+              <select
+                name="langEs"
+                defaultValue={current.langEs === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Spanish offered" : "Ofrece español"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">English</span>
+              <select
+                name="langEn"
+                defaultValue={current.langEn === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "English offered" : "Ofrece inglés"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Other language" : "Otro idioma"}</span>
+              <select
+                name="langOt"
+                defaultValue={current.langOt === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Other language flagged" : "Otro idioma marcado"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Verification interest" : "Interés verificación"}</span>
+              <select
+                name="vint"
+                defaultValue={current.vint === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Requested Leonix review" : "Solicitó revisión Leonix"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Weekend hours" : "Fin de semana"}</span>
+              <select
+                name="wknd"
+                defaultValue={current.wknd === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Sat/Sun not all closed" : "Sáb/Dom con horario"}</option>
               </select>
             </label>
           </div>

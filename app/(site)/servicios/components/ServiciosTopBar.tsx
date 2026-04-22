@@ -217,6 +217,7 @@ function ServiciosTopBarInner({
                   className="flex items-center gap-2 rounded-full border border-black/[0.08] bg-white px-2 py-1.5 pr-3 shadow-sm transition hover:border-black/12"
                 >
                   {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- remote avatar URL; not in static image config
                     <img src={avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
                   ) : (
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#3B66AD]/12 text-xs font-bold text-[#3B66AD]">

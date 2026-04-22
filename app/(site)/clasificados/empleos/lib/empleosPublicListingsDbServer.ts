@@ -142,6 +142,13 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   if (existing && (existing as { owner_user_id: string | null }).owner_user_id !== input.ownerUserId) {
     return { ok: false, error: "forbidden" };
   }
+  if (existing) {
+    const existingLane = String((existing as EmpleosPublicListingRow).lane ?? "").trim();
+    const incomingLane = String(input.envelope.lane ?? "").trim();
+    if (existingLane && incomingLane && existingLane !== incomingLane) {
+      return { ok: false, error: "lane_mismatch" };
+    }
+  }
 
   const slug =
     (existing as EmpleosPublicListingRow | null)?.slug ?? (await allocateUniqueEmpleosSlugServer(envelopeTitle(input.envelope)));
@@ -475,4 +482,68 @@ export async function fetchEmpleosApplicationsForListing(input: {
     .order("created_at", { ascending: false });
   if (error || !data) return [];
   return data as typeof data;
+}
+
+export type EmpleosApplicationHealthRow = {
+  listing_id: string;
+  total: number;
+  submitted: number;
+  viewed: number;
+  shortlisted: number;
+  rejected: number;
+  hired: number;
+};
+
+export async function fetchEmpleosApplicationHealthByListingIds(listingIds: string[]): Promise<Map<string, EmpleosApplicationHealthRow>> {
+  const out = new Map<string, EmpleosApplicationHealthRow>();
+  if (!isSupabaseAdminConfigured() || listingIds.length === 0) return out;
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("empleos_job_applications")
+    .select("listing_id, status")
+    .in("listing_id", listingIds);
+  if (error || !data) return out;
+  for (const id of listingIds) {
+    out.set(id, { listing_id: id, total: 0, submitted: 0, viewed: 0, shortlisted: 0, rejected: 0, hired: 0 });
+  }
+  for (const row of data as { listing_id: string; status: string }[]) {
+    const cur = out.get(row.listing_id);
+    if (!cur) continue;
+    cur.total += 1;
+    const st = String(row.status ?? "submitted");
+    if (st === "submitted") cur.submitted += 1;
+    else if (st === "viewed") cur.viewed += 1;
+    else if (st === "shortlisted") cur.shortlisted += 1;
+    else if (st === "rejected") cur.rejected += 1;
+    else if (st === "hired") cur.hired += 1;
+  }
+  return out;
+}
+
+/** Public detail page: increment persisted view counter for a published listing slug. */
+export async function incrementEmpleosPublishedListingViewCountBySlug(slug: string): Promise<{ ok: boolean }> {
+  if (!isSupabaseAdminConfigured()) return { ok: false };
+  const supabase = getAdminSupabase();
+  const { data: row, error } = await supabase
+    .from("empleos_public_listings")
+    .select("id, view_count")
+    .eq("slug", slug.trim())
+    .eq("lifecycle_status", "published")
+    .maybeSingle();
+  if (error || !row) return { ok: false };
+  const id = (row as { id: string }).id;
+  const prev =
+    typeof (row as { view_count?: number }).view_count === "number" && Number.isFinite((row as { view_count: number }).view_count)
+      ? (row as { view_count: number }).view_count
+      : 0;
+  try {
+    const { error: uErr } = await supabase
+      .from("empleos_public_listings")
+      .update({ view_count: prev + 1, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (uErr) return { ok: false };
+  } catch {
+    return { ok: false };
+  }
+  return { ok: true };
 }

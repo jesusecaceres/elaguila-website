@@ -19,6 +19,7 @@ import { buildEmpleosPublishEnvelopeFromPremium } from "@/app/publicar/empleos/s
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publish/EmpleosPublishConfirmModal";
 import { clearEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
+import { replaceRouteForEmpleosResumeEdit } from "@/app/publicar/empleos/shared/lib/empleosEditLaneRedirect";
 import { hydratePremiumDraftFromEnvelope } from "@/app/publicar/empleos/shared/lib/empleosDraftFromEnvelope";
 import { flushEmpleosDraftToSession } from "@/app/publicar/empleos/shared/lib/flushEmpleosDraftToSession";
 import { gateEmpleosPremiumPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
@@ -67,15 +68,19 @@ export default function EmpleoPremiumApplicationClient() {
       const res = await fetch(`/api/clasificados/empleos/listings/${editId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const json = (await res.json()) as { ok?: boolean; envelope?: EmpleosPublishEnvelope | null };
+      const json = (await res.json()) as { ok?: boolean; envelope?: EmpleosPublishEnvelope | null; lane?: string };
       if (!json.ok || !json.envelope) return;
+      if (replaceRouteForEmpleosResumeEdit(router, { editId, lang, expected: "premium", actual: json.lane })) {
+        loadedEditRef.current = null;
+        return;
+      }
       const next = hydratePremiumDraftFromEnvelope(json.envelope);
       if (next) {
         patch(() => next);
         setServerListingId(editId);
       }
     })();
-  }, [hydrated, sp, patch]);
+  }, [hydrated, sp, patch, router, lang]);
 
   const gate = useMemo(() => gateEmpleosPremiumPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;

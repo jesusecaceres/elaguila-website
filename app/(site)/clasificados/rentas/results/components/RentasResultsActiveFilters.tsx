@@ -46,6 +46,7 @@ export function RentasResultsActiveFilters({ parsed, copy, priceBandLabel }: Pro
   if (parsed.mascotas) items.push(copy.results.petsToggle);
 
   if (parsed.bathsMin != null) items.push(`${copy.results.bathsMinLabel}: ${parsed.bathsMin}+`);
+  if (parsed.halfBathsMin != null) items.push(`${copy.results.halfBathsMinLabel}: ${parsed.halfBathsMin}+`);
 
   if (parsed.sort && parsed.sort !== "reciente") {
     const s =

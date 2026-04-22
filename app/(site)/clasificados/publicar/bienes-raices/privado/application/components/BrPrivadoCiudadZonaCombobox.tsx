@@ -58,7 +58,7 @@ export function BrPrivadoCiudadZonaCombobox({ value, onChange, className, inputA
           className="absolute left-0 right-0 z-30 mt-1 max-h-[min(14rem,50vh)] max-w-[100vw] overflow-auto rounded-xl border border-[#E8DFD0] bg-white py-1 shadow-lg sm:max-h-52"
         >
           {filtered.map((s) => (
-            <li key={s} role="option" className="text-sm text-[#2C2416]">
+            <li key={s} role="option" aria-selected={s === value} className="text-sm text-[#2C2416]">
               <button
                 type="button"
                 className="min-h-[48px] w-full touch-manipulation px-3 py-3 text-left font-medium hover:bg-[#FFF6E7] active:bg-[#E8DFD0]/60 sm:min-h-[44px] sm:py-2.5"

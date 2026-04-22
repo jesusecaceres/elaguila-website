@@ -14,6 +14,7 @@ import {
   leonixPromotedFromDetailPairs,
   listingPlanFromDetailPairs,
 } from "@/app/dashboard/lib/dashboardListingMeta";
+import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
 
 type Lang = "es" | "en";
 
@@ -24,6 +25,7 @@ type Row = {
   city?: string | null;
   status?: string | null;
   created_at?: string | null;
+  /** Used for Rentas-specific dashboard lines (e.g. availability from detail_pairs). */
   category?: string | null;
   detail_pairs?: unknown;
   boost_expires?: unknown;
@@ -74,6 +76,9 @@ export function LeonixRealEstateListingManageCard({
 }) {
   const lx = parseLeonixListingContract(row.detail_pairs);
   if (!lx.branch) return null;
+
+  const rentasRx =
+    String(row.category ?? "").toLowerCase() === "rentas" ? parseRentasDetailMachineRead(row.detail_pairs) : null;
 
   const plan = listingPlanFromDetailPairs(row.detail_pairs);
   const boosted = isListingBoosted(row.boost_expires);
@@ -129,6 +134,11 @@ export function LeonixRealEstateListingManageCard({
           <p className="mt-1 text-sm text-[#7A7164]">
             {lang === "es" ? "Vistas" : "Views"}: {viewsTotal} · {lang === "es" ? "Mensajes" : "Messages"}: {messagesTotal}
           </p>
+          {rentasRx?.listingStatus ? (
+            <p className="mt-1 text-xs font-semibold text-[#4A6680]">
+              {lang === "es" ? "Disponibilidad (formulario)" : "Availability (form)"}: {rentasRx.listingStatus}
+            </p>
+          ) : null}
           <p className="mt-2 text-[11px] leading-snug text-[#5C5346]/80">
             {lang === "es"
               ? "Ciclo: borrador local / listing_drafts → publicación → listado vivo en ruta canónica (no preview)."

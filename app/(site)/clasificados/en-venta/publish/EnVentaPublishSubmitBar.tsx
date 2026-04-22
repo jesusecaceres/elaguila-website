@@ -21,8 +21,6 @@ const COPY = {
     successAll: "Ver todos los anuncios de En Venta",
     successDetail: "Ver mi anuncio publicado",
     successDashboard: "Ir a Mis anuncios",
-    galleryPartial:
-      "El anuncio quedó publicado, pero algunas fotos no se subieron. Edita desde Mis anuncios o vuelve a intentar subir imágenes.",
     errPrefix: "No se pudo publicar:",
     blocked: "Marca las confirmaciones y completa categoría, tipo de artículo y condición para publicar.",
   },
@@ -35,8 +33,6 @@ const COPY = {
     successAll: "Browse all For Sale listings",
     successDetail: "View my published listing",
     successDashboard: "Go to My listings",
-    galleryPartial:
-      "Your listing is live, but some photos failed to upload. Edit from My listings or retry image upload.",
     errPrefix: "Could not publish:",
     blocked: "Confirm the checkboxes and complete category, item type, and condition to publish.",
   },
@@ -112,19 +108,12 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
 
     const detailHref = buildEnVentaListingDetailHrefFromResults(publishOutcome.listingId, lang, browseQs);
     const dashboardHref = `/dashboard/mis-anuncios?lang=${lang}`;
-    const galleryWarn = publishOutcome.gallery === "partial" ? t.galleryPartial : null;
-
     return (
       <div
         className="rounded-2xl border border-[#C9B46A]/45 bg-[#FFFCF7] p-5 shadow-sm ring-1 ring-[#C9B46A]/18"
         data-testid="ev-publish-success"
       >
         <p className="text-base font-bold text-[#3D2C12]">{t.successTitle}</p>
-        {galleryWarn ? (
-          <p className="mt-2 text-sm font-medium text-amber-900" role="status">
-            {galleryWarn}
-          </p>
-        ) : null}
         <div className="mt-4 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
           <Link
             data-testid="ev-publish-success-detail"

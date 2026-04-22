@@ -34,8 +34,15 @@ export type RentasPublicListing = {
   publishedAt?: string;
   /** When false, exclude from public grids (unpublished / expired). Default true in demos. */
   browseActive?: boolean;
+  /**
+   * Rentas availability from `Leonix:rent:listing_status` (not DB moderation status).
+   * Public catalog typically includes `disponible` and `pendiente` only.
+   */
+  rentasListingAvailability?: "disponible" | "pendiente" | "bajo_contrato" | "rentado" | null;
   beds: string;
   baths: string;
+  /** Half-baths count when persisted (`Leonix:rent:half_baths_count`). */
+  halfBathsCount?: number | null;
   sqft: string;
   categoriaPropiedad: BrNegocioCategoriaPropiedad;
   branch: RentasSellerType;
@@ -61,8 +68,18 @@ export type RentasPublicListing = {
   /** Negocio-only machine fields (public on detail). */
   businessLicense?: string | null;
   businessWebsite?: string | null;
+  /** Free-text or URLs from machine pair `Leonix:rent:business:social` (Negocio). */
+  businessSocial?: string | null;
+  /** From `listings.business_meta` (`negocioNombreCorreduria` / marca). */
+  businessMarca?: string | null;
+  /** From `listings.business_meta` (`negocioAgente` / contact name line). */
+  businessAgentName?: string | null;
   /** From `listings.business_meta` (`negocioDescripcion` / BR meta) when present. */
   businessDescription?: string | null;
+  /** Public map link when publisher provided one (`Leonix:rent:map_url`). */
+  mapUrl?: string | null;
+  /** External video URL (`Leonix:rent:video_url`). */
+  videoUrl?: string | null;
   /** Localized short copy for detail; sample-only until CMS/DB. */
   description?: { es: string; en: string };
   /** Display line for seller (localized). */

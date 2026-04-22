@@ -1,6 +1,6 @@
 /**
  * Server-side Rentas catalog: published `listings` rows only (no demo).
- * Uses the anon key — must match deployed RLS (see migration `20260421120000_listings_rentas_public_read_policy.sql`).
+ * Uses the anon key — must match deployed RLS (see `supabase/migrations/20260421130001_listings_enable_rls_full_policies.sql`).
  */
 
 import { createClient } from "@supabase/supabase-js";

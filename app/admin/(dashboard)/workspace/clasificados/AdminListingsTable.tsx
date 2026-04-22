@@ -12,8 +12,9 @@ import {
   parseBoostExpiresMs,
   parseDetailPairValue,
 } from "@/app/clasificados/en-venta/boosts/enVentaVisibilityRenewal";
-import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { parseLeonixListingContract, parseLeonixMachineFacetRead } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
+import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 
 type Row = {
   id: string;
@@ -64,14 +65,36 @@ function leonixAdminLine(row: Row, detailPairsAvailable: boolean): string {
 
 function clasificadosLeonixAdminLine(row: Row, detailPairsAvailable: boolean): string {
   const base = leonixAdminLine(row, detailPairsAvailable);
-  if ((row.category ?? "").toLowerCase() !== "rentas" || !detailPairsAvailable) return base;
-  const rx = parseRentasDetailMachineRead(row.detail_pairs);
-  const bits: string[] = [];
+  if (!detailPairsAvailable) return base;
+  const cat = (row.category ?? "").toLowerCase();
+  if (cat === "rentas") {
+    const rx = parseRentasDetailMachineRead(row.detail_pairs);
+    const bits: string[] = [];
   if (rx.leaseTermCode) bits.push(`lease:${rx.leaseTermCode}`);
   if (rx.depositUsdDigits) bits.push(`dep:${rx.depositUsdDigits}`);
+  if (rx.listingStatus) bits.push(`avail:${rx.listingStatus}`);
+  if (rx.mapUrl) bits.push("map");
+  if (rx.videoUrl) bits.push("video");
+  if (rx.halfBathsDigits) bits.push(`½:${rx.halfBathsDigits}`);
   if (rx.servicesIncluded) bits.push("services:…");
   if (rx.businessWebsite) bits.push("web");
+  if (rx.businessSocial) bits.push("social");
   return bits.length ? `${base} · ${bits.join(" · ")}` : base;
+  }
+  if (cat === "bienes-raices") {
+    const m = parseLeonixMachineFacetRead(row.detail_pairs);
+    const bits: string[] = [];
+    if (m.resultsPropertyKind) bits.push(`kind:${m.resultsPropertyKind}`);
+    if (m.bedroomsCount != null) bits.push(`bd:${m.bedroomsCount}`);
+    if (m.bathroomsCount != null) bits.push(`ba:${m.bathroomsCount}`);
+    if (m.postalCode) bits.push(`zip:${m.postalCode}`);
+    if (m.pool === true) bits.push("pool");
+    if (m.petsAllowed === true) bits.push("pets");
+    else if (m.petsAllowed === false) bits.push("pets:no");
+    if (m.furnished === true) bits.push("furn");
+    return bits.length ? `${base} · ${bits.join(" · ")}` : base;
+  }
+  return base;
 }
 
 function enVentaVisibilityAdminLine(
@@ -289,15 +312,36 @@ export default function AdminListingsTable({
                 </td>
                 <td className="p-3">
                   <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1">
-                    <Link
-                      href={`/clasificados/anuncio/${row.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex min-h-[44px] items-center font-semibold text-[#6B5B2E] underline sm:min-h-0"
-                      title="Abrir anuncio en el sitio público (nueva pestaña)"
-                    >
-                      Ver público
-                    </Link>
+                    {(row.category ?? "").toLowerCase() === "rentas" ? (
+                      <Link
+                        href={rentasListingPublicPath(row.id)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex min-h-[44px] items-center font-semibold text-[#6B5B2E] underline sm:min-h-0"
+                        title="Detalle público Rentas (ruta canónica)"
+                      >
+                        Ver público (Rentas)
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/clasificados/anuncio/${row.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex min-h-[44px] items-center font-semibold text-[#6B5B2E] underline sm:min-h-0"
+                        title="Abrir anuncio en el sitio público (nueva pestaña)"
+                      >
+                        Ver público
+                      </Link>
+                    )}
+                    {(row.category ?? "").toLowerCase() === "rentas" ? (
+                      <Link
+                        href={`/admin/workspace/clasificados/rentas/${row.id}`}
+                        className="inline-flex min-h-[44px] items-center font-semibold text-[#4A6680] underline sm:min-h-0"
+                        title="Inspector completo Rentas (staff)"
+                      >
+                        Inspector Rentas
+                      </Link>
+                    ) : null}
                     {row.status !== "removed" && row.is_published !== false ? (
                       <button
                         type="button"

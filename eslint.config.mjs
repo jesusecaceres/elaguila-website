@@ -14,7 +14,7 @@ const compat = new FlatCompat({
 export default [
   // Ignore build output
   {
-    ignores: [".next/**", "out/**", "build/**", "next-env.d.ts"],
+    ignores: [".next/**", "out/**", "build/**", "next-env.d.ts", "scripts/**/*.js"],
   },
 
   // Base recommended rules

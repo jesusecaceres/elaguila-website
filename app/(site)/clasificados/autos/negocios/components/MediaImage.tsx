@@ -21,6 +21,8 @@ export function MediaImage({
 }) {
   if (src.startsWith("data:")) {
     return (
+      // next/image does not accept arbitrary data: URLs the same way; use native img for local upload previews.
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
         alt={alt}

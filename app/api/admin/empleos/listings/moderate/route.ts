@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import type { EmpleosListingLifecycleDb } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
 import { updateEmpleosListingLifecycleAdmin } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
-import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
 
@@ -36,6 +36,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   });
   if (!res.ok) {
     return NextResponse.json({ ok: false, error: res.error ?? "update_failed" }, { status: 500 });
+  }
+  const supabase = getAdminSupabase();
+  const { data: slugRow } = await supabase.from("empleos_public_listings").select("slug").eq("id", id).maybeSingle();
+  const slug = (slugRow as { slug?: string } | null)?.slug;
+  if (slug) {
+    revalidatePath(`/clasificados/empleos/${slug}`);
   }
   revalidatePath("/clasificados/empleos/resultados");
   revalidatePath("/clasificados/empleos");

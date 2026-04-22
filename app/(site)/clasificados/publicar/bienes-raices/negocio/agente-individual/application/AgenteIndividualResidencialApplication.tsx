@@ -17,7 +17,7 @@ import {
   confirmLeavePublishFlow,
   markPublishFlowOpeningPreview,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
-import { createEmptyAgenteIndividualResidencialState, type AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
+import { createEmptyAgenteIndividualResidencialState } from "../schema/agenteIndividualResidencialFormState";
 import {
   bootstrapAgenteIndividualResidencialApplicationState,
   saveAgenteResPreviewDraft,
@@ -66,7 +66,7 @@ export default function AgenteIndividualResidencialApplication() {
   const total = stepLabels.length;
   const stepLabel = stepLabels[step] ?? "";
   const isDirty = agenteResFormHasProgress(state);
-  const muxIds: string[] = [];
+  const muxIds = useMemo(() => [] as string[], []);
 
   const leaveAndGo = useCallback(
     (href: string) => {

@@ -116,6 +116,7 @@ export type RentasLandingCopy = {
     cityLabel: string;
     zipLabel: string;
     bathsMinLabel: string;
+    halfBathsMinLabel: string;
     bathsAny: string;
     locationUseMine: string;
     locationDenied: string;
@@ -161,6 +162,14 @@ export type RentasLandingCopy = {
     sectionFees: string;
     sectionLease: string;
     sectionExtras: string;
+    mapLink: string;
+    videoLink: string;
+    halfBaths: string;
+    listingStatusHeading: string;
+    businessMarca: string;
+    businessAgent: string;
+    socialHeading: string;
+    postedOn: string;
     ctaLeonixInquiry: string;
     publishedLiveTitle: string;
     publishedLiveBody: string;
@@ -306,6 +315,7 @@ const ES: RentasLandingCopy = {
     cityLabel: "Ciudad",
     zipLabel: "CP",
     bathsMinLabel: "Baños mín.",
+    halfBathsMinLabel: "Medios baños mín.",
     bathsAny: "Cualquiera",
     locationUseMine: "Usar mi ubicación",
     locationDenied: "No pudimos usar tu ubicación. Prueba ciudad o CP.",
@@ -348,6 +358,14 @@ const ES: RentasLandingCopy = {
     sectionFees: "Depósito y condiciones",
     sectionLease: "Plazo y disponibilidad",
     sectionExtras: "Servicios y requisitos",
+    mapLink: "Ver en mapa",
+    videoLink: "Video",
+    halfBaths: "Medios baños",
+    listingStatusHeading: "Estado del anuncio (disponibilidad)",
+    businessMarca: "Marca / correduría",
+    businessAgent: "Contacto comercial",
+    socialHeading: "Redes y enlaces",
+    postedOn: "Publicado",
     ctaLeonixInquiry: "Consulta por Leonix (cuenta requerida)",
     publishedLiveTitle: "Tu anuncio está publicado",
     publishedLiveBody:
@@ -494,6 +512,7 @@ const EN: RentasLandingCopy = {
     cityLabel: "City",
     zipLabel: "ZIP",
     bathsMinLabel: "Min baths",
+    halfBathsMinLabel: "Min half-baths",
     bathsAny: "Any",
     locationUseMine: "Use my location",
     locationDenied: "We couldn’t use your location. Try city or ZIP.",
@@ -536,6 +555,14 @@ const EN: RentasLandingCopy = {
     sectionFees: "Deposit & terms",
     sectionLease: "Lease & availability",
     sectionExtras: "Services & requirements",
+    mapLink: "View on map",
+    videoLink: "Video",
+    halfBaths: "Half baths",
+    listingStatusHeading: "Listing availability",
+    businessMarca: "Brand / brokerage",
+    businessAgent: "Commercial contact",
+    socialHeading: "Social & links",
+    postedOn: "Posted",
     ctaLeonixInquiry: "Message via Leonix (sign-in required)",
     publishedLiveTitle: "Your listing is live",
     publishedLiveBody:

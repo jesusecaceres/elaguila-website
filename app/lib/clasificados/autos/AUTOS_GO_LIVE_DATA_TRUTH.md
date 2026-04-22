@@ -27,3 +27,14 @@ Generic `listings` rows with `category: autos` are **not** merged into the publi
 | Which is truth for public Autos browse? | **`autos_classifieds_listings` active rows** |
 | Are both exposed in the same grid? | **No** — public Autos API does not read `listings`. |
 | Must operators know both? | Only if legacy generic autos ads exist; paid launch uses **paid table only** for `/clasificados/autos`. |
+
+## 5. Alignment rules (dashboard / admin / public)
+
+| Surface | Query / source | “Live on Autos” meaning |
+|---------|----------------|-------------------------|
+| Public landing/results/detail | `GET /api/clasificados/autos/public/listings` (+ `[id]`) | Row exists **and** `status === "active"` in `autos_classifieds_listings`. |
+| Seller dashboard (paid Autos) | `GET /api/clasificados/autos/listings` (owner JWT) | Same table; labels from `autosClassifiedsVisibility.ts` must match DB `status`. |
+| Admin workspace Autos | Server list of `autos_classifieds_listings` | Same table; columns for Stripe ids / featured / URL must reflect same row the seller sees. |
+| Generic `mis-anuncios` / `listings` | `listings` table | **Different product** — can show legacy `category=autos` without implying paid Autos publish state. |
+
+**Deprecated / non-launch for Leonix Autos category:** using only generic `listings` for `/clasificados/autos` browse — **not implemented**; launch truth is the **paid** table as above.

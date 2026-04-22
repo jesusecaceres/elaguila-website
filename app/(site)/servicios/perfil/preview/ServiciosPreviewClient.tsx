@@ -33,7 +33,7 @@ export function ServiciosPreviewClient() {
     if (!draft) return null;
     const wire = mapServiciosApplicationDraftToBusinessProfile(draft);
     return resolveServiciosProfile(wire, lang);
-  }, [draft]);
+  }, [draft, lang]);
 
   if (!profile) {
     return <div className="min-h-screen bg-[#F9F8F6]" aria-busy="true" />;

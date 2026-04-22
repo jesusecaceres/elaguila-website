@@ -17,16 +17,49 @@ function trim(s: unknown): string {
   return typeof s === "string" ? s.trim() : String(s).trim();
 }
 
-function businessDescriptionFromRow(row: ListingRowLike): string | undefined {
+function businessMetaFromRow(row: ListingRowLike): {
+  description?: string;
+  marca?: string;
+  agentName?: string;
+  redesFromMeta?: string;
+} {
   const raw = row.business_meta;
-  if (typeof raw !== "string" || !raw.trim()) return undefined;
+  if (typeof raw !== "string" || !raw.trim()) return {};
   try {
     const o = JSON.parse(raw) as Record<string, unknown>;
     const d = trim(o.negocioDescripcion);
-    return d || undefined;
+    const marca = trim(o.negocioNombreCorreduria);
+    const agentName = trim(o.negocioAgente);
+    const redesFromMeta = trim(o.negocioRedes);
+    return {
+      description: d || undefined,
+      marca: marca || undefined,
+      agentName: agentName || undefined,
+      redesFromMeta: redesFromMeta || undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function sanitizeHttpUrl(raw: string | null | undefined): string | undefined {
+  const u = trim(raw ?? "");
+  if (!u || !/^https?:\/\//i.test(u)) return undefined;
+  try {
+    const parsed = new URL(u);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return undefined;
+    return u;
   } catch {
     return undefined;
   }
+}
+
+function rentasCatalogEligibleFromMachineStatus(code: string | null): boolean {
+  const s = (code ?? "").trim().toLowerCase();
+  if (!s) return true;
+  if (s === "disponible" || s === "pendiente") return true;
+  if (s === "bajo_contrato" || s === "rentado") return false;
+  return true;
 }
 
 function pairValue(detailPairs: unknown, needle: string): string | null {
@@ -166,11 +199,19 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
 
   const status = String(row.status ?? "").toLowerCase();
   const published = row.is_published !== false;
-  const browseActive = status === "active" && published;
-
   const lx = parseLeonixListingContract(row.detail_pairs);
   const mf = parseLeonixMachineFacetRead(row.detail_pairs);
   const rx = parseRentasDetailMachineRead(row.detail_pairs);
+  const availabilityRaw = (rx.listingStatus ?? "").trim().toLowerCase();
+  const rentasListingAvailability: RentasPublicListing["rentasListingAvailability"] =
+    availabilityRaw === "disponible" ||
+    availabilityRaw === "pendiente" ||
+    availabilityRaw === "bajo_contrato" ||
+    availabilityRaw === "rentado"
+      ? availabilityRaw
+      : null;
+  const browseActive =
+    status === "active" && published && rentasCatalogEligibleFromMachineStatus(rx.listingStatus);
   const branchSeller = branchToSeller(lx.branch);
   const categoria: BrNegocioCategoriaPropiedad =
     lx.categoriaPropiedad === "residencial" || lx.categoriaPropiedad === "comercial" || lx.categoriaPropiedad === "terreno_lote"
@@ -202,7 +243,19 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
 
   const img = firstImageUrl(row.images);
   const gal = galleryUrls(row.images);
-  const imageUrl = img || "https://images.unsplash.com/photo-1600585154340-0ef3c08dc8e4?w=800&q=80&auto=format&fit=crop";
+  const imageUrl = img || "/logo.png";
+
+  const halfDigits = rx.halfBathsDigits ?? "";
+  const halfParsed = Math.round(Number(String(halfDigits).replace(/\D/g, "")) || 0);
+  const halfBathsCount = halfParsed > 0 ? halfParsed : null;
+
+  const mapUrl = sanitizeHttpUrl(rx.mapUrl);
+  const videoUrl = sanitizeHttpUrl(rx.videoUrl);
+  const bizMeta = businessMetaFromRow(row);
+  const businessSocial = (rx.businessSocial ?? "").trim() || bizMeta.redesFromMeta || undefined;
+  const businessMarca = bizMeta.marca;
+  const businessAgentName = bizMeta.agentName;
+  const businessDescription = bizMeta.description;
 
   const created = trim(row.created_at);
   const publishedAt = created || undefined;
@@ -240,8 +293,10 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     postalCode,
     publishedAt,
     browseActive,
+    rentasListingAvailability,
     beds,
     baths,
+    halfBathsCount,
     sqft: sqftStr,
     interiorSqftApprox: sqftNumericFromText(sqftStr),
     parkingSpots: mf.parkingSpots,
@@ -253,7 +308,12 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     requirements: rx.requirements ?? undefined,
     businessLicense: rx.businessLicense ?? undefined,
     businessWebsite: rx.businessWebsite ?? undefined,
-    businessDescription: businessDescriptionFromRow(row),
+    businessSocial,
+    businessMarca,
+    businessAgentName,
+    businessDescription,
+    mapUrl,
+    videoUrl,
     categoriaPropiedad: categoria,
     branch: branchSeller,
     badges: branchSeller === "negocio" ? ["negocio"] : ["privado"],

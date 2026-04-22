@@ -20,6 +20,7 @@ type ListingRow = {
   lane: string;
   moderation_reason: string | null;
   apply_count?: number | null;
+  view_count?: number | null;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -60,6 +61,7 @@ export default function EmpleosEmployerManagePage() {
             actions: "Acciones",
             moderation: "Moderación",
             applyCount: "Solicitudes",
+            viewCount: "Vistas",
             setViewed: "Marcar visto",
             setShort: "Preseleccionar",
             setReject: "Rechazar",
@@ -73,6 +75,12 @@ export default function EmpleosEmployerManagePage() {
             noApps: "No applications yet.",
             status: "Status",
             actions: "Actions",
+            applyCount: "Applications",
+            viewCount: "Views",
+            moderation: "Moderation",
+            setViewed: "Mark viewed",
+            setShort: "Shortlist",
+            setReject: "Reject",
           },
     [lang],
   );
@@ -170,6 +178,11 @@ export default function EmpleosEmployerManagePage() {
         {typeof row.apply_count === "number" ? (
           <p className="mt-1 text-xs">
             <span className="font-semibold">{t.applyCount}:</span> {row.apply_count}
+          </p>
+        ) : null}
+        {typeof row.view_count === "number" ? (
+          <p className="mt-1 text-xs">
+            <span className="font-semibold">{t.viewCount}:</span> {row.view_count}
           </p>
         ) : null}
         {row.moderation_reason ? (

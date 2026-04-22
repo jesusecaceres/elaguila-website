@@ -7,7 +7,6 @@ import {
   clearAutosPrivadoDraft,
   loadAutosPrivadoDraftResolved,
   saveAutosPrivadoDraftResolved,
-  type AutosPrivadoDraftV1,
 } from "@/app/clasificados/autos/privado/lib/autosPrivadoDraftStorage";
 import {
   autosPrivadoDraftNamespaceFromUserId,

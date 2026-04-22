@@ -22,16 +22,16 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const { slug } = await params;
   const sp = searchParams ? await searchParams : {};
   const lang = sp.lang === "en" ? "en" : "es";
+  const canonicalAbs = empleosJobPublicAbsoluteUrl(slug, lang);
   const row = await fetchEmpleosPublishedListingRowBySlug(slug);
   if (row) {
     const job = rowToJobRecord(row);
-    const ogUrl = empleosJobPublicAbsoluteUrl(slug, lang);
     return {
       title: `${job.title} — ${job.company} | Empleos`,
       description: job.summary,
-      alternates: { canonical: `/clasificados/empleos/${slug}` },
+      alternates: { canonical: canonicalAbs },
       openGraph: {
-        url: ogUrl,
+        url: canonicalAbs,
         title: `${job.title} — ${job.company}`,
         description: job.summary,
         type: "website",
@@ -43,16 +43,15 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     return {
       title: "Empleo | Leonix Clasificados",
       description: "Vacante, feria o publicación de empleo en Leonix Clasificados.",
-      alternates: { canonical: `/clasificados/empleos/${slug}` },
+      alternates: { canonical: canonicalAbs },
     };
   }
-  const ogUrl = empleosJobPublicAbsoluteUrl(slug, lang);
   return {
     title: `${job.title} — ${job.company} | Empleos`,
     description: job.summary,
-    alternates: { canonical: `/clasificados/empleos/${slug}` },
+    alternates: { canonical: canonicalAbs },
     openGraph: {
-      url: ogUrl,
+      url: canonicalAbs,
       title: `${job.title} — ${job.company}`,
       description: job.summary,
       type: "website",
@@ -71,8 +70,8 @@ export default async function EmpleoPublicDetailPage({ params, searchParams }: P
 
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#FAF7F2] pt-24" aria-busy="true" />}>
-      {job ? <EmpleosJobPostingJsonLd job={job} lang={lang} /> : null}
-      <EmpleoPublicDetailClient slug={slug} initialJob={job} relatedExtra={relatedExtra} />
+      {row && job ? <EmpleosJobPostingJsonLd job={job} lang={lang} /> : null}
+      <EmpleoPublicDetailClient slug={slug} initialJob={job} relatedExtra={relatedExtra} trackPublicViewsForSlug={row ? slug : null} />
     </Suspense>
   );
 }

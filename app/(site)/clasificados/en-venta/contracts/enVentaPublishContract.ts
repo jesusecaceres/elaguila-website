@@ -10,9 +10,9 @@
  * - **Not stored here:** global site banners (`site_section_content`) — those are unrelated to classified publish.
  *
  * ## Image policy (En Venta publish — `publishEnVentaFromDraft`)
- * - **0 photos in wizard:** insert succeeds; `gallery=none` (optional listings).
- * - **≥1 photo:** every ordered image must upload to `listing-images`; if **all** uploads fail, the listing row is **deleted** and publish returns an error (no silent live listing without photos).
- * - **Partial uploads:** listing stays live with uploaded subset; seller sees an amber warning on the success panel.
+ * - **0 photos in wizard:** row is created as non-public draft, then finalized `active` + published; `gallery=none`.
+ * - **≥1 photo:** row stays `draft` + unpublished until **every** ordered image uploads to `listing-images`; then finalize.
+ * - **Any upload shortfall:** publish errors; row is set `removed` + `is_published=false` (never public; no `delete()` dependency).
  *
  * ## Field coverage (Free/Pro application → `listings` / `detail_pairs` → surfaces)
  * | Field | Stored | Detail | Results filter | Sort | Notes |

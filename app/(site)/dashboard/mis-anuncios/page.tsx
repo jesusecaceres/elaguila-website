@@ -158,7 +158,8 @@ function normalizeStatus(s: string | null | undefined): string {
 
 function passesTab(row: ListingRow, tab: Tab): boolean {
   const st = normalizeStatus(row.status);
-  if (st === "removed") return false;
+  /** Keep removed rows in “All” so sellers see failed publish / admin removals; other tabs stay discovery-focused. */
+  if (st === "removed") return tab === "all";
   const isDraft = row.is_published === false || st === "draft";
   if (tab === "all") return true;
   if (tab === "active") return st === "active" && !isDraft;

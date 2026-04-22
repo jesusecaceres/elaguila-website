@@ -17,6 +17,7 @@ import { buildEmpleosPublishEnvelopeFromFeria } from "@/app/publicar/empleos/sha
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publish/EmpleosPublishConfirmModal";
 import { clearEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
+import { replaceRouteForEmpleosResumeEdit } from "@/app/publicar/empleos/shared/lib/empleosEditLaneRedirect";
 import { hydrateFeriaDraftFromEnvelope } from "@/app/publicar/empleos/shared/lib/empleosDraftFromEnvelope";
 import { flushEmpleosDraftToSession } from "@/app/publicar/empleos/shared/lib/flushEmpleosDraftToSession";
 import { gateEmpleosFeriaPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
@@ -66,15 +67,19 @@ export default function EmpleoFeriaApplicationClient() {
       const res = await fetch(`/api/clasificados/empleos/listings/${editId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const json = (await res.json()) as { ok?: boolean; envelope?: EmpleosPublishEnvelope | null };
+      const json = (await res.json()) as { ok?: boolean; envelope?: EmpleosPublishEnvelope | null; lane?: string };
       if (!json.ok || !json.envelope) return;
+      if (replaceRouteForEmpleosResumeEdit(router, { editId, lang, expected: "feria", actual: json.lane })) {
+        loadedEditRef.current = null;
+        return;
+      }
       const next = hydrateFeriaDraftFromEnvelope(json.envelope);
       if (next) {
         patch(() => next);
         setServerListingId(editId);
       }
     })();
-  }, [hydrated, sp, patch]);
+  }, [hydrated, sp, patch, router, lang]);
 
   const gate = useMemo(() => gateEmpleosFeriaPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;

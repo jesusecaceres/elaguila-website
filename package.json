@@ -7,10 +7,19 @@
     "build": "node scripts/next-build.js",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit --incremental false",
+    "lint:br": "eslint \"app/(site)/clasificados/bienes-raices/**/*.{ts,tsx}\" \"app/(site)/clasificados/lib/leonix*.ts\" \"app/(site)/clasificados/lib/publish/**/*.{ts,tsx}\" \"app/(site)/clasificados/publicar/bienes-raices/**/*.{ts,tsx}\" --max-warnings 0",
+    "verify:br": "npx tsx scripts/br-launch-selftest.ts",
     "prebuild": "node scripts/dup-guard.js",
     "dup:guard": "node scripts/dup-guard.js",
+    "autos:enforce-smoke": "npx tsx scripts/autos-enforcement-smoke.ts",
     "verify:viajes": "node scripts/verify-viajes-pipeline.mjs",
-    "verify:viajes:filters": "npx tsx scripts/viajes-browse-filter-selftest.ts"
+    "verify:viajes:filters": "npx tsx scripts/viajes-browse-filter-selftest.ts",
+    "verify:empleos": "npx tsx scripts/empleos-jobposting-schema-selftest.ts",
+    "verify:restaurantes:http-smoke": "node scripts/restaurantes-http-smoke.mjs",
+    "verify:en-venta": "npx tsx scripts/en-venta-go-live-selftest.ts",
+    "verify:restaurantes:launch": "npm run typecheck && npm run build && node scripts/restaurantes-http-smoke.mjs",
+    "verify:servicios": "npx tsx scripts/serviciosLaunchProof.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -42,6 +51,7 @@
     "eslint-config-next": "^15.0.3",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
+    "tsx": "^4.20.5",
     "typescript": "^5"
   }
 }

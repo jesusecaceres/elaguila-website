@@ -56,6 +56,8 @@ export const RENTAS_QUERY_ZIP = "zip";
 export const RENTAS_QUERY_STATE = "state";
 /** Minimum bathrooms (numeric string, demo filters `baths` string). */
 export const RENTAS_QUERY_BATHS_MIN = "baths_min";
+/** Minimum half-baths from `Leonix:rent:half_baths_count`. */
+export const RENTAS_QUERY_HALF_BATHS_MIN = "half_baths_min";
 
 export const RENTAS_QUERY_SORT = "sort";
 export const RENTAS_QUERY_PAGE = "page";
@@ -94,6 +96,7 @@ export type RentasBrowseParamsParsed = {
   zip: string;
   state: string;
   bathsMin: number | null;
+  halfBathsMin: number | null;
   sort: string;
   page: number;
   lat: number | null;
@@ -135,6 +138,7 @@ export function parseRentasBrowseParams(sp: URLSearchParams | null | undefined):
   const sqMinRaw = g(RENTAS_QUERY_SQFT_MIN);
   const sqMaxRaw = g(RENTAS_QUERY_SQFT_MAX);
   const bathsRaw = g(RENTAS_QUERY_BATHS_MIN);
+  const halfBathsRaw = g(RENTAS_QUERY_HALF_BATHS_MIN);
 
   const latRaw = g(RENTAS_QUERY_LAT);
   const lngRaw = g(RENTAS_QUERY_LNG);
@@ -162,6 +166,7 @@ export function parseRentasBrowseParams(sp: URLSearchParams | null | undefined):
     zip: normalizeZipForBrowse(g(RENTAS_QUERY_ZIP)),
     state: g(RENTAS_QUERY_STATE).trim(),
     bathsMin: bathsRaw !== "" && Number.isFinite(Number(bathsRaw)) ? Number(bathsRaw) : null,
+    halfBathsMin: halfBathsRaw !== "" && Number.isFinite(Number(halfBathsRaw)) ? Number(halfBathsRaw) : null,
     sort: g(RENTAS_QUERY_SORT) || "reciente",
     page: Math.max(1, parseInt(pageRaw, 10) || 1),
     lat: latRaw !== "" && Number.isFinite(Number(latRaw)) ? Number(latRaw) : null,
@@ -207,6 +212,7 @@ export function rentasBrowseHasActiveFilters(p: RentasBrowseParamsParsed): boole
     p.zip ||
     p.state ||
     p.bathsMin != null ||
+    p.halfBathsMin != null ||
     p.lat != null ||
     p.lng != null ||
     sortNonDefault ||

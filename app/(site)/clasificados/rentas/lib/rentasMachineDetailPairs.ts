@@ -15,6 +15,13 @@ export const RENTAS_DP_FURNISHED_CODE = "Leonix:rent:furnished_code";
 export const RENTAS_DP_PETS_CODE = "Leonix:rent:pets_code";
 export const RENTAS_DP_BUSINESS_LICENSE = "Leonix:rent:business:license";
 export const RENTAS_DP_BUSINESS_WEBSITE = "Leonix:rent:business:website";
+export const RENTAS_DP_BUSINESS_SOCIAL = "Leonix:rent:business:social";
+/** `disponible` | `pendiente` | `bajo_contrato` | `rentado` — Rentas availability lifecycle (not DB moderation status). */
+export const RENTAS_DP_LISTING_STATUS = "Leonix:rent:listing_status";
+export const RENTAS_DP_MAP_URL = "Leonix:rent:map_url";
+/** External video URL only (never data: URLs). */
+export const RENTAS_DP_VIDEO_URL = "Leonix:rent:video_url";
+export const RENTAS_DP_HALF_BATHS_COUNT = "Leonix:rent:half_baths_count";
 
 type RentasPersistCommon = Pick<
   RentasPrivadoFormState,
@@ -51,7 +58,14 @@ export function mergeRentasPrivadoMachinePairs(
   state: RentasPrivadoFormState,
   base: Array<{ label: string; value: string }>,
 ): Array<{ label: string; value: string }> {
-  return mergeRentasCommonMachinePairs(state, base);
+  const out = mergeRentasCommonMachinePairs(state, base);
+  if (state.estadoAnuncio) push(out, RENTAS_DP_LISTING_STATUS, state.estadoAnuncio);
+  push(out, RENTAS_DP_MAP_URL, state.enlaceMapa);
+  const vid = String(state.media.videoUrl ?? "").trim();
+  if (vid && /^https?:\/\//i.test(vid)) push(out, RENTAS_DP_VIDEO_URL, vid);
+  const half = parseInt(String(state.residencial.mediosBanos ?? "").replace(/\D/g, ""), 10);
+  if (Number.isFinite(half) && half > 0) push(out, RENTAS_DP_HALF_BATHS_COUNT, String(half));
+  return out;
 }
 
 export function mergeRentasNegocioMachinePairs(
@@ -59,7 +73,14 @@ export function mergeRentasNegocioMachinePairs(
   base: Array<{ label: string; value: string }>,
 ): Array<{ label: string; value: string }> {
   const out = mergeRentasCommonMachinePairs(state, base);
+  if (state.estadoAnuncio) push(out, RENTAS_DP_LISTING_STATUS, state.estadoAnuncio);
+  push(out, RENTAS_DP_MAP_URL, state.enlaceMapa);
+  const vid = String(state.media.videoUrl ?? "").trim();
+  if (vid && /^https?:\/\//i.test(vid)) push(out, RENTAS_DP_VIDEO_URL, vid);
+  const half = parseInt(String(state.residencial.mediosBanos ?? "").replace(/\D/g, ""), 10);
+  if (Number.isFinite(half) && half > 0) push(out, RENTAS_DP_HALF_BATHS_COUNT, String(half));
   push(out, RENTAS_DP_BUSINESS_LICENSE, state.negocioLicencia);
   push(out, RENTAS_DP_BUSINESS_WEBSITE, state.negocioSitioWeb);
+  push(out, RENTAS_DP_BUSINESS_SOCIAL, state.negocioRedes);
   return out;
 }

@@ -5,17 +5,7 @@ import type { BrResultsCopy } from "../bienesRaicesResultsCopy";
 
 const PRIMARY_IDS: BrPrimaryChipId[] = ["casas", "departamentos", "venta", "renta", "comerciales", "terrenos"];
 
-const SECONDARY_IDS: BrSecondaryChipId[] = [
-  "piscina",
-  "mascotas",
-  "nuevo_desarrollo",
-  "open_house",
-  "reducida",
-  "tour_virtual",
-  "planos",
-  "financiamiento",
-  "segundo_agente",
-];
+const SECONDARY_IDS: BrSecondaryChipId[] = ["piscina", "mascotas"];
 
 type Props = {
   copy: BrResultsCopy;

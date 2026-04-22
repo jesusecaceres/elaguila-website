@@ -16,17 +16,7 @@ const PRIMARY_IDS: BrPrimaryChipId[] = [
   "terrenos",
 ];
 
-const SECONDARY_IDS: BrSecondaryChipId[] = [
-  "piscina",
-  "mascotas",
-  "nuevo_desarrollo",
-  "open_house",
-  "reducida",
-  "tour_virtual",
-  "planos",
-  "financiamiento",
-  "segundo_agente",
-];
+const SECONDARY_IDS: BrSecondaryChipId[] = ["piscina", "mascotas"];
 
 export function brDemoPriceNumber(price: string): number {
   const n = Number(String(price).replace(/[^0-9.]/g, ""));
@@ -38,16 +28,12 @@ function listingOperation(listing: BrNegocioListing): "venta" | "renta" {
   return "venta";
 }
 
-/** URL `propertyType` + chips — prefers `Leonix:results_property_kind` from publish. */
+/** URL `propertyType` + chips — prefers `Leonix:results_property_kind` from publish (no title heuristics). */
 export function effectiveBrResultsPropertyKind(listing: BrNegocioListing): BrResultsPropertyKind {
   if (listing.resultsPropertyKind) return listing.resultsPropertyKind;
   if (listing.categoriaPropiedad === "terreno_lote") return "terreno";
   if (listing.categoriaPropiedad === "comercial") return "comercial";
-  const t = listing.title.toLowerCase();
-  if (listing.categoriaPropiedad === "residencial") {
-    if (t.includes("departamento") || t.includes("depto")) return "departamento";
-    return "casa";
-  }
+  if (listing.categoriaPropiedad === "residencial") return "casa";
   return "casa";
 }
 
@@ -94,28 +80,15 @@ function listingMatchesPrimaryChips(listing: BrNegocioListing, primary: Set<BrPr
 }
 
 function listingHasPool(listing: BrNegocioListing): boolean {
-  if (listing.facetPool === true) return true;
-  if (listing.facetPool === false) return false;
-  const title = listing.title.toLowerCase();
-  if (title.includes("piscina") || title.includes("alberca")) return true;
-  return Boolean(
-    listing.metaLines?.some((m) => {
-      const x = m.toLowerCase();
-      return x.includes("piscina") || x.includes("alberca");
-    })
-  );
+  return listing.facetPool === true;
 }
 
 function listingHasPets(listing: BrNegocioListing): boolean {
-  if (listing.facetPets === true) return true;
-  if (listing.facetPets === false) return false;
-  return Boolean(listing.metaLines?.some((m) => m.toLowerCase().includes("mascota")));
+  return listing.facetPets === true;
 }
 
 function listingHasFurnished(listing: BrNegocioListing): boolean {
-  if (listing.facetFurnished === true) return true;
-  if (listing.facetFurnished === false) return false;
-  return Boolean(listing.metaLines?.some((m) => m.toLowerCase().includes("amueblado")));
+  return listing.facetFurnished === true;
 }
 
 function parseBedBathCount(raw: string): number | null {
@@ -191,11 +164,6 @@ export function filterBrListings(
 
   if (propiedadFilter) rows = rows.filter((l) => l.categoriaPropiedad === propiedadFilter);
 
-  if (secondary.has("reducida")) rows = rows.filter((l) => l.badges.includes("reducida"));
-  if (secondary.has("open_house")) rows = rows.filter((l) => l.openHouse || l.badges.includes("open_house"));
-  if (secondary.has("tour_virtual")) rows = rows.filter((l) => l.badges.includes("tour_virtual"));
-  if (secondary.has("nuevo_desarrollo")) rows = rows.filter((l) => l.badges.includes("nuevo"));
-  if (secondary.has("planos")) rows = rows.filter((l) => l.badges.includes("planos"));
   if (secondary.has("piscina")) rows = rows.filter(listingHasPool);
   if (secondary.has("mascotas")) rows = rows.filter(listingHasPets);
 

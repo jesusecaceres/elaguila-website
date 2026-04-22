@@ -1,6 +1,17 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  /** Reduce parallel manifest writers on Windows (intermittent ENOENT during `collecting page data`). */
+  experimental: {
+    webpackBuildWorker: false,
+  },
+  /** Windows/CI: webpack persistent cache can race on rename (ENOENT on manifest). */
+  webpack: (config, { dev }) => {
+    if (!dev) {
+      config.cache = false;
+    }
+    return config;
+  },
   images: {
     remotePatterns: [
       {

@@ -60,13 +60,6 @@ function parseOptInt(raw: string): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-function parseOptFloat(raw: string): number | undefined {
-  const t = raw.trim();
-  if (!t) return undefined;
-  const n = parseFloat(t);
-  return Number.isFinite(n) ? n : undefined;
-}
-
 export function AutosPrivadoApplication() {
   const router = useRouter();
   const pathname = usePathname();

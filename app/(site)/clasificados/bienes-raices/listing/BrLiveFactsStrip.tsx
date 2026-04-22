@@ -60,8 +60,11 @@ export function BrLiveFactsStrip({ detailPairs, lang }: { detailPairs: unknown; 
   }
   if (m.postalCode) chips.push(`ZIP ${m.postalCode}`);
   if (m.pool === true) chips.push(lang === "es" ? "Alberca" : "Pool");
-  if (m.petsAllowed === true) chips.push(lang === "es" ? "Mascotas" : "Pets ok");
+  if (m.pool === false) chips.push(lang === "es" ? "Sin alberca" : "No pool");
+  if (m.petsAllowed === true) chips.push(lang === "es" ? "Mascotas permitidas" : "Pets allowed");
+  if (m.petsAllowed === false) chips.push(lang === "es" ? "Sin mascotas" : "No pets");
   if (m.furnished === true) chips.push(lang === "es" ? "Amueblado" : "Furnished");
+  if (m.furnished === false) chips.push(lang === "es" ? "Sin amueblar" : "Unfurnished");
 
   if (chips.length === 0 && !lx.branch) return null;
 

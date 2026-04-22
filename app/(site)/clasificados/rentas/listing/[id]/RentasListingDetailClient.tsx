@@ -18,6 +18,7 @@ import {
   rentasSectionHeaderActionClass,
 } from "@/app/clasificados/rentas/rentasLandingTheme";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
+import { parseNegocioRedesSocialLinks } from "@/app/clasificados/rentas/listing/utils/negocioRedesSocialLinks";
 import {
   RENTAS_PUBLICAR_NEGOCIO,
   RENTAS_PUBLICAR_PRIVADO,
@@ -56,6 +57,34 @@ function triYesNo(
   return copy.unknown;
 }
 
+function rentasAvailabilityLabel(
+  code: RentasPublicListing["rentasListingAvailability"],
+  lang: "es" | "en",
+  unknown: string,
+): string {
+  const c = (code ?? "").trim().toLowerCase();
+  const m: Record<string, { es: string; en: string }> = {
+    disponible: { es: "Disponible", en: "Available" },
+    pendiente: { es: "Pendiente / próximamente", en: "Pending / coming soon" },
+    bajo_contrato: { es: "Bajo contrato", en: "Under lease" },
+    rentado: { es: "Rentado / no disponible", en: "Rented / off market" },
+  };
+  return m[c]?.[lang] ?? unknown;
+}
+
+function formatPostedDate(iso: string | undefined, lang: "es" | "en", unknown: string): string {
+  if (!iso?.trim()) return unknown;
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return unknown;
+  try {
+    return new Intl.DateTimeFormat(lang === "es" ? "es-MX" : "en-US", {
+      dateStyle: "medium",
+    }).format(t);
+  } catch {
+    return unknown;
+  }
+}
+
 export function RentasListingDetailClient({ listing, extra }: Props) {
   const { lang, copy } = useRentasLandingLang();
   const searchParams = useSearchParams();
@@ -71,6 +100,11 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
   const resultsHref = useMemo(() => withRentasLandingLang(RENTAS_RESULTS, lang), [lang]);
   const dashboardHref = useMemo(() => withRentasLandingLang("/dashboard/mis-anuncios", lang), [lang]);
   const contactHref = useMemo(() => withRentasLandingLang("/contact", lang), [lang]);
+
+  const negocioSocialLinks = useMemo(
+    () => parseNegocioRedesSocialLinks(listing.businessSocial),
+    [listing.businessSocial],
+  );
 
   const publishPrivado = withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, lang);
   const publishNegocio = withRentasLandingLang(RENTAS_PUBLICAR_NEGOCIO, lang);
@@ -164,6 +198,11 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
                   <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#5B7C99]" aria-hidden />
                   {listing.addressLine}
                 </p>
+                {listing.publishedAt ? (
+                  <p className="mt-2 text-xs font-medium text-[#7A7164]">
+                    {copy.detail.postedOn}: {formatPostedDate(listing.publishedAt, lang, copy.detail.unknown)}
+                  </p>
+                ) : null}
                 <div className="mt-6 rounded-2xl border border-[#D4A84B]/25 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA]/90 px-5 py-4 shadow-inner">
                   <p className="text-[1.9rem] font-bold leading-none tracking-tight text-[#B8893C] sm:text-[2.1rem]">{listing.rentDisplay}</p>
                   <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[#5C5346]/75">{copy.detail.rentLabel}</p>
@@ -186,10 +225,39 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
               >
                 <p className="text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/75">{copy.detail.sellerTitle}</p>
                 <p className="mt-1.5 font-medium leading-snug">{sellerLine}</p>
+                {listing.branch === "negocio" && listing.businessMarca?.trim() ? (
+                  <p className="mt-2 text-xs text-[#5C5346]/90">
+                    <span className="font-semibold text-[#1E1810]">{copy.detail.businessMarca}:</span> {listing.businessMarca.trim()}
+                  </p>
+                ) : null}
+                {listing.branch === "negocio" && listing.businessAgentName?.trim() ? (
+                  <p className="mt-1 text-xs text-[#5C5346]/90">
+                    <span className="font-semibold text-[#1E1810]">{copy.detail.businessAgent}:</span> {listing.businessAgentName.trim()}
+                  </p>
+                ) : null}
                 {listing.branch === "negocio" && listing.businessDescription?.trim() ? (
                   <p className="mt-3 border-t border-[#E8DFD0]/70 pt-3 text-xs leading-relaxed text-[#4A4338]/95">
                     {listing.businessDescription.trim()}
                   </p>
+                ) : null}
+                {listing.branch === "negocio" && (negocioSocialLinks?.length ?? 0) > 0 ? (
+                  <div className="mt-3 border-t border-[#E8DFD0]/70 pt-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/75">{copy.detail.socialHeading}</p>
+                    <ul className="mt-2 flex flex-wrap gap-2">
+                      {(negocioSocialLinks ?? []).map((l) => (
+                        <li key={l.url}>
+                          <a
+                            href={l.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-semibold text-[#C45C26] underline"
+                          >
+                            {l.label}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ) : null}
               </div>
 
@@ -261,6 +329,11 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
               <IconBath className="text-[#5B7C99]" />
               <span className="text-[#5C5346]/80">{copy.featured.baths}</span> {listing.baths}
             </li>
+            {typeof listing.halfBathsCount === "number" && listing.halfBathsCount > 0 ? (
+              <li>
+                <span className="font-semibold text-[#1E1810]">{copy.detail.halfBaths}:</span> {listing.halfBathsCount}
+              </li>
+            ) : null}
             <li className="inline-flex items-center gap-2">
               <IconRuler className="text-[#5B7C99]" />
               <span className="text-[#5C5346]/80">{copy.featured.sqft}</span> {listing.sqft}
@@ -299,6 +372,10 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
 
           <h2 className="mt-8 font-serif text-xl font-semibold text-[#1E1810]">{copy.detail.sectionLease}</h2>
           <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[#4A4338]/95">
+            <li>
+              <span className="font-semibold text-[#1E1810]">{copy.detail.listingStatusHeading}:</span>{" "}
+              {rentasAvailabilityLabel(listing.rentasListingAvailability, lang, copy.detail.unknown)}
+            </li>
             <li>
               {lang === "es" ? "Plazo" : "Lease term"}:{" "}
               {listing.leaseTermCode ? formatLeaseCode(listing.leaseTermCode, lang) : copy.detail.unknown}
@@ -342,6 +419,30 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
                   )}
                 </li>
               </>
+            ) : null}
+            {listing.mapUrl ? (
+              <li>
+                <a
+                  href={listing.mapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-[#C45C26] underline"
+                >
+                  {copy.detail.mapLink}
+                </a>
+              </li>
+            ) : null}
+            {listing.videoUrl ? (
+              <li>
+                <a
+                  href={listing.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-[#C45C26] underline"
+                >
+                  {copy.detail.videoLink}
+                </a>
+              </li>
             ) : null}
           </ul>
 

@@ -2,7 +2,6 @@ import type { BienesRaicesPrivadoPreviewVm } from "@/app/clasificados/bienes-rai
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 import {
   COMERCIAL_DESTACADOS_DEFS,
-  COMERCIAL_SUBTIPO_POR_TIPO,
   COMERCIAL_TIPO_OPCIONES,
   TERRENO_DESTACADOS_DEFS,
   TERRENO_SUBTIPO_POR_TIPO,

@@ -61,13 +61,6 @@ function parseOptInt(raw: string): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-function parseOptFloat(raw: string): number | undefined {
-  const t = raw.trim();
-  if (!t) return undefined;
-  const n = parseFloat(t);
-  return Number.isFinite(n) ? n : undefined;
-}
-
 function newHourRowId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();

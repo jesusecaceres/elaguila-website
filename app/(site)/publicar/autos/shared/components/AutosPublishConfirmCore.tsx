@@ -112,6 +112,8 @@ export function AutosPublishConfirmCore({
     return () => {
       cancelled = true;
     };
+    // `c` is derived from `lang` + `lane`; avoid listing `c.createError` (new fn each render would thrash).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: re-sync draft only when lane/lang/hydration change
   }, [hydrated, lane, lang, flushDraft]);
 
   useEffect(() => {

@@ -18,17 +18,22 @@ function devFilePath(): string {
   return path.join(process.cwd(), FILE_NAME);
 }
 
+function isNodeOrVercelProduction(): boolean {
+  return process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
+}
+
 /**
  * Dev/test-only persistence: writes published Servicios rows to a gitignored JSON file on disk
  * so `next dev` discovery (landing, results, slug SSR) can see listings without Supabase.
  *
  * - ON when `NODE_ENV === "development"` unless `SERVICIOS_DEV_PUBLISH === "0"`.
  * - ON when `SERVICIOS_DEV_PUBLISH === "1"` (e.g. staging smoke tests).
- * - OFF in production unless explicitly forced with `SERVICIOS_DEV_PUBLISH === "1"` (not recommended).
+ * - **OFF** on production Node/Vercel unless `SERVICIOS_DEV_PUBLISH === "1"` (explicit escape hatch — not launch-default).
  */
 export function isServiciosDevPublishPersistenceEnabled(): boolean {
   if (process.env.SERVICIOS_DEV_PUBLISH === "0") return false;
   if (process.env.SERVICIOS_DEV_PUBLISH === "1") return true;
+  if (isNodeOrVercelProduction()) return false;
   return process.env.NODE_ENV === "development";
 }
 

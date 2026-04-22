@@ -7,7 +7,7 @@ import {
   updateEmpleosListingLifecycleOwner,
 } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
 import type { EmpleosListingLifecycleDb } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
-import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { getBearerUserId } from "../../../_lib/bearerUser";
 
 export const runtime = "nodejs";
@@ -62,6 +62,12 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ listingId
   const res = await updateEmpleosListingLifecycleOwner({ id: listingId, ownerUserId, lifecycle_status });
   if (!res.ok) {
     return NextResponse.json({ ok: false, error: res.error ?? "update_failed" }, { status: res.error === "forbidden" ? 403 : 500 });
+  }
+  const supabase = getAdminSupabase();
+  const { data: slugRow } = await supabase.from("empleos_public_listings").select("slug").eq("id", listingId).maybeSingle();
+  const slug = (slugRow as { slug?: string } | null)?.slug;
+  if (slug) {
+    revalidatePath(`/clasificados/empleos/${slug}`);
   }
   revalidatePath("/clasificados/empleos/resultados");
   revalidatePath("/clasificados/empleos");

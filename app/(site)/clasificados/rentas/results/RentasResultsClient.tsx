@@ -36,6 +36,7 @@ import {
 import {
   RENTAS_QUERY_AMUEBLADO,
   RENTAS_QUERY_BATHS_MIN,
+  RENTAS_QUERY_HALF_BATHS_MIN,
   RENTAS_QUERY_CITY,
   RENTAS_QUERY_MASCOTAS,
   RENTAS_QUERY_PAGE,
@@ -84,6 +85,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
   const [cityDraft, setCityDraft] = useState("");
   const [zipDraft, setZipDraft] = useState("");
   const [bathsMinDraft, setBathsMinDraft] = useState("");
+  const [halfBathsMinDraft, setHalfBathsMinDraft] = useState("");
   const [rentMinDraft, setRentMinDraft] = useState("");
   const [rentMaxDraft, setRentMaxDraft] = useState("");
   const [amuebladoDraft, setAmuebladoDraft] = useState(false);
@@ -109,6 +111,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     setCityDraft(p.city);
     setZipDraft(p.zip);
     setBathsMinDraft(p.bathsMin != null ? String(p.bathsMin) : "");
+    setHalfBathsMinDraft(p.halfBathsMin != null ? String(p.halfBathsMin) : "");
     setRentMinDraft(p.rentMin != null ? String(Math.round(p.rentMin)) : "");
     setRentMaxDraft(p.rentMax != null ? String(Math.round(p.rentMax)) : "");
     setAmuebladoDraft(p.amueblado);
@@ -181,6 +184,9 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
       const bm = bathsMinDraft.trim();
       if (!bm) sp.delete(RENTAS_QUERY_BATHS_MIN);
       else if (Number.isFinite(Number(bm))) sp.set(RENTAS_QUERY_BATHS_MIN, bm);
+      const hm = halfBathsMinDraft.trim();
+      if (!hm) sp.delete(RENTAS_QUERY_HALF_BATHS_MIN);
+      else if (Number.isFinite(Number(hm))) sp.set(RENTAS_QUERY_HALF_BATHS_MIN, hm);
 
       const rMin = rentMinDraft.replace(/\D/g, "");
       const rMax = rentMaxDraft.replace(/\D/g, "");
@@ -217,6 +223,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
   }, [
     amuebladoDraft,
     bathsMinDraft,
+    halfBathsMinDraft,
     beds,
     cityDraft,
     depositMaxDraft,
@@ -406,6 +413,19 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
                 <select
                   value={bathsMinDraft}
                   onChange={(e) => setBathsMinDraft(e.target.value)}
+                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
+                >
+                  <option value="">{copy.results.bathsAny}</option>
+                  <option value="1">1+</option>
+                  <option value="2">2+</option>
+                  <option value="3">3+</option>
+                </select>
+              </label>
+              <label className="min-w-0">
+                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.halfBathsMinLabel}</span>
+                <select
+                  value={halfBathsMinDraft}
+                  onChange={(e) => setHalfBathsMinDraft(e.target.value)}
                   className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
                 >
                   <option value="">{copy.results.bathsAny}</option>

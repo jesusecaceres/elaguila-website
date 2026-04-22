@@ -1,6 +1,7 @@
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import type { ServiciosBusinessProfile, ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ServiciosPublicListingRow } from "./serviciosPublicListingsServer";
+import { serviciosVerifiedRankingBias } from "./serviciosLeonixVerificationModel";
 import { inferServiciosSellerPresentation } from "./serviciosSellerKind";
 
 export type ServiciosResultsFilterQuery = {
@@ -26,6 +27,26 @@ export type ServiciosResultsFilterQuery = {
   emergency?: "1";
   /** Quick fact kind `mobile_service` */
   mobileSvc?: "1";
+  /** `contact.messageEnabled` */
+  msg?: "1";
+  /** Physical storefront / mailing address captured */
+  phys?: "1";
+  /** Multiple service-area tokens (application `serviceAreaNotes` richness) */
+  svcMulti?: "1";
+  /** Promo / offer headline present */
+  offer?: "1";
+  /** All three legal attestations complete at publish (stored in `opsMeta.discovery`) */
+  legal?: "1";
+  /** Language chip `lang_es` from application */
+  langEs?: "1";
+  /** Language chip `lang_en` */
+  langEn?: "1";
+  /** Language chip `lang_otro` */
+  langOt?: "1";
+  /** Advertiser requested Leonix verification review (`opsMeta.leonixVerifiedInterest`) */
+  vint?: "1";
+  /** Saturday or Sunday has non-closed hours line in weekly schedule */
+  wknd?: "1";
 };
 
 function normalize(s: string | undefined): string {
@@ -46,6 +67,16 @@ export function serviciosResultsHasActiveFilters(q: ServiciosResultsFilterQuery)
       q.email === "1" ||
       q.emergency === "1" ||
       q.mobileSvc === "1" ||
+      q.msg === "1" ||
+      q.phys === "1" ||
+      q.svcMulti === "1" ||
+      q.offer === "1" ||
+      q.legal === "1" ||
+      q.langEs === "1" ||
+      q.langEn === "1" ||
+      q.langOt === "1" ||
+      q.vint === "1" ||
+      q.wknd === "1" ||
       (q.sort && q.sort !== "newest") ||
       (q.seller && q.seller !== "all"),
   );
@@ -65,6 +96,53 @@ function wireHasQuickFactKind(p: ServiciosBusinessProfile, kind: string): boolea
 
 function wireHasPublicEmail(p: ServiciosBusinessProfile): boolean {
   return Boolean(p.contact?.email?.trim());
+}
+
+function wireHasPhysicalAddress(p: ServiciosBusinessProfile): boolean {
+  const c = p.contact;
+  return Boolean(c?.physicalStreet?.trim() || c?.physicalCity?.trim() || c?.physicalPostalCode?.trim());
+}
+
+function wireWeekendOpen(p: ServiciosBusinessProfile): boolean {
+  const rows = p.contact?.hours?.weeklyRows;
+  if (!rows?.length) return false;
+  return rows.some((r) => {
+    const d = normalize(r.dayLabel);
+    const isWeekend = d.includes("sáb") || d.includes("dom") || d.includes("sat") || d.includes("sun");
+    if (!isWeekend) return false;
+    const line = normalize(r.line);
+    return line.length > 0 && !line.includes("cerrado") && !line.includes("closed");
+  });
+}
+
+function rowLangChip(pj: ServiciosBusinessProfile, chip: string): boolean {
+  const ids = pj.opsMeta?.discovery?.languageChipIds;
+  if (ids && ids.length) return ids.includes(chip);
+  const badges = pj.hero?.badges ?? [];
+  if (chip === "lang_es") return badges.some((b) => b.kind === "spanish");
+  if (chip === "lang_en") return badges.some((b) => b.kind === "custom" && /inglés|english/i.test(b.label ?? ""));
+  if (chip === "lang_otro") return badges.some((b) => b.kind === "custom" && /otro|other/i.test(b.label ?? ""));
+  return false;
+}
+
+function rowSvcMulti(pj: ServiciosBusinessProfile): boolean {
+  if (pj.opsMeta?.discovery?.hasServiceAreaMultiLine === true) return true;
+  const n = pj.serviceAreas?.items?.length ?? 0;
+  return n >= 2;
+}
+
+function rowOffer(pj: ServiciosBusinessProfile): boolean {
+  if (pj.opsMeta?.discovery?.hasPromoHeadline === true) return true;
+  return Boolean(pj.promo?.headline?.trim());
+}
+
+function rowLegalComplete(pj: ServiciosBusinessProfile): boolean {
+  return pj.opsMeta?.discovery?.listerAttestationsComplete === true;
+}
+
+function rowPhysDiscovery(pj: ServiciosBusinessProfile): boolean {
+  if (pj.opsMeta?.discovery?.hasPhysicalAddress === true) return true;
+  return wireHasPhysicalAddress(pj);
 }
 
 /** City/ZIP/area filter: row city + published contact/hero/service-area text (substring match). */
@@ -113,6 +191,16 @@ export function filterServiciosPublicListingRows(
   const wantEmail = q.email === "1";
   const wantEmergency = q.emergency === "1";
   const wantMobileSvc = q.mobileSvc === "1";
+  const wantMsg = q.msg === "1";
+  const wantPhys = q.phys === "1";
+  const wantSvcMulti = q.svcMulti === "1";
+  const wantOffer = q.offer === "1";
+  const wantLegal = q.legal === "1";
+  const wantLangEs = q.langEs === "1";
+  const wantLangEn = q.langEn === "1";
+  const wantLangOt = q.langOt === "1";
+  const wantVint = q.vint === "1";
+  const wantWknd = q.wknd === "1";
 
   if (
     !cityQ &&
@@ -125,7 +213,17 @@ export function filterServiciosPublicListingRows(
     !wantBilingual &&
     !wantEmail &&
     !wantEmergency &&
-    !wantMobileSvc
+    !wantMobileSvc &&
+    !wantMsg &&
+    !wantPhys &&
+    !wantSvcMulti &&
+    !wantOffer &&
+    !wantLegal &&
+    !wantLangEs &&
+    !wantLangEn &&
+    !wantLangOt &&
+    !wantVint &&
+    !wantWknd
   ) {
     return rows;
   }
@@ -140,6 +238,16 @@ export function filterServiciosPublicListingRows(
     if (wantEmail && !wireHasPublicEmail(pj)) return false;
     if (wantEmergency && !wireHasQuickFactKind(pj, "emergency")) return false;
     if (wantMobileSvc && !wireHasQuickFactKind(pj, "mobile_service")) return false;
+    if (wantMsg && pj.contact?.messageEnabled !== true) return false;
+    if (wantPhys && !rowPhysDiscovery(pj)) return false;
+    if (wantSvcMulti && !rowSvcMulti(pj)) return false;
+    if (wantOffer && !rowOffer(pj)) return false;
+    if (wantLegal && !rowLegalComplete(pj)) return false;
+    if (wantLangEs && !rowLangChip(pj, "lang_es")) return false;
+    if (wantLangEn && !rowLangChip(pj, "lang_en")) return false;
+    if (wantLangOt && !rowLangChip(pj, "lang_otro")) return false;
+    if (wantVint && pj.opsMeta?.leonixVerifiedInterest !== true) return false;
+    if (wantWknd && !wireWeekendOpen(pj)) return false;
 
     if (wantWa || wantPromo || wantCall) {
       const profile = resolvedProfile(row, lang);
@@ -211,6 +319,18 @@ function rowRatingAvg(row: ServiciosPublicListingRow): number | null {
   return null;
 }
 
+function compareVerifiedThenPublishedThenSlug(
+  a: ServiciosPublicListingRow,
+  b: ServiciosPublicListingRow,
+  tieSlug: (x: ServiciosPublicListingRow, y: ServiciosPublicListingRow) => number,
+): number {
+  const vb = serviciosVerifiedRankingBias(b) - serviciosVerifiedRankingBias(a);
+  if (vb !== 0) return vb;
+  if (a.published_at < b.published_at) return 1;
+  if (a.published_at > b.published_at) return -1;
+  return tieSlug(a, b);
+}
+
 export function sortServiciosListingRows(
   rows: ServiciosPublicListingRow[],
   lang: ServiciosLang,
@@ -223,7 +343,10 @@ export function sortServiciosListingRows(
   if (s === "name") {
     copy.sort((a, b) => {
       const c = normalize(a.business_name).localeCompare(normalize(b.business_name), lang === "en" ? "en" : "es");
-      return c !== 0 ? c : tieSlug(a, b);
+      if (c !== 0) return c;
+      const vb = serviciosVerifiedRankingBias(b) - serviciosVerifiedRankingBias(a);
+      if (vb !== 0) return vb;
+      return tieSlug(a, b);
     });
     return copy;
   }
@@ -234,17 +357,15 @@ export function sortServiciosListingRows(
       if (ra != null && rb != null && ra !== rb) return rb - ra;
       if (ra != null && rb == null) return -1;
       if (ra == null && rb != null) return 1;
+      const vb = serviciosVerifiedRankingBias(b) - serviciosVerifiedRankingBias(a);
+      if (vb !== 0) return vb;
       if (a.published_at < b.published_at) return 1;
       if (a.published_at > b.published_at) return -1;
       return tieSlug(a, b);
     });
     return copy;
   }
-  copy.sort((a, b) => {
-    if (a.published_at < b.published_at) return 1;
-    if (a.published_at > b.published_at) return -1;
-    return tieSlug(a, b);
-  });
+  copy.sort((a, b) => compareVerifiedThenPublishedThenSlug(a, b, tieSlug));
   return copy;
 }
 

@@ -59,6 +59,19 @@ Canonical helpers: `app/lib/clasificados/autos/autosClassifiedsVisibility.ts`.
 - [ ] `AUTOS_PUBLISH_INTERNAL_BYPASS` **not** set in production
 - [ ] Run one real **private** and one **dealer** checkout in staging/test mode first, then smoke in production with small amount or Stripe test clock as applicable
 
-## Evidence: failed payment does not publish
+## Evidence: failed payment does not publish (code)
 
-`mapAutosClassifiedsToPublic.ts` and `isAutosClassifiedPubliclyVisible` require `status === "active"`. `pending_payment`, `payment_failed`, `draft` are excluded.
+Public list + detail loaders query **only** `status === "active"` (see `listActiveAutosClassifiedsRows` / `getActiveLiveAutosBundle` in `autosClassifiedsListingService.ts`). Non-active rows never enter `mapAutosClassifiedsToPublic.ts`.
+
+---
+
+## Enforcement addendum — execution vs code (this pass)
+
+| Claim | Code / config support | Test-mode Checkout executed (this repo run) | Live-mode Checkout executed |
+|-------|----------------------|-----------------------------------------------|------------------------------|
+| Lane price IDs resolve | **TRUE** — `autosStripePriceIds.ts` | **FALSE** | **FALSE** |
+| Checkout creates/reuses session | **TRUE** — `app/api/clasificados/autos/checkout/route.ts` | **FALSE** | **FALSE** |
+| Webhook / verify activates row | **TRUE** — wired to service layer | **FALSE** | **FALSE** |
+| Duplicate checkout mitigation | **TRUE** — reuse branch when session `open` | **FALSE** | **FALSE** |
+
+**Payment readiness verdict (strict):** **NOT PROVEN** for runtime (test or live) in this environment. Code support is implemented; **execution is a mandatory staging/prod step** before any **GO-LIVE READY** claim that includes payments.

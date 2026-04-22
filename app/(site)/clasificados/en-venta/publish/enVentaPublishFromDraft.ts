@@ -139,18 +139,20 @@ async function fetchAsBlob(src: string): Promise<Blob> {
   return res.blob();
 }
 
-/** Gallery upload outcome after insert (listing row always exists on `ok`). */
-export type EnVentaGalleryUploadOutcome = "none" | "full" | "partial" | "failed";
+/** Gallery outcome on successful publish (`ok: true` only). Partial uploads never finalize to public. */
+export type EnVentaGalleryUploadOutcome = "none" | "full";
 
 export type EnVentaPublishFromDraftResult =
   | { ok: true; listingId: string; gallery: EnVentaGalleryUploadOutcome }
   | { ok: false; error: string };
 
 /**
- * Inserts an En Venta listing, uploads ordered gallery images to `listing-images`
- * (`${userId}/${listingId}/photos/01.ext`), then saves public URLs on `listings.images`
- * in the same order (cover first). Description is updated with the same LEONIX image
- * marker pattern used elsewhere.
+ * Two-phase publish: insert as **non-public** (`status: draft`, `is_published: false`),
+ * upload gallery to `listing-images`, then **only** set `active` + `is_published: true`
+ * when media requirements pass. Public browse (`isEnVentaListingPubliclyVisible`) never
+ * sees the row until that final update. On photo failure after images were required,
+ * the row is marked `removed` + unpublished (no `delete()` — avoids orphan escapes if
+ * delete were denied).
  */
 export async function publishEnVentaFromDraft(
   state: EnVentaFreeApplicationState,
@@ -201,8 +203,8 @@ export async function publishEnVentaFromDraft(
     is_free: state.priceIsFree,
     contact_phone: contact.contact_phone,
     contact_email: contact.contact_email,
-    status: "active",
-    is_published: true,
+    status: "draft",
+    is_published: false,
     seller_type: sellerType,
     detail_pairs: pairs.length ? pairs : null,
     ...muxCols,
@@ -243,7 +245,13 @@ export async function publishEnVentaFromDraft(
   const ordered = getOrderedEnVentaImageUrls(state);
   const photoUrls: string[] = [];
   const basePath = `${userId}/${listingId}/photos`;
-  let gallery: EnVentaGalleryUploadOutcome = ordered.length === 0 ? "none" : "failed";
+
+  const markPublishFailedNonPublic = async () => {
+    await supabase
+      .from("listings")
+      .update({ status: "removed", is_published: false })
+      .eq("id", listingId);
+  };
 
   try {
     for (let i = 0; i < ordered.length; i++) {
@@ -260,12 +268,6 @@ export async function publishEnVentaFromDraft(
       }
       const url = supabase.storage.from("listing-images").getPublicUrl(path).data.publicUrl;
       if (url) photoUrls.push(url);
-    }
-
-    if (ordered.length > 0) {
-      if (photoUrls.length === ordered.length) gallery = "full";
-      else if (photoUrls.length > 0) gallery = "partial";
-      else gallery = "failed";
     }
 
     if (photoUrls.length) {
@@ -286,23 +288,29 @@ export async function publishEnVentaFromDraft(
     }
   } catch (e: unknown) {
     console.warn("en-venta media upload error", e);
-    if (ordered.length > 0) gallery = photoUrls.length > 0 ? "partial" : "failed";
   }
 
-  /**
-   * Image policy (En Venta go-live): if the seller attached ≥1 photo, **all** uploads must succeed
-   * or we roll back the insert — no “live” listing without the gallery the seller confirmed.
-   * Zero photos = optional listing (gallery `none`).
-   */
-  if (ordered.length > 0 && gallery === "failed") {
-    await supabase.from("listings").delete().eq("id", listingId);
+  const imagesOk = ordered.length === 0 || photoUrls.length === ordered.length;
+  if (ordered.length > 0 && !imagesOk) {
+    await markPublishFailedNonPublic();
     return {
       ok: false,
       error:
         lang === "es"
-          ? "No se pudieron subir las fotos al almacenamiento (bucket listing-images / permisos RLS). Revisa la consola de Supabase Storage o inténtalo de nuevo. El anuncio no se publicó."
-          : "Photos could not be uploaded to storage (listing-images bucket / RLS). Check Supabase Storage policies and retry. The listing was not published.",
+          ? "No se pudieron subir todas las fotos (bucket listing-images / permisos RLS). El anuncio no quedó público; revisa Mis anuncios o inténtalo de nuevo."
+          : "Not all photos could be uploaded (listing-images bucket / RLS). The listing was not made public — check My listings or retry.",
     };
+  }
+
+  const gallery: EnVentaGalleryUploadOutcome = ordered.length === 0 ? "none" : "full";
+
+  const { error: finErr } = await supabase
+    .from("listings")
+    .update({ status: "active", is_published: true })
+    .eq("id", listingId);
+  if (finErr) {
+    await markPublishFailedNonPublic();
+    return { ok: false, error: finErr.message };
   }
 
   return { ok: true, listingId, gallery };

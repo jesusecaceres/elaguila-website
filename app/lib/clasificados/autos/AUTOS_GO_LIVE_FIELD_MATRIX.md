@@ -112,3 +112,32 @@ Legend: **Detail** = live/preview vehicle page. **Card** = results/landing card.
 | No report CTA on paid Autos live page. | `LeonixInlineListingReport` wired on `/clasificados/autos/vehiculo/[id]`. |
 | Admin table lacked Stripe / recency hints for support. | `Stripe` (session/intent suffix) + `Actualizado` columns on `/admin/workspace/clasificados/autos`. |
 | Dashboard lifecycle labels drifted from admin copy. | `AutosLeonixPaidListingsSection` now uses `autosListingStatusLabelEs` / `En` from `autosClassifiedsVisibility.ts`. |
+
+---
+
+## Enforcement — proof snapshot (code path + runtime)
+
+**Runtime (this pass):** `npm run autos:enforce-smoke` (see `scripts/autos-enforcement-smoke.ts`) validates seller lane mapping, `q` vs `searchableBlurb`, make filter case-insensitivity, bodyStyle filter, sort key, and **production demo merge off** when `NODE_ENV === "production"`. It does **not** substitute for publish/Stripe E2E.
+
+| Field / concern | Form/schema source | Storage | Public mapper | Detail render | Search `q` | Filter UI | Admin | Dashboard | Intentional omission |
+|-----------------|-------------------|---------|---------------|---------------|------------|-----------|-------|-----------|----------------------|
+| title / `vehicleTitle` | `AutoDealerListing` | `listing_payload` | `vehicleTitle` | Preview pages | yes | — | via payload | derived | — |
+| description | same | same | — (card) | yes | yes (`searchableBlurb`) | — | payload | — | — |
+| make, model, trim, year | same | same | card | yes | yes / — for trim | make/model/yearMin-Max | payload | title parts | trim: high-cardinality → search not rail |
+| price | same | same | card | yes | — | priceMin/Max | payload | priceUsd | — |
+| negotiable | **not in** `AutoDealerListing` | — | — | — | — | — | — | — | **N/A — not collected** in paid Autos payload |
+| mileage | same | same | card | yes | — | min/max | payload | — | — |
+| body / trans / drive / fuel / condition | same + resolvers | same | card | yes | yes | rail | payload | — | — |
+| doors, seats | same | same | — | yes | — | — | payload | — | low-signal filters |
+| exterior / interior color | same | same | — | yes | — | — | payload | — | high-cardinality |
+| VIN | same | same | — | yes | — (blurb only partial) | — | payload | — | not on card by design |
+| city, state, ZIP | same | same | city/state/zip | yes | yes | city/zip rules | payload | city | no `municipio` field — **US city string + ZIP** model |
+| seller type / lane | DB `lane` | `lane` | `sellerType` via `autosPublicSellerFromLane.ts` | `autosLane` on detail | — | sellerType | column | lane | — |
+| dealer identity | `dealerName`, logo, phones… | payload | dealerName/logoUrl | preview stacks | yes (names) | — | payload | — | — |
+| financing / warranty | **not** first-class fields on `AutoDealerListing` | — | — | only if embedded in `description`/copy | via `searchableBlurb` text only | — | — | — | **N/A** unless added to schema later |
+| images | `mediaImages`/`heroImages` | payload | `primaryImageUrl` | gallery | — | — | thumb column | thumb | — |
+| payment / publish status | DB columns | `status`, Stripe ids | — (non-active omitted) | — | — | — | yes | labels | — |
+| moderation / report | `LeonixInlineListingReport` | `listing_reports` insert | — | footer on live vehicle | — | — | — | — | `listing_id` is **text** in DB — UUID safe |
+| featured | DB `featured` | column | card `featured` (dealer-only rule in mapper) | — | — | — | column | — | not a buyer filter |
+
+**Proof column convention:** *Code path* = file references above; *Runtime* = `autos:enforce-smoke` only where applicable; publish/Stripe *Runtime* = **not executed** (see `AUTOS_SMOKE_TEST_REPORT.md`).

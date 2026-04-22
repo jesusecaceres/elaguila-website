@@ -7,7 +7,6 @@ import {
   clearAutosNegociosDraft,
   loadAutosNegociosDraftResolved,
   saveAutosNegociosDraftResolved,
-  type AutosNegociosDraftV1,
 } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftStorage";
 import {
   autosNegociosDraftNamespaceFromUserId,

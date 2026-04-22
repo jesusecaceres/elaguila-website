@@ -113,6 +113,45 @@ export function ServiciosResultsActiveSummary({
       label: lang === "en" ? "Mobile / on-site service signal" : "Señal de servicio móvil / a domicilio",
     });
   }
+  if (query.msg === "1") {
+    items.push({ key: "msg", label: lang === "en" ? "In-app messaging on" : "Mensajes en app activados" });
+  }
+  if (query.phys === "1") {
+    items.push({ key: "phys", label: lang === "en" ? "Physical address on file" : "Dirección física capturada" });
+  }
+  if (query.svcMulti === "1") {
+    items.push({ key: "svcMulti", label: lang === "en" ? "Multi-area service coverage" : "Cobertura multi-zona" });
+  }
+  if (query.offer === "1") {
+    items.push({ key: "offer", label: lang === "en" ? "Offer / promo headline" : "Titular de oferta" });
+  }
+  if (query.legal === "1") {
+    items.push({
+      key: "legal",
+      label: lang === "en" ? "Legal publish confirmations complete" : "Confirmaciones legales completas",
+    });
+  }
+  if (query.langEs === "1") {
+    items.push({ key: "langEs", label: lang === "en" ? "Spanish language" : "Idioma: español" });
+  }
+  if (query.langEn === "1") {
+    items.push({ key: "langEn", label: lang === "en" ? "English language" : "Idioma: inglés" });
+  }
+  if (query.langOt === "1") {
+    items.push({ key: "langOt", label: lang === "en" ? "Other language" : "Otro idioma" });
+  }
+  if (query.vint === "1") {
+    items.push({
+      key: "vint",
+      label: lang === "en" ? "Requested Leonix verification" : "Solicitó verificación Leonix",
+    });
+  }
+  if (query.wknd === "1") {
+    items.push({
+      key: "wknd",
+      label: lang === "en" ? "Weekend hours (Sat/Sun)" : "Horario fin de semana (sáb/dom)",
+    });
+  }
 
   if (items.length === 0) return null;
 

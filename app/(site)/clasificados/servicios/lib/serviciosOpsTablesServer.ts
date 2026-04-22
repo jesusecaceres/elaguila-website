@@ -25,7 +25,8 @@ export type ServiciosLeadRow = {
 };
 
 export async function insertServiciosAnalyticsEvent(args: {
-  listingSlug: string;
+  /** Nullable after migration — global/category events (search, filter, validation failures). */
+  listingSlug?: string | null;
   eventType: string;
   meta?: Record<string, unknown>;
 }): Promise<boolean> {
@@ -33,7 +34,7 @@ export async function insertServiciosAnalyticsEvent(args: {
   try {
     const supabase = getAdminSupabase();
     const { error } = await supabase.from("servicios_analytics_events").insert({
-      listing_slug: args.listingSlug,
+      listing_slug: args.listingSlug ?? null,
       event_type: args.eventType,
       meta: args.meta ?? {},
     });

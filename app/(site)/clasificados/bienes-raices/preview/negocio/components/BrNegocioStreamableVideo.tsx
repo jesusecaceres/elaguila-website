@@ -43,11 +43,8 @@ export function BrNegocioStreamableVideo({ url, className }: { url: string; clas
     return () => {
       cancelled = true;
       hls?.destroy();
-      const v = ref.current;
-      if (v) {
-        v.pause();
-        v.removeAttribute("src");
-      }
+      el.pause();
+      el.removeAttribute("src");
     };
   }, [url]);
   return <video ref={ref} controls playsInline className={className ?? "h-full w-full object-contain"} />;

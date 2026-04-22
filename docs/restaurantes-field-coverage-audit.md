@@ -26,7 +26,7 @@
 | `languagesSpoken` | identity | json | yes | — | **intentionally no** | no | — | Detail / trust; not a current discovery axis |
 | `serviceModes[]` | operating | col + json | yes | implied chips | no | `svc` (whitelisted) | — | Shell row carries full taxonomy modes |
 | `dineIn` / `takeout` / `delivery` booleans | operating | json | yes | CTA copy | no | covered by `serviceModes` / `svc` | — | Publish path relies on `serviceModes` for discovery |
-| `reservationsAvailable` | operating | json | yes | — | no | URL `rsv=1` | sort tie-break | Mapped on shell row from `listing_json` |
+| `reservationsAvailable` | operating | json | yes | — | no | URL `rsv=1` | — | Mapped on shell row from `listing_json` |
 | `cateringAvailable` / `eventFoodService` | operating | json | yes | — | no | partial via `catering`/`events` **service mode** if user selects those modes at publish | — | |
 | `preorderRequired` | operating | json | yes | — | no | URL `pre=1` | — | Shell row from draft |
 | `pickupAvailable` | operating | json | yes | — | no | URL `pku=1` | — | Distinct from `takeout` **service mode** (complementary signals) |
@@ -58,6 +58,12 @@
 | `published_at` / `updated_at` | DB | col | — | — | no | no | sort newest | `listedAt` |
 
 ---
+
+## Automated verification (repo)
+
+- `npm run typecheck` (`tsc --noEmit --incremental false`)
+- `npm run build` (after clean `.next` if Windows manifest races occur)
+- `npm run verify:restaurantes:launch` — runs typecheck, production build, then `node scripts/restaurantes-http-smoke.mjs` (GET landing, results, publish app; POST publish `{}` → 400 `missing_draft`).
 
 ## Gaps addressed in this launch pass
 

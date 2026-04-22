@@ -42,7 +42,26 @@ function precioBandMatches(listing: RentasPublicListing, band: string): boolean 
 function textMatchesListing(l: RentasPublicListing, q: string): boolean {
   const s = q.trim().toLowerCase();
   if (!s) return true;
-  const hay = [l.title, l.addressLine, l.city, l.postalCode, l.stateRegion]
+  const descEs = l.description?.es ?? "";
+  const descEn = l.description?.en ?? "";
+  const hay = [
+    l.title,
+    l.addressLine,
+    l.city,
+    l.postalCode,
+    l.stateRegion,
+    descEs,
+    descEn,
+    l.requirements,
+    l.servicesIncluded,
+    l.availabilityNote,
+    l.businessDescription,
+    l.businessMarca,
+    l.businessAgentName,
+    l.businessSocial,
+    l.propertySubtype,
+    l.leaseTermCode,
+  ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
@@ -115,6 +134,11 @@ export function filterRentasPublicListings(rows: RentasPublicListing[], p: Renta
       if (b === null) return false;
       return b >= p.bathsMin!;
     });
+  }
+
+  if (p.halfBathsMin != null) {
+    const min = p.halfBathsMin;
+    out = out.filter((l) => typeof l.halfBathsCount === "number" && Number.isFinite(l.halfBathsCount) && l.halfBathsCount >= min);
   }
 
   if (p.depositMin != null) {

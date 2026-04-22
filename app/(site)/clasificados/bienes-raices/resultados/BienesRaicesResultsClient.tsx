@@ -48,17 +48,7 @@ const PRIMARY_IDS: readonly BrPrimaryChipId[] = [
   "terrenos",
 ] as const;
 
-const SECONDARY_IDS: readonly BrSecondaryChipId[] = [
-  "piscina",
-  "mascotas",
-  "nuevo_desarrollo",
-  "open_house",
-  "reducida",
-  "tour_virtual",
-  "planos",
-  "financiamiento",
-  "segundo_agente",
-] as const;
+const SECONDARY_IDS: readonly BrSecondaryChipId[] = ["piscina", "mascotas"] as const;
 
 const PAGE_SIZE = 9;
 
@@ -72,7 +62,8 @@ function buildDemoListingPool(): BrNegocioListing[] {
 export function BienesRaicesResultsClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const sp = searchParams ?? new URLSearchParams();
+  const spQueryKey = searchParams?.toString() ?? "";
+  const sp = useMemo(() => new URLSearchParams(spQueryKey), [spQueryKey]);
 
   const parsed = useMemo(() => parseBrResultsUrl(sp), [sp]);
   const lang = parsed.lang;

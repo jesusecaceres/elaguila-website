@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 
 const STATUSES = new Set(["submitted", "viewed", "shortlisted", "rejected", "hired"]);
 
-export async function PATCH(req: NextRequest, ctx: { params: Promise<{ applicationId: string }> }): Promise<NextResponse> {
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }): Promise<NextResponse> {
   if (!isSupabaseAdminConfigured()) {
     return NextResponse.json({ ok: false, error: "supabase_not_configured" }, { status: 503 });
   }
@@ -16,7 +16,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ applicati
   if (!ownerUserId) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
-  const { applicationId } = await ctx.params;
+  const { id: applicationId } = await ctx.params;
   let body: unknown;
   try {
     body = await req.json();

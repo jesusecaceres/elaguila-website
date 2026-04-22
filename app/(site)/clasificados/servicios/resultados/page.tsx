@@ -46,6 +46,16 @@ type PageProps = {
     email?: string;
     emergency?: string;
     mobileSvc?: string;
+    msg?: string;
+    phys?: string;
+    svcMulti?: string;
+    offer?: string;
+    legal?: string;
+    langEs?: string;
+    langEn?: string;
+    langOt?: string;
+    vint?: string;
+    wknd?: string;
   }>;
 };
 
@@ -79,6 +89,16 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
     email: sp.email === "1" ? "1" : undefined,
     emergency: sp.emergency === "1" ? "1" : undefined,
     mobileSvc: sp.mobileSvc === "1" ? "1" : undefined,
+    msg: sp.msg === "1" ? "1" : undefined,
+    phys: sp.phys === "1" ? "1" : undefined,
+    svcMulti: sp.svcMulti === "1" ? "1" : undefined,
+    offer: sp.offer === "1" ? "1" : undefined,
+    legal: sp.legal === "1" ? "1" : undefined,
+    langEs: sp.langEs === "1" ? "1" : undefined,
+    langEn: sp.langEn === "1" ? "1" : undefined,
+    langOt: sp.langOt === "1" ? "1" : undefined,
+    vint: sp.vint === "1" ? "1" : undefined,
+    wknd: sp.wknd === "1" ? "1" : undefined,
   };
 
   const allRows = await listServiciosPublicListingsForDiscovery(120);
@@ -110,7 +130,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
       </div>
 
       <div className="relative mx-auto w-full max-w-7xl px-4 py-6 pb-24 sm:px-6 sm:py-10 sm:pb-10 lg:px-10 xl:px-12 2xl:max-w-[1440px]">
-        <ServiciosResultsViewAnalytics listingSlugs={displayRows.map((r) => r.slug)} />
+        <ServiciosResultsViewAnalytics resultCount={displayRows.length} />
         <header
           className={`mb-6 flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:p-7 ${contentShell}`}
         >

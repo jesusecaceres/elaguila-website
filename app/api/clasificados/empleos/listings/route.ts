@@ -33,7 +33,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const res = await upsertEmpleosListingFromEnvelope({ envelope, ownerUserId, mode });
   if (!res.ok) {
-    return NextResponse.json({ ok: false, error: res.error }, { status: res.error === "forbidden" ? 403 : 500 });
+    const status = res.error === "forbidden" ? 403 : res.error === "lane_mismatch" ? 400 : 500;
+    return NextResponse.json({ ok: false, error: res.error }, { status });
   }
 
   revalidatePath("/clasificados/empleos/resultados");

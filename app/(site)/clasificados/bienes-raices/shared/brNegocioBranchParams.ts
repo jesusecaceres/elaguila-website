@@ -30,6 +30,7 @@ export function coerceBrNegocioCategoriaPropiedad(raw: unknown): BrNegocioCatego
 }
 
 export function coerceBrNegocioSellerTipo(_raw: unknown): BrNegocioSellerTipo {
+  void _raw;
   return BR_NEGOCIO_DEFAULT_SELLER;
 }
 

@@ -11,13 +11,5 @@ export type BrPrimaryChipId =
   | "comerciales"
   | "terrenos";
 
-export type BrSecondaryChipId =
-  | "piscina"
-  | "mascotas"
-  | "nuevo_desarrollo"
-  | "open_house"
-  | "reducida"
-  | "tour_virtual"
-  | "planos"
-  | "financiamiento"
-  | "segundo_agente";
+/** Secondary row chips — only facets persisted at publish (`Leonix:*` / badges not used as filters). */
+export type BrSecondaryChipId = "piscina" | "mascotas";

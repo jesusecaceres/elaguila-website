@@ -8,6 +8,15 @@ import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { adminBtnSecondary, adminCardBase, adminInputClass } from "@/app/admin/_components/adminTheme";
 import { appendLangToPath, type Lang } from "@/app/clasificados/lib/hubUrl";
 
+type ApplicationHealth = {
+  total: number;
+  submitted: number;
+  viewed: number;
+  shortlisted: number;
+  rejected: number;
+  hired: number;
+};
+
 type Row = {
   id: string;
   slug: string;
@@ -16,6 +25,10 @@ type Row = {
   lifecycle_status: string;
   lane: string;
   owner_user_id: string | null;
+  moderation_reason: string | null;
+  apply_count: number;
+  view_count: number;
+  application_health: ApplicationHealth;
 };
 
 export default function AdminEmpleosListingsPage() {
@@ -96,6 +109,9 @@ export default function AdminEmpleosListingsPage() {
               <th className="px-4 py-3">Título</th>
               <th className="px-4 py-3">Estado</th>
               <th className="px-4 py-3">Carril</th>
+              <th className="px-4 py-3">Owner</th>
+              <th className="px-4 py-3">Apps / salud</th>
+              <th className="px-4 py-3">Métricas</th>
               <th className="px-4 py-3">Acciones</th>
               <th className="px-4 py-3">Enlaces</th>
             </tr>
@@ -107,9 +123,29 @@ export default function AdminEmpleosListingsPage() {
                   <div className="max-w-[200px] truncate font-semibold">{r.title}</div>
                   <div className="text-xs text-[#7A7164]">{r.company_name}</div>
                   <code className="text-[11px] text-[#9A9084]">{r.slug}</code>
+                  {r.moderation_reason ? (
+                    <div className="mt-1 max-w-[220px] text-[11px] text-amber-900">Moderación: {r.moderation_reason}</div>
+                  ) : null}
                 </td>
                 <td className="px-4 py-3 capitalize">{r.lifecycle_status}</td>
                 <td className="px-4 py-3 capitalize">{r.lane}</td>
+                <td className="px-4 py-3">
+                  <code className="break-all text-[10px] text-[#6B645C]">{r.owner_user_id ?? "—"}</code>
+                </td>
+                <td className="px-4 py-3 text-[11px] leading-snug text-[#4A4744]">
+                  <div>Total: {r.application_health?.total ?? 0}</div>
+                  <div className="text-[#7A7164]">
+                    Nuevo {r.application_health?.submitted ?? 0} · Visto {r.application_health?.viewed ?? 0} · Corta{" "}
+                    {r.application_health?.shortlisted ?? 0} · Rech {r.application_health?.rejected ?? 0}
+                    {typeof r.application_health?.hired === "number" && r.application_health.hired > 0 ? (
+                      <> · Contratados {r.application_health.hired}</>
+                    ) : null}
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-[11px]">
+                  <div>Aplicaciones (col): {r.apply_count ?? 0}</div>
+                  <div>Vistas: {r.view_count ?? 0}</div>
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex max-w-[240px] flex-wrap gap-1">
                     <button type="button" className="rounded border px-2 py-1 text-[11px] font-bold" onClick={() => void moderate(r.id, "published")}>
@@ -120,6 +156,9 @@ export default function AdminEmpleosListingsPage() {
                     </button>
                     <button type="button" className="rounded border px-2 py-1 text-[11px] font-bold" onClick={() => void moderate(r.id, "paused")}>
                       Pause
+                    </button>
+                    <button type="button" className="rounded border px-2 py-1 text-[11px] font-bold" onClick={() => void moderate(r.id, "archived")}>
+                      Arch
                     </button>
                     <button type="button" className="rounded border px-2 py-1 text-[11px] font-bold" onClick={() => void moderate(r.id, "rejected")}>
                       Reject
