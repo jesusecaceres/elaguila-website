@@ -11,8 +11,10 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import type { BrPrimaryChipId, BrSecondaryChipId } from "./search/filterTypes";
-import { brNegocioFeaturedListing, brNegocioGridListings } from "./demoData";
 import type { BrNegocioListing } from "./cards/listingTypes";
+import { buildBrDemoListingPool } from "../lib/brDemoListingPool";
+import { brShouldMergeDemoInventoryWithLive } from "../lib/brPublicInventoryMode";
+import { fetchBrPublishedListingsForBrowse } from "../lib/fetchBrPublishedListingsBrowser";
 import { BienesRaicesNegocioCard } from "./cards/BienesRaicesNegocioCard";
 import { BienesRaicesCategoryNav } from "./components/BienesRaicesCategoryNav";
 import { BienesRaicesFilterChips } from "./components/BienesRaicesFilterChips";
@@ -33,8 +35,6 @@ import {
   paginateListings,
   pickNegociosSpotlight,
 } from "./lib/brResultsFilters";
-import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-import { mapBrListingRowToNegocioCard, type BrListingDbRow } from "./lib/mapBrListingRowToCard";
 import { mergeBrResultsHref, parseBrResultsUrl } from "./lib/brResultsUrlState";
 
 const BR_RESULTS_DEV_LOG = process.env.NODE_ENV === "development";
@@ -51,12 +51,6 @@ const PRIMARY_IDS: readonly BrPrimaryChipId[] = [
 const SECONDARY_IDS: readonly BrSecondaryChipId[] = ["piscina", "mascotas"] as const;
 
 const PAGE_SIZE = 9;
-
-function buildDemoListingPool(): BrNegocioListing[] {
-  const ids = new Set(brNegocioGridListings.map((l) => l.id));
-  const extra = !ids.has(brNegocioFeaturedListing.id) ? [brNegocioFeaturedListing] : [];
-  return [...extra, ...brNegocioGridListings];
-}
 
 /** Category-owned results UI for `/clasificados/bienes-raices/resultados` — URL + live `listings` merge. */
 export function BienesRaicesResultsClient() {
@@ -92,51 +86,33 @@ export function BienesRaicesResultsClient() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const sb = createSupabaseBrowserClient();
-        const { data, error } = await sb
-          .from("listings")
-          .select(
-            "id, title, description, city, price, is_free, images, detail_pairs, seller_type, business_name, created_at, status, is_published"
-          )
-          .eq("category", "bienes-raices")
-          .eq("is_published", true)
-          .in("status", ["active", "sold"])
-          .order("created_at", { ascending: false })
-          .limit(80);
-        if (cancelled) return;
-        if (error) {
-          setLiveFetchErr(error.message);
-          setLiveBrListings([]);
-          if (BR_RESULTS_DEV_LOG) console.info("[br resultados] live listings query", error.message);
-          return;
-        }
-        const rows = (data ?? []) as BrListingDbRow[];
-        const mapped = rows
-          .filter((r) => String(r.status ?? "").toLowerCase() === "active")
-          .map((r) => mapBrListingRowToNegocioCard(r, lang));
-        setLiveBrListings(mapped);
-        setLiveFetchErr(null);
-        if (BR_RESULTS_DEV_LOG) console.info("[br resultados] live rows", mapped.length, "query", spKey);
-      } catch (e) {
-        if (!cancelled) {
-          setLiveFetchErr(e instanceof Error ? e.message : String(e));
-          setLiveBrListings([]);
-        }
+      const { listings, error } = await fetchBrPublishedListingsForBrowse({ lang, limit: 80 });
+      if (cancelled) return;
+      if (error) {
+        setLiveFetchErr(error);
+        setLiveBrListings([]);
+        if (BR_RESULTS_DEV_LOG) console.info("[br resultados] live listings query", error);
+        return;
       }
+      setLiveBrListings(listings);
+      setLiveFetchErr(null);
+      if (BR_RESULTS_DEV_LOG) console.info("[br resultados] live rows", listings.length, "query", spKey);
     })();
     return () => {
       cancelled = true;
     };
   }, [lang, spKey]);
 
+  const mergeDemo = brShouldMergeDemoInventoryWithLive();
+
   const listingPool = useMemo(() => {
-    const demo = buildDemoListingPool();
+    if (!mergeDemo) return liveBrListings;
+    const demo = buildBrDemoListingPool();
     const byId = new Map<string, BrNegocioListing>();
     for (const d of demo) byId.set(d.id, d);
     for (const L of liveBrListings) byId.set(L.id, L);
     return Array.from(byId.values());
-  }, [liveBrListings]);
+  }, [liveBrListings, mergeDemo]);
 
   const filtered = useMemo(
     () => filterBrListings(listingPool, parsed, propiedadFilter),

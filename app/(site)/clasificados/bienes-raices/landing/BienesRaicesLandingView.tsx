@@ -17,15 +17,12 @@ import { BienesRaicesNegocioCard } from "@/app/clasificados/bienes-raices/result
 import { BienesRaicesNegocioFeaturedCard } from "@/app/clasificados/bienes-raices/resultados/cards/BienesRaicesNegocioFeaturedCard";
 import { BienesRaicesMapPreview } from "@/app/clasificados/bienes-raices/resultados/map/BienesRaicesMapPreview";
 import { BienesRaicesResultsShell } from "@/app/clasificados/bienes-raices/resultados/components/BienesRaicesResultsShell";
-import {
-  BR_LANDING_HERO_IMAGE,
-  BR_LANDING_QUICK_CHIPS,
-  brLandingDestacadas,
-  brLandingFeaturedHero,
-  brLandingNegocios,
-  brLandingPrivado,
-  brLandingRecientes,
-} from "./bienesRaicesLandingSample";
+import { BR_LANDING_HERO_IMAGE, BR_LANDING_QUICK_CHIPS } from "./bienesRaicesLandingSample";
+import { buildBrLandingInventorySections } from "./buildBrLandingInventorySections";
+import { buildBrDemoListingPool } from "../lib/brDemoListingPool";
+import { brShouldMergeDemoInventoryWithLive } from "../lib/brPublicInventoryMode";
+import { fetchBrPublishedListingsForBrowse } from "../lib/fetchBrPublishedListingsBrowser";
+import type { BrNegocioListing } from "../resultados/cards/listingTypes";
 import { BienesRaicesBrConsentStrip } from "@/app/clasificados/bienes-raices/components/BienesRaicesBrConsentStrip";
 import { getBrLastCity, setBrLastCity } from "@/app/clasificados/bienes-raices/shared/brFirstPartyPrefs";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
@@ -254,16 +251,19 @@ function ListingBand({
   copy,
   sectionIndex,
   lang,
+  inventoryLoading,
 }: {
   id: string;
   title: string;
   subtitle?: string;
-  listings: typeof brLandingRecientes;
+  listings: BrNegocioListing[];
   withLang: (path: string) => string;
   variant: BandVariant;
   copy: BrLandingCopy;
   sectionIndex: string;
   lang: Lang;
+  /** When true, show loading line instead of cards (live-only mode before first fetch completes). */
+  inventoryLoading: boolean;
 }) {
   const sellerLabels = { privado: copy.sellerPrivado, negocio: copy.sellerNegocio };
   return (
@@ -278,14 +278,25 @@ function ListingBand({
             accent={BAND_ACCENT[variant]}
           />
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-7 lg:grid-cols-3 [&_article]:rounded-[1.2rem] [&_article]:border-[#E8DFD0]/88 [&_article]:shadow-[0_18px_52px_-22px_rgba(42,36,22,0.26)] [&_article]:ring-1 [&_article]:ring-[#C9B46A]/[0.09] [&_article]:transition [&_article]:duration-300 [&_article]:hover:-translate-y-1 [&_article]:hover:border-[#C9B46A]/38 [&_article]:hover:shadow-[0_26px_64px_-24px_rgba(42,36,22,0.32)]">
-            {listings.map((listing) => (
-              <BienesRaicesNegocioCard
-                key={listing.id}
-                listing={listing}
-                sellerKindLabels={sellerLabels}
-                lang={lang}
-              />
-            ))}
+            {inventoryLoading ? (
+              <p className="col-span-full rounded-2xl border border-[#E8DFD0]/80 bg-[#FDFBF7]/90 px-4 py-6 text-center text-sm text-[#5C5346]">
+                {copy.inventoryLoading}
+              </p>
+            ) : listings.length === 0 ? (
+              <div className="col-span-full rounded-2xl border border-[#E8DFD0]/80 bg-[#FDFBF7]/90 px-4 py-8 text-center sm:px-8">
+                <p className="font-semibold text-[#1E1810]">{copy.inventoryEmptyTitle}</p>
+                <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/90">{copy.inventoryEmptyBody}</p>
+              </div>
+            ) : (
+              listings.map((listing) => (
+                <BienesRaicesNegocioCard
+                  key={listing.id}
+                  listing={listing}
+                  sellerKindLabels={sellerLabels}
+                  lang={lang}
+                />
+              ))
+            )}
           </div>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href={withLang(BR_RESULTS)} className={BTN_SECONDARY}>
@@ -302,6 +313,40 @@ export function BienesRaicesLandingView() {
   const searchParams = useSearchParams();
   const lang = (searchParams?.get("lang") === "en" ? "en" : "es") as Lang;
   const copy = useMemo(() => getBrLandingCopy(lang), [lang]);
+  const mergeDemo = useMemo(() => brShouldMergeDemoInventoryWithLive(), []);
+  const [livePool, setLivePool] = useState<BrNegocioListing[]>([]);
+  const [liveErr, setLiveErr] = useState<string | null>(null);
+  const [liveReady, setLiveReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const r = await fetchBrPublishedListingsForBrowse({ lang, limit: 60 });
+      if (cancelled) return;
+      setLivePool(r.listings);
+      setLiveErr(r.error);
+      setLiveReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [lang]);
+
+  const basePool = useMemo(() => {
+    if (!liveReady) {
+      return mergeDemo ? buildBrDemoListingPool() : [];
+    }
+    if (mergeDemo) {
+      const byId = new Map<string, BrNegocioListing>();
+      for (const d of buildBrDemoListingPool()) byId.set(d.id, d);
+      for (const L of livePool) byId.set(L.id, L);
+      return Array.from(byId.values());
+    }
+    return livePool;
+  }, [liveReady, livePool, mergeDemo]);
+
+  const sections = useMemo(() => buildBrLandingInventorySections(basePool), [basePool]);
+  const bandsLoading = !liveReady && !mergeDemo;
 
   const withLang = useMemo(() => {
     return (path: string) => appendLangToPath(path, lang);
@@ -338,6 +383,16 @@ export function BienesRaicesLandingView() {
         </nav>
 
         <BienesRaicesBrConsentStrip lang={lang} />
+
+        {liveErr ? (
+          <p
+            className="mb-6 rounded-2xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 text-sm text-amber-950"
+            role="status"
+          >
+            {lang === "es" ? "Aviso — inventario publicado no disponible:" : "Notice — published inventory unavailable:"}{" "}
+            {liveErr}
+          </p>
+        ) : null}
 
         <ImmersiveBand>
           <header className="relative isolate flex min-h-[min(26rem,92svh)] flex-col overflow-hidden rounded-b-[2rem] border-b border-[#E8DFD0]/50 shadow-[0_32px_100px_-48px_rgba(42,36,22,0.55)] sm:min-h-[min(30rem,88svh)] sm:rounded-[2rem] sm:border sm:border-[#E8DFD0]/40 md:min-h-[min(34rem,86svh)] lg:min-h-[min(38rem,84svh)]">
@@ -447,13 +502,24 @@ export function BienesRaicesLandingView() {
               <FeaturedHeading id="br-featured-hero" title={copy.featuredTitle} subtitle={copy.featuredSubtitle} />
               <div className="grid min-h-0 gap-7 lg:grid-cols-12 lg:items-stretch lg:gap-8">
                 <div className="min-h-0 min-w-0 lg:col-span-7 xl:col-span-8">
-                  <BienesRaicesNegocioFeaturedCard
-                    listing={brLandingFeaturedHero}
-                    titleAsLink={false}
-                    sellerKindLabels={sellerLabels}
-                    lang={lang}
-                    className="rounded-[1.4rem] border-[#E8DFD0]/80 shadow-[0_28px_80px_-30px_rgba(42,36,22,0.4)] ring-2 ring-[#C9B46A]/15 hover:shadow-[0_36px_96px_-32px_rgba(42,36,22,0.45)]"
-                  />
+                  {bandsLoading ? (
+                    <div className="flex min-h-[280px] items-center justify-center rounded-[1.4rem] border border-[#E8DFD0]/80 bg-[#FDFBF7]/90 px-6 text-center text-sm text-[#5C5346]">
+                      {copy.inventoryLoading}
+                    </div>
+                  ) : sections.featured ? (
+                    <BienesRaicesNegocioFeaturedCard
+                      listing={sections.featured}
+                      titleAsLink={false}
+                      sellerKindLabels={sellerLabels}
+                      lang={lang}
+                      className="rounded-[1.4rem] border-[#E8DFD0]/80 shadow-[0_28px_80px_-30px_rgba(42,36,22,0.4)] ring-2 ring-[#C9B46A]/15 hover:shadow-[0_36px_96px_-32px_rgba(42,36,22,0.45)]"
+                    />
+                  ) : (
+                    <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 rounded-[1.4rem] border border-[#E8DFD0]/80 bg-[#FDFBF7]/90 px-6 text-center">
+                      <p className="font-serif text-lg font-semibold text-[#1E1810]">{copy.emptyFeaturedTitle}</p>
+                      <p className="max-w-md text-sm leading-relaxed text-[#5C5346]/90">{copy.emptyFeaturedBody}</p>
+                    </div>
+                  )}
                 </div>
                 <div className="hidden min-h-0 min-w-0 lg:col-span-5 lg:flex xl:col-span-4">
                   <div className="flex min-h-0 w-full flex-1 flex-col">
@@ -480,48 +546,52 @@ export function BienesRaicesLandingView() {
           id="br-band-destacadas"
           title={copy.sectionDestacadasTitle}
           subtitle={copy.sectionDestacadasSubtitle}
-          listings={brLandingDestacadas}
+          listings={sections.destacadas}
           withLang={withLang}
           variant="spotlight"
           copy={copy}
           sectionIndex="01"
           lang={lang}
+          inventoryLoading={bandsLoading}
         />
 
         <ListingBand
           id="br-band-recientes"
           title={copy.sectionRecientesTitle}
           subtitle={copy.sectionRecientesSubtitle}
-          listings={brLandingRecientes}
+          listings={sections.recientes}
           withLang={withLang}
           variant="neutral"
           copy={copy}
           sectionIndex="02"
           lang={lang}
+          inventoryLoading={bandsLoading}
         />
 
         <ListingBand
           id="br-band-privado"
           title={copy.sectionPrivadoTitle}
           subtitle={copy.sectionPrivadoSubtitle}
-          listings={brLandingPrivado}
+          listings={sections.privado}
           withLang={withLang}
           variant="private"
           copy={copy}
           sectionIndex="03"
           lang={lang}
+          inventoryLoading={bandsLoading}
         />
 
         <ListingBand
           id="br-band-negocios"
           title={copy.sectionNegociosTitle}
           subtitle={copy.sectionNegociosSubtitle}
-          listings={brLandingNegocios}
+          listings={sections.negocios}
           withLang={withLang}
           variant="business"
           copy={copy}
           sectionIndex="04"
           lang={lang}
+          inventoryLoading={bandsLoading}
         />
 
         <section className="mt-16 sm:mt-24">

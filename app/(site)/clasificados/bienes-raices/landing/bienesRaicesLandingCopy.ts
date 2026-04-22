@@ -59,6 +59,14 @@ export type BrLandingCopy = {
   mapZoom: string;
   mapHint: string;
   mapAriaCluster: string;
+  /** While Supabase live rows are loading (production: no demo fill). */
+  inventoryLoading: string;
+  /** Generic empty band — live inventory had zero rows for this lane. */
+  inventoryEmptyTitle: string;
+  inventoryEmptyBody: string;
+  /** Featured hero slot when pool is empty. */
+  emptyFeaturedTitle: string;
+  emptyFeaturedBody: string;
 };
 
 const ES: BrLandingCopy = {
@@ -102,15 +110,14 @@ const ES: BrLandingCopy = {
     furnished: "Amueblado",
   },
   featuredTitle: "Propiedad destacada",
-  featuredSubtitle:
-    "Ejemplo editorial de inventario premium — misma estructura que usarán las fichas publicadas.",
+  featuredSubtitle: "Listado con la misma ficha pública que verán los compradores en Leonix.",
   featuredCtaProperties: "Ver propiedades",
   featuredCtaExplore: "Explorar resultados",
   sectionDestacadasTitle: "Destacadas",
   sectionDestacadasSubtitle:
     "Mayor vitrina para anuncios con señales de confianza — sin ocultar el ecosistema completo.",
   sectionRecientesTitle: "Recientes",
-  sectionRecientesSubtitle: "Mezcla representativa de lo que llega al marketplace (demo).",
+  sectionRecientesSubtitle: "Ordenadas por fecha de publicación más reciente.",
   sectionPrivadoTitle: "Privado",
   sectionPrivadoSubtitle: "Particulares con visibilidad clara y trato directo.",
   sectionNegociosTitle: "Negocios",
@@ -131,6 +138,13 @@ const ES: BrLandingCopy = {
   mapZoom: "Acercar",
   mapHint: "Solo se muestran pocos puntos · sin “millón de pins”",
   mapAriaCluster: "38 anuncios en la zona. Acercar mapa.",
+  inventoryLoading: "Cargando propiedades publicadas…",
+  inventoryEmptyTitle: "Sin listados en esta sección",
+  inventoryEmptyBody:
+    "Cuando haya inventario publicado en Leonix, aparecerá aquí. Mientras tanto, usa la búsqueda o abre resultados.",
+  emptyFeaturedTitle: "Sin destacado disponible aún",
+  emptyFeaturedBody:
+    "Cuando existan anuncios activos, mostraremos una propiedad destacada en este espacio. Puedes publicar o explorar resultados.",
 };
 
 const EN: BrLandingCopy = {
@@ -174,15 +188,14 @@ const EN: BrLandingCopy = {
     furnished: "Furnished",
   },
   featuredTitle: "Featured property",
-  featuredSubtitle:
-    "Editorial-style premium inventory preview — the same structure published listings will use.",
+  featuredSubtitle: "The same public listing layout buyers will see on Leonix.",
   featuredCtaProperties: "View properties",
   featuredCtaExplore: "Browse results",
   sectionDestacadasTitle: "Featured",
   sectionDestacadasSubtitle:
     "Stronger showcase for listings with trust signals — without hiding the full marketplace.",
   sectionRecientesTitle: "Recent",
-  sectionRecientesSubtitle: "A representative mix of what’s arriving on the marketplace (demo).",
+  sectionRecientesSubtitle: "Sorted by most recently published.",
   sectionPrivadoTitle: "Private",
   sectionPrivadoSubtitle: "Private sellers with clear visibility and direct contact.",
   sectionNegociosTitle: "Businesses",
@@ -203,6 +216,13 @@ const EN: BrLandingCopy = {
   mapZoom: "Zoom in",
   mapHint: "Only a few pins · no “million markers” clutter",
   mapAriaCluster: "38 listings in this area. Zoom map in.",
+  inventoryLoading: "Loading published listings…",
+  inventoryEmptyTitle: "No listings in this section yet",
+  inventoryEmptyBody:
+    "When published inventory exists on Leonix, it will appear here. Meanwhile, search or open full results.",
+  emptyFeaturedTitle: "No featured listing yet",
+  emptyFeaturedBody:
+    "When active listings exist, we will feature one here. You can publish a listing or browse results.",
 };
 
 export function getBrLandingCopy(lang: Lang): BrLandingCopy {
