@@ -40,6 +40,7 @@ export function applyAutosPublicFilters(
         row.zip ?? "",
         row.dealerName ?? "",
         row.privateSellerLabel ?? "",
+        row.searchableBlurb ?? "",
       ]
         .filter(Boolean)
         .join(" ")

@@ -7,6 +7,7 @@ import {
   viajesDestSlugsFromDestinationLabel,
   viajesDurationKeyFromDraft,
   viajesSeasonKeysFromDraft,
+  viajesServiceLanguageKeysFromDraft,
   viajesTripKeysFromNegociosLike,
 } from "./viajesDraftToPublicBrowseFacets";
 
@@ -96,6 +97,7 @@ export function mapViajesStagedRowToViajesBusinessResult(row: ViajesStagedListin
     const durationKey = viajesDurationKeyFromDraft(d.duracion, d.fechaInicio, d.fechaFin);
     const seasonKeys = viajesSeasonKeysFromDraft(d.fechaInicio, d.fechaFin, d.fechasNota);
     const tripTypeKeys = viajesTripKeysFromNegociosLike(d.offerType, negociosTripKeys(d.offerType), d.incluyeHotel, d.incluyeTransporte, d.incluyeComida);
+    const serviceLanguageKeys = viajesServiceLanguageKeysFromDraft(d.guiaEspanol, d.idiomaAtencion);
     return {
       kind: "business",
       id: row.id,
@@ -117,6 +119,7 @@ export function mapViajesStagedRowToViajesBusinessResult(row: ViajesStagedListin
       budgetBand: viajesBudgetBandFromTag(d.presupuestoTag),
       durationKey,
       seasonKeys,
+      serviceLanguageKeys,
       discovery: { featuredBase: 46, sourceTrust: 1, completeness: 0.75 },
       sellerLane: "business",
     };
@@ -130,6 +133,7 @@ export function mapViajesStagedRowToViajesBusinessResult(row: ViajesStagedListin
     const durationKey = viajesDurationKeyFromDraft(d.duracion, d.fechaInicio, d.fechaFin);
     const seasonKeys = viajesSeasonKeysFromDraft(d.fechaInicio, d.fechaFin, d.fechasNota);
     const tripTypeKeys = viajesTripKeysFromNegociosLike(d.offerType, privadoTripKeys(d.offerType), d.incluyeHotel, d.incluyeTransporte, d.incluyeComida);
+    const serviceLanguageKeys = viajesServiceLanguageKeysFromDraft(d.guiaEspanol, d.idiomaAtencion);
     return {
       kind: "business",
       id: row.id,
@@ -151,6 +155,7 @@ export function mapViajesStagedRowToViajesBusinessResult(row: ViajesStagedListin
       budgetBand: viajesBudgetBandFromTag(d.presupuestoTag),
       durationKey,
       seasonKeys,
+      serviceLanguageKeys,
       discovery: { featuredBase: 44, sourceTrust: 1, completeness: 0.72 },
       sellerLane: "private",
     };

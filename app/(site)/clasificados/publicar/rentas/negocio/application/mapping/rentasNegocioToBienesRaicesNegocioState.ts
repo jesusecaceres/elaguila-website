@@ -129,6 +129,7 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
       openHouseFin: "",
       openHouseNotas: "",
     },
+    petsAllowed: s.mascotas === "permitidas" ? "yes" : s.mascotas === "no_permitidas" ? "no" : "",
   };
 
   if (s.categoriaPropiedad === "residencial") {

@@ -15,6 +15,13 @@ type Props = {
   lang: Lang;
 };
 
+function validThroughIso(job: EmpleosJobRecord): string {
+  if (job.validThroughIso) return job.validThroughIso;
+  const d = new Date(job.publishedAt);
+  d.setUTCDate(d.getUTCDate() + 90);
+  return d.toISOString();
+}
+
 /**
  * Single-job JobPosting JSON-LD for Google for Jobs eligibility (list pages must not emit this).
  * @see https://developers.google.com/search/docs/appearance/structured-data/job-posting
@@ -30,6 +37,7 @@ export function EmpleosJobPostingJsonLd({ job, lang }: Props) {
     title: job.title,
     description,
     datePosted: job.publishedAt,
+    validThrough: validThroughIso(job),
     hiringOrganization: {
       "@type": "Organization",
       name: job.company,
@@ -45,6 +53,7 @@ export function EmpleosJobPostingJsonLd({ job, lang }: Props) {
       },
     },
     employmentType,
+    occupationalCategory: job.category,
     identifier: {
       "@type": "PropertyValue",
       name: "listing_id",
@@ -53,6 +62,10 @@ export function EmpleosJobPostingJsonLd({ job, lang }: Props) {
     url,
     directApply: job.quickApply,
   };
+
+  if (job.modality === "remoto") {
+    json.jobLocationType = "TELECOMMUTE";
+  }
 
   if (job.salaryMax > 0) {
     json.baseSalary = {

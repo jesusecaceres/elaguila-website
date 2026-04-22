@@ -153,11 +153,12 @@ export function ServiciosResultsFilters({
             <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Order" : "Orden"}</span>
             <select
               name="sort"
-              defaultValue={current.sort === "name" ? "name" : "newest"}
+              defaultValue={current.sort === "name" ? "name" : current.sort === "rating" ? "rating" : "newest"}
               className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
             >
               <option value="newest">{lang === "en" ? "Newest first" : "Más recientes primero"}</option>
               <option value="name">{lang === "en" ? "Name (A–Z)" : "Nombre (A–Z)"}</option>
+              <option value="rating">{lang === "en" ? "Highest rated" : "Mejor calificados"}</option>
             </select>
           </label>
         </GroupShell>

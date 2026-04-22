@@ -46,6 +46,7 @@ function browseToFilterRail(b: ViajesBrowseState, destDisplay: string): ViajesRe
     duration: b.duration,
     audience: b.audience,
     season: b.season,
+    serviceLanguage: b.svcLang,
   };
 }
 
@@ -66,6 +67,7 @@ function filterRailPatchToBrowse(patch: Partial<ViajesResultsFiltersState>, prev
 
 function activeSummaryLine(browse: ViajesBrowseState, ui: ViajesUi, tripTypeLabel: (slug: string) => string): string | null {
   const R = ui.results;
+  const f = ui.filterRail;
   const hub: Record<string, string> = {
     "san-jose": "SJC",
     "san-francisco": "SFO",
@@ -80,6 +82,15 @@ function activeSummaryLine(browse: ViajesBrowseState, ui: ViajesUi, tripTypeLabe
   if (browse.audience.trim()) parts.push(browse.audience);
   if (browse.season.trim()) parts.push(browse.season);
   if (browse.duration.trim()) parts.push(browse.duration);
+  if (browse.svcLang.trim()) {
+    const m: Record<string, string> = {
+      es: f.serviceLangEs,
+      en: f.serviceLangEn,
+      bilingual: f.serviceLangBilingual,
+      other: f.serviceLangOther,
+    };
+    parts.push(m[browse.svcLang.trim()] ?? browse.svcLang);
+  }
   if (parts.length === 0) return null;
   return `${R.activeSearchLabel}: ${parts.join(" · ")}`;
 }

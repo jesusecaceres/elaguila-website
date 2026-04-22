@@ -14,6 +14,9 @@ import { ServiciosTrustSection } from "./ServiciosTrustSection";
 import { ServiciosReviews } from "./ServiciosReviews";
 import { ServiciosServiceAreas } from "./ServiciosServiceAreas";
 import { ServiciosActionPanel } from "./ServiciosActionPanel";
+import { ServiciosLeadInquiryForm } from "./ServiciosLeadInquiryForm";
+import { ServiciosProfileViewAnalytics } from "./ServiciosProfileViewAnalytics";
+import { ServiciosReviewSubmitForm } from "./ServiciosReviewSubmitForm";
 import { SV } from "./serviciosDesignTokens";
 
 export function ServiciosProfileView({
@@ -23,6 +26,8 @@ export function ServiciosProfileView({
   beforeEditBackNavigate,
   noticeBanner,
   showTopBar = true,
+  analyticsListingSlug,
+  showPublicConversionForms = false,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
@@ -34,11 +39,16 @@ export function ServiciosProfileView({
   noticeBanner?: string;
   /** When false, the global Servicios chrome bar is omitted (e.g. Clasificados preview uses an outer wrapper). */
   showTopBar?: boolean;
+  /** Public Clasificados slug — enables analytics + tracked outbound CTAs on the action panel. */
+  analyticsListingSlug?: string;
+  /** When true with `analyticsListingSlug`, shows moderated lead + review forms on the public listing. */
+  showPublicConversionForms?: boolean;
 }) {
   const stickyAsideTop = showTopBar ? "lg:top-[4.5rem]" : "lg:top-4";
 
   return (
     <div className="min-h-screen overflow-x-hidden pb-20 sm:pb-16" style={{ backgroundColor: SV.bg }}>
+      {analyticsListingSlug ? <ServiciosProfileViewAnalytics listingSlug={analyticsListingSlug} /> : null}
       {showTopBar ? (
         <ServiciosTopBar lang={lang} editBackHref={editBackHref} beforeEditBackNavigate={beforeEditBackNavigate} />
       ) : null}
@@ -66,14 +76,20 @@ export function ServiciosProfileView({
         */}
         <div className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_min(100%,380px)] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_400px]">
           <aside className={`order-1 min-w-0 lg:order-2 lg:sticky ${stickyAsideTop} lg:z-10 lg:self-start`}>
-            <ServiciosActionPanel profile={profile} lang={lang} />
+            <ServiciosActionPanel profile={profile} lang={lang} listingSlug={analyticsListingSlug} />
           </aside>
           <div className="order-2 flex min-w-0 flex-col gap-6 sm:gap-8 lg:order-1">
+            {analyticsListingSlug && showPublicConversionForms ? (
+              <ServiciosLeadInquiryForm listingSlug={analyticsListingSlug} lang={lang} />
+            ) : null}
             {hasAboutSectionResolved(profile) ? <ServiciosAbout profile={profile} lang={lang} /> : null}
             <ServiciosServicesGrid profile={profile} lang={lang} />
             <ServiciosGallery profile={profile} lang={lang} />
             <ServiciosTrustSection profile={profile} lang={lang} />
             <ServiciosReviews profile={profile} lang={lang} />
+            {analyticsListingSlug && showPublicConversionForms ? (
+              <ServiciosReviewSubmitForm listingSlug={analyticsListingSlug} lang={lang} />
+            ) : null}
             <ServiciosServiceAreas profile={profile} lang={lang} />
           </div>
         </div>

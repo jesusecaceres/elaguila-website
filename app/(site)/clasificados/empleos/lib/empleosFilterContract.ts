@@ -15,7 +15,10 @@
  * - verified=1 → `verifiedEmployer === true`
  * - premium=1 → `premiumEmployer === true`
  * - sort → relevance | date_desc | salary_desc
- * - radiusKm → **staged**: parsed but not applied until lat/lng + backend/geo index exist (no fake proximity)
+ * - lane → quick | premium | feria (matches `publicationLane` on live rows; seed rows omit lane and are excluded when set)
+ * - industry → substring match on `industryFocus`
+ * - bilingual=1 → only rows with `bilingual === true` (Feria / explicit flags)
+ * - radiusKm → parsed but not applied until lat/lng + backend/geo index exist (no fake proximity)
  *
  * ## Policy hooks (see `empleosVisibilityRules.ts`)
  * - Landing “featured strip”: editorial/paid subset via `showOnLandingFeatured`
@@ -41,6 +44,9 @@ export const EMPLEOS_URL_PARAM_KEYS = [
   "quickApply",
   "verified",
   "premium",
+  "lane",
+  "industry",
+  "bilingual",
   "sort",
   "radiusKm",
 ] as const;

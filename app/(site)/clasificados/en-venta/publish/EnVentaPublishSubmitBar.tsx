@@ -8,6 +8,7 @@ import { clearEnVentaPublishTempState } from "@/app/clasificados/en-venta/previe
 import { buildEnVentaPublishSuccessUrls } from "@/app/clasificados/en-venta/shared/constants/enVentaResultsRoutes";
 import { buildEnVentaListingDetailHrefFromResults } from "@/app/clasificados/en-venta/results/utils/enVentaListingLinks";
 import { validateEnVentaLocation } from "@/app/clasificados/en-venta/shared/utils/validateEnVentaLocation";
+import { getEnVentaSupabaseBrowserEnvIssues } from "@/app/lib/supabase/enVentaClientEnvCheck";
 import { publishEnVentaFromDraft, type EnVentaGalleryUploadOutcome } from "./enVentaPublishFromDraft";
 
 const COPY = {
@@ -22,8 +23,6 @@ const COPY = {
     successDashboard: "Ir a Mis anuncios",
     galleryPartial:
       "El anuncio quedó publicado, pero algunas fotos no se subieron. Edita desde Mis anuncios o vuelve a intentar subir imágenes.",
-    galleryFailed:
-      "El anuncio quedó publicado, pero no se pudieron subir las fotos al almacenamiento. Revisa permisos de Storage o inténtalo de nuevo desde Mis anuncios.",
     errPrefix: "No se pudo publicar:",
     blocked: "Marca las confirmaciones y completa categoría, tipo de artículo y condición para publicar.",
   },
@@ -38,8 +37,6 @@ const COPY = {
     successDashboard: "Go to My listings",
     galleryPartial:
       "Your listing is live, but some photos failed to upload. Edit from My listings or retry image upload.",
-    galleryFailed:
-      "Your listing is live, but photos could not be uploaded to storage. Check Storage permissions or retry from My listings.",
     errPrefix: "Could not publish:",
     blocked: "Confirm the checkboxes and complete category, item type, and condition to publish.",
   },
@@ -74,6 +71,15 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
   const onPublish = async () => {
     if (!ready || busy) return;
     setErr(null);
+    const envIssues = getEnVentaSupabaseBrowserEnvIssues();
+    if (envIssues.length) {
+      setErr(
+        lang === "es"
+          ? `Falta configuración del cliente: ${envIssues.join(" · ")}`
+          : `Client configuration missing: ${envIssues.join(" · ")}`
+      );
+      return;
+    }
     setBusy(true);
     try {
       const res = await publishEnVentaFromDraft(state, lang, plan);
@@ -106,8 +112,7 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
 
     const detailHref = buildEnVentaListingDetailHrefFromResults(publishOutcome.listingId, lang, browseQs);
     const dashboardHref = `/dashboard/mis-anuncios?lang=${lang}`;
-    const galleryWarn =
-      publishOutcome.gallery === "partial" ? t.galleryPartial : publishOutcome.gallery === "failed" ? t.galleryFailed : null;
+    const galleryWarn = publishOutcome.gallery === "partial" ? t.galleryPartial : null;
 
     return (
       <div
@@ -158,7 +163,7 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
     <div className="rounded-2xl border border-[#D8C79A]/70 bg-[#FFF7E7] p-5 shadow-sm">
       <p className="text-sm text-[#5D4A25]/90">{!ready ? t.blocked : null}</p>
       {err ? (
-        <p className="mt-2 text-sm font-medium text-red-800" role="alert">
+        <p className="mt-2 text-sm font-medium text-red-800" role="alert" data-testid="ev-publish-error">
           {t.errPrefix} {err}
         </p>
       ) : null}

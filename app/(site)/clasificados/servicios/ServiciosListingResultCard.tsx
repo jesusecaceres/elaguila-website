@@ -17,6 +17,13 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
   const L = getServiciosProfileLabels(lang);
   const wire = { ...row.profile_json };
   wire.identity = { ...wire.identity, leonixVerified: row.leonix_verified === true };
+  if ((row.review_rating_count ?? 0) > 0 && typeof row.review_rating_avg === "number" && Number.isFinite(row.review_rating_avg)) {
+    wire.hero = {
+      ...wire.hero,
+      rating: row.review_rating_avg,
+      reviewCount: row.review_rating_count ?? undefined,
+    };
+  }
   const profile = resolveServiciosProfile(wire, lang);
 
   const href = `/clasificados/servicios/${encodeURIComponent(row.slug)}?lang=${lang}`;

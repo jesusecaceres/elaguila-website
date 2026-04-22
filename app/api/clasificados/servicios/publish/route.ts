@@ -19,6 +19,7 @@ import {
 import { mapServiciosApplicationDraftToBusinessProfile } from "@/app/servicios/lib/mapServiciosApplicationDraftToBusinessProfile";
 import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
+import { insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
 import { isServiciosStrictPublishEnvironment, serviciosOwnerIdFromBearer } from "../lib/serviciosPublishServerAuth";
 
 export const runtime = "nodejs";
@@ -199,6 +200,14 @@ export async function POST(req: NextRequest) {
       },
       { status: 503 },
     );
+  }
+
+  if (persistedToDatabase || persistedToDevWorkspace) {
+    await insertServiciosAnalyticsEvent({
+      listingSlug: slug,
+      eventType: "publish_success",
+      meta: { persistence, listingStatus },
+    });
   }
 
   return NextResponse.json({

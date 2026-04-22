@@ -12,6 +12,8 @@ import { getViajesUi } from "../../data/viajesUiCopy";
 import { resolveViajesOfferBack } from "../../lib/viajesOfferLink";
 import { resolveViajesOfferDetailFromStagedSlug } from "../../lib/resolveViajesOfferDetailFromStagedServer";
 
+export const dynamic = "force-dynamic";
+
 type Props = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;

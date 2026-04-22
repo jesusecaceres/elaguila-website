@@ -117,6 +117,35 @@ export function filterRentasPublicListings(rows: RentasPublicListing[], p: Renta
     });
   }
 
+  if (p.depositMin != null) {
+    const min = p.depositMin;
+    out = out.filter((l) => typeof l.depositUsd === "number" && l.depositUsd >= min);
+  }
+  if (p.depositMax != null) {
+    const max = p.depositMax;
+    out = out.filter((l) => typeof l.depositUsd === "number" && l.depositUsd <= max);
+  }
+
+  if (p.lease) {
+    const want = p.lease.trim().toLowerCase();
+    out = out.filter((l) => (l.leaseTermCode ?? "").trim().toLowerCase() === want);
+  }
+
+  if (p.parkingMin != null) {
+    const min = p.parkingMin;
+    out = out.filter((l) => typeof l.parkingSpots === "number" && Number.isFinite(l.parkingSpots) && l.parkingSpots >= min);
+  }
+
+  if (p.sqftMin != null || p.sqftMax != null) {
+    out = out.filter((l) => {
+      const n = typeof l.interiorSqftApprox === "number" && Number.isFinite(l.interiorSqftApprox) ? l.interiorSqftApprox : null;
+      if (n == null) return false;
+      if (p.sqftMin != null && n < p.sqftMin) return false;
+      if (p.sqftMax != null && n > p.sqftMax) return false;
+      return true;
+    });
+  }
+
   // lat/lng/radius: scaffold — when set, do not filter rows until geo pipeline exists (avoid fake precision).
   return out;
 }

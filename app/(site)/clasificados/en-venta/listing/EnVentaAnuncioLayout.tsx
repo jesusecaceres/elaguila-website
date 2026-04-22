@@ -8,6 +8,7 @@ import { EnVentaCorreoModal } from "@/app/clasificados/en-venta/preview/EnVentaC
 import { formatPostedAgo } from "./enVentaAnuncioFormatters";
 import { EnVentaMediaGallery } from "./EnVentaMediaGallery";
 import { EnVentaSellerCard } from "./EnVentaSellerCard";
+import { EnVentaSellerPublicStats } from "./EnVentaSellerPublicStats";
 import { EnVentaItemSpecs } from "./EnVentaItemSpecs";
 import { EnVentaRelatedRail } from "./EnVentaRelatedRail";
 import { enVentaClassifiedAdJsonLd } from "../seo/enVentaJsonLd";
@@ -79,6 +80,19 @@ function normalizePhoneForTel(raw: string) {
   return String(raw || "").replace(/[^0-9+]/g, "");
 }
 
+function contactChannelFromPairs(rows: Array<{ label: string; value: string }>): string {
+  for (const r of rows) {
+    if (r.label.trim() === "Leonix:contactChannel") return r.value.trim().toLowerCase();
+  }
+  return "";
+}
+
+function digitsForWhatsAppLink(raw: string): string | null {
+  const d = String(raw || "").replace(/\D/g, "");
+  if (d.length < 10) return null;
+  return d;
+}
+
 export type LeonixAnuncioListingSurface = "en-venta" | "bienes-raices";
 
 export function EnVentaAnuncioLayout({
@@ -103,6 +117,7 @@ export function EnVentaAnuncioLayout({
 }) {
   const images = listing.images ?? [];
   const rows = useMemo(() => pairsFromListing(listing), [listing]);
+  const contactChannel = useMemo(() => contactChannelFromPairs(rows), [rows]);
   const condition = conditionFromPairs(rows, lang);
   const sellerKind = listing.sellerType === "business" ? "business" : "personal";
   const biz = listing.businessName || listing.business_name || null;
@@ -229,6 +244,9 @@ export function EnVentaAnuncioLayout({
 
   const posted = formatPostedAgo(listing.created_at ?? null, lang);
   const phoneTel = resolvedContact.phoneForTel ? normalizePhoneForTel(String(resolvedContact.phoneForTel)) : "";
+  const waDigits = phoneTel ? digitsForWhatsAppLink(phoneTel) : null;
+  const showWhatsAppCta =
+    Boolean(waDigits) && (contactChannel === "whatsapp" || contactChannel === "both");
   const email = String(resolvedContact.emailForMailto || "").trim();
   const ownerId = listing.owner_id?.trim() || null;
 
@@ -325,7 +343,10 @@ export function EnVentaAnuncioLayout({
             </div>
 
             {!(sellerKind === "business" && negocioDisplay) ? (
-              <EnVentaSellerCard lang={lang} sellerKind={sellerKind} businessName={biz} />
+              <div>
+                <EnVentaSellerCard lang={lang} sellerKind={sellerKind} businessName={biz} />
+                <EnVentaSellerPublicStats ownerId={ownerId} lang={lang} />
+              </div>
             ) : null}
 
             {sellerKind === "business" && negocioDisplay ? (
@@ -344,6 +365,11 @@ export function EnVentaAnuncioLayout({
 
             <div id="leonix-contact-actions" className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
               <div className="text-sm font-bold text-[#111111]">{lang === "es" ? "Contacto" : "Contact"}</div>
+              <p className="mt-2 text-[11px] leading-relaxed text-[#111111]/60">
+                {lang === "es"
+                  ? "Leonix conecta comprador y vendedor; no procesamos el pago del artículo. Prefiere lugares públicos para entregas o encuentros. Si ves algo ilegal o peligroso, usa «Reportar anuncio» abajo — el equipo revisa en /admin/reportes."
+                  : "Leonix connects buyers and sellers; we do not process item payment. Prefer public meetups for exchanges. If you see something illegal or unsafe, use “Report listing” below—staff reviews the queue at /admin/reportes."}
+              </p>
               <div className="mt-3">
                 {listing.contact_phone || listing.contact_email ? (
                   <div className="flex flex-wrap gap-2">
@@ -355,6 +381,16 @@ export function EnVentaAnuncioLayout({
                     {phoneTel ? (
                       <a href={`sms:${phoneTel}`} className={`${BtnBase} ${secondary}`}>
                         {lang === "es" ? "Texto" : "Text"}
+                      </a>
+                    ) : null}
+                    {showWhatsAppCta && waDigits ? (
+                      <a
+                        href={`https://wa.me/${waDigits}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`${BtnBase} ${secondary}`}
+                      >
+                        WhatsApp
                       </a>
                     ) : null}
                     {email ? (

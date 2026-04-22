@@ -14,7 +14,7 @@ export type ParsedAutoTitle = {
 
 export function parseAutoFromTitle(title: string): ParsedAutoTitle {
   const t = normalizeSpace(title);
-  const mileageMatch = t.match(/\b(\d{1,3}(?:[\.,]\d{3})+|\d+(?:\.\d+)?)\s*(k)?\s*(miles|millas|mi)\b/i);
+  const mileageMatch = t.match(/\b(\d{1,3}(?:[.,]\d{3})+|\d+(?:\.\d+)?)\s*(k)?\s*(miles|millas|mi)\b/i);
   let mileageLabel: string | null = null;
   if (mileageMatch) {
     const rawNum = mileageMatch[1];
@@ -35,7 +35,7 @@ export function parseAutoFromTitle(title: string): ParsedAutoTitle {
   if (year) {
     const withoutMileage = mileageMatch ? t.replace(mileageMatch[0], "").trim() : t;
     const afterYear = normalizeSpace(withoutMileage.replace(new RegExp("^" + year + "\\b"), "").trim());
-    const cleaned = afterYear.replace(/^[\-–—:\s]+/, "").trim();
+    const cleaned = afterYear.replace(/^[-–—:\s]+/, "").trim();
     const tokens = cleaned.split(" ").filter(Boolean);
     const mm = tokens.slice(0, 3).join(" ").trim();
     if (mm) specLabel = `${year} • ${mm}`;

@@ -74,6 +74,10 @@ type Props = {
   sellerOwnerId?: string | null;
   /** Human-readable listing id for display (UUID or preview token). */
   listingIdDisplay?: string | null;
+  /** Defaults to En Venta route; Rentas uses the same handler once it accepts `rentas` listings. */
+  inquiryApiPath?: string;
+  /** When set, called after successful Leonix send instead of `trackEnVentaMessageIntent`. */
+  onMessageSentAnalytics?: (listingId: string | null, userId: string | null) => void;
 };
 
 function btnRowClass() {
@@ -98,6 +102,8 @@ export function EnVentaCorreoModal({
   listingId = null,
   sellerOwnerId = null,
   listingIdDisplay = null,
+  inquiryApiPath = "/api/clasificados/en-venta/inquiry",
+  onMessageSentAnalytics,
 }: Props) {
   const t = COPY[lang];
   const emailAddr = sellerEmail.trim();
@@ -232,7 +238,7 @@ export function EnVentaCorreoModal({
     const gen = openGenerationRef.current;
     setLeonixSending(true);
     try {
-      const res = await fetch("/api/clasificados/en-venta/inquiry", {
+      const res = await fetch(inquiryApiPath, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -256,7 +262,9 @@ export function EnVentaCorreoModal({
       }
       const uid = session.user?.id ?? null;
       const lid = listingId?.trim() || null;
-      if (lid) {
+      if (onMessageSentAnalytics) {
+        onMessageSentAnalytics(lid, uid);
+      } else if (lid) {
         trackEnVentaMessageIntent(lid, uid);
       }
       setLeonixOk(true);
@@ -283,6 +291,8 @@ export function EnVentaCorreoModal({
     onClose,
     selfInquiry,
     sellerOwnerId,
+    inquiryApiPath,
+    onMessageSentAnalytics,
     t,
   ]);
 

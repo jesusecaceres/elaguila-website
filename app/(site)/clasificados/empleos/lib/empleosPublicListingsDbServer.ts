@@ -47,6 +47,8 @@ export type EmpleosPublicListingRow = {
   created_at: string;
   updated_at: string;
   listing_snapshot: EmpleosListingSnapshotJson;
+  apply_count?: number;
+  view_count?: number;
 };
 
 export type EmpleosListingSnapshotJson = {
@@ -245,7 +247,10 @@ export async function fetchEmpleosPublishedListingRowBySlug(slug: string): Promi
 
 export function rowToJobRecord(row: EmpleosPublicListingRow): EmpleosJobRecord {
   const snap = row.listing_snapshot as EmpleosListingSnapshotJson | null;
-  if (snap?.jobRecord) return snap.jobRecord;
+  const applyCount = typeof (row as { apply_count?: number }).apply_count === "number" ? (row as { apply_count: number }).apply_count : undefined;
+  if (snap?.jobRecord) {
+    return applyCount != null ? { ...snap.jobRecord, applicationCount: applyCount } : { ...snap.jobRecord };
+  }
   return {
     id: row.id,
     slug: row.slug,
@@ -278,6 +283,7 @@ export function rowToJobRecord(row: EmpleosPublicListingRow): EmpleosJobRecord {
     benefitChips: [],
     showOnLandingFeatured: false,
     showOnLandingRecent: false,
+    ...(applyCount != null ? { applicationCount: applyCount } : {}),
   };
 }
 
@@ -379,7 +385,63 @@ export async function insertEmpleosJobApplication(input: {
     .select("id")
     .single();
   if (error) return { ok: false, error: error.message };
+
+  try {
+    const { data: countRow } = await supabase.from("empleos_public_listings").select("apply_count").eq("id", input.listingId).maybeSingle();
+    const prev =
+      typeof (countRow as { apply_count?: number } | null)?.apply_count === "number" ? (countRow as { apply_count: number }).apply_count : 0;
+    await supabase
+      .from("empleos_public_listings")
+      .update({ apply_count: prev + 1, updated_at: new Date().toISOString() })
+      .eq("id", input.listingId);
+  } catch {
+    /* apply_count column may be absent until migration is applied */
+  }
+
   return { ok: true, id: (data as { id: string }).id };
+}
+
+export async function fetchEmpleosListingRowForOwner(input: {
+  listingId: string;
+  ownerUserId: string;
+}): Promise<EmpleosPublicListingRow | null> {
+  if (!isSupabaseAdminConfigured()) return null;
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("empleos_public_listings")
+    .select("*")
+    .eq("id", input.listingId)
+    .eq("owner_user_id", input.ownerUserId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as EmpleosPublicListingRow;
+}
+
+export async function updateEmpleosJobApplicationStatusOwner(input: {
+  applicationId: string;
+  ownerUserId: string;
+  status: "submitted" | "viewed" | "shortlisted" | "rejected" | "hired";
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, error: "supabase_not_configured" };
+  const supabase = getAdminSupabase();
+  const { data: app, error: aErr } = await supabase
+    .from("empleos_job_applications")
+    .select("listing_id")
+    .eq("id", input.applicationId)
+    .maybeSingle();
+  if (aErr || !app) return { ok: false, error: "not_found" };
+  const listingId = (app as { listing_id: string }).listing_id;
+  const { data: listing, error: lErr } = await supabase
+    .from("empleos_public_listings")
+    .select("owner_user_id")
+    .eq("id", listingId)
+    .maybeSingle();
+  if (lErr || !listing || (listing as { owner_user_id: string }).owner_user_id !== input.ownerUserId) {
+    return { ok: false, error: "forbidden" };
+  }
+  const { error } = await supabase.from("empleos_job_applications").update({ status: input.status }).eq("id", input.applicationId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
 
 export async function fetchEmpleosApplicationsForListing(input: {

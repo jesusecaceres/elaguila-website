@@ -3,6 +3,8 @@
  * Single source of truth for the publish flow; mapped to preview VM (see application/mapping).
  */
 
+import type { BrPetsAllowedChoice } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
+
 export type BienesRaicesAdvertiserType =
   | ""
   | "agente_individual"
@@ -110,6 +112,8 @@ export type BienesRaicesNegocioFormState = {
   niveles: string;
   condicion: string;
   amueblado: string;
+  /** Required to publish — `Leonix:pets_allowed` for resultados. */
+  petsAllowed: BrPetsAllowedChoice;
   hoaSiNo: string;
   cuotaHoa: string;
 
@@ -457,6 +461,7 @@ export function createEmptyBienesRaicesNegocioFormState(): BienesRaicesNegocioFo
     niveles: "",
     condicion: "",
     amueblado: "",
+    petsAllowed: "",
     hoaSiNo: "",
     cuotaHoa: "",
     propertySubtype: "",
@@ -681,6 +686,11 @@ export function syncNegocioListingFieldsFromPublication(
   }
 }
 
+function coerceNegocioPetsAllowed(raw: unknown, fallback: BrPetsAllowedChoice): BrPetsAllowedChoice {
+  if (raw === "yes" || raw === "no" || raw === "") return raw;
+  return fallback;
+}
+
 export function mergePartialBienesRaicesNegocioState(partial: LegacyPartial): BienesRaicesNegocioFormState {
   const base = createEmptyBienesRaicesNegocioFormState();
   const legacyHighlightsText =
@@ -749,5 +759,9 @@ export function mergePartialBienesRaicesNegocioState(partial: LegacyPartial): Bi
     asesorFinanciero: { ...base.asesorFinanciero, ...partial.asesorFinanciero },
     cta: { ...base.cta, ...partial.cta },
     trust: { ...base.trust, ...partial.trust },
+    petsAllowed: coerceNegocioPetsAllowed(
+      (partial as Partial<BienesRaicesNegocioFormState>).petsAllowed,
+      base.petsAllowed,
+    ),
   };
 }

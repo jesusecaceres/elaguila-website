@@ -85,6 +85,7 @@ function buildDetailPairs(
     });
   }
   pairs.push({ label: "Leonix:plan", value: plan });
+  pairs.push({ label: "Leonix:contactChannel", value: state.contactMethod });
   return pairs;
 }
 
@@ -286,6 +287,22 @@ export async function publishEnVentaFromDraft(
   } catch (e: unknown) {
     console.warn("en-venta media upload error", e);
     if (ordered.length > 0) gallery = photoUrls.length > 0 ? "partial" : "failed";
+  }
+
+  /**
+   * Image policy (En Venta go-live): if the seller attached ≥1 photo, **all** uploads must succeed
+   * or we roll back the insert — no “live” listing without the gallery the seller confirmed.
+   * Zero photos = optional listing (gallery `none`).
+   */
+  if (ordered.length > 0 && gallery === "failed") {
+    await supabase.from("listings").delete().eq("id", listingId);
+    return {
+      ok: false,
+      error:
+        lang === "es"
+          ? "No se pudieron subir las fotos al almacenamiento (bucket listing-images / permisos RLS). Revisa la consola de Supabase Storage o inténtalo de nuevo. El anuncio no se publicó."
+          : "Photos could not be uploaded to storage (listing-images bucket / RLS). Check Supabase Storage policies and retry. The listing was not published.",
+    };
   }
 
   return { ok: true, listingId, gallery };

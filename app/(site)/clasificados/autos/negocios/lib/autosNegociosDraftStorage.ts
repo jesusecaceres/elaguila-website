@@ -1,10 +1,6 @@
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { normalizeLoadedListing } from "./autoDealerDraftDefaults";
-import {
-  AUTOS_NEGOCIOS_DRAFT_STORAGE_PREFIX,
-  buildAutosNegociosDraftLocalStorageKey,
-  LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY,
-} from "./autosNegociosDraftNamespace";
+import { buildAutosNegociosDraftLocalStorageKey, LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY } from "./autosNegociosDraftNamespace";
 import { stripDraftMuxFields } from "./autosNegociosDraftGuards";
 import { idbClearDraftVideo, idbGetDraftVideoDataUrl, idbPutDraftVideoDataUrl } from "./autosNegociosDraftVideoIdb";
 import {

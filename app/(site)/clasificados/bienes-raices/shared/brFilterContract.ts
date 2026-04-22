@@ -83,7 +83,7 @@ export const BR_KEY_PUBLISH_FIELD_HINTS: Record<BrCanonicalQueryKey, string> = {
   priceMax: "price.amount upper bound",
   beds: "attributes.bedrooms (min)",
   baths: "attributes.bathrooms (min)",
-  pets: "attributes.petsAllowed (boolean)",
+  pets: "Leonix:pets_allowed (boolean) from publish form `petsAllowed`",
   furnished: "attributes.furnished (boolean)",
   pool: "attributes.pool (boolean)",
   sort: "server sort key",
@@ -176,8 +176,8 @@ export const BR_FILTER_PUBLISH_READINESS: Record<
   priceMax: "ready",
   beds: "ready",
   baths: "ready",
-  /** `Leonix:pets_allowed` when inferred from copy; else description/meta text (see results copy hint). */
-  pets: "structured_with_text_fallback",
+  /** `Leonix:pets_allowed` from structured `petsAllowed` at publish (Privado / Negocio). */
+  pets: "ready",
   furnished: "ready",
   pool: "ready",
   sort: "ready",

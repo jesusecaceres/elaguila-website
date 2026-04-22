@@ -19,7 +19,7 @@ export async function generateMetadata(props: {
   const sp = (await props.searchParams) ?? {};
   const lang = sp.lang === "en" ? "en" : "es";
   const { payload } = await getSiteSectionPayload("nosotros");
-  const c = mergeNosotrosCopy(payload as unknown as NosotrosPayload);
+  mergeNosotrosCopy(payload as unknown as NosotrosPayload);
   const title = lang === "en" ? "About" : "Nosotros";
   const description =
     lang === "en"

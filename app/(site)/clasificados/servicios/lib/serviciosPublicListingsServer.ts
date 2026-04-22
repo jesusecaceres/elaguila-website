@@ -6,6 +6,7 @@ import {
   getServiciosDevPublishRowBySlug,
   listServiciosDevPublishRows,
 } from "./serviciosDevPublishPersistence";
+import { getServiciosReviewAggregatesForSlugs } from "./serviciosOpsTablesServer";
 import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "./serviciosListingLifecycle";
 
 const LISTING_SELECT =
@@ -24,6 +25,9 @@ export type ServiciosPublicListingRow = {
   listing_status: string;
   /** Auth user id of provider (nullable legacy) */
   owner_user_id?: string | null;
+  /** Approved DB reviews aggregate (optional; discovery + ranking) */
+  review_rating_avg?: number | null;
+  review_rating_count?: number | null;
 };
 
 /** DB reads for publish/admin — any lifecycle row by slug. */
@@ -117,7 +121,13 @@ export async function listServiciosPublicListingsForDiscovery(limit = 48): Promi
     if (a.published_at > b.published_at) return -1;
     return a.slug.localeCompare(b.slug);
   });
-  return merged.slice(0, limit);
+  const slice = merged.slice(0, limit);
+  const agg = await getServiciosReviewAggregatesForSlugs(slice.map((r) => r.slug));
+  return slice.map((r) => {
+    const a = agg.get(r.slug);
+    if (!a) return { ...r, review_rating_avg: null, review_rating_count: null };
+    return { ...r, review_rating_avg: a.avg, review_rating_count: a.count };
+  });
 }
 
 export async function getServiciosPublicListingBySlugForDiscovery(slug: string): Promise<ServiciosPublicListingRow | null> {

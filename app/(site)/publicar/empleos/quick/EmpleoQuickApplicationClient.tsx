@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
@@ -16,8 +16,10 @@ import { EmpleosImageGalleryEditor } from "@/app/publicar/empleos/shared/media/E
 import { EmpleosSingleImageField } from "@/app/publicar/empleos/shared/media/EmpleosSingleImageField";
 import { EmpleosVideoDraftField } from "@/app/publicar/empleos/shared/media/EmpleosVideoDraftField";
 import { buildEmpleosPublishEnvelopeFromQuick } from "@/app/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope";
+import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publish/EmpleosPublishConfirmModal";
 import { clearEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
+import { hydrateQuickDraftFromEnvelope } from "@/app/publicar/empleos/shared/lib/empleosDraftFromEnvelope";
 import { flushEmpleosDraftToSession } from "@/app/publicar/empleos/shared/lib/flushEmpleosDraftToSession";
 import { gateEmpleosQuickPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
 import { EMPLEOS_STANDARD_CITY } from "@/app/publicar/empleos/shared/constants/empleosStandardRegion";
@@ -26,6 +28,7 @@ import { empleosHandoffPreviewUrl } from "@/app/publicar/empleos/shared/constant
 import { emptyEmpleosQuickDraft, type EmpleosQuickDraft } from "@/app/publicar/empleos/shared/types/empleosQuickDraft";
 import { EmpleosFieldLabel, EmpleosSectionCard } from "@/app/publicar/empleos/shared/ui/empleosFormPrimitives";
 import { EmpleosStringLinesEditor } from "@/app/publicar/empleos/shared/ui/empleosStringLinesEditor";
+import { sampleCategorySelectOptions, sampleExperienceOptions } from "@/app/clasificados/empleos/data/empleosLandingSampleData";
 
 const INPUT = "mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm";
 const INPUT_CITY_LOCKED = `${INPUT} cursor-not-allowed bg-black/[0.04]`;
@@ -44,6 +47,31 @@ export default function EmpleoQuickApplicationClient() {
   const [publishOpen, setPublishOpen] = useState(false);
   const [stagedNotice, setStagedNotice] = useState(false);
   const [serverListingId, setServerListingId] = useState<string | null>(null);
+  const loadedEditRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const editId = sp?.get("edit")?.trim();
+    if (!editId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(editId)) return;
+    if (loadedEditRef.current === editId) return;
+    loadedEditRef.current = editId;
+    void (async () => {
+      const sb = createSupabaseBrowserClient();
+      const { data } = await sb.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return;
+      const res = await fetch(`/api/clasificados/empleos/listings/${editId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = (await res.json()) as { ok?: boolean; envelope?: EmpleosPublishEnvelope | null };
+      if (!json.ok || !json.envelope || typeof json.envelope !== "object") return;
+      const next = hydrateQuickDraftFromEnvelope(json.envelope);
+      if (next) {
+        patch(() => next);
+        setServerListingId(editId);
+      }
+    })();
+  }, [hydrated, sp, patch]);
 
   const gate = useMemo(() => gateEmpleosQuickPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;
@@ -164,6 +192,40 @@ export default function EmpleoQuickApplicationClient() {
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Categoría (resultados)" : "Category (search)"}</EmpleosFieldLabel>
+                <select
+                  className={INPUT}
+                  value={state.categorySlug}
+                  onChange={(e) => patch({ categorySlug: e.target.value })}
+                >
+                  {sampleCategorySelectOptions
+                    .filter((o) => o.value)
+                    .map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang}>{lang === "es" ? "Nivel de experiencia" : "Experience level"}</EmpleosFieldLabel>
+                <select
+                  className={INPUT}
+                  value={state.experienceLevel}
+                  onChange={(e) => patch({ experienceLevel: e.target.value as EmpleosQuickDraft["experienceLevel"] })}
+                >
+                  {sampleExperienceOptions
+                    .filter((o) => o.value)
+                    .map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
                 <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Ciudad" : "City"}</EmpleosFieldLabel>
                 <input
                   readOnly
@@ -203,7 +265,22 @@ export default function EmpleoQuickApplicationClient() {
             </label>
           </EmpleosSectionCard>
 
-          <EmpleosSectionCard title={lang === "es" ? "2. Beneficios (opcional)" : "2. Benefits (optional)"}>
+          <EmpleosSectionCard title={lang === "es" ? "2. Preguntas filtro (opcional, máx. 5)" : "2. Screener questions (optional, max 5)"}>
+            <p className="text-xs text-[color:var(--lx-muted)]">
+              {lang === "es"
+                ? "Aparecen en el formulario de aplicación interna de Leonix."
+                : "Shown on Leonix’s internal apply form."}
+            </p>
+            <EmpleosStringLinesEditor
+              items={state.screenerQuestions.length ? state.screenerQuestions : [""]}
+              onChange={(screenerQuestions) => patch({ screenerQuestions: screenerQuestions.slice(0, 5) })}
+              addLabel={lang === "es" ? "+ Pregunta" : "+ Question"}
+              removeLabel={lang === "es" ? "Quitar" : "Remove"}
+              placeholder={lang === "es" ? "Ej. ¿Disponibilidad inmediata?" : "e.g. Immediate availability?"}
+            />
+          </EmpleosSectionCard>
+
+          <EmpleosSectionCard title={lang === "es" ? "3. Beneficios (opcional)" : "3. Benefits (optional)"}>
             <p className="text-xs text-[color:var(--lx-muted)]">
               {lang === "es" ? "Añade viñetas; solo las líneas con texto aparecen en el anuncio." : "Add bullets; only non-empty lines appear on the listing."}
             </p>
@@ -216,7 +293,7 @@ export default function EmpleoQuickApplicationClient() {
             />
           </EmpleosSectionCard>
 
-          <EmpleosSectionCard title={lang === "es" ? "3. Multimedia" : "3. Media"}>
+          <EmpleosSectionCard title={lang === "es" ? "4. Multimedia" : "4. Media"}>
             <div>
               <div className="text-sm font-semibold text-[color:var(--lx-text)]">
                 <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Imágenes" : "Images"}</EmpleosFieldLabel>
@@ -275,7 +352,7 @@ export default function EmpleoQuickApplicationClient() {
             />
           </EmpleosSectionCard>
 
-          <EmpleosSectionCard title={lang === "es" ? "4. Contacto / CTA" : "4. Contact / CTA"}>
+          <EmpleosSectionCard title={lang === "es" ? "5. Contacto / CTA" : "5. Contact / CTA"}>
             <EmpleosCtaFieldGroup
               phone={state.phone}
               whatsapp={state.whatsapp}
@@ -287,7 +364,7 @@ export default function EmpleoQuickApplicationClient() {
             />
           </EmpleosSectionCard>
 
-          <EmpleosSectionCard title={lang === "es" ? "5. Ubicación (opcional)" : "5. Location (optional)"}>
+          <EmpleosSectionCard title={lang === "es" ? "6. Ubicación (opcional)" : "6. Location (optional)"}>
             <label className="block text-sm">
               <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Dirección línea 1" : "Address line 1"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.addressLine1} onChange={(e) => patch({ addressLine1: e.target.value })} />

@@ -45,6 +45,24 @@ export type RentasPublicListing = {
   recencyRank?: number;
   amueblado?: boolean;
   mascotasPermitidas?: boolean;
+  /** Parsed interior / lot size when numeric (from detail_pairs text). */
+  interiorSqftApprox?: number | null;
+  /** From `Leonix:parking_spots` when present. */
+  parkingSpots?: number | null;
+  /** From `Leonix:pool` when present. */
+  pool?: boolean | null;
+  /** Raw subtype code (`Leonix:property_subtype`). */
+  propertySubtype?: string | null;
+  /** Rentas machine: `Leonix:rent:lease_term_code` (e.g. mes-a-mes, 12-meses). */
+  leaseTermCode?: string | null;
+  availabilityNote?: string | null;
+  servicesIncluded?: string | null;
+  requirements?: string | null;
+  /** Negocio-only machine fields (public on detail). */
+  businessLicense?: string | null;
+  businessWebsite?: string | null;
+  /** From `listings.business_meta` (`negocioDescripcion` / BR meta) when present. */
+  businessDescription?: string | null;
   /** Localized short copy for detail; sample-only until CMS/DB. */
   description?: { es: string; en: string };
   /** Display line for seller (localized). */

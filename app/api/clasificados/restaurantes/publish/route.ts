@@ -133,6 +133,7 @@ export async function POST(req: Request) {
     city: draft.cityCanonical.trim(),
     zip: draft.zipCode?.trim(),
     primaryCuisineKey: (draft.primaryCuisine ?? "").trim(),
+    neighborhood: draft.neighborhood?.trim(),
   });
   const resultsUrl = buildRestaurantesResultsHref(lang, { ...deep, rx_pub: "1" });
   const publicPath = `/clasificados/restaurantes/${encodeURIComponent(slugOut)}`;

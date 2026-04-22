@@ -78,5 +78,13 @@ export function applicationToRestauranteDiscoveryRow(
     highlightKeys: highlights,
     externalReviewCount: app.externalReviewCount,
     additionalCuisineKeys: app.additionalCuisines?.length ? [...app.additionalCuisines] : undefined,
+    reservationsAvailable: app.reservationsAvailable === true,
+    preorderRequired: app.preorderRequired === true,
+    pickupAvailable: app.pickupAvailable === true,
+    serviceAreaText: app.serviceAreaText?.trim() || undefined,
+    deliveryRadiusMiles:
+      typeof app.deliveryRadiusMiles === "number" && Number.isFinite(app.deliveryRadiusMiles)
+        ? app.deliveryRadiusMiles
+        : undefined,
   };
 }

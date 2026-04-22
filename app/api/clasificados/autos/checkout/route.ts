@@ -79,6 +79,18 @@ export async function POST(request: Request) {
   const origin = getAutosSiteOrigin();
   const qLang = lang === "en" ? "lang=en" : "lang=es";
   const laneQ = `lane=${encodeURIComponent(row.lane)}`;
+
+  if (row.status === "pending_payment" && row.stripe_checkout_session_id?.trim()) {
+    try {
+      const existing = await stripe.checkout.sessions.retrieve(row.stripe_checkout_session_id.trim());
+      if (existing.status === "open" && existing.url) {
+        return NextResponse.json({ ok: true, url: existing.url, sessionId: existing.id, reusedSession: true as const });
+      }
+    } catch {
+      /* expired or invalid session — create a new one below */
+    }
+  }
+
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     line_items: [{ price: priceId, quantity: 1 }],

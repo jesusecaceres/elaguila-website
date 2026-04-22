@@ -121,8 +121,8 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
             stagedFromDb.length > 0 ? (
               <p className="mb-3 rounded-xl border border-amber-200/90 bg-amber-50/95 px-3 py-2 text-center text-xs font-medium text-amber-950 sm:text-left">
                 {lang === "es"
-                  ? `Modo demostración: ${stagedFromDb.length} anuncio(s) en vivo + ejemplos (NEXT_PUBLIC_RENTAS_INCLUDE_DEMO_POOL=1).`
-                  : `Demo mode: ${stagedFromDb.length} live listing(s) plus samples (NEXT_PUBLIC_RENTAS_INCLUDE_DEMO_POOL=1).`}
+                  ? `Modo demostración (solo no producción): ${stagedFromDb.length} anuncio(s) en vivo + ejemplos (RENTAS_INCLUDE_DEMO_POOL=1).`
+                  : `Non-production demo mode: ${stagedFromDb.length} live listing(s) plus samples (RENTAS_INCLUDE_DEMO_POOL=1).`}
               </p>
             ) : null
           ) : stagedFromDb.length > 0 ? (

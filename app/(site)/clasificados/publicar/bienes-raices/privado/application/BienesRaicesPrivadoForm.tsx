@@ -417,6 +417,27 @@ export function BienesRaicesPrivadoForm() {
                 />
               </AiField>
             </div>
+            <div className="sm:col-span-2">
+              <AiField
+                label="¿Se permiten mascotas?"
+                hint="Requerido para publicar: se guarda como dato estructurado y alimenta el filtro “Mascotas” en resultados."
+              >
+                <select
+                  className={fieldClass}
+                  value={state.petsAllowed}
+                  onChange={(e) =>
+                    setState((s) => ({
+                      ...s,
+                      petsAllowed: e.target.value as BienesRaicesPrivadoFormState["petsAllowed"],
+                    }))
+                  }
+                >
+                  <option value="">Selecciona…</option>
+                  <option value="yes">Sí, se permiten</option>
+                  <option value="no">No, no se permiten</option>
+                </select>
+              </AiField>
+            </div>
           </div>
         </section>
 

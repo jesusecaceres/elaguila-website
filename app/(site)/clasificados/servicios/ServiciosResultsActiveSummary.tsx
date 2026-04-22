@@ -53,6 +53,12 @@ export function ServiciosResultsActiveSummary({
       label: lang === "en" ? "Sort: Name A–Z" : "Orden: Nombre A–Z",
     });
   }
+  if (query.sort === "rating") {
+    items.push({
+      key: "sort",
+      label: lang === "en" ? "Sort: Highest rated" : "Orden: Mejor calificados",
+    });
+  }
   if (query.whatsapp === "1") {
     items.push({
       key: "wa",

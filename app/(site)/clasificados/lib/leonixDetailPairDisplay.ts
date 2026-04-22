@@ -36,6 +36,8 @@ export const LEONIX_INTERNAL_DETAIL_LABELS: ReadonlySet<string> = new Set([
   "Leonix:delivery",
   "Leonix:meetup",
   "Leonix:negotiable",
+  /** How seller chose to be reached at publish time — drives detail CTAs, not public facets. */
+  "Leonix:contactChannel",
 ]);
 
 export function isLeonixInternalDetailLabel(label: string): boolean {

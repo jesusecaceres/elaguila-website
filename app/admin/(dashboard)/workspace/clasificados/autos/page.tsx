@@ -58,6 +58,7 @@ export default async function AdminAutosClassifiedsPage() {
                 <th className="px-3 py-2">ID</th>
                 <th className="px-3 py-2">Título</th>
                 <th className="px-3 py-2">Vía</th>
+                <th className="px-3 py-2">Dest.</th>
                 <th className="px-3 py-2">Estado</th>
                 <th className="px-3 py-2">Visibilidad</th>
                 <th className="px-3 py-2">Publicado</th>
@@ -94,6 +95,7 @@ export default async function AdminAutosClassifiedsPage() {
                       {dash.title}
                     </td>
                     <td className="px-3 py-2">{r.lane}</td>
+                    <td className="px-3 py-2">{r.featured ? "sí" : "no"}</td>
                     <td className="px-3 py-2">{autosListingStatusLabelEs(r.status)}</td>
                     <td className="px-3 py-2">{vis}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-[10px] text-[#5C5346]">{pub}</td>

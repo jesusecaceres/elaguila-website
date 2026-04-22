@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { deleteListingAction } from "../../../actions";
+import { deleteListingAction, setListingPublishedAction } from "../../../actions";
 import { useState } from "react";
 import { adminTableWrap } from "../../../_components/adminTheme";
 import { listingPlanFromDetailPairs } from "@/app/dashboard/lib/dashboardListingMeta";
@@ -13,6 +13,7 @@ import {
   parseDetailPairValue,
 } from "@/app/clasificados/en-venta/boosts/enVentaVisibilityRenewal";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
 
 type Row = {
   id: string;
@@ -59,6 +60,18 @@ function leonixAdminLine(row: Row, detailPairsAvailable: boolean): string {
     row.is_published === false ? "is_published=false" : row.is_published === true ? "is_published=true" : "pub=?";
   if (!parts.length) return row.is_published === false ? pub : "—";
   return `${parts.join(" · ")} · ${pub}`;
+}
+
+function clasificadosLeonixAdminLine(row: Row, detailPairsAvailable: boolean): string {
+  const base = leonixAdminLine(row, detailPairsAvailable);
+  if ((row.category ?? "").toLowerCase() !== "rentas" || !detailPairsAvailable) return base;
+  const rx = parseRentasDetailMachineRead(row.detail_pairs);
+  const bits: string[] = [];
+  if (rx.leaseTermCode) bits.push(`lease:${rx.leaseTermCode}`);
+  if (rx.depositUsdDigits) bits.push(`dep:${rx.depositUsdDigits}`);
+  if (rx.servicesIncluded) bits.push("services:…");
+  if (rx.businessWebsite) bits.push("web");
+  return bits.length ? `${base} · ${bits.join(" · ")}` : base;
 }
 
 function enVentaVisibilityAdminLine(
@@ -115,6 +128,7 @@ export default function AdminListingsTable({
 }) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [publishBusyId, setPublishBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleDelete(id: string) {
@@ -128,6 +142,23 @@ export default function AdminListingsTable({
       setError(e instanceof Error ? e.message : "Error al eliminar");
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function handleSetPublished(id: string, published: boolean) {
+    const msg = published
+      ? "¿Volver a mostrar este anuncio en el sitio (is_published=true)?"
+      : "¿Ocultar este anuncio del sitio público (is_published=false)? Sigue visible para staff.";
+    if (!confirm(msg)) return;
+    setPublishBusyId(id);
+    setError(null);
+    try {
+      await setListingPublishedAction(id, published);
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al actualizar publicación");
+    } finally {
+      setPublishBusyId(null);
     }
   }
 
@@ -242,9 +273,9 @@ export default function AdminListingsTable({
                       ? "max-w-[240px] p-3 align-top text-[11px] leading-snug text-[#5C5346]"
                       : "max-w-[240px] bg-amber-50/40 p-3 align-top text-[11px] leading-snug text-amber-950"
                   }
-                  title={leonixAdminLine(row, detailPairsAvailable)}
+                  title={clasificadosLeonixAdminLine(row, detailPairsAvailable)}
                 >
-                  {leonixAdminLine(row, detailPairsAvailable)}
+                  {clasificadosLeonixAdminLine(row, detailPairsAvailable)}
                 </td>
                 <td
                   className={
@@ -267,6 +298,28 @@ export default function AdminListingsTable({
                     >
                       Ver público
                     </Link>
+                    {row.status !== "removed" && row.is_published !== false ? (
+                      <button
+                        type="button"
+                        disabled={publishBusyId === row.id}
+                        onClick={() => void handleSetPublished(row.id, false)}
+                        className="min-h-[44px] text-left text-sm font-semibold text-amber-900 hover:underline disabled:opacity-50 sm:min-h-0"
+                        title="Oculta del listado público (is_published=false). En Venta / resultados dejan de mostrarlo."
+                      >
+                        {publishBusyId === row.id ? "…" : "Ocultar del público"}
+                      </button>
+                    ) : null}
+                    {row.status !== "removed" && row.is_published === false ? (
+                      <button
+                        type="button"
+                        disabled={publishBusyId === row.id}
+                        onClick={() => void handleSetPublished(row.id, true)}
+                        className="min-h-[44px] text-left text-sm font-semibold text-emerald-900 hover:underline disabled:opacity-50 sm:min-h-0"
+                        title="Vuelve a publicar en el sitio (is_published=true) si el estado sigue activo."
+                      >
+                        {publishBusyId === row.id ? "…" : "Republicar en sitio"}
+                      </button>
+                    ) : null}
                     {row.status !== "removed" && (
                       <button
                         type="button"

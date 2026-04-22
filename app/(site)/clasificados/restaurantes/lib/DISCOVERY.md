@@ -3,7 +3,7 @@
 | Concern | Location |
 | -------- | -------- |
 | URL params + `RestaurantesDiscoveryState` (single source of truth) | `lib/restaurantesDiscoveryContract.ts` |
-| Filtering / sorting (`q`, city/ZIP, cuisine, `svc`, highlights, flags, open-now) | `lib/filterRestaurantesBlueprintRows.ts` |
+| Filtering / sorting (`q`, city/ZIP/`nbh`, cuisine, `svc`, reservations/preorder/pickup, `feat`/`lxv`/`drm`, highlights, flags, open-now) | `lib/filterRestaurantesBlueprintRows.ts` |
 | Destacados / Recientes / promoted band policy + caps | `lib/restaurantesListingExposurePolicy.ts` |
 | **Published** inventory load (results + landing) | `lib/restaurantesResultsInventoryServer.ts`, `lib/restaurantesLandingInventoryServer.ts` |
 | DB row + `listing_json` → shell row (`openNow`, full `serviceModes`, extra cuisines) | `lib/restaurantesPublicListingMapper.ts` (`mapRestaurantesPublicListingDbRowToShellInventoryRow`) |

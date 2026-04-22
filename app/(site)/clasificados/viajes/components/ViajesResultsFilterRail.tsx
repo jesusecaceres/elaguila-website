@@ -11,6 +11,8 @@ export type ViajesResultsFiltersState = {
   duration: string;
   audience: string;
   season: string;
+  /** Maps to browse `svcLang` */
+  serviceLanguage: string;
 };
 
 type ViajesResultsFilterRailProps = {
@@ -124,6 +126,23 @@ export function ViajesResultsFilterRail({ value, onChange, onReset, idPrefix, ui
         </select>
       </div>
       <div>
+        <label htmlFor={id("svc-lang")} className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
+          {f.serviceLanguage}
+        </label>
+        <select
+          id={id("svc-lang")}
+          className="mt-1.5 w-full cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
+          value={value.serviceLanguage}
+          onChange={(e) => onChange({ serviceLanguage: e.target.value })}
+        >
+          <option value="">{f.serviceLangAny}</option>
+          <option value="es">{f.serviceLangEs}</option>
+          <option value="en">{f.serviceLangEn}</option>
+          <option value="bilingual">{f.serviceLangBilingual}</option>
+          <option value="other">{f.serviceLangOther}</option>
+        </select>
+      </div>
+      <div>
         <label htmlFor={id("season")} className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
           {f.season}
         </label>
@@ -161,5 +180,6 @@ export function emptyViajesResultsFilters(): ViajesResultsFiltersState {
     duration: "",
     audience: "",
     season: "",
+    serviceLanguage: "",
   };
 }

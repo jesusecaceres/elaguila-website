@@ -1,5 +1,7 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+
 import type { ViajesOfferDetailModel } from "../data/viajesOfferDetailSampleData";
 import { getPublicarViajesNegociosCopy } from "../../../publicar/viajes/negocios/data/publicarViajesNegociosCopy";
 import { getPublicarViajesPrivadoCopy } from "../../../publicar/viajes/privado/data/publicarViajesPrivadoCopy";
@@ -8,9 +10,10 @@ import { mapViajesNegociosDraftToOffer } from "../../../publicar/viajes/negocios
 import type { ViajesPrivadoDraft } from "../../../publicar/viajes/privado/lib/viajesPrivadoDraftTypes";
 import { mapViajesPrivadoDraftToOffer } from "../../../publicar/viajes/privado/lib/mapViajesPrivadoDraftToOffer";
 
+import { VIAJES_CACHE_TAG_BROWSE, viajesOfferDetailCacheTag } from "./viajesCacheTags";
 import { fetchViajesStagedRowBySlugPublic } from "./viajesStagedListingsDbServer";
 
-export async function resolveViajesOfferDetailFromStagedSlug(slug: string, lang: "es" | "en"): Promise<ViajesOfferDetailModel | null> {
+async function resolveViajesOfferDetailFromStagedSlugUncached(slug: string, lang: "es" | "en"): Promise<ViajesOfferDetailModel | null> {
   const row = await fetchViajesStagedRowBySlugPublic(slug);
   if (!row) return null;
 
@@ -54,4 +57,14 @@ export async function resolveViajesOfferDetailFromStagedSlug(slug: string, lang:
   }
 
   return null;
+}
+
+export async function resolveViajesOfferDetailFromStagedSlug(slug: string, lang: "es" | "en"): Promise<ViajesOfferDetailModel | null> {
+  const s = slug.trim();
+  if (!s) return null;
+  return unstable_cache(
+    async () => resolveViajesOfferDetailFromStagedSlugUncached(s, lang),
+    ["viajes-staged-offer-detail-v1", s, lang],
+    { tags: [viajesOfferDetailCacheTag(s), VIAJES_CACHE_TAG_BROWSE] },
+  )();
 }

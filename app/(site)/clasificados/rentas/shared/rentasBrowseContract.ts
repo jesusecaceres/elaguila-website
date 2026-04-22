@@ -41,6 +41,13 @@ export const RENTAS_QUERY_AMUEBLADO = "amueblado";
 export const RENTAS_QUERY_MASCOTAS = "mascotas";
 export const RENTAS_QUERY_RENT_MIN = "rent_min";
 export const RENTAS_QUERY_RENT_MAX = "rent_max";
+export const RENTAS_QUERY_DEPOSIT_MIN = "deposit_min";
+export const RENTAS_QUERY_DEPOSIT_MAX = "deposit_max";
+/** Exact `plazoContrato` code stored as `Leonix:rent:lease_term_code` (e.g. mes-a-mes, 12-meses). */
+export const RENTAS_QUERY_LEASE = "lease";
+export const RENTAS_QUERY_PARKING_MIN = "parking_min";
+export const RENTAS_QUERY_SQFT_MIN = "sqft_min";
+export const RENTAS_QUERY_SQFT_MAX = "sqft_max";
 
 export const RENTAS_QUERY_CITY = "city";
 /** Postal code (US/MX style); digits normalized in filters. */
@@ -76,6 +83,13 @@ export type RentasBrowseParamsParsed = {
   mascotas: boolean;
   rentMin: number | null;
   rentMax: number | null;
+  depositMin: number | null;
+  depositMax: number | null;
+  /** Lease term code or empty */
+  lease: string;
+  parkingMin: number | null;
+  sqftMin: number | null;
+  sqftMax: number | null;
   city: string;
   zip: string;
   state: string;
@@ -114,6 +128,12 @@ export function parseRentasBrowseParams(sp: URLSearchParams | null | undefined):
 
   const rentMinRaw = g(RENTAS_QUERY_RENT_MIN);
   const rentMaxRaw = g(RENTAS_QUERY_RENT_MAX);
+  const depMinRaw = g(RENTAS_QUERY_DEPOSIT_MIN);
+  const depMaxRaw = g(RENTAS_QUERY_DEPOSIT_MAX);
+  const leaseRaw = g(RENTAS_QUERY_LEASE).trim();
+  const parkMinRaw = g(RENTAS_QUERY_PARKING_MIN);
+  const sqMinRaw = g(RENTAS_QUERY_SQFT_MIN);
+  const sqMaxRaw = g(RENTAS_QUERY_SQFT_MAX);
   const bathsRaw = g(RENTAS_QUERY_BATHS_MIN);
 
   const latRaw = g(RENTAS_QUERY_LAT);
@@ -132,6 +152,12 @@ export function parseRentasBrowseParams(sp: URLSearchParams | null | undefined):
     mascotas: g(RENTAS_QUERY_MASCOTAS) === "1",
     rentMin: rentMinRaw !== "" && Number.isFinite(Number(rentMinRaw)) ? Number(rentMinRaw) : null,
     rentMax: rentMaxRaw !== "" && Number.isFinite(Number(rentMaxRaw)) ? Number(rentMaxRaw) : null,
+    depositMin: depMinRaw !== "" && Number.isFinite(Number(depMinRaw)) ? Number(depMinRaw) : null,
+    depositMax: depMaxRaw !== "" && Number.isFinite(Number(depMaxRaw)) ? Number(depMaxRaw) : null,
+    lease: leaseRaw,
+    parkingMin: parkMinRaw !== "" && Number.isFinite(Number(parkMinRaw)) ? Number(parkMinRaw) : null,
+    sqftMin: sqMinRaw !== "" && Number.isFinite(Number(sqMinRaw)) ? Number(sqMinRaw) : null,
+    sqftMax: sqMaxRaw !== "" && Number.isFinite(Number(sqMaxRaw)) ? Number(sqMaxRaw) : null,
     city: normalizeCityForBrowse(g(RENTAS_QUERY_CITY)),
     zip: normalizeZipForBrowse(g(RENTAS_QUERY_ZIP)),
     state: g(RENTAS_QUERY_STATE).trim(),
@@ -171,6 +197,12 @@ export function rentasBrowseHasActiveFilters(p: RentasBrowseParamsParsed): boole
     p.mascotas ||
     p.rentMin != null ||
     p.rentMax != null ||
+    p.depositMin != null ||
+    p.depositMax != null ||
+    p.lease ||
+    p.parkingMin != null ||
+    p.sqftMin != null ||
+    p.sqftMax != null ||
     p.city ||
     p.zip ||
     p.state ||

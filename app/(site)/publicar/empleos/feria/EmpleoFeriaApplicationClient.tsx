@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
@@ -14,8 +14,10 @@ import { EMPLEOS_PUBLISH_SHARED_COPY } from "@/app/publicar/empleos/shared/copy/
 import { useEmpleosDraftSession } from "@/app/publicar/empleos/shared/hooks/useEmpleosDraftSession";
 import { EmpleosSingleImageField } from "@/app/publicar/empleos/shared/media/EmpleosSingleImageField";
 import { buildEmpleosPublishEnvelopeFromFeria } from "@/app/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope";
+import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publish/EmpleosPublishConfirmModal";
 import { clearEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
+import { hydrateFeriaDraftFromEnvelope } from "@/app/publicar/empleos/shared/lib/empleosDraftFromEnvelope";
 import { flushEmpleosDraftToSession } from "@/app/publicar/empleos/shared/lib/flushEmpleosDraftToSession";
 import { gateEmpleosFeriaPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
 import { EMPLEOS_STANDARD_CITY } from "@/app/publicar/empleos/shared/constants/empleosStandardRegion";
@@ -48,6 +50,31 @@ export default function EmpleoFeriaApplicationClient() {
   const [publishOpen, setPublishOpen] = useState(false);
   const [stagedNotice, setStagedNotice] = useState(false);
   const [serverListingId, setServerListingId] = useState<string | null>(null);
+  const loadedEditRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const editId = sp?.get("edit")?.trim();
+    if (!editId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(editId)) return;
+    if (loadedEditRef.current === editId) return;
+    loadedEditRef.current = editId;
+    void (async () => {
+      const sb = createSupabaseBrowserClient();
+      const { data } = await sb.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return;
+      const res = await fetch(`/api/clasificados/empleos/listings/${editId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = (await res.json()) as { ok?: boolean; envelope?: EmpleosPublishEnvelope | null };
+      if (!json.ok || !json.envelope) return;
+      const next = hydrateFeriaDraftFromEnvelope(json.envelope);
+      if (next) {
+        patch(() => next);
+        setServerListingId(editId);
+      }
+    })();
+  }, [hydrated, sp, patch]);
 
   const gate = useMemo(() => gateEmpleosFeriaPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;

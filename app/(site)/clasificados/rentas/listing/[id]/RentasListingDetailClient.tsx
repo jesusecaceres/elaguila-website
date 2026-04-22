@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { FiChevronLeft, FiMapPin } from "react-icons/fi";
 import { IconBath, IconBed, IconRuler } from "@/app/clasificados/bienes-raices/resultados/cards/cardIcons";
+import { EnVentaCorreoModal } from "@/app/clasificados/en-venta/preview/EnVentaCorreoModal";
+import { trackRentasContactClick, trackRentasListingView, trackRentasMessageSent } from "@/app/clasificados/rentas/analytics/rentasAnalytics";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
 import type { RentasListingDetailExtra } from "@/app/clasificados/rentas/listing/rentasListingDetailModel";
 import {
@@ -28,11 +30,38 @@ type Props = {
   extra: RentasListingDetailExtra;
 };
 
+function isUuid(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id.trim());
+}
+
+function formatLeaseCode(code: string | null | undefined, lang: "es" | "en"): string {
+  const c = (code ?? "").trim();
+  if (!c) return "";
+  const labels: Record<string, { es: string; en: string }> = {
+    "mes-a-mes": { es: "Mes a mes", en: "Month-to-month" },
+    "6-meses": { es: "6 meses", en: "6 months" },
+    "12-meses": { es: "12 meses", en: "12 months" },
+    "1-ano": { es: "1 año", en: "1 year" },
+    "2-anos": { es: "2 años", en: "2 years" },
+  };
+  return labels[c]?.[lang] ?? c;
+}
+
+function triYesNo(
+  v: boolean | undefined,
+  copy: { yes: string; no: string; unknown: string },
+): string {
+  if (v === true) return copy.yes;
+  if (v === false) return copy.no;
+  return copy.unknown;
+}
+
 export function RentasListingDetailClient({ listing, extra }: Props) {
   const { lang, copy } = useRentasLandingLang();
   const searchParams = useSearchParams();
   const showPublishedBanner = searchParams?.get("published") === "1";
   const [photoIx, setPhotoIx] = useState(0);
+  const [correoOpen, setCorreoOpen] = useState(false);
   const gallery = extra.gallery.length ? extra.gallery : [listing.imageUrl];
   const mainSrc = gallery[photoIx] ?? listing.imageUrl;
 
@@ -45,6 +74,20 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
 
   const publishPrivado = withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, lang);
   const publishNegocio = withRentasLandingLang(RENTAS_PUBLICAR_NEGOCIO, lang);
+
+  const listingUuid = isUuid(listing.id);
+  const depositFmt =
+    typeof listing.depositUsd === "number" && listing.depositUsd > 0
+      ? new Intl.NumberFormat(lang === "es" ? "es-MX" : "en-US", {
+          style: "currency",
+          currency: "USD",
+          maximumFractionDigits: 0,
+        }).format(listing.depositUsd)
+      : null;
+
+  useEffect(() => {
+    void trackRentasListingView(listing.id, null);
+  }, [listing.id]);
 
   return (
     <div className={"min-h-screen pb-16 pt-6 sm:pb-20 sm:pt-8 " + rentasLandingPaperBgClass}>
@@ -62,19 +105,16 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
             className="mt-5 rounded-2xl border border-[#2C5F2D]/30 bg-[#F4FAF2] px-4 py-3 text-sm text-[#1E3D1F] shadow-sm sm:px-5"
             role="status"
           >
-            <p className="font-semibold">
-              {lang === "es" ? "Tu anuncio quedó publicado (prueba)." : "Your listing was published (test)."}
-            </p>
-            <p className="mt-1 text-xs leading-relaxed text-[#2C4A2E]/95">
-              {lang === "es"
-                ? "Aparece en resultados y en Mis anuncios. Esto es inventario de prueba, no el índice público final."
-                : "It appears in results and in My Listings. This is staged inventory, not the final public index."}
-            </p>
+            <p className="font-semibold">{copy.detail.publishedLiveTitle}</p>
+            <p className="mt-1 text-xs leading-relaxed text-[#2C4A2E]/95">{copy.detail.publishedLiveBody}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Link href={dashboardHref} className={rentasSectionHeaderActionClass}>
                 {lang === "es" ? "Ir a Mis anuncios" : "Go to My Listings"}
               </Link>
-              <Link href={resultsHref} className={rentasCtaSecondaryClass + " inline-flex items-center justify-center px-4 py-2 text-xs font-bold"}>
+              <Link
+                href={resultsHref}
+                className={rentasCtaSecondaryClass + " inline-flex items-center justify-center px-4 py-2 text-xs font-bold"}
+              >
                 {lang === "es" ? "Ver en resultados" : "Browse results"}
               </Link>
             </div>
@@ -127,6 +167,12 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
                 <div className="mt-6 rounded-2xl border border-[#D4A84B]/25 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA]/90 px-5 py-4 shadow-inner">
                   <p className="text-[1.9rem] font-bold leading-none tracking-tight text-[#B8893C] sm:text-[2.1rem]">{listing.rentDisplay}</p>
                   <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[#5C5346]/75">{copy.detail.rentLabel}</p>
+                  {depositFmt ? (
+                    <p className="mt-3 text-sm font-semibold text-[#4A4338]">
+                      {lang === "es" ? "Depósito referido: " : "Deposit (listed): "}
+                      {depositFmt}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
@@ -140,6 +186,11 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
               >
                 <p className="text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/75">{copy.detail.sellerTitle}</p>
                 <p className="mt-1.5 font-medium leading-snug">{sellerLine}</p>
+                {listing.branch === "negocio" && listing.businessDescription?.trim() ? (
+                  <p className="mt-3 border-t border-[#E8DFD0]/70 pt-3 text-xs leading-relaxed text-[#4A4338]/95">
+                    {listing.businessDescription.trim()}
+                  </p>
+                ) : null}
               </div>
 
               <div className={rentasDetailConversionPanelClass}>
@@ -147,6 +198,7 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
                   {extra.contactPhone ? (
                     <a
                       href={`tel:${extra.contactPhone.replace(/\D/g, "")}`}
+                      onClick={() => void trackRentasContactClick(listing.id, null)}
                       className={`inline-flex items-center justify-center ${rentasCtaPrimaryClass} w-full sm:w-auto sm:min-w-[11rem]`}
                     >
                       {lang === "es" ? "Llamar al anunciante" : "Call landlord"}
@@ -162,10 +214,20 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
                   {extra.contactEmail ? (
                     <a
                       href={`mailto:${encodeURIComponent(extra.contactEmail)}`}
+                      onClick={() => void trackRentasContactClick(listing.id, null)}
                       className={`inline-flex items-center justify-center ${rentasCtaSecondaryClass} w-full sm:w-auto sm:min-w-[11rem]`}
                     >
                       {lang === "es" ? "Enviar correo" : "Send email"}
                     </a>
+                  ) : null}
+                  {listingUuid ? (
+                    <button
+                      type="button"
+                      onClick={() => setCorreoOpen(true)}
+                      className={`inline-flex items-center justify-center ${rentasCtaSecondaryClass} w-full sm:w-auto sm:min-w-[11rem]`}
+                    >
+                      {copy.detail.ctaLeonixInquiry}
+                    </button>
                   ) : null}
                   {extra.contactPhone ? (
                     <Link
@@ -203,14 +265,84 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
               <IconRuler className="text-[#5B7C99]" />
               <span className="text-[#5C5346]/80">{copy.featured.sqft}</span> {listing.sqft}
             </li>
+            {typeof listing.parkingSpots === "number" && listing.parkingSpots > 0 ? (
+              <li>
+                <span className="font-semibold text-[#1E1810]">{lang === "es" ? "Estacionamientos" : "Parking"}:</span>{" "}
+                {listing.parkingSpots}
+              </li>
+            ) : null}
+            {listing.pool === true ? (
+              <li>
+                <span className="font-semibold text-[#1E1810]">{lang === "es" ? "Alberca / piscina" : "Pool"}:</span> {copy.detail.yes}
+              </li>
+            ) : null}
+            {listing.propertySubtype ? (
+              <li>
+                <span className="font-semibold text-[#1E1810]">{lang === "es" ? "Subtipo" : "Subtype"}:</span> {listing.propertySubtype}
+              </li>
+            ) : null}
             <li>
-              <span className="font-semibold text-[#1E1810]">{copy.detail.furnished}:</span>{" "}
-              {listing.amueblado ? copy.detail.yes : copy.detail.no}
+              <span className="font-semibold text-[#1E1810]">{copy.detail.furnished}:</span> {triYesNo(listing.amueblado, copy.detail)}
             </li>
             <li>
               <span className="font-semibold text-[#1E1810]">{copy.detail.pets}:</span>{" "}
-              {listing.mascotasPermitidas ? copy.detail.yes : copy.detail.no}
+              {triYesNo(listing.mascotasPermitidas, copy.detail)}
             </li>
+          </ul>
+
+          <h2 className="mt-10 font-serif text-xl font-semibold text-[#1E1810]">{copy.detail.sectionFees}</h2>
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[#4A4338]/95">
+            <li>
+              {lang === "es" ? "Depósito (USD)" : "Deposit (USD)"}: {depositFmt ?? copy.detail.unknown}
+            </li>
+          </ul>
+
+          <h2 className="mt-8 font-serif text-xl font-semibold text-[#1E1810]">{copy.detail.sectionLease}</h2>
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[#4A4338]/95">
+            <li>
+              {lang === "es" ? "Plazo" : "Lease term"}:{" "}
+              {listing.leaseTermCode ? formatLeaseCode(listing.leaseTermCode, lang) : copy.detail.unknown}
+            </li>
+            <li>
+              {lang === "es" ? "Disponibilidad" : "Availability"}: {listing.availabilityNote?.trim() || copy.detail.unknown}
+            </li>
+          </ul>
+
+          <h2 className="mt-8 font-serif text-xl font-semibold text-[#1E1810]">{copy.detail.sectionExtras}</h2>
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[#4A4338]/95">
+            <li>
+              {lang === "es" ? "Servicios incluidos" : "Utilities / services included"}:{" "}
+              {listing.servicesIncluded?.trim() || copy.detail.unknown}
+            </li>
+            <li>
+              {lang === "es" ? "Requisitos" : "Requirements"}: {listing.requirements?.trim() || copy.detail.unknown}
+            </li>
+            {listing.branch === "negocio" ? (
+              <>
+                <li>
+                  {lang === "es" ? "Licencia / registro (si aplica)" : "License (if stated)"}:{" "}
+                  {listing.businessLicense?.trim() || copy.detail.unknown}
+                </li>
+                <li>
+                  {lang === "es" ? "Sitio web" : "Website"}:{" "}
+                  {listing.businessWebsite?.trim() ? (
+                    <a
+                      href={(() => {
+                        const w = listing.businessWebsite!.trim();
+                        return w.startsWith("http") ? w : `https://${w}`;
+                      })()}
+                      className="font-semibold text-[#C45C26] underline"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {listing.businessWebsite}
+                    </a>
+                  ) : (
+                    copy.detail.unknown
+                  )}
+                </li>
+              </>
+            ) : null}
           </ul>
 
           <h2 className="mt-10 font-serif text-xl font-semibold text-[#1E1810]">{copy.detail.descriptionTitle}</h2>
@@ -227,6 +359,19 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
           </div>
         </section>
       </div>
+
+      <EnVentaCorreoModal
+        open={correoOpen}
+        onClose={() => setCorreoOpen(false)}
+        lang={lang}
+        sellerName={sellerLine}
+        sellerEmail={extra.contactEmail ?? ""}
+        listingTitle={listing.title}
+        listingId={listingUuid ? listing.id : null}
+        listingIdDisplay={listing.id}
+        inquiryApiPath="/api/clasificados/en-venta/inquiry"
+        onMessageSentAnalytics={(lid, uid) => void trackRentasMessageSent(lid ?? listing.id, uid)}
+      />
     </div>
   );
 }

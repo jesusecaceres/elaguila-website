@@ -35,6 +35,13 @@ export function RentasResultsActiveFilters({ parsed, copy, priceBandLabel }: Pro
   if (parsed.rentMin != null) items.push(`${copy.results.rentMinLabel}: ${parsed.rentMin.toLocaleString()}`);
   if (parsed.rentMax != null) items.push(`${copy.results.rentMaxLabel}: ${parsed.rentMax.toLocaleString()}`);
 
+  if (parsed.depositMin != null) items.push(`${copy.results.depositMinLabel}: ${parsed.depositMin.toLocaleString()}`);
+  if (parsed.depositMax != null) items.push(`${copy.results.depositMaxLabel}: ${parsed.depositMax.toLocaleString()}`);
+  if (parsed.lease) items.push(`${copy.results.leaseLabel}: ${parsed.lease}`);
+  if (parsed.parkingMin != null) items.push(`${copy.results.parkingMinLabel}: ${parsed.parkingMin}+`);
+  if (parsed.sqftMin != null) items.push(`${copy.results.sqftMinLabel}: ${parsed.sqftMin}+`);
+  if (parsed.sqftMax != null) items.push(`${copy.results.sqftMaxLabel}: ≤${parsed.sqftMax}`);
+
   if (parsed.amueblado) items.push(copy.results.furnishedToggle);
   if (parsed.mascotas) items.push(copy.results.petsToggle);
 

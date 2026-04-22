@@ -28,6 +28,24 @@ export async function updateListingReportStatusAction(reportId: string, status: 
   return { ok: true };
 }
 
+/**
+ * Hide a listing from public browse (`is_published=false`) without deleting the row.
+ * Results use `isEnVentaListingPubliclyVisible`; detail loader treats `is_published=false` as not found for browse.
+ */
+export async function setListingPublishedAction(listingId: string, published: boolean) {
+  await requireLeonixAdminPermission("can_manage_ads");
+  const supabase = getAdminSupabase();
+  const { error } = await supabase.from("listings").update({ is_published: published }).eq("id", listingId);
+  if (error) throw new Error(error.message);
+  auditAdminWrite(
+    published ? "listing_republished_by_admin" : "listing_unpublished_by_admin",
+    "listings",
+    listingId,
+    { is_published: published }
+  );
+  return { ok: true };
+}
+
 export async function deleteListingAction(listingId: string) {
   await requireLeonixAdminPermission("can_manage_ads");
   const supabase = getAdminSupabase();

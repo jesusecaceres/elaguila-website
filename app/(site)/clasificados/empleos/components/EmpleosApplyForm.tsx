@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import type { EmpleosScreenerQuestion } from "@/app/clasificados/empleos/data/empleosJobTypes";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 import { EMPLEOS_CTA_PRIMARY } from "../lib/empleosPremiumUi";
@@ -14,16 +15,20 @@ export function isLiveListingId(id: string): boolean {
 type Props = {
   listingId: string;
   lang: Lang;
+  screenerQuestions?: readonly EmpleosScreenerQuestion[];
 };
 
-export function EmpleosApplyForm({ listingId, lang }: Props) {
+export function EmpleosApplyForm({ listingId, lang, screenerQuestions = [] }: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+
+  const screeners = useMemo(() => screenerQuestions.filter((q) => q.prompt.trim()), [screenerQuestions]);
 
   async function submit() {
     setBusy(true);
@@ -35,6 +40,10 @@ export function EmpleosApplyForm({ listingId, lang }: Props) {
       const token = data.session?.access_token;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) headers.Authorization = `Bearer ${token}`;
+      const answersJson: Record<string, string> = {};
+      for (const q of screeners) {
+        answersJson[q.id] = (answers[q.id] ?? "").trim();
+      }
       const res = await fetch("/api/clasificados/empleos/applications", {
         method: "POST",
         headers,
@@ -44,7 +53,7 @@ export function EmpleosApplyForm({ listingId, lang }: Props) {
           applicantEmail: email.trim(),
           applicantPhone: phone.trim() || null,
           message: message.trim(),
-          answersJson: {},
+          answersJson,
         }),
       });
       const json = (await res.json()) as { ok?: boolean; error?: string };
@@ -54,6 +63,7 @@ export function EmpleosApplyForm({ listingId, lang }: Props) {
       }
       setDone(lang === "es" ? "Solicitud enviada. El empleador la verá en su panel." : "Application sent. The employer will see it in their dashboard.");
       setMessage("");
+      setAnswers({});
     } finally {
       setBusy(false);
     }
@@ -85,6 +95,16 @@ export function EmpleosApplyForm({ listingId, lang }: Props) {
         {lang === "es" ? "Mensaje / carta breve" : "Message / short cover letter"}
         <textarea className={`${field} min-h-[88px]`} value={message} onChange={(e) => setMessage(e.target.value)} />
       </label>
+      {screeners.map((q) => (
+        <label key={q.id} className="block text-xs font-medium text-[#4A4744]">
+          {q.prompt}
+          <input
+            className={field}
+            value={answers[q.id] ?? ""}
+            onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+          />
+        </label>
+      ))}
       <button
         type="button"
         disabled={busy || !name.trim() || !email.trim()}

@@ -6,7 +6,7 @@
 import type { EmpleosJobRecord } from "../data/empleosJobTypes";
 import type { EmpleosResultadosParams } from "../shared/utils/empleosListaUrl";
 
-/** Stable clock for sample “recent” windows (matches landing copy date). */
+/** @deprecated Prefer server-fed `serverNowMs` for “recent” windows on live results. */
 export const EMPLEOS_SAMPLE_NOW_MS = Date.parse("2026-04-10T18:00:00.000Z");
 
 export type EmpleosSortKey = "relevance" | "date_desc" | "salary_desc";
@@ -28,6 +28,10 @@ export type ParsedEmpleosResultsQuery = {
   quickApplyOnly: boolean;
   verifiedOnly: boolean;
   premiumOnly: boolean;
+  /** quick | premium | feria — live listings only */
+  lane: string;
+  industry: string;
+  bilingualOnly: boolean;
   /** Parsed but not used for filtering until geo pipeline exists. */
   radiusKm: string;
   sort: EmpleosSortKey;
@@ -55,6 +59,9 @@ export function parseEmpleosResultsQuery(sp: URLSearchParams): ParsedEmpleosResu
     quickApplyOnly: sp.get("quickApply") === "1",
     verifiedOnly: sp.get("verified") === "1",
     premiumOnly: sp.get("premium") === "1",
+    lane: (sp.get("lane") ?? "").trim(),
+    industry: (sp.get("industry") ?? "").trim(),
+    bilingualOnly: sp.get("bilingual") === "1",
     radiusKm: (sp.get("radiusKm") ?? "").trim(),
     sort,
   };
@@ -77,6 +84,8 @@ export function filterEmpleosJobs(jobs: EmpleosJobRecord[], p: ParsedEmpleosResu
   const cityLower = p.city.toLowerCase();
   const stateUpper = p.state.trim().toUpperCase();
   const zip5 = normalizeZip5(p.zip);
+  const laneLower = p.lane.toLowerCase();
+  const industryLower = p.industry.toLowerCase();
 
   return jobs.filter((j) => {
     if (p.featuredOnly && j.listingTier === "standard") return false;
@@ -84,6 +93,9 @@ export function filterEmpleosJobs(jobs: EmpleosJobRecord[], p: ParsedEmpleosResu
     if (p.quickApplyOnly && !j.quickApply) return false;
     if (p.verifiedOnly && !j.verifiedEmployer) return false;
     if (p.premiumOnly && !j.premiumEmployer) return false;
+    if (laneLower && j.publicationLane !== laneLower) return false;
+    if (industryLower && !(j.industryFocus ?? "").toLowerCase().includes(industryLower)) return false;
+    if (p.bilingualOnly && !j.bilingual) return false;
     if (p.category && j.category !== p.category) return false;
     if (p.jobType && j.jobType !== p.jobType) return false;
     if (p.modality && j.modality !== p.modality) return false;
@@ -103,7 +115,8 @@ export function filterEmpleosJobs(jobs: EmpleosJobRecord[], p: ParsedEmpleosResu
     if (smax != null && j.salaryMin > smax) return false;
 
     if (qLower) {
-      const blob = `${j.title} ${j.company} ${j.summary} ${j.description}`.toLowerCase();
+      const blob =
+        `${j.title} ${j.company} ${j.summary} ${j.description} ${j.industryFocus ?? ""} ${j.scheduleLabel ?? ""} ${j.languagesSpoken ?? ""}`.toLowerCase();
       if (!blob.includes(qLower)) return false;
     }
 

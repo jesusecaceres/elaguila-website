@@ -173,6 +173,25 @@ export function DatosPropiedadSection({
             placeholder="Ej. Excelente, remodelada"
           />
         </BrField>
+        <BrField
+          label="¿Se permiten mascotas?"
+          hint="Requerido para publicar: dato estructurado para el filtro de resultados."
+        >
+          <select
+            className={brInputClass}
+            value={state.petsAllowed}
+            onChange={(e) =>
+              setState((s) => ({
+                ...s,
+                petsAllowed: e.target.value as BienesRaicesNegocioFormState["petsAllowed"],
+              }))
+            }
+          >
+            <option value="">Selecciona…</option>
+            <option value="yes">Sí</option>
+            <option value="no">No</option>
+          </select>
+        </BrField>
         {(pub === "residencial_renta" || pub === "comercial") && (
           <BrField label="¿Amueblado?">
             <select

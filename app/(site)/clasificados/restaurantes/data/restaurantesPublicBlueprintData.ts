@@ -50,6 +50,15 @@ export type RestaurantesPublicBlueprintRow = {
   foodTruck?: boolean;
   popUp?: boolean;
   neighborhood?: string;
+  /** From `RestauranteOperatingModel` / `listing_json` — discovery filters + `q` blob. */
+  reservationsAvailable?: boolean;
+  /** “Preorder required” operating flag; filter matches when true. */
+  preorderRequired?: boolean;
+  pickupAvailable?: boolean;
+  /** `RestauranteLocationDetails.serviceAreaText` — included in free-text `q` match. */
+  serviceAreaText?: string;
+  /** `RestauranteLocationDetails.deliveryRadiusMiles` — min-mile filter when URL `drm` is set. */
+  deliveryRadiusMiles?: number;
   /** Subset of `highlights` keys */
   highlightKeys?: string[];
   /** `externalReviewCount` */

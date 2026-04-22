@@ -35,8 +35,8 @@ export function EnVentaResultsEmpty({
             ? "Ningún anuncio con visibilidad destacada coincide con estos filtros. Quita el modo solo destacados Pro, amplía la zona o vuelve al listado general."
             : "No boosted listings match these filters. Turn off “Pro featured only”, widen location, or browse all listings."
           : lang === "es"
-            ? "Prueba otra búsqueda, ajusta filtros o amplía la ciudad."
-            : "Try another search, adjust filters, or widen your city."}
+            ? "Prueba otra búsqueda, ajusta filtros o amplía la ciudad. Si acabas de publicar, confirma que no queden filtros activos (chips arriba) y recarga."
+            : "Try another search, adjust filters, or widen your city. If you just published, clear active filter chips above and refresh."}
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <Link

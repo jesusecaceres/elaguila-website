@@ -4,7 +4,12 @@ import type { EmpleosFeriaDraft } from "../types/empleosFeriaDraft";
 import type { EmpleosPremiumDraft } from "../types/empleosPremiumDraft";
 import type { EmpleosQuickDraft } from "../types/empleosQuickDraft";
 import { defaultEmpleosPaymentHandoff, type EmpleosPaymentHandoffPlaceholder } from "./empleosPaymentHandoff";
-import type { EmpleosPublishEnvelope, EmpleosPublishImageRef, EmpleosQuickPublishSnapshot } from "./empleosPublishSnapshots";
+import type {
+  EmpleosPremiumPublishSnapshot,
+  EmpleosPublishEnvelope,
+  EmpleosPublishImageRef,
+  EmpleosQuickPublishSnapshot,
+} from "./empleosPublishSnapshots";
 import { sanitizeHttpUrl } from "./empleosPublishSanitize";
 
 function mapImagesForPublish(items: { url: string; alt: string; isMain?: boolean }[]): EmpleosPublishImageRef[] {
@@ -26,6 +31,8 @@ export function buildQuickPublishSnapshot(d: EmpleosQuickDraft): EmpleosQuickPub
   return {
     title: d.title.trim(),
     businessName: d.businessName.trim(),
+    categorySlug: d.categorySlug.trim(),
+    experienceLevel: d.experienceLevel,
     city: d.city.trim(),
     state: d.state.trim(),
     jobType: d.jobType.trim(),
@@ -33,6 +40,7 @@ export function buildQuickPublishSnapshot(d: EmpleosQuickDraft): EmpleosQuickPub
     pay: d.pay.trim(),
     description: d.description.trim(),
     benefits: d.benefits.map((b) => b.trim()).filter(Boolean),
+    screenerQuestions: d.screenerQuestions.map((s) => s.trim()).filter(Boolean).slice(0, 5),
     images: refs,
     logoUrl: logo,
     phone: d.phone.trim(),
@@ -62,13 +70,17 @@ export function premiumDraftSkippedBlobImages(d: EmpleosPremiumDraft): boolean {
   });
 }
 
-export function buildPremiumPublishSnapshot(d: EmpleosPremiumDraft) {
+export function buildPremiumPublishSnapshot(d: EmpleosPremiumDraft): EmpleosPremiumPublishSnapshot {
   const refs = mapImagesForPublish(d.gallery);
   const logo = sanitizeHttpUrl(d.logoUrl);
   const vid = sanitizeHttpUrl(d.videoUrl);
   return {
     title: d.title.trim(),
     companyName: d.companyName.trim(),
+    categorySlug: d.categorySlug.trim() || "oficina",
+    experienceLevel: d.experienceLevel,
+    workModality: d.workModality,
+    scheduleLabel: d.scheduleLabel.trim(),
     city: d.city.trim(),
     state: d.state.trim(),
     salaryPrimary: d.salaryPrimary.trim(),
@@ -76,6 +88,7 @@ export function buildPremiumPublishSnapshot(d: EmpleosPremiumDraft) {
     jobType: d.jobType.trim(),
     featured: d.featured,
     premium: d.premium,
+    screenerQuestions: d.screenerQuestions.map((s) => s.trim()).filter(Boolean).slice(0, 5),
     gallery: refs,
     logoUrl: logo,
     applyLabel: d.applyLabel.trim(),

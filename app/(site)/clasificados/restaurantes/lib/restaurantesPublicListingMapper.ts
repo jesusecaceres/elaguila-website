@@ -132,6 +132,11 @@ export function publicResultsRowToShellInventoryRow(r: RestaurantePublicResultsR
     neighborhood: r.neighborhood,
     highlightKeys: r.highlightKeys,
     externalReviewCount: r.externalReviewCount,
+    reservationsAvailable: false,
+    preorderRequired: false,
+    pickupAvailable: false,
+    serviceAreaText: undefined,
+    deliveryRadiusMiles: undefined,
   };
 }
 
@@ -163,6 +168,12 @@ export function mapRestaurantesPublicListingDbRowToShellInventoryRow(row: Restau
     ? draft.additionalCuisines.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
     : undefined;
 
+  const deliveryRadiusMiles =
+    typeof draft.deliveryRadiusMiles === "number" && Number.isFinite(draft.deliveryRadiusMiles)
+      ? draft.deliveryRadiusMiles
+      : undefined;
+  const serviceAreaTrim = (draft.serviceAreaText ?? "").trim();
+
   return {
     id: pr.id,
     name: pr.businessName,
@@ -193,6 +204,11 @@ export function mapRestaurantesPublicListingDbRowToShellInventoryRow(row: Restau
     neighborhood: pr.neighborhood,
     highlightKeys: pr.highlightKeys,
     externalReviewCount: pr.externalReviewCount,
+    reservationsAvailable: draft.reservationsAvailable === true,
+    preorderRequired: draft.preorderRequired === true,
+    pickupAvailable: draft.pickupAvailable === true,
+    serviceAreaText: serviceAreaTrim || undefined,
+    deliveryRadiusMiles,
   };
 }
 

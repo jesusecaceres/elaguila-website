@@ -9,24 +9,29 @@ import {
   fetchEmpleosPublishedListingRowBySlug,
   rowToJobRecord,
 } from "../lib/empleosPublicListingsDbServer";
+import { empleosJobPublicAbsoluteUrl } from "../lib/empleosSiteUrl";
 
 export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ lang?: string }>;
+  searchParams?: Promise<{ lang?: string }>;
 };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug } = await params;
+  const sp = searchParams ? await searchParams : {};
+  const lang = sp.lang === "en" ? "en" : "es";
   const row = await fetchEmpleosPublishedListingRowBySlug(slug);
   if (row) {
     const job = rowToJobRecord(row);
+    const ogUrl = empleosJobPublicAbsoluteUrl(slug, lang);
     return {
       title: `${job.title} — ${job.company} | Empleos`,
       description: job.summary,
       alternates: { canonical: `/clasificados/empleos/${slug}` },
       openGraph: {
+        url: ogUrl,
         title: `${job.title} — ${job.company}`,
         description: job.summary,
         type: "website",
@@ -41,16 +46,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       alternates: { canonical: `/clasificados/empleos/${slug}` },
     };
   }
+  const ogUrl = empleosJobPublicAbsoluteUrl(slug, lang);
   return {
     title: `${job.title} — ${job.company} | Empleos`,
     description: job.summary,
     alternates: { canonical: `/clasificados/empleos/${slug}` },
+    openGraph: {
+      url: ogUrl,
+      title: `${job.title} — ${job.company}`,
+      description: job.summary,
+      type: "website",
+    },
   };
 }
 
 export default async function EmpleoPublicDetailPage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const sp = await searchParams;
+  const sp = (await searchParams) ?? {};
   const lang = sp.lang === "en" ? "en" : "es";
 
   const row = await fetchEmpleosPublishedListingRowBySlug(slug);

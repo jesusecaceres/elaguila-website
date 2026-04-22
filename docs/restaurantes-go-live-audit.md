@@ -17,7 +17,7 @@ When those prerequisites are met, each check below is **TRUE** in this repositor
 | 2 | Landing search routes to results | **TRUE** | Form posts to `buildRestaurantesResultsHref` with discovery state. |
 | 3 | Results page exists | **TRUE** | `/clasificados/restaurantes/resultados` + `RestaurantesResultsShell`. |
 | 4 | Results page uses live published restaurant inventory | **TRUE** | `loadRestaurantesResultsInventoryForPage` reads `restaurantes_public_listings` (published only) via service role; maps with `mapRestaurantesPublicListingDbRowsToShellInventory`. No silent blueprint unless `RESTAURANTES_USE_BLUEPRINT_INVENTORY=true`. |
-| 5 | Results filters operate on published inventory | **TRUE** | Same mapped row pool as inventory; filters in `filterRestaurantesBlueprintRows` (incl. `svc` whitelist, cuisine + `additionalCuisineKeys` in `q`, open-now from `listing_json` hours). |
+| 5 | Results filters operate on published inventory | **TRUE** | Same mapped row pool; `filterRestaurantesBlueprintRows` + `mapRestaurantesPublicListingDbRowToShellInventoryRow` wire `nbh`/`rsv`/`pre`/`pku`/`feat`/`lxv`/`drm`, full `svc` whitelist, cuisine + `q` blob (incl. neighborhood + service area text), open-now from `listing_json`. |
 | 6 | Publish form exists | **TRUE** | `/publicar/restaurantes`. |
 | 7 | Preview page exists | **TRUE** | `/clasificados/restaurantes/preview`. |
 | 8 | Publish button performs a real publish | **TRUE** | Preview calls POST `/api/clasificados/restaurantes/publish`; **503** if admin Supabase missing; **500** on DB error; **200** only after successful write. |
@@ -51,7 +51,7 @@ When those prerequisites are met, each check below is **TRUE** in this repositor
 
 1. Configure Supabase URL + service role + run migrations (incl. owner select policy).
 2. Sign in as a test user → publish a restaurant → confirm HTTP 200 JSON `persisted: true`.
-3. Open `/clasificados/restaurantes/resultados` — listing appears; exercise filters (`q`, cuisine, `svc`, open-now if hours allow).
+3. Open `/clasificados/restaurantes/resultados` — listing appears; exercise filters (`q`, `city`/`zip`/`nbh`, cuisine, `svc`, `rsv`/`pre`/`pku`, `feat`/`lxv`, `drm`, open-now if hours allow).
 4. Open public `/clasificados/restaurantes/{slug}` — content matches published draft.
 5. Open `/dashboard/restaurantes` — row visible; **Cargar en formulario** → edit → republish without duplicate slug row.
 6. Log into `/admin/login` → `/admin/workspace/clasificados/restaurantes` — suspend listing; confirm it disappears from public results/detail; unsuspend and verify return.

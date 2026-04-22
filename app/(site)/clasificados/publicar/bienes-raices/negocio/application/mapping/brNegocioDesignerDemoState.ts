@@ -28,6 +28,7 @@ export function buildBrNegocioDesignerDemoState(): BienesRaicesNegocioFormState 
     tamanoLote: "7,200 pies²",
     estacionamientos: "2",
     anioConstruccion: "2020",
+    petsAllowed: "yes",
     media: {
       photoUrls: [
         "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1600&q=80&auto=format&fit=crop",

@@ -6,11 +6,13 @@ import { nonEmpty } from "../lib/serviciosProfilePrimitives";
 import {
   buildServiciosSecondaryActions,
   resolveServiciosQuoteDestination,
+  type ServiciosQuoteDestinationKind,
   type ServiciosSecondaryAction,
 } from "../lib/serviciosContactActions";
 import { ServiciosStarRating } from "./ServiciosStarRating";
 import { ServiciosActionPanelAreasMap } from "./ServiciosActionPanelAreasMap";
 import { ServiciosOfferCard } from "./ServiciosOfferCard";
+import { ServiciosTrackedLink } from "./ServiciosTrackedLink";
 import { SV } from "./serviciosDesignTokens";
 
 function secondaryLabel(
@@ -33,6 +35,20 @@ function secondaryLabel(
   }
 }
 
+function analyticsForQuoteKind(kind: ServiciosQuoteDestinationKind): string {
+  if (kind === "whatsapp") return "cta_whatsapp_click";
+  if (kind === "tel") return "cta_call_click";
+  if (kind === "mailto") return "cta_email_click";
+  return "cta_website_click";
+}
+
+function analyticsForSecondaryId(id: ServiciosSecondaryAction["id"]): string {
+  if (id === "whatsapp") return "cta_whatsapp_click";
+  if (id === "call" || id === "callOffice") return "cta_call_click";
+  if (id === "email") return "cta_email_click";
+  return "cta_website_click";
+}
+
 function SecondaryIcon({ id }: { id: ServiciosSecondaryAction["id"] }) {
   const c = "h-4 w-4 shrink-0 text-[#3B66AD]";
   if (id === "whatsapp") return <FaWhatsapp className="h-4 w-4 shrink-0 text-[#25D366]" aria-hidden />;
@@ -43,7 +59,16 @@ function SecondaryIcon({ id }: { id: ServiciosSecondaryAction["id"] }) {
 }
 
 /** Sticky contact / quote panel (right column). */
-export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
+export function ServiciosActionPanel({
+  profile,
+  lang,
+  listingSlug,
+}: {
+  profile: ServiciosProfileResolved;
+  lang: ServiciosLang;
+  /** When set, outbound CTAs emit lightweight analytics events. */
+  listingSlug?: string;
+}) {
   const L = getServiciosProfileLabels(lang);
   const rating = profile.hero.rating;
   const reviewCount = profile.hero.reviewCount;
@@ -100,32 +125,62 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
           </p>
 
           {quote ? (
-            <a
-              href={quote.href}
-              {...(quote.kind === "website" || quote.kind === "whatsapp"
-                ? { target: "_blank", rel: "noopener noreferrer" }
-                : {})}
-              className={`${primaryClass} mt-3`}
-              style={{ backgroundColor: SV.blue, boxShadow: "0 12px 32px rgba(59,102,173,0.28)" }}
-            >
-              <FiZap className="h-5 w-5 shrink-0" aria-hidden />
-              {primaryCtaLabel}
-            </a>
+            listingSlug ? (
+              <ServiciosTrackedLink
+                listingSlug={listingSlug}
+                eventType={analyticsForQuoteKind(quote.kind)}
+                href={quote.href}
+                {...(quote.kind === "website" || quote.kind === "whatsapp"
+                  ? { target: "_blank", rel: "noopener noreferrer" }
+                  : {})}
+                className={`${primaryClass} mt-3`}
+                style={{ backgroundColor: SV.blue, boxShadow: "0 12px 32px rgba(59,102,173,0.28)" }}
+              >
+                <FiZap className="h-5 w-5 shrink-0" aria-hidden />
+                {primaryCtaLabel}
+              </ServiciosTrackedLink>
+            ) : (
+              <a
+                href={quote.href}
+                {...(quote.kind === "website" || quote.kind === "whatsapp"
+                  ? { target: "_blank", rel: "noopener noreferrer" }
+                  : {})}
+                className={`${primaryClass} mt-3`}
+                style={{ backgroundColor: SV.blue, boxShadow: "0 12px 32px rgba(59,102,173,0.28)" }}
+              >
+                <FiZap className="h-5 w-5 shrink-0" aria-hidden />
+                {primaryCtaLabel}
+              </a>
+            )
           ) : null}
 
           {secondary.length > 0 ? (
             <div className={`flex flex-col gap-2 ${quote ? "mt-3" : "mt-3"}`}>
-              {secondary.map((a) => (
-                <a
-                  key={`${a.id}-${a.href}`}
-                  href={a.href}
-                  {...(a.id === "website" || a.id === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                  className={linkBase}
-                >
-                  <SecondaryIcon id={a.id} />
-                  {secondaryLabel(L, a)}
-                </a>
-              ))}
+              {secondary.map((a) =>
+                listingSlug ? (
+                  <ServiciosTrackedLink
+                    key={`${a.id}-${a.href}`}
+                    listingSlug={listingSlug}
+                    eventType={analyticsForSecondaryId(a.id)}
+                    href={a.href}
+                    {...(a.id === "website" || a.id === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    className={linkBase}
+                  >
+                    <SecondaryIcon id={a.id} />
+                    {secondaryLabel(L, a)}
+                  </ServiciosTrackedLink>
+                ) : (
+                  <a
+                    key={`${a.id}-${a.href}`}
+                    href={a.href}
+                    {...(a.id === "website" || a.id === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    className={linkBase}
+                  >
+                    <SecondaryIcon id={a.id} />
+                    {secondaryLabel(L, a)}
+                  </a>
+                ),
+              )}
             </div>
           ) : null}
 
@@ -250,27 +305,55 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
                 {profile.contact.physicalAddressDisplay}
               </p>
               {profile.contact.mapsSearchHref ? (
-                <a
-                  href={profile.contact.mapsSearchHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 inline-flex min-h-[40px] items-center gap-2 rounded-lg text-sm font-semibold text-[#3B66AD] hover:underline"
-                >
-                  <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
-                  {L.openInMaps}
-                </a>
+                listingSlug ? (
+                  <ServiciosTrackedLink
+                    listingSlug={listingSlug}
+                    eventType="cta_maps_click"
+                    href={profile.contact.mapsSearchHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex min-h-[40px] items-center gap-2 rounded-lg text-sm font-semibold text-[#3B66AD] hover:underline"
+                  >
+                    <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
+                    {L.openInMaps}
+                  </ServiciosTrackedLink>
+                ) : (
+                  <a
+                    href={profile.contact.mapsSearchHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex min-h-[40px] items-center gap-2 rounded-lg text-sm font-semibold text-[#3B66AD] hover:underline"
+                  >
+                    <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
+                    {L.openInMaps}
+                  </a>
+                )
               ) : null}
             </div>
           ) : profile.contact.mapsSearchHref ? (
-            <a
-              href={profile.contact.mapsSearchHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 inline-flex min-h-[40px] items-center gap-2 text-sm font-semibold text-[#3B66AD] hover:underline"
-            >
-              <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
-              {L.openInMaps}
-            </a>
+            listingSlug ? (
+              <ServiciosTrackedLink
+                listingSlug={listingSlug}
+                eventType="cta_maps_click"
+                href={profile.contact.mapsSearchHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex min-h-[40px] items-center gap-2 text-sm font-semibold text-[#3B66AD] hover:underline"
+              >
+                <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
+                {L.openInMaps}
+              </ServiciosTrackedLink>
+            ) : (
+              <a
+                href={profile.contact.mapsSearchHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex min-h-[40px] items-center gap-2 text-sm font-semibold text-[#3B66AD] hover:underline"
+              >
+                <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
+                {L.openInMaps}
+              </a>
+            )
           ) : null}
         </div>
       </div>

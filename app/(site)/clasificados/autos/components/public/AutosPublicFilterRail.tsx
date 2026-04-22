@@ -89,25 +89,6 @@ export function AutosPublicFilterRail({
             autoComplete="postal-code"
           />
         </div>
-        <div>
-          <label className={lab} htmlFor={`${idPrefix}-radius`}>
-            {copy.filterRadius}
-          </label>
-          <input
-            id={`${idPrefix}-radius`}
-            className={`${inp} cursor-not-allowed opacity-60`}
-            inputMode="numeric"
-            disabled
-            readOnly
-            value={value.radiusMiles}
-            placeholder="—"
-            aria-describedby={`${idPrefix}-radius-hint`}
-            aria-disabled="true"
-          />
-          <p id={`${idPrefix}-radius-hint`} className="mt-1 text-[10px] leading-snug text-[color:var(--lx-muted)]">
-            {copy.filterRadiusHint}
-          </p>
-        </div>
       </FilterGroup>
 
       <FilterGroup title={copy.filterGroupPrice} defaultOpen>

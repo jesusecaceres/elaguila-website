@@ -72,7 +72,8 @@ export const LEONIX_BRANCH_VALUES: readonly LeonixClasificadosBranch[] = [
   "rentas_negocio",
 ] as const;
 
-function readPair(detailPairs: unknown, label: string): string | null {
+/** Exact `label` match in `detail_pairs` JSON (machine keys use ASCII `Leonix:*`). */
+export function readLeonixDetailPairValue(detailPairs: unknown, label: string): string | null {
   if (!Array.isArray(detailPairs)) return null;
   for (const p of detailPairs) {
     if (!p || typeof p !== "object") continue;
@@ -83,6 +84,10 @@ function readPair(detailPairs: unknown, label: string): string | null {
     }
   }
   return null;
+}
+
+function readPair(detailPairs: unknown, label: string): string | null {
+  return readLeonixDetailPairValue(detailPairs, label);
 }
 
 function parseFiniteNumber(raw: string | null): number | null {

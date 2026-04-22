@@ -32,6 +32,12 @@ export type EmpleosResultadosParams = {
   verified?: string;
   /** `1` → premium/business employer only. */
   premium?: string;
+  /** Publish lane filter: quick | premium | feria */
+  lane?: string;
+  /** Substring match on industry focus */
+  industry?: string;
+  /** `1` → bilingual events / listings */
+  bilingual?: string;
   sort?: string;
   /** Staged: km radius — not applied until lat/lng + geo index (see filter contract). */
   radiusKm?: string;

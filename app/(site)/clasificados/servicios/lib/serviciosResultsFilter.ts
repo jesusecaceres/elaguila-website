@@ -11,7 +11,7 @@ export type ServiciosResultsFilterQuery = {
   call?: "1" | "0";
   /** Keyword — matched against name, city, category line, about, location strings, services, trust, reviews */
   q?: string;
-  sort?: "newest" | "name";
+  sort?: "newest" | "name" | "rating";
   /** Derived from profile contact fields when not `all` */
   seller?: "all" | "business" | "independent";
   /** Leonix-verified listing (`leonix_verified` on row) */
@@ -204,6 +204,13 @@ export function filterServiciosRowsBySeller(
   });
 }
 
+function rowRatingAvg(row: ServiciosPublicListingRow): number | null {
+  const n = row.review_rating_avg;
+  const c = row.review_rating_count ?? 0;
+  if (typeof n === "number" && Number.isFinite(n) && c > 0) return n;
+  return null;
+}
+
 export function sortServiciosListingRows(
   rows: ServiciosPublicListingRow[],
   lang: ServiciosLang,
@@ -217,6 +224,19 @@ export function sortServiciosListingRows(
     copy.sort((a, b) => {
       const c = normalize(a.business_name).localeCompare(normalize(b.business_name), lang === "en" ? "en" : "es");
       return c !== 0 ? c : tieSlug(a, b);
+    });
+    return copy;
+  }
+  if (s === "rating") {
+    copy.sort((a, b) => {
+      const ra = rowRatingAvg(a);
+      const rb = rowRatingAvg(b);
+      if (ra != null && rb != null && ra !== rb) return rb - ra;
+      if (ra != null && rb == null) return -1;
+      if (ra == null && rb != null) return 1;
+      if (a.published_at < b.published_at) return 1;
+      if (a.published_at > b.published_at) return -1;
+      return tieSlug(a, b);
     });
     return copy;
   }

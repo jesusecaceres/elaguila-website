@@ -181,6 +181,12 @@ function buildResidencialDetails(s: BienesRaicesPrivadoFormState): BienesRaicesP
   return rows.filter((x): x is BienesRaicesPreviewFact => x != null);
 }
 
+function privadoPetsQuickFact(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewQuickFactVm | null {
+  if (s.petsAllowed === "yes") return { label: "Mascotas", value: "Permitidas", icon: "sparkle" };
+  if (s.petsAllowed === "no") return { label: "Mascotas", value: "No permitidas", icon: "sparkle" };
+  return null;
+}
+
 function buildResidencialQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewQuickFactVm[] {
   const r = s.residencial;
   const out: BienesRaicesPreviewQuickFactVm[] = [];
@@ -196,6 +202,8 @@ function buildResidencialQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaic
   push("Lote", r.loteSqft ? prettifySqft(r.loteSqft) : "", "pin");
   push("Estacionamiento", r.estacionamiento, "car");
   push("Año", prettifyPlainNumber(r.ano), "calendar");
+  const pet = privadoPetsQuickFact(s);
+  if (pet) out.push(pet);
   return out;
 }
 
@@ -245,6 +253,8 @@ function buildComercialQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaices
   push("Baños", prettifyPlainNumber(c.banos), "bath");
   push("Niveles", prettifyPlainNumber(c.niveles), "calendar");
   push("Estacionamiento", c.estacionamiento, "car");
+  const pet = privadoPetsQuickFact(s);
+  if (pet) out.push(pet);
   return out;
 }
 
@@ -296,6 +306,8 @@ function buildTerrenoQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaicesPr
   push("Uso / zona", t.usoZonificacion, "pin");
   push("Acceso", t.acceso, "car");
   push("Servicios", t.servicios, "sparkle");
+  const pet = privadoPetsQuickFact(s);
+  if (pet) out.push(pet);
   return out;
 }
 

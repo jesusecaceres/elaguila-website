@@ -3,6 +3,8 @@ import { getAdminSupabase } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
 
+const INQUIRY_CATEGORIES = ["en-venta", "rentas"] as const;
+
 type Body = {
   sellerEmail?: string;
   message: string;
@@ -119,9 +121,9 @@ export async function POST(req: Request) {
   if (listingIdIn && isUuid(listingIdIn)) {
     const { data: row, error: listErr } = await admin
       .from("listings")
-      .select("id, owner_id")
+      .select("id, owner_id, category")
       .eq("id", listingIdIn)
-      .eq("category", "en-venta")
+      .in("category", [...INQUIRY_CATEGORIES])
       .maybeSingle();
 
     if (listErr) {
@@ -151,15 +153,16 @@ export async function POST(req: Request) {
 
     const { data: ownedListing } = await admin
       .from("listings")
-      .select("id")
-      .eq("category", "en-venta")
+      .select("id, category")
+      .in("category", [...INQUIRY_CATEGORIES])
       .eq("owner_id", sellerOwnerIdIn)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
     receiverId = sellerOwnerIdIn;
-    listingIdOut = ownedListing?.id ? String(ownedListing.id) : `en-venta-preview:${sellerOwnerIdIn}`;
+    const cat = (ownedListing?.category ?? "en-venta").toLowerCase();
+    listingIdOut = ownedListing?.id ? String(ownedListing.id) : `${cat}-preview:${sellerOwnerIdIn}`;
   }
 
   // 3) Email fallback (last resort)
@@ -171,7 +174,7 @@ export async function POST(req: Request) {
     const { data: listing } = await admin
       .from("listings")
       .select("id, owner_id")
-      .eq("category", "en-venta")
+      .in("category", [...INQUIRY_CATEGORIES])
       .ilike("contact_email", sellerEmailNorm)
       .order("created_at", { ascending: false })
       .limit(1)

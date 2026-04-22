@@ -26,6 +26,9 @@ export function gateBienesRaicesPrivadoPreview(state: BienesRaicesPrivadoFormSta
   const hasContact =
     trim(state.seller.telefono) || trim(state.seller.whatsapp) || trim(state.seller.correo);
   if (!hasContact) return { ok: false, message: "Agrega al menos un medio de contacto (teléfono, WhatsApp o correo)." };
+  if (state.petsAllowed !== "yes" && state.petsAllowed !== "no") {
+    return { ok: false, message: "Indica si se permiten mascotas (sí / no) en la propiedad." };
+  }
   return { ok: true };
 }
 
@@ -67,5 +70,8 @@ export function gateBienesRaicesNegocioPreview(state: BienesRaicesNegocioFormSta
   }
   const photos = (state.media?.photoUrls ?? []).map((u) => trim(u)).filter(Boolean);
   if (photos.length === 0) return { ok: false, message: "Sube al menos una foto (portada)." };
+  if (state.petsAllowed !== "yes" && state.petsAllowed !== "no") {
+    return { ok: false, message: "Indica si se permiten mascotas (sí / no) en la propiedad." };
+  }
   return { ok: true };
 }

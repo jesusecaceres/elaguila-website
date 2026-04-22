@@ -11,6 +11,7 @@
  * - `audience` — familias | parejas | grupos | …
  * - `season` — spring | summer | fall | winter | holidays
  * - `duration` — short | week | long
+ * - `svcLang` — service / guide language: es | en | bilingual | other (derived from publish drafts)
  * - `sort` — featured | newest | priceAsc | priceDesc
  * - `page` — 1-based page index for future pagination
  *
@@ -40,6 +41,8 @@ export type ViajesBrowseState = {
   audience: string;
   season: string;
   duration: string;
+  /** Service language facet (`viajesServiceLanguageKeysFromDraft`). */
+  svcLang: string;
   sort: ViajesSortKey;
   page: number;
   /** `1` if user set departure via geolocation button on landing/results */
@@ -68,6 +71,7 @@ export function defaultViajesBrowseState(lang: Lang): ViajesBrowseState {
     audience: "",
     season: "",
     duration: "",
+    svcLang: "",
     sort: "featured",
     page: 1,
     originByGeo: "",
@@ -105,6 +109,7 @@ export function parseViajesBrowseFromSearchParams(sp: URLSearchParams | null, fa
     audience: (sp.get("audience") ?? "").trim(),
     season: (sp.get("season") ?? "").trim(),
     duration: (sp.get("duration") ?? "").trim(),
+    svcLang: (sp.get("svcLang") ?? "").trim(),
     sort: parseSort(sp.get("sort")),
     page: parsePage(sp.get("page")),
     originByGeo: sp.get("originByGeo") === "1" ? "1" : "",
@@ -133,6 +138,7 @@ export function serializeViajesBrowseToSearchParams(state: ViajesBrowseState): U
   appendIf(qs, "audience", state.audience);
   appendIf(qs, "season", state.season);
   appendIf(qs, "duration", state.duration);
+  appendIf(qs, "svcLang", state.svcLang);
   if (state.sort !== "featured") qs.set("sort", state.sort);
   if (state.page > 1) qs.set("page", String(state.page));
   if (state.originByGeo === "1") qs.set("originByGeo", "1");
@@ -155,7 +161,17 @@ export function buildViajesBrowseUrl(state: ViajesBrowseState, basePath: string 
 export type ViajesResultsLinkPatch = Partial<
   Pick<
     ViajesBrowseState,
-    "dest" | "q" | "from" | "t" | "budget" | "audience" | "season" | "duration" | "sort" | "page"
+    | "dest"
+    | "q"
+    | "from"
+    | "t"
+    | "budget"
+    | "audience"
+    | "season"
+    | "duration"
+    | "svcLang"
+    | "sort"
+    | "page"
   >
 >;
 

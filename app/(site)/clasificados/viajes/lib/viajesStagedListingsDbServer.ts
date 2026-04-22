@@ -97,7 +97,8 @@ export async function countViajesStagedByStatuses(statuses: ViajesStagedLifecycl
 export type ViajesStagedInsertInput = {
   slug: string;
   lane: ViajesStagedLane;
-  owner_user_id: string | null;
+  /** Required — submit API enforces authenticated owner; DB migration enforces NOT NULL. */
+  owner_user_id: string;
   title: string;
   listing_json: Record<string, unknown>;
   hero_image_url: string | null;
@@ -110,6 +111,7 @@ export type ViajesStagedInsertInput = {
 
 export async function insertViajesStagedListing(row: ViajesStagedInsertInput): Promise<{ ok: boolean; id?: string; error?: string }> {
   if (!isSupabaseAdminConfigured()) return { ok: false, error: "not_configured" };
+  if (!row.owner_user_id?.trim()) return { ok: false, error: "owner_required" };
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
   const { data, error } = await supabase

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getEnVentaSupabaseBrowserEnvIssues } from "@/app/lib/supabase/enVentaClientEnvCheck";
 import { runEnVentaDetailPairSignalsSelfCheck } from "../mapping/enVentaDetailPairSignals";
 
 function allowLaunchChecklist(): boolean {
@@ -19,6 +20,7 @@ export default function EnVentaLaunchChecklistPage() {
   if (!allowLaunchChecklist()) notFound();
 
   const signalErrors = runEnVentaDetailPairSignalsSelfCheck();
+  const envIssues = getEnVentaSupabaseBrowserEnvIssues();
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 text-[#2C2416]">
@@ -28,6 +30,28 @@ export default function EnVentaLaunchChecklistPage() {
         Esta ruta no sustituye pruebas en Supabase (RLS, Storage, auth). Comprueba el flujo real con una cuenta de
         vendedor y un admin.
       </p>
+
+      <section className="mt-8 rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-5 text-sm">
+        <h2 className="text-base font-bold">Variables públicas Supabase (build)</h2>
+        <p className="mt-2 text-[#5C5346]">
+          Comprueba que el bundle incluye URL y anon key. Esto no valida RLS ni Storage en vivo.
+        </p>
+        <p className="mt-2 font-mono text-xs">
+          {envIssues.length === 0 ? "OK — NEXT_PUBLIC_SUPABASE_* presentes" : `FALLO: ${envIssues.join(" · ")}`}
+        </p>
+      </section>
+
+      <section className="mt-6 rounded-2xl border border-[#E8DFD0] bg-white p-5 text-sm">
+        <h2 className="text-base font-bold">Política de fotos al publicar</h2>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-[#5C5346]">
+          <li>Sin fotos en el formulario: se publica sin galería (`gallery=none`).</li>
+          <li>
+            Con ≥1 foto: <strong>todas</strong> deben subirse al bucket <code className="rounded bg-black/5 px-1">listing-images</code>
+            ; si <strong>fallan todas</strong>, el insert se <strong>revierte</strong> (no hay anuncio fantasma).
+          </li>
+          <li>Si solo algunas fallan: el anuncio queda publicado con las que sí subieron y aviso ámbar en el panel de éxito.</li>
+        </ul>
+      </section>
 
       <section className="mt-8 rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-5 text-sm">
         <h2 className="text-base font-bold">Contrato `detail_pairs` (helpers)</h2>
@@ -74,7 +98,15 @@ export default function EnVentaLaunchChecklistPage() {
           <Link className="font-semibold text-[#2F4A65] underline" href="/admin/workspace/clasificados?category=en-venta">
             /admin/workspace/clasificados
           </Link>{" "}
-          — misma fila; cambiar estado y recargar resultados/detalle según reglas de visibilidad.
+          — «Ocultar del público» pone <code className="rounded bg-black/5 px-1">is_published=false</code> (desaparece de resultados); «Republicar» lo revierte. «Eliminar (staff)» marca{" "}
+          <code className="rounded bg-black/5 px-1">removed</code>.
+        </li>
+        <li>
+          <strong>Reportes:</strong>{" "}
+          <Link className="font-semibold text-[#2F4A65] underline" href="/admin/reportes">
+            /admin/reportes
+          </Link>{" "}
+          — cola <code className="rounded bg-black/5 px-1">listing_reports</code> (desde «Reportar anuncio» en detalle).
         </li>
         <li>
           <strong>Mapa/radio:</strong> el acordeón en resultados es solo informativo (no filtra).

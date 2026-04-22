@@ -161,6 +161,12 @@ export type ViajesUi = {
     durationLong: string;
     audience: string;
     season: string;
+    serviceLanguage: string;
+    serviceLangAny: string;
+    serviceLangEs: string;
+    serviceLangEn: string;
+    serviceLangBilingual: string;
+    serviceLangOther: string;
     reset: string;
   };
   cards: {
@@ -447,7 +453,7 @@ function es(): Omit<ViajesUi, "lang"> {
       discoveryFamilies: "Tours en familia",
       discoveryWeekend: "Fin de semana · salida SFO",
       inventoryDemoBanner:
-        "Listados de demostración: el formato y filtros son los de lanzamiento; el inventario público en vivo se conectará cuando el feed esté operativo. Las publicaciones nuevas aún no aparecen aquí automáticamente.",
+        "Inventario mezclado: las ofertas aprobadas desde publicaciones Leonix aparecen junto a ejemplos editoriales y de socios. Puedes ocultar la columna de ejemplo con NEXT_PUBLIC_VIAJES_HIDE_CURATED_SEED=1.",
       departureFieldNote: "Salida por hub regional (Bahía / SJC), no por código postal.",
     },
     filterRail: {
@@ -463,6 +469,12 @@ function es(): Omit<ViajesUi, "lang"> {
       durationLong: "8+ noches",
       audience: "Público",
       season: "Fechas / temporada",
+      serviceLanguage: "Idioma del servicio / guía",
+      serviceLangAny: "Cualquiera",
+      serviceLangEs: "Español",
+      serviceLangEn: "Inglés",
+      serviceLangBilingual: "Bilingüe",
+      serviceLangOther: "Otro / no indicado",
       reset: "Limpiar filtros",
     },
     cards: {
@@ -759,7 +771,7 @@ function en(): Omit<ViajesUi, "lang"> {
       discoveryFamilies: "Family tours",
       discoveryWeekend: "Weekend · depart SFO",
       inventoryDemoBanner:
-        "Demo listings: layout and filters match launch behavior; live public inventory will connect when the feed is live. Newly published offers do not appear here automatically yet.",
+        "Mixed inventory: Leonix-approved publisher offers appear alongside editorial and partner examples. Hide the seed column with NEXT_PUBLIC_VIAJES_HIDE_CURATED_SEED=1.",
       departureFieldNote: "Departure is a regional hub (Bay Area / SJC), not postal-code search.",
     },
     filterRail: {
@@ -775,6 +787,12 @@ function en(): Omit<ViajesUi, "lang"> {
       durationLong: "8+ nights",
       audience: "Audience",
       season: "Dates / season",
+      serviceLanguage: "Service / guide language",
+      serviceLangAny: "Any",
+      serviceLangEs: "Spanish",
+      serviceLangEn: "English",
+      serviceLangBilingual: "Bilingual",
+      serviceLangOther: "Other / unspecified",
       reset: "Clear filters",
     },
     cards: {

@@ -23,7 +23,10 @@ export type AutosPublicFilterState = {
   mileageMin: string;
   mileageMax: string;
   titleStatus: string;
-  /** Scaffold: reserved for radius filter (see `autosBrowseFilterContract`). */
+  /**
+   * URL contract only (parse/serialize). No UI control — radius search is not implemented;
+   * values in URLs are ignored by `applyAutosPublicFilters` until geo is wired.
+   */
   radiusMiles: string;
 };
 

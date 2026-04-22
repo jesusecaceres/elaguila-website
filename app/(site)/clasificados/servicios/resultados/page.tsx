@@ -15,6 +15,7 @@ import {
   type ServiciosResultsFilterQuery,
 } from "../lib/serviciosResultsFilter";
 import { listServiciosPublicListingsForDiscovery } from "../lib/serviciosPublicListingsServer";
+import { ServiciosResultsViewAnalytics } from "../ServiciosResultsViewAnalytics";
 
 /** Same whisper image family as landing — stays behind content, low contrast */
 const RESULTS_ATMOSPHERE =
@@ -54,7 +55,9 @@ function parseSeller(raw: string | undefined): ServiciosResultsFilterQuery["sell
 }
 
 function parseSort(raw: string | undefined): ServiciosResultsFilterQuery["sort"] {
-  return raw === "name" ? "name" : "newest";
+  if (raw === "name") return "name";
+  if (raw === "rating") return "rating";
+  return "newest";
 }
 
 export default async function ClasificadosServiciosResultadosPage(props: PageProps) {
@@ -107,6 +110,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
       </div>
 
       <div className="relative mx-auto w-full max-w-7xl px-4 py-6 pb-24 sm:px-6 sm:py-10 sm:pb-10 lg:px-10 xl:px-12 2xl:max-w-[1440px]">
+        <ServiciosResultsViewAnalytics listingSlugs={displayRows.map((r) => r.slug)} />
         <header
           className={`mb-6 flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:p-7 ${contentShell}`}
         >
@@ -162,6 +166,13 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
               {filterQuery.sort === "name" ? (
                 <span className="text-xs font-medium text-[#64748b]">
                   {lang === "en" ? "A–Z within each block (featured first)." : "A–Z en cada bloque (destacados primero)."}
+                </span>
+              ) : null}
+              {filterQuery.sort === "rating" ? (
+                <span className="text-xs font-medium text-[#64748b]">
+                  {lang === "en"
+                    ? "Rated listings first; unrated follow by newest (featured blocks preserved)."
+                    : "Primero con calificación; sin calificación van después por fecha (destacados se mantienen)."}
                 </span>
               ) : null}
             </div>

@@ -43,4 +43,9 @@ export type AutosPublicListing = {
   dealerRating?: number;
   /** Private lane: short display name (e.g. first name + initial). */
   privateSellerLabel?: string;
+  /**
+   * Lowercased text used only for public `q=` search (description, VIN, stock, features).
+   * Not shown on cards; populated for API-mapped rows in `mapAutosClassifiedsToPublic`.
+   */
+  searchableBlurb?: string;
 };

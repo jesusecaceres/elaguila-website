@@ -3,8 +3,13 @@
  * Consumed by `mergeLeonixListingContractDetailPairs` + `parseLeonixMachineFacetRead`.
  */
 
-import type { BienesRaicesPrivadoFormState } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
+import type {
+  BienesRaicesPrivadoFormState,
+  BrPrivadoListingStatus,
+} from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import type { BienesRaicesNegocioFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState";
+import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
+import { mergePartialBienesRaicesPrivadoState } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import type { BrResultsPropertyKind } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import {
   LEONIX_DP_BATHROOMS_COUNT,
@@ -35,15 +40,6 @@ function parseNonNegNumber(raw: string): number | null {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
-function inferPetsFromFreeText(parts: string[]): boolean | null {
-  const blob = parts.map((s) => String(s ?? "").trim()).filter(Boolean).join("\n").toLowerCase();
-  if (!blob) return null;
-  if (/no\s*mascotas|sin\s*mascotas|no\s*pets|not\s*pet[\s-]*friendly|no\s*dogs|no\s*cats/i.test(blob)) return false;
-  if (/acepta\s*mascotas|mascotas\s*bienven|pet[\s-]*friendly|pets\s*allowed|perros?\s*bienven|gatos?\s*bienven/i.test(blob))
-    return true;
-  return null;
-}
-
 function parseAmuebladoNegocio(raw: string): boolean | null {
   const t = String(raw ?? "").trim().toLowerCase();
   if (!t) return null;
@@ -67,6 +63,36 @@ export function inferBrResultsPropertyKindNegocio(state: BienesRaicesNegocioForm
   if (/departamento|condominio|loft|penthouse|ph\b|multifamiliar|unidad/i.test(t)) return "departamento";
   if (/casa|town|dúplex|duplex|villa|hogar|residencia/i.test(t)) return "casa";
   return "casa";
+}
+
+/** Rentas Privado shares BR residencial/comercial/terreno facets — reuse BR machine builder. */
+export function buildLeonixMachineFacetPairsFromRentasPrivadoFormState(
+  state: RentasPrivadoFormState,
+): Array<{ label: string; value: string }> {
+  const br = mergePartialBienesRaicesPrivadoState({
+    categoriaPropiedad: state.categoriaPropiedad,
+    titulo: state.titulo,
+    precio: state.rentaMensual,
+    ciudad: state.ciudad,
+    ubicacionLinea: state.ubicacionLinea,
+    enlaceMapa: state.enlaceMapa,
+    descripcion: state.descripcion,
+    estadoAnuncio: ((): BrPrivadoListingStatus | undefined => {
+      if (state.estadoAnuncio === "rentado") return "vendido";
+      if (state.estadoAnuncio === "disponible" || state.estadoAnuncio === "pendiente" || state.estadoAnuncio === "bajo_contrato") {
+        return state.estadoAnuncio as BrPrivadoListingStatus;
+      }
+      return undefined;
+    })(),
+    media: state.media,
+    seller: { ...state.seller, etiquetaRol: "" },
+    residencial: state.residencial,
+    comercial: state.comercial,
+    terreno: state.terreno,
+    petsAllowed:
+      state.mascotas === "permitidas" ? "yes" : state.mascotas === "no_permitidas" ? "no" : "",
+  });
+  return buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(br);
 }
 
 export function buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(
@@ -99,8 +125,8 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(
     push(out, LEONIX_DP_PROPERTY_SUBTYPE, state.terreno.tipoCodigo);
   }
 
-  const pets = inferPetsFromFreeText([state.descripcion, state.titulo, state.seller.notaContacto]);
-  if (pets != null) push(out, LEONIX_DP_PETS_ALLOWED, pets);
+  if (state.petsAllowed === "yes") push(out, LEONIX_DP_PETS_ALLOWED, true);
+  else if (state.petsAllowed === "no") push(out, LEONIX_DP_PETS_ALLOWED, false);
 
   return out;
 }
@@ -133,14 +159,8 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesNegocioState(
   const poolDeep = Boolean(String(state.deepDetails?.exterior?.piscina ?? "").trim());
   if (poolHl || poolDeep) push(out, LEONIX_DP_POOL, true);
 
-  const pets = inferPetsFromFreeText([
-    state.descripcionLarga,
-    state.descripcionCorta,
-    state.titulo,
-    state.customHighlightsText,
-    state.deepDetails?.observacionesAgente?.observacionesPublicas ?? "",
-  ]);
-  if (pets != null) push(out, LEONIX_DP_PETS_ALLOWED, pets);
+  if (state.petsAllowed === "yes") push(out, LEONIX_DP_PETS_ALLOWED, true);
+  else if (state.petsAllowed === "no") push(out, LEONIX_DP_PETS_ALLOWED, false);
 
   return out;
 }

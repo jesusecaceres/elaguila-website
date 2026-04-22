@@ -1,5 +1,7 @@
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 
+import type { ExperienceSlug, JobModalitySlug } from "@/app/clasificados/empleos/data/empleosJobTypes";
+
 import type { EmpleosLane, EmpleosListingLifecycleStatus } from "./empleosListingLifecycle";
 import type { EmpleosPaymentHandoffPlaceholder } from "./empleosPaymentHandoff";
 
@@ -15,11 +17,16 @@ export type EmpleosQuickPublishSnapshot = {
   businessName: string;
   city: string;
   state: string;
+  /** Role family slug aligned with results filter taxonomy. */
+  categorySlug: string;
+  experienceLevel: ExperienceSlug;
   jobType: string;
   schedule: string;
   pay: string;
   description: string;
   benefits: string[];
+  /** Optional screener prompts (max 5 enforced at publish). */
+  screenerQuestions: string[];
   images: EmpleosPublishImageRef[];
   logoUrl: string | null;
   phone: string;
@@ -40,11 +47,16 @@ export type EmpleosPremiumPublishSnapshot = {
   companyName: string;
   city: string;
   state: string;
+  categorySlug: string;
+  experienceLevel: ExperienceSlug;
+  workModality: JobModalitySlug;
+  scheduleLabel: string;
   salaryPrimary: string;
   salarySecondary: string;
   jobType: string;
   featured: boolean;
   premium: boolean;
+  screenerQuestions: string[];
   gallery: EmpleosPublishImageRef[];
   logoUrl: string | null;
   applyLabel: string;

@@ -39,6 +39,7 @@ export default function EmpleosEmployerDashboardPage() {
             empty: "Aún no tienes vacantes en esta cuenta.",
             publish: "Publicar vacante",
             manage: "Gestionar",
+            edit: "Editar en formulario",
             public: "Ver público",
             colTitle: "Título",
             colStatus: "Estado",
@@ -52,6 +53,7 @@ export default function EmpleosEmployerDashboardPage() {
             empty: "No job listings for this account yet.",
             publish: "Post a job",
             manage: "Manage",
+            edit: "Edit in form",
             public: "Public view",
             colTitle: "Title",
             colStatus: "Status",
@@ -140,6 +142,21 @@ export default function EmpleosEmployerDashboardPage() {
                       <Link href={`/dashboard/empleos/${r.id}?${q}`} className="text-[#B8954A] underline">
                         {t.manage}
                       </Link>
+                      {r.lane === "quick" ? (
+                        <Link href={`/publicar/empleos/quick?edit=${r.id}&${q}`} className="text-[#4A6B82] underline">
+                          {t.edit}
+                        </Link>
+                      ) : null}
+                      {r.lane === "premium" ? (
+                        <Link href={`/publicar/empleos/premium?edit=${r.id}&${q}`} className="text-[#4A6B82] underline">
+                          {t.edit}
+                        </Link>
+                      ) : null}
+                      {r.lane === "feria" ? (
+                        <Link href={`/publicar/empleos/feria?edit=${r.id}&${q}`} className="text-[#4A6B82] underline">
+                          {t.edit}
+                        </Link>
+                      ) : null}
                       {r.lifecycle_status === "published" ? (
                         <Link href={appendLangToPath(`/clasificados/empleos/${r.slug}`, lang)} className="text-[#2A2620] underline">
                           {t.public}

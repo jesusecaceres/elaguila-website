@@ -58,6 +58,7 @@ function toBienesRaicesPrivadoShape(s: RentasPrivadoFormState): BienesRaicesPriv
     residencial: s.residencial,
     comercial: s.comercial,
     terreno: s.terreno,
+    petsAllowed: s.mascotas === "permitidas" ? "yes" : s.mascotas === "no_permitidas" ? "no" : "",
   });
 }
 

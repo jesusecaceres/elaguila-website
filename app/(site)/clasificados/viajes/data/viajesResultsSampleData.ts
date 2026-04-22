@@ -27,6 +27,8 @@ export interface ViajesAffiliateResult {
   departureContext: string;
   href: string;
   tripTypeKeys?: string[];
+  /** Matches `svcLang` browse facet (`es` | `en` | `bilingual` | `other`). */
+  serviceLanguageKeys?: string[];
   affiliateNote?: string;
   publishedAt: string;
   audienceKeys?: string[];
@@ -60,6 +62,8 @@ export interface ViajesBusinessResult {
   budgetBand?: "" | "economico" | "moderado" | "premium";
   durationKey?: "" | "short" | "week" | "long";
   seasonKeys?: string[];
+  /** Matches `svcLang` browse facet (`es` | `en` | `bilingual` | `other`). */
+  serviceLanguageKeys?: string[];
   discovery?: ViajesDiscoverySignals;
 }
 
@@ -105,6 +109,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
     audienceKeys: ["familias", "parejas"],
     budgetBand: "moderado",
     seasonKeys: ["winter", "spring"],
+    serviceLanguageKeys: ["es", "en"],
     discovery: { featuredBase: 58, sourceTrust: 1, completeness: 0.82 },
   },
   {
@@ -129,6 +134,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
     audienceKeys: ["parejas", "grupos"],
     budgetBand: "premium",
     seasonKeys: ["spring", "summer"],
+    serviceLanguageKeys: ["es", "en"],
     discovery: { featuredBase: 52, sourceTrust: 1.05, completeness: 0.88 },
   },
   {
@@ -151,6 +157,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
     audienceKeys: ["parejas"],
     budgetBand: "premium",
     seasonKeys: ["summer", "winter"],
+    serviceLanguageKeys: ["es"],
     discovery: { featuredBase: 54, sourceTrust: 1, completeness: 0.79 },
   },
   {
@@ -175,6 +182,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
     audienceKeys: ["familias"],
     budgetBand: "moderado",
     seasonKeys: ["spring", "summer", "fall"],
+    serviceLanguageKeys: ["es", "bilingual"],
     discovery: { featuredBase: 56, sourceTrust: 1.08, completeness: 0.9 },
   },
   {
@@ -197,6 +205,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
     audienceKeys: ["familias", "parejas"],
     budgetBand: "moderado",
     seasonKeys: ["winter"],
+    serviceLanguageKeys: ["es", "en"],
     discovery: { featuredBase: 57, sourceTrust: 1, completeness: 0.8 },
   },
   {
@@ -220,6 +229,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
     audienceKeys: ["parejas", "grupos"],
     budgetBand: "economico",
     seasonKeys: ["winter", "spring"],
+    serviceLanguageKeys: ["bilingual"],
     discovery: { featuredBase: 49, sourceTrust: 1, completeness: 0.75 },
   },
   {

@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type { AutosClassifiedsDashboardRow } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
-import { autosListingStatusIsPrePublish } from "@/app/lib/clasificados/autos/autosClassifiedsVisibility";
+import type { AutosClassifiedsListingStatus } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
+import {
+  autosListingStatusIsPrePublish,
+  autosListingStatusLabelEn,
+  autosListingStatusLabelEs,
+} from "@/app/lib/clasificados/autos/autosClassifiedsVisibility";
 import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 
 type Lang = "es" | "en";
@@ -72,13 +77,15 @@ export function DashboardAutosPaidDraftsBand({ lang }: { lang: Lang }) {
         {rows.map((row) => {
           const base = row.lane === "negocios" ? "/publicar/autos/negocios" : "/publicar/autos/privado";
           const confirmHref = withLangParam(`${base}/confirm`, row.lang);
+          const st = row.status as AutosClassifiedsListingStatus;
+          const statusLine = lang === "es" ? autosListingStatusLabelEs(st) : autosListingStatusLabelEn(st);
           return (
             <li key={row.id} className="rounded-xl border border-[#E8DFD0]/90 bg-white/90 p-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <p className="font-bold text-[#1E1810]">{row.title}</p>
                   <p className="mt-0.5 text-xs text-[#5C5346]">
-                    {row.lane === "negocios" ? t.laneNeg : t.lanePriv} · {row.status} · {row.city || "—"}
+                    {row.lane === "negocios" ? t.laneNeg : t.lanePriv} · {statusLine} · {row.city || "—"}
                   </p>
                   <p className="mt-1 text-[10px] text-[#7A7164]">
                     {t.updated}: {new Date(row.updated_at).toLocaleString(lang === "es" ? "es-US" : "en-US")}

@@ -221,8 +221,18 @@ export function EmpleoPublicDetailClient({ slug, initialJob, relatedExtra = [] }
                   </p>
                 )}
               </div>
+              {job.externalApplyUrl ? (
+                <a
+                  href={job.externalApplyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${EMPLEOS_CTA_PRIMARY} w-full px-4 text-center`}
+                >
+                  {lang === "es" ? "Sitio del empleador (aplicar)" : "Employer site (apply)"}
+                </a>
+              ) : null}
               {job && isLiveListingId(job.id) ? (
-                <EmpleosApplyForm listingId={job.id} lang={lang} />
+                <EmpleosApplyForm listingId={job.id} lang={lang} screenerQuestions={job.screenerQuestions} />
               ) : (
                 <>
                   <Link href={appendLangToPath("/contacto", lang)} className={`${EMPLEOS_CTA_PRIMARY} w-full px-4 text-center`}>

@@ -31,6 +31,13 @@
  * | `top` | Boost “best rated” shortcut | Blueprint: rating ≥ 4.5 + ties to sort. |
  * | `page` | Pagination | |
  * | `lang` | UI language | `es` / `en`. |
+ * | `nbh` | `neighborhood` | Substring match on published neighborhood. |
+ * | `rsv` | `reservationsAvailable` | `1` = only listings that accept reservations. |
+ * | `pre` | `preorderRequired` | `1` = only listings that mark preorder required. |
+ * | `pku` | `pickupAvailable` | `1` = pickup offered. |
+ * | `feat` | `promoted` | `1` = promoted / destacado rows only. |
+ * | `lxv` | `leonix_verified` | `1` = Leonix-verified only. |
+ * | `drm` | `deliveryRadiusMiles` | Integer minimum miles (listing must declare radius ≥ value). |
  *
  * ## Landing vs results
  * - **Landing (fast path only):** hero `q`, combined location → `city`/`zip`, quick chips (`open`, `near`, `svc`, `family`, `top`+`sort`, `price`), cuisine chips/tiles → `cuisine`. No exclusive params.
@@ -68,6 +75,13 @@ export const RESTAURANTES_DISCOVERY_URL_KEYS = [
   "hl",
   "saved",
   "page",
+  "nbh",
+  "rsv",
+  "pre",
+  "pku",
+  "feat",
+  "lxv",
+  "drm",
 ] as const;
 
 export type RestaurantesResultsUrlKey = (typeof RESTAURANTES_DISCOVERY_URL_KEYS)[number];
@@ -109,6 +123,15 @@ export type RestaurantesDiscoveryState = {
   /** Filter to ids saved locally (first-party; consent-gated read in UI). */
   saved: boolean;
   page: number;
+  /** Substring on `neighborhood` (URL `nbh`). */
+  neighborhoodQuery: string;
+  reservationsOnly: boolean;
+  preorderOnly: boolean;
+  pickupOnly: boolean;
+  promotedOnly: boolean;
+  verifiedOnly: boolean;
+  /** Minimum declared delivery radius in miles (URL `drm`). */
+  deliveryRadiusMin?: number;
 };
 
 export function defaultRestaurantesDiscoveryState(lang: RestaurantesDiscoveryLang = "es"): RestaurantesDiscoveryState {
@@ -134,6 +157,13 @@ export function defaultRestaurantesDiscoveryState(lang: RestaurantesDiscoveryLan
     hl: "",
     saved: false,
     page: 1,
+    neighborhoodQuery: "",
+    reservationsOnly: false,
+    preorderOnly: false,
+    pickupOnly: false,
+    promotedOnly: false,
+    verifiedOnly: false,
+    deliveryRadiusMin: undefined,
   };
 }
 
@@ -152,6 +182,13 @@ export function parseRestaurantesResultsSearchParams(
     sortRaw === "name-asc" || sortRaw === "rating-desc" || sortRaw === "newest" ? sortRaw : "newest";
 
   const flag = (k: string) => sp.get(k) === "1";
+
+  const drmRaw = (sp.get("drm") ?? "").trim();
+  let deliveryRadiusMin: number | undefined;
+  if (drmRaw) {
+    const n = parseInt(drmRaw, 10);
+    if (Number.isFinite(n) && n > 0) deliveryRadiusMin = n;
+  }
 
   return {
     lang,
@@ -175,6 +212,13 @@ export function parseRestaurantesResultsSearchParams(
     hl: (sp.get("hl") ?? "").trim(),
     saved: flag("saved"),
     page: Math.max(1, parseInt(sp.get("page") ?? "1", 10) || 1),
+    neighborhoodQuery: (sp.get("nbh") ?? "").trim(),
+    reservationsOnly: flag("rsv"),
+    preorderOnly: flag("pre"),
+    pickupOnly: flag("pku"),
+    promotedOnly: flag("feat"),
+    verifiedOnly: flag("lxv"),
+    deliveryRadiusMin,
   };
 }
 
@@ -203,6 +247,16 @@ export function restaurantesDiscoveryStateToParams(
     hl: s.hl || undefined,
     saved: s.saved ? "1" : undefined,
     page: s.page > 1 ? String(s.page) : undefined,
+    nbh: s.neighborhoodQuery.trim() || undefined,
+    rsv: s.reservationsOnly ? "1" : undefined,
+    pre: s.preorderOnly ? "1" : undefined,
+    pku: s.pickupOnly ? "1" : undefined,
+    feat: s.promotedOnly ? "1" : undefined,
+    lxv: s.verifiedOnly ? "1" : undefined,
+    drm:
+      s.deliveryRadiusMin != null && Number.isFinite(s.deliveryRadiusMin) && s.deliveryRadiusMin > 0
+        ? String(Math.floor(s.deliveryRadiusMin))
+        : undefined,
   };
   return out;
 }
@@ -234,12 +288,14 @@ export function restaurantesDiscoveryParamsForRowDeepLink(row: {
   city: string;
   zip?: string;
   primaryCuisineKey: string;
+  neighborhood?: string;
 }): Record<string, string | undefined> {
   return {
     q: row.name,
     city: row.city,
     zip: row.zip?.trim() || undefined,
     cuisine: row.primaryCuisineKey || undefined,
+    nbh: row.neighborhood?.trim() || undefined,
   };
 }
 

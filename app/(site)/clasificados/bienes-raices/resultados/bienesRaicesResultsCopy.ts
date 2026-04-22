@@ -158,7 +158,7 @@ const ES: BrResultsCopy = {
   toggleFurnished: "Amueblado",
   togglePool: "Alberca / piscina",
   amenityTogglesHint:
-    "Piscina y amueblado usan datos estructurados del anuncio cuando existen. Mascotas: se marca explícito solo si el texto publicado lo indica (no hay campo dedicado en el formulario BR).",
+    "Piscina, amueblado y mascotas usan datos estructurados del anuncio cuando el vendedor los capturó al publicar (`Leonix:*` en detail_pairs).",
   searchButton: "Aplicar",
   categoryHeading: "Categoría",
   categoryAll: "Todas",
@@ -280,7 +280,7 @@ const EN: BrResultsCopy = {
   toggleFurnished: "Furnished",
   togglePool: "Pool",
   amenityTogglesHint:
-    "Pool and furnished use structured publish data when present. Pets: only marked when listing text indicates it (BR forms have no dedicated pets field).",
+    "Pool, furnished, and pets use structured publish data when the seller captured them (`Leonix:*` in detail_pairs).",
   searchButton: "Apply",
   categoryHeading: "Category",
   categoryAll: "All",

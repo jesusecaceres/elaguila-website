@@ -16,6 +16,7 @@ import { mergeLeonixListingContractDetailPairs } from "@/app/clasificados/lib/le
 import {
   buildLeonixMachineFacetPairsFromBienesRaicesNegocioState,
   buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState,
+  buildLeonixMachineFacetPairsFromRentasPrivadoFormState,
 } from "@/app/clasificados/lib/leonixBrMachineFacetPairsFromFormState";
 import {
   buildDetailPairsFromBienesRaicesNegocioPreviewVm,
@@ -61,6 +62,20 @@ function privadoSellerContact(seller: {
   const phone = digitsOnly(seller.telefono ?? "") || digitsOnly(seller.whatsapp ?? "");
   const email = trim(seller.correo) || null;
   return { phone: phone.length >= 10 ? phone.slice(0, 15) : null, email };
+}
+
+function petsRequiredForBrPublish(
+  petsAllowed: "" | "yes" | "no",
+  lang: "es" | "en",
+): PublishLeonixRealEstateListingCoreResult | null {
+  if (petsAllowed === "yes" || petsAllowed === "no") return null;
+  return {
+    ok: false,
+    error:
+      lang === "es"
+        ? "Selecciona si se permiten mascotas (sí / no) para publicar y alimentar el filtro de resultados."
+        : "Select whether pets are allowed (yes / no) to publish and power the results filter.",
+  };
 }
 
 function negocioOperationFromBienes(s: BienesRaicesNegocioFormState): "sale" | "rent" {
@@ -116,6 +131,8 @@ export async function publishLeonixListingFromBienesRaicesPrivadoDraft(
   state: BienesRaicesPrivadoFormState,
   lang: "es" | "en"
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
+  const petsErr = petsRequiredForBrPublish(state.petsAllowed, lang);
+  if (petsErr) return petsErr;
   const vm = mapBienesRaicesPrivadoStateToPreviewVm(state);
   const human = buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm);
   const opSummary = String(vm.operationSummary ?? "").toLowerCase();
@@ -154,6 +171,7 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
     branch: "rentas_privado",
     operation: "rent",
     categoriaPropiedad: state.categoriaPropiedad,
+    machineFacetPairs: buildLeonixMachineFacetPairsFromRentasPrivadoFormState(state),
   });
   const contact = privadoSellerContact(state.seller);
   return publishLeonixRealEstateListingCore({
@@ -177,6 +195,8 @@ export async function publishLeonixListingFromBienesRaicesNegocioDraft(
   state: BienesRaicesNegocioFormState,
   lang: "es" | "en"
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
+  const petsErr = petsRequiredForBrPublish(state.petsAllowed, lang);
+  if (petsErr) return petsErr;
   const vm = mapBienesRaicesNegocioStateToPreviewVm(state);
   const human = buildDetailPairsFromBienesRaicesNegocioPreviewVm(vm);
   const cat = inferCategoriaPropiedadFromBienesNegocioState(state);
@@ -213,12 +233,13 @@ export async function publishLeonixListingFromRentasNegocioDraft(
   const vm = mapRentasNegocioStateToPreviewVm(state);
   const human = buildDetailPairsFromBienesRaicesNegocioPreviewVm(vm);
   const withMachine = mergeRentasNegocioMachinePairs(state, human);
+  const br = rentasNegocioToBienesRaicesNegocioState(state);
   const pairs = mergeLeonixListingContractDetailPairs(withMachine, {
     branch: "rentas_negocio",
     operation: "rent",
     categoriaPropiedad: state.categoriaPropiedad,
+    machineFacetPairs: buildLeonixMachineFacetPairsFromBienesRaicesNegocioState(br),
   });
-  const br = rentasNegocioToBienesRaicesNegocioState(state);
   const meta = buildBusinessMetaJsonFromBienesRaicesNegocioState(br);
   const phone = digitsOnly(state.negocioTelDirecto) || digitsOnly(state.negocioTelOficina) || digitsOnly(state.negocioWhatsapp);
   const biz = trim(state.negocioNombre) || trim(state.negocioMarca);

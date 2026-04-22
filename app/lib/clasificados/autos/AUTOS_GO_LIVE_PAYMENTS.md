@@ -1,47 +1,64 @@
-# Autos go-live — payments and publish hardening
-
-This document complements `AUTOS_PUBLISH_LIFECYCLE.md` with **production** checklist items for the paid Autos shell (`autos_classifieds_listings`).
+# Autos go-live: payments and production publish
 
 ## Required environment variables
 
-| Variable | Role |
-| -------- | ---- |
-| `STRIPE_SECRET_KEY` | Stripe API (Checkout create, session retrieve, webhook verify). Without it, checkout returns `503 stripe_not_configured` (except internal bypass path below). |
-| `STRIPE_PRICE_AUTOS_NEGOCIOS` | Stripe Price ID for **negocios** lane checkout line item. |
-| `STRIPE_PRICE_AUTOS_PRIVADO` | Stripe Price ID for **privado** lane checkout line item. |
-| `NEXT_PUBLIC_SITE_URL` | Preferred canonical site origin for Checkout `success_url` / `cancel_url` (`getAutosSiteOrigin()`). On Vercel, `VERCEL_URL` is used as fallback. |
-| Supabase service role (server) | Used by Autos API routes via `getAdminSupabase()` to read/write `autos_classifieds_listings`. Must match the project that owns the table. |
+| Variable | Purpose | Where used |
+|----------|---------|------------|
+| `STRIPE_SECRET_KEY` | Stripe API (live or test key) | `app/lib/stripe/server.ts`, checkout + webhook |
+| `STRIPE_WEBHOOK_SECRET` | Verify `checkout.session.completed` | `app/api/webhooks/stripe/route.ts` |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Client if needed | publish surface (optional) |
+| `NEXT_PUBLIC_SITE_URL` | Success/cancel URLs, absolute links | `app/api/clasificados/autos/checkout/route.ts`, `checkout/verify` |
+| `AUTOS_STRIPE_PRICE_ID_DEALER` | Stripe Price for dealer lane | `app/lib/clasificados/autos/autosStripePriceIds.ts` |
+| `AUTOS_STRIPE_PRICE_ID_PRIVATE` | Stripe Price for private lane | same |
+| `AUTOS_PUBLISH_INTERNAL_BYPASS` | **Dev only** — skip Stripe when `true` + `NODE_ENV !== "production"` | `app/lib/clasificados/autos/autosPublishInternalBypass.ts`, checkout route |
+| `NEXT_PUBLIC_LEONIX_AUTOS_PUBLIC_DEMO` | **Non-production / QA only** — when `1`, empty public Autos API responses are filled with blueprint sample cards for UI | `app/(site)/clasificados/autos/lib/autosPublicInventoryPolicy.ts`, `resolveAutosLandingInventory` |
 
-## Strongly recommended (production)
+**Production:** `AUTOS_PUBLISH_INTERNAL_BYPASS` must be unset or `false`. In production, `autosPublishInternalBypassEnabled()` returns `false` regardless of env string.
 
-| Variable | Role |
-| -------- | ---- |
-| `STRIPE_WEBHOOK_SECRET` | Verifies `POST /api/clasificados/autos/stripe/webhook`. **Success-page activation does not depend on the webhook** (see below), but the webhook provides idempotent backup activation and analytics hooks. If unset, the webhook route returns `503 webhook_secret_missing`. |
+**Production:** Do **not** set `NEXT_PUBLIC_LEONIX_AUTOS_PUBLIC_DEMO=1` on the live site, or the landing/results shell may show Unsplash sample listings when the database has no active rows (`resolveAutosLandingInventory` in `sampleAutosPublicInventory.ts`).
 
-## Internal QA only (never production)
+## Lane pricing
 
-| Variable | Role |
-| -------- | ---- |
-| `AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS=1` | When `VERCEL_ENV !== "production"`, `POST /api/clasificados/autos/checkout` activates the listing immediately without Stripe. Blocked in production in `autosInternalPublishConfig.ts`. |
-| `NEXT_PUBLIC_AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS=1` | Optional client hint for publish CTA labeling only. |
+- `lane` on row: `"dealer"` | `"private"` (DB constraint).
+- Checkout selects price id via `resolveAutosStripePriceId(lane)` in `autosStripePriceIds.ts`. Missing env → checkout returns **500** with message to configure price id (fail closed).
 
-## Real publish state transitions
+## Status transition table
 
-1. **Draft / recoverable** — `draft`, `payment_failed`, or `pending_payment` (retry allowed per `POST /api/clasificados/autos/checkout` in `checkout/route.ts`).
-2. **Checkout created** — Row moves to `pending_payment` and stores `stripe_checkout_session_id`.
-3. **Paid** — `GET /api/clasificados/autos/checkout/verify?session_id=…` (called from `AutosPagoExitoClient`) retrieves the session; if `payment_status === "paid"`, `tryActivateAutosListingAfterPayment` updates to `active`, sets `published_at`, clears checkout session id, and optionally stores `stripe_payment_intent_id`. The update uses `.eq("status", "pending_payment")` so duplicate verify + webhook are safe.
-4. **Public** — Only `status === "active"` appears in `GET /api/clasificados/autos/public/listings` and detail `GET …/public/listings/[id]`.
+| From | Event | To | Public visible |
+|------|--------|-----|------------------|
+| `draft` | User saves | `draft` | No |
+| `draft` | Checkout session created | `pending_payment` | No |
+| `pending_payment` | Payment success (webhook or verify) | `active` | Yes |
+| `pending_payment` | User abandons | stays `pending_payment` | No |
+| `pending_payment` | Open session reused | stays `pending_payment`, same URL | No |
+| `payment_failed` | Retry checkout | `pending_payment` | No |
+| `active` | Owner unpublish / admin | may become `removed` or non-public per product rules | Yes while `status === "active"` and listed by `listActiveAutosClassifiedsRows` |
 
-## Failure / cancel / retry
+Canonical helpers: `app/lib/clasificados/autos/autosClassifiedsVisibility.ts`.
 
-- **User abandons Checkout** — `cancel_url` lands on cancel page; listing can remain `pending_payment` until a new checkout is created (implementation-specific cleanup may set draft elsewhere; see cancel client if extended).
-- **Verify returns not paid** — Success client shows error; listing stays non-public until paid.
-- **Stripe or price misconfiguration** — Checkout `POST` returns `503` with `stripe_price_missing` / `stripe_not_configured`; listing is not activated.
+## Failure / retry
 
-## Launch checklist
+1. Stripe session `expired` / `complete` without success path → row can move to `payment_failed` (verify route + webhook handlers).
+2. User hits **Reintentar pago** on `/publicar/autos/confirmar` → `POST /api/clasificados/autos/checkout` with `listingId`. If status `pending_payment` and existing session still `open`, route **reuses** session URL (`reusedSession: true`) to avoid duplicate charges from double-submit.
 
-- [ ] `STRIPE_SECRET_KEY`, both price IDs, and `NEXT_PUBLIC_SITE_URL` set on the **production** Vercel project.
-- [ ] Stripe webhook endpoint registered pointing to `/api/clasificados/autos/stripe/webhook` with `STRIPE_WEBHOOK_SECRET` set (recommended).
-- [ ] Confirm `AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS` is **unset** (or `0`) in production.
-- [ ] Run a real card payment in Stripe test mode against staging, then repeat in live mode with low-value price before marketing launch.
-- [ ] Confirm success URL hits `checkout/verify` and live vehicle URL resolves.
+## Routes (reference)
+
+- `POST /api/clasificados/autos/checkout` — `app/api/clasificados/autos/checkout/route.ts`
+- `GET /api/clasificados/autos/checkout/verify` — `app/api/clasificados/autos/checkout/verify/route.ts`
+- `POST /api/webhooks/stripe` — `app/api/webhooks/stripe/route.ts` (delegates to `handleStripeWebhook`)
+- Success UI: `app/(site)/publicar/autos/pago-exitoso/page.tsx`
+- Cancel UI: `app/(site)/publicar/autos/pago-cancelado/page.tsx`
+
+## Production launch payment checklist
+
+- [ ] `STRIPE_SECRET_KEY` = live secret in Vercel production
+- [ ] `STRIPE_WEBHOOK_SECRET` = live signing secret for production webhook endpoint
+- [ ] Webhook URL registered: `{NEXT_PUBLIC_SITE_URL}/api/webhooks/stripe` with event `checkout.session.completed`
+- [ ] `AUTOS_STRIPE_PRICE_ID_DEALER` and `AUTOS_STRIPE_PRICE_ID_PRIVATE` set to **live** Price IDs (mode matches key)
+- [ ] `NEXT_PUBLIC_SITE_URL` = production origin (https, no trailing slash issues for Stripe redirects)
+- [ ] `AUTOS_PUBLISH_INTERNAL_BYPASS` **not** set in production
+- [ ] Run one real **private** and one **dealer** checkout in staging/test mode first, then smoke in production with small amount or Stripe test clock as applicable
+
+## Evidence: failed payment does not publish
+
+`mapAutosClassifiedsToPublic.ts` and `isAutosClassifiedPubliclyVisible` require `status === "active"`. `pending_payment`, `payment_failed`, `draft` are excluded.

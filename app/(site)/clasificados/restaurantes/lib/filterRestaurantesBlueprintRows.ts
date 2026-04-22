@@ -1,5 +1,9 @@
 import type { RestauranteServiceMode } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
+import {
+  normalizeDiscoveryLocationText,
+  type RestaurantesDiscoveryState,
+} from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
 
 /** Service modes allowed as `svc=` URL filter values (matches publish taxonomy). */
 const DISCOVERY_SVC_PARAM_WHITELIST = new Set<string>([
@@ -14,15 +18,11 @@ const DISCOVERY_SVC_PARAM_WHITELIST = new Set<string>([
   "meal_prep",
   "other",
 ]);
-import {
-  normalizeDiscoveryLocationText,
-  type RestaurantesDiscoveryState,
-} from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
 
 /**
  * Free-text `q` matches (case-insensitive substring) against the same fields we intend to index for publish:
- * business name, cuisine copy line, primary/secondary cuisine keys (taxonomy), city display string, ZIP.
- * Includes `additionalCuisineKeys` from published `listing_json` when present on the row.
+ * business name, cuisine copy line, primary/secondary cuisine keys (taxonomy), city, ZIP, neighborhood,
+ * `serviceAreaText`, and `additionalCuisineKeys` from published `listing_json` when present on the row.
  */
 function rowMatchesQuery(q: string, row: RestaurantesPublicBlueprintRow): boolean {
   const needle = q.trim().toLowerCase();
@@ -35,6 +35,8 @@ function rowMatchesQuery(q: string, row: RestaurantesPublicBlueprintRow): boolea
     ...(row.additionalCuisineKeys ?? []),
     row.city,
     row.zip ?? "",
+    row.neighborhood ?? "",
+    row.serviceAreaText ?? "",
   ]
     .join(" ")
     .toLowerCase();
@@ -70,6 +72,10 @@ export function filterRestaurantesBlueprintRows(
       if (needle && !row.city.toLowerCase().includes(needle)) return false;
     }
     if (s.zip && (row.zip ?? "").trim() !== s.zip.trim()) return false;
+    if (s.neighborhoodQuery.trim()) {
+      const nb = s.neighborhoodQuery.trim().toLowerCase();
+      if (!(row.neighborhood ?? "").toLowerCase().includes(nb)) return false;
+    }
     if (s.cuisine && !rowMatchesCuisineFilter(s.cuisine, row)) return false;
     if (s.biz && (row.businessType ?? "") !== s.biz) return false;
     if (s.svc) {
@@ -86,6 +92,16 @@ export function filterRestaurantesBlueprintRows(
     if (s.diet === "glutenfree" && !row.glutenFreeOptions) return false;
     if (s.diet === "halal" && !row.halalCuisine && row.primaryCuisineKey !== "halal") return false;
     if (s.top && row.rating < 4.5) return false;
+
+    if (s.reservationsOnly && row.reservationsAvailable !== true) return false;
+    if (s.preorderOnly && row.preorderRequired !== true) return false;
+    if (s.pickupOnly && row.pickupAvailable !== true) return false;
+    if (s.promotedOnly && !row.promoted) return false;
+    if (s.verifiedOnly && row.leonixVerified !== true) return false;
+    if (s.deliveryRadiusMin != null && s.deliveryRadiusMin > 0) {
+      const r = row.deliveryRadiusMiles;
+      if (typeof r !== "number" || !Number.isFinite(r) || r < s.deliveryRadiusMin) return false;
+    }
 
     if (s.movingVendor && !row.movingVendor) return false;
     if (s.homeBasedBusiness && !row.homeBasedBusiness) return false;
@@ -115,6 +131,12 @@ export function filterRestaurantesBlueprintRows(
   });
 }
 
+function discoverySortTieBreak(a: RestaurantesPublicBlueprintRow, b: RestaurantesPublicBlueprintRow): number {
+  if (a.promoted !== b.promoted) return a.promoted ? -1 : 1;
+  if ((a.leonixVerified === true) !== (b.leonixVerified === true)) return a.leonixVerified ? -1 : 1;
+  return 0;
+}
+
 export function sortRestaurantesBlueprintRows(
   rows: RestaurantesPublicBlueprintRow[],
   sort: RestaurantesDiscoveryState["sort"],
@@ -125,9 +147,19 @@ export function sortRestaurantesBlueprintRows(
     return list;
   }
   if (sort === "rating-desc") {
-    list.sort((a, b) => b.rating - a.rating || b.listedAt.localeCompare(a.listedAt));
+    list.sort((a, b) => {
+      const dr = b.rating - a.rating;
+      if (dr !== 0) return dr;
+      const t = b.listedAt.localeCompare(a.listedAt);
+      if (t !== 0) return t;
+      return discoverySortTieBreak(a, b);
+    });
     return list;
   }
-  list.sort((a, b) => b.listedAt.localeCompare(a.listedAt));
+  list.sort((a, b) => {
+    const t = b.listedAt.localeCompare(a.listedAt);
+    if (t !== 0) return t;
+    return discoverySortTieBreak(a, b);
+  });
   return list;
 }

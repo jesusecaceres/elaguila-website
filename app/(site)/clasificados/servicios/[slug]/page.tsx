@@ -4,6 +4,9 @@ import { SAMPLE_LISTINGS } from "@/app/data/classifieds/sampleListings";
 import { ServiciosProfileView } from "@/app/servicios/components/ServiciosProfileView";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
+import { mergeServiciosProfileWithApprovedDbReviews } from "../lib/serviciosDbReviewsMerge";
+import { listApprovedServiciosReviewsForSlug } from "../lib/serviciosOpsTablesServer";
+import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "../lib/serviciosListingLifecycle";
 import { getServiciosPublicListingBySlugForDiscovery } from "../lib/serviciosPublicListingsServer";
 import { LegacyServiciosSampleProfile } from "./LegacyServiciosSampleProfile";
 import { ServiciosPublicSlugClient } from "./ServiciosPublicSlugClient";
@@ -99,10 +102,12 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
       );
     }
 
-    const wire = { ...row.profile_json };
-    wire.identity.leonixVerified = row.leonix_verified === true;
-    const profile = resolveServiciosProfile(wire, lang);
     const paused = row.listing_status === "paused_unpublished";
+    const isPublishedLive = row.listing_status === SERVICIOS_LISTING_STATUS_PUBLISHED && !paused;
+    const dbApproved = isPublishedLive ? await listApprovedServiciosReviewsForSlug(slug) : [];
+    const wireMerged = mergeServiciosProfileWithApprovedDbReviews({ ...row.profile_json }, dbApproved);
+    wireMerged.identity = { ...wireMerged.identity, leonixVerified: row.leonix_verified === true };
+    const profile = resolveServiciosProfile(wireMerged, lang);
     const justPublished = sp.justPublished === "1";
     const persistence = typeof sp.persistence === "string" ? sp.persistence : "";
     const publishLines: string[] = [];
@@ -143,6 +148,8 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
         lang={lang}
         editBackHref={`/clasificados/publicar/servicios?lang=${lang}`}
         noticeBanner={noticeBanner}
+        analyticsListingSlug={slug}
+        showPublicConversionForms={isPublishedLive}
       />
     );
   }

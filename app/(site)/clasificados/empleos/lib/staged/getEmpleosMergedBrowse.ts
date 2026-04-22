@@ -11,7 +11,7 @@ export function mergeEmpleosSeedWithLiveJobs(live: EmpleosJobRecord[]): EmpleosJ
   const seed = [...EMPLEOS_JOB_CATALOG];
   const seedSlugs = new Set(seed.map((j) => j.slug));
   const liveFiltered = live.filter((j) => !seedSlugs.has(j.slug));
-  return [...seed, ...liveFiltered];
+  return [...liveFiltered, ...seed];
 }
 
 /** @deprecated Use server `fetchEmpleosPublishedJobRecords` + `mergeEmpleosSeedWithLiveJobs`. */

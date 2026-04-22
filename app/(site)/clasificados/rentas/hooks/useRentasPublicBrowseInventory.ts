@@ -10,7 +10,7 @@ import {
 } from "@/app/clasificados/rentas/results/rentasResultsDemoData";
 
 const LIVE_SELECT =
-  "id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, status, is_published, created_at, images, contact_phone, contact_email";
+  "id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, business_meta, status, is_published, created_at, images, contact_phone, contact_email";
 
 /**
  * Dedup merge: live rows first (newest), optional demo tail for dev (`NEXT_PUBLIC_RENTAS_INCLUDE_DEMO_POOL=1`).
@@ -85,7 +85,7 @@ export function useRentasPublicBrowseInventory(opts: {
           .eq("status", "active")
           .or("is_published.is.null,is_published.eq.true")
           .order("created_at", { ascending: false })
-          .limit(2000);
+          .limit(5000);
 
         if (cancelled) return;
         if (qErr) {

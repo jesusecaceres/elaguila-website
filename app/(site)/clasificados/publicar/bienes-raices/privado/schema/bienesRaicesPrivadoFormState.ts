@@ -18,6 +18,9 @@ import { normalizeResidencialTipoPropiedadCodigo } from "@/app/clasificados/publ
 
 export const BR_PRIVADO_FORM_VERSION = 1 as const;
 
+/** Structured for `Leonix:pets_allowed` + resultados filter (required before publish). */
+export type BrPetsAllowedChoice = "" | "yes" | "no";
+
 export type BrPrivadoListingStatus = "disponible" | "pendiente" | "bajo_contrato" | "vendido";
 
 export type BrPrivadoCondicion = "" | "excelente" | "buena" | "regular" | "necesita_reparacion";
@@ -49,6 +52,11 @@ function coerceComercialDestacados(raw: unknown): ComercialDestacadoId[] {
 
 function coerceTerrenoDestacados(raw: unknown): TerrenoDestacadoId[] {
   return coerceStringArray(raw, 24).filter((x): x is TerrenoDestacadoId => VALID_TERRENO_DEST.has(x as TerrenoDestacadoId));
+}
+
+function coerceBrPetsAllowedChoice(raw: unknown, fallback: BrPetsAllowedChoice): BrPetsAllowedChoice {
+  if (raw === "yes" || raw === "no" || raw === "") return raw;
+  return fallback;
 }
 
 function coerceResidencialHighlights(raw: unknown): string[] {
@@ -109,6 +117,8 @@ export type BienesRaicesPrivadoFormState = {
   enlaceMapa: string;
   descripcion: string;
   estadoAnuncio: BrPrivadoListingStatus;
+  /** Required to publish — maps to `Leonix:pets_allowed` (yes/no). */
+  petsAllowed: BrPetsAllowedChoice;
   media: {
     photoDataUrls: string[];
     primaryImageIndex: number;
@@ -152,6 +162,7 @@ export function createEmptyBienesRaicesPrivadoFormState(): BienesRaicesPrivadoFo
     enlaceMapa: "",
     descripcion: "",
     estadoAnuncio: "disponible",
+    petsAllowed: "",
     media: {
       photoDataUrls: [],
       primaryImageIndex: 0,
@@ -241,6 +252,7 @@ export function mergePartialBienesRaicesPrivadoState(
     enlaceMapa: typeof partial.enlaceMapa === "string" ? partial.enlaceMapa : base.enlaceMapa,
     descripcion: typeof partial.descripcion === "string" ? partial.descripcion : base.descripcion,
     estadoAnuncio: coerceListingStatus(partial.estadoAnuncio),
+    petsAllowed: coerceBrPetsAllowedChoice(partial.petsAllowed, base.petsAllowed),
     media: {
       ...base.media,
       photoDataUrls,

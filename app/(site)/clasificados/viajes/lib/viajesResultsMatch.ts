@@ -3,9 +3,27 @@ import type { ViajesResultRow } from "../data/viajesResultsSampleData";
 import { viajesRowMatchesTripParam } from "../data/viajesTripTypes";
 
 function textHaystack(row: ViajesResultRow): string {
-  if (row.kind === "affiliate") return `${row.title} ${row.destination}`.toLowerCase();
-  if (row.kind === "business") return `${row.offerTitle} ${row.destination} ${row.departureCity}`.toLowerCase();
+  if (row.kind === "affiliate") return `${row.title} ${row.destination} ${row.priceFrom}`.toLowerCase();
+  if (row.kind === "business")
+    return `${row.offerTitle} ${row.destination} ${row.departureCity} ${row.price} ${row.includedSummary}`.toLowerCase();
   return `${row.title} ${row.dek} ${row.destinationLabel}`.toLowerCase();
+}
+
+function rowServiceLanguageKeys(row: ViajesResultRow): string[] {
+  if (row.kind === "affiliate" || row.kind === "business") return row.serviceLanguageKeys ?? [];
+  return [];
+}
+
+function matchesSvcLangFilter(row: ViajesResultRow, svcLang: string): boolean {
+  const need = svcLang.trim();
+  if (!need) return true;
+  if (row.kind === "editorial") return true;
+  const keys = rowServiceLanguageKeys(row);
+  if (!keys.length) return false;
+  if (need === "bilingual") {
+    return keys.includes("bilingual") || (keys.includes("es") && keys.includes("en"));
+  }
+  return keys.includes(need);
 }
 
 function destSlugMatch(row: ViajesResultRow, slug: string): boolean {
@@ -77,6 +95,8 @@ export function viajesRowMatchesBrowse(row: ViajesResultRow, browse: ViajesBrows
     const dk = row.durationKey?.trim() ?? "";
     if (!dk || dk !== browse.duration) return false;
   }
+
+  if (!matchesSvcLangFilter(row, browse.svcLang)) return false;
 
   return true;
 }

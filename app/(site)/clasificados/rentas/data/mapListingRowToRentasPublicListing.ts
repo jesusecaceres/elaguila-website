@@ -6,14 +6,27 @@
 import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import {
   parseLeonixListingContract,
+  parseLeonixMachineFacetRead,
   type LeonixClasificadosBranch,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
-import { RENTAS_DP_DEPOSIT_USD } from "@/app/clasificados/rentas/lib/rentasMachineDetailPairs";
+import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
 
 function trim(s: unknown): string {
   if (s == null) return "";
   return typeof s === "string" ? s.trim() : String(s).trim();
+}
+
+function businessDescriptionFromRow(row: ListingRowLike): string | undefined {
+  const raw = row.business_meta;
+  if (typeof raw !== "string" || !raw.trim()) return undefined;
+  try {
+    const o = JSON.parse(raw) as Record<string, unknown>;
+    const d = trim(o.negocioDescripcion);
+    return d || undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function pairValue(detailPairs: unknown, needle: string): string | null {
@@ -114,6 +127,34 @@ function mascotasFromPairs(dp: unknown): boolean | undefined {
   return undefined;
 }
 
+function sqftNumericFromText(s: string): number | null {
+  if (!s || s === "—") return null;
+  const n = Number(String(s).replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function furnishedFromRentasCodes(
+  code: string | null,
+  human: boolean | undefined,
+  machine: boolean | null,
+): boolean | undefined {
+  const c = (code ?? "").trim().toLowerCase();
+  if (c === "amueblado") return true;
+  if (c === "sin_amueblar") return false;
+  if (human !== undefined) return human;
+  if (machine === true || machine === false) return machine;
+  return undefined;
+}
+
+function petsFromRentasCodes(code: string | null, human: boolean | undefined, machine: boolean | null): boolean | undefined {
+  const c = (code ?? "").trim().toLowerCase();
+  if (c === "permitidas") return true;
+  if (c === "no_permitidas") return false;
+  if (human !== undefined) return human;
+  if (machine === true || machine === false) return machine;
+  return undefined;
+}
+
 export type ListingRowLike = Record<string, unknown>;
 
 /**
@@ -128,6 +169,8 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const browseActive = status === "active" && published;
 
   const lx = parseLeonixListingContract(row.detail_pairs);
+  const mf = parseLeonixMachineFacetRead(row.detail_pairs);
+  const rx = parseRentasDetailMachineRead(row.detail_pairs);
   const branchSeller = branchToSeller(lx.branch);
   const categoria: BrNegocioCategoriaPropiedad =
     lx.categoriaPropiedad === "residencial" || lx.categoriaPropiedad === "comercial" || lx.categoriaPropiedad === "terreno_lote"
@@ -140,7 +183,7 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const title = trim(row.title) || (lang === "es" ? "Renta" : "Rental");
   const city = trim(row.city) || undefined;
   const zipRaw = trim(row.zip);
-  const postalCode = zipRaw.replace(/\D/g, "").slice(0, 10) || undefined;
+  const postalCode = zipRaw.replace(/\D/g, "").slice(0, 10) || mf.postalCode?.replace(/\D/g, "").slice(0, 10) || undefined;
   const addressLine = [city, postalCode].filter(Boolean).join(city && postalCode ? ", " : "") || city || postalCode || "—";
 
   const priceNum =
@@ -148,8 +191,8 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
       ? Math.round(row.price)
       : Math.round(Number(String(row.price ?? "").replace(/[^0-9.]/g, "")) || 0);
 
-  const depRaw = pairValue(row.detail_pairs, RENTAS_DP_DEPOSIT_USD);
-  const depNum = depRaw ? Math.round(Number(String(depRaw).replace(/\D/g, "")) || 0) : 0;
+  const depDigits = rx.depositUsdDigits ?? "";
+  const depNum = depDigits ? Math.round(Number(String(depDigits).replace(/\D/g, "")) || 0) : 0;
   const depositUsd = depNum > 0 ? depNum : undefined;
 
   const phoneRaw = trim(row.contact_phone);
@@ -170,6 +213,17 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
       ? { es: biz || "Negocio", en: biz || "Business" }
       : { es: "Particular", en: "Private seller" };
 
+  const bedsHuman = bedsFromPairs(row.detail_pairs);
+  const bathsHuman = bathsFromPairs(row.detail_pairs);
+  const sqftStr = sqftFromPairs(row.detail_pairs);
+  const beds = mf.bedroomsCount != null ? String(mf.bedroomsCount) : bedsHuman;
+  const baths = mf.bathroomsCount != null ? String(mf.bathroomsCount) : bathsHuman;
+
+  const amuebladoHuman = amuebladoFromPairs(row.detail_pairs);
+  const mascotasHuman = mascotasFromPairs(row.detail_pairs);
+  const amueblado = furnishedFromRentasCodes(rx.furnishedCode, amuebladoHuman, mf.furnished);
+  const mascotasPermitidas = petsFromRentasCodes(rx.petsCode, mascotasHuman, mf.petsAllowed);
+
   return {
     id,
     slug: id,
@@ -186,16 +240,27 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     postalCode,
     publishedAt,
     browseActive,
-    beds: bedsFromPairs(row.detail_pairs),
-    baths: bathsFromPairs(row.detail_pairs),
-    sqft: sqftFromPairs(row.detail_pairs),
+    beds,
+    baths,
+    sqft: sqftStr,
+    interiorSqftApprox: sqftNumericFromText(sqftStr),
+    parkingSpots: mf.parkingSpots,
+    pool: mf.pool,
+    propertySubtype: mf.propertySubtype,
+    leaseTermCode: rx.leaseTermCode ?? undefined,
+    availabilityNote: rx.availabilityNote ?? undefined,
+    servicesIncluded: rx.servicesIncluded ?? undefined,
+    requirements: rx.requirements ?? undefined,
+    businessLicense: rx.businessLicense ?? undefined,
+    businessWebsite: rx.businessWebsite ?? undefined,
+    businessDescription: businessDescriptionFromRow(row),
     categoriaPropiedad: categoria,
     branch: branchSeller,
     badges: branchSeller === "negocio" ? ["negocio"] : ["privado"],
     promoted: false,
     recencyRank: publishedAt ? Math.min(100, Math.floor(Date.parse(publishedAt) / 86400000) % 100) : 50,
-    amueblado: amuebladoFromPairs(row.detail_pairs),
-    mascotasPermitidas: mascotasFromPairs(row.detail_pairs),
+    amueblado,
+    mascotasPermitidas,
     description: {
       es: trim(row.description) || "Anuncio publicado en Leonix Rentas.",
       en: trim(row.description) || "Listing published on Leonix Rentals.",

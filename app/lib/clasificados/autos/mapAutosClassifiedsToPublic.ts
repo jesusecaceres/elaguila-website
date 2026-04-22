@@ -10,6 +10,16 @@ import {
   resolveTitleStatus,
 } from "@/app/clasificados/autos/negocios/lib/autoDealerSelectResolve";
 import type { AutosClassifiedsListingRow } from "./autosClassifiedsTypes";
+import { autosPublicSellerTypeFromLane } from "./autosPublicSellerFromLane";
+
+function buildSearchableBlurb(L: AutoDealerListing): string {
+  const parts: string[] = [];
+  if (L.description?.trim()) parts.push(L.description.trim().slice(0, 2000));
+  if (L.vin?.trim()) parts.push(L.vin.trim());
+  if (L.stockNumber?.trim()) parts.push(L.stockNumber.trim());
+  if (Array.isArray(L.features) && L.features.length) parts.push(L.features.join(" "));
+  return parts.join(" ").toLowerCase();
+}
 
 function firstImageUrl(listing: AutoDealerListing): string {
   const urls = deriveHeroImageUrls(normalizeLoadedListing(listing));
@@ -21,7 +31,7 @@ function firstImageUrl(listing: AutoDealerListing): string {
  */
 export function autosClassifiedsRowToPublicListing(row: AutosClassifiedsListingRow): AutosPublicListing {
   const L = normalizeLoadedListing(row.listing_payload);
-  const sellerType = row.lane === "negocios" ? "dealer" : "private";
+  const sellerType = autosPublicSellerTypeFromLane(row.lane);
   const primaryImageUrl = firstImageUrl(L);
   const bodyStyle = resolveBodyStyle(L) ?? "";
   const transmission = resolveTransmission(L) ?? "";
@@ -54,5 +64,6 @@ export function autosClassifiedsRowToPublicListing(row: AutosClassifiedsListingR
     dealerName: sellerType === "dealer" ? L.dealerName : undefined,
     dealerLogoUrl: sellerType === "dealer" && typeof L.dealerLogo === "string" ? L.dealerLogo : undefined,
     privateSellerLabel: sellerType === "private" ? L.dealerName : undefined,
+    searchableBlurb: buildSearchableBlurb(L),
   };
 }

@@ -66,6 +66,7 @@ export function LeonixInlineListingReport({ listingId, lang }: { listingId: stri
       {!open ? (
         <button
           type="button"
+          data-testid="ev-listing-report-open"
           onClick={() => {
             setOpen(true);
             setDone(false);

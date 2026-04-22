@@ -127,3 +127,17 @@ export function viajesTripKeysFromNegociosLike(offerType: string, baseKeys: stri
   if (offerType) out.add(offerType);
   return [...out];
 }
+
+/**
+ * Service / guide language facets for public filters (`svcLang` URL key).
+ * Values are a subset of: `es` | `en` | `bilingual` | `other`.
+ */
+export function viajesServiceLanguageKeysFromDraft(guiaEspanol: boolean, idiomaAtencion: string): string[] {
+  const t = (idiomaAtencion ?? "").toLowerCase();
+  const out = new Set<string>();
+  if (/\b(bilingual|bilingüe|bilingue)\b/i.test(t)) out.add("bilingual");
+  if (guiaEspanol || /\b(español|espanol|spanish|castellano)\b/i.test(t)) out.add("es");
+  if (/\b(english|ingl[eé]s)\b/i.test(t)) out.add("en");
+  if (!out.size && t.trim()) out.add("other");
+  return [...out];
+}

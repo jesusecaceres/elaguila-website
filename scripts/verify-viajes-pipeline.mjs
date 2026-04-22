@@ -3,6 +3,7 @@
  * - Loads `.env.local` into process.env when present
  * - Confirms Supabase URL + service role + anon are set
  * - Queries `viajes_staged_listings` count via service role (proves table reachable)
+ * - Asserts no `owner_user_id IS NULL` rows (requires migration `20260410200000_viajes_staged_owner_not_null.sql`)
  *
  * Run: node scripts/verify-viajes-pipeline.mjs
  */
@@ -61,5 +62,19 @@ if (error) {
   );
 }
 ok(`viajes_staged_listings reachable (count=${count ?? "?"})`);
+
+const { count: nullOwnerCount, error: nullOwnerErr } = await admin
+  .from("viajes_staged_listings")
+  .select("id", { count: "exact", head: true })
+  .is("owner_user_id", null);
+if (nullOwnerErr) {
+  fail(`owner_user_id null-scan failed: ${nullOwnerErr.message}`);
+}
+if (nullOwnerCount != null && nullOwnerCount > 0) {
+  fail(
+    `Found ${nullOwnerCount} row(s) with owner_user_id IS NULL — apply supabase/migrations/20260410200000_viajes_staged_owner_not_null.sql and ensure submit uses authenticated owner only.`
+  );
+}
+ok("owner_user_id null-scan: 0 rows (or column disallows null at DB)");
 
 console.log("[viajes-verify] All automated checks passed.");

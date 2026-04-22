@@ -1,7 +1,11 @@
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
-import { updateEmpleosListingLifecycleOwner } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
+import type { EmpleosListingSnapshotJson } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
+import {
+  fetchEmpleosListingRowForOwner,
+  updateEmpleosListingLifecycleOwner,
+} from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
 import type { EmpleosListingLifecycleDb } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { getBearerUserId } from "../../../_lib/bearerUser";
@@ -9,6 +13,31 @@ import { getBearerUserId } from "../../../_lib/bearerUser";
 export const runtime = "nodejs";
 
 const OWNER_ALLOWED: EmpleosListingLifecycleDb[] = ["published", "paused", "archived", "draft"];
+
+export async function GET(req: NextRequest, ctx: { params: Promise<{ listingId: string }> }): Promise<NextResponse> {
+  if (!isSupabaseAdminConfigured()) {
+    return NextResponse.json({ ok: false, error: "supabase_not_configured" }, { status: 503 });
+  }
+  const ownerUserId = await getBearerUserId(req);
+  if (!ownerUserId) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+  const { listingId } = await ctx.params;
+  const row = await fetchEmpleosListingRowForOwner({ listingId, ownerUserId });
+  if (!row) {
+    return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+  }
+  const snap = row.listing_snapshot as EmpleosListingSnapshotJson | null;
+  return NextResponse.json({
+    ok: true,
+    id: row.id,
+    slug: row.slug,
+    lifecycle_status: row.lifecycle_status,
+    lane: row.lane,
+    moderation_reason: row.moderation_reason,
+    envelope: snap?.envelope ?? null,
+  });
+}
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ listingId: string }> }): Promise<NextResponse> {
   if (!isSupabaseAdminConfigured()) {

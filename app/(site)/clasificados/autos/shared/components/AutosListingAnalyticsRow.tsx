@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { FiBarChart2, FiBookmark, FiEye, FiMessageCircle, FiShare2 } from "react-icons/fi";
 import type { AutosListingAnalyticsSnapshot } from "../types/autosListingAnalytics";
 

@@ -57,7 +57,8 @@ Legend: **Detail** = live/preview vehicle page. **Card** = results/landing card.
 | seats | apps | `seats` | — | yes | — | — | — | — | Same. |
 | badges | apps | `badges` | badges | yes | — | — | — | — | |
 | features | apps | `features` | — | yes | — | — | — | — | |
-| description | apps | `description` | — | yes | — | partial | — | — | Could extend search haystack later. |
+| description | apps | `description` | — | yes | — | yes (via `searchableBlurb`) | — | — | Included in `buildSearchableBlurb` in `mapAutosClassifiedsToPublic.ts` for `q` search. |
+| searchableBlurb | derived in mapper | — (not stored separately) | — | — | — | yes | — | — | Lowercased concat of description excerpt, VIN, stock, features; not a form field. |
 | mediaImages / heroImages | apps | stored | primaryImageUrl derived | gallery | — | — | thumb presence | thumb | |
 | Video / Mux fields | apps | stored | — | preview rules | — | — | — | — | Draft/live behavior per type comments. |
 | dealerName | apps | `dealerName` | dealerName / privateSellerLabel | yes | — | yes (name) | — | — | Private lane uses `dealerName` as display name in mapper. |

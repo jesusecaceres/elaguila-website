@@ -248,6 +248,13 @@ export function RestaurantesResultsShell({
           "If Supabase is configured, your listing is saved. Adjust filters if you do not see it yet.",
         publishFlashDismiss: "Dismiss",
         resultNarrowInResults: "Same search in results",
+        neighborhood: "Neighborhood",
+        reservationsOnly: "Accepts reservations",
+        preorderOnly: "Preorder required",
+        pickupOnly: "Pickup available",
+        promotedOnly: "Featured only",
+        verifiedOnly: "Leonix verified only",
+        deliveryRadiusMin: "Min. delivery radius (miles)",
       };
     }
     return {
@@ -319,6 +326,13 @@ export function RestaurantesResultsShell({
         "Si Supabase está configurado, el listado ya está guardado. Ajusta filtros si aún no aparece en esta vista.",
       publishFlashDismiss: "Cerrar aviso",
       resultNarrowInResults: "Misma búsqueda en resultados",
+      neighborhood: "Colonia o barrio",
+      reservationsOnly: "Acepta reservas",
+      preorderOnly: "Requiere pedido anticipado",
+      pickupOnly: "Recogida disponible",
+      promotedOnly: "Solo destacados",
+      verifiedOnly: "Solo verificados Leonix",
+      deliveryRadiusMin: "Radio mín. de entrega (millas)",
     };
   }, [lang]);
 
@@ -383,6 +397,20 @@ export function RestaurantesResultsShell({
               }
             />
           </div>
+          <div>
+            <label className="text-xs font-semibold text-[#2D241E]/60" htmlFor="rx-filter-nbh">
+              {t.neighborhood}
+            </label>
+            <input
+              id="rx-filter-nbh"
+              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+              defaultValue={parsed.neighborhoodQuery}
+              key={`nbh-${parsed.neighborhoodQuery}`}
+              onBlur={(e) =>
+                pushState(mergeDiscovery(parsed, { neighborhoodQuery: e.target.value.trim(), page: 1 }))
+              }
+            />
+          </div>
         </div>
       </section>
 
@@ -419,6 +447,35 @@ export function RestaurantesResultsShell({
               onChange={(e) => pushState(mergeDiscovery(parsed, { open: e.target.checked, page: 1 }))}
             />
             {t.openNow}
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-[#2D241E]/20"
+              checked={parsed.reservationsOnly}
+              onChange={(e) =>
+                pushState(mergeDiscovery(parsed, { reservationsOnly: e.target.checked, page: 1 }))
+              }
+            />
+            {t.reservationsOnly}
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-[#2D241E]/20"
+              checked={parsed.preorderOnly}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { preorderOnly: e.target.checked, page: 1 }))}
+            />
+            {t.preorderOnly}
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-[#2D241E]/20"
+              checked={parsed.pickupOnly}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { pickupOnly: e.target.checked, page: 1 }))}
+            />
+            {t.pickupOnly}
           </label>
         </div>
       </section>
@@ -478,6 +535,50 @@ export function RestaurantesResultsShell({
           {t.sectionMore}
         </h3>
         <div className="mt-2 space-y-3">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-[#2D241E]/20"
+              checked={parsed.promotedOnly}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { promotedOnly: e.target.checked, page: 1 }))}
+            />
+            {t.promotedOnly}
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-[#2D241E]/20"
+              checked={parsed.verifiedOnly}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { verifiedOnly: e.target.checked, page: 1 }))}
+            />
+            {t.verifiedOnly}
+          </label>
+          <div>
+            <label className="text-xs font-semibold text-[#2D241E]/60" htmlFor="rx-filter-drm">
+              {t.deliveryRadiusMin}
+            </label>
+            <input
+              id="rx-filter-drm"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={99}
+              placeholder="—"
+              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+              defaultValue={parsed.deliveryRadiusMin ?? ""}
+              key={`drm-${parsed.deliveryRadiusMin ?? ""}`}
+              onBlur={(e) => {
+                const raw = e.target.value.trim();
+                const n = parseInt(raw, 10);
+                pushState(
+                  mergeDiscovery(parsed, {
+                    deliveryRadiusMin: Number.isFinite(n) && n > 0 ? n : undefined,
+                    page: 1,
+                  }),
+                );
+              }}
+            />
+          </div>
           <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
             <input
               type="checkbox"
@@ -610,6 +711,12 @@ export function RestaurantesResultsShell({
     if (parsed.q) chips.push({ id: "q", label: `“${parsed.q}”`, clear: () => pushState(mergeDiscovery(parsed, { q: "", page: 1 })) });
     if (parsed.city) chips.push({ id: "city", label: parsed.city, clear: () => pushState(mergeDiscovery(parsed, { city: "", page: 1 })) });
     if (parsed.zip) chips.push({ id: "zip", label: parsed.zip, clear: () => pushState(mergeDiscovery(parsed, { zip: "", page: 1 })) });
+    if (parsed.neighborhoodQuery.trim())
+      chips.push({
+        id: "nbh",
+        label: parsed.neighborhoodQuery.trim(),
+        clear: () => pushState(mergeDiscovery(parsed, { neighborhoodQuery: "", page: 1 })),
+      });
     if (parsed.cuisine)
       chips.push({
         id: "cuisine",
@@ -638,6 +745,24 @@ export function RestaurantesResultsShell({
       });
     }
     if (parsed.open) chips.push({ id: "open", label: t.openNow, clear: () => pushState(mergeDiscovery(parsed, { open: false, page: 1 })) });
+    if (parsed.reservationsOnly)
+      chips.push({
+        id: "rsv",
+        label: t.reservationsOnly,
+        clear: () => pushState(mergeDiscovery(parsed, { reservationsOnly: false, page: 1 })),
+      });
+    if (parsed.preorderOnly)
+      chips.push({
+        id: "pre",
+        label: t.preorderOnly,
+        clear: () => pushState(mergeDiscovery(parsed, { preorderOnly: false, page: 1 })),
+      });
+    if (parsed.pickupOnly)
+      chips.push({
+        id: "pku",
+        label: t.pickupOnly,
+        clear: () => pushState(mergeDiscovery(parsed, { pickupOnly: false, page: 1 })),
+      });
     if (parsed.diet) chips.push({ id: "diet", label: parsed.diet, clear: () => pushState(mergeDiscovery(parsed, { diet: "", page: 1 })) });
     if (parsed.hl)
       chips.push({
@@ -652,6 +777,24 @@ export function RestaurantesResultsShell({
     if (parsed.foodTruck)
       chips.push({ id: "ft", label: t.flagTruck, clear: () => pushState(mergeDiscovery(parsed, { foodTruck: false, page: 1 })) });
     if (parsed.popUp) chips.push({ id: "pu", label: t.flagPopUp, clear: () => pushState(mergeDiscovery(parsed, { popUp: false, page: 1 })) });
+    if (parsed.promotedOnly)
+      chips.push({
+        id: "feat",
+        label: t.promotedOnly,
+        clear: () => pushState(mergeDiscovery(parsed, { promotedOnly: false, page: 1 })),
+      });
+    if (parsed.verifiedOnly)
+      chips.push({
+        id: "lxv",
+        label: t.verifiedOnly,
+        clear: () => pushState(mergeDiscovery(parsed, { verifiedOnly: false, page: 1 })),
+      });
+    if (parsed.deliveryRadiusMin != null && parsed.deliveryRadiusMin > 0)
+      chips.push({
+        id: "drm",
+        label: `≥${parsed.deliveryRadiusMin} mi`,
+        clear: () => pushState(mergeDiscovery(parsed, { deliveryRadiusMin: undefined, page: 1 })),
+      });
     if (parsed.top) chips.push({ id: "top", label: t.sortRating, clear: () => pushState(mergeDiscovery(parsed, { top: false, page: 1 })) });
     if (parsed.near)
       chips.push({
@@ -984,7 +1127,13 @@ function ResultCard({
   unsaveAria?: string;
 }) {
   const narrowHref = buildRestaurantesResultsHref(lang, {
-    ...restaurantesDiscoveryParamsForRowDeepLink(row),
+    ...restaurantesDiscoveryParamsForRowDeepLink({
+      name: row.name,
+      city: row.city,
+      zip: row.zip,
+      primaryCuisineKey: row.primaryCuisineKey,
+      neighborhood: row.neighborhood,
+    }),
   });
   const slug = row.slug?.trim();
   const primaryHref = slug

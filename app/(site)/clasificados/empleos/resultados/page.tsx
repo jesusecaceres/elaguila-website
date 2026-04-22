@@ -16,12 +16,13 @@ export const metadata: Metadata = {
 export default async function ClasificadosEmpleosResultadosPage() {
   const live = await fetchEmpleosPublishedJobRecords();
   const initialJobs = mergeEmpleosSeedWithLiveJobs(live);
+  const serverNowMs = Date.now();
 
   return (
     <Suspense
       fallback={<div className="min-h-screen bg-[#ECEAE7]" aria-busy="true" aria-label="Cargando empleos" />}
     >
-      <EmpleosResultsView initialJobs={initialJobs} />
+      <EmpleosResultsView initialJobs={initialJobs} serverNowMs={serverNowMs} />
     </Suspense>
   );
 }

@@ -171,6 +171,8 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
     residencial: partial.residencial,
     comercial: partial.comercial,
     terreno: partial.terreno,
+    petsAllowed:
+      partial.mascotas === "permitidas" ? "yes" : partial.mascotas === "no_permitidas" ? "no" : undefined,
   };
 
   const br = mergePartialBienesRaicesPrivadoState({

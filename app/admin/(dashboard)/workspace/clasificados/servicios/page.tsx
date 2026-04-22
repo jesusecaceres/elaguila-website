@@ -5,8 +5,10 @@ import {
   isServiciosDevPublishPersistenceEnabled,
   listServiciosDevPublishRows,
 } from "@/app/clasificados/servicios/lib/serviciosDevPublishPersistence";
+import { listPendingServiciosReviews } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
 import {
   setServiciosListingLeonixVerifiedAction,
+  setServiciosReviewModerationStatusAction,
   updateServiciosPublicListingStatusAction,
 } from "./actions";
 
@@ -23,11 +25,37 @@ export type ServiciosPublicAdminRow = {
   listing_status: string | null;
   internal_group: string | null;
   owner_user_id?: string | null;
+  moderation_notes?: string | null;
   profile_json?: { opsMeta?: { leonixVerifiedInterest?: boolean } } | null;
 };
 
 function schemaMissing(msg: string): boolean {
   return /column|does not exist|schema cache/i.test(msg.toLowerCase());
+}
+
+type ServiciosLeadAdminRow = {
+  id: string;
+  listing_slug: string;
+  sender_name: string;
+  sender_email: string;
+  message: string;
+  request_kind: string;
+  created_at: string;
+};
+
+async function fetchServiciosLeadsForAdmin(): Promise<ServiciosLeadAdminRow[]> {
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("servicios_public_leads")
+      .select("id, listing_slug, sender_name, sender_email, message, request_kind, created_at")
+      .order("created_at", { ascending: false })
+      .limit(60);
+    if (error || !data) return [];
+    return data as ServiciosLeadAdminRow[];
+  } catch {
+    return [];
+  }
 }
 
 async function fetchServiciosPublicForAdmin(): Promise<{
@@ -40,7 +68,7 @@ async function fetchServiciosPublicForAdmin(): Promise<{
     const full = await supabase
       .from("servicios_public_listings")
       .select(
-        "id, slug, business_name, city, published_at, updated_at, leonix_verified, listing_status, internal_group, owner_user_id, profile_json",
+        "id, slug, business_name, city, published_at, updated_at, leonix_verified, listing_status, internal_group, owner_user_id, moderation_notes, profile_json",
       )
       .order("updated_at", { ascending: false })
       .limit(80);
@@ -96,6 +124,8 @@ function devFileRowsAsAdmin(): ServiciosPublicAdminRow[] {
 export default async function AdminServiciosWorkspacePage() {
   const { rows, unavailable, fullSchema } = await fetchServiciosPublicForAdmin();
   const devAdminRows = devFileRowsAsAdmin();
+  const pendingReviews = await listPendingServiciosReviews(80);
+  const recentLeads = await fetchServiciosLeadsForAdmin();
 
   return (
     <div className="space-y-8">
@@ -152,7 +182,7 @@ export default async function AdminServiciosWorkspacePage() {
                       <td className="p-3 font-mono text-xs text-[#3D3428]">{r.slug}</td>
                       <td className="p-3 font-mono text-[10px] text-[#7A7164]">{r.owner_user_id?.slice(0, 8) ?? "—"}…</td>
                       <td className="p-3 text-xs">
-                        <form action={updateServiciosPublicListingStatusAction} className="flex flex-col gap-1">
+                        <form action={updateServiciosPublicListingStatusAction} className="flex max-w-[14rem] flex-col gap-1">
                           <input type="hidden" name="listing_id" value={r.id} />
                           <select
                             name="listing_status"
@@ -166,6 +196,16 @@ export default async function AdminServiciosWorkspacePage() {
                             <option value="suspended">suspended</option>
                             <option value="draft">draft</option>
                           </select>
+                          <label className="text-[10px] font-semibold text-[#7A7164]">
+                            Notas moderación
+                            <textarea
+                              name="moderation_notes"
+                              rows={2}
+                              defaultValue={r.moderation_notes ?? ""}
+                              className="mt-0.5 w-full resize-y rounded border border-[#E8DFD0] bg-white px-1 py-0.5 text-[10px]"
+                              placeholder="Interno"
+                            />
+                          </label>
                           <button
                             type="submit"
                             className="rounded border border-[#3B66AD]/40 bg-[#3B66AD]/10 px-2 py-0.5 text-[10px] font-bold text-[#2f5699]"
@@ -257,6 +297,103 @@ export default async function AdminServiciosWorkspacePage() {
                         Vista pública ↗
                       </Link>
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+
+      {!unavailable && pendingReviews.length > 0 ? (
+        <div className={`${adminCardBase} overflow-hidden p-0`}>
+          <div className="border-b border-[#E8DFD0]/80 bg-[#FAF7F2]/90 px-4 py-2 text-xs font-semibold text-[#5C5346]">
+            Reseñas pendientes ({pendingReviews.length})
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse text-sm">
+              <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase text-[#7A7164]">
+                <tr>
+                  <th className="p-3">Slug</th>
+                  <th className="p-3">Autor</th>
+                  <th className="p-3">Estrellas</th>
+                  <th className="p-3">Texto</th>
+                  <th className="p-3"> </th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingReviews.map((rev) => (
+                  <tr key={rev.id} className="border-t border-[#E8DFD0]/80">
+                    <td className="p-3 font-mono text-xs">{rev.listing_slug}</td>
+                    <td className="p-3 text-xs">{rev.author_name}</td>
+                    <td className="p-3 text-xs tabular-nums">{rev.rating}</td>
+                    <td className="max-w-xs p-3 text-xs text-[#5C5346]">
+                      <span className="line-clamp-3">{rev.body}</span>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex flex-col gap-1">
+                        <form action={setServiciosReviewModerationStatusAction}>
+                          <input type="hidden" name="review_id" value={rev.id} />
+                          <input type="hidden" name="listing_slug" value={rev.listing_slug} />
+                          <input type="hidden" name="review_status" value="approved" />
+                          <button
+                            type="submit"
+                            className="rounded border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-900"
+                          >
+                            Aprobar
+                          </button>
+                        </form>
+                        <form action={setServiciosReviewModerationStatusAction}>
+                          <input type="hidden" name="review_id" value={rev.id} />
+                          <input type="hidden" name="listing_slug" value={rev.listing_slug} />
+                          <input type="hidden" name="review_status" value="rejected" />
+                          <button
+                            type="submit"
+                            className="rounded border border-rose-300 bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-900"
+                          >
+                            Rechazar
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+
+      {!unavailable && recentLeads.length > 0 ? (
+        <div className={`${adminCardBase} overflow-hidden p-0`}>
+          <div className="border-b border-[#E8DFD0]/80 bg-[#FAF7F2]/90 px-4 py-2 text-xs font-semibold text-[#5C5346]">
+            Solicitudes recientes (servicios_public_leads)
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse text-sm">
+              <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase text-[#7A7164]">
+                <tr>
+                  <th className="p-3">Slug</th>
+                  <th className="p-3">Remitente</th>
+                  <th className="p-3">Tipo</th>
+                  <th className="p-3">Mensaje</th>
+                  <th className="p-3">Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentLeads.map((l) => (
+                  <tr key={l.id} className="border-t border-[#E8DFD0]/80">
+                    <td className="p-3 font-mono text-xs">{l.listing_slug}</td>
+                    <td className="p-3 text-xs">
+                      {l.sender_name}
+                      <br />
+                      <span className="text-[#5C5346]">{l.sender_email}</span>
+                    </td>
+                    <td className="p-3 text-xs">{l.request_kind}</td>
+                    <td className="max-w-md p-3 text-xs text-[#5C5346]">
+                      <span className="line-clamp-4 whitespace-pre-wrap">{l.message}</span>
+                    </td>
+                    <td className="p-3 text-xs text-[#7A7164]">{new Date(l.created_at).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>

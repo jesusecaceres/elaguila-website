@@ -133,6 +133,13 @@ export type RentasLandingCopy = {
     paginationPageOf: string;
     rentMinLabel: string;
     rentMaxLabel: string;
+    depositMinLabel: string;
+    depositMaxLabel: string;
+    leaseLabel: string;
+    leaseAny: string;
+    parkingMinLabel: string;
+    sqftMinLabel: string;
+    sqftMaxLabel: string;
     filterAmenities: string;
     furnishedToggle: string;
     petsToggle: string;
@@ -150,6 +157,13 @@ export type RentasLandingCopy = {
     pets: string;
     yes: string;
     no: string;
+    unknown: string;
+    sectionFees: string;
+    sectionLease: string;
+    sectionExtras: string;
+    ctaLeonixInquiry: string;
+    publishedLiveTitle: string;
+    publishedLiveBody: string;
     ctaContact: string;
     ctaPublish: string;
     trustNote: string;
@@ -262,7 +276,7 @@ const ES: RentasLandingCopy = {
     backClasificados: "Volver a Clasificados",
   },
   results: {
-    introPart1: "Resultados de renta (demo). ",
+    introPart1: "Resultados de renta en catálogo publicado. ",
     introPart2: "No es vista previa de publicación: ",
     topBarResults: "Resultados",
     createAccount: "Crear cuenta",
@@ -307,6 +321,13 @@ const ES: RentasLandingCopy = {
     paginationPageOf: "Página {current} de {total}",
     rentMinLabel: "Renta mín. / mes",
     rentMaxLabel: "Renta máx. / mes",
+    depositMinLabel: "Depósito mín. (USD)",
+    depositMaxLabel: "Depósito máx. (USD)",
+    leaseLabel: "Plazo de contrato",
+    leaseAny: "Cualquiera",
+    parkingMinLabel: "Estacionamientos mín.",
+    sqftMinLabel: "Superficie mín. (aprox.)",
+    sqftMaxLabel: "Superficie máx. (aprox.)",
     filterAmenities: "Comodidades",
     furnishedToggle: "Solo amueblado",
     petsToggle: "Mascotas permitidas",
@@ -323,6 +344,14 @@ const ES: RentasLandingCopy = {
     pets: "Mascotas",
     yes: "Sí",
     no: "No",
+    unknown: "Sin especificar",
+    sectionFees: "Depósito y condiciones",
+    sectionLease: "Plazo y disponibilidad",
+    sectionExtras: "Servicios y requisitos",
+    ctaLeonixInquiry: "Consulta por Leonix (cuenta requerida)",
+    publishedLiveTitle: "Tu anuncio está publicado",
+    publishedLiveBody:
+      "Aparece en resultados y en Mis anuncios cuando el estado sea activo y público. Los visitantes ven esta página según las reglas de visibilidad del catálogo.",
     ctaContact: "Enviar mensaje",
     ctaPublish: "Publicar una renta",
     trustNote: "Leonix Clasificados · Anuncios revisados · Contacto directo entre partes",
@@ -435,7 +464,7 @@ const EN: RentasLandingCopy = {
     backClasificados: "Back to Classifieds",
   },
   results: {
-    introPart1: "Rental results (demo). ",
+    introPart1: "Rental results from the published catalog. ",
     introPart2: "This is not a publish preview: ",
     topBarResults: "Results",
     createAccount: "Create account",
@@ -447,7 +476,7 @@ const EN: RentasLandingCopy = {
     noFeatured: "No featured listing in this view.",
     moreRentals: "More rentals",
     noMatches: "No matches.",
-    clearFiltersDemo: "Clear filters (demo)",
+    clearFiltersDemo: "Clear filters",
     backToHub: "Back to Rentals hub",
     categoryLabel: "Category",
     categoryAll: "All",
@@ -480,6 +509,13 @@ const EN: RentasLandingCopy = {
     paginationPageOf: "Page {current} of {total}",
     rentMinLabel: "Min rent / mo",
     rentMaxLabel: "Max rent / mo",
+    depositMinLabel: "Min deposit (USD)",
+    depositMaxLabel: "Max deposit (USD)",
+    leaseLabel: "Lease term",
+    leaseAny: "Any",
+    parkingMinLabel: "Min parking spaces",
+    sqftMinLabel: "Min interior sq ft (approx.)",
+    sqftMaxLabel: "Max interior sq ft (approx.)",
     filterAmenities: "Amenities",
     furnishedToggle: "Furnished only",
     petsToggle: "Pets allowed",
@@ -496,6 +532,14 @@ const EN: RentasLandingCopy = {
     pets: "Pets",
     yes: "Yes",
     no: "No",
+    unknown: "Not specified",
+    sectionFees: "Deposit & terms",
+    sectionLease: "Lease & availability",
+    sectionExtras: "Services & requirements",
+    ctaLeonixInquiry: "Message via Leonix (sign-in required)",
+    publishedLiveTitle: "Your listing is live",
+    publishedLiveBody:
+      "It appears in results and in My Listings when status is active and public. Visitors see this page according to catalog visibility rules.",
     ctaContact: "Send message",
     ctaPublish: "Post a rental",
     trustNote: "Leonix Classifieds · Listings reviewed · Direct contact between parties",

@@ -20,6 +20,12 @@ import {
 import { RENTAS_LANDING_LANG_QUERY, withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import {
   parseRentasBrowseParams,
+  RENTAS_QUERY_DEPOSIT_MAX,
+  RENTAS_QUERY_DEPOSIT_MIN,
+  RENTAS_QUERY_LEASE,
+  RENTAS_QUERY_PARKING_MIN,
+  RENTAS_QUERY_SQFT_MAX,
+  RENTAS_QUERY_SQFT_MIN,
   RENTAS_RESULTS_PAGE_SIZE,
 } from "@/app/clasificados/rentas/shared/rentasBrowseContract";
 import { normalizeCityForBrowse, normalizeZipForBrowse } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
@@ -82,6 +88,12 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
   const [rentMaxDraft, setRentMaxDraft] = useState("");
   const [amuebladoDraft, setAmuebladoDraft] = useState(false);
   const [mascotasDraft, setMascotasDraft] = useState(false);
+  const [depositMinDraft, setDepositMinDraft] = useState("");
+  const [depositMaxDraft, setDepositMaxDraft] = useState("");
+  const [leaseDraft, setLeaseDraft] = useState("");
+  const [parkingMinDraft, setParkingMinDraft] = useState("");
+  const [sqftMinDraft, setSqftMinDraft] = useState("");
+  const [sqftMaxDraft, setSqftMaxDraft] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
 
   const resultsQueryString = searchParams?.toString() ?? "";
@@ -101,6 +113,12 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     setRentMaxDraft(p.rentMax != null ? String(Math.round(p.rentMax)) : "");
     setAmuebladoDraft(p.amueblado);
     setMascotasDraft(p.mascotas);
+    setDepositMinDraft(p.depositMin != null ? String(Math.round(p.depositMin)) : "");
+    setDepositMaxDraft(p.depositMax != null ? String(Math.round(p.depositMax)) : "");
+    setLeaseDraft(p.lease);
+    setParkingMinDraft(p.parkingMin != null ? String(p.parkingMin) : "");
+    setSqftMinDraft(p.sqftMin != null ? String(Math.round(p.sqftMin)) : "");
+    setSqftMaxDraft(p.sqftMax != null ? String(Math.round(p.sqftMax)) : "");
   }, [searchParams]);
 
   const { mergedPool: resultsGrid, staged: stagedFromDb, loading: inventoryLoading, error: inventoryError } =
@@ -175,19 +193,45 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
       else sp.delete(RENTAS_QUERY_AMUEBLADO);
       if (mascotasDraft) sp.set(RENTAS_QUERY_MASCOTAS, "1");
       else sp.delete(RENTAS_QUERY_MASCOTAS);
+
+      const dMin = depositMinDraft.replace(/\D/g, "");
+      const dMax = depositMaxDraft.replace(/\D/g, "");
+      if (!dMin) sp.delete(RENTAS_QUERY_DEPOSIT_MIN);
+      else sp.set(RENTAS_QUERY_DEPOSIT_MIN, dMin);
+      if (!dMax) sp.delete(RENTAS_QUERY_DEPOSIT_MAX);
+      else sp.set(RENTAS_QUERY_DEPOSIT_MAX, dMax);
+      if (!leaseDraft.trim()) sp.delete(RENTAS_QUERY_LEASE);
+      else sp.set(RENTAS_QUERY_LEASE, leaseDraft.trim());
+
+      const pk = parkingMinDraft.replace(/\D/g, "");
+      if (!pk) sp.delete(RENTAS_QUERY_PARKING_MIN);
+      else sp.set(RENTAS_QUERY_PARKING_MIN, pk);
+
+      const sqMin = sqftMinDraft.replace(/\D/g, "");
+      const sqMax = sqftMaxDraft.replace(/\D/g, "");
+      if (!sqMin) sp.delete(RENTAS_QUERY_SQFT_MIN);
+      else sp.set(RENTAS_QUERY_SQFT_MIN, sqMin);
+      if (!sqMax) sp.delete(RENTAS_QUERY_SQFT_MAX);
+      else sp.set(RENTAS_QUERY_SQFT_MAX, sqMax);
     });
   }, [
     amuebladoDraft,
     bathsMinDraft,
     beds,
     cityDraft,
+    depositMaxDraft,
+    depositMinDraft,
+    leaseDraft,
     mascotasDraft,
+    parkingMinDraft,
     priceBand,
     propertyType,
     pushUrl,
     query,
     rentMaxDraft,
     rentMinDraft,
+    sqftMaxDraft,
+    sqftMinDraft,
     zipDraft,
   ]);
 
@@ -390,6 +434,71 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
                   placeholder="—"
                 />
               </label>
+              <label className="min-w-0 sm:col-span-2 xl:col-span-1">
+                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.depositMinLabel}</span>
+                <input
+                  value={depositMinDraft}
+                  onChange={(e) => setDepositMinDraft(e.target.value)}
+                  inputMode="numeric"
+                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
+                  placeholder="0"
+                />
+              </label>
+              <label className="min-w-0 sm:col-span-2 xl:col-span-1">
+                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.depositMaxLabel}</span>
+                <input
+                  value={depositMaxDraft}
+                  onChange={(e) => setDepositMaxDraft(e.target.value)}
+                  inputMode="numeric"
+                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
+                  placeholder="—"
+                />
+              </label>
+              <label className="min-w-0 sm:col-span-2 xl:col-span-1">
+                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.leaseLabel}</span>
+                <select
+                  value={leaseDraft}
+                  onChange={(e) => setLeaseDraft(e.target.value)}
+                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
+                >
+                  <option value="">{copy.results.leaseAny}</option>
+                  <option value="mes-a-mes">mes-a-mes</option>
+                  <option value="6-meses">6-meses</option>
+                  <option value="12-meses">12-meses</option>
+                  <option value="1-ano">1-ano</option>
+                  <option value="2-anos">2-anos</option>
+                </select>
+              </label>
+              <label className="min-w-0 sm:col-span-2 xl:col-span-1">
+                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.parkingMinLabel}</span>
+                <input
+                  value={parkingMinDraft}
+                  onChange={(e) => setParkingMinDraft(e.target.value)}
+                  inputMode="numeric"
+                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
+                  placeholder="0"
+                />
+              </label>
+              <label className="min-w-0 sm:col-span-2 xl:col-span-1">
+                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.sqftMinLabel}</span>
+                <input
+                  value={sqftMinDraft}
+                  onChange={(e) => setSqftMinDraft(e.target.value)}
+                  inputMode="numeric"
+                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
+                  placeholder="0"
+                />
+              </label>
+              <label className="min-w-0 sm:col-span-2 xl:col-span-1">
+                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.sqftMaxLabel}</span>
+                <input
+                  value={sqftMaxDraft}
+                  onChange={(e) => setSqftMaxDraft(e.target.value)}
+                  inputMode="numeric"
+                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
+                  placeholder="—"
+                />
+              </label>
             </div>
 
             <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.12em] text-[#5B7C99]/85">{copy.results.filterAmenities}</p>
@@ -492,7 +601,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
         <section className="mt-10" aria-labelledby="rentas-feat-heading">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-[#E4D9C8]/80 pb-3">
             <h2 id="rentas-feat-heading" className="font-serif text-xl font-semibold tracking-tight text-[#1E1810] sm:text-2xl">
-              {copy.results.featuredHeadingDemo}
+              {copy.featured.title}
             </h2>
             {propiedadFilter ? <p className="text-xs text-[#5C5346]/75">{propiedadLabel}</p> : null}
           </div>

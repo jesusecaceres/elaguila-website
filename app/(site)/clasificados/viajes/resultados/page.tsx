@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import { ViajesResultsShell } from "../components/ViajesResultsShell";
 import { fetchViajesPublicBrowseRowsMerged } from "../lib/viajesPublicBrowseRowsServer";
 
+export const dynamic = "force-dynamic";
+
 export default async function ClasificadosViajesResultadosPage() {
   const { rows, stagedApprovedCount } = await fetchViajesPublicBrowseRowsMerged();
   return (

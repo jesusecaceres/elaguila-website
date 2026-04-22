@@ -288,60 +288,90 @@ function buildPropertyDetails(s: BienesRaicesNegocioFormState): BienesRaicesPrev
   return rows;
 }
 
+function negocioPetsQuickFact(s: BienesRaicesNegocioFormState): BienesRaicesPreviewQuickFactVm | null {
+  if (s.petsAllowed === "yes") return { label: "Mascotas", value: "Permitidas", icon: "sparkle" };
+  if (s.petsAllowed === "no") return { label: "Mascotas", value: "No permitidas", icon: "sparkle" };
+  return null;
+}
+
+function withNegocioPetsRow(
+  base: BienesRaicesPreviewQuickFactVm[],
+  s: BienesRaicesNegocioFormState,
+): BienesRaicesPreviewQuickFactVm[] {
+  const p = negocioPetsQuickFact(s);
+  return p ? [...base, p] : base;
+}
+
 function buildQuickFacts(s: BienesRaicesNegocioFormState): BienesRaicesPreviewQuickFactVm[] {
   const pub = s.publicationType;
   if (pub === "terreno") {
-    return [
-      { label: "Lote", value: trim(s.tamanoLote) || "—", icon: "ruler" },
-      {
-        label: "Zona",
-        value: trim(s.deepDetails.loteTerreno.zonificacion) || trim(s.propertySubtype) || "—",
-        icon: "pin",
-      },
-      { label: "Frente / forma", value: trim(s.deepDetails.loteTerreno.dimensiones) || "—", icon: "home" },
-      { label: "Topografía", value: trim(s.deepDetails.loteTerreno.topografia) || "—", icon: "sparkle" },
-      {
-        label: "Servicios",
-        value:
-          [trim(s.deepDetails.utilidades.agua), trim(s.deepDetails.utilidades.electricidad)].filter(Boolean).join(" · ") || "—",
-        icon: "sparkle",
-      },
-    ];
+    return withNegocioPetsRow(
+      [
+        { label: "Lote", value: trim(s.tamanoLote) || "—", icon: "ruler" },
+        {
+          label: "Zona",
+          value: trim(s.deepDetails.loteTerreno.zonificacion) || trim(s.propertySubtype) || "—",
+          icon: "pin",
+        },
+        { label: "Frente / forma", value: trim(s.deepDetails.loteTerreno.dimensiones) || "—", icon: "home" },
+        { label: "Topografía", value: trim(s.deepDetails.loteTerreno.topografia) || "—", icon: "sparkle" },
+        {
+          label: "Servicios",
+          value:
+            [trim(s.deepDetails.utilidades.agua), trim(s.deepDetails.utilidades.electricidad)].filter(Boolean).join(" · ") ||
+            "—",
+          icon: "sparkle",
+        },
+      ],
+      s,
+    );
   }
   if (pub === "comercial") {
-    return [
-      { label: "Superficie", value: trim(s.piesCuadrados) || "—", icon: "ruler" },
-      { label: "Uso", value: trim(s.deepDetails.tipoYEstilo.uso) || "—", icon: "home" },
-      { label: "Estacionamientos", value: trim(s.estacionamientos) || "—", icon: "car" },
-      { label: "Niveles", value: trim(s.niveles) || "—", icon: "calendar" },
-      { label: "Condición", value: trim(s.condicion) || "—", icon: "sparkle" },
-    ];
+    return withNegocioPetsRow(
+      [
+        { label: "Superficie", value: trim(s.piesCuadrados) || "—", icon: "ruler" },
+        { label: "Uso", value: trim(s.deepDetails.tipoYEstilo.uso) || "—", icon: "home" },
+        { label: "Estacionamientos", value: trim(s.estacionamientos) || "—", icon: "car" },
+        { label: "Niveles", value: trim(s.niveles) || "—", icon: "calendar" },
+        { label: "Condición", value: trim(s.condicion) || "—", icon: "sparkle" },
+      ],
+      s,
+    );
   }
   if (pub === "multifamiliar_inversion") {
-    return [
-      { label: "Unidades", value: trim(s.invNumUnidades) || "—", icon: "home" },
-      { label: "Ocupación", value: trim(s.invOcupacion) || "—", icon: "sparkle" },
-      { label: "Renta actual", value: trim(s.invRentaActual) || "—", icon: "calendar" },
-      { label: "Cap rate", value: trim(s.invCapRate) || "—", icon: "ruler" },
-      { label: "Área", value: trim(s.piesCuadrados) || "—", icon: "ruler" },
-    ];
+    return withNegocioPetsRow(
+      [
+        { label: "Unidades", value: trim(s.invNumUnidades) || "—", icon: "home" },
+        { label: "Ocupación", value: trim(s.invOcupacion) || "—", icon: "sparkle" },
+        { label: "Renta actual", value: trim(s.invRentaActual) || "—", icon: "calendar" },
+        { label: "Cap rate", value: trim(s.invCapRate) || "—", icon: "ruler" },
+        { label: "Área", value: trim(s.piesCuadrados) || "—", icon: "ruler" },
+      ],
+      s,
+    );
   }
   if (pub === "proyecto_nuevo") {
-    return [
-      { label: "Modelo", value: trim(s.proyectoModelo) || "—", icon: "home" },
-      { label: "Fase", value: trim(s.proyectoEtapa) || "—", icon: "calendar" },
-      { label: "Entrega", value: trim(s.proyectoEntregaEstimada) || "—", icon: "calendar" },
-      { label: "Desde (pies²)", value: trim(s.piesCuadrados) || "—", icon: "ruler" },
-      { label: "Disponibles", value: trim(s.proyectoUnidadesDisponibles) || "—", icon: "sparkle" },
-    ];
+    return withNegocioPetsRow(
+      [
+        { label: "Modelo", value: trim(s.proyectoModelo) || "—", icon: "home" },
+        { label: "Fase", value: trim(s.proyectoEtapa) || "—", icon: "calendar" },
+        { label: "Entrega", value: trim(s.proyectoEntregaEstimada) || "—", icon: "calendar" },
+        { label: "Desde (pies²)", value: trim(s.piesCuadrados) || "—", icon: "ruler" },
+        { label: "Disponibles", value: trim(s.proyectoUnidadesDisponibles) || "—", icon: "sparkle" },
+      ],
+      s,
+    );
   }
-  return [
-    { label: "Habitaciones", value: trim(s.recamaras) || "—", icon: "bed" },
-    { label: "Baños", value: bathLine(s.banosCompletos, s.mediosBanos), icon: "bath" },
-    { label: "Superficie", value: trim(s.piesCuadrados) || "—", icon: "ruler" },
-    { label: "Garajes", value: trim(s.estacionamientos) || "—", icon: "car" },
-    { label: "Construido", value: trim(s.anioConstruccion) || "—", icon: "calendar" },
-  ];
+  return withNegocioPetsRow(
+    [
+      { label: "Habitaciones", value: trim(s.recamaras) || "—", icon: "bed" },
+      { label: "Baños", value: bathLine(s.banosCompletos, s.mediosBanos), icon: "bath" },
+      { label: "Superficie", value: trim(s.piesCuadrados) || "—", icon: "ruler" },
+      { label: "Garajes", value: trim(s.estacionamientos) || "—", icon: "car" },
+      { label: "Construido", value: trim(s.anioConstruccion) || "—", icon: "calendar" },
+    ],
+    s,
+  );
 }
 
 function buildHighlights(s: BienesRaicesNegocioFormState): BienesRaicesPreviewFact[] {

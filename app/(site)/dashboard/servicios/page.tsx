@@ -58,6 +58,12 @@ export default function DashboardServiciosPage() {
             results: "Buscar en resultados",
             edit: "Seguir editando",
             publish: "Publicar otro",
+            leadsTitle: "Solicitudes recientes",
+            leadsEmpty: "Aún no hay solicitudes registradas para tu cuenta.",
+            pause: "Pausar",
+            resume: "Reactivar",
+            colLinks: "Enlaces",
+            colManage: "Visibilidad",
             devHint:
               "Las filas «Leonix» vienen de tu publicación autenticada. «Archivo dev» solo aparece en desarrollo con publicación dev activa.",
           }
@@ -77,6 +83,12 @@ export default function DashboardServiciosPage() {
             results: "Search in results",
             edit: "Continue editing",
             publish: "Publish another",
+            leadsTitle: "Recent inquiries",
+            leadsEmpty: "No inquiries recorded for your account yet.",
+            pause: "Pause listing",
+            resume: "Resume listing",
+            colLinks: "Links",
+            colManage: "Visibility",
             devHint: "“Leonix” rows come from authenticated publish. “Dev file” only appears in development when dev publish is on.",
           },
     [lang],
@@ -88,6 +100,10 @@ export default function DashboardServiciosPage() {
   const [plan, setPlan] = useState<Plan>("free");
   const [userId, setUserId] = useState<string | null>(null);
   const [rows, setRows] = useState<MergedRow[]>([]);
+  const [leads, setLeads] = useState<
+    { id: string; listing_slug: string; sender_name: string; sender_email: string; message: string; request_kind: string; created_at: string }[]
+  >([]);
+  const [manageBusy, setManageBusy] = useState<string | null>(null);
 
   useEffect(() => {
     const sb = createSupabaseBrowserClient();
@@ -150,6 +166,27 @@ export default function DashboardServiciosPage() {
         } catch {
           /* ignore */
         }
+        try {
+          const lr = await fetch("/api/clasificados/servicios/my-leads", {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
+          });
+          const lj = (await lr.json()) as {
+            ok?: boolean;
+            leads?: {
+              id: string;
+              listing_slug: string;
+              sender_name: string;
+              sender_email: string;
+              message: string;
+              request_kind: string;
+              created_at: string;
+            }[];
+          };
+          if (mounted && lj.ok && Array.isArray(lj.leads)) setLeads(lj.leads);
+        } catch {
+          /* ignore */
+        }
       }
 
       try {
@@ -193,6 +230,24 @@ export default function DashboardServiciosPage() {
       mounted = false;
     };
   }, [router, pathname]);
+
+  async function manageListing(slug: string, action: "pause" | "resume") {
+    const sb = createSupabaseBrowserClient();
+    const { data: sess } = await sb.auth.getSession();
+    const token = sess.session?.access_token;
+    if (!token) return;
+    setManageBusy(`${action}:${slug}`);
+    try {
+      const res = await fetch("/api/clasificados/servicios/manage", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, action }),
+      });
+      if (res.ok) window.location.reload();
+    } finally {
+      setManageBusy(null);
+    }
+  }
 
   const accountRef = userId ? accountRefFromId(userId) : null;
 
@@ -244,7 +299,8 @@ export default function DashboardServiciosPage() {
                     <th className="p-3">{t.city}</th>
                     <th className="p-3">{t.status}</th>
                     <th className="p-3">{t.source}</th>
-                    <th className="p-3"> </th>
+                    <th className="p-3">{t.colLinks}</th>
+                    <th className="p-3">{t.colManage}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -277,12 +333,59 @@ export default function DashboardServiciosPage() {
                           </Link>
                         </div>
                       </td>
+                      <td className="p-3">
+                        {r.source === "cloud" && r.listingStatus === "published" ? (
+                          <button
+                            type="button"
+                            disabled={manageBusy !== null}
+                            onClick={() => void manageListing(r.slug, "pause")}
+                            className="text-xs font-bold text-amber-900 underline disabled:opacity-50"
+                          >
+                            {t.pause}
+                          </button>
+                        ) : r.source === "cloud" && r.listingStatus === "paused_unpublished" ? (
+                          <button
+                            type="button"
+                            disabled={manageBusy !== null}
+                            onClick={() => void manageListing(r.slug, "resume")}
+                            className="text-xs font-bold text-emerald-900 underline disabled:opacity-50"
+                          >
+                            {t.resume}
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-[#b0a89c]">—</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
+
+          {leads.length > 0 ? (
+            <div className="mt-10 rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-6">
+              <h2 className="text-lg font-bold text-[#1E1810]">{t.leadsTitle}</h2>
+              <ul className="mt-4 space-y-4 text-sm">
+                {leads.map((l) => (
+                  <li key={l.id} className="rounded-2xl border border-[#E8DFD0]/80 bg-white/90 p-4">
+                    <p className="text-xs font-mono text-[#7A7164]">
+                      {l.listing_slug} · {new Date(l.created_at).toLocaleString()}
+                    </p>
+                    <p className="mt-1 font-semibold text-[#1E1810]">
+                      {l.sender_name} ·{" "}
+                      <a className="text-[#3B66AD] underline" href={`mailto:${l.sender_email}`}>
+                        {l.sender_email}
+                      </a>
+                    </p>
+                    <p className="mt-2 whitespace-pre-wrap text-[#5C5346]">{l.message}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : rows.some((r) => r.source === "cloud") ? (
+            <p className="mt-8 text-center text-xs text-[#9A9084]">{t.leadsEmpty}</p>
+          ) : null}
         </>
       )}
     </LeonixDashboardShell>

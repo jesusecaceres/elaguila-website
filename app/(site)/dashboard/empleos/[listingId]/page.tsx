@@ -18,6 +18,8 @@ type ListingRow = {
   company_name: string;
   lifecycle_status: string;
   lane: string;
+  moderation_reason: string | null;
+  apply_count?: number | null;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -28,6 +30,7 @@ type AppRow = {
   applicant_name: string;
   applicant_email: string;
   message: string;
+  answers_json: unknown;
   status: string;
   created_at: string;
 };
@@ -55,6 +58,11 @@ export default function EmpleosEmployerManagePage() {
             noApps: "Sin solicitudes aún.",
             status: "Estado",
             actions: "Acciones",
+            moderation: "Moderación",
+            applyCount: "Solicitudes",
+            setViewed: "Marcar visto",
+            setShort: "Preseleccionar",
+            setReject: "Rechazar",
           }
         : {
             title: "Manage listing",
@@ -103,6 +111,20 @@ export default function EmpleosEmployerManagePage() {
     void refresh();
   }, [refresh]);
 
+  async function patchAppStatus(appId: string, status: "viewed" | "shortlisted" | "rejected") {
+    const supabase = createSupabaseBrowserClient();
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return;
+    const res = await fetch(`/api/clasificados/empleos/applications/${appId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ status }),
+    });
+    const json = (await res.json()) as { ok?: boolean };
+    if (json.ok) void refresh();
+  }
+
   async function patchStatus(next: "published" | "paused" | "archived") {
     const supabase = createSupabaseBrowserClient();
     const { data } = await supabase.auth.getSession();
@@ -145,6 +167,16 @@ export default function EmpleosEmployerManagePage() {
         <p className="mt-2 text-xs">
           <span className="font-semibold">{t.status}:</span> {row.lifecycle_status}
         </p>
+        {typeof row.apply_count === "number" ? (
+          <p className="mt-1 text-xs">
+            <span className="font-semibold">{t.applyCount}:</span> {row.apply_count}
+          </p>
+        ) : null}
+        {row.moderation_reason ? (
+          <p className="mt-2 rounded-lg border border-amber-200/80 bg-amber-50/90 p-2 text-xs text-[#5C5346]">
+            <span className="font-semibold">{t.moderation}:</span> {row.moderation_reason}
+          </p>
+        ) : null}
       </header>
 
       <div className="mb-8 flex flex-wrap gap-2">
@@ -175,7 +207,23 @@ export default function EmpleosEmployerManagePage() {
                 <p className="font-semibold text-[#1E1810]">{a.applicant_name}</p>
                 <p className="text-xs text-[#7A7164]">{a.applicant_email}</p>
                 <p className="mt-2 text-[#4A4744]">{a.message}</p>
+                {a.answers_json && typeof a.answers_json === "object" && Object.keys(a.answers_json as object).length ? (
+                  <pre className="mt-2 max-h-32 overflow-auto rounded bg-[#FAF7F2] p-2 text-[11px] text-[#4A4744]">
+                    {JSON.stringify(a.answers_json, null, 2)}
+                  </pre>
+                ) : null}
                 <p className="mt-1 text-[10px] uppercase text-[#9A9084]">{a.status}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button type="button" className={BTN} onClick={() => void patchAppStatus(a.id, "viewed")}>
+                    {t.setViewed}
+                  </button>
+                  <button type="button" className={BTN} onClick={() => void patchAppStatus(a.id, "shortlisted")}>
+                    {t.setShort}
+                  </button>
+                  <button type="button" className={BTN} onClick={() => void patchAppStatus(a.id, "rejected")}>
+                    {t.setReject}
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

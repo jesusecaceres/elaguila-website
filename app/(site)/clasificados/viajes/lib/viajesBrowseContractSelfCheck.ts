@@ -13,12 +13,22 @@ export function runViajesBrowseContractSanityCheck(): void {
     { ...base, dest: "cancun", from: "san-jose", t: "tours", sort: "newest" as const },
     { ...base, q: "playa", budget: "moderado", audience: "familias" },
     { ...base, lang: "en" as const, page: 2, originByGeo: "1" as const },
+    { ...base, svcLang: "bilingual", season: "winter", duration: "short" },
   ];
 
   for (const v of variants) {
     const qs = serializeViajesBrowseToSearchParams(v).toString();
     const round = parseViajesBrowseFromSearchParams(new URLSearchParams(qs), "es");
-    if (round.dest !== v.dest || round.q !== v.q || round.from !== v.from || round.t !== v.t || round.sort !== v.sort) {
+    if (
+      round.dest !== v.dest ||
+      round.q !== v.q ||
+      round.from !== v.from ||
+      round.t !== v.t ||
+      round.sort !== v.sort ||
+      round.svcLang !== v.svcLang ||
+      round.season !== v.season ||
+      round.duration !== v.duration
+    ) {
       console.error("[Viajes] Browse round-trip mismatch", { v, round, qs });
     }
   }

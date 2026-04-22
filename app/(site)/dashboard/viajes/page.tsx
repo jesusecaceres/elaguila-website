@@ -12,6 +12,30 @@ import { fetchDashboardProfile } from "../lib/dashboardProfile";
 import type { ViajesStagedListingRow, ViajesStagedLifecycleStatus } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
 
 type Lang = "es" | "en";
+
+function lifecycleStatusLabel(status: ViajesStagedLifecycleStatus, lang: Lang): string {
+  const es: Record<ViajesStagedLifecycleStatus, string> = {
+    draft: "Borrador",
+    submitted: "Enviado (en cola)",
+    in_review: "En revisión",
+    approved: "Aprobado",
+    rejected: "Rechazado",
+    changes_requested: "Cambios solicitados",
+    expired: "Expirado",
+    unpublished: "Oculto",
+  };
+  const en: Record<ViajesStagedLifecycleStatus, string> = {
+    draft: "Draft",
+    submitted: "Submitted (queued)",
+    in_review: "In review",
+    approved: "Approved",
+    rejected: "Rejected",
+    changes_requested: "Changes requested",
+    expired: "Expired",
+    unpublished: "Unpublished",
+  };
+  return (lang === "es" ? es : en)[status] ?? status;
+}
 type Plan = "free" | "pro";
 
 function accountRefFromId(id: string): string {
@@ -43,7 +67,7 @@ export default function DashboardViajesStagedPage() {
             empty: "Aún no hay envíos vinculados a tu cuenta.",
             thTitle: "Título",
             thLane: "Vía",
-            thStatus: "Estado",
+            thStatus: "Estado de moderación",
             thModeration: "Notas de revisión",
             thSubmitted: "Enviado",
             thActions: "Acciones",
@@ -245,8 +269,8 @@ export default function DashboardViajesStagedPage() {
                     <td className="py-3 pr-4 font-semibold text-[#1E1810]">{r.title}</td>
                     <td className="py-3 pr-4 capitalize text-[#5C5346]">{r.lane}</td>
                     <td className="py-3 pr-4 text-[#5C5346]">
-                      {r.lifecycle_status}
-                      {r.is_public ? " · public" : ""}
+                      {lifecycleStatusLabel(r.lifecycle_status, lang)}
+                      {r.is_public ? (lang === "es" ? " · visible público" : " · public") : ""}
                     </td>
                     <td className="max-w-[240px] py-3 pr-4 text-xs text-[#5C5346]">{modLine(r)}</td>
                     <td className="py-3 pr-4 text-xs tabular-nums text-[#5C5346]">{r.submitted_at ?? "—"}</td>
