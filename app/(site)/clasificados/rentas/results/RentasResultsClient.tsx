@@ -7,6 +7,7 @@ import {
   BR_NEGOCIO_Q_PROPIEDAD,
   type BrNegocioCategoriaPropiedad,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 import { RentasLocationButton } from "@/app/clasificados/rentas/components/RentasLocationButton";
 import { RentasSearchBar } from "@/app/clasificados/rentas/components/RentasSearchBar";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
@@ -19,11 +20,16 @@ import {
 } from "@/app/clasificados/rentas/rentasLandingTheme";
 import { RENTAS_LANDING_LANG_QUERY, withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import {
+  normalizeRentasBrowseHighlightToken,
   parseRentasBrowseParams,
   RENTAS_QUERY_DEPOSIT_MAX,
   RENTAS_QUERY_DEPOSIT_MIN,
+  RENTAS_QUERY_HIGHLIGHTS,
+  RENTAS_QUERY_LAT,
   RENTAS_QUERY_LEASE,
+  RENTAS_QUERY_LNG,
   RENTAS_QUERY_PARKING_MIN,
+  RENTAS_QUERY_RADIUS_KM,
   RENTAS_QUERY_SQFT_MAX,
   RENTAS_QUERY_SQFT_MIN,
   RENTAS_RESULTS_PAGE_SIZE,
@@ -38,9 +44,12 @@ import {
   RENTAS_QUERY_BATHS_MIN,
   RENTAS_QUERY_HALF_BATHS_MIN,
   RENTAS_QUERY_CITY,
+  RENTAS_QUERY_KIND,
   RENTAS_QUERY_MASCOTAS,
   RENTAS_QUERY_PAGE,
+  RENTAS_QUERY_POOL,
   RENTAS_QUERY_PRECIO,
+  RENTAS_QUERY_SUBTYPE,
   RENTAS_QUERY_Q,
   RENTAS_QUERY_RECS,
   RENTAS_QUERY_RENT_MAX,
@@ -64,6 +73,8 @@ import { RentasPropiedadFilterChips } from "./components/RentasPropiedadFilterCh
 import { RentasResultsShell } from "./components/RentasResultsShell";
 import { RentasResultsToolbar } from "./components/RentasResultsToolbar";
 import { RentasResultsTopBar } from "./components/RentasResultsTopBar";
+
+const RENTAS_HIGHLIGHT_FACET_DEFS = BR_HIGHLIGHT_PRESET_DEFS.slice(0, 12);
 
 export type RentasResultsClientProps = {
   /** Server-fetched live catalog (`listings`); never demo. */
@@ -96,6 +107,10 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
   const [parkingMinDraft, setParkingMinDraft] = useState("");
   const [sqftMinDraft, setSqftMinDraft] = useState("");
   const [sqftMaxDraft, setSqftMaxDraft] = useState("");
+  const [highlightKeysDraft, setHighlightKeysDraft] = useState<string[]>([]);
+  const [poolDraft, setPoolDraft] = useState(false);
+  const [subtypeDraft, setSubtypeDraft] = useState("");
+  const [kindDraft, setKindDraft] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
 
   const resultsQueryString = searchParams?.toString() ?? "";
@@ -122,6 +137,10 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     setParkingMinDraft(p.parkingMin != null ? String(p.parkingMin) : "");
     setSqftMinDraft(p.sqftMin != null ? String(Math.round(p.sqftMin)) : "");
     setSqftMaxDraft(p.sqftMax != null ? String(Math.round(p.sqftMax)) : "");
+    setHighlightKeysDraft([...p.highlightsAll]);
+    setPoolDraft(p.wantsPool);
+    setSubtypeDraft(p.subtype);
+    setKindDraft(p.kind ?? "");
   }, [searchParams]);
 
   const { mergedPool: resultsGrid, staged: stagedFromDb, loading: inventoryLoading, error: inventoryError } =
@@ -163,6 +182,17 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
       });
     }
   }, [parsed.page, pushUrl, safePage]);
+
+  /** Remove legacy geo scaffold params from the URL (no per-listing coordinates yet). */
+  useEffect(() => {
+    const p = parseRentasBrowseParams(searchParams);
+    if (p.lat == null && p.lng == null && p.radiusKm == null) return;
+    pushUrl((sp) => {
+      sp.delete(RENTAS_QUERY_LAT);
+      sp.delete(RENTAS_QUERY_LNG);
+      sp.delete(RENTAS_QUERY_RADIUS_KM);
+    });
+  }, [pushUrl, searchParams]);
 
   const applySearchAndRefine = useCallback(() => {
     pushUrl((sp) => {
@@ -219,6 +249,21 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
       else sp.set(RENTAS_QUERY_SQFT_MIN, sqMin);
       if (!sqMax) sp.delete(RENTAS_QUERY_SQFT_MAX);
       else sp.set(RENTAS_QUERY_SQFT_MAX, sqMax);
+
+      const hl = [...highlightKeysDraft].map(normalizeRentasBrowseHighlightToken).filter(Boolean).sort();
+      if (!hl.length) sp.delete(RENTAS_QUERY_HIGHLIGHTS);
+      else sp.set(RENTAS_QUERY_HIGHLIGHTS, [...new Set(hl)].join(","));
+
+      if (poolDraft) sp.set(RENTAS_QUERY_POOL, "1");
+      else sp.delete(RENTAS_QUERY_POOL);
+
+      const sub = subtypeDraft.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 64);
+      if (!sub) sp.delete(RENTAS_QUERY_SUBTYPE);
+      else sp.set(RENTAS_QUERY_SUBTYPE, sub);
+
+      const kd = kindDraft.trim().toLowerCase();
+      if (!kd || !["casa", "departamento", "terreno", "comercial"].includes(kd)) sp.delete(RENTAS_QUERY_KIND);
+      else sp.set(RENTAS_QUERY_KIND, kd);
     });
   }, [
     amuebladoDraft,
@@ -228,9 +273,12 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     cityDraft,
     depositMaxDraft,
     depositMinDraft,
+    highlightKeysDraft,
+    kindDraft,
     leaseDraft,
     mascotasDraft,
     parkingMinDraft,
+    poolDraft,
     priceBand,
     propertyType,
     pushUrl,
@@ -239,6 +287,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     rentMinDraft,
     sqftMaxDraft,
     sqftMinDraft,
+    subtypeDraft,
     zipDraft,
   ]);
 
@@ -551,6 +600,77 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
               </button>
             </div>
 
+            <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.12em] text-[#5B7C99]/85">{copy.results.highlightsHelp}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {RENTAS_HIGHLIGHT_FACET_DEFS.map((d) => {
+                const k = normalizeRentasBrowseHighlightToken(d.key);
+                const on = highlightKeysDraft.includes(k);
+                return (
+                  <button
+                    key={d.key}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => {
+                      setHighlightKeysDraft((prev) => {
+                        const set = new Set(prev.map((x) => normalizeRentasBrowseHighlightToken(x)).filter(Boolean));
+                        if (set.has(k)) set.delete(k);
+                        else set.add(k);
+                        return [...set].sort();
+                      });
+                    }}
+                    className={
+                      "inline-flex min-h-[40px] items-center rounded-full border px-3 text-xs font-semibold transition " +
+                      (on
+                        ? "border-[#C45C26]/45 bg-[#C45C26] text-[#FFFBF7]"
+                        : "border-[#C9D4E0]/85 bg-white text-[#3D3630] hover:border-[#5B7C99]/35")
+                    }
+                  >
+                    {d.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+              <button
+                type="button"
+                aria-pressed={poolDraft}
+                onClick={() => setPoolDraft((v) => !v)}
+                className={
+                  "inline-flex min-h-[48px] w-full items-center justify-center rounded-full border px-5 text-sm font-semibold transition sm:w-auto " +
+                  (poolDraft
+                    ? "border-[#C45C26]/45 bg-[#C45C26] text-[#FFFBF7]"
+                    : "border-[#C9D4E0]/85 bg-white text-[#3D3630] hover:border-[#5B7C99]/35")
+                }
+              >
+                {copy.results.poolToggle}
+              </button>
+              <label className="min-w-0 flex-1 sm:max-w-[12rem]">
+                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.kindLabel}</span>
+                <select
+                  value={kindDraft}
+                  onChange={(e) => setKindDraft(e.target.value)}
+                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
+                >
+                  <option value="">{copy.results.kindAny}</option>
+                  <option value="casa">casa</option>
+                  <option value="departamento">departamento</option>
+                  <option value="terreno">terreno</option>
+                  <option value="comercial">comercial</option>
+                </select>
+              </label>
+              <label className="min-w-0 flex-1 sm:max-w-[16rem]">
+                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.subtypeLabel}</span>
+                <input
+                  value={subtypeDraft}
+                  onChange={(e) => setSubtypeDraft(e.target.value)}
+                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
+                  placeholder="casa · apartamento · oficina"
+                  autoComplete="off"
+                />
+              </label>
+            </div>
+
             <div className="mt-6 flex flex-col gap-4 border-t border-[#E8DFD0]/80 pt-5 sm:flex-row sm:items-end sm:justify-between">
               <button
                 type="button"
@@ -560,7 +680,13 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
                 {copy.results.applyFilters}
               </button>
               <div className="min-w-0 sm:max-w-md sm:flex-1">
-                <RentasLocationButton lang={lang} copy={copy.results} baseQueryString={resultsQueryString} />
+                <RentasLocationButton
+                  lang={lang}
+                  copy={{
+                    geoSearchDisabledTitle: copy.results.geoSearchDisabledTitle,
+                    geoSearchDisabledBody: copy.results.geoSearchDisabledBody,
+                  }}
+                />
               </div>
             </div>
           </div>

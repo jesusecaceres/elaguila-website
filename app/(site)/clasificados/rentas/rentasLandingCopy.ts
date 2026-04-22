@@ -118,12 +118,14 @@ export type RentasLandingCopy = {
     bathsMinLabel: string;
     halfBathsMinLabel: string;
     bathsAny: string;
-    locationUseMine: string;
-    locationDenied: string;
-    locationPending: string;
-    locationScaffoldNote: string;
-    /** Shown near “Use my location” — reinforces manual city/ZIP first. */
-    locationPrimaryNote: string;
+    geoSearchDisabledTitle: string;
+    geoSearchDisabledBody: string;
+    poolToggle: string;
+    highlightsHelp: string;
+    highlightsChipLabel: string;
+    subtypeLabel: string;
+    kindLabel: string;
+    kindAny: string;
     /** Full filter zone title (results). */
     filterZoneTitle: string;
     /** Shown when `RENTAS_PUBLIC_DATA_SOURCE === "demo"` — does not claim live inventory. */
@@ -317,12 +319,15 @@ const ES: RentasLandingCopy = {
     bathsMinLabel: "Baños mín.",
     halfBathsMinLabel: "Medios baños mín.",
     bathsAny: "Cualquiera",
-    locationUseMine: "Usar mi ubicación",
-    locationDenied: "No pudimos usar tu ubicación. Prueba ciudad o CP.",
-    locationPending: "Solicitando permiso…",
-    locationScaffoldNote:
-      "Coordenadas guardadas en la URL para una futura búsqueda por radio. Hoy el listado no se filtra por distancia: sigue usando ciudad o CP arriba.",
-    locationPrimaryNote: "Ciudad o código postal arriba sigue siendo la forma principal de acotar.",
+    geoSearchDisabledTitle: "Búsqueda por mapa / radio",
+    geoSearchDisabledBody:
+      "El catálogo aún no expone coordenadas por anuncio para filtrar por distancia. Usa ciudad o código postal arriba; los parámetros `lat`/`lng`/`radius_km` ya no se escriben en la URL.",
+    poolToggle: "Solo con alberca / piscina",
+    highlightsHelp: "Destacados (URL: highlights=slug1,slug2)",
+    highlightsChipLabel: "Destacados",
+    subtypeLabel: "Subtipo (código exacto)",
+    kindLabel: "Tipo resultado",
+    kindAny: "Cualquiera",
     filterZoneTitle: "Ubicación y filtros",
     dataSourceNote:
       "Vista con datos de demostración: cuando el inventario publicado esté conectado, verás anuncios reales aquí.",
@@ -514,12 +519,15 @@ const EN: RentasLandingCopy = {
     bathsMinLabel: "Min baths",
     halfBathsMinLabel: "Min half-baths",
     bathsAny: "Any",
-    locationUseMine: "Use my location",
-    locationDenied: "We couldn’t use your location. Try city or ZIP.",
-    locationPending: "Requesting permission…",
-    locationScaffoldNote:
-      "Coordinates are saved in the URL for a future radius search. Today the list is not filtered by distance — keep using city or ZIP above.",
-    locationPrimaryNote: "City or ZIP above remains the primary way to narrow results.",
+    geoSearchDisabledTitle: "Map / radius search",
+    geoSearchDisabledBody:
+      "Listings do not yet expose per-row coordinates for distance filtering. Use city or postal code above; `lat`/`lng`/`radius_km` are no longer written to the URL.",
+    poolToggle: "Pool only",
+    highlightsHelp: "Highlights (URL: highlights=slug1,slug2)",
+    highlightsChipLabel: "Highlights",
+    subtypeLabel: "Subtype (exact code)",
+    kindLabel: "Result kind",
+    kindAny: "Any",
     filterZoneTitle: "Location & filters",
     dataSourceNote:
       "Demo data view: when live published inventory is connected, you will see real listings here.",

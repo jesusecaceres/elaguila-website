@@ -1,4 +1,5 @@
 import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import type { BrResultsPropertyKind } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 
 /** How the listing is offered in Leonix Rentas (public surface). */
 export type RentasSellerType = "privado" | "negocio";
@@ -60,6 +61,10 @@ export type RentasPublicListing = {
   pool?: boolean | null;
   /** Raw subtype code (`Leonix:property_subtype`). */
   propertySubtype?: string | null;
+  /** `Leonix:results_property_kind` when present (casa, departamento, …). */
+  resultsPropertyKind?: BrResultsPropertyKind | null;
+  /** Parsed `Leonix:highlight_slugs` (amenities / BR highlights / comercial|terreno tokens). */
+  highlightSlugs?: string[];
   /** Rentas machine: `Leonix:rent:lease_term_code` (e.g. mes-a-mes, 12-meses). */
   leaseTermCode?: string | null;
   availabilityNote?: string | null;

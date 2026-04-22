@@ -302,6 +302,8 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     parkingSpots: mf.parkingSpots,
     pool: mf.pool,
     propertySubtype: mf.propertySubtype,
+    resultsPropertyKind: mf.resultsPropertyKind,
+    highlightSlugs: mf.highlightSlugs?.length ? [...mf.highlightSlugs] : undefined,
     leaseTermCode: rx.leaseTermCode ?? undefined,
     availabilityNote: rx.availabilityNote ?? undefined,
     servicesIncluded: rx.servicesIncluded ?? undefined,

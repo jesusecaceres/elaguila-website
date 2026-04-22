@@ -20,6 +20,7 @@
  */
 
 import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import type { BrResultsPropertyKind } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import {
   BR_NEGOCIO_Q_PROPIEDAD,
   parseBrNegocioPropiedadParam,
@@ -71,7 +72,24 @@ export const RENTAS_QUERY_LNG = "lng";
 /** Scaffold: radius in km — filtering not live until geo index exists. */
 export const RENTAS_QUERY_RADIUS_KM = "radius_km";
 
+/** Comma-separated highlight / amenity slugs (`Leonix:highlight_slugs` tokens). AND semantics in filters. */
+export const RENTAS_QUERY_HIGHLIGHTS = "highlights";
+/** `1` = must have pool (`Leonix:pool` true). */
+export const RENTAS_QUERY_POOL = "pool";
+/** Exact match on `Leonix:property_subtype` (normalized lowercase). */
+export const RENTAS_QUERY_SUBTYPE = "subtype";
+/** `Leonix:results_property_kind`: casa | departamento | terreno | comercial */
+export const RENTAS_QUERY_KIND = "kind";
+
 export type RentasSellerBranchFilter = "all" | "privado" | "negocio";
+
+export function normalizeRentasBrowseHighlightToken(raw: string): string {
+  return String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_:]/g, "")
+    .slice(0, 48);
+}
 
 export type RentasBrowseParamsParsed = {
   q: string;
@@ -102,6 +120,12 @@ export type RentasBrowseParamsParsed = {
   lat: number | null;
   lng: number | null;
   radiusKm: number | null;
+  /** AND: listing must contain every slug. */
+  highlightsAll: string[];
+  wantsPool: boolean;
+  /** Normalized lowercase `property_subtype` match. */
+  subtype: string;
+  kind: BrResultsPropertyKind | null;
 };
 
 const LEGACY_TIPO_ALIASES: Record<string, BrNegocioCategoriaPropiedad> = {
@@ -144,6 +168,15 @@ export function parseRentasBrowseParams(sp: URLSearchParams | null | undefined):
   const lngRaw = g(RENTAS_QUERY_LNG);
   const rRaw = g(RENTAS_QUERY_RADIUS_KM);
   const pageRaw = g(RENTAS_QUERY_PAGE);
+  const hlRaw = g(RENTAS_QUERY_HIGHLIGHTS);
+  const highlightsAll = hlRaw
+    ? [...new Set(hlRaw.split(",").map((x) => normalizeRentasBrowseHighlightToken(x)).filter(Boolean))].sort()
+    : [];
+  const wantsPool = g(RENTAS_QUERY_POOL) === "1";
+  const subtypeNorm = g(RENTAS_QUERY_SUBTYPE).trim().toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 64);
+  const kindRaw = g(RENTAS_QUERY_KIND).trim().toLowerCase();
+  const kind: BrResultsPropertyKind | null =
+    kindRaw === "casa" || kindRaw === "departamento" || kindRaw === "terreno" || kindRaw === "comercial" ? kindRaw : null;
 
   return {
     q: g(RENTAS_QUERY_Q),
@@ -172,6 +205,10 @@ export function parseRentasBrowseParams(sp: URLSearchParams | null | undefined):
     lat: latRaw !== "" && Number.isFinite(Number(latRaw)) ? Number(latRaw) : null,
     lng: lngRaw !== "" && Number.isFinite(Number(lngRaw)) ? Number(lngRaw) : null,
     radiusKm: rRaw !== "" && Number.isFinite(Number(rRaw)) ? Number(rRaw) : null,
+    highlightsAll,
+    wantsPool,
+    subtype: subtypeNorm,
+    kind,
   };
 }
 
@@ -213,8 +250,10 @@ export function rentasBrowseHasActiveFilters(p: RentasBrowseParamsParsed): boole
     p.state ||
     p.bathsMin != null ||
     p.halfBathsMin != null ||
-    p.lat != null ||
-    p.lng != null ||
+    p.highlightsAll.length > 0 ||
+    p.wantsPool ||
+    !!p.subtype ||
+    p.kind != null ||
     sortNonDefault ||
     pageNonDefault
   );

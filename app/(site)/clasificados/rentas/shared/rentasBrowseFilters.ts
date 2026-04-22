@@ -61,6 +61,9 @@ function textMatchesListing(l: RentasPublicListing, q: string): boolean {
     l.businessSocial,
     l.propertySubtype,
     l.leaseTermCode,
+    (l.highlightSlugs ?? []).join(" "),
+    l.resultsPropertyKind ?? "",
+    l.propertySubtype ?? "",
   ]
     .filter(Boolean)
     .join(" ")
@@ -170,7 +173,25 @@ export function filterRentasPublicListings(rows: RentasPublicListing[], p: Renta
     });
   }
 
-  // lat/lng/radius: scaffold — when set, do not filter rows until geo pipeline exists (avoid fake precision).
+  if (p.highlightsAll.length) {
+    out = out.filter((l) => {
+      const set = new Set((l.highlightSlugs ?? []).map((x) => String(x).toLowerCase()));
+      return p.highlightsAll.every((h) => set.has(String(h).toLowerCase()));
+    });
+  }
+
+  if (p.wantsPool) out = out.filter((l) => l.pool === true);
+
+  if (p.subtype) {
+    const st = p.subtype.toLowerCase();
+    out = out.filter((l) => (l.propertySubtype ?? "").toLowerCase() === st);
+  }
+
+  if (p.kind) {
+    const k = p.kind;
+    out = out.filter((l) => l.resultsPropertyKind === k);
+  }
+
   return out;
 }
 

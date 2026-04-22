@@ -14,6 +14,7 @@ import type { BienesRaicesNegocioFormState } from "@/app/clasificados/publicar/b
 import type { RentasNegocioFormState } from "@/app/clasificados/publicar/rentas/negocio/schema/rentasNegocioFormState";
 import { mergeLeonixListingContractDetailPairs } from "@/app/clasificados/lib/leonixRealEstatePersistContract";
 import {
+  buildLeonixHighlightSlugPairsFromRentasNegocioNonResidencial,
   buildLeonixMachineFacetPairsFromBienesRaicesNegocioState,
   buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState,
   buildLeonixMachineFacetPairsFromRentasPrivadoFormState,
@@ -238,7 +239,10 @@ export async function publishLeonixListingFromRentasNegocioDraft(
     branch: "rentas_negocio",
     operation: "rent",
     categoriaPropiedad: state.categoriaPropiedad,
-    machineFacetPairs: buildLeonixMachineFacetPairsFromBienesRaicesNegocioState(br),
+    machineFacetPairs: [
+      ...buildLeonixMachineFacetPairsFromBienesRaicesNegocioState(br),
+      ...buildLeonixHighlightSlugPairsFromRentasNegocioNonResidencial(state),
+    ],
   });
   const meta = buildBusinessMetaJsonFromBienesRaicesNegocioState(br);
   const phone = digitsOnly(state.negocioTelDirecto) || digitsOnly(state.negocioTelOficina) || digitsOnly(state.negocioWhatsapp);

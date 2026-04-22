@@ -14,7 +14,7 @@ export function enforceServiciosSelectionCaps(
   s: ClasificadosServiciosApplicationState,
 ): ClasificadosServiciosApplicationState {
   let customSvc = !!(s.customServiceIncluded && s.customServiceLabel.trim());
-  let sis = [...s.selectedServiceIds];
+  const sis = [...s.selectedServiceIds];
   while (sis.length + (customSvc ? 1 : 0) > MAX_SERVICES_SELECTION) {
     if (sis.length > 0) sis.pop();
     else {
@@ -24,7 +24,7 @@ export function enforceServiciosSelectionCaps(
   }
 
   let customR = !!(s.customReasonIncluded && s.customReasonLabel.trim());
-  let ris = [...s.selectedReasonIds];
+  const ris = [...s.selectedReasonIds];
   while (ris.length + (customR ? 1 : 0) > MAX_REASONS_SELECTION) {
     if (ris.length > 0) ris.pop();
     else {
@@ -34,7 +34,7 @@ export function enforceServiciosSelectionCaps(
   }
 
   let customQ = !!(s.customQuickFactIncluded && s.customQuickFactLabel.trim());
-  let qis = [...s.selectedQuickFactIds];
+  const qis = [...s.selectedQuickFactIds];
   while (qis.length + (customQ ? 1 : 0) > MAX_QUICK_FACTS_SELECTION) {
     if (qis.length > 0) qis.pop();
     else {

@@ -1,6 +1,5 @@
 import type {
   ClasificadosServiciosApplicationState,
-  DayHoursRow,
   DayKey,
   GalleryItem,
   TestimonialRow,

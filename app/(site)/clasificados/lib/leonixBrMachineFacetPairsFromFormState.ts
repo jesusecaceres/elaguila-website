@@ -8,6 +8,7 @@ import type {
   BrPrivadoListingStatus,
 } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import type { BienesRaicesNegocioFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState";
+import type { RentasNegocioFormState } from "@/app/clasificados/publicar/rentas/negocio/schema/rentasNegocioFormState";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
 import { mergePartialBienesRaicesPrivadoState } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import type { BrResultsPropertyKind } from "@/app/clasificados/lib/leonixRealEstateListingContract";
@@ -15,6 +16,7 @@ import {
   LEONIX_DP_BATHROOMS_COUNT,
   LEONIX_DP_BEDROOMS_COUNT,
   LEONIX_DP_FURNISHED,
+  LEONIX_DP_HIGHLIGHT_SLUGS,
   LEONIX_DP_PARKING_SPOTS,
   LEONIX_DP_PETS_ALLOWED,
   LEONIX_DP_POOL,
@@ -66,6 +68,37 @@ export function inferBrResultsPropertyKindNegocio(state: BienesRaicesNegocioForm
 }
 
 /** Rentas Privado shares BR residencial/comercial/terreno facets — reuse BR machine builder. */
+function pushHighlightSlugsForPrivado(
+  state: BienesRaicesPrivadoFormState,
+  out: Array<{ label: string; value: string }>,
+) {
+  const cat = state.categoriaPropiedad;
+  const slugs =
+    cat === "residencial"
+      ? state.residencial.highlightKeys.map((k) => String(k).trim().toLowerCase().replace(/[^a-z0-9_]/g, "")).filter(Boolean)
+      : cat === "comercial"
+        ? state.comercial.destacadoIds.map((id) => `comercial:${String(id).trim().toLowerCase().replace(/[^a-z0-9_]/g, "")}`)
+        : state.terreno.destacadoIds.map((id) => `terreno:${String(id).trim().toLowerCase().replace(/[^a-z0-9_]/g, "")}`);
+  const uniq = [...new Set(slugs.filter(Boolean))].sort();
+  if (uniq.length) push(out, LEONIX_DP_HIGHLIGHT_SLUGS, uniq.join(","));
+}
+
+/** Comercial / terreno Rentas Negocio: BR `highlightPresets` does not carry `destacadoIds`; append this to machine pairs. */
+export function buildLeonixHighlightSlugPairsFromRentasNegocioNonResidencial(
+  state: RentasNegocioFormState,
+): Array<{ label: string; value: string }> {
+  if (state.categoriaPropiedad === "residencial") return [];
+  const slice = mergePartialBienesRaicesPrivadoState({
+    categoriaPropiedad: state.categoriaPropiedad,
+    residencial: state.residencial,
+    comercial: state.comercial,
+    terreno: state.terreno,
+  });
+  const out: Array<{ label: string; value: string }> = [];
+  pushHighlightSlugsForPrivado(slice, out);
+  return out;
+}
+
 export function buildLeonixMachineFacetPairsFromRentasPrivadoFormState(
   state: RentasPrivadoFormState,
 ): Array<{ label: string; value: string }> {
@@ -128,6 +161,7 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(
   if (state.petsAllowed === "yes") push(out, LEONIX_DP_PETS_ALLOWED, true);
   else if (state.petsAllowed === "no") push(out, LEONIX_DP_PETS_ALLOWED, false);
 
+  pushHighlightSlugsForPrivado(state, out);
   return out;
 }
 
@@ -161,6 +195,13 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesNegocioState(
 
   if (state.petsAllowed === "yes") push(out, LEONIX_DP_PETS_ALLOWED, true);
   else if (state.petsAllowed === "no") push(out, LEONIX_DP_PETS_ALLOWED, false);
+
+  const hpSlugs = Object.entries(state.highlightPresets ?? {})
+    .filter(([, on]) => on)
+    .map(([k]) => String(k).trim().toLowerCase().replace(/[^a-z0-9_]/g, ""))
+    .filter(Boolean);
+  const uniqHp = [...new Set(hpSlugs)].sort();
+  if (uniqHp.length) push(out, LEONIX_DP_HIGHLIGHT_SLUGS, uniqHp.join(","));
 
   return out;
 }

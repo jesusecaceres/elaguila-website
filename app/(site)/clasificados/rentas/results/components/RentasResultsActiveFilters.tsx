@@ -58,7 +58,12 @@ export function RentasResultsActiveFilters({ parsed, copy, priceBandLabel }: Pro
     items.push(`${copy.results.sortLabel}: ${s}`);
   }
 
-  if (parsed.lat != null && parsed.lng != null) items.push(copy.results.locationUseMine);
+  if (parsed.highlightsAll.length) {
+    items.push(`${copy.results.highlightsChipLabel}: ${parsed.highlightsAll.join(", ")}`);
+  }
+  if (parsed.wantsPool) items.push(copy.results.poolToggle);
+  if (parsed.subtype) items.push(`${copy.results.subtypeLabel}: ${parsed.subtype}`);
+  if (parsed.kind) items.push(`${copy.results.kindLabel}: ${parsed.kind}`);
 
   if (!items.length) return null;
 

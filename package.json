@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit --incremental false",
     "lint:br": "eslint \"app/(site)/clasificados/bienes-raices/**/*.{ts,tsx}\" \"app/(site)/clasificados/lib/leonix*.ts\" \"app/(site)/clasificados/lib/publish/**/*.{ts,tsx}\" \"app/(site)/clasificados/publicar/bienes-raices/**/*.{ts,tsx}\" --max-warnings 0",
+    "lint:servicios": "eslint \"app/(site)/clasificados/servicios/**/*.{ts,tsx}\" \"app/(site)/clasificados/publicar/servicios/**/*.{ts,tsx}\" \"app/(site)/servicios/**/*.{ts,tsx}\" \"app/api/clasificados/servicios/**/*.{ts,tsx}\" \"e2e/**/*.ts\" --max-warnings 0",
     "verify:br": "npx tsx scripts/br-launch-selftest.ts",
     "prebuild": "node scripts/dup-guard.js",
     "dup:guard": "node scripts/dup-guard.js",
@@ -19,7 +20,11 @@
     "verify:restaurantes:http-smoke": "node scripts/restaurantes-http-smoke.mjs",
     "verify:en-venta": "npx tsx scripts/en-venta-go-live-selftest.ts",
     "verify:restaurantes:launch": "npm run typecheck && npm run build && node scripts/restaurantes-http-smoke.mjs",
-    "verify:servicios": "npx tsx scripts/serviciosLaunchProof.ts"
+    "verify:servicios:unit": "npx tsx scripts/serviciosLaunchProof.ts",
+    "verify:servicios:http-smoke": "node scripts/servicios-http-smoke.mjs",
+    "verify:servicios:e2e": "npx playwright test",
+    "verify:servicios": "npm run typecheck && npm run lint:servicios && npm run build && npm run verify:servicios:unit && npm run verify:servicios:http-smoke && npm run verify:servicios:e2e",
+    "verify:rentas": "npx tsx scripts/rentas-launch-selftest.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -43,6 +48,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
     "@eslint/js": "^9.39.2",
+    "@playwright/test": "^1.51.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^18",

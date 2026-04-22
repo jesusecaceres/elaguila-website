@@ -24,6 +24,8 @@ export const LEONIX_DP_POSTAL_CODE = "Leonix:postal_code";
 export const LEONIX_DP_PETS_ALLOWED = "Leonix:pets_allowed";
 export const LEONIX_DP_FURNISHED = "Leonix:furnished";
 export const LEONIX_DP_POOL = "Leonix:pool";
+/** Comma-separated ASCII slugs: BR residencial `highlightKeys`, or `comercial:id` / `terreno:id` for other lanes. */
+export const LEONIX_DP_HIGHLIGHT_SLUGS = "Leonix:highlight_slugs";
 /** Raw subtype code from application (e.g. `casa`, `apartamento`, `oficina`). */
 export const LEONIX_DP_PROPERTY_SUBTYPE = "Leonix:property_subtype";
 /** Canonical resultados `propertyType` slug: `casa` | `departamento` | `terreno` | `comercial`. */
@@ -37,6 +39,7 @@ export const LEONIX_MACHINE_FACET_LABELS: readonly string[] = [
   LEONIX_DP_PETS_ALLOWED,
   LEONIX_DP_FURNISHED,
   LEONIX_DP_POOL,
+  LEONIX_DP_HIGHLIGHT_SLUGS,
   LEONIX_DP_PROPERTY_SUBTYPE,
   LEONIX_DP_RESULTS_PROPERTY_KIND,
 ] as const;
@@ -51,6 +54,8 @@ export type LeonixMachineFacetRead = {
   petsAllowed: boolean | null;
   furnished: boolean | null;
   pool: boolean | null;
+  /** Parsed from `Leonix:highlight_slugs` (comma-separated). */
+  highlightSlugs: string[];
   propertySubtype: string | null;
   resultsPropertyKind: BrResultsPropertyKind | null;
 };
@@ -111,6 +116,15 @@ function parseResultsPropertyKind(raw: string | null): BrResultsPropertyKind | n
   return null;
 }
 
+function parseHighlightSlugsList(raw: string | null): string[] {
+  if (!raw) return [];
+  const parts = raw
+    .split(",")
+    .map((x) => x.trim().toLowerCase().replace(/[^a-z0-9_:]/g, ""))
+    .filter(Boolean);
+  return [...new Set(parts)].sort();
+}
+
 /** Read publish-time machine facets from `detail_pairs` (preferred over label heuristics). */
 export function parseLeonixMachineFacetRead(detailPairs: unknown): LeonixMachineFacetRead {
   return {
@@ -121,6 +135,7 @@ export function parseLeonixMachineFacetRead(detailPairs: unknown): LeonixMachine
     petsAllowed: parseTriBool(readPair(detailPairs, LEONIX_DP_PETS_ALLOWED)),
     furnished: parseTriBool(readPair(detailPairs, LEONIX_DP_FURNISHED)),
     pool: parseTriBool(readPair(detailPairs, LEONIX_DP_POOL)),
+    highlightSlugs: parseHighlightSlugsList(readPair(detailPairs, LEONIX_DP_HIGHLIGHT_SLUGS)),
     propertySubtype: readPair(detailPairs, LEONIX_DP_PROPERTY_SUBTYPE),
     resultsPropertyKind: parseResultsPropertyKind(readPair(detailPairs, LEONIX_DP_RESULTS_PROPERTY_KIND)),
   };

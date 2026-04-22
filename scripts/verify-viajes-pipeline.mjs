@@ -31,6 +31,31 @@ function ok(msg) {
   console.log("[viajes-verify] OK:", msg);
 }
 
+/** `https://<ref>.supabase.co` → project ref */
+function supabaseProjectRefFromUrl(baseUrl) {
+  try {
+    const h = new URL(baseUrl).hostname;
+    const m = /^([^.]+)\.supabase\.co$/i.exec(h);
+    return m ? m[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Supabase JWT payload includes `ref` (project id) for anon/service keys */
+function jwtPayloadRef(jwt) {
+  try {
+    const parts = String(jwt).split(".");
+    if (parts.length < 2) return null;
+    const pad = parts[1].length % 4 === 0 ? "" : "=".repeat(4 - (parts[1].length % 4));
+    const json = Buffer.from(parts[1].replace(/-/g, "+").replace(/_/g, "/") + pad, "base64").toString("utf8");
+    const payload = JSON.parse(json);
+    return typeof payload.ref === "string" ? payload.ref : null;
+  } catch {
+    return null;
+  }
+}
+
 /** GET with Prefer: count=exact — returns Content-Range: 0-0/N */
 async function restCountExact(baseUrl, hdr, filter = "") {
   const q = filter ? `&${filter}` : "";
@@ -56,9 +81,9 @@ async function restCountExact(baseUrl, hdr, filter = "") {
 async function main() {
   loadEnvLocal();
 
-  const baseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "");
-  const service = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+  const baseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim().replace(/\/$/, "");
+  const service = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
+  const anon = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "").trim();
 
   if (!baseUrl) throw new Error("NEXT_PUBLIC_SUPABASE_URL is not set.");
   ok(`NEXT_PUBLIC_SUPABASE_URL host: ${new URL(baseUrl).host}`);
@@ -69,6 +94,20 @@ async function main() {
   if (!anon) throw new Error("NEXT_PUBLIC_SUPABASE_ANON_KEY is not set.");
   ok("NEXT_PUBLIC_SUPABASE_ANON_KEY is set (value not printed)");
 
+  const urlRef = supabaseProjectRefFromUrl(baseUrl);
+  const serviceRef = jwtPayloadRef(service);
+  const anonRef = jwtPayloadRef(anon);
+  if (urlRef && serviceRef && urlRef !== serviceRef) {
+    throw new Error(
+      `Supabase project mismatch: NEXT_PUBLIC_SUPABASE_URL ref "${urlRef}" ≠ service role JWT ref "${serviceRef}". Replace SUPABASE_SERVICE_ROLE_KEY with the service_role key from the Supabase project that owns ${baseUrl}.`,
+    );
+  }
+  if (urlRef && anonRef && urlRef !== anonRef) {
+    throw new Error(
+      `Supabase project mismatch: NEXT_PUBLIC_SUPABASE_URL ref "${urlRef}" ≠ anon JWT ref "${anonRef}". Replace NEXT_PUBLIC_SUPABASE_ANON_KEY for the same project as the URL.`,
+    );
+  }
+
   const hdr = {
     apikey: service,
     Authorization: `Bearer ${service}`,
@@ -78,8 +117,17 @@ async function main() {
   const ping = await restCountExact(baseUrl, hdr);
   if (!ping.ok) {
     if (ping.status === 401) {
+      const svcParts = String(service).split(".").length;
+      const svcShape =
+        svcParts !== 3
+          ? ` SUPABASE_SERVICE_ROLE_KEY has ${svcParts} dot-separated segment(s); a valid Supabase secret is a 3-part JWT.`
+          : "";
+      const hintRefs =
+        urlRef || serviceRef || anonRef
+          ? ` URL project ref: ${urlRef ?? "(unparsed)"}; service_role JWT ref: ${serviceRef ?? "(unparseable)"}; anon JWT ref: ${anonRef ?? "(unparseable)"}.${svcShape}`
+          : "";
       throw new Error(
-        `REST 401 on viajes_staged_listings: ${ping.hint} — SUPABASE_SERVICE_ROLE_KEY does not match NEXT_PUBLIC_SUPABASE_URL (wrong key or wrong project). Fix .env.local / Vercel env for the launch Supabase project, then rerun.`,
+        `REST 401 on viajes_staged_listings: ${ping.hint} — invalid or revoked SUPABASE_SERVICE_ROLE_KEY for this REST host (or key not from this project).${hintRefs} Fix .env.local / Vercel env, then rerun.`,
       );
     }
     if (ping.status === 404 || /relation|does not exist|schema cache/i.test(String(ping.hint))) {

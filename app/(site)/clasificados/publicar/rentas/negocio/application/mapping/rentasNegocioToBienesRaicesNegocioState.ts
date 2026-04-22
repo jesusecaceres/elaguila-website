@@ -5,6 +5,7 @@ import {
   labelComercialSubtipo,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteComercialTerrenoMeta";
 import { labelForSubtipo, TIPO_PROPIEDAD_OPCIONES } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteResidencialTipoMeta";
+import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 import {
   createEmptyBienesRaicesMuxVideoSlot,
   mergePartialBienesRaicesNegocioState,
@@ -61,6 +62,12 @@ function buildRedesArray(raw: string): string[] {
     .filter(Boolean);
   const out = [...lines, "", "", "", "", ""].slice(0, 5);
   return out;
+}
+
+function emptyNegocioHighlightPresets(): Record<string, boolean> {
+  const o: Record<string, boolean> = {};
+  for (const d of BR_HIGHLIGHT_PRESET_DEFS) o[d.key] = false;
+  return o;
 }
 
 /**
@@ -130,6 +137,17 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
       openHouseNotas: "",
     },
     petsAllowed: s.mascotas === "permitidas" ? "yes" : s.mascotas === "no_permitidas" ? "no" : "",
+    ...(s.categoriaPropiedad === "residencial"
+      ? {
+          highlightPresets: (() => {
+            const hp = emptyNegocioHighlightPresets();
+            for (const k of s.residencial.highlightKeys) {
+              if (k in hp) hp[k] = true;
+            }
+            return hp;
+          })(),
+        }
+      : {}),
   };
 
   if (s.categoriaPropiedad === "residencial") {

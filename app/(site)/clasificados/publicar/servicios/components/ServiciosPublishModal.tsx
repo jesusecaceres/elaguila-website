@@ -5,7 +5,6 @@ import { useCallback, useState } from "react";
 import { FiX } from "react-icons/fi";
 import { upsertLocalServiciosPublish } from "@/app/clasificados/servicios/lib/localServiciosPublishStorage";
 import { getBusinessTypePreset } from "../lib/businessTypePresets";
-import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ClasificadosServiciosCopy } from "../lib/clasificadosServiciosApplicationCopy";
 import type { ClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationTypes";
 import type { ServiciosLang } from "../lib/clasificadosServiciosApplicationTypes";
@@ -106,7 +105,6 @@ export function ServiciosPublishModal({
       }
 
       const persistedToDatabase = data.persistedToDatabase === true || data.persisted === true;
-      const persistedToDevWorkspace = data.persistedToDevWorkspace === true;
       if (!persistedToDatabase) {
         const ig = getBusinessTypePreset(s.businessTypeId)?.internalGroup;
         upsertLocalServiciosPublish(data.profile, s.city, ig ?? null);

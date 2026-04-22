@@ -235,6 +235,7 @@ export function ClasificadosServiciosApplication() {
   useEffect(() => {
     if (!hydrated) return;
     void saveClasificadosServiciosApplicationResolved(state);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- full `state` would autosave every keystroke; media fields gate persistence
   }, [
     hydrated,
     state.gallery,
@@ -448,7 +449,7 @@ export function ClasificadosServiciosApplication() {
       }
       const gallery = [...prev.gallery, ...use];
       const gIds = new Set(gallery.map((g) => g.id));
-      let fg = prev.featuredGalleryIds.filter((id) => gIds.has(id));
+      const fg = prev.featuredGalleryIds.filter((id) => gIds.has(id));
       for (const a of use) {
         if (fg.length >= 4) break;
         if (!fg.includes(a.id)) fg.push(a.id);
@@ -474,7 +475,7 @@ export function ClasificadosServiciosApplication() {
       }
       const gallery = [...prev.gallery, { id, url: normalizeHttpUrl(raw), source: "url" as const }];
       const gIds = new Set(gallery.map((g) => g.id));
-      let fg = prev.featuredGalleryIds.filter((x) => gIds.has(x));
+      const fg = prev.featuredGalleryIds.filter((x) => gIds.has(x));
       if (fg.length < 4 && !fg.includes(id)) fg.push(id);
       return { ...prev, gallery, featuredGalleryIds: fg.slice(0, 4) };
     });

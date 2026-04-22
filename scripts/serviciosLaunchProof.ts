@@ -1,6 +1,7 @@
 /**
- * Servicios launch proof (no browser): exercises filter + sort + readiness in-process.
- * Run: `npx tsx scripts/serviciosLaunchProof.ts`
+ * Servicios launch proof (in-process, no server): readiness + discovery filter/sort fixtures.
+ * Full runtime gate: `npm run verify:servicios` (typecheck, lint:servicios, build, this script,
+ * `node scripts/servicios-http-smoke.mjs`, Playwright `e2e/servicios-smoke.spec.ts`).
  */
 import { evaluateServiciosPublishReadiness } from "../app/(site)/clasificados/publicar/servicios/lib/serviciosPublishReadiness";
 import { normalizeClasificadosServiciosApplicationState } from "../app/(site)/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationNormalize";

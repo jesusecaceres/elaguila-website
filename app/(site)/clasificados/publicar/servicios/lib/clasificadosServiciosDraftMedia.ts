@@ -56,10 +56,10 @@ function parseServiciosRef(url: string):
 export function stripUnresolvedServiciosIdbRefs(state: ClasificadosServiciosApplicationState): ClasificadosServiciosApplicationState {
   const gallery = (state.gallery ?? []).filter((g) => !g.url.startsWith(SV_IDB_PREFIX));
   const videos = (state.videos ?? []).filter((v) => !v.url.startsWith(SV_IDB_PREFIX));
-  let logoUrl = state.logoUrl.startsWith(SV_IDB_PREFIX) ? "" : state.logoUrl;
-  let coverUrl = state.coverUrl.startsWith(SV_IDB_PREFIX) ? "" : state.coverUrl;
-  let offerImageUrl = state.offerImageUrl.startsWith(SV_IDB_PREFIX) ? "" : state.offerImageUrl;
-  let offerPdfUrl = state.offerPdfUrl.startsWith(SV_IDB_PREFIX) ? "" : state.offerPdfUrl;
+  const logoUrl = state.logoUrl.startsWith(SV_IDB_PREFIX) ? "" : state.logoUrl;
+  const coverUrl = state.coverUrl.startsWith(SV_IDB_PREFIX) ? "" : state.coverUrl;
+  const offerImageUrl = state.offerImageUrl.startsWith(SV_IDB_PREFIX) ? "" : state.offerImageUrl;
+  const offerPdfUrl = state.offerPdfUrl.startsWith(SV_IDB_PREFIX) ? "" : state.offerPdfUrl;
   const gIds = new Set(gallery.map((x) => x.id));
   const featuredGalleryIds = state.featuredGalleryIds.filter((id) => gIds.has(id));
   return normalizeClasificadosServiciosApplicationState({

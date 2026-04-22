@@ -354,6 +354,18 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
                 <span className="font-semibold text-[#1E1810]">{lang === "es" ? "Subtipo" : "Subtype"}:</span> {listing.propertySubtype}
               </li>
             ) : null}
+            {listing.resultsPropertyKind ? (
+              <li>
+                <span className="font-semibold text-[#1E1810]">{lang === "es" ? "Tipo (resultados)" : "Result kind"}:</span>{" "}
+                {listing.resultsPropertyKind}
+              </li>
+            ) : null}
+            {listing.highlightSlugs?.length ? (
+              <li className="w-full min-w-0">
+                <span className="font-semibold text-[#1E1810]">{lang === "es" ? "Destacados" : "Highlights"}:</span>{" "}
+                <span className="break-words">{listing.highlightSlugs.join(", ")}</span>
+              </li>
+            ) : null}
             <li>
               <span className="font-semibold text-[#1E1810]">{copy.detail.furnished}:</span> {triYesNo(listing.amueblado, copy.detail)}
             </li>
