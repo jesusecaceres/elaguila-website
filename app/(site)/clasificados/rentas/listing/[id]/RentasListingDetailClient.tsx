@@ -482,7 +482,7 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
         listingTitle={listing.title}
         listingId={listingUuid ? listing.id : null}
         listingIdDisplay={listing.id}
-        inquiryApiPath="/api/clasificados/en-venta/inquiry"
+        inquiryApiPath="/api/clasificados/rentas/inquiry"
         onMessageSentAnalytics={(lid, uid) => void trackRentasMessageSent(lid ?? listing.id, uid)}
       />
     </div>
