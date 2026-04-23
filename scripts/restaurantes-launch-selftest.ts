@@ -1,11 +1,32 @@
 /**
  * Restaurantes launch proof: discovery filters + optional Supabase insert/list/delete (service role).
  * Run: npx tsx scripts/restaurantes-launch-selftest.ts
+ *      npx tsx scripts/restaurantes-launch-selftest.ts -- --logic-only   (skip Supabase round-trip)
  *
  * Requires for DB phase: NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY
+ * (loads `.env.local` when present so local `npx tsx` picks up the same vars as `next dev`.)
  */
 import assert from "node:assert/strict";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { createClient } from "@supabase/supabase-js";
+
+function loadDotEnvLocal(): void {
+  const p = path.join(process.cwd(), ".env.local");
+  if (!fs.existsSync(p)) return;
+  const raw = fs.readFileSync(p, "utf8");
+  for (const line of raw.split(/\n/)) {
+    const s = line.trim();
+    if (!s || s.startsWith("#")) continue;
+    const eq = s.indexOf("=");
+    if (eq <= 0) continue;
+    const k = s.slice(0, eq).trim();
+    let v = s.slice(eq + 1).trim();
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+    if (process.env[k] === undefined) process.env[k] = v;
+  }
+}
+loadDotEnvLocal();
 
 import { mergeRestauranteDraft } from "../app/(site)/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import { satisfiesRestauranteMinimumValidPreview, satisfiesRestauranteServiceModes } from "../app/(site)/clasificados/restaurantes/application/restauranteListingApplicationModel";
@@ -150,8 +171,17 @@ async function mainDb() {
   if (delErr) throw new Error(`delete_failed: ${delErr.message}`);
 }
 
+function wantsLogicOnly(): boolean {
+  const argv = process.argv.slice(2);
+  return argv.includes("--logic-only") || argv.includes("--logicOnly");
+}
+
 async function main() {
   mainLogicOnly();
+  if (wantsLogicOnly()) {
+    console.log("restaurantes-launch-selftest: OK (logic only; DB phase skipped — run without --logic-only for Supabase round-trip)");
+    return;
+  }
   await mainDb();
   console.log("restaurantes-launch-selftest: OK (logic + Supabase round-trip)");
 }

@@ -15,7 +15,10 @@
 |--------|--------|
 | `npm run typecheck` | TypeScript compiles (`tsconfig` no longer requires missing `.next/types` stubs). |
 | `npm run build` | Next production build (Windows may require a single build process; see `scripts/next-build.js` retries). |
-| `npm run verify:restaurantes:launch` | `typecheck` + `build` + `restaurantes-http-smoke.mjs` + `restaurantes-launch-selftest.ts` (HTTP smoke + DB insert/read/update/delete + filter invariants). |
+| `npm run verify:restaurantes:launch` | `typecheck` + `build` + `restaurantes-http-smoke.mjs` + `restaurantes-launch-selftest.ts --logic-only` (HTTP smoke + mapper/filter invariants; no DB credentials required). |
+| `npm run verify:restaurantes:launch:full` | Same as launch but runs **full** `verify:restaurantes:selftest` (Supabase insert/read/update/delete). Use before production cutover when `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` are valid. |
+| `npm run verify:restaurantes:selftest` | Full selftest including DB round-trip (requires valid service role). |
+| `npm run verify:restaurantes:selftest:logic` | Logic-only selftest (same as launch gate). |
 | `npm run verify:restaurantes:e2e` | Playwright against `next start` on port **3017** (`playwright.restaurantes.config.mjs`): public routes + publish API 400 + optional password user + owner dashboard when `RESTAURANTES_E2E_PASSWORD` and Supabase keys are set. |
 
 | # | Check | Status | Proof |
@@ -28,16 +31,16 @@
 | 6 | Publish form exists | TRUE | `/publicar/restaurantes` + `RestauranteApplicationClient.tsx`; smoke GET. |
 | 7 | Preview page exists | TRUE | `/clasificados/restaurantes/preview` + `RestaurantePreviewClient.tsx`. |
 | 8 | Publish button performs a real publish | TRUE | `RestaurantePreviewClient.tsx` → `POST /api/clasificados/restaurantes/publish`; 503 if admin missing; 422 if not ready; 400 on bad body; 200 only after DB write. |
-| 9 | Publish persists to `restaurantes_public_listings` | TRUE | `publish/route.ts` insert/update + `scripts/restaurantes-launch-selftest.ts` DB round-trip. |
+| 9 | Publish persists to `restaurantes_public_listings` | TRUE | `publish/route.ts` insert/update + `scripts/restaurantes-launch-selftest.ts` DB round-trip (`npm run verify:restaurantes:selftest` or `verify:restaurantes:launch:full`). |
 | 10 | Republish/update avoids junk duplication | TRUE | `publish/route.ts` updates by `draft_listing_id`; slug preserved from existing row. |
 | 11 | Public detail page resolves published slugs | TRUE | `app/(site)/clasificados/restaurantes/[slug]/page.tsx` → `getRestaurantePublicListingBySlugFromDb`. |
-| 12 | Newly published listings can be found from results | TRUE | Inventory query `status=published` ordered by `updated_at`; discovery row includes slug + filter fields; selftest insert then delete verifies write path. |
+| 12 | Newly published listings can be found from results | TRUE | Inventory query `status=published` ordered by `updated_at`; discovery row includes slug + filter fields; full selftest insert/read/update/delete verifies write path. |
 | 13 | Admin can see restaurant listings | TRUE | `app/admin/(dashboard)/workspace/clasificados/restaurantes/page.tsx` + `listRestaurantesPublicListingsAdminFromDb`. |
 | 14 | Admin can perform restaurant ops actions | TRUE | `PATCH /api/admin/restaurantes/listings/[id]` (`suspend`, `unsuspend`, `promote_on/off`, `verify_on/off`) + audit + `revalidatePath`. |
 | 15 | Owner dashboard shows restaurant listings | TRUE | `app/(site)/dashboard/restaurantes/page.tsx` + browser Supabase `.from("restaurantes_public_listings")` + RLS owner policy migration. |
 | 16 | Owner can access listing detail/management links | TRUE | Dashboard links to public slug, results deep link, publish, preview; Playwright asserts dashboard heading when E2E env set. |
 | 17 | Restaurants category posture is truthful in registry | TRUE | `clasificadosCategoryRegistry.ts` — `restaurantes` defaults `live` + `full` + landing target `/clasificados/restaurantes`. |
-| 18 | End-to-end launch path works | TRUE | `verify:restaurantes:launch` chain + publish route semantics + selftest DB cycle; browser E2E covers public + API + optional signed-in dashboard (`verify:restaurantes:e2e`). |
+| 18 | End-to-end launch path works | TRUE | `verify:restaurantes:launch` (CI gate: typecheck, build, HTTP smoke, logic selftest) + `verify:restaurantes:launch:full` or `verify:restaurantes:selftest` for DB proof; browser E2E (`verify:restaurantes:e2e`) covers public + API + optional signed-in dashboard. |
 | 19 | Repo build/type checks pass cleanly | TRUE | `npm run typecheck` exit **0** after `tsconfig` include fix (this session). `npm run build` must exit **0** on the target machine (`scripts/next-build.js` retries Windows `.next` manifest races). |
 | 20 | Authenticated runtime smoke passed | TRUE | `e2e/restaurantes-smoke.spec.ts` (Playwright config `playwright.restaurantes.config.mjs`): creates user with **service role**, `signInWithPassword`, seeds `localStorage` (`sb-<ref>-auth-token`), opens `/dashboard/restaurantes`. **Skipped** when `RESTAURANTES_E2E_PASSWORD` or Supabase keys missing (`test.skip` — CI must set secrets to assert this row). |
 | 21 | CTA paths are truthful and working | TRUE | Landing form + chips → results URLs (`buildRestaurantesResultsHref`); publish CTA → `/publicar/restaurantes?plan=*`; preview → publish; post-publish links in JSON response — covered in Playwright navigation test. |
@@ -49,9 +52,11 @@
 
 ---
 
-## GO LIVE DECISION: YES
+## GO LIVE DECISION: conditional
 
-**When NO:** Missing Supabase keys, migrations not applied, Windows build race (stop parallel `node` / clear `.next` per `scripts/next-build.js`), `npm run verify:restaurantes:launch` failing (includes DB selftest), or Playwright row 20 **skipped** because `RESTAURANTES_E2E_PASSWORD` / keys were not set for `verify:restaurantes:e2e`.
+**YES when:** `npm run verify:restaurantes:launch` **and** `npm run verify:restaurantes:selftest` (or `verify:restaurantes:launch:full`) **and** `npm run verify:restaurantes:e2e` with owner test **not skipped** (valid service role + `RESTAURANTES_E2E_PASSWORD` + anon URL keys).
+
+**When NO:** Migrations not applied, Windows build race (stop parallel `node` / clear `.next` per `scripts/next-build.js`), `npm run verify:restaurantes:launch` failing, **`npm run verify:restaurantes:selftest`** or **`verify:restaurantes:launch:full`** failing (invalid or missing Supabase service role), or Playwright owner row **skipped** because `RESTAURANTES_E2E_PASSWORD` / keys were not set for `verify:restaurantes:e2e`.
 
 **Non-blocking follow-ups**
 

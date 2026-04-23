@@ -20,7 +20,7 @@ export function AdminViajesPublicSurfaceMap() {
           <p className="font-bold text-sky-950">Results</p>
           <p className="mt-1 text-[#5C5346]">
             Destination + origin context + “results eligible” drive inclusion on{" "}
-            <code className="rounded bg-sky-100 px-1">/clasificados/viajes/resultados</code> once wired.
+            <code className="rounded bg-sky-100 px-1">/clasificados/viajes/resultados</code> alongside approved staged business rows (affiliate vs business labeling stays distinct on-card).
           </p>
         </div>
         <div className="rounded-2xl border border-sky-100 bg-white/90 p-3 text-xs text-[#2C2416]">

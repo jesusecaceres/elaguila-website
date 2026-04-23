@@ -24,13 +24,13 @@ export function AdminViajesBusinessSurfaceMap() {
         <div className="rounded-2xl border border-emerald-100 bg-white/90 p-3 text-xs text-[#2C2416]">
           <p className="font-bold text-emerald-950">Results visibility</p>
           <p className="mt-1 text-[#5C5346]">
-            Once wired, approved business offers join results eligibility on <code className="rounded bg-emerald-100 px-1">/clasificados/viajes/resultados</code> with clear labeling distinct from affiliate inventory.
+            Approved business offers are merged into <code className="rounded bg-emerald-100 px-1">/clasificados/viajes/resultados</code> via <code className="rounded bg-emerald-100 px-1">fetchViajesPublicBrowseRowsMerged</code> (see <code className="rounded bg-emerald-100 px-1">viajesPublicBrowseRowsServer.ts</code>) with labeling distinct from affiliate inventory.
           </p>
         </div>
         <div className="rounded-2xl border border-emerald-100 bg-white/90 p-3 text-xs text-[#2C2416]">
           <p className="font-bold text-emerald-950">Draft / preview lanes</p>
           <p className="mt-1 text-[#5C5346]">
-            Public publish flows use <code className="rounded bg-emerald-100 px-1">/clasificados/viajes/preview/negocios</code> (business draft) and <code className="rounded bg-emerald-100 px-1">…/preview/privado</code> (private) — local-only until backend ingest exists.
+            Publish previews use <code className="rounded bg-emerald-100 px-1">/clasificados/viajes/preview/negocios</code> (business) and <code className="rounded bg-emerald-100 px-1">…/preview/privado</code> (private) for draft UX; successful submits persist to <code className="rounded bg-emerald-100 px-1">viajes_staged_listings</code> and only become public after approval + <code className="rounded bg-emerald-100 px-1">is_public</code>.
           </p>
         </div>
       </div>
