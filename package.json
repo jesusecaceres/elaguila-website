@@ -23,7 +23,7 @@
     "verify:restaurantes:selftest": "npx tsx scripts/restaurantes-launch-selftest.ts",
     "verify:restaurantes:e2e": "npx playwright test --config playwright.restaurantes.config.mjs",
     "verify:en-venta": "npx tsx scripts/en-venta-go-live-selftest.ts",
-    "verify:en-venta:e2e": "npx playwright test \"e2e/en-venta*.spec.ts\"",
+    "verify:en-venta:e2e": "npx playwright test e2e/en-venta-smoke.spec.ts e2e/en-venta-seeded-trace.spec.ts",
     "verify:restaurantes:launch": "npm run typecheck && npm run build && node scripts/restaurantes-http-smoke.mjs && npm run verify:restaurantes:selftest",
     "verify:servicios:unit": "npx tsx scripts/serviciosLaunchProof.ts",
     "verify:servicios:http-smoke": "node scripts/servicios-http-smoke.mjs",

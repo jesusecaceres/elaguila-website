@@ -17,6 +17,8 @@ function main() {
   assert.equal(isEnVentaListingPubliclyVisible(row({ status: "removed", is_published: false })), false);
   assert.equal(isEnVentaListingPubliclyVisible(row({ status: "sold", is_published: true })), false);
   assert.equal(isEnVentaListingPubliclyVisible({ category: "rentas", status: "active", is_published: true }), false);
+  /** Legacy rows: `is_published` omitted still browse-visible when active (only explicit `false` hides). */
+  assert.equal(isEnVentaListingPubliclyVisible(row({ status: "active" })), true);
 
   const dto = mapDbRowToEnVentaAnuncioDTO({
     id: "00000000-0000-4000-8000-000000000001",

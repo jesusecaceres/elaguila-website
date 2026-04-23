@@ -46,10 +46,12 @@ export default function EnVentaLaunchChecklistPage() {
         <ul className="mt-2 list-disc space-y-1 pl-5 text-[#5C5346]">
           <li>Sin fotos en el formulario: se publica sin galería (`gallery=none`).</li>
           <li>
-            Con ≥1 foto: <strong>todas</strong> deben subirse al bucket <code className="rounded bg-black/5 px-1">listing-images</code>
-            ; si <strong>fallan todas</strong>, el insert se <strong>revierte</strong> (no hay anuncio fantasma).
+            Con ≥1 foto: <strong>todas</strong> las fotos ordenadas deben subirse al bucket{" "}
+            <code className="rounded bg-black/5 px-1">listing-images</code> antes de activar el anuncio. Si{" "}
+            <strong>falta cualquiera</strong>, la publicación <strong>falla</strong>, el anuncio{" "}
+            <strong>no queda público</strong> y la fila pasa a <code className="rounded bg-black/5 px-1">removed</code> +{" "}
+            <code className="rounded bg-black/5 px-1">is_published=false</code> (mismo código que si fallan todas).
           </li>
-          <li>Si solo algunas fallan: el anuncio queda publicado con las que sí subieron y aviso ámbar en el panel de éxito.</li>
         </ul>
       </section>
 

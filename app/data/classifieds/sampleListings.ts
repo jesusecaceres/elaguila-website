@@ -1,36 +1,4 @@
 export const SAMPLE_LISTINGS = [
-      // EN VENTA
-      {
-        id: "enventa-personal-1",
-        category: "en-venta",
-        title: { es: "iPhone 13 desbloqueado", en: "Unlocked iPhone 13" },
-        priceLabel: { es: "$420", en: "$420" },
-        city: "San José",
-        postedAgo: { es: "hace 2 días", en: "2 days ago" },
-        blurb: {
-          es: "Excelente condición. Incluye caja y cargador.",
-          en: "Great condition. Includes box and charger.",
-        },
-        hasImage: true,
-        condition: "good",
-        sellerType: "personal",
-      },
-      {
-        id: "enventa-biz-1",
-        category: "en-venta",
-        title: { es: "Tienda: electrónicos reacondicionados", en: "Shop: refurbished electronics" },
-        priceLabel: { es: "Desde $49", en: "From $49" },
-        city: "San José",
-        postedAgo: { es: "hace 1 día", en: "1 day ago" },
-        blurb: {
-          es: "Garantía y recogida local. Pregunta por disponibilidad.",
-          en: "Warranty + local pickup. Ask for availability.",
-        },
-        hasImage: true,
-        condition: "good",
-        sellerType: "business",
-      },
-
       // RENTAS
       {
         id: "rentas-personal-1",

@@ -4,6 +4,19 @@ import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/
 
 export const runtime = "nodejs";
 
+function responseForSupabaseAdminError(error: { message?: string } | null): NextResponse | null {
+  const msg = (error?.message ?? "").toLowerCase();
+  if (
+    msg.includes("invalid api key") ||
+    msg.includes("invalid jwt") ||
+    msg.includes("jwt expired") ||
+    msg.includes("signature verification failed")
+  ) {
+    return NextResponse.json({ ok: false, error: "supabase_admin_auth_failed" }, { status: 503 });
+  }
+  return null;
+}
+
 /**
  * Dev / CI only: create or delete a real `listings` row for En Venta E2E traceability.
  *
@@ -39,6 +52,8 @@ export async function POST(req: NextRequest) {
     }
     const { error } = await supabase.from("listings").delete().eq("id", id);
     if (error) {
+      const authFail = responseForSupabaseAdminError(error);
+      if (authFail) return authFail;
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
     return NextResponse.json({ ok: true });
@@ -90,6 +105,8 @@ export async function POST(req: NextRequest) {
 
   const { error } = await supabase.from("listings").insert([insertPayload]);
   if (error) {
+    const authFail = responseForSupabaseAdminError(error);
+    if (authFail) return authFail;
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 
