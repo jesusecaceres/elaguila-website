@@ -39,6 +39,64 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 const envPath = path.join(root, ".env.local");
 
+/** Project ref embedded in `*.supabase.co` host (when standard). */
+function supabaseHostProjectRef(urlStr: string): string | null {
+  try {
+    const u = new URL(urlStr);
+    const m = u.hostname.match(/^([a-z0-9]{20})\.supabase\.co$/i);
+    return m ? m[1]!.toLowerCase() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Best-effort JWT payload decode for Supabase keys (anon / service_role). */
+function supabaseJwtProjectRef(jwt: string): { ref: string | null; iss?: string; decodeError?: string } {
+  const parts = jwt.split(".");
+  if (parts.length < 2) return { ref: null, decodeError: "not_a_jwt" };
+  try {
+    const b64 = parts[1]!.replace(/-/g, "+").replace(/_/g, "/");
+    const pad = b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4));
+    const json = Buffer.from(b64 + pad, "base64").toString("utf8");
+    const o = JSON.parse(json) as Record<string, unknown>;
+    const ref = typeof o.ref === "string" ? o.ref.toLowerCase() : null;
+    const iss = typeof o.iss === "string" ? o.iss : undefined;
+    return { ref, iss };
+  } catch (e) {
+    return { ref: null, decodeError: String(e) };
+  }
+}
+
+function printSupabaseKeyDiagnostics(urlStr: string, anonKey: string, serviceKey: string): void {
+  const hostRef = supabaseHostProjectRef(urlStr);
+  const anon = supabaseJwtProjectRef(anonKey);
+  const svc = supabaseJwtProjectRef(serviceKey);
+  const serviceLooksLikeJwt = serviceKey.split(".").length >= 3;
+  console.log("[rentas-e2e] key diagnostics:", {
+    urlHostProjectRef: hostRef,
+    anonJwtRef: anon.ref,
+    serviceJwtRef: svc.ref,
+    serviceKeyLooksLikeJwt: serviceLooksLikeJwt,
+    anonDecodeError: anon.decodeError,
+    serviceDecodeError: svc.decodeError,
+  });
+  if (!serviceLooksLikeJwt) {
+    console.error(
+      "[rentas-e2e] BLOCKED_BY_ENV hint: SUPABASE_SERVICE_ROLE_KEY is not JWT-shaped (expected three dot-separated segments). Paste the service_role secret from Supabase Dashboard → Project Settings → API — not the anon key, not a database password.",
+    );
+  }
+  if (hostRef && anon.ref && anon.ref !== hostRef) {
+    console.error(
+      "[rentas-e2e] BLOCKED_BY_ENV hint: anon JWT `ref` does not match NEXT_PUBLIC_SUPABASE_URL host — keys may belong to a different Supabase project.",
+    );
+  }
+  if (anon.ref && svc.ref && anon.ref !== svc.ref) {
+    console.error(
+      "[rentas-e2e] BLOCKED_BY_ENV hint: anon and service_role JWT `ref` differ — mixed .env from two projects.",
+    );
+  }
+}
+
 function loadEnvLocal(): void {
   if (!fs.existsSync(envPath)) return;
   const text = fs.readFileSync(envPath, "utf8");
@@ -75,6 +133,8 @@ async function main(): Promise<void> {
     );
     process.exit(0);
   }
+
+  printSupabaseKeyDiagnostics(url, anonKey, serviceKey);
 
   const idPriv = crypto.randomUUID();
   const idNeg = crypto.randomUUID();
@@ -151,6 +211,12 @@ async function main(): Promise<void> {
   const { error: insErr } = await admin.from("listings").insert([insertPriv, insertNeg]);
   if (insErr) {
     console.error("[rentas-e2e] insert failed:", insErr.message);
+    if (/invalid api key|jwt expired|invalid jwt/i.test(insErr.message)) {
+      console.error(
+        "[rentas-e2e] Classification: BLOCKED_BY_ENV — Supabase rejected SUPABASE_SERVICE_ROLE_KEY (wrong/revoked key, or not for this project). Not a Rentas application bug.",
+      );
+      printSupabaseKeyDiagnostics(url, anonKey, serviceKey);
+    }
     process.exit(1);
   }
 

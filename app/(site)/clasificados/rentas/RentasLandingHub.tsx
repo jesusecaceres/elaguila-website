@@ -109,6 +109,20 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
 
   const resultsBase = useMemo(() => withRentasLandingLang(RENTAS_RESULTS, lang), [lang]);
 
+  const destacadasDescription = useMemo(() => {
+    if (includeDemoPool) return copy.sections.destacadas.description;
+    return lang === "es"
+      ? "Anuncios con mayor visibilidad: ventana de visibilidad destacada activa, plan promocional en datos, o señales orgánicas elegibles — sin pagar por un ranking oculto fuera del producto."
+      : "Higher-visibility listings: an active featured-visibility window, a promotional plan in data, or eligible organic signals — no hidden pay-to-rank outside the product.";
+  }, [copy.sections.destacadas.description, includeDemoPool, lang]);
+
+  const recientesDescription = useMemo(() => {
+    if (includeDemoPool) return copy.sections.recientes.description;
+    return lang === "es"
+      ? "Orden por fecha de publicación, alternando particulares y negocios para equilibrio en portada."
+      : "Ordered by publish time, interleaving private and business listings for a balanced homepage.";
+  }, [copy.sections.recientes.description, includeDemoPool, lang]);
+
   return (
     <RentasLandingShell>
       <RentasLandingHero>
@@ -187,7 +201,7 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
       <RentasLandingSectionBand
         id="rentas-landing-destacadas"
         title={copy.sections.destacadas.title}
-        description={copy.sections.destacadas.description}
+        description={destacadasDescription}
         action={
           <Link href={resultsBase} className={rentasSectionHeaderActionClass}>
             {copy.sections.destacadas.action}
@@ -204,7 +218,7 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
       <RentasLandingSectionBand
         id="rentas-landing-recientes"
         title={copy.sections.recientes.title}
-        description={copy.sections.recientes.description}
+        description={recientesDescription}
         action={
           <Link href={buildRentasResultsUrl({ lang })} className={rentasSectionHeaderActionClass}>
             {copy.sections.recientes.action}

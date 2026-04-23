@@ -31,7 +31,7 @@
     "verify:servicios:http-smoke": "node scripts/servicios-http-smoke.mjs",
     "verify:servicios:e2e": "npx playwright test",
     "verify:servicios": "npm run typecheck && npm run lint:servicios && npm run build && npm run verify:servicios:unit && npm run verify:servicios:http-smoke && npm run verify:servicios:e2e",
-    "verify:rentas": "npx tsx scripts/rentas-launch-selftest.ts",
+    "verify:rentas": "npx tsx scripts/rentas-launch-selftest.ts && npx tsx scripts/rentas-field-contract-selftest.ts",
     "verify:rentas:e2e": "npx tsx scripts/rentas-e2e-pipeline-smoke.ts"
   },
   "dependencies": {
