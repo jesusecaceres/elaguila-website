@@ -85,7 +85,13 @@ export default async function EmpleoPublicDetailPage({ params, searchParams }: P
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#FAF7F2] pt-24" aria-busy="true" />}>
       {row && job ? <EmpleosJobPostingJsonLd job={job} lang={lang} /> : null}
-      <EmpleoPublicDetailClient slug={slug} initialJob={job} relatedExtra={relatedExtra} trackPublicViewsForSlug={row ? slug : null} />
+      <EmpleoPublicDetailClient
+        slug={slug}
+        initialJob={job}
+        relatedExtra={relatedExtra}
+        omitMarketingSeedCatalog={omitSeed}
+        trackPublicViewsForSlug={row ? slug : null}
+      />
     </Suspense>
   );
 }

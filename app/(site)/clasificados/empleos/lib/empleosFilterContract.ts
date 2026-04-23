@@ -1,6 +1,7 @@
 /**
  * Empleos public browse — explicit filter contract (URL ↔ `EmpleosJobRecord`).
- * Sample catalog today; swap `EMPLEOS_JOB_CATALOG` for API projections without renaming keys.
+ * Inventory is `EmpleosJobRecord[]`: merged marketing seed + Supabase rows in dev; **live-only** paths omit seed
+ * (see `empleosPublicCatalogPolicy.ts` + `mergeEmpleosSeedWithLiveJobs`). URL keys stay stable.
  *
  * ## URL query keys (stable)
  * - q → keyword across title, company, summary, description

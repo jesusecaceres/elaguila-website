@@ -10,17 +10,23 @@ import { CategoryCardIcon, LandingSection } from "./empleosLandingUi";
 
 type Props = {
   lang: Lang;
+  /** When true, do not show marketing sample counts — only neutral navigation copy (live catalog policy). */
+  liveInventory?: boolean;
 };
 
-export function JobCategoryGrid({ lang }: Props) {
+export function JobCategoryGrid({ lang, liveInventory = false }: Props) {
   return (
     <LandingSection
       eyebrow={lang === "es" ? "Explora" : "Explore"}
       title={lang === "es" ? "Explora empleos por categoría" : "Explore jobs by category"}
       subtitle={
-        lang === "es"
-          ? "Cada tarjeta abre el listado con la categoría ya seleccionada."
-          : "Each card opens results with that category preselected."
+        liveInventory
+          ? lang === "es"
+            ? "Cada tarjeta abre resultados con la categoría seleccionada (conteos de muestra desactivados en inventario publicado)."
+            : "Each card opens results with that category selected (sample counts disabled for published inventory)."
+          : lang === "es"
+            ? "Cada tarjeta abre el listado con la categoría ya seleccionada."
+            : "Each card opens results with that category preselected."
       }
       rightSlot={
         <Link
@@ -46,7 +52,13 @@ export function JobCategoryGrid({ lang }: Props) {
             <div className="mt-3">
               <p className="text-sm font-bold text-[#2A2826]">{c.title}</p>
               <p className="mt-1 text-xs font-medium text-[#5B6F82]">
-                {lang === "es" ? `${c.count.toLocaleString("es-US")} oportunidades` : `${c.count.toLocaleString("en-US")} openings`}
+                {liveInventory
+                  ? lang === "es"
+                    ? "Ver vacantes en esta categoría"
+                    : "View openings in this category"
+                  : lang === "es"
+                    ? `${c.count.toLocaleString("es-US")} oportunidades`
+                    : `${c.count.toLocaleString("en-US")} openings`}
               </p>
             </div>
           </Link>

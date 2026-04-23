@@ -25,11 +25,19 @@ type Props = {
   slug: string;
   initialJob: EmpleosJobRecord | null;
   relatedExtra?: EmpleosJobRecord[];
+  /** When true, “related” excludes `EMPLEOS_JOB_CATALOG` (must match `empleosOmitMarketingSeedCatalog()` on the server). */
+  omitMarketingSeedCatalog?: boolean;
   /** When set, increments persisted `view_count` once per browser session load (published slug only). */
   trackPublicViewsForSlug?: string | null;
 };
 
-export function EmpleoPublicDetailClient({ slug, initialJob, relatedExtra = [], trackPublicViewsForSlug = null }: Props) {
+export function EmpleoPublicDetailClient({
+  slug,
+  initialJob,
+  relatedExtra = [],
+  omitMarketingSeedCatalog = false,
+  trackPublicViewsForSlug = null,
+}: Props) {
   const sp = useSearchParams();
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
   const job = initialJob;
@@ -51,7 +59,10 @@ export function EmpleoPublicDetailClient({ slug, initialJob, relatedExtra = [], 
     }).catch(() => {});
   }, [trackPublicViewsForSlug]);
 
-  const related = useMemo(() => getRelatedJobs(slug, 3, relatedExtra), [slug, relatedExtra]);
+  const related = useMemo(
+    () => getRelatedJobs(slug, 3, relatedExtra, { omitMarketingCatalog: omitMarketingSeedCatalog }),
+    [slug, relatedExtra, omitMarketingSeedCatalog],
+  );
 
   const resultsHref = appendLangToPath("/clasificados/empleos/resultados", lang);
   const publishHref = appendLangToPath("/clasificados/publicar/empleos", lang);

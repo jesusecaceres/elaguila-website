@@ -49,7 +49,7 @@ export function EmpleosLandingPage({
               liveInventory={liveInventory}
             />
             <RefineSearchBand lang={lang} />
-            <JobCategoryGrid lang={lang} />
+            <JobCategoryGrid lang={lang} liveInventory={liveInventory} />
             <LatestJobsAndEmployer
               lang={lang}
               jobs={liveInventory ? recentOverride : undefined}
