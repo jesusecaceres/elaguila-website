@@ -50,9 +50,26 @@ export type BrListingDbRow = {
   seller_type?: string | null;
   business_name?: string | null;
   created_at?: string | null;
+  /** When present (rich select), used with `created_at` / `published_at` for browse recency. */
+  updated_at?: string | null;
+  published_at?: string | null;
   status?: string | null;
   is_published?: boolean | null;
 };
+
+function parseIsoMs(raw: string | null | undefined): number {
+  if (!raw) return NaN;
+  const t = new Date(raw).getTime();
+  return Number.isFinite(t) ? t : NaN;
+}
+
+/** Max of known timestamps so republish bumps `updated_at` and surfaces in `reciente`. */
+export function brListingRecencySortMs(row: BrListingDbRow): number {
+  const candidates = [parseIsoMs(row.created_at), parseIsoMs(row.updated_at), parseIsoMs(row.published_at)].filter(
+    (n) => Number.isFinite(n)
+  ) as number[];
+  return candidates.length ? Math.max(...candidates) : NaN;
+}
 
 export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "en"): BrNegocioListing {
   const facets = extractBrFacetsFromDetailPairs(row.detail_pairs);
@@ -77,7 +94,7 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
   const title = String(row.title ?? "").trim() || (lang === "es" ? "Anuncio" : "Listing");
   const city = String(row.city ?? "").trim() || "—";
 
-  const createdMs = row.created_at ? new Date(row.created_at).getTime() : NaN;
+  const recencyMs = brListingRecencySortMs(row);
 
   const advName =
     (isNegocio ? String(row.business_name ?? "").trim() : "") ||
@@ -109,7 +126,7 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
     trustChip: isNegocio ? (lang === "es" ? "Negocio" : "Business") : lang === "es" ? "Particular" : "Private",
     operationLabel: facets.operation === "renta" ? "Renta" : facets.operation === "venta" ? "Venta" : undefined,
     metaLines,
-    demoPublishedAtMs: Number.isFinite(createdMs) ? createdMs : undefined,
+    demoPublishedAtMs: Number.isFinite(recencyMs) ? recencyMs : undefined,
     zipCode: zipNorm || undefined,
     resultsPropertyKind: m?.resultsPropertyKind ?? null,
     facetPool: m?.pool ?? null,

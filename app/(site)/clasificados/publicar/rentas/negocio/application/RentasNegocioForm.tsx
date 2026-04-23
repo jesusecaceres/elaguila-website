@@ -721,7 +721,6 @@ export function RentasNegocioForm() {
                 </button>
                 {state.negocioLogoDataUrl ? (
                   <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-                    { }
                     <img
                       src={state.negocioLogoDataUrl}
                       alt=""

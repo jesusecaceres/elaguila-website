@@ -5,7 +5,7 @@ This document is the **product contract** for how Leonix BR behaves at launch. I
 ## Default ordering (resultados grid)
 
 1. **Primary sort** (URL `sort`): `reciente` (default), `precio_asc`, `precio_desc`.
-2. **`reciente`**: uses publish time (`demoPublishedAtMs` in dev fixtures; `published_at` / equivalent when mapped from Supabase rows).
+2. **`reciente`**: uses newest of `created_at` / `updated_at` / `published_at` from `listings` (mapped to `BrNegocioListing.demoPublishedAtMs` in `mapBrListingRowToNegocioCard`) so republicación bumps freshness; demo fixtures still set `demoPublishedAtMs` directly.
 3. **Fairness tie-break** (same price or same publish tick): **`privado` before `negocio`**, then stable `id` (`compareBrListingFairness`). This keeps private sellers from being buried when timestamps or prices tie.
 
 ## Business vs private

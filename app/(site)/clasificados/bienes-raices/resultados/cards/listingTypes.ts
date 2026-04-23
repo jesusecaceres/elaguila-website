@@ -51,8 +51,8 @@ export type BrNegocioListing = {
   facetPets?: boolean | null;
   facetFurnished?: boolean | null;
   /**
-   * Demo ordering for “recientes”; live listings use DB `published_at`.
-   * Higher = newer for default sort in launch policy helpers.
+   * Sort key for “reciente” in `filterBrListings`: demo rows set explicitly; live rows use
+   * max(`created_at`,`updated_at`,`published_at`) from `mapBrListingRowToNegocioCard`.
    */
   demoPublishedAtMs?: number;
 };

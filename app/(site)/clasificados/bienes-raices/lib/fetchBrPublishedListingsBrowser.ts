@@ -2,8 +2,12 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type { BrNegocioListing } from "../resultados/cards/listingTypes";
 import { mapBrListingRowToNegocioCard, type BrListingDbRow } from "../resultados/lib/mapBrListingRowToCard";
 
-const BR_LISTINGS_SELECT =
+/** Baseline columns — safe if optional timestamp columns are missing in an older DB. */
+const BR_LISTINGS_SELECT_BASE =
   "id, title, description, city, price, is_free, images, detail_pairs, seller_type, business_name, created_at, status, is_published";
+
+/** Rich timestamps for `reciente` / republish fairness (`mapBrListingRowToNegocioCard`). */
+const BR_LISTINGS_SELECT_RICH = `${BR_LISTINGS_SELECT_BASE}, updated_at, published_at`;
 
 export type FetchBrPublishedListingsResult = {
   listings: BrNegocioListing[];
@@ -21,14 +25,30 @@ export async function fetchBrPublishedListingsForBrowse(opts: {
   const limit = opts.limit ?? 80;
   try {
     const sb = createSupabaseBrowserClient();
-    const { data, error } = await sb
+    let data: unknown[] | null = null;
+    let error: { message: string } | null = null;
+    const rich = await sb
       .from("listings")
-      .select(BR_LISTINGS_SELECT)
+      .select(BR_LISTINGS_SELECT_RICH)
       .eq("category", "bienes-raices")
       .eq("is_published", true)
       .in("status", ["active", "sold"])
       .order("created_at", { ascending: false })
       .limit(limit);
+    if (rich.error) {
+      const base = await sb
+        .from("listings")
+        .select(BR_LISTINGS_SELECT_BASE)
+        .eq("category", "bienes-raices")
+        .eq("is_published", true)
+        .in("status", ["active", "sold"])
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      data = base.data as unknown[] | null;
+      error = base.error ? { message: base.error.message } : null;
+    } else {
+      data = rich.data as unknown[] | null;
+    }
     if (error) {
       return { listings: [], error: error.message };
     }

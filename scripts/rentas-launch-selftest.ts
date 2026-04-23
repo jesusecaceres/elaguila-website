@@ -12,6 +12,8 @@ import {
 } from "../app/(site)/clasificados/lib/leonixRealEstateListingContract";
 import { selectRentasLandingRecientes } from "../app/(site)/clasificados/rentas/data/rentasSectionSelectors";
 import { mapListingRowToRentasPublicListing } from "../app/(site)/clasificados/rentas/data/mapListingRowToRentasPublicListing";
+import { rentasListingPromotedFromRow } from "../app/(site)/clasificados/rentas/lib/rentasListingPromotionFromRow";
+import { RENTAS_DP_LISTING_STATUS } from "../app/(site)/clasificados/rentas/lib/rentasMachineDetailPairs";
 import { rentasResultsFeatured, rentasResultsGridDemo } from "../app/(site)/clasificados/rentas/results/rentasResultsDemoData";
 import { filterRentasPublicListings } from "../app/(site)/clasificados/rentas/shared/rentasBrowseFilters";
 import { parseRentasBrowseParams, rentasBrowseHasActiveFilters } from "../app/(site)/clasificados/rentas/shared/rentasBrowseContract";
@@ -104,6 +106,23 @@ function main() {
   const rec = selectRentasLandingRecientes([priv, neg]);
   assert.equal(rec[0]?.id, "rec-neg");
   assert.equal(rec[1]?.id, "rec-priv");
+
+  assert.equal(rentasListingPromotedFromRow({ boost_expires: null, detail_pairs: [] }), false);
+  assert.equal(
+    rentasListingPromotedFromRow({
+      boost_expires: new Date(Date.now() + 3600000).toISOString(),
+      detail_pairs: [],
+    }),
+    true,
+  );
+
+  const rentadoRow = {
+    ...row,
+    id: "00000000-0000-4000-8000-000000000097",
+    detail_pairs: [...(row.detail_pairs as object[]), { label: RENTAS_DP_LISTING_STATUS, value: "rentado" }],
+  };
+  const offMarket = mapListingRowToRentasPublicListing(rentadoRow as never, "es");
+  assert.equal(offMarket?.browseActive, false);
 
   console.log("rentas-launch-selftest: OK");
 }

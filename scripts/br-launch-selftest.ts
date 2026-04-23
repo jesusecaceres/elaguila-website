@@ -19,6 +19,7 @@ import {
 } from "../app/(site)/clasificados/lib/leonixBrMachineFacetPairsFromFormState";
 import { LEONIX_DP_PETS_ALLOWED, LEONIX_DP_POOL } from "../app/(site)/clasificados/lib/leonixRealEstateListingContract";
 import { brNegocioFeaturedListing, brNegocioGridListings } from "../app/(site)/clasificados/bienes-raices/resultados/demoData";
+import { brListingRecencySortMs } from "../app/(site)/clasificados/bienes-raices/resultados/lib/mapBrListingRowToCard";
 import {
   compareBrListingFairness,
   filterBrListings,
@@ -96,5 +97,12 @@ assert.ok(
   compareBrListingFairness(privTie, negTie) < 0,
   "compareBrListingFairness: privado should sort before negocio on ties"
 );
+
+const newer = brListingRecencySortMs({
+  id: "recency-proof",
+  created_at: "2020-01-01T00:00:00.000Z",
+  updated_at: "2025-06-15T12:00:00.000Z",
+});
+assert.equal(newer, new Date("2025-06-15T12:00:00.000Z").getTime(), "recency sort must prefer updated_at over created_at");
 
 console.log("br-launch-selftest: OK");
