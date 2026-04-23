@@ -20,7 +20,7 @@ const args = process.argv.slice(2);
 const nextArgs = args.length ? args : ["build"];
 
 const WIN_BUILD_FLAKES =
-  /ENOENT: no such file or directory.*\.next|build-manifest\.json|pages-manifest\.json|_ssgManifest\.js|rename '.*\.next\\export\\500\.html'|rename '.*\.next\/export\/500\.html'|Unexpected end of JSON input|EPERM|EBUSY/i;
+  /ENOENT: no such file or directory.*\.next|build-manifest\.json|pages-manifest\.json|_ssgManifest\.js|next-font-manifest\.json|Cannot find module '.*next-font-manifest|rename '.*\.next\\export\\500\.html'|rename '.*\.next\/export\/500\.html'|Unexpected end of JSON input|EPERM|EBUSY/i;
 
 function sleepMs(ms) {
   const end = Date.now() + ms;
@@ -83,7 +83,9 @@ for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     sleepMs(1200);
     const winFlake = shouldRetryWindowsBuild(lastResult, lastCombined);
     const ghost = shouldRetryNextTypesGhost(lastResult, lastCombined);
-    if (ghost || attempt >= 3) {
+    /** In-place retry can leave `.next/server` without font manifest; clean and rebuild. */
+    const fontManifestRace = /next-font-manifest\.json|Cannot find module '.*next-font-manifest/i.test(lastCombined);
+    if (ghost || attempt >= 3 || fontManifestRace) {
       // eslint-disable-next-line no-console
       console.error(`\n[next-build] Cleaning .next and retrying (${attempt}/${maxAttempts})…\n`);
       rmNextDir();

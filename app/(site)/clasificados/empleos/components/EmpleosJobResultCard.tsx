@@ -7,6 +7,7 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 import type { EmpleosJobRecord } from "../data/empleosJobTypes";
+import { empleosJobRecordListLocationLine } from "../lib/empleosJobRecordListLocation";
 import {
   EMPLEOS_BADGE_PREMIUM,
   EMPLEOS_BADGE_QUICK,
@@ -41,6 +42,7 @@ function jobTypeEs(t: EmpleosJobRecord["jobType"]) {
 
 export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRibbon = false }: Props) {
   const detailHref = appendLangToPath(`/clasificados/empleos/${job.slug}`, lang);
+  const locationLine = empleosJobRecordListLocationLine(job);
 
   const isWide = variant === "grid";
 
@@ -88,10 +90,7 @@ export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRi
         </div>
         <p className="mt-1 text-sm font-semibold text-[#4F6B82]">{job.company}</p>
         <div className="mt-2 flex flex-wrap gap-2 text-xs text-[#4A4744]">
-          <span>
-            {job.city}, {job.state}
-            {job.postalCode ? ` · ${job.postalCode}` : ""}
-          </span>
+          <span>{locationLine}</span>
           <span aria-hidden>·</span>
           <span>{lang === "es" ? modalityEs(job.modality) : job.modality}</span>
           <span aria-hidden>·</span>

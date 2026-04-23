@@ -27,10 +27,16 @@ import { inferCategoriaPropiedadFromBienesNegocioState } from "@/app/clasificado
 import { buildBusinessMetaJsonFromBienesRaicesNegocioState } from "@/app/clasificados/lib/leonixNegocioBusinessMetaFromFormState";
 import {
   publishLeonixRealEstateListingCore,
+  type PublishLeonixRealEstateListingCoreParams,
   type PublishLeonixRealEstateListingCoreResult,
 } from "@/app/clasificados/lib/leonixPublishRealEstateListingCore";
 import { mergeRentasNegocioMachinePairs, mergeRentasPrivadoMachinePairs } from "@/app/clasificados/rentas/lib/rentasMachineDetailPairs";
 import { normalizeZipForBrowse } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
+
+/** Draft → core publish params (never conflates with `{ ok: true; listingId }` from persisted publish). */
+export type LeonixBrDraftPublishBuildResult =
+  | { ok: true; params: PublishLeonixRealEstateListingCoreParams }
+  | { ok: false; error: string };
 
 function digitsOnly(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "");
@@ -68,7 +74,7 @@ function privadoSellerContact(seller: {
 function petsRequiredForBrPublish(
   petsAllowed: "" | "yes" | "no",
   lang: "es" | "en",
-): PublishLeonixRealEstateListingCoreResult | null {
+): Extract<LeonixBrDraftPublishBuildResult, { ok: false }> | null {
   if (petsAllowed === "yes" || petsAllowed === "no") return null;
   return {
     ok: false,
@@ -128,10 +134,11 @@ function negocioContactAndBusinessName(s: BienesRaicesNegocioFormState): {
   return { phone: null, email: null, businessName: trim(s.titulo) || null };
 }
 
-export async function publishLeonixListingFromBienesRaicesPrivadoDraft(
+/** Same `detail_pairs` / contact / zip contract as browser publish (Node QA seeds). */
+export function buildPublishParamsFromBienesRaicesPrivadoDraft(
   state: BienesRaicesPrivadoFormState,
-  lang: "es" | "en"
-): Promise<PublishLeonixRealEstateListingCoreResult> {
+  lang: "es" | "en",
+): LeonixBrDraftPublishBuildResult {
   const petsErr = petsRequiredForBrPublish(state.petsAllowed, lang);
   if (petsErr) return petsErr;
   const vm = mapBienesRaicesPrivadoStateToPreviewVm(state);
@@ -147,21 +154,34 @@ export async function publishLeonixListingFromBienesRaicesPrivadoDraft(
   const contact = privadoSellerContact(state.seller);
   const zipPriv = normalizeZipForBrowse(`${state.ubicacionLinea} ${state.ciudad}`.trim());
 
-  return publishLeonixRealEstateListingCore({
-    title: state.titulo,
-    description: state.descripcion,
-    city: trim(state.ciudad) || trim(state.ubicacionLinea),
-    zip: zipPriv.length >= 5 ? zipPriv : undefined,
-    price: priceNumberFromDigitsString(state.precio),
-    isFree: false,
-    category: "bienes-raices",
-    sellerType: "personal",
-    detailPairs: pairs,
-    contactPhoneDigits: contact.phone,
-    contactEmail: contact.email,
-    imageSources: [...state.media.photoDataUrls],
-    lang,
-  });
+  return {
+    ok: true,
+    params: {
+      title: state.titulo,
+      description: state.descripcion,
+      city: trim(state.ciudad) || trim(state.ubicacionLinea),
+      zip: zipPriv.length >= 5 ? zipPriv : undefined,
+      price: priceNumberFromDigitsString(state.precio),
+      isFree: false,
+      category: "bienes-raices",
+      sellerType: "personal",
+      detailPairs: pairs,
+      contactPhoneDigits: contact.phone,
+      contactEmail: contact.email,
+      imageSources: [...state.media.photoDataUrls],
+      lang,
+    },
+  };
+}
+
+export async function publishLeonixListingFromBienesRaicesPrivadoDraft(
+  state: BienesRaicesPrivadoFormState,
+  lang: "es" | "en"
+): Promise<PublishLeonixRealEstateListingCoreResult> {
+  const built = buildPublishParamsFromBienesRaicesPrivadoDraft(state, lang);
+  if (!built.ok) return built;
+  if ("params" in built) return publishLeonixRealEstateListingCore(built.params);
+  return built;
 }
 
 export async function publishLeonixListingFromRentasPrivadoDraft(
@@ -195,10 +215,10 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
   });
 }
 
-export async function publishLeonixListingFromBienesRaicesNegocioDraft(
+export function buildPublishParamsFromBienesRaicesNegocioDraft(
   state: BienesRaicesNegocioFormState,
-  lang: "es" | "en"
-): Promise<PublishLeonixRealEstateListingCoreResult> {
+  lang: "es" | "en",
+): LeonixBrDraftPublishBuildResult {
   const petsErr = petsRequiredForBrPublish(state.petsAllowed, lang);
   if (petsErr) return petsErr;
   const vm = mapBienesRaicesNegocioStateToPreviewVm(state);
@@ -213,23 +233,36 @@ export async function publishLeonixListingFromBienesRaicesNegocioDraft(
   const c = negocioContactAndBusinessName(state);
   const meta = buildBusinessMetaJsonFromBienesRaicesNegocioState(state);
   const zipNeg = normalizeZipForBrowse(state.codigoPostal);
-  return publishLeonixRealEstateListingCore({
-    title: state.titulo,
-    description: state.descripcionLarga || state.descripcionCorta,
-    city: trim(state.ciudad) || trim(state.direccion),
-    zip: zipNeg.length >= 5 ? zipNeg : undefined,
-    price: priceNumberFromDigitsString(state.precio),
-    isFree: false,
-    category: "bienes-raices",
-    sellerType: "business",
-    businessName: c.businessName,
-    businessMetaJson: meta,
-    detailPairs: pairs,
-    contactPhoneDigits: c.phone,
-    contactEmail: c.email,
-    imageSources: [...state.media.photoUrls],
-    lang,
-  });
+  return {
+    ok: true,
+    params: {
+      title: state.titulo,
+      description: state.descripcionLarga || state.descripcionCorta,
+      city: trim(state.ciudad) || trim(state.direccion),
+      zip: zipNeg.length >= 5 ? zipNeg : undefined,
+      price: priceNumberFromDigitsString(state.precio),
+      isFree: false,
+      category: "bienes-raices",
+      sellerType: "business",
+      businessName: c.businessName,
+      businessMetaJson: meta,
+      detailPairs: pairs,
+      contactPhoneDigits: c.phone,
+      contactEmail: c.email,
+      imageSources: [...state.media.photoUrls],
+      lang,
+    },
+  };
+}
+
+export async function publishLeonixListingFromBienesRaicesNegocioDraft(
+  state: BienesRaicesNegocioFormState,
+  lang: "es" | "en"
+): Promise<PublishLeonixRealEstateListingCoreResult> {
+  const built = buildPublishParamsFromBienesRaicesNegocioDraft(state, lang);
+  if (!built.ok) return built;
+  if ("params" in built) return publishLeonixRealEstateListingCore(built.params);
+  return built;
 }
 
 export async function publishLeonixListingFromRentasNegocioDraft(

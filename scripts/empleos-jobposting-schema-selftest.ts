@@ -10,6 +10,7 @@ import { strict as assert } from "node:assert";
 process.env.NEXT_PUBLIC_SITE_URL = "https://empleos-selftest.example";
 
 import type { EmpleosJobRecord } from "../app/(site)/clasificados/empleos/data/empleosJobTypes";
+import { empleosJobRecordListLocationLine } from "../app/(site)/clasificados/empleos/lib/empleosJobRecordListLocation";
 import { buildEmpleosJobPostingJsonLdObject, validateEmpleosJobPostingJsonLdObject } from "../app/(site)/clasificados/empleos/lib/empleosJobPostingSchema";
 import { empleosJobPublicAbsoluteUrl } from "../app/(site)/clasificados/empleos/lib/empleosSiteUrl";
 
@@ -57,6 +58,25 @@ assert.equal(
   empleosJobPublicAbsoluteUrl(job.slug, "en"),
   "https://empleos-selftest.example/clasificados/empleos/cocinero-austin-tx?lang=en",
 );
+
+const norCalQuick: EmpleosJobRecord = {
+  ...job,
+  publicationLane: "quick",
+  city: "NorCal",
+  state: "CA",
+  employerAddressLine: "SoMa Gateway Tower, 450 Townsend St, San Francisco, CA 94107",
+  postalCode: "94107",
+};
+assert.match(empleosJobRecordListLocationLine(norCalQuick), /San Francisco, CA/);
+
+const feriaRow: EmpleosJobRecord = {
+  ...job,
+  publicationLane: "feria",
+  city: "NorCal",
+  state: "CA",
+  feriaVenue: "Centro Cívico Mission Bay — Salones A y B",
+};
+assert.ok(empleosJobRecordListLocationLine(feriaRow).includes("Mission Bay"));
 
 const mig = readFileSync(join(process.cwd(), "supabase/migrations/20260410220000_empleos_listing_metrics.sql"), "utf8");
 assert.match(mig, /apply_count/i);

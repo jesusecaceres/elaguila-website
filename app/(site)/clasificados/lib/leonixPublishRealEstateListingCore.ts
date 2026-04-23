@@ -24,6 +24,69 @@ function digitsOnly(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "");
 }
 
+/** Same row shape as browser publish insert (Node scripts / QA seeds may call with authenticated `ownerId`). */
+export function buildListingsInsertRowForLeonixPublish(
+  ownerId: string,
+  params: PublishLeonixRealEstateListingCoreParams,
+): Record<string, unknown> {
+  const {
+    title,
+    description,
+    city,
+    zip: zipRaw,
+    price,
+    isFree,
+    category,
+    sellerType,
+    businessName,
+    businessMetaJson,
+    detailPairs,
+    contactPhoneDigits,
+    contactEmail,
+  } = params;
+
+  const phone =
+    contactPhoneDigits && digitsOnly(contactPhoneDigits).length >= 10 ? digitsOnly(contactPhoneDigits).slice(0, 15) : null;
+  const email = (contactEmail ?? "").trim() || null;
+
+  const zipTrim = (zipRaw ?? "").trim();
+  const insertPayload: Record<string, unknown> = {
+    owner_id: ownerId,
+    title: title.trim(),
+    description: description.trim(),
+    city: city.trim(),
+    category,
+    price: isFree ? 0 : Number.isFinite(price) && price >= 0 ? Math.round(price) : 0,
+    is_free: isFree,
+    contact_phone: phone,
+    contact_email: email,
+    status: "active",
+    is_published: true,
+    seller_type: sellerType,
+    detail_pairs: detailPairs.length ? detailPairs : null,
+  };
+
+  if (zipTrim) {
+    insertPayload.zip = zipTrim.replace(/\D/g, "").slice(0, 12);
+  }
+
+  if (sellerType === "business" && businessName?.trim()) {
+    insertPayload.business_name = businessName.trim();
+  }
+  if (businessMetaJson?.trim()) {
+    insertPayload.business_meta = businessMetaJson.trim();
+  }
+  return insertPayload;
+}
+
+export function leonixGalleryAppendixForDescription(lang: "es" | "en", photoUrls: string[]): string {
+  if (!photoUrls.length) return "";
+  const marker = `[LEONIX_IMAGES]\n` + photoUrls.map((u) => `url=${u}`).join("\n") + `\n[/LEONIX_IMAGES]`;
+  return lang === "es"
+    ? `\n\n— Fotos —\n${photoUrls.join("\n")}\n${marker}\n`
+    : `\n\n— Photos —\n${photoUrls.join("\n")}\n${marker}\n`;
+}
+
 export type PublishLeonixRealEstateListingCoreParams = {
   title: string;
   description: string;
@@ -51,23 +114,7 @@ export type PublishLeonixRealEstateListingCoreResult =
 export async function publishLeonixRealEstateListingCore(
   params: PublishLeonixRealEstateListingCoreParams
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
-  const {
-    title,
-    description,
-    city,
-    zip: zipRaw,
-    price,
-    isFree,
-    category,
-    sellerType,
-    businessName,
-    businessMetaJson,
-    detailPairs,
-    contactPhoneDigits,
-    contactEmail,
-    imageSources,
-    lang,
-  } = params;
+  const { title, description, city, category, sellerType, imageSources, lang } = params;
 
   if (!title.trim()) {
     return { ok: false, error: lang === "es" ? "Falta el título." : "Title is required." };
@@ -100,37 +147,7 @@ export async function publishLeonixRealEstateListingCore(
   }
   const userId = auth.user.id;
 
-  const phone =
-    contactPhoneDigits && digitsOnly(contactPhoneDigits).length >= 10 ? digitsOnly(contactPhoneDigits).slice(0, 15) : null;
-  const email = (contactEmail ?? "").trim() || null;
-
-  const zipTrim = (zipRaw ?? "").trim();
-  const insertPayload: Record<string, unknown> = {
-    owner_id: userId,
-    title: title.trim(),
-    description: description.trim(),
-    city: city.trim(),
-    category,
-    price: isFree ? 0 : Number.isFinite(price) && price >= 0 ? Math.round(price) : 0,
-    is_free: isFree,
-    contact_phone: phone,
-    contact_email: email,
-    status: "active",
-    is_published: true,
-    seller_type: sellerType,
-    detail_pairs: detailPairs.length ? detailPairs : null,
-  };
-
-  if (zipTrim) {
-    insertPayload.zip = zipTrim.replace(/\D/g, "").slice(0, 12);
-  }
-
-  if (sellerType === "business" && businessName?.trim()) {
-    insertPayload.business_name = businessName.trim();
-  }
-  if (businessMetaJson?.trim()) {
-    insertPayload.business_meta = businessMetaJson.trim();
-  }
+  const insertPayload = buildListingsInsertRowForLeonixPublish(userId, params);
 
   devLog("insert listings row", { category, sellerType, titleLen: title.trim().length });
 
@@ -215,11 +232,7 @@ export async function publishLeonixRealEstateListingCore(
     }
 
     if (photoUrls.length) {
-      const marker = `[LEONIX_IMAGES]\n` + photoUrls.map((u) => `url=${u}`).join("\n") + `\n[/LEONIX_IMAGES]`;
-      const appendix =
-        lang === "es"
-          ? `\n\n— Fotos —\n${photoUrls.join("\n")}\n${marker}\n`
-          : `\n\n— Photos —\n${photoUrls.join("\n")}\n${marker}\n`;
+      const appendix = leonixGalleryAppendixForDescription(lang, photoUrls);
       const descriptionForUpdate = `${description.trim()}${appendix}`.trim();
       const { error: updErr } = await supabase
         .from("listings")
