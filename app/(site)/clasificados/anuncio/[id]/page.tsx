@@ -34,6 +34,7 @@ import type { RentasAnuncioListingLike } from "../../rentas/listing/types/rentas
 import { EnVentaAnuncioLayout } from "../../en-venta/listing/EnVentaAnuncioLayout";
 import { EV_LISTING_PARAM } from "../../en-venta/results/contracts/enVentaResultsUrlParams";
 import { parseEnVentaResultsReturnUrl } from "../../en-venta/results/utils/enVentaListingLinks";
+import { missingListingsColumnName, stripSelectColumn } from "../../lib/listingsSelectShrink";
 import { resolveLeonixLiveListingContact } from "../../lib/leonixListingContactResolve";
 import { useAutosAnuncioDerived } from "../../autos/listing/hooks/useAutosAnuncioDerived";
 import { AutosAnuncioMetaFactCards } from "../../autos/listing/components/AutosAnuncioMetaFactCards";
@@ -41,6 +42,9 @@ import { AutosAnuncioLaneContextStrip } from "../../autos/listing/components/Aut
 import { AutosAnuncioAnalyticsStrip } from "../../autos/listing/components/AutosAnuncioAnalyticsStrip";
 import type { AutosAnuncioListingLike } from "../../autos/listing/types/autosAnuncioLiveTypes";
 type Lang = "es" | "en";
+
+const ANUNCIO_LISTING_SELECT_BASE =
+  "id, owner_id, title, description, city, category, price, is_free, detail_pairs, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, original_price, current_price, price_last_updated, images, boost_expires";
 
 type CategoryKey =
   | "en-venta"
@@ -375,13 +379,20 @@ export default function AnuncioDetallePage() {
     void (async () => {
       try {
         const supabase = createSupabaseBrowserClient();
-        const { data, error } = await supabase
-          .from("listings")
-          .select(
-            "id, owner_id, title, description, city, category, price, is_free, detail_pairs, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, original_price, current_price, price_last_updated, images, boost_expires"
-          )
-          .eq("id", id)
-          .maybeSingle();
+        let cols = ANUNCIO_LISTING_SELECT_BASE;
+        let data: Record<string, unknown> | null = null;
+        let error: { message: string } | null = null;
+        for (let attempt = 0; attempt < 32; attempt++) {
+          const res = await supabase.from("listings").select(cols).eq("id", id).maybeSingle();
+          data = (res.data as Record<string, unknown> | null) ?? null;
+          error = res.error ? { message: res.error.message } : null;
+          if (!error) break;
+          const bad = missingListingsColumnName(res.error);
+          if (!bad) break;
+          const next = stripSelectColumn(cols, bad);
+          if (next === cols) break;
+          cols = next;
+        }
         if (cancelled) return;
         if (error) {
           setRemoteError(error.message);

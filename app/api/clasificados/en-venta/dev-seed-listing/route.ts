@@ -100,10 +100,20 @@ export async function POST(req: NextRequest) {
     business_meta: null,
     detail_pairs: detailPairs,
     images: [],
-    boost_expires: null,
   };
 
-  const { error } = await supabase.from("listings").insert([insertPayload]);
+  const tryInsert = async (payload: Record<string, unknown>) => supabase.from("listings").insert([payload]);
+
+  let { error } = await tryInsert(insertPayload);
+  /** Older `listings` rows may omit `zip` — match `publishEnVentaFromDraft` retry behavior. */
+  if (error) {
+    const m = (error.message ?? "").toLowerCase();
+    if (m.includes("zip") && insertPayload.zip != null) {
+      const noZip = { ...insertPayload };
+      delete noZip.zip;
+      ({ error } = await tryInsert(noZip));
+    }
+  }
   if (error) {
     const authFail = responseForSupabaseAdminError(error);
     if (authFail) return authFail;

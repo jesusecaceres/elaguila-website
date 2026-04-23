@@ -5,6 +5,7 @@
  * `?category=bienes-raices` + optional `leonix_branch` filters.
  */
 
+import { insertListingsRowResilient } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 const DEV = process.env.NODE_ENV === "development";
@@ -133,12 +134,12 @@ export async function publishLeonixRealEstateListingCore(
 
   devLog("insert listings row", { category, sellerType, titleLen: title.trim().length });
 
-  const { data: row, error: insErr } = await supabase.from("listings").insert([insertPayload]).select("id").single();
-
-  if (insErr) {
-    devLog("insert error", insErr);
-    const code = typeof (insErr as { code?: unknown }).code === "string" ? String((insErr as { code: string }).code) : "";
-    const msg = String(insErr.message ?? "");
+  const { data: inserted, error: insErr } = await insertListingsRowResilient(supabase, insertPayload);
+  if (insErr || !inserted?.id) {
+    const err = insErr ?? { message: "unknown", code: "" };
+    devLog("insert error", err);
+    const code = typeof err.code === "string" ? err.code : "";
+    const msg = String(err.message ?? "");
     const rls = code === "42501" || /row-level security|RLS|permission denied|violates row-level security/i.test(msg);
     const missingCol = /column\s+["']?(\w+)["']?\s+of\s+relation\s+["']?listings["']?\s+does not exist/i.test(msg);
     const hint =
@@ -166,10 +167,7 @@ export async function publishLeonixRealEstateListingCore(
     };
   }
 
-  const listingId = (row as { id?: string } | null)?.id;
-  if (!listingId) {
-    return { ok: false, error: lang === "es" ? "No se recibió el ID del anuncio." : "No listing id returned." };
-  }
+  const listingId = inserted.id;
 
   const warnings: string[] = [];
   const ordered = imageSources.filter((u) => typeof u === "string" && u.trim());

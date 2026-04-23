@@ -43,6 +43,14 @@ test.describe("En Venta seeded DB trace (dev API)", () => {
         `/clasificados/en-venta/results?lang=es&evDept=electronicos&evSub=phones&q=${q}&sort=newest`
       );
       await expect(page.locator(`a[href*="/clasificados/anuncio/${listingId}"]`).first()).toBeVisible();
+
+      /** Hub is editorial + CTAs; inventory lives on results — prove landing → results still finds the row. */
+      await page.goto("/clasificados/en-venta?lang=es");
+      await expect(page.getByRole("heading", { name: /En Venta/i })).toBeVisible();
+      await page.getByRole("link", { name: /Ver todos los anuncios/i }).click();
+      await expect(page).toHaveURL(/\/clasificados\/en-venta\/results/);
+      await page.goto(`/clasificados/en-venta/results?lang=es&evDept=electronicos&evSub=phones&q=${q}&sort=newest`);
+      await expect(page.locator(`a[href*="/clasificados/anuncio/${listingId}"]`).first()).toBeVisible();
     } finally {
       const del = await request.post("/api/clasificados/en-venta/dev-seed-listing", {
         data: { action: "delete", listingId },

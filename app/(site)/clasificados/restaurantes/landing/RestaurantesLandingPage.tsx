@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FaMapMarkerAlt, FaSearch, FaStar } from "react-icons/fa";
 
@@ -136,7 +136,19 @@ function ListingCard({
   );
 }
 
-export function RestaurantesLandingPage({
+function RestaurantesLandingPageFallback() {
+  return (
+    <RestaurantesLandingShell>
+      <Navbar />
+      <main className="mx-auto max-w-[1280px] px-4 py-10">
+        <h1 className="font-serif text-2xl font-semibold text-[#2D241E]">Restaurantes</h1>
+        <p className="mt-2 text-sm text-[#2D241E]/60">Cargando…</p>
+      </main>
+    </RestaurantesLandingShell>
+  );
+}
+
+function RestaurantesLandingPageInner({
   featuredCards,
   recentCards,
   landingNote,
@@ -568,5 +580,18 @@ export function RestaurantesLandingPage({
         </section>
       </main>
     </RestaurantesLandingShell>
+  );
+}
+
+export function RestaurantesLandingPage(props: {
+  featuredCards: RestaurantesBlueprintCard[];
+  recentCards: RestaurantesBlueprintCard[];
+  landingNote?: string;
+  discoveryLookupRows: RestaurantesPublicBlueprintRow[];
+}) {
+  return (
+    <Suspense fallback={<RestaurantesLandingPageFallback />}>
+      <RestaurantesLandingPageInner {...props} />
+    </Suspense>
   );
 }
