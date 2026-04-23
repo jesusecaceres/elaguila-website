@@ -6,7 +6,6 @@ import { fileURLToPath } from "node:url";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 
-/** Load `.env.local` into `process.env` so Playwright + `next start` see Supabase keys without exporting them in the shell. */
 function loadDotEnvLocal() {
   try {
     const p = path.join(root, ".env.local");
@@ -19,7 +18,7 @@ function loadDotEnvLocal() {
       if (eq < 1) continue;
       const k = s.slice(0, eq).trim();
       let v = s.slice(eq + 1).trim();
-      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+      if ((v.startsWith("\"") && v.endsWith("\"")) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
       if (!process.env[k]) process.env[k] = v;
     }
   } catch {
@@ -37,26 +36,19 @@ export default defineConfig({
   reporter: "list",
   use: {
     ...devices["Desktop Chrome"],
-    baseURL: process.env.SERVICIOS_E2E_BASE ?? "http://127.0.0.1:3016",
+    baseURL: process.env.RENTAS_E2E_BASE ?? "http://127.0.0.1:3018",
     trace: "retain-on-failure",
   },
   webServer: {
-    // Use dev server for local/CI E2E stability: `.next/BUILD_ID` is not always present on Windows after flaky builds.
-    // On Windows, `.next` can be left in a partially-corrupted state after interrupted builds.
-    // Clean before starting the dev server so runtime QA isn't flaking on missing chunks/manifests.
-    command: "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true})}catch{}\" && npx next dev -p 3016",
+    command: "node node_modules/next/dist/bin/next start -p 3018",
     cwd: root,
-    url: "http://127.0.0.1:3016/clasificados/en-venta?lang=es",
+    url: "http://127.0.0.1:3018/clasificados/rentas?lang=es",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {
       ...process.env,
-      NODE_ENV: "development",
-      SERVICIOS_DEV_PUBLISH: "1",
-      /** Match `servicios-http-smoke.mjs`: public detail must render for published listings. */
-      SERVICIOS_MODERATION_MODE: "0",
-      /** Enables gated `POST /api/clasificados/en-venta/dev-seed-listing` for trace E2E only. */
-      EN_VENTA_DEV_PUBLISH: "1",
+      NODE_ENV: "production",
     },
   },
 });
+

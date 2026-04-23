@@ -40,7 +40,7 @@ function HeroBackdrop({ src }: { src: string }) {
   const useNextImage = src.startsWith("/") || src.includes("images.unsplash.com");
   /** Responsive focal point: slightly higher on phones, centered on desktop — reduces awkward crops. */
   const objectPos =
-    "object-cover object-[center_35%] min-[400px]:object-[center_38%] md:object-[center_40%] xl:object-[center_42%]";
+    "pointer-events-none select-none object-cover object-[center_35%] min-[400px]:object-[center_38%] md:object-[center_40%] xl:object-[center_42%]";
   if (useNextImage) {
     return (
       <Image

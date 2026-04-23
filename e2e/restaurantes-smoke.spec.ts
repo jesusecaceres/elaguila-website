@@ -3,8 +3,10 @@ import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const e2ePassword = process.env.RESTAURANTES_E2E_PASSWORD;
+const smokeSellerEmail = process.env.SMOKE_SELLER_EMAIL ?? "smoke.seller@yourdomain.com";
+const smokeSellerPassword = process.env.SMOKE_SELLER_PASSWORD ?? "LeonixSmoke!2026Seller";
+const adminSharedPassword = process.env.ADMIN_PASSWORD ?? process.env.SMOKE_ADMIN_PASSWORD ?? "LeonixSmoke!2026Admin";
+const baseUrlForCookies = process.env.RESTAURANTES_E2E_BASE ?? "http://127.0.0.1:3017";
 
 test.describe("Restaurantes smoke (production build)", () => {
   test("landing → results → publish (no demo explícito banner)", async ({ page }) => {
@@ -30,23 +32,14 @@ test.describe("Restaurantes smoke (production build)", () => {
     expect(j.error).toBe("missing_draft");
   });
 
-  test("signed-in owner can open dashboard route (session via Supabase password)", async ({ page, context }) => {
-    test.skip(!url || !anon || !service || !e2ePassword, "Set NEXT_PUBLIC_SUPABASE_URL, ANON, SERVICE_ROLE_KEY, RESTAURANTES_E2E_PASSWORD");
-
-    const admin = createClient(url!, service!, { auth: { persistSession: false, autoRefreshToken: false } });
-    const email = `rx-e2e-${Date.now()}@leonix-e2e.invalid`;
-    const password = e2ePassword!;
-    const { error: cuErr } = await admin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-    });
-    if (cuErr && !String(cuErr.message).toLowerCase().includes("already")) {
-      throw cuErr;
-    }
+  test("signed-in seller can open dashboard route (session via SMOKE_SELLER creds)", async ({ page, context }) => {
+    test.skip(!url || !anon, "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY");
 
     const browserAnon = createClient(url!, anon!);
-    const { data: sess, error: sErr } = await browserAnon.auth.signInWithPassword({ email, password });
+    const { data: sess, error: sErr } = await browserAnon.auth.signInWithPassword({
+      email: smokeSellerEmail,
+      password: smokeSellerPassword,
+    });
     if (sErr || !sess.session) throw sErr ?? new Error("no session");
 
     const ref = new URL(url!).hostname.split(".")[0];
@@ -68,7 +61,27 @@ test.describe("Restaurantes smoke (production build)", () => {
 
     await page.goto("/dashboard/restaurantes?lang=es");
     await expect(page.getByText(/Mis restaurantes|restaurantes/i).first()).toBeVisible({ timeout: 25_000 });
+  });
 
-    await admin.auth.admin.deleteUser(sess.user.id);
+  test("admin shared-password login works (ADMIN_PASSWORD / SMOKE_ADMIN_PASSWORD)", async ({ page }) => {
+    await page.goto("/admin/login");
+    await page.locator('input[name="password"]').fill(adminSharedPassword);
+    await page.getByRole("button", { name: /log in/i }).click();
+    await page.waitForURL(/\/admin(\/|$)/);
+    await expect(page).toHaveURL(/\/admin(\/|$)/);
+  });
+
+  test("admin can open Restaurantes workspace with leonix_admin cookie", async ({ page, context }) => {
+    await context.addCookies([
+      {
+        name: "leonix_admin",
+        value: "1",
+        url: baseUrlForCookies,
+        httpOnly: true,
+        sameSite: "Lax",
+      },
+    ]);
+    await page.goto("/admin/workspace/clasificados/restaurantes");
+    await expect(page.getByRole("heading").first()).toBeVisible();
   });
 });

@@ -2,6 +2,7 @@
  * Owner listing fetch with tiered SELECT — mirrors admin pattern when optional columns differ by environment.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { missingListingsColumnName, stripSelectColumn } from "@/app/clasificados/lib/listingsSelectShrink";
 
 const CORE =
   "id,title,price,city,zip,status,created_at,category,images,detail_pairs,boost_expires,views,original_price,current_price,price_last_updated,is_published";
@@ -12,17 +13,14 @@ const WITH_TIMESTAMPS = `${CORE}, updated_at, published_at`;
 
 export type OwnerListingFetchMeta = {
   optionalMetaAvailable: boolean;
+  /** False when `boost_expires` is missing in the connected `listings` schema. */
+  boostExpiresAvailable: boolean;
 };
 
 export async function fetchOwnerListingsForDashboard(
   sb: SupabaseClient,
   ownerId: string
 ): Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null; meta: OwnerListingFetchMeta }> {
-  const trySelect = async (cols: string): Promise<{ data: unknown[] | null; error: { message: string } | null }> => {
-    const res = await sb.from("listings").select(cols).eq("owner_id", ownerId).order("created_at", { ascending: false });
-    return { data: res.data as unknown[] | null, error: res.error ? { message: res.error.message } : null };
-  };
-
   const tiers: Array<{ cols: string; rich: boolean }> = [
     { cols: WITH_OPTIONAL_META, rich: true },
     { cols: WITH_TIMESTAMPS, rich: true },
@@ -31,17 +29,31 @@ export async function fetchOwnerListingsForDashboard(
 
   let lastErr: { message: string } | null = null;
   for (const tier of tiers) {
-    const res = await trySelect(tier.cols);
-    if (!res.error && res.data) {
-      return { data: res.data as Record<string, unknown>[], error: null, meta: { optionalMetaAvailable: tier.rich } };
+    let cols = tier.cols;
+    let boostExpiresAvailable = cols.split(",").map((s) => s.trim()).includes("boost_expires");
+    for (let attempt = 0; attempt < 32; attempt++) {
+      const res = await sb.from("listings").select(cols).eq("owner_id", ownerId).order("created_at", { ascending: false });
+      if (!res.error) {
+        return {
+          data: (res.data as unknown as Record<string, unknown>[]) ?? [],
+          error: null,
+          meta: { optionalMetaAvailable: tier.rich, boostExpiresAvailable },
+        };
+      }
+      lastErr = { message: res.error.message };
+      const bad = missingListingsColumnName(res.error);
+      if (!bad) break;
+      const next = stripSelectColumn(cols, bad);
+      if (next === cols) break;
+      cols = next;
+      if (bad === "boost_expires") boostExpiresAvailable = false;
     }
-    lastErr = res.error;
   }
 
   return {
     data: null,
     error: lastErr,
-    meta: { optionalMetaAvailable: false },
+    meta: { optionalMetaAvailable: false, boostExpiresAvailable: true },
   };
 }
 

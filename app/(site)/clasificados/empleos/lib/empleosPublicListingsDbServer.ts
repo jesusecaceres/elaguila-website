@@ -225,7 +225,7 @@ export async function fetchEmpleosPublishedJobRecords(): Promise<EmpleosJobRecor
     .from("empleos_public_listings")
     .select("*")
     .eq("lifecycle_status", "published")
-    .order("published_at", { ascending: false, nullsFirst: false });
+    .order("published_at", { ascending: false });
   if (error || !data) return [];
   return (data as EmpleosPublicListingRow[]).map((r) => rowToJobRecord(r));
 }

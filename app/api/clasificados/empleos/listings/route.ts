@@ -3,10 +3,20 @@ import { NextRequest, NextResponse } from "next/server";
 
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 import { upsertEmpleosListingFromEnvelope } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
+import { fetchEmpleosPublishedJobRecords } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { getBearerUserId } from "../../_lib/bearerUser";
 
 export const runtime = "nodejs";
+
+/** Public read: published catalog (used as a runtime fallback when server props are empty). */
+export async function GET(): Promise<NextResponse> {
+  if (!isSupabaseAdminConfigured()) {
+    return NextResponse.json({ ok: false, error: "supabase_not_configured" }, { status: 503 });
+  }
+  const jobs = await fetchEmpleosPublishedJobRecords();
+  return NextResponse.json({ ok: true, jobs });
+}
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!isSupabaseAdminConfigured()) {

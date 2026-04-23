@@ -245,6 +245,7 @@ export default function MyListingsPage() {
   const [listingsLoading, setListingsLoading] = useState(false);
   const [listings, setListings] = useState<ListingRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [boostExpiresAvailable, setBoostExpiresAvailable] = useState(true);
   const [analyticsByListing, setAnalyticsByListing] = useState<Record<string, ListingAnalyticsBucket>>({});
 
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -296,7 +297,7 @@ export default function MyListingsPage() {
       setListingsLoading(true);
       setError(null);
 
-      const { data: rows, error: qErr } = await fetchOwnerListingsForDashboard(supabase, u.id);
+      const { data: rows, error: qErr, meta } = await fetchOwnerListingsForDashboard(supabase, u.id);
 
       if (!mounted) return;
 
@@ -307,6 +308,7 @@ export default function MyListingsPage() {
         return;
       }
 
+      setBoostExpiresAvailable(meta?.boostExpiresAvailable !== false);
       const list = ((rows ?? []) as Record<string, unknown>[]).map((r) => mapOwnerListingRow(r)) as ListingRow[];
       setListings(list);
       setListingsLoading(false);
@@ -714,7 +716,7 @@ export default function MyListingsPage() {
                 const viewsTotal = resolveViews(x, stats);
 
                 const renewalVm =
-                  listingPlan === "pro"
+                  listingPlan === "pro" && boostExpiresAvailable
                     ? computeEnVentaVisibilityRenewalVm({
                         plan: "pro",
                         boostExpires: x.boost_expires,

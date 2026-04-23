@@ -133,7 +133,8 @@ async function main() {
   const sb = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { error } = await sb.from("empleos_public_listings").select("id").limit(1);
+  // Minimal schema verification for launch: required tables + metrics columns.
+  const { error } = await sb.from("empleos_public_listings").select("id,apply_count,view_count").limit(1);
   if (error) {
     const hint =
       /could not find the table|does not exist|schema cache/i.test(String(error.message))
@@ -143,6 +144,16 @@ async function main() {
       "BLOCKED_BY_EXTERNAL_SERVICE",
       error.message,
       `host=${urlHost} urlRef=${urlRef ?? "?"} jwtRef=${serviceRef ?? "?"}${hint}`,
+    );
+    process.exit(3);
+  }
+
+  const { error: appsErr } = await sb.from("empleos_job_applications").select("id,listing_id").limit(1);
+  if (appsErr) {
+    console.error(
+      "BLOCKED_BY_EXTERNAL_SERVICE",
+      appsErr.message,
+      `host=${urlHost} urlRef=${urlRef ?? "?"} jwtRef=${serviceRef ?? "?"}`,
     );
     process.exit(3);
   }

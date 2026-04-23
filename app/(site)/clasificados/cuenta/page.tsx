@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Navbar from "../../../components/Navbar";
-import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
+import Navbar from "@/app/components/Navbar";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { BizCategory, BUSINESS_PRICES, CUENTA_BIZ_CATEGORY_OPTIONS } from "./shared/fields/cuentaTaxonomy";
 import { getCuentaLang } from "./shared/utils/cuentaLang";
 

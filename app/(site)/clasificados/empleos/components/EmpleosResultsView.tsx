@@ -350,12 +350,42 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
   const t = COPY[lang];
 
+  const [runtimeJobs, setRuntimeJobs] = useState<EmpleosJobRecord[] | null>(null);
+
   const parsed = useMemo(() => parseEmpleosResultsQuery(sp ?? new URLSearchParams()), [sp]);
 
+  useEffect(() => {
+    // Runtime fallback: when live-only is enabled and server props came back empty (dev flake / env load timing),
+    // fetch the published catalog from the server API so results remain backed by persisted data.
+    if (!omitMarketingSeed) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/clasificados/empleos/listings", { method: "GET" });
+        const json = (await res.json()) as { ok?: boolean; jobs?: EmpleosJobRecord[] };
+        if (!cancelled && res.ok && json.ok && Array.isArray(json.jobs)) {
+          setRuntimeJobs(json.jobs);
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [omitMarketingSeed]);
+
   const mergedCatalog = useMemo(() => {
+    // Prefer union of server-props and runtime catalog (covers RSC caching/prefetch staleness after publish).
+    if (runtimeJobs && runtimeJobs.length > 0) {
+      const byId = new Map<string, EmpleosJobRecord>();
+      for (const j of initialJobs) byId.set(j.id, j);
+      for (const j of runtimeJobs) byId.set(j.id, j);
+      return Array.from(byId.values());
+    }
     if (initialJobs.length > 0) return initialJobs;
     return mergeEmpleosSeedWithLiveJobs([], { omitSeed: omitMarketingSeed });
-  }, [initialJobs, omitMarketingSeed]);
+  }, [initialJobs, omitMarketingSeed, runtimeJobs]);
 
   const filtered = useMemo(() => {
     const f = filterEmpleosJobs(mergedCatalog, parsed, clock);

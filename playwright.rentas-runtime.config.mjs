@@ -6,7 +6,6 @@ import { fileURLToPath } from "node:url";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 
-/** Load `.env.local` into `process.env` so Playwright + `next start` see Supabase keys without exporting them in the shell. */
 function loadDotEnvLocal() {
   try {
     const p = path.join(root, ".env.local");
@@ -37,26 +36,19 @@ export default defineConfig({
   reporter: "list",
   use: {
     ...devices["Desktop Chrome"],
-    baseURL: process.env.SERVICIOS_E2E_BASE ?? "http://127.0.0.1:3016",
+    baseURL: process.env.RENTAS_E2E_BASE ?? "http://127.0.0.1:3017",
     trace: "retain-on-failure",
   },
   webServer: {
-    // Use dev server for local/CI E2E stability: `.next/BUILD_ID` is not always present on Windows after flaky builds.
-    // On Windows, `.next` can be left in a partially-corrupted state after interrupted builds.
-    // Clean before starting the dev server so runtime QA isn't flaking on missing chunks/manifests.
-    command: "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true})}catch{}\" && npx next dev -p 3016",
+    command: "npx next dev -p 3017",
     cwd: root,
-    url: "http://127.0.0.1:3016/clasificados/en-venta?lang=es",
+    url: "http://127.0.0.1:3017/clasificados/rentas?lang=es",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {
       ...process.env,
       NODE_ENV: "development",
-      SERVICIOS_DEV_PUBLISH: "1",
-      /** Match `servicios-http-smoke.mjs`: public detail must render for published listings. */
-      SERVICIOS_MODERATION_MODE: "0",
-      /** Enables gated `POST /api/clasificados/en-venta/dev-seed-listing` for trace E2E only. */
-      EN_VENTA_DEV_PUBLISH: "1",
     },
   },
 });
+

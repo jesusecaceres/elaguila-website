@@ -20,7 +20,7 @@ const args = process.argv.slice(2);
 const nextArgs = args.length ? args : ["build"];
 
 const WIN_BUILD_FLAKES =
-  /ENOENT: no such file or directory.*\.next|build-manifest\.json|pages-manifest\.json|_ssgManifest\.js|rename '.*\.next\\export\\500\.html'|rename '.*\.next\/export\/500\.html'|EPERM|EBUSY/i;
+  /ENOENT: no such file or directory.*\.next|build-manifest\.json|pages-manifest\.json|_ssgManifest\.js|rename '.*\.next\\export\\500\.html'|rename '.*\.next\/export\/500\.html'|Unexpected end of JSON input|EPERM|EBUSY/i;
 
 function sleepMs(ms) {
   const end = Date.now() + ms;
