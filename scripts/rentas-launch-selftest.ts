@@ -8,7 +8,9 @@ import {
   LEONIX_DP_CATEGORIA_PROPIEDAD,
   LEONIX_DP_HIGHLIGHT_SLUGS,
   LEONIX_DP_OPERATION,
+  LEONIX_DP_PROMOTED,
 } from "../app/(site)/clasificados/lib/leonixRealEstateListingContract";
+import { selectRentasLandingRecientes } from "../app/(site)/clasificados/rentas/data/rentasSectionSelectors";
 import { mapListingRowToRentasPublicListing } from "../app/(site)/clasificados/rentas/data/mapListingRowToRentasPublicListing";
 import { rentasResultsFeatured, rentasResultsGridDemo } from "../app/(site)/clasificados/rentas/results/rentasResultsDemoData";
 import { filterRentasPublicListings } from "../app/(site)/clasificados/rentas/shared/rentasBrowseFilters";
@@ -64,6 +66,44 @@ function main() {
   const mapped = mapListingRowToRentasPublicListing(row as never, "es");
   assert.ok(mapped);
   assert.deepEqual(mapped!.highlightSlugs, ["patio", "terraza"]);
+
+  const boostedRow = {
+    ...row,
+    boost_expires: new Date(Date.now() + 86400000).toISOString(),
+  };
+  const boostedMap = mapListingRowToRentasPublicListing(boostedRow as never, "es");
+  assert.ok(boostedMap?.promoted);
+  assert.ok(boostedMap?.badges.includes("destacada"));
+
+  const promotedPairRow = {
+    ...row,
+    id: "00000000-0000-4000-8000-000000000098",
+    detail_pairs: [
+      ...(row.detail_pairs as object[]),
+      { label: LEONIX_DP_PROMOTED, value: "true" },
+    ],
+  };
+  const pm = mapListingRowToRentasPublicListing(promotedPairRow as never, "es");
+  assert.ok(pm?.promoted);
+  assert.ok(pm?.badges.includes("destacada"));
+
+  const priv = {
+    ...rentasResultsFeatured,
+    id: "rec-priv",
+    branch: "privado" as const,
+    publishedAt: "2026-01-02T00:00:00.000Z",
+    browseActive: true,
+  };
+  const neg = {
+    ...rentasResultsGridDemo[0]!,
+    id: "rec-neg",
+    branch: "negocio" as const,
+    publishedAt: "2026-01-05T00:00:00.000Z",
+    browseActive: true,
+  };
+  const rec = selectRentasLandingRecientes([priv, neg]);
+  assert.equal(rec[0]?.id, "rec-neg");
+  assert.equal(rec[1]?.id, "rec-priv");
 
   console.log("rentas-launch-selftest: OK");
 }

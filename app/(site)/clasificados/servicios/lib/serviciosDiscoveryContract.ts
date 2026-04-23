@@ -18,7 +18,7 @@
  * | profile_json.contact.physical*      | seller inference, location filter text |
  * | profile_json.hero.locationSummary   | location filter, card |
  * | profile_json.serviceAreas.items     | location filter |
- * | profile_json.quickFacts (bilingual) | bilingual filter |
+ * | profile_json.quickFacts[].kind      | emergency / mobile_service / bilingual / … filters |
  * | profile_json.hero.categoryLine      | keyword, card |
  * | profile_json.about.text             | keyword |
  * | profile_json.contact.phone*, social | whatsapp/call filters, card |

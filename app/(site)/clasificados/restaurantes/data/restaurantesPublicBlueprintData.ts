@@ -31,8 +31,10 @@ export type RestaurantesPublicBlueprintRow = {
   /** Optional extra cuisine keys for discovery search (maps `additionalCuisines` on draft). */
   additionalCuisineKeys?: string[];
   familyFriendly: boolean;
-  /** Paid / featured / boosted stand-in (`RestauranteInternalContract.featured` / `boosted` / tier). */
+  /** Paid / editorial placement from `restaurantes_public_listings.promoted` (admin or billing); not draft “boost”. */
   promoted: boolean;
+  /** Persisted package (`free`, `standard`, …) for balance policy — not a paid-placement flag on its own. */
+  packageTier?: string | null;
   /** Leonix editorial verification (from `restaurantes_public_listings.leonix_verified`). */
   leonixVerified?: boolean;
   /** Demo until `weeklyHours` + server “open now” evaluation exists. */

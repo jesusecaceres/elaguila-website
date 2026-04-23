@@ -51,7 +51,17 @@ export const VIAJES_NEGOCIOS_FIELD_AUDIT: ViajesFieldRow[] = [
   { field: "idiomaAtencion", lane: "business", stored: "listing_json.negocios.idiomaAtencion", publicFilters: "svcLang", resultsCard: "serviceLanguageKeys", detailPage: "whoItsFor", moderation: "listing_json", ownerDash: "edit", classification: "public_filters" },
   { field: "imagenPrincipal / galeriaUrls / localHero / logos / video", lane: "business", stored: "row.hero_image_url + listing_json", publicFilters: "—", resultsCard: "imageSrc", detailPage: "hero / notes", moderation: "row + json", ownerDash: "edit (local blobs preview-only)", classification: "public_detail + owner_dashboard" },
   { field: "businessName / phone / email / website / whatsapp / socials*", lane: "business", stored: "listing_json + submitter_*", publicFilters: "—", resultsCard: "businessName, whatsapp", detailPage: "partner / contactChannels", moderation: "submitter_*", ownerDash: "edit", classification: "public_detail + moderation_admin" },
-  { field: "destinationsServed / languages", lane: "business", stored: "listing_json.negocios.*", publicFilters: "—", resultsCard: "—", detailPage: "description meta", moderation: "listing_json", ownerDash: "edit", classification: "public_detail" },
+  {
+    field: "destinationsServed / languages",
+    lane: "business",
+    stored: "listing_json.negocios.*",
+    publicFilters: "q (free-text haystack via ViajesBusinessResult.listingSearchExtras in viajesResultsMatch)",
+    resultsCard: "—",
+    detailPage: "description meta",
+    moderation: "listing_json",
+    ownerDash: "edit",
+    classification: "public_filters",
+  },
 ];
 
 /** Private application — every `ViajesPrivadoDraft` key accounted for. */

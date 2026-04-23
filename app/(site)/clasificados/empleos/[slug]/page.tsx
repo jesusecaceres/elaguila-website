@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { getEmpleoJobBySlug } from "../data/empleosSampleCatalog";
 import { EmpleoPublicDetailClient } from "../EmpleoPublicDetailClient";
@@ -9,6 +10,7 @@ import {
   fetchEmpleosPublishedListingRowBySlug,
   rowToJobRecord,
 } from "../lib/empleosPublicListingsDbServer";
+import { empleosOmitMarketingSeedCatalog } from "../lib/empleosPublicCatalogPolicy";
 import { empleosJobPublicAbsoluteUrl } from "../lib/empleosSiteUrl";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +25,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const sp = searchParams ? await searchParams : {};
   const lang = sp.lang === "en" ? "en" : "es";
   const canonicalAbs = empleosJobPublicAbsoluteUrl(slug, lang);
+  const omitSeed = empleosOmitMarketingSeedCatalog();
   const row = await fetchEmpleosPublishedListingRowBySlug(slug);
   if (row) {
     const job = rowToJobRecord(row);
@@ -36,6 +39,13 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
         description: job.summary,
         type: "website",
       },
+    };
+  }
+  if (omitSeed) {
+    return {
+      title: "Empleo | Leonix Clasificados",
+      description: "Vacante, feria o publicación de empleo en Leonix Clasificados.",
+      alternates: { canonical: canonicalAbs },
     };
   }
   const job = getEmpleoJobBySlug(slug);
@@ -64,7 +74,11 @@ export default async function EmpleoPublicDetailPage({ params, searchParams }: P
   const sp = (await searchParams) ?? {};
   const lang = sp.lang === "en" ? "en" : "es";
 
+  const omitSeed = empleosOmitMarketingSeedCatalog();
   const row = await fetchEmpleosPublishedListingRowBySlug(slug);
+  if (omitSeed && !row) {
+    notFound();
+  }
   const job = row ? rowToJobRecord(row) : getEmpleoJobBySlug(slug) ?? null;
   const relatedExtra = await fetchEmpleosPublishedJobRecords();
 

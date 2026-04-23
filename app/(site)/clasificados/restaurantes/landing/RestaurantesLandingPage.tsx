@@ -101,7 +101,7 @@ function ListingCard({
             className="absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-bold text-[#FFFCF7] shadow-[0_4px_14px_-4px_rgba(180,83,9,0.55)] ring-1 ring-white/25"
             style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
           >
-            {lang === "es" ? "Destacado" : "Featured"}
+            {lang === "es" ? "Selección en portada" : "Homepage pick"}
           </span>
         ) : (
           <span className="absolute left-3 top-3 rounded-full border border-[#2D241E]/10 bg-[#FFFCF7]/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#2D241E]/75 shadow-sm backdrop-blur-sm">

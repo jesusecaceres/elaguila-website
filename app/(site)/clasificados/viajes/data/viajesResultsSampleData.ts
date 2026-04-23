@@ -64,6 +64,11 @@ export interface ViajesBusinessResult {
   seasonKeys?: string[];
   /** Matches `svcLang` browse facet (`es` | `en` | `bilingual` | `other`). */
   serviceLanguageKeys?: string[];
+  /**
+   * Extra plain text folded into the free-text `q` haystack (not separate URL facets).
+   * Populated from business draft `destinationsServed` + `languages` so discovery search can match them.
+   */
+  listingSearchExtras?: string;
   discovery?: ViajesDiscoverySignals;
 }
 

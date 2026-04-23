@@ -19,7 +19,11 @@ import {
 } from "../app/(site)/clasificados/lib/leonixBrMachineFacetPairsFromFormState";
 import { LEONIX_DP_PETS_ALLOWED, LEONIX_DP_POOL } from "../app/(site)/clasificados/lib/leonixRealEstateListingContract";
 import { brNegocioFeaturedListing, brNegocioGridListings } from "../app/(site)/clasificados/bienes-raices/resultados/demoData";
-import { filterBrListings } from "../app/(site)/clasificados/bienes-raices/resultados/lib/brResultsFilters";
+import {
+  compareBrListingFairness,
+  filterBrListings,
+} from "../app/(site)/clasificados/bienes-raices/resultados/lib/brResultsFilters";
+import type { BrNegocioListing } from "../app/(site)/clasificados/bienes-raices/resultados/cards/listingTypes";
 import { mergeBrResultsHref, parseBrResultsUrl } from "../app/(site)/clasificados/bienes-raices/resultados/lib/brResultsUrlState";
 
 const poolState = parseBrResultsUrl(new URLSearchParams("lang=es&pool=true&operationType=venta"));
@@ -72,5 +76,25 @@ const negMachine = buildLeonixMachineFacetPairsFromBienesRaicesNegocioState(brNe
 const negLabels = new Set(negMachine.map((p) => p.label));
 assert.ok(negLabels.has(LEONIX_DP_PETS_ALLOWED), "negocio publish machine pairs must include pets label");
 assert.ok(negLabels.has(LEONIX_DP_POOL), "negocio piscina highlight must emit pool machine label");
+
+const baseListing = {
+  imageUrl: "",
+  price: "$100,000",
+  title: "t",
+  addressLine: "",
+  beds: "",
+  baths: "",
+  sqft: "",
+  categoriaPropiedad: "residencial" as const,
+  badges: [] as BrNegocioListing["badges"],
+  advertiser: { kind: "agente" as const, name: "x" },
+  demoPublishedAtMs: 1,
+};
+const privTie: BrNegocioListing = { ...baseListing, id: "priv-tie", sellerKind: "privado" };
+const negTie: BrNegocioListing = { ...baseListing, id: "neg-tie", sellerKind: "negocio", badges: ["negocio"] };
+assert.ok(
+  compareBrListingFairness(privTie, negTie) < 0,
+  "compareBrListingFairness: privado should sort before negocio on ties"
+);
 
 console.log("br-launch-selftest: OK");

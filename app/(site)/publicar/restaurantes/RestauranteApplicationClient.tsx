@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
 import type { RestauranteDaySchedule, RestauranteFeaturedDish, RestauranteServiceMode } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
@@ -101,6 +102,7 @@ function HelperText({ children, className }: { children: React.ReactNode; classN
 }
 
 export default function RestauranteApplicationClient() {
+  const searchParams = useSearchParams();
   const { hydrated, draft, draftRef, setDraftPatch, resetDraft } = useRestauranteDraft();
   const [serviceErr, setServiceErr] = useState(false);
   /** Display names for last picked files (draft stores data URLs only). */
@@ -147,6 +149,13 @@ export default function RestauranteApplicationClient() {
     }
   }, [phonePresent, draft.allowMessageCTA, setDraftPatch]);
 
+  /** Matches `/publicar/restaurantes?plan=free|pro` from paquetes — carried into preview → publish POST. */
+  const publishPlanLane = searchParams?.get("plan") === "pro" ? "pro" : "free";
+  const previewHrefWithPlan = useMemo(() => {
+    if (publishPlanLane === "pro") return `${PREVIEW_HREF}?plan=pro`;
+    return `${PREVIEW_HREF}?plan=free`;
+  }, [publishPlanLane]);
+
   const goPreview = useCallback(async () => {
     if (!satisfiesRestauranteServiceModes(draftRef.current.serviceModes)) {
       setServiceErr(true);
@@ -155,8 +164,8 @@ export default function RestauranteApplicationClient() {
     }
     setServiceErr(false);
     await saveRestauranteDraftToStorageResolved(draftRef.current);
-    window.location.href = PREVIEW_HREF;
-  }, [draftRef]);
+    window.location.href = previewHrefWithPlan;
+  }, [draftRef, previewHrefWithPlan]);
 
   const toggleHighlight = useCallback(
     (key: string) => {
@@ -265,7 +274,7 @@ export default function RestauranteApplicationClient() {
 
       <ClasificadosApplicationTopActions
         onPreviewValidated={goPreview}
-        openPreviewHref={PREVIEW_HREF}
+        openPreviewHref={previewHrefWithPlan}
         onBeforeOpenUnvalidatedPreview={() => {
           void saveRestauranteDraftToStorageResolved(draftRef.current);
         }}
@@ -1942,7 +1951,7 @@ export default function RestauranteApplicationClient() {
         <div className="mt-4 space-y-4 border-t border-[color:var(--lx-nav-border)] pt-8">
           <ClasificadosApplicationTopActions
             onPreviewValidated={goPreview}
-            openPreviewHref={PREVIEW_HREF}
+            openPreviewHref={previewHrefWithPlan}
             onBeforeOpenUnvalidatedPreview={() => {
               void saveRestauranteDraftToStorageResolved(draftRef.current);
             }}

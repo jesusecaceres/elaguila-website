@@ -49,25 +49,32 @@
 | `googleReviewUrl` / `yelpReviewUrl` | trust | json | yes | — | no | no | — | |
 | `externalRatingValue` / `externalReviewCount` | trust | col + json | yes | rating line | no | `top` shortcut | sort rating | |
 | `testimonialSnippet` | trust | json | yes | — | no | no | — | |
+| `package_tier` | publish / DB | col | — | — | no | no | organic fairness nudge on landing (`restaurantesListingExposurePolicy`) | Public publish API only accepts `free` or `standard` (`plan=free|pro`); `featured`/`supporter` preserved from DB on update, not from client escalation. |
 | `slug` | publish/runtime | col | URL | slug link | no | no | — | Stable after first insert |
 | `status` | DB | col | public only if `published` | — | no | no | — | Admin suspend removes from public read policy |
 | `promoted` | DB / admin | col | badge/band | promoted band | no | URL `feat=1` | promoted band + **sort tie-break** (newest / rating) | Owner cannot self-set promoted unless API extended |
 | `leonix_verified` | DB / admin | col | badge | verified chip | no | URL `lxv=1` | **sort tie-break** after date/rating | Admin-only verify |
-| `package_tier` | DB | col | — | — | no | no | no | Owner/admin visibility |
 | `owner_user_id` | publish | col | — | — | no | no | no | RLS + dashboard |
-| `published_at` / `updated_at` | DB | col | — | — | no | no | sort newest | `listedAt` |
+| `published_at` / `updated_at` | DB | col | — | — | no | no | sort newest | Discovery `listedAt` prefers **`updated_at`** so republish refreshes recency |
 
 ---
 
 ## Automated verification (repo)
 
-- `npm run typecheck` (`tsc --noEmit --incremental false`)
-- `npm run build` (after clean `.next` if Windows manifest races occur)
-- `npm run verify:restaurantes:launch` — runs typecheck, production build, then `node scripts/restaurantes-http-smoke.mjs` (GET landing, results, publish app; POST publish `{}` → 400 `missing_draft`).
+- `npm run typecheck` — TypeScript (`tsconfig.json` does not require pre-generated `.next/types`).
+- `npm run build` — Next production bundle (Windows: single `node` + retries in `scripts/next-build.js`).
+- `npm run verify:restaurantes:launch` — `typecheck` + `build` + `scripts/restaurantes-http-smoke.mjs` + `scripts/restaurantes-launch-selftest.ts` (DB insert/update/delete + filter invariants when Supabase keys present).
+- `npm run verify:restaurantes:e2e` — Playwright (`playwright.restaurantes.config.mjs`, port **3017**): public CTAs, publish API `missing_draft`, optional signed-in owner dashboard when `RESTAURANTES_E2E_PASSWORD` + Supabase URL/anon/service keys are set.
+
+## Ranking / business vs free (exposure)
+
+- **Paid / promoted:** only `restaurantes_public_listings.promoted` (admin). Shown in capped **promoted band** on results (`RESTAURANTES_RESULTS_PROMOTED_BAND_MAX`) and limited slots on landing (`selectLandingDestacadosCandidates`).
+- **Free / “private-style” home listings:** `package_tier` `free` or `standard` from publish `plan=`; organic score adds a **small** nudge for `homeBasedBusiness` + free tier so they are not permanently buried (`restaurantesListingExposurePolicy.ts`).
+- **Republish / renew:** discovery `listedAt` uses DB **`updated_at`** (see `dbRowToPublicResultsRow`); distinct from **promoted** (publish route never accepts client `promoted`; preserves DB flag on update).
 
 ## Gaps addressed in this launch pass
 
-- **Live inventory only** in production path; blueprint is **opt-in** env only.
+- **Live inventory only** on landing + results routes; **no** blueprint / sample rows in those server loaders.
 - **Full `serviceModes`** on discovery rows (not truncated to three).
 - **`additionalCuisines`** participate in cuisine filter + `q` search via shell row.
 - **Open-now** filter uses real weekly hours from `listing_json` (with documented temp-hours behavior).

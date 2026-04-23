@@ -137,7 +137,7 @@ const ES: BrLandingCopy = {
   mapArea: "Área",
   mapZoom: "Acercar",
   mapHint: "Solo se muestran pocos puntos · sin “millón de pins”",
-  mapAriaCluster: "38 anuncios en la zona. Acercar mapa.",
+  mapAriaCluster: "Mapa ilustrativo de la zona. Acercar para ver más detalle.",
   inventoryLoading: "Cargando propiedades publicadas…",
   inventoryEmptyTitle: "Sin listados en esta sección",
   inventoryEmptyBody:
@@ -215,7 +215,7 @@ const EN: BrLandingCopy = {
   mapArea: "Area",
   mapZoom: "Zoom in",
   mapHint: "Only a few pins · no “million markers” clutter",
-  mapAriaCluster: "38 listings in this area. Zoom map in.",
+  mapAriaCluster: "Illustrative area map. Zoom in for more detail.",
   inventoryLoading: "Loading published listings…",
   inventoryEmptyTitle: "No listings in this section yet",
   inventoryEmptyBody:

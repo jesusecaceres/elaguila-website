@@ -11,6 +11,22 @@ import {
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
 import { slugifyRestauranteBusinessName } from "@/app/clasificados/restaurantes/lib/restaurantesSlug";
 
+/**
+ * Public publish may only select **free** or **standard (Pro)** from the UI body.
+ * `featured` / `supporter` stay admin/billing-only and are preserved on update when already set.
+ */
+function normalizePublicPublishPackageTier(raw: unknown): "free" | "standard" {
+  const s = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  if (s === "pro" || s === "standard") return "standard";
+  return "free";
+}
+
+function mergePackageTierForUpdate(existing: string | null | undefined, requested: "free" | "standard"): string {
+  const ex = (existing ?? "").toLowerCase();
+  if (ex === "featured" || ex === "supporter") return (existing ?? "free").trim();
+  return requested;
+}
+
 async function allocateSlug(base: string): Promise<string> {
   const supabase = getAdminSupabase();
   let candidate = base;
@@ -57,8 +73,9 @@ export async function POST(req: Request) {
   }
 
   const ownerUserId = typeof b.owner_user_id === "string" ? b.owner_user_id : null;
-  const packageTier = typeof b.package_tier === "string" ? b.package_tier : null;
-  const promotedFromBody = typeof b.promoted === "boolean" ? b.promoted : undefined;
+  const requestedLane = normalizePublicPublishPackageTier(
+    typeof b.plan === "string" ? b.plan : typeof b.package_tier === "string" ? b.package_tier : "",
+  );
   const lang: RestaurantesDiscoveryLang = b.lang === "en" ? "en" : "es";
 
   const supabase = getAdminSupabase();
@@ -81,15 +98,16 @@ export async function POST(req: Request) {
       slugOut = existingByDraft.slug;
       const baseRow = draftToRestaurantePublicListingInsert(draft, slugOut, {
         ownerUserId,
-        promoted: promotedFromBody === true,
-        packageTier,
+        promoted: false,
+        packageTier: requestedLane,
       }) as Record<string, unknown>;
 
       const ex = existingByDraft as { leonix_verified?: boolean; status?: string; promoted?: boolean; package_tier?: string | null; owner_user_id?: string | null };
       baseRow.leonix_verified = ex.leonix_verified ?? false;
       baseRow.status = ex.status ?? "published";
-      baseRow.promoted = promotedFromBody !== undefined ? promotedFromBody : (ex.promoted ?? false);
-      baseRow.package_tier = packageTier ?? ex.package_tier ?? null;
+      /** Paid placement is admin-controlled only; republish/renew must not flip it from the client. */
+      baseRow.promoted = ex.promoted ?? false;
+      baseRow.package_tier = mergePackageTierForUpdate(ex.package_tier, requestedLane);
       baseRow.owner_user_id = ownerUserId ?? ex.owner_user_id ?? null;
 
       const { error } = await supabase
@@ -109,8 +127,8 @@ export async function POST(req: Request) {
       slugOut = await allocateSlug(base);
       const row = draftToRestaurantePublicListingInsert(draft, slugOut, {
         ownerUserId,
-        promoted: promotedFromBody === true,
-        packageTier,
+        promoted: false,
+        packageTier: requestedLane,
       });
       const { error } = await supabase.from("restaurantes_public_listings").insert({
         ...row,

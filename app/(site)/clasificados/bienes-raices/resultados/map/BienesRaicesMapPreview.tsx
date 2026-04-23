@@ -10,19 +10,32 @@ const MAP_DEFAULTS = {
   area: "Área",
   zoom: "Acercar",
   hint: "Solo se muestran pocos puntos · sin “millón de pins”",
-  ariaCluster: "38 anuncios en la zona. Acercar mapa.",
+  ariaCluster: "Mapa ilustrativo de la zona. Acercar para ver más detalle.",
 } as const;
 
 /** Allow any string per field so i18n layers can override defaults without literal-type friction. */
 export type BienesRaicesMapPreviewCopy = Partial<Record<keyof typeof MAP_DEFAULTS, string>>;
 
+type MapPreviewProps = {
+  copy?: BienesRaicesMapPreviewCopy;
+  /**
+   * When set (>0), shows a numeric cluster hint from real inventory size.
+   * When null/undefined, the map stays illustrative (no fake listing count).
+   */
+  clusterListingCount?: number | null;
+};
+
 /**
  * Mapa secundario estático: sin SDK externo.
  * Vista “región” = burbuja de agrupación; “ciudad” = pocos marcadores (sin densidad caótica).
  */
-export function BienesRaicesMapPreview({ copy }: { copy?: BienesRaicesMapPreviewCopy } = {}) {
+export function BienesRaicesMapPreview({ copy, clusterListingCount }: MapPreviewProps = {}) {
   const [zoom, setZoom] = useState<ZoomMode>("region");
   const t = { ...MAP_DEFAULTS, ...copy };
+  const clusterGlyph =
+    typeof clusterListingCount === "number" && clusterListingCount > 0
+      ? String(Math.min(99, clusterListingCount))
+      : "·";
 
   return (
     <div className="flex h-full min-h-[280px] flex-col overflow-hidden rounded-[1.25rem] border border-[#E8DFD0]/80 bg-[#FDFBF7] shadow-[0_14px_44px_-20px_rgba(42,36,22,0.28)] ring-1 ring-[#C9B46A]/[0.1] lg:min-h-[320px]">
@@ -77,7 +90,7 @@ export function BienesRaicesMapPreview({ copy }: { copy?: BienesRaicesMapPreview
             className="relative z-[1] flex min-h-[52px] min-w-[52px] items-center justify-center rounded-full border-2 border-white bg-[#C5A059] text-sm font-bold text-[#1E1810] shadow-[0_8px_24px_rgba(61,54,48,0.2)] transition hover:scale-[1.03]"
             aria-label={t.ariaCluster}
           >
-            38
+            {clusterGlyph}
           </button>
         ) : (
           <div className="relative z-[1] flex h-40 w-full max-w-[220px] items-center justify-center">

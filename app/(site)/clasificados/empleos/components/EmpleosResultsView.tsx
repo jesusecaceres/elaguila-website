@@ -336,11 +336,13 @@ function EmpleosFilterToggles({
 type EmpleosResultsViewProps = {
   /** Server-fed merged catalog (seed + live). When empty, client falls back to seed-only merge. */
   initialJobs?: EmpleosJobRecord[];
+  /** When true, empty `initialJobs` must not re-hydrate marketing seed on the client. */
+  omitMarketingSeed?: boolean;
   /** Server clock for “recent” filter and ribbons (live listings). */
   serverNowMs?: number;
 };
 
-export function EmpleosResultsView({ initialJobs = [], serverNowMs }: EmpleosResultsViewProps) {
+export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false, serverNowMs }: EmpleosResultsViewProps) {
   const clock = serverNowMs ?? EMPLEOS_SAMPLE_NOW_MS;
   const router = useRouter();
   const sp = useSearchParams();
@@ -351,8 +353,8 @@ export function EmpleosResultsView({ initialJobs = [], serverNowMs }: EmpleosRes
 
   const mergedCatalog = useMemo(() => {
     if (initialJobs.length > 0) return initialJobs;
-    return mergeEmpleosSeedWithLiveJobs([]);
-  }, [initialJobs]);
+    return mergeEmpleosSeedWithLiveJobs([], { omitSeed: omitMarketingSeed });
+  }, [initialJobs, omitMarketingSeed]);
 
   const filtered = useMemo(() => {
     const f = filterEmpleosJobs(mergedCatalog, parsed, clock);

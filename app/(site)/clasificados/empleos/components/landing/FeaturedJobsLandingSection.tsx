@@ -13,6 +13,9 @@ import { LandingSection } from "./empleosLandingUi";
 
 type Props = {
   lang: Lang;
+  /** When set (including empty), replaces marketing sample rows — used for live-only inventory. */
+  jobs?: SampleFeaturedJob[];
+  liveInventory?: boolean;
 };
 
 function modalityLabel(m: SampleFeaturedJob["modality"], lang: Lang) {
@@ -87,16 +90,28 @@ function FeaturedLandingCard({ job, lang }: { job: SampleFeaturedJob; lang: Lang
   );
 }
 
-export function FeaturedJobsLandingSection({ lang }: Props) {
+export function FeaturedJobsLandingSection({ lang, jobs, liveInventory = false }: Props) {
+  const rows = liveInventory ? (jobs ?? []) : (jobs ?? sampleFeaturedJobs);
+  const subtitle = liveInventory
+    ? lang === "es"
+      ? "Vacantes con mayor visibilidad entre las publicadas en Leonix (promoted/featured)."
+      : "Higher-visibility roles among what is currently published on Leonix (promoted/featured)."
+    : lang === "es"
+      ? "Roles con buena visibilidad y detalles claros — ideal para decidir rápido."
+      : "Highly visible roles with clear details — decide faster.";
+  const eyebrow = liveInventory
+    ? lang === "es"
+      ? "Inventario publicado"
+      : "Published inventory"
+    : lang === "es"
+      ? "Selección editorial"
+      : "Editor picks";
+
   return (
     <LandingSection
-      eyebrow={lang === "es" ? "Selección editorial" : "Editor picks"}
+      eyebrow={eyebrow}
       title={lang === "es" ? "Trabajos destacados" : "Featured jobs"}
-      subtitle={
-        lang === "es"
-          ? "Roles con buena visibilidad y detalles claros — ideal para decidir rápido."
-          : "Highly visible roles with clear details — decide faster."
-      }
+      subtitle={subtitle}
       rightSlot={
         <Link
           href={buildEmpleosResultadosUrl(lang, { featured: "1" })}
@@ -106,11 +121,19 @@ export function FeaturedJobsLandingSection({ lang }: Props) {
         </Link>
       }
     >
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {sampleFeaturedJobs.map((job) => (
-          <FeaturedLandingCard key={job.id} job={job} lang={lang} />
-        ))}
-      </div>
+      {rows.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-[#E5D4B8] bg-white/80 px-6 py-10 text-center text-sm text-[#4A4744]">
+          {lang === "es"
+            ? "Aún no hay vacantes destacadas en inventario. Explora resultados o publica la tuya."
+            : "No featured roles in inventory yet. Browse results or post yours."}
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {rows.map((job) => (
+            <FeaturedLandingCard key={job.id} job={job} lang={lang} />
+          ))}
+        </div>
+      )}
     </LandingSection>
   );
 }

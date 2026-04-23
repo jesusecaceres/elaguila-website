@@ -48,7 +48,7 @@ export async function listRestaurantesPublicListingsFromDb(limit = 200): Promise
       .from("restaurantes_public_listings")
       .select(LIST_SELECT)
       .eq("status", "published")
-      .order("published_at", { ascending: false })
+      .order("updated_at", { ascending: false })
       .limit(limit);
     if (error || !data) return [];
     return data as RestaurantesPublicListingDbRow[];
@@ -66,7 +66,7 @@ export async function listPromotedRestaurantesPublicListingsFromDb(limit = 8): P
       .select(LIST_SELECT)
       .eq("status", "published")
       .eq("promoted", true)
-      .order("published_at", { ascending: false })
+      .order("updated_at", { ascending: false })
       .limit(limit);
     if (error || !data) return [];
     return data as RestaurantesPublicListingDbRow[];

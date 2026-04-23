@@ -81,7 +81,8 @@ export function dbRowToPublicResultsRow(row: RestaurantesPublicListingDbRow): Re
     leonixVerified: row.leonix_verified === true,
     externalRatingValue: row.external_rating_value ?? undefined,
     externalReviewCount: row.external_review_count ?? undefined,
-    listedAt: row.published_at,
+    /** Recency for discovery sort: republish/renew bumps `updated_at` so listings resurface fairly. */
+    listedAt: row.updated_at || row.published_at,
   };
 }
 
@@ -191,6 +192,7 @@ export function mapRestaurantesPublicListingDbRowToShellInventoryRow(row: Restau
     familyFriendly,
     promoted: pr.sponsored === true,
     leonixVerified: pr.leonixVerified === true,
+    packageTier: row.package_tier ?? null,
     openNowDemo,
     veganOptions: pr.highlightKeys.includes("vegan_options"),
     glutenFreeOptions: pr.highlightKeys.includes("gluten_free"),

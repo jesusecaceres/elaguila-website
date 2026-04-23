@@ -202,7 +202,7 @@ export function RestaurantesResultsShell({
         emptyCta: "Back to Restaurants home",
         featured: "Featured on Leonix",
         promotedCaption: "Sponsored visibility; the main list still follows your sort and filters.",
-        promotedBadge: "Destacado",
+        promotedBadge: "Sponsored",
         verMas: "See more",
         cuisine: "Cuisine",
         city: "City",
@@ -280,7 +280,7 @@ export function RestaurantesResultsShell({
       emptyCta: "Volver al inicio de Restaurantes",
       featured: "Destacados en Leonix",
       promotedCaption: "Visibilidad patrocinada; el listado principal sigue tu orden y filtros.",
-      promotedBadge: "Destacado",
+      promotedBadge: "Patrocinado",
       verMas: "Ver más",
       cuisine: "Cocina",
       city: "Ciudad",
@@ -873,13 +873,10 @@ export function RestaurantesResultsShell({
             className={`rounded-[14px] border px-4 py-3 text-xs leading-relaxed shadow-sm sm:text-sm ${
               inventorySource === "inventory_unavailable"
                 ? "border-red-300/90 bg-red-50/95 text-red-950"
-                : inventorySource === "explicit_demo"
-                  ? "border-amber-300/80 bg-amber-50/95 text-amber-950"
-                  : "border-amber-200/90 bg-amber-50/90 text-amber-950"
+                : "border-amber-200/90 bg-amber-50/90 text-amber-950"
             }`}
             role="status"
           >
-            {inventorySource === "explicit_demo" ? <span className="font-semibold">Demo explícito: </span> : null}
             {inventorySource === "inventory_unavailable" ? <span className="font-semibold">Inventario no disponible: </span> : null}
             {inventoryBannerNote}
           </p>
@@ -1166,7 +1163,7 @@ function ResultCard({
             className="absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-bold text-[#FFFCF7] shadow-sm"
             style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
           >
-            {lang === "es" ? "Destacado" : "Featured"}
+            {lang === "es" ? "Patrocinado" : "Sponsored"}
           </span>
         ) : null}
         {row.leonixVerified ? (

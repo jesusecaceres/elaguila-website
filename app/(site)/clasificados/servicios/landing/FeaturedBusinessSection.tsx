@@ -23,12 +23,12 @@ export function FeaturedBusinessSection({
             id="servicios-destacados-heading"
             className="mt-2 text-[1.65rem] font-bold leading-tight tracking-tight text-[#142a42] sm:text-[1.85rem] md:text-[2rem]"
           >
-            {lang === "en" ? "Featured businesses" : "Negocios Destacados"}
+            {lang === "en" ? "Amplified placement" : "Mayor visibilidad"}
           </h2>
           <p className="mt-3 text-[15px] leading-relaxed text-[#4a5d6e] sm:text-[16px]">
             {lang === "en"
-              ? "Live Leonix listings with featured emphasis on their profile — shown here when published (not placeholder demos)."
-              : "Anuncios reales de Leonix con énfasis destacado en la vitrina — se muestran aquí al publicarse (no son demos estáticos)."}
+              ? "Only real published listings whose profile marks paid/amplified placement (`isFeatured`) — same data as results, never sample inventory."
+              : "Solo anuncios reales publicados cuyo perfil marca colocación pagada o amplificada (`isFeatured`) — los mismos datos que en resultados, nunca inventario de muestra."}
           </p>
         </div>
       </div>
@@ -36,8 +36,8 @@ export function FeaturedBusinessSection({
         <div className="rounded-2xl border border-dashed border-[#c9b8a4] bg-gradient-to-b from-[#FFFCF7] to-[#faf6f0] px-5 py-12 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
           <p className="mx-auto max-w-lg text-sm font-medium leading-relaxed text-[#142a42]">
             {lang === "en"
-              ? "No featured showcases yet — when a published profile has featured placement, it can appear here."
-              : "Aún no hay vitrinas destacadas: cuando un perfil publicado tenga espacio destacado, puede aparecer aquí."}
+              ? "No amplified listings yet — when a published profile earns featured placement, it appears here automatically."
+              : "Aún no hay anuncios con mayor visibilidad: cuando un perfil publicado tenga destacado activo, aparecerá aquí automáticamente."}
           </p>
           <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-[#4a5d6e]">
             {lang === "en"

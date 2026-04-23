@@ -14,9 +14,23 @@ import { QuickSearchTiles } from "./components/landing/QuickSearchTiles";
 import { RefineSearchBand } from "./components/landing/RefineSearchBand";
 import { TrustSignalsRow } from "./components/landing/TrustSignalsRow";
 
-export function EmpleosLandingPage() {
+import type { SampleFeaturedJob, SampleRecentJob } from "./data/empleosLandingSampleData";
+
+export type EmpleosLandingPageProps = {
+  /** When true, featured/recent strips use server-fed live rows only (no marketing catalog). */
+  liveInventory?: boolean;
+  featuredJobsOverride?: SampleFeaturedJob[];
+  recentJobsByLang?: { es: SampleRecentJob[]; en: SampleRecentJob[] };
+};
+
+export function EmpleosLandingPage({
+  liveInventory = false,
+  featuredJobsOverride,
+  recentJobsByLang,
+}: EmpleosLandingPageProps) {
   const sp = useSearchParams();
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
+  const recentOverride = recentJobsByLang?.[lang];
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FAF7F2] text-[#2A2826]">
@@ -29,10 +43,18 @@ export function EmpleosLandingPage() {
           <div className="flex flex-col gap-14 sm:gap-16 md:gap-[4.25rem] lg:gap-24">
             <HeroAndSearch lang={lang} />
             <QuickSearchTiles lang={lang} />
-            <FeaturedJobsLandingSection lang={lang} />
+            <FeaturedJobsLandingSection
+              lang={lang}
+              jobs={liveInventory ? featuredJobsOverride : undefined}
+              liveInventory={liveInventory}
+            />
             <RefineSearchBand lang={lang} />
             <JobCategoryGrid lang={lang} />
-            <LatestJobsAndEmployer lang={lang} />
+            <LatestJobsAndEmployer
+              lang={lang}
+              jobs={liveInventory ? recentOverride : undefined}
+              liveInventory={liveInventory}
+            />
             <JobFairLandingBanner lang={lang} />
             <TrustSignalsRow lang={lang} />
           </div>

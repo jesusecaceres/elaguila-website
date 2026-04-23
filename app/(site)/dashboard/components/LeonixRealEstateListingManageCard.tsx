@@ -83,6 +83,8 @@ export function LeonixRealEstateListingManageCard({
   const lx = parseLeonixListingContract(row.detail_pairs);
   if (!lx.branch) return null;
 
+  const isBr = lx.branch === "bienes_raices_privado" || lx.branch === "bienes_raices_negocio";
+
   const rentasRx =
     String(row.category ?? "").toLowerCase() === "rentas" ? parseRentasDetailMachineRead(row.detail_pairs) : null;
 
@@ -131,12 +133,27 @@ export function LeonixRealEstateListingManageCard({
             {(row.city || "").trim() ? ` · ${(row.city ?? "").trim()}` : ""}
             {dateText ? ` · ${dateText}` : ""}
           </p>
-          <p className="mt-2 text-xs text-[#7A7164]">
-            {lang === "es" ? "Plan" : "Plan"}: {plan}
-            {boosted || promoted ? ` · ${lang === "es" ? "Visibilidad / promo" : "Visibility / promo"}` : ""}
-            {boosted ? " (boost)" : ""}
-            {promoted ? " (Leonix:promoted)" : ""}
-          </p>
+          {isBr ? (
+            <p className="mt-2 text-xs text-[#7A7164]">
+              {lang === "es"
+                ? "Bienes raíces: la parrilla principal ordena por frescura (publicación o republicación). El carril “spotlight” de negocios es limitado y editorial — no es subasta por pago en el grid."
+                : "Real estate: the main grid sorts by freshness (publish or republish). The business spotlight band is limited and editorial — not pay-to-win grid ranking."}
+              {boosted || promoted ? (
+                <span className="mt-1 block text-[11px] text-[#7A7164]/85">
+                  {lang === "es"
+                    ? "Nota: pueden existir marcas legacy de promo/boost en datos; no definen ranking BR en Leonix."
+                    : "Note: legacy promo/boost flags may exist in data; they do not define BR ranking on Leonix."}
+                </span>
+              ) : null}
+            </p>
+          ) : (
+            <p className="mt-2 text-xs text-[#7A7164]">
+              {lang === "es" ? "Plan" : "Plan"}: {plan}
+              {boosted || promoted ? ` · ${lang === "es" ? "Visibilidad / promo" : "Visibility / promo"}` : ""}
+              {boosted ? " (boost)" : ""}
+              {promoted ? " (Leonix:promoted)" : ""}
+            </p>
+          )}
           <p className="mt-1 text-sm text-[#7A7164]">
             {lang === "es" ? "Vistas" : "Views"}: {viewsTotal} · {lang === "es" ? "Mensajes" : "Messages"}: {messagesTotal}
           </p>

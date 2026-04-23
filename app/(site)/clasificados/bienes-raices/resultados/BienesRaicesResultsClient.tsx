@@ -62,7 +62,8 @@ export function BienesRaicesResultsClient() {
   const parsed = useMemo(() => parseBrResultsUrl(sp), [sp]);
   const lang = parsed.lang;
   const spKey = sp.toString();
-  const copy = useMemo(() => getBrResultsCopy(lang), [lang]);
+  const mergeDemo = brShouldMergeDemoInventoryWithLive();
+  const copy = useMemo(() => getBrResultsCopy(lang, { useDevInventoryCopy: mergeDemo }), [lang, mergeDemo]);
 
   const [view, setView] = useState<"grid" | "list">("grid");
   const [showMap, setShowMap] = useState(false);
@@ -102,8 +103,6 @@ export function BienesRaicesResultsClient() {
       cancelled = true;
     };
   }, [lang, spKey]);
-
-  const mergeDemo = brShouldMergeDemoInventoryWithLive();
 
   const listingPool = useMemo(() => {
     if (!mergeDemo) return liveBrListings;
@@ -195,6 +194,10 @@ export function BienesRaicesResultsClient() {
     patchUrl({ secondary: next.size ? [...next].join(",") : null });
   };
 
+  const toggleFurnished = useCallback(() => {
+    patchUrl({ furnished: parsed.furnished === "true" ? null : "true" });
+  }, [parsed.furnished, patchUrl]);
+
   const totalCount = filtered.length;
   const totalForHeader = totalCount;
 
@@ -238,8 +241,10 @@ export function BienesRaicesResultsClient() {
           copy={copy}
           primary={primarySet}
           secondary={secondarySet}
+          furnishedActive={parsed.furnished === "true"}
           onTogglePrimary={togglePrimary}
           onToggleSecondary={toggleSecondary}
+          onToggleFurnished={toggleFurnished}
           onMoreFilters={() => setFilterDrawerOpen(true)}
           matchCount={totalCount}
         />
@@ -274,7 +279,9 @@ export function BienesRaicesResultsClient() {
         >
           <div className="grid gap-0 lg:grid-cols-12 lg:items-stretch">
             <div className="min-h-[240px] lg:col-span-7 xl:col-span-8">
-              <BienesRaicesMapPreview />
+              <BienesRaicesMapPreview
+                clusterListingCount={listingPool.length > 0 ? listingPool.length : null}
+              />
             </div>
             <div className="border-t border-[#E8DFD0]/80 p-5 lg:col-span-5 lg:border-l lg:border-t-0 xl:col-span-4">
               <p className="font-serif text-lg font-semibold text-[#1E1810]">{copy.mapAsideTitle}</p>

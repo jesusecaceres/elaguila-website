@@ -4,7 +4,24 @@ import {
   parseLeonixListingContract,
   parseLeonixMachineFacetRead,
   type BrResultsPropertyKind,
+  type LeonixClasificadosBranch,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+
+function branchLaneLabel(branch: LeonixClasificadosBranch, lang: "es" | "en"): string {
+  const es: Record<LeonixClasificadosBranch, string> = {
+    bienes_raices_privado: "Particular · Bienes raíces",
+    bienes_raices_negocio: "Negocio · Bienes raíces",
+    rentas_privado: "Particular · Rentas",
+    rentas_negocio: "Negocio · Rentas",
+  };
+  const en: Record<LeonixClasificadosBranch, string> = {
+    bienes_raices_privado: "Private · Real estate",
+    bienes_raices_negocio: "Business · Real estate",
+    rentas_privado: "Private · Rentals",
+    rentas_negocio: "Business · Rentals",
+  };
+  return lang === "es" ? es[branch] : en[branch];
+}
 
 function kindLabel(kind: BrResultsPropertyKind | null, lang: "es" | "en"): string {
   if (!kind) return "";
@@ -87,9 +104,9 @@ export function BrLiveFactsStrip({ detailPairs, lang }: { detailPairs: unknown; 
         ))}
       </div>
       {lx.branch ? (
-        <p className="mt-2 font-mono text-[10px] text-emerald-900/55">
-          {lang === "es" ? "Rama Leonix: " : "Leonix branch: "}
-          {lx.branch}
+        <p className="mt-2 text-[11px] font-semibold text-emerald-900/75">
+          {lang === "es" ? "Perfil de publicación: " : "Listing lane: "}
+          {branchLaneLabel(lx.branch, lang)}
         </p>
       ) : null}
     </section>

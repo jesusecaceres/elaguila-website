@@ -183,6 +183,7 @@ export type RestauranteInternalContract = {
   publishedAt?: string;
   createdAt: string;
   updatedAt: string;
+  /** Legacy / editorial — not mapped to paid `promoted` placement (renew uses `updated_at` / listing refresh). */
   boosted?: boolean;
   featured?: boolean;
 };

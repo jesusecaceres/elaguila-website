@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   isRestauranteDraftPristineEmpty,
   mapRestauranteDraftToShellData,
@@ -17,6 +18,7 @@ import { supabase } from "@/app/lib/supabaseClient";
 const EDIT_HREF = "/publicar/restaurantes";
 
 export default function RestaurantePreviewClient() {
+  const searchParams = useSearchParams();
   const { hydrated, draft } = useRestauranteDraft();
   const [pub, setPub] = useState<{
     busy: boolean;
@@ -32,6 +34,8 @@ export default function RestaurantePreviewClient() {
   const shellData = useMemo(() => mapRestauranteDraftToShellData(draft), [draft]);
   const minOk = useMemo(() => satisfiesRestauranteMinimumValidPreview(draft), [draft]);
 
+  const publishPlan = searchParams?.get("plan") === "pro" ? "pro" : "free";
+
   const onPublish = useCallback(async () => {
     setPub({ busy: true });
     try {
@@ -40,7 +44,12 @@ export default function RestaurantePreviewClient() {
       const res = await fetch("/api/clasificados/restaurantes/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ draft, lang: "es", ...(owner_user_id ? { owner_user_id } : {}) }),
+        body: JSON.stringify({
+          draft,
+          lang: "es",
+          plan: publishPlan,
+          ...(owner_user_id ? { owner_user_id } : {}),
+        }),
       });
       const j = (await res.json()) as {
         ok?: boolean;
@@ -71,7 +80,7 @@ export default function RestaurantePreviewClient() {
     } catch {
       setPub({ busy: false, err: "network" });
     }
-  }, [draft]);
+  }, [draft, publishPlan]);
 
   if (!hydrated) {
     return (

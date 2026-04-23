@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 
 import { EmpleosResultsView } from "../components/EmpleosResultsView";
+import { empleosOmitMarketingSeedCatalog } from "../lib/empleosPublicCatalogPolicy";
 import { fetchEmpleosPublishedJobRecords } from "../lib/empleosPublicListingsDbServer";
 import { mergeEmpleosSeedWithLiveJobs } from "../lib/staged/getEmpleosMergedBrowse";
 
@@ -15,14 +16,19 @@ export const metadata: Metadata = {
 
 export default async function ClasificadosEmpleosResultadosPage() {
   const live = await fetchEmpleosPublishedJobRecords();
-  const initialJobs = mergeEmpleosSeedWithLiveJobs(live);
+  const omitMarketingSeed = empleosOmitMarketingSeedCatalog();
+  const initialJobs = mergeEmpleosSeedWithLiveJobs(live, { omitSeed: omitMarketingSeed });
   const serverNowMs = Date.now();
 
   return (
     <Suspense
       fallback={<div className="min-h-screen bg-[#ECEAE7]" aria-busy="true" aria-label="Cargando empleos" />}
     >
-      <EmpleosResultsView initialJobs={initialJobs} serverNowMs={serverNowMs} />
+      <EmpleosResultsView
+        initialJobs={initialJobs}
+        omitMarketingSeed={omitMarketingSeed}
+        serverNowMs={serverNowMs}
+      />
     </Suspense>
   );
 }

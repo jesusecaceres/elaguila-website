@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import RestauranteApplicationClient from "./RestauranteApplicationClient";
 
 export const metadata: Metadata = {
@@ -10,5 +11,9 @@ export const metadata: Metadata = {
 };
 
 export default function PublicarRestaurantesPage() {
-  return <RestauranteApplicationClient />;
+  return (
+    <Suspense fallback={<div className="min-h-[40vh] bg-[#FDFBF7]" aria-busy="true" />}>
+      <RestauranteApplicationClient />
+    </Suspense>
+  );
 }

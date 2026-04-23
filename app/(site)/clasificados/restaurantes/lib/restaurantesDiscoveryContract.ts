@@ -28,7 +28,7 @@
  * | `hl` | `highlights` | Single highlight key. |
  * | `saved` | User-saved listing ids (local, first-party) | Requires personalization consent; see `restaurantesFirstPartyPreferences.ts`. |
  * | `sort` | Sort only | `newest` → `publishedAt`/`listedAt`; `name-asc` → `businessName`; `rating-desc` → rating. |
- * | `top` | Boost “best rated” shortcut | Blueprint: rating ≥ 4.5 + ties to sort. |
+ * | `top` | “Best rated” shortcut | Rating ≥ 4.5 + ties to sort. |
  * | `page` | Pagination | |
  * | `lang` | UI language | `es` / `en`. |
  * | `nbh` | `neighborhood` | Substring match on published neighborhood. |

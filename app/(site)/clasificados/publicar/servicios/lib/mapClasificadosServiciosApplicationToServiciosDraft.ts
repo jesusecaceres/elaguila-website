@@ -1,9 +1,10 @@
 import type { ServiciosApplicationDraft } from "@/app/servicios/types/serviciosApplicationDraft";
-import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
+import type { ServiciosLang, ServiciosQuickFactKind } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ServiciosTrustItem } from "@/app/servicios/types/serviciosBusinessProfile";
 import { chipLabel, getBusinessTypePreset } from "./businessTypePresets";
 import type { ClasificadosServiciosApplicationState, DayKey } from "./clasificadosServiciosApplicationTypes";
 import { inferServiceVisualVariant } from "./inferServiceVisualVariant";
+import { serviciosQuickFactKindFromPresetChip } from "./serviciosQuickFactKindFromChip";
 import { buildLeonixContactCtaLabels, isValidEmail } from "./leonixContactCtaPriority";
 import { parseLanguageOtherLines } from "./languageOtherLines";
 import { digitsOnly } from "./serviciosPhoneUi";
@@ -108,14 +109,20 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     for (const id of state.selectedQuickFactIds) {
       const chip = preset.quickFacts.find((c) => c.id === id);
       if (!chip) continue;
-      quickFacts.push({ kind: "custom", label: chipLabel(chip, lang) });
+      quickFacts.push({
+        kind: serviciosQuickFactKindFromPresetChip(chip, lang),
+        label: chipLabel(chip, lang),
+      });
     }
   }
   if (state.customQuickFactIncluded && state.customQuickFactLabel.trim()) {
-    quickFacts.push({
-      kind: "custom",
-      label: state.customQuickFactLabel.trim().slice(0, 28),
-    });
+    const lab = state.customQuickFactLabel.trim().slice(0, 28);
+    const low = lab.toLowerCase();
+    let kind: ServiciosQuickFactKind = "custom";
+    if (/emergencia|emergency|urgencias/i.test(low)) kind = "emergency";
+    else if (/móvil|mobile/i.test(low)) kind = "mobile_service";
+    else if (/bilingüe|bilingual/i.test(low)) kind = "bilingual";
+    quickFacts.push({ kind, label: lab });
   }
 
   const trust: NonNullable<ServiciosApplicationDraft["trust"]> = [];
@@ -141,11 +148,17 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     ti += 1;
   }
 
-  /**
-   * Advertiser-provided testimonials are not collected in the Clasificados application UI for this phase.
-   * Do not map `state.testimonials` into preview/publish output — legacy keys may still exist in stored drafts.
-   */
   const reviews: NonNullable<ServiciosApplicationDraft["reviews"]> = [];
+  for (const row of state.testimonials ?? []) {
+    const author = row.authorName?.trim();
+    const quote = row.quote?.trim();
+    if (!author || author.length < 2 || !quote || quote.length < 8) continue;
+    reviews.push({
+      id: row.id?.trim() || `t_${reviews.length}`,
+      authorName: author.slice(0, 120),
+      quote: quote.slice(0, 800),
+    });
+  }
 
   const areaLabels = state.serviceAreaNotes
     .split(/[\n,;]+/)

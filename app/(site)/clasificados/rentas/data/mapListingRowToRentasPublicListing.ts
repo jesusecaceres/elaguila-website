@@ -11,6 +11,7 @@ import {
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
+import { rentasListingPromotedFromRow } from "@/app/clasificados/rentas/lib/rentasListingPromotionFromRow";
 
 function trim(s: unknown): string {
   if (s == null) return "";
@@ -266,6 +267,10 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
       ? { es: biz || "Negocio", en: biz || "Business" }
       : { es: "Particular", en: "Private seller" };
 
+  const promoted = rentasListingPromotedFromRow(row);
+  const badges: string[] = branchSeller === "negocio" ? ["negocio"] : ["privado"];
+  if (promoted) badges.push("destacada");
+
   const bedsHuman = bedsFromPairs(row.detail_pairs);
   const bathsHuman = bathsFromPairs(row.detail_pairs);
   const sqftStr = sqftFromPairs(row.detail_pairs);
@@ -318,8 +323,8 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     videoUrl,
     categoriaPropiedad: categoria,
     branch: branchSeller,
-    badges: branchSeller === "negocio" ? ["negocio"] : ["privado"],
-    promoted: false,
+    badges,
+    promoted,
     recencyRank: publishedAt ? Math.min(100, Math.floor(Date.parse(publishedAt) / 86400000) % 100) : 50,
     amueblado,
     mascotasPermitidas,

@@ -10,7 +10,7 @@ import {
 } from "@/app/clasificados/rentas/results/rentasResultsDemoData";
 
 const LIVE_SELECT =
-  "id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, business_meta, status, is_published, created_at, images, contact_phone, contact_email";
+  "id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, business_meta, status, is_published, created_at, images, contact_phone, contact_email, boost_expires";
 
 /**
  * Dedup merge: live rows first (newest), optional demo tail for dev (`NEXT_PUBLIC_RENTAS_INCLUDE_DEMO_POOL=1`).

@@ -8,7 +8,7 @@ import { mapListingRowToRentasPublicListing } from "@/app/clasificados/rentas/da
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 
 const COLS =
-  "id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, business_meta, status, is_published, created_at, images, contact_phone, contact_email";
+  "id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, business_meta, status, is_published, created_at, images, contact_phone, contact_email, boost_expires";
 
 export async function fetchRentasListingForPublicDetail(
   id: string,

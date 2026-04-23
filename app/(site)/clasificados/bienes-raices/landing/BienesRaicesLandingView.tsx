@@ -359,10 +359,17 @@ export function BienesRaicesLandingView() {
       area: copy.mapArea,
       zoom: copy.mapZoom,
       hint: copy.mapHint,
-      ariaCluster: copy.mapAriaCluster,
+      ariaCluster:
+        basePool.length > 0
+          ? lang === "es"
+            ? `${Math.min(99, basePool.length)} anuncios en el inventario cargado · mapa ilustrativo. Acercar.`
+            : `${Math.min(99, basePool.length)} listings in loaded inventory · illustrative map. Zoom in.`
+          : copy.mapAriaCluster,
     }),
-    [copy]
+    [copy, basePool.length, lang]
   );
+
+  const mapClusterCount = basePool.length > 0 ? basePool.length : null;
 
   const sellerLabels = useMemo(
     () => ({ privado: copy.sellerPrivado, negocio: copy.sellerNegocio }),
@@ -523,12 +530,12 @@ export function BienesRaicesLandingView() {
                 </div>
                 <div className="hidden min-h-0 min-w-0 lg:col-span-5 lg:flex xl:col-span-4">
                   <div className="flex min-h-0 w-full flex-1 flex-col">
-                    <BienesRaicesMapPreview copy={mapCopy} />
+                    <BienesRaicesMapPreview copy={mapCopy} clusterListingCount={mapClusterCount} />
                   </div>
                 </div>
               </div>
               <div className="mt-6 min-w-0 lg:hidden">
-                <BienesRaicesMapPreview copy={mapCopy} />
+                <BienesRaicesMapPreview copy={mapCopy} clusterListingCount={mapClusterCount} />
               </div>
               <div className="mt-8 flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                 <Link href={withLang(buildBrResultsUrl({ operationType: "venta", city: "Monterrey" }))} className={BTN_PRIMARY}>

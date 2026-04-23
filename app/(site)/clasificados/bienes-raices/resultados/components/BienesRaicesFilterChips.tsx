@@ -11,8 +11,11 @@ type Props = {
   copy: BrResultsCopy;
   primary: Set<BrPrimaryChipId>;
   secondary: Set<BrSecondaryChipId>;
+  /** URL `furnished=true` — backed by `facetFurnished` in `filterBrListings`. */
+  furnishedActive: boolean;
   onTogglePrimary: (id: BrPrimaryChipId) => void;
   onToggleSecondary: (id: BrSecondaryChipId) => void;
+  onToggleFurnished: () => void;
   onMoreFilters: () => void;
   matchCount: number;
 };
@@ -30,8 +33,10 @@ export function BienesRaicesFilterChips({
   copy,
   primary,
   secondary,
+  furnishedActive,
   onTogglePrimary,
   onToggleSecondary,
+  onToggleFurnished,
   onMoreFilters,
   matchCount,
 }: Props) {
@@ -63,6 +68,13 @@ export function BienesRaicesFilterChips({
             {copy.secondaryChips[id]}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={onToggleFurnished}
+          className={chipClass(furnishedActive) + " py-1 text-[11px]"}
+        >
+          {copy.toggleFurnished}
+        </button>
         <span className="ml-1 rounded-full border border-[#E8DFD0] bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-[#5C5346]">
           {matchCount.toLocaleString()}
         </span>

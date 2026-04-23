@@ -47,4 +47,11 @@ assert.equal(viajesRowMatchesBrowse(row, { ...base, svcLang: "es" }), true);
 assert.equal(viajesRowMatchesBrowse(row, { ...base, svcLang: "bilingual" }), true);
 assert.equal(viajesRowMatchesBrowse(row, { ...base, svcLang: "other" }), false);
 
+const rowExtras: ViajesBusinessResult = {
+  ...row,
+  listingSearchExtras: "Caribe Belice",
+};
+const qOnly = { ...base, q: "belice", dest: "", from: "", t: "", budget: "", audience: "", season: "", duration: "", svcLang: "" };
+assert.equal(viajesRowMatchesBrowse(rowExtras, qOnly), true);
+
 console.log("[viajes-browse-filter-selftest] OK");

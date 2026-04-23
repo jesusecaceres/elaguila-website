@@ -514,7 +514,7 @@ export default function ServiciosAdminClient() {
                 <th className="p-3 font-semibold text-[#111111]">stype</th>
                 <th className="p-3 font-semibold text-[#111111]">City</th>
                 <th className="p-3 font-semibold text-[#111111]">Tier</th>
-                <th className="p-3 font-semibold text-[#111111]">Boosts</th>
+                <th className="p-3 font-semibold text-[#111111]">Refreshes</th>
                 <th className="p-3 font-semibold text-[#111111]">Status</th>
                 <th className="p-3 font-semibold text-[#111111]">Actions</th>
               </tr>
@@ -543,10 +543,10 @@ export default function ServiciosAdminClient() {
                       <td className="p-3 text-[#111111]">{l.city}</td>
                       <td className="p-3 text-[#111111]">{l.tier}</td>
                       <td className="p-3">
-                        <span className="text-[#111111]">Boosts: {used}/{credits}</span>
+                        <span className="text-[#111111]">Refreshes: {used}/{credits}</span>
                         {hasActiveBoost && (
                           <div className="text-xs text-[#1F7A3A] mt-0.5">
-                            Boost activo hasta {untilStr}
+                            Visibilidad renovada hasta {untilStr}
                           </div>
                         )}
                       </td>
@@ -566,10 +566,16 @@ export default function ServiciosAdminClient() {
                           type="button"
                           onClick={() => activateBoost(l.id)}
                           disabled={!canBoost}
-                          title={!canBoost ? (hasActiveBoost ? `Boost activo hasta ${untilStr}` : "Sin boosts disponibles") : "Boost 5 días"}
+                          title={
+                            !canBoost
+                              ? hasActiveBoost
+                                ? `Visibilidad activa hasta ${untilStr}`
+                                : "Sin renovaciones disponibles en este ciclo"
+                              : "Renovar visibilidad 5 días (sandbox)"
+                          }
                           className="rounded border border-black/10 bg-[#F5F5F5] px-2 py-1 text-xs text-[#111111] hover:bg-[#EFEFEF] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Boost 5 días
+                          Renovar 5 días
                         </button>
                         <button
                           type="button"

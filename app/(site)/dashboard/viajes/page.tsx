@@ -10,6 +10,7 @@ import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
 
 import type { ViajesStagedListingRow, ViajesStagedLifecycleStatus } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
+import { isViajesPrivatePublishDisabled } from "@/app/(site)/clasificados/viajes/lib/viajesPrivateLaneLaunchPolicy";
 
 type Lang = "es" | "en";
 
@@ -79,6 +80,8 @@ export default function DashboardViajesStagedPage() {
             results: "Resultados Viajes",
             moderationEmpty: "—",
             busy: "…",
+            privateEditDisabled: "Edición particular desactivada en este entorno — contacta a Leonix.",
+            privatePreviewDisabled: "Vista previa particular no disponible mientras la vía esté desactivada.",
           }
         : {
             title: "Viajes — your submissions",
@@ -101,9 +104,13 @@ export default function DashboardViajesStagedPage() {
             results: "Viajes results",
             moderationEmpty: "—",
             busy: "…",
+            privateEditDisabled: "Private editing is disabled in this environment — contact Leonix.",
+            privatePreviewDisabled: "Private preview is unavailable while this lane is disabled.",
           },
     [lang]
   );
+
+  const privateLaneDisabled = isViajesPrivatePublishDisabled();
 
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState<string | null>(null);
@@ -205,6 +212,9 @@ export default function DashboardViajesStagedPage() {
   );
 
   const editHref = (r: ViajesStagedListingRow) => {
+    if (r.lane === "private" && privateLaneDisabled) {
+      return appendLangToPath("/publicar/viajes?private_lane=disabled_dashboard", lang);
+    }
     const base = r.lane === "private" ? "/publicar/viajes/privado" : "/publicar/viajes/negocios";
     const qs = new URLSearchParams();
     qs.set("stagedId", r.id);
@@ -213,6 +223,9 @@ export default function DashboardViajesStagedPage() {
   };
 
   const previewHref = (r: ViajesStagedListingRow) => {
+    if (r.lane === "private" && privateLaneDisabled) {
+      return appendLangToPath("/publicar/viajes?private_lane=disabled_dashboard", lang);
+    }
     const base = r.lane === "private" ? "/clasificados/viajes/preview/privado" : "/clasificados/viajes/preview/negocios";
     const qs = new URLSearchParams();
     qs.set("stagedId", r.id);
@@ -284,12 +297,24 @@ export default function DashboardViajesStagedPage() {
                             {t.viewPublic}
                           </Link>
                         ) : null}
-                        <Link href={previewHref(r)} className="text-xs font-semibold text-[#5C5346] underline">
-                          {t.preview}
-                        </Link>
-                        <Link href={editHref(r)} className="text-xs text-[#5C5346] underline">
-                          {t.edit}
-                        </Link>
+                        {r.lane === "private" && privateLaneDisabled ? (
+                          <span className="text-xs text-[#7A7164]" title={t.privatePreviewDisabled}>
+                            {t.preview}
+                          </span>
+                        ) : (
+                          <Link href={previewHref(r)} className="text-xs font-semibold text-[#5C5346] underline">
+                            {t.preview}
+                          </Link>
+                        )}
+                        {r.lane === "private" && privateLaneDisabled ? (
+                          <span className="text-xs text-[#7A7164]" title={t.privateEditDisabled}>
+                            {t.edit}
+                          </span>
+                        ) : (
+                          <Link href={editHref(r)} className="text-xs text-[#5C5346] underline">
+                            {t.edit}
+                          </Link>
+                        )}
                         {canResubmit(r.lifecycle_status) ? (
                           <button
                             type="button"

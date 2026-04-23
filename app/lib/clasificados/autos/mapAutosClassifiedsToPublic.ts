@@ -18,6 +18,11 @@ function buildSearchableBlurb(L: AutoDealerListing): string {
   if (L.vin?.trim()) parts.push(L.vin.trim());
   if (L.stockNumber?.trim()) parts.push(L.stockNumber.trim());
   if (Array.isArray(L.features) && L.features.length) parts.push(L.features.join(" "));
+  if (L.engine?.trim()) parts.push(L.engine.trim());
+  if (L.doors != null && Number.isFinite(L.doors)) parts.push(`${L.doors} doors`);
+  if (L.seats != null && Number.isFinite(L.seats)) parts.push(`${L.seats} seats`);
+  if (L.mpgCity != null && Number.isFinite(L.mpgCity)) parts.push(`mpg city ${L.mpgCity}`);
+  if (L.mpgHighway != null && Number.isFinite(L.mpgHighway)) parts.push(`mpg highway ${L.mpgHighway}`);
   return parts.join(" ").toLowerCase();
 }
 

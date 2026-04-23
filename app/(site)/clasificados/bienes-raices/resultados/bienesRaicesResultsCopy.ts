@@ -56,18 +56,8 @@ export type BrResultsCopy = {
     "casas" | "departamentos" | "venta" | "renta" | "comerciales" | "terrenos",
     string
   >;
-  secondaryChips: Record<
-    | "piscina"
-    | "mascotas"
-    | "nuevo_desarrollo"
-    | "open_house"
-    | "reducida"
-    | "tour_virtual"
-    | "planos"
-    | "financiamiento"
-    | "segundo_agente",
-    string
-  >;
+  /** Only chips backed by `filterBrListings` + publish machine facets (no decorative keys). */
+  secondaryChips: Record<"piscina" | "mascotas", string>;
   resultsCountLine: string;
   resultsCountOf: string;
   /** Plural noun after the total count (e.g. "resultados" / "results"). */
@@ -181,13 +171,6 @@ const ES: BrResultsCopy = {
   secondaryChips: {
     piscina: "Con piscina",
     mascotas: "Aceptan mascotas",
-    nuevo_desarrollo: "Nuevo desarrollo",
-    open_house: "Open House",
-    reducida: "Reducida",
-    tour_virtual: "Tour virtual",
-    planos: "Planos disponibles",
-    financiamiento: "Financiamiento",
-    segundo_agente: "Segundo agente",
   },
   resultsCountLine: "Mostrando",
   resultsCountOf: "de",
@@ -303,13 +286,6 @@ const EN: BrResultsCopy = {
   secondaryChips: {
     piscina: "Pool",
     mascotas: "Pets allowed",
-    nuevo_desarrollo: "New development",
-    open_house: "Open house",
-    reducida: "Price reduced",
-    tour_virtual: "Virtual tour",
-    planos: "Floor plans available",
-    financiamiento: "Financing",
-    segundo_agente: "Co-listing agent",
   },
   resultsCountLine: "Showing",
   resultsCountOf: "of",
@@ -361,6 +337,35 @@ const EN: BrResultsCopy = {
   sellerKindLabels: { privado: "Private", negocio: "Business" },
 };
 
-export function getBrResultsCopy(lang: Lang): BrResultsCopy {
-  return lang === "en" ? EN : ES;
+export type BrResultsCopyOptions = {
+  /**
+   * `next dev` may merge editorial demo rows with live Supabase reads — copy can mention that.
+   * Production (`next build`) uses neutral inventory language only.
+   */
+  useDevInventoryCopy?: boolean;
+};
+
+export function getBrResultsCopy(lang: Lang, opts?: BrResultsCopyOptions): BrResultsCopy {
+  const base = lang === "en" ? EN : ES;
+  if (opts?.useDevInventoryCopy) return base;
+  if (lang === "en") {
+    return {
+      ...EN,
+      heroSubtitle:
+        "Refine with precision and browse published inventory. Every filter is backed by structured publish data where available — share any view with a stable URL.",
+      emptyCta: "Browse all listings",
+      footerLine: "Leonix community · Moderated listings · Published inventory",
+      spotlightSubtitle:
+        "Limited spotlight lane for business listings (editorial freshness + trust). Private listings stay in the same grid with identical filters — no pay-to-win ranking in results.",
+    };
+  }
+  return {
+    ...ES,
+    heroSubtitle:
+      "Refina con precisión y explora anuncios publicados. Los filtros usan datos estructurados del anuncio cuando existen — comparte cualquier vista con URL estable.",
+    emptyCta: "Ver todos los listados",
+    footerLine: "Comunidad Leonix · Anuncios moderados · Inventario publicado",
+    spotlightSubtitle:
+      "Carril limitado de vitrina para negocios (novedad y confianza editorial). Los particulares siguen en la misma parrilla con los mismos filtros — sin subasta por pago en resultados.",
+  };
 }

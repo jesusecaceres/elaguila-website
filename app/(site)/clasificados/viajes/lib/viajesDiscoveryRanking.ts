@@ -1,12 +1,17 @@
 /**
  * Viajes discovery ordering — fair, explainable, not pay-to-win.
  *
- * - `newest`: strict recency on `publishedAt` (ISO).
+ * - `newest`: strict recency on `publishedAt` (ISO). `published_at` is written when an admin approves
+ *   (`updateViajesStagedListingModeration` in `viajesStagedListingsDbServer.ts`), so a repeat **approve**
+ *   after unpublish refreshes recency without inserting a duplicate row (same `slug`).
  * - `priceAsc` / `priceDesc`: parse numeric price where present; non-numeric sort to end/start.
- * - `featured`: quality + recency + deterministic rotation (daily seed) + soft diversity by destination slug.
- *   No sponsored override: future paid “refresh visibility” must be modeled as capped score influence + disclosure, not hard reorder.
+ * - `featured`: scaffold score + recency + deterministic rotation (daily seed) + soft diversity by destination slug.
+ *   Mapper sets `discovery.featuredBase` slightly higher for **business** lane than **private** lane
+ *   (`mapViajesStagedRowToViajesResult.ts`) so paid/verified operators get a modest edge without burying
+ *   relevant private listings (private still scores; diversity penalty caps destination stacking).
+ *   This is **not** a checkout “boost” product: treat future paid visibility as capped score + disclosure, not hard reorder.
  *
- * Live inventory should supply the same signals via merged browse rows without changing this API.
+ * Live inventory supplies signals via merged browse rows (`fetchViajesPublicBrowseRowsMerged`).
  */
 
 import type { ViajesSortKey } from "./viajesBrowseContract";

@@ -14,6 +14,17 @@ function cityKey(l: RentasPublicListing): string {
   return (l.city ?? l.addressLine).split(",")[0]?.trim() ?? l.id;
 }
 
+function recencyTs(l: RentasPublicListing): number {
+  const t = l.publishedAt ? Date.parse(l.publishedAt) : NaN;
+  if (Number.isFinite(t)) return t;
+  return (l.recencyRank ?? 0) * 1e12;
+}
+
+/** Newer listings first (higher timestamp first). */
+function compareRecencyDesc(a: RentasPublicListing, b: RentasPublicListing): number {
+  return recencyTs(b) - recencyTs(a);
+}
+
 /**
  * Destacadas: scored fairness + city diversity — see `rentasSectionPolicy.ts`.
  */
@@ -60,13 +71,33 @@ export function selectRentasLandingDestacadas(pool: RentasPublicListing[]): Rent
 
 export function selectRentasLandingRecientes(pool: RentasPublicListing[]): RentasPublicListing[] {
   const active = pool.filter((l) => l.browseActive !== false);
-  return [...active]
-    .sort((a, b) => {
-      const ta = a.publishedAt ? Date.parse(a.publishedAt) : (a.recencyRank ?? 0) * 1e12;
-      const tb = b.publishedAt ? Date.parse(b.publishedAt) : (b.recencyRank ?? 0) * 1e12;
-      return tb - ta;
-    })
-    .slice(0, RECIENTES_SECTION_LIMIT);
+  const priv = [...active.filter((l) => l.branch === "privado")].sort(compareRecencyDesc);
+  const neg = [...active.filter((l) => l.branch === "negocio")].sort(compareRecencyDesc);
+  const out: RentasPublicListing[] = [];
+  let i = 0;
+  let j = 0;
+  while (out.length < RECIENTES_SECTION_LIMIT && (i < priv.length || j < neg.length)) {
+    const p = priv[i];
+    const n = neg[j];
+    if (p && n) {
+      if (compareRecencyDesc(p, n) <= 0) {
+        out.push(p);
+        i++;
+      } else {
+        out.push(n);
+        j++;
+      }
+    } else if (p) {
+      out.push(p);
+      i++;
+    } else if (n) {
+      out.push(n);
+      j++;
+    } else {
+      break;
+    }
+  }
+  return out;
 }
 
 export function selectRentasLandingNegocios(pool: RentasPublicListing[]): RentasPublicListing[] {

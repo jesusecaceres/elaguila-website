@@ -126,6 +126,14 @@ export function getSellerKind(listing: BrNegocioListing): "privado" | "negocio" 
   return listing.badges.includes("negocio") ? "negocio" : "privado";
 }
 
+/** Exported for `br-launch-selftest`: on ties (same price or same publish ms), privados sort before negocios. */
+export function compareBrListingFairness(a: BrNegocioListing, b: BrNegocioListing): number {
+  const laneRank = (l: BrNegocioListing) => (getSellerKind(l) === "privado" ? 0 : 1);
+  const lr = laneRank(a) - laneRank(b);
+  if (lr !== 0) return lr;
+  return String(a.id).localeCompare(String(b.id));
+}
+
 function effectivePublishedMsForSort(l: BrNegocioListing): number {
   return typeof l.demoPublishedAtMs === "number" ? l.demoPublishedAtMs : 0;
 }
@@ -226,12 +234,25 @@ export function filterBrListings(
 
   const sorted = [...rows];
   const sort = state.sort || "reciente";
-  if (sort === "precio_asc") sorted.sort((a, b) => brDemoPriceNumber(a.price) - brDemoPriceNumber(b.price));
-  else if (sort === "precio_desc") sorted.sort((a, b) => brDemoPriceNumber(b.price) - brDemoPriceNumber(a.price));
-  else
-    sorted.sort(
-      (a, b) => effectivePublishedMsForSort(b) - effectivePublishedMsForSort(a)
-    );
+  if (sort === "precio_asc") {
+    sorted.sort((a, b) => {
+      const p = brDemoPriceNumber(a.price) - brDemoPriceNumber(b.price);
+      if (p !== 0) return p;
+      return compareBrListingFairness(a, b);
+    });
+  } else if (sort === "precio_desc") {
+    sorted.sort((a, b) => {
+      const p = brDemoPriceNumber(b.price) - brDemoPriceNumber(a.price);
+      if (p !== 0) return p;
+      return compareBrListingFairness(a, b);
+    });
+  } else {
+    sorted.sort((a, b) => {
+      const t = effectivePublishedMsForSort(b) - effectivePublishedMsForSort(a);
+      if (t !== 0) return t;
+      return compareBrListingFairness(a, b);
+    });
+  }
 
   return sorted;
 }

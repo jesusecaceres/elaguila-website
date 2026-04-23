@@ -14,6 +14,9 @@ export type PublicarViajesHubCopy = {
   privadoTitle: string;
   privadoBody: string;
   privadoCta: string;
+  /** When private lane is disabled via `NEXT_PUBLIC_VIAJES_PRIVATE_LANE_DISABLED=1` */
+  privadoDisabledTitle: string;
+  privadoDisabledBody: string;
   footLink: string;
   footRest: string;
   modeNote: string;
@@ -42,6 +45,9 @@ function es(): PublicarViajesHubCopy {
     privadoBody:
       "Para personas que ofrecen un viaje, cupo o paquete propio — no es la vía de agencia ni inventario de socios comerciales. Revisión y calidad de anuncio aplican.",
     privadoCta: "Continuar como particular",
+    privadoDisabledTitle: "Publicación particular no disponible en este entorno",
+    privadoDisabledBody:
+      "La vía de particulares está desactivada para el lanzamiento actual. Usa negocios/agencias o contacta a Leonix si necesitas habilitarla.",
     footLink: "Ver Viajes en Clasificados",
     footRest: "para ver ejemplos de fichas y confianza en la categoría.",
     modeNote:
@@ -72,6 +78,9 @@ function en(): PublicarViajesHubCopy {
     privadoBody:
       "For people offering their own trip, spot, or package — not the agency path and not commercial partner inventory. Listings are reviewed for accuracy and quality.",
     privadoCta: "Continue as a private seller",
+    privadoDisabledTitle: "Private listings are disabled in this environment",
+    privadoDisabledBody:
+      "The private-seller path is turned off for the current launch scope. Use the business/agency flow or contact Leonix if you need it enabled.",
     footLink: "Open Viajes in Classifieds",
     footRest: "to see sample listings and category trust cues.",
     modeNote:

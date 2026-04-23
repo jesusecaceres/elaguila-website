@@ -96,7 +96,6 @@ export function RentasResultCard({ listing, copy, lang }: Props) {
         <div className="flex flex-col sm:flex-row sm:items-stretch">
           <div className="relative sm:w-[42%] sm:max-w-[320px]">
             <div className="relative aspect-[16/10] sm:aspect-auto sm:h-full sm:min-h-[200px]">
-              { }
               <img
                 src={listing.imageUrl}
                 alt=""
@@ -140,7 +139,6 @@ export function RentasResultCard({ listing, copy, lang }: Props) {
   return (
     <article className={`group flex h-full flex-col overflow-hidden ${cardRing}`}>
       <div className="relative aspect-[16/10] w-full overflow-hidden sm:aspect-[16/10]">
-        { }
         <img
           src={listing.imageUrl}
           alt=""

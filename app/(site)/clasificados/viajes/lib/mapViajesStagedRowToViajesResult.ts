@@ -84,6 +84,12 @@ function summarizeIncluye(s: string, max = 180): string {
   return t.length > max ? `${t.slice(0, max - 1)}…` : t;
 }
 
+function negociosListingSearchExtras(d: ViajesNegociosDraft): string | undefined {
+  const parts = [d.destinationsServed.trim(), d.languages.trim()].filter(Boolean);
+  if (!parts.length) return undefined;
+  return parts.join(" ").replace(/\s+/g, " ").trim();
+}
+
 export function mapViajesStagedRowToViajesBusinessResult(row: ViajesStagedListingRow): ViajesBusinessResult | null {
   const j = row.listing_json as { version?: number; negocios?: ViajesNegociosDraft; privado?: ViajesPrivadoDraft };
   const href = `/clasificados/viajes/oferta/${row.slug}`;
@@ -120,6 +126,7 @@ export function mapViajesStagedRowToViajesBusinessResult(row: ViajesStagedListin
       durationKey,
       seasonKeys,
       serviceLanguageKeys,
+      listingSearchExtras: negociosListingSearchExtras(d),
       discovery: { featuredBase: 46, sourceTrust: 1, completeness: 0.75 },
       sellerLane: "business",
     };

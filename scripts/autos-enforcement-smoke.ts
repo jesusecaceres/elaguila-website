@@ -10,6 +10,8 @@ import { emptyAutosPublicFilters } from "../app/(site)/clasificados/autos/filter
 import { autosPublicDemoInventoryAllowed } from "../app/(site)/clasificados/autos/lib/autosPublicInventoryPolicy";
 import { autosPublicSellerTypeFromLane } from "../app/lib/clasificados/autos/autosPublicSellerFromLane";
 import { partitionAutosResultsVisibility } from "../app/(site)/clasificados/autos/lib/autosPublicResultsVisibility";
+import { autosClassifiedsRowToPublicListing } from "../app/lib/clasificados/autos/mapAutosClassifiedsToPublic";
+import type { AutosClassifiedsListingRow } from "../app/lib/clasificados/autos/autosClassifiedsTypes";
 
 const base: AutosPublicListing = {
   id: "test-1",
@@ -81,6 +83,49 @@ function run() {
     part.recentLane.some((r) => r.sellerType === "private"),
     "recent lane must surface a private row when the pool contains one but the top slice is dealer-only",
   );
+
+  const mapperRow: AutosClassifiedsListingRow = {
+    id: "row-search-blurb-proof",
+    owner_user_id: "owner-proof",
+    lane: "privado",
+    status: "active",
+    lang: "es",
+    featured: false,
+    listing_payload: {
+      year: 2022,
+      make: "Mazda",
+      model: "3",
+      price: 25000,
+      mileage: 10000,
+      city: "San Jose",
+      state: "CA",
+      zip: "95112",
+      description: "clean carfax",
+      engine: "Skyactiv-G",
+      doors: 4,
+      seats: 5,
+      mpgCity: 28,
+      mpgHighway: 36,
+      bodyStyle: "Sedan",
+      transmission: "Automatic",
+      drivetrain: "FWD",
+      fuelType: "Gasoline",
+      condition: "used",
+      mediaImages: [
+        { id: "img1", url: "https://example.com/car.jpg", sourceType: "url", isPrimary: true, sortOrder: 0 },
+      ],
+    },
+    stripe_checkout_session_id: null,
+    stripe_payment_intent_id: null,
+    published_at: "2024-01-01T00:00:00.000Z",
+    created_at: "2024-01-01T00:00:00.000Z",
+    updated_at: "2024-06-01T00:00:00.000Z",
+  };
+  const mapped = autosClassifiedsRowToPublicListing(mapperRow);
+  const blurb = mapped.searchableBlurb ?? "";
+  assert.ok(blurb.includes("skyactiv-g"), "searchableBlurb must include engine for q search");
+  assert.ok(blurb.includes("4 doors"), "searchableBlurb must include doors for q search");
+  assert.ok(blurb.includes("mpg city 28"), "searchableBlurb must include mpg city for q search");
 
   const prodDemoOff =
     process.env.NODE_ENV === "production" ? true : autosPublicDemoInventoryAllowed() === (process.env.NEXT_PUBLIC_LEONIX_AUTOS_PUBLIC_DEMO === "1");

@@ -1,9 +1,10 @@
 /**
  * Fair exposure policy for Restaurantes discovery (landing + results).
  *
- * **Future:** Swap blueprint rows for published `RestauranteListingApplication` rows mapped via
- * `adapters/restauranteApplicationToDiscoveryRow`. Ranking inputs: `publishedAt`, `planTier`,
- * `boosted`, `featured`, `externalRatingValue`, organic quality signals.
+ * Inputs are live `RestaurantesPublicBlueprintRow` rows from `restaurantes_public_listings`
+ * (see `mapRestaurantesPublicListingDbRowToShellInventoryRow`). Ranking uses `listedAt`
+ * (DB `updated_at` for republish fairness), rating, `promoted` (paid/admin only), verification,
+ * and light organic nudges for free / home-based listings so they stay discoverable.
  *
  * @see `restaurantesDiscoveryContract.ts` — URL state is separate from this ranking logic.
  */
@@ -21,10 +22,17 @@ const LANDING_DESTACADOS_MAX = RESTAURANTES_LANDING_DESTACADOS_MAX;
 const LANDING_RECIENTES_MAX = RESTAURANTES_LANDING_RECIENTES_MAX;
 const PROMOTED_BAND_MAX = RESTAURANTES_RESULTS_PROMOTED_BAND_MAX;
 
-/** Organic score: rating + light recency (demo). */
+/**
+ * Organic score for mixed landing slots: rating + recency + small fairness nudge so
+ * free / home-based listings are not permanently buried beneath paid tiers (still capped vs `promoted` band).
+ */
 function organicScore(row: RestaurantesPublicBlueprintRow): number {
   const t = new Date(row.listedAt).getTime();
-  return row.rating * 10 + t / 1e12;
+  const tier = (row.packageTier ?? "").toLowerCase();
+  const freeLike = !tier || tier === "free";
+  const fairness =
+    (freeLike && row.homeBasedBusiness ? 0.12 : 0) + (freeLike && !row.promoted ? 0.04 : 0);
+  return row.rating * 10 + t / 1e12 + fairness;
 }
 
 /**
@@ -74,7 +82,7 @@ export function selectLandingRecientesCandidates(rows: RestaurantesPublicBluepri
 }
 
 /**
- * **Results promoted band:** paid/boosted signal (`promoted`) gets visibility, capped so organic grid stays primary.
+ * **Results promoted band:** `promoted` (paid / admin placement) only; capped so the organic grid stays primary.
  */
 export function selectPromotedResultsCandidates(
   sortedFiltered: RestaurantesPublicBlueprintRow[],

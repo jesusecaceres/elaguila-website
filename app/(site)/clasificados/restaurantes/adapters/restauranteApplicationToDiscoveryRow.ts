@@ -11,8 +11,8 @@
  * - **Read path:** production inventory is loaded server-side from `restaurantes_public_listings` and mapped
  *   via `mapRestaurantesPublicListingDbRowToShellInventoryRow` (this adapter remains useful for tests and
  *   future “application → row” previews).
- * - **Exposure:** Landing destacados/recientes and the results promoted band are driven by
- *   `restaurantesListingExposurePolicy` over whatever row array is passed in (today: blueprint only).
+ * - **Exposure:** Landing destacados/recientes and the results promoted band use
+ *   `restaurantesListingExposurePolicy` over the same shell row pool as production discovery.
  *
  * @see `application/restauranteListingApplicationModel.ts`
  * @see `data/restaurantesPublicBlueprintData.ts`
@@ -62,7 +62,11 @@ export function applicationToRestauranteDiscoveryRow(
     imageSrc: opts.imageSrc,
     serviceModes,
     familyFriendly,
-    promoted: Boolean(app.featured || app.boosted || app.planTier === "featured" || app.planTier === "supporter"),
+    /**
+     * `promoted` in discovery = paid/editorial placement only.
+     * Draft `boosted` / renew signals are **not** promoted; those affect recency via `publishedAt` / server `updated_at`, not sponsorship.
+     */
+    promoted: Boolean(app.featured || app.planTier === "featured" || app.planTier === "supporter"),
     leonixVerified: false,
     openNowDemo: opts.openNowDemo ?? false,
     veganOptions: has("vegan_options"),

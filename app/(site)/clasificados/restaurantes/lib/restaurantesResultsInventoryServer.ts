@@ -1,6 +1,5 @@
 import "server-only";
 
-import { RESTAURANTES_PUBLIC_BLUEPRINT_ROWS } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 import { mapRestaurantesPublicListingDbRowsToShellInventory } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import {
   isSupabaseAdminConfigured,
@@ -10,10 +9,9 @@ import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaura
 
 /**
  * `published` — real DB inventory (may be empty array).
- * `explicit_demo` — only when `RESTAURANTES_USE_BLUEPRINT_INVENTORY=true` (local/storybook); never default.
- * `inventory_unavailable` — missing server-side Supabase admin config; **no** silent blueprint.
+ * `inventory_unavailable` — missing server-side Supabase admin config. **No** sample/blueprint rows (launch path).
  */
-export type RestaurantesResultsInventorySource = "published" | "explicit_demo" | "inventory_unavailable";
+export type RestaurantesResultsInventorySource = "published" | "inventory_unavailable";
 
 export type RestaurantesResultsInventoryPayload = {
   rows: RestaurantesPublicBlueprintRow[];
@@ -21,29 +19,17 @@ export type RestaurantesResultsInventoryPayload = {
   bannerNote?: string;
 };
 
-function allowBlueprintDemo(): boolean {
-  return process.env.RESTAURANTES_USE_BLUEPRINT_INVENTORY === "true";
-}
-
 /**
- * Production path: only published rows from `restaurantes_public_listings`.
- * Blueprint rows are **opt-in** via `RESTAURANTES_USE_BLUEPRINT_INVENTORY=true` for isolated QA.
+ * Launch path: only published rows from `restaurantes_public_listings`.
+ * Blueprint/sample inventory is not used on this route.
  */
 export async function loadRestaurantesResultsInventoryForPage(): Promise<RestaurantesResultsInventoryPayload> {
   if (!isSupabaseAdminConfigured()) {
-    if (allowBlueprintDemo()) {
-      return {
-        rows: RESTAURANTES_PUBLIC_BLUEPRINT_ROWS,
-        source: "explicit_demo",
-        bannerNote:
-          "Inventario de demostración explícito (`RESTAURANTES_USE_BLUEPRINT_INVENTORY=true`). No usar en producción.",
-      };
-    }
     return {
       rows: [],
       source: "inventory_unavailable",
       bannerNote:
-        "Sin conexión a inventario publicado: configura `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` en el servidor. No se muestran filas de muestra.",
+        "Sin conexión a inventario publicado: configura `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` en el servidor.",
     };
   }
 
