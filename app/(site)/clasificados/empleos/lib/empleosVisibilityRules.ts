@@ -12,7 +12,7 @@
  * Editorial + paid inventory mix: `showOnLandingFeatured` marks rows allowed in the hero strip.  
  * Not every paid listing need appear there; Leonix can reserve slots for quality and category balance.
  *
- * **Boosted tiers on cards (`listingTier`)**  
+ * **Listing tiers on cards (`listingTier`)**  
  * - `standard` — baseline organic placement.  
  * - `featured` — elevated visibility (curated / included placement).  
  * - `promoted` — stronger paid/merchandised visibility.  

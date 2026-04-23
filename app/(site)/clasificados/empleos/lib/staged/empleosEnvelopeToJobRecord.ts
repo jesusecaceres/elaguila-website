@@ -13,6 +13,13 @@ import type { EmpleosCanonicalListing, EmpleosStagedPublicStatus } from "./emple
 const PLACEHOLDER_IMG =
   "https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=80";
 
+/** Best-effort US ZIP from a freeform address line (Premium has no dedicated zip field). */
+function postalCodeFromEmployerAddressLine(raw: string | undefined): string | undefined {
+  if (!raw?.trim()) return undefined;
+  const m = raw.match(/\b(\d{5})(?:-\d{4})?\b/);
+  return m?.[1];
+}
+
 function initials(name: string): string {
   const p = name.trim().split(/\s+/).filter(Boolean);
   if (p.length === 0) return "LX";
@@ -173,6 +180,7 @@ export function empleosEnvelopeToJobRecord(
       company: d.companyName,
       city: d.city,
       state: d.state,
+      postalCode: postalCodeFromEmployerAddressLine(d.employerAddress),
       category,
       modality,
       jobType: mapJobType(d.jobType),

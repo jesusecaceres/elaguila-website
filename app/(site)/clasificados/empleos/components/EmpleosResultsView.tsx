@@ -39,6 +39,7 @@ import {
   EMPLEOS_RESULTS_FILTER_PANEL,
   EMPLEOS_RESULTS_GROUP,
 } from "../lib/empleosPremiumUi";
+import { EMPLEOS_RESULTS_FEATURED_STRIP_MAX } from "../lib/empleosPublicRankingPolicy";
 import { EmpleosFunctionalPrefsNotice } from "./EmpleosFunctionalPrefsNotice";
 import { EmpleosJobResultCard } from "./EmpleosJobResultCard";
 import { EmpleosUseLocationButton } from "./EmpleosUseLocationButton";
@@ -361,12 +362,14 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
     return sortEmpleosJobs(f, parsed.sort);
   }, [mergedCatalog, parsed, clock]);
 
-  const featuredRows = useMemo(
+  const featuredRowsAll = useMemo(
     () => filtered.filter((j) => j.listingTier === "featured" || j.listingTier === "promoted"),
     [filtered],
   );
-  const standardRows = useMemo(() => filtered.filter((j) => j.listingTier === "standard"), [filtered]);
-
+  const featuredStripRows = useMemo(
+    () => featuredRowsAll.slice(0, EMPLEOS_RESULTS_FEATURED_STRIP_MAX),
+    [featuredRowsAll],
+  );
   const [q, setQ] = useState(parsed.q);
   const [city, setCity] = useState(parsed.city);
   const [stateCode, setStateCode] = useState(parsed.state);
@@ -521,8 +524,14 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
     return pool.filter((slug) => slug !== parsed.category).slice(0, 3);
   }, [parsed.category]);
 
-  const showFeaturedBlock = featuredRows.length > 0 && !parsed.featuredOnly;
-  const listMain = parsed.featuredOnly ? filtered : showFeaturedBlock ? standardRows : filtered;
+  const showFeaturedBlock = featuredStripRows.length > 0 && !parsed.featuredOnly;
+  /** Everything except the small featured strip, preserving `filtered` order (overflow featured + standard). */
+  const listMain = useMemo(() => {
+    if (parsed.featuredOnly) return filtered;
+    if (featuredStripRows.length === 0) return filtered;
+    const stripIds = new Set(featuredStripRows.map((j) => j.id));
+    return filtered.filter((j) => !stripIds.has(j.id));
+  }, [filtered, featuredStripRows, parsed.featuredOnly]);
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FAF7F2] pb-24 text-[#2A2826]">
@@ -1060,7 +1069,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
                   <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#5B6F82] sm:text-base">{t.featuredIntro}</p>
                 </div>
                 <div className="grid grid-cols-1 gap-7 xl:grid-cols-2 xl:gap-8">
-                  {featuredRows.map((job) => (
+                  {featuredStripRows.map((job) => (
                     <EmpleosJobResultCard
                       key={job.id}
                       job={job}

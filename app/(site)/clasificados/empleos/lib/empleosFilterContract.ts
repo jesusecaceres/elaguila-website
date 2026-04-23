@@ -10,7 +10,7 @@
  * - zip → 5-digit match on `postalCode` when present on listing
  * - category, jobType, modality, experience, companyType → exact slug match on record fields
  * - salaryMin / salaryMax → numeric band overlap with job salary range
- * - featured=1 → only boosted inventory (`listingTier` !== standard)
+ * - featured=1 → only promoted/featured inventory (`listingTier` !== standard)
  * - recent=1 → published within 7 days (`publishedAt`)
  * - quickApply=1 → `quickApply === true`
  * - verified=1 → `verifiedEmployer === true`
@@ -24,7 +24,7 @@
  * ## Policy hooks (see `empleosVisibilityRules.ts`)
  * - Landing “featured strip”: editorial/paid subset via `showOnLandingFeatured`
  * - “Recent” strip: `showOnLandingRecent` + chronological
- * - Results boosted block: non-standard tiers after filters
+ * - Results featured strip + main list: see `empleosPublicRankingPolicy.ts` (strip capped; overflow stays in main list)
  * - Relevance sort: tier weight then recency (does not hide unpaid listings arbitrarily)
  */
 
