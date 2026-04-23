@@ -223,6 +223,20 @@ export type ViajesUi = {
     valueAccentDefault: string;
     /** When primary CTA has no resolvable target (shown instead of a dead link) */
     mainCtaUnavailableHint: string;
+    /** Leonix-tracked inquiry on published staged listings (business/private). */
+    inquiry: {
+      title: string;
+      subline: string;
+      nameLabel: string;
+      emailLabel: string;
+      messageLabel: string;
+      submit: string;
+      sending: string;
+      success: string;
+      errGeneric: string;
+      errMissingIdentity: string;
+      signedInHint: string;
+    };
   };
   negocio: {
     back: string;
@@ -539,6 +553,20 @@ function es(): Omit<ViajesUi, "lang"> {
       valueAccentDefault: "Revisa condiciones, fechas límite y métodos de pago directamente con quien publica.",
       mainCtaUnavailableHint:
         "Sin enlace de contacto válido aún — revisa WhatsApp, teléfono, correo o sitio web en tu solicitud (o usa los canales secundarios abajo si los añadiste).",
+      inquiry: {
+        title: "Consulta por este anuncio (Leonix)",
+        subline:
+          "Tu mensaje queda registrado en Leonix para que el anunciante lo vea con contexto del listado. No sustituye acuerdos de pago ni reserva fuera de la plataforma.",
+        nameLabel: "Nombre",
+        emailLabel: "Correo",
+        messageLabel: "Mensaje",
+        submit: "Enviar consulta",
+        sending: "Enviando…",
+        success: "Consulta enviada. El anunciante podrá verla desde su cuenta Leonix.",
+        errGeneric: "No se pudo enviar la consulta. Intenta de nuevo.",
+        errMissingIdentity: "Indica nombre y un correo válido (o inicia sesión).",
+        signedInHint: "Si iniciaste sesión, podemos completar tu nombre y correo desde tu perfil cuando falten.",
+      },
     },
     negocio: {
       back: "Volver a Viajes",
@@ -862,6 +890,20 @@ function en(): Omit<ViajesUi, "lang"> {
       valueAccentDefault: "Review terms, blackout dates, and payment methods directly with whoever published the offer.",
       mainCtaUnavailableHint:
         "No valid contact link yet — check WhatsApp, phone, email, or website in your listing (or use secondary channels below if you added them).",
+      inquiry: {
+        title: "Inquire about this listing (Leonix)",
+        subline:
+          "Your message is stored in Leonix so the publisher can see it with listing context. It does not replace booking or payment agreements outside the platform.",
+        nameLabel: "Name",
+        emailLabel: "Email",
+        messageLabel: "Message",
+        submit: "Send inquiry",
+        sending: "Sending…",
+        success: "Inquiry sent. The publisher can read it from their Leonix account.",
+        errGeneric: "Could not send the inquiry. Please try again.",
+        errMissingIdentity: "Add your name and a valid email (or sign in).",
+        signedInHint: "If you are signed in, we can fill your name and email from your profile when they are empty.",
+      },
     },
     negocio: {
       back: "Back to Viajes",

@@ -25,6 +25,11 @@ export type SampleFeaturedJob = {
   quickApply: boolean;
   benefitChips: readonly string[];
   companyInitials: string;
+  /**
+   * Live DB mapping only — distinguishes paid visibility from standard listings when both appear in the landing strip.
+   * Marketing samples omit this and rely on `featured`.
+   */
+  empleosVisibility?: "promoted" | "featured" | "standard";
 };
 
 export type SampleRecentJob = {

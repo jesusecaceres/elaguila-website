@@ -10,7 +10,7 @@ import { ViajesOfferDetailLayout } from "../../components/ViajesOfferDetailLayou
 import { getViajesOfferDetailBySlug, VIAJES_OFFER_SLUGS } from "../../data/viajesOfferDetailSampleData";
 import { getViajesUi } from "../../data/viajesUiCopy";
 import { resolveViajesOfferBack } from "../../lib/viajesOfferLink";
-import { resolveViajesOfferDetailFromStagedSlug } from "../../lib/resolveViajesOfferDetailFromStagedServer";
+import { resolveViajesStagedOfferDetailBundle } from "../../lib/resolveViajesOfferDetailFromStagedServer";
 import { viajesAllowCuratedDemoCatalog } from "../../lib/viajesPublicInventory";
 
 export const dynamic = "force-dynamic";
@@ -35,8 +35,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const { slug } = await params;
   const sp = await searchParams;
   const lang = pickLang(sp);
-  const staged = await resolveViajesOfferDetailFromStagedSlug(slug, lang);
-  const offer = staged ?? (viajesAllowCuratedDemoCatalog() ? getViajesOfferDetailBySlug(slug) : null);
+  const bundle = await resolveViajesStagedOfferDetailBundle(slug, lang);
+  const offer = bundle?.offer ?? (viajesAllowCuratedDemoCatalog() ? getViajesOfferDetailBySlug(slug) : null);
   if (!offer) return { title: "Oferta | Leonix Viajes" };
   return {
     title: `${offer.title} | Leonix Viajes`,
@@ -48,9 +48,10 @@ export default async function ClasificadosViajesOfertaPage({ params, searchParam
   const { slug } = await params;
   const sp = await searchParams;
   const lang = pickLang(sp);
-  const staged = await resolveViajesOfferDetailFromStagedSlug(slug, lang);
-  const offer = staged ?? (viajesAllowCuratedDemoCatalog() ? getViajesOfferDetailBySlug(slug) : null);
+  const bundle = await resolveViajesStagedOfferDetailBundle(slug, lang);
+  const offer = bundle?.offer ?? (viajesAllowCuratedDemoCatalog() ? getViajesOfferDetailBySlug(slug) : null);
   if (!offer) notFound();
+  const stagedListingId = bundle?.stagedListingId ?? null;
   const ui = getViajesUi(lang);
   const fallback = appendLangToPath("/clasificados/viajes", lang);
   const { href: backHref, label: backLabel } = resolveViajesOfferBack(sp.back, fallback, lang);
@@ -70,6 +71,7 @@ export default async function ClasificadosViajesOfertaPage({ params, searchParam
         backLabel={backLabel}
         ui={ui}
         exploreViajesHref={exploreViajesHref}
+        stagedListingId={stagedListingId}
       />
     </div>
   );

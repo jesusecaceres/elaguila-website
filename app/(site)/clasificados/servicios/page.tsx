@@ -29,6 +29,7 @@ type PageProps = {
 export default async function ClasificadosServiciosLandingPage(props: PageProps) {
   const sp = (await props.searchParams) ?? {};
   const lang = sp.lang === "en" ? "en" : "es";
-  const liveRows = await listServiciosPublicListingsForDiscovery(120);
+  /** Larger window so landing “Recientes” (newest-by-time strip) stays representative vs busy directories. */
+  const liveRows = await listServiciosPublicListingsForDiscovery(200);
   return <ServiciosLandingPage lang={lang} liveRows={liveRows} />;
 }

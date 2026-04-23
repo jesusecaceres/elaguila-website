@@ -1,18 +1,21 @@
 "use client";
 
 import { FiPlay } from "react-icons/fi";
+import { useSearchParams } from "next/navigation";
 import type { AutoDealerListing } from "../types/autoDealerListing";
-import type { AutosNegociosCopy } from "../lib/autosNegociosCopy";
+import { getAutosNegociosCopy, type AutosNegociosCopy } from "../lib/autosNegociosCopy";
 import { deriveHeroImageUrls } from "../lib/autoDealerHeroImages";
 import { getListingVideoExternalHref, getListingVideoSrcForElement, hasListingVideo } from "../lib/autoDealerVideo";
 import { MediaImage } from "./MediaImage";
-import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
+import { normalizeAutosNegociosLang } from "../lib/autosNegociosLang";
 
 const CARD =
   "min-w-0 overflow-x-hidden rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)]";
 
 export function AutoGallery({ data }: { data: AutoDealerListing }) {
-  const { t } = useAutosNegociosPreviewCopy();
+  const sp = useSearchParams();
+  const lang = normalizeAutosNegociosLang(sp?.get("lang"));
+  const t = getAutosNegociosCopy(lang);
   const g = t.preview.gallery;
 
   const images = deriveHeroImageUrls(data);

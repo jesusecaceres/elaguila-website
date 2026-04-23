@@ -12,6 +12,12 @@ import {
 import type { AutosClassifiedsListingRow } from "./autosClassifiedsTypes";
 import { autosPublicSellerTypeFromLane } from "./autosPublicSellerFromLane";
 
+function parseDbTimeMs(value: string | null | undefined): number {
+  if (value == null || value === "") return NaN;
+  const t = new Date(value).getTime();
+  return Number.isFinite(t) ? t : NaN;
+}
+
 function buildSearchableBlurb(L: AutoDealerListing): string {
   const parts: string[] = [];
   if (L.description?.trim()) parts.push(L.description.trim().slice(0, 2000));
@@ -43,11 +49,13 @@ export function autosClassifiedsRowToPublicListing(row: AutosClassifiedsListingR
   const drivetrain = resolveDrivetrain(L) ?? "";
   const fuelType = resolveFuelType(L) ?? "";
   const titleStatus = resolveTitleStatus(L);
-  const publishedMs = row.published_at ? Date.parse(row.published_at) : NaN;
-  const updatedMs = row.updated_at ? Date.parse(row.updated_at) : NaN;
+  const publishedMs = parseDbTimeMs(row.published_at);
+  const updatedMs = parseDbTimeMs(row.updated_at);
+  const createdMs = parseDbTimeMs(row.created_at);
   const recencyMs = Math.max(
     Number.isFinite(publishedMs) ? publishedMs : 0,
     Number.isFinite(updatedMs) ? updatedMs : 0,
+    Number.isFinite(createdMs) ? createdMs : 0,
   );
   const publicSortTimestamp = recencyMs > 0 ? new Date(recencyMs).toISOString() : undefined;
   return {

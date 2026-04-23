@@ -10,6 +10,7 @@ import { inferViajesHeroVisualKind } from "../lib/viajesOfferHeroFallbacks";
 import { ViajesContactChannelsRow } from "./ViajesContactChannelsRow";
 import { ViajesOfferHeroBackdrop } from "./ViajesOfferHeroBackdrop";
 import { ViajesPartnerLogo } from "./ViajesPartnerLogo";
+import { ViajesPublicInquiryForm } from "./ViajesPublicInquiryForm";
 
 const ACCENT = "#D97706";
 
@@ -54,6 +55,7 @@ export function ViajesOfferDetailLayout({
   previewTone = "default",
   ui,
   exploreViajesHref,
+  stagedListingId = null,
 }: {
   offer: ViajesOfferDetailModel;
   backHref: string;
@@ -63,6 +65,8 @@ export function ViajesOfferDetailLayout({
   previewTone?: "default" | "minimal";
   ui: ViajesUi;
   exploreViajesHref: string;
+  /** DB id for approved staged listing — enables Leonix-tracked inquiry. */
+  stagedListingId?: string | null;
 }) {
   const { partner } = offer;
   const od = ui.offerDetail;
@@ -376,6 +380,12 @@ export function ViajesOfferDetailLayout({
             </div>
           </div>
         </section>
+
+        {!preview && stagedListingId && lane !== "affiliate" ? (
+          <section className="overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-18px_rgba(0,0,0,0.08)] sm:p-8">
+            <ViajesPublicInquiryForm stagedListingId={stagedListingId} copy={od.inquiry} />
+          </section>
+        ) : null}
 
         <section className="space-y-4 overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-18px_rgba(0,0,0,0.08)] sm:p-8">
           <div className="flex items-start gap-3 border-b border-[color:var(--lx-nav-border)]/70 pb-4">

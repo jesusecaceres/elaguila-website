@@ -12,7 +12,7 @@ import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "./serviciosListingLifecycle"
 
 /** Keep aligned with migrations present on all envs; omit columns not yet applied on older DBs (breaks PostgREST `.select()`). */
 const LISTING_SELECT =
-  "slug, business_name, city, published_at, profile_json, leonix_verified, internal_group, listing_status";
+  "slug, business_name, city, published_at, profile_json, leonix_verified, internal_group, listing_status, owner_user_id";
 
 export type ServiciosPublicListingRow = {
   slug: string;

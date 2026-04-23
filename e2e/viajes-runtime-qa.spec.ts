@@ -7,6 +7,8 @@ const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const SELLER_EMAIL = process.env.SMOKE_SELLER_EMAIL ?? "smoke.seller@yourdomain.com";
 const SELLER_PASSWORD = process.env.SMOKE_SELLER_PASSWORD ?? "LeonixSmoke!2026Seller";
+const BUYER_EMAIL = process.env.SMOKE_BUYER_EMAIL ?? "smoke.buyer@yourdomain.com";
+const BUYER_PASSWORD = process.env.SMOKE_BUYER_PASSWORD ?? "LeonixSmoke!2026Buyer";
 const ADMIN_SITE_PASSWORD =
   process.env.ADMIN_PASSWORD ??
   process.env.SMOKE_ADMIN_SITE_PASSWORD ??
@@ -64,9 +66,11 @@ test.describe("Viajes runtime QA", () => {
     const admin = createClient(url!, service!, { auth: { persistSession: false, autoRefreshToken: false } });
     const { error } = await admin.auth.admin.createUser({ email: SELLER_EMAIL, password: SELLER_PASSWORD, email_confirm: true });
     if (error && !String(error.message).toLowerCase().includes("already")) throw error;
+    const { error: bErr } = await admin.auth.admin.createUser({ email: BUYER_EMAIL, password: BUYER_PASSWORD, email_confirm: true });
+    if (bErr && !String(bErr.message).toLowerCase().includes("already")) throw bErr;
   });
 
-  test("NEGOCIO: submit → dashboard → admin approve → landing/results/detail → owner unpublish → no stale", async ({ page, context, request }) => {
+  test("NEGOCIO: submit → dashboard → admin approve → landing/results/detail → owner unpublish → no stale", async ({ page, context, request, browser }) => {
     test.skip(!url || !anon || !service, "Missing Supabase env vars (url/anon/service)");
 
     const sess = await seedSupabaseSession({
@@ -179,6 +183,35 @@ test.describe("Viajes runtime QA", () => {
     await expect(page.locator("h1", { hasText: uniq })).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText(/Negocio en Leonix|Operador o agencia/i).first()).toBeVisible();
 
+    // Tracked inquiry CTA (buyer session, separate context so seller session is not overwritten)
+    const buyerContext = await browser.newContext();
+    const buyerPage = await buyerContext.newPage();
+    await seedSupabaseSession({
+      page: buyerPage,
+      context: buyerContext,
+      supabaseUrl: url!,
+      anonKey: anon!,
+      email: BUYER_EMAIL,
+      password: BUYER_PASSWORD,
+    });
+    const inqMsg = `Consulta QA tracked inquiry ${Date.now()}`;
+    await buyerPage.goto(`/clasificados/viajes/oferta/${encodeURIComponent(slug)}?lang=es`);
+    await expect(buyerPage.getByTestId("viajes-inquiry-message")).toBeVisible({ timeout: 60_000 });
+    await buyerPage.getByTestId("viajes-inquiry-name").fill("Smoke Buyer");
+    await buyerPage.getByTestId("viajes-inquiry-email").fill(BUYER_EMAIL);
+    await buyerPage.getByTestId("viajes-inquiry-message").fill(inqMsg);
+    await buyerPage.getByTestId("viajes-inquiry-submit").click();
+    await expect(buyerPage.getByText(/Consulta enviada/i)).toBeVisible({ timeout: 60_000 });
+    const { data: inqRows, error: inqErr } = await adminSb
+      .from("viajes_public_inquiries")
+      .select("id,message,buyer_email,staged_listing_id")
+      .eq("staged_listing_id", id)
+      .order("created_at", { ascending: false })
+      .limit(3);
+    expect(inqErr, inqErr?.message ?? "").toBeNull();
+    expect(inqRows?.some((r) => String((r as { message?: string }).message ?? "").includes(inqMsg))).toBeTruthy();
+    await buyerContext.close();
+
     // Results: find by q (title haystack)
     await page.goto(`/clasificados/viajes/resultados?lang=es&q=${encodeURIComponent(uniq)}`);
     await expect(page.locator(`a[href*="/clasificados/viajes/oferta/${slug}"]`).first()).toBeVisible({ timeout: 60_000 });
@@ -202,7 +235,7 @@ test.describe("Viajes runtime QA", () => {
     const after = await request.get(`/clasificados/viajes/oferta/${encodeURIComponent(slug)}?lang=es`);
     const body = await after.text();
     if (after.status() !== 404) {
-      expect(body).toMatch(/next-error\" content=\"not-found|P[aá]gina no encontrada/i);
+      expect(body).toMatch(/next-error" content="not-found|P[aá]gina no encontrada/i);
     }
   });
 

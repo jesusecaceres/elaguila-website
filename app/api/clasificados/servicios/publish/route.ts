@@ -18,8 +18,8 @@ import {
   SERVICIOS_LISTING_STATUS_PUBLISHED,
 } from "@/app/clasificados/servicios/lib/serviciosListingLifecycle";
 import { mapServiciosApplicationDraftToBusinessProfile } from "@/app/servicios/lib/mapServiciosApplicationDraftToBusinessProfile";
-import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
-import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
+import type { ServiciosBusinessProfile, ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
+import { mergeOpsControlledServiciosProfileFields } from "@/app/(site)/clasificados/servicios/lib/serviciosPublishOpsProfileMerge";
 import { buildServiciosDiscoveryFacet } from "@/app/clasificados/servicios/lib/serviciosPublishDiscovery";
 import { insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
 import { isServiciosStrictPublishEnvironment, serviciosOwnerIdFromBearer } from "../lib/serviciosPublishServerAuth";
@@ -45,21 +45,6 @@ function stripAdvertiserVerificationFlags(wire: ServiciosBusinessProfile): Servi
   };
   delete next.identity.leonixVerified;
   return next;
-}
-
-/**
- * Clasificados publish never maps `contact.isFeatured` from the advertiser form (ops / billing only).
- * When a listing is republished, merge prior wire so paid/amplified placement is not wiped.
- */
-function mergeOpsControlledServiciosProfileFields(
-  nextWire: ServiciosBusinessProfile,
-  previous: ServiciosBusinessProfile | null | undefined,
-): ServiciosBusinessProfile {
-  if (!previous?.contact?.isFeatured) return nextWire;
-  return {
-    ...nextWire,
-    contact: { ...nextWire.contact, isFeatured: true },
-  };
 }
 
 function initialListingStatus(): typeof SERVICIOS_LISTING_STATUS_PUBLISHED | typeof SERVICIOS_LISTING_STATUS_PENDING_REVIEW {

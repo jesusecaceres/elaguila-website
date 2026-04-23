@@ -8,6 +8,7 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 import { sampleFeaturedJobs, type SampleFeaturedJob } from "../../data/empleosLandingSampleData";
 import { buildEmpleosResultadosUrl } from "../../shared/utils/empleosListaUrl";
+import { EMPLEOS_LANDING_FEATURED_MAX } from "../../lib/empleosPublicRankingPolicy";
 import { EMPLEOS_CTA_PRIMARY } from "../../lib/empleosPremiumUi";
 import { LandingSection } from "./empleosLandingUi";
 
@@ -25,6 +26,36 @@ function modalityLabel(m: SampleFeaturedJob["modality"], lang: Lang) {
   return m === "presencial" ? "Presencial" : m === "hibrido" ? "Híbrido" : "Remoto";
 }
 
+function visibilityBadge(job: SampleFeaturedJob, lang: Lang): { label: string; className: string } {
+  const v = job.empleosVisibility;
+  if (v === "promoted") {
+    return {
+      label: lang === "es" ? "Promocionado" : "Promoted",
+      className:
+        "rounded-full bg-gradient-to-r from-amber-200/95 via-amber-300/90 to-[#C9942E]/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#3D2A0C] shadow-[0_4px_12px_rgba(180,130,40,0.25)]",
+    };
+  }
+  if (v === "featured") {
+    return {
+      label: lang === "es" ? "Destacado" : "Featured",
+      className:
+        "rounded-full bg-gradient-to-r from-[#F6E0A8] to-[#E8C56A] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#3A3220] shadow-[0_4px_12px_rgba(201,148,46,0.22)]",
+    };
+  }
+  if (v === "standard") {
+    return {
+      label: lang === "es" ? "Empleo publicado" : "Posted job",
+      className:
+        "rounded-full border border-[#E8DFD0] bg-[#F7F4EF] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#4A4744]",
+    };
+  }
+  return {
+    label: job.featured ? (lang === "es" ? "Destacado" : "Featured") : lang === "es" ? "Empleo" : "Job",
+    className:
+      "rounded-full bg-gradient-to-r from-[#F6E0A8] to-[#E8C56A] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#3A3220] shadow-[0_4px_12px_rgba(201,148,46,0.22)]",
+  };
+}
+
 function FeaturedLandingCard({ job, lang }: { job: SampleFeaturedJob; lang: Lang }) {
   const detailHref = appendLangToPath(`/clasificados/empleos/${job.slug}`, lang);
   const similarHref = buildEmpleosResultadosUrl(lang, {
@@ -33,13 +64,12 @@ function FeaturedLandingCard({ job, lang }: { job: SampleFeaturedJob; lang: Lang
     modality: job.modality,
     jobType: job.jobType,
   });
+  const badge = visibilityBadge(job, lang);
 
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#E5D4B8]/80 bg-white ring-1 ring-[#D9A23A]/28 shadow-[0_20px_52px_rgba(42,40,38,0.085)] transition hover:ring-[#D9A23A]/38 hover:shadow-[0_24px_58px_rgba(42,40,38,0.1)]">
       <div className="flex items-start justify-between gap-3 border-b border-[#F0E8DC] bg-gradient-to-r from-[#FFFBF7] via-[#FFF8EC] to-[#FFFBF7] px-4 py-3.5">
-        <span className="rounded-full bg-gradient-to-r from-[#F6E0A8] to-[#E8C56A] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#3A3220] shadow-[0_4px_12px_rgba(201,148,46,0.22)]">
-          {lang === "es" ? "Destacado" : "Featured"}
-        </span>
+        <span className={badge.className}>{badge.label}</span>
         <Link
           href={similarHref}
           className="rounded-lg p-2 text-[#5B6F82] transition hover:bg-[#F5F0E8] hover:text-[#2A2826]"
@@ -92,17 +122,18 @@ function FeaturedLandingCard({ job, lang }: { job: SampleFeaturedJob; lang: Lang
 
 export function FeaturedJobsLandingSection({ lang, jobs, liveInventory = false }: Props) {
   const rows = liveInventory ? (jobs ?? []) : (jobs ?? sampleFeaturedJobs);
+  const cap = EMPLEOS_LANDING_FEATURED_MAX;
   const subtitle = liveInventory
     ? lang === "es"
-      ? "Vacantes con mayor visibilidad entre las publicadas en Leonix (promoted/featured)."
-      : "Higher-visibility roles among what is currently published on Leonix (promoted/featured)."
+      ? `Muestra pequeña (máx. ${cap}): vacantes con planes que incluyen más visibilidad (destacado / promocionado). El inventario completo y los filtros están en Resultados — sin inventario de demostración.`
+      : `Small showcase (max ${cap}): listings on plans with higher on-site visibility (featured / promoted). Full inventory and filters live on Results — no demo catalog.`
     : lang === "es"
       ? "Roles con buena visibilidad y detalles claros — ideal para decidir rápido."
       : "Highly visible roles with clear details — decide faster.";
   const eyebrow = liveInventory
     ? lang === "es"
-      ? "Inventario publicado"
-      : "Published inventory"
+      ? "Visibilidad en Leonix"
+      : "Visibility on Leonix"
     : lang === "es"
       ? "Selección editorial"
       : "Editor picks";
@@ -110,7 +141,7 @@ export function FeaturedJobsLandingSection({ lang, jobs, liveInventory = false }
   return (
     <LandingSection
       eyebrow={eyebrow}
-      title={lang === "es" ? "Trabajos destacados" : "Featured jobs"}
+      title={lang === "es" ? "Destacados y mayor visibilidad" : "Featured & higher visibility"}
       subtitle={subtitle}
       rightSlot={
         <Link

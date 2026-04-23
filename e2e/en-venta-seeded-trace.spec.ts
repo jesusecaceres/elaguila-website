@@ -1,4 +1,22 @@
 import { test, expect } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SMOKE_SELLER_EMAIL = process.env.SMOKE_SELLER_EMAIL ?? "smoke.seller@yourdomain.com";
+const SMOKE_SELLER_PASSWORD = process.env.SMOKE_SELLER_PASSWORD ?? "LeonixSmoke!2026Seller";
+
+async function smokeSellerOwnerIdForSeed(): Promise<string> {
+  if (!url || !anon) throw new Error("missing NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  const sb = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await sb.auth.signInWithPassword({
+    email: SMOKE_SELLER_EMAIL,
+    password: SMOKE_SELLER_PASSWORD,
+  });
+  if (error || !data.user?.id) throw new Error(error?.message ?? "smoke seller signInWithPassword failed");
+  return data.user.id;
+}
 
 /**
  * Proves persisted En Venta rows flow through public detail + results filters.
@@ -9,9 +27,23 @@ import { test, expect } from "@playwright/test";
  * surfaces the publish pipeline targets.
  */
 test.describe("En Venta seeded DB trace (dev API)", () => {
+  test.describe.configure({ timeout: 120_000 });
+
+  test.beforeAll(async () => {
+    if (!url || !service) return;
+    const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { error } = await admin.auth.admin.createUser({
+      email: SMOKE_SELLER_EMAIL,
+      password: SMOKE_SELLER_PASSWORD,
+      email_confirm: true,
+    });
+    if (error && !String(error.message).toLowerCase().includes("already")) throw error;
+  });
+
   test("detail + filtered results for a real listings row, then cleanup", async ({ page, request }) => {
+    const ownerUserId = await smokeSellerOwnerIdForSeed();
     const post = await request.post("/api/clasificados/en-venta/dev-seed-listing", {
-      data: { action: "create" },
+      data: { action: "create", ownerUserId },
     });
     const raw = await post.text();
     let body: { ok?: boolean; listingId?: string; marker?: string; error?: string };

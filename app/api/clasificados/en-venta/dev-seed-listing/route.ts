@@ -4,6 +4,24 @@ import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/
 
 export const runtime = "nodejs";
 
+function isUuid(s: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s.trim());
+}
+
+/** Real `auth.users` id so `messages.receiver_id` FK accepts buyer inquiries against seeded rows. */
+async function resolveSmokeSellerOwnerId(admin: ReturnType<typeof getAdminSupabase>): Promise<{ ownerId: string } | { error: string }> {
+  const email = (process.env.SMOKE_SELLER_EMAIL ?? "smoke.seller@yourdomain.com").trim().toLowerCase();
+  if (!email) return { error: "SMOKE_SELLER_EMAIL is empty" };
+  for (let page = 1; page <= 10; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) return { error: error.message };
+    const hit = data.users.find((u) => (u.email ?? "").trim().toLowerCase() === email);
+    if (hit?.id) return { ownerId: hit.id };
+    if (!data.users.length) break;
+  }
+  return { error: `smoke seller not found in auth.users: ${email}` };
+}
+
 function responseForSupabaseAdminError(error: { message?: string } | null): NextResponse | null {
   const msg = (error?.message ?? "").toLowerCase();
   if (
@@ -21,7 +39,8 @@ function responseForSupabaseAdminError(error: { message?: string } | null): Next
  * Dev / CI only: create or delete a real `listings` row for En Venta E2E traceability.
  *
  * POST body:
- * - `{ "action": "create" }` (default) — insert one active published En Venta row.
+ * - `{ "action": "create", "ownerUserId"?: "<uuid>" }` (default) — insert one active published En Venta row.
+ *   Prefer passing `ownerUserId` (real `auth.users.id`) from E2E via anon `signInWithPassword` — avoids `listUsers` pagination limits.
  * - `{ "action": "delete", "listingId": "<uuid>" }` — remove that row.
  *
  * Security: 404 unless `EN_VENTA_DEV_PUBLISH=1`. Requires `SUPABASE_SERVICE_ROLE_KEY`.
@@ -40,7 +59,7 @@ export async function POST(req: NextRequest) {
   } catch {
     body = {};
   }
-  const b = (body && typeof body === "object" ? body : {}) as { action?: string; listingId?: string };
+  const b = (body && typeof body === "object" ? body : {}) as { action?: string; listingId?: string; ownerUserId?: string };
   const action = (b.action ?? "create").toLowerCase();
 
   const supabase = getAdminSupabase();
@@ -65,7 +84,22 @@ export async function POST(req: NextRequest) {
 
   const marker = `EV_E2E_${Date.now()}`;
   const id = randomUUID();
-  const ownerId = randomUUID();
+  const ownerFromBody = String(b.ownerUserId ?? "").trim();
+  let ownerId: string;
+  if (ownerFromBody && isUuid(ownerFromBody)) {
+    ownerId = ownerFromBody;
+  } else {
+    const resolvedOwner = await resolveSmokeSellerOwnerId(supabase);
+    if ("error" in resolvedOwner) {
+      return NextResponse.json({ ok: false, error: resolvedOwner.error }, { status: 422 });
+    }
+    ownerId = resolvedOwner.ownerId;
+  }
+  const { data: ownerRow } = await supabase.auth.admin.getUserById(ownerId);
+  const sellerContactEmail =
+    (ownerRow.user?.email ?? "").trim() ||
+    (process.env.SMOKE_SELLER_EMAIL ?? "smoke.seller@yourdomain.com").trim() ||
+    `e2e-en-venta-${id.slice(0, 8)}@test.invalid`;
 
   const detailPairs = [
     { label: "Leonix:evDept", value: "electronicos" },
@@ -92,7 +126,7 @@ export async function POST(req: NextRequest) {
     price: 199,
     is_free: false,
     contact_phone: null,
-    contact_email: `e2e-en-venta-${id.slice(0, 8)}@test.invalid`,
+    contact_email: sellerContactEmail || `e2e-en-venta-${id.slice(0, 8)}@test.invalid`,
     status: "active",
     is_published: true,
     seller_type: "business",

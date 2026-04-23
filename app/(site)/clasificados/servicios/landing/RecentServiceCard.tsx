@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ServiciosLandingRecentListing } from "./serviciosLandingSampleData";
 
 export function RecentServiceCard({ row, lang }: { row: ServiciosLandingRecentListing; lang: "es" | "en" }) {
+  const profileHref = `/clasificados/servicios/${encodeURIComponent(row.id)}?lang=${lang}`;
   const btnBase = "inline-flex min-h-[42px] min-w-[112px] items-center justify-center rounded-xl text-[13px] font-bold transition";
 
   const btn =
@@ -23,7 +24,10 @@ export function RecentServiceCard({ row, lang }: { row: ServiciosLandingRecentLi
     );
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-[18px] border border-[#e5ddd2]/90 bg-[#faf8f5] shadow-[0_18px_44px_-32px_rgba(20,38,58,0.4)] ring-1 ring-[#1e3a5f]/[0.03]">
+    <article
+      data-servicios-recent-slug={row.id}
+      className="flex h-full flex-col overflow-hidden rounded-[18px] border border-[#e5ddd2]/90 bg-[#faf8f5] shadow-[0_18px_44px_-32px_rgba(20,38,58,0.4)] ring-1 ring-[#1e3a5f]/[0.03]"
+    >
       <div className="relative aspect-[5/3] w-full overflow-hidden bg-[#e5e1da]">
         <Image
           src={row.coverImageSrc}
@@ -52,7 +56,12 @@ export function RecentServiceCard({ row, lang }: { row: ServiciosLandingRecentLi
       </div>
       <div className="flex flex-1 flex-col p-5 sm:p-6">
         <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#64748b]">{row.businessName}</p>
-        <h3 className="mt-2 text-[17px] font-bold leading-snug tracking-tight text-[#142a42] sm:text-lg">{row.serviceTitle}</h3>
+        <Link
+          href={profileHref}
+          className="mt-2 block text-left text-[17px] font-bold leading-snug tracking-tight text-[#142a42] underline-offset-2 hover:underline sm:text-lg"
+        >
+          {row.serviceTitle}
+        </Link>
         <p className="mt-3 flex-1 text-[14px] leading-relaxed text-[#3d4f62]">{row.description}</p>
         <div className="mt-5 flex items-center justify-between gap-3 border-t border-[#e8e0d6]/90 pt-5">
           {typeof row.rating === "number" ? (

@@ -12,6 +12,9 @@ import {
   type ServiciosResultsFilterQuery,
 } from "../app/(site)/clasificados/servicios/lib/serviciosResultsFilter";
 import type { ServiciosPublicListingRow } from "../app/(site)/clasificados/servicios/lib/serviciosPublicListingsServer";
+import { selectLandingDestacadosRecientes } from "../app/(site)/clasificados/servicios/lib/serviciosLandingBuild";
+import { mergeOpsControlledServiciosProfileFields } from "../app/(site)/clasificados/servicios/lib/serviciosPublishOpsProfileMerge";
+import type { ServiciosBusinessProfile } from "../app/(site)/servicios/types/serviciosBusinessProfile";
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
@@ -159,8 +162,30 @@ function main() {
   const sorted = sortServiciosListingRows(rows, "es", "newest");
   assert(sorted[0]?.leonix_verified === true, "ranking: verified listing should sort ahead at same timestamp");
 
-   
-  console.log("[servicios-launch-proof] OK — readiness, discovery filters, and verified tie-break verified.");
+  const landingRows = [
+    rowFixture({ slug: "older-unverified", leonix_verified: false, published_at: "2019-01-01T00:00:00.000Z" }),
+    rowFixture({ slug: "newer-unverified", leonix_verified: false, published_at: "2030-06-01T00:00:00.000Z" }),
+  ];
+  const { recientesRows } = selectLandingDestacadosRecientes(landingRows, "es");
+  assert(
+    recientesRows[0]?.slug === "newer-unverified",
+    "landing: first Recientes card must be newest by published_at (not verified-biased results sort)",
+  );
+
+  const prevWire = {
+    identity: { businessName: "A", slug: "a" },
+    contact: { isFeatured: true },
+  } as ServiciosBusinessProfile;
+  const nextWire = {
+    identity: { businessName: "B", slug: "b" },
+    contact: { isFeatured: false },
+  } as ServiciosBusinessProfile;
+  const mergedWire = mergeOpsControlledServiciosProfileFields(nextWire, prevWire);
+  assert(mergedWire.contact?.isFeatured === true, "ops merge: republish must preserve ops-controlled isFeatured");
+
+  console.log(
+    "[servicios-launch-proof] OK — readiness, discovery filters, verified tie-break, landing recientes contract, and ops featured merge verified.",
+  );
 }
 
 main();

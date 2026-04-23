@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 
-/** Load `.env.local` into `process.env` so Playwright + `next start` see Supabase keys without exporting them in the shell. */
+/** Load `.env.local` into `process.env` for Playwright + `next start` (Supabase + admin password). */
 function loadDotEnvLocal() {
   try {
     const p = path.join(root, ".env.local");
@@ -28,33 +28,40 @@ function loadDotEnvLocal() {
 }
 loadDotEnvLocal();
 
+const port = Number(process.env.AUTOS_E2E_PORT ?? "3022");
+const baseURL = process.env.AUTOS_E2E_BASE ?? `http://127.0.0.1:${port}`;
+
 export default defineConfig({
-  testDir: path.join(root, "e2e"),
+  testDir: path.join(root, "e2e", "autos"),
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 0,
   workers: 1,
   reporter: "list",
+  timeout: 120_000,
   use: {
     ...devices["Desktop Chrome"],
-    baseURL: process.env.SERVICIOS_E2E_BASE ?? "http://127.0.0.1:3016",
-    trace: "retain-on-failure",
+    baseURL,
+    trace: "off",
   },
   webServer: {
-    // `scripts/playwright-en-venta-web-server.mjs`: clean `.next`, `npm run build`, `next start` — stable on Windows vs `next dev` + purge races.
-    command: "node scripts/playwright-en-venta-web-server.mjs",
+    command: `node node_modules/next/dist/bin/next start -p ${port}`,
     cwd: root,
-    url: "http://127.0.0.1:3016/clasificados/en-venta?lang=es",
-    reuseExistingServer: !process.env.CI,
-    timeout: 900_000,
+    url: `${baseURL}/clasificados/autos?lang=es`,
+    /** Always start a fresh server so `AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS` is never stale-reused. */
+    reuseExistingServer: false,
+    timeout: 120_000,
     env: {
       ...process.env,
       NODE_ENV: "production",
-      SERVICIOS_DEV_PUBLISH: "1",
-      /** Match `servicios-http-smoke.mjs`: public detail must render for published listings. */
-      SERVICIOS_MODERATION_MODE: "0",
-      /** Enables gated `POST /api/clasificados/en-venta/dev-seed-listing` for trace E2E only. */
-      EN_VENTA_DEV_PUBLISH: "1",
+      /**
+       * `isAutosInternalPublishPaymentBypassEnabled()` blocks when `VERCEL_ENV === "production"`.
+       * Force a non-production Vercel tier for local Playwright so the bypass can run even if the
+       * parent shell inherited `VERCEL_ENV=production` from tooling/CI.
+       */
+      VERCEL_ENV: "preview",
+      /** QA-only: activate Autos listings without Stripe (blocked when VERCEL_ENV === "production"). */
+      AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS: "1",
     },
   },
 });

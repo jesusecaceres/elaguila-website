@@ -12,6 +12,7 @@ import {
 } from "../../empleosLandingRoutes";
 import { sampleRecentJobs, type SampleRecentJob } from "../../data/empleosLandingSampleData";
 import { buildEmpleosResultadosUrl } from "../../shared/utils/empleosListaUrl";
+import { EMPLEOS_LANDING_RECENT_MAX } from "../../lib/empleosPublicRankingPolicy";
 import { EMPLEOS_BADGE_QUICK, EMPLEOS_CTA_PRIMARY } from "../../lib/empleosPremiumUi";
 import { LandingSection } from "./empleosLandingUi";
 
@@ -32,17 +33,18 @@ export function LatestJobsAndEmployer({ lang, jobs, liveInventory = false }: Pro
   const publishHref = appendLangToPath(EMPLEOS_PUBLISH_HUB_PATH, lang);
   const plansHref = appendLangToPath(EMPLEOS_BUSINESS_PLANS_PATH, lang);
   const rows = liveInventory ? (jobs ?? []) : (jobs ?? sampleRecentJobs);
+  const recentCap = EMPLEOS_LANDING_RECENT_MAX;
   const subtitle = liveInventory
     ? lang === "es"
-      ? "Publicaciones recientes según la fecha publicada en Leonix."
-      : "Recent postings ordered by publish date on Leonix."
+      ? `Hasta ${recentCap} filas: orden cronológico por fecha de publicación (más recientes primero). No es un ranking pagado; si hay vacantes estándar en inventario, la selección mezcla visibilidad para que no sea solo planes premium. El listado completo está en Resultados.`
+      : `Up to ${recentCap} rows: chronological by publish date (newest first). Not a paid ranking; when standard listings exist, the mix avoids an all-premium slice. See full inventory on Results.`
     : lang === "es"
       ? "Publicaciones recientes en el área — mismo formato que alimentará el feed en vivo."
       : "Recent postings in the region — same shape as the future live feed.";
 
   return (
     <LandingSection
-      eyebrow={lang === "es" ? "Actualizado" : "Fresh"}
+      eyebrow={lang === "es" ? "Recién publicado" : "Just published"}
       title={lang === "es" ? "Últimos empleos publicados" : "Latest job postings"}
       subtitle={subtitle}
       rightSlot={
@@ -117,8 +119,8 @@ export function LatestJobsAndEmployer({ lang, jobs, liveInventory = false }: Pro
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-[#4A4744]/95">
                 {lang === "es"
-                  ? "Tu marca merece presentación premium: publica y llega a candidatos con intención real de aplicar."
-                  : "Your brand deserves a premium presentation — post and reach candidates ready to apply."}
+                  ? "Publica con el plan que te convenga: formatos amplios para contar tu historia, o anuncios rápidos para cubrir turno. Renueva o vuelve a publicar cuando quieras refrescar visibilidad."
+                  : "Choose the format that fits: richer layouts to tell your story, or quick posts to fill a shift. Renew or republish when you want to refresh visibility."}
               </p>
             </div>
           </div>

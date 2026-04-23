@@ -2,7 +2,8 @@ import { Suspense } from "react";
 
 import { fetchEmpleosPublishedJobRecords } from "./lib/empleosPublicListingsDbServer";
 import { empleosOmitMarketingSeedCatalog } from "./lib/empleosPublicCatalogPolicy";
-import { mapEmpleosLiveToFeaturedLanding, mapEmpleosLiveToRecentLanding } from "./lib/empleosLandingLiveMaps";
+import { mapEmpleosLiveToFeaturedLanding, mapEmpleosLiveToRecentLandingFair } from "./lib/empleosLandingLiveMaps";
+import { EMPLEOS_LANDING_FEATURED_MAX, EMPLEOS_LANDING_RECENT_MAX } from "./lib/empleosPublicRankingPolicy";
 import { mergeEmpleosSeedWithLiveJobs } from "./lib/staged/getEmpleosMergedBrowse";
 import { EmpleosLandingPage } from "./EmpleosLandingPageClient";
 
@@ -21,9 +22,9 @@ export async function EmpleosLandingServer() {
   const live = await fetchEmpleosPublishedJobRecords();
   const omit = empleosOmitMarketingSeedCatalog();
   const merged = mergeEmpleosSeedWithLiveJobs(live, { omitSeed: omit });
-  const featured = omit ? mapEmpleosLiveToFeaturedLanding(merged, 4) : undefined;
-  const recentEs = omit ? mapEmpleosLiveToRecentLanding(merged, nowMs, "es", 5) : undefined;
-  const recentEn = omit ? mapEmpleosLiveToRecentLanding(merged, nowMs, "en", 5) : undefined;
+  const featured = omit ? mapEmpleosLiveToFeaturedLanding(merged, EMPLEOS_LANDING_FEATURED_MAX) : undefined;
+  const recentEs = omit ? mapEmpleosLiveToRecentLandingFair(merged, nowMs, "es", EMPLEOS_LANDING_RECENT_MAX) : undefined;
+  const recentEn = omit ? mapEmpleosLiveToRecentLandingFair(merged, nowMs, "en", EMPLEOS_LANDING_RECENT_MAX) : undefined;
 
   return (
     <Suspense fallback={<LandingFallback />}>

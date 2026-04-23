@@ -9,9 +9,12 @@
  *   Additional promoted/featured matches stay in the main list in the same global order as `filtered`, so paid tiers cannot occupy
  *   the entire viewport ahead of every standard listing.
  *
- * **Landing (live inventory mode)**
- * - `mapEmpleosLiveToFeaturedLanding` prefers promoted/featured rows, then falls back to any live row so the strip is never pure marketing seed.
- * - Recent strip is `publishedAt` descending.
+ * **Landing (live inventory mode — curated discovery, not the full feed)**
+ * - **Destacados:** small cap (`EMPLEOS_LANDING_FEATURED_MAX`); prefers promoted/featured for honest paid visibility, then may fall back to
+ *   any live row only so the strip is not empty. Full inventory stays on **Resultados**.
+ * - **Últimos empleos publicados:** chronological by `publishedAt` (newest first). **Not** pay-to-rank. When standard-tier listings exist,
+ *   `mapEmpleosLiveToRecentLandingFair` reserves up to two slots for them so the strip is not exclusively paid tiers while still sorting the
+ *   final row set by publish date.
  *
  * **Renew / republish / paid “refresh”**
  * - There is **no** separate renew SKU or automatic ranking bump in this repo. Owner/admin lifecycle APIs may set `published` again
@@ -22,3 +25,9 @@
  */
 
 export const EMPLEOS_RESULTS_FEATURED_STRIP_MAX = 8;
+
+/** Max cards in the landing “Destacados / paid visibility” strip (results page uses `EMPLEOS_RESULTS_FEATURED_STRIP_MAX`). */
+export const EMPLEOS_LANDING_FEATURED_MAX = 3;
+
+/** Max rows in the landing “Últimos empleos publicados” list (chronological; see fairness mapper). */
+export const EMPLEOS_LANDING_RECENT_MAX = 5;

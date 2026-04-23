@@ -151,6 +151,19 @@ async function main() {
   }
   ok("owner_user_id IS NULL count is 0");
 
+  const inqUrl = `${baseUrl}/rest/v1/viajes_public_inquiries?select=id&limit=1`;
+  const inqRes = await fetch(inqUrl, { headers: { ...hdr, Prefer: "count=exact" } });
+  const inqBody = await inqRes.text();
+  if (!inqRes.ok) {
+    if (inqRes.status === 404 || /relation|does not exist|schema cache/i.test(inqBody)) {
+      throw new Error(
+        `viajes_public_inquiries missing or not exposed (HTTP ${inqRes.status}): ${inqBody.slice(0, 400)} — apply supabase/migrations/20260423140000_viajes_public_inquiries.sql to this database.`,
+      );
+    }
+    throw new Error(`viajes_public_inquiries unreachable (HTTP ${inqRes.status}): ${inqBody.slice(0, 400)}`);
+  }
+  ok("viajes_public_inquiries reachable (tracked inquiry storage)");
+
   console.log("[viajes-verify] All automated checks passed.");
 }
 

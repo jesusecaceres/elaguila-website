@@ -20,10 +20,19 @@ export function AutosNegociosPreviewLocaleProvider({ children }: { children: Rea
   return <PreviewLocaleContext.Provider value={{ lang, t }}>{children}</PreviewLocaleContext.Provider>;
 }
 
+/**
+ * Returns locale + negocios preview copy from context when wrapped in `AutosNegociosPreviewLocaleProvider`.
+ * Otherwise derives language from `?lang=` (same as the provider) so shared building blocks
+ * (`VehicleSpecsGrid`, `VehicleDescription`, …) can render on **Privado** live + preview shells
+ * that only mount `AutosPrivadoPreviewLocaleProvider`.
+ */
 export function useAutosNegociosPreviewCopy(): PreviewLocaleValue {
   const v = useContext(PreviewLocaleContext);
-  if (!v) {
-    throw new Error("useAutosNegociosPreviewCopy must be used within AutosNegociosPreviewLocaleProvider");
-  }
-  return v;
+  const sp = useSearchParams();
+  const langQs = sp?.get("lang") ?? "";
+  return useMemo(() => {
+    if (v) return v;
+    const lang = normalizeAutosNegociosLang(langQs || undefined);
+    return { lang, t: getAutosNegociosCopy(lang) };
+  }, [v, langQs]);
 }

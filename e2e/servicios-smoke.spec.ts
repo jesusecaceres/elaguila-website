@@ -1,9 +1,19 @@
 import { test, expect } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SELLER_EMAIL = process.env.SMOKE_SELLER_EMAIL ?? "smoke.seller@yourdomain.com";
+const SELLER_PASSWORD = process.env.SMOKE_SELLER_PASSWORD ?? "LeonixSmoke!2026Seller";
+
+test.describe.configure({ timeout: 120_000 });
+
 test.describe("Servicios browser smoke", () => {
-  test("landing, publish CTA, publish shell, API publish, detail and results discovery", async ({ page, request }) => {
+  test("landing, publish CTA, publish shell, API publish, detail, results, landing Recientes", async ({ page, request }) => {
+    test.skip(!url || !anon, "NEXT_PUBLIC_SUPABASE_URL + ANON_KEY required for bearer publish + landing guarantee");
+
     await page.goto("/clasificados/servicios?lang=es");
     await expect(page.getByRole("heading", { name: /¿Ofreces un servicio\?/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /Publica tu Servicio/i })).toBeVisible();
@@ -14,8 +24,15 @@ test.describe("Servicios browser smoke", () => {
     const fixturePath = path.join(process.cwd(), "scripts", "fixtures", "servicios-smoke-publish-state.json");
     const state = JSON.parse(fs.readFileSync(fixturePath, "utf8")) as Record<string, unknown>;
     state.businessName = `Playwright Plumbing ${Date.now()}`;
+
+    const sb = createClient(url!, anon!, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: sess } = await sb.auth.signInWithPassword({ email: SELLER_EMAIL, password: SELLER_PASSWORD });
+    if (!sess.session) throw new Error("smoke seller sign-in failed");
+    const token = sess.session.access_token;
+
     const pub = await request.post("/api/clasificados/servicios/publish", {
       data: { state, lang: "es" },
+      headers: { Authorization: `Bearer ${token}` },
     });
     const pubText = await pub.text();
     expect(pub.ok(), `publish failed ${pub.status()}: ${pubText}`).toBeTruthy();
@@ -29,6 +46,10 @@ test.describe("Servicios browser smoke", () => {
 
     await page.goto(`/clasificados/servicios/resultados?lang=es&q=${encodeURIComponent("Playwright")}`);
     await expect(page.locator(`a[href*="/clasificados/servicios/${slug}"]`).first()).toBeVisible();
+
+    await page.goto("/clasificados/servicios?lang=es");
+    const recent = page.locator("section[aria-labelledby=\"servicios-recientes-heading\"]");
+    await expect(recent.locator(`[data-servicios-recent-slug="${slug}"]`).first()).toBeVisible({ timeout: 45_000 });
   });
 
   test("publish validation blocks incomplete application (no fake success)", async ({ request }) => {
