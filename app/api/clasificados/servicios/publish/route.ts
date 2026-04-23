@@ -8,6 +8,7 @@ import { slugifyServiciosBusinessName } from "@/app/clasificados/publicar/servic
 import type { ClasificadosServiciosApplicationState } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 import {
   buildServiciosPublicRowForPersistence,
+  getServiciosDevPublishRowBySlug,
   isServiciosDevPublishPersistenceEnabled,
   upsertServiciosDevPublishRow,
 } from "@/app/clasificados/servicios/lib/serviciosDevPublishPersistence";
@@ -44,6 +45,21 @@ function stripAdvertiserVerificationFlags(wire: ServiciosBusinessProfile): Servi
   };
   delete next.identity.leonixVerified;
   return next;
+}
+
+/**
+ * Clasificados publish never maps `contact.isFeatured` from the advertiser form (ops / billing only).
+ * When a listing is republished, merge prior wire so paid/amplified placement is not wiped.
+ */
+function mergeOpsControlledServiciosProfileFields(
+  nextWire: ServiciosBusinessProfile,
+  previous: ServiciosBusinessProfile | null | undefined,
+): ServiciosBusinessProfile {
+  if (!previous?.contact?.isFeatured) return nextWire;
+  return {
+    ...nextWire,
+    contact: { ...nextWire.contact, isFeatured: true },
+  };
 }
 
 function initialListingStatus(): typeof SERVICIOS_LISTING_STATUS_PUBLISHED | typeof SERVICIOS_LISTING_STATUS_PENDING_REVIEW {
@@ -118,6 +134,16 @@ export async function POST(req: NextRequest) {
   }
   opsMeta.discovery = buildServiciosDiscoveryFacet(state, wire);
   wire = { ...wire, opsMeta };
+
+  let previousWire: ServiciosBusinessProfile | null = null;
+  if (isSupabaseAdminConfigured()) {
+    const prevRow = await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
+    previousWire = prevRow?.profile_json ?? null;
+  }
+  if (!previousWire?.contact?.isFeatured && isServiciosDevPublishPersistenceEnabled()) {
+    previousWire = getServiciosDevPublishRowBySlug(slug)?.profile_json ?? previousWire;
+  }
+  wire = mergeOpsControlledServiciosProfileFields(wire, previousWire);
 
   const preset = getBusinessTypePreset(state.businessTypeId);
   const internalGroup = preset?.internalGroup ?? null;

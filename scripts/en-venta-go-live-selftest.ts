@@ -5,6 +5,9 @@
 import assert from "node:assert/strict";
 import { isEnVentaListingPubliclyVisible } from "../app/(site)/clasificados/en-venta/lib/enVentaListingVisibility";
 import { mapDbRowToEnVentaAnuncioDTO } from "../app/(site)/clasificados/en-venta/mapping/mapDbRowToEnVentaListingData";
+import { getOrderedEnVentaImageUrls } from "../app/(site)/clasificados/en-venta/preview/buildEnVentaPreviewModel";
+import { buildEnVentaPublishSuccessUrls } from "../app/(site)/clasificados/en-venta/shared/constants/enVentaResultsRoutes";
+import { createEmptyEnVentaFreeState } from "../app/(site)/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 
 function row(p: Record<string, unknown>) {
   return { category: "en-venta", ...p };
@@ -60,6 +63,30 @@ function main() {
   assert.equal(dto.fulfillment.shipping, false);
   assert.equal(dto.fulfillment.delivery, true);
   assert.equal(dto.planTier, "pro");
+  assert.equal((dto.conditionKey ?? "").toLowerCase(), "good");
+  assert.equal(dto.meetupOffered, false);
+
+  /** Post-publish browse handoff must serialize the same params `EnVentaResultsClient` reads (`evDept`, `evSub`, `city`). */
+  const successUrls = buildEnVentaPublishSuccessUrls("es", {
+    rama: "electronicos",
+    evSub: "phones",
+    city: "San Francisco",
+  });
+  const scoped = new URL(successUrls.scopedUrl, "https://leonix.example");
+  assert.equal(scoped.searchParams.get("evDept"), "electronicos");
+  assert.equal(scoped.searchParams.get("evSub"), "phones");
+  assert.equal(scoped.searchParams.get("city"), "San Francisco");
+  assert.equal(scoped.searchParams.get("lang"), "es");
+
+  /** Primary image index must match publish + preview ordering (`publishEnVentaFromDraft` uses this order for uploads). */
+  const imgState = createEmptyEnVentaFreeState();
+  imgState.images = ["https://a.example/1.jpg", "https://b.example/2.jpg", "https://c.example/3.jpg"];
+  imgState.primaryImageIndex = 1;
+  assert.deepEqual(getOrderedEnVentaImageUrls(imgState), [
+    "https://b.example/2.jpg",
+    "https://a.example/1.jpg",
+    "https://c.example/3.jpg",
+  ]);
 
   console.log("en-venta-go-live-selftest: OK");
 }

@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { listServiciosPublicListingsForDiscovery } from "./lib/serviciosPublicListingsServer";
 import { ServiciosLandingPage } from "./landing/ServiciosLandingPage";
 
+/** Marketplace landing must always reflect current `servicios_public_listings` (+ optional dev file). */
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Servicios · Leonix Clasificados",
   description:

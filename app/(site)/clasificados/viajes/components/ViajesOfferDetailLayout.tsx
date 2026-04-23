@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ViajesOfferDetailModel } from "../data/viajesOfferDetailSampleData";
 import type { ViajesUi } from "../data/viajesUiCopy";
 import { getViajesOpenCardLane } from "../lib/viajesOpenCardStrategy";
+import { isPlaceholderViajesCtaHref } from "../lib/viajesCtaHref";
 import { setLangOnHref } from "../lib/viajesLangHref";
 import type { ViajesHeroVisualKind } from "../lib/viajesOfferHeroFallbacks";
 import { inferViajesHeroVisualKind } from "../lib/viajesOfferHeroFallbacks";
@@ -108,6 +109,43 @@ export function ViajesOfferDetailLayout({
 
   const showMetaStrip = metaItems.length > 0 && metaItems.some((m) => m.value !== "—");
   const accentHint = valueAccentLine(visualKind, od);
+  const mainCtaActionable = offer.mainCtaHref.trim().length > 0 && !isPlaceholderViajesCtaHref(offer.mainCtaHref);
+
+  const mainCtaBlock = mainCtaActionable ? (
+    <a
+      href={offer.mainCtaHref}
+      className="inline-flex min-h-[52px] w-full flex-1 touch-manipulation items-center justify-center rounded-2xl px-6 py-3.5 text-center text-sm font-bold text-white shadow-[0_10px_32px_rgba(217,119,6,0.5)] ring-2 ring-white/25 ring-offset-2 ring-offset-black/30 transition hover:brightness-110 active:scale-[0.99] sm:min-h-[48px] sm:max-w-md sm:flex-none"
+      style={{ backgroundColor: ACCENT }}
+    >
+      {offer.mainCtaLabel}
+    </a>
+  ) : (
+    <div
+      className="inline-flex min-h-[52px] w-full flex-1 flex-col justify-center rounded-2xl border border-dashed border-white/50 bg-black/35 px-5 py-3.5 text-center sm:min-h-[48px] sm:max-w-md sm:flex-none"
+      role="note"
+    >
+      <span className="text-sm font-bold text-white/95">{offer.mainCtaLabel}</span>
+      <span className="mt-1 text-[11px] font-medium leading-snug text-white/75 sm:text-xs">{od.mainCtaUnavailableHint}</span>
+    </div>
+  );
+
+  const mainCtaBlockSparse = mainCtaActionable ? (
+    <a
+      href={offer.mainCtaHref}
+      className="inline-flex min-h-[52px] w-full flex-1 touch-manipulation items-center justify-center rounded-2xl px-6 py-3.5 text-sm font-bold text-white shadow-lg ring-2 ring-white/20 ring-offset-2 ring-offset-black/25 transition hover:brightness-110 sm:max-w-md"
+      style={{ backgroundColor: ACCENT }}
+    >
+      {offer.mainCtaLabel}
+    </a>
+  ) : (
+    <div
+      className="inline-flex min-h-[52px] w-full flex-1 flex-col justify-center rounded-2xl border border-dashed border-white/50 bg-black/35 px-5 py-3.5 text-center sm:max-w-md"
+      role="note"
+    >
+      <span className="text-sm font-bold text-white/95">{offer.mainCtaLabel}</span>
+      <span className="mt-1 text-[11px] font-medium leading-snug text-white/75 sm:text-xs">{od.mainCtaUnavailableHint}</span>
+    </div>
+  );
 
   const heroInner = (
     <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-5 pt-16 sm:px-5 sm:pb-8 sm:pt-24 lg:px-6">
@@ -153,13 +191,7 @@ export function ViajesOfferDetailLayout({
             <p className="mt-4 border-t border-white/15 pt-4 text-xs leading-relaxed text-white/80 sm:text-[13px]">{accentHint}</p>
           ) : null}
           <div className={`flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch ${showMetaStrip ? "mt-4" : ""}`}>
-            <a
-              href={offer.mainCtaHref}
-              className="inline-flex min-h-[52px] w-full flex-1 touch-manipulation items-center justify-center rounded-2xl px-6 py-3.5 text-center text-sm font-bold text-white shadow-[0_10px_32px_rgba(217,119,6,0.5)] ring-2 ring-white/25 ring-offset-2 ring-offset-black/30 transition hover:brightness-110 active:scale-[0.99] sm:min-h-[48px] sm:max-w-md sm:flex-none"
-              style={{ backgroundColor: ACCENT }}
-            >
-              {offer.mainCtaLabel}
-            </a>
+            {mainCtaBlock}
             <Link
               href={exploreViajesHref}
               className="inline-flex min-h-[52px] w-full flex-1 touch-manipulation items-center justify-center rounded-2xl border border-white/55 bg-white/12 px-5 py-3.5 text-center text-sm font-bold text-white backdrop-blur-md transition hover:bg-white/22 sm:min-h-[48px] sm:w-auto sm:max-w-xs"
@@ -170,13 +202,7 @@ export function ViajesOfferDetailLayout({
         </div>
       ) : (
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <a
-            href={offer.mainCtaHref}
-            className="inline-flex min-h-[52px] w-full flex-1 touch-manipulation items-center justify-center rounded-2xl px-6 py-3.5 text-sm font-bold text-white shadow-lg ring-2 ring-white/20 ring-offset-2 ring-offset-black/25 transition hover:brightness-110 sm:max-w-md"
-            style={{ backgroundColor: ACCENT }}
-          >
-            {offer.mainCtaLabel}
-          </a>
+          {mainCtaBlockSparse}
           <Link
             href={exploreViajesHref}
             className="inline-flex min-h-[52px] w-full flex-1 touch-manipulation items-center justify-center rounded-2xl border border-white/55 bg-white/12 px-5 py-3.5 text-sm font-bold text-white backdrop-blur-md sm:w-auto"

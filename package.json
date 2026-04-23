@@ -21,6 +21,7 @@
     "verify:empleos": "npx tsx scripts/empleos-jobposting-schema-selftest.ts",
     "verify:empleos:http-smoke": "node scripts/empleos-http-smoke.mjs",
     "verify:empleos:db-read": "npx tsx scripts/empleos-supabase-read-smoke.mts",
+    "verify:restaurantes": "npm run verify:restaurantes:launch",
     "verify:restaurantes:http-smoke": "node scripts/restaurantes-http-smoke.mjs",
     "verify:restaurantes:selftest": "npx tsx scripts/restaurantes-launch-selftest.ts",
     "verify:restaurantes:selftest:logic": "npx tsx scripts/restaurantes-launch-selftest.ts -- --logic-only",

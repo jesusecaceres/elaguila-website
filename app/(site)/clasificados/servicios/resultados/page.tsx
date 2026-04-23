@@ -16,6 +16,8 @@ import {
 import { listServiciosPublicListingsForDiscovery } from "../lib/serviciosPublicListingsServer";
 import { ServiciosResultsViewAnalytics } from "../ServiciosResultsViewAnalytics";
 
+export const dynamic = "force-dynamic";
+
 /** Same whisper image family as landing — stays behind content, low contrast */
 const RESULTS_ATMOSPHERE =
   "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=2400&q=68";

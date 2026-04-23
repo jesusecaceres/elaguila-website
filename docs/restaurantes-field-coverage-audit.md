@@ -63,6 +63,7 @@
 
 - `npm run typecheck` — TypeScript (`tsconfig.json` does not require pre-generated `.next/types`).
 - `npm run build` — Next production bundle (Windows: single `node` + retries in `scripts/next-build.js`).
+- `npm run verify:restaurantes` — alias of `verify:restaurantes:launch` (category gate).
 - `npm run verify:restaurantes:launch` — `typecheck` + `build` + `scripts/restaurantes-http-smoke.mjs` + `scripts/restaurantes-launch-selftest.ts --logic-only` (mapper + filter invariants; no DB).
 - `npm run verify:restaurantes:selftest` — full selftest including Supabase insert/read/update/delete (requires valid `SUPABASE_SERVICE_ROLE_KEY`).
 - `npm run verify:restaurantes:e2e` — Playwright (`playwright.restaurantes.config.mjs`, port **3017**): public CTAs, publish API `missing_draft`, optional signed-in owner dashboard when `RESTAURANTES_E2E_PASSWORD` + Supabase URL/anon/service keys are set.

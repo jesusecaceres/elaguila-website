@@ -215,10 +215,14 @@ function buildPrimaryCtas(d: RestauranteListingDraft): ShellPrimaryCta[] {
     const href = waHref(d.whatsAppNumber!);
     if (href) ctas.push({ key: "whatsapp", label: "WhatsApp", href });
   }
-  if (d.allowMessageCTA && nonEmpty(d.phoneNumber)) {
-    const digits = d.phoneNumber!.replace(/\D/g, "");
-    const sms = digits.length >= 10 ? `sms:+1${digits.slice(-10)}` : `sms:${d.phoneNumber}`;
-    ctas.push({ key: "message", label: "Mensaje", href: sms });
+  if (d.allowMessageCTA) {
+    if (nonEmpty(d.phoneNumber)) {
+      const digits = d.phoneNumber!.replace(/\D/g, "");
+      const sms = digits.length >= 10 ? `sms:+1${digits.slice(-10)}` : `sms:${d.phoneNumber}`;
+      ctas.push({ key: "message", label: "Mensaje (SMS)", href: sms });
+    } else if (nonEmpty(d.email)) {
+      ctas.push({ key: "message", label: "Correo", href: `mailto:${encodeURIComponent(d.email!.trim())}` });
+    }
   }
   const hasMenuUrl = nonEmpty(d.menuUrl);
   const hasMenuFile = nonEmpty(d.menuFile);

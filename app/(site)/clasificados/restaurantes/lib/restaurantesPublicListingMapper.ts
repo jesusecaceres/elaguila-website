@@ -95,57 +95,6 @@ export const RESTAURANTE_PUBLIC_CARD_IMAGE_FALLBACK =
   "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=900&q=80";
 
 /**
- * Map published discovery row → `RestaurantesPublicBlueprintRow` so filters, sort, exposure policy, and
- * `RestaurantesResultsShell` work unchanged. `openNowDemo` stays false until weekly hours are evaluated server-side.
- */
-export function publicResultsRowToShellInventoryRow(r: RestaurantePublicResultsRow): RestaurantesPublicBlueprintRow {
-  const svc = (r.serviceModeKeys ?? []).filter((m): m is RestauranteServiceMode => typeof m === "string");
-  const serviceModes: RestauranteServiceMode[] = svc.length ? svc : ["dine_in"];
-  const familyFriendly = r.highlightKeys.includes("family_friendly");
-  const priceLevel = r.priceLevel ?? "$$";
-  const rating = typeof r.externalRatingValue === "number" && Number.isFinite(r.externalRatingValue) ? r.externalRatingValue : 0;
-  return {
-    id: r.id,
-    name: r.businessName,
-    slug: r.slug,
-    primaryCuisineKey: r.primaryCuisineKey || "other",
-    secondaryCuisineKey: r.secondaryCuisineKey,
-    cuisineLine: r.summaryShort?.trim() || r.businessName,
-    city: r.cityCanonical,
-    zip: r.zipCode,
-    rating,
-    priceLevel,
-    imageSrc: (r.heroImageUrl && r.heroImageUrl.trim()) || RESTAURANTE_PUBLIC_CARD_IMAGE_FALLBACK,
-    serviceModes,
-    familyFriendly,
-    promoted: r.sponsored === true,
-    leonixVerified: r.leonixVerified === true,
-    openNowDemo: false,
-    veganOptions: r.highlightKeys.includes("vegan_options"),
-    glutenFreeOptions: r.highlightKeys.includes("gluten_free"),
-    halalCuisine: r.primaryCuisineKey === "halal",
-    listedAt: r.listedAt,
-    businessType: r.businessTypeKey || undefined,
-    movingVendor: r.movingVendor,
-    homeBasedBusiness: r.homeBasedBusiness,
-    foodTruck: r.foodTruck,
-    popUp: r.popUp,
-    neighborhood: r.neighborhood,
-    highlightKeys: r.highlightKeys,
-    externalReviewCount: r.externalReviewCount,
-    reservationsAvailable: false,
-    preorderRequired: false,
-    pickupAvailable: false,
-    serviceAreaText: undefined,
-    deliveryRadiusMiles: undefined,
-  };
-}
-
-export function mapPublicResultsRowsToShellInventory(rows: RestaurantePublicResultsRow[]): RestaurantesPublicBlueprintRow[] {
-  return rows.map(publicResultsRowToShellInventoryRow);
-}
-
-/**
  * Full public discovery row for results/landing: denormalized columns + `listing_json` for
  * hours-based open signal, full `serviceModes`, and additional cuisine keys for search.
  */

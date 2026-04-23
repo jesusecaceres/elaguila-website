@@ -26,36 +26,61 @@ function negociosOfferTypeToHeroKind(offerType: string): ViajesHeroVisualKind | 
   return undefined;
 }
 
+function waMeHref(raw: string): string | null {
+  const w = raw.trim();
+  if (!w) return null;
+  if (w.startsWith("http")) return w;
+  const num = digitsOnly(w);
+  return num.length >= 8 ? `https://wa.me/${num}` : null;
+}
+
+function telHrefFrom(raw: string): string | null {
+  const num = digitsOnly(raw);
+  return num.length >= 8 ? `tel:${num}` : null;
+}
+
+function mailtoFromDraft(d: ViajesNegociosDraft): string | null {
+  const candidate =
+    d.email.trim() ||
+    (d.website.trim().includes("@") ? d.website.trim() : "") ||
+    (d.socials.trim().includes("@") ? d.socials.trim().split(/\s+/).find((x) => x.includes("@")) ?? "" : "");
+  if (!candidate.includes("@")) return null;
+  return `mailto:${encodeURIComponent(candidate.trim())}`;
+}
+
 function buildCta(
   d: ViajesNegociosDraft,
   c: PublicarViajesNegociosUi
 ): { label: string; href: string; secondaryLabel?: string; secondaryHref?: string } {
   const web = withHttp(d.website);
+  const phoneLine = d.phone.trim() || d.phoneOffice.trim();
+
+  const tryWhatsapp = (): { label: string; href: string } | null => {
+    const h = waMeHref(d.whatsapp);
+    return h ? { label: c.ctaType.options.whatsapp, href: h } : null;
+  };
+  const tryPhone = (): { label: string; href: string } | null => {
+    const h = telHrefFrom(phoneLine);
+    return h ? { label: c.ctaType.options.telefono, href: h } : null;
+  };
+  const tryMail = (): { label: string; href: string } | null => {
+    const h = mailtoFromDraft(d);
+    return h ? { label: c.ctaType.options.correo, href: h } : null;
+  };
+  const trySite = (): { label: string; href: string } | null => {
+    return web ? { label: c.ctaType.options.sitio, href: web } : null;
+  };
+
   if (d.ctaType === "whatsapp") {
-    const w = d.whatsapp.trim();
-    if (w.startsWith("http")) return { label: c.ctaType.options.whatsapp, href: w };
-    const num = digitsOnly(w);
-    if (num.length >= 8) return { label: c.ctaType.options.whatsapp, href: `https://wa.me/${num}` };
-    return { label: c.ctaType.options.whatsapp, href: "https://wa.me/" };
+    return tryWhatsapp() ?? tryPhone() ?? tryMail() ?? trySite() ?? { label: c.ctaType.options.whatsapp, href: "" };
   }
   if (d.ctaType === "telefono") {
-    const p = d.phone.trim() || d.phoneOffice.trim();
-    const num = digitsOnly(p);
-    if (num.length >= 8) return { label: c.ctaType.options.telefono, href: `tel:${num}` };
-    return { label: c.ctaType.options.telefono, href: "tel:" };
+    return tryPhone() ?? tryWhatsapp() ?? tryMail() ?? trySite() ?? { label: c.ctaType.options.telefono, href: "" };
   }
   if (d.ctaType === "correo") {
-    const candidate =
-      d.email.trim() ||
-      (d.website.trim().includes("@") ? d.website.trim() : "") ||
-      (d.socials.trim().includes("@") ? d.socials.trim().split(/\s+/).find((x) => x.includes("@")) ?? "" : "");
-    if (candidate.includes("@")) {
-      return { label: c.ctaType.options.correo, href: `mailto:${encodeURIComponent(candidate)}` };
-    }
-    return { label: c.ctaType.options.correo, href: "mailto:" };
+    return tryMail() ?? trySite() ?? tryPhone() ?? tryWhatsapp() ?? { label: c.ctaType.options.correo, href: "" };
   }
-  if (web) return { label: c.ctaType.options.sitio, href: web };
-  return { label: c.ctaType.options.sitio, href: "https://" };
+  return trySite() ?? tryMail() ?? tryPhone() ?? tryWhatsapp() ?? { label: c.ctaType.options.sitio, href: "" };
 }
 
 export function mapViajesNegociosDraftToOffer(

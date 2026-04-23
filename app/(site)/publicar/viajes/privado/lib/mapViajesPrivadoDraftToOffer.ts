@@ -12,23 +12,54 @@ function digitsOnly(s: string) {
   return s.replace(/\D/g, "");
 }
 
+function waMeHref(raw: string): string | null {
+  const w = raw.trim();
+  if (!w) return null;
+  if (w.startsWith("http")) return w;
+  const num = digitsOnly(w);
+  return num.length >= 8 ? `https://wa.me/${num}` : null;
+}
+
+function telHrefFrom(raw: string): string | null {
+  const num = digitsOnly(raw);
+  return num.length >= 8 ? `tel:${num}` : null;
+}
+
+function withHttp(url: string) {
+  const t = url.trim();
+  if (!t) return "";
+  if (t.startsWith("http://") || t.startsWith("https://")) return t;
+  return `https://${t}`;
+}
+
 function buildCta(d: ViajesPrivadoDraft, c: PublicarViajesPrivadoCopy): { label: string; href: string } {
+  const phoneLine = d.phone.trim() || d.phoneOffice.trim();
+  const web = withHttp(d.website);
+
+  const tryWhatsapp = (): { label: string; href: string } | null => {
+    const h = waMeHref(d.whatsapp);
+    return h ? { label: c.contact.ctaType.options.whatsapp, href: h } : null;
+  };
+  const tryPhone = (): { label: string; href: string } | null => {
+    const h = telHrefFrom(phoneLine);
+    return h ? { label: c.contact.ctaType.options.phone, href: h } : null;
+  };
+  const tryMail = (): { label: string; href: string } | null => {
+    const em = d.email.trim();
+    if (!em.includes("@")) return null;
+    return { label: c.contact.ctaType.options.email, href: `mailto:${encodeURIComponent(em)}` };
+  };
+  const trySite = (): { label: string; href: string } | null => {
+    return web ? { label: c.contact.website.label, href: web } : null;
+  };
+
   if (d.ctaType === "whatsapp") {
-    const w = d.whatsapp.trim();
-    if (w.startsWith("http")) return { label: c.contact.ctaType.options.whatsapp, href: w };
-    const num = digitsOnly(w);
-    if (num.length >= 8) return { label: c.contact.ctaType.options.whatsapp, href: `https://wa.me/${num}` };
-    return { label: c.contact.ctaType.options.whatsapp, href: "https://wa.me/" };
+    return tryWhatsapp() ?? tryPhone() ?? tryMail() ?? trySite() ?? { label: c.contact.ctaType.options.whatsapp, href: "" };
   }
   if (d.ctaType === "phone") {
-    const p = d.phone.trim() || d.phoneOffice.trim();
-    const num = digitsOnly(p);
-    if (num.length >= 8) return { label: c.contact.ctaType.options.phone, href: `tel:${num}` };
-    return { label: c.contact.ctaType.options.phone, href: "tel:" };
+    return tryPhone() ?? tryWhatsapp() ?? tryMail() ?? trySite() ?? { label: c.contact.ctaType.options.phone, href: "" };
   }
-  const em = d.email.trim();
-  if (em.includes("@")) return { label: c.contact.ctaType.options.email, href: `mailto:${encodeURIComponent(em)}` };
-  return { label: c.contact.ctaType.options.email, href: "mailto:" };
+  return tryMail() ?? trySite() ?? tryPhone() ?? tryWhatsapp() ?? { label: c.contact.ctaType.options.email, href: "" };
 }
 
 export function mapViajesPrivadoDraftToOffer(

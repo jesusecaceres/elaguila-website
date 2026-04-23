@@ -4,6 +4,7 @@ import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/
 import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
 import {
   getServiciosDevPublishRowBySlug,
+  isServiciosDevPublishPersistenceEnabled,
   listServiciosDevPublishRows,
 } from "./serviciosDevPublishPersistence";
 import { getServiciosReviewAggregatesForSlugs } from "./serviciosOpsTablesServer";
@@ -109,8 +110,16 @@ export async function listServiciosPublicListingsForOwner(ownerUserId: string, l
  * DB row wins when the same slug exists in both.
  */
 export async function listServiciosPublicListingsForDiscovery(limit = 48): Promise<ServiciosPublicListingRow[]> {
-  const db = await listServiciosPublicListingsFromDb(limit);
   const dev = listServiciosDevPublishRows();
+  /**
+   * When dev rows exist, fetch extra DB rows before merge so a freshly published dev listing
+   * is not pushed out of the merged `limit` window by a full DB page (same ordering as results).
+   */
+  const dbFetchLimit =
+    dev.length > 0 && isServiciosDevPublishPersistenceEnabled()
+      ? Math.min(800, limit + Math.min(dev.length * 4, 200))
+      : limit;
+  const db = await listServiciosPublicListingsFromDb(dbFetchLimit);
   const dbSlugs = new Set(db.map((r) => r.slug));
   const merged = [...db];
   for (const r of dev) {

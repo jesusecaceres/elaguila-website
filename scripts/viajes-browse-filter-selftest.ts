@@ -11,6 +11,7 @@ import {
   parseViajesBrowseFromSearchParams,
   serializeViajesBrowseToSearchParams,
 } from "../app/(site)/clasificados/viajes/lib/viajesBrowseContract";
+import { isPlaceholderViajesCtaHref } from "../app/(site)/clasificados/viajes/lib/viajesCtaHref";
 import { viajesRowMatchesBrowse } from "../app/(site)/clasificados/viajes/lib/viajesResultsMatch";
 import type { ViajesBusinessResult } from "../app/(site)/clasificados/viajes/data/viajesResultsSampleData";
 
@@ -127,5 +128,12 @@ assert.equal(viajesRowMatchesBrowse(rowSeason, { ...base, season: "summer" }), f
 const rowDuration: ViajesBusinessResult = { ...row, durationKey: "week" };
 assert.equal(viajesRowMatchesBrowse(rowDuration, { ...base, duration: "week" }), true);
 assert.equal(viajesRowMatchesBrowse(rowDuration, { ...base, duration: "long" }), false);
+
+assert.equal(isPlaceholderViajesCtaHref(""), true);
+assert.equal(isPlaceholderViajesCtaHref("https://wa.me/"), true);
+assert.equal(isPlaceholderViajesCtaHref("https://wa.me"), true);
+assert.equal(isPlaceholderViajesCtaHref("tel:"), true);
+assert.equal(isPlaceholderViajesCtaHref("mailto:"), true);
+assert.equal(isPlaceholderViajesCtaHref("https://wa.me/50688888888"), false);
 
 console.log("[viajes-browse-filter-selftest] OK");

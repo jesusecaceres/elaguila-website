@@ -221,6 +221,8 @@ export type ViajesUi = {
     valueAccentCar: string;
     valueAccentItinerary: string;
     valueAccentDefault: string;
+    /** When primary CTA has no resolvable target (shown instead of a dead link) */
+    mainCtaUnavailableHint: string;
   };
   negocio: {
     back: string;
@@ -535,6 +537,8 @@ function es(): Omit<ViajesUi, "lang"> {
       valueAccentCar: "Movilidad y tarifas — verifica kilometraje, seguros y depósitos antes de reservar.",
       valueAccentItinerary: "Itinerario y soporte del operador — ajusta fechas y logística según disponibilidad.",
       valueAccentDefault: "Revisa condiciones, fechas límite y métodos de pago directamente con quien publica.",
+      mainCtaUnavailableHint:
+        "Sin enlace de contacto válido aún — revisa WhatsApp, teléfono, correo o sitio web en tu solicitud (o usa los canales secundarios abajo si los añadiste).",
     },
     negocio: {
       back: "Volver a Viajes",
@@ -856,6 +860,8 @@ function en(): Omit<ViajesUi, "lang"> {
       valueAccentCar: "Mobility and rates — verify mileage, insurance, and deposits before you book.",
       valueAccentItinerary: "Itinerary and operator support — align dates and logistics with availability.",
       valueAccentDefault: "Review terms, blackout dates, and payment methods directly with whoever published the offer.",
+      mainCtaUnavailableHint:
+        "No valid contact link yet — check WhatsApp, phone, email, or website in your listing (or use secondary channels below if you added them).",
     },
     negocio: {
       back: "Back to Viajes",
