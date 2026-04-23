@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { missingListingsColumnName, stripSelectColumn } from "@/app/clasificados/lib/listingsSelectShrink";
 
 const CORE =
-  "id,title,price,city,zip,status,created_at,category,images,detail_pairs,boost_expires,views,original_price,current_price,price_last_updated,is_published";
+  "id,title,price,city,zip,status,created_at,category,seller_type,images,detail_pairs,boost_expires,views,original_price,current_price,price_last_updated,is_published";
 
 /** Extra columns when present (tiered fallback on unknown columns). */
 const WITH_OPTIONAL_META = `${CORE}, updated_at, published_at, business_name, expires_at`;
@@ -71,6 +71,7 @@ export function mapOwnerListingRow(r: Record<string, unknown>) {
     published_at: (r.published_at as string | null | undefined) ?? null,
     expires_at: (r.expires_at as string | null | undefined) ?? null,
     category: (r.category as string | null | undefined) ?? null,
+    seller_type: (r.seller_type as string | null | undefined) ?? null,
     business_name: (r.business_name as string | null | undefined) ?? null,
     images: r.images ?? null,
     detail_pairs: r.detail_pairs ?? null,

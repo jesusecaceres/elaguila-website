@@ -1,0 +1,258 @@
+{
+  "generatedAt": "2026-04-23T17:20:36.722Z",
+  "buyerInquiryStatus": 500,
+  "buyerInquiryOutcome": "BLOCKED_BY_EXTERNAL_SERVICE",
+  "landingLabelHitsApprox": {
+    "privado": 0,
+    "negocio": 0
+  },
+  "samples": [
+    {
+      "title": "[SMOKE][RENTAS][PRIVADO] Casa alberca mobqyvi5",
+      "branch": "privado",
+      "categoria": "residencial",
+      "subtypeSummary": "residencial · casa · dos_pisos · highlights piscina+patio",
+      "keyValues": {
+        "rent": "16200",
+        "deposit": "850",
+        "lease": "12-meses",
+        "zip": "64000",
+        "beds": "3",
+        "baths": "2",
+        "halfBaths": "1",
+        "sqft": "2150",
+        "parking": "2"
+      },
+      "publishRoute": "/clasificados/rentas/preview/privado?lang=es&propiedad=residencial",
+      "listingId": "a40b5f1a-f28b-45f2-8a5d-60617ff75bc6",
+      "publicUrl": "http://127.0.0.1:3046/clasificados/rentas/listing/a40b5f1a-f28b-45f2-8a5d-60617ff75bc6?published=1&lang=es",
+      "previewSnippet": "Galería multimedia\n\n1 foto en la galería\n\n1 FOTOS\nGALERÍA\n\nUbicación en mapa\n\nVer en mapa externo\n\n[SMOKE][RENTAS][PRIVADO] Casa alberca mobqyvi5\n\nDel Valle, CP 64000, frente a parque · MTY-Priv-Casa-mobqyvi5\n\n$16,200 / mes\nDISPONIBLE\n\nRenta residencial\n\nRENTA MENSUAL\n\n$16,200 / mes\n\nDEPÓSITO\n\n850\n\nPLAZO\n\n12 meses\n\nDISPONIBILIDAD\n\nDisponible en 10 días\n\nAMUEBLADO\n\nSí\n\nMASCOTAS\n\nPermitidas\n\nSERVICIOS\n\nAgua + jardinería básica\n\nRECÁMARAS\n\n3\n\nBAÑOS\n\n2\n\nMEDIOS BAÑOS\n\n1\n\nINTERIOR\n\n2,150 ft²\n\nLOTE\n\n4,300 ft²\n\nESTACIONAMIENTO\n\n2\n\nAÑO\n\n2,014\n\nMASCOTAS\n\nPermitidas\n\nSmoke Seller\n\nARRENDADOR\n\nMejor contacto por WhatsApp en horario de oficina.\n\n(555) 555-0199\n\nWHATSAPP\n\n(555) 555-0199\n\nsmoke.seller@yourdomain.com\n\nDETALLES DE LA PROPIEDAD\nRENTA MENSUAL\n$16,200 / mes\nDEPÓSITO\n850\nPLAZO DEL CONTRATO\n12 meses\nDISPONIBILIDAD\nDisponible en 10 días\nAMUEBLADO\nAmueblado\nMASCOTAS\nPermitidas\nSERVICIOS INCLUIDOS\nAgua + jardinería básica\nREQUISITOS\nIdentificación oficial + comprobante de ingresos\nTIPO\nCasa\nSUBTIPO\nDos pisos\nRECÁMARAS\n3\nBAÑOS COMPLETOS\n2\nMEDIOS BAÑOS\n1\nTAMAÑO INTERIOR\n2,150 ft²\nTAMAÑO DEL LOTE\n4,300 ft²\nESTACIONAMIENTO\n2\nAÑO DE CONSTRUCCIÓN\n2,014\nCONDICIÓN\nBuena\nCARACTERÍSTICAS DESTACADAS\n",
+      "previewMatchedDetail": false,
+      "filterUrl": "/clasificados/rentas/results?lang=es&city=MTY-Priv-Casa-mobqyvi5&pool=1",
+      "flow": {
+        "application": "PASS",
+        "previewQuality": "PASS",
+        "publish": "PASS",
+        "landing": "PASS",
+        "results": "PASS",
+        "filterDiscovery": "PASS",
+        "publicDetailParity": "FAIL",
+        "buyerInquiry": "BLOCKED_BY_EXTERNAL_SERVICE",
+        "sellerDashboard": "PASS",
+        "adminVisibility": "FAIL"
+      }
+    },
+    {
+      "title": "[SMOKE][RENTAS][PRIVADO] Depto vista mobqyvi5",
+      "branch": "privado",
+      "categoria": "residencial",
+      "subtypeSummary": "residencial · apartamento · subtipo vista",
+      "keyValues": {
+        "rent": "12800",
+        "deposit": "600",
+        "lease": "6-meses",
+        "zip": "44110",
+        "beds": "2",
+        "baths": "2",
+        "sqft": "980",
+        "parking": "1"
+      },
+      "publishRoute": "/clasificados/rentas/preview/privado?lang=es&propiedad=residencial",
+      "listingId": "2729e73b-f9bb-43d8-b965-2e5cd1c9f486",
+      "publicUrl": "http://127.0.0.1:3046/clasificados/rentas/listing/2729e73b-f9bb-43d8-b965-2e5cd1c9f486?published=1&lang=es",
+      "previewSnippet": "Galería multimedia\n\n1 foto en la galería\n\n1 FOTOS\n\nUbicación en mapa\n\nVer en mapa externo\n\n[SMOKE][RENTAS][PRIVADO] Depto vista mobqyvi5\n\nCol. Americana, CP 44110 · GDL-Priv-Apto-mobqyvi5\n\n$12,800 / mes\nDISPONIBLE\n\nRenta residencial\n\nRENTA MENSUAL\n\n$12,800 / mes\n\nDEPÓSITO\n\n600\n\nPLAZO\n\n6 meses\n\nDISPONIBILIDAD\n\nDisponible 1 junio\n\nAMUEBLADO\n\nNo\n\nMASCOTAS\n\nNo\n\nSERVICIOS\n\nMantenimiento de áreas comunes\n\nRECÁMARAS\n\n2\n\nBAÑOS\n\n2\n\nINTERIOR\n\n980 ft²\n\nESTACIONAMIENTO\n\n1\n\nAÑO\n\n2,018\n\nMASCOTAS\n\nNo permitidas\n\nSmoke Seller\n\nARRENDADOR\n\nMejor contacto por WhatsApp en horario de oficina.\n\n(555) 555-0199\n\nWHATSAPP\n\n(555) 555-0199\n\nsmoke.seller@yourdomain.com\n\nDETALLES DE LA PROPIEDAD\nRENTA MENSUAL\n$12,800 / mes\nDEPÓSITO\n600\nPLAZO DEL CONTRATO\n6 meses\nDISPONIBILIDAD\nDisponible 1 junio\nAMUEBLADO\nSin amueblar\nMASCOTAS\nNo permitidas\nSERVICIOS INCLUIDOS\nMantenimiento de áreas comunes\nREQUISITOS\nMes de depósito + aval\nTIPO\nApartamento\nSUBTIPO\nCon vista\nRECÁMARAS\n2\nBAÑOS COMPLETOS\n2\nTAMAÑO INTERIOR\n980 ft²\nESTACIONAMIENTO\n1\nAÑO DE CONSTRUCCIÓN\n2,018\nCONDICIÓN\nExcelente\nCARACTERÍSTICAS DESTACADAS\nBALCÓN\n✓\nVISTA\n✓\n\nCONTACTO\n\nEscribir correo\nLlamar\nWhatsApp\nDESCRIPCIÓN\n\nDepartamento de prueba orientado a fi",
+      "previewMatchedDetail": true,
+      "filterUrl": "/clasificados/rentas/results?lang=es&city=GDL-Priv-Apto-mobqyvi5&highlights=balcon,vista",
+      "flow": {
+        "application": "PASS",
+        "previewQuality": "PASS",
+        "publish": "PASS",
+        "landing": "PASS",
+        "results": "PASS",
+        "filterDiscovery": "PASS",
+        "publicDetailParity": "PASS",
+        "buyerInquiry": "BLOCKED_BY_EXTERNAL_SERVICE",
+        "sellerDashboard": "PASS",
+        "adminVisibility": "FAIL"
+      }
+    },
+    {
+      "title": "[SMOKE][RENTAS][PRIVADO] Oficina suite mobqyvi5",
+      "branch": "privado",
+      "categoria": "comercial",
+      "subtypeSummary": "comercial · oficina · suite · destacados recepción + sala juntas",
+      "keyValues": {
+        "rent": "22500",
+        "deposit": "1200",
+        "lease": "mes-a-mes",
+        "sqft": "1450"
+      },
+      "publishRoute": "/clasificados/rentas/preview/privado?lang=es&propiedad=comercial",
+      "listingId": "34dfd712-e7d7-4295-aaed-da738f48f191",
+      "publicUrl": "http://127.0.0.1:3046/clasificados/rentas/listing/34dfd712-e7d7-4295-aaed-da738f48f191?published=1&lang=es",
+      "previewSnippet": "Galería multimedia\n\n1 foto en la galería\n\n1 FOTOS\n[SMOKE][RENTAS][PRIVADO] Oficina suite mobqyvi5\n\nCentro sur, CP 76090 · QRO-Priv-Off-mobqyvi5\n\n$22,500 / mes\nDISPONIBLE\n\nRenta comercial\n\nRENTA MENSUAL\n\n$22,500 / mes\n\nDEPÓSITO\n\n1200\n\nPLAZO\n\nMes a mes\n\nDISPONIBILIDAD\n\nEntrega inmediata\n\nAMUEBLADO\n\nNo\n\nMASCOTAS\n\nNo\n\nSERVICIOS\n\nRecepción compartida\n\nTIPO\n\nOficina\n\nINTERIOR\n\n1,450 ft²\n\nOFICINAS\n\n6\n\nBAÑOS\n\n2\n\nNIVELES\n\n1\n\nESTACIONAMIENTO\n\n4\n\nMASCOTAS\n\nNo permitidas\n\nSmoke Seller\n\nARRENDADOR\n\nMejor contacto por WhatsApp en horario de oficina.\n\n(555) 555-0199\n\nWHATSAPP\n\n(555) 555-0199\n\nsmoke.seller@yourdomain.com\n\nDETALLES DE LA PROPIEDAD\nRENTA MENSUAL\n$22,500 / mes\nDEPÓSITO\n1200\nPLAZO DEL CONTRATO\nMes a mes\nDISPONIBILIDAD\nEntrega inmediata\nAMUEBLADO\nSin amueblar\nMASCOTAS\nNo permitidas\nSERVICIOS INCLUIDOS\nRecepción compartida\nREQUISITOS\nPóliza RC + identificación\nTIPO COMERCIAL\nOficina\nSUBTIPO\nSuite\nUSO\nProfesional / consultoría\nTAMAÑO INTERIOR\n1,450 ft²\nOFICINAS\n6\nBAÑOS\n2\nNIVELES / PISOS\n1\nESTACIONAMIENTO\n4\nZONIFICACIÓN\nH3\nCONDICIÓN\nBuena\nCARACTERÍSTICAS DESTACADAS\nRECEPCIÓN\n✓\nSALA DE JUNTAS\n✓\n\nCONTACTO\n\nEscribir correo\nLlamar\nWhatsApp\nDESCRIPCIÓN\n\nOficina privada de muestra: copy para ev",
+      "previewMatchedDetail": true,
+      "filterUrl": "/clasificados/rentas/results?lang=es&city=QRO-Priv-Off-mobqyvi5&propiedad=comercial",
+      "flow": {
+        "application": "PASS",
+        "previewQuality": "PASS",
+        "publish": "PASS",
+        "landing": "PASS",
+        "results": "PASS",
+        "filterDiscovery": "PASS",
+        "publicDetailParity": "PASS",
+        "buyerInquiry": "BLOCKED_BY_EXTERNAL_SERVICE",
+        "sellerDashboard": "PASS",
+        "adminVisibility": "FAIL"
+      }
+    },
+    {
+      "title": "[SMOKE][RENTAS][PRIVADO] Lote comercial mobqyvi5",
+      "branch": "privado",
+      "categoria": "terreno_lote",
+      "subtypeSummary": "terreno_lote · lote_comercial · esquina · destacados vista + acceso pavimentado",
+      "keyValues": {
+        "rent": "8900",
+        "deposit": "2000",
+        "lease": "1-ano",
+        "loteSqft": "12000"
+      },
+      "publishRoute": "/clasificados/rentas/preview/privado?lang=es&propiedad=terreno_lote",
+      "listingId": "d8725a37-b78d-46c6-96ba-8ee21edceac5",
+      "publicUrl": "http://127.0.0.1:3046/clasificados/rentas/listing/d8725a37-b78d-46c6-96ba-8ee21edceac5?published=1&lang=es",
+      "previewSnippet": "Galería multimedia\n\n1 foto en la galería\n\n1 FOTOS\n\nUbicación en mapa\n\nVer en mapa externo\n\n[SMOKE][RENTAS][PRIVADO] Lote comercial mobqyvi5\n\nPeriférico oriente, CP 78394 · SLP-Priv-Lote-mobqyvi5\n\n$8,900 / mes\nDISPONIBLE\n\nRenta terreno / lote\n\nRENTA MENSUAL\n\n$8,900 / mes\n\nDEPÓSITO\n\n2000\n\nPLAZO\n\n1 año\n\nDISPONIBILIDAD\n\nDisponible para desarrollo\n\nLOTE\n\n12,000 ft²\n\nUSO / ZONA\n\nComercial mixto\n\nACCESO\n\nAvenida principal\n\nSERVICIOS\n\nLuz en poste\n\nSmoke Seller\n\nARRENDADOR\n\nMejor contacto por WhatsApp en horario de oficina.\n\n(555) 555-0199\n\nWHATSAPP\n\n(555) 555-0199\n\nsmoke.seller@yourdomain.com\n\nDETALLES DE LA PROPIEDAD\nRENTA MENSUAL\n$8,900 / mes\nDEPÓSITO\n2000\nPLAZO DEL CONTRATO\n1 año\nDISPONIBILIDAD\nDisponible para desarrollo\nREQUISITOS\nUso de suelo acorde a zonificación\nTIPO DE TERRENO\nLote comercial\nSUBTIPO\nEn esquina\nTAMAÑO DEL LOTE\n12,000 ft²\nUSO / ZONIFICACIÓN\nComercial mixto\nACCESO\nAvenida principal\nSERVICIOS DISPONIBLES\nLuz en poste\nTOPOGRAFÍA\nPlano\nLISTO PARA CONSTRUIR\nSí\nCARACTERÍSTICAS DESTACADAS\nVISTA\n✓\nACCESO PAVIMENTADO\n✓\n\nCONTACTO\n\nEscribir correo\nLlamar\nWhatsApp\nDESCRIPCIÓN\n\nTerreno de prueba para revisar cómo se comunica el arriendo de suelo frente a vivienda: expectativa de",
+      "previewMatchedDetail": true,
+      "filterUrl": "/clasificados/rentas/results?lang=es&city=SLP-Priv-Lote-mobqyvi5&propiedad=terreno_lote",
+      "flow": {
+        "application": "PASS",
+        "previewQuality": "PASS",
+        "publish": "PASS",
+        "landing": "PASS",
+        "results": "PASS",
+        "filterDiscovery": "PASS",
+        "publicDetailParity": "PASS",
+        "buyerInquiry": "BLOCKED_BY_EXTERNAL_SERVICE",
+        "sellerDashboard": "PASS",
+        "adminVisibility": "FAIL"
+      }
+    },
+    {
+      "title": "[SMOKE][RENTAS][NEGOCIO] Townhome mobqyvi5",
+      "branch": "negocio",
+      "categoria": "residencial",
+      "subtypeSummary": "negocio · residencial · townhome · adosado",
+      "keyValues": {
+        "rent": "19800",
+        "deposit": "1500",
+        "lease": "12-meses",
+        "beds": "4",
+        "baths": "3"
+      },
+      "publishRoute": "/clasificados/rentas/preview/negocio?lang=es&propiedad=residencial",
+      "listingId": "faed85cd-1360-42c6-9826-0de98400f247",
+      "publicUrl": "http://127.0.0.1:3046/clasificados/rentas/listing/faed85cd-1360-42c6-9826-0de98400f247?published=1&lang=es",
+      "previewSnippet": "Galería multimedia\n\n1 foto en la galería\n\n1 FOTOS\n\nMedio 1\n\nSin contenido en este espacio.\n\nMedio 2\n\nSin contenido en este espacio.\n\nTour virtual\n\nNo disponible en este anuncio.\n\nUbicación en mapa\n\nVer en mapa externo\n\n[SMOKE][RENTAS][NEGOCIO] Townhome mobqyvi5\n\nCumbres, CP 64346, MTY-Neg-Town-mobqyvi5, CA\n\n$19,800 / mes\nEN RENTA\n\nRenta residencial\n\nHABITACIONES\n\n4\n\nBAÑOS\n\n3 + 1 medios\n\nSUPERFICIE\n\n2400\n\nGARAJES\n\n2\n\nCONSTRUIDO\n\n2020\n\nMASCOTAS\n\nPermitidas\n\nIdentidad del anuncio\n\nSin imagen principal cargada.\n\nInmobiliaria Smoke mobqyvi5\n\nCONTACTO COMERCIAL\n\nCorreduría de muestra para QA de Rentas (contenido controlado, sin datos reales de clientes).\n\nINMOBILIARIA / MARCA\n\nLeonix Smoke Realty\n\nAgente verificado\nLic. LIC-SMOKE-mobqyvi5\n\n5555550101\n\nsmoke.seller@yourdomain.com\n\nINS\nVER PERFIL PROFESIONAL →\nDETALLES DE LA PROPIEDAD\nDEPÓSITO\n1500\nPLAZO DEL CONTRATO\n12 meses\nDISPONIBILIDAD\nTour con cita\nAMUEBLADO\nAmueblado\nMASCOTAS\nPermitidas\nSERVICIOS INCLUIDOS\nSeguridad 24h\nREQUISITOS\nPóliza de arrendamiento + referencias\nTIPO\nTownhome · Adosado\nSUBTIPO\n—\nOPERACIÓN\nRenta residencial\nRECÁMARAS\n4\nBAÑOS\n3 + 1 medios\nPIES CUADRADOS\n2400\nLOTE\n3200 ft²\nESTACIONAMIENTOS\n2\nCONDICIÓN\nexcelente\nH",
+      "previewMatchedDetail": true,
+      "filterUrl": "/clasificados/rentas/results?lang=es&city=MTY-Neg-Town-mobqyvi5&branch=negocio",
+      "flow": {
+        "application": "PASS",
+        "previewQuality": "PASS",
+        "publish": "PASS",
+        "landing": "PASS",
+        "results": "PASS",
+        "filterDiscovery": "PASS",
+        "publicDetailParity": "PASS",
+        "buyerInquiry": "BLOCKED_BY_EXTERNAL_SERVICE",
+        "sellerDashboard": "PASS",
+        "adminVisibility": "FAIL"
+      }
+    },
+    {
+      "title": "[SMOKE][RENTAS][NEGOCIO] Multifamiliar mobqyvi5",
+      "branch": "negocio",
+      "categoria": "residencial",
+      "subtypeSummary": "negocio · residencial · multifamiliar · varias_unidades",
+      "keyValues": {
+        "rent": "18500",
+        "deposit": "900",
+        "lease": "2-anos"
+      },
+      "publishRoute": "/clasificados/rentas/preview/negocio?lang=es&propiedad=residencial",
+      "listingId": "8e2102ff-051c-4c74-9500-dd5fc68a1f60",
+      "publicUrl": "http://127.0.0.1:3046/clasificados/rentas/listing/8e2102ff-051c-4c74-9500-dd5fc68a1f60?published=1&lang=es",
+      "previewSnippet": "Galería multimedia\n\n1 foto en la galería\n\n1 FOTOS\n\nMedio 1\n\nSin contenido en este espacio.\n\nMedio 2\n\nSin contenido en este espacio.\n\nTour virtual\n\nNo disponible en este anuncio.\n\nUbicación en mapa\n\nVer en mapa externo\n\n[SMOKE][RENTAS][NEGOCIO] Multifamiliar mobqyvi5\n\nAngelópolis, CP 72830, PUE-Neg-Multi-mobqyvi5, CA\n\n$18,500 / mes\nEN RENTA\n\nRenta residencial\n\nHABITACIONES\n\n6\n\nBAÑOS\n\n4 + 0 medios\n\nSUPERFICIE\n\n4100\n\nGARAJES\n\n6\n\nCONSTRUIDO\n\n2010\n\nMASCOTAS\n\nNo permitidas\n\nIdentidad del anuncio\n\nSin imagen principal cargada.\n\nInmobiliaria Smoke mobqyvi5\n\nCONTACTO COMERCIAL\n\nCorreduría de muestra para QA de Rentas (contenido controlado, sin datos reales de clientes).\n\nINMOBILIARIA / MARCA\n\nLeonix Smoke Realty\n\nAgente verificado\nLic. LIC-SMOKE-mobqyvi5\n\n5555550101\n\nsmoke.seller@yourdomain.com\n\nINS\nVER PERFIL PROFESIONAL →\nDETALLES DE LA PROPIEDAD\nDEPÓSITO\n900\nPLAZO DEL CONTRATO\n2 años\nDISPONIBILIDAD\nContratos corporativos bienvenidos\nAMUEBLADO\nSin amueblar\nMASCOTAS\nNo permitidas\nSERVICIOS INCLUIDOS\nJardinería\nREQUISITOS\nDepósito en garantía\nTIPO\nMultifamiliar · Varias unidades en el sitio\nSUBTIPO\n—\nOPERACIÓN\nRenta residencial\nRECÁMARAS\n6\nBAÑOS\n4 + 0 medios\nPIES CUADRADOS\n4100\nLOTE\n7200 ft",
+      "previewMatchedDetail": true,
+      "filterUrl": "/clasificados/rentas/results?lang=es&city=PUE-Neg-Multi-mobqyvi5&branch=negocio&rent_min=17500",
+      "flow": {
+        "application": "PASS",
+        "previewQuality": "PASS",
+        "publish": "PASS",
+        "landing": "PASS",
+        "results": "PASS",
+        "filterDiscovery": "PASS",
+        "publicDetailParity": "PASS",
+        "buyerInquiry": "BLOCKED_BY_EXTERNAL_SERVICE",
+        "sellerDashboard": "PASS",
+        "adminVisibility": "FAIL"
+      }
+    },
+    {
+      "title": "[SMOKE][RENTAS][NEGOCIO] Local frente mobqyvi5",
+      "branch": "negocio",
+      "categoria": "comercial",
+      "subtypeSummary": "negocio · comercial · local · frente_calle",
+      "keyValues": {
+        "rent": "31000",
+        "deposit": "3100",
+        "lease": "12-meses"
+      },
+      "publishRoute": "/clasificados/rentas/preview/negocio?lang=es&propiedad=comercial",
+      "listingId": "c9322143-91c5-48e3-bd9e-c18b66d029d3",
+      "publicUrl": "http://127.0.0.1:3046/clasificados/rentas/listing/c9322143-91c5-48e3-bd9e-c18b66d029d3?published=1&lang=es",
+      "previewSnippet": "Galería multimedia\n\n1 foto en la galería\n\n1 FOTOS\n\nMedio 1\n\nSin contenido en este espacio.\n\nMedio 2\n\nSin contenido en este espacio.\n\nTour virtual\n\nNo disponible en este anuncio.\n\nUbicación en mapa\n\nVer en mapa externo\n\n[SMOKE][RENTAS][NEGOCIO] Local frente mobqyvi5\n\nRoma Norte, CP 06700, CDMX-Neg-Local-mobqyvi5, CA\n\n$31,000 / mes\nEN RENTA\n\nInmueble comercial · En renta\n\nSUPERFICIE\n\n880\n\nUSO\n\n—\n\nESTACIONAMIENTOS\n\n0\n\nNIVELES\n\n1\n\nCONDICIÓN\n\nexcelente\n\nMASCOTAS\n\nNo permitidas\n\nIdentidad del anuncio\n\nSin imagen principal cargada.\n\nInmobiliaria Smoke mobqyvi5\n\nCONTACTO COMERCIAL\n\nCorreduría de muestra para QA de Rentas (contenido controlado, sin datos reales de clientes).\n\nINMOBILIARIA / MARCA\n\nLeonix Smoke Realty\n\nAgente verificado\nLic. LIC-SMOKE-mobqyvi5\n\n5555550101\n\nsmoke.seller@yourdomain.com\n\nINS\nVER PERFIL PROFESIONAL →\nDETALLES DE LA PROPIEDAD\nDEPÓSITO\n3100\nPLAZO DEL CONTRATO\n12 meses\nDISPONIBILIDAD\nEntrega con mes de gracia\nAMUEBLADO\nSin amueblar\nMASCOTAS\nNo permitidas\nSERVICIOS INCLUIDOS\nBasura\nREQUISITOS\nAnticipo + aval bancario\nTIPO\nLocal · Frente a calle\nSUBTIPO\n—\nOPERACIÓN\nInmueble comercial · En renta\nPIES CUADRADOS\n880\nBAÑOS\n2\nESTACIONAMIENTOS\n0\nUSO\n—\nNIVELES\n1\nCONDICIÓN\ne",
+      "previewMatchedDetail": true,
+      "filterUrl": "/clasificados/rentas/results?lang=es&city=CDMX-Neg-Local-mobqyvi5&branch=negocio&propiedad=comercial",
+      "flow": {
+        "application": "PASS",
+        "previewQuality": "PASS",
+        "publish": "PASS",
+        "landing": "PASS",
+        "results": "PASS",
+        "filterDiscovery": "PASS",
+        "publicDetailParity": "PASS",
+        "buyerInquiry": "BLOCKED_BY_EXTERNAL_SERVICE",
+        "sellerDashboard": "PASS",
+        "adminVisibility": "FAIL"
+      }
+    },
+    {
+      "title": "[SMOKE][RENTAS][NEGOCIO] Terreno agrícola mobqyvi5",
+      "branch": "negocio",
+      "categoria": "terreno_lote",
+      "subtypeSummary": "negocio · terreno_lote · agricola · riegos",
+      "keyValues": {
+        "rent": "4500",
+        "deposit": "4500",
+        "lease": "1-ano"
+      },
+      "publishRoute": "/clasificados/rentas/preview/negocio?lang=es&propiedad=terreno_lote",
+      "listingId": "13de68eb-ec4b-4495-8395-66ec58900bb3",
+      "publicUrl": "http://127.0.0.1:3046/clasificados/rentas/listing/13de68eb-ec4b-4495-8395-66ec58900bb3?published=1&lang=es",
+      "previewSnippet": "Galería multimedia\n\n1 foto en la galería\n\n1 FOTOS\n\nMedio 1\n\nSin contenido en este espacio.\n\nMedio 2\n\nSin contenido en este espacio.\n\nTour virtual\n\nNo disponible en este anuncio.\n\nUbicación en mapa\n\nVer en mapa externo\n\n[SMOKE][RENTAS][NEGOCIO] Terreno agrícola mobqyvi5\n\nJesús María, CP 20900, AGS-Neg-Ter-mobqyvi5, CA\n\n$4,500 / mes\nEN RENTA\n\nTerreno / lote · En renta\n\nLOTE\n\n435600 ft²\n\nZONA\n\n—\n\nFRENTE / FORMA\n\n—\n\nTOPOGRAFÍA\n\n—\n\nSERVICIOS\n\n—\n\nIdentidad del anuncio\n\nSin imagen principal cargada.\n\nInmobiliaria Smoke mobqyvi5\n\nCONTACTO COMERCIAL\n\nCorreduría de muestra para QA de Rentas (contenido controlado, sin datos reales de clientes).\n\nINMOBILIARIA / MARCA\n\nLeonix Smoke Realty\n\nAgente verificado\nLic. LIC-SMOKE-mobqyvi5\n\n5555550101\n\nsmoke.seller@yourdomain.com\n\nINS\nVER PERFIL PROFESIONAL →\nDETALLES DE LA PROPIEDAD\nDEPÓSITO\n4500\nPLAZO DEL CONTRATO\n1 año\nDISPONIBILIDAD\nTemporada agrícola\nREQUISITOS\nContrato de uso de suelo\nTIPO\nTerreno agrícola · Con riego\nSUBTIPO\n—\nOPERACIÓN\nTerreno / lote · En renta\nTAMAÑO DEL LOTE\n435600 ft²\nDIMENSIONES / FRENTE\n—\nZONIFICACIÓN\n—\nUSO DE SUELO\n—\nSERVICIOS\n—\nCARACTERÍSTICAS DESTACADAS\n\nSin elementos destacados en este anuncio.\n\nCONTACTAR AL AGENTE\n\nSol",
+      "previewMatchedDetail": true,
+      "filterUrl": "/clasificados/rentas/results?lang=es&city=AGS-Neg-Ter-mobqyvi5&branch=negocio&propiedad=terreno_lote",
+      "flow": {
+        "application": "PASS",
+        "previewQuality": "PASS",
+        "publish": "PASS",
+        "landing": "PASS",
+        "results": "PASS",
+        "filterDiscovery": "PASS",
+        "publicDetailParity": "PASS",
+        "buyerInquiry": "BLOCKED_BY_EXTERNAL_SERVICE",
+        "sellerDashboard": "PASS",
+        "adminVisibility": "FAIL"
+      }
+    }
+  ]
+}

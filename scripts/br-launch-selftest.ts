@@ -17,7 +17,11 @@ import {
   buildLeonixMachineFacetPairsFromBienesRaicesNegocioState,
   buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState,
 } from "../app/(site)/clasificados/lib/leonixBrMachineFacetPairsFromFormState";
-import { LEONIX_DP_PETS_ALLOWED, LEONIX_DP_POOL } from "../app/(site)/clasificados/lib/leonixRealEstateListingContract";
+import {
+  LEONIX_DP_PETS_ALLOWED,
+  LEONIX_DP_POOL,
+  LEONIX_DP_POSTAL_CODE,
+} from "../app/(site)/clasificados/lib/leonixRealEstateListingContract";
 import { brNegocioFeaturedListing, brNegocioGridListings } from "../app/(site)/clasificados/bienes-raices/resultados/demoData";
 import { brListingRecencySortMs } from "../app/(site)/clasificados/bienes-raices/resultados/lib/mapBrListingRowToCard";
 import {
@@ -68,6 +72,15 @@ const machine = buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(brPriv)
 const labels = new Set(machine.map((p) => p.label));
 assert.ok(labels.has(LEONIX_DP_PETS_ALLOWED), "privado publish machine pairs must include pets label");
 assert.ok(labels.has(LEONIX_DP_POOL), "privado residencial piscina highlight must emit pool machine label");
+
+const brPrivZip = mergePartialBienesRaicesPrivadoState({
+  petsAllowed: "yes",
+  ubicacionLinea: "Near CA 90210",
+  ciudad: "Beverly Hills",
+});
+const machineZip = buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(brPrivZip);
+const zipPair = machineZip.find((p) => p.label === LEONIX_DP_POSTAL_CODE);
+assert.equal(zipPair?.value, "90210", "privado machine pairs must emit postal when digits appear in ubicación/ciudad");
 
 const brNeg = mergePartialBienesRaicesNegocioState({
   petsAllowed: "yes",

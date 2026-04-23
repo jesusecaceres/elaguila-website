@@ -1,0 +1,49 @@
+{
+  "createdAt": "2026-04-23T16:54:49.808Z",
+  "baseURL": "http://127.0.0.1:3021",
+  "published": [
+    {
+      "lane": "quick",
+      "id": "ae341b3b-66ea-44cc-8f0e-bd0d39be7fe3",
+      "slug": "chef-de-cocina-linea-mercado-gastronomico-bayview-mqa-ch-bayview-mobq223o6f50",
+      "title": "Chef de cocina línea — Mercado Gastronómico Bayview · MQA-CH-BAYVIEW",
+      "lifecycle_status": "published",
+      "filterProof": {
+        "fields": "ZIP from application address (94103) + keyword marker",
+        "filterUrl": "http://127.0.0.1:3021/clasificados/empleos/resultados?lang=es&zip=94103&q=MQA-CH-BAYVIEW&sort=relevance",
+        "appeared": true
+      }
+    },
+    {
+      "lane": "premium",
+      "id": "f6f9dce9-f5b5-4207-afa3-f49d157ba165",
+      "slug": "gerente-de-producto-senior-plataforma-de-pagos-b2b-mqa-pm-talent-mobq22vi91i8",
+      "title": "Gerente de producto senior — plataforma de pagos B2B · MQA-PM-TALENT",
+      "lifecycle_status": "published",
+      "filterProof": {
+        "fields": "category=tecnologia, modality=hibrido (application), keyword marker",
+        "filterUrl": "http://127.0.0.1:3021/clasificados/empleos/resultados?lang=es&category=tecnologia&modality=hibrido&q=MQA-PM-TALENT&sort=relevance",
+        "appeared": true
+      }
+    },
+    {
+      "lane": "feria",
+      "id": "7e61d6e5-2dc6-4a22-8018-b3d980bae0ab",
+      "slug": "feria-de-reclutamiento-hospitalidad-norcal-mqa-jf-norcal-mobq23idf0np",
+      "title": "Feria de reclutamiento hospitalidad NorCal — MQA-JF-NORCAL",
+      "lifecycle_status": "published",
+      "filterProof": {
+        "fields": "industry substring from application industryFocus + keyword marker",
+        "filterUrl": "http://127.0.0.1:3021/clasificados/empleos/resultados?lang=es&industry=hospitalidad&q=MQA-JF-NORCAL&sort=relevance",
+        "appeared": true
+      }
+    }
+  ],
+  "application": {
+    "listingLane": "quick",
+    "listingId": "ae341b3b-66ea-44cc-8f0e-bd0d39be7fe3",
+    "applicantLabel": "Aspirante Manual QA",
+    "buyerEmail": "smoke.buyer@yourdomain.com"
+  },
+  "note": "Rows intentionally not deleted — for manual visual QA."
+}

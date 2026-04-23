@@ -27,6 +27,8 @@ type Row = {
   created_at?: string | null;
   /** Used for Rentas-specific dashboard lines (e.g. availability from detail_pairs). */
   category?: string | null;
+  /** Fallback when `Leonix:branch` is missing on older rows but `category` is rentas. */
+  seller_type?: string | null;
   detail_pairs?: unknown;
   boost_expires?: unknown;
   is_published?: boolean | null;
@@ -81,9 +83,16 @@ export function LeonixRealEstateListingManageCard({
   onDelete: () => void;
 }) {
   const lx = parseLeonixListingContract(row.detail_pairs);
-  if (!lx.branch) return null;
+  const inferredRentasBranch: LeonixClasificadosBranch | null =
+    String(row.category ?? "").toLowerCase() === "rentas" && !lx.branch
+      ? String(row.seller_type ?? "").toLowerCase() === "business"
+        ? "rentas_negocio"
+        : "rentas_privado"
+      : null;
+  const effectiveBranch: LeonixClasificadosBranch | null = lx.branch ?? inferredRentasBranch;
+  if (!effectiveBranch) return null;
 
-  const isBr = lx.branch === "bienes_raices_privado" || lx.branch === "bienes_raices_negocio";
+  const isBr = effectiveBranch === "bienes_raices_privado" || effectiveBranch === "bienes_raices_negocio";
 
   const rentasRx =
     String(row.category ?? "").toLowerCase() === "rentas" ? parseRentasDetailMachineRead(row.detail_pairs) : null;
@@ -106,7 +115,7 @@ export function LeonixRealEstateListingManageCard({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-lg font-bold text-[#1E1810]">{row.title || "—"}</span>
             <span className="rounded-full bg-[#FBF7EF] px-2.5 py-0.5 text-[11px] font-bold text-[#5C4E2E]">
-              {branchLabel(lx.branch, lang)}
+              {branchLabel(effectiveBranch, lang)}
             </span>
             {lx.operation ? (
               <span className="rounded-full border border-[#E8DFD0] px-2 py-0.5 text-[11px] font-semibold text-[#5C5346]">
@@ -176,7 +185,7 @@ export function LeonixRealEstateListingManageCard({
             {lang === "es" ? "Ver público" : "Live"}
           </Link>
           <Link
-            href={scaffoldEditHref(lx.branch, lx.categoriaPropiedad)}
+            href={scaffoldEditHref(effectiveBranch, lx.categoriaPropiedad)}
             className="rounded-xl border border-[#C9B46A]/50 bg-[#FDFBF7] px-4 py-2 text-sm font-semibold text-[#1E1810]"
           >
             {lang === "es" ? "Editar (flujo)" : "Edit flow"}

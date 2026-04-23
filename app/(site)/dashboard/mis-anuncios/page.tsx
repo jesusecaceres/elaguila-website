@@ -45,6 +45,7 @@ type ListingRow = {
   published_at?: string | null;
   expires_at?: string | null;
   category?: string | null;
+  seller_type?: string | null;
   business_name?: string | null;
   images?: unknown;
   detail_pairs?: unknown;

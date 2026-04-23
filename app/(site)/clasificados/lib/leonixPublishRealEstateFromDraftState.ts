@@ -145,10 +145,13 @@ export async function publishLeonixListingFromBienesRaicesPrivadoDraft(
     machineFacetPairs: buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(state),
   });
   const contact = privadoSellerContact(state.seller);
+  const zipPriv = normalizeZipForBrowse(`${state.ubicacionLinea} ${state.ciudad}`.trim());
+
   return publishLeonixRealEstateListingCore({
     title: state.titulo,
     description: state.descripcion,
     city: trim(state.ciudad) || trim(state.ubicacionLinea),
+    zip: zipPriv.length >= 5 ? zipPriv : undefined,
     price: priceNumberFromDigitsString(state.precio),
     isFree: false,
     category: "bienes-raices",
@@ -209,10 +212,12 @@ export async function publishLeonixListingFromBienesRaicesNegocioDraft(
   });
   const c = negocioContactAndBusinessName(state);
   const meta = buildBusinessMetaJsonFromBienesRaicesNegocioState(state);
+  const zipNeg = normalizeZipForBrowse(state.codigoPostal);
   return publishLeonixRealEstateListingCore({
     title: state.titulo,
     description: state.descripcionLarga || state.descripcionCorta,
     city: trim(state.ciudad) || trim(state.direccion),
+    zip: zipNeg.length >= 5 ? zipNeg : undefined,
     price: priceNumberFromDigitsString(state.precio),
     isFree: false,
     category: "bienes-raices",

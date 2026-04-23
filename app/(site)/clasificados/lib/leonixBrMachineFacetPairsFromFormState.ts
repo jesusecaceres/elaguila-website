@@ -10,6 +10,7 @@ import type {
 import type { BienesRaicesNegocioFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState";
 import type { RentasNegocioFormState } from "@/app/clasificados/publicar/rentas/negocio/schema/rentasNegocioFormState";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
+import { normalizeZipForBrowse } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
 import { mergePartialBienesRaicesPrivadoState } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import type { BrResultsPropertyKind } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import {
@@ -160,6 +161,9 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(
 
   if (state.petsAllowed === "yes") push(out, LEONIX_DP_PETS_ALLOWED, true);
   else if (state.petsAllowed === "no") push(out, LEONIX_DP_PETS_ALLOWED, false);
+
+  const zipGuess = normalizeZipForBrowse(`${state.ubicacionLinea} ${state.ciudad}`.trim());
+  if (zipGuess.length >= 5) push(out, LEONIX_DP_POSTAL_CODE, zipGuess);
 
   pushHighlightSlugsForPrivado(state, out);
   return out;
