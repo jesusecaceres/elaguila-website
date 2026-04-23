@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import { loadRestaurantesResultsInventoryForPage } from "@/app/clasificados/restaurantes/lib/restaurantesResultsInventoryServer";
 import { RestaurantesResultsShell } from "./RestaurantesResultsShell";
 
+export const dynamic = "force-dynamic";
+
 export default async function ClasificadosRestaurantesResultadosPage() {
   const inv = await loadRestaurantesResultsInventoryForPage();
   return (

@@ -20,7 +20,9 @@ export function gateEmpleosQuickPreview(d: EmpleosQuickDraft, lang: Lang = "es")
   if (!st(d.city)) issues.push(L.city);
   if (!st(d.state)) issues.push(L.state);
   if (!st(d.jobType)) issues.push(L.jobType);
-  if (!st(d.schedule)) issues.push(L.schedule);
+  const hasSchedule = d.scheduleRows.some((r) => st(r.day) || st(r.shift)) || st(d.schedule);
+  if (!hasSchedule) issues.push(L.schedule);
+  if (d.categorySlug === "otro" && !st(d.categoryCustom)) issues.push(L.categoryOther);
   if (!st(d.pay)) issues.push(L.pay);
   if (!st(d.description)) issues.push(L.description);
   const hasImg = d.images.some((x) => st(x.url));
@@ -42,7 +44,8 @@ export function gateEmpleosPremiumPreview(d: EmpleosPremiumDraft, lang: Lang = "
   if (!st(d.introduction)) issues.push(L.introduction);
   const hasHero = d.gallery.some((x) => st(x.url));
   if (!hasHero) issues.push(L.heroImage);
-  if (!st(d.whatsapp) && !st(d.email) && !st(d.websiteUrl)) {
+  if (d.categorySlug === "otro" && !st(d.categoryCustom)) issues.push(L.categoryOther);
+  if (!st(d.whatsapp) && !st(d.email) && !st(d.websiteUrl) && !st(d.phone)) {
     issues.push(L.applyChannel);
   }
   if (d.responsibilities.filter((x) => st(x)).length === 0) issues.push(L.responsibility);

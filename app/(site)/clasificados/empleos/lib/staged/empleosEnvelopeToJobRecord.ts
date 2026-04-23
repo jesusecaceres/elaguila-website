@@ -1,4 +1,6 @@
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
+import { isEmpleosInternalFilterRegion } from "@/app/publicar/empleos/shared/constants/empleosStandardRegion";
+import { empleosQuickPublicCityState } from "@/app/publicar/empleos/shared/lib/empleosPublicLocation";
 import type {
   CompanyTypeSlug,
   EmpleosJobRecord,
@@ -96,17 +98,17 @@ export function empleosEnvelopeToJobRecord(
     const { min, max } = parseSalaryRange(d.pay);
     const imageSrc = e.mediaReferences.primaryImageUrl ?? d.logoUrl ?? PLACEHOLDER_IMG;
     const category = (d.categorySlug || "oficina").trim() || "oficina";
-    const modality = mapModalityFromText(d.schedule);
-    const descParts = [
-      d.description,
-      d.addressLine1 ? `Dirección: ${d.addressLine1}, ${d.addressCity}, ${d.addressState} ${d.addressZip}`.trim() : "",
-      d.website ? `Web: ${d.website}` : "",
-      d.phone ? `Tel: ${d.phone}` : "",
-      d.whatsapp ? `WhatsApp: ${d.whatsapp}` : "",
-      d.email ? `Email: ${d.email}` : "",
-      d.videoUrl ? `Video: ${d.videoUrl}` : "",
-    ].filter(Boolean);
-    const description = descParts.join("\n\n");
+    const categoryCustomLabel =
+      category === "otro" && String(d.categoryCustom ?? "").trim() ? String(d.categoryCustom).trim() : undefined;
+    const modality: JobModalitySlug = d.workModality ?? mapModalityFromText(d.schedule);
+    const loc = empleosQuickPublicCityState({
+      city: d.city,
+      state: d.state,
+      addressCity: d.addressCity,
+      addressState: d.addressState,
+      addressZip: d.addressZip,
+    });
+    const description = d.description.trim();
     const screeners = screenerFromStrings(d.screenerQuestions ?? []);
 
     return {
@@ -114,10 +116,11 @@ export function empleosEnvelopeToJobRecord(
       slug: opts.slug,
       title: d.title,
       company: d.businessName,
-      city: d.city,
-      state: d.state,
+      city: loc.city,
+      state: loc.state,
       postalCode: d.addressZip?.trim() || undefined,
       category,
+      categoryCustomLabel,
       modality,
       jobType: mapJobType(d.jobType),
       salaryMin: min,
@@ -133,15 +136,15 @@ export function empleosEnvelopeToJobRecord(
       companyInitials: initials(d.businessName),
       imageSrc,
       imageAlt: d.title,
-      summary: d.description.slice(0, 220),
+      summary: description.slice(0, 220),
       description,
-      requirements: [d.schedule ? `Horario / modalidad declarados: ${d.schedule}` : ""].filter(Boolean),
+      requirements: d.schedule.trim() ? [d.schedule.trim()] : [],
       benefits: d.benefits,
       benefitChips: d.benefits.slice(0, 4),
       showOnLandingFeatured: false,
       showOnLandingRecent: false,
       publicationLane: "quick",
-      scheduleLabel: d.schedule,
+      scheduleLabel: d.schedule.trim() || undefined,
       screenerQuestions: screeners,
       validThroughIso,
       employerPhone: d.phone || undefined,
@@ -158,6 +161,8 @@ export function empleosEnvelopeToJobRecord(
     const { min, max } = parseSalaryRange(primary);
     const imageSrc = e.mediaReferences.primaryImageUrl ?? d.logoUrl ?? PLACEHOLDER_IMG;
     const category = (d.categorySlug || "oficina").trim() || "oficina";
+    const categoryCustomLabel =
+      category === "otro" && String(d.categoryCustom ?? "").trim() ? String(d.categoryCustom).trim() : undefined;
     const modality: JobModalitySlug = d.workModality;
     const descParts = [
       d.introduction,
@@ -165,23 +170,45 @@ export function empleosEnvelopeToJobRecord(
       d.requirements.length ? `Requisitos:\n${d.requirements.map((x) => `• ${x}`).join("\n")}` : "",
       d.offers.length ? `Ofrecemos:\n${d.offers.map((x) => `• ${x}`).join("\n")}` : "",
       d.companyOverview ? `Empresa:\n${d.companyOverview}` : "",
-      d.employerAddress ? `Ubicación empresa: ${d.employerAddress}` : "",
-      d.employerRating || d.reviewCount ? `Valoración: ${d.employerRating} (${d.reviewCount} reseñas)` : "",
       d.videoUrl ? `Video: ${d.videoUrl}` : "",
     ].filter(Boolean);
     const description = descParts.join("\n\n");
     const screeners = screenerFromStrings(d.screenerQuestions ?? []);
-    const extUrl = d.primaryCta === "website" ? d.websiteUrl : undefined;
+    const site = d.websiteUrl?.trim() ?? "";
+    const extUrl =
+      (d.primaryCta === "website" || d.primaryCta === "apply") && site.startsWith("http")
+        ? site
+        : undefined;
+    const loc = empleosQuickPublicCityState({
+      city: d.city,
+      state: d.state,
+      addressCity: "",
+      addressState: "",
+      addressZip: "",
+    });
+    const addrLine = d.employerAddress?.trim();
+    let pubCity = loc.city;
+    let pubState = loc.state;
+    if (addrLine) {
+      const tail = addrLine.match(/,\s*([A-Z]{2})(?:\s+\d{5}(-\d{4})?)?\s*$/);
+      if (tail?.index != null) {
+        pubState = tail[1]!;
+        const before = addrLine.slice(0, tail.index);
+        const parts = before.split(",").map((s) => s.trim()).filter(Boolean);
+        pubCity = parts.length ? parts[parts.length - 1]! : pubCity;
+      }
+    }
 
     return {
       id: opts.listingId,
       slug: opts.slug,
       title: d.title,
       company: d.companyName,
-      city: d.city,
-      state: d.state,
+      city: pubCity,
+      state: pubState,
       postalCode: postalCodeFromEmployerAddressLine(d.employerAddress),
       category,
+      categoryCustomLabel,
       modality,
       jobType: mapJobType(d.jobType),
       salaryMin: min,
@@ -208,10 +235,12 @@ export function empleosEnvelopeToJobRecord(
       scheduleLabel: d.scheduleLabel || undefined,
       screenerQuestions: screeners,
       validThroughIso,
+      employerPhone: d.phone || undefined,
       employerWhatsapp: d.whatsapp || undefined,
       employerEmail: d.email || undefined,
       employerWebsite: d.websiteUrl || undefined,
       externalApplyUrl: extUrl || undefined,
+      employerAddressLine: d.employerAddress || undefined,
     };
   }
 
@@ -227,18 +256,21 @@ export function empleosEnvelopeToJobRecord(
     d.contactLink ? `Enlace: ${d.contactLink}` : "",
     d.contactPhone ? `Tel: ${d.contactPhone}` : "",
     d.contactEmail ? `Email: ${d.contactEmail}` : "",
-    d.ctaLabel ? `CTA: ${d.ctaLabel}` : "",
+    d.ctaLabel ? d.ctaLabel : "",
     ...d.secondaryDetails.map((x) => x.trim()).filter(Boolean),
   ].filter(Boolean);
   const description = descParts.join("\n\n");
   const modality = mapModalityFromText(String(d.modality));
+  const venue = d.venue.trim();
+  const feriaCity =
+    isEmpleosInternalFilterRegion(d.city) && venue ? venue.split(",")[0]?.trim() || d.city : d.city.trim() || d.city;
 
   return {
     id: opts.listingId,
     slug: opts.slug,
     title: d.title,
     company: d.organizer,
-    city: d.city,
+    city: feriaCity,
     state: d.state,
     category: "feria",
     modality,

@@ -13,6 +13,7 @@ export const EMPLEOS_GATE_QUICK = {
     description: "Descripción corta",
     image: "Imagen principal (sube o pega URL)",
     cta: "Al menos un método de contacto (teléfono, WhatsApp o email)",
+    categoryOther: "Describe la categoría (Otra categoría)",
   },
   en: {
     title: "Job title",
@@ -25,6 +26,7 @@ export const EMPLEOS_GATE_QUICK = {
     description: "Short description",
     image: "Main image (upload or URL)",
     cta: "At least one contact method (phone, WhatsApp, or email)",
+    categoryOther: "Describe the category (Other)",
   },
 } as const;
 
@@ -42,6 +44,7 @@ export const EMPLEOS_GATE_PREMIUM = {
     responsibility: "Al menos una responsabilidad",
     requirement: "Al menos un requisito",
     offer: "Al menos un ítem en Ofrecemos",
+    categoryOther: "Describe la categoría (Otra categoría)",
   },
   en: {
     title: "Job title",
@@ -56,6 +59,7 @@ export const EMPLEOS_GATE_PREMIUM = {
     responsibility: "At least one responsibility",
     requirement: "At least one requirement",
     offer: "At least one item under What we offer",
+    categoryOther: "Describe the category (Other)",
   },
 } as const;
 

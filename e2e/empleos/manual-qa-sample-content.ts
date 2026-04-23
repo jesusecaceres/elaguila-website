@@ -21,11 +21,21 @@ export const manualQuickDraft = {
   title: `Chef de cocina línea — Mercado Gastronómico Bayview · ${MANUAL_QA_MARKERS.quick}`,
   businessName: "Bayview Tavola Cooperative Kitchen",
   categorySlug: "restaurante",
+  categoryCustom: "",
   experienceLevel: "senior" as const,
+  workModality: "presencial" as const,
   city: "NorCal",
   state: "CA",
   jobType: "tiempo-completo",
-  schedule: "Turnos 5×2: brunch 9:00–16:30 y cena 16:00–23:30; un domingo libre al mes coordinado con jefe de turno.",
+  schedule:
+    "Turnos 5×2: brunch 9:00–16:30 y cena 16:00–23:30; un domingo libre al mes coordinado con jefe de turno.",
+  scheduleRows: [
+    {
+      day: "",
+      shift:
+        "Turnos 5×2: brunch 9:00–16:30 y cena 16:00–23:30; un domingo libre al mes coordinado con jefe de turno.",
+    },
+  ],
   pay: "$26.50–$31.00 / hora + propinas repartidas y bonos de productividad trimestrales",
   description: [
     "Lideramos la estación caliente del mercado gastronómico cubierto de Bayview: mise en place, plancha, horno y terminación de platos mediterráneos con producto de estación de agricultores de Sonoma y Marin.",
@@ -67,6 +77,7 @@ export const manualPremiumDraft = {
   title: `Gerente de producto senior — plataforma de pagos B2B · ${MANUAL_QA_MARKERS.premium}`,
   companyName: "Northgate Talent Partners LLC",
   categorySlug: "tecnologia",
+  categoryCustom: "",
   experienceLevel: "senior" as const,
   workModality: "hibrido" as const,
   scheduleLabel: "Híbrido: martes–jueves en oficina (94107), lunes y viernes remoto; horario núcleo 10:00–16:00 PT",
@@ -83,6 +94,7 @@ export const manualPremiumDraft = {
   ],
   logoUrl: LOGO,
   applyLabel: "Postular en portal seguro",
+  phone: "+1 (415) 555-0199",
   websiteUrl: "https://careers.northgatetalent.example/apply/product-senior",
   whatsapp: "+14155550217",
   email: "talent@northgatetalent.example",
@@ -116,9 +128,7 @@ export const manualPremiumDraft = {
   ],
   companyOverview:
     "Fundada en 2014, Northgate opera desde SoMa con ~140 personas; cultura de feedback 360 cada 6 meses y transparencia salarial por bandas publicadas internamente.",
-  employerRating: "4.7",
   employerAddress: "SoMa Gateway Tower, 450 Townsend St, San Francisco, CA 94107",
-  reviewCount: "186",
   videoObjectUrl: null,
   videoFileName: "",
   videoUrl: "",

@@ -5,6 +5,8 @@ import type { ExperienceSlug, JobModalitySlug } from "@/app/clasificados/empleos
 import type { EmpleosLane, EmpleosListingLifecycleStatus } from "./empleosListingLifecycle";
 import type { EmpleosPaymentHandoffPlaceholder } from "./empleosPaymentHandoff";
 
+export type EmpleosQuickScheduleRowSnapshot = { day: string; shift: string };
+
 /** Serializable image ref for admin + future storage (no blob URLs). */
 export type EmpleosPublishImageRef = {
   url: string;
@@ -19,9 +21,14 @@ export type EmpleosQuickPublishSnapshot = {
   state: string;
   /** Role family slug aligned with results filter taxonomy. */
   categorySlug: string;
+  /** Custom label when `categorySlug === "otro"`. */
+  categoryCustom?: string;
   experienceLevel: ExperienceSlug;
+  workModality?: JobModalitySlug;
   jobType: string;
   schedule: string;
+  /** Structured schedule rows (optional on legacy snapshots). */
+  scheduleRows?: EmpleosQuickScheduleRowSnapshot[];
   pay: string;
   description: string;
   benefits: string[];
@@ -48,6 +55,7 @@ export type EmpleosPremiumPublishSnapshot = {
   city: string;
   state: string;
   categorySlug: string;
+  categoryCustom?: string;
   experienceLevel: ExperienceSlug;
   workModality: JobModalitySlug;
   scheduleLabel: string;
@@ -61,17 +69,16 @@ export type EmpleosPremiumPublishSnapshot = {
   logoUrl: string | null;
   applyLabel: string;
   websiteUrl: string;
+  phone: string;
   whatsapp: string;
   email: string;
-  primaryCta: "apply" | "whatsapp" | "email" | "website";
+  primaryCta: "apply" | "phone" | "whatsapp" | "email" | "website";
   introduction: string;
   responsibilities: string[];
   requirements: string[];
   offers: string[];
   companyOverview: string;
-  employerRating: string;
   employerAddress: string;
-  reviewCount: string;
   videoUrl: string | null;
 };
 

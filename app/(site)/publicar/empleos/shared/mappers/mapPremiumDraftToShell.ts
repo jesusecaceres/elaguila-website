@@ -1,5 +1,6 @@
 import type { EmpleoPremiumJobSample, PremiumGalleryImage } from "@/app/clasificados/empleos/data/empleoPremiumJobSampleData";
 
+import { empleosPremiumPublicCityState } from "../lib/empleosPublicLocation";
 import { FALLBACK_IMG } from "../required/empleosRequiredForPreview";
 import type { EmpleosPremiumDraft } from "../types/empleosPremiumDraft";
 
@@ -14,25 +15,35 @@ export function mapPremiumDraftToShell(d: EmpleosPremiumDraft): EmpleoPremiumJob
     );
   if (!imgs.length) imgs.push({ src: FALLBACK_IMG, alt: "Imagen" });
 
-  const rating = Number.parseFloat(d.employerRating.replace(",", "."));
-  const employerRating = Number.isFinite(rating) ? Math.min(5, Math.max(0, Math.round(rating))) : undefined;
+  const loc = empleosPremiumPublicCityState({
+    city: d.city,
+    state: d.state,
+    employerAddress: d.employerAddress,
+  });
+  const addr = d.employerAddress.trim();
+  const locationLabel = addr || `${loc.city}, ${loc.state}`.replace(/^—,\s*/, "");
 
   return {
     title: d.title.trim() || "Vacante",
     companyName: d.companyName.trim() || "Empresa",
     logoSrc: d.logoUrl.trim() || undefined,
     logoAlt: d.companyName.trim() || undefined,
-    city: d.city.trim() || "—",
-    state: d.state.trim() || "—",
+    city: loc.city,
+    state: loc.state,
+    filterRegionFootnote: loc.filterRegionFootnote,
     salaryPrimary: d.salaryPrimary.trim() || "—",
     salarySecondary: d.salarySecondary.trim() || undefined,
     jobType: d.jobType.trim() || "—",
-    locationLabel: `${d.city.trim() || "—"}, ${d.state.trim() || "—"}`,
+    workModality: d.workModality,
+    scheduleLabel: d.scheduleLabel.trim() || undefined,
+    locationLabel,
     featured: d.featured,
     premium: d.premium,
+    phone: d.phone.trim() || undefined,
     whatsapp: d.whatsapp.trim() || undefined,
     email: d.email.trim() || undefined,
     websiteUrl: d.websiteUrl.trim() || undefined,
+    primaryCta: d.primaryCta,
     applyCtaLabel: d.applyLabel.trim() || undefined,
     gallery: imgs,
     introduction: d.introduction.trim() || "—",
@@ -44,7 +55,6 @@ export function mapPremiumDraftToShell(d: EmpleosPremiumDraft): EmpleoPremiumJob
       : ["—"],
     offers: d.offers.map((x) => x.trim()).filter(Boolean).length ? d.offers.map((x) => x.trim()).filter(Boolean) : ["—"],
     companyOverview: d.companyOverview.trim() || undefined,
-    employerRating,
     employerAddress: d.employerAddress.trim() || undefined,
     relatedJobs: [],
   };

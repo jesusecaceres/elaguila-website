@@ -106,18 +106,24 @@ export default function EmpleoPremiumApplicationClient() {
   const premiumCtaLabels =
     lang === "es"
       ? {
-          apply: "Etiqueta del botón principal",
-          website: "Sitio web",
+          apply: "Texto del botón principal",
+          website: "Página para postular (URL)",
+          phone: "Teléfono de reclutamiento",
           whatsapp: "WhatsApp",
-          email: "Email",
-          primary: "CTA principal *",
+          email: "Correo de reclutamiento",
+          primary: "Acción principal preferida *",
+          primaryHint:
+            "Elige la acción que verán primero los candidatos. Si añades otros datos, seguirán visibles como opciones secundarias.",
         }
       : {
-          apply: "Primary button label",
-          website: "Website",
+          apply: "Primary button text",
+          website: "Apply page (URL)",
+          phone: "Recruiting phone",
           whatsapp: "WhatsApp",
-          email: "Email",
-          primary: "Primary CTA *",
+          email: "Recruiting email",
+          primary: "Preferred primary action *",
+          primaryHint:
+            "Pick what candidates see first. If you add other contact methods, they remain visible as secondary options.",
         };
 
   const applyPlaceholder = lang === "es" ? "Ej. Postularse ahora" : "e.g. Apply now";
@@ -139,8 +145,8 @@ export default function EmpleoPremiumApplicationClient() {
           removeLogo: "Quitar logo",
           altLogo: "Alt",
           altImage: "Texto alternativo (imagen)",
-          videoSection: "Video (opcional)",
-          videoHint: "Archivo local o URL. No se sube a Mux en borrador.",
+          videoSection: "Video de empresa o lugar de trabajo (opcional)",
+          videoHint: "Solo si quieres compartir un video público. Archivo local o URL; en borrador no se sube a Mux.",
           videoUrlField: "URL del video",
           videoUrlPh: "https://…",
           videoApplyUrl: "Usar URL",
@@ -205,9 +211,6 @@ export default function EmpleoPremiumApplicationClient() {
                   aria-readonly="true"
                   title={lang === "es" ? "Región estandarizada" : "Standardized region"}
                 />
-                <p className="mt-0.5 text-[11px] leading-snug text-[color:var(--lx-muted)]">
-                  {lang === "es" ? "NorCal — región fija para filtros Leonix." : "NorCal — fixed region for Leonix filters."}
-                </p>
               </label>
               <label className="block text-sm">
                 <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Estado" : "State"}</EmpleosFieldLabel>
@@ -276,6 +279,19 @@ export default function EmpleoPremiumApplicationClient() {
                 <input className={INPUT} value={state.scheduleLabel} onChange={(e) => patch({ scheduleLabel: e.target.value })} />
               </label>
             </div>
+            {state.categorySlug === "otro" ? (
+              <label className="mt-3 block text-sm">
+                <EmpleosFieldLabel lang={lang} required>
+                  {lang === "es" ? "Describe la categoría" : "Describe the category"}
+                </EmpleosFieldLabel>
+                <input
+                  className={INPUT}
+                  value={state.categoryCustom}
+                  onChange={(e) => patch({ categoryCustom: e.target.value })}
+                  placeholder={lang === "es" ? "Ej. Manufactura ligera" : "e.g. Light manufacturing"}
+                />
+              </label>
+            ) : null}
             <div>
               <p className="text-sm font-semibold text-[color:var(--lx-text)]">
                 {lang === "es" ? "Preguntas filtro (máx. 5)" : "Screener questions (max 5)"}
@@ -348,10 +364,11 @@ export default function EmpleoPremiumApplicationClient() {
             />
           </EmpleosSectionCard>
 
-          <EmpleosSectionCard title={lang === "es" ? "3. CTA / Aplicación" : "3. Application CTA"}>
+          <EmpleosSectionCard title={lang === "es" ? "3. Contacto y postulación" : "3. Contact & apply"}>
             <EmpleosPremiumCtaFieldGroup
               applyLabel={state.applyLabel}
               websiteUrl={state.websiteUrl}
+              phone={state.phone}
               whatsapp={state.whatsapp}
               email={state.email}
               primaryCta={state.primaryCta}
@@ -408,18 +425,12 @@ export default function EmpleoPremiumApplicationClient() {
             </label>
           </EmpleosSectionCard>
 
-          <EmpleosSectionCard title={lang === "es" ? "5. Credibilidad del empleador" : "5. Employer credibility"}>
+          <EmpleosSectionCard title={lang === "es" ? "5. Ubicación del empleador" : "5. Employer location"}>
             <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Dirección" : "Address"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} optional>
+                {lang === "es" ? "Dirección o ciudad de la empresa" : "Company address or city"}
+              </EmpleosFieldLabel>
               <input className={INPUT} value={state.employerAddress} onChange={(e) => patch({ employerAddress: e.target.value })} />
-            </label>
-            <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Calificación (0–5)" : "Rating (0–5)"}</EmpleosFieldLabel>
-              <input className={INPUT} value={state.employerRating} onChange={(e) => patch({ employerRating: e.target.value })} />
-            </label>
-            <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Número de reseñas" : "Review count"}</EmpleosFieldLabel>
-              <input className={INPUT} value={state.reviewCount} onChange={(e) => patch({ reviewCount: e.target.value })} />
             </label>
           </EmpleosSectionCard>
         </div>

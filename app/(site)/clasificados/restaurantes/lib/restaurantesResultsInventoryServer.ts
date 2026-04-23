@@ -33,7 +33,7 @@ export async function loadRestaurantesResultsInventoryForPage(): Promise<Restaur
     };
   }
 
-  const dbRows = await listRestaurantesPublicListingsFromDb(500);
+  const dbRows = await listRestaurantesPublicListingsFromDb(2000);
   if (dbRows.length === 0) {
     return {
       rows: [],

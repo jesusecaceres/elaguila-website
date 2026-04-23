@@ -34,16 +34,22 @@ export type QuickJobDetailSample = {
   logoAlt?: string;
   city: string;
   state: string;
+  /** Shown subtly under the headline when NorCal is only the internal filter region. */
+  filterRegionFootnote?: string;
   mainImageSrc: string;
   mainImageAlt: string;
   pay: string;
   jobType: string;
   schedule: string;
+  /** Human-readable modality line (Quick lane). */
+  workModalityLabel?: string;
   description: string;
   benefits: string[];
   phone: string;
   whatsapp: string;
   email: string;
+  websiteUrl?: string;
+  primaryCta?: "phone" | "whatsapp" | "email";
   /** Omit when the ad has no address; location UI hides. */
   location?: QuickJobLocationBlock;
   relatedJobs: QuickJobRelatedCard[];

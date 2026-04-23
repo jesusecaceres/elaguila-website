@@ -4,11 +4,13 @@ import { notFound } from "next/navigation";
 
 import { getEmpleoJobBySlug } from "../data/empleosSampleCatalog";
 import { EmpleoPublicDetailClient } from "../EmpleoPublicDetailClient";
+import { EmpleosPublicLaneDetailClient } from "../EmpleosPublicLaneDetailClient";
 import { EmpleosJobPostingJsonLd } from "../components/EmpleosJobPostingJsonLd";
 import {
   fetchEmpleosPublishedJobRecords,
   fetchEmpleosPublishedListingRowBySlug,
   rowToJobRecord,
+  type EmpleosListingSnapshotJson,
 } from "../lib/empleosPublicListingsDbServer";
 import { empleosOmitMarketingSeedCatalog } from "../lib/empleosPublicCatalogPolicy";
 import { empleosJobPublicAbsoluteUrl } from "../lib/empleosSiteUrl";
@@ -81,17 +83,31 @@ export default async function EmpleoPublicDetailPage({ params, searchParams }: P
   }
   const job = row ? rowToJobRecord(row) : getEmpleoJobBySlug(slug) ?? null;
   const relatedExtra = await fetchEmpleosPublishedJobRecords();
+  const snap = row?.listing_snapshot as EmpleosListingSnapshotJson | undefined;
+  const envelope = snap?.envelope ?? null;
+  const useLaneShell = Boolean(row && job && (job.publicationLane || envelope?.lane));
 
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#FAF7F2] pt-24" aria-busy="true" />}>
       {row && job ? <EmpleosJobPostingJsonLd job={job} lang={lang} /> : null}
-      <EmpleoPublicDetailClient
-        slug={slug}
-        initialJob={job}
-        relatedExtra={relatedExtra}
-        omitMarketingSeedCatalog={omitSeed}
-        trackPublicViewsForSlug={row ? slug : null}
-      />
+      {useLaneShell && job ? (
+        <EmpleosPublicLaneDetailClient
+          slug={slug}
+          job={job}
+          envelope={envelope}
+          relatedExtra={relatedExtra}
+          omitMarketingSeedCatalog={omitSeed}
+          trackPublicViewsForSlug={row ? slug : null}
+        />
+      ) : (
+        <EmpleoPublicDetailClient
+          slug={slug}
+          initialJob={job}
+          relatedExtra={relatedExtra}
+          omitMarketingSeedCatalog={omitSeed}
+          trackPublicViewsForSlug={row ? slug : null}
+        />
+      )}
     </Suspense>
   );
 }

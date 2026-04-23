@@ -1,14 +1,15 @@
 import type { ExperienceSlug, JobModalitySlug } from "@/app/clasificados/empleos/data/empleosJobTypes";
 
-import { EMPLEOS_STANDARD_CITY } from "../constants/empleosStandardRegion";
+import { EMPLEOS_INTERNAL_FILTER_REGION } from "../constants/empleosStandardRegion";
 import type { EmpleosImageItem } from "../media/empleosMediaTypes";
 
-export type EmpleosPremiumPrimaryCta = "apply" | "whatsapp" | "email" | "website";
+export type EmpleosPremiumPrimaryCta = "apply" | "phone" | "whatsapp" | "email" | "website";
 
 export type EmpleosPremiumDraft = {
   title: string;
   companyName: string;
   categorySlug: string;
+  categoryCustom: string;
   experienceLevel: ExperienceSlug;
   workModality: JobModalitySlug;
   scheduleLabel: string;
@@ -23,6 +24,7 @@ export type EmpleosPremiumDraft = {
   logoUrl: string;
   applyLabel: string;
   websiteUrl: string;
+  phone: string;
   whatsapp: string;
   email: string;
   primaryCta: EmpleosPremiumPrimaryCta;
@@ -32,9 +34,7 @@ export type EmpleosPremiumDraft = {
   requirements: string[];
   offers: string[];
   companyOverview: string;
-  employerRating: string;
   employerAddress: string;
-  reviewCount: string;
   videoObjectUrl: string | null;
   videoFileName: string;
   /** External video URL for draft preview only (no Mux). */
@@ -57,8 +57,21 @@ export function normalizeEmpleosPremiumDraft(p: Partial<EmpleosPremiumDraft>): E
     : e.screenerQuestions;
   const categorySlug =
     typeof raw.categorySlug === "string" && raw.categorySlug.trim() ? raw.categorySlug.trim() : e.categorySlug;
+  const categoryCustom =
+    typeof raw.categoryCustom === "string" ? raw.categoryCustom.trim() : e.categoryCustom;
   const scheduleLabel = typeof raw.scheduleLabel === "string" ? raw.scheduleLabel : e.scheduleLabel;
-  return { ...e, ...raw, city: EMPLEOS_STANDARD_CITY, experienceLevel, workModality, screenerQuestions, categorySlug, scheduleLabel };
+  const cityRaw = typeof raw.city === "string" && raw.city.trim() ? raw.city.trim() : e.city;
+  return {
+    ...e,
+    ...raw,
+    city: cityRaw || EMPLEOS_INTERNAL_FILTER_REGION,
+    experienceLevel,
+    workModality,
+    screenerQuestions,
+    categorySlug,
+    categoryCustom,
+    scheduleLabel,
+  };
 }
 
 export function emptyEmpleosPremiumDraft(): EmpleosPremiumDraft {
@@ -66,10 +79,11 @@ export function emptyEmpleosPremiumDraft(): EmpleosPremiumDraft {
     title: "",
     companyName: "",
     categorySlug: "oficina",
+    categoryCustom: "",
     experienceLevel: "mid",
     workModality: "presencial",
     scheduleLabel: "",
-    city: EMPLEOS_STANDARD_CITY,
+    city: EMPLEOS_INTERNAL_FILTER_REGION,
     state: "",
     salaryPrimary: "",
     salarySecondary: "",
@@ -80,6 +94,7 @@ export function emptyEmpleosPremiumDraft(): EmpleosPremiumDraft {
     logoUrl: "",
     applyLabel: "",
     websiteUrl: "",
+    phone: "",
     whatsapp: "",
     email: "",
     primaryCta: "apply",
@@ -89,9 +104,7 @@ export function emptyEmpleosPremiumDraft(): EmpleosPremiumDraft {
     requirements: [""],
     offers: [""],
     companyOverview: "",
-    employerRating: "",
     employerAddress: "",
-    reviewCount: "",
     videoObjectUrl: null,
     videoFileName: "",
     videoUrl: "",

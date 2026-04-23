@@ -12,9 +12,9 @@
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 
 /** @public Caps for mixed destacados carousel (landing). */
-export const RESTAURANTES_LANDING_DESTACADOS_MAX = 3;
+export const RESTAURANTES_LANDING_DESTACADOS_MAX = 6;
 /** @public Newest-first cap for “recientes” (landing). */
-export const RESTAURANTES_LANDING_RECIENTES_MAX = 3;
+export const RESTAURANTES_LANDING_RECIENTES_MAX = 12;
 /** @public Promoted strip on results — visibility without crowding organic grid. */
 export const RESTAURANTES_RESULTS_PROMOTED_BAND_MAX = 3;
 

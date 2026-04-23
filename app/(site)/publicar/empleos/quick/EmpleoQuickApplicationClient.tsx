@@ -29,10 +29,27 @@ import { empleosHandoffPreviewUrl } from "@/app/publicar/empleos/shared/constant
 import { emptyEmpleosQuickDraft, type EmpleosQuickDraft } from "@/app/publicar/empleos/shared/types/empleosQuickDraft";
 import { EmpleosFieldLabel, EmpleosSectionCard } from "@/app/publicar/empleos/shared/ui/empleosFormPrimitives";
 import { EmpleosStringLinesEditor } from "@/app/publicar/empleos/shared/ui/empleosStringLinesEditor";
-import { sampleCategorySelectOptions, sampleExperienceOptions } from "@/app/clasificados/empleos/data/empleosLandingSampleData";
+import {
+  sampleCategorySelectOptions,
+  sampleExperienceOptions,
+  sampleModalityOptions,
+} from "@/app/clasificados/empleos/data/empleosLandingSampleData";
+import type { JobModalitySlug } from "@/app/clasificados/empleos/data/empleosJobTypes";
 
 const INPUT = "mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm";
 const INPUT_CITY_LOCKED = `${INPUT} cursor-not-allowed bg-black/[0.04]`;
+
+function joinScheduleRows(rows: EmpleosQuickDraft["scheduleRows"]): string {
+  return rows
+    .filter((r) => r.day.trim() || r.shift.trim())
+    .map((r) => {
+      const day = r.day.trim();
+      const shift = r.shift.trim();
+      if (day && shift) return `${day}: ${shift}`;
+      return day || shift;
+    })
+    .join("\n");
+}
 
 export default function EmpleoQuickApplicationClient() {
   const router = useRouter();
@@ -102,19 +119,24 @@ export default function EmpleoQuickApplicationClient() {
   const labelsCta =
     lang === "es"
       ? {
-          phone: "Teléfono",
+          phone: "Teléfono de reclutamiento",
           whatsapp: "WhatsApp",
-          email: "Email",
+          email: "Correo de reclutamiento",
           website: "Sitio web (opcional)",
-          primary: "CTA principal *",
+          primary: "Acción principal preferida *",
         }
       : {
-          phone: "Phone",
+          phone: "Recruiting phone",
           whatsapp: "WhatsApp",
-          email: "Email",
+          email: "Recruiting email",
           website: "Website (optional)",
-          primary: "Primary CTA *",
+          primary: "Preferred primary action *",
         };
+
+  const ctaPrimaryHint =
+    lang === "es"
+      ? "La acción principal es la que destacamos primero; el resto de datos que completes seguirá visible para los candidatos."
+      : "We highlight one primary action first; any other contact details you add stay visible to candidates.";
 
   const mediaCopy =
     lang === "es"
@@ -132,8 +154,8 @@ export default function EmpleoQuickApplicationClient() {
           uploadLogo: "Subir logo",
           removeLogo: "Quitar logo",
           altLogo: "Texto alternativo",
-          videoSection: "Video (opcional)",
-          videoHint: "Archivo local o URL. No se sube a Mux en borrador.",
+          videoSection: "Video de empresa o lugar (opcional)",
+          videoHint: "Solo si quieres enlazar un video público. Archivo local o URL; en borrador no se sube a Mux.",
           videoUrlField: "URL del video",
           videoUrlPh: "https://…",
           videoApplyUrl: "Usar URL",
@@ -229,6 +251,19 @@ export default function EmpleoQuickApplicationClient() {
                 </select>
               </label>
             </div>
+            {state.categorySlug === "otro" ? (
+              <label className="mt-3 block text-sm">
+                <EmpleosFieldLabel lang={lang} required>
+                  {lang === "es" ? "Describe la categoría" : "Describe the category"}
+                </EmpleosFieldLabel>
+                <input
+                  className={INPUT}
+                  value={state.categoryCustom}
+                  onChange={(e) => patch({ categoryCustom: e.target.value })}
+                  placeholder={lang === "es" ? "Ej. Manufactura ligera" : "e.g. Light manufacturing"}
+                />
+              </label>
+            ) : null}
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
                 <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Ciudad" : "City"}</EmpleosFieldLabel>
@@ -239,9 +274,6 @@ export default function EmpleoQuickApplicationClient() {
                   aria-readonly="true"
                   title={lang === "es" ? "Región estandarizada" : "Standardized region"}
                 />
-                <p className="mt-0.5 text-[11px] leading-snug text-[color:var(--lx-muted)]">
-                  {lang === "es" ? "NorCal — región fija para filtros Leonix." : "NorCal — fixed region for Leonix filters."}
-                </p>
               </label>
               <label className="block text-sm">
                 <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Estado" : "State"}</EmpleosFieldLabel>
@@ -253,9 +285,65 @@ export default function EmpleoQuickApplicationClient() {
               <input className={INPUT} value={state.jobType} onChange={(e) => patch({ jobType: e.target.value })} />
             </label>
             <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Horario" : "Schedule"}</EmpleosFieldLabel>
-              <input className={INPUT} value={state.schedule} onChange={(e) => patch({ schedule: e.target.value })} />
+              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Modalidad" : "Modality"}</EmpleosFieldLabel>
+              <select
+                className={INPUT}
+                value={state.workModality}
+                onChange={(e) => patch({ workModality: e.target.value as JobModalitySlug })}
+              >
+                {sampleModalityOptions
+                  .filter((o) => o.value)
+                  .map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+              </select>
             </label>
+            <div className="block text-sm sm:col-span-2">
+              <EmpleosFieldLabel lang={lang} required>
+                {lang === "es" ? "Horario / turnos" : "Schedule / shifts"}
+              </EmpleosFieldLabel>
+              <p className="mt-0.5 text-xs text-[color:var(--lx-muted)]">
+                {lang === "es"
+                  ? "Añade filas (día o bloque + horario). La imagen principal del carrusel será el hero del anuncio."
+                  : "Add rows (day or block + hours). The primary gallery image becomes the listing hero."}
+              </p>
+              <div className="mt-2 space-y-2">
+                {state.scheduleRows.map((row, idx) => (
+                  <div key={idx} className="grid gap-2 sm:grid-cols-2">
+                    <input
+                      className={INPUT}
+                      value={row.day}
+                      placeholder={lang === "es" ? "Día o bloque (ej. Lun–Vie)" : "Day or block (e.g. Mon–Fri)"}
+                      onChange={(e) => {
+                        const next = state.scheduleRows.map((r, j) => (j === idx ? { ...r, day: e.target.value } : r));
+                        patch({ scheduleRows: next, schedule: joinScheduleRows(next) });
+                      }}
+                    />
+                    <input
+                      className={INPUT}
+                      value={row.shift}
+                      placeholder={lang === "es" ? "Turno / horas" : "Shift / hours"}
+                      onChange={(e) => {
+                        const next = state.scheduleRows.map((r, j) => (j === idx ? { ...r, shift: e.target.value } : r));
+                        patch({ scheduleRows: next, schedule: joinScheduleRows(next) });
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="mt-2 text-xs font-semibold text-[#2563EB] underline"
+                onClick={() => {
+                  const next = [...state.scheduleRows, { day: "", shift: "" }];
+                  patch({ scheduleRows: next, schedule: joinScheduleRows(next) });
+                }}
+              >
+                {lang === "es" ? "+ Añadir turno" : "+ Add shift row"}
+              </button>
+            </div>
             <label className="block text-sm">
               <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Pago" : "Pay"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.pay} onChange={(e) => patch({ pay: e.target.value })} />
@@ -366,6 +454,7 @@ export default function EmpleoQuickApplicationClient() {
               primaryCta={state.primaryCta}
               onChange={(p) => patch(p)}
               labels={labelsCta}
+              primaryHint={ctaPrimaryHint}
             />
           </EmpleosSectionCard>
 

@@ -23,7 +23,7 @@ export function empleosEnvelopeToAdminProjection(e: EmpleosPublishEnvelope): Emp
     description = d.introduction;
     city = d.city;
     state = d.state;
-    cta = [d.websiteUrl, d.whatsapp, d.email].filter(Boolean).join(" · ");
+    cta = [d.websiteUrl, d.phone, d.whatsapp, d.email].filter(Boolean).join(" · ");
   } else {
     const d = e.payload.data;
     title = d.title;

@@ -32,6 +32,8 @@ export type EmpleosJobRecord = {
   /** US ZIP (5 digits). Optional for adapter rows without geocoding yet. */
   postalCode?: string;
   category: string;
+  /** When category slug is `otro`, human label from the employer. */
+  categoryCustomLabel?: string;
   modality: JobModalitySlug;
   jobType: JobTypeSlug;
   salaryMin: number;

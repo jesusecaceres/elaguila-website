@@ -8,7 +8,6 @@ type Props = {
   companyName: string;
   logoSrc?: string;
   logoAlt?: string;
-  employerRating?: number;
   employerAddress?: string;
   websiteUrl?: string;
   trustWebsiteLabel: string;
@@ -25,7 +24,6 @@ export function PremiumJobMainContent({
   companyName,
   logoSrc,
   logoAlt,
-  employerRating,
   employerAddress,
   websiteUrl,
   trustWebsiteLabel,
@@ -34,12 +32,12 @@ export function PremiumJobMainContent({
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
       <div className="lg:col-span-7">
-        <p className="text-sm leading-relaxed text-[color:var(--lx-text-2)] sm:text-base">{introduction}</p>
+        <p className="text-sm leading-relaxed text-[#4A4744] sm:text-base">{introduction}</p>
 
         {responsibilities.length > 0 ? (
           <div className="mt-8">
-            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{headings.responsibilities}</h2>
-            <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-relaxed text-[color:var(--lx-text-2)] sm:text-base">
+            <h2 className="text-lg font-bold text-[#2A2826]">{headings.responsibilities}</h2>
+            <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-relaxed text-[#4A4744] sm:text-base">
               {responsibilities.map((line) => (
                 <li key={line}>{richLineParts(line)}</li>
               ))}
@@ -49,8 +47,8 @@ export function PremiumJobMainContent({
 
         {companyOverview ? (
           <div className="mt-8">
-            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{headings.company}</h2>
-            <p className="mt-3 text-sm leading-relaxed text-[color:var(--lx-text-2)] sm:text-base">{companyOverview}</p>
+            <h2 className="text-lg font-bold text-[#2A2826]">{headings.company}</h2>
+            <p className="mt-3 text-sm leading-relaxed text-[#4A4744] sm:text-base">{companyOverview}</p>
           </div>
         ) : null}
       </div>
@@ -60,7 +58,6 @@ export function PremiumJobMainContent({
           companyName={companyName}
           logoSrc={logoSrc}
           logoAlt={logoAlt}
-          rating={employerRating}
           address={employerAddress}
           websiteUrl={websiteUrl}
           websiteLinkLabel={trustWebsiteLabel}

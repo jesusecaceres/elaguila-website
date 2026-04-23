@@ -1,20 +1,23 @@
 "use client";
 
-type Primary = "apply" | "whatsapp" | "email" | "website";
+type Primary = "apply" | "phone" | "whatsapp" | "email" | "website";
 
 type Props = {
   applyLabel: string;
   websiteUrl: string;
+  phone: string;
   whatsapp: string;
   email: string;
   primaryCta: Primary;
-  onChange: (p: Partial<{ applyLabel: string; websiteUrl: string; whatsapp: string; email: string; primaryCta: Primary }>) => void;
+  onChange: (p: Partial<{ applyLabel: string; websiteUrl: string; phone: string; whatsapp: string; email: string; primaryCta: Primary }>) => void;
   labels: {
     apply: string;
     website: string;
+    phone: string;
     whatsapp: string;
     email: string;
     primary: string;
+    primaryHint?: string;
   };
   applyPlaceholder?: string;
 };
@@ -22,6 +25,7 @@ type Props = {
 export function EmpleosPremiumCtaFieldGroup({
   applyLabel,
   websiteUrl,
+  phone,
   whatsapp,
   email,
   primaryCta,
@@ -52,6 +56,16 @@ export function EmpleosPremiumCtaFieldGroup({
           />
         </label>
         <label className="block text-sm">
+          <span className="font-semibold text-[color:var(--lx-text)]">{labels.phone}</span>
+          <input
+            value={phone}
+            onChange={(e) => onChange({ phone: e.target.value })}
+            className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+            type="tel"
+            autoComplete="tel"
+          />
+        </label>
+        <label className="block text-sm">
           <span className="font-semibold text-[color:var(--lx-text)]">{labels.whatsapp}</span>
           <input
             value={whatsapp}
@@ -60,7 +74,7 @@ export function EmpleosPremiumCtaFieldGroup({
             placeholder="15551234567"
           />
         </label>
-        <label className="block text-sm">
+        <label className="block text-sm sm:col-span-2">
           <span className="font-semibold text-[color:var(--lx-text)]">{labels.email}</span>
           <input
             value={email}
@@ -72,13 +86,30 @@ export function EmpleosPremiumCtaFieldGroup({
       </div>
       <fieldset>
         <legend className="text-sm font-semibold text-[color:var(--lx-text)]">{labels.primary}</legend>
+        {labels.primaryHint ? (
+          <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{labels.primaryHint}</p>
+        ) : null}
         <div className="mt-2 flex flex-wrap gap-3 text-sm">
-          {(["apply", "whatsapp", "email", "website"] as const).map((k) => (
-            <label key={k} className="inline-flex items-center gap-2">
-              <input type="radio" name="empleos-premium-primary-cta" checked={primaryCta === k} onChange={() => onChange({ primaryCta: k })} />
-              {labels[k]}
-            </label>
-          ))}
+          <label className="inline-flex items-center gap-2">
+            <input type="radio" name="empleos-premium-primary-cta" checked={primaryCta === "apply"} onChange={() => onChange({ primaryCta: "apply" })} />
+            {labels.apply}
+          </label>
+          <label className="inline-flex items-center gap-2">
+            <input type="radio" name="empleos-premium-primary-cta" checked={primaryCta === "phone"} onChange={() => onChange({ primaryCta: "phone" })} />
+            {labels.phone}
+          </label>
+          <label className="inline-flex items-center gap-2">
+            <input type="radio" name="empleos-premium-primary-cta" checked={primaryCta === "whatsapp"} onChange={() => onChange({ primaryCta: "whatsapp" })} />
+            {labels.whatsapp}
+          </label>
+          <label className="inline-flex items-center gap-2">
+            <input type="radio" name="empleos-premium-primary-cta" checked={primaryCta === "email"} onChange={() => onChange({ primaryCta: "email" })} />
+            {labels.email}
+          </label>
+          <label className="inline-flex items-center gap-2">
+            <input type="radio" name="empleos-premium-primary-cta" checked={primaryCta === "website"} onChange={() => onChange({ primaryCta: "website" })} />
+            {labels.website}
+          </label>
         </div>
       </fieldset>
     </div>

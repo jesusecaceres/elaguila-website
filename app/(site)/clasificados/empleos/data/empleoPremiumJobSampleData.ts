@@ -2,6 +2,8 @@
  * Phase 3: Premium Job detail shell — template-ready for future Publicar/Empleos mapping.
  */
 
+import type { JobModalitySlug } from "./empleosJobTypes";
+
 export type PremiumGalleryImage = {
   src: string;
   alt: string;
@@ -23,16 +25,21 @@ export type EmpleoPremiumJobSample = {
   logoAlt?: string;
   city: string;
   state: string;
+  filterRegionFootnote?: string;
   salaryPrimary: string;
   salarySecondary?: string;
   jobType: string;
+  workModality?: JobModalitySlug;
+  scheduleLabel?: string;
   /** Display line e.g. "Houston, TX" */
   locationLabel: string;
   featured: boolean;
   premium: boolean;
+  phone?: string;
   whatsapp?: string;
   email?: string;
   websiteUrl?: string;
+  primaryCta?: "apply" | "phone" | "whatsapp" | "email" | "website";
   /** Overrides default “Postularse ahora” when set (application-driven). */
   applyCtaLabel?: string;
   gallery: PremiumGalleryImage[];
@@ -41,7 +48,6 @@ export type EmpleoPremiumJobSample = {
   requirements: string[];
   offers: string[];
   companyOverview?: string;
-  employerRating?: number;
   employerAddress?: string;
   relatedJobs: PremiumMoreJobCard[];
 };
@@ -56,12 +62,16 @@ export const EMPLEO_PREMIUM_JOB_SAMPLE: EmpleoPremiumJobSample = {
   salaryPrimary: "$70,000/año",
   salarySecondary: "$1,500+ por semana",
   jobType: "Tiempo completo",
+  workModality: "hibrido",
+  scheduleLabel: "Lunes a viernes · horario corrido",
   locationLabel: "Houston, TX",
   featured: true,
   premium: true,
+  phone: "12815551234",
   whatsapp: "12815551234",
   email: "careers@techcorp.example.com",
   websiteUrl: "https://www.techcorp.example.com",
+  primaryCta: "apply",
   gallery: [
     {
       src: "https://images.unsplash.com/photo-1553877522-43269d4ea984?auto=format&fit=crop&w=1200&q=80",
@@ -104,7 +114,6 @@ export const EMPLEO_PREMIUM_JOB_SAMPLE: EmpleoPremiumJobSample = {
   ],
   companyOverview:
     "TechCorp Solutions es una empresa de software y servicios tecnológicos enfocada en transformación digital para empresas medianas. Cultura basada en integridad, innovación y crecimiento compartido.",
-  employerRating: 5,
   employerAddress: "1200 Innovation Blvd, Suite 400, Houston, TX 77002",
   relatedJobs: [
     {

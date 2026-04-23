@@ -22,6 +22,11 @@ export type EmpleoJobFairSample = {
   /** Optional repeat block below; omit to hide secondary section. */
   secondaryDetails?: string[];
   ctaIntro: string;
+  /** Preferred public line for “where” (venue + real locality), not internal filter labels alone. */
+  displayCityState?: string;
+  filterRegionFootnote?: string;
+  ctaLabel?: string;
+  contactLink?: string;
   contactPhone?: string;
   contactEmail?: string;
   /** Future filter / taxonomy (optional in UI for this shell). */

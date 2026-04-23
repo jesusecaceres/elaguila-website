@@ -1,20 +1,29 @@
-import type { ExperienceSlug } from "@/app/clasificados/empleos/data/empleosJobTypes";
+import type { ExperienceSlug, JobModalitySlug } from "@/app/clasificados/empleos/data/empleosJobTypes";
 
-import { EMPLEOS_STANDARD_CITY } from "../constants/empleosStandardRegion";
+import { EMPLEOS_INTERNAL_FILTER_REGION } from "../constants/empleosStandardRegion";
 import type { EmpleosImageItem } from "../media/empleosMediaTypes";
 
 export type EmpleosQuickPrimaryCta = "phone" | "whatsapp" | "email";
+
+export type EmpleosQuickScheduleRow = { day: string; shift: string };
 
 export type EmpleosQuickDraft = {
   title: string;
   businessName: string;
   /** Role family — must match `EmpleosJobRecord.category` filter slugs. */
   categorySlug: string;
+  /** When `categorySlug === "otro"`, public-facing custom label. */
+  categoryCustom: string;
   experienceLevel: ExperienceSlug;
+  /** Internal filter region (default NorCal). Prefer address fields for public display. */
   city: string;
   state: string;
+  workModality: JobModalitySlug;
   jobType: string;
+  /** Legacy single line; combined with `scheduleRows` at publish. */
   schedule: string;
+  /** Structured shifts; rendered as clean lines in preview and public output. */
+  scheduleRows: EmpleosQuickScheduleRow[];
   pay: string;
   description: string;
   /** Repeatable benefit lines → shell bullets. */
@@ -57,16 +66,37 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
     ? rest.screenerQuestions.map((s) => String(s ?? "").trim()).filter(Boolean).slice(0, 5)
     : e.screenerQuestions;
   const categorySlug = typeof rest.categorySlug === "string" && rest.categorySlug.trim() ? rest.categorySlug.trim() : e.categorySlug;
+  const categoryCustom =
+    typeof rest.categoryCustom === "string" ? rest.categoryCustom.trim() : e.categoryCustom;
+  const cityRaw = typeof rest.city === "string" && rest.city.trim() ? rest.city.trim() : e.city;
+  const modalityRaw = rest.workModality;
+  const workModality: JobModalitySlug =
+    modalityRaw === "presencial" || modalityRaw === "hibrido" || modalityRaw === "remoto" ? modalityRaw : e.workModality;
+
+  let scheduleRows: EmpleosQuickScheduleRow[] = Array.isArray(rest.scheduleRows)
+    ? rest.scheduleRows.map((r) => ({
+        day: String((r as EmpleosQuickScheduleRow).day ?? "").trim(),
+        shift: String((r as EmpleosQuickScheduleRow).shift ?? "").trim(),
+      }))
+    : [];
+  const schedStr = typeof rest.schedule === "string" ? rest.schedule.trim() : "";
+  if (!scheduleRows.some((r) => r.day || r.shift) && schedStr) {
+    scheduleRows = [{ day: "", shift: schedStr }];
+  }
+  if (!scheduleRows.length) scheduleRows = [{ day: "", shift: "" }];
 
   return {
     ...e,
     ...rest,
     benefits,
     categorySlug,
+    categoryCustom,
     experienceLevel,
     screenerQuestions,
     videoUrl: typeof rest.videoUrl === "string" ? rest.videoUrl : e.videoUrl,
-    city: EMPLEOS_STANDARD_CITY,
+    city: cityRaw || EMPLEOS_INTERNAL_FILTER_REGION,
+    workModality,
+    scheduleRows,
   };
 }
 
@@ -75,11 +105,14 @@ export function emptyEmpleosQuickDraft(): EmpleosQuickDraft {
     title: "",
     businessName: "",
     categorySlug: "oficina",
+    categoryCustom: "",
     experienceLevel: "mid",
-    city: EMPLEOS_STANDARD_CITY,
+    city: EMPLEOS_INTERNAL_FILTER_REGION,
     state: "",
+    workModality: "presencial",
     jobType: "",
     schedule: "",
+    scheduleRows: [{ day: "", shift: "" }],
     pay: "",
     description: "",
     benefits: [],

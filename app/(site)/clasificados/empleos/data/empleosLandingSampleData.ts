@@ -95,6 +95,7 @@ export const sampleCategorySelectOptions: readonly { value: string; label: strin
   { value: "bodega", label: "Bodega y logística" },
   { value: "limpieza", label: "Limpieza" },
   { value: "educacion", label: "Educación" },
+  { value: "otro", label: "Otra categoría" },
 ];
 
 export const sampleJobTypeSelectOptions: readonly { value: string; label: string }[] = [

@@ -39,7 +39,8 @@ export async function loadRestaurantesLandingInventoryForPage(): Promise<Restaur
     };
   }
 
-  const dbRows = await listRestaurantesPublicListingsFromDb(200);
+  /** Large enough pool so “recientes” can reflect true newest rows in busy catalogs (still bounded). */
+  const dbRows = await listRestaurantesPublicListingsFromDb(2000);
   if (dbRows.length === 0) {
     return {
       featuredCards: [],

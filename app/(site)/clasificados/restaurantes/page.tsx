@@ -1,6 +1,8 @@
 import { loadRestaurantesLandingInventoryForPage } from "@/app/clasificados/restaurantes/lib/restaurantesLandingInventoryServer";
 import { RestaurantesLandingPage } from "./landing/RestaurantesLandingPage";
 
+export const dynamic = "force-dynamic";
+
 export default async function ClasificadosRestaurantesLandingPage() {
   const inv = await loadRestaurantesLandingInventoryForPage();
   return (

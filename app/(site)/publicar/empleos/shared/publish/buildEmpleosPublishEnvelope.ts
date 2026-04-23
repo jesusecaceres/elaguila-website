@@ -12,6 +12,19 @@ import type {
 } from "./empleosPublishSnapshots";
 import { sanitizeHttpUrl } from "./empleosPublishSanitize";
 
+function joinQuickScheduleForPublish(d: EmpleosQuickDraft): string {
+  const rows = d.scheduleRows.filter((r) => String(r.day ?? "").trim() || String(r.shift ?? "").trim());
+  if (!rows.length) return d.schedule.trim();
+  return rows
+    .map((r) => {
+      const day = String(r.day ?? "").trim();
+      const shift = String(r.shift ?? "").trim();
+      if (day && shift) return `${day}: ${shift}`;
+      return day || shift;
+    })
+    .join("\n");
+}
+
 function mapImagesForPublish(items: { url: string; alt: string; isMain?: boolean }[]): EmpleosPublishImageRef[] {
   const refs: EmpleosPublishImageRef[] = [];
   for (const x of items) {
@@ -28,15 +41,24 @@ export function buildQuickPublishSnapshot(d: EmpleosQuickDraft): EmpleosQuickPub
   const refs = mapImagesForPublish(d.images);
   const logo = sanitizeHttpUrl(d.logoUrl);
   const vid = sanitizeHttpUrl(d.videoUrl);
+  const scheduleJoined = joinQuickScheduleForPublish(d);
+  const schedRows = d.scheduleRows
+    .filter((r) => String(r.day ?? "").trim() || String(r.shift ?? "").trim())
+    .map((r) => ({ day: String(r.day ?? "").trim(), shift: String(r.shift ?? "").trim() }));
+  const catSlug = d.categorySlug.trim();
+  const catCustom = catSlug === "otro" ? d.categoryCustom.trim() : "";
   return {
     title: d.title.trim(),
     businessName: d.businessName.trim(),
-    categorySlug: d.categorySlug.trim(),
+    categorySlug: catSlug || "oficina",
+    categoryCustom: catCustom || undefined,
     experienceLevel: d.experienceLevel,
+    workModality: d.workModality,
     city: d.city.trim(),
     state: d.state.trim(),
     jobType: d.jobType.trim(),
-    schedule: d.schedule.trim(),
+    schedule: scheduleJoined,
+    scheduleRows: schedRows.length ? schedRows : undefined,
     pay: d.pay.trim(),
     description: d.description.trim(),
     benefits: d.benefits.map((b) => b.trim()).filter(Boolean),
@@ -78,6 +100,7 @@ export function buildPremiumPublishSnapshot(d: EmpleosPremiumDraft): EmpleosPrem
     title: d.title.trim(),
     companyName: d.companyName.trim(),
     categorySlug: d.categorySlug.trim() || "oficina",
+    categoryCustom: d.categorySlug.trim() === "otro" ? d.categoryCustom.trim() || undefined : undefined,
     experienceLevel: d.experienceLevel,
     workModality: d.workModality,
     scheduleLabel: d.scheduleLabel.trim(),
@@ -101,9 +124,8 @@ export function buildPremiumPublishSnapshot(d: EmpleosPremiumDraft): EmpleosPrem
     requirements: d.requirements.map((x) => x.trim()).filter(Boolean),
     offers: d.offers.map((x) => x.trim()).filter(Boolean),
     companyOverview: d.companyOverview.trim(),
-    employerRating: d.employerRating.trim(),
     employerAddress: d.employerAddress.trim(),
-    reviewCount: d.reviewCount.trim(),
+    phone: d.phone.trim(),
     videoUrl: vid,
   };
 }

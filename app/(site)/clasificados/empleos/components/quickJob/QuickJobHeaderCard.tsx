@@ -7,13 +7,22 @@ type Props = {
   logoAlt?: string;
   city: string;
   state: string;
+  filterRegionFootnote?: string;
 };
 
-export function QuickJobHeaderCard({ title, businessName, logoSrc, logoAlt, city, state }: Props) {
+export function QuickJobHeaderCard({
+  title,
+  businessName,
+  logoSrc,
+  logoAlt,
+  city,
+  state,
+  filterRegionFootnote,
+}: Props) {
   const locationLine = `${city}, ${state}`;
   return (
-    <div className="rounded-lg border border-black/[0.06] bg-white p-5 shadow-[0_4px_24px_rgba(30,24,16,0.06)] sm:p-6">
-      <h1 className="text-2xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-3xl">{title}</h1>
+    <div className="rounded-[18px] border border-[#E8DFD0] bg-[#FFFBF7] p-5 shadow-[0_8px_28px_rgba(42,40,38,0.06)] sm:p-6">
+      <h1 className="text-2xl font-bold tracking-tight text-[#2A2826] sm:text-3xl">{title}</h1>
       <div className="mt-4 flex items-start gap-3">
         {logoSrc ? (
           <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-black/[0.06] bg-neutral-100">
@@ -28,8 +37,13 @@ export function QuickJobHeaderCard({ title, businessName, logoSrc, logoAlt, city
           </div>
         )}
         <div className="min-w-0 pt-0.5">
-          <p className="text-base font-semibold text-[color:var(--lx-text)]">{businessName}</p>
-          <p className="mt-0.5 text-sm text-[color:var(--lx-muted)]">{locationLine}</p>
+          <p className="text-base font-semibold text-[#2A2826]">{businessName}</p>
+          <p className="mt-0.5 text-sm text-[#5C564E]">{locationLine}</p>
+          {filterRegionFootnote ? (
+            <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-[#7A8899]">
+              {filterRegionFootnote}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

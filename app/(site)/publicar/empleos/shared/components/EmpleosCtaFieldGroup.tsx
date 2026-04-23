@@ -16,9 +16,20 @@ type Props = {
     website: string;
     primary: string;
   };
+  /** Shown under the primary-action fieldset (e.g. “others still appear if filled”). */
+  primaryHint?: string;
 };
 
-export function EmpleosCtaFieldGroup({ phone, whatsapp, email, website, primaryCta, onChange, labels }: Props) {
+export function EmpleosCtaFieldGroup({
+  phone,
+  whatsapp,
+  email,
+  website,
+  primaryCta,
+  onChange,
+  labels,
+  primaryHint,
+}: Props) {
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
@@ -72,6 +83,9 @@ export function EmpleosCtaFieldGroup({ phone, whatsapp, email, website, primaryC
             </label>
           ))}
         </div>
+        {primaryHint ? (
+          <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-text-2)]">{primaryHint}</p>
+        ) : null}
       </fieldset>
     </div>
   );

@@ -1,6 +1,6 @@
 import type { JobFairModality } from "@/app/clasificados/empleos/data/empleoJobFairSampleData";
 
-import { EMPLEOS_STANDARD_CITY } from "../constants/empleosStandardRegion";
+import { EMPLEOS_INTERNAL_FILTER_REGION } from "../constants/empleosStandardRegion";
 
 export type EmpleosFeriaDraft = {
   title: string;
@@ -28,7 +28,9 @@ export type EmpleosFeriaDraft = {
 
 export function normalizeEmpleosFeriaDraft(p: Partial<EmpleosFeriaDraft>): EmpleosFeriaDraft {
   const e = emptyEmpleosFeriaDraft();
-  return { ...e, ...p, city: EMPLEOS_STANDARD_CITY };
+  const raw = p as Partial<EmpleosFeriaDraft>;
+  const cityRaw = typeof raw.city === "string" && raw.city.trim() ? raw.city.trim() : e.city;
+  return { ...e, ...raw, city: cityRaw || EMPLEOS_INTERNAL_FILTER_REGION };
 }
 
 export function emptyEmpleosFeriaDraft(): EmpleosFeriaDraft {
@@ -39,7 +41,7 @@ export function emptyEmpleosFeriaDraft(): EmpleosFeriaDraft {
     dateLine: "",
     timeLine: "",
     venue: "",
-    city: EMPLEOS_STANDARD_CITY,
+    city: EMPLEOS_INTERNAL_FILTER_REGION,
     state: "",
     organizer: "",
     organizerUrl: "",

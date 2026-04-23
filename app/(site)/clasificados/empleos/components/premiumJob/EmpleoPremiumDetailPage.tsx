@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 
 import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import type { JobModalitySlug } from "@/app/clasificados/empleos/data/empleosJobTypes";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 import {
@@ -22,6 +24,18 @@ import { PremiumJobRequirementsCard } from "./PremiumJobRequirementsCard";
 import { PremiumJobSidebarCard } from "./PremiumJobSidebarCard";
 import { PremiumJobTabsShell } from "./PremiumJobTabsShell";
 
+function modalityLine(lang: Lang, m?: JobModalitySlug): string | undefined {
+  if (!m) return undefined;
+  if (lang === "en") {
+    if (m === "remoto") return "Remote";
+    if (m === "hibrido") return "Hybrid";
+    return "On-site";
+  }
+  if (m === "remoto") return "Remoto";
+  if (m === "hibrido") return "Híbrido";
+  return "Presencial";
+}
+
 const COPY = {
   es: {
     breadcrumbHub: "Clasificados",
@@ -37,9 +51,10 @@ const COPY = {
     apply: "Postularse ahora",
     visitSite: "Visitar sitio web",
     trustVisitSite: "Visita nuestro sitio web",
-    emailCta: "Enviar Email",
+    emailCta: "Correo de reclutamiento",
+    phoneCta: "Teléfono de reclutamiento",
     badgeFeatured: "Destacado",
-    badgePremium: "Destacado Empleo PREMIUM",
+    badgePremium: "Vacante premium",
   },
   en: {
     breadcrumbHub: "Classifieds",
@@ -55,9 +70,10 @@ const COPY = {
     apply: "Apply now",
     visitSite: "Visit website",
     trustVisitSite: "Visit our website",
-    emailCta: "Send email",
+    emailCta: "Recruiting email",
+    phoneCta: "Recruiting phone",
     badgeFeatured: "Featured",
-    badgePremium: "Premium job",
+    badgePremium: "Premium listing",
   },
 } as const;
 
@@ -65,9 +81,14 @@ type Props = {
   data?: EmpleoPremiumJobSample;
   /** Hide global site Navbar (publish preview embedded under LeonixPreviewPageShell). */
   withSiteChrome?: boolean;
+  publicFooterSlot?: ReactNode;
 };
 
-export function EmpleoPremiumDetailPage({ data = EMPLEO_PREMIUM_JOB_SAMPLE, withSiteChrome = true }: Props) {
+export function EmpleoPremiumDetailPage({
+  data = EMPLEO_PREMIUM_JOB_SAMPLE,
+  withSiteChrome = true,
+  publicFooterSlot = null,
+}: Props) {
   const sp = useSearchParams();
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
   const t = COPY[lang];
@@ -80,23 +101,23 @@ export function EmpleoPremiumDetailPage({ data = EMPLEO_PREMIUM_JOB_SAMPLE, with
   const showRelated = data.relatedJobs.length > 0;
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#ECEAE7] pb-20 text-[color:var(--lx-text)]">
+    <div className="min-h-screen overflow-x-hidden bg-[#FAF7F2] pb-20 text-[#2A2826]">
       {withSiteChrome ? <Navbar /> : null}
 
-      <header className="bg-[#C41E3A] text-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5 sm:px-5 sm:py-3 lg:px-6">
-          <nav className="text-xs font-medium sm:text-sm" aria-label="Breadcrumb">
+      <header className="border-b border-[#E8DFD0] bg-[#FFFBF7]/95 text-[#2A2826] backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:px-5 sm:py-3 lg:px-8">
+          <nav className="text-xs font-medium text-[#5C564E] sm:text-sm" aria-label="Breadcrumb">
             <Link href={hubHref} className="hover:underline">
               {t.breadcrumbHub}
             </Link>
-            <span className="mx-1.5 opacity-80">&gt;</span>
+            <span className="mx-1.5 text-[#9A948C]">&gt;</span>
             <Link href={empleosLandingHref} className="hover:underline">
               {t.breadcrumbCat}
             </Link>
           </nav>
           <Link
             href={publicarHref}
-            className="shrink-0 text-xs font-semibold hover:underline sm:text-sm"
+            className="shrink-0 text-xs font-semibold text-[#6B5320] hover:underline sm:text-sm"
           >
             {t.publicar}
             <span className="ml-0.5" aria-hidden>
@@ -106,7 +127,7 @@ export function EmpleoPremiumDetailPage({ data = EMPLEO_PREMIUM_JOB_SAMPLE, with
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-5 sm:py-8 lg:px-6">
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-5 sm:py-8 lg:px-8">
         <PremiumJobHeaderCard
           title={data.title}
           companyName={data.companyName}
@@ -114,6 +135,8 @@ export function EmpleoPremiumDetailPage({ data = EMPLEO_PREMIUM_JOB_SAMPLE, with
           logoAlt={data.logoAlt}
           city={data.city}
           state={data.state}
+          filterRegionFootnote={data.filterRegionFootnote}
+          modalityLine={modalityLine(lang, data.workModality)}
         />
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
@@ -125,22 +148,26 @@ export function EmpleoPremiumDetailPage({ data = EMPLEO_PREMIUM_JOB_SAMPLE, with
               salaryPrimary={data.salaryPrimary}
               salarySecondary={data.salarySecondary?.trim() || undefined}
               jobType={data.jobType}
+              scheduleLabel={data.scheduleLabel}
               locationLabel={data.locationLabel}
               featured={data.featured}
               premium={data.premium}
+              phone={data.phone?.trim() || undefined}
               whatsapp={data.whatsapp?.trim() || undefined}
               email={data.email?.trim() || undefined}
               websiteUrl={data.websiteUrl?.trim() || undefined}
+              primaryCta={data.primaryCta ?? "apply"}
               applyLabel={data.applyCtaLabel?.trim() || t.apply}
               websiteCtaLabel={t.visitSite}
               emailLabel={t.emailCta}
+              phoneLabel={t.phoneCta}
               badgeFeatured={t.badgeFeatured}
               badgePremium={t.badgePremium}
             />
           </div>
         </div>
 
-        <div className="mt-8 overflow-hidden rounded-lg border border-black/[0.06] bg-white shadow-[0_4px_24px_rgba(30,24,16,0.06)]">
+        <div className="mt-8 overflow-hidden rounded-[18px] border border-[#E8DFD0] bg-[#FFFBF7] shadow-[0_12px_40px_rgba(42,40,38,0.07)]">
           <PremiumJobTabsShell labels={t.tabs} />
           <div className="px-4 py-6 sm:px-8 sm:py-8">
             <PremiumJobMainContent
@@ -150,7 +177,6 @@ export function EmpleoPremiumDetailPage({ data = EMPLEO_PREMIUM_JOB_SAMPLE, with
               companyName={data.companyName}
               logoSrc={data.logoSrc}
               logoAlt={data.logoAlt}
-              employerRating={data.employerRating}
               employerAddress={data.employerAddress?.trim() || undefined}
               websiteUrl={data.websiteUrl?.trim() || undefined}
               trustWebsiteLabel={t.trustVisitSite}
@@ -170,6 +196,8 @@ export function EmpleoPremiumDetailPage({ data = EMPLEO_PREMIUM_JOB_SAMPLE, with
         {showRelated ? (
           <PremiumJobMoreJobsSection title={t.masEmpleos} jobs={data.relatedJobs} ctaLabel={t.verMas} />
         ) : null}
+
+        {publicFooterSlot ? <div className="mt-10">{publicFooterSlot}</div> : null}
       </main>
     </div>
   );

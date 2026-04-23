@@ -14,14 +14,22 @@ function imagesFromRefs(refs: { url: string; alt: string; isMain: boolean }[]): 
 export function hydrateQuickDraftFromEnvelope(e: EmpleosPublishEnvelope): EmpleosQuickDraft | null {
   if (e.payload.lane !== "quick") return null;
   const d = e.payload.data;
+  const rows =
+    d.scheduleRows?.map((r) => ({ day: String(r.day ?? "").trim(), shift: String(r.shift ?? "").trim() })) ?? [];
+  const scheduleRows =
+    rows.some((r) => r.day || r.shift) ? rows : d.schedule.trim() ? [{ day: "", shift: d.schedule.trim() }] : undefined;
   return normalizeEmpleosQuickDraft({
     title: d.title,
     businessName: d.businessName,
     categorySlug: d.categorySlug,
+    categoryCustom: d.categoryCustom ?? "",
     experienceLevel: d.experienceLevel,
+    workModality: d.workModality,
+    city: d.city,
     state: d.state,
     jobType: d.jobType,
     schedule: d.schedule,
+    scheduleRows,
     pay: d.pay,
     description: d.description,
     benefits: d.benefits,
@@ -48,9 +56,11 @@ export function hydratePremiumDraftFromEnvelope(e: EmpleosPublishEnvelope): Empl
     title: d.title,
     companyName: d.companyName,
     categorySlug: d.categorySlug,
+    categoryCustom: d.categoryCustom ?? "",
     experienceLevel: d.experienceLevel,
     workModality: d.workModality,
     scheduleLabel: d.scheduleLabel,
+    city: d.city,
     state: d.state,
     salaryPrimary: d.salaryPrimary,
     salarySecondary: d.salarySecondary,
@@ -62,6 +72,7 @@ export function hydratePremiumDraftFromEnvelope(e: EmpleosPublishEnvelope): Empl
     logoUrl: d.logoUrl ?? "",
     applyLabel: d.applyLabel,
     websiteUrl: d.websiteUrl,
+    phone: d.phone ?? "",
     whatsapp: d.whatsapp,
     email: d.email,
     primaryCta: d.primaryCta,
@@ -70,9 +81,7 @@ export function hydratePremiumDraftFromEnvelope(e: EmpleosPublishEnvelope): Empl
     requirements: d.requirements,
     offers: d.offers,
     companyOverview: d.companyOverview,
-    employerRating: d.employerRating,
     employerAddress: d.employerAddress,
-    reviewCount: d.reviewCount,
     videoUrl: d.videoUrl ?? "",
   });
 }
@@ -87,6 +96,7 @@ export function hydrateFeriaDraftFromEnvelope(e: EmpleosPublishEnvelope): Empleo
     dateLine: d.dateLine,
     timeLine: d.timeLine,
     venue: d.venue,
+    city: d.city,
     state: d.state,
     organizer: d.organizer,
     organizerUrl: d.organizerUrl,
