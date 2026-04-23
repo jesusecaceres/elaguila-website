@@ -13,6 +13,7 @@
     "verify:br": "npx tsx scripts/br-launch-selftest.ts",
     "verify:br:catalog-smoke": "npx tsx scripts/br-supabase-anon-smoke.ts",
     "verify:br:auth-smoke": "npx tsx scripts/br-authenticated-smoke.ts",
+    "verify:br:auth-smoke:cleanup": "npx tsx scripts/br-smoke-cleanup.ts",
     "verify:br:launch-gate": "npm run typecheck && npm run lint:br && npm run verify:br",
     "prebuild": "node scripts/dup-guard.js",
     "dup:guard": "node scripts/dup-guard.js",

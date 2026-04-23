@@ -1,11 +1,15 @@
 /**
  * Authenticated BR smoke: sign in with email/password, insert two `listings` rows (Privado + Negocio lane),
- * verify anon catalog read + in-process filter contract, then delete rows (service role).
+ * verify anon catalog read + in-process filter contract, then delete rows (service role) unless keep-rows mode.
  *
  * Requires in `.env.local` or process env:
  * - NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
- * - SUPABASE_SERVICE_ROLE_KEY (cleanup delete)
+ * - SUPABASE_SERVICE_ROLE_KEY (default-run cleanup; still required for failure-path cleanup)
  * - BR_SMOKE_EMAIL, BR_SMOKE_PASSWORD (test user with permission to INSERT into `listings` per RLS)
+ *
+ * Optional:
+ * - BR_SMOKE_KEEP_ROWS=1 — skip successful-run delete; print listing IDs + routes for UI QA. Cleanup later:
+ *   `npx tsx scripts/br-smoke-cleanup.ts --ids <id1>,<id2>` or `--title-prefix br-smoke-`
  *
  * Run: npx tsx scripts/br-authenticated-smoke.ts
  */
@@ -50,6 +54,52 @@ function hydrateEnv(): void {
   loadEnvFile(".env");
 }
 
+function parseKeepRowsEnv(): boolean {
+  const raw = (process.env.BR_SMOKE_KEEP_ROWS ?? "").trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+}
+
+function baseOriginForQaLinks(): string {
+  const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "").trim().replace(/\/+$/, "");
+  if (site) return site;
+  const v = (process.env.VERCEL_URL ?? "").trim();
+  if (v) return v.startsWith("http") ? v : `https://${v}`;
+  return "http://localhost:3000";
+}
+
+function printVisualFinishLineQa(privId: string, negId: string, stamp: string): void {
+  const origin = baseOriginForQaLinks();
+  const abs = (path: string) => `${origin}${path}`;
+
+  console.log("");
+  console.log("BR_AUTH_SMOKE_KEEP_ROWS=1 — rows were NOT deleted. Manual UI / QA checks:");
+  console.log("");
+  console.log("Listing IDs (Privado):", privId);
+  console.log("Listing IDs (Negocio):", negId);
+  console.log("Title stamp (for search / filters):", stamp);
+  console.log("");
+  console.log("Expected routes (paths):");
+  console.log(`  /clasificados/anuncio/${privId}`);
+  console.log(`  /clasificados/anuncio/${negId}`);
+  console.log("  /clasificados/bienes-raices");
+  console.log("  /clasificados/bienes-raices/resultados");
+  console.log("  /dashboard/mis-anuncios");
+  console.log("  /admin/workspace/clasificados");
+  console.log("");
+  console.log("Suggested full URLs (set NEXT_PUBLIC_SITE_URL for your deploy origin):");
+  console.log(`  ${abs(`/clasificados/anuncio/${privId}`)}`);
+  console.log(`  ${abs(`/clasificados/anuncio/${negId}`)}`);
+  console.log(`  ${abs("/clasificados/bienes-raices")}`);
+  console.log(`  ${abs("/clasificados/bienes-raices/resultados")}`);
+  console.log(`  ${abs("/dashboard/mis-anuncios")}`);
+  console.log(`  ${abs("/admin/workspace/clasificados")}`);
+  console.log("");
+  console.log("Cleanup when done:");
+  console.log(`  npx tsx scripts/br-smoke-cleanup.ts --ids ${privId},${negId}`);
+  console.log(`  npx tsx scripts/br-smoke-cleanup.ts --title-prefix ${stamp}`);
+  console.log("");
+}
+
 function machinePairs(
   branch: "bienes_raices_privado" | "bienes_raices_negocio",
   operation: "sale" | "rent"
@@ -70,6 +120,7 @@ function machinePairs(
 
 async function main() {
   hydrateEnv();
+  const keepRows = parseKeepRowsEnv();
   const url = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim();
   const anon = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "").trim();
   const service = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
@@ -77,27 +128,25 @@ async function main() {
   const password = (process.env.BR_SMOKE_PASSWORD ?? "").trim();
 
   if (!email || !password) {
-    // eslint-disable-next-line no-console
     console.error(
       "BR_AUTH_SMOKE=BLOCKED_BY_AUTH missing BR_SMOKE_EMAIL or BR_SMOKE_PASSWORD (add to .env.local for this smoke)"
     );
     process.exit(2);
   }
   if (!url || !anon) {
-    // eslint-disable-next-line no-console
     console.error("BR_AUTH_SMOKE=BLOCKED_BY_ENV missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY");
     process.exit(2);
   }
   if (!service) {
-    // eslint-disable-next-line no-console
-    console.error("BR_AUTH_SMOKE=BLOCKED_BY_ENV missing SUPABASE_SERVICE_ROLE_KEY (required for test row cleanup)");
+    console.error(
+      "BR_AUTH_SMOKE=BLOCKED_BY_ENV missing SUPABASE_SERVICE_ROLE_KEY (required for default-run delete and failure-path cleanup)"
+    );
     process.exit(2);
   }
 
   const userClient = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data: signData, error: signErr } = await userClient.auth.signInWithPassword({ email, password });
   if (signErr || !signData.user) {
-    // eslint-disable-next-line no-console
     console.error("BR_AUTH_SMOKE=BLOCKED_BY_AUTH signIn failed", signErr?.message ?? "no user");
     process.exit(2);
   }
@@ -134,13 +183,11 @@ async function main() {
 
   const { data: privRow, error: pErr } = await userClient.from("listings").insert([privInsert]).select("id").single();
   if (pErr || !privRow?.id) {
-    // eslint-disable-next-line no-console
     console.error("BR_AUTH_SMOKE=FAIL privado insert", pErr?.message);
     process.exit(1);
   }
   const { data: negRow, error: nErr } = await userClient.from("listings").insert([negInsert]).select("id").single();
   if (nErr || !negRow?.id) {
-    // eslint-disable-next-line no-console
     console.error("BR_AUTH_SMOKE=FAIL negocio insert", nErr?.message);
     await cleanup(service, url, [String(privRow.id)]);
     process.exit(1);
@@ -160,7 +207,6 @@ async function main() {
     .eq("status", "active")
     .in("id", [privId, negId]);
   if (cErr) {
-    // eslint-disable-next-line no-console
     console.error("BR_AUTH_SMOKE=FAIL anon catalog read", cErr.message);
     await cleanup(service, url, [privId, negId]);
     process.exit(1);
@@ -182,12 +228,17 @@ async function main() {
   const negFiltered = filterBrListings(cards, negState, "residencial");
   assert.ok(negFiltered.some((c) => c.id === negId), "negocio row should match renta + negocio lane");
 
-  await cleanup(service, url, [privId, negId]);
+  if (keepRows) {
+    printVisualFinishLineQa(privId, negId, stamp);
+  } else {
+    await cleanup(service, url, [privId, negId]);
+  }
 
-  // eslint-disable-next-line no-console
   console.log("BR_AUTH_SMOKE=OK");
-  // eslint-disable-next-line no-console
   console.log("BR_AUTH_SMOKE_LISTING_IDS=", JSON.stringify({ privado: privId, negocio: negId }));
+  if (keepRows) {
+    console.log("BR_AUTH_SMOKE_KEEP_ROWS=1 (rows left in DB for visual QA)");
+  }
 }
 
 async function cleanup(serviceKey: string, url: string, ids: string[]) {
@@ -198,7 +249,6 @@ async function cleanup(serviceKey: string, url: string, ids: string[]) {
 }
 
 main().catch((e) => {
-  // eslint-disable-next-line no-console
   console.error("BR_AUTH_SMOKE=FAIL", e);
   process.exit(1);
 });

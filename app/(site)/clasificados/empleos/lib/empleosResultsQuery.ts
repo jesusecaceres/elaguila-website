@@ -68,7 +68,9 @@ export function parseEmpleosResultsQuery(sp: URLSearchParams): ParsedEmpleosResu
 }
 
 function num(v: string): number | undefined {
-  const n = Number(v);
+  const t = v.trim();
+  if (!t) return undefined;
+  const n = Number(t);
   return Number.isFinite(n) ? n : undefined;
 }
 

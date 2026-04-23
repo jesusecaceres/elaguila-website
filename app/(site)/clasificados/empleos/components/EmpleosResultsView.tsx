@@ -347,17 +347,21 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
   const clock = serverNowMs ?? EMPLEOS_SAMPLE_NOW_MS;
   const router = useRouter();
   const sp = useSearchParams();
-  const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
+  // Next may reuse the same `ReadonlyURLSearchParams` instance across navigations while mutating
+  // its internal snapshot. Depending on `[sp]` alone can freeze `parsed` at the first render.
+  const querySignature = sp?.toString() ?? "";
+  const urlSp = useMemo(() => new URLSearchParams(querySignature), [querySignature]);
+  const lang = useMemo<Lang>(() => (urlSp.get("lang") === "en" ? "en" : "es"), [urlSp]);
   const t = COPY[lang];
 
   const [runtimeJobs, setRuntimeJobs] = useState<EmpleosJobRecord[] | null>(null);
 
-  const parsed = useMemo(() => parseEmpleosResultsQuery(sp ?? new URLSearchParams()), [sp]);
+  const parsed = useMemo(() => parseEmpleosResultsQuery(urlSp), [urlSp]);
 
   useEffect(() => {
-    // Runtime fallback: when live-only is enabled and server props came back empty (dev flake / env load timing),
-    // fetch the published catalog from the server API so results remain backed by persisted data.
-    if (!omitMarketingSeed) return;
+    // When the server sends an empty catalog, always hydrate from the public listings API so results stay
+    // DB-backed (omitMarketingSeed only controls seed merge — it must not block the fetch).
+    if (initialJobs.length > 0) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -373,18 +377,16 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
     return () => {
       cancelled = true;
     };
-  }, [omitMarketingSeed]);
+  }, [initialJobs.length]);
 
   const mergedCatalog = useMemo(() => {
-    // Prefer union of server-props and runtime catalog (covers RSC caching/prefetch staleness after publish).
-    if (runtimeJobs && runtimeJobs.length > 0) {
-      const byId = new Map<string, EmpleosJobRecord>();
-      for (const j of initialJobs) byId.set(j.id, j);
+    const byId = new Map<string, EmpleosJobRecord>();
+    for (const j of initialJobs) byId.set(j.id, j);
+    if (runtimeJobs != null) {
       for (const j of runtimeJobs) byId.set(j.id, j);
-      return Array.from(byId.values());
     }
-    if (initialJobs.length > 0) return initialJobs;
-    return mergeEmpleosSeedWithLiveJobs([], { omitSeed: omitMarketingSeed });
+    const liveUnion = Array.from(byId.values());
+    return mergeEmpleosSeedWithLiveJobs(liveUnion, { omitSeed: omitMarketingSeed });
   }, [initialJobs, omitMarketingSeed, runtimeJobs]);
 
   const filtered = useMemo(() => {
@@ -487,7 +489,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
   };
 
   const onSortChange = (sort: string) => {
-    const base = empleosParamsFromSearchParams(sp ?? new URLSearchParams());
+    const base = empleosParamsFromSearchParams(urlSp);
     const sk = (sort || "relevance") as EmpleosSortKey;
     router.push(buildEmpleosResultadosUrl(lang, { ...base, sort: sk }));
   };
@@ -505,37 +507,36 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
 
   const activeChips = useMemo(() => {
     const chips: { key: string; label: string; href: string }[] = [];
-    if (!sp) return chips;
     CHIP_KEYS.forEach((key) => {
-      const val = sp.get(key as string);
+      const val = urlSp.get(key as string);
       if (!val) return;
-      const href = buildEmpleosResultadosUrl(lang, empleosParamsFromSearchParams(sp, key as string));
+      const href = buildEmpleosResultadosUrl(lang, empleosParamsFromSearchParams(urlSp, key as string));
       chips.push({ key: key as string, label: chipLabel(lang, key as string, val), href });
     });
     if (parsed.sort !== "relevance") {
       chips.push({
         key: "sort",
         label: sortChipLabel(lang, parsed.sort),
-        href: buildEmpleosResultadosUrl(lang, empleosParamsFromSearchParams(sp, "sort")),
+        href: buildEmpleosResultadosUrl(lang, empleosParamsFromSearchParams(urlSp, "sort")),
       });
     }
     return chips;
-  }, [sp, lang, parsed.sort]);
+  }, [urlSp, lang, parsed.sort]);
 
   const emptyRecoveryActions = useMemo(() => {
-    if (filtered.length > 0 || !sp) return [] as { label: string; href: string }[];
+    if (filtered.length > 0) return [] as { label: string; href: string }[];
     const actions: { label: string; href: string }[] = [];
     if (parsed.q) {
-      actions.push({ label: t.recoverDropQ, href: buildEmpleosResultadosUrl(lang, empleosParamsFromSearchParams(sp, "q")) });
+      actions.push({ label: t.recoverDropQ, href: buildEmpleosResultadosUrl(lang, empleosParamsFromSearchParams(urlSp, "q")) });
     }
     if (parsed.zip) {
-      actions.push({ label: t.recoverDropZip, href: buildEmpleosResultadosUrl(lang, empleosParamsFromSearchParams(sp, "zip")) });
+      actions.push({ label: t.recoverDropZip, href: buildEmpleosResultadosUrl(lang, empleosParamsFromSearchParams(urlSp, "zip")) });
     }
     if (parsed.city) {
-      actions.push({ label: t.recoverDropCity, href: buildEmpleosResultadosUrl(lang, empleosParamsFromSearchParams(sp, "city")) });
+      actions.push({ label: t.recoverDropCity, href: buildEmpleosResultadosUrl(lang, empleosParamsFromSearchParams(urlSp, "city")) });
     }
     if (parsed.city || parsed.zip) {
-      const wider: EmpleosResultadosParams = { ...empleosParamsFromSearchParams(sp, "city") };
+      const wider: EmpleosResultadosParams = { ...empleosParamsFromSearchParams(urlSp, "city") };
       delete wider.zip;
       wider.state = "CA";
       actions.push({ label: t.recoverBroaderCA, href: buildEmpleosResultadosUrl(lang, wider) });
@@ -543,11 +544,11 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
     if (!parsed.recentOnly) {
       actions.push({
         label: t.recoverRecent,
-        href: buildEmpleosResultadosUrl(lang, { ...empleosParamsFromSearchParams(sp), recent: "1" }),
+        href: buildEmpleosResultadosUrl(lang, { ...empleosParamsFromSearchParams(urlSp), recent: "1" }),
       });
     }
     return actions;
-  }, [filtered.length, sp, lang, parsed.q, parsed.zip, parsed.city, parsed.recentOnly, t]);
+  }, [filtered.length, urlSp, lang, parsed.q, parsed.zip, parsed.city, parsed.recentOnly, t]);
 
   const exploreAdjacentCategories = useMemo(() => {
     const pool = ["ventas", "salud", "tecnologia", "oficina", "bodega"] as const;
@@ -1073,7 +1074,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
                 <div className="mt-3 flex flex-wrap gap-2">
                   {exploreAdjacentCategories.map((slug) => {
                     const opt = sampleCategorySelectOptions.find((o) => o.value === slug);
-                    const href = buildEmpleosResultadosUrl(lang, { ...empleosParamsFromSearchParams(sp ?? new URLSearchParams()), category: slug, sort: parsed.sort });
+                    const href = buildEmpleosResultadosUrl(lang, { ...empleosParamsFromSearchParams(urlSp), category: slug, sort: parsed.sort });
                     return (
                       <Link
                         key={slug}

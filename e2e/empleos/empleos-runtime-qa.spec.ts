@@ -115,10 +115,15 @@ async function expectResultsFindsTitle(page: import("@playwright/test").Page, ar
 
   // Allow the client live-catalog refresh (`/api/clasificados/empleos/listings`) + React re-render.
   try {
-    const r = await page.waitForResponse(
-      (r) => r.request().method() === "GET" && /\/api\/clasificados\/empleos\/listings\b/i.test(r.url()),
-      { timeout: 30_000 },
-    );
+    const r = await page.waitForResponse((resp) => {
+      if (resp.request().method() !== "GET") return false;
+      try {
+        const p = new URL(resp.url()).pathname.replace(/\/+$/, "");
+        return p === "/api/clasificados/empleos/listings";
+      } catch {
+        return false;
+      }
+    }, { timeout: 30_000 });
     let contains = null as null | boolean;
     try {
       const j = (await r.json()) as { ok?: boolean; jobs?: Array<{ title?: string }> };
