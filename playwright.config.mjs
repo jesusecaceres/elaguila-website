@@ -27,6 +27,8 @@ export default defineConfig({
       ...process.env,
       NODE_ENV: "production",
       SERVICIOS_DEV_PUBLISH: "1",
+      /** Match `servicios-http-smoke.mjs`: public detail must render for published listings. */
+      SERVICIOS_MODERATION_MODE: "0",
       /** Enables gated `POST /api/clasificados/en-venta/dev-seed-listing` for trace E2E only. */
       EN_VENTA_DEV_PUBLISH: "1",
     },

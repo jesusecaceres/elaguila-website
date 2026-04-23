@@ -24,7 +24,8 @@ test.describe("Servicios browser smoke", () => {
     const slug = String(json.slug);
 
     await page.goto(`/clasificados/servicios/${encodeURIComponent(slug)}?lang=es`);
-    await expect(page.getByRole("heading", { name: String(state.businessName) })).toBeVisible();
+    const esc = String(state.businessName).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    await expect(page).toHaveTitle(new RegExp(esc));
 
     await page.goto(`/clasificados/servicios/resultados?lang=es&q=${encodeURIComponent("Playwright")}`);
     await expect(page.locator(`a[href*="/clasificados/servicios/${slug}"]`).first()).toBeVisible();

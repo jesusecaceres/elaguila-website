@@ -13,6 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   LEONIX_DP_BATHROOMS_COUNT,
   LEONIX_DP_BEDROOMS_COUNT,
@@ -22,6 +23,7 @@ import {
   LEONIX_DP_OPERATION,
   LEONIX_DP_POOL,
   LEONIX_DP_POSTAL_CODE,
+  LEONIX_DP_PROMOTED,
   LEONIX_DP_PROPERTY_SUBTYPE,
   LEONIX_DP_RESULTS_PROPERTY_KIND,
 } from "../app/(site)/clasificados/lib/leonixRealEstateListingContract";
@@ -97,6 +99,28 @@ function printSupabaseKeyDiagnostics(urlStr: string, anonKey: string, serviceKey
   }
 }
 
+type InsertErr = { message: string; code?: string } | null;
+
+/** Insert with columns omitted when PostgREST reports missing columns (partially migrated `listings`). */
+async function insertListingRowResilient(admin: SupabaseClient, row: Record<string, unknown>): Promise<{ error: InsertErr }> {
+  let payload: Record<string, unknown> = { ...row };
+  for (let i = 0; i < 24; i++) {
+    const { error } = await admin.from("listings").insert(payload as never);
+    if (!error) return { error: null };
+    const col =
+      error.message.match(/Could not find the '(\w+)' column/i)?.[1] ??
+      error.message.match(/column listings\.(\w+) does not exist/i)?.[1];
+    if (col && Object.prototype.hasOwnProperty.call(payload, col)) {
+      const next = { ...payload };
+      delete next[col];
+      payload = next;
+      continue;
+    }
+    return { error };
+  }
+  return { error: { message: "insertListingRowResilient: max retries", code: "E2E_RETRY" } };
+}
+
 function loadEnvLocal(): void {
   if (!fs.existsSync(envPath)) return;
   const text = fs.readFileSync(envPath, "utf8");
@@ -151,6 +175,7 @@ async function main(): Promise<void> {
     { label: LEONIX_DP_PROPERTY_SUBTYPE, value: "casa" },
     { label: LEONIX_DP_HIGHLIGHT_SLUGS, value: "patio" },
     { label: LEONIX_DP_POOL, value: "true" },
+    { label: LEONIX_DP_PROMOTED, value: "true" },
   ];
 
   const pairsNeg = [
@@ -161,8 +186,6 @@ async function main(): Promise<void> {
     { label: LEONIX_DP_HIGHLIGHT_SLUGS, value: "balcon" },
     { label: LEONIX_DP_POOL, value: "false" },
   ];
-
-  const boostIso = new Date(Date.now() + 86400000).toISOString();
 
   const insertPriv = {
     id: idPriv,
@@ -179,11 +202,8 @@ async function main(): Promise<void> {
     status: "active",
     is_published: true,
     seller_type: "personal",
-    business_name: null,
-    business_meta: null,
     detail_pairs: pairsPriv,
     images: [],
-    boost_expires: boostIso,
   };
 
   const insertNeg = {
@@ -205,10 +225,21 @@ async function main(): Promise<void> {
     business_meta: JSON.stringify({ negocioDescripcion: "Correduría de prueba e2e." }),
     detail_pairs: pairsNeg,
     images: [],
-    boost_expires: null,
   };
 
-  const { error: insErr } = await admin.from("listings").insert([insertPriv, insertNeg]);
+  let { error: insErr } = await insertListingRowResilient(admin, insertPriv as Record<string, unknown>);
+  if (insErr) {
+    console.error("[rentas-e2e] insert failed:", insErr.message);
+    if (/invalid api key|jwt expired|invalid jwt/i.test(insErr.message)) {
+      console.error(
+        "[rentas-e2e] Classification: BLOCKED_BY_ENV — Supabase rejected SUPABASE_SERVICE_ROLE_KEY (wrong/revoked key, or not for this project). Not a Rentas application bug.",
+      );
+      printSupabaseKeyDiagnostics(url, anonKey, serviceKey);
+    }
+    process.exit(1);
+  }
+
+  ({ error: insErr } = await insertListingRowResilient(admin, insertNeg as Record<string, unknown>));
   if (insErr) {
     console.error("[rentas-e2e] insert failed:", insErr.message);
     if (/invalid api key|jwt expired|invalid jwt/i.test(insErr.message)) {
@@ -227,7 +258,7 @@ async function main(): Promise<void> {
     assert.ok(ids.has(idNeg), "anon browse should include negocio row");
 
     const privListing = browse.find((l) => l.id === idPriv);
-    assert.ok(privListing?.promoted === true, "boost_expires future should set promoted");
+    assert.ok(privListing?.promoted === true, "Leonix:promoted=true (or boost_expires when column exists) should set promoted");
 
     const pCity = parseRentasBrowseParams(new URLSearchParams(`city=${encodeURIComponent(cityPriv)}`));
     const byCity = filterRentasPublicListings(browse, pCity);

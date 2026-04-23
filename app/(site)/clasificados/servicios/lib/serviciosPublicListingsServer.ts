@@ -10,8 +10,9 @@ import {
 import { getServiciosReviewAggregatesForSlugs } from "./serviciosOpsTablesServer";
 import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "./serviciosListingLifecycle";
 
+/** Keep aligned with migrations present on all envs; omit columns not yet applied on older DBs (breaks PostgREST `.select()`). */
 const LISTING_SELECT =
-  "slug, business_name, city, published_at, profile_json, leonix_verified, internal_group, listing_status, owner_user_id";
+  "slug, business_name, city, published_at, profile_json, leonix_verified, internal_group, listing_status";
 
 export type ServiciosPublicListingRow = {
   slug: string;
@@ -65,18 +66,19 @@ export async function getServiciosPublicListingBySlugFromDb(
   const visibility = opts?.visibility ?? "published_only";
   try {
     const supabase = getAdminSupabase();
-    let q = supabase.from("servicios_public_listings").select(LISTING_SELECT).eq("slug", slug);
-    if (visibility === "published_only") {
-      q = q.eq("listing_status", SERVICIOS_LISTING_STATUS_PUBLISHED);
-    } else if (visibility === "slug_page") {
-      q = q.in("listing_status", [...SLUG_PAGE_STATUSES]);
-    }
-    const { data, error } = await q.maybeSingle();
+    /** Fetch by slug only; apply lifecycle filters in code (avoids PostgREST `.in()` edge cases on some projects). */
+    const { data, error } = await supabase.from("servicios_public_listings").select(LISTING_SELECT).eq("slug", slug).maybeSingle();
     if (error || !data) return null;
     const row = data as ServiciosPublicListingRow;
+    const listingStatus = typeof row.listing_status === "string" ? row.listing_status : "published";
+    if (visibility === "published_only") {
+      if (listingStatus !== SERVICIOS_LISTING_STATUS_PUBLISHED) return null;
+    } else if (visibility === "slug_page") {
+      if (!(SLUG_PAGE_STATUSES as readonly string[]).includes(listingStatus)) return null;
+    }
     return {
       ...row,
-      listing_status: typeof row.listing_status === "string" ? row.listing_status : "published",
+      listing_status: listingStatus,
       owner_user_id: row.owner_user_id ?? null,
     };
   } catch {

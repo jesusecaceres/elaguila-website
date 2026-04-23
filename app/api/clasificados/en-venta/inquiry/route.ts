@@ -3,7 +3,8 @@ import { getAdminSupabase } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-const INQUIRY_CATEGORIES = ["en-venta", "rentas"] as const;
+/** Categories whose published `listings` rows accept authenticated buyer inquiries via this route. */
+const INQUIRY_CATEGORIES = ["en-venta", "rentas", "bienes-raices"] as const;
 
 type Body = {
   sellerEmail?: string;

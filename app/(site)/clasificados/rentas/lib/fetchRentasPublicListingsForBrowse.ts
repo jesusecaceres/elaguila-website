@@ -5,13 +5,8 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { mapListingRowToRentasPublicListing } from "@/app/clasificados/rentas/data/mapListingRowToRentasPublicListing";
+import { queryRentasBrowseListings } from "@/app/clasificados/rentas/lib/rentasListingPublicSelect";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
-
-const BROWSE_COLS =
-  "id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, business_meta, status, is_published, created_at, images, contact_phone, contact_email, boost_expires";
-
-/** Hard cap for anon browse; pagination is client-side over this window. Raise only with DB/index support. */
-const BROWSE_LIMIT = 5000;
 
 export async function fetchRentasPublicListingsForBrowse(lang: "es" | "en"): Promise<RentasPublicListing[]> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -19,14 +14,7 @@ export async function fetchRentasPublicListingsForBrowse(lang: "es" | "en"): Pro
   if (!url || !key) return [];
 
   const sb = createClient(url, key);
-  const { data, error } = await sb
-    .from("listings")
-    .select(BROWSE_COLS)
-    .eq("category", "rentas")
-    .eq("status", "active")
-    .or("is_published.is.null,is_published.eq.true")
-    .order("created_at", { ascending: false })
-    .limit(BROWSE_LIMIT);
+  const { data, error } = await queryRentasBrowseListings(sb);
 
   if (error || !data?.length) return [];
 

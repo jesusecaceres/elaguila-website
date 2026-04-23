@@ -5,10 +5,8 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { mapListingRowToRentasPublicListing } from "@/app/clasificados/rentas/data/mapListingRowToRentasPublicListing";
+import { queryRentasListingById } from "@/app/clasificados/rentas/lib/rentasListingPublicSelect";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
-
-const COLS =
-  "id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, business_meta, status, is_published, created_at, images, contact_phone, contact_email, boost_expires";
 
 export async function fetchRentasListingForPublicDetail(
   id: string,
@@ -19,11 +17,13 @@ export async function fetchRentasListingForPublicDetail(
   if (!url || !key) return null;
 
   const sb = createClient(url, key);
-  const { data, error } = await sb.from("listings").select(COLS).eq("id", id).eq("category", "rentas").maybeSingle();
+  const { data, error } = await queryRentasListingById(sb, id);
 
   if (error || !data) return null;
   const row = data as Record<string, unknown>;
-  if (String(row.status ?? "").toLowerCase() !== "active" || row.is_published === false) {
+  const statusNorm = String(row.status ?? "").trim().toLowerCase();
+  const statusOk = !statusNorm || statusNorm === "active";
+  if (!statusOk || row.is_published === false) {
     return null;
   }
   const mapped = mapListingRowToRentasPublicListing(row, lang);

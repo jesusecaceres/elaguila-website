@@ -3,14 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { mapListingRowToRentasPublicListing } from "@/app/clasificados/rentas/data/mapListingRowToRentasPublicListing";
+import { queryRentasBrowseListings } from "@/app/clasificados/rentas/lib/rentasListingPublicSelect";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import {
   rentasResultsFeatured,
   rentasResultsGridDemo,
 } from "@/app/clasificados/rentas/results/rentasResultsDemoData";
-
-const LIVE_SELECT =
-  "id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, business_meta, status, is_published, created_at, images, contact_phone, contact_email, boost_expires";
 
 /**
  * Dedup merge: live rows first (newest), optional demo tail for dev (`NEXT_PUBLIC_RENTAS_INCLUDE_DEMO_POOL=1`).
@@ -78,14 +76,7 @@ export function useRentasPublicBrowseInventory(opts: {
       setError(null);
       try {
         const supabase = createSupabaseBrowserClient();
-        const { data, error: qErr } = await supabase
-          .from("listings")
-          .select(LIVE_SELECT)
-          .eq("category", "rentas")
-          .eq("status", "active")
-          .or("is_published.is.null,is_published.eq.true")
-          .order("created_at", { ascending: false })
-          .limit(5000);
+        const { data, error: qErr } = await queryRentasBrowseListings(supabase);
 
         if (cancelled) return;
         if (qErr) {

@@ -198,7 +198,9 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const cat = String(row.category ?? "").toLowerCase();
   if (cat !== "rentas") return null;
 
-  const status = String(row.status ?? "").toLowerCase();
+  /** Legacy / partially migrated rows may omit `status`; treat empty as active when mapping public browse. */
+  const statusRaw = String(row.status ?? "").trim().toLowerCase();
+  const status = statusRaw === "" ? "active" : statusRaw;
   const published = row.is_published !== false;
   const lx = parseLeonixListingContract(row.detail_pairs);
   const mf = parseLeonixMachineFacetRead(row.detail_pairs);

@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import { LEONIX_MEDIA_SITE_NAME, leonixPageTitle } from "@/app/lib/leonixBrand";
 
 export const metadata: Metadata = {
-  title: "Clasificados",
+  /**
+   * Intentionally omit a static `title` here: a string title in this segment prevented leaf
+   * routes (e.g. Servicios `[slug]` `generateMetadata` `title.absolute`) from appearing in `<title>`.
+   * Child routes under `/clasificados/*` should set their own titles; the hub is a client page
+   * and inherits the root default browser title when none is set.
+   */
   description:
     "Clasificados bilingües en Leonix Media: empleos, rentas, autos, servicios, bienes raíces y más — descubrimiento local bajo Leonix Global LLC.",
   keywords: [

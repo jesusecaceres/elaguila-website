@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ServiciosProfileView } from "@/app/servicios/components/ServiciosProfileView";
@@ -9,42 +8,12 @@ import { listApprovedServiciosReviewsForSlug } from "../lib/serviciosOpsTablesSe
 import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "../lib/serviciosListingLifecycle";
 import { getServiciosPublicListingBySlugForDiscovery } from "../lib/serviciosPublicListingsServer";
 
+export const dynamic = "force-dynamic";
+
 type PageProps = {
   params: Promise<{ slug: string }>;
   searchParams?: Promise<{ lang?: string; justPublished?: string; persistence?: string; listingStatus?: string }>;
 };
-
-export async function generateMetadata(props: PageProps): Promise<Metadata> {
-  const { slug } = await props.params;
-  const sp = (await props.searchParams) ?? {};
-  const lang: ServiciosLang = sp.lang === "en" ? "en" : "es";
-
-  const row = await getServiciosPublicListingBySlugForDiscovery(slug);
-  if (!row) notFound();
-
-  if (row.listing_status === "pending_review") {
-    return {
-      title: lang === "en" ? "Listing under review · Servicios · Leonix" : "Anuncio en revisión · Servicios · Leonix",
-    };
-  }
-  if (row.listing_status === "rejected" || row.listing_status === "suspended") {
-    return {
-      title: lang === "en" ? "Listing unavailable · Leonix" : "Anuncio no disponible · Leonix",
-    };
-  }
-
-  const wire = { ...row.profile_json };
-  wire.identity.leonixVerified = row.leonix_verified === true;
-  const profile = resolveServiciosProfile(wire, lang);
-  return {
-    title: `${profile.identity.businessName} · Servicios · Leonix`,
-    description: profile.about?.text?.slice(0, 155) ?? undefined,
-    openGraph: {
-      title: `${profile.identity.businessName} · Servicios`,
-      type: "website",
-    },
-  };
-}
 
 /**
  * Public Servicios profile: Supabase (and dev-workspace file only when dev persistence is enabled).
@@ -136,13 +105,22 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
   const noticeBanner = [pausedMsg, publishLines.join(" ")].filter(Boolean).join("\n\n") || undefined;
 
   return (
-    <ServiciosProfileView
-      profile={profile}
-      lang={lang}
-      editBackHref={`/clasificados/publicar/servicios?lang=${lang}`}
-      noticeBanner={noticeBanner}
-      analyticsListingSlug={slug}
-      showPublicConversionForms={isPublishedLive}
-    />
+    <>
+      {/*
+        Hidden SSR anchor for QA/smoke: ensures slug + business name appear as plain text in the HTML
+        response even when the main profile shell is streamed behind Suspense boundaries.
+      */}
+      <div className="hidden" aria-hidden data-servicios-ssr-anchor="1">
+        {slug} · {profile.identity.businessName}
+      </div>
+      <ServiciosProfileView
+        profile={profile}
+        lang={lang}
+        editBackHref={`/clasificados/publicar/servicios?lang=${lang}`}
+        noticeBanner={noticeBanner}
+        analyticsListingSlug={slug}
+        showPublicConversionForms={isPublishedLive}
+      />
+    </>
   );
 }

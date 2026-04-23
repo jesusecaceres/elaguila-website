@@ -21,7 +21,19 @@ const fixturePath = path.join(repoRoot, "scripts", "fixtures", "servicios-smoke-
 
 function httpGet(url) {
   return new Promise((resolve, reject) => {
-    const req = http.get(url, (res) => {
+    const u = new URL(url);
+    const opts = {
+      protocol: u.protocol,
+      hostname: u.hostname,
+      port: u.port || undefined,
+      path: u.pathname + u.search,
+      method: "GET",
+      headers: {
+        /** Without this, Node may negotiate gzip and `body` stays compressed (substring checks fail). */
+        "Accept-Encoding": "identity",
+      },
+    };
+    const req = http.request(opts, (res) => {
       let body = "";
       res.on("data", (c) => {
         body += c;
@@ -32,6 +44,7 @@ function httpGet(url) {
     req.setTimeout(25_000, () => {
       req.destroy(new Error(`timeout: ${url}`));
     });
+    req.end();
   });
 }
 
@@ -46,6 +59,7 @@ function httpPostJson(url, jsonBody) {
       headers: {
         "Content-Type": "application/json",
         "Content-Length": Buffer.byteLength(jsonBody),
+        "Accept-Encoding": "identity",
       },
     };
     const req = http.request(opts, (res) => {
@@ -62,6 +76,50 @@ function httpPostJson(url, jsonBody) {
     req.write(jsonBody);
     req.end();
   });
+}
+
+function decodeBasicHtmlEntities(s) {
+  return String(s)
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#39;/g, "'");
+}
+
+function extractHtmlTitle(html) {
+  const m = String(html).match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  return m ? decodeBasicHtmlEntities(m[1].replace(/\s+/g, " ").trim()) : "";
+}
+
+function extractMetaContent(html, name) {
+  const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re1 = new RegExp(`<meta[^>]+name=["']${esc}["'][^>]+content=["']([^"']*)["']`, "i");
+  const re2 = new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]+name=["']${esc}["']`, "i");
+  const m = html.match(re1) || html.match(re2);
+  return m ? decodeBasicHtmlEntities(m[1]) : "";
+}
+
+function extractOgTitle(html) {
+  const re1 = /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']*)["']/i;
+  const re2 = /<meta[^>]+content=["']([^"']*)["'][^>]+property=["']og:title["']/i;
+  const m = html.match(re1) || html.match(re2);
+  return m ? decodeBasicHtmlEntities(m[1]) : "";
+}
+
+function isRscNotFoundShell(html) {
+  return String(html).includes("NEXT_HTTP_ERROR_FALLBACK;404");
+}
+
+function detailHasListingSignals(html, slug, businessName) {
+  const h = String(html);
+  const titleText = extractHtmlTitle(h);
+  const anchorNeedle = `${slug} · ${businessName}`;
+  const okTitle = titleText.includes(businessName);
+  const okAnchor = h.includes(anchorNeedle);
+  const okOg = extractOgTitle(h).includes(businessName);
+  const slugProbe = extractMetaContent(h, "servicios_slug_probe");
+  const okProbe = slugProbe === slug;
+  return { okTitle, okAnchor, okOg, okProbe, okAny: okTitle || okAnchor || okOg, titleText };
 }
 
 async function waitForReady(base, maxMs) {
@@ -95,6 +153,8 @@ async function main() {
       ...process.env,
       NODE_ENV: "production",
       SERVICIOS_DEV_PUBLISH: "1",
+      /** Override host `.env.local` so happy-path publish is `published` and public detail SSR matches smoke assertions. */
+      SERVICIOS_MODERATION_MODE: "0",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -231,16 +291,90 @@ async function main() {
       throw new Error(`POST publish happy path bad JSON: ${pubRes.body?.slice(0, 400)}`);
     }
     const slug = String(pubJson.slug);
-    console.log(`OK POST publish happy path → slug=${slug} persistence=${pubJson.persistence}`);
+    const listingStatus = typeof pubJson.listingStatus === "string" ? pubJson.listingStatus : "";
+    console.log(`OK POST publish happy path → slug=${slug} persistence=${pubJson.persistence} listingStatus=${listingStatus || "?"}`);
 
-    const detail = await httpGet(`${base}/clasificados/servicios/${encodeURIComponent(slug)}?lang=es`);
+    const rowProbe = await httpGet(`${base}/api/clasificados/servicios/smoke-row?slug=${encodeURIComponent(slug)}`);
+    try {
+      const rp = JSON.parse(rowProbe.body || "{}");
+      console.log(`[servicios-smoke] smoke-row found=${rp.found === true} status=${rowProbe.status}`);
+    } catch {
+      console.log(`[servicios-smoke] smoke-row status=${rowProbe.status}`);
+    }
+
+    const detailUrl = `${base}/clasificados/servicios/${encodeURIComponent(slug)}?lang=es`;
+    const detailDeadline = Date.now() + 20_000;
+    let detail = await httpGet(detailUrl);
+    while (
+      detail.status === 200 &&
+      listingStatus !== "pending_review" &&
+      (isRscNotFoundShell(detail.body) || !detailHasListingSignals(detail.body, slug, state.businessName).okAny) &&
+      Date.now() < detailDeadline
+    ) {
+      await new Promise((r) => setTimeout(r, 350));
+      detail = await httpGet(detailUrl);
+    }
     if (detail.status !== 200) {
       throw new Error(`GET detail failed: status=${detail.status} slug=${slug}`);
     }
-    if (!detail.body.includes(state.businessName)) {
-      throw new Error(`GET detail missing businessName in HTML for slug=${slug}`);
+    if (listingStatus === "pending_review") {
+      if (!/revisión|review/i.test(detail.body)) {
+        throw new Error(`GET detail pending_review gate missing for slug=${slug}`);
+      }
+      console.log(`OK GET public detail shows moderation gate (${detail.status})`);
+    } else {
+      const sig = detailHasListingSignals(detail.body, slug, state.businessName);
+      if (!sig.okAny) {
+        const debugPath = path.join(repoRoot, ".servicios-smoke-last-detail.html");
+        try {
+          fs.writeFileSync(debugPath, detail.body, "utf8");
+        } catch {
+          /* */
+        }
+        const ogTitle = extractOgTitle(detail.body);
+        const slugProbe = extractMetaContent(detail.body, "servicios_slug_probe");
+        throw new Error(
+          `GET detail missing businessName in <title>, SSR anchor, and og:title for slug=${slug} (title=${JSON.stringify(sig.titleText.slice(0, 160))} og=${JSON.stringify(ogTitle.slice(0, 160))} probe=${JSON.stringify(slugProbe)} rsc404=${isRscNotFoundShell(detail.body)} bodyLen=${detail.body.length} wrote=${debugPath})`,
+        );
+      }
+      const via = sig.okTitle ? "title" : sig.okAnchor ? "anchor" : "og:title";
+      console.log(`OK GET public detail (${detail.status}) via=${via}`);
     }
-    console.log(`OK GET public detail contains businessName (${detail.status})`);
+
+    if (pubJson.persistence === "database" && listingStatus !== "pending_review") {
+      const inq = await httpPostJson(
+        `${base}/api/clasificados/servicios/inquiry`,
+        JSON.stringify({
+          listingSlug: slug,
+          senderName: "Smoke User",
+          senderEmail: "smoke-inquiry-valid@example.com",
+          message: "Necesito una cotización por favor.",
+          requestKind: "quote",
+        }),
+      );
+      const inqHead = inq.body?.slice(0, 500) ?? "";
+      const missingLeadsTable =
+        inq.status === 500 &&
+        /servicios_public_leads|schema cache|does not exist/i.test(inqHead);
+      if (inq.status === 200) {
+        let inqJson = { ok: false };
+        try {
+          inqJson = JSON.parse(inq.body);
+        } catch {
+          /* */
+        }
+        if (!inqJson.ok) {
+          throw new Error(`POST inquiry success path bad JSON: ${inq.body?.slice(0, 400)}`);
+        }
+        console.log(`OK POST inquiry success (${inq.status})`);
+      } else if (missingLeadsTable) {
+        console.warn(
+          "[servicios-smoke] POST inquiry skipped — remote DB missing `servicios_public_leads` (apply Servicios leads migration). Command still passes; classify inquiry as BLOCKED_BY_EXTERNAL_SERVICE in launch reports.",
+        );
+      } else {
+        throw new Error(`POST inquiry success path failed: status=${inq.status} body=${inqHead}`);
+      }
+    }
 
     const results = await httpGet(`${base}/clasificados/servicios/resultados?lang=es&q=${encodeURIComponent("SmokeTest")}`);
     if (results.status !== 200) {

@@ -12,6 +12,7 @@
     "lint:servicios": "eslint \"app/(site)/clasificados/servicios/**/*.{ts,tsx}\" \"app/(site)/clasificados/publicar/servicios/**/*.{ts,tsx}\" \"app/(site)/servicios/**/*.{ts,tsx}\" \"app/api/clasificados/servicios/**/*.{ts,tsx}\" \"e2e/**/*.ts\" --max-warnings 0",
     "verify:br": "npx tsx scripts/br-launch-selftest.ts",
     "verify:br:catalog-smoke": "npx tsx scripts/br-supabase-anon-smoke.ts",
+    "verify:br:auth-smoke": "npx tsx scripts/br-authenticated-smoke.ts",
     "verify:br:launch-gate": "npm run typecheck && npm run lint:br && npm run verify:br",
     "prebuild": "node scripts/dup-guard.js",
     "dup:guard": "node scripts/dup-guard.js",
