@@ -74,6 +74,9 @@ export type PublicarCopy = {
     reviewAvatar: string;
     areaLabel: string;
     areaKind: string;
+    describeService: string;
+    describeServicePlaceholder: string;
+    noCategoryQuestion: string;
   };
 };
 
@@ -164,6 +167,9 @@ const es: PublicarCopy = {
     reviewAvatar: "URL de avatar",
     areaLabel: "Zona",
     areaKind: "Tipo",
+    describeService: "Describe tu servicio",
+    describeServicePlaceholder: "Ej. Reparación de celulares",
+    noCategoryQuestion: "¿No ves tu categoría?",
   },
 };
 
@@ -254,6 +260,9 @@ const en: PublicarCopy = {
     reviewAvatar: "Avatar URL",
     areaLabel: "Area",
     areaKind: "Kind",
+    describeService: "Describe your service",
+    describeServicePlaceholder: "e.g. Cell phone repair",
+    noCategoryQuestion: "Don't see your category?",
   },
 };
 

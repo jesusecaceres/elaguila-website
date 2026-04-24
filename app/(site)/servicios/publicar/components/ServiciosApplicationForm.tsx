@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { collectServiciosDraftFieldIssues } from "../lib/serviciosApplicationFieldValidation";
 import { getServiciosPublishReadiness } from "../lib/serviciosApplicationPublishReadiness";
 import { useServiciosApplicationDraftState } from "../hooks/useServiciosApplicationDraftState";
 import { getPublicarCopy } from "../serviciosPublicarCopy";
+import { serviciosCategories, isOtroServicio, type ServiciosCategoryOption } from "../serviciosCategories";
 import type {
   ServiciosHeroBadgeKind,
   ServiciosLang,
@@ -61,6 +62,7 @@ function labelHint(issue?: string) {
 export function ServiciosApplicationForm({ lang }: { lang: ServiciosLang }) {
   const copy = getPublicarCopy(lang);
   const { draft, setDraft, hydrated, persistNow } = useServiciosApplicationDraftState();
+  const [customServiceValue, setCustomServiceValue] = useState("");
 
   const issues = useMemo(() => collectServiciosDraftFieldIssues(draft, lang === "en" ? "en" : "es"), [draft, lang]);
   const readiness = useMemo(() => getServiciosPublishReadiness(draft), [draft]);
@@ -70,6 +72,26 @@ export function ServiciosApplicationForm({ lang }: { lang: ServiciosLang }) {
   const openPreview = () => {
     persistNow();
     window.open(`/clasificados/publicar/servicios/preview?lang=${lang}`, "_blank", "noopener,noreferrer");
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setDraft((d) => ({ ...d, hero: { ...d.hero, primaryCategory: value } }));
+    
+    // Reset custom service value when changing category
+    if (!isOtroServicio(value)) {
+      setCustomServiceValue("");
+    }
+  };
+
+  const handleCustomServiceChange = (value: string) => {
+    setCustomServiceValue(value);
+    // Update the category with the custom value
+    setDraft((d) => ({ ...d, hero: { ...d.hero, primaryCategory: value } }));
+  };
+
+  const handleNoCategoryClick = () => {
+    console.log("No veo mi categoría clicked - placeholder for help modal");
+    // TODO: Open help modal or navigate to help page
   };
 
   const missingLabel = (key: string) => {
@@ -160,29 +182,58 @@ export function ServiciosApplicationForm({ lang }: { lang: ServiciosLang }) {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-neutral-800">{copy.labels.primaryCategory}</label>
-                <input
+                <select
                   className={inputClass()}
                   value={draft.hero.primaryCategory ?? ""}
-                  onChange={(e) => setDraft((d) => ({ ...d, hero: { ...d.hero, primaryCategory: e.target.value } }))}
-                />
+                  onChange={(e) => handleCategoryChange(e.target.value)}
+                >
+                  <option value="">Selecciona una categoría</option>
+                  {serviciosCategories.map((group) => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.options.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-neutral-800">{copy.labels.subcategory}</label>
-                <input
-                  className={inputClass()}
-                  value={draft.hero.subcategory ?? ""}
-                  onChange={(e) => setDraft((d) => ({ ...d, hero: { ...d.hero, subcategory: e.target.value } }))}
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-neutral-800">{copy.labels.categoryLine}</label>
-                <p className="mb-1 text-xs text-neutral-500">{copy.labels.categoryLineHint}</p>
-                <input
-                  className={inputClass()}
-                  value={draft.hero.categoryLine ?? ""}
-                  onChange={(e) => setDraft((d) => ({ ...d, hero: { ...d.hero, categoryLine: e.target.value } }))}
-                />
-              </div>
+
+              {isOtroServicio(draft.hero.primaryCategory ?? "") && (
+                <div>
+                  <label className="block text-sm font-medium text-neutral-800">{copy.labels.describeService}</label>
+                  <input
+                    className={inputClass()}
+                    value={customServiceValue}
+                    onChange={(e) => handleCustomServiceChange(e.target.value)}
+                    placeholder={copy.labels.describeServicePlaceholder}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 text-sm">
+              <button
+                type="button"
+                onClick={handleNoCategoryClick}
+                className="text-[#3B66AD] underline hover:text-[#2f5699]"
+              >
+                {copy.labels.noCategoryQuestion}
+              </button>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-neutral-800">{copy.labels.categoryLine}</label>
+              <p className="mb-1 text-xs text-neutral-500">{copy.labels.categoryLineHint}</p>
+              <input
+                className={inputClass()}
+                value={draft.hero.categoryLine ?? ""}
+                onChange={(e) => setDraft((d) => ({ ...d, hero: { ...d.hero, categoryLine: e.target.value } }))}
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-neutral-800">{copy.labels.logoUrl}</label>
                 <input
