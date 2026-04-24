@@ -28,7 +28,7 @@ export const DEMO_RESTAURANT_DETAIL_SHELL: RestaurantDetailShellData = {
     scheduleSummary: "Lun – Dom · 17:00 – 22:00",
   },
   seeHoursLabel: "Ver horarios",
-  seeHoursHref: "#horarios-detalle",
+  seeHoursHref: "",
   hoursDetail: {
     rows: [
       { dayLabel: "Lunes", line: "17:00 – 22:00" },
@@ -51,12 +51,12 @@ export const DEMO_RESTAURANT_DETAIL_SHELL: RestaurantDetailShellData = {
     {
       key: "order",
       label: "Ordenar",
-      href: "#",
+      href: "",
       enabled: false,
       disabledReason: "Enlace de pedido no configurado",
     },
-    { key: "save", label: "Guardar", href: "#guardar", enabled: true },
-    { key: "share", label: "Compartir", href: "#compartir", enabled: true },
+    { key: "save", label: "Guardar", href: "", enabled: true },
+    { key: "share", label: "Compartir", href: "", enabled: true },
   ],
   quickInfo: [
     { key: "neighborhood", label: "Zona", value: "Mission · San Francisco" },
@@ -178,7 +178,7 @@ export const DEMO_RESTAURANT_DETAIL_SHELL: RestaurantDetailShellData = {
   },
   galleryCta: {
     label: "Explorar fotos y videos",
-    href: "#galeria-lugar",
+    href: "",
   },
   contact: {
     addressLine1: "235 Valencia St",

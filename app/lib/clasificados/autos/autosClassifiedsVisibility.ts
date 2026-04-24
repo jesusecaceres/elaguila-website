@@ -1,50 +1,58 @@
 /**
- * Single source of truth for Autos classifieds (`autos_classifieds_listings`) lifecycle visibility.
+ * Autos classifieds lifecycle visibility - now using canonical domain.
  * DB statuses: draft | pending_payment | active | payment_failed | cancelled | removed
  */
 import type { AutosClassifiedsListingStatus } from "./autosClassifiedsTypes";
+import { 
+  mapAutosStatusToCanonical, 
+  getVisibilityBucket, 
+  isPubliclyVisible, 
+  isPrePublish, 
+  isEditableDraft,
+  getStatusLabel,
+  getStatusChipClass,
+  type ListingVisibilityBucket 
+} from "../listingLifecycleDomain";
 
+// Backward compatibility aliases
 export function autosListingStatusIsPublicActive(status: AutosClassifiedsListingStatus): boolean {
-  return status === "active";
+  return isPubliclyVisible(mapAutosStatusToCanonical(status));
 }
 
 export function autosListingStatusIsEditableDraft(status: AutosClassifiedsListingStatus): boolean {
-  return status === "draft" || status === "payment_failed" || status === "pending_payment";
+  return isEditableDraft(mapAutosStatusToCanonical(status));
 }
 
-/** Rows that should appear in “drafts / continue publish” dashboard surfaces (not live on public Autos). */
+/** Rows that should appear in "drafts / continue publish" dashboard surfaces (not live on public Autos). */
 export function autosListingStatusIsPrePublish(status: AutosClassifiedsListingStatus): boolean {
-  return status === "draft" || status === "pending_payment" || status === "payment_failed";
+  return isPrePublish(mapAutosStatusToCanonical(status));
 }
 
-export type AutosAdminVisibilityBucket = "public" | "pre_publish" | "inactive";
+export type AutosAdminVisibilityBucket = ListingVisibilityBucket;
 
 export function autosListingAdminVisibilityBucket(status: AutosClassifiedsListingStatus): AutosAdminVisibilityBucket {
-  if (status === "active") return "public";
-  if (autosListingStatusIsPrePublish(status)) return "pre_publish";
-  return "inactive";
+  return getVisibilityBucket(mapAutosStatusToCanonical(status));
 }
 
 export function autosListingStatusLabelEs(status: AutosClassifiedsListingStatus): string {
-  const m: Record<AutosClassifiedsListingStatus, string> = {
-    draft: "Borrador",
-    pending_payment: "Pago pendiente",
-    active: "Publicado (visible en Autos)",
-    payment_failed: "Pago fallido",
-    cancelled: "Cancelado",
-    removed: "Retirado del público",
-  };
-  return m[status] ?? status;
+  const canonical = mapAutosStatusToCanonical(status);
+  // Add Autos-specific context for active status
+  if (status === "active") {
+    return "Publicado (visible en Autos)";
+  }
+  return getStatusLabel(canonical, "es");
 }
 
 export function autosListingStatusLabelEn(status: AutosClassifiedsListingStatus): string {
-  const m: Record<AutosClassifiedsListingStatus, string> = {
-    draft: "Draft",
-    pending_payment: "Payment pending",
-    active: "Published (public on Autos)",
-    payment_failed: "Payment failed",
-    cancelled: "Cancelled",
-    removed: "Unpublished",
-  };
-  return m[status] ?? status;
+  const canonical = mapAutosStatusToCanonical(status);
+  // Add Autos-specific context for active status
+  if (status === "active") {
+    return "Published (public on Autos)";
+  }
+  return getStatusLabel(canonical, "en");
+}
+
+// New unified chip styling
+export function autosListingStatusChipClass(status: AutosClassifiedsListingStatus): string {
+  return getStatusChipClass(mapAutosStatusToCanonical(status));
 }

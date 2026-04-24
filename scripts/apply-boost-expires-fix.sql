@@ -1,38 +1,22 @@
--- Append-only audit trail for `listings` lifecycle mutations (seller dashboard, publish, admin via service role).
--- Rows are written by trigger only (no client INSERT policy). Owners read their listing's events via RLS.
+-- Apply the missing boost_expires column and fix audit trigger
+-- This combines migrations 20260423120000 and 20260424210000
 
-CREATE TABLE IF NOT EXISTS public.listing_audit_event (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  listing_id uuid NOT NULL REFERENCES public.listings (id) ON DELETE CASCADE,
-  actor_user_id uuid,
-  action text NOT NULL,
-  meta jsonb NOT NULL DEFAULT '{}'::jsonb,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+-- Add the missing column first
+ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS boost_expires timestamptz NULL;
 
-CREATE INDEX IF NOT EXISTS listing_audit_event_listing_created_idx
-  ON public.listing_audit_event (listing_id, created_at DESC);
+COMMENT ON COLUMN public.listings.boost_expires IS
+  'End of paid/featured visibility window; complements Leonix:promoted in detail_pairs (Clasificados browse).';
 
-CREATE INDEX IF NOT EXISTS listing_audit_event_created_at_idx
-  ON public.listing_audit_event (created_at DESC);
+-- Add other missing columns from the same migration
+ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS seller_type text NULL;
+ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS rentas_tier text NULL;
+ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS business_name text NULL;
+ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS business_meta text NULL;
 
-COMMENT ON TABLE public.listing_audit_event IS 'Lifecycle-focused listing mutations; actor_user_id set when JWT present.';
+COMMENT ON COLUMN public.listings.seller_type IS 'personal | business (Rentas negocio, En Venta business)';
+COMMENT ON COLUMN public.listings.business_meta IS 'JSON string for business listings (negocio agent, redes, etc.)';
 
-ALTER TABLE public.listing_audit_event ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "listing_audit_event_authenticated_owner_select"
-  ON public.listing_audit_event
-  FOR SELECT
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1
-      FROM public.listings l
-      WHERE l.id = listing_audit_event.listing_id
-        AND l.owner_id = auth.uid()
-    )
-  );
-
+-- Now fix the audit trigger to handle missing columns safely
 CREATE OR REPLACE FUNCTION public.log_listing_lifecycle_audit()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -83,7 +67,7 @@ BEGIN
       act := 'listing_unpublished';
     ELSIF NEW.is_published = true AND (OLD.is_published = false OR OLD.is_published IS NULL) THEN
       act := 'listing_published';
-    ELSIF st_new = 'sold' AND st_old IS NOT DISTINCT FROM 'sold' THEN
+    ELSIF st_new = 'sold' AND st_old IS DISTINCT FROM 'sold' THEN
       act := 'listing_marked_sold';
     ELSIF old_boost IS NOT DISTINCT FROM new_boost THEN
       act := 'listing_boost_changed';
@@ -109,15 +93,3 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
-DROP TRIGGER IF EXISTS listings_lifecycle_audit_ins ON public.listings;
-CREATE TRIGGER listings_lifecycle_audit_ins
-  AFTER INSERT ON public.listings
-  FOR EACH ROW
-  EXECUTE PROCEDURE public.log_listing_lifecycle_audit();
-
-DROP TRIGGER IF EXISTS listings_lifecycle_audit_upd ON public.listings;
-CREATE TRIGGER listings_lifecycle_audit_upd
-  AFTER UPDATE ON public.listings
-  FOR EACH ROW
-  EXECUTE PROCEDURE public.log_listing_lifecycle_audit();

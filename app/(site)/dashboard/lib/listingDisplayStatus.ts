@@ -1,3 +1,11 @@
+import { 
+  isValidLifecycleStatus,
+  getVisibilityBucket,
+  getStatusLabel,
+  getStatusChipClass,
+  type ListingLifecycleStatus
+} from "@/app/lib/clasificados/listingLifecycleDomain";
+
 export type Lang = "es" | "en";
 
 export type ListingUiStatus =
@@ -15,59 +23,78 @@ type RowLike = {
   is_published?: boolean | null;
 };
 
+/**
+ * Resolve legacy UI status from database row using canonical lifecycle domain.
+ * Handles both legacy `listings` table and category-specific tables.
+ */
 export function resolveListingUiStatus(row: RowLike): ListingUiStatus {
   const st = String(row.status ?? "active").toLowerCase().trim() || "active";
+  
+  // Handle is_published flag (legacy)
   if (row.is_published === false) return "draft";
+  
+  // Try canonical status mapping first
+  if (isValidLifecycleStatus(st)) {
+    const canonical = st as ListingLifecycleStatus;
+    const bucket = getVisibilityBucket(canonical);
+    
+    switch (bucket) {
+      case "public":
+        return "active";
+      case "pre_publish":
+        return canonical === "pending_review" ? "pending" : "draft";
+      case "suspended":
+        return "paused";
+      case "inactive":
+        if (canonical === "sold") return "sold";
+        if (canonical === "expired") return "expired";
+        return "archived";
+    }
+  }
+  
+  // Legacy fallback mapping
   if (st === "sold") return "sold";
   if (st === "expired") return "expired";
   if (st === "paused") return "paused";
   if (st === "pending" || st === "flagged") return "pending";
   if (st === "unpublished" || st === "removed" || st === "archived") return "archived";
   if (st === "active") return "active";
+  
   return "unknown";
 }
 
 export function listingUiStatusLabel(status: ListingUiStatus, lang: Lang): string {
-  const es: Record<ListingUiStatus, string> = {
-    draft: "Borrador",
-    pending: "Pendiente",
-    active: "Activo",
-    paused: "Pausado",
-    expired: "Expirado",
-    sold: "Vendido",
-    archived: "Archivado",
-    unknown: "Estado",
+  // Map UI status to canonical status for consistent labeling
+  const canonicalMapping: Record<ListingUiStatus, ListingLifecycleStatus> = {
+    draft: "draft",
+    pending: "pending_review",
+    active: "active",
+    paused: "paused",
+    expired: "expired", 
+    sold: "sold",
+    archived: "archived",
+    unknown: "draft" // fallback
   };
-  const en: Record<ListingUiStatus, string> = {
-    draft: "Draft",
-    pending: "Pending",
-    active: "Active",
-    paused: "Paused",
-    expired: "Expired",
-    sold: "Sold",
-    archived: "Archived",
-    unknown: "Status",
-  };
-  return lang === "es" ? es[status] : en[status];
+  
+  const canonicalStatus = canonicalMapping[status];
+  return getStatusLabel(canonicalStatus, lang);
 }
 
 export function listingUiStatusChipClass(status: ListingUiStatus): string {
-  switch (status) {
-    case "active":
-      return "bg-emerald-100 text-emerald-900";
-    case "sold":
-    case "archived":
-    case "expired":
-      return "bg-[#E8DFD0] text-[#5C5346]";
-    case "pending":
-      return "bg-amber-100 text-amber-950";
-    case "paused":
-      return "bg-sky-100 text-sky-950";
-    case "draft":
-      return "border border-amber-200 bg-amber-50 text-amber-900";
-    default:
-      return "bg-[#FAF7F2] text-[#5C5346]";
-  }
+  // Map UI status to canonical status for consistent styling
+  const canonicalMapping: Record<ListingUiStatus, ListingLifecycleStatus> = {
+    draft: "draft",
+    pending: "pending_review",
+    active: "active",
+    paused: "paused",
+    expired: "expired",
+    sold: "sold", 
+    archived: "archived",
+    unknown: "draft" // fallback
+  };
+  
+  const canonicalStatus = canonicalMapping[status];
+  return getStatusChipClass(canonicalStatus);
 }
 
 /** Short public reference from UUID (first 8 hex without dashes). */
