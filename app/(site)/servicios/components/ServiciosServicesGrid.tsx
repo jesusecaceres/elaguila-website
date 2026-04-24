@@ -9,6 +9,7 @@ import type {
 } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
+import { resolveServiciosQuoteDestination } from "../lib/serviciosContactActions";
 import { SV } from "./serviciosDesignTokens";
 import { FiBriefcase, FiLayers, FiMessageCircle, FiSettings, FiTool, FiZap } from "react-icons/fi";
 
@@ -59,14 +60,52 @@ function featuredGridClass(count: number): string {
   return "grid grid-cols-1 gap-4 sm:grid-cols-2 w-full";
 }
 
+// Simple emoji mapping for service categories
+const getServiceEmoji = (serviceName: string): string => {
+  const name = serviceName.toLowerCase();
+  if (name.includes('plomería') || name.includes('fontanería') || name.includes('reparación') || name.includes('instalación')) return '🔧';
+  if (name.includes('auto') || name.includes('carro') || name.includes('coche') || name.includes('mecánico')) return '🚗';
+  if (name.includes('salud') || name.includes('médico') || name.includes('doctor') || name.includes('enfermería')) return '🩺';
+  if (name.includes('belleza') || name.includes('peluquería') || name.includes('cabello') || name.includes('spa')) return '✂️';
+  if (name.includes('legal') || name.includes('abogado') || name.includes('ley') || name.includes('notaría')) return '⚖️';
+  if (name.includes('educación') || name.includes('clases') || name.includes('tutor') || name.includes('curso')) return '📚';
+  if (name.includes('fiesta') || name.includes('evento') || name.includes('celebración') || name.includes('música')) return '🎉';
+  if (name.includes('tecnología') || name.includes('computadora') || name.includes('web') || name.includes('soporte')) return '💻';
+  if (name.includes('limpieza') || name.includes('aseo') || name.includes('mantenimiento')) return '🧹';
+  if (name.includes('construcción') || name.includes('obra') || name.includes('albañil')) return '🏗️';
+  if (name.includes('jardín') || name.includes('paisaje') || name.includes('jardinería')) return '🌱';
+  return '✅'; // Default emoji
+};
+
 export function ServiciosServicesGrid({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
   const L = getServiciosProfileLabels(lang);
   const items = profile.services;
   const [expanded, setExpanded] = useState(false);
   if (!items.length) return null;
 
-  const featured = items.slice(0, 4);
-  const rest = items.slice(4);
+  const quoteDestination = resolveServiciosQuoteDestination(profile, lang);
+  
+  const handleServiceQuoteClick = (serviceName: string) => {
+    if (!quoteDestination) return;
+    
+    let message = lang === "en" 
+      ? "Hi, I saw your profile on Leonix and would like to request a quote."
+      : "Hola, vi tu perfil en Leonix y quiero pedir una cotización.";
+    
+    message += lang === "en" 
+      ? ` for ${serviceName}`
+      : ` para ${serviceName}`;
+    
+    if (quoteDestination.kind === "whatsapp") {
+      const encodedMessage = encodeURIComponent(message);
+      window.open(`${quoteDestination.href}?text=${encodedMessage}`, "_blank", "noopener noreferrer");
+    } else {
+      window.open(quoteDestination.href, "_blank", "noopener noreferrer");
+    }
+  };
+
+  const featured = items.slice(0, 8);
+  const rest = items.slice(8);
   const showMore = rest.length > 0 && !expanded;
   const visibleExtra = expanded ? rest : [];
 
@@ -84,68 +123,17 @@ export function ServiciosServicesGrid({ profile, lang }: { profile: ServiciosPro
         ) : null}
       </div>
 
-      <div className={`mt-6 ${featuredGridClass(featured.length)}`}>
-        {featured.map((s) => {
-          const hasPhoto = Boolean(s.imageUrl);
-          const variant = s.visualVariant ?? "default";
-          const { gradient, Icon, glyph } = variantSurface(variant);
-
-          return (
-            <article
-              key={s.id}
-              className="group overflow-hidden rounded-2xl border border-black/[0.07] bg-white shadow-[0_8px_30px_rgba(30,24,16,0.06)] transition hover:shadow-[0_12px_36px_rgba(45,82,141,0.12)]"
-            >
-              <div
-                className={[
-                  "relative w-full overflow-hidden",
-                  featured.length <= 2 ? "aspect-[4/3] sm:aspect-[5/3]" : "aspect-[4/3] sm:aspect-[16/10]",
-                ].join(" ")}
-              >
-                {hasPhoto && s.imageUrl ? (
-                  <>
-                    <Image
-                      src={s.imageUrl}
-                      alt={s.imageAlt}
-                      fill
-                      className="object-cover transition duration-300 group-hover:scale-[1.03]"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
-                      unoptimized={serviciosImageUnoptimized(s.imageUrl)}
-                    />
-                    <div
-                      className="absolute inset-x-0 bottom-0 px-3 py-3 sm:px-4 sm:py-3.5"
-                      style={{
-                        background: `linear-gradient(to top, rgba(45,82,141,0.96) 0%, rgba(45,82,141,0.35) 55%, transparent 100%)`,
-                      }}
-                    >
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-white/90" aria-hidden>
-                        {glyph}
-                      </span>
-                      <h3 className="mt-1 text-sm font-bold leading-snug text-white drop-shadow-sm sm:text-[15px]">{s.title}</h3>
-                      {s.secondaryLine.trim() ? (
-                        <p className="mt-0.5 text-xs font-medium text-white/90">{s.secondaryLine}</p>
-                      ) : null}
-                    </div>
-                  </>
-                ) : (
-                  <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-5" style={{ background: gradient }}>
-                    <div
-                      className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10"
-                      aria-hidden
-                    />
-                    <span className="relative z-[1] text-xs font-bold uppercase tracking-wider text-white/85" aria-hidden>
-                      {glyph}
-                    </span>
-                    <Icon className="relative z-[1] mb-2 mt-2 h-7 w-7 text-white/90 drop-shadow sm:h-8 sm:w-8" aria-hidden />
-                    <h3 className="relative z-[1] text-sm font-bold leading-snug text-white drop-shadow-sm sm:text-[15px]">{s.title}</h3>
-                    {s.secondaryLine.trim() ? (
-                      <p className="relative z-[1] mt-1 text-xs font-medium text-white/85">{s.secondaryLine}</p>
-                    ) : null}
-                  </div>
-                )}
-              </div>
-            </article>
-          );
-        })}
+      <div className="mt-6 flex flex-wrap gap-2">
+        {featured.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => quoteDestination && handleServiceQuoteClick(s.title)}
+            className={`inline-flex items-center gap-2 rounded-full border border-[#3B66AD]/20 bg-white px-3 py-2 text-sm font-medium text-[color:var(--lx-text)] shadow-sm transition hover:border-[#3B66AD]/40 hover:shadow-md ${quoteDestination ? 'cursor-pointer hover:bg-[#3B66AD]/5' : 'cursor-default'}`}
+          >
+            <span className="text-base">{getServiceEmoji(s.title)}</span>
+            <span>{s.title}</span>
+          </button>
+        ))}
       </div>
 
       {showMore ? (
@@ -160,60 +148,18 @@ export function ServiciosServicesGrid({ profile, lang }: { profile: ServiciosPro
 
       {visibleExtra.length > 0 ? (
         <div className="mt-6 border-t border-black/[0.06] pt-6">
-          <div className={`${featuredGridClass(Math.min(visibleExtra.length, 4))}`}>
-            {visibleExtra.map((s) => {
-              const hasPhoto = Boolean(s.imageUrl);
-              const variant = s.visualVariant ?? "default";
-              const { gradient, Icon, glyph } = variantSurface(variant);
-              return (
-                <article
-                  key={s.id}
-                  className="group overflow-hidden rounded-2xl border border-black/[0.06] bg-white shadow-sm transition hover:shadow-md"
-                >
-                  <div className={["relative w-full overflow-hidden", "aspect-[4/3]"].join(" ")}>
-                    {hasPhoto && s.imageUrl ? (
-                      <>
-                        <Image
-                          src={s.imageUrl}
-                          alt={s.imageAlt}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 640px) 100vw, 50vw"
-                          unoptimized={serviciosImageUnoptimized(s.imageUrl)}
-                        />
-                        <div
-                          className="absolute inset-x-0 bottom-0 px-3 py-2.5"
-                          style={{
-                            background: `linear-gradient(to top, rgba(45,82,141,0.95) 0%, transparent 100%)`,
-                          }}
-                        >
-                          <span className="text-[10px] font-bold text-white/90" aria-hidden>
-                            {glyph}
-                          </span>
-                          <h3 className="mt-0.5 text-sm font-bold text-white">{s.title}</h3>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="absolute inset-0 flex flex-col justify-end p-4" style={{ background: gradient }}>
-                        <span className="text-xs font-bold text-white/85" aria-hidden>
-                          {glyph}
-                        </span>
-                        <Icon className="mb-2 mt-1 h-6 w-6 text-white/90" aria-hidden />
-                        <h3 className="text-sm font-bold text-white">{s.title}</h3>
-                      </div>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
+          <div className="flex flex-wrap gap-2">
+            {visibleExtra.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => quoteDestination && handleServiceQuoteClick(s.title)}
+                className={`inline-flex items-center gap-2 rounded-full border border-[#3B66AD]/20 bg-white px-3 py-2 text-sm font-medium text-[color:var(--lx-text)] shadow-sm transition hover:border-[#3B66AD]/40 hover:shadow-md ${quoteDestination ? 'cursor-pointer hover:bg-[#3B66AD]/5' : 'cursor-default'}`}
+              >
+                <span className="text-base">{getServiceEmoji(s.title)}</span>
+                <span>{s.title}</span>
+              </button>
+            ))}
           </div>
-          <button
-            type="button"
-            className="mt-4 w-full rounded-xl border border-transparent py-2 text-sm font-semibold text-[color:var(--lx-muted)] hover:text-[#3B66AD]"
-            onClick={() => setExpanded(false)}
-          >
-            {L.showLessServices}
-          </button>
         </div>
       ) : null}
     </section>

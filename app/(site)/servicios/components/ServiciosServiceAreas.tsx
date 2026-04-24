@@ -18,18 +18,21 @@ export function ServiciosServiceAreas({ profile, lang }: { profile: ServiciosPro
     >
       <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">{L.serviceAreas}</h2>
 
-      <ul className="mt-5 flex flex-col gap-2">
+      <div className="mt-5 flex flex-wrap gap-2">
         {areas.map((a) => (
-          <li key={a.id} className="flex items-start gap-2 text-sm font-medium leading-snug text-[color:var(--lx-text-2)]">
+          <div
+            key={a.id}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#3B66AD]/20 bg-[#3B66AD]/[0.06] px-3 py-1.5 text-xs font-medium text-[color:var(--lx-text)]"
+          >
             {a.kind === "neighborhood" ? (
-              <FiHome className="h-4 w-4 shrink-0 text-[#3B66AD]" aria-hidden />
+              <FiHome className="h-3.5 w-3.5 text-[#3B66AD]" aria-hidden />
             ) : (
-              <FiMapPin className="h-4 w-4 shrink-0 text-[#3B66AD]" aria-hidden />
+              <FiMapPin className="h-3.5 w-3.5 text-[#3B66AD]" aria-hidden />
             )}
             {a.label}
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     </section>
   );
 }

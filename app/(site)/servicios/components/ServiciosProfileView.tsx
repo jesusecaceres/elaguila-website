@@ -10,6 +10,7 @@ import { ServiciosQuickFacts } from "./ServiciosQuickFacts";
 import { ServiciosAbout } from "./ServiciosAbout";
 import { ServiciosServicesGrid } from "./ServiciosServicesGrid";
 import { ServiciosGallery } from "./ServiciosGallery";
+import { ServiciosOfferCard } from "./ServiciosOfferCard";
 import { ServiciosTrustSection } from "./ServiciosTrustSection";
 import { ServiciosReviews } from "./ServiciosReviews";
 import { ServiciosServiceAreas } from "./ServiciosServiceAreas";
@@ -82,6 +83,7 @@ export function ServiciosProfileView({
             {analyticsListingSlug && showPublicConversionForms ? (
               <ServiciosLeadInquiryForm listingSlug={analyticsListingSlug} lang={lang} />
             ) : null}
+            <ServiciosOfferCard profile={profile} lang={lang} />
             {hasAboutSectionResolved(profile) ? <ServiciosAbout profile={profile} lang={lang} /> : null}
             <ServiciosServicesGrid profile={profile} lang={lang} />
             <ServiciosGallery profile={profile} lang={lang} />

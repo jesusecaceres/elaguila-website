@@ -3,6 +3,7 @@ import type { ServiciosGalleryVideo, ServiciosProfileResolved, ServiciosLang } f
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
 import { parseYouTubeVideoId, youTubeEmbedSrc } from "../lib/serviciosVideoEmbed";
+import { resolveServiciosQuoteDestination } from "../lib/serviciosContactActions";
 import { SV } from "./serviciosDesignTokens";
 
 function VideoTile({ v, lang }: { v: ServiciosGalleryVideo; lang: ServiciosLang }) {
@@ -27,10 +28,10 @@ function VideoTile({ v, lang }: { v: ServiciosGalleryVideo; lang: ServiciosLang 
   );
 }
 
-function FeaturedImage({ g, aspectClass }: { g: { id: string; url: string; alt: string }; aspectClass: string }) {
+function FeaturedImage({ g, aspectClass, onQuoteClick }: { g: { id: string; url: string; alt: string }; aspectClass: string; onQuoteClick?: () => void }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-xl border border-black/[0.06] bg-black/[0.03] shadow-sm ${aspectClass}`}
+      className={`group relative overflow-hidden rounded-xl border border-black/[0.06] bg-black/[0.03] shadow-sm ${aspectClass}`}
     >
       <Image
         src={g.url}
@@ -40,6 +41,18 @@ function FeaturedImage({ g, aspectClass }: { g: { id: string; url: string; alt: 
         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
         unoptimized={serviciosImageUnoptimized(g.url)}
       />
+      {onQuoteClick ? (
+        <div className="absolute inset-0 bg-black/0 opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <button
+              onClick={onQuoteClick}
+              className="rounded-lg bg-white/95 px-4 py-2 text-sm font-semibold text-[#3B66AD] shadow-lg transition hover:bg-white"
+            >
+              Quiero algo como esto
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -52,6 +65,23 @@ export function ServiciosGallery({ profile, lang }: { profile: ServiciosProfileR
   const mains = profile.gallery;
   const more = profile.galleryMore;
   const videos = profile.galleryVideos;
+
+  const quoteDestination = resolveServiciosQuoteDestination(profile, lang);
+
+  const handleGalleryQuoteClick = () => {
+    if (!quoteDestination) return;
+
+    const message = lang === "en"
+      ? "Hi, I saw your profile on Leonix and would like something like this."
+      : "Hola, vi tu perfil en Leonix y quiero algo como esto.";
+
+    if (quoteDestination.kind === "whatsapp") {
+      const encodedMessage = encodeURIComponent(message);
+      window.open(`${quoteDestination.href}?text=${encodedMessage}`, "_blank", "noopener noreferrer");
+    } else {
+      window.open(quoteDestination.href, "_blank", "noopener noreferrer");
+    }
+  };
 
   if (mains.length === 0 && more.length === 0 && videos.length === 0) return null;
 
@@ -75,23 +105,17 @@ export function ServiciosGallery({ profile, lang }: { profile: ServiciosProfileR
       <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">{L.gallery}</h2>
 
       {mains.length > 0 ? (
-        <div className="mt-6 space-y-4 md:space-y-5">
-          {row1.length > 0 ? (
-            <div
-              className={`grid gap-3 md:gap-4 ${row1.length === 1 ? "grid-cols-1 max-w-4xl mx-auto" : "grid-cols-1 sm:grid-cols-2"}`}
-            >
-              {row1.map((g) => (
-                <FeaturedImage key={g.id} g={g} aspectClass={mains.length === 1 ? featuredLargeAspect : featuredLargeAspect} />
-              ))}
-            </div>
-          ) : null}
-          {row2.length > 0 ? (
-            <div className={`grid gap-3 md:gap-4 ${row2.length === 1 ? "grid-cols-1 max-w-3xl mx-auto" : "grid-cols-1 sm:grid-cols-2"}`}>
-              {row2.map((g) => (
-                <FeaturedImage key={g.id} g={g} aspectClass={featuredSmallAspect} />
-              ))}
-            </div>
-          ) : null}
+        <div className="mt-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {mains.map((g, index) => (
+              <FeaturedImage 
+                key={g.id} 
+                g={g} 
+                aspectClass={index === 0 && mains.length === 1 ? featuredLargeAspect : featuredSmallAspect} 
+                onQuoteClick={handleGalleryQuoteClick} 
+              />
+            ))}
+          </div>
         </div>
       ) : null}
 

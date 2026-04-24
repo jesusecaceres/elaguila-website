@@ -1,9 +1,11 @@
 import Image from "next/image";
-import { FiMapPin } from "react-icons/fi";
+import { useState } from "react";
+import { FiMapPin, FiShare2, FiBookmark } from "react-icons/fi";
 import { FaCheckCircle } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
+import { resolveServiciosQuoteDestination } from "../lib/serviciosContactActions";
 import { ServiciosStarRating } from "./ServiciosStarRating";
 import { SV } from "./serviciosDesignTokens";
 
@@ -19,6 +21,73 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
   const reviewCount = hero.reviewCount;
   const about = profile.about;
   const heroFacts = profile.quickFacts.slice(0, 3);
+
+  const quoteDestination = resolveServiciosQuoteDestination(profile, lang);
+  
+  const handleQuoteClick = (serviceName?: string) => {
+    if (!quoteDestination) return;
+    
+    let message = lang === "en" 
+      ? "Hi, I saw your profile on Leonix and would like to request a quote."
+      : "Hola, vi tu perfil en Leonix y quiero pedir una cotización.";
+    
+    if (serviceName) {
+      message += lang === "en" 
+        ? ` for ${serviceName}`
+        : ` para ${serviceName}`;
+    }
+    
+    if (quoteDestination.kind === "whatsapp") {
+      const encodedMessage = encodeURIComponent(message);
+      window.open(`${quoteDestination.href}?text=${encodedMessage}`, "_blank", "noopener noreferrer");
+    } else {
+      window.open(quoteDestination.href, "_blank", "noopener noreferrer");
+    }
+  };
+
+  // Share functionality
+  const handleShare = async () => {
+    const url = window.location.href;
+    const title = identity.businessName;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+      } catch (err) {
+        // User cancelled or error, fallback to copy
+        copyToClipboard(url);
+      }
+    } else {
+      copyToClipboard(url);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      // Could add toast notification here
+      console.log('URL copied to clipboard');
+    });
+  };
+
+  // Save functionality
+  const getSaveKey = () => `servicios-saved-${profile.identity.slug}`;
+  
+  const [isSaved, setIsSaved] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem(getSaveKey()) === 'true';
+  });
+
+  const handleSave = () => {
+    const saved = !isSaved;
+    setIsSaved(saved);
+    if (typeof window !== 'undefined') {
+      if (saved) {
+        localStorage.setItem(getSaveKey(), 'true');
+      } else {
+        localStorage.removeItem(getSaveKey());
+      }
+    }
+  };
 
   const headlineSub =
     hero.categoryLine && hero.locationSummary
@@ -59,19 +128,19 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
           >
             <div className="flex gap-4">
               {hero.logoUrl ? (
-                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-black/[0.06] bg-white shadow-sm sm:h-[72px] sm:w-[72px]">
+                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-black/[0.06] bg-white shadow-sm sm:h-24 sm:w-24">
                   <Image
                     src={hero.logoUrl}
                     alt={hero.logoAlt || identity.businessName}
                     fill
                     className="object-cover"
-                    sizes="72px"
+                    sizes="96px"
                     unoptimized={serviciosImageUnoptimized(hero.logoUrl)}
                   />
                 </div>
               ) : (
                 <div
-                  className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#3B66AD]/20 text-xl font-bold text-white shadow-sm sm:h-[72px] sm:w-[72px]"
+                  className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border border-[#3B66AD]/20 text-2xl font-bold text-white shadow-sm sm:h-24 sm:w-24"
                   style={{ background: SV.blue }}
                   aria-hidden
                 >
@@ -79,19 +148,15 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <h1 className="text-xl font-bold leading-tight tracking-tight text-[color:var(--lx-text)] sm:text-2xl md:text-[1.65rem]">
+                <h1 className="text-2xl font-bold leading-tight tracking-tight text-[color:var(--lx-text)] sm:text-3xl md:text-[1.8rem]">
                   {identity.businessName}
                 </h1>
                 {headlineSub ? (
-                  <p className="mt-1.5 text-sm font-medium text-[color:var(--lx-muted)] sm:text-[15px]">{headlineSub}</p>
+                  <p className="mt-2 text-sm font-medium text-[color:var(--lx-muted)] sm:text-base">{headlineSub}</p>
                 ) : null}
 
                 {about?.specialtiesLine ? (
-                  <p className="mt-2 text-sm font-semibold leading-snug text-[#2d528d] sm:text-[15px]">{about.specialtiesLine}</p>
-                ) : null}
-
-                {about?.text ? (
-                  <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)] line-clamp-3 sm:text-[15px]">{about.text}</p>
+                  <p className="mt-2 text-base font-semibold leading-snug text-[#2d528d] sm:text-lg">{about.specialtiesLine}</p>
                 ) : null}
 
                 {rating != null && reviewCount != null ? (
@@ -139,12 +204,35 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
                   </ul>
                 ) : null}
 
-                {hero.locationSummary && !headlineSub?.includes(hero.locationSummary) ? (
-                  <p className="mt-3 flex items-start gap-2 text-sm text-[color:var(--lx-text-2)]">
-                    <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#3B66AD]" aria-hidden />
-                    <span className="min-w-0 break-words">{hero.locationSummary}</span>
-                  </p>
+                {quoteDestination ? (
+                  <button
+                    onClick={() => handleQuoteClick()}
+                    className="mt-4 w-full rounded-xl bg-[#3B66AD] px-4 py-3 text-sm font-bold text-white shadow-lg transition hover:opacity-[0.97] active:scale-[0.99] sm:text-base"
+                  >
+                    {lang === "en" ? "Request quote" : "Pedir cotización"}
+                  </button>
                 ) : null}
+
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={handleShare}
+                    className="flex items-center gap-2 rounded-lg border border-black/[0.08] bg-white px-3 py-2 text-xs font-medium text-[color:var(--lx-text)] shadow-sm transition hover:border-[#3B66AD]/35"
+                  >
+                    <FiShare2 className="h-3.5 w-3.5" />
+                    {lang === "en" ? "Share" : "Compartir"}
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    className={`flex items-center gap-2 rounded-lg border border-black/[0.08] px-3 py-2 text-xs font-medium shadow-sm transition ${
+                      isSaved 
+                        ? 'bg-[#3B66AD]/10 border-[#3B66AD]/35 text-[#3B66AD]' 
+                        : 'bg-white border-black/[0.08] text-[color:var(--lx-text)] hover:border-[#3B66AD]/35'
+                    }`}
+                  >
+                    <FiBookmark className={`h-3.5 w-3.5 ${isSaved ? 'fill-current' : ''}`} />
+                    {isSaved ? (lang === "en" ? "Saved" : "Guardado") : (lang === "en" ? "Save" : "Guardar")}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
