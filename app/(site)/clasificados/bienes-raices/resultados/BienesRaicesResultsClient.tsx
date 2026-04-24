@@ -213,7 +213,7 @@ export function BienesRaicesResultsClient() {
 
       <BienesRaicesResultsHero copy={copy} />
 
-      <div className="mt-8 max-w-5xl space-y-4">
+      <div className="mt-8 max-w-[1280px] space-y-5">
         <BienesRaicesBrConsentStrip lang={lang} />
         {liveFetchErr ? (
           <p className="rounded-2xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 text-sm text-amber-950" role="status">
@@ -274,7 +274,7 @@ export function BienesRaicesResultsClient() {
 
       {showMap ? (
         <section
-          className="mt-6 overflow-hidden rounded-2xl border border-[#E8DFD0]/90 bg-[#FDFBF7]/90 shadow-[0_12px_40px_-24px_rgba(42,36,22,0.25)]"
+          className="mt-6 overflow-hidden rounded-[22px] border border-[#E8DFD0]/85 bg-[#FDFBF7]/95 shadow-[0_20px_56px_-28px_rgba(42,36,22,0.22)]"
           aria-label={copy.mapAsideTitle}
         >
           <div className="grid gap-0 lg:grid-cols-12 lg:items-stretch">
@@ -317,7 +317,7 @@ export function BienesRaicesResultsClient() {
             ))}
           </div>
         ) : (
-          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-6">
+          <div className="mt-8 grid grid-cols-1 gap-7 sm:grid-cols-2 xl:grid-cols-6">
             {displayedListings.map((listing) => (
               <div
                 key={listing.id}

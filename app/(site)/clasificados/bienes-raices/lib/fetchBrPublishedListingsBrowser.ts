@@ -1,4 +1,5 @@
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { isListingRowActiveAndPublishedForBrowse } from "@/app/(site)/clasificados/lib/listingPublicBrowseEligibility";
 import type { BrNegocioListing } from "../resultados/cards/listingTypes";
 import { mapBrListingRowToNegocioCard, type BrListingDbRow } from "../resultados/lib/mapBrListingRowToCard";
 
@@ -54,7 +55,7 @@ export async function fetchBrPublishedListingsForBrowse(opts: {
     }
     const rows = (data ?? []) as BrListingDbRow[];
     const mapped = rows
-      .filter((r) => String(r.status ?? "").toLowerCase() === "active")
+      .filter((r) => isListingRowActiveAndPublishedForBrowse(r))
       .map((r) => mapBrListingRowToNegocioCard(r, opts.lang));
     return { listings: mapped, error: null };
   } catch (e) {

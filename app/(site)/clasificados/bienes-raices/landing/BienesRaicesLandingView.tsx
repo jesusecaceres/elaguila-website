@@ -25,14 +25,16 @@ import { fetchBrPublishedListingsForBrowse } from "../lib/fetchBrPublishedListin
 import type { BrNegocioListing } from "../resultados/cards/listingTypes";
 import { BienesRaicesBrConsentStrip } from "@/app/clasificados/bienes-raices/components/BienesRaicesBrConsentStrip";
 import { getBrLastCity, setBrLastCity } from "@/app/clasificados/bienes-raices/shared/brFirstPartyPrefs";
+import {
+  brLuxuryBtnPrimaryClass,
+  brLuxuryBtnSecondaryClass,
+} from "@/app/clasificados/bienes-raices/shared/brResultsTheme";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { getBrLandingCopy, type BrLandingCopy } from "./bienesRaicesLandingCopy";
 
-const BTN_PRIMARY =
-  "inline-flex min-h-[50px] w-full min-w-0 items-center justify-center rounded-2xl bg-gradient-to-b from-[#D4622F] to-[#C2542D] px-6 py-3.5 text-center text-sm font-bold text-[#FFFCF7] shadow-[0_14px_36px_-12px_rgba(194,84,45,0.55)] transition hover:from-[#C2542D] hover:to-[#A84724] hover:shadow-[0_18px_42px_-10px_rgba(194,84,45,0.45)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9B46A]/55 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F4EFE6] sm:w-auto";
+const BTN_PRIMARY = `${brLuxuryBtnPrimaryClass} min-h-[50px] w-full min-w-0 px-7 py-3.5 text-center text-sm sm:w-auto`;
 
-const BTN_SECONDARY =
-  "inline-flex min-h-[50px] w-full min-w-0 items-center justify-center rounded-2xl border border-[#E8DFD0]/90 bg-gradient-to-b from-white to-[#F5EFE6]/95 px-6 py-3.5 text-center text-sm font-bold text-[#1E1810] shadow-[0_8px_28px_-14px_rgba(42,36,22,0.18)] transition hover:border-[#C9B46A]/55 hover:shadow-[0_12px_32px_-14px_rgba(42,36,22,0.2)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9B46A]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F4EFE6] sm:w-auto";
+const BTN_SECONDARY = `${brLuxuryBtnSecondaryClass} min-h-[50px] w-full min-w-0 px-7 py-3.5 text-center text-sm sm:w-auto`;
 
 const INPUT_CLASS =
   "w-full min-h-[3.25rem] rounded-2xl border border-[#E8DFD0]/90 bg-white/[0.97] py-3 text-sm text-[#1E1810] shadow-[inset_0_2px_4px_rgba(61,54,48,0.04)] outline-none transition placeholder:text-[#5C5346]/36 focus:border-[#C9B46A]/70 focus:bg-white focus:shadow-[inset_0_0_0_1px_rgba(201,180,106,0.25)] focus:ring-2 focus:ring-[#C9B46A]/22";

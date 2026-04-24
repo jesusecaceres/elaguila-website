@@ -10,19 +10,27 @@ import { adminCardBase } from "@/app/admin/_components/adminTheme";
 
 export const dynamic = "force-dynamic";
 
-const INSPECTOR_COLS =
+const INSPECTOR_COLS_WITH_BOOST =
   "id, title, description, city, zip, category, price, is_free, status, owner_id, created_at, images, detail_pairs, boost_expires, is_published, seller_type, business_name, business_meta, contact_phone, contact_email";
+
+const INSPECTOR_COLS_NO_BOOST =
+  "id, title, description, city, zip, category, price, is_free, status, owner_id, created_at, images, detail_pairs, is_published, seller_type, business_name, business_meta, contact_phone, contact_email";
 
 type PageProps = { params: Promise<{ id: string }> };
 
 export default async function AdminRentasListingInspectorPage(props: PageProps) {
   const { id } = await props.params;
   const supabase = getAdminSupabase();
-  const { data, error } = await supabase.from("listings").select(INSPECTOR_COLS).eq("id", id).maybeSingle();
+  let row: Record<string, unknown> | null = null;
+  for (const cols of [INSPECTOR_COLS_WITH_BOOST, INSPECTOR_COLS_NO_BOOST]) {
+    const { data, error } = await supabase.from("listings").select(cols).eq("id", id).maybeSingle();
+    if (!error && data) {
+      row = data as unknown as Record<string, unknown>;
+      break;
+    }
+  }
 
-  if (error || !data) notFound();
-
-  const row = data as Record<string, unknown>;
+  if (!row) notFound();
   if (String(row.category ?? "").toLowerCase() !== "rentas") notFound();
 
   const lx = parseLeonixListingContract(row.detail_pairs);
@@ -70,7 +78,12 @@ export default async function AdminRentasListingInspectorPage(props: PageProps) 
       </div>
 
       <div className={`${adminCardBase} mb-4 space-y-3 p-4 text-sm`}>
-        <h2 className="text-base font-bold text-[#1E1810]">Public listing projection (es)</h2>
+        <h2
+          className="text-base font-bold text-[#1E1810]"
+          data-testid="rentas-admin-public-projection-heading"
+        >
+          Public listing projection (es)
+        </h2>
         <pre className="max-h-[20rem] overflow-auto rounded-lg bg-[#F4FAF2] p-3 text-xs leading-snug text-[#1E3D1F]">
           {JSON.stringify(publicProjectionEs, null, 2)}
         </pre>

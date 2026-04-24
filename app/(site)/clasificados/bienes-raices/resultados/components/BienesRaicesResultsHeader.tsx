@@ -55,7 +55,7 @@ export function BienesRaicesResultsHeader({
 }: Props) {
   const loc = lang === "en" ? "en-US" : "es-MX";
   return (
-    <div className="mt-8 flex flex-col gap-4 border-b border-[#E8DFD0]/60 pb-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mt-8 flex flex-col gap-4 rounded-[20px] border border-[#E8DFD0]/75 bg-[#FDFBF7]/90 px-4 py-4 shadow-[0_14px_44px_-28px_rgba(42,36,22,0.18)] sm:flex-row sm:items-center sm:justify-between sm:px-5">
       <p className="text-sm text-[#5C5346]">
         {copy.resultsCountLine}{" "}
         <span className="font-semibold text-[#1E1810]">
@@ -71,20 +71,20 @@ export function BienesRaicesResultsHeader({
           <select
             value={sort}
             onChange={(e) => onSort(e.target.value)}
-            className="max-w-[min(100vw-2rem,220px)] rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm font-medium text-[#1E1810] outline-none focus:border-[#C9B46A]/65"
+            className="max-w-[min(100vw-2rem,220px)] rounded-xl border border-[#E8DFD0]/90 bg-white/95 px-3 py-2 text-sm font-medium text-[#1E1810] shadow-sm outline-none focus:border-[#C9B46A]/65"
           >
             <option value="reciente">{copy.sortRecent}</option>
             <option value="precio_asc">{copy.sortPriceAsc}</option>
             <option value="precio_desc">{copy.sortPriceDesc}</option>
           </select>
         </label>
-        <div className="flex rounded-lg border border-[#E8DFD0] bg-[#FFFCF7] p-0.5">
+        <div className="flex rounded-xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-1 shadow-inner">
           <button
             type="button"
             aria-pressed={view === "grid"}
             onClick={() => onView("grid")}
             className={
-              "rounded-md p-2 " +
+              "rounded-lg p-2 transition " +
               (view === "grid" ? "bg-white text-[#1E1810] shadow-sm" : "text-[#5C5346] hover:text-[#1E1810]")
             }
             aria-label={copy.viewGridAria}
@@ -96,7 +96,7 @@ export function BienesRaicesResultsHeader({
             aria-pressed={view === "list"}
             onClick={() => onView("list")}
             className={
-              "rounded-md p-2 " +
+              "rounded-lg p-2 transition " +
               (view === "list" ? "bg-white text-[#1E1810] shadow-sm" : "text-[#5C5346] hover:text-[#1E1810]")
             }
             aria-label={copy.viewListAria}

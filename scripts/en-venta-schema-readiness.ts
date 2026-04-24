@@ -21,6 +21,7 @@ const REQUIRED_MIGRATIONS = [
   "supabase/migrations/20250312000001_listing_reports.sql",
   "supabase/migrations/20250313000001_messages.sql",
   "supabase/migrations/20260410140000_messages_read_at.sql",
+  "supabase/migrations/20260423180000_listing_audit_events.sql",
 ] as const;
 
 function loadEnvFiles() {
@@ -83,6 +84,10 @@ function assertRepoMigrations(): void {
     const body = readFileSync(p, "utf8");
     if (rel.includes("messages.sql") && !/CREATE TABLE IF NOT EXISTS messages/i.test(body)) {
       console.error(`BLOCKED_BY_ENV (repo) migration ${rel} does not define messages table`);
+      process.exit(1);
+    }
+    if (rel.includes("listing_audit_events.sql") && !/CREATE TABLE IF NOT EXISTS public\.listing_audit_event/i.test(body)) {
+      console.error(`BLOCKED_BY_ENV (repo) migration ${rel} does not define listing_audit_event table`);
       process.exit(1);
     }
   }
@@ -183,6 +188,17 @@ async function probeLiveDb(): Promise<void> {
     console.error("BLOCKED_BY_RUNTIME", listErr.message, `host=${urlHost}${hint}`);
     process.exit(3);
   }
+
+  const { error: laeErr } = await sb.from("listing_audit_event").select("id").limit(1);
+  if (laeErr) {
+    const msg = String(laeErr.message ?? "");
+    const hint = /could not find the table|does not exist|schema cache/i.test(msg)
+      ? " Apply supabase/migrations/20260423180000_listing_audit_events.sql on this Supabase project (repo migration on disk is not runtime truth)."
+      : "";
+    console.error("BLOCKED_BY_RUNTIME", msg, `host=${urlHost}${hint}`);
+    process.exit(3);
+  }
+  console.log("EN_VENTA_LISTING_AUDIT_DB_OK", `host=${urlHost}`);
 
   console.log("EN_VENTA_SCHEMA_DB_OK", `host=${urlHost} urlRef=${urlRef ?? "?"}`);
 }

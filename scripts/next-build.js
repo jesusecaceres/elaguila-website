@@ -31,10 +31,15 @@ function sleepMs(ms) {
 
 function rmNextDir() {
   const nextDir = path.join(process.cwd(), ".next");
-  try {
-    fs.rmSync(nextDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
-  } catch {
-    // best-effort
+  /** Windows: AV/indexers can leave `.next/export` briefly non-empty during parallel teardown. */
+  for (let i = 0; i < 8; i++) {
+    try {
+      fs.rmSync(nextDir, { recursive: true, force: true, maxRetries: 12, retryDelay: 350 });
+      return;
+    } catch {
+      if (i === 7) return;
+      sleepMs(500 + i * 200);
+    }
   }
 }
 

@@ -30,6 +30,7 @@ loadDotEnvLocal();
 
 export default defineConfig({
   testDir: path.join(root, "e2e"),
+  timeout: 1_800_000,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 0,

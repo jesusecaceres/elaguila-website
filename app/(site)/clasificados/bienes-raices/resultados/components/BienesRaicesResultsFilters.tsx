@@ -7,6 +7,7 @@ import { setBrLastCity } from "@/app/clasificados/bienes-raices/shared/brFirstPa
 import type { BrResultsCopy } from "../bienesRaicesResultsCopy";
 import type { BrResultsParsedState } from "../lib/brResultsUrlState";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { brLuxuryCardClass } from "../../shared/brResultsTheme";
 
 const INPUT =
   "w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/65";
@@ -51,7 +52,7 @@ export function BienesRaicesResultsFilters({ parsed, copy, lang, onPatch, idPref
   };
 
   return (
-    <div className="rounded-2xl border border-[#E8DFD0]/95 bg-[#FDFBF7] p-3 shadow-[0_12px_40px_-22px_rgba(42,36,22,0.2)] sm:p-4">
+    <div className={`${brLuxuryCardClass} p-4 sm:p-5`}>
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
         <div className="min-w-0 flex-1 space-y-3">
           <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-5">

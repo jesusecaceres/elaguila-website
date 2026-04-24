@@ -18,7 +18,9 @@ const SELLER_EMAIL = process.env.SMOKE_SELLER_EMAIL ?? "smoke.seller@yourdomain.
 const SELLER_PASSWORD = process.env.SMOKE_SELLER_PASSWORD ?? "";
 const BUYER_EMAIL = process.env.SMOKE_BUYER_EMAIL ?? "smoke.buyer@yourdomain.com";
 const BUYER_PASSWORD = process.env.SMOKE_BUYER_PASSWORD ?? "";
-const ADMIN_SITE_PASSWORD = process.env.ADMIN_PASSWORD ?? process.env.SMOKE_ADMIN_SITE_PASSWORD;
+const ADMIN_SITE_PASSWORD = String(
+  process.env.ADMIN_PASSWORD ?? process.env.SMOKE_ADMIN_SITE_PASSWORD ?? "",
+).trim();
 
 const DRAFT_PRIV = "rentas-privado-draft-v1";
 const DRAFT_NEG = "rentas-negocio-draft-v1";
@@ -105,6 +107,40 @@ async function seedDraftForNextNavigation(
     },
     { k: key, r: raw },
   );
+}
+
+/** Normalize NBSP / unicode for loose text comparisons on public pages. */
+function nfText(s: string): string {
+  return s.normalize("NFKC").replace(/\u00a0/g, " ").replace(/\u202f/g, " ");
+}
+
+/**
+ * Rent strings as formatted in the **browser** (must match `rentDisplayFromPrice` in
+ * `mapListingRowToRentasPublicListing` — Node `Intl` output can differ from Chromium for `es-MX` USD).
+ */
+async function rentLabelVariantsInBrowser(
+  page: import("@playwright/test").Page,
+  rentDigits: string,
+): Promise<string[]> {
+  return page.evaluate((d) => {
+    const n = Math.round(Number(String(d).replace(/\D/g, "")) || 0);
+    if (!Number.isFinite(n) || n <= 0) return [];
+    const out: string[] = [];
+    for (const loc of ["es-MX", "en-US"] as const) {
+      try {
+        const cur = new Intl.NumberFormat(loc, {
+          style: "currency",
+          currency: "USD",
+          maximumFractionDigits: 0,
+        }).format(n);
+        out.push(cur, loc === "es-MX" ? `${cur} / mes` : `${cur} / mo`);
+      } catch {
+        /* ignore */
+      }
+    }
+    out.push(`$${n} / mes`, `$${n} / mo`, String(n));
+    return out;
+  }, rentDigits);
 }
 
 function listingIdFromUrl(urlStr: string): string | null {
@@ -687,31 +723,17 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
         flow.publish = "PASS";
 
         await expect(page.getByText(def.title, { exact: false }).first()).toBeVisible({ timeout: 60_000 });
-        const detailText = await page.locator("body").innerText();
-        /** Normalize NBSP / unicode so `includes` matches SSR + font shaping. */
-        const nf = (s: string) => s.normalize("NFKC").replace(/\u00a0/g, " ").replace(/\u202f/g, " ");
-        const detailNorm = nf(detailText);
-        const titleShort = def.title.replace(/^(?:\[[^\]]+\])+\s*/, "").trim();
-        const h1Text = nf((await page.locator("h1").first().innerText().catch(() => "")) ?? "");
-        const titleOk =
-          detailNorm.includes(nf(def.title)) ||
-          (titleShort.length > 0 && detailNorm.includes(nf(titleShort))) ||
-          (titleShort.length > 0 && h1Text.includes(nf(titleShort)));
-        const addrHint = String((def.draft as { ubicacionLinea?: string }).ubicacionLinea ?? "").trim().slice(0, 18);
-        const cityOk =
-          detailNorm.includes(nf(def.city)) ||
-          (addrHint.length > 3 && detailNorm.toLowerCase().includes(nf(addrHint).toLowerCase()));
+        await expect(page.getByText(def.city, { exact: false }).first()).toBeVisible({ timeout: 30_000 });
+        const detailNorm = nfText(await page.locator("body").innerText());
         const rentDigits = String(def.keyValues.rent ?? "").replace(/\D/g, "");
-        const rentNum = Number(rentDigits);
-        const rentFormatted = Number.isFinite(rentNum) && rentNum > 0 ? rentNum.toLocaleString("en-US") : "";
-        const rentFormattedEs = Number.isFinite(rentNum) && rentNum > 0 ? rentNum.toLocaleString("es-MX") : "";
+        const rentVariants = await rentLabelVariantsInBrowser(page, rentDigits);
         const rentOk =
           rentDigits.length > 0 &&
           (detailNorm.replace(/\D/g, "").includes(rentDigits) ||
-            (!!rentFormatted && detailNorm.includes(rentFormatted)) ||
-            (!!rentFormattedEs && detailNorm.includes(rentFormattedEs)));
-        rep.previewMatchedDetail = titleOk && cityOk && rentOk;
-        flow.publicDetailParity = rep.previewMatchedDetail ? "PASS" : "FAIL";
+            rentVariants.some((v) => v && detailNorm.includes(nfText(v))));
+        expect(rentOk, `public detail should show monthly rent (${rentDigits})`).toBe(true);
+        rep.previewMatchedDetail = true;
+        flow.publicDetailParity = "PASS";
 
         await page.goto("/clasificados/rentas?lang=es");
         const onLanding = await page.getByText(def.title, { exact: false }).count();
@@ -736,13 +758,12 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
       await seedSupabaseSession(page, context, url!, anon!, BUYER_EMAIL, BUYER_PASSWORD);
       const inquiryTarget = samples[0]!;
       await page.goto(inquiryTarget.publicUrl!);
-      await page
-        .getByRole("button", { name: /Consulta por Leonix|Message via Leonix|Enviar mensaje|Send email/i })
-        .first()
-        .click();
-      await expect(page.getByRole("heading", { name: /Contactar por correo|Email contact/i }).first()).toBeVisible({
-        timeout: 30_000,
+      const leonixInquiryBtn = page.getByRole("button", {
+        name: /Consulta por Leonix \(cuenta requerida\)|Message via Leonix \(sign-in required\)/i,
       });
+      await expect(leonixInquiryBtn).toBeVisible({ timeout: 45_000 });
+      await leonixInquiryBtn.click();
+      await expect(page.locator("#en-venta-correo-title")).toBeVisible({ timeout: 45_000 });
       await page.getByPlaceholder(/Tu mensaje|Your message/i).fill("QA Rentas: solicitud de visita (mensaje automático).");
       const send = page.getByRole("button", { name: /Enviar por Leonix|Send via Leonix/i });
       await expect(send).toBeEnabled({ timeout: 30_000 });
@@ -778,13 +799,22 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
       if (ADMIN_SITE_PASSWORD) {
         await page.goto("/admin/login");
         await page.locator('input[name="password"]').fill(ADMIN_SITE_PASSWORD);
-        await page.getByRole("button", { name: "Log in" }).click();
-        await page.waitForURL(/\/admin(\/|$)/, { timeout: 25_000 });
+        await Promise.all([
+          page.waitForURL(
+            (u) => {
+              const p = new URL(u).pathname;
+              return p === "/admin" || p === "/admin/" || p.startsWith("/admin/workspace");
+            },
+            { timeout: 35_000 },
+          ),
+          page.getByRole("button", { name: "Log in" }).click(),
+        ]);
         for (const s of samples) {
           await page.goto(`/admin/workspace/clasificados/rentas/${encodeURIComponent(s.listingId!)}`);
-          await page.waitForLoadState("networkidle", { timeout: 60_000 }).catch(() => {});
-          const ok = await page.getByText(/Public listing projection/i).first().isVisible({ timeout: 45_000 }).catch(() => false);
-          s.flow.adminVisibility = ok ? "PASS" : "FAIL";
+          await page.waitForLoadState("domcontentloaded");
+          await expect(page).toHaveURL(new RegExp(`/admin/workspace/clasificados/rentas/${s.listingId}`));
+          await expect(page.getByTestId("rentas-admin-public-projection-heading")).toBeVisible({ timeout: 60_000 });
+          s.flow.adminVisibility = "PASS";
         }
       }
     } finally {

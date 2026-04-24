@@ -116,6 +116,30 @@ test.describe("Bienes Raíces runtime QA (keep-rows seed → browser surfaces �
       const titlePriv = `${stamp} Privado`;
       const titleNeg = `${stamp} Negocio`;
 
+      // --- DB: lifecycle audit (migration 20260423180000); optional until applied on linked project
+      const probeAudit = await adminClient.from("listing_audit_event").select("id").limit(1);
+      const auditTableLive =
+        !probeAudit.error ||
+        !/PGRST205|does not exist|schema cache|could not find the table/i.test(String(probeAudit.error.message ?? ""));
+      if (!auditTableLive) {
+        test.info().annotations.push({
+          type: "issue",
+          description:
+            "BLOCKED_BY_RUNTIME: public.listing_audit_event missing — apply supabase/migrations/20260423180000_listing_audit_events.sql on the linked Supabase project.",
+        });
+      } else {
+        const { data: auditRows, error: auditErr } = await adminClient
+          .from("listing_audit_event")
+          .select("listing_id,action")
+          .in("listing_id", [privado, negocio]);
+        expect(auditErr, auditErr?.message ?? "").toBeNull();
+        const createdIds = new Set(
+          (auditRows ?? []).filter((r) => r.action === "listing_created").map((r) => r.listing_id as string),
+        );
+        expect(createdIds.has(privado), "listing_audit_event listing_created for privado").toBeTruthy();
+        expect(createdIds.has(negocio), "listing_audit_event listing_created for negocio").toBeTruthy();
+      }
+
       const filterPrivUrl = `${baseURL}/clasificados/bienes-raices/resultados?lang=es&operationType=venta&propertyType=casa&city=Monterrey&pets=true&pool=true&furnished=true&zip=90210&q=${encodeURIComponent(stamp)}`;
       const filterNegUrl = `${baseURL}/clasificados/bienes-raices/resultados?lang=es&operationType=renta&sellerType=negocio&city=Monterrey&q=${encodeURIComponent(stamp)}`;
 
@@ -157,7 +181,9 @@ test.describe("Bienes Raíces runtime QA (keep-rows seed → browser surfaces �
           new URL(r.url()).pathname.replace(/\/+$/, "") === "/api/clasificados/en-venta/inquiry",
         { timeout: 60_000 },
       );
-      await page.getByRole("button", { name: /Correo \(Leonix\)|Email \(Leonix\)/i }).click();
+      await page
+        .getByRole("button", { name: /Correo \(Leonix\)|Email \(Leonix\)|Enviar mensaje|Send message/i })
+        .click();
       await page.getByPlaceholder(/Tu mensaje|Your message/i).fill(`BR runtime QA inquiry ${stamp}`);
       await page.getByRole("button", { name: /Enviar por Leonix|Send via Leonix/i }).click();
       const inq = await inquiryWait;
@@ -183,6 +209,20 @@ test.describe("Bienes Raíces runtime QA (keep-rows seed → browser surfaces �
       });
       const { error: showErr } = await adminClient.from("listings").update({ is_published: true }).eq("id", privado);
       expect(showErr, String(showErr)).toBeNull();
+
+      if (auditTableLive) {
+        const { data: afterUnpub, error: afterUnpubErr } = await adminClient
+          .from("listing_audit_event")
+          .select("action,meta")
+          .eq("listing_id", privado)
+          .order("created_at", { ascending: false })
+          .limit(5);
+        expect(afterUnpubErr, afterUnpubErr?.message ?? "").toBeNull();
+        expect(
+          (afterUnpub ?? []).some((r) => r.action === "listing_unpublished"),
+          "listing_audit_event should capture unpublish (is_published toggle)",
+        ).toBeTruthy();
+      }
     } finally {
       if (seed) {
         await adminClient.from("listings").delete().in("id", [seed.privado, seed.negocio]);
@@ -196,16 +236,6 @@ function normEmail(e: string): string {
 }
 
 async function waitForAnuncioTitle(page: import("@playwright/test").Page, title: string) {
-  await page.waitForFunction(
-    (expected: string) => {
-      const t = document.body?.innerText ?? "";
-      if (t.includes(expected)) return true;
-      if (/anuncio no encontrado|listing not found|could not load|no se pudo cargar/i.test(t)) return true;
-      return false;
-    },
-    title,
-    { timeout: 90_000 },
-  );
-  const body = await page.locator("body").innerText();
-  expect(body).toContain(title);
+  /** Prefer the visible listing `<h1>` (more reliable than `body.innerText` during hydration / layout). */
+  await expect(page.getByRole("heading", { level: 1 }).filter({ hasText: title })).toBeVisible({ timeout: 120_000 });
 }

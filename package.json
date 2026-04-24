@@ -28,6 +28,7 @@
     "verify:empleos:http-smoke": "node scripts/empleos-http-smoke.mjs",
     "verify:empleos:db-read": "npx tsx scripts/empleos-supabase-read-smoke.mts",
     "seed:empleos:manual-qa": "npx playwright test -c playwright.empleos-runtime.config.mjs e2e/empleos/empleos-manual-qa-seed.spec.ts",
+    "seed:en-venta:manual-qa": "npx playwright test -c playwright.config.mjs e2e/en-venta-manual-qa-seed.spec.ts",
     "verify:restaurantes": "npm run verify:restaurantes:launch",
     "verify:restaurantes:http-smoke": "node scripts/restaurantes-http-smoke.mjs",
     "verify:restaurantes:selftest": "npx tsx scripts/restaurantes-launch-selftest.ts",
@@ -44,7 +45,7 @@
     "verify:servicios": "npm run typecheck && npm run lint:servicios && npm run build && npm run verify:servicios:unit && npm run verify:servicios:http-smoke && npm run verify:servicios:e2e",
     "verify:rentas": "npx tsx scripts/rentas-launch-selftest.ts && npx tsx scripts/rentas-field-contract-selftest.ts",
     "verify:rentas:e2e": "npx tsx scripts/rentas-e2e-pipeline-smoke.ts",
-    "verify:rentas:sample-browser-qa": "npx playwright test e2e/rentas/rentas-sample-content-full-qa.spec.ts --config playwright.rentas-start.config.mjs"
+    "verify:rentas:sample-browser-qa": "npx kill-port 3018 3019 && npx playwright test e2e/rentas/rentas-sample-content-full-qa.spec.ts --config playwright.rentas-start.config.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -71,10 +72,13 @@
     "@playwright/test": "^1.51.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.20.0",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "eslint": "^9",
     "eslint-config-next": "^15.0.3",
+    "kill-port": "^2.0.1",
+    "pg": "^8.20.0",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "tsx": "^4.20.5",

@@ -47,7 +47,8 @@ export default defineConfig({
     command: `node node_modules/next/dist/bin/next start -p ${rentasStartPort}`,
     cwd: root,
     url: `${rentasStartBase}/clasificados/rentas?lang=es`,
-    reuseExistingServer: !process.env.CI,
+    /** Always restart so `next start` matches the latest `.next` (local reuse caused stale HTML vs. new admin/test ids). */
+    reuseExistingServer: false,
     timeout: 180_000,
     env: {
       ...process.env,

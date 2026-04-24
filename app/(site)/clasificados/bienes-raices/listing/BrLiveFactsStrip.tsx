@@ -6,6 +6,7 @@ import {
   type BrResultsPropertyKind,
   type LeonixClasificadosBranch,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { brLuxuryCardClass } from "@/app/clasificados/bienes-raices/shared/brResultsTheme";
 
 function branchLaneLabel(branch: LeonixClasificadosBranch, lang: "es" | "en"): string {
   const es: Record<LeonixClasificadosBranch, string> = {
@@ -87,25 +88,25 @@ export function BrLiveFactsStrip({ detailPairs, lang }: { detailPairs: unknown; 
 
   return (
     <section
-      className="mb-6 rounded-2xl border border-emerald-900/15 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-950"
+      className={`mb-6 ${brLuxuryCardClass} p-5 ring-1 ring-[#C9B46A]/10`}
       aria-label={lang === "es" ? "Resumen del inmueble" : "Property summary"}
     >
-      <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-900/60">
-        {lang === "es" ? "Bienes raíces · datos publicados" : "Real estate · published facts"}
+      <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8A6F3A]/90">
+        {lang === "es" ? "Datos publicados" : "Published facts"}
       </div>
-      <div className="mt-2 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
         {chips.map((c) => (
           <span
             key={c}
-            className="inline-flex rounded-full border border-emerald-800/20 bg-white/90 px-2.5 py-1 text-xs font-semibold text-emerald-950"
+            className="inline-flex rounded-full border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 px-3 py-1.5 text-xs font-semibold text-[#2A2620] shadow-sm"
           >
             {c}
           </span>
         ))}
       </div>
       {lx.branch ? (
-        <p className="mt-2 text-[11px] font-semibold text-emerald-900/75">
-          {lang === "es" ? "Perfil de publicación: " : "Listing lane: "}
+        <p className="mt-3 border-t border-[#E8DFD0]/60 pt-3 text-xs font-semibold text-[#5C5346]">
+          <span className="text-[#8A6F3A]">{lang === "es" ? "Perfil: " : "Lane: "}</span>
           {branchLaneLabel(lx.branch, lang)}
         </p>
       ) : null}

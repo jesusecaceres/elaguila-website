@@ -163,7 +163,6 @@ export function EnVentaResultListingCard({
               key={`${u}-${i}`}
               className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] sm:h-14 sm:w-14"
             >
-              { }
               <img src={u} alt="" className="h-full w-full object-cover" />
               {showOverlay ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-[#1E1810]/55 text-xs font-bold text-white">

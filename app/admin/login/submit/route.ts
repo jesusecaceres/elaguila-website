@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
-  const password = (formData.get("password") as string) ?? "";
-  const expected = process.env.ADMIN_PASSWORD ?? "";
+  const password = String(formData.get("password") ?? "").trim();
+  const expected = String(process.env.ADMIN_PASSWORD ?? "").trim();
   if (!expected || password !== expected) {
     return NextResponse.redirect(new URL("/admin/login?error=1", request.url), 303);
   }

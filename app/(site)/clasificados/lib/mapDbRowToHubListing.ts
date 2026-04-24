@@ -1,4 +1,5 @@
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
+import { isListingRowActiveAndPublishedForBrowse } from "./listingPublicBrowseEligibility";
 import {
   HUB_CATEGORY_KEYS,
   type HubCategoryKey,
@@ -74,9 +75,7 @@ function postedAgoFromCreatedHub(createdAt: string | null | undefined): { es: st
 }
 
 export function mapDbRowToHubListing(row: Record<string, unknown>): HubListing | null {
-  if (row.is_published === false) return null;
-  const status = row.status;
-  if (status !== "active") return null;
+  if (!isListingRowActiveAndPublishedForBrowse(row)) return null;
 
   const rawDesc = String(row.description ?? "");
   const blurbText = stripLeonixImagesBlockHub(rawDesc).trim() || rawDesc.trim();
