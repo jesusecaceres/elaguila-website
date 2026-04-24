@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { FaTicketAlt } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
@@ -77,9 +76,9 @@ export function ServiciosOfferCard({ profile, lang }: { profile: ServiciosProfil
         aria-hidden
       />
       {promo.hrefSafe ? (
-        <Link href={promo.hrefSafe} className="relative flex min-w-0 gap-3 no-underline sm:gap-4">
+        <a href={promo.hrefSafe} target="_blank" rel="noopener noreferrer" className="relative flex min-w-0 gap-3 no-underline sm:gap-4">
           {mainBlock}
-        </Link>
+        </a>
       ) : (
         <div className="relative flex min-w-0 gap-3 sm:gap-4">{mainBlock}</div>
       )}
