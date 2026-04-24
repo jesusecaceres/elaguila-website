@@ -25,31 +25,40 @@ export function ServiciosOfferCard({ profile, lang }: { profile: ServiciosProfil
   if (!hasOfferSectionResolved(profile)) return null;
   const promo = profile.promo!;
 
-  const assetLine =
-    promo.assetImageHrefSafe || promo.assetPdfHrefSafe ? (
-      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-[#3B66AD]/15 pt-3 text-xs font-semibold">
-        {promo.assetImageHrefSafe ? (
-          <a
-            href={promo.assetImageHrefSafe}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[#3B66AD] underline-offset-2 hover:underline"
-          >
-            {L.promoViewImage}
-          </a>
-        ) : null}
-        {promo.assetPdfHrefSafe ? (
-          <a
-            href={promo.assetPdfHrefSafe}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[#3B66AD] underline-offset-2 hover:underline"
-          >
-            {L.promoViewPdf}
-          </a>
-        ) : null}
-      </div>
-    ) : null;
+  const actionLine = (
+    <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 border-t border-[#3B66AD]/15 pt-3 text-xs font-semibold">
+      {promo.assetImageHrefSafe ? (
+        <a
+          href={promo.assetImageHrefSafe}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center rounded-lg border border-[#3B66AD]/20 bg-white px-3 py-2 text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/40 hover:shadow"
+        >
+          {L.promoViewImage}
+        </a>
+      ) : null}
+      {promo.assetPdfHrefSafe ? (
+        <a
+          href={promo.assetPdfHrefSafe}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center rounded-lg border border-[#3B66AD]/20 bg-white px-3 py-2 text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/40 hover:shadow"
+        >
+          {L.promoViewPdf}
+        </a>
+      ) : null}
+      {promo.hrefSafe ? (
+        <a
+          href={promo.hrefSafe}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center rounded-lg border border-[#3B66AD]/20 bg-white px-3 py-2 text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/40 hover:shadow"
+        >
+          {L.visitWebsite}
+        </a>
+      ) : null}
+    </div>
+  );
 
   const mainBlock = (
     <>
@@ -75,14 +84,10 @@ export function ServiciosOfferCard({ profile, lang }: { profile: ServiciosProfil
         className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#3B66AD]/10"
         aria-hidden
       />
-      {promo.hrefSafe ? (
-        <a href={promo.hrefSafe} target="_blank" rel="noopener noreferrer" className="relative flex min-w-0 gap-3 no-underline sm:gap-4">
-          {mainBlock}
-        </a>
-      ) : (
-        <div className="relative flex min-w-0 gap-3 sm:gap-4">{mainBlock}</div>
-      )}
-      {assetLine}
+      <div className="relative flex min-w-0 gap-3 sm:gap-4">
+        {mainBlock}
+      </div>
+      {actionLine}
     </div>
   );
 }
