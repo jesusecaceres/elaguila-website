@@ -242,6 +242,72 @@ export default function RestauranteApplicationClient() {
     [draft.featuredDishes, setDraftPatch]
   );
 
+  const formatPhoneNumber = useCallback((phone: string): string => {
+    if (!phone) return "";
+    // Remove all non-numeric characters
+    const cleaned = phone.replace(/\D/g, "");
+    
+    // Handle US phone numbers (10 or 11 digits with leading 1)
+    if (cleaned.length === 10) {
+      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+    } else if (cleaned.length === 11 && cleaned.startsWith("1")) {
+      return `(${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
+    }
+    
+    // Return original if it doesn't match expected format
+    return phone;
+  }, []);
+
+  const normalizePhoneInput = useCallback((input: string): string => {
+    // Allow user to type normally but format on blur
+    return input.replace(/\D/g, "").slice(0, 11);
+  }, []);
+
+  const [featuredUploading, setFeaturedUploading] = useState<Record<number, boolean>>({});
+
+  const uploadFeaturedImage = useCallback(async (index: number, file: File) => {
+    setFeaturedUploading((prev) => ({ ...prev, [index]: true }));
+    setUploadLabels((p) => ({ ...p, [`featured-${index}`]: file.name }));
+    
+    try {
+      const imageDataUrl = await readRestauranteImageAsDataUrl(file);
+      patchFeatured(index, { image: imageDataUrl });
+    } catch (error) {
+      console.error('Failed to upload featured image:', error);
+      setUploadLabels((p) => {
+        const n = { ...p };
+        delete n[`featured-${index}`];
+        return n;
+      });
+    } finally {
+      setFeaturedUploading((prev) => ({ ...prev, [index]: false }));
+    }
+  }, [patchFeatured]);
+
+  const [mediaUploading, setMediaUploading] = useState<Record<string, boolean>>({});
+
+  const uploadHeroImage = useCallback(async (file: File) => {
+    setMediaUploading((prev) => ({ ...prev, hero: true }));
+    setUploadLabels((p) => ({ ...p, hero: file.name }));
+    
+    try {
+      const dataUrl = await readRestauranteImageAsDataUrl(file);
+      if (!dataUrl?.trim().startsWith("data:image")) {
+        throw new Error('Invalid image format');
+      }
+      setDraftPatch({ heroImage: dataUrl });
+    } catch (error) {
+      console.error('Failed to upload hero image:', error);
+      setUploadLabels((p) => {
+        const n = { ...p };
+        delete n.hero;
+        return n;
+      });
+    } finally {
+      setMediaUploading((prev) => ({ ...prev, hero: false }));
+    }
+  }, [setDraftPatch]);
+
   const addFeaturedSlot = useCallback(() => {
     const list = [...(draft.featuredDishes ?? [])];
     if (list.length >= 4) return;
@@ -516,7 +582,7 @@ export default function RestauranteApplicationClient() {
             <div>
               <FieldLabel required>Resumen corto</FieldLabel>
               <HelperText>
-                Línea corta alta en la tarjeta y cabecera de la ficha: quién eres y qué ofreces en una frase o dos.
+                <strong className="text-[color:var(--lx-text-2)]">Resumen rápido para la tarjeta:</strong> quién eres y qué ofreces en una o dos frases. Es lo primero que ve el cliente en resultados y en la cabecera de la ficha.
               </HelperText>
               <textarea
                 className="mt-1 min-h-[88px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
@@ -527,8 +593,7 @@ export default function RestauranteApplicationClient() {
             <div>
               <FieldLabel optional>Descripción larga</FieldLabel>
               <HelperText>
-                Texto tipo «Sobre el negocio» más abajo en el detalle: historia, estilo, ambiente. Opcional; no sustituye al
-                resumen corto.
+                <strong className="text-[color:var(--lx-text-2)]">Sobre el negocio:</strong> historia, estilo, ambiente, detalles del local. Aparece más abajo en la ficha como sección descriptiva; no sustituye al resumen corto de la tarjeta.
               </HelperText>
               <textarea
                 className="mt-1 min-h-[120px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
@@ -536,39 +601,16 @@ export default function RestauranteApplicationClient() {
                 onChange={(e) => setDraftPatch({ longDescription: e.target.value || undefined })}
               />
             </div>
-            <CityAutocomplete
-              lang="es"
-              variant="light"
-              label="Ciudad (canónica NorCal) *"
-              value={draft.cityCanonical}
-              onChange={(v) => setDraftPatch({ cityCanonical: v })}
-              placeholder="Ej. San José"
-            />
-            <HelperText>
-              Ciudad estructurada de NorCal: es la que usamos para filtros y resultados coherentes. No la sustituye la
-              dirección libre de la sección E.
-            </HelperText>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <FieldLabel optional>Barrio / zona</FieldLabel>
-                <HelperText>
-                  Texto libre de barrio o zona: aparece en la tarjeta <strong className="text-[color:var(--lx-text-2)]">«Zona»</strong> de la franja de información rápida, junto a la ciudad canónica. No sustituye la ciudad estructurada ni los filtros NorCal.
-                </HelperText>
-                <input
-                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                  value={draft.neighborhood ?? ""}
-                  onChange={(e) => setDraftPatch({ neighborhood: e.target.value || undefined })}
-                />
-              </div>
-              <div>
-                <FieldLabel optional>Código postal</FieldLabel>
-                <input
-                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                  inputMode="numeric"
-                  value={draft.zipCode ?? ""}
-                  onChange={(e) => setDraftPatch({ zipCode: e.target.value.replace(/\D/g, "").slice(0, 5) || undefined })}
-                />
-              </div>
+            <div>
+              <FieldLabel optional>Zona del restaurante</FieldLabel>
+              <HelperText>
+                Texto libre de zona o distrito: aparece en la tarjeta <strong className="text-[color:var(--lx-text-2)]">«Zona»</strong> de la franja de información rápida, junto a la ciudad canónica. No sustituye la ciudad estructurada ni los filtros NorCal.
+              </HelperText>
+              <input
+                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                value={draft.neighborhood ?? ""}
+                onChange={(e) => setDraftPatch({ neighborhood: e.target.value || undefined })}
+              />
             </div>
             <div>
               <FieldLabel optional>Nivel de precio</FieldLabel>
@@ -590,8 +632,7 @@ export default function RestauranteApplicationClient() {
               <FieldLabel optional>Idiomas</FieldLabel>
               <HelperText>
                 Idiomas en los que el equipo puede atender al cliente en persona, por teléfono o mensaje — no es una lista
-                decorativa. Aparecen en la franja de información rápida como una línea compacta. «Otro» sirve para idiomas no
-                listados; escribe el nombre concreto.
+                decorativa. Aparecen en la franja de información rápida como una línea compacta. Si seleccionas <strong className="text-[color:var(--lx-text-2)]">Otro</strong>, especifica el idioma concreto.
               </HelperText>
               <div className="mt-3 flex flex-wrap gap-2 rounded-xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/40 p-3">
                 {RESTAURANTE_LANGUAGES.map((o) => (
@@ -661,11 +702,44 @@ export default function RestauranteApplicationClient() {
                 <span className="min-w-0">
                   <span className="block text-base font-bold text-[color:var(--lx-text)]">Ubicación móvil</span>
                   <span className="mt-1 block text-xs leading-relaxed text-[color:var(--lx-muted)]">
-                    Al activarlo, se muestra la sección <strong className="text-[color:var(--lx-text-2)]">I · Ubicación móvil</strong>{" "}
+                    Activa la configuración de <strong className="text-[color:var(--lx-text-2)]">ubicación móvil</strong>{" "}
                     (ruta, paradas, avisos).
                   </span>
                 </span>
               </label>
+              {draft.movingVendor && (
+                <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)]/60 bg-[color:var(--lx-section)]/40 p-4">
+                  <p className="text-sm font-semibold text-[color:var(--lx-text)] mb-3">Configuración de ubicación móvil</p>
+                  <div className="space-y-3">
+                    <div>
+                      <FieldLabel optional>Ubicación actual</FieldLabel>
+                      <HelperText>Texto corto de dónde estás hoy (barrio, esquina, evento).</HelperText>
+                      <input
+                        className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                        value={draft.movingVendorStack?.currentLocationText ?? ""}
+                        onChange={(e) =>
+                          setDraftPatch({
+                            movingVendorStack: { ...draft.movingVendorStack, currentLocationText: e.target.value || undefined },
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <FieldLabel optional>URL ubicación</FieldLabel>
+                      <HelperText>Donde suele estar tu aviso actualizado (post, perfil, mapa compartido).</HelperText>
+                      <input
+                        className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                        value={draft.movingVendorStack?.currentLocationUrl ?? ""}
+                        onChange={(e) =>
+                          setDraftPatch({
+                            movingVendorStack: { ...draft.movingVendorStack, currentLocationUrl: e.target.value || undefined },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <div className={PRIMARY_OP_CARD}>
               <label className="flex cursor-pointer items-start gap-3">
@@ -683,17 +757,51 @@ export default function RestauranteApplicationClient() {
                 <span className="min-w-0">
                   <span className="block text-base font-bold text-[color:var(--lx-text)]">Desde casa</span>
                   <span className="mt-1 block text-xs leading-relaxed text-[color:var(--lx-muted)]">
-                    Activa la sección <strong className="text-[color:var(--lx-text-2)]">J · Negocio desde casa</strong>{" "}
+                    Activa la configuración de <strong className="text-[color:var(--lx-text-2)]">negocio desde casa</strong>{" "}
                     (recogida, ventanas, avisos).
                   </span>
                 </span>
               </label>
+              {draft.homeBasedBusiness && (
+                <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)]/60 bg-[color:var(--lx-section)]/40 p-4">
+                  <p className="text-sm font-semibold text-[color:var(--lx-text)] mb-3">Configuración de negocio desde casa</p>
+                  <div className="space-y-3">
+                    <div>
+                      <FieldLabel optional>Instrucciones de recogida</FieldLabel>
+                      <HelperText>Cómo encontrar el lugar, horarios de ventana, detalles de pickup.</HelperText>
+                      <input
+                        className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                        value={draft.homeBasedStack?.pickupInstructions ?? ""}
+                        onChange={(e) =>
+                          setDraftPatch({
+                            homeBasedStack: { ...draft.homeBasedStack, pickupInstructions: e.target.value || undefined },
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <FieldLabel optional>Radio de entrega (millas)</FieldLabel>
+                      <HelperText>Alcance de entrega para tu negocio desde casa.</HelperText>
+                      <input
+                        type="number"
+                        min={0}
+                        className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                        value={draft.homeBasedStack?.deliveryRadiusMiles ?? ""}
+                        onChange={(e) =>
+                          setDraftPatch({
+                            homeBasedStack: { ...draft.homeBasedStack, deliveryRadiusMiles: e.target.value === "" ? undefined : Number(e.target.value) },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <div className={PRIMARY_OP_CARD}>
               <div className="text-base font-bold text-[color:var(--lx-text)]">Catering y eventos</div>
               <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">
-                Si marcas al menos una opción, aparece la sección{" "}
-                <strong className="text-[color:var(--lx-text-2)]">K · Catering y eventos</strong>.
+                Activa la configuración de <strong className="text-[color:var(--lx-text-2)]">catering y eventos</strong>.
               </p>
               <div className="mt-3 space-y-2.5">
                 <label className="flex cursor-pointer items-center gap-2 text-sm">
@@ -725,6 +833,50 @@ export default function RestauranteApplicationClient() {
                   Comida para eventos
                 </label>
               </div>
+              {(draft.cateringAvailable || draft.eventFoodService) && (
+                <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)]/60 bg-[color:var(--lx-section)]/40 p-4">
+                  <p className="text-sm font-semibold text-[color:var(--lx-text)] mb-3">Configuración de catering y eventos</p>
+                  <div className="space-y-3">
+                    <div>
+                      <FieldLabel optional>Tamaños de evento</FieldLabel>
+                      <HelperText>Capacidad de eventos que puedes atender.</HelperText>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {RESTAURANTE_EVENT_SIZES.map((size) => (
+                          <label key={size.key} className="inline-flex items-center gap-1 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={(draft.cateringEventsStack?.eventSizesSupported ?? []).includes(size.key)}
+                              onChange={(e) => {
+                                const current = draft.cateringEventsStack?.eventSizesSupported ?? [];
+                                const next = e.target.checked
+                                  ? [...current, size.key]
+                                  : current.filter((k) => k !== size.key);
+                                setDraftPatch({
+                                  cateringEventsStack: { ...draft.cateringEventsStack, eventSizesSupported: next },
+                                });
+                              }}
+                            />
+                            {size.labelEs}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <FieldLabel optional>URL de consulta de catering</FieldLabel>
+                      <HelperText>Enlace para que los clientes soliciten información de catering.</HelperText>
+                      <input
+                        className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                        value={draft.cateringEventsStack?.cateringInquiryUrl ?? ""}
+                        onChange={(e) =>
+                          setDraftPatch({
+                            cateringEventsStack: { ...draft.cateringEventsStack, cateringInquiryUrl: e.target.value || undefined },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -782,19 +934,34 @@ export default function RestauranteApplicationClient() {
               />
             </div>
           ) : null}
+          {deliveryRelevant && (
+            <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)]/60 bg-[color:var(--lx-section)]/40 p-4">
+              <p className="text-sm font-semibold text-[color:var(--lx-text)] mb-3">Configuración de entrega</p>
+              <div>
+                <FieldLabel optional>Radio de entrega (millas)</FieldLabel>
+                <HelperText>
+                  Alcance aproximado cuando ofreces <strong className="text-[color:var(--lx-text-2)]">entrega</strong>. Déjalo vacío si no entregas o si prefieres no especificar radio.
+                </HelperText>
+                <input
+                  type="number"
+                  min={0}
+                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                  value={draft.deliveryRadiusMiles ?? ""}
+                  onChange={(e) =>
+                    setDraftPatch({
+                      deliveryRadiusMiles: e.target.value === "" ? undefined : Number(e.target.value),
+                    })
+                  }
+                />
+              </div>
+            </div>
+          )}
 
           <p className="mt-8 text-sm font-semibold text-[color:var(--lx-text)]">
-            Capa 3 — Canal y opciones de servicio (complementarios)
+            Opciones de servicio (detalles complementarios)
           </p>
           <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
-            Casillas de apoyo (local, entrega, reservas, food truck, pop-up, chef, etc.): refuerzan el relato operativo y la
-            ficha, pero <strong className="text-[color:var(--lx-text-2)]">no reemplazan</strong> la lista canónica ni los
-            interruptores I / J / K.
-          </p>
-          <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-text-2)]">
-            <strong className="text-[color:var(--lx-text)]">Cómo no confundir términos:</strong> «Food truck» y «Pop-up»
-            describen <em>formato o ubicación</em> del negocio. «Entrega» de la <strong>capa 2</strong> es el modo formal de
-            servicio a domicilio. Pueden convivir (por ejemplo, entrega desde un food truck).
+            Casillas de apoyo que refuerzan el relato operativo en la ficha. No reemplazan la lista canónica de arriba.
           </p>
           <div className={`mt-3 grid gap-2 sm:grid-cols-2 ${SECONDARY_CHANNEL_CLUSTER}`}>
             {(
@@ -880,42 +1047,13 @@ export default function RestauranteApplicationClient() {
               <FieldLabel optional>Nota de horario especial</FieldLabel>
               <HelperText>
                 Aviso <strong className="text-[color:var(--lx-text-2)]">recurrente o general</strong> (p. ej. «cerrado lunes
-                festivos»): no reemplaza la cuadrícula semanal. Se muestra en el resumen de horario cuando aplica y en el bloque
+                festivos», «cocina cierra a las 9 pm»): no reemplaza la cuadrícula semanal. Se muestra en el resumen de horario cuando aplica y en el bloque
                 «Horarios completos» bajo la lista de días.
               </HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.specialHoursNote ?? ""}
                 onChange={(e) => setDraftPatch({ specialHoursNote: e.target.value || undefined })}
-              />
-            </div>
-            <div>
-              <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="mt-0.5"
-                  checked={Boolean(draft.temporaryHoursActive)}
-                  onChange={(e) => setDraftPatch({ temporaryHoursActive: e.target.checked })}
-                />
-                <span className="font-semibold text-[color:var(--lx-text)]">Horario temporal activo</span>
-              </label>
-              <HelperText>
-                Actívalo para cambios <strong className="text-[color:var(--lx-text-2)]">temporales o estacionales</strong>{" "}
-                (obras, feriados extendidos, horario de verano). Mientras esté activo, el estado en la cabecera prioriza tu nota
-                temporal; la cuadrícula sigue visible en «Ver horarios» para referencia.
-              </HelperText>
-            </div>
-            <div>
-              <FieldLabel optional>Nota de horario temporal</FieldLabel>
-              <HelperText>
-                <strong className="text-[color:var(--lx-text-2)]">Mensaje que leerá el cliente:</strong> fechas, horario
-                sustituto, «solo pickup», etc. Aparece en la franja de estado del héroe (con el interruptor activo) y como aviso
-                destacado en «Horarios completos» — es el texto operativo del cambio temporal.
-              </HelperText>
-              <textarea
-                className="mt-1 min-h-[72px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                value={draft.temporaryHoursNote ?? ""}
-                onChange={(e) => setDraftPatch({ temporaryHoursNote: e.target.value || undefined })}
               />
             </div>
           </div>
@@ -950,12 +1088,16 @@ export default function RestauranteApplicationClient() {
             </div>
             <div>
               <FieldLabel optional>Teléfono</FieldLabel>
-              <HelperText>Visible y usable para «Llamar»; también habilita el CTA de SMS si lo activas abajo.</HelperText>
+              <HelperText>Visible y usable para «Llamar»; se formateará automáticamente como (408) 555-1234.</HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.phoneNumber}
                 value={draft.phoneNumber ?? ""}
-                onChange={(e) => setDraftPatch({ phoneNumber: e.target.value || undefined })}
+                onChange={(e) => setDraftPatch({ phoneNumber: normalizePhoneInput(e.target.value) || undefined })}
+                onBlur={(e) => {
+                  const formatted = formatPhoneNumber(e.target.value);
+                  if (formatted) setDraftPatch({ phoneNumber: formatted });
+                }}
               />
             </div>
             <div>
@@ -969,12 +1111,16 @@ export default function RestauranteApplicationClient() {
             </div>
             <div className="sm:col-span-2">
               <FieldLabel optional>WhatsApp (número)</FieldLabel>
-              <HelperText>Genera el botón de WhatsApp con el número en formato internacional.</HelperText>
+              <HelperText>Genera el botón de WhatsApp con el número en formato internacional. Se formateará automáticamente.</HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.whatsAppNumber}
                 value={draft.whatsAppNumber ?? ""}
-                onChange={(e) => setDraftPatch({ whatsAppNumber: e.target.value || undefined })}
+                onChange={(e) => setDraftPatch({ whatsAppNumber: normalizePhoneInput(e.target.value) || undefined })}
+                onBlur={(e) => {
+                  const formatted = formatPhoneNumber(e.target.value);
+                  if (formatted) setDraftPatch({ whatsAppNumber: formatted });
+                }}
               />
             </div>
             <div className="sm:col-span-2 rounded-xl border border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-section)]/30 p-3">
@@ -1031,31 +1177,19 @@ export default function RestauranteApplicationClient() {
                 onChange={(e) => setDraftPatch({ menuUrl: e.target.value || undefined })}
               />
             </div>
-            <div>
-              <FieldLabel optional>Ver ubicación (URL maps)</FieldLabel>
-              <HelperText>
-                Opcional. Si lo rellenas, <strong className="text-[color:var(--lx-text-2)]">tiene prioridad</strong> como
-                consulta de mapa frente a la dirección estructurada de la sección E. Úsalo solo si necesitas un enlace
-                distinto al que generamos con tu dirección.
-              </HelperText>
-              <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.verUbicacionUrl}
-                value={draft.verUbicacionUrl ?? ""}
-                onChange={(e) => setDraftPatch({ verUbicacionUrl: e.target.value || undefined })}
-              />
-            </div>
             <div className="sm:col-span-2">
               <FieldLabel optional>Menú (archivo — vista previa local)</FieldLabel>
               <HelperText>
                 PDF o imagen de la carta guardada en el borrador de sesión: en la vista previa se abre en un visor a pantalla
-                completa (no sustituye a la URL si ambas existen; entonces tendrás botón web + botón archivo).
+                completa. <strong className="text-[color:var(--lx-text-2)]">Estado actual:</strong> {draft.menuFile ? "✅ Archivo aceptado y listo para vista previa" : "⭕ Sin archivo"}
               </HelperText>
               <RestauranteUploadRow
                 buttonLabel="Subir archivo"
                 helperText="PDF o imagen. Se guarda en el borrador de sesión."
                 accept="image/*,application/pdf"
-                selectedLabel={uploadLabels.menu ?? (draft.menuFile ? "Archivo guardado en el borrador" : null)}
+                selectedLabel={
+                  uploadLabels.menu ?? (draft.menuFile ? "✅ Archivo guardado en el borrador" : null)
+                }
                 onFilesSelected={async (files) => {
                   const f = files?.[0];
                   if (!f) {
@@ -1072,88 +1206,24 @@ export default function RestauranteApplicationClient() {
                 }}
               />
               {draft.menuFile ? (
-                <button
-                  type="button"
-                  className="mt-2 text-xs font-semibold text-red-800 underline"
-                  onClick={() => {
-                    setDraftPatch({ menuFile: undefined });
-                    setUploadLabels((p) => {
-                      const n = { ...p };
-                      delete n.menu;
-                      return n;
-                    });
-                  }}
-                >
-                  Quitar archivo
-                </button>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-xs font-medium text-green-700">✅ Archivo aceptado</span>
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-red-800 underline"
+                    onClick={() => {
+                      setDraftPatch({ menuFile: undefined });
+                      setUploadLabels((p) => {
+                        const n = { ...p };
+                        delete n.menu;
+                        return n;
+                      });
+                    }}
+                  >
+                    Quitar archivo
+                  </button>
+                </div>
               ) : null}
-            </div>
-            <div className="sm:col-span-2">
-              <FieldLabel optional>Folleto (archivo)</FieldLabel>
-              <HelperText>
-                PDF o imagen de apoyo (promo, catering, menú degustación). No sustituye al menú principal: aparece como acceso
-                aparte en contacto y, si es PDF/imagen en sesión, se abre en el mismo visor en contexto.
-              </HelperText>
-              <RestauranteUploadRow
-                buttonLabel="Subir archivo"
-                helperText="Imagen o PDF."
-                accept="image/*,application/pdf"
-                selectedLabel={uploadLabels.brochure ?? (draft.brochureFile ? "Archivo guardado en el borrador" : null)}
-                onFilesSelected={async (files) => {
-                  const f = files?.[0];
-                  if (!f) {
-                    setDraftPatch({ brochureFile: undefined });
-                    setUploadLabels((p) => {
-                      const n = { ...p };
-                      delete n.brochure;
-                      return n;
-                    });
-                    return;
-                  }
-                  setUploadLabels((p) => ({ ...p, brochure: f.name }));
-                  setDraftPatch({ brochureFile: await readFileAsDataUrl(f) });
-                }}
-              />
-              {draft.brochureFile ? (
-                <button
-                  type="button"
-                  className="mt-2 text-xs font-semibold text-red-800 underline"
-                  onClick={() => {
-                    setDraftPatch({ brochureFile: undefined });
-                    setUploadLabels((p) => {
-                      const n = { ...p };
-                      delete n.brochure;
-                      return n;
-                    });
-                  }}
-                >
-                  Quitar archivo
-                </button>
-              ) : null}
-            </div>
-            <div className="sm:col-span-2 rounded-xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-card)] p-3">
-              <label
-                className={`flex cursor-pointer items-start gap-2 text-sm ${!phonePresent ? "cursor-not-allowed opacity-60" : ""}`}
-              >
-                <input
-                  type="checkbox"
-                  className="mt-0.5"
-                  disabled={!phonePresent}
-                  checked={Boolean(phonePresent && draft.allowMessageCTA)}
-                  onChange={(e) => setDraftPatch({ allowMessageCTA: e.target.checked })}
-                />
-                <span className="font-semibold text-[color:var(--lx-text)]">Mostrar CTA de mensaje (SMS)</span>
-              </label>
-              <HelperText>
-                {phonePresent ? (
-                  <>
-                    Usará el <strong className="text-[color:var(--lx-text-2)]">número de teléfono</strong> ingresado arriba. El
-                    botón «Mensaje» abre SMS a ese mismo número (formato detectado automáticamente).
-                  </>
-                ) : (
-                  <>Añade primero un teléfono en «Teléfono» para poder activar el SMS.</>
-                )}
-              </HelperText>
             </div>
           </div>
         </section>
@@ -1170,6 +1240,19 @@ export default function RestauranteApplicationClient() {
             exacta; food trucks, pop-ups, cocina en casa o catering suelen combinar privacidad + área de servicio.
           </HelperText>
           <div className="mt-4 grid gap-3">
+            <div>
+              <FieldLabel optional>Ciudad (canónica NorCal)</FieldLabel>
+              <HelperText>
+                Ciudad estructurada de NorCal: es la que usamos para filtros y resultados coherentes. Complementa la dirección libre si la proporcionas.
+              </HelperText>
+              <CityAutocomplete
+                lang="es"
+                variant="light"
+                value={draft.cityCanonical}
+                onChange={(v) => setDraftPatch({ cityCanonical: v })}
+                placeholder="Ej. San José"
+              />
+            </div>
             <div>
               <FieldLabel optional>Dirección línea 1</FieldLabel>
               <HelperText>Calle y número cuando quieras anclar el pin o el bloque de contacto; respeta lo que elijas en privacidad.</HelperText>
@@ -1198,6 +1281,16 @@ export default function RestauranteApplicationClient() {
               />
             </div>
             <div>
+              <FieldLabel optional>Código postal</FieldLabel>
+              <HelperText>Código postal de 5 dígitos; usado con la ciudad canónica para filtros y resultados.</HelperText>
+              <input
+                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                inputMode="numeric"
+                value={draft.zipCode ?? ""}
+                onChange={(e) => setDraftPatch({ zipCode: e.target.value.replace(/\D/g, "").slice(0, 5) || undefined })}
+              />
+            </div>
+            <div>
               <label className="flex cursor-pointer items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -1209,73 +1302,10 @@ export default function RestauranteApplicationClient() {
               </label>
               <HelperText>
                 <strong className="text-[color:var(--lx-text-2)]">Encendido:</strong> típico de local con dirección pública.{" "}
-                <strong className="text-[color:var(--lx-text-2)]">Apagado + privacidad «aproximada» o solo ciudad:</strong> el
-                mapa puede mostrar zona aproximada o cruce en lugar del número exacto — útil para móvil, pop-up o casa.
+                <strong className="text-[color:var(--lx-text-2)]">Apagado:</strong> el mapa puede mostrar zona aproximada o cruce en lugar del número exacto — útil para móvil, pop-up o casa.
               </HelperText>
             </div>
-            <div>
-              <FieldLabel optional>Área de servicio (texto)</FieldLabel>
-              <HelperText>
-                Resumen en lenguaje natural de <em>dónde atiendes</em> (ej. «Península / desde San Mateo hasta SJ»). No
-                sustituye la ciudad canónica ni los filtros; complementa la tarjeta.
-              </HelperText>
-              <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                value={draft.serviceAreaText ?? ""}
-                onChange={(e) => setDraftPatch({ serviceAreaText: e.target.value || undefined })}
-              />
-            </div>
-            <div>
-              <FieldLabel optional>Radio de entrega (millas)</FieldLabel>
-              <HelperText>
-                {deliveryRelevant ? (
-                  <>
-                    Alcance aproximado cuando ofreces <strong className="text-[color:var(--lx-text-2)]">entrega</strong> (marca
-                    «Entrega» en B o el interruptor de entrega). Déjalo vacío si no entregas.
-                  </>
-                ) : (
-                  <>
-                    Solo relevante si ofreces entrega (activa entrega en sección B). Si no aplica, puedes dejarlo vacío.
-                  </>
-                )}
-              </HelperText>
-              <input
-                type="number"
-                min={0}
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                value={draft.deliveryRadiusMiles ?? ""}
-                onChange={(e) =>
-                  setDraftPatch({
-                    deliveryRadiusMiles: e.target.value === "" ? undefined : Number(e.target.value),
-                  })
-                }
-              />
-            </div>
-            <div>
-              <FieldLabel optional>Privacidad de ubicación</FieldLabel>
-              <HelperText>
-                Alinea el listado con tu modelo: exacta = fachada conocida; aproximada = zona o cruce; solo ciudad/zona = sin
-                pin fino. Leonix <strong className="text-[color:var(--lx-text-2)]">no gestiona seguimiento en vivo</strong>: el
-                mapa usa la dirección, esta opción y (si la pegas) la URL manual de D.
-              </HelperText>
-              <select
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                value={draft.locationPrivacyMode ?? ""}
-                onChange={(e) =>
-                  setDraftPatch({
-                    locationPrivacyMode: (e.target.value as RestauranteListingDraft["locationPrivacyMode"]) || undefined,
-                  })
-                }
-              >
-                <option value="">—</option>
-                {RESTAURANTE_LOCATION_PRIVACY.map((o) => (
-                  <option key={o.key} value={o.key}>
-                    {o.labelEs}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+                                  </div>
         </section>
         ) : null}
 
@@ -1338,25 +1368,38 @@ export default function RestauranteApplicationClient() {
                   <div className="sm:col-span-2">
                     <FieldLabel>Imagen</FieldLabel>
                     <HelperText>Foto del plato; sin foto el bloque igual muestra el título con marcador visual.</HelperText>
-                    <RestauranteUploadRow
-                      buttonLabel="Subir imagen"
-                      helperText="Foto del plato."
-                      accept="image/*"
-                      selectedLabel={
-                        uploadLabels[`featured-${i}`] ?? (dish.image ? "Imagen guardada en el borrador" : null)
-                      }
-                      onFilesSelected={async (files) => {
-                        const f = files?.[0];
-                        if (!f) return;
-                        setUploadLabels((p) => ({ ...p, [`featured-${i}`]: f.name }));
-                        patchFeatured(i, { image: await readRestauranteImageAsDataUrl(f) });
-                      }}
-                    />
-                    {dish.image ? (
-                      <div className="relative mt-2 aspect-video w-full max-w-xs overflow-hidden rounded-lg border">
-                        <Image src={dish.image} alt="" fill className="object-cover" unoptimized />
-                      </div>
-                    ) : null}
+                    <div className="space-y-2">
+                      <RestauranteUploadRow
+                        buttonLabel={featuredUploading[i] ? "Subiendo..." : "Subir imagen"}
+                        helperText="Foto del plato."
+                        accept="image/*"
+                        disabled={featuredUploading[i]}
+                        selectedLabel={
+                          featuredUploading[i] 
+                            ? "📤 Procesando imagen..." 
+                            : uploadLabels[`featured-${i}`] ?? (dish.image ? "✅ Imagen guardada en el borrador" : null)
+                        }
+                        onFilesSelected={async (files) => {
+                          const f = files?.[0];
+                          if (!f) return;
+                          await uploadFeaturedImage(i, f);
+                        }}
+                      />
+                      {featuredUploading[i] && (
+                        <div className="flex items-center gap-2 text-xs text-blue-600">
+                          <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                          Procesando imagen...
+                        </div>
+                      )}
+                      {dish.image && !featuredUploading[i] ? (
+                        <div className="relative mt-2 aspect-video w-full max-w-xs overflow-hidden rounded-lg border border-green-200">
+                          <div className="absolute top-1 right-1 z-10 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                            ✅ Lista
+                          </div>
+                          <Image src={dish.image} alt="" fill className="object-cover" unoptimized />
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1402,25 +1445,21 @@ export default function RestauranteApplicationClient() {
                   e.preventDefault();
                   const f = e.dataTransfer.files?.[0];
                   if (!f?.type.startsWith("image/")) return;
-                  try {
-                    const dataUrl = await readRestauranteImageAsDataUrl(f);
-                    if (!dataUrl?.trim().startsWith("data:image")) return;
-                    setDraftPatch({ heroImage: dataUrl });
-                    setUploadLabels((p) => ({ ...p, hero: f.name }));
-                  } catch {
-                    /* ignore */
-                  }
+                  await uploadHeroImage(f);
                 }}
               >
                 <RestauranteUploadRow
-                  buttonLabel="Subir imagen"
+                  buttonLabel={mediaUploading.hero ? "Subiendo..." : "Subir imagen"}
                   helperText="Clic o arrastra una imagen aquí. Miniatura en cuanto se guarde en el borrador de sesión."
                   accept="image/*"
+                  disabled={mediaUploading.hero}
                   selectedLabel={
-                    uploadLabels.hero ??
-                    (draft.heroImage?.trim()
-                      ? "Imagen en el borrador (miniatura abajo)"
-                      : null)
+                    mediaUploading.hero 
+                      ? "📤 Procesando imagen..."
+                      : uploadLabels.hero ??
+                        (draft.heroImage?.trim()
+                          ? "✅ Imagen guardada en el borrador"
+                          : null)
                   }
                   onFilesSelected={async (files) => {
                     const f = files?.[0];
@@ -1433,27 +1472,15 @@ export default function RestauranteApplicationClient() {
                       });
                       return;
                     }
-                    try {
-                      const dataUrl = await readRestauranteImageAsDataUrl(f);
-                      if (!dataUrl?.trim().startsWith("data:image")) {
-                        setUploadLabels((p) => {
-                          const n = { ...p };
-                          delete n.hero;
-                          return n;
-                        });
-                        return;
-                      }
-                      setDraftPatch({ heroImage: dataUrl });
-                      setUploadLabels((p) => ({ ...p, hero: f.name }));
-                    } catch {
-                      setUploadLabels((p) => {
-                        const n = { ...p };
-                        delete n.hero;
-                        return n;
-                      });
-                    }
+                    await uploadHeroImage(f);
                   }}
                 />
+                {mediaUploading.hero && (
+                  <div className="flex items-center gap-2 text-xs text-blue-600 mt-2">
+                    <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    Procesando imagen hero...
+                  </div>
+                )}
               </div>
               {draft.heroImage?.trim() ? (
                 <>
@@ -1590,8 +1617,15 @@ export default function RestauranteApplicationClient() {
               />
               {draft.videoUrl?.trim() && !draft.videoFile?.trim() ? (
                 <div className="mt-2 flex items-center gap-2 rounded-xl border border-[color:var(--lx-gold-border)]/50 bg-[color:var(--lx-section)] px-3 py-2 text-xs text-[color:var(--lx-text-2)]">
-                  <span className="font-semibold text-[color:var(--lx-text)]">Enlace aceptado</span>
-                  <span className="min-w-0 truncate">{draft.videoUrl.trim()}</span>
+                  <span className="font-semibold text-green-600">✅ Enlace de video aceptado</span>
+                  <span className="min-w-0 truncate font-medium">{draft.videoUrl.trim()}</span>
+                  <span className="text-[color:var(--lx-muted)]">Se usará en la galería</span>
+                </div>
+              ) : null}
+              {draft.videoFile?.trim() && !draft.videoUrl?.trim() ? (
+                <div className="mt-2 flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
+                  <span className="font-semibold">✅ Archivo de video local</span>
+                  <span>Se usará en la galería</span>
                 </div>
               ) : null}
             </div>

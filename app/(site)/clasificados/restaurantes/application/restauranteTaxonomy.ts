@@ -133,9 +133,6 @@ export const RESTAURANTE_LOCATION_PRIVACY: TaxonomyOption<RestauranteLocationPri
 export const RESTAURANTE_LANGUAGES: TaxonomyOption[] = [
   { key: "es", labelEs: "Español" },
   { key: "en", labelEs: "Inglés" },
-  { key: "zh", labelEs: "Chino" },
-  { key: "vi", labelEs: "Vietnamita" },
-  { key: "tl", labelEs: "Tagalo" },
   { key: "other_lang", labelEs: "Otro" },
 ];
 

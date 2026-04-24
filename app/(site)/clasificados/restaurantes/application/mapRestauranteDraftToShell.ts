@@ -171,10 +171,8 @@ function buildHoursDetail(d: RestauranteListingDraft): ShellHoursDetail | undefi
     rows.push({ dayLabel: label, line });
   }
   const specialNote = d.specialHoursNote?.trim() || undefined;
-  const temporaryNote =
-    d.temporaryHoursActive && d.temporaryHoursNote?.trim() ? d.temporaryHoursNote.trim() : undefined;
-  if (!rows.length && !specialNote && !temporaryNote) return undefined;
-  return { rows, specialNote, temporaryNote };
+  if (!rows.length && !specialNote) return undefined;
+  return { rows, specialNote };
 }
 
 /** Cabecera: solo identidad principal + secundaria (las adicionales van a chips «Descub.»). */
@@ -215,14 +213,12 @@ function buildPrimaryCtas(d: RestauranteListingDraft): ShellPrimaryCta[] {
     const href = waHref(d.whatsAppNumber!);
     if (href) ctas.push({ key: "whatsapp", label: "WhatsApp", href });
   }
-  if (d.allowMessageCTA) {
-    if (nonEmpty(d.phoneNumber)) {
-      const digits = d.phoneNumber!.replace(/\D/g, "");
-      const sms = digits.length >= 10 ? `sms:+1${digits.slice(-10)}` : `sms:${d.phoneNumber}`;
-      ctas.push({ key: "message", label: "Mensaje (SMS)", href: sms });
-    } else if (nonEmpty(d.email)) {
-      ctas.push({ key: "message", label: "Correo", href: `mailto:${encodeURIComponent(d.email!.trim())}` });
-    }
+  if (nonEmpty(d.phoneNumber)) {
+    const digits = d.phoneNumber!.replace(/\D/g, "");
+    const sms = digits.length >= 10 ? `sms:+1${digits.slice(-10)}` : `sms:${d.phoneNumber}`;
+    ctas.push({ key: "message", label: "Mensaje", href: sms });
+  } else if (nonEmpty(d.email)) {
+    ctas.push({ key: "message", label: "Correo", href: `mailto:${encodeURIComponent(d.email!.trim())}` });
   }
   const hasMenuUrl = nonEmpty(d.menuUrl);
   const hasMenuFile = nonEmpty(d.menuFile);
@@ -325,9 +321,7 @@ function buildContact(d: RestauranteListingDraft): ShellContactBlock | undefined
   const cityLine = [d.cityCanonical, d.state, d.zipCode].filter(nonEmpty).join(", ");
   if (nonEmpty(d.addressLine2)) c.addressLine2 = d.addressLine2!.trim();
   else if (cityLine) c.addressLine2 = cityLine;
-  const mapsQ =
-    (nonEmpty(d.verUbicacionUrl) ? d.verUbicacionUrl!.trim() : "") ||
-    [d.addressLine1, cityLine].filter(nonEmpty).join(", ");
+  const mapsQ = [d.addressLine1, cityLine].filter(nonEmpty).join(", ");
   if (nonEmpty(mapsQ)) c.mapsSearchQuery = mapsQ;
   if (nonEmpty(d.phoneNumber)) {
     c.phoneDisplay = d.phoneNumber!.trim();
@@ -350,10 +344,6 @@ function buildContact(d: RestauranteListingDraft): ShellContactBlock | undefined
     c.menuFileHref = d.menuFile;
     c.menuFileLabel = "Carta / menú (archivo)";
   }
-  if (nonEmpty(d.brochureFile)) {
-    c.brochureFileHref = d.brochureFile;
-    c.brochureFileLabel = "Folleto / material (archivo)";
-  }
   const has =
     c.addressLine1 ||
     c.mapsSearchQuery ||
@@ -365,8 +355,7 @@ function buildContact(d: RestauranteListingDraft): ShellContactBlock | undefined
     c.tiktokHref ||
     c.youtubeHref ||
     c.whatsappHref ||
-    c.menuFileHref ||
-    c.brochureFileHref;
+    c.menuFileHref;
   return has ? c : undefined;
 }
 
