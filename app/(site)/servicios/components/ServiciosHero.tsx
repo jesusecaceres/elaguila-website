@@ -61,7 +61,7 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
           <div
             className="absolute inset-0"
             style={{
-              background: `linear-gradient(135deg, ${SV.blue} 0%, #6b8cc4 45%, #8fa8d4 100%)`,
+              background: `linear-gradient(135deg, ${SV.warm} 0%, ${SV.gold} 45%, ${SV.beige} 100%)`,
             }}
           />
         )}
@@ -71,9 +71,9 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
           <div
             className="w-full max-w-2xl rounded-xl border p-4 shadow-xl sm:rounded-2xl sm:p-5 md:max-w-2xl md:p-7"
             style={{
-              backgroundColor: "rgba(255,255,255,0.97)",
-              borderColor: SV.border,
-              boxShadow: SV.shadow,
+              backgroundColor: "rgba(255,255,255,0.98)",
+              borderColor: SV.goldBorder,
+              boxShadow: SV.shadowPremium,
             }}
           >
             <div className="flex gap-4">

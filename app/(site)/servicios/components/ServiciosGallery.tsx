@@ -137,7 +137,18 @@ export function ServiciosGallery({ profile, lang }: { profile: ServiciosProfileR
 
       {more.length > 0 ? (
         <div className={`${mains.length > 0 || videos.length > 0 ? "mt-10 border-t border-black/[0.06] pt-8" : "mt-6"}`}>
-          <p className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{L.galleryMore}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{L.galleryMore}</p>
+            <button
+              className="text-sm font-medium text-[#3B66AD] transition hover:text-[#2d528d]"
+              onClick={() => {
+                // Could expand to show all photos or open lightbox
+                console.log('View all photos clicked');
+              }}
+            >
+              {lang === "en" ? "View all photos" : "Ver todas las fotos"}
+            </button>
+          </div>
           <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
             {more.map((g) => (
               <div

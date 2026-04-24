@@ -1922,7 +1922,7 @@ export default function RestauranteApplicationClient() {
                   ) : k === "cateringInquiryUrl" ? (
                     <HelperText>Formulario o página donde el cliente pide presupuesto.</HelperText>
                   ) : (
-                    <HelperText>Nota visible en el bloque de catering/eventos.</HelperText>
+                    <HelperText>Añade algo importante para eventos: mínimo de personas, montaje, cargos extra por distancia o condiciones especiales.</HelperText>
                   )}
                   <input
                     className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
@@ -1937,7 +1937,7 @@ export default function RestauranteApplicationClient() {
               ))}
               <div>
                 <FieldLabel optional>Radio de servicio (millas)</FieldLabel>
-                <HelperText>Distancia aproximada donde ofreces catering o servicio en sitio.</HelperText>
+                <HelperText>Distancia aproximada desde tu base de operación donde ofreces catering o servicio en sitio.</HelperText>
                 <input
                   type="number"
                   min={0}

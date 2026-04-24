@@ -128,7 +128,22 @@ export function ServiciosServicesGrid({ profile, lang }: { profile: ServiciosPro
           <button
             key={s.id}
             onClick={() => quoteDestination && handleServiceQuoteClick(s.title)}
-            className={`inline-flex items-center gap-2 rounded-full border border-[#3B66AD]/20 bg-white px-3 py-2 text-sm font-medium text-[color:var(--lx-text)] shadow-sm transition hover:border-[#3B66AD]/40 hover:shadow-md ${quoteDestination ? 'cursor-pointer hover:bg-[#3B66AD]/5' : 'cursor-default'}`}
+            className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium shadow-sm transition hover:shadow-md ${quoteDestination ? 'cursor-pointer' : 'cursor-default'}`}
+            style={{
+              borderColor: SV.warmBorder,
+              backgroundColor: SV.beige,
+              color: SV.text,
+            }}
+            onMouseEnter={(e) => {
+              if (quoteDestination) {
+                e.currentTarget.style.borderColor = SV.goldBorder;
+                e.currentTarget.style.backgroundColor = SV.goldSoft;
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = SV.warmBorder;
+              e.currentTarget.style.backgroundColor = SV.beige;
+            }}
           >
             <span className="text-base">{getServiceEmoji(s.title)}</span>
             <span>{s.title}</span>
@@ -147,13 +162,28 @@ export function ServiciosServicesGrid({ profile, lang }: { profile: ServiciosPro
       ) : null}
 
       {visibleExtra.length > 0 ? (
-        <div className="mt-6 border-t border-black/[0.06] pt-6">
+        <div className="mt-6 border-t pt-6" style={{ borderColor: SV.warmBorder }}>
           <div className="flex flex-wrap gap-2">
             {visibleExtra.map((s) => (
               <button
                 key={s.id}
                 onClick={() => quoteDestination && handleServiceQuoteClick(s.title)}
-                className={`inline-flex items-center gap-2 rounded-full border border-[#3B66AD]/20 bg-white px-3 py-2 text-sm font-medium text-[color:var(--lx-text)] shadow-sm transition hover:border-[#3B66AD]/40 hover:shadow-md ${quoteDestination ? 'cursor-pointer hover:bg-[#3B66AD]/5' : 'cursor-default'}`}
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium shadow-sm transition hover:shadow-md ${quoteDestination ? 'cursor-pointer' : 'cursor-default'}`}
+                style={{
+                  borderColor: SV.warmBorder,
+                  backgroundColor: SV.beige,
+                  color: SV.text,
+                }}
+                onMouseEnter={(e) => {
+                  if (quoteDestination) {
+                    e.currentTarget.style.borderColor = SV.goldBorder;
+                    e.currentTarget.style.backgroundColor = SV.goldSoft;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = SV.warmBorder;
+                  e.currentTarget.style.backgroundColor = SV.beige;
+                }}
               >
                 <span className="text-base">{getServiceEmoji(s.title)}</span>
                 <span>{s.title}</span>
