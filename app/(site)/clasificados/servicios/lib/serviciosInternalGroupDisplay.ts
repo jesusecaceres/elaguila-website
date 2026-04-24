@@ -2,27 +2,25 @@ import type { ServiciosInternalGroup } from "@/app/clasificados/publicar/servici
 
 export const SERVICIOS_INTERNAL_GROUP_IDS: ServiciosInternalGroup[] = [
   "home_trade",
-  "legal",
-  "health",
-  "beauty",
   "automotive",
-  "education",
-  "pets",
-  "moving",
-  "cleaning",
+  "health_beauty",
+  "legal_professional",
+  "education_tutoring",
+  "events_entertainment",
+  "technology_support",
+  "miscellaneous",
   "other",
 ];
 
 const MAP: Record<ServiciosInternalGroup, { es: string; en: string }> = {
   home_trade: { es: "Hogar y oficios", en: "Home & trades" },
-  legal: { es: "Legal", en: "Legal" },
-  health: { es: "Salud", en: "Health" },
-  beauty: { es: "Belleza", en: "Beauty" },
   automotive: { es: "Automotriz", en: "Automotive" },
-  education: { es: "Educación", en: "Education" },
-  pets: { es: "Mascotas", en: "Pets" },
-  moving: { es: "Mudanzas y logística", en: "Moving & logistics" },
-  cleaning: { es: "Limpieza", en: "Cleaning" },
+  health_beauty: { es: "Salud y belleza", en: "Health & beauty" },
+  legal_professional: { es: "Legal y profesional", en: "Legal & professional" },
+  education_tutoring: { es: "Educación y tutoría", en: "Education & tutoring" },
+  events_entertainment: { es: "Eventos y entretenimiento", en: "Events & entertainment" },
+  technology_support: { es: "Tecnología y soporte", en: "Technology & support" },
+  miscellaneous: { es: "Servicios generales", en: "General services" },
   other: { es: "Otros", en: "Other" },
 };
 

@@ -8,14 +8,13 @@ export type ServiciosLang = "es" | "en";
 /** Internal grouping for filters/analytics — never shown in the form copy */
 export type ServiciosInternalGroup =
   | "home_trade"
-  | "legal"
-  | "health"
-  | "beauty"
   | "automotive"
-  | "education"
-  | "pets"
-  | "moving"
-  | "cleaning"
+  | "health_beauty"
+  | "legal_professional"
+  | "education_tutoring"
+  | "events_entertainment"
+  | "technology_support"
+  | "miscellaneous"
   | "other";
 
 export type ChipDef = {
@@ -82,6 +81,8 @@ export type ClasificadosServiciosApplicationState = {
   applicationStepIndex: number;
   businessTypeId: string;
   businessName: string;
+  /** Custom service description when "Otro servicio" is selected */
+  customServiceDescription?: string;
   city: string;
   /** Optional public storefront / mailing address (distinct from discovery `city` anchor). */
   physicalStreet: string;

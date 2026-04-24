@@ -741,12 +741,36 @@ export function ClasificadosServiciosApplication() {
             required
           >
             <option value="">{lang === "es" ? "Selecciona…" : "Select…"}</option>
-            {BUSINESS_TYPE_PRESETS.map((p) => (
+            {BUSINESS_TYPE_PRESETS.filter(p => p.id !== "servicio_no_listado").map((p) => (
               <option key={p.id} value={p.id}>
                 {lang === "en" ? p.labelEn : p.labelEs}
               </option>
             ))}
           </select>
+
+          {state.businessTypeId === "servicio_otro_generico" && (
+            <div className="mt-4">
+              <label className={`block ${labelClass}`}>
+                {lang === "es" ? "Describe tu servicio" : "Describe your service"}
+              </label>
+              <input
+                className={inputClass}
+                value={state.customServiceDescription ?? ""}
+                onChange={(e) => setState((s) => ({ ...s, customServiceDescription: e.target.value }))}
+                placeholder={lang === "es" ? "Ej. Reparación de celulares" : "e.g. Cell phone repair"}
+              />
+            </div>
+          )}
+
+          <div className="mt-4 text-sm">
+            <button
+              type="button"
+              onClick={() => console.log("No veo mi categoría clicked - placeholder for help modal")}
+              className="text-[#3B66AD] underline hover:text-[#2f5699]"
+            >
+              {lang === "es" ? "¿No ves tu categoría?" : "Don't see your category?"}
+            </button>
+          </div>
         </section>
           </>
         ) : null}
