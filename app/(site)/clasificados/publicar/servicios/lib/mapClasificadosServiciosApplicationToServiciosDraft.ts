@@ -45,7 +45,12 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   const businessName = state.businessName.trim();
   const slug = slugifyServiciosBusinessName(businessName || "borrador");
 
-  const categoryLine = preset ? (lang === "en" ? preset.labelEn : preset.labelEs) : undefined;
+  const categoryLine = (() => {
+    if (state.businessTypeId === "servicio_otro_generico" && state.customServiceDescription) {
+      return state.customServiceDescription.trim();
+    }
+    return preset ? (lang === "en" ? preset.labelEn : preset.labelEs) : undefined;
+  })();
 
   const locationParts = [state.city.trim(), state.serviceAreaNotes.trim()].filter(Boolean);
   const locationSummary = locationParts.length ? locationParts.join(" · ").slice(0, 220) : undefined;
