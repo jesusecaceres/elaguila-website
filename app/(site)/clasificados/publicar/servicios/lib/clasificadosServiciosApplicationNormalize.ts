@@ -140,6 +140,8 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
       ? (o.customServiceIncluded as boolean)
       : customServiceLabel.trim().length > 0;
 
+  const customServiceDescription = str("customServiceDescription", d.customServiceDescription ?? "");
+
   return enforceServiciosSelectionCaps({
     applicationStepIndex,
     businessTypeId: str("businessTypeId", d.businessTypeId),
@@ -176,6 +178,7 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     selectedServiceIds,
     customServiceLabel,
     customServiceIncluded,
+    customServiceDescription,
     leonixVerifiedInterest: bool("leonixVerifiedInterest", d.leonixVerifiedInterest),
     selectedReasonIds,
     customReasonLabel: str("customReasonLabel", d.customReasonLabel),
