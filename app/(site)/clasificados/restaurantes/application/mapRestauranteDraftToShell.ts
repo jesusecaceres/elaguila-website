@@ -54,9 +54,11 @@ function cuisineToken(key: string, custom?: string): string {
 const LANG_QUICKINFO_MAX = 140;
 
 function formatLanguagesForQuickInfo(d: RestauranteListingDraft): string {
-  const langs = d.languagesSpoken?.filter(nonEmpty) ?? [];
-  if (!langs.length) return "";
-  const line = langs
+  const standardLangs = d.languagesSpoken?.filter(nonEmpty) ?? [];
+  const customLangs = d.customLanguages?.filter(nonEmpty) ?? [];
+  const allLangs = [...standardLangs, ...customLangs];
+  if (!allLangs.length) return "";
+  const line = allLangs
     .map((k) => {
       if (k === TAXONOMY_KEY_OTHER_LANG) {
         if (nonEmpty(d.languageOtherCustom)) return `Otro: ${clampChipLabel(d.languageOtherCustom!, 36)}`;

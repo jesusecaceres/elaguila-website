@@ -14,6 +14,8 @@ import { ServiciosOfferCard } from "./ServiciosOfferCard";
 import { ServiciosTrustSection } from "./ServiciosTrustSection";
 import { ServiciosReviews } from "./ServiciosReviews";
 import { ServiciosServiceAreas } from "./ServiciosServiceAreas";
+import { ServiciosHours } from "./ServiciosHours";
+import { ServiciosLicense } from "./ServiciosLicense";
 import { ServiciosActionPanel } from "./ServiciosActionPanel";
 import { ServiciosLeadInquiryForm } from "./ServiciosLeadInquiryForm";
 import { ServiciosProfileViewAnalytics } from "./ServiciosProfileViewAnalytics";
@@ -87,6 +89,8 @@ export function ServiciosProfileView({
             {hasAboutSectionResolved(profile) ? <ServiciosAbout profile={profile} lang={lang} /> : null}
             <ServiciosServicesGrid profile={profile} lang={lang} />
             <ServiciosGallery profile={profile} lang={lang} />
+            <ServiciosHours profile={profile} lang={lang} />
+            <ServiciosLicense profile={profile} lang={lang} />
             <ServiciosTrustSection profile={profile} lang={lang} />
             <ServiciosReviews profile={profile} lang={lang} />
             {analyticsListingSlug && showPublicConversionForms ? (

@@ -77,6 +77,30 @@ const getServiceEmoji = (serviceName: string): string => {
   return '✅'; // Default emoji
 };
 
+// Service type detection
+const getServiceType = (serviceName: string): 'mobile' | 'onsite' | 'both' => {
+  const name = serviceName.toLowerCase();
+  const mobileKeywords = ['móvil', 'mobile', 'domicilio', 'a domicilio', 'delivery', 'entrega'];
+  const onsiteKeywords = ['taller', 'local', 'tienda', 'oficina', 'consultorio'];
+  
+  const hasMobile = mobileKeywords.some(keyword => name.includes(keyword));
+  const hasOnsite = onsiteKeywords.some(keyword => name.includes(keyword));
+  
+  if (hasMobile && hasOnsite) return 'both';
+  if (hasMobile) return 'mobile';
+  return 'onsite';
+};
+
+// Service type icon
+const getServiceTypeIcon = (serviceType: 'mobile' | 'onsite' | 'both') => {
+  switch (serviceType) {
+    case 'mobile': return '🚗';
+    case 'onsite': return '🏢';
+    case 'both': return '🚗🏢';
+    default: return '📍';
+  }
+};
+
 export function ServiciosServicesGrid({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
   const L = getServiciosProfileLabels(lang);
   const items = profile.services;
@@ -124,31 +148,35 @@ export function ServiciosServicesGrid({ profile, lang }: { profile: ServiciosPro
       </div>
 
       <div className="mt-6 flex flex-wrap gap-2">
-        {featured.map((s) => (
-          <button
-            key={s.id}
-            onClick={() => quoteDestination && handleServiceQuoteClick(s.title)}
-            className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium shadow-sm transition hover:shadow-md ${quoteDestination ? 'cursor-pointer' : 'cursor-default'}`}
-            style={{
-              borderColor: SV.warmBorder,
-              backgroundColor: SV.beige,
-              color: SV.text,
-            }}
-            onMouseEnter={(e) => {
-              if (quoteDestination) {
-                e.currentTarget.style.borderColor = SV.goldBorder;
-                e.currentTarget.style.backgroundColor = SV.goldSoft;
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = SV.warmBorder;
-              e.currentTarget.style.backgroundColor = SV.beige;
-            }}
-          >
-            <span className="text-base">{getServiceEmoji(s.title)}</span>
-            <span>{s.title}</span>
-          </button>
-        ))}
+        {featured.map((s) => {
+          const serviceType = getServiceType(s.title);
+          return (
+            <button
+              key={s.id}
+              onClick={() => quoteDestination && handleServiceQuoteClick(s.title)}
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium shadow-sm transition hover:shadow-md ${quoteDestination ? 'cursor-pointer' : 'cursor-default'}`}
+              style={{
+                borderColor: SV.warmBorder,
+                backgroundColor: SV.beige,
+                color: SV.text,
+              }}
+              onMouseEnter={(e) => {
+                if (quoteDestination) {
+                  e.currentTarget.style.borderColor = SV.goldBorder;
+                  e.currentTarget.style.backgroundColor = SV.goldSoft;
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = SV.warmBorder;
+                e.currentTarget.style.backgroundColor = SV.beige;
+              }}
+            >
+              <span className="text-xs text-[#3B66AD]/60 mr-1">{getServiceTypeIcon(serviceType)}</span>
+              <span className="text-base">{getServiceEmoji(s.title)}</span>
+              <span>{s.title}</span>
+            </button>
+          );
+        })}
       </div>
 
       {showMore ? (
@@ -164,31 +192,35 @@ export function ServiciosServicesGrid({ profile, lang }: { profile: ServiciosPro
       {visibleExtra.length > 0 ? (
         <div className="mt-6 border-t pt-6" style={{ borderColor: SV.warmBorder }}>
           <div className="flex flex-wrap gap-2">
-            {visibleExtra.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => quoteDestination && handleServiceQuoteClick(s.title)}
-                className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium shadow-sm transition hover:shadow-md ${quoteDestination ? 'cursor-pointer' : 'cursor-default'}`}
-                style={{
-                  borderColor: SV.warmBorder,
-                  backgroundColor: SV.beige,
-                  color: SV.text,
-                }}
-                onMouseEnter={(e) => {
-                  if (quoteDestination) {
-                    e.currentTarget.style.borderColor = SV.goldBorder;
-                    e.currentTarget.style.backgroundColor = SV.goldSoft;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = SV.warmBorder;
-                  e.currentTarget.style.backgroundColor = SV.beige;
-                }}
-              >
-                <span className="text-base">{getServiceEmoji(s.title)}</span>
-                <span>{s.title}</span>
-              </button>
-            ))}
+            {visibleExtra.map((s) => {
+              const serviceType = getServiceType(s.title);
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => quoteDestination && handleServiceQuoteClick(s.title)}
+                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium shadow-sm transition hover:shadow-md ${quoteDestination ? 'cursor-pointer' : 'cursor-default'}`}
+                  style={{
+                    borderColor: SV.warmBorder,
+                    backgroundColor: SV.beige,
+                    color: SV.text,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (quoteDestination) {
+                      e.currentTarget.style.borderColor = SV.goldBorder;
+                      e.currentTarget.style.backgroundColor = SV.goldSoft;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = SV.warmBorder;
+                    e.currentTarget.style.backgroundColor = SV.beige;
+                  }}
+                >
+                  <span className="text-xs text-[#3B66AD]/60 mr-1">{getServiceTypeIcon(serviceType)}</span>
+                  <span className="text-base">{getServiceEmoji(s.title)}</span>
+                  <span>{s.title}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       ) : null}
