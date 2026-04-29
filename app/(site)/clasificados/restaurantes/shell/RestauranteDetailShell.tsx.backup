@@ -14,6 +14,8 @@ import { RestauranteShellDestacadosSection } from "./RestauranteShellDestacadosS
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)]";
 
+const SECTION_GAP = "space-y-14 sm:space-y-16 lg:space-y-[4.5rem]";
+
 function StarRow({ rating }: { rating: number }) {
   return (
     <div
@@ -65,6 +67,87 @@ function HeroTaxonomyLine({
       {rest > 0 ? (
         <span className={`text-[11px] font-medium ${textMuted}`}>+{rest} más</span>
       ) : null}
+    </div>
+  );
+}
+
+/** Identity + trust lines — taxonomy capped to reduce chip walls. */
+function HeroIdentityBlock({
+  data,
+  open,
+  showHoursDetail,
+  taxonomyMax,
+  light,
+}: {
+  data: RestaurantDetailShellData;
+  open: boolean;
+  showHoursDetail: boolean;
+  taxonomyMax: number;
+  light: boolean;
+}) {
+  const titleClass = light
+    ? "text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-[2.25rem] md:leading-[1.12]"
+    : "text-3xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-4xl";
+
+  return (
+    <div className="max-w-3xl">
+      <p
+        className={
+          light
+            ? "mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45"
+            : "mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]"
+        }
+      >
+        Restaurante
+      </p>
+      <h1 className={titleClass}>{data.businessName}</h1>
+      {data.trustRating ? (
+        <div
+          className={`mt-3 flex flex-wrap items-center gap-3 text-sm ${light ? "text-white/95" : "text-[color:var(--lx-text)]"}`}
+        >
+          <StarRow rating={Math.min(5, data.trustRating.average)} />
+          <span className="font-semibold tabular-nums">{data.trustRating.average.toFixed(1)}</span>
+          <span className={light ? "text-white/70" : "text-[color:var(--lx-text-2)]"}>
+            ({data.trustRating.count.toLocaleString("es-US")} valoraciones)
+          </span>
+        </div>
+      ) : null}
+      {data.cuisineTypeLine ? (
+        <p
+          className={`mt-3 text-[15px] font-medium leading-snug sm:text-base ${light ? "text-white/88" : "text-[color:var(--lx-text)]"}`}
+        >
+          {data.cuisineTypeLine}
+        </p>
+      ) : null}
+      {data.taxonomyChips?.length ? (
+        <HeroTaxonomyLine chips={data.taxonomyChips} maxVisible={taxonomyMax} light={light} />
+      ) : null}
+      {data.summaryShort ? (
+        <p
+          className={`mt-5 max-w-2xl text-[15px] leading-relaxed sm:text-base ${light ? "text-white/90" : "text-[color:var(--lx-text-2)]"}`}
+        >
+          {data.summaryShort}
+        </p>
+      ) : null}
+      <div
+        className={`mt-6 flex flex-col gap-2 border-t pt-5 sm:flex-row sm:items-center sm:gap-4 ${light ? "border-white/10" : "border-[color:var(--lx-nav-border)]"}`}
+      >
+        <p className="min-w-0 text-sm break-words">
+          <span className={open ? "font-semibold text-emerald-400" : "font-semibold text-amber-300"}>
+            {data.hoursPreview.statusLine}
+          </span>
+          <span className={light ? "text-white/50" : "text-[color:var(--lx-muted)]"}> · </span>
+          <span className={light ? "text-white/82" : "text-[color:var(--lx-text-2)]"}>{data.hoursPreview.scheduleSummary}</span>
+        </p>
+        {showHoursDetail ? (
+          <a
+            href={data.seeHoursHref}
+            className={`w-fit shrink-0 text-sm font-semibold underline underline-offset-4 ${light ? "text-[color:var(--lx-gold-soft)] decoration-white/35 hover:text-white" : "text-[color:var(--lx-text)] decoration-[color:var(--lx-gold-border)] hover:text-[color:var(--lx-gold)]"}`}
+          >
+            {data.seeHoursLabel}
+          </a>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -266,24 +349,29 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
         data.hoursDetail.temporaryNote?.trim())
   );
 
+  const editorialClass = "mx-auto w-full max-w-[min(100%,760px)]";
+
   return (
-    <main className="min-h-screen bg-[color:var(--lx-bg)]">
-      {/* PREMIUM HERO SECTION */}
-      <section className="relative">
-        <div className="relative h-[60vh] min-h-[400px] max-h-[600px] w-full overflow-hidden">
-          {data.heroImageUrl ? (
-            <Image
-              src={data.heroImageUrl}
-              alt={data.heroImageAlt ?? "Foto principal del restaurante"}
-              fill
-              className="object-cover"
-              priority
-              sizes="100vw"
-            />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-100 via-amber-50 to-orange-50" aria-hidden />
-          )}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent" aria-hidden />
+    <main className="mx-auto mt-6 min-w-0 max-w-[1180px] px-4 sm:mt-8 md:px-6 lg:px-8">
+      {/* HERO — mobile: image → band; desktop: image band + dedicated identity band (no floating overlay) */}
+      <section
+        className="overflow-hidden rounded-[24px] border border-black/8 shadow-[0_24px_80px_-32px_rgba(0,0,0,0.45)]"
+        aria-label="Cabecera del negocio"
+      >
+        <div className="lg:hidden">
+          <div className="relative aspect-[4/3] w-full max-h-[min(44vh,440px)] min-h-[200px] bg-[#1a1814]">
+            {hasHeroImg ? (
+              <Image
+                src={data.heroImageUrl!}
+                alt={data.heroImageAlt ?? ""}
+                fill
+                priority
+                unoptimized={data.heroImageUrl!.startsWith("data:")}
+                className="object-cover"
+                sizes="100vw"
+              />
+            ) : null}
+          </div>
         </div>
         
         {/* Hero Content Overlay */}
@@ -443,7 +531,6 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
       </div>
 
       {/* Hours Section */}
-      <div className="mx-auto max-w-7xl px-6 py-8 sm:px-8 lg:px-12">
         {showHoursDetail && data.hoursDetail ? (
           <section
             id="horarios-detalle"
@@ -549,6 +636,7 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
             ) : null}
           </section>
         ) : null}
+
       </div>
     </main>
   );

@@ -226,8 +226,6 @@ export type RestauranteBusinessIdentity = {
   zipCode?: string;
   priceLevel?: RestaurantePriceLevel;
   languagesSpoken?: string[];
-  /** Custom languages when "Otro" is selected */
-  customLanguages?: string[];
 };
 
 // ---------------------------------------------------------------------------

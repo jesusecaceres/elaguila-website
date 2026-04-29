@@ -141,7 +141,14 @@ export default function RestauranteApplicationClient() {
     return i < 0 ? 0 : i;
   }, [sectionNavItems, activeSectionId]);
 
-  
+  const phonePresent = useMemo(() => Boolean(draft.phoneNumber?.trim()), [draft.phoneNumber]);
+
+  useEffect(() => {
+    if (!phonePresent && draft.allowMessageCTA) {
+      setDraftPatch({ allowMessageCTA: false });
+    }
+  }, [phonePresent, draft.allowMessageCTA, setDraftPatch]);
+
   /** Matches `/publicar/restaurantes?plan=free|pro` from paquetes — carried into preview → publish POST. */
   const publishPlanLane = searchParams?.get("plan") === "pro" ? "pro" : "free";
   const previewHrefWithPlan = useMemo(() => {
@@ -640,48 +647,16 @@ export default function RestauranteApplicationClient() {
                 ))}
               </div>
               {(draft.languagesSpoken ?? []).includes(TAXONOMY_KEY_OTHER_LANG) ? (
-                <div className="mt-3 max-w-md space-y-3">
-                  <FieldLabel optional>Idiomas adicionales</FieldLabel>
-                  <HelperText>Añade uno o más idiomas específicos que no están en la lista.</HelperText>
-                  <div className="space-y-2">
-                    {(draft.customLanguages ?? []).map((lang, index) => (
-                      <div key={index} className="flex gap-2">
-                        <input
-                          className="flex-1"
-                          placeholder="Ej. portugués, ASL, mandarín…"
-                          value={lang}
-                          onChange={(e) => {
-                            const newCustom = [...(draft.customLanguages ?? [])];
-                            newCustom[index] = e.target.value;
-                            setDraftPatch({ customLanguages: newCustom });
-                          }}
-                        />
-                        {index > 0 && (
-                          <button
-                            type="button"
-                            className="text-red-600 hover:text-red-800 text-sm"
-                            onClick={() => {
-                              const newCustom = [...(draft.customLanguages ?? [])];
-                              newCustom.splice(index, 1);
-                              setDraftPatch({ customLanguages: newCustom });
-                            }}
-                          >
-                            Quitar
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
-                      onClick={() => {
-                        const newCustom = [...(draft.customLanguages ?? []), ""];
-                        setDraftPatch({ customLanguages: newCustom });
-                      }}
-                    >
-                      + Añadir idioma
-                    </button>
-                  </div>
+                <div className="mt-3 max-w-md">
+                  <FieldLabel optional>Especifica el idioma (Otro)</FieldLabel>
+                  <HelperText>Escribe el idioma concreto si no está en la lista.</HelperText>
+                  <input
+                    className={OTHER_INPUT}
+                    maxLength={48}
+                    placeholder="Ej. portugués, ASL…"
+                    value={draft.languageOtherCustom ?? ""}
+                    onChange={(e) => setDraftPatch({ languageOtherCustom: e.target.value || undefined })}
+                  />
                 </div>
               ) : null}
             </div>
@@ -959,7 +934,29 @@ export default function RestauranteApplicationClient() {
               />
             </div>
           ) : null}
-          
+          {deliveryRelevant && (
+            <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)]/60 bg-[color:var(--lx-section)]/40 p-4">
+              <p className="text-sm font-semibold text-[color:var(--lx-text)] mb-3">Configuración de entrega</p>
+              <div>
+                <FieldLabel optional>Radio de entrega (millas)</FieldLabel>
+                <HelperText>
+                  Alcance aproximado cuando ofreces <strong className="text-[color:var(--lx-text-2)]">entrega</strong>. Déjalo vacío si no entregas o si prefieres no especificar radio.
+                </HelperText>
+                <input
+                  type="number"
+                  min={0}
+                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                  value={draft.deliveryRadiusMiles ?? ""}
+                  onChange={(e) =>
+                    setDraftPatch({
+                      deliveryRadiusMiles: e.target.value === "" ? undefined : Number(e.target.value),
+                    })
+                  }
+                />
+              </div>
+            </div>
+          )}
+
           <p className="mt-8 text-sm font-semibold text-[color:var(--lx-text)]">
             Opciones de servicio (detalles complementarios)
           </p>
@@ -1293,7 +1290,22 @@ export default function RestauranteApplicationClient() {
                 onChange={(e) => setDraftPatch({ zipCode: e.target.value.replace(/\D/g, "").slice(0, 5) || undefined })}
               />
             </div>
-                                              </div>
+            <div>
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={Boolean(draft.showExactAddress)}
+                  onChange={(e) => setDraftPatch({ showExactAddress: e.target.checked })}
+                />
+                <span className="font-semibold text-[color:var(--lx-text)]">Mostrar dirección exacta cuando aplique</span>
+              </label>
+              <HelperText>
+                <strong className="text-[color:var(--lx-text-2)]">Encendido:</strong> típico de local con dirección pública.{" "}
+                <strong className="text-[color:var(--lx-text-2)]">Apagado:</strong> el mapa puede mostrar zona aproximada o cruce en lugar del número exacto — útil para móvil, pop-up o casa.
+              </HelperText>
+            </div>
+                                  </div>
         </section>
         ) : null}
 

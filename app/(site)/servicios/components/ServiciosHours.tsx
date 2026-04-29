@@ -16,7 +16,7 @@ export function ServiciosHours({ profile, lang }: { profile: ServiciosProfileRes
     >
       <div className="flex items-center gap-2">
         <FiClock className="h-5 w-5 text-[#3B66AD]" aria-hidden />
-        <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">{L.hours}</h2>
+        <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">{L.weeklyHours}</h2>
         {hours.openNowLabel ? (
           <span 
             className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
