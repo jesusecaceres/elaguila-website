@@ -10,40 +10,53 @@ import { LeonixShareButton } from "@/app/components/clasificados/analytics/Leoni
 import { trackRestaurantesListingView, trackRestaurantesSave, trackRestaurantesLike, trackRestaurantesShare } from "../analytics/restaurantesAnalytics";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
 
+// Leonix premium visual tokens
+const LEONIX_PAGE_BG = "#F4F1EB";
+const LEONIX_CARD_SURFACE = "#FFFAF3";
+const LEONIX_BORDER = "#D8C2A0";
+const LEONIX_PRIMARY_TEXT = "#1F1A17";
+const LEONIX_SECONDARY_TEXT = "#5A5148";
+const LEONIX_MUTED_TEXT = "#8B7E70";
+const LEONIX_GOLD_ACCENT = "#BEA98E";
+const LEONIX_DARK_CTA = "#2C1810";
+const LEONIX_SUCCESS_GREEN = "#1A4D2E";
+const LEONIX_INFO_BLUE = "#355C7D";
+const LEONIX_ELEVATED_CHIP = "#F6EBDD";
+
 const PREVIEW_CARD =
-  "rounded-3xl border border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] overflow-hidden";
+  "rounded-3xl border border-[#D8C2A0] bg-[#FFFAF3] shadow-[0_16px_64px_-24px_rgba(212,165,116,0.18)] overflow-hidden";
 
 const MEDIA_CONTAINER = "relative aspect-[16/10] overflow-hidden bg-[#F5F0E8]";
 
-const INFO_SECTION = "p-6 space-y-4";
+const INFO_SECTION = "p-6 space-y-4 sm:p-8";
 
-const TITLE_SECTION = "space-y-2";
+const TITLE_SECTION = "space-y-3";
 
-const CUISINE_LINE = "text-sm font-medium text-[#7A7A7A] uppercase tracking-wide";
+const CUISINE_LINE = "text-sm font-semibold text-[#5A5148] uppercase tracking-wide";
 
-const BUSINESS_NAME = "text-2xl font-bold text-[#1A1A1A] leading-tight sm:text-3xl";
+const BUSINESS_NAME = "text-2xl font-bold text-[#1F1A17] leading-tight sm:text-3xl";
 
-const LOCATION_ROW = "flex items-center gap-2 text-sm text-[#4A4A4A]";
+const LOCATION_ROW = "flex items-center gap-2 text-sm text-[#5A5148]";
 
-const HOURS_ROW = "flex items-center gap-2 text-sm font-medium";
+const HOURS_ROW = "flex items-center gap-2 text-sm font-semibold";
 
-const HOURS_OPEN = "text-[#2A7F3E] bg-[#E8F5E8] px-2 py-1 rounded-full";
+const HOURS_OPEN = "text-[#1A4D2E] bg-[#E8F5E8] px-3 py-1.5 rounded-full font-medium";
 
-const HOURS_CLOSED = "text-[#D97706] bg-[#FEF3C7] px-2 py-1 rounded-full";
+const HOURS_CLOSED = "text-[#BEA98E] bg-[#F6EBDD] px-3 py-1.5 rounded-full font-medium";
 
-const SERVICE_MODES = "flex flex-wrap gap-2 mt-3";
+const SERVICE_MODES = "flex flex-wrap gap-2 mt-4";
 
-const SERVICE_CHIP = "px-3 py-1 rounded-full bg-[#D4A574]/10 text-[#D4A574] text-xs font-medium border border-[#D4A574]/20";
+const SERVICE_CHIP = "px-3 py-1.5 rounded-full bg-[#F6EBDD] text-[#1F1A17] text-xs font-semibold border border-[#D8C2A0]";
 
 const CTA_SECTION = "flex flex-wrap gap-3 mt-6";
 
-const CTA_BUTTON = "inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border";
+const CTA_BUTTON = "inline-flex items-center gap-2 px-5 py-3 rounded-full font-semibold text-base transition-all duration-200 border min-h-[44px]";
 
-const CTA_PRIMARY = "bg-[#D4A574] text-white border-[#D4A574] hover:bg-[#C19A6B]";
+const CTA_PRIMARY = "bg-[#2C1810] text-white border-[#2C1810] hover:bg-[#1A1412] shadow-md";
 
-const CTA_SECONDARY = "bg-white text-[#1A1A1A] border-[#E5E5E5] hover:bg-[#FFFAF0] hover:border-[#D4A574]";
+const CTA_SECONDARY = "bg-white text-[#1F1A17] border-[#D8C2A0] hover:bg-[#FFFAF3] hover:border-[#BEA98E] shadow-sm";
 
-const ENGAGEMENT_SECTION = "mt-6 pt-6 border-t border-[#E5E5E5]/50";
+const ENGAGEMENT_SECTION = "mt-8 pt-6 border-t border-[#D8C2A0]/30";
 
 function StarRow({ rating }: { rating: number }) {
   return (
@@ -151,7 +164,7 @@ export function RestaurantePreviewCard({
           {/* Location Row */}
           {hasLocation && (
             <div className={LOCATION_ROW}>
-              <FiMapPin className="w-4 h-4 text-[#D4A574]" />
+              <span className="mr-2" style={{ color: LEONIX_GOLD_ACCENT }}>📍</span>
               <span>
                 {data.contact?.addressLine1 || 
                  (data.contact?.mapsSearchQuery ? data.contact.mapsSearchQuery.split(",")[0] : "Ubicación no disponible")}
@@ -162,6 +175,7 @@ export function RestaurantePreviewCard({
           {/* Hours Status */}
           {hasHours && (
             <div className={HOURS_ROW}>
+              <span className="mr-2">🕒</span>
               <span className={data.hoursPreview.status === "open" ? HOURS_OPEN : HOURS_CLOSED}>
                 {data.hoursPreview.statusLine}
               </span>
@@ -171,11 +185,23 @@ export function RestaurantePreviewCard({
           {/* Service Modes */}
           {hasServiceModes && serviceModes.length > 0 && (
             <div className={SERVICE_MODES}>
-              {serviceModes.map((mode, index) => (
+              {serviceModes.slice(0, 6).map((mode, index) => (
                 <span key={index} className={SERVICE_CHIP}>
+                  {mode.value.includes("Comer") && <span className="mr-1">🍽️</span>}
+                  {mode.value.includes("Llevar") && <span className="mr-1">🥡</span>}
+                  {mode.value.includes("Entrega") && <span className="mr-1">🚚</span>}
+                  {mode.value.includes("Idiomas") && <span className="mr-1">🗣️</span>}
+                  {mode.value.includes("Servicio") && <span className="mr-1">⭐</span>}
+                  {mode.value.includes("Reservaciones") && <span className="mr-1">📅</span>}
+                  {mode.value.includes("Pedidos") && <span className="mr-1">🛒</span>}
                   {mode.value}
                 </span>
               ))}
+              {serviceModes.length > 6 && (
+                <span className={SERVICE_CHIP}>
+                  +{serviceModes.length - 6} más
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -205,10 +231,14 @@ export function RestaurantePreviewCard({
                     }
                   }}
                 >
-                  {cta.key === "call" && <FiPhone className="w-4 h-4" />}
-                  {cta.key === "whatsapp" && <FaWhatsapp className="w-4 h-4" />}
-                  {cta.key === "website" && <FiExternalLink className="w-4 h-4" />}
-                  {cta.key === "message" && <FiMail className="w-4 h-4" />}
+                  {cta.key === "call" && <span className="mr-2">📞</span>}
+                  {cta.key === "whatsapp" && <span className="mr-2">💬</span>}
+                  {cta.key === "website" && <span className="mr-2">🌐</span>}
+                  {cta.key === "message" && <span className="mr-2">📧</span>}
+                  {cta.key === "menu" && <span className="mr-2">📋</span>}
+                  {cta.key === "menuAsset" && <span className="mr-2">📋</span>}
+                  {cta.key === "reserve" && <span className="mr-2">📅</span>}
+                  {cta.key === "order" && <span className="mr-2">🛒</span>}
                   {cta.label}
                 </a>
               );
@@ -226,7 +256,7 @@ export function RestaurantePreviewCard({
             </div>
             
             {/* Engagement Actions */}
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3">
               <LeonixLikeButton
                 listingId={listingId}
                 ownerUserId={data.id}
@@ -243,15 +273,10 @@ export function RestaurantePreviewCard({
                 listingId={listingId}
                 ownerUserId={data.id}
                 listingTitle={data.businessName}
-                listingUrl={typeof window !== "undefined" ? window.location.href : ""}
+                listingUrl=""
                 variant="small"
                 lang={lang}
               />
-            </div>
-
-            {/* Note about real metrics */}
-            <div className="text-xs text-[#7A7A7A] italic">
-              Las métricas de engagement se mostrarán cuando estén disponibles
             </div>
           </div>
         )}

@@ -16,6 +16,19 @@ import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/R
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { supabase } from "@/app/lib/supabaseClient";
 
+// Leonix premium visual tokens
+const LEONIX_PAGE_BG = "#F4F1EB";
+const LEONIX_CARD_SURFACE = "#FFFAF3";
+const LEONIX_BORDER = "#D8C2A0";
+const LEONIX_PRIMARY_TEXT = "#1F1A17";
+const LEONIX_SECONDARY_TEXT = "#5A5148";
+const LEONIX_MUTED_TEXT = "#8B7E70";
+const LEONIX_GOLD_ACCENT = "#BEA98E";
+const LEONIX_DARK_CTA = "#2C1810";
+const LEONIX_SUCCESS_GREEN = "#1A4D2E";
+const LEONIX_INFO_BLUE = "#355C7D";
+const LEONIX_ELEVATED_CHIP = "#F6EBDD";
+
 const EDIT_HREF = "/publicar/restaurantes";
 
 export default function RestaurantePreviewClient() {
@@ -191,14 +204,28 @@ export default function RestaurantePreviewClient() {
 
         <ClasificadosPreviewAdCanvas>
           {/* Section 1: Vista previa de la tarjeta */}
-          <div className="mb-12">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-[#1F1A17] mb-2">1. Vista previa de la tarjeta</h2>
-              <p className="text-sm font-medium text-[#5A5148]">
+          <div className="mb-16">
+            <div className="mb-8">
+              <h2 
+                className="text-2xl font-bold text-[#1F1A17] mb-3 tracking-tight"
+                style={{ color: LEONIX_PRIMARY_TEXT }}
+              >
+                1. Vista previa de la tarjeta
+              </h2>
+              <p 
+                className="text-base font-medium leading-relaxed"
+                style={{ color: LEONIX_SECONDARY_TEXT }}
+              >
                 Así se verá tu anuncio en resultados, búsquedas y tarjetas destacadas.
               </p>
             </div>
-            <div className="bg-[#FFFAF3] rounded-3xl border border-[#D8C2A0] p-6 shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)]">
+            <div 
+              className="rounded-3xl border p-8 shadow-[0_16px_64px_-24px_rgba(212,165,116,0.18)]"
+              style={{ 
+                background: LEONIX_CARD_SURFACE, 
+                borderColor: LEONIX_BORDER 
+              }}
+            >
               <RestaurantePreviewCard 
                 data={shellData} 
                 listingId={shellData.id}
@@ -210,13 +237,27 @@ export default function RestaurantePreviewClient() {
           
           {/* Section 2: Vista previa completa del anuncio */}
           <div>
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-[#1F1A17] mb-2">2. Vista previa completa del anuncio</h2>
-              <p className="text-sm font-medium text-[#5A5148]">
+            <div className="mb-8">
+              <h2 
+                className="text-2xl font-bold text-[#1F1A17] mb-3 tracking-tight"
+                style={{ color: LEONIX_PRIMARY_TEXT }}
+              >
+                2. Vista previa completa del anuncio
+              </h2>
+              <p 
+                className="text-base font-medium leading-relaxed"
+                style={{ color: LEONIX_SECONDARY_TEXT }}
+              >
                 Así se verá tu anuncio cuando una persona abra la publicación completa.
               </p>
             </div>
-            <div className="bg-[#FFFAF3] rounded-3xl border border-[#D8C2A0] p-6 shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)]">
+            <div 
+              className="rounded-3xl border p-8 shadow-[0_16px_64px_-24px_rgba(212,165,116,0.18)]"
+              style={{ 
+                background: LEONIX_CARD_SURFACE, 
+                borderColor: LEONIX_BORDER 
+              }}
+            >
               <RestauranteDetailShell data={shellData} />
             </div>
           </div>
