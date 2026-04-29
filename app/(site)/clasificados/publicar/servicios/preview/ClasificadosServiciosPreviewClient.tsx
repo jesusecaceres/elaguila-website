@@ -6,6 +6,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "reac
 import { clearLeonixPreviewNavSessionFlag, markPublishFlowReturningToEdit } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
 import { ServiciosProfileView } from "@/app/servicios/components/ServiciosProfileView";
+import { ServiciosPreviewCard } from "@/app/(site)/clasificados/servicios/shell/ServiciosPreviewCard";
 import { getServiciosWireProfileFromSample } from "@/app/servicios/data/demoServiciosBusinessProfile";
 import { mapServiciosApplicationDraftToBusinessProfile } from "@/app/servicios/lib/mapServiciosApplicationDraftToBusinessProfile";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
@@ -255,7 +256,22 @@ export function ClasificadosServiciosPreviewClient() {
       </div>
       <div className="mx-auto max-w-[1280px] px-4 pb-12 pt-2 md:px-6">
         <ClasificadosPreviewAdCanvas className="overflow-hidden">
-          <ServiciosProfileView profile={profile} lang={lang} showTopBar={false} />
+          {/* Premium Preview Card */}
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Vista previa de la tarjeta</h2>
+            <ServiciosPreviewCard 
+              data={profile} 
+              listingId={profile.identity.slug}
+              showEngagementMetrics={true}
+              className="max-w-2xl mx-auto"
+            />
+          </div>
+          
+          {/* Full Profile View */}
+          <div>
+            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Vista previa completa</h2>
+            <ServiciosProfileView profile={profile} lang={lang} showTopBar={false} />
+          </div>
         </ClasificadosPreviewAdCanvas>
       </div>
     </div>
