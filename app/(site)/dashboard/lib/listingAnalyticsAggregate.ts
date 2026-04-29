@@ -1,5 +1,5 @@
 /**
- * Aggregates `listing_analytics` rows for dashboard listing cards — only uses stored event_type values.
+ * Aggregates `listing_analytics` rows for dashboard listing cards — supports all event types.
  */
 export type ListingAnalyticsBucket = {
   views: number;
@@ -10,6 +10,12 @@ export type ListingAnalyticsBucket = {
   profileClicks: number;
   /** listing_open events — contact/detail drill-down when tracked */
   listingOpens: number;
+  /** New engagement metrics */
+  likes: number;
+  ctaClicks: number;
+  leads: number;
+  applications: number;
+  lastEngagement?: string;
 };
 
 const emptyBucket = (): ListingAnalyticsBucket => ({
@@ -20,10 +26,14 @@ const emptyBucket = (): ListingAnalyticsBucket => ({
   shares: 0,
   profileClicks: 0,
   listingOpens: 0,
+  likes: 0,
+  ctaClicks: 0,
+  leads: 0,
+  applications: 0,
 });
 
 export function aggregateListingAnalyticsEvents(
-  events: Array<{ listing_id: string | null; event_type: string; user_id?: string | null }> | null | undefined,
+  events: Array<{ listing_id: string | null; event_type: string; user_id?: string | null; created_at?: string }> | null | undefined,
   listingIds: string[]
 ): Record<string, ListingAnalyticsBucket> {
   const byId: Record<string, ListingAnalyticsBucket> = {};
@@ -38,6 +48,12 @@ export function aggregateListingAnalyticsEvents(
     if (!lid || !byId[lid]) continue;
     const b = byId[lid];
     const type = row.event_type;
+    
+    // Track last engagement timestamp
+    if (row.created_at && (!b.lastEngagement || new Date(row.created_at) > new Date(b.lastEngagement))) {
+      b.lastEngagement = row.created_at;
+    }
+    
     if (type === "listing_view") {
       b.views += 1;
       if (row.user_id) viewUserIdsByListing[lid].add(row.user_id);
@@ -46,6 +62,11 @@ export function aggregateListingAnalyticsEvents(
     else if (type === "listing_share") b.shares += 1;
     else if (type === "profile_view") b.profileClicks += 1;
     else if (type === "listing_open") b.listingOpens += 1;
+    // New event types
+    else if (type === "listing_like") b.likes += 1;
+    else if (type === "cta_click" || type === "phone_click" || type === "whatsapp_click" || type === "website_click" || type === "directions_click") b.ctaClicks += 1;
+    else if (type === "lead_created") b.leads += 1;
+    else if (type === "apply_started" || type === "apply_submitted") b.applications += 1;
   }
 
   for (const id of listingIds) {
