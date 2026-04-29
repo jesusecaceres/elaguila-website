@@ -32,12 +32,12 @@ import {
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { getBrLandingCopy, type BrLandingCopy } from "./bienesRaicesLandingCopy";
 
-const BTN_PRIMARY = `${brLuxuryBtnPrimaryClass} min-h-[50px] w-full min-w-0 px-7 py-3.5 text-center text-sm sm:w-auto`;
+const BTN_PRIMARY = "min-h-[50px] w-full min-w-0 px-7 py-3.5 text-center text-sm font-medium transition-all duration-200 border bg-[#D4A574] text-white border-[#D4A574] hover:bg-[#C19A6B] rounded-full sm:w-auto";
 
-const BTN_SECONDARY = `${brLuxuryBtnSecondaryClass} min-h-[50px] w-full min-w-0 px-7 py-3.5 text-center text-sm sm:w-auto`;
+const BTN_SECONDARY = "min-h-[50px] w-full min-w-0 px-7 py-3.5 text-center text-sm font-medium transition-all duration-200 border bg-white text-[#1A1A1A] border-[#E5E5E5] hover:bg-[#FFFAF0] hover:border-[#D4A574] rounded-full sm:w-auto";
 
 const INPUT_CLASS =
-  "w-full min-h-[3.25rem] rounded-2xl border border-[#E8DFD0]/90 bg-white/[0.97] py-3 text-sm text-[#1E1810] shadow-[inset_0_2px_4px_rgba(61,54,48,0.04)] outline-none transition placeholder:text-[#5C5346]/36 focus:border-[#C9B46A]/70 focus:bg-white focus:shadow-[inset_0_0_0_1px_rgba(201,180,106,0.25)] focus:ring-2 focus:ring-[#C9B46A]/22";
+  "w-full min-h-[3.25rem] rounded-3xl border border-[#D4A574]/30 bg-[#FFFAF0] py-3 text-sm text-[#1A1A1A] shadow-[inset_0_2px_4px_rgba(212,165,116,0.04)] outline-none transition placeholder:text-[#7A7A7A]/36 focus:border-[#D4A574]/70 focus:bg-white focus:shadow-[inset_0_0_0_1px_rgba(212,165,116,0.25)] focus:ring-2 focus:ring-[#D4A574]/22";
 
 /** Break out of shell horizontal padding for an immersive band (no horizontal scroll). */
 function ImmersiveBand({ children }: { children: React.ReactNode }) {

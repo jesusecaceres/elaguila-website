@@ -4,9 +4,9 @@ import { AUTOS_LANDING_HERO_BACKDROP } from "./autosLandingBrowseAssets";
 
 export function AutosLandingShell({ children }: { children: ReactNode }) {
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
+    <div className="relative min-h-screen overflow-x-hidden bg-[#FFFEF7] text-[#1A1A1A]">
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 z-0 min-h-[min(50vh,440px)] w-full overflow-hidden rounded-b-[22px] border-b border-[color:var(--lx-nav-border)] shadow-[inset_0_1px_0_rgba(255,252,247,0.55)] sm:min-h-[min(54vh,520px)] lg:min-h-[min(58vh,600px)]"
+        className="pointer-events-none absolute inset-x-0 top-0 z-0 min-h-[min(50vh,440px)] w-full overflow-hidden rounded-b-[22px] border-b border-[#E5E5E5] shadow-[inset_0_1px_0_rgba(255,250,240,0.55)] sm:min-h-[min(54vh,520px)] lg:min-h-[min(58vh,600px)]"
         aria-hidden
       >
         <div className="absolute inset-0">
@@ -20,11 +20,11 @@ export function AutosLandingShell({ children }: { children: ReactNode }) {
           />
         </div>
         {/* Warm cream wash — keeps Leonix palette and text legible */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#fbf4e8]/72 via-[#f3ebdd]/86 to-[color:var(--lx-page)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#FFFAF0]/72 via-[#F5F0E8]/86 to-[#FFFEF7]" />
         {/* Soft vignette + gold lift (category presence, not loud) */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_115%_90%_at_50%_-8%,rgba(201,168,74,0.16),transparent_58%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_95%_55%_at_50%_108%,rgba(243,235,221,0.96),transparent_62%)]" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[rgba(30,24,16,0.06)] via-transparent to-[rgba(243,235,221,0.88)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_115%_90%_at_50%_-8%,rgba(212,165,116,0.16),transparent_58%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_95%_55%_at_50%_108%,rgba(245,240,232,0.96),transparent_62%)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[rgba(26,26,26,0.06)] via-transparent to-[rgba(245,240,232,0.88)]" />
       </div>
       <div className="relative z-[1]">{children}</div>
     </div>

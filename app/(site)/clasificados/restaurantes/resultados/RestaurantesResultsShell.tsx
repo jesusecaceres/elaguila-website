@@ -41,7 +41,7 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import type { RestaurantesResultsInventorySource } from "@/app/clasificados/restaurantes/lib/restaurantesResultsInventoryServer";
 
-const ACCENT = "#D97706";
+const ACCENT = "#D4A574";
 const PAGE_SIZE = 9;
 
 function labelForSvcParam(svc: string, lang: RestaurantesDiscoveryLang): string {

@@ -11,6 +11,9 @@ import {
   brLuxuryCardHoverClass,
   brLuxurySerifHeadingClass,
 } from "@/app/clasificados/bienes-raices/shared/brResultsTheme";
+import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
+import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import type { BrNegocioListing } from "./listingTypes";
 import { BadgeStack } from "./BadgeStack";
 import { IconBath, IconBed, IconCalendar, IconHeart, IconMapPin, IconRuler } from "./cardIcons";
@@ -106,7 +109,7 @@ function listingDetailHref(id: string, lang?: Lang) {
   return lang ? appendLangToPath(base, lang) : base;
 }
 
-const cardShell = `group relative flex h-full flex-col overflow-hidden rounded-[22px] border border-[#E8DFD0]/80 bg-[#FDFBF7]/[0.99] shadow-[0_18px_48px_-26px_rgba(42,36,22,0.26)] ${brLuxuryCardHoverClass}`;
+const cardShell = `group relative flex h-full flex-col overflow-hidden rounded-3xl border border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] transition hover:border-[#D4A574]/45 hover:shadow-[0_16px_56px_-18px_rgba(212,165,116,0.2)]`;
 
 export function BienesRaicesNegocioCard({
   listing,
@@ -127,13 +130,13 @@ export function BienesRaicesNegocioCard({
   const articleClass = className ? `${cardShell} ${className}` : cardShell;
 
   const imageBlock = (
-    <div className="relative overflow-hidden bg-[#EDE6DC]">
+    <div className="relative overflow-hidden bg-[#F5F0E8]">
       <img
         src={listing.imageUrl}
         alt=""
-        className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.045]"
+        className="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-[1.03]"
       />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1E1810]/25 via-transparent to-[#1E1810]/10 opacity-80 transition group-hover:opacity-95" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1A1A1A]/15 via-transparent to-[#1A1A1A]/5 opacity-60 transition group-hover:opacity-80" />
       <BadgeStack badges={listing.badges} operation={op} lane={lane} />
       <button
         type="button"
@@ -144,7 +147,7 @@ export function BienesRaicesNegocioCard({
           e.stopPropagation();
           setFav((v) => !v);
         }}
-        className="pointer-events-auto absolute right-3 top-3 z-[3] flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-[#FFFCF7]/90 text-[#8A6F3A] shadow-md backdrop-blur-sm transition hover:bg-white hover:text-[#C5A059]"
+        className="pointer-events-auto absolute right-3 top-3 z-[3] flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-[#FFFAF0]/90 text-[#D4A574] shadow-md backdrop-blur-sm transition hover:bg-white hover:text-[#C19A6B]"
       >
         <IconHeart className="h-[1.15rem] w-[1.15rem]" filled={fav} />
       </button>
@@ -154,21 +157,59 @@ export function BienesRaicesNegocioCard({
   const bodyLower = (
     <>
       {listing.openHouse ? (
-        <p className="mt-2 rounded-lg bg-[#C17A3A]/10 px-2.5 py-1.5 text-xs font-semibold text-[#8B4E22]">
+        <p className="mt-2 rounded-lg bg-[#D4A574]/10 px-2.5 py-1.5 text-xs font-semibold text-[#7A7A7A]">
           {listing.openHouse}
         </p>
       ) : null}
       {listing.metaLines?.length ? (
-        <p className={`mt-2 line-clamp-2 ${brLuxuryBodyMutedClass}`}>{listing.metaLines[0]}</p>
+        <p className="mt-2 line-clamp-2 text-sm text-[#4A4A4A]">{listing.metaLines[0]}</p>
       ) : null}
       <IdentityRow listing={listing} sellerKindLabels={sellerKindLabels} />
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Link href={href} className={`${brLuxuryBtnPrimaryClass} w-full flex-1 text-[13px] sm:w-auto`}>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <Link href={href} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border bg-[#D4A574] text-white border-[#D4A574] hover:bg-[#C19A6B]">
           {lang === "en" ? "View property" : "Ver propiedad"}
         </Link>
-        <Link href={href} className={`${brLuxuryBtnSecondaryClass} w-full flex-1 text-[13px] sm:w-auto`}>
+        <Link href={href} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border bg-white text-[#1A1A1A] border-[#E5E5E5] hover:bg-[#FFFAF0] hover:border-[#D4A574]">
           {lang === "en" ? "Contact" : "Contactar"}
         </Link>
+      </div>
+
+      {/* Engagement Section */}
+      <div className="mt-6 pt-6 border-t border-[#E5E5E5]/50">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="text-sm font-semibold text-[#1A1A1A] uppercase tracking-wide">
+            Interacción
+          </h4>
+        </div>
+        
+        {/* Engagement Actions */}
+        <div className="flex items-center gap-3 mb-4">
+          <LeonixLikeButton
+            listingId={listing.id}
+            ownerUserId={listing.id}
+            variant="small"
+            lang={lang === "en" ? "en" : "es"}
+          />
+          <LeonixSaveButton
+            listingId={listing.id}
+            ownerUserId={listing.id}
+            variant="small"
+            lang={lang === "en" ? "en" : "es"}
+          />
+          <LeonixShareButton
+            listingId={listing.id}
+            ownerUserId={listing.id}
+            listingTitle={listing.title}
+            listingUrl={typeof window !== "undefined" ? window.location.origin + href : ""}
+            variant="small"
+            lang={lang === "en" ? "en" : "es"}
+          />
+        </div>
+
+        {/* Note about real metrics */}
+        <div className="text-xs text-[#7A7A7A] italic">
+          Las métricas de engagement se mostrarán cuando estén disponibles
+        </div>
       </div>
     </>
   );
@@ -178,15 +219,15 @@ export function BienesRaicesNegocioCard({
       <article className={articleClass}>
         <div className="flex flex-col sm:flex-row sm:items-stretch">
           <div className="relative sm:w-[44%] sm:max-w-[340px]">
-            <div className="relative aspect-[16/11] sm:aspect-auto sm:h-full sm:min-h-[220px]">{imageBlock}</div>
+            <div className="relative aspect-[16/10] sm:aspect-auto sm:h-full sm:min-h-[220px]">{imageBlock}</div>
           </div>
-          <div className="flex min-w-0 flex-1 flex-col p-5 sm:py-5 sm:pl-6 sm:pr-5">
-            <p className="text-2xl font-bold tracking-tight text-[#B8954A] sm:text-[1.65rem]">{listing.price}</p>
-            <Link href={href} className={`mt-2 block ${brLuxurySerifHeadingClass} text-xl leading-snug hover:text-[#8A6F3A]`}>
+          <div className="flex min-w-0 flex-1 flex-col p-6 sm:py-6 sm:pl-6 sm:pr-6">
+            <p className="text-2xl font-bold text-[#2A7F3E] leading-tight sm:text-[1.65rem]">{listing.price}</p>
+            <Link href={href} className="mt-2 block text-xl font-bold text-[#1A1A1A] leading-tight hover:text-[#D4A574] transition-colors sm:text-2xl">
               {listing.title}
             </Link>
-            <p className={`mt-2 flex items-start gap-2 ${brLuxuryBodyMutedClass}`}>
-              <IconMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#B8954A]" />
+            <p className="mt-2 flex items-start gap-2 text-sm text-[#4A4A4A]">
+              <IconMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#D4A574]" />
               <span className="line-clamp-2">{listing.addressLine}</span>
             </p>
             <FactsRow listing={listing} />
@@ -199,14 +240,14 @@ export function BienesRaicesNegocioCard({
 
   return (
     <article className={`${articleClass} flex h-full flex-col`}>
-      <div className="relative aspect-[16/11]">{imageBlock}</div>
-      <div className="flex flex-1 flex-col p-5">
-        <p className="text-2xl font-bold tracking-tight text-[#B8954A]">{listing.price}</p>
-        <Link href={href} className={`mt-2 block ${brLuxurySerifHeadingClass} text-lg leading-snug hover:text-[#8A6F3A] sm:text-xl`}>
+      <div className="relative aspect-[16/10]">{imageBlock}</div>
+      <div className="flex flex-1 flex-col p-6">
+        <p className="text-2xl font-bold text-[#2A7F3E] leading-tight">{listing.price}</p>
+        <Link href={href} className="mt-2 block text-xl font-bold text-[#1A1A1A] leading-tight hover:text-[#D4A574] transition-colors sm:text-2xl">
           {listing.title}
         </Link>
-        <p className={`mt-2 flex items-start gap-2 ${brLuxuryBodyMutedClass}`}>
-          <IconMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#B8954A]" />
+        <p className="mt-2 flex items-start gap-2 text-sm text-[#4A4A4A]">
+          <IconMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#D4A574]" />
           <span className="line-clamp-2">{listing.addressLine}</span>
         </p>
         <FactsRow listing={listing} />

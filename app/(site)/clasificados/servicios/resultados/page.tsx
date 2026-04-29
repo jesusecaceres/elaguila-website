@@ -23,7 +23,7 @@ const RESULTS_ATMOSPHERE =
   "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=2400&q=68";
 
 const contentShell =
-  "rounded-[22px] border border-white/90 bg-[#FFFCF7]/95 shadow-[0_28px_80px_-48px_rgba(20,38,58,0.42)] ring-1 ring-[#1e3a5f]/[0.06] sm:rounded-[26px]";
+  "rounded-3xl border border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] ring-1 ring-[#D4A574]/10 sm:rounded-3xl";
 
 export const metadata: Metadata = {
   title: "Servicios — Resultados · Leonix Clasificados",

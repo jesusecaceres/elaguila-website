@@ -31,7 +31,7 @@ import { RestaurantesLandingShell } from "./RestaurantesLandingShell";
 import { CategoryHeroFrame } from "@/app/(site)/clasificados/components/categoryLanding/CategoryHeroFrame";
 import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
 
-const ACCENT = "#D97706";
+const ACCENT = "#D4A574";
 
 function buildLandingCardDetailHref(
   lang: Lang,

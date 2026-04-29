@@ -207,35 +207,35 @@ export function AutosPublicResultsShell() {
   );
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] pb-[calc(6rem+env(safe-area-inset-bottom,0px))] text-[color:var(--lx-text)]">
+    <div className="relative min-h-screen overflow-x-hidden bg-[#FFFEF7] pb-[calc(6rem+env(safe-area-inset-bottom,0px))] text-[#1A1A1A]">
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 z-0 min-h-[min(38vh,420px)] bg-[radial-gradient(ellipse_120%_80%_at_50%_-10%,rgba(201,168,74,0.09),transparent_55%),linear-gradient(to_bottom,rgba(243,235,221,0.55),transparent)] sm:min-h-[min(42vh,480px)]"
+        className="pointer-events-none absolute inset-x-0 top-0 z-0 min-h-[min(38vh,420px)] bg-[radial-gradient(ellipse_120%_80%_at_50%_-10%,rgba(212,165,116,0.12),transparent_55%),linear-gradient(to_bottom,rgba(255,250,240,0.75),transparent)] sm:min-h-[min(42vh,480px)]"
         aria-hidden
       />
       <div className="relative z-[1]">
-      <div className="border-b border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-bg)] backdrop-blur-md">
+      <div className="border-b border-[#E5E5E5] bg-[#FFFAF0]/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-[min(100%,90rem)] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <nav className="text-[11px] font-medium text-[color:var(--lx-muted)]">
-            <Link href={appendLangToPath("/clasificados", L)} className="hover:text-[color:var(--lx-text)]">
+          <nav className="text-[11px] font-medium text-[#7A7A7A]">
+            <Link href={appendLangToPath("/clasificados", L)} className="hover:text-[#1A1A1A]">
               {copy.breadcrumb}
             </Link>
             <span className="mx-1.5 opacity-50">/</span>
-            <Link href={autosHome} className="hover:text-[color:var(--lx-text)]">
+            <Link href={autosHome} className="hover:text-[#1A1A1A]">
               Autos
             </Link>
             <span className="mx-1.5 opacity-50">/</span>
-            <span className="text-[color:var(--lx-text)]">{copy.resultsTitle}</span>
+            <span className="text-[#1A1A1A]">{copy.resultsTitle}</span>
           </nav>
           <div className="flex flex-wrap gap-2">
             <Link
               href={publicar}
-              className="rounded-full bg-[color:var(--lx-cta-dark)] px-4 py-2 text-xs font-bold text-[#FFFCF7] shadow-sm transition hover:bg-[color:var(--lx-cta-dark-hover)]"
+              className="rounded-full bg-[#D4A574] px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#C19A6B]"
             >
               {copy.postAd}
             </Link>
             <Link
               href={autosHome}
-              className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-2 text-xs font-semibold transition hover:bg-[color:var(--lx-nav-hover)]"
+              className="rounded-full border border-[#E5E5E5] bg-white px-4 py-2 text-xs font-semibold transition hover:bg-[#FFFAF0]"
             >
               {copy.hubNote}
             </Link>
@@ -246,29 +246,29 @@ export function AutosPublicResultsShell() {
       <div className="mx-auto max-w-[min(100%,90rem)] px-[max(1rem,env(safe-area-inset-left))] py-8 pr-[max(1rem,env(safe-area-inset-right))] sm:px-6 lg:py-11">
         <div className="mb-8 flex flex-col gap-4 lg:mb-10 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
-            <h1 className="font-serif text-3xl font-semibold tracking-tight text-[color:var(--lx-text)] sm:text-[2rem] lg:text-[2.15rem]">{copy.resultsTitle}</h1>
-            <p className="mt-2 text-base text-[color:var(--lx-muted)]">{nearLine}</p>
-            <p className="mt-3 text-sm font-semibold text-[color:var(--lx-text-2)]">
+            <h1 className="font-serif text-3xl font-semibold tracking-tight text-[#1A1A1A] sm:text-[2rem] lg:text-[2.15rem]">{copy.resultsTitle}</h1>
+            <p className="mt-2 text-base text-[#7A7A7A]">{nearLine}</p>
+            <p className="mt-3 text-sm font-semibold text-[#4A4A4A]">
               {copy.resultCount.replace("{n}", String(resultCount))}
             </p>
-            <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{copy.resultsControlHint}</p>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-[#7A7A7A]">{copy.resultsControlHint}</p>
           </div>
         </div>
 
-        <div className="mb-6 rounded-[22px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)]/95 p-5 shadow-[0_18px_48px_-28px_rgba(42,36,22,0.28)] backdrop-blur-[2px] sm:p-6 lg:p-7">
+        <div className="mb-6 rounded-[22px] border border-[#D4A574]/30 bg-[#FFFAF0]/95 p-5 shadow-[0_18px_48px_-28px_rgba(212,165,116,0.25)] backdrop-blur-[2px] sm:p-6 lg:p-7">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:gap-4">
             <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="min-w-0 sm:col-span-2 lg:col-span-1">
-                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]" htmlFor="autos-res-q">
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-[#7A7A7A]" htmlFor="autos-res-q">
                   {copy.heroSearchFieldLabel}
                 </label>
                 <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--lx-muted)]" aria-hidden>
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#7A7A7A]" aria-hidden>
                     ⌕
                   </span>
                   <input
                     id="autos-res-q"
-                    className="min-h-[44px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] py-2.5 pl-9 pr-3 text-sm outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2"
+                    className="min-h-[44px] w-full rounded-xl border border-[#E5E5E5] bg-[#FFFEF7] py-2.5 pl-9 pr-3 text-sm outline-none ring-[#D4A574]/50 focus:ring-2 focus:ring-[#D4A574]"
                     value={qDraft}
                     onChange={(e) => setQDraft(e.target.value)}
                     onKeyDown={(e) => {
@@ -284,12 +284,12 @@ export function AutosPublicResultsShell() {
                 </div>
               </div>
               <div className="min-w-0">
-                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]" htmlFor="autos-res-city">
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-[#7A7A7A]" htmlFor="autos-res-city">
                   {copy.cityLabel}
                 </label>
                 <input
                   id="autos-res-city"
-                  className="min-h-[44px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
+                  className="min-h-[44px] w-full rounded-xl border border-[#E5E5E5] bg-[#FFFEF7] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#D4A574]"
                   value={draftFilters.city}
                   onChange={(e) => patchDraft({ city: e.target.value })}
                   placeholder={copy.cityPlaceholder}
@@ -297,12 +297,12 @@ export function AutosPublicResultsShell() {
                 />
               </div>
               <div className="min-w-0">
-                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]" htmlFor="autos-res-zip">
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-[#7A7A7A]" htmlFor="autos-res-zip">
                   {copy.zipLabel}
                 </label>
                 <input
                   id="autos-res-zip"
-                  className="min-h-[44px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
+                  className="min-h-[44px] w-full rounded-xl border border-[#E5E5E5] bg-[#FFFEF7] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#D4A574]"
                   inputMode="numeric"
                   maxLength={5}
                   value={draftFilters.zip}
@@ -316,22 +316,22 @@ export function AutosPublicResultsShell() {
               <AutosGeolocationButton copy={copy} onResolved={onGeoResolved} className="w-full sm:w-auto" />
               <button
                 type="button"
-                className="min-h-[44px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 text-sm font-semibold text-[color:var(--lx-text)] sm:w-auto"
+                className="min-h-[44px] w-full rounded-xl border border-[#E5E5E5] bg-[#FFFAF0] px-4 text-sm font-semibold text-[#1A1A1A] sm:w-auto hover:bg-[#F5F0E8] transition-colors"
                 onClick={resetFiltersUrl}
               >
                 {copy.resultsResetShort}
               </button>
               <button
                 type="button"
-                className="min-h-[48px] w-full rounded-xl bg-[color:var(--lx-cta-dark)] px-6 text-sm font-bold text-[#FFFCF7] shadow-md sm:w-auto"
+                className="min-h-[48px] w-full rounded-xl bg-[#D4A574] px-6 text-sm font-bold text-white shadow-md sm:w-auto hover:bg-[#C19A6B] transition-colors"
                 onClick={applyDraftToUrl}
               >
                 {copy.searchCta}
               </button>
-              <label className="flex w-full min-w-0 shrink-0 items-center gap-2 text-sm text-[color:var(--lx-text-2)] sm:w-auto">
+              <label className="flex w-full min-w-0 shrink-0 items-center gap-2 text-sm text-[#4A4A4A] sm:w-auto">
                 <span className="whitespace-nowrap font-medium">{copy.sortLabel}</span>
                 <select
-                  className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2 text-sm font-medium outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
+                  className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-[#E5E5E5] bg-[#FFFEF7] px-3 py-2 text-sm font-medium outline-none focus:ring-2 focus:ring-[#D4A574]"
                   value={applied.sort}
                   onChange={(e) => setSortUrl(e.target.value as AutosPublicSortKey)}
                 >
@@ -343,7 +343,7 @@ export function AutosPublicResultsShell() {
               </label>
               <button
                 type="button"
-                className="flex min-h-[44px] w-full shrink-0 items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] px-4 text-sm font-bold text-[color:var(--lx-text)] shadow-sm lg:hidden"
+                className="flex min-h-[44px] w-full shrink-0 items-center justify-center rounded-xl border border-[#D4A574]/50 bg-[#FFFAF0] px-4 text-sm font-bold text-[#1A1A1A] shadow-sm lg:hidden hover:bg-[#F5F0E8] transition-colors"
                 onClick={() => setMobileFiltersOpen(true)}
               >
                 {copy.filtersOpen}
@@ -361,7 +361,7 @@ export function AutosPublicResultsShell() {
           />
         </div>
 
-        <div className="mb-6 rounded-2xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/40 px-4 py-4 sm:px-5">
+        <div className="mb-6 rounded-2xl border border-[#E5E5E5]/80 bg-[#FFFAF0]/40 px-4 py-4 sm:px-5">
           <AutosPublicResultsQuickChips bundle={applied} copy={copy} />
         </div>
 
@@ -371,8 +371,8 @@ export function AutosPublicResultsShell() {
 
         <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-12 xl:gap-14">
           <aside className="hidden w-[300px] shrink-0 lg:block xl:w-[336px]">
-            <div className="sticky top-28 rounded-[22px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_12px_36px_-20px_rgba(42,36,22,0.2)]">
-              <p className="mb-4 font-serif text-lg font-semibold text-[color:var(--lx-text)]">{copy.filtersTitle}</p>
+            <div className="sticky top-28 rounded-[22px] border border-[#D4A574]/30 bg-[#FFFAF0] p-5 shadow-[0_12px_36px_-20px_rgba(212,165,116,0.18)]">
+              <p className="mb-4 font-serif text-lg font-semibold text-[#1A1A1A]">{copy.filtersTitle}</p>
               <AutosPublicFilterRail
                 value={draftFilters}
                 onChange={patchDraft}
@@ -388,8 +388,8 @@ export function AutosPublicResultsShell() {
           <div className="min-w-0 flex-1 lg:min-w-0">
             {featuredDealerBand.length > 0 ? (
               <section className="mb-12 lg:mb-16">
-                <h2 className="font-serif text-xl font-semibold tracking-tight text-[color:var(--lx-text)] sm:text-2xl">{featuredTitle}</h2>
-                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[color:var(--lx-muted)]">{copy.resultsLaneFeaturedSubtitle}</p>
+                <h2 className="font-serif text-xl font-semibold tracking-tight text-[#1A1A1A] sm:text-2xl">{featuredTitle}</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#7A7A7A]">{copy.resultsLaneFeaturedSubtitle}</p>
                 <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
                   {featuredDealerBand.map((l) => (
                     <AutosPublicFeaturedCard key={l.id} listing={l} copy={copy} lang={lang} />
@@ -400,8 +400,8 @@ export function AutosPublicResultsShell() {
 
             {recentLane.length > 0 ? (
               <section className="mb-12 lg:mb-14">
-                <h2 className="font-serif text-xl font-semibold text-[color:var(--lx-text)] sm:text-2xl">{copy.resultsRecentSection}</h2>
-                <p className="mt-2 max-w-3xl text-sm text-[color:var(--lx-muted)]">{copy.resultsLaneRecentSubtitle}</p>
+                <h2 className="font-serif text-xl font-semibold tracking-tight text-[#1A1A1A] sm:text-2xl">{copy.resultsRecentSection}</h2>
+                <p className="mt-2 max-w-3xl text-sm text-[#7A7A7A]">{copy.resultsLaneRecentSubtitle}</p>
                 <div className="-mx-1 mt-6 flex gap-4 overflow-x-auto pb-2 pl-1 pr-2 pt-1 [scrollbar-width:thin]">
                   {recentLane.map((l) => (
                     <div key={l.id} className="w-[min(20rem,calc(100vw-2.5rem))] shrink-0">
@@ -413,15 +413,15 @@ export function AutosPublicResultsShell() {
             ) : null}
 
             <section>
-              <h2 className="font-serif text-xl font-semibold text-[color:var(--lx-text)] sm:text-2xl">{copy.resultsMainSection}</h2>
-              <p className="mt-2 max-w-3xl text-sm text-[color:var(--lx-muted)]">{copy.resultsLaneMainSubtitle}</p>
+              <h2 className="font-serif text-xl font-semibold tracking-tight text-[#1A1A1A] sm:text-2xl">{copy.resultsMainSection}</h2>
+              <p className="mt-2 max-w-3xl text-sm text-[#7A7A7A]">{copy.resultsLaneMainSubtitle}</p>
               <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-2 2xl:grid-cols-3">
                 {pagedGrid.map((l) => (
                   <AutosPublicStandardCard key={l.id} listing={l} copy={copy} lang={lang} />
                 ))}
               </div>
               {gridListings.length === 0 && !emptyCatalog ? (
-                <p className="mt-8 rounded-2xl border border-dashed border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-10 text-center text-sm text-[color:var(--lx-muted)]">
+                <p className="mt-8 rounded-2xl border border-dashed border-[#E5E5E5] bg-[#FFFAF0] px-4 py-10 text-center text-sm text-[#7A7A7A]">
                   {copy.resultsNoFilterMatches}
                 </p>
               ) : null}
@@ -429,18 +429,18 @@ export function AutosPublicResultsShell() {
 
             {gridListings.length > 0 && totalPages > 1 ? (
               <nav
-                className="mt-12 flex flex-wrap items-center justify-center gap-2 border-t border-[color:var(--lx-nav-border)] pt-10"
+                className="mt-12 flex flex-wrap items-center justify-center gap-2 border-t border-[#E5E5E5] pt-10"
                 aria-label="Pagination"
               >
                 {currentPage > 1 ? (
                   <Link
                     href={pageQs(currentPage - 1)}
-                    className="rounded-lg border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                    className="rounded-lg border border-[#E5E5E5] bg-[#FFFAF0] px-3 py-2 text-sm font-semibold text-[#1A1A1A] transition hover:bg-[#F5F0E8]"
                   >
                     {copy.paginationPrev}
                   </Link>
                 ) : (
-                  <span className="rounded-lg border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-2 text-sm text-[color:var(--lx-muted)]">
+                  <span className="rounded-lg border border-[#E5E5E5] bg-[#FFFEF7] px-3 py-2 text-sm text-[#7A7A7A]">
                     {copy.paginationPrev}
                   </span>
                 )}
@@ -450,8 +450,8 @@ export function AutosPublicResultsShell() {
                     href={pageQs(p)}
                     className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border px-3 py-2 text-center text-sm font-semibold ${
                       p === currentPage
-                        ? "border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] text-[color:var(--lx-text)]"
-                        : "border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
+                        ? "border-[#D4A574]/50 bg-[#FFFAF0] text-[#1A1A1A]"
+                        : "border-[#E5E5E5] bg-[#FFFAF0] text-[#4A4A4A] hover:bg-[#F5F0E8]"
                     }`}
                   >
                     {p}
@@ -460,12 +460,12 @@ export function AutosPublicResultsShell() {
                 {currentPage < totalPages ? (
                   <Link
                     href={pageQs(currentPage + 1)}
-                    className="rounded-lg border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                    className="rounded-lg border border-[#E5E5E5] bg-[#FFFAF0] px-3 py-2 text-sm font-semibold text-[#1A1A1A] transition hover:bg-[#F5F0E8]"
                   >
                     {copy.paginationNext}
                   </Link>
                 ) : (
-                  <span className="rounded-lg border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-2 text-sm text-[color:var(--lx-muted)]">
+                  <span className="rounded-lg border border-[#E5E5E5] bg-[#FFFEF7] px-3 py-2 text-sm text-[#7A7A7A]">
                     {copy.paginationNext}
                   </span>
                 )}
@@ -476,7 +476,7 @@ export function AutosPublicResultsShell() {
               <div className="mt-6 flex justify-center">
                 <Link
                   href={pageQs(currentPage + 1)}
-                  className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-6 py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                  className="rounded-xl border border-[#E5E5E5] bg-[#FFFAF0] px-6 py-3 text-sm font-semibold text-[#1A1A1A] transition hover:bg-[#F5F0E8]"
                 >
                   {copy.loadMore}
                 </Link>
@@ -484,7 +484,7 @@ export function AutosPublicResultsShell() {
             ) : null}
 
             {gridListings.length > 0 ? (
-              <p className="mt-4 text-center text-xs text-[color:var(--lx-muted)]">
+              <p className="mt-4 text-center text-xs text-[#7A7A7A]">
                 {copy.pageOf.replace("{page}", String(currentPage))} · {totalPages}
               </p>
             ) : null}
@@ -500,12 +500,12 @@ export function AutosPublicResultsShell() {
             aria-label="Close"
             onClick={() => setMobileFiltersOpen(false)}
           />
-          <div className="absolute bottom-0 left-0 right-0 max-h-[min(92vh,720px)] overflow-y-auto rounded-t-[22px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 max-h-[min(92vh,720px)] overflow-y-auto rounded-t-[22px] border border-[#D4A574]/30 bg-[#FFFAF0] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl">
             <div className="mb-4 flex items-center justify-between gap-3">
-              <p className="font-serif text-lg font-semibold">{copy.filtersTitle}</p>
+              <p className="font-serif text-lg font-semibold text-[#1A1A1A]">{copy.filtersTitle}</p>
               <button
                 type="button"
-                className="rounded-lg px-3 py-1.5 text-sm font-semibold text-[color:var(--lx-gold)]"
+                className="rounded-lg px-3 py-1.5 text-sm font-semibold text-[#D4A574]"
                 onClick={() => setMobileFiltersOpen(false)}
               >
                 {lang === "es" ? "Cerrar" : "Close"}
