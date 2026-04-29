@@ -11,6 +11,7 @@ import { satisfiesRestauranteMinimumValidPreview } from "@/app/clasificados/rest
 import { useRestauranteDraft } from "@/app/clasificados/restaurantes/application/useRestauranteDraft";
 import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
 import { RestauranteDetailShell } from "@/app/clasificados/restaurantes/shell/RestauranteDetailShell";
+import { RestaurantePreviewCard } from "@/app/clasificados/restaurantes/shell/RestaurantePreviewCard";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { supabase } from "@/app/lib/supabaseClient";
@@ -189,7 +190,22 @@ export default function RestaurantePreviewClient() {
         </details>
 
         <ClasificadosPreviewAdCanvas>
-          <RestauranteDetailShell data={shellData} />
+          {/* Premium Preview Card */}
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Vista previa de la tarjeta</h2>
+            <RestaurantePreviewCard 
+              data={shellData} 
+              listingId={shellData.id}
+              showEngagementMetrics={true}
+              className="max-w-2xl mx-auto"
+            />
+          </div>
+          
+          {/* Full Detail Shell */}
+          <div>
+            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Vista previa completa</h2>
+            <RestauranteDetailShell data={shellData} />
+          </div>
         </ClasificadosPreviewAdCanvas>
       </div>
     </RestaurantesShellChrome>
