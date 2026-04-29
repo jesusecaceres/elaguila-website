@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FiMapPin, FiHome, FiCalendar } from "react-icons/fi";
 import type { RentasLandingCopy } from "@/app/clasificados/rentas/rentasLandingCopy";
 import type { RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingResultsHandoff } from "@/app/clasificados/rentas/landing/rentasListingResultsHandoff";
@@ -87,8 +88,8 @@ export function RentasResultCard({ listing, copy, lang }: Props) {
   const cat = categoriaLabel(listing, copy);
   const elevated = listing.promoted === true || listing.badges.includes("destacada");
   const cardRing = elevated
-    ? `${rentasCardSurfaceClass} ${rentasResultCardPromotedClass}`
-    : `${rentasCardSurfaceClass} ring-1 ring-[#D4C4A8]/32`;
+    ? "rounded-3xl border border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] overflow-hidden"
+    : "rounded-3xl border border-[#D4A574]/20 bg-[#FFFAF0] shadow-[0_8px_32px_rgba(212,165,116,0.1)] overflow-hidden";
 
   if (horizontal) {
     return (
@@ -105,30 +106,26 @@ export function RentasResultCard({ listing, copy, lang }: Props) {
             </div>
           </div>
           <div className="flex min-w-0 flex-1 flex-col p-4 sm:py-4 sm:pl-5 sm:pr-4">
-            <p className="text-lg font-bold tracking-tight text-[#B8893C] sm:text-xl">{listing.rentDisplay}</p>
+            <p className="text-xl font-bold text-[#2A7F3E] leading-tight sm:text-2xl">{listing.rentDisplay}</p>
             <Link
               href={href}
-              className="mt-1 font-serif text-lg font-semibold leading-snug text-[#1E1810] decoration-[#5B7C99]/35 underline-offset-2 hover:underline"
+              className="mt-2 text-xl font-bold text-[#1A1A1A] leading-tight hover:text-[#D4A574] transition-colors"
             >
               {listing.title}
             </Link>
-            <p className="mt-1 text-sm text-[#5C5346]">{listing.addressLine}</p>
+            <div className="mt-2 flex items-center gap-2 text-sm text-[#4A4A4A]">
+              <FiMapPin className="w-4 h-4 text-[#D4A574]" />
+              {listing.addressLine}
+            </div>
             <FactsRow listing={listing} />
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span
-                className={
-                  "rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide " +
-                  (listing.branch === "privado"
-                    ? "border-[#5B7C99]/28 bg-[#E8EEF4]/95 text-[#2C3E4D]"
-                    : "border-[#D4A84B]/40 bg-[#FFF8E8]/95 text-[#6B4E1D]")
-                }
-              >
+              <span className="rounded-full px-3 py-1 text-xs font-medium bg-[#D4A574]/10 text-[#D4A574] border border-[#D4A574]/20">
                 {seller}
               </span>
-              <span className="text-[10px] font-medium uppercase tracking-wide text-[#5C5346]/75">{cat}</span>
+              <span className="text-xs font-medium text-[#7A7A7A] uppercase tracking-wide">{cat}</span>
             </div>
-            <Link href={href} className={`mt-3 text-sm font-semibold ${rentasLinkSupportClass}`}>
-              {copy.card.verResultados}
+            <Link href={href} className="mt-auto pt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border border-[#D4A574]/30 bg-white text-[#1A1A1A] hover:bg-[#FFFAF0] hover:border-[#D4A574]">
+              Ver detalles
             </Link>
           </div>
         </div>
@@ -146,31 +143,27 @@ export function RentasResultCard({ listing, copy, lang }: Props) {
         />
         <BadgeRow listing={listing} copy={copy.card} />
       </div>
-      <div className="flex flex-1 flex-col p-4">
-        <p className="text-xl font-bold tracking-tight text-[#B8893C]">{listing.rentDisplay}</p>
+      <div className="flex flex-1 flex-col p-6">
+        <p className="text-2xl font-bold text-[#2A7F3E] leading-tight">{listing.rentDisplay}</p>
         <Link
           href={href}
-          className="mt-1 font-serif text-lg font-semibold leading-snug text-[#1E1810] decoration-[#5B7C99]/35 underline-offset-2 hover:underline"
+          className="mt-2 text-xl font-bold text-[#1A1A1A] leading-tight hover:text-[#D4A574] transition-colors"
         >
           {listing.title}
         </Link>
-        <p className="mt-1 text-sm text-[#5C5346]">{listing.addressLine}</p>
+        <div className="mt-2 flex items-center gap-2 text-sm text-[#4A4A4A]">
+          <FiMapPin className="w-4 h-4 text-[#D4A574]" />
+          {listing.addressLine}
+        </div>
         <FactsRow listing={listing} />
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span
-            className={
-              "rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide " +
-              (listing.branch === "privado"
-                ? "border-[#5B7C99]/28 bg-[#E8EEF4]/95 text-[#2C3E4D]"
-                : "border-[#D4A84B]/40 bg-[#FFF8E8]/95 text-[#6B4E1D]")
-            }
-          >
+          <span className="rounded-full px-3 py-1 text-xs font-medium bg-[#D4A574]/10 text-[#D4A574] border border-[#D4A574]/20">
             {seller}
           </span>
-          <span className="text-[10px] font-medium uppercase tracking-wide text-[#5C5346]/75">{cat}</span>
+          <span className="text-xs font-medium text-[#7A7A7A] uppercase tracking-wide">{cat}</span>
         </div>
-        <Link href={href} className={`mt-auto pt-4 text-sm font-semibold ${rentasLinkSupportClass}`}>
-          {copy.card.verResultados}
+        <Link href={href} className="mt-auto pt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border border-[#D4A574]/30 bg-white text-[#1A1A1A] hover:bg-[#FFFAF0] hover:border-[#D4A574]">
+          Ver detalles
         </Link>
       </div>
     </article>

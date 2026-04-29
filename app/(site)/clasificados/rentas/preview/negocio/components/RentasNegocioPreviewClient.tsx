@@ -10,6 +10,7 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
 import { BienesRaicesNegocioPreviewView } from "@/app/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView";
+import { RentasPreviewCard } from "@/app/(site)/clasificados/rentas/shell/RentasPreviewCard";
 import { mapRentasNegocioStateToPreviewVm } from "@/app/clasificados/publicar/rentas/negocio/application/mapping/mapRentasNegocioStateToPreviewVm";
 import {
   clearRentasNegocioDraft,
@@ -100,7 +101,23 @@ export default function RentasNegocioPreviewClient() {
             Ir a publicar — Negocio
           </Link>
         </p>
-        <BienesRaicesNegocioPreviewView vm={vm} />
+        <div className="space-y-8">
+          {/* New Rentas Preview Card */}
+          <div className="max-w-2xl mx-auto">
+            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Vista previa de la renta</h2>
+            <RentasPreviewCard 
+              data={vm} 
+              lang={lang}
+              showEngagementMetrics={true}
+            />
+          </div>
+          
+          {/* Original Detail View */}
+          <div>
+            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Vista completa del anuncio</h2>
+            <BienesRaicesNegocioPreviewView vm={vm} />
+          </div>
+        </div>
       </LeonixPreviewPageShell>
     );
   }
@@ -130,7 +147,23 @@ export default function RentasNegocioPreviewClient() {
         </div>
       }
     >
-      <BienesRaicesNegocioPreviewView vm={vm} />
+      <div className="space-y-8">
+          {/* New Rentas Preview Card */}
+          <div className="max-w-2xl mx-auto">
+            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Vista previa de la renta</h2>
+            <RentasPreviewCard 
+              data={vm} 
+              lang={lang}
+              showEngagementMetrics={true}
+            />
+          </div>
+          
+          {/* Original Detail View */}
+          <div>
+            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Vista completa del anuncio</h2>
+            <BienesRaicesNegocioPreviewView vm={vm} />
+          </div>
+        </div>
     </LeonixPreviewPageShell>
   );
 }
