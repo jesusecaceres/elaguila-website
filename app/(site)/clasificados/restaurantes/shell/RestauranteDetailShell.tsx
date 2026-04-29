@@ -326,7 +326,7 @@ function ContactSection({ data }: { data: RestaurantDetailShellData }) {
   );
 }
 
-export function RestauranteDetailShell({ data, open }: { data: RestaurantDetailShellData; open: boolean }) {
+export function RestauranteDetailShell({ data, open }: { data: RestaurantDetailShellData; open?: boolean }) {
   const showQuick = (data.quickInfo?.length ?? 0) > 0;
   const showPlatillos = (data.menuHighlights?.length ?? 0) > 0;
   const showMenuOnly = Boolean(data.fullMenuCta) && !showPlatillos;
@@ -381,7 +381,7 @@ export function RestauranteDetailShell({ data, open }: { data: RestaurantDetailS
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
               {/* Hero content - 2 columns */}
               <div className="lg:col-span-2">
-                <HeroIdentityBlock data={data} open={open} showHoursDetail={showHoursDetail} taxonomyMax={4} light />
+                <HeroIdentityBlock data={data} open={open ?? false} showHoursDetail={showHoursDetail} taxonomyMax={4} light />
                 {showCtas ? (
                   <div className="mt-8">
                     <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">Acciones principales</p>
@@ -521,6 +521,7 @@ export function RestauranteDetailShell({ data, open }: { data: RestaurantDetailS
         </section>
       ) : null}
 
+      <div className="wider-modules-wrapper">
       {/* 6. HIGHLIGHTS */}
       {showHighlights ? (
         <section className="scroll-mt-24 bg-[color:var(--lx-section)]" aria-labelledby="highlights-heading">
