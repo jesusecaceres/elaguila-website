@@ -190,21 +190,35 @@ export default function RestaurantePreviewClient() {
         </details>
 
         <ClasificadosPreviewAdCanvas>
-          {/* Premium Preview Card */}
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Vista previa de la tarjeta</h2>
-            <RestaurantePreviewCard 
-              data={shellData} 
-              listingId={shellData.id}
-              showEngagementMetrics={true}
-              className="max-w-2xl mx-auto"
-            />
+          {/* Section 1: Vista previa de la tarjeta */}
+          <div className="mb-12">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-[#1F1A17] mb-2">1. Vista previa de la tarjeta</h2>
+              <p className="text-sm font-medium text-[#5A5148]">
+                Así se verá tu anuncio en resultados, búsquedas y tarjetas destacadas.
+              </p>
+            </div>
+            <div className="bg-[#FFFAF3] rounded-3xl border border-[#D8C2A0] p-6 shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)]">
+              <RestaurantePreviewCard 
+                data={shellData} 
+                listingId={shellData.id}
+                showEngagementMetrics={true}
+                className="max-w-2xl mx-auto"
+              />
+            </div>
           </div>
           
-          {/* Full Detail Shell */}
+          {/* Section 2: Vista previa completa del anuncio */}
           <div>
-            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Vista previa completa</h2>
-            <RestauranteDetailShell data={shellData} />
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-[#1F1A17] mb-2">2. Vista previa completa del anuncio</h2>
+              <p className="text-sm font-medium text-[#5A5148]">
+                Así se verá tu anuncio cuando una persona abra la publicación completa.
+              </p>
+            </div>
+            <div className="bg-[#FFFAF3] rounded-3xl border border-[#D8C2A0] p-6 shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)]">
+              <RestauranteDetailShell data={shellData} />
+            </div>
           </div>
         </ClasificadosPreviewAdCanvas>
       </div>
