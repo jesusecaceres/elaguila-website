@@ -326,8 +326,7 @@ function ContactSection({ data }: { data: RestaurantDetailShellData }) {
   );
 }
 
-export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellData }) {
-  const open = data.hoursPreview.status === "open";
+export function RestauranteDetailShell({ data, open }: { data: RestaurantDetailShellData; open: boolean }) {
   const showQuick = (data.quickInfo?.length ?? 0) > 0;
   const showPlatillos = (data.menuHighlights?.length ?? 0) > 0;
   const showMenuOnly = Boolean(data.fullMenuCta) && !showPlatillos;
@@ -337,6 +336,7 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
     vg && ((vg.categories?.length ?? 0) > 0 || (vg.supplemental?.length ?? 0) > 0)
   );
   const legacyGallery = (data.gallery?.length ?? 0) > 0;
+  const showGallery = legacyGallery;
   const showAbout = Boolean(data.aboutBody?.trim());
   const showContact = hasContactContent(data.contact);
   const showStacks = (data.stackSections?.length ?? 0) > 0;
@@ -373,179 +373,262 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-[#1a1814] via-[#2d2820] to-[#4a4034]" aria-hidden />
             )}
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent" aria-hidden />
-          </div>
-          <div className="border-t border-white/10 bg-gradient-to-b from-[#141210] to-[#0e0c0a] px-4 pb-6 pt-6 sm:px-6">
-            <HeroIdentityBlock data={data} open={open} showHoursDetail={showHoursDetail} taxonomyMax={3} light />
-            {showCtas ? (
-              <div className="mt-8 border-t border-white/10 pt-6">
-                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">Siguiente paso</p>
-                <RestauranteShellInteractiveCtas listingId={data.id} ctas={data.primaryCtas} layout="scrollRail" />
-              </div>
-            ) : null}
           </div>
         </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" aria-hidden />
+        <div className="relative px-6 py-12 sm:px-8 lg:px-12 lg:py-16">
+          <div className="mx-auto max-w-7xl">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+              {/* Hero content - 2 columns */}
+              <div className="lg:col-span-2">
+                <HeroIdentityBlock data={data} open={open} showHoursDetail={showHoursDetail} taxonomyMax={4} light />
+                {showCtas ? (
+                  <div className="mt-8">
+                    <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">Acciones principales</p>
+                    <RestauranteShellInteractiveCtas listingId={data.id} ctas={data.primaryCtas} layout="wrap" />
+                  </div>
+                ) : null}
+              </div>
 
-        <div className="hidden lg:block">
-          <div className="relative aspect-[2.4/1] min-h-[280px] w-full max-h-[min(52vh,520px)] bg-[#1a1814]">
-            {hasHeroImg ? (
-              <Image
-                src={data.heroImageUrl!}
-                alt={data.heroImageAlt ?? ""}
-                fill
-                priority
-                unoptimized={data.heroImageUrl!.startsWith("data:")}
-                className="object-cover"
-                sizes="(max-width:1280px) 90vw, 1100px"
-              />
-            ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-[#1a1814] via-[#2d2820] to-[#4a4034]" aria-hidden />
-            )}
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0b0a08] via-black/20 to-transparent" aria-hidden />
-          </div>
-          <div className="border-t border-white/10 bg-gradient-to-b from-[#151311] via-[#100f0c] to-[#0a0908] px-10 py-10 xl:px-14 xl:py-12">
-            <div className="mx-auto max-w-[880px]">
-              <HeroIdentityBlock data={data} open={open} showHoursDetail={showHoursDetail} taxonomyMax={3} light />
-              {showCtas ? (
-                <div className="mt-10 border-t border-white/10 pt-8">
-                  <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">Acciones principales</p>
-                  <RestauranteShellInteractiveCtas listingId={data.id} ctas={data.primaryCtas} layout="wrap" />
-                </div>
-              ) : null}
+              {/* Trust indicators - 1 column */}
+              <div className="lg:col-span-1">
+                {data.trustRating ? (
+                  <div className="rounded-2xl border border-white/20 bg-white/10 backdrop-blur-sm p-6">
+                    <div className="flex items-center gap-3 text-white">
+                      <StarRow rating={Math.min(5, data.trustRating.average)} />
+                      <span className="text-2xl font-bold">{data.trustRating.average.toFixed(1)}</span>
+                    </div>
+                    <p className="mt-2 text-sm text-white/80">{data.trustRating.count.toLocaleString("es-US")} valoraciones</p>
+                    {data.quickInfo && data.quickInfo.length > 0 ? (
+                      <div className="mt-4 space-y-3">
+                        {data.quickInfo.slice(0, 3).map((item) => (
+                          <div key={item.key} className="flex items-center gap-3 text-white/90">
+                            <span className="text-xs font-medium text-white/60">{item.label}</span>
+                            <span className="text-sm">{item.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Trust / quick proof — immediately after hero */}
+      {/* 2. TOP INFORMATION BAND / QUICK FACTS */}
       {showQuick ? (
-        <section className={`${editorialClass} mt-10 sm:mt-12`} aria-labelledby="quick-info-heading">
-          <h2 id="quick-info-heading" className="sr-only">
-            Información rápida
-          </h2>
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">En contexto</p>
-          <div className={`${CARD} flex flex-wrap gap-x-3 gap-y-2.5 px-5 py-5 sm:px-6`}>
-            {data.quickInfo!.map((item) => (
-              <div
-                key={`${item.key}-${item.label}`}
-                className="flex min-w-0 max-w-full items-baseline gap-2 rounded-2xl border border-[color:var(--lx-gold-border)]/70 bg-[color:var(--lx-section)] px-3.5 py-2 text-[13px]"
-              >
-                <span className="shrink-0 font-semibold text-[color:var(--lx-muted)]">{item.label}</span>
-                <span className="min-w-0 break-words font-medium text-[color:var(--lx-text)]">{item.value}</span>
-              </div>
-            ))}
+        <section className="bg-[color:var(--lx-section)] border-y border-[color:var(--lx-nav-border)]" aria-labelledby="quick-info-heading">
+          <div className="mx-auto max-w-7xl px-6 py-8 sm:px-8 lg:px-12">
+            <h2 id="quick-info-heading" className="sr-only">Información rápida</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {data.quickInfo!.map((item) => (
+                <div key={item.key} className="text-center">
+                  <div className="rounded-xl border border-[color:var(--lx-gold-border)]/50 bg-[color:var(--lx-card)] p-4">
+                    <div className="text-xs font-semibold text-[color:var(--lx-muted)] uppercase tracking-wide">{item.label}</div>
+                    <div className="mt-1 text-sm font-medium text-[color:var(--lx-text)]">{item.value}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       ) : null}
 
-      {/* Editorial story column */}
-      <div className={`${editorialClass} ${SECTION_GAP} mt-12 sm:mt-14 lg:mt-16`}>
-        {showAbout ? (
-          <section aria-labelledby="about-heading" className="scroll-mt-24">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Historia</p>
-            <h2 id="about-heading" className="mt-1 text-2xl font-bold tracking-tight text-[color:var(--lx-text)]">
-              {data.aboutTitle ?? "Sobre el negocio"}
-            </h2>
-            <p className="mt-5 text-[15px] leading-[1.8] text-[color:var(--lx-text-2)]">{data.aboutBody}</p>
-          </section>
-        ) : null}
+      {/* 3. FEATURED DISHES / POPULAR DISHES */}
+      {showPlatillos ? (
+        <section className="scroll-mt-24" aria-labelledby="featured-dishes-heading">
+          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-8 lg:px-12 lg:py-16">
+            <div className="mb-8">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Destacados</p>
+              <h2 id="featured-dishes-heading" className="mt-2 text-3xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-4xl">
+                Platos populares
+              </h2>
+            </div>
+            <RestauranteShellPlatillosBlock dishes={data.menuHighlights!} fullMenuCta={data.fullMenuCta} />
+          </div>
+        </section>
+      ) : null}
 
-        {showPlatillos ? (
-          <RestauranteShellPlatillosBlock dishes={data.menuHighlights!} fullMenuCta={data.fullMenuCta} />
-        ) : null}
-        {showMenuOnly ? (
-          <section className="scroll-mt-24" aria-label="Menú">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Carta</p>
-            <h2 className="mt-1 text-2xl font-bold text-[color:var(--lx-text)]">Explora el menú</h2>
-            <RestauranteShellInlineDataAssetButton
-              href={data.fullMenuCta!.href}
-              label={`${data.fullMenuCta!.label} →`}
-              className="mt-5 flex w-full min-h-[52px] items-center justify-center rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-4 py-3.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-            />
-          </section>
-        ) : null}
+      {/* 4. MAP / CONTACT / ACCESS */}
+      {showContact ? (
+        <section className="scroll-mt-24 bg-[color:var(--lx-section)]" aria-labelledby="contact-access-heading">
+          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-8 lg:px-12 lg:py-16">
+            <div className="mb-8">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Acceso</p>
+              <h2 id="contact-access-heading" className="mt-2 text-3xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-4xl">
+                Contacto y ubicación
+              </h2>
+              <p className="mt-4 text-lg text-[color:var(--lx-text-2)]">
+                Reserva mesa, ruta y canales directos — en un solo lugar.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className={`${CARD} p-6`}>
+                <ContactSection data={data} />
+              </div>
+              <div className={`${CARD} p-6`}>
+                {data.contact?.mapsSearchQuery ? (
+                  <div className="aspect-video rounded-lg overflow-hidden">
+                    <iframe
+                      src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(data.contact.mapsSearchQuery)}`}
+                      className="w-full h-full border-0"
+                      allowFullScreen
+                      loading="lazy"
+                    />
+                  </div>
+                ) : (
+                  <div className="aspect-video rounded-lg bg-gradient-to-br from-[#1a1814] via-[#2d2820] to-[#4a4034] flex items-center justify-center">
+                    <FiMapPin className="h-12 w-12 text-white/40" />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
-        {showContact ? <ContactSection data={data} /> : null}
+      {/* 5. HOURS */}
+      {showHoursDetail && data.hoursDetail ? (
+        <section className="scroll-mt-24" aria-labelledby="hours-detail-heading">
+          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-8 lg:px-12 lg:py-16">
+            <div className="mb-8">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Horarios</p>
+              <h2 id="hours-detail-heading" className="mt-2 text-3xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-4xl">
+                Horarios de atención
+              </h2>
+            </div>
+            <div className={`${CARD} p-6 lg:p-8`}>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {data.hoursDetail.rows.map((r) => (
+                  <div key={r.dayLabel} className="flex flex-col gap-2">
+                    <dt className="font-semibold text-[color:var(--lx-muted)]">{r.dayLabel}</dt>
+                    <dd className="text-[15px] text-[color:var(--lx-text-2)]">{r.line}</dd>
+                  </div>
+                ))}
+              </dl>
+              {data.hoursDetail.specialNote ? (
+                <div className="mt-6 pt-6 border-t border-[color:var(--lx-nav-border)]">
+                  <p className="text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+                    <span className="font-semibold text-[color:var(--lx-text)]">Nota: </span>
+                    {data.hoursDetail.specialNote}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
-        {showHoursDetail && data.hoursDetail ? (
-          <section
-            id="horarios-detalle"
-            className={`${CARD} scroll-mt-24 px-5 py-6 sm:px-7 sm:py-7 lg:scroll-mt-28`}
-            aria-labelledby="hours-detail-heading"
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Planifica</p>
-            <h2 id="hours-detail-heading" className="mt-1 text-2xl font-bold tracking-tight text-[color:var(--lx-text)]">
-              Horarios
-            </h2>
-            <dl className="mt-5 divide-y divide-[color:var(--lx-nav-border)]/70">
-              {data.hoursDetail.rows.map((r) => (
-                <div key={r.dayLabel} className="flex flex-wrap gap-x-4 gap-y-1 py-3.5 first:pt-0">
-                  <dt className="w-36 shrink-0 font-semibold text-[color:var(--lx-muted)]">{r.dayLabel}</dt>
-                  <dd className="min-w-0 text-[15px] text-[color:var(--lx-text-2)]">{r.line}</dd>
+      {/* 6. HIGHLIGHTS */}
+      {showHighlights ? (
+        <section className="scroll-mt-24 bg-[color:var(--lx-section)]" aria-labelledby="highlights-heading">
+          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-8 lg:px-12 lg:py-16">
+            <div className="mb-8">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Características</p>
+              <h2 id="highlights-heading" className="mt-2 text-3xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-4xl">
+                Destacados del lugar
+              </h2>
+            </div>
+            <RestauranteShellDestacadosSection tags={data.highlightTags!} />
+          </div>
+        </section>
+      ) : null}
+
+      {/* 7. GALLERY / MEDIA */}
+      {legacyGallery || showVenueGallery ? (
+        <section className="scroll-mt-24" aria-labelledby="gallery-heading">
+          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-8 lg:px-12 lg:py-16">
+            <div className="mb-8">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Galería</p>
+              <h2 id="gallery-heading" className="mt-2 text-3xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-4xl">
+                Espacio y ambiente
+              </h2>
+            </div>
+            {legacyGallery ? (
+              <div className="mb-12">
+                <h3 className="text-xl font-semibold text-[color:var(--lx-text)] mb-6">Galería principal</h3>
+                <RestauranteShellGalleryBlock
+                  gallery={data.gallery!}
+                  galleryCta={data.fullMenuCta}
+                />
+              </div>
+            ) : null}
+            {showVenueGallery ? (
+              <div>
+                <h3 className="text-xl font-semibold text-[color:var(--lx-text)] mb-6">Interior y exterior</h3>
+                <RestauranteShellVenueGalleryBlock bundle={data.venueGallery!} />
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {/* 8. ABOUT */}
+      {showAbout ? (
+        <section className="scroll-mt-24 bg-[color:var(--lx-section)]" aria-labelledby="about-heading">
+          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-8 lg:px-12 lg:py-16">
+            <div className="mb-8">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Historia</p>
+              <h2 id="about-heading" className="mt-2 text-3xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-4xl">
+                {data.aboutTitle ?? "Sobre el negocio"}
+              </h2>
+            </div>
+            <div className={`${CARD} p-6 lg:p-8`}>
+              <p className="text-[15px] leading-[1.8] text-[color:var(--lx-text-2)] max-w-4xl">{data.aboutBody}</p>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* 9. CONDITIONAL STACKS */}
+      {showStacks ? (
+        <section className="scroll-mt-24" aria-labelledby="stacks-heading">
+          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-8 lg:px-12 lg:py-16">
+            <div className="mb-8">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Servicios adicionales</p>
+              <h2 id="stacks-heading" className="mt-2 text-3xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-4xl">
+                Más opciones
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {data.stackSections!.map((stack) => (
+                <div key={stack.id} className={`${CARD} p-6`}>
+                  <h3 className="text-xl font-semibold text-[color:var(--lx-text)] mb-4">{stack.title}</h3>
+                  <dl className="space-y-3">
+                    {stack.rows.map((row, i) => (
+                      <div key={i} className="flex flex-col gap-1">
+                        <dt className="font-medium text-[color:var(--lx-muted)]">{row.label}</dt>
+                        <dd className="text-[15px] text-[color:var(--lx-text-2)]">{row.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
                 </div>
               ))}
-            </dl>
-            {data.hoursDetail.specialNote ? (
-              <p className="mt-5 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-                <span className="font-semibold text-[color:var(--lx-text)]">Nota: </span>
-                {data.hoursDetail.specialNote}
-              </p>
-            ) : null}
-            {data.hoursDetail.temporaryNote ? (
-              <p className="mt-4 rounded-xl border border-amber-200/90 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-950">
-                <span className="font-semibold">Horario temporal: </span>
-                {data.hoursDetail.temporaryNote}
-              </p>
-            ) : null}
-          </section>
-        ) : null}
-      </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
-      {/* Wider modules: traits, stacks, gallery */}
-      <div className={`mx-auto mt-12 w-full max-w-[1080px] space-y-14 sm:mt-16 sm:space-y-16 lg:space-y-[4.5rem]`}>
-        {showHighlights ? <RestauranteShellDestacadosSection tags={data.highlightTags!} /> : null}
-
-        {showStacks
-          ? data.stackSections!.map((stack) => (
-              <section key={stack.id} className="scroll-mt-24" aria-labelledby={`stack-${stack.id}`}>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Detalle</p>
-                <h2 id={`stack-${stack.id}`} className="mt-1 text-2xl font-bold tracking-tight text-[color:var(--lx-text)]">
-                  {stack.title}
-                </h2>
-                <dl className={`${CARD} mt-5 space-y-4 px-5 py-5 text-sm sm:px-6`}>
-                  {stack.rows.map((row) => (
-                    <div key={`${row.label}-${row.value}`}>
-                      <dt className="font-semibold text-[color:var(--lx-muted)]">{row.label}</dt>
-                      <dd className="mt-1 text-[color:var(--lx-text-2)]">{row.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </section>
-            ))
-          : null}
-
-        {showVenueGallery ? (
-          <RestauranteShellVenueGalleryBlock bundle={data.venueGallery!} galleryCta={data.galleryCta} />
-        ) : legacyGallery ? (
-          <RestauranteShellGalleryBlock gallery={data.gallery!} galleryCta={data.galleryCta} />
-        ) : null}
-
-        {data.trustLight ? (
-          <section className={`${CARD} scroll-mt-24 border-dashed px-5 py-6 sm:px-7`} aria-label="Confianza">
-            <p className="text-sm leading-relaxed text-[color:var(--lx-text-2)]">{data.trustLight.summaryLine}</p>
-            {data.trustLight.externalTrustHref && data.trustLight.externalTrustLabel ? (
-              <a
-                href={data.trustLight.externalTrustHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[color:var(--lx-text)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 hover:text-[color:var(--lx-gold)]"
-              >
-                {data.trustLight.externalTrustLabel}
-                <FiExternalLink className="h-3.5 w-3.5" aria-hidden />
-              </a>
-            ) : null}
-          </section>
-        ) : null}
+      {/* Menu only fallback */}
+      {showMenuOnly ? (
+        <section className="scroll-mt-24" aria-label="Menú">
+          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-8 lg:px-12 lg:py-16">
+            <div className="mb-8">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Carta</p>
+              <h2 className="mt-2 text-3xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-4xl">Explora el menú</h2>
+            </div>
+            <div className={`${CARD} p-6 lg:p-8 text-center`}>
+              <RestauranteShellInlineDataAssetButton
+                href={data.fullMenuCta!.href}
+                label={`${data.fullMenuCta!.label} →`}
+                className="inline-flex min-h-[52px] items-center justify-center rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-8 py-3.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+              />
+            </div>
+          </div>
+        </section>
+      ) : null}
       </div>
     </main>
   );
