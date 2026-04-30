@@ -1,0 +1,707 @@
+"use client";
+
+import Image from "next/image";
+import { FiExternalLink, FiMail, FiMapPin, FiPhone, FiInstagram, FiFacebook, FiYoutube, FiClock, FiStar } from "react-icons/fi";
+import { FaTiktok, FaWhatsapp } from "react-icons/fa";
+import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
+
+// Leonix premium visual tokens
+const LEONIX_PAGE_BG = "#F4F1EB";
+const LEONIX_CARD_SURFACE = "#FFFAF3";
+const LEONIX_BORDER = "#D8C2A0";
+const LEONIX_PRIMARY_TEXT = "#1F1A17";
+const LEONIX_SECONDARY_TEXT = "#5A5148";
+const LEONIX_MUTED_TEXT = "#8B7E70";
+const LEONIX_GOLD_ACCENT = "#BEA98E";
+const LEONIX_DARK_CTA = "#2C1810";
+const LEONIX_SUCCESS_GREEN = "#1A4D2E";
+const LEONIX_INFO_BLUE = "#355C7D";
+const LEONIX_ELEVATED_CHIP = "#F6EBDD";
+
+const SECTION_CARD = "rounded-3xl border border-[#D8C2A0] bg-[#FFFAF3] shadow-[0_8px_32px_-8px_rgba(212,165,116,0.15)] overflow-hidden";
+const SECTION_PADDING = "p-6 sm:p-8";
+const SECTION_TITLE = "text-2xl font-bold text-[#1F1A17] mb-6 tracking-tight";
+const SUBSECTION_TITLE = "text-lg font-semibold text-[#1F1A17] mb-4";
+const DETAIL_LABEL = "text-sm font-semibold text-[#5A5148] mb-2";
+const DETAIL_VALUE = "text-base text-[#1F1A17]";
+
+const CTA_BUTTON = "inline-flex items-center gap-2 px-5 py-3 rounded-full font-semibold text-base transition-all duration-200 border min-h-[44px]";
+const CTA_PRIMARY = "bg-[#2C1810] text-white border-[#2C1810] hover:bg-[#1A1412] shadow-md";
+const CTA_SECONDARY = "bg-white text-[#1F1A17] border-[#D8C2A0] hover:bg-[#FFFAF3] hover:border-[#BEA98E] shadow-sm";
+
+const SERVICE_CHIP = "px-3 py-1.5 rounded-full bg-[#F6EBDD] text-[#1F1A17] text-xs font-semibold border border-[#D8C2A0] inline-flex items-center gap-1";
+
+interface RestauranteAdStoryPreviewProps {
+  data: RestaurantDetailShellData;
+}
+
+export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewProps) {
+  // Helper functions
+  const hasHeroImage = data.heroImageUrl;
+  const hasContactInfo = data.contact;
+  const hasMenuHighlights = data.menuHighlights && data.menuHighlights.length > 0;
+  const hasGallery = data.venueGallery || data.gallery;
+  const hasHours = data.hoursDetail;
+  const hasTrustInfo = data.trustRating || data.trustLight;
+  const hasStackSections = data.stackSections && data.stackSections.length > 0;
+
+  // CTA data extraction
+  const primaryCtas = data.primaryCtas || [];
+  const contactCtas = primaryCtas.filter(cta => 
+    ['call', 'whatsapp', 'message', 'website'].includes(cta.key)
+  );
+  const actionCtas = primaryCtas.filter(cta => 
+    ['menu', 'menuAsset', 'reserve', 'order'].includes(cta.key)
+  );
+
+  return (
+    <div className="space-y-8" style={{ background: LEONIX_PAGE_BG }}>
+      
+      {/* A. Cover / Hero Zone */}
+      <section className={SECTION_CARD}>
+        {hasHeroImage ? (
+          <div className="relative aspect-[16/10] overflow-hidden">
+            <Image
+              src={data.heroImageUrl!}
+              alt={data.heroImageAlt || data.businessName}
+              fill
+              className="object-cover"
+              priority
+            />
+            {/* Dark overlay for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+            
+            {/* Hero content */}
+            <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 text-white">
+              <div className="space-y-3">
+                {/* Business name */}
+                <h1 className="text-3xl sm:text-4xl font-bold leading-tight drop-shadow-lg">
+                  {data.businessName}
+                </h1>
+                
+                {/* Cuisine and type */}
+                <div className="space-y-2">
+                  {data.cuisineTypeLine && (
+                    <p className="text-lg font-medium drop-shadow">
+                      {data.cuisineTypeLine}
+                    </p>
+                  )}
+                  
+                  {/* Location and status */}
+                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                    {data.contact?.addressLine1 && (
+                      <span className="flex items-center gap-1">
+                        <FiMapPin className="w-4 h-4" />
+                        {data.contact.addressLine1}
+                      </span>
+                    )}
+                    
+                    {/* Hours status */}
+                    <span className={`px-3 py-1 rounded-full font-medium ${
+                      data.hoursPreview.status === 'open' 
+                        ? 'bg-green-500/20 text-green-100' 
+                        : 'bg-orange-500/20 text-orange-100'
+                    }`}>
+                      {data.hoursPreview.status === 'open' ? '🟢 Abierto' : '🔴 Cerrado'}
+                    </span>
+                    
+                    {/* Rating */}
+                    {data.trustRating && (
+                      <span className="flex items-center gap-1">
+                        <FiStar className="w-4 h-4 text-yellow-400" />
+                        <span>{data.trustRating.average.toFixed(1)}</span>
+                        <span className="text-white/70">({data.trustRating.count})</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          // Fallback hero without image
+          <div className={SECTION_PADDING}>
+            <div className="space-y-4">
+              <h1 className="text-3xl sm:text-4xl font-bold text-[#1F1A17]">
+                {data.businessName}
+              </h1>
+              {data.cuisineTypeLine && (
+                <p className="text-lg text-[#5A5148]">{data.cuisineTypeLine}</p>
+              )}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* B. Hook / Quick Understanding Zone */}
+      <section className={SECTION_CARD}>
+        <div className={SECTION_PADDING}>
+          <h2 className={SECTION_TITLE}>Servicios y Características</h2>
+          
+          {/* Short summary */}
+          {data.summaryShort && (
+            <p className="text-base text-[#1F1A17] mb-6 leading-relaxed">
+              {data.summaryShort}
+            </p>
+          )}
+          
+          {/* Service chips */}
+          <div className="flex flex-wrap gap-2">
+            {/* Service modes from quick info */}
+            {data.quickInfo?.map((item, index) => {
+              if (item.key === 'service') {
+                return (
+                  <span key={index} className={SERVICE_CHIP}>
+                    {item.value.includes('Comer') && <span>🍽️</span>}
+                    {item.value.includes('Llevar') && <span>🥡</span>}
+                    {item.value.includes('Entrega') && <span>🚚</span>}
+                    {item.value.includes('Reservaciones') && <span>📅</span>}
+                    {item.value.includes('Pedidos') && <span>🛒</span>}
+                    {item.value.includes('Idiomas') && <span>🗣️</span>}
+                    {item.value}
+                  </span>
+                );
+              }
+              return null;
+            })}
+            
+            {/* Additional info chips */}
+            {data.quickInfo?.map((item, index) => {
+              if (item.key === 'price' || item.key === 'businessType') {
+                return (
+                  <span key={index} className={SERVICE_CHIP}>
+                    {item.key === 'price' && <span>💰</span>}
+                    {item.key === 'businessType' && <span>🏢</span>}
+                    {item.value}
+                  </span>
+                );
+              }
+              return null;
+            })}
+            
+            {/* Highlight tags */}
+            {data.highlightTags?.slice(0, 8).map((tag, index) => (
+              <span key={index} className={SERVICE_CHIP}>
+                ⭐ {tag.label}
+              </span>
+            ))}
+            
+            {/* More indicator */}
+            {data.highlightTags && data.highlightTags.length > 8 && (
+              <span className={SERVICE_CHIP}>
+                +{data.highlightTags.length - 8} más
+              </span>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* C. Conversion / Primary CTA Bar */}
+      {contactCtas.length > 0 && (
+        <section className={SECTION_CARD}>
+          <div className={SECTION_PADDING}>
+            <h2 className={SECTION_TITLE}>Contactar</h2>
+            <div className="flex flex-wrap gap-3">
+              {contactCtas.map((cta, index) => {
+                const isPrimary = index === 0;
+                const buttonClass = isPrimary ? CTA_PRIMARY : CTA_SECONDARY;
+                
+                return (
+                  <a
+                    key={cta.key}
+                    href={cta.href}
+                    className={`${CTA_BUTTON} ${buttonClass} ${!cta.enabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                  >
+                    {cta.key === "call" && <FiPhone className="w-4 h-4" />}
+                    {cta.key === "whatsapp" && <FaWhatsapp className="w-4 h-4" />}
+                    {cta.key === "message" && <FiMail className="w-4 h-4" />}
+                    {cta.key === "website" && <FiExternalLink className="w-4 h-4" />}
+                    {cta.label}
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* D. Proof / Featured Menu Zone */}
+      {hasMenuHighlights && (
+        <section className={SECTION_CARD}>
+          <div className={SECTION_PADDING}>
+            <h2 className={SECTION_TITLE}>Platos Destacados</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {data.menuHighlights!.map((dish, index) => (
+                <div key={index} className="bg-white rounded-2xl border border-[#D8C2A0] p-4 shadow-sm">
+                  {dish.imageUrl && (
+                    <div className="relative aspect-[16/10] mb-4 rounded-xl overflow-hidden">
+                      <Image
+                        src={dish.imageUrl}
+                        alt={dish.name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-[#1F1A17]">{dish.name}</h3>
+                    {dish.supportingLine && (
+                      <p className="text-sm text-[#5A5148]">{dish.supportingLine}</p>
+                    )}
+                    {dish.badge && (
+                      <span className="inline-block px-2 py-1 bg-[#F6EBDD] text-[#1F1A17] text-xs font-semibold rounded-full">
+                        {dish.badge}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* E. Proof / Media Gallery Zone */}
+      {hasGallery && (
+        <section className={SECTION_CARD}>
+          <div className={SECTION_PADDING}>
+            <h2 className={SECTION_TITLE}>Galería</h2>
+            <div className="space-y-6">
+              {/* Featured large image */}
+              {data.gallery && data.gallery.length > 0 && (
+                <div className="relative aspect-[16/10] rounded-2xl overflow-hidden">
+                  <Image
+                    src={data.gallery[0].imageUrl!}
+                    alt={data.gallery[0].alt}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              )}
+              
+              {/* Thumbnail grid */}
+              {data.gallery && data.gallery.length > 1 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {data.gallery.slice(1, 9).map((item, index) => (
+                    <div key={index} className="relative aspect-[16/10] rounded-xl overflow-hidden">
+                      <Image
+                        src={item.imageUrl!}
+                        alt={item.alt}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* View more link */}
+              {data.galleryCta && (
+                <div className="text-center">
+                  <a
+                    href={data.galleryCta.href}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#BEA98E] text-[#1F1A17] rounded-full font-semibold hover:bg-[#D8C2A0] transition-colors"
+                  >
+                    {data.galleryCta.label}
+                    <FiExternalLink className="w-4 h-4" />
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* F. Story / About Zone */}
+      {(data.aboutBody || data.summaryShort) && (
+        <section className={SECTION_CARD}>
+          <div className={SECTION_PADDING}>
+            <h2 className={SECTION_TITLE}>Sobre el Negocio</h2>
+            <div className="prose prose-lg max-w-none">
+              {data.aboutBody ? (
+                <div className="text-base text-[#1F1A17] leading-relaxed whitespace-pre-wrap">
+                  {data.aboutBody}
+                </div>
+              ) : (
+                <p className="text-base text-[#1F1A17] leading-relaxed">
+                  {data.summaryShort}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* G. Details / Cuisine, Services, Languages Zone */}
+      <section className={SECTION_CARD}>
+        <div className={SECTION_PADDING}>
+          <h2 className={SECTION_TITLE}>Detalles del Servicio</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Cuisine and Style */}
+            <div>
+              <h3 className={SUBSECTION_TITLE}>Cocina y Estilo</h3>
+              <div className="space-y-3">
+                {data.cuisineTypeLine && (
+                  <div>
+                    <p className={DETAIL_LABEL}>Tipo de Cocina</p>
+                    <p className={DETAIL_VALUE}>{data.cuisineTypeLine}</p>
+                  </div>
+                )}
+                {data.taxonomyChips && data.taxonomyChips.length > 0 && (
+                  <div>
+                    <p className={DETAIL_LABEL}>Características</p>
+                    <div className="flex flex-wrap gap-2">
+                      {data.taxonomyChips.map((chip, index) => (
+                        <span key={index} className={SERVICE_CHIP}>
+                          {chip.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Services */}
+            <div>
+              <h3 className={SUBSECTION_TITLE}>Servicios</h3>
+              <div className="space-y-3">
+                {data.quickInfo?.filter(item => item.key === 'service').map((item, index) => (
+                  <div key={index}>
+                    <p className={DETAIL_VALUE}>{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Languages */}
+            <div>
+              <h3 className={SUBSECTION_TITLE}>Idiomas</h3>
+              <div className="space-y-3">
+                {data.quickInfo?.filter(item => item.key === 'service' && item.value.includes('Idiomas')).map((item, index) => (
+                  <div key={index}>
+                    <p className={DETAIL_VALUE}>{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* H. Details / Hours Zone */}
+      {hasHours && (
+        <section className={SECTION_CARD}>
+          <div className={SECTION_PADDING}>
+            <h2 className={SECTION_TITLE}>Horarios</h2>
+            <div className="space-y-4">
+              {/* Current status */}
+              <div className="flex items-center gap-3">
+                <span className={`px-4 py-2 rounded-full font-semibold ${
+                  data.hoursPreview.status === 'open' 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-orange-100 text-orange-800'
+                }`}>
+                  {data.hoursPreview.status === 'open' ? '🟢 Abierto ahora' : '🔴 Cerrado'}
+                </span>
+                <span className="text-[#5A5148]">{data.hoursPreview.statusLine}</span>
+              </div>
+              
+              {/* Hours table */}
+              {data.hoursDetail && (
+                <div className="bg-white rounded-2xl border border-[#D8C2A0] p-6">
+                  <dl className="space-y-3">
+                    {data.hoursDetail.rows.map((row, index) => (
+                      <div key={index} className="flex justify-between items-center py-2 border-b border-[#D8C2A0]/30 last:border-0">
+                        <dt className="font-semibold text-[#1F1A17]">{row.dayLabel}</dt>
+                        <dd className="text-[#5A5148]">{row.line}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  
+                  {/* Special notes */}
+                  {data.hoursDetail.specialNote && (
+                    <div className="mt-4 p-4 bg-[#F6EBDD] rounded-xl">
+                      <p className="text-sm text-[#1F1A17]">
+                        <strong>Nota especial:</strong> {data.hoursDetail.specialNote}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* I. Conversion / Contact and Location Card */}
+      {hasContactInfo && (
+        <section className={SECTION_CARD}>
+          <div className={SECTION_PADDING}>
+            <h2 className={SECTION_TITLE}>Contacto y Ubicación</h2>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Contact Information */}
+              <div>
+                <h3 className={SUBSECTION_TITLE}>Información de Contacto</h3>
+                <div className="space-y-4">
+                  {data.contact?.phoneDisplay && (
+                    <div className="flex items-center gap-3">
+                      <FiPhone className="w-5 h-5 text-[#BEA98E]" />
+                      <a href={`tel:${data.contact.phoneTelHref}`} className="text-[#1F1A17] hover:text-[#BEA98E]">
+                        {data.contact.phoneDisplay}
+                      </a>
+                    </div>
+                  )}
+                  
+                  {data.contact?.email && (
+                    <div className="flex items-center gap-3">
+                      <FiMail className="w-5 h-5 text-[#BEA98E]" />
+                      <a href={`mailto:${data.contact.email}`} className="text-[#1F1A17] hover:text-[#BEA98E]">
+                        {data.contact.email}
+                      </a>
+                    </div>
+                  )}
+                  
+                  {data.contact?.websiteDisplay && data.contact?.websiteHref && (
+                    <div className="flex items-center gap-3">
+                      <FiExternalLink className="w-5 h-5 text-[#BEA98E]" />
+                      <a 
+                        href={data.contact.websiteHref} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-[#1F1A17] hover:text-[#BEA98E]"
+                      >
+                        {data.contact.websiteDisplay}
+                      </a>
+                    </div>
+                  )}
+                  
+                  {data.contact?.whatsappHref && (
+                    <div className="flex items-center gap-3">
+                      <FaWhatsapp className="w-5 h-5 text-[#BEA98E]" />
+                      <a 
+                        href={data.contact.whatsappHref} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-[#1F1A17] hover:text-[#BEA98E]"
+                      >
+                        WhatsApp
+                      </a>
+                    </div>
+                  )}
+                  
+                  {/* Menu links */}
+                  {(data.contact?.menuFileHref || data.fullMenuCta) && (
+                    <div className="pt-4 border-t border-[#D8C2A0]/30">
+                      <h4 className="font-semibold text-[#1F1A17] mb-3">Menú</h4>
+                      {data.contact?.menuFileHref && (
+                        <a 
+                          href={data.contact?.menuFileHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
+                        >
+                          📋 Ver menú
+                        </a>
+                      )}
+                      {data.fullMenuCta && (
+                        <a 
+                          href={data.fullMenuCta.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors ml-2"
+                        >
+                          📋 {data.fullMenuCta.label}
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Location Information */}
+              <div>
+                <h3 className={SUBSECTION_TITLE}>Ubicación</h3>
+                <div className="space-y-4">
+                  {data.contact?.addressLine1 && (
+                    <div className="flex items-start gap-3">
+                      <FiMapPin className="w-5 h-5 text-[#BEA98E] mt-1" />
+                      <div>
+                        <p className="text-[#1F1A17]">{data.contact.addressLine1}</p>
+                        {data.contact?.addressLine2 && (
+                          <p className="text-[#5A5148]">{data.contact.addressLine2}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Social Links */}
+                  <div className="pt-4 border-t border-[#D8C2A0]/30">
+                    <h4 className="font-semibold text-[#1F1A17] mb-3">Redes Sociales</h4>
+                    <div className="flex flex-wrap gap-3">
+                      {data.contact?.instagramHref && (
+                        <a 
+                          href={data.contact.instagramHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-3 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
+                        >
+                          <FiInstagram className="w-4 h-4" />
+                          Instagram
+                        </a>
+                      )}
+                      
+                      {data.contact?.facebookHref && (
+                        <a 
+                          href={data.contact.facebookHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-3 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
+                        >
+                          <FiFacebook className="w-4 h-4" />
+                          Facebook
+                        </a>
+                      )}
+                      
+                      {data.contact?.tiktokHref && (
+                        <a 
+                          href={data.contact.tiktokHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-3 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
+                        >
+                          <FaTiktok className="w-4 h-4" />
+                          TikTok
+                        </a>
+                      )}
+                      
+                      {data.contact?.youtubeHref && (
+                        <a 
+                          href={data.contact.youtubeHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-3 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
+                        >
+                          <FiYoutube className="w-4 h-4" />
+                          YouTube
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* J. Trust / External Proof Zone */}
+      {hasTrustInfo && (
+        <section className={SECTION_CARD}>
+          <div className={SECTION_PADDING}>
+            <h2 className={SECTION_TITLE}>Prueba Externa</h2>
+            
+            {/* Rating display */}
+            {data.trustRating && (
+              <div className="bg-white rounded-2xl border border-[#D8C2A0] p-6 mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <FiStar 
+                        key={i} 
+                        className={`w-5 h-5 ${
+                          i < Math.floor(data.trustRating!.average) 
+                            ? 'text-yellow-400 fill-current' 
+                            : 'text-gray-300'
+                        }`} 
+                      />
+                    ))}
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold text-[#1F1A17]">
+                      {data.trustRating.average.toFixed(1)} de 5
+                    </p>
+                    <p className="text-sm text-[#5A5148]">
+                      {data.trustRating.count} reseñas
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Trust light information */}
+            {data.trustLight && (
+              <div className="bg-white rounded-2xl border border-[#D8C2A0] p-6">
+                <p className="text-base text-[#1F1A17] leading-relaxed mb-4">
+                  {data.trustLight.summaryLine}
+                </p>
+                
+                {data.trustLight.externalTrustHref && data.trustLight.externalTrustLabel && (
+                  <a
+                    href={data.trustLight.externalTrustHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#BEA98E] text-[#1F1A17] rounded-full font-semibold hover:bg-[#D8C2A0] transition-colors"
+                  >
+                    {data.trustLight.externalTrustLabel}
+                    <FiExternalLink className="w-4 h-4" />
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* K. Conditional Stack Zones */}
+      {hasStackSections && (
+        <section className={SECTION_CARD}>
+          <div className={SECTION_PADDING}>
+            <h2 className={SECTION_TITLE}>Información Adicional</h2>
+            <div className="space-y-6">
+              {data.stackSections!.map((stack, index) => (
+                <div key={stack.id} className="bg-white rounded-2xl border border-[#D8C2A0] p-6">
+                  <h3 className={SUBSECTION_TITLE}>{stack.title}</h3>
+                  <dl className="space-y-3 mt-4">
+                    {stack.rows.map((row, rowIndex) => (
+                      <div key={rowIndex} className="flex justify-between items-center py-2 border-b border-[#D8C2A0]/30 last:border-0">
+                        <dt className="font-semibold text-[#1F1A17]">{row.label}</dt>
+                        <dd className="text-[#5A5148]">{row.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Additional Action CTAs */}
+      {actionCtas.length > 0 && (
+        <section className={SECTION_CARD}>
+          <div className={SECTION_PADDING}>
+            <h2 className={SECTION_TITLE}>Acciones</h2>
+            <div className="flex flex-wrap gap-3">
+              {actionCtas.map((cta, index) => (
+                <a
+                  key={cta.key}
+                  href={cta.href}
+                  className={`${CTA_BUTTON} ${CTA_SECONDARY} ${!cta.enabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  {cta.key === "menu" && <span>📋</span>}
+                  {cta.key === "menuAsset" && <span>📋</span>}
+                  {cta.key === "reserve" && <span>📅</span>}
+                  {cta.key === "order" && <span>🛒</span>}
+                  {cta.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}

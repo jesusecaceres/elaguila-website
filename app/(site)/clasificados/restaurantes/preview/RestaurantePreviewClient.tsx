@@ -10,7 +10,7 @@ import {
 import { satisfiesRestauranteMinimumValidPreview } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import { useRestauranteDraft } from "@/app/clasificados/restaurantes/application/useRestauranteDraft";
 import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
-import { RestauranteDetailShell } from "@/app/clasificados/restaurantes/shell/RestauranteDetailShell";
+import { RestauranteAdStoryPreview } from "@/app/clasificados/restaurantes/shell/RestauranteAdStoryPreview";
 import { RestaurantePreviewCard } from "@/app/clasificados/restaurantes/shell/RestaurantePreviewCard";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -258,7 +258,7 @@ export default function RestaurantePreviewClient() {
                 borderColor: LEONIX_BORDER 
               }}
             >
-              <RestauranteDetailShell data={shellData} />
+              <RestauranteAdStoryPreview data={shellData} />
             </div>
           </div>
         </ClasificadosPreviewAdCanvas>
