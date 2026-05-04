@@ -79,13 +79,13 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
               <div className="max-w-4xl mx-auto space-y-4">
                 {/* Business logo */}
                 {data.businessLogo && (
-                  <div className="mb-4 flex justify-center">
+                  <div className="mb-6 flex justify-center">
                     <Image
                       src={data.businessLogo}
                       alt={`${data.businessName} logo`}
-                      width={80}
-                      height={80}
-                      className="w-20 h-20 rounded-full bg-white/20 p-3 object-contain shadow-lg"
+                      width={120}
+                      height={120}
+                      className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-white/20 p-4 object-contain shadow-xl"
                     />
                   </div>
                 )}

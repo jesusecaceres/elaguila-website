@@ -112,8 +112,26 @@ export function RestaurantePreviewCard({
   const hasTrustRating = data.trustRating;
   const hasCtas = data.primaryCtas && data.primaryCtas.length > 0;
 
-  // Extract service modes from quick info
-  const serviceModes = data.quickInfo?.filter(item => item.key === "service") ?? [];
+  // Extract service modes as individual chips instead of blob
+  const serviceChips = (() => {
+    const serviceItem = data.quickInfo?.find(item => item.key === "service");
+    if (!serviceItem?.value) return [];
+    
+    // Split the concatenated service blob into individual chips
+    const parts = serviceItem.value.split(' · ');
+    const chips: string[] = [];
+    
+    parts.forEach(part => {
+      // Handle "Otro: " prefix removal
+      if (part.startsWith('Otro: ')) {
+        chips.push(part.replace('Otro: ', '').trim());
+      } else {
+        chips.push(part.trim());
+      }
+    });
+    
+    return chips;
+  })();
 
   return (
     <div className={`${PREVIEW_CARD} ${className}`}>
@@ -171,8 +189,7 @@ export function RestaurantePreviewCard({
             {/* Hours Status */}
             {hasHours && (
               <div className={data.hoursPreview.status === 'open' ? HOURS_OPEN : HOURS_CLOSED}>
-                {data.hoursPreview.status === 'open' ? '🟢 Abierto ahora' : '🔴 Cerrado'}
-                {data.hoursPreview.status === 'open' && data.hoursPreview.statusLine && ` · ${data.hoursPreview.statusLine}`}
+                {data.hoursPreview.status === 'open' ? `🟢 ${data.hoursPreview.statusLine}` : '🔴 Cerrado'}
               </div>
             )}
             
@@ -180,7 +197,9 @@ export function RestaurantePreviewCard({
             {hasLocation && (
               <div className="px-3 py-1.5 rounded-full bg-[#F6EBDD] text-[#1F1A17] text-xs font-semibold border border-[#D8C2A0] flex items-center gap-1">
                 <FiMapPin className="w-3 h-3" />
-                <span>{data.contact?.addressLine1 || data.contact?.mapsSearchQuery}</span>
+                <span>
+                  {data.contact?.mapsSearchQuery || data.contact?.addressLine1}
+                </span>
               </div>
             )}
             
@@ -201,14 +220,19 @@ export function RestaurantePreviewCard({
             </p>
           )}
           
-          {/* Service Modes */}
-          {hasServiceModes && serviceModes.length > 0 && (
+          {/* Service Chips */}
+          {serviceChips.length > 0 && (
             <div className={SERVICE_MODES}>
-              {serviceModes.map((mode, index) => (
+              {serviceChips.slice(0, 6).map((chip, index) => (
                 <span key={index} className={SERVICE_CHIP}>
-                  {mode.value}
+                  {chip}
                 </span>
               ))}
+              {serviceChips.length > 6 && (
+                <span className={SERVICE_CHIP}>
+                  +{serviceChips.length - 6} más
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -225,6 +249,7 @@ export function RestaurantePreviewCard({
                   key={cta.key}
                   href={cta.href}
                   className={`${CTA_BUTTON} ${buttonClass} ${!cta.enabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                  {...(cta.href?.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                   onClick={() => {
                     if (cta.enabled && listingId) {
                       // Track CTA clicks
