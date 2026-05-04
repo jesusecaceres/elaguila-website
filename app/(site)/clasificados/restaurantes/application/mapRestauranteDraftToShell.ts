@@ -60,7 +60,7 @@ function formatLanguagesForQuickInfo(d: RestauranteListingDraft): string {
   const line = langs
     .map((k) => {
       if (k === TAXONOMY_KEY_OTHER_LANG) {
-        if (nonEmpty(d.languageOtherCustom)) return `Otro: ${clampChipLabel(d.languageOtherCustom!, 36)}`;
+        if (nonEmpty(d.languageOtherCustom)) return clampChipLabel(d.languageOtherCustom!, 36);
         return labelForLanguage(k);
       }
       return labelForLanguage(k);
@@ -75,7 +75,7 @@ function formatServiceModesForQuickInfo(d: RestauranteListingDraft): string {
   return modes
     .map((m) =>
       m === (TAXONOMY_KEY_OTHER as RestauranteServiceMode) && nonEmpty(d.serviceModeOtherCustom)
-        ? `Otro: ${clampChipLabel(d.serviceModeOtherCustom!)}`
+        ? clampChipLabel(d.serviceModeOtherCustom!)
         : labelForServiceMode(m)
     )
     .join(" · ");
@@ -84,25 +84,25 @@ function formatServiceModesForQuickInfo(d: RestauranteListingDraft): string {
 function buildTaxonomyChips(d: RestauranteListingDraft): { key: string; label: string }[] | undefined {
   const chips: { key: string; label: string }[] = [];
   if (d.businessType?.trim() === TAXONOMY_KEY_OTHER && nonEmpty(d.businessTypeCustom)) {
-    chips.push({ key: "tax-bt", label: `Tipo: ${clampChipLabel(d.businessTypeCustom!)}` });
+    chips.push({ key: "tax-bt", label: clampChipLabel(d.businessTypeCustom!) });
   }
   if (d.primaryCuisine?.trim() === TAXONOMY_KEY_OTHER && nonEmpty(d.primaryCuisineCustom)) {
-    chips.push({ key: "tax-c0", label: `Cocina: ${clampChipLabel(d.primaryCuisineCustom!)}` });
+    chips.push({ key: "tax-c0", label: clampChipLabel(d.primaryCuisineCustom!) });
   }
   if (d.secondaryCuisine?.trim() === TAXONOMY_KEY_OTHER && nonEmpty(d.secondaryCuisineCustom)) {
-    chips.push({ key: "tax-c1", label: `Cocina 2.ª: ${clampChipLabel(d.secondaryCuisineCustom!)}` });
+    chips.push({ key: "tax-c1", label: clampChipLabel(d.secondaryCuisineCustom!) });
   }
   if ((d.additionalCuisines ?? []).includes(TAXONOMY_KEY_OTHER) && nonEmpty(d.additionalCuisineOtherCustom)) {
-    chips.push({ key: "tax-ca", label: `Cocina +: ${clampChipLabel(d.additionalCuisineOtherCustom!)}` });
+    chips.push({ key: "tax-ca", label: clampChipLabel(d.additionalCuisineOtherCustom!) });
   }
   if ((d.languagesSpoken ?? []).includes(TAXONOMY_KEY_OTHER_LANG) && nonEmpty(d.languageOtherCustom)) {
-    chips.push({ key: "tax-lang", label: `Idioma: ${clampChipLabel(d.languageOtherCustom!)}` });
+    chips.push({ key: "tax-lang", label: clampChipLabel(d.languageOtherCustom!) });
   }
   if (
     (d.serviceModes ?? []).includes(TAXONOMY_KEY_OTHER as RestauranteServiceMode) &&
     nonEmpty(d.serviceModeOtherCustom)
   ) {
-    chips.push({ key: "tax-svc", label: `Modo: ${clampChipLabel(d.serviceModeOtherCustom!)}` });
+    chips.push({ key: "tax-svc", label: clampChipLabel(d.serviceModeOtherCustom!) });
   }
   const addl = (d.additionalCuisines ?? []).filter(nonEmpty).slice(0, 3);
   for (const raw of addl) {
@@ -193,7 +193,7 @@ function buildQuickInfo(d: RestauranteListingDraft, scheduleSummary: string): Sh
   if (nonEmpty(d.businessType)) {
     let bt = labelForBusinessType(d.businessType);
     if (d.businessType.trim() === TAXONOMY_KEY_OTHER && nonEmpty(d.businessTypeCustom)) {
-      bt = `Otro: ${clampChipLabel(d.businessTypeCustom!)}`;
+      bt = clampChipLabel(d.businessTypeCustom!);
     }
     items.push({ key: "businessType", label: "Tipo", value: bt });
   }
