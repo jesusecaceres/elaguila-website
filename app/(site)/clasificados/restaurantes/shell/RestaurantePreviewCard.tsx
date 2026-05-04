@@ -24,17 +24,17 @@ const LEONIX_INFO_BLUE = "#355C7D";
 const LEONIX_ELEVATED_CHIP = "#F6EBDD";
 
 const PREVIEW_CARD =
-  "rounded-3xl border border-[#D8C2A0] bg-[#FFFAF3] shadow-[0_16px_64px_-24px_rgba(212,165,116,0.18)] overflow-hidden";
+  "rounded-3xl border border-[#D8C2A0] bg-[#FFFAF3] shadow-[0_16px_64px_-24px_rgba(212,165,116,0.18)] overflow-hidden hover:shadow-[0_20px_80px_-30px_rgba(212,165,116,0.25)] transition-shadow duration-300";
 
 const MEDIA_CONTAINER = "relative aspect-[16/10] overflow-hidden bg-[#F5F0E8]";
 
-const INFO_SECTION = "p-6 space-y-4 sm:p-8";
+const INFO_SECTION = "p-6 sm:p-8 space-y-5";
 
-const TITLE_SECTION = "space-y-3";
+const TITLE_SECTION = "space-y-4";
 
 const CUISINE_LINE = "text-sm font-semibold text-[#5A5148] uppercase tracking-wide";
 
-const BUSINESS_NAME = "text-2xl font-bold text-[#1F1A17] leading-tight sm:text-3xl";
+const BUSINESS_NAME = "text-3xl font-bold text-[#1F1A17] leading-tight sm:text-4xl";
 
 const LOCATION_ROW = "flex items-center gap-2 text-sm text-[#5A5148]";
 
@@ -145,63 +145,70 @@ export function RestaurantePreviewCard({
         <div className={TITLE_SECTION}>
           {/* Trust Rating */}
           {hasTrustRating && data.trustRating && (
-            <div className="mb-3">
+            <div className="mb-4">
               <StarRow rating={data.trustRating.average} />
-              <p className="text-xs text-[#7A7A7A] mt-1">
-                {data.trustRating.count} reseña{data.trustRating.count !== 1 ? "s" : ""}
-              </p>
             </div>
           )}
-
+          
           {/* Business Name */}
-          <h1 className={BUSINESS_NAME}>{data.businessName}</h1>
-
-          {/* Cuisine Type Line */}
+          <h2 className={BUSINESS_NAME}>
+            {data.businessName}
+          </h2>
+          
+          {/* Cuisine and Type */}
           {data.cuisineTypeLine && (
-            <p className={CUISINE_LINE}>{data.cuisineTypeLine}</p>
-          )}
-
-          {/* Location Row */}
-          {hasLocation && (
-            <div className={LOCATION_ROW}>
-              <span className="mr-2" style={{ color: LEONIX_GOLD_ACCENT }}>📍</span>
-              <span>
-                {data.contact?.addressLine1 || 
-                 (data.contact?.mapsSearchQuery ? data.contact.mapsSearchQuery.split(",")[0] : "Ubicación no disponible")}
-              </span>
+            <div className={CUISINE_LINE}>
+              {data.cuisineTypeLine.split(' · ').map((cuisine, index) => (
+                <span key={index} className="px-3 py-1.5 bg-[#F6EBDD] text-[#1F1A17] text-xs font-semibold border border-[#D8C2A0] rounded-full">
+                  {cuisine.trim()}
+                </span>
+              ))}
             </div>
           )}
-
-          {/* Hours Status */}
-          {hasHours && (
-            <div className={HOURS_ROW}>
-              <span className="mr-2">🕒</span>
-              <span className={data.hoursPreview.status === "open" ? HOURS_OPEN : HOURS_CLOSED}>
-                {data.hoursPreview.statusLine}
-              </span>
-            </div>
+          
+          {/* Status/Info Row */}
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            {/* Hours Status */}
+            {hasHours && (
+              <div className={data.hoursPreview.status === 'open' ? HOURS_OPEN : HOURS_CLOSED}>
+                {data.hoursPreview.status === 'open' ? '🟢 Abierto ahora' : '🔴 Cerrado'}
+                {data.hoursPreview.status === 'open' && data.hoursPreview.statusLine && ` · ${data.hoursPreview.statusLine}`}
+              </div>
+            )}
+            
+            {/* Location */}
+            {hasLocation && (
+              <div className="px-3 py-1.5 rounded-full bg-[#F6EBDD] text-[#1F1A17] text-xs font-semibold border border-[#D8C2A0] flex items-center gap-1">
+                <FiMapPin className="w-3 h-3" />
+                <span>{data.contact?.addressLine1 || data.contact?.mapsSearchQuery}</span>
+              </div>
+            )}
+            
+            {/* Price Level */}
+            {data.quickInfo?.find(item => item.key === 'price')?.value && (
+              <div className="px-3 py-1.5 rounded-full bg-[#F6EBDD] text-[#1F1A17] text-xs font-semibold border border-[#D8C2A0]">
+                <span>💰 {data.quickInfo.find(item => item.key === 'price')?.value}</span>
+              </div>
+            )}
+          </div>
+          
+          {/* Description */}
+          {data.aboutBody && (
+            <p className="text-sm text-[#5A5148] leading-relaxed">
+              {data.aboutBody.length > 120 
+                ? `${data.aboutBody.slice(0, 120)}...` 
+                : data.aboutBody}
+            </p>
           )}
-
+          
           {/* Service Modes */}
           {hasServiceModes && serviceModes.length > 0 && (
             <div className={SERVICE_MODES}>
-              {serviceModes.slice(0, 6).map((mode, index) => (
+              {serviceModes.map((mode, index) => (
                 <span key={index} className={SERVICE_CHIP}>
-                  {mode.value.includes("Comer") && <span className="mr-1">🍽️</span>}
-                  {mode.value.includes("Llevar") && <span className="mr-1">🥡</span>}
-                  {mode.value.includes("Entrega") && <span className="mr-1">🚚</span>}
-                  {mode.value.includes("Idiomas") && <span className="mr-1">🗣️</span>}
-                  {mode.value.includes("Servicio") && <span className="mr-1">⭐</span>}
-                  {mode.value.includes("Reservaciones") && <span className="mr-1">📅</span>}
-                  {mode.value.includes("Pedidos") && <span className="mr-1">🛒</span>}
                   {mode.value}
                 </span>
               ))}
-              {serviceModes.length > 6 && (
-                <span className={SERVICE_CHIP}>
-                  +{serviceModes.length - 6} más
-                </span>
-              )}
             </div>
           )}
         </div>

@@ -225,6 +225,9 @@ export function normalizeRestaurantFeatures(draft: RestauranteListingDraft): Gro
   for (const lang of languages) {
     if (lang === 'other_lang' && hasValue(draft.languageOtherCustom)) {
       result.idiomas.items.push(cleanCustomValue(draft.languageOtherCustom));
+    } else if (lang === 'other_lang') {
+      // Fallback for other_lang without custom value
+      result.idiomas.items.push('Otro');
     } else if (LANGUAGE_LABELS[lang]) {
       result.idiomas.items.push(LANGUAGE_LABELS[lang]);
     }
