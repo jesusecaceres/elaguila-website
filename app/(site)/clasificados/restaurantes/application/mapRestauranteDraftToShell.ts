@@ -1,4 +1,16 @@
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
+import type {
+  RestaurantDetailShellData,
+  ShellContactBlock,
+  ShellGalleryItem,
+  ShellHoursDetail,
+  ShellPrimaryCta,
+  ShellQuickInfoItem,
+  ShellStackSection,
+  ShellVenueGalleryBundle,
+  ShellVenueGalleryCategory,
+} from "../shell/restaurantDetailShellTypes";
+import { normalizeRestaurantFeatures } from "../lib/restauranteFeaturesNormalization";
 import { computePublishGallerySequence } from "./restauranteGalleryMediaSequence";
 import { isRestauranteDisplayableImageRef, isRestauranteLocalVideoDataUrl } from "./restauranteMediaDisplay";
 import {
@@ -17,17 +29,6 @@ import {
   TAXONOMY_KEY_OTHER,
   TAXONOMY_KEY_OTHER_LANG,
 } from "./restauranteTaxonomy";
-import type {
-  RestaurantDetailShellData,
-  ShellContactBlock,
-  ShellGalleryItem,
-  ShellHoursDetail,
-  ShellPrimaryCta,
-  ShellQuickInfoItem,
-  ShellStackSection,
-  ShellVenueGalleryBundle,
-  ShellVenueGalleryCategory,
-} from "../shell/restaurantDetailShellTypes";
 import { formatPlatilloPriceBadge } from "./restauranteShellDisplayFormat";
 
 function nonEmpty(s: string | undefined | null): boolean {
@@ -530,7 +531,6 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
     id: d.draftListingId,
     heroImageUrl: heroResolved != null && nonEmpty(heroResolved) ? heroResolved.trim() : undefined,
     heroImageAlt: nonEmpty(d.businessName) ? `Foto principal · ${d.businessName.trim()}` : "Foto principal del negocio",
-    businessLogoUrl: logoResolved,
     businessName: nonEmpty(d.businessName) ? d.businessName.trim() : "Borrador sin título",
     cuisineTypeLine: cuisineLine,
     taxonomyChips: buildTaxonomyChips(d),
@@ -556,5 +556,6 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
     aboutBody: nonEmpty(d.longDescription) ? d.longDescription!.trim() : undefined,
     trustLight: buildTrustLight(d),
     stackSections: stacks.length ? stacks : undefined,
+    groupedFeatures: normalizeRestaurantFeatures(d),
   };
 }

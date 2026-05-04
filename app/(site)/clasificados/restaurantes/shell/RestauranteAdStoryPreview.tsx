@@ -3,7 +3,9 @@
 import Image from "next/image";
 import { FiExternalLink, FiMail, FiMapPin, FiPhone, FiInstagram, FiFacebook, FiYoutube, FiClock, FiStar } from "react-icons/fi";
 import { FaTiktok, FaWhatsapp } from "react-icons/fa";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
+import { RestauranteGroupedFeaturesSection } from "./RestauranteGroupedFeaturesSection";
 
 // Leonix premium visual tokens
 const LEONIX_PAGE_BG = "#F4F1EB";
@@ -74,19 +76,7 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
             {/* Hero content - centered */}
             <div className="absolute inset-0 flex flex-col items-center justify-center p-6 sm:p-8 text-white text-center">
               <div className="max-w-4xl mx-auto space-y-4">
-                {/* Business logo */}
-                {data.businessLogoUrl && (
-                  <div className="mb-4">
-                    <Image
-                      src={data.businessLogoUrl}
-                      alt={`${data.businessName} logo`}
-                      width={60}
-                      height={60}
-                      className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/10 p-2 object-contain"
-                    />
-                  </div>
-                )}
-                
+                                
                 {/* Business name */}
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight drop-shadow-2xl">
                   {data.businessName}
@@ -177,19 +167,7 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
           // Fallback hero without image
           <div className={`${SECTION_PADDING} text-center`}>
             <div className="max-w-4xl mx-auto space-y-6">
-              {/* Business logo */}
-              {data.businessLogoUrl && (
-                <div>
-                  <Image
-                    src={data.businessLogoUrl}
-                    alt={`${data.businessName} logo`}
-                    width={80}
-                    height={80}
-                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#F6EBDD] p-3 object-contain mx-auto"
-                  />
-                </div>
-              )}
-              
+                            
               {/* Business name */}
               <h1 className="text-4xl sm:text-5xl font-bold text-[#1F1A17] leading-tight">
                 {data.businessName}
@@ -279,67 +257,9 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
       </section>
 
       {/* B. Hook / Quick Understanding Zone */}
-      <section className={SECTION_CARD}>
-        <div className={SECTION_PADDING}>
-          <h2 className={SECTION_TITLE}>Servicios y Características</h2>
-          
-          {/* Short summary */}
-          {data.summaryShort && (
-            <p className="text-base text-[#1F1A17] mb-6 leading-relaxed">
-              {data.summaryShort}
-            </p>
-          )}
-          
-          {/* Service chips */}
-          <div className="flex flex-wrap gap-2">
-            {/* Service modes from quick info */}
-            {data.quickInfo?.map((item, index) => {
-              if (item.key === 'service') {
-                return (
-                  <span key={index} className={SERVICE_CHIP}>
-                    {item.value.includes('Comer') && <span>🍽️</span>}
-                    {item.value.includes('Llevar') && <span>🥡</span>}
-                    {item.value.includes('Entrega') && <span>🚚</span>}
-                    {item.value.includes('Reservaciones') && <span>📅</span>}
-                    {item.value.includes('Pedidos') && <span>🛒</span>}
-                    {item.value.includes('Idiomas') && <span>🗣️</span>}
-                    {item.value}
-                  </span>
-                );
-              }
-              return null;
-            })}
-            
-            {/* Additional info chips */}
-            {data.quickInfo?.map((item, index) => {
-              if (item.key === 'price' || item.key === 'businessType') {
-                return (
-                  <span key={index} className={SERVICE_CHIP}>
-                    {item.key === 'price' && <span>💰</span>}
-                    {item.key === 'businessType' && <span>🏢</span>}
-                    {item.value}
-                  </span>
-                );
-              }
-              return null;
-            })}
-            
-            {/* Highlight tags */}
-            {data.highlightTags?.slice(0, 8).map((tag, index) => (
-              <span key={index} className={SERVICE_CHIP}>
-                ⭐ {tag.label}
-              </span>
-            ))}
-            
-            {/* More indicator */}
-            {data.highlightTags && data.highlightTags.length > 8 && (
-              <span className={SERVICE_CHIP}>
-                +{data.highlightTags.length - 8} más
-              </span>
-            )}
-          </div>
-        </div>
-      </section>
+      {data.groupedFeatures && (
+        <RestauranteGroupedFeaturesSection features={data.groupedFeatures} />
+      )}
 
       {/* C. Conversion / Primary CTA Bar */}
       {contactCtas.length > 0 && (

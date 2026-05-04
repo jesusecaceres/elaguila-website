@@ -126,7 +126,6 @@ export type RestaurantDetailShellData = {
   id: string;
   heroImageUrl?: string;
   heroImageAlt?: string;
-  businessLogoUrl?: string;
   businessName: string;
   cuisineTypeLine?: string;
   /** Custom “Otra” / supplemental taxonomy labels — short chips under the cuisine line */
@@ -161,4 +160,6 @@ export type RestaurantDetailShellData = {
   aboutBody?: string;
   trustLight?: ShellTrustLight;
   stackSections?: ShellStackSection[];
+  /** Grouped features for Servicios y Características section */
+  groupedFeatures?: import("../lib/restauranteFeaturesNormalization").GroupedFeatures;
 };

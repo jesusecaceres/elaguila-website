@@ -10,6 +10,7 @@ import { RestauranteShellGalleryBlock } from "./RestauranteShellGalleryBlock";
 import { RestauranteShellPlatillosBlock } from "./RestauranteShellPlatillosBlock";
 import { RestauranteShellVenueGalleryBlock } from "./RestauranteShellVenueGalleryBlock";
 import { RestauranteShellDestacadosSection } from "./RestauranteShellDestacadosSection";
+import { RestauranteGroupedFeaturesSection } from "./RestauranteGroupedFeaturesSection";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)]";
@@ -478,16 +479,10 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
 
       {/* Wide sections for gallery, highlights, and stacks */}
       <div className="mx-auto mt-16 w-full max-w-[1200px] space-y-20 sm:mt-20">
-        {/* Highlights Section */}
-        {showHighlights ? (
-          <section className="px-6 sm:px-8 lg:px-12" aria-labelledby="highlights-heading">
-            <div className="mb-8">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">Características</p>
-              <h2 id="highlights-heading" className="mt-2 text-2xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-3xl">
-                Destacados del lugar
-              </h2>
-            </div>
-            <RestauranteShellDestacadosSection tags={data.highlightTags!} />
+        {/* Grouped Features Section */}
+        {data.groupedFeatures ? (
+          <section className="px-6 sm:px-8 lg:px-12" aria-labelledby="features-heading">
+            <RestauranteGroupedFeaturesSection features={data.groupedFeatures} />
           </section>
         ) : null}
 
