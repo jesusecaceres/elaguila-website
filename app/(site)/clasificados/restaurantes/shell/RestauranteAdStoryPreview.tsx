@@ -46,6 +46,16 @@ interface RestauranteAdStoryPreviewProps {
 export function RestauranteAdStoryPreview({ data, listingId = "", lang = "es" }: RestauranteAdStoryPreviewProps) {
   // Helper functions
   const hasHeroImage = data.heroImageUrl;
+
+  // Convert 24-hour time string to 12-hour format
+  const convertTo12Hour = (timeString: string): string => {
+    return timeString.replace(/\b(\d{1,2}):(\d{2})\b/g, (match, hours, minutes) => {
+      const hour = parseInt(hours, 10);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour % 12 || 12; // Convert 0 to 12 for 12 AM
+      return `${displayHour}:${minutes} ${ampm}`;
+    });
+  };
   const hasContactInfo = data.contact;
   const hasMenuHighlights = data.menuHighlights && data.menuHighlights.length > 0;
   const hasGallery = data.venueGallery || data.gallery;
@@ -359,26 +369,26 @@ export function RestauranteAdStoryPreview({ data, listingId = "", lang = "es" }:
               {/* Contact Information */}
               <div>
                 <h3 className={SUBSECTION_TITLE}>Información de Contacto</h3>
-                <div className="space-y-4">
+                <div className="flex flex-wrap gap-2 items-center">
                   {data.contact?.phoneDisplay && (
                     <a 
                       href={`tel:${data.contact.phoneTelHref}`} 
-                      className="inline-flex items-center gap-3 px-4 py-3 bg-[#BEA98E] text-[#1F1A17] rounded-full font-semibold hover:bg-[#D8C2A0] transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-medium hover:bg-[#BEA98E] transition-colors border border-[#D8C2A0]"
                     >
-                      <FiPhone className="w-5 h-5" />
-                      Llamar
-                      <span className="text-sm opacity-80 ml-1">{data.contact.phoneDisplay}</span>
+                      <FiPhone className="w-4 h-4" />
+                      <span>Llamar</span>
+                      <span className="text-xs opacity-70 ml-1">{data.contact.phoneDisplay}</span>
                     </a>
                   )}
                   
                   {data.contact?.email && (
                     <a 
                       href={`mailto:${data.contact.email}`} 
-                      className="inline-flex items-center gap-3 px-4 py-3 bg-[#BEA98E] text-[#1F1A17] rounded-full font-semibold hover:bg-[#D8C2A0] transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-medium hover:bg-[#BEA98E] transition-colors border border-[#D8C2A0]"
                     >
-                      <FiMail className="w-5 h-5" />
-                      Correo
-                      <span className="text-sm opacity-80 ml-1">{data.contact.email}</span>
+                      <FiMail className="w-4 h-4" />
+                      <span>Correo</span>
+                      <span className="text-xs opacity-70 ml-1">{data.contact.email}</span>
                     </a>
                   )}
                   
@@ -387,11 +397,11 @@ export function RestauranteAdStoryPreview({ data, listingId = "", lang = "es" }:
                       href={data.contact.websiteHref} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-3 px-4 py-3 bg-[#BEA98E] text-[#1F1A17] rounded-full font-semibold hover:bg-[#D8C2A0] transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-medium hover:bg-[#BEA98E] transition-colors border border-[#D8C2A0]"
                     >
-                      <FiExternalLink className="w-5 h-5" />
-                      Sitio web
-                      <span className="text-sm opacity-80 ml-1">{data.contact.websiteDisplay}</span>
+                      <FiExternalLink className="w-4 h-4" />
+                      <span>Sitio web</span>
+                      <span className="text-xs opacity-70 ml-1">{data.contact.websiteDisplay}</span>
                     </a>
                   )}
                   
@@ -400,10 +410,10 @@ export function RestauranteAdStoryPreview({ data, listingId = "", lang = "es" }:
                       href={data.contact.whatsappHref} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-3 px-4 py-3 bg-[#BEA98E] text-[#1F1A17] rounded-full font-semibold hover:bg-[#D8C2A0] transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-medium hover:bg-[#BEA98E] transition-colors border border-[#D8C2A0]"
                     >
-                      <FaWhatsapp className="w-5 h-5" />
-                      WhatsApp
+                      <FaWhatsapp className="w-4 h-4" />
+                      <span>WhatsApp</span>
                     </a>
                   )}
                   
@@ -586,7 +596,7 @@ export function RestauranteAdStoryPreview({ data, listingId = "", lang = "es" }:
                     {data.hoursDetail.rows.map((row, index) => (
                       <div key={index} className="flex justify-between items-center py-2 border-b border-[#D8C2A0]/30 last:border-0">
                         <dt className="font-semibold text-[#1F1A17]">{row.dayLabel}</dt>
-                        <dd className="text-[#5A5148]">{row.line}</dd>
+                        <dd className="text-[#5A5148]">{convertTo12Hour(row.line)}</dd>
                       </div>
                     ))}
                   </dl>
@@ -684,30 +694,6 @@ export function RestauranteAdStoryPreview({ data, listingId = "", lang = "es" }:
                     ))}
                   </dl>
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Additional Action CTAs */}
-      {actionCtas.length > 0 && (
-        <section className={SECTION_CARD}>
-          <div className={SECTION_PADDING}>
-            <h2 className={SECTION_TITLE}>Acciones</h2>
-            <div className="flex flex-wrap gap-3">
-              {actionCtas.map((cta, index) => (
-                <a
-                  key={cta.key}
-                  href={cta.href}
-                  className={`${CTA_BUTTON} ${CTA_SECONDARY} ${!cta.enabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  {cta.key === "menu" && <span>📋</span>}
-                  {cta.key === "menuAsset" && <span>📋</span>}
-                  {cta.key === "reserve" && <span>📅</span>}
-                  {cta.key === "order" && <span>🛒</span>}
-                  {cta.label}
-                </a>
               ))}
             </div>
           </div>
