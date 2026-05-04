@@ -686,12 +686,40 @@ export function RestauranteAdStoryPreview({ data, listingId = "", lang = "es" }:
                 <div key={stack.id} className="bg-white rounded-2xl border border-[#D8C2A0] p-6">
                   <h3 className={SUBSECTION_TITLE}>{stack.title}</h3>
                   <dl className="space-y-3 mt-4">
-                    {stack.rows.map((row, rowIndex) => (
-                      <div key={rowIndex} className="flex justify-between items-center py-2 border-b border-[#D8C2A0]/30 last:border-0">
-                        <dt className="font-semibold text-[#1F1A17]">{row.label}</dt>
-                        <dd className="text-[#5A5148]">{row.value}</dd>
-                      </div>
-                    ))}
+                    {stack.rows.map((row, rowIndex) => {
+                      // Check if this row should be rendered as a clickable CTA
+                      const isClickableLabel = row.label === "Enlace" || 
+                                            row.label === "Ruta semanal" || 
+                                            row.label === "Solicitud / cotización";
+                      
+                      // Check if the value looks like a URL
+                      const isUrl = row.value.startsWith('http://') || 
+                                  row.value.startsWith('https://') || 
+                                  row.value.startsWith('mailto:') ||
+                                  row.value.startsWith('tel:');
+                      
+                      const shouldRenderAsCta = isClickableLabel && isUrl;
+                      
+                      return (
+                        <div key={rowIndex} className="flex justify-between items-center py-2 border-b border-[#D8C2A0]/30 last:border-0">
+                          <dt className="font-semibold text-[#1F1A17]">{row.label}</dt>
+                          <dd className="text-[#5A5148]">
+                            {shouldRenderAsCta ? (
+                              <a
+                                href={row.value}
+                                target={row.value.startsWith('http') ? "_blank" : undefined}
+                                rel={row.value.startsWith('http') ? "noopener noreferrer" : undefined}
+                                className="text-[#6B5B2E] hover:text-[#1F1A17] underline decoration-[#BEA98E] underline-offset-2 hover:decoration-[#D8C2A0] transition-colors"
+                              >
+                                {row.value}
+                              </a>
+                            ) : (
+                              row.value
+                            )}
+                          </dd>
+                        </div>
+                      );
+                    })}
                   </dl>
                 </div>
               ))}
