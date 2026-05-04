@@ -489,7 +489,17 @@ export function isRestauranteDraftPristineEmpty(d: RestauranteListingDraft): boo
 }
 
 export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): RestaurantDetailShellData {
-  const hp = computeShellHoursPreview(d);
+  // Create weekly hours structure from individual day fields
+  const weeklyHours = {
+    monday: d.monday,
+    tuesday: d.tuesday,
+    wednesday: d.wednesday,
+    thursday: d.thursday,
+    friday: d.friday,
+    saturday: d.saturday,
+    sunday: d.sunday
+  };
+  const hp = computeShellHoursPreview(weeklyHours);
   const cuisineLine = buildCuisineIdentityLine(d);
   const seq = computePublishGallerySequence(d);
   const imgs = d.galleryImages ?? [];
@@ -531,6 +541,7 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
     id: d.draftListingId,
     heroImageUrl: heroResolved != null && nonEmpty(heroResolved) ? heroResolved.trim() : undefined,
     heroImageAlt: nonEmpty(d.businessName) ? `Foto principal · ${d.businessName.trim()}` : "Foto principal del negocio",
+    businessLogo: logoResolved,
     businessName: nonEmpty(d.businessName) ? d.businessName.trim() : "Borrador sin título",
     cuisineTypeLine: cuisineLine,
     taxonomyChips: buildTaxonomyChips(d),

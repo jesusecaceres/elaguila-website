@@ -76,7 +76,19 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
             {/* Hero content - centered */}
             <div className="absolute inset-0 flex flex-col items-center justify-center p-6 sm:p-8 text-white text-center">
               <div className="max-w-4xl mx-auto space-y-4">
-                                
+                {/* Business logo */}
+                {data.businessLogo && (
+                  <div className="mb-4">
+                    <Image
+                      src={data.businessLogo}
+                      alt={`${data.businessName} logo`}
+                      width={60}
+                      height={60}
+                      className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/10 p-2 object-contain"
+                    />
+                  </div>
+                )}
+                
                 {/* Business name */}
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight drop-shadow-2xl">
                   {data.businessName}
@@ -104,13 +116,21 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
                     {data.hoursPreview.status === 'open' ? '🟢 Abierto ahora' : '🔴 Cerrado'}
                   </span>
                   
-                  {/* Neighborhood */}
-                  {data.contact?.addressLine1 && (
-                    <span className="px-4 py-2 bg-white/20 rounded-full backdrop-blur-sm flex items-center gap-1">
-                      <FiMapPin className="w-4 h-4" />
-                      {data.contact.addressLine1}
-                    </span>
-                  )}
+                  {/* Neighborhood/Zone */}
+                  {(() => {
+                    // Get neighborhood from quickInfo (priority: neighborhood -> nothing)
+                    const neighborhoodItem = data.quickInfo?.find(item => item.key === 'neighborhood');
+                    const locationDisplay = neighborhoodItem?.value || '';
+                    
+                    if (!locationDisplay) return null;
+                    
+                    return (
+                      <span className="px-4 py-2 bg-white/20 rounded-full backdrop-blur-sm flex items-center gap-1">
+                        <FiMapPin className="w-4 h-4" />
+                        {locationDisplay}
+                      </span>
+                    );
+                  })()}
                   
                   {/* Rating */}
                   {data.trustRating && (
@@ -148,6 +168,7 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
                           key={cta.key}
                           href={cta.href}
                           className={`inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all duration-200 border min-h-[44px] ${buttonClass}`}
+                          {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                         >
                           {cta.key === "call" && <FiPhone className="w-4 h-4" />}
                           {cta.key === "website" && <FiExternalLink className="w-4 h-4" />}
@@ -196,12 +217,20 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
                 </span>
                 
                 {/* Neighborhood */}
-                {data.contact?.addressLine1 && (
-                  <span className="px-4 py-2 bg-[#F6EBDD] rounded-full text-[#1F1A17] flex items-center gap-1">
-                    <FiMapPin className="w-4 h-4" />
-                    {data.contact.addressLine1}
-                  </span>
-                )}
+                {(() => {
+                  // Get neighborhood from quickInfo (priority: neighborhood -> nothing)
+                  const neighborhoodItem = data.quickInfo?.find(item => item.key === 'neighborhood');
+                  const locationDisplay = neighborhoodItem?.value || '';
+                  
+                  if (!locationDisplay) return null;
+                  
+                  return (
+                    <span className="px-4 py-2 bg-[#F6EBDD] rounded-full text-[#1F1A17] flex items-center gap-1">
+                      <FiMapPin className="w-4 h-4" />
+                      {locationDisplay}
+                    </span>
+                  );
+                })()}
                 
                 {/* Rating */}
                 {data.trustRating && (
@@ -239,6 +268,7 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
                         key={cta.key}
                         href={cta.href}
                         className={`inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all duration-200 border min-h-[44px] ${buttonClass}`}
+                        {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                       >
                         {cta.key === "call" && <FiPhone className="w-4 h-4" />}
                         {cta.key === "website" && <FiExternalLink className="w-4 h-4" />}
@@ -276,6 +306,7 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
                     key={cta.key}
                     href={cta.href}
                     className={`${CTA_BUTTON} ${buttonClass} ${!cta.enabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                    {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                   >
                     {cta.key === "call" && <FiPhone className="w-4 h-4" />}
                     {cta.key === "whatsapp" && <FaWhatsapp className="w-4 h-4" />}

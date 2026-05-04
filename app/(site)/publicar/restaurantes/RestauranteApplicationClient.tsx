@@ -286,6 +286,28 @@ export default function RestauranteApplicationClient() {
 
   const [mediaUploading, setMediaUploading] = useState<Record<string, boolean>>({});
 
+  const uploadLogoImage = useCallback(async (file: File) => {
+    setMediaUploading((prev) => ({ ...prev, logo: true }));
+    setUploadLabels((p) => ({ ...p, logo: file.name }));
+    
+    try {
+      const dataUrl = await readRestauranteImageAsDataUrl(file);
+      if (dataUrl?.trim().startsWith("data:image")) {
+        setDraftPatch({ businessLogo: dataUrl });
+        setUploadLabels((p) => ({ ...p, logo: file.name }));
+      }
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      setUploadLabels((p) => {
+        const n = { ...p };
+        delete n.logo;
+        return n;
+      });
+    } finally {
+      setMediaUploading((prev) => ({ ...prev, logo: false }));
+    }
+  }, [setDraftPatch]);
+
   const uploadHeroImage = useCallback(async (file: File) => {
     setMediaUploading((prev) => ({ ...prev, hero: true }));
     setUploadLabels((p) => ({ ...p, hero: file.name }));
@@ -1544,6 +1566,123 @@ export default function RestauranteApplicationClient() {
                 </>
               ) : null}
             </div>
+            
+            {/* Business Logo Upload */}
+            <div>
+              <FieldLabel optional>Logo del negocio</FieldLabel>
+              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
+                Logo opcional que aparecerá como una pequeña insignia redonda sobre la imagen hero. 
+                Formato cuadrado recomendado. Se mostrará en la esquina superior izquierda de la imagen hero.
+              </p>
+              <div
+                className="mt-2 rounded-xl border border-dashed border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/25 p-3"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "copy";
+                }}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  const f = e.dataTransfer.files?.[0];
+                  if (!f?.type.startsWith("image/")) return;
+                  await uploadLogoImage(f);
+                }}
+              >
+                <RestauranteUploadRow
+                  buttonLabel={mediaUploading.logo ? "Subiendo..." : "Subir logo"}
+                  helperText="Clic o arrastra una imagen cuadrada aquí. El logo se mostrará como una insignia redonda."
+                  accept="image/*"
+                  disabled={mediaUploading.logo}
+                  selectedLabel={
+                    mediaUploading.logo 
+                      ? "📤 Procesando logo..."
+                      : uploadLabels.logo ?? 
+                        (draft.businessLogo?.trim()
+                          ? "✅ Logo guardado en el borrador"
+                          : null)
+                  }
+                  onFilesSelected={async (files) => {
+                    const f = files?.[0];
+                    if (!f) {
+                      setDraftPatch({ businessLogo: "" });
+                      setUploadLabels((p) => {
+                        const n = { ...p };
+                        delete n.logo;
+                        return n;
+                      });
+                      return;
+                    }
+                    await uploadLogoImage(f);
+                  }}
+                />
+                {mediaUploading.logo && (
+                  <div className="flex items-center gap-2 text-xs text-blue-600 mt-2">
+                    <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    Procesando logo...
+                  </div>
+                )}
+              </div>
+              {draft.businessLogo?.trim() ? (
+                <>
+                  <div className="relative mt-3 w-32 h-32 overflow-hidden rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] shadow-sm">
+                    <div className="relative aspect-[1/1] w-full h-full">
+                      <img
+                        src={draft.businessLogo}
+                        alt="Logo del negocio"
+                        className="absolute inset-0 h-full w-full object-contain"
+                        draggable={false}
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-2 border-t border-[color:var(--lx-nav-border)] bg-white/80 px-3 py-2">
+                      <button
+                        type="button"
+                        className="rounded-lg border border-[color:var(--lx-nav-border)] bg-white px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
+                        onClick={() => document.getElementById("restaurante-logo-file")?.click()}
+                      >
+                        Reemplazar
+                      </button>
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-red-800 underline"
+                        onClick={() => {
+                          setDraftPatch({ businessLogo: "" });
+                          setUploadLabels((p) => {
+                            const n = { ...p };
+                            delete n.logo;
+                            return n;
+                          });
+                        }}
+                      >
+                        Quitar logo
+                      </button>
+                    </div>
+                  </div>
+                  <input
+                    id="restaurante-logo-file"
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    aria-hidden
+                    onChange={(e) => {
+                      const list = e.target.files;
+                      void (async () => {
+                        const file = list?.[0];
+                        if (!file) return;
+                        try {
+                          const dataUrl = await readRestauranteImageAsDataUrl(file);
+                          if (dataUrl?.trim().startsWith("data:image")) {
+                            setDraftPatch({ businessLogo: dataUrl });
+                            setUploadLabels((p) => ({ ...p, logo: file.name }));
+                          }
+                        } finally {
+                          e.target.value = "";
+                        }
+                      })();
+                    }}
+                  />
+                </>
+              ) : null}
+            </div>
+            
             <RestaurantePublishMediaStrip
               draft={draft}
               setDraftPatch={setDraftPatch}
