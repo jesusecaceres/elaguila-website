@@ -6,6 +6,7 @@ import { FaTiktok, FaWhatsapp } from "react-icons/fa";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
 import { RestauranteGroupedFeaturesSection } from "./RestauranteGroupedFeaturesSection";
+import { RestauranteLockedGallerySection } from "./RestauranteLockedGallerySection";
 
 // Leonix premium visual tokens
 const LEONIX_PAGE_BG = "#F4F1EB";
@@ -330,55 +331,7 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
       )}
 
       {/* E. Proof / Media Gallery Zone */}
-      {hasGallery && (
-        <section className={SECTION_CARD}>
-          <div className={SECTION_PADDING}>
-            <h2 className={SECTION_TITLE}>Galería</h2>
-            <div className="space-y-6">
-              {/* Featured large image */}
-              {data.gallery && data.gallery.length > 0 && (
-                <div className="relative aspect-[16/10] rounded-2xl overflow-hidden">
-                  <Image
-                    src={data.gallery[0].imageUrl!}
-                    alt={data.gallery[0].alt}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              )}
-              
-              {/* Thumbnail grid */}
-              {data.gallery && data.gallery.length > 1 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {data.gallery.slice(1, 9).map((item, index) => (
-                    <div key={index} className="relative aspect-[16/10] rounded-xl overflow-hidden">
-                      <Image
-                        src={item.imageUrl!}
-                        alt={item.alt}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              {/* View more link */}
-              {data.galleryCta && (
-                <div className="text-center">
-                  <a
-                    href={data.galleryCta.href}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#BEA98E] text-[#1F1A17] rounded-full font-semibold hover:bg-[#D8C2A0] transition-colors"
-                  >
-                    {data.galleryCta.label}
-                    <FiExternalLink className="w-4 h-4" />
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
+      <RestauranteLockedGallerySection galleryBundle={data.venueGallery} />
 
       {/* F. Story / About Zone */}
       {(data.aboutBody || data.summaryShort) && (

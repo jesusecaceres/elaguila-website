@@ -26,7 +26,7 @@ import { saveRestauranteDraftToStorageResolved } from "@/app/clasificados/restau
 import { satisfiesRestauranteMinimumValidPreview, satisfiesRestauranteServiceModes } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
 import { readRestauranteImageAsDataUrl } from "@/app/clasificados/restaurantes/application/compressRestauranteImage";
-import { RestaurantePublishMediaStrip } from "@/app/clasificados/restaurantes/application/RestaurantePublishMediaStrip";
+import { RestaurantePublishMediaBuckets } from "@/app/clasificados/restaurantes/application/RestaurantePublishMediaBuckets";
 import { RestauranteSubGalleryBucket } from "@/app/clasificados/restaurantes/application/RestauranteSubGalleryBucket";
 import { resolveRestauranteGallerySequence } from "@/app/clasificados/restaurantes/application/restauranteGalleryMediaSequence";
 import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
@@ -1683,11 +1683,9 @@ export default function RestauranteApplicationClient() {
               ) : null}
             </div>
             
-            <RestaurantePublishMediaStrip
+            <RestaurantePublishMediaBuckets
               draft={draft}
-              setDraftPatch={setDraftPatch}
-              uploadLabels={uploadLabels}
-              setUploadLabels={setUploadLabels}
+              onChange={setDraftPatch}
             />
             <div className="grid gap-6 sm:grid-cols-3">
               {(
