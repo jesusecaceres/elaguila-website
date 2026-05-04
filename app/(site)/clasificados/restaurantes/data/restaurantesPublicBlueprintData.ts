@@ -65,6 +65,31 @@ export type RestaurantesPublicBlueprintRow = {
   highlightKeys?: string[];
   /** `externalReviewCount` */
   externalReviewCount?: number;
+  /** Contact fields for CTAs */
+  phoneNumber?: string;
+  websiteUrl?: string;
+  whatsAppNumber?: string;
+  orderUrl?: string;
+  reservationUrl?: string;
+  /** Address fields */
+  addressLine1?: string;
+  addressLine2?: string;
+  state?: string;
+  /** Business description */
+  description?: string;
+  /** Business logo */
+  logoUrl?: string;
+  /** Real hours status */
+  isOpenNow?: boolean;
+  openUntil?: string;
+  closeTime?: string;
+  weeklyHours?: {
+    [key: string]: {
+      openTime?: string;
+      closeTime?: string;
+      closed?: boolean;
+    };
+  };
 };
 
 const DEFAULT_DISCOVERY: Pick<

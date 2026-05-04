@@ -24,6 +24,7 @@ import type {
   RestauranteServiceMode,
 } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
+import { computeHoursStatus, normalizeWeeklyHours } from "@/app/clasificados/restaurantes/lib/restauranteHoursLogic";
 
 /**
  * Normalized row for cards, filters, and sorting.
@@ -90,5 +91,39 @@ export function applicationToRestauranteDiscoveryRow(
       typeof app.deliveryRadiusMiles === "number" && Number.isFinite(app.deliveryRadiusMiles)
         ? app.deliveryRadiusMiles
         : undefined,
+    // Contact fields for CTAs
+    phoneNumber: app.phoneNumber,
+    websiteUrl: app.websiteUrl,
+    whatsAppNumber: app.whatsAppNumber,
+    orderUrl: app.orderUrl,
+    reservationUrl: app.reservationUrl,
+    // Address fields
+    addressLine1: app.addressLine1,
+    addressLine2: app.addressLine2,
+    state: app.state,
+    // Business description
+    description: app.shortSummary,
+    // Business logo
+    logoUrl: app.businessLogo,
+    // Real hours status computed from application hours
+    ...(() => {
+      // The weekly hours are spread across the application object
+      const weeklyHours = {
+        monday: app.monday,
+        tuesday: app.tuesday,
+        wednesday: app.wednesday,
+        thursday: app.thursday,
+        friday: app.friday,
+        saturday: app.saturday,
+        sunday: app.sunday
+      };
+      const hoursStatus = computeHoursStatus(weeklyHours);
+      return {
+        isOpenNow: hoursStatus.isOpenNow,
+        openUntil: hoursStatus.openUntil,
+        closeTime: hoursStatus.closeTime,
+        weeklyHours
+      };
+    })(),
   };
 }
