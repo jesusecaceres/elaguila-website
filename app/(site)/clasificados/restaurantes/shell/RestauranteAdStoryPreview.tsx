@@ -534,7 +534,7 @@ export function RestauranteAdStoryPreview({ data, listingId = "", lang = "es" }:
       {hasMenuHighlights && (
         <section className={SECTION_CARD}>
           <div className={SECTION_PADDING}>
-            <h2 className={SECTION_TITLE}>Platos Destacados</h2>
+            <h2 className={SECTION_TITLE}>Especialidades de la Casa</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {data.menuHighlights!.map((dish, index) => (
                 <div key={index} className="bg-white rounded-2xl border border-[#D8C2A0] p-4 shadow-sm">
