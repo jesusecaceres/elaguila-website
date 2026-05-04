@@ -308,7 +308,172 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
         </section>
       )}
 
-      {/* C. Hook / Quick Understanding Zone */}
+      {/* C. Contact and Location Zone */}
+      {hasContactInfo && (
+        <section className={SECTION_CARD}>
+          <div className={SECTION_PADDING}>
+            <h2 className={SECTION_TITLE}>Contacto y Ubicación</h2>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Contact Information */}
+              <div>
+                <h3 className={SUBSECTION_TITLE}>Información de Contacto</h3>
+                <div className="space-y-4">
+                  {data.contact?.phoneDisplay && (
+                    <a 
+                      href={`tel:${data.contact.phoneTelHref}`} 
+                      className="inline-flex items-center gap-3 px-4 py-3 bg-[#BEA98E] text-[#1F1A17] rounded-full font-semibold hover:bg-[#D8C2A0] transition-colors"
+                    >
+                      <FiPhone className="w-5 h-5" />
+                      Llamar
+                      <span className="text-sm opacity-80 ml-1">{data.contact.phoneDisplay}</span>
+                    </a>
+                  )}
+                  
+                  {data.contact?.email && (
+                    <a 
+                      href={`mailto:${data.contact.email}`} 
+                      className="inline-flex items-center gap-3 px-4 py-3 bg-[#BEA98E] text-[#1F1A17] rounded-full font-semibold hover:bg-[#D8C2A0] transition-colors"
+                    >
+                      <FiMail className="w-5 h-5" />
+                      Correo
+                      <span className="text-sm opacity-80 ml-1">{data.contact.email}</span>
+                    </a>
+                  )}
+                  
+                  {data.contact?.websiteDisplay && data.contact?.websiteHref && (
+                    <a 
+                      href={data.contact.websiteHref} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-3 px-4 py-3 bg-[#BEA98E] text-[#1F1A17] rounded-full font-semibold hover:bg-[#D8C2A0] transition-colors"
+                    >
+                      <FiExternalLink className="w-5 h-5" />
+                      Sitio web
+                      <span className="text-sm opacity-80 ml-1">{data.contact.websiteDisplay}</span>
+                    </a>
+                  )}
+                  
+                  {data.contact?.whatsappHref && (
+                    <a 
+                      href={data.contact.whatsappHref} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-3 px-4 py-3 bg-[#BEA98E] text-[#1F1A17] rounded-full font-semibold hover:bg-[#D8C2A0] transition-colors"
+                    >
+                      <FaWhatsapp className="w-5 h-5" />
+                      WhatsApp
+                    </a>
+                  )}
+                  
+                  {/* Menu links */}
+                  {(data.contact?.menuFileHref || data.fullMenuCta) && (
+                    <div className="pt-4 border-t border-[#D8C2A0]/30">
+                      <h4 className="font-semibold text-[#1F1A17] mb-3">Menú</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {data.contact?.menuFileHref && (
+                          <a 
+                            href={data.contact?.menuFileHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
+                          >
+                            📋 Ver menú
+                          </a>
+                        )}
+                        {data.fullMenuCta && (
+                          <a 
+                            href={data.fullMenuCta.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
+                          >
+                            📋 {data.fullMenuCta.label}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Location Information */}
+              <div>
+                <h3 className={SUBSECTION_TITLE}>Ubicación</h3>
+                <div className="space-y-4">
+                  {data.contact?.addressLine1 && (
+                    <div className="flex items-start gap-3">
+                      <FiMapPin className="w-5 h-5 text-[#BEA98E] mt-1" />
+                      <div>
+                        <p className="text-[#1F1A17] font-medium">{data.contact.addressLine1}</p>
+                        {data.contact?.addressLine2 && (
+                          <p className="text-[#5A5148] text-sm">{data.contact.addressLine2}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Social Links */}
+                  <div className="pt-4 border-t border-[#D8C2A0]/30">
+                    <h4 className="font-semibold text-[#1F1A17] mb-3">Redes Sociales</h4>
+                    <div className="flex flex-wrap gap-3">
+                      {data.contact?.instagramHref && (
+                        <a 
+                          href={data.contact.instagramHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-3 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
+                        >
+                          <FiInstagram className="w-4 h-4" />
+                          Instagram
+                        </a>
+                      )}
+                      
+                      {data.contact?.facebookHref && (
+                        <a 
+                          href={data.contact.facebookHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-3 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
+                        >
+                          <FiFacebook className="w-4 h-4" />
+                          Facebook
+                        </a>
+                      )}
+                      
+                      {data.contact?.tiktokHref && (
+                        <a 
+                          href={data.contact.tiktokHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-3 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
+                        >
+                          <FaTiktok className="w-4 h-4" />
+                          TikTok
+                        </a>
+                      )}
+                      
+                      {data.contact?.youtubeHref && (
+                        <a 
+                          href={data.contact.youtubeHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-3 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
+                        >
+                          <FiYoutube className="w-4 h-4" />
+                          YouTube
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* D. Hook / Quick Understanding Zone */}
       {data.groupedFeatures && (
         <RestauranteGroupedFeaturesSection features={data.groupedFeatures} />
       )}
@@ -400,210 +565,8 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
         </section>
       )}
 
-      {/* I. Conversion / Contact and Location Card */}
-      {hasContactInfo && (
-        <section className={SECTION_CARD}>
-          <div className={SECTION_PADDING}>
-            <h2 className={SECTION_TITLE}>Contacto y Ubicación</h2>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Contact Information */}
-              <div>
-                <h3 className={SUBSECTION_TITLE}>Información de Contacto</h3>
-                <div className="space-y-4">
-                  {data.contact?.phoneDisplay && (
-                    <div className="flex items-center gap-3">
-                      <FiPhone className="w-5 h-5 text-[#BEA98E]" />
-                      <a href={`tel:${data.contact.phoneTelHref}`} className="text-[#1F1A17] hover:text-[#BEA98E]">
-                        {data.contact.phoneDisplay}
-                      </a>
-                    </div>
-                  )}
-                  
-                  {data.contact?.email && (
-                    <div className="flex items-center gap-3">
-                      <FiMail className="w-5 h-5 text-[#BEA98E]" />
-                      <a href={`mailto:${data.contact.email}`} className="text-[#1F1A17] hover:text-[#BEA98E]">
-                        {data.contact.email}
-                      </a>
-                    </div>
-                  )}
-                  
-                  {data.contact?.websiteDisplay && data.contact?.websiteHref && (
-                    <div className="flex items-center gap-3">
-                      <FiExternalLink className="w-5 h-5 text-[#BEA98E]" />
-                      <a 
-                        href={data.contact.websiteHref} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-[#1F1A17] hover:text-[#BEA98E]"
-                      >
-                        {data.contact.websiteDisplay}
-                      </a>
-                    </div>
-                  )}
-                  
-                  {data.contact?.whatsappHref && (
-                    <div className="flex items-center gap-3">
-                      <FaWhatsapp className="w-5 h-5 text-[#BEA98E]" />
-                      <a 
-                        href={data.contact.whatsappHref} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-[#1F1A17] hover:text-[#BEA98E]"
-                      >
-                        WhatsApp
-                      </a>
-                    </div>
-                  )}
-                  
-                  {/* Menu links */}
-                  {(data.contact?.menuFileHref || data.fullMenuCta) && (
-                    <div className="pt-4 border-t border-[#D8C2A0]/30">
-                      <h4 className="font-semibold text-[#1F1A17] mb-3">Menú</h4>
-                      {data.contact?.menuFileHref && (
-                        <a 
-                          href={data.contact?.menuFileHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
-                        >
-                          📋 Ver menú
-                        </a>
-                      )}
-                      {data.fullMenuCta && (
-                        <a 
-                          href={data.fullMenuCta.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors ml-2"
-                        >
-                          📋 {data.fullMenuCta.label}
-                        </a>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Location Information */}
-              <div>
-                <h3 className={SUBSECTION_TITLE}>Ubicación</h3>
-                <div className="space-y-4">
-                  {data.contact?.addressLine1 && (
-                    <div className="flex items-start gap-3">
-                      <FiMapPin className="w-5 h-5 text-[#BEA98E] mt-1" />
-                      <div>
-                        <p className="text-[#1F1A17]">{data.contact.addressLine1}</p>
-                        {data.contact?.addressLine2 && (
-                          <p className="text-[#5A5148]">{data.contact.addressLine2}</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Social Links */}
-                  <div className="pt-4 border-t border-[#D8C2A0]/30">
-                    <h4 className="font-semibold text-[#1F1A17] mb-3">Redes Sociales</h4>
-                    <div className="flex flex-wrap gap-3">
-                      {data.contact?.instagramHref && (
-                        <a 
-                          href={data.contact.instagramHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-3 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
-                        >
-                          <FiInstagram className="w-4 h-4" />
-                          Instagram
-                        </a>
-                      )}
-                      
-                      {data.contact?.facebookHref && (
-                        <a 
-                          href={data.contact.facebookHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-3 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
-                        >
-                          <FiFacebook className="w-4 h-4" />
-                          Facebook
-                        </a>
-                      )}
-                      
-                      {data.contact?.tiktokHref && (
-                        <a 
-                          href={data.contact.tiktokHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-3 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
-                        >
-                          <FaTiktok className="w-4 h-4" />
-                          TikTok
-                        </a>
-                      )}
-                      
-                      {data.contact?.youtubeHref && (
-                        <a 
-                          href={data.contact.youtubeHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-3 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
-                        >
-                          <FiYoutube className="w-4 h-4" />
-                          YouTube
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* K. Bottom Contact Canvas - Final Conversion */}
-      {primaryCtas.length > 0 && (
-        <section className={SECTION_CARD}>
-          <div className={SECTION_PADDING}>
-            <div className="text-center mb-8">
-              <h2 className={SECTION_TITLE}>Contacto Rápido</h2>
-              <p className={SECTION_DESCRIPTION}>
-                Ponte en contacto directamente con el restaurante para reservar, hacer pedidos o resolver tus dudas.
-              </p>
-            </div>
-            
-            <div className="flex flex-wrap justify-center gap-3">
-              {primaryCtas
-                .filter(cta => ['call', 'website', 'directions', 'whatsapp', 'order', 'reserve', 'message'].includes(cta.key))
-                .slice(0, 7)
-                .map((cta, index) => {
-                  const isPrimary = index === 0;
-                  const buttonClass = isPrimary ? CTA_PRIMARY : CTA_SECONDARY;
-                  
-                  return (
-                    <a
-                      key={cta.key}
-                      href={cta.href}
-                      className={`${CTA_BUTTON} ${buttonClass} ${!cta.enabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                      {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                    >
-                      {cta.key === "call" && <FiPhone className="w-4 h-4" />}
-                      {cta.key === "website" && <FiExternalLink className="w-4 h-4" />}
-                      {cta.key === "directions" && <FiMapPin className="w-4 h-4" />}
-                      {cta.key === "whatsapp" && <FaWhatsapp className="w-4 h-4" />}
-                      {cta.key === "order" && <span>🛒</span>}
-                      {cta.key === "reserve" && <span>📅</span>}
-                      {cta.key === "message" && <FiMail className="w-4 h-4" />}
-                      {cta.label}
-                    </a>
-                  );
-                })}
-            </div>
-          </div>
-        </section>
-      )}
-
+      
+      
       {/* J. Trust / External Proof Zone */}
       {hasTrustInfo && (
         <section className={SECTION_CARD}>
