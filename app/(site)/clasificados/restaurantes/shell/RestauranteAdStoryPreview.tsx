@@ -23,6 +23,7 @@ const LEONIX_ELEVATED_CHIP = "#F6EBDD";
 const SECTION_CARD = "rounded-3xl border border-[#D8C2A0] bg-[#FFFAF3] shadow-[0_8px_32px_-8px_rgba(212,165,116,0.15)] overflow-hidden";
 const SECTION_PADDING = "p-6 sm:p-8";
 const SECTION_TITLE = "text-2xl font-bold text-[#1F1A17] mb-6 tracking-tight";
+const SECTION_DESCRIPTION = "text-base text-[#5A5148] leading-relaxed";
 const SUBSECTION_TITLE = "text-lg font-semibold text-[#1F1A17] mb-4";
 const DETAIL_LABEL = "text-sm font-semibold text-[#5A5148] mb-2";
 const DETAIL_VALUE = "text-base text-[#1F1A17]";
@@ -291,36 +292,7 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
         <RestauranteGroupedFeaturesSection features={data.groupedFeatures} />
       )}
 
-      {/* C. Conversion / Primary CTA Bar */}
-      {contactCtas.length > 0 && (
-        <section className={SECTION_CARD}>
-          <div className={SECTION_PADDING}>
-            <h2 className={SECTION_TITLE}>Contactar</h2>
-            <div className="flex flex-wrap gap-3">
-              {contactCtas.map((cta, index) => {
-                const isPrimary = index === 0;
-                const buttonClass = isPrimary ? CTA_PRIMARY : CTA_SECONDARY;
-                
-                return (
-                  <a
-                    key={cta.key}
-                    href={cta.href}
-                    className={`${CTA_BUTTON} ${buttonClass} ${!cta.enabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                    {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                  >
-                    {cta.key === "call" && <FiPhone className="w-4 h-4" />}
-                    {cta.key === "whatsapp" && <FaWhatsapp className="w-4 h-4" />}
-                    {cta.key === "message" && <FiMail className="w-4 h-4" />}
-                    {cta.key === "website" && <FiExternalLink className="w-4 h-4" />}
-                    {cta.label}
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
-
+      
       {/* D. Proof / Featured Menu Zone */}
       {hasMenuHighlights && (
         <section className={SECTION_CARD}>
@@ -688,6 +660,48 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* K. Bottom Contact Canvas - Final Conversion */}
+      {primaryCtas.length > 0 && (
+        <section className={SECTION_CARD}>
+          <div className={SECTION_PADDING}>
+            <div className="text-center mb-8">
+              <h2 className={SECTION_TITLE}>Contacto Rápido</h2>
+              <p className={SECTION_DESCRIPTION}>
+                Ponte en contacto directamente con el restaurante para reservar, hacer pedidos o resolver tus dudas.
+              </p>
+            </div>
+            
+            <div className="flex flex-wrap justify-center gap-3">
+              {primaryCtas
+                .filter(cta => ['call', 'website', 'directions', 'whatsapp', 'order', 'reserve', 'message'].includes(cta.key))
+                .slice(0, 7)
+                .map((cta, index) => {
+                  const isPrimary = index === 0;
+                  const buttonClass = isPrimary ? CTA_PRIMARY : CTA_SECONDARY;
+                  
+                  return (
+                    <a
+                      key={cta.key}
+                      href={cta.href}
+                      className={`${CTA_BUTTON} ${buttonClass} ${!cta.enabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                      {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    >
+                      {cta.key === "call" && <FiPhone className="w-4 h-4" />}
+                      {cta.key === "website" && <FiExternalLink className="w-4 h-4" />}
+                      {cta.key === "directions" && <FiMapPin className="w-4 h-4" />}
+                      {cta.key === "whatsapp" && <FaWhatsapp className="w-4 h-4" />}
+                      {cta.key === "order" && <span>🛒</span>}
+                      {cta.key === "reserve" && <span>📅</span>}
+                      {cta.key === "message" && <FiMail className="w-4 h-4" />}
+                      {cta.label}
+                    </a>
+                  );
+                })}
             </div>
           </div>
         </section>
