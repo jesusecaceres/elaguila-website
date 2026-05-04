@@ -288,7 +288,27 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
         )}
       </section>
 
-      {/* B. Hook / Quick Understanding Zone */}
+      {/* B. Story / About Zone */}
+      {(data.aboutBody || data.summaryShort) && (
+        <section className={SECTION_CARD}>
+          <div className={SECTION_PADDING}>
+            <h2 className={SECTION_TITLE}>Sobre el Negocio</h2>
+            <div className="prose prose-lg max-w-none">
+              {data.aboutBody ? (
+                <div className="text-base text-[#1F1A17] leading-relaxed whitespace-pre-wrap">
+                  {data.aboutBody}
+                </div>
+              ) : (
+                <p className="text-base text-[#1F1A17] leading-relaxed">
+                  {data.summaryShort}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* C. Hook / Quick Understanding Zone */}
       {data.groupedFeatures && (
         <RestauranteGroupedFeaturesSection features={data.groupedFeatures} />
       )}
@@ -333,84 +353,8 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
       {/* E. Proof / Media Gallery Zone */}
       <RestauranteLockedGallerySection galleryBundle={data.venueGallery} />
 
-      {/* F. Story / About Zone */}
-      {(data.aboutBody || data.summaryShort) && (
-        <section className={SECTION_CARD}>
-          <div className={SECTION_PADDING}>
-            <h2 className={SECTION_TITLE}>Sobre el Negocio</h2>
-            <div className="prose prose-lg max-w-none">
-              {data.aboutBody ? (
-                <div className="text-base text-[#1F1A17] leading-relaxed whitespace-pre-wrap">
-                  {data.aboutBody}
-                </div>
-              ) : (
-                <p className="text-base text-[#1F1A17] leading-relaxed">
-                  {data.summaryShort}
-                </p>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* G. Details / Cuisine, Services, Languages Zone */}
-      <section className={SECTION_CARD}>
-        <div className={SECTION_PADDING}>
-          <h2 className={SECTION_TITLE}>Detalles del Servicio</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Cuisine and Style */}
-            <div>
-              <h3 className={SUBSECTION_TITLE}>Cocina y Estilo</h3>
-              <div className="space-y-3">
-                {data.cuisineTypeLine && (
-                  <div>
-                    <p className={DETAIL_LABEL}>Tipo de Cocina</p>
-                    <p className={DETAIL_VALUE}>{data.cuisineTypeLine}</p>
-                  </div>
-                )}
-                {data.taxonomyChips && data.taxonomyChips.length > 0 && (
-                  <div>
-                    <p className={DETAIL_LABEL}>Características</p>
-                    <div className="flex flex-wrap gap-2">
-                      {data.taxonomyChips.map((chip, index) => (
-                        <span key={index} className={SERVICE_CHIP}>
-                          {chip.label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Services */}
-            <div>
-              <h3 className={SUBSECTION_TITLE}>Servicios</h3>
-              <div className="space-y-3">
-                {data.quickInfo?.filter(item => item.key === 'service').map((item, index) => (
-                  <div key={index}>
-                    <p className={DETAIL_VALUE}>{item.value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            {/* Languages */}
-            <div>
-              <h3 className={SUBSECTION_TITLE}>Idiomas</h3>
-              <div className="space-y-3">
-                {data.quickInfo?.filter(item => item.key === 'service' && item.value.includes('Idiomas')).map((item, index) => (
-                  <div key={index}>
-                    <p className={DETAIL_VALUE}>{item.value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
+      
+      
       {/* H. Details / Hours Zone */}
       {hasHours && (
         <section className={SECTION_CARD}>
