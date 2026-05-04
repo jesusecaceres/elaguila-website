@@ -100,6 +100,7 @@ export type RestauranteFeaturedDish = {
 
 export type RestauranteGalleryMedia = {
   heroImage: RestauranteFileRef;
+  businessLogo?: RestauranteFileRef;
   galleryImages?: RestauranteFileRef[];
   /** Display order: indices or media ids — implementation-specific */
   galleryOrder?: string[];

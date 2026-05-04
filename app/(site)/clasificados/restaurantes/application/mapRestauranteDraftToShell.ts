@@ -45,7 +45,7 @@ function clampChipLabel(s: string, max = CHIP_LABEL_MAX): string {
 function cuisineToken(key: string, custom?: string): string {
   const k = key.trim();
   if (k === TAXONOMY_KEY_OTHER) {
-    if (nonEmpty(custom)) return `Otra: ${clampChipLabel(custom!)}`;
+    if (nonEmpty(custom)) return clampChipLabel(custom!);
     return labelForCuisine(TAXONOMY_KEY_OTHER);
   }
   return labelForCuisine(k);
@@ -207,19 +207,33 @@ function buildQuickInfo(d: RestauranteListingDraft, scheduleSummary: string): Sh
 
 function buildPrimaryCtas(d: RestauranteListingDraft): ShellPrimaryCta[] {
   const ctas: ShellPrimaryCta[] = [];
-  if (nonEmpty(d.websiteUrl)) ctas.push({ key: "website", label: "Sitio web", href: normalizeUrl(d.websiteUrl!) });
+  
+  // 1. Call
   if (nonEmpty(d.phoneNumber)) ctas.push({ key: "call", label: "Llamar", href: telHref(d.phoneNumber!) });
+  
+  // 2. Website
+  if (nonEmpty(d.websiteUrl)) ctas.push({ key: "website", label: "Sitio web", href: normalizeUrl(d.websiteUrl!) });
+  
+  // 3. Directions
+  const addressQuery = [d.addressLine1, d.cityCanonical, d.state].filter(nonEmpty).join(", ");
+  if (nonEmpty(addressQuery)) {
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressQuery)}`;
+    ctas.push({ key: "directions", label: "Direcciones", href: mapsUrl });
+  }
+  
+  // 4. WhatsApp
   if (nonEmpty(d.whatsAppNumber)) {
     const href = waHref(d.whatsAppNumber!);
     if (href) ctas.push({ key: "whatsapp", label: "WhatsApp", href });
   }
-  if (nonEmpty(d.phoneNumber)) {
-    const digits = d.phoneNumber!.replace(/\D/g, "");
-    const sms = digits.length >= 10 ? `sms:+1${digits.slice(-10)}` : `sms:${d.phoneNumber}`;
-    ctas.push({ key: "message", label: "Mensaje", href: sms });
-  } else if (nonEmpty(d.email)) {
-    ctas.push({ key: "message", label: "Correo", href: `mailto:${encodeURIComponent(d.email!.trim())}` });
-  }
+  
+  // 5. Order
+  if (nonEmpty(d.orderUrl)) ctas.push({ key: "order", label: "Ordenar", href: normalizeUrl(d.orderUrl!) });
+  
+  // 6. Reserve
+  if (nonEmpty(d.reservationUrl)) ctas.push({ key: "reserve", label: "Reservar", href: normalizeUrl(d.reservationUrl!) });
+  
+  // Menu CTAs (not in hero order, but included for other sections)
   const hasMenuUrl = nonEmpty(d.menuUrl);
   const hasMenuFile = nonEmpty(d.menuFile);
   if (hasMenuUrl && hasMenuFile) {
@@ -230,8 +244,17 @@ function buildPrimaryCtas(d: RestauranteListingDraft): ShellPrimaryCta[] {
   } else if (hasMenuFile) {
     ctas.push({ key: "menu", label: "Ver menú", href: d.menuFile! });
   }
-  if (nonEmpty(d.reservationUrl)) ctas.push({ key: "reserve", label: "Reservar", href: normalizeUrl(d.reservationUrl!) });
-  if (nonEmpty(d.orderUrl)) ctas.push({ key: "order", label: "Ordenar", href: normalizeUrl(d.orderUrl!) });
+  
+  // Message CTAs (not in hero order)
+  if (nonEmpty(d.phoneNumber)) {
+    const digits = d.phoneNumber!.replace(/\D/g, "");
+    const sms = digits.length >= 10 ? `sms:+1${digits.slice(-10)}` : `sms:${d.phoneNumber}`;
+    ctas.push({ key: "message", label: "Mensaje", href: sms });
+  } else if (nonEmpty(d.email)) {
+    ctas.push({ key: "message", label: "Correo", href: `mailto:${encodeURIComponent(d.email!.trim())}` });
+  }
+  
+  // Engagement CTAs (not in hero order)
   ctas.push({ key: "save", label: "Guardar", href: "#guardar" });
   ctas.push({ key: "share", label: "Compartir", href: "#compartir" });
   return ctas;
@@ -500,10 +523,14 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
       ? { average: Math.min(5, Math.max(0, d.externalRatingValue)), count: Math.max(0, Math.floor(d.externalReviewCount)) }
       : undefined;
 
+  const logoTrim = d.businessLogo?.trim();
+  const logoResolved = nonEmpty(logoTrim) ? logoTrim : undefined;
+
   return {
     id: d.draftListingId,
     heroImageUrl: heroResolved != null && nonEmpty(heroResolved) ? heroResolved.trim() : undefined,
     heroImageAlt: nonEmpty(d.businessName) ? `Foto principal · ${d.businessName.trim()}` : "Foto principal del negocio",
+    businessLogoUrl: logoResolved,
     businessName: nonEmpty(d.businessName) ? d.businessName.trim() : "Borrador sin título",
     cuisineTypeLine: cuisineLine,
     taxonomyChips: buildTaxonomyChips(d),

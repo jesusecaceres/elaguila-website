@@ -6,14 +6,15 @@
 export type ShellHoursStatus = "open" | "closed" | "unknown";
 
 export type ShellPrimaryCtaKey =
-  | "website"
   | "call"
+  | "website"
+  | "directions"
   | "whatsapp"
-  | "message"
+  | "order"
+  | "reserve"
   | "menu"
   | "menuAsset"
-  | "reserve"
-  | "order"
+  | "message"
   | "save"
   | "share";
 
@@ -125,6 +126,7 @@ export type RestaurantDetailShellData = {
   id: string;
   heroImageUrl?: string;
   heroImageAlt?: string;
+  businessLogoUrl?: string;
   businessName: string;
   cuisineTypeLine?: string;
   /** Custom “Otra” / supplemental taxonomy labels — short chips under the cuisine line */

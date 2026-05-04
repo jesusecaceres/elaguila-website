@@ -68,66 +68,211 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
               className="object-cover"
               priority
             />
-            {/* Dark overlay for text readability */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+            {/* Premium dark overlay for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
             
-            {/* Hero content */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 text-white">
-              <div className="space-y-3">
+            {/* Hero content - centered */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 sm:p-8 text-white text-center">
+              <div className="max-w-4xl mx-auto space-y-4">
+                {/* Business logo */}
+                {data.businessLogoUrl && (
+                  <div className="mb-4">
+                    <Image
+                      src={data.businessLogoUrl}
+                      alt={`${data.businessName} logo`}
+                      width={60}
+                      height={60}
+                      className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/10 p-2 object-contain"
+                    />
+                  </div>
+                )}
+                
                 {/* Business name */}
-                <h1 className="text-3xl sm:text-4xl font-bold leading-tight drop-shadow-lg">
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight drop-shadow-2xl">
                   {data.businessName}
                 </h1>
                 
                 {/* Cuisine and type */}
-                <div className="space-y-2">
-                  {data.cuisineTypeLine && (
-                    <p className="text-lg font-medium drop-shadow">
-                      {data.cuisineTypeLine}
-                    </p>
+                {data.cuisineTypeLine && (
+                  <div className="flex flex-wrap justify-center gap-2 text-lg sm:text-xl font-medium drop-shadow">
+                    {data.cuisineTypeLine.split(' · ').map((cuisine, index) => (
+                      <span key={index} className="px-3 py-1 bg-white/20 rounded-full backdrop-blur-sm">
+                        {cuisine.trim()}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Status, hours, neighborhood row */}
+                <div className="flex flex-wrap justify-center items-center gap-3 text-sm sm:text-base">
+                  {/* Hours status */}
+                  <span className={`px-4 py-2 rounded-full font-semibold backdrop-blur-sm ${
+                    data.hoursPreview.status === 'open' 
+                      ? 'bg-green-500/30 text-white border border-green-400/50' 
+                      : 'bg-red-500/30 text-white border border-red-400/50'
+                  }`}>
+                    {data.hoursPreview.status === 'open' ? '🟢 Abierto ahora' : '🔴 Cerrado'}
+                  </span>
+                  
+                  {/* Neighborhood */}
+                  {data.contact?.addressLine1 && (
+                    <span className="px-4 py-2 bg-white/20 rounded-full backdrop-blur-sm flex items-center gap-1">
+                      <FiMapPin className="w-4 h-4" />
+                      {data.contact.addressLine1}
+                    </span>
                   )}
                   
-                  {/* Location and status */}
-                  <div className="flex flex-wrap items-center gap-3 text-sm">
-                    {data.contact?.addressLine1 && (
-                      <span className="flex items-center gap-1">
-                        <FiMapPin className="w-4 h-4" />
-                        {data.contact.addressLine1}
-                      </span>
-                    )}
-                    
-                    {/* Hours status */}
-                    <span className={`px-3 py-1 rounded-full font-medium ${
-                      data.hoursPreview.status === 'open' 
-                        ? 'bg-green-500/20 text-green-100' 
-                        : 'bg-orange-500/20 text-orange-100'
-                    }`}>
-                      {data.hoursPreview.status === 'open' ? '🟢 Abierto' : '🔴 Cerrado'}
+                  {/* Rating */}
+                  {data.trustRating && (
+                    <span className="px-4 py-2 bg-white/20 rounded-full backdrop-blur-sm flex items-center gap-1">
+                      <FiStar className="w-4 h-4 text-yellow-400 fill-current" />
+                      <span>{data.trustRating.average.toFixed(1)}</span>
+                      <span className="text-white/80">({data.trustRating.count})</span>
                     </span>
-                    
-                    {/* Rating */}
-                    {data.trustRating && (
-                      <span className="flex items-center gap-1">
-                        <FiStar className="w-4 h-4 text-yellow-400" />
-                        <span>{data.trustRating.average.toFixed(1)}</span>
-                        <span className="text-white/70">({data.trustRating.count})</span>
-                      </span>
-                    )}
+                  )}
+                </div>
+                
+                {/* Full address */}
+                {data.contact?.addressLine1 && (
+                  <div className="text-base sm:text-lg drop-shadow">
+                    <span className="px-4 py-2 bg-white/10 rounded-lg backdrop-blur-sm inline-block">
+                      {data.contact.addressLine1}
+                      {data.contact?.addressLine2 && `, ${data.contact.addressLine2}`}
+                    </span>
                   </div>
+                )}
+                
+                {/* Hero CTA row */}
+                <div className="flex flex-wrap justify-center gap-3 pt-4">
+                  {primaryCtas
+                    .filter(cta => ['call', 'website', 'directions', 'whatsapp', 'order', 'reserve'].includes(cta.key))
+                    .slice(0, 6)
+                    .map((cta, index) => {
+                      const isPrimary = index === 0;
+                      const buttonClass = isPrimary 
+                        ? "bg-white text-[#1F1A17] border-white hover:bg-gray-100 shadow-lg" 
+                        : "bg-white/20 text-white border-white/50 hover:bg-white/30 backdrop-blur-sm";
+                      
+                      return (
+                        <a
+                          key={cta.key}
+                          href={cta.href}
+                          className={`inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all duration-200 border min-h-[44px] ${buttonClass}`}
+                        >
+                          {cta.key === "call" && <FiPhone className="w-4 h-4" />}
+                          {cta.key === "website" && <FiExternalLink className="w-4 h-4" />}
+                          {cta.key === "directions" && <FiMapPin className="w-4 h-4" />}
+                          {cta.key === "whatsapp" && <FaWhatsapp className="w-4 h-4" />}
+                          {cta.key === "order" && <span>🛒</span>}
+                          {cta.key === "reserve" && <span>📅</span>}
+                          {cta.label}
+                        </a>
+                      );
+                    })}
                 </div>
               </div>
             </div>
           </div>
         ) : (
           // Fallback hero without image
-          <div className={SECTION_PADDING}>
-            <div className="space-y-4">
-              <h1 className="text-3xl sm:text-4xl font-bold text-[#1F1A17]">
+          <div className={`${SECTION_PADDING} text-center`}>
+            <div className="max-w-4xl mx-auto space-y-6">
+              {/* Business logo */}
+              {data.businessLogoUrl && (
+                <div>
+                  <Image
+                    src={data.businessLogoUrl}
+                    alt={`${data.businessName} logo`}
+                    width={80}
+                    height={80}
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#F6EBDD] p-3 object-contain mx-auto"
+                  />
+                </div>
+              )}
+              
+              {/* Business name */}
+              <h1 className="text-4xl sm:text-5xl font-bold text-[#1F1A17] leading-tight">
                 {data.businessName}
               </h1>
+              
+              {/* Cuisine and type */}
               {data.cuisineTypeLine && (
-                <p className="text-lg text-[#5A5148]">{data.cuisineTypeLine}</p>
+                <div className="flex flex-wrap justify-center gap-2 text-lg sm:text-xl font-medium">
+                  {data.cuisineTypeLine.split(' · ').map((cuisine, index) => (
+                    <span key={index} className="px-3 py-1 bg-[#F6EBDD] rounded-full text-[#1F1A17]">
+                      {cuisine.trim()}
+                    </span>
+                  ))}
+                </div>
               )}
+              
+              {/* Status, hours, neighborhood row */}
+              <div className="flex flex-wrap justify-center items-center gap-3 text-sm sm:text-base">
+                {/* Hours status */}
+                <span className={`px-4 py-2 rounded-full font-semibold ${
+                  data.hoursPreview.status === 'open' 
+                    ? 'bg-[#1A4D2E] text-white' 
+                    : 'bg-[#BEA98E] text-[#1F1A17]'
+                }`}>
+                  {data.hoursPreview.status === 'open' ? '🟢 Abierto ahora' : '🔴 Cerrado'}
+                </span>
+                
+                {/* Neighborhood */}
+                {data.contact?.addressLine1 && (
+                  <span className="px-4 py-2 bg-[#F6EBDD] rounded-full text-[#1F1A17] flex items-center gap-1">
+                    <FiMapPin className="w-4 h-4" />
+                    {data.contact.addressLine1}
+                  </span>
+                )}
+                
+                {/* Rating */}
+                {data.trustRating && (
+                  <span className="px-4 py-2 bg-[#F6EBDD] rounded-full text-[#1F1A17] flex items-center gap-1">
+                    <FiStar className="w-4 h-4 text-yellow-600 fill-current" />
+                    <span>{data.trustRating.average.toFixed(1)}</span>
+                    <span className="text-[#5A5148]">({data.trustRating.count})</span>
+                  </span>
+                )}
+              </div>
+              
+              {/* Full address */}
+              {data.contact?.addressLine1 && (
+                <div className="text-base sm:text-lg">
+                  <span className="px-4 py-2 bg-[#F6EBDD] rounded-lg text-[#1F1A17] inline-block">
+                    {data.contact.addressLine1}
+                    {data.contact?.addressLine2 && `, ${data.contact.addressLine2}`}
+                  </span>
+                </div>
+              )}
+              
+              {/* Hero CTA row */}
+              <div className="flex flex-wrap justify-center gap-3 pt-4">
+                {primaryCtas
+                  .filter(cta => ['call', 'website', 'directions', 'whatsapp', 'order', 'reserve'].includes(cta.key))
+                  .slice(0, 6)
+                  .map((cta, index) => {
+                    const isPrimary = index === 0;
+                    const buttonClass = isPrimary 
+                      ? "bg-[#2C1810] text-white border-[#2C1810] hover:bg-[#1A1412] shadow-md" 
+                      : "bg-white text-[#1F1A17] border-[#D8C2A0] hover:bg-[#FFFAF3] hover:border-[#BEA98E] shadow-sm";
+                    
+                    return (
+                      <a
+                        key={cta.key}
+                        href={cta.href}
+                        className={`inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all duration-200 border min-h-[44px] ${buttonClass}`}
+                      >
+                        {cta.key === "call" && <FiPhone className="w-4 h-4" />}
+                        {cta.key === "website" && <FiExternalLink className="w-4 h-4" />}
+                        {cta.key === "directions" && <FiMapPin className="w-4 h-4" />}
+                        {cta.key === "whatsapp" && <FaWhatsapp className="w-4 h-4" />}
+                        {cta.key === "order" && <span>🛒</span>}
+                        {cta.key === "reserve" && <span>📅</span>}
+                        {cta.label}
+                      </a>
+                    );
+                  })}
+              </div>
             </div>
           </div>
         )}
