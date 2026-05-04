@@ -26,15 +26,15 @@ const RESULT_CARD = "rounded-3xl border border-[#D8C2A0] bg-[#FFFAF3] shadow-[0_
 
 const MEDIA_CONTAINER = "relative aspect-[16/10] overflow-hidden bg-[#F5F0E8]";
 
-const INFO_SECTION = "p-6 sm:p-8 space-y-4";
+const INFO_SECTION = "p-6 sm:p-8 space-y-5";
 
-const TITLE_SECTION = "space-y-3";
+const TITLE_SECTION = "space-y-4";
 
 const CUISINE_CHIP = "px-3 py-1.5 rounded-full bg-[#F6EBDD] text-[#1F1A17] text-xs font-semibold border border-[#D8C2A0] inline-flex items-center gap-1";
 
 const SERVICE_CHIP = "px-3 py-1.5 rounded-full bg-[#F6EBDD] text-[#1F1A17] text-xs font-semibold border border-[#D8C2A0]";
 
-const RESTAURANT_NAME = "text-xl sm:text-2xl font-bold text-[#1F1A17] leading-tight hover:text-[#BEA98E] transition-colors";
+const RESTAURANT_NAME = "text-2xl sm:text-3xl font-bold text-[#1F1A17] leading-tight hover:text-[#BEA98E] transition-colors";
 
 const STATUS_CHIP_OPEN = "px-3 py-1.5 rounded-full bg-[#1A4D2E] text-white text-xs font-semibold";
 
@@ -74,9 +74,9 @@ export function RestauranteResultCard({
   const hasAddress = listing.addressLine1;
   const hasDescription = listing.description;
   
-  // Build location line from available fields
+  // Build location line from available fields (priority: neighborhood -> city)
   const locationLine = listing.neighborhood 
-    ? `${listing.city}${listing.neighborhood ? `, ${listing.neighborhood}` : ""}`
+    ? listing.neighborhood 
     : listing.city;
 
   // Build full address
@@ -124,10 +124,48 @@ export function RestauranteResultCard({
     { key: 'reserve', label: 'Reservar', href: listing.reservationUrl, icon: () => <span>📅</span> }
   ].filter(cta => cta.href);
 
-  // Clean cuisine chips (remove "Otra:" prefixes)
-  const cuisineChips = listing.cuisineLine
-    ? listing.cuisineLine.split(' · ').map(chip => chip.replace(/^Otra:\s*/, '').trim())
-    : [];
+  // Build cuisine chips from actual cuisine data
+  const cuisineChips = (() => {
+    const chips: string[] = [];
+    if (listing.primaryCuisineKey) {
+      // Map cuisine keys to display names
+      const cuisineLabels: Record<string, string> = {
+        'mexican': 'Mexicana',
+        'italian': 'Italiana',
+        'japanese': 'Japonesa',
+        'chinese': 'China',
+        'thai': 'Tailandesa',
+        'indian': 'India',
+        'french': 'Francesa',
+        'american': 'Americana',
+        'spanish': 'Española',
+        'greek': 'Griega',
+        'mediterranean': 'Mediterránea',
+        'other': listing.businessType || 'Otra'
+      };
+      const label = cuisineLabels[listing.primaryCuisineKey] || listing.primaryCuisineKey;
+      chips.push(label);
+    }
+    if (listing.secondaryCuisineKey) {
+      const cuisineLabels: Record<string, string> = {
+        'mexican': 'Mexicana',
+        'italian': 'Italiana',
+        'japanese': 'Japonesa',
+        'chinese': 'China',
+        'thai': 'Tailandesa',
+        'indian': 'India',
+        'french': 'Francesa',
+        'american': 'Americana',
+        'spanish': 'Española',
+        'greek': 'Griega',
+        'mediterranean': 'Mediterránea',
+        'other': 'Otra'
+      };
+      const label = cuisineLabels[listing.secondaryCuisineKey] || listing.secondaryCuisineKey;
+      chips.push(label);
+    }
+    return chips;
+  })();
 
   return (
     <div className={`${RESULT_CARD} ${className}`}>
@@ -245,15 +283,15 @@ export function RestauranteResultCard({
             {listing.serviceModes.map((mode, index) => {
               // Convert service mode keys to display labels
               const serviceLabels: Record<string, string> = {
-                'dine_in': 'Comer aquí',
+                'dine_in': 'Comer en local',
                 'takeout': 'Para llevar',
-                'delivery': 'Delivery',
+                'delivery': 'Entrega a domicilio',
                 'catering': 'Catering',
                 'events': 'Eventos',
                 'pop_up': 'Pop-up',
-                'food_truck': 'Food Truck',
+                'food_truck': 'Food truck',
                 'personal_chef': 'Chef personal',
-                'meal_prep': 'Prep de comidas',
+                'meal_prep': 'Meal prep',
                 'other': 'Otro'
               };
               
@@ -280,6 +318,7 @@ export function RestauranteResultCard({
                 href={cta.href}
                 className={`${CTA_BUTTON} ${buttonClass}`}
                 onClick={(e) => e.stopPropagation()}
+                {...(cta.href?.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
               >
                 <IconComponent className="w-4 h-4" />
                 {cta.label}
