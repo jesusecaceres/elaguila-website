@@ -7,6 +7,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { trackRestaurantesCtaClick } from "../../analytics/restaurantesAnalytics";
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 
 // Leonix premium visual tokens
@@ -317,7 +318,24 @@ export function RestauranteResultCard({
                 key={cta.key}
                 href={cta.href}
                 className={`${CTA_BUTTON} ${buttonClass}`}
-                onClick={(e) => e.stopPropagation()}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  // Track CTA click analytics
+                  const ctaType = cta.key === 'call' ? 'phone' : 
+                                 cta.key === 'website' ? 'website' :
+                                 cta.key === 'directions' ? 'directions' :
+                                 cta.key === 'whatsapp' ? 'whatsapp' :
+                                 cta.key === 'order' ? 'order' :
+                                 cta.key === 'reserve' ? 'reserve' : 'general';
+                  
+                  try {
+                    await trackRestaurantesCtaClick(listing.id, ctaType as any, {
+                      metadata: { ctaKey: cta.key }
+                    });
+                  } catch (error) {
+                    console.warn('CTA click tracking failed:', error);
+                  }
+                }}
                 {...(cta.href?.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
               >
                 <IconComponent className="w-4 h-4" />
@@ -327,23 +345,35 @@ export function RestauranteResultCard({
           })}
         </div>
 
-        {/* Rating */}
-        {hasRating && (
-          <div className="flex items-center gap-2 pt-2">
-            <div className="flex items-center gap-0.5">
-              {Array.from({ length: 5 }, (_, i) => (
-                <FiStar 
-                  key={i} 
-                  className={`w-4 h-4 ${i < Math.floor(listing.rating) ? "text-[#BEA98E] fill-current" : "text-[#D8C2A0]/30"}`}
-                />
-              ))}
+        {/* Rating and Likes */}
+        <div className="flex items-center justify-between pt-2">
+          {hasRating && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-0.5">
+                {Array.from({ length: 5 }, (_, i) => (
+                  <FiStar 
+                    key={i} 
+                    className={`w-4 h-4 ${i < Math.floor(listing.rating) ? "text-[#BEA98E] fill-current" : "text-[#D8C2A0]/30"}`}
+                  />
+                ))}
+              </div>
+              <span className="text-sm text-[#5A5148]">{listing.rating.toFixed(1)}</span>
+              {listing.externalReviewCount && (
+                <span className="text-xs text-[#8B7E70]">({listing.externalReviewCount})</span>
+              )}
             </div>
-            <span className="text-sm text-[#5A5148]">{listing.rating.toFixed(1)}</span>
-            {listing.externalReviewCount && (
-              <span className="text-xs text-[#8B7E70]">({listing.externalReviewCount})</span>
-            )}
-          </div>
-        )}
+          )}
+          
+          {/* Likes Display */}
+          {listing.likesCount && listing.likesCount > 0 && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-[#F6EBDD] rounded-full">
+              <span className="text-sm">❤️</span>
+              <span className="text-xs font-medium text-[#1F1A17]">
+                {listing.likesCount}
+              </span>
+            </div>
+          )}
+        </div>
 
         {/* Engagement Section */}
         {showEngagementMetrics && (

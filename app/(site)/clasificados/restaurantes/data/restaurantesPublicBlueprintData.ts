@@ -90,6 +90,11 @@ export type RestaurantesPublicBlueprintRow = {
       closed?: boolean;
     };
   };
+  /** Analytics metrics */
+  likesCount?: number;
+  savesCount?: number;
+  sharesCount?: number;
+  ctaClicksCount?: number;
 };
 
 const DEFAULT_DISCOVERY: Pick<

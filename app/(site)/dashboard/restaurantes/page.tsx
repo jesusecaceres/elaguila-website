@@ -8,6 +8,8 @@ import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/applicati
 import { saveRestauranteDraftToStorageResolved } from "@/app/clasificados/restaurantes/application/restauranteDraftStorage";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { fetchOwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
+import { LeonixListingMetricsSummary } from "@/app/components/clasificados/analytics/LeonixListingMetricsSummary";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -117,6 +119,8 @@ export default function DashboardRestaurantesPage() {
   const [accountRef, setAccountRef] = useState<string | null>(null);
   const [hydrateId, setHydrateId] = useState<string | null>(null);
   const [hydrateErr, setHydrateErr] = useState<string | null>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
 
   const load = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -163,6 +167,18 @@ export default function DashboardRestaurantesPage() {
       setRows((data ?? []) as RestRow[]);
     }
     setLoading(false);
+    
+    // Load analytics
+    setAnalyticsLoading(true);
+    try {
+      const { totals } = await fetchOwnerAnalyticsTotals(supabase, user.id);
+      setAnalytics(totals);
+    } catch (error) {
+      console.warn('Failed to load analytics:', error);
+      setAnalytics(null);
+    } finally {
+      setAnalyticsLoading(false);
+    }
   }, [q, router, t.errRl]);
 
   useEffect(() => {
@@ -239,6 +255,19 @@ export default function DashboardRestaurantesPage() {
             </Link>
           </div>
         </div>
+
+        {/* Analytics Summary */}
+        {!analyticsLoading && analytics && (
+          <div className="mt-6">
+            <LeonixListingMetricsSummary
+              metrics={analytics}
+              variant="pills"
+              lang={lang}
+              showTitle={true}
+              title={lang === "es" ? "Estadísticas de tus restaurantes" : "Your restaurant statistics"}
+            />
+          </div>
+        )}
 
         {fetchErr ? (
           <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{fetchErr}</p>

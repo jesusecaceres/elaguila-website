@@ -4,6 +4,8 @@ import Image from "next/image";
 import { FiExternalLink, FiMail, FiMapPin, FiPhone, FiInstagram, FiFacebook, FiYoutube, FiClock, FiStar } from "react-icons/fi";
 import { FaTiktok, FaWhatsapp } from "react-icons/fa";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
+import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
 import { RestauranteGroupedFeaturesSection } from "./RestauranteGroupedFeaturesSection";
 import { RestauranteLockedGallerySection } from "./RestauranteLockedGallerySection";
@@ -37,9 +39,11 @@ const SERVICE_CHIP = "px-3 py-1.5 rounded-full bg-[#F6EBDD] text-[#1F1A17] text-
 
 interface RestauranteAdStoryPreviewProps {
   data: RestaurantDetailShellData;
+  listingId?: string;
+  lang?: "es" | "en";
 }
 
-export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewProps) {
+export function RestauranteAdStoryPreview({ data, listingId = "", lang = "es" }: RestauranteAdStoryPreviewProps) {
   // Helper functions
   const hasHeroImage = data.heroImageUrl;
   const hasContactInfo = data.contact;
@@ -75,6 +79,43 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
             {/* Premium dark overlay for text readability */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
             
+            {/* Top-right engagement actions */}
+            <div className="absolute top-4 right-4 z-20">
+              <div className="flex flex-col gap-2">
+                <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
+                  <LeonixLikeButton
+                    listingId={listingId}
+                    ownerUserId={data.id}
+                    variant="small"
+                    lang={lang}
+                    category="restaurantes"
+                    className="border-0"
+                  />
+                </div>
+                <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
+                  <LeonixSaveButton
+                    listingId={listingId}
+                    ownerUserId={data.id}
+                    variant="small"
+                    lang={lang}
+                    category="restaurantes"
+                    className="border-0"
+                  />
+                </div>
+                <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
+                  <LeonixShareButton
+                    listingId={listingId}
+                    ownerUserId={data.id}
+                    listingTitle={data.businessName}
+                    variant="small"
+                    lang={lang}
+                    category="restaurantes"
+                    className="border-0"
+                  />
+                </div>
+              </div>
+            </div>
+            
             {/* Hero content - centered */}
             <div className="absolute inset-0 flex flex-col items-center justify-center p-6 sm:p-8 text-white text-center">
               <div className="max-w-4xl mx-auto space-y-4">
@@ -84,9 +125,9 @@ export function RestauranteAdStoryPreview({ data }: RestauranteAdStoryPreviewPro
                     <Image
                       src={data.businessLogo}
                       alt={`${data.businessName} logo`}
-                      width={120}
-                      height={120}
-                      className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-white/20 p-4 object-contain shadow-xl"
+                      width={160}
+                      height={160}
+                      className="w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-white/20 p-4 object-contain shadow-xl"
                     />
                   </div>
                 )}
