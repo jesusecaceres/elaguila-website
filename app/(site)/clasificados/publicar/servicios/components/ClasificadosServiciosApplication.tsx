@@ -57,6 +57,7 @@ import {
 } from "../lib/serviciosSelectionCaps";
 import { isValidEmail } from "../lib/leonixContactCtaPriority";
 import { digitsOnly, formatPhoneInputDisplay } from "../lib/serviciosPhoneUi";
+import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
 import {
   isProbablyValidWebUrl,
   newGalleryId,
@@ -1418,7 +1419,18 @@ export function ClasificadosServiciosApplication() {
                       }}
                       className={disabled ? "cursor-not-allowed opacity-45" : undefined}
                     >
-                      {chipLabel(c, lang)}
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="text-[0.95rem] leading-none" aria-hidden>
+                          {
+                            resolveServiciosServiceVisual({
+                              id: c.id,
+                              label: chipLabel(c, lang),
+                              businessTypeId: state.businessTypeId,
+                            }).emoji
+                          }
+                        </span>
+                        {chipLabel(c, lang)}
+                      </span>
                     </Chip>
                   );
                 })}
@@ -1435,7 +1447,18 @@ export function ClasificadosServiciosApplication() {
                       }))
                     }
                   >
-                    {state.customServiceLabel.trim()}
+                    <span className="inline-flex min-w-0 items-center gap-1.5">
+                      <span className="shrink-0 text-[0.95rem] leading-none" aria-hidden>
+                        {
+                          resolveServiciosServiceVisual({
+                            id: "custom_service",
+                            label: state.customServiceLabel.trim(),
+                            businessTypeId: state.businessTypeId,
+                          }).emoji
+                        }
+                      </span>
+                      {state.customServiceLabel.trim()}
+                    </span>
                   </Chip>
                 ) : null}
               </div>
