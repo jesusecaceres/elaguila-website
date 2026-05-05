@@ -6,7 +6,12 @@ import type {
   VideoItem,
 } from "./clasificadosServiciosApplicationTypes";
 import { createDefaultClasificadosServiciosState } from "./defaultClasificadosServiciosState";
-import { enforceServiciosSelectionCaps } from "./serviciosSelectionCaps";
+import { normalizeServiceOfferedDedupeKey } from "./serviciosCustomServicesOffered";
+import {
+  CUSTOM_CHIP_MAX_LENGTH,
+  MAX_CUSTOM_SERVICES_OFFERED,
+  enforceServiciosSelectionCaps,
+} from "./serviciosSelectionCaps";
 import { SERVICIOS_APPLICATION_STEP_COUNT } from "./serviciosApplicationStepLabels";
 
 const DAY_KEYS: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
@@ -135,12 +140,38 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
   }
 
   const customServiceLabel = str("customServiceLabel", d.customServiceLabel);
-  const customServiceIncluded =
+  const legacyIncluded =
     typeof o.customServiceIncluded === "boolean"
       ? (o.customServiceIncluded as boolean)
       : customServiceLabel.trim().length > 0;
 
   const customServiceDescription = str("customServiceDescription", d.customServiceDescription ?? "");
+
+  const customServicesOffered: string[] = [];
+  const customSeen = new Set<string>();
+  const pushCustom = (raw: string) => {
+    const t = raw.trim().slice(0, CUSTOM_CHIP_MAX_LENGTH);
+    if (!t) return;
+    const k = normalizeServiceOfferedDedupeKey(t);
+    if (customSeen.has(k)) return;
+    if (customServicesOffered.length >= MAX_CUSTOM_SERVICES_OFFERED) return;
+    customSeen.add(k);
+    customServicesOffered.push(t);
+  };
+  if (Array.isArray(o.customServicesOffered)) {
+    for (const x of o.customServicesOffered) {
+      if (typeof x === "string") pushCustom(x);
+    }
+  }
+  const legacyLabel = customServiceLabel.trim().slice(0, CUSTOM_CHIP_MAX_LENGTH);
+  let customServiceLabelOut = customServiceLabel;
+  if (legacyIncluded && legacyLabel) {
+    const beforeLen = customServicesOffered.length;
+    pushCustom(legacyLabel);
+    if (customServicesOffered.length > beforeLen) {
+      customServiceLabelOut = "";
+    }
+  }
 
   return enforceServiciosSelectionCaps({
     applicationStepIndex,
@@ -177,8 +208,9 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     aboutText: str("aboutText", d.aboutText),
     specialtiesLine: str("specialtiesLine", d.specialtiesLine),
     selectedServiceIds,
-    customServiceLabel,
-    customServiceIncluded,
+    customServicesOffered,
+    customServiceLabel: customServiceLabelOut,
+    customServiceIncluded: false,
     customServiceDescription,
     leonixVerifiedInterest: bool("leonixVerifiedInterest", d.leonixVerifiedInterest),
     selectedReasonIds,

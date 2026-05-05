@@ -120,9 +120,11 @@ export type ClasificadosServiciosApplicationState = {
   aboutText: string;
   specialtiesLine: string;
   selectedServiceIds: string[];
+  /** Free-text services the advertiser added (trimmed); independent of preset chip cap */
+  customServicesOffered: string[];
   /** Short free-text service when presets do not cover it */
   customServiceLabel: string;
-  /** When true, custom service chip is active and counts toward the services cap */
+  /** Legacy single custom chip flag — migrated into `customServicesOffered` in normalize; not used for caps */
   customServiceIncluded: boolean;
   selectedReasonIds: string[];
   /** Short label — paired with `customReasonIncluded` */

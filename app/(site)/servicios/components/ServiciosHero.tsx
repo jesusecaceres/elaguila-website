@@ -9,6 +9,7 @@ import { SV } from "./serviciosDesignTokens";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
 
 function badgeStyle(kind: string) {
   if (kind === "verified") return "border-[#3B66AD]/35 bg-[#3B66AD]/10 text-[#2d528d]";
@@ -133,6 +134,25 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
                 ))}
               </div>
             )}
+
+            {profile.services.length > 0 ? (
+              <div className="mt-1 flex flex-wrap justify-center gap-1.5 sm:gap-2">
+                {profile.services.slice(0, 4).map((s) => {
+                  const { emoji } = resolveServiciosServiceVisual({ id: s.id, label: s.title });
+                  return (
+                    <span
+                      key={s.id}
+                      className="inline-flex max-w-[11rem] items-center gap-1 rounded-full border border-white/25 bg-black/25 px-2.5 py-1 text-xs font-medium backdrop-blur-sm sm:max-w-[14rem] sm:text-sm"
+                    >
+                      <span className="shrink-0 text-[0.8rem] leading-none sm:text-[0.85rem]" aria-hidden>
+                        {emoji}
+                      </span>
+                      <span className="min-w-0 truncate">{s.title}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            ) : null}
             
             {/* Specialties */}
             {about?.specialtiesLine && (

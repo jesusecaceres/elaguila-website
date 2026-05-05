@@ -49,6 +49,7 @@ function baseState(): ClasificadosServiciosApplicationState {
     aboutText: "Professional plumbing for homes and businesses.",
     specialtiesLine: "",
     selectedServiceIds: ["plom_fugas"],
+    customServicesOffered: [],
     customServiceLabel: "",
     customServiceIncluded: false,
     selectedReasonIds: [],

@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FaHeart, FaMapMarkerAlt, FaSearch, FaStar } from "react-icons/fa";
+import { FaMapMarkerAlt, FaSearch, FaStar } from "react-icons/fa";
 
 import Navbar from "@/app/components/Navbar";
 import {
@@ -40,6 +40,7 @@ import { leonixPersonalizationAllowed } from "@/app/lib/leonixPublicConsent";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import type { RestaurantesResultsInventorySource } from "@/app/clasificados/restaurantes/lib/restaurantesResultsInventoryServer";
+import { RestaurantePreviewCard } from "@/app/clasificados/restaurantes/shell/RestaurantePreviewCard";
 
 const ACCENT = "#D4A574";
 const PAGE_SIZE = 9;
@@ -1017,7 +1018,7 @@ export function RestaurantesResultsShell({
                 <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden">
                   {promotedBand.map((row) => (
                     <div key={row.id} className="snap-start">
-                      <ResultCard
+                      <PublishedListingResultCard
                         row={row}
                         lang={lang}
                         badge={t.promotedBadge}
@@ -1025,8 +1026,6 @@ export function RestaurantesResultsShell({
                         narrowLabel={t.resultNarrowInResults}
                         isSaved={savedIds.has(row.id)}
                         onToggleSave={leonixPersonalizationAllowed() ? () => toggleSavedId(row.id) : undefined}
-                        saveAria={t.saveListingAria}
-                        unsaveAria={t.unsaveListingAria}
                       />
                     </div>
                   ))}
@@ -1046,18 +1045,16 @@ export function RestaurantesResultsShell({
                 </Link>
               </div>
             ) : (
-              <ul className="grid list-none grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 md:gap-6 lg:grid-cols-3">
+              <ul className="grid list-none grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-2">
                 {shown.map((row) => (
-                  <li key={row.id}>
-                    <ResultCard
+                  <li key={row.id} className="min-w-0">
+                    <PublishedListingResultCard
                       row={row}
                       lang={lang}
                       cta={t.verMas}
                       narrowLabel={t.resultNarrowInResults}
                       isSaved={savedIds.has(row.id)}
                       onToggleSave={leonixPersonalizationAllowed() ? () => toggleSavedId(row.id) : undefined}
-                      saveAria={t.saveListingAria}
-                      unsaveAria={t.unsaveListingAria}
                     />
                   </li>
                 ))}
@@ -1102,7 +1099,8 @@ export function RestaurantesResultsShell({
   );
 }
 
-function ResultCard({
+/** Same horizontal card contract as preview Section 1 (`RestaurantePreviewCard`). */
+function PublishedListingResultCard({
   row,
   lang,
   badge,
@@ -1110,8 +1108,6 @@ function ResultCard({
   narrowLabel,
   isSaved,
   onToggleSave,
-  saveAria,
-  unsaveAria,
 }: {
   row: RestaurantesPublicBlueprintRow;
   lang: RestaurantesDiscoveryLang;
@@ -1120,8 +1116,6 @@ function ResultCard({
   narrowLabel: string;
   isSaved?: boolean;
   onToggleSave?: () => void;
-  saveAria?: string;
-  unsaveAria?: string;
 }) {
   const narrowHref = buildRestaurantesResultsHref(lang, {
     ...restaurantesDiscoveryParamsForRowDeepLink({
@@ -1135,98 +1129,75 @@ function ResultCard({
   const slug = row.slug?.trim();
   const primaryHref = slug
     ? appendLangToPath(`/clasificados/restaurantes/${encodeURIComponent(slug)}`, lang as Lang)
-    : narrowHref;
-  const showNarrowLink = Boolean(slug);
+    : "";
+
+  const [origin, setOrigin] = useState("");
+  useEffect(() => {
+    setOrigin(typeof window !== "undefined" ? window.location.origin : "");
+  }, []);
+
+  const shareAbsolute = origin && primaryHref ? `${origin}${primaryHref}` : "";
+  const shell = row.previewShellData;
+
+  if (!shell) {
+    return (
+      <article className="rounded-[20px] border border-dashed border-amber-500/50 bg-amber-50/40 p-4 text-sm text-amber-950">
+        <p className="font-semibold">{row.name}</p>
+        <p className="mt-1 text-xs opacity-80">
+          {lang === "es"
+            ? "Este listado no tiene datos de ficha para la vista aprobada."
+            : "This listing has no approved card shell data."}
+        </p>
+        {primaryHref ? (
+          <Link href={primaryHref} className="mt-3 inline-flex min-h-[44px] items-center font-semibold text-amber-900 underline">
+            {cta}
+          </Link>
+        ) : null}
+      </article>
+    );
+  }
+
   return (
     <article
-      className={`flex h-full max-w-full flex-col overflow-hidden rounded-[20px] border border-[#2D241E]/[0.09] bg-[#FFFCF7] shadow-[0_12px_40px_-22px_rgba(45,36,30,0.3)] transition-shadow duration-300 hover:shadow-[0_16px_44px_-20px_rgba(45,36,30,0.36)] ${
-        badge ? "w-[min(100%,320px)] min-w-[260px] shrink-0 ring-1 ring-[#D97706]/22 sm:w-[300px]" : "w-full min-w-0"
+      className={`relative h-full ${
+        badge ? "min-w-[min(100vw-32px,540px)] max-w-[min(100vw-24px,560px)] shrink-0 sm:min-w-[300px]" : "min-w-0 w-full"
       }`}
     >
-      <div className="relative aspect-[16/10] w-full overflow-hidden rounded-t-[20px]">
-        <Image
-          src={row.imageSrc}
-          alt=""
-          fill
-          className="object-cover object-center"
-          sizes={badge ? "(max-width:640px) 85vw, 300px" : "(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw"}
-        />
-        {badge ? (
-          <span
-            className="absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-bold text-[#FFFCF7] shadow-sm"
-            style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
-          >
-            {badge}
-          </span>
-        ) : row.promoted ? (
-          <span
-            className="absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-bold text-[#FFFCF7] shadow-sm"
-            style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
-          >
-            {lang === "es" ? "Patrocinado" : "Sponsored"}
-          </span>
-        ) : null}
-        {row.leonixVerified ? (
-          <span className="absolute right-3 top-3 rounded-full border border-sky-400/80 bg-sky-50/95 px-2 py-0.5 text-[10px] font-bold text-sky-950 shadow-sm backdrop-blur-sm">
-            {lang === "es" ? "Verificado" : "Verified"}
-          </span>
-        ) : null}
-      </div>
-      <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
-        <h3 className="break-words font-serif text-lg font-semibold leading-snug text-[#2D241E]">{row.name}</h3>
-        <p className="mt-1 text-sm leading-snug text-[#2D241E]/65">{row.cuisineLine}</p>
-        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#2D241E]/55">
-          <span className="inline-flex min-w-0 items-center gap-1">
-            <FaStar className="h-3.5 w-3.5 shrink-0" style={{ color: ACCENT }} aria-hidden />
-            {row.rating.toFixed(1)}
-            {row.externalReviewCount != null ? (
-              <span className="text-[#2D241E]/45"> ({row.externalReviewCount})</span>
-            ) : null}
-          </span>
-          <span className="opacity-50" aria-hidden>
-            ·
-          </span>
-          <span className="inline-flex min-w-0 items-start gap-1 break-words sm:items-center">
-            <FaMapMarkerAlt className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:mt-0" style={{ color: ACCENT }} aria-hidden />
-            <span>
-              {row.city}
-              {row.zip ? ` · ${row.zip}` : ""}
-            </span>
-          </span>
-        </div>
-        <div className="mt-4 border-t border-[#2D241E]/8 pt-4">
-          <div className={`flex flex-col gap-2 sm:flex-row ${onToggleSave ? "sm:items-stretch sm:gap-2" : ""}`}>
-            {onToggleSave ? (
-              <button
-                type="button"
-                onClick={onToggleSave}
-                aria-pressed={Boolean(isSaved)}
-                aria-label={isSaved ? unsaveAria : saveAria}
-                className="inline-flex min-h-[48px] min-w-[48px] shrink-0 items-center justify-center rounded-[14px] border border-[#2D241E]/15 bg-[#FFFCF7] text-[#D97706] shadow-sm transition hover:border-[#D97706]/35 hover:bg-[#FFF7ED] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/50"
-              >
-                <FaHeart className={`h-5 w-5 ${isSaved ? "" : "opacity-40"}`} aria-hidden />
-              </button>
-            ) : null}
-            <div className={`flex min-w-0 flex-col gap-2 ${onToggleSave ? "sm:flex-1" : "w-full"}`}>
-              <Link
-                href={primaryHref}
-                className="flex min-h-[48px] w-full items-center justify-center rounded-[14px] text-sm font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(180,83,9,0.45)] transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2"
-                style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
-              >
-                {cta}
-              </Link>
-              {showNarrowLink ? (
-                <Link
-                  href={narrowHref}
-                  className="text-center text-[11px] font-semibold text-[#D97706] underline-offset-4 hover:underline sm:text-xs"
-                >
-                  {narrowLabel}
-                </Link>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </div>
+      {badge ? (
+        <span
+          className="pointer-events-none absolute left-5 top-5 z-20 rounded-full px-3 py-1 text-[11px] font-bold text-[#FFFCF7] shadow-sm"
+          style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
+        >
+          {badge}
+        </span>
+      ) : row.promoted ? (
+        <span
+          className="pointer-events-none absolute left-5 top-5 z-20 rounded-full px-3 py-1 text-[11px] font-bold text-[#FFFCF7] shadow-sm"
+          style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
+        >
+          {lang === "es" ? "Patrocinado" : "Sponsored"}
+        </span>
+      ) : null}
+      {row.leonixVerified ? (
+        <span className="pointer-events-none absolute right-5 top-5 z-20 rounded-full border border-sky-400/80 bg-sky-50/95 px-2 py-0.5 text-[10px] font-bold text-sky-950 shadow-sm backdrop-blur-sm">
+          {lang === "es" ? "Verificado" : "Verified"}
+        </span>
+      ) : null}
+      <RestaurantePreviewCard
+        data={shell}
+        listingId={row.id}
+        lang={lang}
+        showEngagementMetrics
+        analyticsOwnerUserId={row.ownerUserId}
+        shareListingAbsoluteUrl={shareAbsolute}
+        publicDetailHref={primaryHref || undefined}
+        publicDetailLabel={cta}
+        discoveryRefineHref={slug ? narrowHref : undefined}
+        discoveryRefineLabel={slug ? narrowLabel : undefined}
+        resultsSaved={onToggleSave ? isSaved : undefined}
+        onResultsSavedToggle={onToggleSave}
+        className={badge || row.promoted || row.leonixVerified ? "pt-9" : ""}
+      />
     </article>
   );
 }

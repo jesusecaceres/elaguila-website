@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useMemo } from "react";
 import { FiGlobe, FiMapPin, FiPhone } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
@@ -89,20 +90,45 @@ interface RestaurantePreviewCardProps {
   lang?: "es" | "en";
   showEngagementMetrics?: boolean;
   listingId?: string;
+  /** Published listing owner (Supabase); avoids misusing draft id as owner in analytics. */
+  analyticsOwnerUserId?: string | null;
+  /** Absolute URL for share/copy (e.g. `origin + path`). */
+  shareListingAbsoluteUrl?: string;
+  /** Results grid: primary navigation to public detail. */
+  publicDetailHref?: string;
+  publicDetailLabel?: string;
+  discoveryRefineHref?: string;
+  discoveryRefineLabel?: string;
+  /** When set with `onResultsSavedToggle`, save button reflects results “saved” filter. */
+  resultsSaved?: boolean;
+  onResultsSavedToggle?: () => void;
 }
 
 /**
  * Premium Leonix Restaurantes Preview Card
  * Follows LEONIX_PREVIEW_CARD_CONTRACT.md with engagement metrics integration
  */
+const RESULT_PRIMARY_CTA =
+  "flex min-h-[48px] w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#D4A574] to-[#b45309] text-sm font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(180,83,9,0.45)] transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2";
+
 export function RestaurantePreviewCard({ 
   data, 
   className = "", 
   lang = "es",
   showEngagementMetrics = true,
-  listingId
+  listingId,
+  analyticsOwnerUserId,
+  shareListingAbsoluteUrl,
+  publicDetailHref,
+  publicDetailLabel,
+  discoveryRefineHref,
+  discoveryRefineLabel,
+  resultsSaved,
+  onResultsSavedToggle,
 }: RestaurantePreviewCardProps) {
   const heroImage = data.heroImageUrl?.trim() || "";
+  const ownerForEngagement = (analyticsOwnerUserId ?? "").trim() || undefined;
+  const shareUrl = (shareListingAbsoluteUrl ?? "").trim();
 
   const identityChips = useMemo(() => {
     const chips: string[] = [];
@@ -261,6 +287,22 @@ export function RestaurantePreviewCard({
             ) : null}
           </div>
 
+          {publicDetailHref?.trim() ? (
+            <div className="flex min-w-0 flex-col gap-2">
+              <Link href={publicDetailHref} className={RESULT_PRIMARY_CTA}>
+                {publicDetailLabel?.trim() || (lang === "en" ? "View full listing" : "Ver anuncio completo")}
+              </Link>
+              {discoveryRefineHref?.trim() && discoveryRefineLabel?.trim() ? (
+                <Link
+                  href={discoveryRefineHref}
+                  className="text-center text-[11px] font-semibold text-[#8B5E34] underline-offset-4 hover:underline sm:text-xs"
+                >
+                  {discoveryRefineLabel}
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
+
           {ctas.length ? (
             <div className={CTA_ROW} aria-label={lang === "en" ? "Actions" : "Acciones"}>
               {ctas.map((cta) => {
@@ -285,13 +327,22 @@ export function RestaurantePreviewCard({
           {showEngagementMetrics && listingId ? (
             <div className={ENGAGEMENT_SECTION}>
               <div className="flex items-center gap-3">
-                <LeonixLikeButton listingId={listingId} ownerUserId={data.id} variant="small" lang={lang} />
-                <LeonixSaveButton listingId={listingId} ownerUserId={data.id} variant="small" lang={lang} />
+                <LeonixLikeButton listingId={listingId} ownerUserId={ownerForEngagement} variant="small" lang={lang} />
+                <LeonixSaveButton
+                  key={onResultsSavedToggle ? `lx-sv-${listingId}-${String(resultsSaved)}` : `lx-sv-${listingId}`}
+                  listingId={listingId}
+                  ownerUserId={ownerForEngagement}
+                  variant="small"
+                  lang={lang}
+                  {...(onResultsSavedToggle
+                    ? { isSaved: Boolean(resultsSaved), onToggle: () => onResultsSavedToggle() }
+                    : {})}
+                />
                 <LeonixShareButton
                   listingId={listingId}
-                  ownerUserId={data.id}
+                  ownerUserId={ownerForEngagement}
                   listingTitle={data.businessName}
-                  listingUrl=""
+                  listingUrl={shareUrl || undefined}
                   variant="small"
                   lang={lang}
                 />

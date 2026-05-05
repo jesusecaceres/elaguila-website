@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { FiCheck, FiImage, FiPlus, FiUpload } from "react-icons/fi";
+import { FiCheck, FiImage, FiPlus, FiUpload, FiX } from "react-icons/fi";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
 import {
   clearLeonixReturningToEditSessionFlag,
@@ -51,10 +51,13 @@ import {
 import { mergeStateForBusinessTypeChange } from "../lib/presetStateMerge";
 import {
   CUSTOM_CHIP_MAX_LENGTH,
+  MAX_CUSTOM_SERVICES_OFFERED,
   MAX_QUICK_FACTS_SELECTION,
   MAX_REASONS_SELECTION,
   MAX_SERVICES_SELECTION,
+  enforceServiciosSelectionCaps,
 } from "../lib/serviciosSelectionCaps";
+import { evaluateAddCustomServiceOffered } from "../lib/serviciosCustomServicesOffered";
 import { isValidEmail } from "../lib/leonixContactCtaPriority";
 import { digitsOnly, formatPhoneInputDisplay } from "../lib/serviciosPhoneUi";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
@@ -368,9 +371,7 @@ export function ClasificadosServiciosApplication() {
             : MAX_QUICK_FACTS_SELECTION;
       const customSlot =
         field === "selectedServiceIds"
-          ? prev.customServiceIncluded && prev.customServiceLabel.trim()
-            ? 1
-            : 0
+          ? 0
           : field === "selectedReasonIds"
             ? prev.customReasonIncluded && prev.customReasonLabel.trim()
               ? 1
@@ -383,12 +384,7 @@ export function ClasificadosServiciosApplication() {
     });
   };
 
-  const serviceSelectionCount = useMemo(
-    () =>
-      state.selectedServiceIds.length +
-      (state.customServiceIncluded && state.customServiceLabel.trim() ? 1 : 0),
-    [state.customServiceIncluded, state.customServiceLabel, state.selectedServiceIds],
-  );
+  const serviceSelectionCount = useMemo(() => state.selectedServiceIds.length, [state.selectedServiceIds]);
   const reasonsSelectionCount = useMemo(
     () =>
       state.selectedReasonIds.length + (state.customReasonIncluded && state.customReasonLabel.trim() ? 1 : 0),
@@ -1434,33 +1430,6 @@ export function ClasificadosServiciosApplication() {
                     </Chip>
                   );
                 })}
-                {state.customServiceIncluded && state.customServiceLabel.trim() ? (
-                  <Chip
-                    selected
-                    truncateLabel
-                    labelTitle={state.customServiceLabel.trim()}
-                    onClick={() =>
-                      setState((s) => ({
-                        ...s,
-                        customServiceIncluded: false,
-                        customServiceLabel: "",
-                      }))
-                    }
-                  >
-                    <span className="inline-flex min-w-0 items-center gap-1.5">
-                      <span className="shrink-0 text-[0.95rem] leading-none" aria-hidden>
-                        {
-                          resolveServiciosServiceVisual({
-                            id: "custom_service",
-                            label: state.customServiceLabel.trim(),
-                            businessTypeId: state.businessTypeId,
-                          }).emoji
-                        }
-                      </span>
-                      {state.customServiceLabel.trim()}
-                    </span>
-                  </Chip>
-                ) : null}
               </div>
               {serviceSelectionCount >= MAX_SERVICES_SELECTION ? (
                 <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxFour}</p>
@@ -1472,64 +1441,75 @@ export function ClasificadosServiciosApplication() {
                   className={inputClass}
                   placeholder={copy.labels.customServicePlaceholder}
                   maxLength={CUSTOM_CHIP_MAX_LENGTH}
-                  disabled={
-                    !state.customServiceIncluded && state.selectedServiceIds.length >= MAX_SERVICES_SELECTION
-                  }
                   value={state.customServiceLabel}
                   onChange={(e) => {
                     const v = e.target.value.slice(0, CUSTOM_CHIP_MAX_LENGTH);
-                    setState((s) => ({
-                      ...s,
-                      customServiceLabel: v,
-                      customServiceIncluded: v.trim().length > 0 ? s.customServiceIncluded : false,
-                    }));
+                    setState((s) => ({ ...s, customServiceLabel: v }));
                   }}
                 />
-                {state.customServiceIncluded ? (
-                  <button
-                    type="button"
-                    className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-red-700 hover:bg-neutral-50 sm:w-auto"
-                    onClick={() =>
-                      setState((s) => ({
-                        ...s,
-                        customServiceIncluded: false,
+                <button
+                  type="button"
+                  disabled={
+                    !state.customServiceLabel.trim() ||
+                    state.customServicesOffered.length >= MAX_CUSTOM_SERVICES_OFFERED
+                  }
+                  className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                  onClick={() => {
+                    setState((prev) => {
+                      const r = evaluateAddCustomServiceOffered(prev, lang, prev.customServiceLabel);
+                      if (!r.ok) return prev;
+                      return enforceServiciosSelectionCaps({
+                        ...prev,
+                        customServicesOffered: [...prev.customServicesOffered, r.label],
                         customServiceLabel: "",
-                      }))
-                    }
-                  >
-                    {copy.labels.remove}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={
-                      !state.customServiceLabel.trim() ||
-                      state.selectedServiceIds.length +
-                        (state.customServiceIncluded ? 1 : 0) >=
-                        MAX_SERVICES_SELECTION
-                    }
-                    className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                    onClick={() => {
-                      const t = state.customServiceLabel.trim();
-                      if (!t) return;
-                      if (
-                        state.selectedServiceIds.length +
-                          (state.customServiceIncluded ? 1 : 0) >=
-                        MAX_SERVICES_SELECTION
-                      ) {
-                        return;
-                      }
-                      setState((s) => ({
-                        ...s,
-                        customServiceIncluded: true,
-                        customServiceLabel: t.slice(0, CUSTOM_CHIP_MAX_LENGTH),
-                      }));
-                    }}
-                  >
-                    {copy.labels.addCustomChip}
-                  </button>
-                )}
+                      });
+                    });
+                  }}
+                >
+                  {copy.labels.addCustomChip}
+                </button>
               </div>
+              {state.customServicesOffered.length >= MAX_CUSTOM_SERVICES_OFFERED ? (
+                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.customServicesMax}</p>
+              ) : null}
+              {state.customServicesOffered.length > 0 ? (
+                <div className="mt-5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#6b5c42]">
+                    {copy.labels.addedCustomServicesSection}
+                  </p>
+                  <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1">
+                    {state.customServicesOffered.map((label, i) => (
+                      <button
+                        key={`cso-${i}-${label}`}
+                        type="button"
+                        title={label}
+                        aria-label={`${copy.labels.remove}: ${label}`}
+                        onClick={() =>
+                          setState((prev) =>
+                            enforceServiciosSelectionCaps({
+                              ...prev,
+                              customServicesOffered: prev.customServicesOffered.filter((_, j) => j !== i),
+                            }),
+                          )
+                        }
+                        className="inline-flex max-w-full min-w-0 min-h-[40px] touch-manipulation items-center gap-1.5 rounded-full border border-[#3B66AD] bg-[#3B66AD]/10 px-3 py-2 text-left text-sm font-medium text-[#1e3a5f] ring-1 ring-[#3B66AD]/20 transition active:scale-[0.99] hover:bg-[#3B66AD]/15"
+                      >
+                        <span className="shrink-0 text-[0.95rem] leading-none" aria-hidden>
+                          {
+                            resolveServiciosServiceVisual({
+                              id: `custom_offer_${i}`,
+                              label,
+                              businessTypeId: state.businessTypeId,
+                            }).emoji
+                          }
+                        </span>
+                        <span className="min-w-0 max-w-[14rem] truncate sm:max-w-[18rem]">{label}</span>
+                        <FiX className="h-3.5 w-3.5 shrink-0 text-[#1e3a5f]/70" aria-hidden />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </section>
 
             <section className={sectionCard}>
@@ -2129,41 +2109,56 @@ export function ClasificadosServiciosApplication() {
                     ...s,
                     ...(s.applicationStepIndex === 4
                       ? (() => {
-                          const next: Partial<typeof s> = {};
-
-                          const pendingService = s.customServiceLabel.trim();
-                          const pendingReason = s.customReasonLabel.trim();
-                          const pendingQuickFact = s.customQuickFactLabel.trim();
-
-                          if (!s.customServiceIncluded && pendingService) {
-                            const total =
-                              s.selectedServiceIds.length + (s.customServiceIncluded && s.customServiceLabel.trim() ? 1 : 0);
-                            if (total < MAX_SERVICES_SELECTION) {
-                              next.customServiceIncluded = true;
-                              next.customServiceLabel = pendingService.slice(0, CUSTOM_CHIP_MAX_LENGTH);
-                            }
+                          let w: ClasificadosServiciosApplicationState = { ...s };
+                          const pendingService = w.customServiceLabel.trim();
+                          if (pendingService) {
+                            const r = evaluateAddCustomServiceOffered(w, lang, pendingService);
+                            w = r.ok
+                              ? enforceServiciosSelectionCaps({
+                                  ...w,
+                                  customServicesOffered: [...w.customServicesOffered, r.label],
+                                  customServiceLabel: "",
+                                })
+                              : enforceServiciosSelectionCaps({ ...w, customServiceLabel: "" });
                           }
 
-                          if (!s.customReasonIncluded && pendingReason) {
+                          const pendingReason = w.customReasonLabel.trim();
+                          if (!w.customReasonIncluded && pendingReason) {
                             const total =
-                              s.selectedReasonIds.length + (s.customReasonIncluded && s.customReasonLabel.trim() ? 1 : 0);
+                              w.selectedReasonIds.length +
+                              (w.customReasonIncluded && w.customReasonLabel.trim() ? 1 : 0);
                             if (total < MAX_REASONS_SELECTION) {
-                              next.customReasonIncluded = true;
-                              next.customReasonLabel = pendingReason.slice(0, CUSTOM_CHIP_MAX_LENGTH);
+                              w = {
+                                ...w,
+                                customReasonIncluded: true,
+                                customReasonLabel: pendingReason.slice(0, CUSTOM_CHIP_MAX_LENGTH),
+                              };
                             }
                           }
 
-                          if (!s.customQuickFactIncluded && pendingQuickFact) {
+                          const pendingQuickFact = w.customQuickFactLabel.trim();
+                          if (!w.customQuickFactIncluded && pendingQuickFact) {
                             const total =
-                              s.selectedQuickFactIds.length +
-                              (s.customQuickFactIncluded && s.customQuickFactLabel.trim() ? 1 : 0);
+                              w.selectedQuickFactIds.length +
+                              (w.customQuickFactIncluded && w.customQuickFactLabel.trim() ? 1 : 0);
                             if (total < MAX_QUICK_FACTS_SELECTION) {
-                              next.customQuickFactIncluded = true;
-                              next.customQuickFactLabel = pendingQuickFact.slice(0, CUSTOM_CHIP_MAX_LENGTH);
+                              w = {
+                                ...w,
+                                customQuickFactIncluded: true,
+                                customQuickFactLabel: pendingQuickFact.slice(0, CUSTOM_CHIP_MAX_LENGTH),
+                              };
                             }
                           }
 
-                          return next;
+                          return {
+                            customServicesOffered: w.customServicesOffered,
+                            customServiceLabel: w.customServiceLabel,
+                            customServiceIncluded: w.customServiceIncluded,
+                            customReasonIncluded: w.customReasonIncluded,
+                            customReasonLabel: w.customReasonLabel,
+                            customQuickFactIncluded: w.customQuickFactIncluded,
+                            customQuickFactLabel: w.customQuickFactLabel,
+                          };
                         })()
                       : {}),
                     applicationStepIndex: Math.min(totalSteps - 1, s.applicationStepIndex + 1),

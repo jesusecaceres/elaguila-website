@@ -1,4 +1,5 @@
 import type { RestauranteServiceMode } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
+import type { RestaurantDetailShellData } from "@/app/clasificados/restaurantes/shell/restaurantDetailShellTypes";
 import type { RestaurantesBlueprintCard } from "@/app/clasificados/restaurantes/lib/restaurantesBlueprintTypes";
 import {
   selectLandingDestacadosCandidates,
@@ -95,6 +96,13 @@ export type RestaurantesPublicBlueprintRow = {
   savesCount?: number;
   sharesCount?: number;
   ctaClicksCount?: number;
+  /** Supabase `owner_user_id` — analytics widgets on public cards. */
+  ownerUserId?: string | null;
+  /**
+   * Same `RestaurantDetailShellData` as preview Section 1 / Section 2 (`mapRestauranteDraftToShellData(listing_json)`),
+   * with `id` forced to the public listing id for engagement keys.
+   */
+  previewShellData?: RestaurantDetailShellData;
 };
 
 const DEFAULT_DISCOVERY: Pick<

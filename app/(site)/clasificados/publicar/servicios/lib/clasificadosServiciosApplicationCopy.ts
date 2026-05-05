@@ -1,4 +1,5 @@
 import type { ServiciosLang } from "./clasificadosServiciosApplicationTypes";
+import { MAX_CUSTOM_SERVICES_OFFERED } from "./serviciosSelectionCaps";
 
 export type ClasificadosServiciosCopy = {
   pageTitle: string;
@@ -133,6 +134,8 @@ export type ClasificadosServiciosCopy = {
     customChipPlaceholder: string;
     customChipShortHint: string;
     addCustomChip: string;
+    addedCustomServicesSection: string;
+    customServicesMax: string;
     selectionMaxFour: string;
     selectionMaxThree: string;
     aboutServicesGapNote: string;
@@ -350,6 +353,8 @@ const es: ClasificadosServiciosCopy = {
     customChipPlaceholder: "Etiqueta breve",
     customChipShortHint: "Usa pocas palabras",
     addCustomChip: "Añadir",
+    addedCustomServicesSection: "Servicios agregados",
+    customServicesMax: `Máximo ${MAX_CUSTOM_SERVICES_OFFERED} servicios personalizados`,
     selectionMaxFour: "Máximo 4 opciones",
     selectionMaxThree: "Máximo 3 opciones",
     aboutServicesGapNote:
@@ -561,6 +566,8 @@ const en: ClasificadosServiciosCopy = {
     customChipPlaceholder: "Short label",
     customChipShortHint: "Keep it short",
     addCustomChip: "Add",
+    addedCustomServicesSection: "Added services",
+    customServicesMax: `Up to ${MAX_CUSTOM_SERVICES_OFFERED} custom services`,
     selectionMaxFour: "Maximum 4 options",
     selectionMaxThree: "Maximum 3 options",
     aboutServicesGapNote:

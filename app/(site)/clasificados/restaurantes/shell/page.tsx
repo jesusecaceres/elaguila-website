@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { DEMO_RESTAURANT_DETAIL_SHELL } from "./demoRestaurantDetailShell";
-import { RestauranteDetailShell } from "./RestauranteDetailShell";
+import { RestauranteAdStoryPreview } from "./RestauranteAdStoryPreview";
 import { RestaurantesShellChrome } from "./RestaurantesShellChrome";
 
 export const metadata: Metadata = {
@@ -30,7 +30,7 @@ export default function RestaurantesDetailShellPage() {
           <code className="rounded bg-black/10 px-1">/clasificados/restaurantes/[slug]</code>.
         </p>
       </div>
-      <RestauranteDetailShell data={DEMO_RESTAURANT_DETAIL_SHELL} />
+      <RestauranteAdStoryPreview data={DEMO_RESTAURANT_DETAIL_SHELL} listingId="demo-shell" lang="es" />
     </RestaurantesShellChrome>
   );
 }

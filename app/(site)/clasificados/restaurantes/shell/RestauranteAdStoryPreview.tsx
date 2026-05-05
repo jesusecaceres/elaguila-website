@@ -44,9 +44,17 @@ interface RestauranteAdStoryPreviewProps {
   data: RestaurantDetailShellData;
   listingId?: string;
   lang?: "es" | "en";
+  /** Supabase listing owner — prefer over `data.id` (draft id) for analytics. */
+  analyticsOwnerUserId?: string | null;
 }
 
-export function RestauranteAdStoryPreview({ data, listingId = "", lang = "es" }: RestauranteAdStoryPreviewProps) {
+export function RestauranteAdStoryPreview({
+  data,
+  listingId = "",
+  lang = "es",
+  analyticsOwnerUserId,
+}: RestauranteAdStoryPreviewProps) {
+  const ownerUid = (analyticsOwnerUserId ?? "").trim() || listingId || "";
   // Helper functions
   const hasHeroImage = data.heroImageUrl;
 
@@ -98,7 +106,7 @@ export function RestauranteAdStoryPreview({ data, listingId = "", lang = "es" }:
                 <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
                   <LeonixLikeButton
                     listingId={listingId}
-                    ownerUserId={data.id}
+                    ownerUserId={ownerUid}
                     variant="small"
                     lang={lang}
                     category="restaurantes"
@@ -108,7 +116,7 @@ export function RestauranteAdStoryPreview({ data, listingId = "", lang = "es" }:
                 <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
                   <LeonixSaveButton
                     listingId={listingId}
-                    ownerUserId={data.id}
+                    ownerUserId={ownerUid}
                     variant="small"
                     lang={lang}
                     category="restaurantes"
@@ -118,7 +126,7 @@ export function RestauranteAdStoryPreview({ data, listingId = "", lang = "es" }:
                 <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
                   <LeonixShareButton
                     listingId={listingId}
-                    ownerUserId={data.id}
+                    ownerUserId={ownerUid}
                     listingTitle={data.businessName}
                     variant="small"
                     lang={lang}

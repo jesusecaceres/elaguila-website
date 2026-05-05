@@ -9,6 +9,7 @@ import type {
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 import { isRestauranteOpenNowFromWeeklyHours } from "@/app/clasificados/restaurantes/lib/restauranteOpenNowFromHours";
 import type { RestaurantesPublicListingDbRow } from "./restaurantesPublicListingsServer";
+import { mapRestauranteDraftToShellData } from "@/app/clasificados/restaurantes/application/mapRestauranteDraftToShell";
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
@@ -125,6 +126,13 @@ export function mapRestaurantesPublicListingDbRowToShellInventoryRow(row: Restau
       : undefined;
   const serviceAreaTrim = (draft.serviceAreaText ?? "").trim();
 
+  const shellBase = mapRestauranteDraftToShellData(draft);
+  const previewShellData = { ...shellBase, id: pr.id };
+  const cardImage =
+    previewShellData.heroImageUrl?.trim() ||
+    (pr.heroImageUrl && pr.heroImageUrl.trim()) ||
+    RESTAURANTE_PUBLIC_CARD_IMAGE_FALLBACK;
+
   return {
     id: pr.id,
     name: pr.businessName,
@@ -136,7 +144,7 @@ export function mapRestaurantesPublicListingDbRowToShellInventoryRow(row: Restau
     zip: pr.zipCode,
     rating,
     priceLevel,
-    imageSrc: (pr.heroImageUrl && pr.heroImageUrl.trim()) || RESTAURANTE_PUBLIC_CARD_IMAGE_FALLBACK,
+    imageSrc: cardImage,
     serviceModes,
     additionalCuisineKeys: addCuisines?.length ? addCuisines : undefined,
     familyFriendly,
@@ -161,6 +169,8 @@ export function mapRestaurantesPublicListingDbRowToShellInventoryRow(row: Restau
     pickupAvailable: draft.pickupAvailable === true,
     serviceAreaText: serviceAreaTrim || undefined,
     deliveryRadiusMiles,
+    ownerUserId: row.owner_user_id ?? null,
+    previewShellData,
   };
 }
 

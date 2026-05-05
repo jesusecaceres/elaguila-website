@@ -12,6 +12,8 @@ import { isProbablyValidWebUrl, normalizeHttpUrl } from "./socialAndUrlHelpers";
 import { slugifyServiciosBusinessName } from "./serviciosSlug";
 import { WEEK_DAY_LABELS } from "./defaultClasificadosServiciosState";
 import { resolveServiciosPublicCategoryLabel } from "./resolveServiciosPublicCategoryLabel";
+import { normalizeServiceOfferedDedupeKey } from "./serviciosCustomServicesOffered";
+import { CUSTOM_CHIP_MAX_LENGTH } from "./serviciosSelectionCaps";
 
 const JS_DAY_TO_ROW: DayKey[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
@@ -93,11 +95,15 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   /* Leonix “Verificado” is not granted from advertiser interest — see resolver + published listings. */
 
   const services: NonNullable<ServiciosApplicationDraft["services"]> = [];
+  const titleKeys = new Set<string>();
   if (preset) {
     for (const id of state.selectedServiceIds) {
       const chip = preset.suggestedServices.find((c) => c.id === id);
       if (!chip) continue;
       const title = chipLabel(chip, lang);
+      const key = normalizeServiceOfferedDedupeKey(title);
+      if (titleKeys.has(key)) continue;
+      titleKeys.add(key);
       services.push({
         id: `svc_${id}`,
         title,
@@ -107,10 +113,15 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       });
     }
   }
-  if (state.customServiceIncluded && state.customServiceLabel.trim()) {
-    const title = state.customServiceLabel.trim().slice(0, 28);
+  for (const raw of state.customServicesOffered ?? []) {
+    if (typeof raw !== "string") continue;
+    const title = raw.trim().slice(0, CUSTOM_CHIP_MAX_LENGTH);
+    if (!title) continue;
+    const key = normalizeServiceOfferedDedupeKey(title);
+    if (titleKeys.has(key)) continue;
+    titleKeys.add(key);
     services.push({
-      id: "custom_service",
+      id: `custom_offer_${services.length}`,
       title,
       secondaryLine: "",
       imageAlt: title,

@@ -5,7 +5,7 @@ import { mapRestauranteDraftToShellData } from "@/app/clasificados/restaurantes/
 import { listingJsonToDraft } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import { getRestaurantePublicListingBySlugFromDb } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
 import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
-import { RestauranteDetailShell } from "@/app/clasificados/restaurantes/shell/RestauranteDetailShell";
+import { RestauranteAdStoryPreview } from "@/app/clasificados/restaurantes/shell/RestauranteAdStoryPreview";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
 
 type PageProps = {
@@ -43,6 +43,7 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
 
   const draft = listingJsonToDraft(row.listing_json);
   const shellData = mapRestauranteDraftToShellData(draft);
+  const shellForPublic = { ...shellData, id: row.id };
 
   return (
     <RestaurantesShellChrome lang="es">
@@ -57,7 +58,12 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
           </Link>
         </p>
         <ClasificadosPreviewAdCanvas className="overflow-hidden">
-          <RestauranteDetailShell data={shellData} />
+          <RestauranteAdStoryPreview
+            data={shellForPublic}
+            listingId={row.id}
+            lang="es"
+            analyticsOwnerUserId={row.owner_user_id}
+          />
         </ClasificadosPreviewAdCanvas>
       </div>
     </RestaurantesShellChrome>
