@@ -1,6 +1,34 @@
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 import type { RestauranteDaySchedule } from "./restauranteListingApplicationModel";
 
+/**
+ * Browser/API may send `{ url }` / `{ src }` shapes; canonical draft + validators use flat strings.
+ */
+export function coerceRestauranteImageRefToString(x: unknown): string | undefined {
+  if (typeof x === "string") {
+    const t = x.trim();
+    return t || undefined;
+  }
+  if (x && typeof x === "object") {
+    const o = x as Record<string, unknown>;
+    for (const k of ["url", "src", "image", "publicUrl", "signedUrl"]) {
+      const v = o[k];
+      if (typeof v === "string" && v.trim()) return v.trim();
+    }
+  }
+  return undefined;
+}
+
+function coerceImageUrlList(a: unknown): string[] {
+  if (!Array.isArray(a)) return [];
+  const out: string[] = [];
+  for (const x of a) {
+    const s = coerceRestauranteImageRefToString(x);
+    if (s) out.push(s);
+  }
+  return out;
+}
+
 function closedDay(): RestauranteDaySchedule {
   return { closed: true };
 }
@@ -122,12 +150,12 @@ export function mergeRestauranteDraft(loaded: unknown): RestauranteListingDraft 
   merged.additionalCuisines = Array.isArray(merged.additionalCuisines) ? merged.additionalCuisines : [];
   merged.languagesSpoken = Array.isArray(merged.languagesSpoken) ? merged.languagesSpoken : [];
   merged.highlights = Array.isArray(merged.highlights) ? merged.highlights : [];
-  const asStringList = (a: unknown): string[] =>
-    Array.isArray(a) ? a.filter((x): x is string => typeof x === "string") : [];
-  merged.galleryImages = asStringList(merged.galleryImages);
-  merged.interiorImages = asStringList(merged.interiorImages);
-  merged.foodImages = asStringList(merged.foodImages);
-  merged.exteriorImages = asStringList(merged.exteriorImages);
+  merged.heroImage = coerceRestauranteImageRefToString(merged.heroImage) ?? "";
+  merged.businessLogo = coerceRestauranteImageRefToString(merged.businessLogo);
+  merged.galleryImages = coerceImageUrlList(merged.galleryImages);
+  merged.interiorImages = coerceImageUrlList(merged.interiorImages);
+  merged.foodImages = coerceImageUrlList(merged.foodImages);
+  merged.exteriorImages = coerceImageUrlList(merged.exteriorImages);
   merged.galleryOrder = Array.isArray(merged.galleryOrder) ? merged.galleryOrder : [];
   merged.movingVendor = merged.movingVendor === true;
   merged.galleryMediaSequence = Array.isArray(merged.galleryMediaSequence)
@@ -147,6 +175,19 @@ export function mergeRestauranteDraft(loaded: unknown): RestauranteListingDraft 
   ) {
     merged.galleryMediaSequence = undefined;
   }
-  merged.featuredDishes = Array.isArray(merged.featuredDishes) ? merged.featuredDishes : [];
+  merged.featuredDishes = Array.isArray(merged.featuredDishes)
+    ? merged.featuredDishes.map((row) => {
+        if (!row || typeof row !== "object") return { title: "", image: "", shortNote: "" };
+        const r = row as { title?: unknown; image?: unknown; shortNote?: unknown; menuLink?: unknown; priceLabel?: unknown };
+        const img = coerceRestauranteImageRefToString(r.image) ?? "";
+        return {
+          title: typeof r.title === "string" ? r.title : "",
+          image: img,
+          shortNote: typeof r.shortNote === "string" ? r.shortNote : "",
+          menuLink: typeof r.menuLink === "string" ? r.menuLink : undefined,
+          priceLabel: typeof r.priceLabel === "string" ? r.priceLabel : undefined,
+        };
+      })
+    : [];
   return merged;
 }

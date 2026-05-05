@@ -1,6 +1,7 @@
 /**
  * Structural fields required for a premium, non-broken Restaurantes preview / open-card shell.
- * Mirrors `satisfiesRestauranteMinimumValidPreview` + `satisfiesRestauranteServiceModes` (for validated preview navigation).
+ * Structural preview requirements mirror `satisfiesRestauranteMinimumDraftForPreview` (local media OK) +
+ * `satisfiesRestauranteServiceModes` for navigation; API publish uses `satisfiesRestauranteMinimumValidPreview` (transport-only images).
  *
  * Use for UI asterisks and copy — keep in sync with `restauranteListingApplicationModel.ts`.
  */

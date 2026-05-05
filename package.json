@@ -34,6 +34,7 @@
     "verify:restaurantes:selftest": "npx tsx scripts/restaurantes-launch-selftest.ts",
     "verify:restaurantes:selftest:logic": "npx tsx scripts/restaurantes-launch-selftest.ts -- --logic-only",
     "verify:restaurantes:readiness-smoke": "npx tsx scripts/restaurante-preview-readiness-smoke.ts",
+    "verify:restaurantes:publish-media-smoke": "npx tsx scripts/restaurantes-publish-media-smoke.ts",
     "verify:restaurantes:e2e": "npx playwright test --config playwright.restaurantes.config.mjs",
     "verify:en-venta": "npx tsx scripts/en-venta-go-live-selftest.ts && npx tsx scripts/en-venta-schema-readiness.ts",
     "verify:en-venta:e2e": "npx playwright test e2e/en-venta-smoke.spec.ts e2e/en-venta-seeded-trace.spec.ts e2e/en-venta-auth-smoke.spec.ts",

@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import type { AriaRole, CSSProperties, MouseEventHandler, ReactNode } from "react";
 
 type Props = {
   listingSlug?: string;
@@ -12,6 +12,8 @@ type Props = {
   target?: string;
   rel?: string;
   "aria-label"?: string;
+  onClick?: MouseEventHandler<HTMLAnchorElement>;
+  role?: AriaRole;
 };
 
 export function ServiciosTrackedLink({
@@ -24,8 +26,11 @@ export function ServiciosTrackedLink({
   target,
   rel,
   "aria-label": ariaLabel,
+  onClick: onClickProp,
+  role,
 }: Props) {
-  const onClick = () => {
+  const onClick: MouseEventHandler<HTMLAnchorElement> = (e) => {
+    onClickProp?.(e);
     if (!listingSlug || !eventType) return;
     void fetch("/api/clasificados/servicios/analytics", {
       method: "POST",
@@ -35,7 +40,16 @@ export function ServiciosTrackedLink({
   };
 
   return (
-    <a href={href} className={className} style={style} target={target} rel={rel} aria-label={ariaLabel} onClick={onClick}>
+    <a
+      href={href}
+      className={className}
+      style={style}
+      target={target}
+      rel={rel}
+      aria-label={ariaLabel}
+      role={role}
+      onClick={onClick}
+    >
       {children}
     </a>
   );

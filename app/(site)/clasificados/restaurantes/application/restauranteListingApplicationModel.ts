@@ -6,8 +6,15 @@
  * @see `getCanonicalCityName` — `cityCanonical` must match NorCal pipeline output where applicable.
  */
 
+import { isRestauranteIdbRef } from "./restauranteDraftMedia";
 import { computePublishGallerySequence } from "./restauranteGalleryMediaSequence";
-import { firstRestauranteBucketImageRef } from "./restauranteMediaDisplay";
+import {
+  firstRestauranteBucketImageRef,
+  firstRestauranteBucketImageRefForMode,
+  isRestauranteDraftStagedImageRef,
+  isRestaurantePublishableRemoteImageRef,
+  type RestaurantePublishImageGateMode,
+} from "./restauranteMediaDisplay";
 
 // ---------------------------------------------------------------------------
 // Shared primitives
@@ -452,29 +459,59 @@ export type RestauranteMinimumValidPreviewInput = Pick<
   RestauranteContactCta &
   RestauranteWeeklyHours;
 
+function imageSlotSatisfiesMode(
+  s: string | undefined,
+  mode: RestaurantePublishImageGateMode,
+): boolean {
+  if (!nonEmpty(s)) return false;
+  return mode === "transport" ? isRestaurantePublishableRemoteImageRef(s) : isRestauranteDraftStagedImageRef(s);
+}
+
 /**
- * Single rule for minimum publish/preview image readiness (full draft: hero, general gallery sequence, or venue buckets).
+ * Minimum image readiness: hero, first image in publish gallery sequence, or venue buckets.
+ * - `draft`: counts data URLs, https, and `__LX_RT_IDB__` refs (in-browser / preview staging).
+ * - `transport`: only refs allowed in `POST .../publish` after sanitization (remote http(s), length limits).
  */
-export function hasRestauranteMinimumPublishImage(row: RestauranteMinimumValidPreviewInput): boolean {
-  if (nonEmpty(row.heroImage)) return true;
+export function hasRestauranteMinimumPublishImage(
+  row: RestauranteMinimumValidPreviewInput,
+  mode: RestaurantePublishImageGateMode = "transport",
+): boolean {
+  if (imageSlotSatisfiesMode(row.heroImage, mode)) return true;
   const seq = computePublishGallerySequence(row);
   const imgs = row.galleryImages ?? [];
   const firstIdx = seq.find(
     (x): x is number => typeof x === "number" && Number.isFinite(x) && x >= 0 && x < imgs.length,
   );
   const firstGal = firstIdx != null ? imgs[firstIdx] : undefined;
-  if (nonEmpty(firstGal)) return true;
-  return Boolean(firstRestauranteBucketImageRef(row));
+  if (imageSlotSatisfiesMode(firstGal, mode)) return true;
+  return Boolean(firstRestauranteBucketImageRefForMode(row, mode));
 }
 
-function classifyPublishImageRefShape(s: string | undefined): "empty" | "https" | "http" | "data" | "blob" | "relative" | "other" {
+export function classifyPublishImageRefShape(
+  s: string | undefined,
+): "empty" | "https" | "http" | "data" | "blob" | "relative" | "idb" | "other" {
   const t = (s ?? "").trim();
   if (!t) return "empty";
+  if (isRestauranteIdbRef(t)) return "idb";
   if (/^https:\/\//i.test(t)) return "https";
   if (/^http:\/\//i.test(t)) return "http";
   if (/^data:image\//i.test(t)) return "data";
   if (t.startsWith("blob:")) return "blob";
   if (t.startsWith("/")) return "relative";
+  return "other";
+}
+
+/** Safe classification for arbitrary JSON slot (gallery may be object-shaped before merge). */
+export function classifyRestauranteGallerySlotUnknown(x: unknown): "empty" | "http" | "https" | "data" | "blob" | "object" | "other" {
+  if (x == null) return "empty";
+  if (typeof x === "object") return "object";
+  if (typeof x !== "string") return "other";
+  const k = classifyPublishImageRefShape(x);
+  if (k === "https") return "https";
+  if (k === "http") return "http";
+  if (k === "data") return "data";
+  if (k === "blob") return "blob";
+  if (k === "idb") return "other";
   return "other";
 }
 
@@ -489,7 +526,10 @@ export type RestaurantePublishMediaReadinessDebug = {
   foodImagesCount: number;
   interiorImagesCount: number;
   exteriorImagesCount: number;
+  /** @deprecated use hasAnyPublishImageTransport; kept = transport for API alignment */
   hasAnyPublishImage: boolean;
+  hasAnyPublishImageDraft: boolean;
+  hasAnyPublishImageTransport: boolean;
 };
 
 export function auditRestaurantePublishMediaReadinessSafe(row: RestauranteMinimumValidPreviewInput): RestaurantePublishMediaReadinessDebug {
@@ -499,19 +539,22 @@ export function auditRestaurantePublishMediaReadinessSafe(row: RestauranteMinimu
     (x): x is number => typeof x === "number" && Number.isFinite(x) && x >= 0 && x < imgs.length,
   );
   const firstGal = firstIdx != null ? imgs[firstIdx] : undefined;
-  const hasAnyPublishImage = hasRestauranteMinimumPublishImage(row);
+  const hasDraft = hasRestauranteMinimumPublishImage(row, "draft");
+  const hasTransport = hasRestauranteMinimumPublishImage(row, "transport");
   const bucket = firstRestauranteBucketImageRef(row);
   return {
     hasHeroImage: nonEmpty(row.heroImage),
     heroImageValueShape: classifyPublishImageRefShape(row.heroImage),
     galleryImagesCount: imgs.length,
-    firstGalleryRawShape: imgs.length > 0 ? classifyPublishImageRefShape(imgs[0]) : "empty",
+    firstGalleryRawShape: imgs.length > 0 ? classifyPublishImageRefShape(imgs[0] as string | undefined) : "empty",
     firstResolvedGalleryImagePresent: nonEmpty(firstGal),
     hasBucketPublishImage: Boolean(bucket),
     foodImagesCount: row.foodImages?.length ?? 0,
     interiorImagesCount: row.interiorImages?.length ?? 0,
     exteriorImagesCount: row.exteriorImages?.length ?? 0,
-    hasAnyPublishImage,
+    hasAnyPublishImage: hasTransport,
+    hasAnyPublishImageDraft: hasDraft,
+    hasAnyPublishImageTransport: hasTransport,
   };
 }
 
@@ -532,10 +575,13 @@ export type RestaurantePublishReadinessAudit = {
 };
 
 /**
- * Diagnostic mirror of the minimum publish gate (use in dev + smoke tests).
- * Evaluates the same rules as `satisfiesRestauranteMinimumValidPreview`.
+ * Diagnostic mirror of the minimum publish gate.
+ * @param imageMode `draft` = UI / local media OK (data URL, IDB ref); `transport` = same checks as `POST .../publish`.
  */
-export function auditRestaurantePublishReadiness(row: RestauranteMinimumValidPreviewInput): RestaurantePublishReadinessAudit {
+export function auditRestaurantePublishReadiness(
+  row: RestauranteMinimumValidPreviewInput,
+  imageMode: RestaurantePublishImageGateMode = "draft",
+): RestaurantePublishReadinessAudit {
   const hasBusinessName = nonEmpty(row.businessName);
   const hasBusinessType = nonEmpty(row.businessType);
   const hasPrimaryCuisine = nonEmpty(row.primaryCuisine);
@@ -549,7 +595,7 @@ export function auditRestaurantePublishReadiness(row: RestauranteMinimumValidPre
   );
   const firstGal = firstIdx != null ? imgs[firstIdx] : undefined;
   const hasFirstGalleryImage = nonEmpty(firstGal);
-  const hasAnyPublishImage = hasRestauranteMinimumPublishImage(row);
+  const hasAnyPublishImage = hasRestauranteMinimumPublishImage(row, imageMode);
   const hasContactPath = hasPrimaryContactPath(row);
   const hasHoursSignal = hasOperatingSignal(row);
 
@@ -559,7 +605,7 @@ export function auditRestaurantePublishReadiness(row: RestauranteMinimumValidPre
   if (!hasPrimaryCuisine) missingFields.push("cocina");
   if (!hasSummary) missingFields.push("resumen");
   if (!hasCity) missingFields.push("ciudad");
-  if (!hasRestauranteMinimumPublishImage(row)) missingFields.push("imagen principal o primera de galería");
+  if (!hasRestauranteMinimumPublishImage(row, imageMode)) missingFields.push("imagen principal o primera de galería");
   if (!hasContactPath) missingFields.push("al menos un contacto");
   if (!hasHoursSignal) missingFields.push("señal de horario");
 
@@ -590,11 +636,19 @@ export function auditRestaurantePublishReadiness(row: RestauranteMinimumValidPre
 }
 
 /**
- * Publish / preview gate: minimum buyer-facing completeness.
+ * Same field checks as {@link auditRestaurantePublishReadiness} with `imageMode: "draft"` — allows local/IDB media
+ * so users can open preview while images are still only in the browser.
+ */
+export function satisfiesRestauranteMinimumDraftForPreview(row: RestauranteMinimumValidPreviewInput): boolean {
+  return auditRestaurantePublishReadiness(row, "draft").readyToPublish;
+}
+
+/**
+ * Publish / API gate: minimum buyer-facing completeness **and** transport-safe image refs only.
  * Does not replace server-side validation (serviceModes length, conditional stacks, etc.).
  */
 export function satisfiesRestauranteMinimumValidPreview(row: RestauranteMinimumValidPreviewInput): boolean {
-  return auditRestaurantePublishReadiness(row).readyToPublish;
+  return auditRestaurantePublishReadiness(row, "transport").readyToPublish;
 }
 
 /**

@@ -16,6 +16,7 @@ import {
   type RestaurantesDiscoveryLang,
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
 import { slugifyRestauranteBusinessName } from "@/app/clasificados/restaurantes/lib/restaurantesSlug";
+import { buildRestaurantePublish422MediaAudit } from "@/app/clasificados/restaurantes/application/restaurantePublishMediaAudit";
 
 /**
  * Public publish may only select **free** or **standard (Pro)** from the UI body.
@@ -151,6 +152,7 @@ export async function POST(req: Request) {
 
   if (!satisfiesRestauranteMinimumValidPreview(draft)) {
     const mediaSafe = auditRestaurantePublishMediaReadinessSafe(draft);
+    const mediaAudit = buildRestaurantePublish422MediaAudit(b, draft);
 
     // Identify which minimum fields are failing for better debugging
     const missingFields = [];
@@ -159,7 +161,7 @@ export async function POST(req: Request) {
     if (!draft.primaryCuisine) missingFields.push("cocina");
     if (!draft.shortSummary) missingFields.push("resumen");
     if (!draft.cityCanonical) missingFields.push("ciudad");
-    if (!hasRestauranteMinimumPublishImage(draft)) missingFields.push("imagen principal o primera de galería");
+    if (!hasRestauranteMinimumPublishImage(draft, "transport")) missingFields.push("imagen principal o primera de galería");
     if (!hasPrimaryContactPath(draft)) missingFields.push("al menos un contacto");
     if (!hasOperatingSignal(draft)) missingFields.push("señal de horario");
 
@@ -168,6 +170,7 @@ export async function POST(req: Request) {
       error: "not_ready",
       detail: `Campos mínimos faltantes: ${missingFields.join(", ")}`,
       missingFields,
+      mediaAudit,
       mediaDebug: mediaSafe,
     }, { status: 422 });
   }

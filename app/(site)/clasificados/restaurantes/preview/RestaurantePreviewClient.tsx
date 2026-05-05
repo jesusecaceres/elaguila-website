@@ -13,6 +13,7 @@ import {
 } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import { buildRestaurantePublishPayload } from "@/app/clasificados/restaurantes/application/buildRestaurantePublishPayload";
+import { resolveRestauranteDraftMediaToRemoteUrls } from "@/app/clasificados/restaurantes/application/restauranteDraftPublishPrepare";
 import { useRestauranteDraft } from "@/app/clasificados/restaurantes/application/useRestauranteDraft";
 import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
 import { RestauranteAdStoryPreview } from "@/app/clasificados/restaurantes/shell/RestauranteAdStoryPreview";
@@ -84,8 +85,24 @@ export default function RestaurantePreviewClient() {
       const { data: auth } = await supabase.auth.getUser();
       const owner_user_id = auth?.user?.id;
 
+      /** Convert local `data:image/*` refs to HTTPS via Blob upload so transport validation matches preview. */
+      let draftForPublish = normalizedDraft;
+      try {
+        draftForPublish = await resolveRestauranteDraftMediaToRemoteUrls(normalizedDraft);
+      } catch (e) {
+        setPub({
+          busy: false,
+          err: "media_upload_failed",
+          errDetail:
+            e instanceof Error
+              ? e.message
+              : "No se pudieron subir las imágenes. Comprueba la conexión y que el almacenamiento (BLOB_READ_WRITE_TOKEN) esté configurado en el servidor.",
+        });
+        return;
+      }
+
       /** Canonical full draft (same merge as API + readiness), never shell/card view model. */
-      const publishPayload = buildRestaurantePublishPayload(normalizedDraft, owner_user_id, publishPlan, "es");
+      const publishPayload = buildRestaurantePublishPayload(draftForPublish, owner_user_id, publishPlan, "es");
       
       // DEVELOPMENT DEBUG: Trace exact POST body
       if (process.env.NODE_ENV === 'development') {
@@ -330,7 +347,9 @@ export default function RestaurantePreviewClient() {
                           ? "Faltan confirmaciones."
                           : pub.err === "network"
                             ? "Error de red."
-                            : pub.err === "supabase_admin_unconfigured"
+                            : pub.err === "media_upload_failed"
+                              ? "No se pudieron preparar las fotos para publicar (subida a almacenamiento)."
+                              : pub.err === "supabase_admin_unconfigured"
                               ? "Servidor sin credenciales de Supabase (rol de servicio). No se persistió nada."
                               : `No se pudo publicar (${pub.err}).`}
                     </p>

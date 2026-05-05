@@ -23,7 +23,10 @@ import {
 import { RestauranteUploadRow } from "@/app/clasificados/restaurantes/application/RestauranteUploadRow";
 import { useRestauranteDraft } from "@/app/clasificados/restaurantes/application/useRestauranteDraft";
 import { saveRestauranteDraftToStorageResolved } from "@/app/clasificados/restaurantes/application/restauranteDraftStorage";
-import { satisfiesRestauranteMinimumValidPreview, satisfiesRestauranteServiceModes } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
+import {
+  satisfiesRestauranteMinimumDraftForPreview,
+  satisfiesRestauranteServiceModes,
+} from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
 import { readRestauranteImageAsDataUrl } from "@/app/clasificados/restaurantes/application/compressRestauranteImage";
 import { RestaurantePublishMediaBuckets } from "@/app/clasificados/restaurantes/application/RestaurantePublishMediaBuckets";
@@ -108,7 +111,7 @@ export default function RestauranteApplicationClient() {
   /** Display names for last picked files (draft stores data URLs only). */
   const [uploadLabels, setUploadLabels] = useState<Record<string, string>>({});
 
-  const minPreviewOk = useMemo(() => satisfiesRestauranteMinimumValidPreview(draft), [draft]);
+  const minPreviewOk = useMemo(() => satisfiesRestauranteMinimumDraftForPreview(draft), [draft]);
   const serviceOk = useMemo(() => satisfiesRestauranteServiceModes(draft.serviceModes), [draft.serviceModes]);
   const deliveryRelevant = useMemo(
     () =>

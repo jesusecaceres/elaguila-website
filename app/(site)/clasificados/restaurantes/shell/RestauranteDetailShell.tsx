@@ -12,6 +12,8 @@ import { RestauranteShellVenueGalleryBlock } from "./RestauranteShellVenueGaller
 import { RestauranteShellDestacadosSection } from "./RestauranteShellDestacadosSection";
 import { RestauranteGroupedFeaturesSection } from "./RestauranteGroupedFeaturesSection";
 import { normalizeActionableUrl } from "../lib/urlNormalization";
+import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
+import { buildRestauranteInquiryMailto } from "@/app/lib/contactEmailMailto";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)]";
@@ -73,6 +75,23 @@ function HeroTaxonomyLine({
 
 function mapsHref(query: string) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+function RestauranteContactEmailRow({ email, lang }: { email: string; lang: "es" | "en" }) {
+  const { mailtoHref, messagePlain } = buildRestauranteInquiryMailto(email, lang);
+  return (
+    <ContactEmailMenu
+      email={email}
+      mailtoHref={mailtoHref}
+      messagePlain={messagePlain}
+      lang={lang}
+      showChevron={false}
+      triggerClassName="flex w-full min-w-0 items-center gap-2 text-left font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-gold)]"
+    >
+      <FiMail className="h-4 w-4 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+      <span className="min-w-0 break-all">{email}</span>
+    </ContactEmailMenu>
+  );
 }
 
 function hasContactContent(c: RestaurantDetailShellData["contact"]): boolean {
@@ -138,13 +157,7 @@ function ContactSection({ data }: { data: RestaurantDetailShellData }) {
             </a>
           ) : null}
           {c.email ? (
-            <a
-              href={`mailto:${c.email}`}
-              className="flex items-center gap-2 font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-gold)]"
-            >
-              <FiMail className="h-4 w-4 text-[color:var(--lx-gold)]" aria-hidden />
-              {c.email}
-            </a>
+            <RestauranteContactEmailRow email={c.email} lang="es" />
           ) : null}
           {c.websiteHref && c.websiteDisplay ? (
             <a

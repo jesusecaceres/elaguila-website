@@ -10,6 +10,8 @@ import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
 import { RestauranteGroupedFeaturesSection } from "./RestauranteGroupedFeaturesSection";
 import { RestauranteLockedGallerySection } from "./RestauranteLockedGallerySection";
 import { normalizeActionableUrl } from "../lib/urlNormalization";
+import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
+import { buildRestauranteInquiryMailto } from "@/app/lib/contactEmailMailto";
 
 // Leonix premium visual tokens
 const LEONIX_PAGE_BG = "#F4F1EB";
@@ -382,16 +384,21 @@ export function RestauranteAdStoryPreview({ data, listingId = "", lang = "es" }:
                     </a>
                   )}
                   
-                  {data.contact?.email && (
-                    <a 
-                      href={`mailto:${data.contact.email}`} 
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-medium hover:bg-[#BEA98E] transition-colors border border-[#D8C2A0]"
+                  {data.contact?.email ? (
+                    <ContactEmailMenu
+                      email={data.contact.email}
+                      {...buildRestauranteInquiryMailto(data.contact.email, "es")}
+                      lang="es"
+                      rootClassName="relative w-auto min-w-0 max-w-full"
+                      triggerClassName="inline-flex min-h-[44px] w-full max-w-full items-center gap-1.5 px-3 py-1.5 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-medium hover:bg-[#BEA98E] transition-colors border border-[#D8C2A0] justify-between sm:w-auto sm:max-w-none"
                     >
-                      <FiMail className="w-4 h-4" />
-                      <span>Correo</span>
-                      <span className="text-xs opacity-70 ml-1">{data.contact.email}</span>
-                    </a>
-                  )}
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <FiMail className="w-4 h-4 shrink-0" aria-hidden />
+                        <span>Correo</span>
+                        <span className="truncate text-xs opacity-70">{data.contact.email}</span>
+                      </span>
+                    </ContactEmailMenu>
+                  ) : null}
                   
                   {data.contact?.websiteDisplay && data.contact?.websiteHref && (
                     <a 

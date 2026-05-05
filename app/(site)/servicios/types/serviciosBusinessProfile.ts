@@ -161,7 +161,7 @@ export type ServiciosContactBlock = {
   phoneOffice?: string;
   /**
    * Dedicated number for quote / message CTAs (distinct from main phone, office, and WhatsApp field).
-   * Mapped to `quoteSmsHref` in the resolver when valid.
+   * Mapped to resolved `quoteMessagePhone` when valid (SMS body is localized at render time).
    */
   quoteMessagePhone?: string;
   email?: string;
@@ -243,8 +243,8 @@ export type ServiciosProfileResolved = {
     phoneTelHref?: string;
     phoneOfficeDisplay?: string;
     phoneOfficeTelHref?: string;
-    /** sms: link with prefilled quote body when `quoteMessagePhone` is present */
-    quoteSmsHref?: string;
+    /** Raw quote-line phone when valid (≥8 digits); SMS href built with preview language. */
+    quoteMessagePhone?: string;
     email?: string;
     emailMailtoHref?: string;
     websiteHref?: string;

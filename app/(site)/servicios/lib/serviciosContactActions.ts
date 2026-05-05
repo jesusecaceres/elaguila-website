@@ -3,9 +3,16 @@ import { trimText } from "./serviciosProfileSanitize";
 
 export type ServiciosQuoteDestinationKind = "sms" | "whatsapp" | "tel" | "mailto" | "website";
 
-/** Phase 1 universal Spanish copy for quote / inquiry CTAs (clasificados Servicios). */
+/** Universal quote / inquiry copy for Servicios (clasificados). */
 export const SERVICIOS_UNIVERSAL_QUOTE_MESSAGE_ES =
   "Hola, vi tu negocio en Leonix Media y estoy buscando un servicio. ¿Estás disponible para hablar ahora?";
+
+export const SERVICIOS_UNIVERSAL_QUOTE_MESSAGE_EN =
+  "Hi, I saw your business on Leonix Media and I'm looking for a service. Are you available to talk now?";
+
+export function serviciosUniversalQuoteMessage(lang: ServiciosLang): string {
+  return lang === "en" ? SERVICIOS_UNIVERSAL_QUOTE_MESSAGE_EN : SERVICIOS_UNIVERSAL_QUOTE_MESSAGE_ES;
+}
 
 export function appendWhatsAppPrefill(href: string, text: string): string {
   const t = href.trim();
@@ -16,19 +23,38 @@ export function appendWhatsAppPrefill(href: string, text: string): string {
   return `${t}${sep}text=${enc}`;
 }
 
-export function buildQuoteSmsHref(rawPhone: string | undefined | null): string | null {
+export function buildQuoteSmsHref(
+  rawPhone: string | undefined | null,
+  lang: ServiciosLang,
+): string | null {
   const d = trimText(rawPhone ?? "").replace(/\D/g, "");
   if (d.length < 8) return null;
-  return `sms:${d}?body=${encodeURIComponent(SERVICIOS_UNIVERSAL_QUOTE_MESSAGE_ES)}`;
+  const body = serviciosUniversalQuoteMessage(lang);
+  return `sms:${d}?body=${encodeURIComponent(body)}`;
 }
 
 export function buildMailtoQuoteHref(mailtoBase: string, lang: ServiciosLang): string {
   const subject = encodeURIComponent(
     lang === "en" ? "Quote request from Leonix Media" : "Solicitud de cotización desde Leonix Media",
   );
-  const body = encodeURIComponent(SERVICIOS_UNIVERSAL_QUOTE_MESSAGE_ES);
+  const body = encodeURIComponent(serviciosUniversalQuoteMessage(lang));
   const sep = mailtoBase.includes("?") ? "&" : "?";
   return `${mailtoBase}${sep}subject=${subject}&body=${body}`;
+}
+
+/** Secondary “Correo” row — neutral inquiry (not quote-specific). */
+export function buildServiciosSecondaryContactMailto(
+  emailMailtoBase: string,
+  lang: ServiciosLang,
+): { mailtoHref: string; messagePlain: string } {
+  const subject = lang === "en" ? "Inquiry from Leonix Media" : "Consulta desde Leonix Media";
+  const messagePlain =
+    lang === "en"
+      ? "Hi, I saw your business on Leonix Media and I would like to get in touch."
+      : "Hola, vi tu negocio en Leonix Media y me gustaría contactarte.";
+  const sep = emailMailtoBase.includes("?") ? "&" : "?";
+  const mailtoHref = `${emailMailtoBase}${sep}subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(messagePlain)}`;
+  return { mailtoHref, messagePlain };
 }
 
 /**
@@ -43,7 +69,10 @@ export function resolveServiciosQuoteDestination(
   href: string;
 } | null {
   const c = profile.contact;
-  if (c.quoteSmsHref) return { kind: "sms", href: c.quoteSmsHref };
+  if (c.quoteMessagePhone) {
+    const href = buildQuoteSmsHref(c.quoteMessagePhone, lang);
+    if (href) return { kind: "sms", href };
+  }
   const wa = c.socialLinks?.whatsapp;
   if (wa) return { kind: "whatsapp", href: wa };
   if (c.emailMailtoHref) {

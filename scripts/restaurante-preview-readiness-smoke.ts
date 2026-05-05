@@ -79,15 +79,27 @@ function main() {
   assert.ok(a4.missingFields.includes("ciudad"));
   assert.ok(!a4.missingFields.includes("nombre"));
 
-  // 5. satisfies === audit.readyToPublish (no drift)
+  // 5. satisfies (transport) === audit(..., "transport").readyToPublish (no drift)
   const samples = [galleryOnly, heroOnly, empty, noCity, baseComplete({ phoneNumber: "", websiteUrl: "https://example.com" })];
   for (const s of samples) {
     assert.equal(
       satisfiesRestauranteMinimumValidPreview(s),
-      auditRestaurantePublishReadiness(s).readyToPublish,
-      "satisfies and audit must agree",
+      auditRestaurantePublishReadiness(s, "transport").readyToPublish,
+      "satisfies (transport) and audit transport must agree",
     );
   }
+
+  // 5b. Local data URL: draft gate OK, transport / API gate NOT OK (must upload first)
+  const tinyPng =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  const dataHeroDraft = baseComplete({ heroImage: tinyPng });
+  assert.equal(hasRestauranteMinimumPublishImage(dataHeroDraft, "draft"), true);
+  assert.equal(hasRestauranteMinimumPublishImage(dataHeroDraft, "transport"), false);
+  assert.equal(auditRestaurantePublishReadiness(dataHeroDraft, "draft").readyToPublish, true);
+  assert.equal(satisfiesRestauranteMinimumValidPreview(dataHeroDraft), false);
+  const dataPayload = buildRestaurantePublishPayload(dataHeroDraft, undefined, "free", "es");
+  const dataRt = mergeRestauranteDraft(dataPayload);
+  assert.equal(hasRestauranteMinimumPublishImage(dataRt, "transport"), false, "sanitized POST body must drop data: hero");
 
   // 6. Website-only contact path
   const webOnly = baseComplete({ phoneNumber: "", websiteUrl: "https://example.com" });
@@ -111,10 +123,10 @@ function main() {
   const aNoImg = auditRestaurantePublishReadiness(noImg);
   assert.ok(aNoImg.missingFields.includes("imagen principal o primera de galería"));
 
-  // 9. Safe media audit matches helper (API / preview alignment)
+  // 9. Safe media audit matches helper (API / preview alignment, transport)
   assert.equal(
-    auditRestaurantePublishMediaReadinessSafe(galleryOnly).hasAnyPublishImage,
-    hasRestauranteMinimumPublishImage(galleryOnly),
+    auditRestaurantePublishMediaReadinessSafe(galleryOnly).hasAnyPublishImageTransport,
+    hasRestauranteMinimumPublishImage(galleryOnly, "transport"),
   );
 
   // 10. Food-bucket-only image (full ad gallery) satisfies readiness + survives publish payload round-trip

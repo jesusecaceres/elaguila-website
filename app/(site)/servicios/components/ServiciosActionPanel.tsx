@@ -6,8 +6,9 @@ import { nonEmpty } from "../lib/serviciosProfilePrimitives";
 import {
   appendWhatsAppPrefill,
   buildServiciosSecondaryActions,
+  buildServiciosSecondaryContactMailto,
   resolveServiciosQuoteDestination,
-  SERVICIOS_UNIVERSAL_QUOTE_MESSAGE_ES,
+  serviciosUniversalQuoteMessage,
   type ServiciosQuoteDestinationKind,
   type ServiciosSecondaryAction,
 } from "../lib/serviciosContactActions";
@@ -15,7 +16,7 @@ import { ServiciosStarRating } from "./ServiciosStarRating";
 import { ServiciosActionPanelAreasMap } from "./ServiciosActionPanelAreasMap";
 import { ServiciosOfferCard } from "./ServiciosOfferCard";
 import { ServiciosTrackedLink } from "./ServiciosTrackedLink";
-import { SV } from "./serviciosDesignTokens";
+import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
 
 // Leonix premium visual tokens matching Restaurantes
 const LEONIX_CARD_SURFACE = "#FFFAF3";
@@ -64,6 +65,16 @@ function analyticsForSecondaryId(id: ServiciosSecondaryAction["id"]): string {
   return "cta_website_click";
 }
 
+function emailFromMailtoHref(href: string): string {
+  const h = href.trim();
+  if (!h.toLowerCase().startsWith("mailto:")) return "";
+  try {
+    return decodeURIComponent(h.slice(7).split(/[?#]/)[0] ?? "");
+  } catch {
+    return h.slice(7).split(/[?#]/)[0] ?? "";
+  }
+}
+
 function SecondaryIcon({ id }: { id: ServiciosSecondaryAction["id"] }) {
   const c = "h-4 w-4 shrink-0 text-[#3B66AD]";
   if (id === "whatsapp") return <FaWhatsapp className="h-4 w-4 shrink-0 text-[#25D366]" aria-hidden />;
@@ -95,11 +106,18 @@ export function ServiciosActionPanel({
   const featuredLabel = profile.contact.featuredLabel?.trim() || L.featured;
 
   const quote = resolveServiciosQuoteDestination(profile, lang);
-  const quoteHref = quote
-    ? quote.kind === "whatsapp"
-      ? appendWhatsAppPrefill(quote.href, SERVICIOS_UNIVERSAL_QUOTE_MESSAGE_ES)
-      : quote.href
-    : null;
+  const quoteMsgText = serviciosUniversalQuoteMessage(lang);
+  const quoteHref =
+    quote?.kind === "whatsapp"
+      ? appendWhatsAppPrefill(quote.href, quoteMsgText)
+      : quote?.kind === "sms"
+        ? quote.href
+        : null;
+  const primaryMailto = quote?.kind === "mailto" ? quote.href : null;
+  const primaryEmailAddr =
+    profile.contact.email?.trim() ||
+    (profile.contact.emailMailtoHref ? emailFromMailtoHref(profile.contact.emailMailtoHref) : "") ||
+    (primaryMailto ? emailFromMailtoHref(primaryMailto) : "");
   const secondary = buildServiciosSecondaryActions(profile, quote);
   const whatsappInConversionRail =
     quote?.kind === "whatsapp" || secondary.some((s) => s.id === "whatsapp");
@@ -148,7 +166,21 @@ export function ServiciosActionPanel({
             {lang === "en" ? "Contact" : "Contacto"}
           </p>
 
-          {quote && quoteHref ? (
+          {quote && primaryMailto && primaryEmailAddr ? (
+            <ContactEmailMenu
+              email={primaryEmailAddr}
+              mailtoHref={primaryMailto}
+              messagePlain={quoteMsgText}
+              lang={lang}
+              listingSlug={listingSlug}
+              analyticsEventType={analyticsForQuoteKind("mailto")}
+              triggerClassName={`${primaryClass} mt-3 justify-between`}
+              triggerStyle={{ backgroundColor: LEONIX_DARK_CTA, boxShadow: "0 12px 32px rgba(44,24,16,0.28)" }}
+            >
+              <FiZap className="h-5 w-5 shrink-0" aria-hidden />
+              {primaryCtaLabel}
+            </ContactEmailMenu>
+          ) : quote && quoteHref ? (
             listingSlug ? (
               <ServiciosTrackedLink
                 listingSlug={listingSlug}
@@ -180,8 +212,38 @@ export function ServiciosActionPanel({
 
           {secondary.length > 0 ? (
             <div className={`flex flex-col gap-2 ${quote ? "mt-3" : "mt-3"}`}>
-              {secondary.map((a) =>
-                listingSlug ? (
+              {secondary.map((a) => {
+                if (a.id === "email" && profile.contact.emailMailtoHref) {
+                  const emailAddr =
+                    profile.contact.email?.trim() || emailFromMailtoHref(profile.contact.emailMailtoHref);
+                  if (emailAddr) {
+                    const { mailtoHref: secMailto, messagePlain: secMsg } = buildServiciosSecondaryContactMailto(
+                      profile.contact.emailMailtoHref,
+                      lang,
+                    );
+                    return (
+                      <ContactEmailMenu
+                        key={`${a.id}-${a.href}`}
+                        email={emailAddr}
+                        mailtoHref={secMailto}
+                        messagePlain={secMsg}
+                        lang={lang}
+                        listingSlug={listingSlug}
+                        analyticsEventType={analyticsForSecondaryId("email")}
+                        triggerClassName={`${linkBase} justify-between`}
+                        triggerStyle={{
+                          backgroundColor: "white",
+                          borderColor: LEONIX_BORDER,
+                          color: LEONIX_PRIMARY_TEXT,
+                        }}
+                      >
+                        <SecondaryIcon id={a.id} />
+                        {secondaryLabel(L, a)}
+                      </ContactEmailMenu>
+                    );
+                  }
+                }
+                return listingSlug ? (
                   <ServiciosTrackedLink
                     key={`${a.id}-${a.href}`}
                     listingSlug={listingSlug}
@@ -189,11 +251,11 @@ export function ServiciosActionPanel({
                     href={a.href}
                     {...(a.id === "website" || a.id === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                     className={`${linkBase}`}
-                style={{ 
-                  backgroundColor: "white", 
-                  borderColor: LEONIX_BORDER, 
-                  color: LEONIX_PRIMARY_TEXT 
-                }}
+                    style={{
+                      backgroundColor: "white",
+                      borderColor: LEONIX_BORDER,
+                      color: LEONIX_PRIMARY_TEXT,
+                    }}
                   >
                     <SecondaryIcon id={a.id} />
                     {secondaryLabel(L, a)}
@@ -204,17 +266,17 @@ export function ServiciosActionPanel({
                     href={a.href}
                     {...(a.id === "website" || a.id === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                     className={`${linkBase}`}
-                style={{ 
-                  backgroundColor: "white", 
-                  borderColor: LEONIX_BORDER, 
-                  color: LEONIX_PRIMARY_TEXT 
-                }}
+                    style={{
+                      backgroundColor: "white",
+                      borderColor: LEONIX_BORDER,
+                      color: LEONIX_PRIMARY_TEXT,
+                    }}
                   >
                     <SecondaryIcon id={a.id} />
                     {secondaryLabel(L, a)}
                   </a>
-                ),
-              )}
+                );
+              })}
             </div>
           ) : null}
 
