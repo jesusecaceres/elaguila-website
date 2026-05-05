@@ -282,7 +282,7 @@ export function RestauranteResultsClient({ initialListings }: { initialListings:
               </section>
             ) : null}
 
-            <ul className="mt-8 grid list-none grid-cols-1 gap-4 sm:grid-cols-2">
+            <ul className="mt-8 grid list-none grid-cols-1 gap-4">
               {gridRows.length === 0 ? (
                 <li className="col-span-full rounded-2xl border border-dashed border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]/60 px-6 py-12 text-center text-sm text-[color:var(--lx-text-2)]">
                   {t.empty}

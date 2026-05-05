@@ -8,7 +8,7 @@ import { ServiciosTopBar } from "./ServiciosTopBar";
 import { ServiciosHero } from "./ServiciosHero";
 import { ServiciosQuickFacts } from "./ServiciosQuickFacts";
 import { ServiciosAbout } from "./ServiciosAbout";
-import { ServiciosServicesGrid } from "./ServiciosServicesGrid";
+import { ServiciosOfferedSection } from "./ServiciosServicesGrid";
 import { ServiciosGallery } from "./ServiciosGallery";
 import { ServiciosOfferCard } from "./ServiciosOfferCard";
 import { ServiciosTrustSection } from "./ServiciosTrustSection";
@@ -87,7 +87,7 @@ export function ServiciosProfileView({
             ) : null}
             <ServiciosOfferCard profile={profile} lang={lang} />
             {hasAboutSectionResolved(profile) ? <ServiciosAbout profile={profile} lang={lang} /> : null}
-            <ServiciosServicesGrid profile={profile} lang={lang} />
+            <ServiciosOfferedSection services={profile.services} lang={lang} profileForQuote={profile} />
             <ServiciosGallery profile={profile} lang={lang} />
             <ServiciosHours profile={profile} lang={lang} />
             <ServiciosLicense profile={profile} lang={lang} />
