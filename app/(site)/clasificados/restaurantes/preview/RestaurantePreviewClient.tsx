@@ -20,84 +20,211 @@ import type { RestauranteListingDraft } from "../application/restauranteDraftTyp
 // Leonix premium visual tokens
 
 /**
- * Sanitize restaurant draft for publish by removing heavy media payloads
- * Preserves text fields, booleans, selected options, hours, and media references
- * Removes raw base64, data URLs, blobs, and cache objects
+ * Build minimal restaurant publish payload using strict whitelist
+ * Only sends metadata and safe references, never raw media
  */
-function sanitizeRestauranteDraftForPublish(draft: RestauranteListingDraft): any {
-  // Helper to check if a string looks like a data URL or base64
-  const isHeavyMediaString = (str?: string): boolean => {
-    if (!str || typeof str !== 'string') return false;
-    return str.startsWith('data:image/') || 
-           str.startsWith('data:video/') || 
-           str.startsWith('blob:') ||
-           str.length > 1000; // Likely base64 or large blob
-  };
-
-  // Helper to sanitize media arrays
-  const sanitizeMediaArray = (arr?: string[]): string[] | undefined => {
-    if (!Array.isArray(arr)) return undefined;
-    return arr
-      .filter(item => item && typeof item === 'string' && !isHeavyMediaString(item))
-      .slice(0, 50); // Limit array size too
-  };
-
-  // Helper to sanitize single media fields
-  const sanitizeMediaField = (field?: string): string | undefined => {
-    if (!field || typeof field !== 'string') return undefined;
-    return isHeavyMediaString(field) ? undefined : field;
-  };
-
-  // Create sanitized copy
-  const sanitized: any = {};
-  
-  // Copy all primitive fields and booleans directly
-  Object.keys(draft).forEach(key => {
-    const value = draft[key as keyof RestauranteListingDraft];
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-      sanitized[key] = value;
-    } else if (Array.isArray(value)) {
-      // Handle arrays that might contain media
-      sanitized[key] = sanitizeMediaArray(value as string[]);
-    } else if (value && typeof value === 'object') {
-      // Handle nested objects that might contain media
-      const nestedObj: any = {};
-      Object.keys(value).forEach(nestedKey => {
-        const nestedValue = (value as any)[nestedKey];
-        if (typeof nestedValue === 'string') {
-          if (!isHeavyMediaString(nestedValue)) {
-            nestedObj[nestedKey] = nestedValue;
-          }
-        } else if (Array.isArray(nestedValue)) {
-          nestedObj[nestedKey] = sanitizeMediaArray(nestedValue);
-        } else {
-          nestedObj[nestedKey] = nestedValue;
-        }
-      });
-      if (Object.keys(nestedObj).length > 0) {
-        sanitized[key] = nestedObj;
+function buildRestaurantePublishPayload(draft: RestauranteListingDraft, ownerUserId?: string, plan?: string, lang = "es"): any {
+  // Helper to extract safe media reference
+  const extractMediaRef = (media?: any) => {
+    if (!media || typeof media !== 'object') return undefined;
+    
+    // Only keep safe reference fields
+    const ref: any = {};
+    const safeFields = ['path', 'storagePath', 'url', 'publicUrl', 'signedUrl', 'muxUploadId', 'muxAssetId', 'playbackId', 'thumbnailUrl', 'filename', 'mimeType', 'size', 'sortOrder', 'category', 'label', 'alt'];
+    
+    safeFields.forEach(field => {
+      if (media[field] && typeof media[field] === 'string' && !media[field].startsWith('data:') && !media[field].startsWith('blob:')) {
+        ref[field] = media[field];
+      } else if (typeof media[field] === 'number') {
+        ref[field] = media[field];
       }
-    } else {
-      sanitized[key] = value;
+    });
+    
+    return Object.keys(ref).length > 0 ? ref : undefined;
+  };
+
+  // Helper to extract safe media array
+  const extractMediaArray = (arr?: any[]) => {
+    if (!Array.isArray(arr)) return undefined;
+    return arr.map(item => extractMediaRef(item)).filter(Boolean).slice(0, 20); // Limit array size
+  };
+
+  // Build minimal payload with explicit whitelist
+  const payload: any = {
+    // Basic metadata
+    draftListingId: draft.draftListingId,
+    businessName: draft.businessName,
+    shortSummary: draft.shortSummary,
+    longDescription: draft.longDescription,
+    
+    // Cuisine and type
+    primaryCuisine: draft.primaryCuisine,
+    primaryCuisineCustom: draft.primaryCuisineCustom,
+    secondaryCuisine: draft.secondaryCuisine,
+    secondaryCuisineCustom: draft.secondaryCuisineCustom,
+    additionalCuisines: (draft.additionalCuisines || []).slice(0, 10),
+    additionalCuisineOtherCustom: draft.additionalCuisineOtherCustom,
+    businessType: draft.businessType,
+    businessTypeCustom: draft.businessTypeCustom,
+    
+    // Location
+    addressLine1: draft.addressLine1,
+    addressLine2: draft.addressLine2,
+    cityCanonical: draft.cityCanonical,
+    state: draft.state,
+    zipCode: draft.zipCode,
+    neighborhood: draft.neighborhood,
+    
+    // Contact
+    phoneNumber: draft.phoneNumber,
+    email: draft.email,
+    websiteUrl: draft.websiteUrl,
+    instagramUrl: draft.instagramUrl,
+    facebookUrl: draft.facebookUrl,
+    tiktokUrl: draft.tiktokUrl,
+    youtubeUrl: draft.youtubeUrl,
+    whatsAppNumber: draft.whatsAppNumber,
+    
+    // Services and features
+    serviceModes: (draft.serviceModes || []).slice(0, 10),
+    serviceModeOtherCustom: draft.serviceModeOtherCustom,
+    languagesSpoken: (draft.languagesSpoken || []).slice(0, 10),
+    languageOtherCustom: draft.languageOtherCustom,
+    highlights: (draft.highlights || []).slice(0, 20),
+    
+    // Business settings
+    priceLevel: draft.priceLevel,
+    movingVendor: draft.movingVendor,
+    homeBasedBusiness: draft.homeBasedBusiness,
+    foodTruck: draft.foodTruck,
+    popUp: draft.popUp,
+    
+    // Hours
+    monday: draft.monday,
+    tuesday: draft.tuesday,
+    wednesday: draft.wednesday,
+    thursday: draft.thursday,
+    friday: draft.friday,
+    saturday: draft.saturday,
+    sunday: draft.sunday,
+    specialHoursNote: draft.specialHoursNote,
+    
+    // Media references (safe only)
+    heroImage: extractMediaRef(draft.heroImage),
+    businessLogo: extractMediaRef(draft.businessLogo),
+    menuFile: draft.menuFile && typeof draft.menuFile === 'string' && !draft.menuFile.startsWith('data:') && !draft.menuFile.startsWith('blob:') ? draft.menuFile : undefined,
+    menuUrl: draft.menuUrl,
+    orderUrl: draft.orderUrl,
+    reservationUrl: draft.reservationUrl,
+    
+    // Gallery arrays (safe references only)
+    galleryImages: extractMediaArray(draft.galleryImages),
+    interiorImages: extractMediaArray(draft.interiorImages),
+    foodImages: extractMediaArray(draft.foodImages),
+    exteriorImages: extractMediaArray(draft.exteriorImages),
+    
+    // Video references (safe only)
+    videoFile: draft.videoFile && typeof draft.videoFile === 'string' && !draft.videoFile.startsWith('data:') && !draft.videoFile.startsWith('blob:') ? draft.videoFile : undefined,
+    videoUrl: draft.videoUrl,
+    
+    // Featured dishes (safe references only)
+    featuredDishes: (draft.featuredDishes || []).map(dish => ({
+      title: dish.title,
+      shortNote: dish.shortNote,
+      priceLabel: dish.priceLabel,
+      image: extractMediaRef(dish.image)
+    })).slice(0, 10),
+    
+    // Catering and events
+    cateringAvailable: draft.cateringAvailable,
+    eventFoodService: draft.eventFoodService,
+    
+    // Stack sections (safe references only)
+    movingVendorStack: draft.movingVendorStack ? {
+      currentLocationText: draft.movingVendorStack.currentLocationText,
+      currentLocationUrl: draft.movingVendorStack.currentLocationUrl && !draft.movingVendorStack.currentLocationUrl.startsWith('data:') && !draft.movingVendorStack.currentLocationUrl.startsWith('blob:') ? draft.movingVendorStack.currentLocationUrl : undefined,
+      activeNow: draft.movingVendorStack.activeNow,
+      todayHoursText: draft.movingVendorStack.todayHoursText,
+      nextStopText: draft.movingVendorStack.nextStopText,
+      nextStopTime: draft.movingVendorStack.nextStopTime,
+      weeklyRouteText: draft.movingVendorStack.weeklyRouteText,
+      allowFollowNotify: draft.movingVendorStack.allowFollowNotify,
+      notifyCopy: draft.movingVendorStack.notifyCopy
+    } : undefined,
+    
+    homeBasedStack: draft.homeBasedStack ? {
+      pickupInstructions: draft.homeBasedStack.pickupInstructions,
+      pickupDays: (draft.homeBasedStack.pickupDays || []).slice(0, 7),
+      pickupWindowText: draft.homeBasedStack.pickupWindowText,
+      deliveryRadiusMiles: draft.homeBasedStack.deliveryRadiusMiles,
+      preorderLeadTimeText: draft.homeBasedStack.preorderLeadTimeText,
+      homeBusinessNotice: draft.homeBasedStack.homeBusinessNotice
+    } : undefined,
+    
+    cateringEventsStack: draft.cateringEventsStack ? {
+      eventSizesSupported: (draft.cateringEventsStack.eventSizesSupported || []).slice(0, 10),
+      bookingLeadTimeText: draft.cateringEventsStack.bookingLeadTimeText,
+      serviceRadiusMiles: draft.cateringEventsStack.serviceRadiusMiles,
+      cateringInquiryUrl: draft.cateringEventsStack.cateringInquiryUrl && !draft.cateringEventsStack.cateringInquiryUrl.startsWith('data:') && !draft.cateringEventsStack.cateringInquiryUrl.startsWith('blob:') ? draft.cateringEventsStack.cateringInquiryUrl : undefined,
+      cateringNote: draft.cateringEventsStack.cateringNote
+    } : undefined,
+    
+    // External ratings
+    externalRatingValue: draft.externalRatingValue,
+    externalReviewCount: draft.externalReviewCount,
+    googleReviewUrl: draft.googleReviewUrl && !draft.googleReviewUrl.startsWith('data:') && !draft.googleReviewUrl.startsWith('blob:') ? draft.googleReviewUrl : undefined,
+    yelpReviewUrl: draft.yelpReviewUrl && !draft.yelpReviewUrl.startsWith('data:') && !draft.yelpReviewUrl.startsWith('blob:') ? draft.yelpReviewUrl : undefined,
+    
+    // Testimonials and AI
+    testimonialSnippet: draft.testimonialSnippet,
+    aiSummaryEnabled: draft.aiSummaryEnabled,
+    
+    // Service flags
+    reservationsAvailable: draft.reservationsAvailable,
+    preorderRequired: draft.preorderRequired,
+    pickupAvailable: draft.pickupAvailable,
+    
+    // Delivery settings
+    deliveryRadiusMiles: draft.deliveryRadiusMiles,
+    serviceAreaText: draft.serviceAreaText,
+    
+    // Publish metadata
+    lang,
+    plan,
+    ...(ownerUserId ? { owner_user_id: ownerUserId } : {}),
+  };
+
+  // Remove undefined fields to keep payload minimal
+  Object.keys(payload).forEach(key => {
+    if (payload[key] === undefined || payload[key] === null) {
+      delete payload[key];
     }
   });
 
   // Development debug logging
   if (process.env.NODE_ENV === 'development') {
     const originalSize = JSON.stringify(draft).length;
-    const sanitizedSize = JSON.stringify(sanitized).length;
-    console.log('🔍 Publish payload size debug:', {
+    const finalSize = JSON.stringify(payload).length;
+    const mediaCounts = {
+      heroImage: payload.heroImage ? 1 : 0,
+      businessLogo: payload.businessLogo ? 1 : 0,
+      galleryImages: payload.galleryImages?.length || 0,
+      interiorImages: payload.interiorImages?.length || 0,
+      foodImages: payload.foodImages?.length || 0,
+      exteriorImages: payload.exteriorImages?.length || 0,
+      featuredDishes: payload.featuredDishes?.length || 0,
+    };
+    
+    console.log('🔍 Publish payload construction:', {
       originalSize: `${(originalSize / 1024 / 1024).toFixed(2)} MB`,
-      sanitizedSize: `${(sanitizedSize / 1024 / 1024).toFixed(2)} MB`,
-      sizeReduction: `${((originalSize - sanitizedSize) / originalSize * 100).toFixed(1)}%`,
-      keysRemoved: Object.keys(draft).filter(key => 
-        typeof (draft as any)[key] === 'string' && 
-        isHeavyMediaString((draft as any)[key])
-      )
+      finalSize: `${(finalSize / 1024).toFixed(1)} KB`,
+      sizeReduction: `${((originalSize - finalSize) / originalSize * 100).toFixed(1)}%`,
+      topLevelKeys: Object.keys(payload),
+      mediaCounts
     });
   }
 
-  return sanitized;
+  return payload;
 }
 const LEONIX_PAGE_BG = "#F4F1EB";
 const LEONIX_CARD_SURFACE = "#FFFAF3";
@@ -138,24 +265,18 @@ export default function RestaurantePreviewClient() {
       const { data: auth } = await supabase.auth.getUser();
       const owner_user_id = auth?.user?.id;
       
-      // Sanitize draft to remove heavy media payloads
-      const sanitizedDraft = sanitizeRestauranteDraftForPublish(draft);
-      const payload = {
-        ...sanitizedDraft,
-        lang: "es",
-        plan: publishPlan,
-        ...(owner_user_id ? { owner_user_id } : {}),
-      };
+      // Build minimal publish payload using strict whitelist
+      const publishPayload = buildRestaurantePublishPayload(draft, owner_user_id, publishPlan, "es");
       
-      // Check payload size before sending
-      const payloadSize = JSON.stringify(payload).length;
-      const maxSize = 4.5 * 1024 * 1024; // 4.5 MB in bytes
+      // Hard client guard: check payload size before sending (1MB conservative limit)
+      const payloadSize = new Blob([JSON.stringify(publishPayload)]).size;
+      const maxSize = 1 * 1024 * 1024; // 1 MB conservative limit
       
       if (payloadSize > maxSize) {
         setPub({
           busy: false,
           err: "payload_too_large",
-          errDetail: `El anuncio contiene medios demasiado pesados para publicar. Guarda solo referencias/URLs, no blobs locales. Tamaño actual: ${(payloadSize / 1024 / 1024).toFixed(1)} MB, límite: 4.5 MB`,
+          errDetail: `Publish payload is still too large. Only metadata should be sent. Current size: ${(payloadSize / 1024).toFixed(1)} KB, limit: 1 MB`,
         });
         return;
       }
@@ -163,7 +284,7 @@ export default function RestaurantePreviewClient() {
       const res = await fetch("/api/clasificados/restaurantes/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(publishPayload),
       });
       const j = (await res.json()) as {
         ok?: boolean;

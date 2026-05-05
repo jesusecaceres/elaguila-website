@@ -51,11 +51,56 @@ export async function POST(req: Request) {
   }
 
   const b = body as Record<string, unknown>;
-  if (!b.draft) {
+
+  // API side protection: reject heavy media payloads
+  const bodyStr = JSON.stringify(body);
+  const bodySize = new Blob([bodyStr]).size;
+  
+  // Development logging
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 API received publish payload:', {
+      size: `${(bodySize / 1024).toFixed(1)} KB`,
+      topLevelKeys: Object.keys(b)
+    });
+  }
+
+  // Reject if payload is too large (conservative 1MB limit)
+  if (bodySize > 1 * 1024 * 1024) {
+    return NextResponse.json({ 
+      ok: false, 
+      error: "payload_too_large", 
+      detail: `Request payload too large. Maximum size is 1MB, received ${(bodySize / 1024).toFixed(1)}KB` 
+    }, { status: 413 });
+  }
+
+  // Reject payloads containing heavy media indicators
+  const containsHeavyMedia = (obj: any): boolean => {
+    if (!obj || typeof obj !== 'object') return false;
+    
+    const str = JSON.stringify(obj);
+    return str.includes('data:image/') || 
+           str.includes('data:video/') || 
+           str.includes('blob:') ||
+           str.length > 500000; // 500KB+ likely contains heavy media
+  };
+
+  if (containsHeavyMedia(body)) {
+    return NextResponse.json({ 
+      ok: false, 
+      error: "heavy_media_detected", 
+      detail: "Request contains heavy media (data URLs, blobs). Only metadata and references should be sent." 
+    }, { status: 400 });
+  }
+
+  // For new payload format, the draft data is now at the root level
+  // But maintain backward compatibility with old format
+  const draftData = b.draft || b;
+  
+  if (!draftData) {
     return NextResponse.json({ ok: false, error: "missing_draft" }, { status: 400 });
   }
 
-  const draft = mergeRestauranteDraft(b.draft) as RestauranteListingDraft;
+  const draft = mergeRestauranteDraft(draftData) as RestauranteListingDraft;
 
   if (!satisfiesRestauranteMinimumValidPreview(draft)) {
     return NextResponse.json({ ok: false, error: "not_ready" }, { status: 422 });
