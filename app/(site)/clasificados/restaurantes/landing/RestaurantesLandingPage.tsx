@@ -14,7 +14,6 @@ import { ViajesLangSwitch } from "@/app/clasificados/viajes/components/ViajesLan
 import {
   buildRestaurantesResultsHref,
   defaultRestaurantesDiscoveryState,
-  restaurantesDiscoveryParamsForRowDeepLink,
   restaurantesDiscoveryStateToParams,
   splitLocationInput,
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
@@ -30,111 +29,13 @@ import { RESTAURANTES_LANDING_CTA_BG, RESTAURANTES_LANDING_CTA_TEAM } from "./re
 import { RestaurantesLandingShell } from "./RestaurantesLandingShell";
 import { CategoryHeroFrame } from "@/app/(site)/clasificados/components/categoryLanding/CategoryHeroFrame";
 import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
+import { RestaurantePublishedListingCard } from "@/app/clasificados/restaurantes/components/RestaurantePublishedListingCard";
 
 const ACCENT = "#D4A574";
-
-function buildLandingCardDetailHref(
-  lang: Lang,
-  card: RestaurantesBlueprintCard,
-  discoveryLookupRows: RestaurantesPublicBlueprintRow[],
-): string {
-  const row = discoveryLookupRows.find((r) => r.id === card.id);
-  const slug = row?.slug?.trim();
-  if (slug) {
-    return appendLangToPath(`/clasificados/restaurantes/${encodeURIComponent(slug)}`, lang);
-  }
-  if (!row) {
-    return buildRestaurantesResultsHref(lang, { q: card.name });
-  }
-  return buildRestaurantesResultsHref(lang, restaurantesDiscoveryParamsForRowDeepLink(row));
-}
 
 /** Editorial dining atmosphere — strong hero presence without competing with search module */
 const RESTAURANTES_HERO_IMAGE =
   "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=2400&q=82";
-
-function StarRow({ rating, lang }: { rating: number; lang: Lang }) {
-  const rounded = Math.min(5, Math.max(0, Math.round(rating)));
-  const aria =
-    lang === "es" ? `${rating.toFixed(1)} de 5 estrellas` : `${rating.toFixed(1)} out of 5 stars`;
-  return (
-    <div className="flex items-center gap-0.5" style={{ color: ACCENT }} aria-label={aria}>
-      {Array.from({ length: 5 }, (_, i) => (
-        <FaStar key={i} className="h-3.5 w-3.5 sm:h-4 sm:w-4" style={{ opacity: i < rounded ? 1 : 0.22 }} aria-hidden />
-      ))}
-    </div>
-  );
-}
-
-function ListingCard({
-  card,
-  lang,
-  variant,
-  detailHref,
-}: {
-  card: RestaurantesBlueprintCard;
-  lang: Lang;
-  variant: "featured" | "recent";
-  detailHref: string;
-}) {
-  const name = card.name;
-  const cuisine = card.cuisineLine;
-  const city = card.cityLine;
-
-  const shell =
-    variant === "recent"
-      ? "group flex h-full flex-col overflow-hidden rounded-[20px] border border-dashed border-[#D97706]/30 bg-[#FDFBF7] shadow-[0_6px_24px_-16px_rgba(45,36,30,0.22)] ring-1 ring-[#D97706]/20 transition hover:-translate-y-0.5 hover:shadow-[0_10px_32px_-14px_rgba(45,36,30,0.3)]"
-      : "group flex h-full flex-col overflow-hidden rounded-[20px] border border-[#2D241E]/[0.08] bg-[#FFFCF7] shadow-[0_14px_48px_-22px_rgba(45,36,30,0.38)] ring-1 ring-[#D97706]/15 transition hover:-translate-y-0.5 hover:shadow-[0_18px_52px_-20px_rgba(45,36,30,0.42)]";
-
-  return (
-    <article className={shell}>
-      <div className="relative aspect-[16/10] w-full overflow-hidden rounded-t-[20px]">
-        <Image
-          src={card.imageSrc}
-          alt=""
-          fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="object-cover object-center transition duration-500 group-hover:scale-[1.03]"
-        />
-        {variant === "featured" ? (
-          <span
-            className="absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-bold text-[#FFFCF7] shadow-[0_4px_14px_-4px_rgba(180,83,9,0.55)] ring-1 ring-white/25"
-            style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
-          >
-            {lang === "es" ? "Selección en portada" : "Homepage pick"}
-          </span>
-        ) : (
-          <span className="absolute left-3 top-3 rounded-full border border-[#2D241E]/10 bg-[#FFFCF7]/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#2D241E]/75 shadow-sm backdrop-blur-sm">
-            {lang === "es" ? "Recién publicado" : "New listing"}
-          </span>
-        )}
-      </div>
-      <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <h3 className="break-words font-serif text-lg font-semibold leading-snug text-[#2D241E]">{name}</h3>
-        <p className="mt-1 text-xs leading-relaxed text-[#2D241E]/65 sm:text-sm">{cuisine}</p>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <StarRow rating={card.rating} lang={lang} />
-          <span className="text-xs font-medium text-[#2D241E]/55">
-            {card.rating.toFixed(1)} · {lang === "es" ? "valoración" : "rating"}
-          </span>
-        </div>
-        <div className="mt-4 flex flex-col gap-3 border-t border-[#2D241E]/[0.07] pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <span className="inline-flex min-w-0 items-start gap-1.5 text-xs font-medium leading-snug text-[#2D241E]/70 sm:items-center">
-            <FaMapMarkerAlt className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:mt-0" style={{ color: ACCENT }} aria-hidden />
-            <span className="break-words">{city}</span>
-          </span>
-          <Link
-            href={detailHref}
-            className="inline-flex min-h-[44px] w-full min-w-[96px] shrink-0 items-center justify-center rounded-full px-4 text-xs font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(180,83,9,0.58)] transition hover:brightness-[1.05] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 sm:w-auto"
-            style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
-          >
-            {lang === "es" ? "Ver más" : "See more"}
-          </Link>
-        </div>
-      </div>
-    </article>
-  );
-}
 
 function RestaurantesLandingPageFallback() {
   return (
@@ -438,16 +339,22 @@ function RestaurantesLandingPageInner({
             </div>
           </div>
           {featuredCards.length ? (
-            <div className="mt-6 grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {featuredCards.map((card) => (
-                <ListingCard
-                  key={card.id}
-                  card={card}
-                  lang={lang}
-                  variant="featured"
-                  detailHref={buildLandingCardDetailHref(lang, card, discoveryLookupRows)}
-                />
-              ))}
+            <div className="mt-6 flex w-full min-w-0 flex-col gap-5 sm:gap-6">
+              {featuredCards.map((card) => {
+                const row = discoveryLookupRows.find((r) => r.id === card.id);
+                if (!row) return null;
+                return (
+                  <div key={card.id} className="min-w-0 w-full">
+                    <RestaurantePublishedListingCard
+                      row={row}
+                      lang={lang}
+                      badge={lang === "es" ? "Selección en portada" : "Homepage pick"}
+                      cta={lang === "es" ? "Ver más" : "See more"}
+                      narrowLabel={lang === "es" ? "Misma búsqueda en resultados" : "Same search in results"}
+                    />
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <p className="mt-6 rounded-[14px] border border-[#2D241E]/10 bg-[#FFFCF7] px-4 py-4 text-sm leading-relaxed text-[#2D241E]/70">
@@ -505,16 +412,22 @@ function RestaurantesLandingPageInner({
             <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#2D241E]/60 sm:text-sm">{copy.recentIntro}</p>
           </div>
           {recentCards.length ? (
-            <div className="mt-6 grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {recentCards.map((card) => (
-                <ListingCard
-                  key={card.id}
-                  card={card}
-                  lang={lang}
-                  variant="recent"
-                  detailHref={buildLandingCardDetailHref(lang, card, discoveryLookupRows)}
-                />
-              ))}
+            <div className="mt-6 flex w-full min-w-0 flex-col gap-5 sm:gap-6">
+              {recentCards.map((card) => {
+                const row = discoveryLookupRows.find((r) => r.id === card.id);
+                if (!row) return null;
+                return (
+                  <div key={card.id} className="min-w-0 w-full">
+                    <RestaurantePublishedListingCard
+                      row={row}
+                      lang={lang}
+                      badge={lang === "es" ? "Recién publicado" : "New listing"}
+                      cta={lang === "es" ? "Ver más" : "See more"}
+                      narrowLabel={lang === "es" ? "Misma búsqueda en resultados" : "Same search in results"}
+                    />
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <p className="mt-6 rounded-[14px] border border-dashed border-[#D97706]/35 bg-[#FFF7ED]/60 px-4 py-4 text-sm leading-relaxed text-[#2D241E]/72">
