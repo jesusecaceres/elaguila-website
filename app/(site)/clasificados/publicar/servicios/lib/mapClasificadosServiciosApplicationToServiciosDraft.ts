@@ -11,6 +11,7 @@ import { digitsOnly } from "./serviciosPhoneUi";
 import { isProbablyValidWebUrl, normalizeHttpUrl } from "./socialAndUrlHelpers";
 import { slugifyServiciosBusinessName } from "./serviciosSlug";
 import { WEEK_DAY_LABELS } from "./defaultClasificadosServiciosState";
+import { resolveServiciosPublicCategoryLabel } from "./resolveServiciosPublicCategoryLabel";
 
 const JS_DAY_TO_ROW: DayKey[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
@@ -45,12 +46,7 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   const businessName = state.businessName.trim();
   const slug = slugifyServiciosBusinessName(businessName || "borrador");
 
-  const categoryLine = (() => {
-    if (state.businessTypeId === "servicio_otro_generico" && state.customServiceDescription) {
-      return state.customServiceDescription.trim();
-    }
-    return preset ? (lang === "en" ? preset.labelEn : preset.labelEs) : undefined;
-  })();
+  const categoryLine = resolveServiciosPublicCategoryLabel(state, lang);
 
   const locationParts = [state.city.trim(), state.serviceAreaNotes.trim()].filter(Boolean);
   const locationSummary = locationParts.length ? locationParts.join(" · ").slice(0, 220) : undefined;

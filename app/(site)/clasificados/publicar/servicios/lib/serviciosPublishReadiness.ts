@@ -2,6 +2,7 @@ import { getBusinessTypePreset } from "./businessTypePresets";
 import { normalizeClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationNormalize";
 import type { ClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationTypes";
 import { isValidEmail } from "./leonixContactCtaPriority";
+import { resolveServiciosPublicCategoryLabel } from "./resolveServiciosPublicCategoryLabel";
 import { isProbablyValidWebUrl } from "./socialAndUrlHelpers";
 
 /** Step indices match `ClasificadosServiciosApplication` stepped UI (0-based). */
@@ -40,6 +41,7 @@ function hasFeaturedVisual(state: ClasificadosServiciosApplicationState): boolea
 
 const LABELS = {
   businessType: { es: "Tipo de negocio", en: "Business type" },
+  customBusinessType: { es: "Categoría personalizada (escribe tu servicio)", en: "Custom category (type your service)" },
   businessName: { es: "Nombre del negocio", en: "Business name" },
   city: { es: "Ciudad principal", en: "Main city" },
   contact: {
@@ -91,6 +93,9 @@ export function evaluateServiciosPublishReadiness(
 
   if (!normalized.businessTypeId.trim() || !getBusinessTypePreset(normalized.businessTypeId)) {
     push("business_type", L("businessType"));
+  }
+  if (!resolveServiciosPublicCategoryLabel(normalized, lang)) {
+    push("business_type", L("customBusinessType"));
   }
   if (normalized.businessName.trim().length < 2) {
     push("business_name", L("businessName"));

@@ -152,8 +152,8 @@ export async function POST(req: Request) {
     if (!draft.shortSummary) missingFields.push("resumen");
     if (!draft.cityCanonical) missingFields.push("ciudad");
     if (!draft.heroImage && (!draft.galleryImages || draft.galleryImages.length === 0)) missingFields.push("imagen principal o primera de galería");
-    if (!hasPrimaryContactPath(draft.contactCta)) missingFields.push("al menos un contacto");
-    if (!hasOperatingSignal(draft.weeklyHours)) missingFields.push("señal de horario");
+    if (!hasPrimaryContactPath(draft)) missingFields.push("al menos un contacto");
+    if (!hasOperatingSignal(draft)) missingFields.push("señal de horario");
 
     return NextResponse.json({ 
       ok: false, 
