@@ -8,6 +8,7 @@ import {
   mapRestauranteDraftToShellData,
 } from "@/app/clasificados/restaurantes/application/mapRestauranteDraftToShell";
 import { satisfiesRestauranteMinimumValidPreview } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
+import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import { useRestauranteDraft } from "@/app/clasificados/restaurantes/application/useRestauranteDraft";
 import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
 import { RestauranteAdStoryPreview } from "@/app/clasificados/restaurantes/shell/RestauranteAdStoryPreview";
@@ -249,9 +250,13 @@ export default function RestaurantePreviewClient() {
 
   const pristine = useMemo(() => isRestauranteDraftPristineEmpty(draft), [draft]);
   const shellData = useMemo(() => mapRestauranteDraftToShellData(draft), [draft]);
-  const minOk = useMemo(() => satisfiesRestauranteMinimumValidPreview(draft), [draft]);
 
   const publishPlan = searchParams?.get("plan") === "pro" ? "pro" : "free";
+  const publishGateDraft = useMemo(
+    () => mergeRestauranteDraft(buildRestaurantePublishPayload(draft, undefined, publishPlan, "es")),
+    [draft, publishPlan],
+  );
+  const minOk = useMemo(() => satisfiesRestauranteMinimumValidPreview(publishGateDraft), [publishGateDraft]);
 
   const onPublish = useCallback(async () => {
     setPub({ busy: true });

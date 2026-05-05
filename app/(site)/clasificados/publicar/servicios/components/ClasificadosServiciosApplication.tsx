@@ -2204,6 +2204,45 @@ export function ClasificadosServiciosApplication() {
                 onClick={() =>
                   setState((s) => ({
                     ...s,
+                    ...(s.applicationStepIndex === 4
+                      ? (() => {
+                          const next: Partial<typeof s> = {};
+
+                          const pendingService = s.customServiceLabel.trim();
+                          const pendingReason = s.customReasonLabel.trim();
+                          const pendingQuickFact = s.customQuickFactLabel.trim();
+
+                          if (!s.customServiceIncluded && pendingService) {
+                            const total =
+                              s.selectedServiceIds.length + (s.customServiceIncluded && s.customServiceLabel.trim() ? 1 : 0);
+                            if (total < MAX_SERVICES_SELECTION) {
+                              next.customServiceIncluded = true;
+                              next.customServiceLabel = pendingService.slice(0, CUSTOM_CHIP_MAX_LENGTH);
+                            }
+                          }
+
+                          if (!s.customReasonIncluded && pendingReason) {
+                            const total =
+                              s.selectedReasonIds.length + (s.customReasonIncluded && s.customReasonLabel.trim() ? 1 : 0);
+                            if (total < MAX_REASONS_SELECTION) {
+                              next.customReasonIncluded = true;
+                              next.customReasonLabel = pendingReason.slice(0, CUSTOM_CHIP_MAX_LENGTH);
+                            }
+                          }
+
+                          if (!s.customQuickFactIncluded && pendingQuickFact) {
+                            const total =
+                              s.selectedQuickFactIds.length +
+                              (s.customQuickFactIncluded && s.customQuickFactLabel.trim() ? 1 : 0);
+                            if (total < MAX_QUICK_FACTS_SELECTION) {
+                              next.customQuickFactIncluded = true;
+                              next.customQuickFactLabel = pendingQuickFact.slice(0, CUSTOM_CHIP_MAX_LENGTH);
+                            }
+                          }
+
+                          return next;
+                        })()
+                      : {}),
                     applicationStepIndex: Math.min(totalSteps - 1, s.applicationStepIndex + 1),
                   }))
                 }
