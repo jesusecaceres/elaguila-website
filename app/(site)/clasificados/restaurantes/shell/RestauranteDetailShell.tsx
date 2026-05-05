@@ -519,7 +519,7 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
                                 href={actionableUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-[color:var(--lx-gold)] hover:text-[color:var(--lx-gold-border)] underline decoration-[color:var(--lx-gold-border)]/50 underline-offset-2 transition-colors"
+                                className="inline-flex items-center gap-1 text-[color:var(--lx-gold)] hover:text-[color:var(--lx-gold-border)] underline decoration-[color:var(--lx-gold-border)]/50 underline-offset-2 transition-colors cursor-pointer"
                               >
                                 {row.value}
                                 <FiExternalLink className="w-3 h-3" />

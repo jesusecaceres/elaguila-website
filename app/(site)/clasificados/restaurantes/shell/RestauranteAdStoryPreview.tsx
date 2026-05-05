@@ -132,13 +132,13 @@ export function RestauranteAdStoryPreview({ data, listingId = "", lang = "es" }:
               <div className="max-w-4xl mx-auto space-y-4">
                 {/* Business logo */}
                 {data.businessLogo && (
-                  <div className="mb-6 flex justify-center">
+                  <div className="mb-8 flex justify-center">
                     <Image
                       src={data.businessLogo}
                       alt={`${data.businessName} logo`}
-                      width={160}
-                      height={160}
-                      className="w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-white/20 p-4 object-contain shadow-xl"
+                      width={320}
+                      height={320}
+                      className="w-72 h-72 sm:w-80 sm:h-80 rounded-full bg-white/20 p-6 object-contain shadow-xl"
                     />
                   </div>
                 )}
@@ -707,7 +707,7 @@ export function RestauranteAdStoryPreview({ data, listingId = "", lang = "es" }:
                                 href={actionableUrl}
                                 target={row.value.startsWith('http') ? "_blank" : undefined}
                                 rel={row.value.startsWith('http') ? "noopener noreferrer" : undefined}
-                                className="text-[#6B5B2E] hover:text-[#1F1A17] underline decoration-[#BEA98E] underline-offset-2 hover:decoration-[#D8C2A0] transition-colors"
+                                className="text-[#6B5B2E] hover:text-[#1F1A17] underline decoration-[#BEA98E] underline-offset-2 hover:decoration-[#D8C2A0] transition-colors cursor-pointer"
                               >
                                 {row.value}
                               </a>
