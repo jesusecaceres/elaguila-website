@@ -20,175 +20,192 @@ import type { RestauranteListingDraft } from "../application/restauranteDraftTyp
 // Leonix premium visual tokens
 
 /**
- * Build minimal restaurant publish payload using strict whitelist
- * Only sends metadata and safe references, never raw media
+ * ULTRA-STRICT restaurant publish payload builder
+ * Field-by-field construction with recursive media blocking
+ * ABSOLUTELY NO HEAVY MEDIA CAN PASS THROUGH
  */
 function buildRestaurantePublishPayload(draft: RestauranteListingDraft, ownerUserId?: string, plan?: string, lang = "es"): any {
-  // Helper to extract safe media reference
-  const extractMediaRef = (media?: any) => {
-    if (!media || typeof media !== 'object') return undefined;
+  
+  // RECURSIVE HEAVY MEDIA BLOCKER - ABSOLUTE PROTECTION
+  const blockHeavyMedia = (value: any, path: string = ''): any => {
+    // Block File/Blob objects entirely
+    if (value instanceof File || value instanceof Blob) {
+      console.warn(`🚫 BLOCKED heavy media at ${path}: File/Blob object`);
+      return undefined;
+    }
     
-    // Only keep safe reference fields
-    const ref: any = {};
-    const safeFields = ['path', 'storagePath', 'url', 'publicUrl', 'signedUrl', 'muxUploadId', 'muxAssetId', 'playbackId', 'thumbnailUrl', 'filename', 'mimeType', 'size', 'sortOrder', 'category', 'label', 'alt'];
-    
-    safeFields.forEach(field => {
-      if (media[field] && typeof media[field] === 'string' && !media[field].startsWith('data:') && !media[field].startsWith('blob:')) {
-        ref[field] = media[field];
-      } else if (typeof media[field] === 'number') {
-        ref[field] = media[field];
+    // Block strings with dangerous signatures
+    if (typeof value === 'string') {
+      if (value.startsWith('data:image/') || value.startsWith('data:video/') || value.startsWith('blob:')) {
+        console.warn(`🚫 BLOCKED heavy media at ${path}: data/blob URL`);
+        return undefined;
       }
-    });
+      // Block oversized strings (>1KB likely contains base64)
+      if (value.length > 1024) {
+        console.warn(`🚫 BLOCKED oversized string at ${path}: ${value.length} chars`);
+        return undefined;
+      }
+      return value;
+    }
     
-    return Object.keys(ref).length > 0 ? ref : undefined;
+    // Block arrays containing heavy media
+    if (Array.isArray(value)) {
+      const filtered = value
+        .map((item, index) => blockHeavyMedia(item, `${path}[${index}]`))
+        .filter(item => item !== undefined)
+        .slice(0, 20); // Hard limit array sizes
+      return filtered.length > 0 ? filtered : undefined;
+    }
+    
+    // Recursively process objects
+    if (typeof value === 'object' && value !== null) {
+      const cleaned: any = {};
+      let hasValidFields = false;
+      
+      // SAFE MEDIA REFERENCE FIELDS ONLY
+      const safeMediaFields = ['path', 'storagePath', 'url', 'publicUrl', 'signedUrl', 'muxUploadId', 'muxAssetId', 'playbackId', 'thumbnailUrl', 'filename', 'mimeType', 'size', 'sortOrder', 'category', 'label', 'alt'];
+      
+      Object.keys(value).forEach(key => {
+        const fieldValue = value[key];
+        
+        // For media objects, only allow safe reference fields
+        if (safeMediaFields.includes(key)) {
+          const blocked = blockHeavyMedia(fieldValue, `${path}.${key}`);
+          if (blocked !== undefined) {
+            cleaned[key] = blocked;
+            hasValidFields = true;
+          }
+        } else {
+          // For non-media fields, still block heavy content
+          const blocked = blockHeavyMedia(fieldValue, `${path}.${key}`);
+          if (blocked !== undefined) {
+            cleaned[key] = blocked;
+            hasValidFields = true;
+          }
+        }
+      });
+      
+      return hasValidFields ? cleaned : undefined;
+    }
+    
+    // Allow primitives (numbers, booleans)
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return value;
+    }
+    
+    return undefined;
   };
 
-  // Helper to extract safe media array
-  const extractMediaArray = (arr?: any[]) => {
-    if (!Array.isArray(arr)) return undefined;
-    return arr.map(item => extractMediaRef(item)).filter(Boolean).slice(0, 20); // Limit array size
-  };
-
-  // Build minimal payload with explicit whitelist
+  // FIELD-BY-FIELD CONSTRUCTION - ABSOLUTE CONTROL
   const payload: any = {
-    // Basic metadata
-    draftListingId: draft.draftListingId,
-    businessName: draft.businessName,
-    shortSummary: draft.shortSummary,
-    longDescription: draft.longDescription,
+    // BASIC METADATA - STRIP UNSAFE CONTENT
+    draftListingId: blockHeavyMedia(draft.draftListingId, 'draftListingId'),
+    businessName: blockHeavyMedia(draft.businessName, 'businessName'),
+    shortSummary: blockHeavyMedia(draft.shortSummary, 'shortSummary'),
+    longDescription: blockHeavyMedia(draft.longDescription, 'longDescription'),
     
-    // Cuisine and type
-    primaryCuisine: draft.primaryCuisine,
-    primaryCuisineCustom: draft.primaryCuisineCustom,
-    secondaryCuisine: draft.secondaryCuisine,
-    secondaryCuisineCustom: draft.secondaryCuisineCustom,
-    additionalCuisines: (draft.additionalCuisines || []).slice(0, 10),
-    additionalCuisineOtherCustom: draft.additionalCuisineOtherCustom,
-    businessType: draft.businessType,
-    businessTypeCustom: draft.businessTypeCustom,
+    // CUISINE AND TYPE
+    primaryCuisine: blockHeavyMedia(draft.primaryCuisine, 'primaryCuisine'),
+    primaryCuisineCustom: blockHeavyMedia(draft.primaryCuisineCustom, 'primaryCuisineCustom'),
+    secondaryCuisine: blockHeavyMedia(draft.secondaryCuisine, 'secondaryCuisine'),
+    secondaryCuisineCustom: blockHeavyMedia(draft.secondaryCuisineCustom, 'secondaryCuisineCustom'),
+    additionalCuisines: blockHeavyMedia((draft.additionalCuisines || []).slice(0, 10), 'additionalCuisines'),
+    additionalCuisineOtherCustom: blockHeavyMedia(draft.additionalCuisineOtherCustom, 'additionalCuisineOtherCustom'),
+    businessType: blockHeavyMedia(draft.businessType, 'businessType'),
+    businessTypeCustom: blockHeavyMedia(draft.businessTypeCustom, 'businessTypeCustom'),
     
-    // Location
-    addressLine1: draft.addressLine1,
-    addressLine2: draft.addressLine2,
-    cityCanonical: draft.cityCanonical,
-    state: draft.state,
-    zipCode: draft.zipCode,
-    neighborhood: draft.neighborhood,
+    // LOCATION
+    addressLine1: blockHeavyMedia(draft.addressLine1, 'addressLine1'),
+    addressLine2: blockHeavyMedia(draft.addressLine2, 'addressLine2'),
+    cityCanonical: blockHeavyMedia(draft.cityCanonical, 'cityCanonical'),
+    state: blockHeavyMedia(draft.state, 'state'),
+    zipCode: blockHeavyMedia(draft.zipCode, 'zipCode'),
+    neighborhood: blockHeavyMedia(draft.neighborhood, 'neighborhood'),
     
-    // Contact
-    phoneNumber: draft.phoneNumber,
-    email: draft.email,
-    websiteUrl: draft.websiteUrl,
-    instagramUrl: draft.instagramUrl,
-    facebookUrl: draft.facebookUrl,
-    tiktokUrl: draft.tiktokUrl,
-    youtubeUrl: draft.youtubeUrl,
-    whatsAppNumber: draft.whatsAppNumber,
+    // CONTACT
+    phoneNumber: blockHeavyMedia(draft.phoneNumber, 'phoneNumber'),
+    email: blockHeavyMedia(draft.email, 'email'),
+    websiteUrl: blockHeavyMedia(draft.websiteUrl, 'websiteUrl'),
+    instagramUrl: blockHeavyMedia(draft.instagramUrl, 'instagramUrl'),
+    facebookUrl: blockHeavyMedia(draft.facebookUrl, 'facebookUrl'),
+    tiktokUrl: blockHeavyMedia(draft.tiktokUrl, 'tiktokUrl'),
+    youtubeUrl: blockHeavyMedia(draft.youtubeUrl, 'youtubeUrl'),
+    whatsAppNumber: blockHeavyMedia(draft.whatsAppNumber, 'whatsAppNumber'),
     
-    // Services and features
-    serviceModes: (draft.serviceModes || []).slice(0, 10),
-    serviceModeOtherCustom: draft.serviceModeOtherCustom,
-    languagesSpoken: (draft.languagesSpoken || []).slice(0, 10),
-    languageOtherCustom: draft.languageOtherCustom,
-    highlights: (draft.highlights || []).slice(0, 20),
+    // SERVICES AND FEATURES
+    serviceModes: blockHeavyMedia((draft.serviceModes || []).slice(0, 10), 'serviceModes'),
+    serviceModeOtherCustom: blockHeavyMedia(draft.serviceModeOtherCustom, 'serviceModeOtherCustom'),
+    languagesSpoken: blockHeavyMedia((draft.languagesSpoken || []).slice(0, 10), 'languagesSpoken'),
+    languageOtherCustom: blockHeavyMedia(draft.languageOtherCustom, 'languageOtherCustom'),
+    highlights: blockHeavyMedia((draft.highlights || []).slice(0, 20), 'highlights'),
     
-    // Business settings
-    priceLevel: draft.priceLevel,
-    movingVendor: draft.movingVendor,
-    homeBasedBusiness: draft.homeBasedBusiness,
-    foodTruck: draft.foodTruck,
-    popUp: draft.popUp,
+    // BUSINESS SETTINGS
+    priceLevel: blockHeavyMedia(draft.priceLevel, 'priceLevel'),
+    movingVendor: blockHeavyMedia(draft.movingVendor, 'movingVendor'),
+    homeBasedBusiness: blockHeavyMedia(draft.homeBasedBusiness, 'homeBasedBusiness'),
+    foodTruck: blockHeavyMedia(draft.foodTruck, 'foodTruck'),
+    popUp: blockHeavyMedia(draft.popUp, 'popUp'),
     
-    // Hours
-    monday: draft.monday,
-    tuesday: draft.tuesday,
-    wednesday: draft.wednesday,
-    thursday: draft.thursday,
-    friday: draft.friday,
-    saturday: draft.saturday,
-    sunday: draft.sunday,
-    specialHoursNote: draft.specialHoursNote,
+    // HOURS
+    monday: blockHeavyMedia(draft.monday, 'monday'),
+    tuesday: blockHeavyMedia(draft.tuesday, 'tuesday'),
+    wednesday: blockHeavyMedia(draft.wednesday, 'wednesday'),
+    thursday: blockHeavyMedia(draft.thursday, 'thursday'),
+    friday: blockHeavyMedia(draft.friday, 'friday'),
+    saturday: blockHeavyMedia(draft.saturday, 'saturday'),
+    sunday: blockHeavyMedia(draft.sunday, 'sunday'),
+    specialHoursNote: blockHeavyMedia(draft.specialHoursNote, 'specialHoursNote'),
     
-    // Media references (safe only)
-    heroImage: extractMediaRef(draft.heroImage),
-    businessLogo: extractMediaRef(draft.businessLogo),
-    menuFile: draft.menuFile && typeof draft.menuFile === 'string' && !draft.menuFile.startsWith('data:') && !draft.menuFile.startsWith('blob:') ? draft.menuFile : undefined,
-    menuUrl: draft.menuUrl,
-    orderUrl: draft.orderUrl,
-    reservationUrl: draft.reservationUrl,
+    // MEDIA REFERENCES - HEAVY BLOCKING APPLIED
+    heroImage: blockHeavyMedia(draft.heroImage, 'heroImage'),
+    businessLogo: blockHeavyMedia(draft.businessLogo, 'businessLogo'),
+    menuFile: blockHeavyMedia(draft.menuFile, 'menuFile'),
+    menuUrl: blockHeavyMedia(draft.menuUrl, 'menuUrl'),
+    orderUrl: blockHeavyMedia(draft.orderUrl, 'orderUrl'),
+    reservationUrl: blockHeavyMedia(draft.reservationUrl, 'reservationUrl'),
     
-    // Gallery arrays (safe references only)
-    galleryImages: extractMediaArray(draft.galleryImages),
-    interiorImages: extractMediaArray(draft.interiorImages),
-    foodImages: extractMediaArray(draft.foodImages),
-    exteriorImages: extractMediaArray(draft.exteriorImages),
+    // GALLERY ARRAYS - HEAVY BLOCKING APPLIED
+    galleryImages: blockHeavyMedia(draft.galleryImages, 'galleryImages'),
+    interiorImages: blockHeavyMedia(draft.interiorImages, 'interiorImages'),
+    foodImages: blockHeavyMedia(draft.foodImages, 'foodImages'),
+    exteriorImages: blockHeavyMedia(draft.exteriorImages, 'exteriorImages'),
     
-    // Video references (safe only)
-    videoFile: draft.videoFile && typeof draft.videoFile === 'string' && !draft.videoFile.startsWith('data:') && !draft.videoFile.startsWith('blob:') ? draft.videoFile : undefined,
-    videoUrl: draft.videoUrl,
+    // VIDEO REFERENCES - HEAVY BLOCKING APPLIED
+    videoFile: blockHeavyMedia(draft.videoFile, 'videoFile'),
+    videoUrl: blockHeavyMedia(draft.videoUrl, 'videoUrl'),
     
-    // Featured dishes (safe references only)
-    featuredDishes: (draft.featuredDishes || []).map(dish => ({
-      title: dish.title,
-      shortNote: dish.shortNote,
-      priceLabel: dish.priceLabel,
-      image: extractMediaRef(dish.image)
-    })).slice(0, 10),
+    // FEATURED DISHES - HEAVY BLOCKING APPLIED
+    featuredDishes: blockHeavyMedia((draft.featuredDishes || []).slice(0, 10), 'featuredDishes'),
     
-    // Catering and events
-    cateringAvailable: draft.cateringAvailable,
-    eventFoodService: draft.eventFoodService,
+    // CATERING AND EVENTS
+    cateringAvailable: blockHeavyMedia(draft.cateringAvailable, 'cateringAvailable'),
+    eventFoodService: blockHeavyMedia(draft.eventFoodService, 'eventFoodService'),
     
-    // Stack sections (safe references only)
-    movingVendorStack: draft.movingVendorStack ? {
-      currentLocationText: draft.movingVendorStack.currentLocationText,
-      currentLocationUrl: draft.movingVendorStack.currentLocationUrl && !draft.movingVendorStack.currentLocationUrl.startsWith('data:') && !draft.movingVendorStack.currentLocationUrl.startsWith('blob:') ? draft.movingVendorStack.currentLocationUrl : undefined,
-      activeNow: draft.movingVendorStack.activeNow,
-      todayHoursText: draft.movingVendorStack.todayHoursText,
-      nextStopText: draft.movingVendorStack.nextStopText,
-      nextStopTime: draft.movingVendorStack.nextStopTime,
-      weeklyRouteText: draft.movingVendorStack.weeklyRouteText,
-      allowFollowNotify: draft.movingVendorStack.allowFollowNotify,
-      notifyCopy: draft.movingVendorStack.notifyCopy
-    } : undefined,
+    // STACK SECTIONS - HEAVY BLOCKING APPLIED
+    movingVendorStack: blockHeavyMedia(draft.movingVendorStack, 'movingVendorStack'),
+    homeBasedStack: blockHeavyMedia(draft.homeBasedStack, 'homeBasedStack'),
+    cateringEventsStack: blockHeavyMedia(draft.cateringEventsStack, 'cateringEventsStack'),
     
-    homeBasedStack: draft.homeBasedStack ? {
-      pickupInstructions: draft.homeBasedStack.pickupInstructions,
-      pickupDays: (draft.homeBasedStack.pickupDays || []).slice(0, 7),
-      pickupWindowText: draft.homeBasedStack.pickupWindowText,
-      deliveryRadiusMiles: draft.homeBasedStack.deliveryRadiusMiles,
-      preorderLeadTimeText: draft.homeBasedStack.preorderLeadTimeText,
-      homeBusinessNotice: draft.homeBasedStack.homeBusinessNotice
-    } : undefined,
+    // EXTERNAL RATINGS
+    externalRatingValue: blockHeavyMedia(draft.externalRatingValue, 'externalRatingValue'),
+    externalReviewCount: blockHeavyMedia(draft.externalReviewCount, 'externalReviewCount'),
+    googleReviewUrl: blockHeavyMedia(draft.googleReviewUrl, 'googleReviewUrl'),
+    yelpReviewUrl: blockHeavyMedia(draft.yelpReviewUrl, 'yelpReviewUrl'),
     
-    cateringEventsStack: draft.cateringEventsStack ? {
-      eventSizesSupported: (draft.cateringEventsStack.eventSizesSupported || []).slice(0, 10),
-      bookingLeadTimeText: draft.cateringEventsStack.bookingLeadTimeText,
-      serviceRadiusMiles: draft.cateringEventsStack.serviceRadiusMiles,
-      cateringInquiryUrl: draft.cateringEventsStack.cateringInquiryUrl && !draft.cateringEventsStack.cateringInquiryUrl.startsWith('data:') && !draft.cateringEventsStack.cateringInquiryUrl.startsWith('blob:') ? draft.cateringEventsStack.cateringInquiryUrl : undefined,
-      cateringNote: draft.cateringEventsStack.cateringNote
-    } : undefined,
+    // TESTIMONIALS AND AI
+    testimonialSnippet: blockHeavyMedia(draft.testimonialSnippet, 'testimonialSnippet'),
+    aiSummaryEnabled: blockHeavyMedia(draft.aiSummaryEnabled, 'aiSummaryEnabled'),
     
-    // External ratings
-    externalRatingValue: draft.externalRatingValue,
-    externalReviewCount: draft.externalReviewCount,
-    googleReviewUrl: draft.googleReviewUrl && !draft.googleReviewUrl.startsWith('data:') && !draft.googleReviewUrl.startsWith('blob:') ? draft.googleReviewUrl : undefined,
-    yelpReviewUrl: draft.yelpReviewUrl && !draft.yelpReviewUrl.startsWith('data:') && !draft.yelpReviewUrl.startsWith('blob:') ? draft.yelpReviewUrl : undefined,
+    // SERVICE FLAGS
+    reservationsAvailable: blockHeavyMedia(draft.reservationsAvailable, 'reservationsAvailable'),
+    preorderRequired: blockHeavyMedia(draft.preorderRequired, 'preorderRequired'),
+    pickupAvailable: blockHeavyMedia(draft.pickupAvailable, 'pickupAvailable'),
     
-    // Testimonials and AI
-    testimonialSnippet: draft.testimonialSnippet,
-    aiSummaryEnabled: draft.aiSummaryEnabled,
+    // DELIVERY SETTINGS
+    deliveryRadiusMiles: blockHeavyMedia(draft.deliveryRadiusMiles, 'deliveryRadiusMiles'),
+    serviceAreaText: blockHeavyMedia(draft.serviceAreaText, 'serviceAreaText'),
     
-    // Service flags
-    reservationsAvailable: draft.reservationsAvailable,
-    preorderRequired: draft.preorderRequired,
-    pickupAvailable: draft.pickupAvailable,
-    
-    // Delivery settings
-    deliveryRadiusMiles: draft.deliveryRadiusMiles,
-    serviceAreaText: draft.serviceAreaText,
-    
-    // Publish metadata
+    // PUBLISH METADATA
     lang,
     plan,
     ...(ownerUserId ? { owner_user_id: ownerUserId } : {}),
@@ -200,29 +217,6 @@ function buildRestaurantePublishPayload(draft: RestauranteListingDraft, ownerUse
       delete payload[key];
     }
   });
-
-  // Development debug logging
-  if (process.env.NODE_ENV === 'development') {
-    const originalSize = JSON.stringify(draft).length;
-    const finalSize = JSON.stringify(payload).length;
-    const mediaCounts = {
-      heroImage: payload.heroImage ? 1 : 0,
-      businessLogo: payload.businessLogo ? 1 : 0,
-      galleryImages: payload.galleryImages?.length || 0,
-      interiorImages: payload.interiorImages?.length || 0,
-      foodImages: payload.foodImages?.length || 0,
-      exteriorImages: payload.exteriorImages?.length || 0,
-      featuredDishes: payload.featuredDishes?.length || 0,
-    };
-    
-    console.log('🔍 Publish payload construction:', {
-      originalSize: `${(originalSize / 1024 / 1024).toFixed(2)} MB`,
-      finalSize: `${(finalSize / 1024).toFixed(1)} KB`,
-      sizeReduction: `${((originalSize - finalSize) / originalSize * 100).toFixed(1)}%`,
-      topLevelKeys: Object.keys(payload),
-      mediaCounts
-    });
-  }
 
   return payload;
 }
@@ -267,6 +261,58 @@ export default function RestaurantePreviewClient() {
       
       // Build minimal publish payload using strict whitelist
       const publishPayload = buildRestaurantePublishPayload(draft, owner_user_id, publishPlan, "es");
+      
+      // DEVELOPMENT DEBUG: Trace exact POST body
+      if (process.env.NODE_ENV === 'development') {
+        const payloadStr = JSON.stringify(publishPayload, null, 2);
+        const payloadSize = new Blob([payloadStr]).size;
+        
+        console.log('🔍 GATE 1: REAL POST BODY TRACE');
+        console.log('Final payload byte size:', `${(payloadSize / 1024).toFixed(2)} KB`);
+        console.log('Top-level keys:', Object.keys(publishPayload));
+        
+        // Check for blocked media signatures
+        const containsBlockedSignatures = payloadStr.includes('data:image/') || 
+                                         payloadStr.includes('data:video/') || 
+                                         payloadStr.includes('blob:') ||
+                                         payloadStr.includes('File') ||
+                                         payloadStr.includes('Blob') ||
+                                         payloadStr.includes('arrayBuffer') ||
+                                         payloadStr.includes('originFileObj');
+        
+        console.log('Contains blocked signatures:', containsBlockedSignatures);
+        
+        // Count media arrays
+        const mediaArrays = {
+          galleryImages: publishPayload.galleryImages?.length || 0,
+          interiorImages: publishPayload.interiorImages?.length || 0,
+          foodImages: publishPayload.foodImages?.length || 0,
+          exteriorImages: publishPayload.exteriorImages?.length || 0,
+          featuredDishes: publishPayload.featuredDishes?.length || 0,
+        };
+        console.log('Media array counts:', mediaArrays);
+        
+        // Check for oversized strings
+        const oversizedStrings: { path: string; length: number; preview: string }[] = [];
+        function checkForOversizedStrings(obj: any, path = '') {
+          if (typeof obj === 'string' && obj.length > 1000) {
+            oversizedStrings.push({ path, length: obj.length, preview: obj.substring(0, 100) });
+          } else if (typeof obj === 'object' && obj !== null) {
+            Object.keys(obj).forEach(key => {
+              checkForOversizedStrings(obj[key], path ? `${path}.${key}` : key);
+            });
+          }
+        }
+        checkForOversizedStrings(publishPayload);
+        
+        if (oversizedStrings.length > 0) {
+          console.log('⚠️ OVERSIZED STRINGS FOUND:', oversizedStrings);
+        } else {
+          console.log('✅ No oversized strings detected');
+        }
+        
+        console.log('--- END POST BODY TRACE ---');
+      }
       
       // Hard client guard: check payload size before sending (1MB conservative limit)
       const payloadSize = new Blob([JSON.stringify(publishPayload)]).size;

@@ -73,22 +73,63 @@ export async function POST(req: Request) {
     }, { status: 413 });
   }
 
-  // Reject payloads containing heavy media indicators
-  const containsHeavyMedia = (obj: any): boolean => {
-    if (!obj || typeof obj !== 'object') return false;
+  // RECURSIVE HEAVY MEDIA DETECTION - SERVER SIDE DEFENSE
+  const detectHeavyMedia = (value: any, path: string = ''): { found: boolean; details: string[] } => {
+    const details: string[] = [];
     
-    const str = JSON.stringify(obj);
-    return str.includes('data:image/') || 
-           str.includes('data:video/') || 
-           str.includes('blob:') ||
-           str.length > 500000; // 500KB+ likely contains heavy media
+    // Check File/Blob objects
+    if (value instanceof File || value instanceof Blob) {
+      details.push(`File/Blob object at ${path}`);
+      return { found: true, details };
+    }
+    
+    // Check strings for dangerous signatures
+    if (typeof value === 'string') {
+      if (value.startsWith('data:image/') || value.startsWith('data:video/') || value.startsWith('blob:')) {
+        details.push(`Data/blob URL at ${path}: ${value.substring(0, 50)}...`);
+        return { found: true, details };
+      }
+      // Check for oversized strings (>2KB likely contains base64)
+      if (value.length > 2048) {
+        details.push(`Oversized string at ${path}: ${value.length} chars`);
+        return { found: true, details };
+      }
+      return { found: false, details };
+    }
+    
+    // Recursively check arrays
+    if (Array.isArray(value)) {
+      for (let i = 0; i < Math.min(value.length, 50); i++) { // Limit check to first 50 items
+        const result = detectHeavyMedia(value[i], `${path}[${i}]`);
+        if (result.found) {
+          details.push(...result.details);
+        }
+      }
+      return { found: details.length > 0, details };
+    }
+    
+    // Recursively check objects
+    if (typeof value === 'object' && value !== null) {
+      const keys = Object.keys(value);
+      for (const key of keys.slice(0, 100)) { // Limit check to first 100 keys
+        const result = detectHeavyMedia(value[key], path ? `${path}.${key}` : key);
+        if (result.found) {
+          details.push(...result.details);
+        }
+      }
+      return { found: details.length > 0, details };
+    }
+    
+    return { found: false, details };
   };
 
-  if (containsHeavyMedia(body)) {
+  const mediaCheck = detectHeavyMedia(body);
+  if (mediaCheck.found) {
+    console.error('🚫 SERVER: Heavy media detected in publish payload:', mediaCheck.details);
     return NextResponse.json({ 
       ok: false, 
       error: "heavy_media_detected", 
-      detail: "Request contains heavy media (data URLs, blobs). Only metadata and references should be sent." 
+      detail: `Request contains heavy media: ${mediaCheck.details.join('; ')}. Only metadata and references should be sent.` 
     }, { status: 400 });
   }
 
