@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   isRestauranteDraftPristineEmpty,
   mapRestauranteDraftToShellData,
 } from "@/app/clasificados/restaurantes/application/mapRestauranteDraftToShell";
-import { satisfiesRestauranteMinimumValidPreview } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
+import { auditRestaurantePublishReadiness } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import { useRestauranteDraft } from "@/app/clasificados/restaurantes/application/useRestauranteDraft";
 import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
@@ -252,11 +252,15 @@ export default function RestaurantePreviewClient() {
   const shellData = useMemo(() => mapRestauranteDraftToShellData(draft), [draft]);
 
   const publishPlan = searchParams?.get("plan") === "pro" ? "pro" : "free";
-  const publishGateDraft = useMemo(
-    () => mergeRestauranteDraft(buildRestaurantePublishPayload(draft, undefined, publishPlan, "es")),
-    [draft, publishPlan],
-  );
-  const minOk = useMemo(() => satisfiesRestauranteMinimumValidPreview(publishGateDraft), [publishGateDraft]);
+  /** Same normalized shape as storage/API merge — matches what the preview shell maps from (not the POST sanitizer). */
+  const normalizedDraft = useMemo(() => mergeRestauranteDraft(draft), [draft]);
+  const readiness = useMemo(() => auditRestaurantePublishReadiness(normalizedDraft), [normalizedDraft]);
+  const minOk = readiness.readyToPublish;
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    console.debug("[restaurantes/preview] publish readiness audit", readiness);
+  }, [readiness]);
 
   const onPublish = useCallback(async () => {
     setPub({ busy: true });
@@ -401,10 +405,16 @@ export default function RestaurantePreviewClient() {
           </summary>
           <div className="mt-3 space-y-3 border-t border-[color:var(--lx-nav-border)]/60 pt-3">
             {!minOk ? (
-              <p className="text-xs text-[color:var(--lx-muted)]">
-                Borrador incompleto para publicar: faltan campos mínimos (nombre, tipo, cocina, resumen, ciudad, imagen
-                principal o primera de galería, al menos un contacto y señal de horario).
-              </p>
+              <div className="text-xs text-[color:var(--lx-muted)] space-y-1">
+                <p>Borrador incompleto para publicar.</p>
+                {readiness.missingFields.length > 0 ? (
+                  <p className="font-medium text-[color:var(--lx-text-2)]">
+                    Falta: {readiness.missingFields.join(", ")}.
+                  </p>
+                ) : (
+                  <p>Revisa nombre, tipo, cocina, resumen, ciudad, imagen, contacto y horario.</p>
+                )}
+              </div>
             ) : (
               <p className="text-xs font-medium text-emerald-800">Listo para publicar borrador (validación mínima OK).</p>
             )}

@@ -430,43 +430,104 @@ export function hasOperatingSignal(h: RestauranteWeeklyHours): boolean {
   return false;
 }
 
+/** Input shape for minimum preview/publish readiness (same fields as the shell + publish gate). */
+export type RestauranteMinimumValidPreviewInput = Pick<
+  RestauranteListingApplication,
+  | "businessName"
+  | "businessType"
+  | "primaryCuisine"
+  | "shortSummary"
+  | "cityCanonical"
+  | "heroImage"
+  | "galleryImages"
+  | "galleryMediaSequence"
+  | "galleryOrder"
+  | "videoFile"
+  | "videoUrl"
+> &
+  RestauranteContactCta &
+  RestauranteWeeklyHours;
+
+export type RestaurantePublishReadinessAudit = {
+  hasBusinessName: boolean;
+  hasBusinessType: boolean;
+  hasPrimaryCuisine: boolean;
+  hasSummary: boolean;
+  hasCity: boolean;
+  hasHeroImage: boolean;
+  hasFirstGalleryImage: boolean;
+  hasAnyPublishImage: boolean;
+  hasContactPath: boolean;
+  hasHoursSignal: boolean;
+  readyToPublish: boolean;
+  /** Spanish labels aligned with preview copy / API not_ready detail */
+  missingFields: string[];
+};
+
+/**
+ * Diagnostic mirror of the minimum publish gate (use in dev + smoke tests).
+ * Evaluates the same rules as `satisfiesRestauranteMinimumValidPreview`.
+ */
+export function auditRestaurantePublishReadiness(row: RestauranteMinimumValidPreviewInput): RestaurantePublishReadinessAudit {
+  const hasBusinessName = nonEmpty(row.businessName);
+  const hasBusinessType = nonEmpty(row.businessType);
+  const hasPrimaryCuisine = nonEmpty(row.primaryCuisine);
+  const hasSummary = nonEmpty(row.shortSummary);
+  const hasCity = nonEmpty(row.cityCanonical);
+  const hasHeroImage = nonEmpty(row.heroImage);
+  const seq = computePublishGallerySequence(row);
+  const imgs = row.galleryImages ?? [];
+  const firstIdx = seq.find(
+    (x): x is number => typeof x === "number" && Number.isFinite(x) && x >= 0 && x < imgs.length,
+  );
+  const firstGal = firstIdx != null ? imgs[firstIdx] : undefined;
+  const hasFirstGalleryImage = nonEmpty(firstGal);
+  const hasAnyPublishImage = hasHeroImage || hasFirstGalleryImage;
+  const hasContactPath = hasPrimaryContactPath(row);
+  const hasHoursSignal = hasOperatingSignal(row);
+
+  const missingFields: string[] = [];
+  if (!hasBusinessName) missingFields.push("nombre");
+  if (!hasBusinessType) missingFields.push("tipo");
+  if (!hasPrimaryCuisine) missingFields.push("cocina");
+  if (!hasSummary) missingFields.push("resumen");
+  if (!hasCity) missingFields.push("ciudad");
+  if (!hasAnyPublishImage) missingFields.push("imagen principal o primera de galería");
+  if (!hasContactPath) missingFields.push("al menos un contacto");
+  if (!hasHoursSignal) missingFields.push("señal de horario");
+
+  const readyToPublish =
+    hasBusinessName &&
+    hasBusinessType &&
+    hasPrimaryCuisine &&
+    hasSummary &&
+    hasCity &&
+    hasAnyPublishImage &&
+    hasContactPath &&
+    hasHoursSignal;
+
+  return {
+    hasBusinessName,
+    hasBusinessType,
+    hasPrimaryCuisine,
+    hasSummary,
+    hasCity,
+    hasHeroImage,
+    hasFirstGalleryImage,
+    hasAnyPublishImage,
+    hasContactPath,
+    hasHoursSignal,
+    readyToPublish,
+    missingFields,
+  };
+}
+
 /**
  * Publish / preview gate: minimum buyer-facing completeness.
  * Does not replace server-side validation (serviceModes length, conditional stacks, etc.).
  */
-export function satisfiesRestauranteMinimumValidPreview(
-  row: Pick<
-    RestauranteListingApplication,
-    | "businessName"
-    | "businessType"
-    | "primaryCuisine"
-    | "shortSummary"
-    | "cityCanonical"
-    | "heroImage"
-    | "galleryImages"
-    | "galleryMediaSequence"
-    | "galleryOrder"
-    | "videoFile"
-    | "videoUrl"
-  > &
-    RestauranteContactCta &
-    RestauranteWeeklyHours
-): boolean {
-  if (!nonEmpty(row.businessName)) return false;
-  if (!nonEmpty(row.businessType)) return false;
-  if (!nonEmpty(row.primaryCuisine)) return false;
-  if (!nonEmpty(row.shortSummary)) return false;
-  if (!nonEmpty(row.cityCanonical)) return false;
-  if (!nonEmpty(row.heroImage)) {
-    const seq = computePublishGallerySequence(row);
-    const imgs = row.galleryImages ?? [];
-    const firstIdx = seq.find((x): x is number => typeof x === "number" && Number.isFinite(x) && x >= 0 && x < imgs.length);
-    const firstGal = firstIdx != null ? imgs[firstIdx] : undefined;
-    if (!nonEmpty(firstGal)) return false;
-  }
-  if (!hasPrimaryContactPath(row)) return false;
-  if (!hasOperatingSignal(row)) return false;
-  return true;
+export function satisfiesRestauranteMinimumValidPreview(row: RestauranteMinimumValidPreviewInput): boolean {
+  return auditRestaurantePublishReadiness(row).readyToPublish;
 }
 
 /**
