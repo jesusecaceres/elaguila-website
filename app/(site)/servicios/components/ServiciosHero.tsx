@@ -1,13 +1,15 @@
 import Image from "next/image";
-import { FiMapPin } from "react-icons/fi";
-import { FaCheckCircle } from "react-icons/fa";
+import { FiMapPin, FiStar, FiClock } from "react-icons/fi";
+import { FaCheckCircle, FaHeart, FaBookmark, FaShare } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
 import { resolveServiciosQuoteDestination } from "../lib/serviciosContactActions";
 import { ServiciosStarRating } from "./ServiciosStarRating";
-import { ServiciosHeroActions } from "./ServiciosHeroActions";
 import { SV } from "./serviciosDesignTokens";
+import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
+import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 
 function badgeStyle(kind: string) {
   if (kind === "verified") return "border-[#3B66AD]/35 bg-[#3B66AD]/10 text-[#2d528d]";
@@ -22,23 +24,6 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
   const about = profile.about;
   const heroFacts = profile.quickFacts.slice(0, 3);
 
-  const quoteDestination = resolveServiciosQuoteDestination(profile, lang);
-  
-  const handleQuoteClick = () => {
-    if (!quoteDestination) return;
-    
-    const message = lang === "en" 
-      ? "Hi, I saw your profile on Leonix and would like to request a quote."
-      : "Hola, vi tu perfil en Leonix y quiero pedir una cotización.";
-    
-    if (quoteDestination.kind === "whatsapp") {
-      const encodedMessage = encodeURIComponent(message);
-      window.open(`${quoteDestination.href}?text=${encodedMessage}`, "_blank", "noopener noreferrer");
-    } else {
-      window.open(quoteDestination.href, "_blank", "noopener noreferrer");
-    }
-  };
-
   const headlineSub =
     hero.categoryLine && hero.locationSummary
       ? `${hero.categoryLine} · ${hero.locationSummary}`
@@ -46,7 +31,7 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
 
   return (
     <section className="relative w-full overflow-hidden rounded-xl shadow-[0_20px_60px_rgba(30,24,16,0.12)] sm:rounded-2xl md:rounded-3xl">
-      <div className="relative aspect-[5/4] w-full min-h-[200px] sm:aspect-[21/9] sm:min-h-[240px] md:aspect-[2.4/1] md:min-h-[320px]">
+      <div className="relative aspect-[16/10] w-full min-h-[200px] sm:aspect-[21/9] sm:min-h-[240px] md:aspect-[2.4/1] md:min-h-[320px]">
         {hero.coverImageUrl ? (
           <Image
             src={hero.coverImageUrl}
@@ -65,104 +50,159 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
             }}
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" aria-hidden />
-
-        <div className="absolute inset-0 flex flex-col justify-end p-3 pb-4 sm:p-4 sm:pb-6 md:p-8 lg:flex-row lg:items-end lg:justify-start">
-          <div
-            className="w-full max-w-2xl rounded-xl border p-4 shadow-xl sm:rounded-2xl sm:p-5 md:max-w-2xl md:p-7"
-            style={{
-              backgroundColor: "rgba(255,255,255,0.98)",
-              borderColor: SV.goldBorder,
-              boxShadow: SV.shadowPremium,
-            }}
-          >
-            <div className="flex gap-4">
-              {hero.logoUrl ? (
-                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-black/[0.06] bg-white shadow-sm sm:h-24 sm:w-24">
-                  <Image
-                    src={hero.logoUrl}
-                    alt={hero.logoAlt || identity.businessName}
-                    fill
-                    className="object-cover"
-                    sizes="96px"
-                    unoptimized={serviciosImageUnoptimized(hero.logoUrl)}
-                  />
-                </div>
-              ) : (
-                <div
-                  className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border border-[#3B66AD]/20 text-2xl font-bold text-white shadow-sm sm:h-24 sm:w-24"
-                  style={{ background: SV.blue }}
-                  aria-hidden
-                >
-                  {(identity.businessName.trim().charAt(0) || "?").toUpperCase()}
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <h1 className="text-2xl font-bold leading-tight tracking-tight text-[color:var(--lx-text)] sm:text-3xl md:text-[1.8rem]">
-                  {identity.businessName}
-                </h1>
-                {headlineSub ? (
-                  <p className="mt-2 text-sm font-medium text-[color:var(--lx-muted)] sm:text-base">{headlineSub}</p>
-                ) : null}
-
-                {about?.specialtiesLine ? (
-                  <p className="mt-2 text-base font-semibold leading-snug text-[#2d528d] sm:text-lg">{about.specialtiesLine}</p>
-                ) : null}
-
-                {rating != null && reviewCount != null ? (
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <ServiciosStarRating value={rating} />
-                    <span className="text-sm font-semibold tabular-nums text-[color:var(--lx-text)]">{rating.toFixed(1)}</span>
-                    <span className="text-sm text-[color:var(--lx-muted)]">{L.reviewsSuffix(reviewCount)}</span>
-                  </div>
-                ) : rating != null ? (
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <ServiciosStarRating value={rating} />
-                    <span className="text-sm font-semibold tabular-nums">{rating.toFixed(1)}</span>
-                  </div>
-                ) : null}
-
-                {hero.badges.length > 0 ? (
-                  <ul className="mt-3 flex flex-wrap gap-2">
-                    {hero.badges.map((b) => (
-                      <li
-                        key={`${b.kind}-${b.label}`}
-                        className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold sm:text-xs ${badgeStyle(b.kind)}`}
-                      >
-                        {b.kind === "verified" ? (
-                          <FaCheckCircle className="h-3.5 w-3.5 shrink-0 text-[#3B66AD]" aria-hidden />
-                        ) : null}
-                        {b.label}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-
-                {heroFacts.length > 0 ? (
-                  <ul className="mt-3 flex flex-wrap gap-2">
-                    {heroFacts.map((f) => (
-                      <li
-                        key={`${f.kind}-${f.label}`}
-                        className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-full border border-[#3B66AD]/20 bg-[#3B66AD]/[0.06] px-2.5 py-1 text-[11px] font-semibold text-[color:var(--lx-text)] sm:text-xs"
-                      >
-                        <span className="text-[#3B66AD]" aria-hidden>
-                          ✓
-                        </span>
-                        <span className="min-w-0 break-words leading-snug">{f.label}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-
-                {quoteDestination ? (
-                  <ServiciosHeroActions 
-                    profile={profile} 
-                    lang={lang} 
-                    onQuoteClick={handleQuoteClick}
-                  />
-                ) : null}
-              </div>
+        
+        {/* Premium dark overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" aria-hidden />
+        
+        {/* Top-right engagement actions */}
+        <div className="absolute top-4 right-4 z-20">
+          <div className="flex flex-col gap-2">
+            <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
+              <LeonixLikeButton
+                listingId={identity.slug}
+                ownerUserId={identity.slug}
+                variant="small"
+                lang={lang}
+                category="servicios"
+                className="border-0"
+              />
             </div>
+            <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
+              <LeonixSaveButton
+                listingId={identity.slug}
+                ownerUserId={identity.slug}
+                variant="small"
+                lang={lang}
+                category="servicios"
+                className="border-0"
+              />
+            </div>
+            <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
+              <LeonixShareButton
+                listingId={identity.slug}
+                ownerUserId={identity.slug}
+                listingTitle={identity.businessName}
+                variant="small"
+                lang={lang}
+                category="servicios"
+                className="border-0"
+              />
+            </div>
+          </div>
+        </div>
+        
+        {/* Hero content - centered */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 sm:p-8 text-white text-center">
+          <div className="max-w-4xl mx-auto space-y-4">
+            {/* Business logo */}
+            {hero.logoUrl ? (
+              <div className="mb-8 flex justify-center">
+                <Image
+                  src={hero.logoUrl}
+                  alt={hero.logoAlt || identity.businessName}
+                  width={320}
+                  height={320}
+                  className="w-72 h-72 sm:w-80 sm:h-80 rounded-full bg-white/20 p-6 object-contain shadow-xl"
+                  unoptimized={serviciosImageUnoptimized(hero.logoUrl)}
+                />
+              </div>
+            ) : (
+              <div className="mb-8 flex justify-center">
+                <div
+                  className="w-72 h-72 sm:w-80 sm:h-80 rounded-full bg-white/20 p-6 shadow-xl flex items-center justify-center"
+                  style={{ background: SV.blue }}
+                >
+                  <span className="text-6xl font-bold text-white">
+                    {(identity.businessName.trim().charAt(0) || "?").toUpperCase()}
+                  </span>
+                </div>
+              </div>
+            )}
+            
+            {/* Business name */}
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight drop-shadow-2xl">
+              {identity.businessName}
+            </h1>
+            
+            {/* Category and location */}
+            {headlineSub && (
+              <div className="flex flex-wrap justify-center gap-2 text-lg sm:text-xl font-medium drop-shadow">
+                {headlineSub.split(' · ').map((item, index) => (
+                  <span key={index} className="px-3 py-1 bg-white/20 rounded-full backdrop-blur-sm">
+                    {item.trim()}
+                  </span>
+                ))}
+              </div>
+            )}
+            
+            {/* Specialties */}
+            {about?.specialtiesLine && (
+              <div className="text-xl sm:text-2xl font-medium drop-shadow">
+                {about.specialtiesLine}
+              </div>
+            )}
+            
+            {/* Status, hours, service zones row */}
+            <div className="flex flex-wrap justify-center items-center gap-3 text-sm sm:text-base">
+              {/* Hours status */}
+              {profile.contact.hours?.openNowLabel && (
+                <span className="px-4 py-2 rounded-full font-semibold backdrop-blur-sm bg-green-500/30 text-white border border-green-400/50">
+                  🟢 {profile.contact.hours.openNowLabel}
+                </span>
+              )}
+              
+              {/* Service zones */}
+              {hero.locationSummary && (
+                <span className="px-4 py-2 bg-white/20 rounded-full backdrop-blur-sm flex items-center gap-1">
+                  <FiMapPin className="w-4 h-4" />
+                  {hero.locationSummary}
+                </span>
+              )}
+              
+              {/* Rating */}
+              {rating != null && (
+                <span className="px-4 py-2 bg-white/20 rounded-full backdrop-blur-sm flex items-center gap-1">
+                  <FiStar className="w-4 h-4 text-yellow-400 fill-current" />
+                  <span>{rating.toFixed(1)}</span>
+                  {reviewCount != null && (
+                    <span className="text-white/80">({reviewCount})</span>
+                  )}
+                </span>
+              )}
+            </div>
+            
+            {/* Full address */}
+            {profile.contact.physicalAddressDisplay && (
+              <div className="text-base sm:text-lg drop-shadow">
+                <span className="px-4 py-2 bg-white/10 rounded-lg backdrop-blur-sm inline-block">
+                  {profile.contact.physicalAddressDisplay}
+                </span>
+              </div>
+            )}
+            
+                        
+            {/* Quick facts chips */}
+            {heroFacts.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2 text-sm">
+                {heroFacts.map((f, index) => (
+                  <span key={index} className="px-3 py-1 bg-white/20 rounded-full backdrop-blur-sm">
+                    ✓ {f.label}
+                  </span>
+                ))}
+              </div>
+            )}
+            
+            {/* Badges */}
+            {hero.badges.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2 text-sm">
+                {hero.badges.map((b, index) => (
+                  <span key={index} className="px-3 py-1 bg-white/20 rounded-full backdrop-blur-sm flex items-center gap-1">
+                    {b.kind === "verified" && <FaCheckCircle className="w-4 h-4" />}
+                    {b.label}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

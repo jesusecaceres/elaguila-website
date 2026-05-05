@@ -12,14 +12,16 @@ import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
 const PREVIEW_CARD =
   "overflow-hidden rounded-[28px] border border-[#D8C2A0]/70 bg-[#FFFAF3] shadow-[0_18px_70px_-30px_rgba(42,36,22,0.25)] transition-shadow duration-300 hover:shadow-[0_22px_90px_-36px_rgba(42,36,22,0.32)]";
 
-const GRID = "grid gap-0 md:grid-cols-[360px_1fr]";
-const MEDIA = "relative h-[240px] w-full bg-[#F5F0E8] md:h-full";
-const MEDIA_INNER = "absolute inset-0 p-4 md:p-5";
-const MEDIA_FRAME = "relative h-full w-full overflow-hidden rounded-[22px] bg-[#EFE7DA]";
+/** Landscape results card: wide overall, left media ~40%, right content ~60%, media height capped by aspect (not stretched to content). */
+const GRID =
+  "grid min-w-0 grid-cols-1 gap-0 md:grid-cols-[minmax(0,42%)_minmax(0,58%)] md:items-start";
+const MEDIA = "min-w-0 bg-[#F5F0E8] p-4 md:p-5 md:pr-3";
+const MEDIA_FRAME = "relative aspect-[16/10] w-full overflow-hidden rounded-[22px] bg-[#EFE7DA]";
 
-const CONTENT = "flex min-w-0 flex-col gap-5 px-5 pb-6 pt-5 md:px-6 md:pb-7 md:pt-6";
+const CONTENT = "flex min-w-0 flex-col gap-4 px-5 pb-6 pt-5 md:gap-4 md:px-7 md:pb-7 md:pt-6";
 
-const TITLE = "text-[28px] font-bold leading-[1.1] tracking-tight text-[#1F1A17] md:text-[40px]";
+const TITLE =
+  "text-[26px] font-bold leading-[1.12] tracking-tight text-[#1F1A17] sm:text-[28px] md:text-[32px] lg:text-[34px]";
 const CHIP_ROW = "flex flex-wrap gap-2";
 const CHIP =
   "inline-flex items-center rounded-full border border-[#E1CFB3] bg-white/70 px-3 py-1.5 text-[12px] font-semibold text-[#2B241F] shadow-sm";
@@ -39,7 +41,7 @@ const FEATURE_ROW = "flex flex-wrap gap-2";
 const FEATURE_CHIP =
   "inline-flex items-center rounded-full border border-[#E1CFB3] bg-[#F6EBDD] px-3 py-1.5 text-[12px] font-semibold text-[#2B241F]";
 
-const CTA_ROW = "flex flex-wrap gap-2.5 pt-1";
+const CTA_ROW = "flex flex-wrap items-stretch gap-2.5 pt-1 md:items-center";
 const CTA_BTN_BASE =
   "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-bold shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3B66AD]/40";
 const CTA_PRIMARY = "border-[#B98D4C]/60 bg-[#B98D4C] text-white hover:bg-[#a77f46]";
@@ -164,33 +166,31 @@ export function RestaurantePreviewCard({
     <div className={`${PREVIEW_CARD} ${className}`}>
       <div className={GRID}>
         <div className={MEDIA}>
-          <div className={MEDIA_INNER}>
-            <div className={MEDIA_FRAME}>
-              {heroImage ? (
-                <Image
-                  src={heroImage}
-                  alt={data.heroImageAlt || data.businessName}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 360px"
-                  priority={false}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  <div className="flex flex-col items-center gap-2 text-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/5">
-                      <FiMapPin className="h-6 w-6 text-[#8B7E70]" aria-hidden />
-                    </div>
-                    <p className="text-xs font-semibold text-[#8B7E70]">{lang === "en" ? "No image yet" : "Sin imagen"}</p>
+          <div className={MEDIA_FRAME}>
+            {heroImage ? (
+              <Image
+                src={heroImage}
+                alt={data.heroImageAlt || data.businessName}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 42vw, 520px"
+                priority={false}
+              />
+            ) : (
+              <div className="flex h-full min-h-[140px] w-full items-center justify-center">
+                <div className="flex flex-col items-center gap-2 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/5">
+                    <FiMapPin className="h-6 w-6 text-[#8B7E70]" aria-hidden />
                   </div>
+                  <p className="text-xs font-semibold text-[#8B7E70]">{lang === "en" ? "No image yet" : "Sin imagen"}</p>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
         <div className={CONTENT}>
-          <div className="min-w-0 space-y-3">
+          <div className="min-w-0 space-y-2.5 md:space-y-3">
             {data.trustRating ? (
               <div className="flex items-center gap-2">
                 <StarRow rating={data.trustRating.average} />

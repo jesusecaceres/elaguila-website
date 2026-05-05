@@ -15,6 +15,18 @@ import { ServiciosOfferCard } from "./ServiciosOfferCard";
 import { ServiciosTrackedLink } from "./ServiciosTrackedLink";
 import { SV } from "./serviciosDesignTokens";
 
+// Leonix premium visual tokens matching Restaurantes
+const LEONIX_CARD_SURFACE = "#FFFAF3";
+const LEONIX_BORDER = "#D8C2A0";
+const LEONIX_PRIMARY_TEXT = "#1F1A17";
+const LEONIX_SECONDARY_TEXT = "#5A5148";
+const LEONIX_MUTED_TEXT = "#8B7E70";
+const LEONIX_GOLD_ACCENT = "#BEA98E";
+const LEONIX_DARK_CTA = "#2C1810";
+const LEONIX_SUCCESS_GREEN = "#1A4D2E";
+const LEONIX_INFO_BLUE = "#355C7D";
+const LEONIX_ELEVATED_CHIP = "#F6EBDD";
+
 function secondaryLabel(
   L: ReturnType<typeof getServiciosProfileLabels>,
   a: ServiciosSecondaryAction,
@@ -85,9 +97,9 @@ export function ServiciosActionPanel({
     quote?.kind === "whatsapp" || secondary.some((s) => s.id === "whatsapp");
 
   const linkBase =
-    "flex min-h-[46px] w-full items-center justify-center gap-2 rounded-xl border border-black/[0.08] bg-white px-3 py-3 text-sm font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:border-[#3B66AD]/40 hover:shadow-md";
+    "flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full border px-3 py-3 text-sm font-semibold shadow-sm transition hover:shadow-md";
   const primaryClass =
-    "flex min-h-[50px] w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-bold text-white shadow-lg transition hover:opacity-[0.97] active:scale-[0.99]";
+    "flex min-h-[50px] w-full items-center justify-center gap-2 rounded-full px-4 py-3.5 text-sm font-bold text-white shadow-lg transition hover:opacity-[0.97] active:scale-[0.99]";
 
   const headerBlock = featured ? (
     <div className="flex flex-wrap items-center gap-2 border-b border-black/[0.06] pb-4">
@@ -114,8 +126,12 @@ export function ServiciosActionPanel({
   return (
     <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
       <div
-        className="rounded-2xl border p-4 shadow-md sm:p-6"
-        style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadow }}
+        className="rounded-3xl border p-4 shadow-md sm:p-6"
+        style={{ 
+          backgroundColor: LEONIX_CARD_SURFACE, 
+          borderColor: LEONIX_BORDER, 
+          boxShadow: "0_8px_32px_-8px_rgba(212,165,116,0.15)" 
+        }}
       >
         {headerBlock}
 
@@ -134,7 +150,7 @@ export function ServiciosActionPanel({
                   ? { target: "_blank", rel: "noopener noreferrer" }
                   : {})}
                 className={`${primaryClass} mt-3`}
-                style={{ backgroundColor: SV.blue, boxShadow: "0 12px 32px rgba(59,102,173,0.28)" }}
+                style={{ backgroundColor: LEONIX_DARK_CTA, boxShadow: "0 12px 32px rgba(44,24,16,0.28)" }}
               >
                 <FiZap className="h-5 w-5 shrink-0" aria-hidden />
                 {primaryCtaLabel}
@@ -146,7 +162,7 @@ export function ServiciosActionPanel({
                   ? { target: "_blank", rel: "noopener noreferrer" }
                   : {})}
                 className={`${primaryClass} mt-3`}
-                style={{ backgroundColor: SV.blue, boxShadow: "0 12px 32px rgba(59,102,173,0.28)" }}
+                style={{ backgroundColor: LEONIX_DARK_CTA, boxShadow: "0 12px 32px rgba(44,24,16,0.28)" }}
               >
                 <FiZap className="h-5 w-5 shrink-0" aria-hidden />
                 {primaryCtaLabel}
@@ -164,7 +180,12 @@ export function ServiciosActionPanel({
                     eventType={analyticsForSecondaryId(a.id)}
                     href={a.href}
                     {...(a.id === "website" || a.id === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                    className={linkBase}
+                    className={`${linkBase}`}
+                style={{ 
+                  backgroundColor: "white", 
+                  borderColor: LEONIX_BORDER, 
+                  color: LEONIX_PRIMARY_TEXT 
+                }}
                   >
                     <SecondaryIcon id={a.id} />
                     {secondaryLabel(L, a)}
@@ -174,7 +195,12 @@ export function ServiciosActionPanel({
                     key={`${a.id}-${a.href}`}
                     href={a.href}
                     {...(a.id === "website" || a.id === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                    className={linkBase}
+                    className={`${linkBase}`}
+                style={{ 
+                  backgroundColor: "white", 
+                  borderColor: LEONIX_BORDER, 
+                  color: LEONIX_PRIMARY_TEXT 
+                }}
                   >
                     <SecondaryIcon id={a.id} />
                     {secondaryLabel(L, a)}
@@ -199,7 +225,12 @@ export function ServiciosActionPanel({
                   href={social.instagram}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35 sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
+                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border shadow-sm transition hover:shadow-md sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
+                  style={{ 
+                    backgroundColor: LEONIX_ELEVATED_CHIP, 
+                    borderColor: LEONIX_BORDER, 
+                    color: LEONIX_PRIMARY_TEXT 
+                  }}
                   aria-label="Instagram"
                 >
                   <FaInstagram className="h-4 w-4" aria-hidden />
@@ -210,7 +241,12 @@ export function ServiciosActionPanel({
                   href={social.facebook}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35 sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
+                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border shadow-sm transition hover:shadow-md sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
+                  style={{ 
+                    backgroundColor: LEONIX_ELEVATED_CHIP, 
+                    borderColor: LEONIX_BORDER, 
+                    color: LEONIX_PRIMARY_TEXT 
+                  }}
                   aria-label="Facebook"
                 >
                   <FaFacebook className="h-4 w-4" aria-hidden />
@@ -221,7 +257,12 @@ export function ServiciosActionPanel({
                   href={social.youtube}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35 sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
+                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border shadow-sm transition hover:shadow-md sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
+                  style={{ 
+                    backgroundColor: LEONIX_ELEVATED_CHIP, 
+                    borderColor: LEONIX_BORDER, 
+                    color: LEONIX_PRIMARY_TEXT 
+                  }}
                   aria-label="YouTube"
                 >
                   <FaYoutube className="h-4 w-4" aria-hidden />
@@ -232,7 +273,12 @@ export function ServiciosActionPanel({
                   href={social.tiktok}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35 sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
+                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border shadow-sm transition hover:shadow-md sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
+                  style={{ 
+                    backgroundColor: LEONIX_ELEVATED_CHIP, 
+                    borderColor: LEONIX_BORDER, 
+                    color: LEONIX_PRIMARY_TEXT 
+                  }}
                   aria-label="TikTok"
                 >
                   <FaTiktok className="h-4 w-4" aria-hidden />
@@ -243,7 +289,12 @@ export function ServiciosActionPanel({
                   href={social.linkedin}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35 sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
+                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border shadow-sm transition hover:shadow-md sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
+                  style={{ 
+                    backgroundColor: LEONIX_ELEVATED_CHIP, 
+                    borderColor: LEONIX_BORDER, 
+                    color: LEONIX_PRIMARY_TEXT 
+                  }}
                   aria-label="LinkedIn"
                 >
                   <FaLinkedin className="h-4 w-4" aria-hidden />
@@ -254,7 +305,12 @@ export function ServiciosActionPanel({
                   href={social.whatsapp}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#25D366] shadow-sm transition hover:border-[#25D366]/45 sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
+                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border shadow-sm transition hover:shadow-md sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
+                  style={{ 
+                    backgroundColor: LEONIX_ELEVATED_CHIP, 
+                    borderColor: LEONIX_BORDER, 
+                    color: "#25D366" 
+                  }}
                   aria-label="WhatsApp"
                 >
                   <FaWhatsapp className="h-5 w-5" aria-hidden />

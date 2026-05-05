@@ -491,18 +491,18 @@ export default function RestaurantePreviewClient() {
                 Así se verá tu anuncio en resultados, búsquedas y tarjetas destacadas.
               </p>
             </div>
-            <div 
-              className="rounded-3xl border p-8 shadow-[0_16px_64px_-24px_rgba(212,165,116,0.18)]"
-              style={{ 
-                background: LEONIX_CARD_SURFACE, 
-                borderColor: LEONIX_BORDER 
+            <div
+              className="rounded-3xl border p-4 shadow-[0_16px_64px_-24px_rgba(212,165,116,0.18)] sm:p-6 md:p-8"
+              style={{
+                background: LEONIX_CARD_SURFACE,
+                borderColor: LEONIX_BORDER,
               }}
             >
-              <RestaurantePreviewCard 
-                data={shellData} 
+              <RestaurantePreviewCard
+                data={shellData}
                 listingId={shellData.id}
                 showEngagementMetrics={true}
-                className="max-w-2xl mx-auto"
+                className="mx-auto w-full max-w-6xl"
               />
             </div>
           </div>
