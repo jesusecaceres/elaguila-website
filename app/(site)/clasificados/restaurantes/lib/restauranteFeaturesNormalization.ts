@@ -119,8 +119,8 @@ const HIGHLIGHT_LABELS: Record<string, string> = {
 
 // Language labels mapping
 const LANGUAGE_LABELS: Record<string, string> = {
-  'spanish': 'Español',
-  'english': 'Inglés',
+  'es': 'Español',
+  'en': 'Inglés',
   'other_lang': 'Otro'
 };
 
