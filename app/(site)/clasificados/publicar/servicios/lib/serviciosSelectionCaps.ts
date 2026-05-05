@@ -1,4 +1,11 @@
 import type { ClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationTypes";
+import { isBusinessHighlightPresetId } from "./businessHighlightPresets";
+import { normalizeBusinessHighlightDedupeKey } from "./serviciosCustomBusinessHighlights";
+import {
+  BUSINESS_HIGHLIGHT_LABEL_MAX,
+  MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION,
+  MAX_CUSTOM_BUSINESS_HIGHLIGHTS,
+} from "./serviciosHighlightCaps";
 
 /** Max preset service chips selected at once (generous cap for real listings) */
 export const MAX_SERVICES_SELECTION = 24;
@@ -57,6 +64,30 @@ export function enforceServiciosSelectionCaps(
     }
   }
 
+  const highlightIds = [...s.selectedBusinessHighlightIds].filter((id) => isBusinessHighlightPresetId(id));
+  while (highlightIds.length > MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION) {
+    highlightIds.pop();
+  }
+
+  const bhCustomIn = Array.isArray(s.customBusinessHighlights) ? [...s.customBusinessHighlights] : [];
+  const bhCustom: string[] = [];
+  const bhSeen = new Set<string>();
+  for (const raw of bhCustomIn) {
+    if (typeof raw !== "string") continue;
+    const t = raw.trim().slice(0, BUSINESS_HIGHLIGHT_LABEL_MAX);
+    if (!t) continue;
+    const k = normalizeBusinessHighlightDedupeKey(t);
+    if (bhSeen.has(k)) continue;
+    bhSeen.add(k);
+    bhCustom.push(t);
+    if (bhCustom.length >= MAX_CUSTOM_BUSINESS_HIGHLIGHTS) break;
+  }
+
+  const customBusinessHighlightLabel =
+    typeof s.customBusinessHighlightLabel === "string"
+      ? s.customBusinessHighlightLabel.trim().slice(0, BUSINESS_HIGHLIGHT_LABEL_MAX)
+      : "";
+
   return {
     ...s,
     selectedServiceIds: sis,
@@ -66,5 +97,8 @@ export function enforceServiciosSelectionCaps(
     customServiceIncluded: false,
     customReasonIncluded: customR,
     customQuickFactIncluded: customQ,
+    selectedBusinessHighlightIds: highlightIds,
+    customBusinessHighlights: bhCustom,
+    customBusinessHighlightLabel,
   };
 }

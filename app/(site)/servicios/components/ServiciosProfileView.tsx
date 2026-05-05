@@ -1,6 +1,7 @@
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import {
   hasAboutSectionResolved,
+  hasBusinessHighlightsResolved,
   hasHeroIdentityResolved,
   hasQuickFactsResolved,
 } from "../lib/serviciosProfilePresence";
@@ -8,6 +9,7 @@ import { ServiciosTopBar } from "./ServiciosTopBar";
 import { ServiciosHero } from "./ServiciosHero";
 import { ServiciosQuickFacts } from "./ServiciosQuickFacts";
 import { ServiciosAbout } from "./ServiciosAbout";
+import { ServiciosHighlightsSection } from "./ServiciosHighlightsSection";
 import { ServiciosOfferedSection } from "./ServiciosServicesGrid";
 import { ServiciosGallery } from "./ServiciosGallery";
 import { ServiciosOfferCard } from "./ServiciosOfferCard";
@@ -88,6 +90,9 @@ export function ServiciosProfileView({
             <ServiciosOfferCard profile={profile} lang={lang} />
             {hasAboutSectionResolved(profile) ? <ServiciosAbout profile={profile} lang={lang} /> : null}
             <ServiciosOfferedSection services={profile.services} lang={lang} profileForQuote={profile} />
+            {hasBusinessHighlightsResolved(profile) ? (
+              <ServiciosHighlightsSection highlights={profile.highlights} lang={lang} />
+            ) : null}
             <ServiciosGallery profile={profile} lang={lang} />
             <ServiciosHours profile={profile} lang={lang} />
             <ServiciosLicense profile={profile} lang={lang} />

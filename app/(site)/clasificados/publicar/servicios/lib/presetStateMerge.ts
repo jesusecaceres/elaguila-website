@@ -1,3 +1,4 @@
+import { BUSINESS_HIGHLIGHT_PRESET_CHIPS } from "./businessHighlightPresets";
 import { getBusinessTypePreset } from "./businessTypePresets";
 import type { ClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationTypes";
 import { enforceServiciosSelectionCaps } from "./serviciosSelectionCaps";
@@ -18,6 +19,7 @@ export function mergeStateForBusinessTypeChange(
   const rSet = new Set(p.reasonsToChoose.map((x) => x.id));
   const qSet = new Set(p.quickFacts.map((x) => x.id));
   const gIds = new Set(prev.gallery.map((g) => g.id));
+  const hSet = new Set(BUSINESS_HIGHLIGHT_PRESET_CHIPS.map((x) => x.id));
 
   return enforceServiciosSelectionCaps({
     ...prev,
@@ -25,6 +27,7 @@ export function mergeStateForBusinessTypeChange(
     selectedServiceIds: prev.selectedServiceIds.filter((id) => sSet.has(id)),
     selectedReasonIds: prev.selectedReasonIds.filter((id) => rSet.has(id)),
     selectedQuickFactIds: prev.selectedQuickFactIds.filter((id) => qSet.has(id)),
+    selectedBusinessHighlightIds: prev.selectedBusinessHighlightIds.filter((id) => hSet.has(id)),
     primaryCtaId: "",
     secondaryCtaIds: [],
     featuredGalleryIds: prev.featuredGalleryIds.filter((id) => gIds.has(id)).slice(0, 4),

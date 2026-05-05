@@ -134,6 +134,12 @@ export type ClasificadosServiciosApplicationState = {
   /** Short label — paired with `customQuickFactIncluded` */
   customQuickFactLabel: string;
   customQuickFactIncluded: boolean;
+  /** Preset highlight chip ids from `BUSINESS_HIGHLIGHT_PRESET_CHIPS` */
+  selectedBusinessHighlightIds: string[];
+  /** Advertiser-typed highlight lines (trimmed in normalize / caps) */
+  customBusinessHighlights: string[];
+  /** Pending custom highlight input (flushed on Añadir / Siguiente) */
+  customBusinessHighlightLabel: string;
   /** Interest in Leonix verification — does not grant a badge; ops-controlled later */
   leonixVerifiedInterest: boolean;
   /** contact method toggles */

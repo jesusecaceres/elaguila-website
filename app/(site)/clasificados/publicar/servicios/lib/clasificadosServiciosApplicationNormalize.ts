@@ -6,12 +6,14 @@ import type {
   VideoItem,
 } from "./clasificadosServiciosApplicationTypes";
 import { createDefaultClasificadosServiciosState } from "./defaultClasificadosServiciosState";
+import { isBusinessHighlightPresetId } from "./businessHighlightPresets";
 import { normalizeServiceOfferedDedupeKey } from "./serviciosCustomServicesOffered";
 import {
   CUSTOM_CHIP_MAX_LENGTH,
   MAX_CUSTOM_SERVICES_OFFERED,
   enforceServiciosSelectionCaps,
 } from "./serviciosSelectionCaps";
+import { BUSINESS_HIGHLIGHT_LABEL_MAX } from "./serviciosHighlightCaps";
 import { SERVICIOS_APPLICATION_STEP_COUNT } from "./serviciosApplicationStepLabels";
 
 const DAY_KEYS: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
@@ -102,6 +104,16 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
   let selectedQuickFactIds = d.selectedQuickFactIds;
   if (Array.isArray(o.selectedQuickFactIds)) {
     selectedQuickFactIds = o.selectedQuickFactIds.filter((x): x is string => typeof x === "string");
+  }
+  let selectedBusinessHighlightIds = d.selectedBusinessHighlightIds;
+  if (Array.isArray(o.selectedBusinessHighlightIds)) {
+    selectedBusinessHighlightIds = o.selectedBusinessHighlightIds.filter(
+      (x): x is string => typeof x === "string" && isBusinessHighlightPresetId(x),
+    );
+  }
+  let customBusinessHighlights = d.customBusinessHighlights;
+  if (Array.isArray(o.customBusinessHighlights)) {
+    customBusinessHighlights = o.customBusinessHighlights.filter((x): x is string => typeof x === "string");
   }
   let secondaryCtaIds = d.secondaryCtaIds;
   if (Array.isArray(o.secondaryCtaIds)) {
@@ -219,6 +231,12 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     selectedQuickFactIds,
     customQuickFactLabel: str("customQuickFactLabel", d.customQuickFactLabel),
     customQuickFactIncluded: bool("customQuickFactIncluded", d.customQuickFactIncluded),
+    selectedBusinessHighlightIds,
+    customBusinessHighlights,
+    customBusinessHighlightLabel: str("customBusinessHighlightLabel", d.customBusinessHighlightLabel).slice(
+      0,
+      BUSINESS_HIGHLIGHT_LABEL_MAX,
+    ),
     enableCall: bool("enableCall", d.enableCall),
     enableMessage: bool("enableMessage", d.enableMessage),
     enableWhatsapp: bool("enableWhatsapp", d.enableWhatsapp),

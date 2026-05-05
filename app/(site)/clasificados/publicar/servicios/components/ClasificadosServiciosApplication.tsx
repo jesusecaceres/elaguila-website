@@ -57,9 +57,17 @@ import {
   MAX_SERVICES_SELECTION,
   enforceServiciosSelectionCaps,
 } from "../lib/serviciosSelectionCaps";
+import { BUSINESS_HIGHLIGHT_PRESET_CHIPS } from "../lib/businessHighlightPresets";
+import { evaluateAddCustomBusinessHighlight } from "../lib/serviciosCustomBusinessHighlights";
 import { evaluateAddCustomServiceOffered } from "../lib/serviciosCustomServicesOffered";
+import {
+  BUSINESS_HIGHLIGHT_LABEL_MAX,
+  MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION,
+  MAX_CUSTOM_BUSINESS_HIGHLIGHTS,
+} from "../lib/serviciosHighlightCaps";
 import { isValidEmail } from "../lib/leonixContactCtaPriority";
 import { digitsOnly, formatPhoneInputDisplay } from "../lib/serviciosPhoneUi";
+import { resolveServiciosBusinessHighlightVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosBusinessHighlightVisual";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
 import {
   isProbablyValidWebUrl,
@@ -356,7 +364,14 @@ export function ClasificadosServiciosApplication() {
     });
   };
 
-  const toggleChipList = (field: "selectedServiceIds" | "selectedReasonIds" | "selectedQuickFactIds", id: string) => {
+  const toggleChipList = (
+    field:
+      | "selectedServiceIds"
+      | "selectedReasonIds"
+      | "selectedQuickFactIds"
+      | "selectedBusinessHighlightIds",
+    id: string,
+  ) => {
     setState((prev) => {
       const cur = prev[field];
       const on = !cur.includes(id);
@@ -368,9 +383,11 @@ export function ClasificadosServiciosApplication() {
           ? MAX_SERVICES_SELECTION
           : field === "selectedReasonIds"
             ? MAX_REASONS_SELECTION
-            : MAX_QUICK_FACTS_SELECTION;
+            : field === "selectedQuickFactIds"
+              ? MAX_QUICK_FACTS_SELECTION
+              : MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION;
       const customSlot =
-        field === "selectedServiceIds"
+        field === "selectedServiceIds" || field === "selectedBusinessHighlightIds"
           ? 0
           : field === "selectedReasonIds"
             ? prev.customReasonIncluded && prev.customReasonLabel.trim()
@@ -395,6 +412,10 @@ export function ClasificadosServiciosApplication() {
       state.selectedQuickFactIds.length +
       (state.customQuickFactIncluded && state.customQuickFactLabel.trim() ? 1 : 0),
     [state.customQuickFactIncluded, state.customQuickFactLabel, state.selectedQuickFactIds],
+  );
+  const businessHighlightSelectionCount = useMemo(
+    () => state.selectedBusinessHighlightIds.length,
+    [state.selectedBusinessHighlightIds],
   );
 
   const pickFileToUrl = async (file: File | null, field: "logoUrl" | "coverUrl") => {
@@ -1621,6 +1642,117 @@ export function ClasificadosServiciosApplication() {
             </section>
 
             <section className={sectionCard}>
+              <h2 className="text-lg font-bold text-[#3D2C12]">{copy.labels.highlightsSectionTitle}</h2>
+              <p className="mt-1 text-sm text-[#5D4A25]/85">{copy.labels.highlightsSectionHelper}</p>
+              <p className="mt-4 text-sm font-semibold text-[#3D2C12]">{copy.labels.highlightsSuggestedHeading}</p>
+              <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1 pb-1">
+                {BUSINESS_HIGHLIGHT_PRESET_CHIPS.map((c: ChipDef) => {
+                  const selected = state.selectedBusinessHighlightIds.includes(c.id);
+                  const disabled = !selected && businessHighlightSelectionCount >= MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION;
+                  return (
+                    <Chip
+                      key={c.id}
+                      selected={selected}
+                      onClick={() => {
+                        if (disabled) return;
+                        toggleChipList("selectedBusinessHighlightIds", c.id);
+                      }}
+                      className={disabled ? "cursor-not-allowed opacity-45" : undefined}
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="text-[0.95rem] leading-none" aria-hidden>
+                          {
+                            resolveServiciosBusinessHighlightVisual({
+                              id: `bh_preset_${c.id}`,
+                              label: chipLabel(c, lang),
+                            }).emoji
+                          }
+                        </span>
+                        {chipLabel(c, lang)}
+                      </span>
+                    </Chip>
+                  );
+                })}
+              </div>
+              {businessHighlightSelectionCount >= MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION ? (
+                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxPresetHighlights}</p>
+              ) : null}
+              <label className={`mt-6 block ${labelClass}`}>{copy.labels.addOtherHighlightHeading}</label>
+              <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.customChipShortHint}</p>
+              <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+                <input
+                  className={inputClass}
+                  placeholder={copy.labels.highlightCustomPlaceholder}
+                  maxLength={BUSINESS_HIGHLIGHT_LABEL_MAX}
+                  value={state.customBusinessHighlightLabel}
+                  onChange={(e) => {
+                    const v = e.target.value.slice(0, BUSINESS_HIGHLIGHT_LABEL_MAX);
+                    setState((s) => ({ ...s, customBusinessHighlightLabel: v }));
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={
+                    !state.customBusinessHighlightLabel.trim() ||
+                    state.customBusinessHighlights.length >= MAX_CUSTOM_BUSINESS_HIGHLIGHTS
+                  }
+                  className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                  onClick={() => {
+                    setState((prev) => {
+                      const r = evaluateAddCustomBusinessHighlight(prev, lang, prev.customBusinessHighlightLabel);
+                      if (!r.ok) return prev;
+                      return enforceServiciosSelectionCaps({
+                        ...prev,
+                        customBusinessHighlights: [...prev.customBusinessHighlights, r.label],
+                        customBusinessHighlightLabel: "",
+                      });
+                    });
+                  }}
+                >
+                  {copy.labels.addCustomChip}
+                </button>
+              </div>
+              {state.customBusinessHighlights.length >= MAX_CUSTOM_BUSINESS_HIGHLIGHTS ? (
+                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.customHighlightsMax}</p>
+              ) : null}
+              {state.customBusinessHighlights.length > 0 ? (
+                <div className="mt-5">
+                  <p className="text-sm font-semibold text-[#3D2C12]">{copy.labels.addedHighlightsSection}</p>
+                  <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1">
+                    {state.customBusinessHighlights.map((label, i) => (
+                      <button
+                        key={`cbh-${i}-${label}`}
+                        type="button"
+                        title={label}
+                        aria-label={`${copy.labels.remove}: ${label}`}
+                        onClick={() =>
+                          setState((prev) =>
+                            enforceServiciosSelectionCaps({
+                              ...prev,
+                              customBusinessHighlights: prev.customBusinessHighlights.filter((_, j) => j !== i),
+                            }),
+                          )
+                        }
+                        className="inline-flex max-w-full min-w-0 min-h-[40px] touch-manipulation items-center gap-1.5 rounded-full border border-[#3B66AD] bg-[#3B66AD]/10 px-3 py-2 text-left text-sm font-medium text-[#1e3a5f] ring-1 ring-[#3B66AD]/20 transition active:scale-[0.99] hover:bg-[#3B66AD]/15"
+                      >
+                        <span className="shrink-0 text-[0.95rem] leading-none" aria-hidden>
+                          {
+                            resolveServiciosBusinessHighlightVisual({
+                              id: `bh_custom_${i}`,
+                              label,
+                            }).emoji
+                          }
+                        </span>
+                        <span className="min-w-0 max-w-[14rem] truncate sm:max-w-[18rem]">{label}</span>
+                        <FiX className="h-3.5 w-3.5 shrink-0 text-[#1e3a5f]/70" aria-hidden />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </section>
+
+            <section className={sectionCard}>
               <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.quickFacts}</h2>
               <p className="mt-1 text-sm text-[#5D4A25]/85">{copy.labels.quickHint}</p>
               <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
@@ -2150,6 +2282,18 @@ export function ClasificadosServiciosApplication() {
                             }
                           }
 
+                          const pendingHighlight = w.customBusinessHighlightLabel.trim();
+                          if (pendingHighlight) {
+                            const r = evaluateAddCustomBusinessHighlight(w, lang, pendingHighlight);
+                            w = r.ok
+                              ? enforceServiciosSelectionCaps({
+                                  ...w,
+                                  customBusinessHighlights: [...w.customBusinessHighlights, r.label],
+                                  customBusinessHighlightLabel: "",
+                                })
+                              : enforceServiciosSelectionCaps({ ...w, customBusinessHighlightLabel: "" });
+                          }
+
                           return {
                             customServicesOffered: w.customServicesOffered,
                             customServiceLabel: w.customServiceLabel,
@@ -2158,6 +2302,9 @@ export function ClasificadosServiciosApplication() {
                             customReasonLabel: w.customReasonLabel,
                             customQuickFactIncluded: w.customQuickFactIncluded,
                             customQuickFactLabel: w.customQuickFactLabel,
+                            selectedBusinessHighlightIds: w.selectedBusinessHighlightIds,
+                            customBusinessHighlights: w.customBusinessHighlights,
+                            customBusinessHighlightLabel: w.customBusinessHighlightLabel,
                           };
                         })()
                       : {}),

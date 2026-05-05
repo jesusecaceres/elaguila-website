@@ -73,6 +73,12 @@ export type ServiciosTrustItem = {
   icon: "shield" | "shieldCheck" | "star" | "clock" | "heart" | "check";
 };
 
+/** Short trust/conversion highlight (preset or custom) — wire + resolved share shape */
+export type ServiciosBusinessHighlightItem = {
+  id: string;
+  label: string;
+};
+
 /** Persisted with listing `profile_json.opsMeta` — discovery filters + trust-adjacent attestations flag. */
 export type ServiciosDiscoveryFacet = {
   languageChipIds: string[];
@@ -216,6 +222,8 @@ export type ServiciosBusinessProfile = {
   featuredGalleryIds?: string[];
   galleryVideos?: ServiciosGalleryVideo[];
   trust?: ServiciosTrustItem[];
+  /** Highlights del negocio (Clasificados Servicios) */
+  businessHighlights?: ServiciosBusinessHighlightItem[];
   reviews?: ServiciosReview[];
   serviceAreas?: ServiciosServiceAreasBlock;
   promo?: ServiciosPromoOffer;
@@ -283,6 +291,7 @@ export type ServiciosProfileResolved = {
   /** Up to two sanitized video URLs (https or draft data: URLs) */
   galleryVideos: ServiciosGalleryVideo[];
   trust: ServiciosTrustItem[];
+  highlights: ServiciosBusinessHighlightItem[];
   reviews: ServiciosReview[];
   serviceAreas: { items: ServiciosServiceArea[]; mapImageUrl?: string };
   /** Sanitized offer — only safe href exposed for links */

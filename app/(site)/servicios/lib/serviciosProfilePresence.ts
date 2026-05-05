@@ -80,6 +80,10 @@ export function hasServicesSectionResolved(p: ServiciosProfileResolved): boolean
   return p.services.length > 0;
 }
 
+export function hasBusinessHighlightsResolved(p: ServiciosProfileResolved): boolean {
+  return p.highlights.length > 0;
+}
+
 export function hasGallerySectionResolved(p: ServiciosProfileResolved): boolean {
   return p.gallery.length > 0 || p.galleryMore.length > 0 || p.galleryVideos.length > 0;
 }

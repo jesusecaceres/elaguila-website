@@ -12,6 +12,7 @@ import type {
   ServiciosQuickFact,
   ServiciosReview,
   ServiciosServiceAreasBlock,
+  ServiciosBusinessHighlightItem,
   ServiciosServiceCard,
   ServiciosTrustItem,
 } from "../types/serviciosBusinessProfile";
@@ -154,6 +155,7 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   const gallery = mapGallery(draft.gallery);
   const galleryVideos = mapGalleryVideos(draft.galleryVideos);
   const trust = mapTrust(draft.trust);
+  const businessHighlights = mapBusinessHighlights(draft.highlights);
   const reviews = mapReviews(draft.reviews);
   const serviceAreas = mapServiceAreas(draft.serviceAreas);
   const promo = mapPromo(draft.promo);
@@ -175,6 +177,7 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   if (featuredIds.length) out.featuredGalleryIds = featuredIds;
   if (galleryVideos.length) out.galleryVideos = galleryVideos;
   if (trust.length) out.trust = trust;
+  if (businessHighlights.length) out.businessHighlights = businessHighlights;
   if (reviews.length) out.reviews = reviews;
   if (serviceAreas) out.serviceAreas = serviceAreas;
   if (promo) out.promo = promo;
@@ -190,6 +193,20 @@ function mapHeroBadges(raw: ServiciosApplicationDraft["hero"]["badges"]): Servic
     const label = trim(b.label);
     if (!label) continue;
     out.push({ kind: b.kind, label });
+  }
+  return out;
+}
+
+function mapBusinessHighlights(
+  raw: ServiciosApplicationDraft["highlights"],
+): ServiciosBusinessHighlightItem[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ServiciosBusinessHighlightItem[] = [];
+  for (const row of raw) {
+    if (!row || typeof row.id !== "string") continue;
+    const label = trim(row.label);
+    if (!label) continue;
+    out.push({ id: trim(row.id) || row.id, label });
   }
   return out;
 }

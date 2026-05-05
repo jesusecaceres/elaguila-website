@@ -12,7 +12,10 @@ import { isProbablyValidWebUrl, normalizeHttpUrl } from "./socialAndUrlHelpers";
 import { slugifyServiciosBusinessName } from "./serviciosSlug";
 import { WEEK_DAY_LABELS } from "./defaultClasificadosServiciosState";
 import { resolveServiciosPublicCategoryLabel } from "./resolveServiciosPublicCategoryLabel";
+import { getBusinessHighlightPreset } from "./businessHighlightPresets";
+import { normalizeBusinessHighlightDedupeKey } from "./serviciosCustomBusinessHighlights";
 import { normalizeServiceOfferedDedupeKey } from "./serviciosCustomServicesOffered";
+import { BUSINESS_HIGHLIGHT_LABEL_MAX } from "./serviciosHighlightCaps";
 import { CUSTOM_CHIP_MAX_LENGTH } from "./serviciosSelectionCaps";
 
 const JS_DAY_TO_ROW: DayKey[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -171,6 +174,27 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       icon: TRUST_ICONS[ti % TRUST_ICONS.length]!,
     });
     ti += 1;
+  }
+
+  const highlights: NonNullable<ServiciosApplicationDraft["highlights"]> = [];
+  const highlightKeys = new Set<string>();
+  for (const hid of state.selectedBusinessHighlightIds) {
+    const chip = getBusinessHighlightPreset(hid);
+    if (!chip) continue;
+    const label = chipLabel(chip, lang);
+    const key = normalizeBusinessHighlightDedupeKey(label);
+    if (highlightKeys.has(key)) continue;
+    highlightKeys.add(key);
+    highlights.push({ id: `bh_preset_${hid}`, label });
+  }
+  for (const raw of state.customBusinessHighlights ?? []) {
+    if (typeof raw !== "string") continue;
+    const label = raw.trim().slice(0, BUSINESS_HIGHLIGHT_LABEL_MAX);
+    if (!label) continue;
+    const key = normalizeBusinessHighlightDedupeKey(label);
+    if (highlightKeys.has(key)) continue;
+    highlightKeys.add(key);
+    highlights.push({ id: `bh_custom_${highlights.length}`, label });
   }
 
   const reviews: NonNullable<ServiciosApplicationDraft["reviews"]> = [];
@@ -340,6 +364,7 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (featuredGalleryIds.length) draft.featuredGalleryIds = featuredGalleryIds;
   if (galleryVideosRaw.length) draft.galleryVideos = galleryVideosRaw;
   if (trust.length) draft.trust = trust;
+  if (highlights.length) draft.highlights = highlights;
   if (reviews.length) draft.reviews = reviews;
   if (serviceAreas && (serviceAreas.items?.length || serviceAreas.mapImageUrl)) draft.serviceAreas = serviceAreas;
   if (offerTitle) {

@@ -148,6 +148,12 @@ export type ServiciosApplicationQuickFactDraft = {
   label: string;
 };
 
+/** Trust / conversion highlight line (preset or custom), localized at map time */
+export type ServiciosApplicationHighlightDraft = {
+  id: string;
+  label: string;
+};
+
 /**
  * Full Servicios business application draft — one group per form step / persistence blob.
  */
@@ -162,6 +168,8 @@ export type ServiciosApplicationDraft = {
   featuredGalleryIds?: string[];
   galleryVideos?: ServiciosApplicationGalleryVideoDraft[];
   trust?: ServiciosApplicationTrustRowDraft[];
+  /** Business highlights (Clasificados Servicios Phase 3) */
+  highlights?: ServiciosApplicationHighlightDraft[];
   reviews?: ServiciosApplicationReviewDraft[];
   serviceAreas?: ServiciosApplicationServiceAreasDraft;
   promo?: ServiciosApplicationPromoDraft;

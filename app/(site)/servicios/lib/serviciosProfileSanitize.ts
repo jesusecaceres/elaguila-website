@@ -7,6 +7,7 @@ import type {
   ServiciosQuickFact,
   ServiciosReview,
   ServiciosServiceArea,
+  ServiciosBusinessHighlightItem,
   ServiciosServiceCard,
   ServiciosServiceVisualVariant,
   ServiciosTrustItem,
@@ -142,6 +143,31 @@ export function filterQuickFacts(facts: ServiciosQuickFact[] | undefined): Servi
     const label = trimText(f.label);
     if (!label) continue;
     out.push({ kind: f.kind, label });
+  }
+  return out;
+}
+
+const MAX_BUSINESS_HIGHLIGHTS = 48;
+
+export function filterBusinessHighlights(
+  raw: ServiciosBusinessHighlightItem[] | undefined,
+): ServiciosBusinessHighlightItem[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ServiciosBusinessHighlightItem[] = [];
+  const seen = new Set<string>();
+  for (const row of raw) {
+    if (!row || typeof row.id !== "string") continue;
+    const id = trimText(row.id);
+    const label = trimText(row.label);
+    if (!id || !label) continue;
+    const k = label
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{M}/gu, "");
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push({ id, label: label.slice(0, 120) });
+    if (out.length >= MAX_BUSINESS_HIGHLIGHTS) break;
   }
   return out;
 }

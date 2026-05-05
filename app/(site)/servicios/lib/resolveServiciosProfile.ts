@@ -5,6 +5,7 @@ import type {
   ServiciosLang,
 } from "../types/serviciosBusinessProfile";
 import {
+  filterBusinessHighlights,
   filterGallery,
   filterGalleryVideos,
   filterHeroBadges,
@@ -175,6 +176,7 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
     galleryMore,
     galleryVideos,
     trust: filterTrustItems(input.trust),
+    highlights: filterBusinessHighlights(input.businessHighlights),
     reviews,
     serviceAreas: {
       items: areaItems,

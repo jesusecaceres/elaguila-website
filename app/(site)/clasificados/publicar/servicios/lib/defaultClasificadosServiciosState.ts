@@ -62,6 +62,9 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     selectedQuickFactIds: [],
     customQuickFactLabel: "",
     customQuickFactIncluded: false,
+    selectedBusinessHighlightIds: [],
+    customBusinessHighlights: [],
+    customBusinessHighlightLabel: "",
     leonixVerifiedInterest: false,
     enableCall: true,
     enableMessage: false,
@@ -127,6 +130,9 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
   }
   if (s.selectedReasonIds.length > 0 || (s.customReasonIncluded && s.customReasonLabel.trim())) return true;
   if (s.selectedQuickFactIds.length > 0 || (s.customQuickFactIncluded && s.customQuickFactLabel.trim())) return true;
+  if (s.selectedBusinessHighlightIds.length > 0 || s.customBusinessHighlights.length > 0 || s.customBusinessHighlightLabel.trim()) {
+    return true;
+  }
   if (s.primaryCtaId.trim() || s.secondaryCtaIds.length > 0) return true;
   if (s.leonixVerifiedInterest) return true;
   if (

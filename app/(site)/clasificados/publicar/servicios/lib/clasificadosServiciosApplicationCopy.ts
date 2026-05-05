@@ -1,4 +1,8 @@
 import type { ServiciosLang } from "./clasificadosServiciosApplicationTypes";
+import {
+  MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION,
+  MAX_CUSTOM_BUSINESS_HIGHLIGHTS,
+} from "./serviciosHighlightCaps";
 import { MAX_CUSTOM_SERVICES_OFFERED, MAX_SERVICES_SELECTION } from "./serviciosSelectionCaps";
 
 export type ClasificadosServiciosCopy = {
@@ -141,6 +145,14 @@ export type ClasificadosServiciosCopy = {
     servicesSuggestedHeading: string;
     addOtherServiceHeading: string;
     customServicesHelperHint: string;
+    highlightsSectionTitle: string;
+    highlightsSectionHelper: string;
+    highlightsSuggestedHeading: string;
+    addOtherHighlightHeading: string;
+    highlightCustomPlaceholder: string;
+    addedHighlightsSection: string;
+    customHighlightsMax: string;
+    selectionMaxPresetHighlights: string;
     selectionMaxThree: string;
     aboutServicesGapNote: string;
     leonixVerified: string;
@@ -364,6 +376,14 @@ const es: ClasificadosServiciosCopy = {
     addOtherServiceHeading: "Agregar otro servicio:",
     customServicesHelperHint:
       "Puedes agregar varios servicios. Los primeros aparecerán destacados en el anuncio.",
+    highlightsSectionTitle: "Highlights del negocio",
+    highlightsSectionHelper: "Selecciona detalles que ayuden al cliente a confiar y decidir más rápido.",
+    highlightsSuggestedHeading: "Sugeridos:",
+    addOtherHighlightHeading: "Agregar otro highlight:",
+    highlightCustomPlaceholder: "Ej.: Financiamiento disponible",
+    addedHighlightsSection: "Highlights agregados:",
+    customHighlightsMax: `Máximo ${MAX_CUSTOM_BUSINESS_HIGHLIGHTS} highlights personalizados`,
+    selectionMaxPresetHighlights: `Puedes elegir hasta ${MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION} sugeridos.`,
     selectionMaxThree: "Máximo 3 opciones",
     aboutServicesGapNote:
       "Si algo de tu oferta no encaja en las opciones sugeridas, detállalo aquí: especialidades, materiales, alcance y condiciones. Ayuda a los clientes a entender exactamente qué resuelves.",
@@ -581,6 +601,14 @@ const en: ClasificadosServiciosCopy = {
     addOtherServiceHeading: "Add another service:",
     customServicesHelperHint:
       "You can add multiple services. The first ones may appear highlighted in the listing.",
+    highlightsSectionTitle: "Business highlights",
+    highlightsSectionHelper: "Select details that help customers trust the business and decide faster.",
+    highlightsSuggestedHeading: "Suggested:",
+    addOtherHighlightHeading: "Add another highlight:",
+    highlightCustomPlaceholder: "Ex: Financing available",
+    addedHighlightsSection: "Added highlights:",
+    customHighlightsMax: `Up to ${MAX_CUSTOM_BUSINESS_HIGHLIGHTS} custom highlights`,
+    selectionMaxPresetHighlights: `You can select up to ${MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION} suggested highlights.`,
     selectionMaxThree: "Maximum 3 options",
     aboutServicesGapNote:
       "If your offer is not fully covered by the suggested chips, describe specialties, scope, and constraints here so clients know exactly what you deliver.",
