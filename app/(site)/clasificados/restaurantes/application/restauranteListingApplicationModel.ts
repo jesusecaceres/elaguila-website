@@ -448,6 +448,60 @@ export type RestauranteMinimumValidPreviewInput = Pick<
   RestauranteContactCta &
   RestauranteWeeklyHours;
 
+/**
+ * Single rule for minimum publish/preview image readiness (matches shell hero fallback + publish API).
+ * Hero: any non-empty string. Gallery fallback: first index in `computePublishGallerySequence` with non-empty slot.
+ */
+export function hasRestauranteMinimumPublishImage(row: RestauranteMinimumValidPreviewInput): boolean {
+  if (nonEmpty(row.heroImage)) return true;
+  const seq = computePublishGallerySequence(row);
+  const imgs = row.galleryImages ?? [];
+  const firstIdx = seq.find(
+    (x): x is number => typeof x === "number" && Number.isFinite(x) && x >= 0 && x < imgs.length,
+  );
+  const firstGal = firstIdx != null ? imgs[firstIdx] : undefined;
+  return nonEmpty(firstGal);
+}
+
+function classifyPublishImageRefShape(s: string | undefined): "empty" | "https" | "http" | "data" | "blob" | "relative" | "other" {
+  const t = (s ?? "").trim();
+  if (!t) return "empty";
+  if (/^https:\/\//i.test(t)) return "https";
+  if (/^http:\/\//i.test(t)) return "http";
+  if (/^data:image\//i.test(t)) return "data";
+  if (t.startsWith("blob:")) return "blob";
+  if (t.startsWith("/")) return "relative";
+  return "other";
+}
+
+/** Safe diagnostics for media readiness (no URLs / no payloads). */
+export type RestaurantePublishMediaReadinessDebug = {
+  hasHeroImage: boolean;
+  heroImageValueShape: ReturnType<typeof classifyPublishImageRefShape>;
+  galleryImagesCount: number;
+  firstGalleryRawShape: ReturnType<typeof classifyPublishImageRefShape>;
+  firstResolvedGalleryImagePresent: boolean;
+  hasAnyPublishImage: boolean;
+};
+
+export function auditRestaurantePublishMediaReadinessSafe(row: RestauranteMinimumValidPreviewInput): RestaurantePublishMediaReadinessDebug {
+  const imgs = row.galleryImages ?? [];
+  const seq = computePublishGallerySequence(row);
+  const firstIdx = seq.find(
+    (x): x is number => typeof x === "number" && Number.isFinite(x) && x >= 0 && x < imgs.length,
+  );
+  const firstGal = firstIdx != null ? imgs[firstIdx] : undefined;
+  const hasAnyPublishImage = hasRestauranteMinimumPublishImage(row);
+  return {
+    hasHeroImage: nonEmpty(row.heroImage),
+    heroImageValueShape: classifyPublishImageRefShape(row.heroImage),
+    galleryImagesCount: imgs.length,
+    firstGalleryRawShape: imgs.length > 0 ? classifyPublishImageRefShape(imgs[0]) : "empty",
+    firstResolvedGalleryImagePresent: nonEmpty(firstGal),
+    hasAnyPublishImage,
+  };
+}
+
 export type RestaurantePublishReadinessAudit = {
   hasBusinessName: boolean;
   hasBusinessType: boolean;
@@ -482,7 +536,7 @@ export function auditRestaurantePublishReadiness(row: RestauranteMinimumValidPre
   );
   const firstGal = firstIdx != null ? imgs[firstIdx] : undefined;
   const hasFirstGalleryImage = nonEmpty(firstGal);
-  const hasAnyPublishImage = hasHeroImage || hasFirstGalleryImage;
+  const hasAnyPublishImage = hasRestauranteMinimumPublishImage(row);
   const hasContactPath = hasPrimaryContactPath(row);
   const hasHoursSignal = hasOperatingSignal(row);
 
@@ -492,7 +546,7 @@ export function auditRestaurantePublishReadiness(row: RestauranteMinimumValidPre
   if (!hasPrimaryCuisine) missingFields.push("cocina");
   if (!hasSummary) missingFields.push("resumen");
   if (!hasCity) missingFields.push("ciudad");
-  if (!hasAnyPublishImage) missingFields.push("imagen principal o primera de galería");
+  if (!hasRestauranteMinimumPublishImage(row)) missingFields.push("imagen principal o primera de galería");
   if (!hasContactPath) missingFields.push("al menos un contacto");
   if (!hasHoursSignal) missingFields.push("señal de horario");
 

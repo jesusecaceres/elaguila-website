@@ -6,6 +6,8 @@ import assert from "node:assert/strict";
 import { mergeRestauranteDraft } from "../app/(site)/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import {
   auditRestaurantePublishReadiness,
+  auditRestaurantePublishMediaReadinessSafe,
+  hasRestauranteMinimumPublishImage,
   satisfiesRestauranteMinimumValidPreview,
   type RestauranteDaySchedule,
 } from "../app/(site)/clasificados/restaurantes/application/restauranteListingApplicationModel";
@@ -91,6 +93,28 @@ function main() {
   const a6 = auditRestaurantePublishReadiness(webOnly);
   assert.equal(a6.hasContactPath, true);
   assert.equal(a6.readyToPublish, true);
+
+  // 7. Long https image ref (typical signed/CDN URL) — must count as publish image (not stripped by 1024-only sanitizer)
+  const longHero = `https://example.com/${"x".repeat(1100)}`;
+  assert.ok(longHero.length > 1024 && longHero.length < 2048, `longHero length ${longHero.length}`);
+  const longHeroDraft = baseComplete({ heroImage: longHero, galleryImages: [] });
+  assert.ok(hasRestauranteMinimumPublishImage(longHeroDraft));
+  const mdLong = auditRestaurantePublishMediaReadinessSafe(longHeroDraft);
+  assert.equal(mdLong.heroImageValueShape, "https");
+  assert.equal(mdLong.hasAnyPublishImage, true);
+  assert.ok(satisfiesRestauranteMinimumValidPreview(longHeroDraft));
+
+  // 8. No hero / no gallery — image readiness false + missing field
+  const noImg = baseComplete({ heroImage: "", galleryImages: [] });
+  assert.equal(hasRestauranteMinimumPublishImage(noImg), false);
+  const aNoImg = auditRestaurantePublishReadiness(noImg);
+  assert.ok(aNoImg.missingFields.includes("imagen principal o primera de galería"));
+
+  // 9. Safe media audit matches helper (API / preview alignment)
+  assert.equal(
+    auditRestaurantePublishMediaReadinessSafe(galleryOnly).hasAnyPublishImage,
+    hasRestauranteMinimumPublishImage(galleryOnly),
+  );
 
   console.log("restaurante-preview-readiness-smoke: OK");
 }

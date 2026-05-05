@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
-import { satisfiesRestauranteMinimumValidPreview, hasPrimaryContactPath, hasOperatingSignal } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
-import { computePublishGallerySequence } from "@/app/clasificados/restaurantes/application/restauranteGalleryMediaSequence";
+import {
+  satisfiesRestauranteMinimumValidPreview,
+  hasPrimaryContactPath,
+  hasOperatingSignal,
+  hasRestauranteMinimumPublishImage,
+  auditRestaurantePublishMediaReadinessSafe,
+} from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import { draftToRestaurantePublicListingInsert } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import {
   buildRestaurantesResultsHref,
@@ -145,20 +150,7 @@ export async function POST(req: Request) {
   const draft = mergeRestauranteDraft(draftData) as RestauranteListingDraft;
 
   if (!satisfiesRestauranteMinimumValidPreview(draft)) {
-    const hasHeroImage = typeof draft.heroImage === "string" && draft.heroImage.trim().length > 0;
-    const galleryImagesCount = Array.isArray(draft.galleryImages) ? draft.galleryImages.length : 0;
-    const seq = computePublishGallerySequence(draft);
-    const firstIdx = seq.find(
-      (x): x is number =>
-        typeof x === "number" &&
-        Number.isFinite(x) &&
-        x >= 0 &&
-        x < (draft.galleryImages?.length ?? 0),
-    );
-    const firstResolvedGalleryImagePresent =
-      firstIdx != null &&
-      typeof draft.galleryImages?.[firstIdx] === "string" &&
-      draft.galleryImages[firstIdx].trim().length > 0;
+    const mediaSafe = auditRestaurantePublishMediaReadinessSafe(draft);
 
     // Identify which minimum fields are failing for better debugging
     const missingFields = [];
@@ -167,7 +159,7 @@ export async function POST(req: Request) {
     if (!draft.primaryCuisine) missingFields.push("cocina");
     if (!draft.shortSummary) missingFields.push("resumen");
     if (!draft.cityCanonical) missingFields.push("ciudad");
-    if (!hasHeroImage && !firstResolvedGalleryImagePresent) missingFields.push("imagen principal o primera de galería");
+    if (!hasRestauranteMinimumPublishImage(draft)) missingFields.push("imagen principal o primera de galería");
     if (!hasPrimaryContactPath(draft)) missingFields.push("al menos un contacto");
     if (!hasOperatingSignal(draft)) missingFields.push("señal de horario");
 
@@ -176,11 +168,7 @@ export async function POST(req: Request) {
       error: "not_ready",
       detail: `Campos mínimos faltantes: ${missingFields.join(", ")}`,
       missingFields,
-      mediaDebug: {
-        hasHeroImage,
-        galleryImagesCount,
-        firstResolvedGalleryImagePresent,
-      },
+      mediaDebug: mediaSafe,
     }, { status: 422 });
   }
 

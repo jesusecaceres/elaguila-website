@@ -7,7 +7,10 @@ import {
   isRestauranteDraftPristineEmpty,
   mapRestauranteDraftToShellData,
 } from "@/app/clasificados/restaurantes/application/mapRestauranteDraftToShell";
-import { auditRestaurantePublishReadiness } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
+import {
+  auditRestaurantePublishReadiness,
+  auditRestaurantePublishMediaReadinessSafe,
+} from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import { useRestauranteDraft } from "@/app/clasificados/restaurantes/application/useRestauranteDraft";
 import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
@@ -41,8 +44,10 @@ function buildRestaurantePublishPayload(draft: RestauranteListingDraft, ownerUse
         console.warn(`🚫 BLOCKED heavy media at ${path}: data/blob URL`);
         return undefined;
       }
-      // Block oversized strings (>1KB likely contains base64)
-      if (value.length > 1024) {
+      // Remote refs (CDN / signed URLs) may exceed 1KB; align with API heavy check (2048). Non-URLs stay stricter.
+      const isRemoteRef = /^https?:\/\//i.test(value.trim());
+      const maxLen = isRemoteRef ? 2048 : 1024;
+      if (value.length > maxLen) {
         console.warn(`🚫 BLOCKED oversized string at ${path}: ${value.length} chars`);
         return undefined;
       }
@@ -259,8 +264,10 @@ export default function RestaurantePreviewClient() {
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
-    console.debug("[restaurantes/preview] publish readiness audit", readiness);
-  }, [readiness]);
+    console.debug("[restaurantes/preview] publish readiness audit", readiness, {
+      media: auditRestaurantePublishMediaReadinessSafe(normalizedDraft),
+    });
+  }, [readiness, normalizedDraft]);
 
   const onPublish = useCallback(async () => {
     setPub({ busy: true });
