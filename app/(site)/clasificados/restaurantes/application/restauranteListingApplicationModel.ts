@@ -424,9 +424,8 @@ function hasWeeklyHoursSignal(h: RestauranteWeeklyHours): boolean {
   });
 }
 
-function hasOperatingSignal(h: RestauranteWeeklyHours): boolean {
+export function hasOperatingSignal(h: RestauranteWeeklyHours): boolean {
   if (hasWeeklyHoursSignal(h)) return true;
-  if (h.temporaryHoursActive && nonEmpty(h.temporaryHoursNote)) return true;
   if (nonEmpty(h.specialHoursNote)) return true;
   return false;
 }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
-import { satisfiesRestauranteMinimumValidPreview } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
+import { satisfiesRestauranteMinimumValidPreview, hasPrimaryContactPath, hasOperatingSignal } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import { draftToRestaurantePublicListingInsert } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import {
   buildRestaurantesResultsHref,
@@ -144,7 +144,22 @@ export async function POST(req: Request) {
   const draft = mergeRestauranteDraft(draftData) as RestauranteListingDraft;
 
   if (!satisfiesRestauranteMinimumValidPreview(draft)) {
-    return NextResponse.json({ ok: false, error: "not_ready" }, { status: 422 });
+    // Identify which minimum fields are failing for better debugging
+    const missingFields = [];
+    if (!draft.businessName) missingFields.push("nombre");
+    if (!draft.businessType) missingFields.push("tipo");
+    if (!draft.primaryCuisine) missingFields.push("cocina");
+    if (!draft.shortSummary) missingFields.push("resumen");
+    if (!draft.cityCanonical) missingFields.push("ciudad");
+    if (!draft.heroImage && (!draft.galleryImages || draft.galleryImages.length === 0)) missingFields.push("imagen principal o primera de galería");
+    if (!hasPrimaryContactPath(draft.contactCta)) missingFields.push("al menos un contacto");
+    if (!hasOperatingSignal(draft.weeklyHours)) missingFields.push("señal de horario");
+
+    return NextResponse.json({ 
+      ok: false, 
+      error: "not_ready",
+      detail: `Campos mínimos faltantes: ${missingFields.join(", ")}`
+    }, { status: 422 });
   }
 
   if (!isSupabaseAdminConfigured()) {
