@@ -15,8 +15,90 @@ import { RestaurantePreviewCard } from "@/app/clasificados/restaurantes/shell/Re
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { supabase } from "@/app/lib/supabaseClient";
+import type { RestauranteListingDraft } from "../application/restauranteDraftTypes";
 
 // Leonix premium visual tokens
+
+/**
+ * Sanitize restaurant draft for publish by removing heavy media payloads
+ * Preserves text fields, booleans, selected options, hours, and media references
+ * Removes raw base64, data URLs, blobs, and cache objects
+ */
+function sanitizeRestauranteDraftForPublish(draft: RestauranteListingDraft): any {
+  // Helper to check if a string looks like a data URL or base64
+  const isHeavyMediaString = (str?: string): boolean => {
+    if (!str || typeof str !== 'string') return false;
+    return str.startsWith('data:image/') || 
+           str.startsWith('data:video/') || 
+           str.startsWith('blob:') ||
+           str.length > 1000; // Likely base64 or large blob
+  };
+
+  // Helper to sanitize media arrays
+  const sanitizeMediaArray = (arr?: string[]): string[] | undefined => {
+    if (!Array.isArray(arr)) return undefined;
+    return arr
+      .filter(item => item && typeof item === 'string' && !isHeavyMediaString(item))
+      .slice(0, 50); // Limit array size too
+  };
+
+  // Helper to sanitize single media fields
+  const sanitizeMediaField = (field?: string): string | undefined => {
+    if (!field || typeof field !== 'string') return undefined;
+    return isHeavyMediaString(field) ? undefined : field;
+  };
+
+  // Create sanitized copy
+  const sanitized: any = {};
+  
+  // Copy all primitive fields and booleans directly
+  Object.keys(draft).forEach(key => {
+    const value = draft[key as keyof RestauranteListingDraft];
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      sanitized[key] = value;
+    } else if (Array.isArray(value)) {
+      // Handle arrays that might contain media
+      sanitized[key] = sanitizeMediaArray(value as string[]);
+    } else if (value && typeof value === 'object') {
+      // Handle nested objects that might contain media
+      const nestedObj: any = {};
+      Object.keys(value).forEach(nestedKey => {
+        const nestedValue = (value as any)[nestedKey];
+        if (typeof nestedValue === 'string') {
+          if (!isHeavyMediaString(nestedValue)) {
+            nestedObj[nestedKey] = nestedValue;
+          }
+        } else if (Array.isArray(nestedValue)) {
+          nestedObj[nestedKey] = sanitizeMediaArray(nestedValue);
+        } else {
+          nestedObj[nestedKey] = nestedValue;
+        }
+      });
+      if (Object.keys(nestedObj).length > 0) {
+        sanitized[key] = nestedObj;
+      }
+    } else {
+      sanitized[key] = value;
+    }
+  });
+
+  // Development debug logging
+  if (process.env.NODE_ENV === 'development') {
+    const originalSize = JSON.stringify(draft).length;
+    const sanitizedSize = JSON.stringify(sanitized).length;
+    console.log('🔍 Publish payload size debug:', {
+      originalSize: `${(originalSize / 1024 / 1024).toFixed(2)} MB`,
+      sanitizedSize: `${(sanitizedSize / 1024 / 1024).toFixed(2)} MB`,
+      sizeReduction: `${((originalSize - sanitizedSize) / originalSize * 100).toFixed(1)}%`,
+      keysRemoved: Object.keys(draft).filter(key => 
+        typeof (draft as any)[key] === 'string' && 
+        isHeavyMediaString((draft as any)[key])
+      )
+    });
+  }
+
+  return sanitized;
+}
 const LEONIX_PAGE_BG = "#F4F1EB";
 const LEONIX_CARD_SURFACE = "#FFFAF3";
 const LEONIX_BORDER = "#D8C2A0";
@@ -55,15 +137,33 @@ export default function RestaurantePreviewClient() {
     try {
       const { data: auth } = await supabase.auth.getUser();
       const owner_user_id = auth?.user?.id;
+      
+      // Sanitize draft to remove heavy media payloads
+      const sanitizedDraft = sanitizeRestauranteDraftForPublish(draft);
+      const payload = {
+        ...sanitizedDraft,
+        lang: "es",
+        plan: publishPlan,
+        ...(owner_user_id ? { owner_user_id } : {}),
+      };
+      
+      // Check payload size before sending
+      const payloadSize = JSON.stringify(payload).length;
+      const maxSize = 4.5 * 1024 * 1024; // 4.5 MB in bytes
+      
+      if (payloadSize > maxSize) {
+        setPub({
+          busy: false,
+          err: "payload_too_large",
+          errDetail: `El anuncio contiene medios demasiado pesados para publicar. Guarda solo referencias/URLs, no blobs locales. Tamaño actual: ${(payloadSize / 1024 / 1024).toFixed(1)} MB, límite: 4.5 MB`,
+        });
+        return;
+      }
+      
       const res = await fetch("/api/clasificados/restaurantes/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          draft,
-          lang: "es",
-          plan: publishPlan,
-          ...(owner_user_id ? { owner_user_id } : {}),
-        }),
+        body: JSON.stringify(payload),
       });
       const j = (await res.json()) as {
         ok?: boolean;
