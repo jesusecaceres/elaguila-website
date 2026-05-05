@@ -189,7 +189,7 @@ export function RestaurantePreviewCard({
   }, [data.primaryCtas]);
 
   return (
-    <div className={`${PREVIEW_CARD} ${className}`}>
+    <div className={`${PREVIEW_CARD} w-full min-w-0 ${className}`}>
       <div className={GRID}>
         <div className={MEDIA}>
           <div className={MEDIA_FRAME}>

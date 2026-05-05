@@ -1015,9 +1015,9 @@ export function RestaurantesResultsShell({
                   <h2 className="font-serif text-lg font-semibold">{t.featured}</h2>
                 </div>
                 <p className="mb-3 max-w-2xl text-xs leading-relaxed text-[#2D241E]/60 sm:mb-4">{t.promotedCaption}</p>
-                <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden">
+                <div className="flex w-full min-w-0 flex-col gap-5 sm:gap-6">
                   {promotedBand.map((row) => (
-                    <div key={row.id} className="snap-start">
+                    <div key={row.id} className="min-w-0 w-full">
                       <PublishedListingResultCard
                         row={row}
                         lang={lang}
@@ -1045,9 +1045,9 @@ export function RestaurantesResultsShell({
                 </Link>
               </div>
             ) : (
-              <ul className="grid list-none grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-2">
+              <ul className="flex list-none w-full min-w-0 flex-col gap-5 sm:gap-6">
                 {shown.map((row) => (
-                  <li key={row.id} className="min-w-0">
+                  <li key={row.id} className="min-w-0 w-full">
                     <PublishedListingResultCard
                       row={row}
                       lang={lang}
@@ -1158,11 +1158,7 @@ function PublishedListingResultCard({
   }
 
   return (
-    <article
-      className={`relative h-full ${
-        badge ? "min-w-[min(100vw-32px,540px)] max-w-[min(100vw-24px,560px)] shrink-0 sm:min-w-[300px]" : "min-w-0 w-full"
-      }`}
-    >
+    <article className="relative min-w-0 w-full max-w-none">
       {badge ? (
         <span
           className="pointer-events-none absolute left-5 top-5 z-20 rounded-full px-3 py-1 text-[11px] font-bold text-[#FFFCF7] shadow-sm"
