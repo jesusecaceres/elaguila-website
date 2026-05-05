@@ -17,6 +17,7 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
       send: "Send",
       about: "About us",
       services: "Our services",
+      servicesSectionSubtitle: "Choose the service you need and contact the business directly.",
       gallery: "Project gallery",
       trust: "Why choose us",
       reviews: "Customer reviews",
@@ -32,8 +33,8 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
       weeklyHours: "Weekly hours",
       physicalLocation: "Location",
       openInMaps: "Open in Maps",
-      showMoreServices: "Show more services",
-      showLessServices: "Show fewer",
+      showMoreServices: "See all services",
+      showLessServices: "Show less",
     };
   }
   return {
@@ -51,6 +52,7 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
     send: "Enviar",
     about: "Sobre nosotros",
     services: "Nuestros servicios",
+    servicesSectionSubtitle: "Elige el servicio que necesitas y solicita información directamente.",
     gallery: "Galería de trabajos",
     trust: "¿Por qué elegirnos?",
     reviews: "Reseñas de clientes",
@@ -66,7 +68,7 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
     weeklyHours: "Horario de la semana",
     physicalLocation: "Ubicación",
     openInMaps: "Abrir en mapa",
-    showMoreServices: "Ver más servicios",
+    showMoreServices: "Ver todos los servicios",
     showLessServices: "Ver menos",
   };
 }

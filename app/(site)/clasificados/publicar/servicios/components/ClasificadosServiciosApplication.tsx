@@ -1401,7 +1401,8 @@ export function ClasificadosServiciosApplication() {
                 </span>
               </h2>
               <p className="mt-1 text-sm text-[#5D4A25]/85">{copy.labels.servicesHint}</p>
-              <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
+              <p className="mt-4 text-sm font-semibold text-[#3D2C12]">{copy.labels.servicesSuggestedHeading}</p>
+              <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
                 {preset.suggestedServices.map((c: ChipDef) => {
                   const selected = state.selectedServiceIds.includes(c.id);
                   const disabled = !selected && serviceSelectionCount >= MAX_SERVICES_SELECTION;
@@ -1432,9 +1433,9 @@ export function ClasificadosServiciosApplication() {
                 })}
               </div>
               {serviceSelectionCount >= MAX_SERVICES_SELECTION ? (
-                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxFour}</p>
+                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxSuggestedPresets}</p>
               ) : null}
-              <label className={`mt-6 block ${labelClass}`}>{copy.labels.customService}</label>
+              <label className={`mt-6 block ${labelClass}`}>{copy.labels.addOtherServiceHeading}</label>
               <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.customChipShortHint}</p>
               <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
                 <input
@@ -1469,14 +1470,13 @@ export function ClasificadosServiciosApplication() {
                   {copy.labels.addCustomChip}
                 </button>
               </div>
+              <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.customServicesHelperHint}</p>
               {state.customServicesOffered.length >= MAX_CUSTOM_SERVICES_OFFERED ? (
                 <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.customServicesMax}</p>
               ) : null}
               {state.customServicesOffered.length > 0 ? (
                 <div className="mt-5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#6b5c42]">
-                    {copy.labels.addedCustomServicesSection}
-                  </p>
+                  <p className="text-sm font-semibold text-[#3D2C12]">{copy.labels.addedCustomServicesSection}</p>
                   <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1">
                     {state.customServicesOffered.map((label, i) => (
                       <button

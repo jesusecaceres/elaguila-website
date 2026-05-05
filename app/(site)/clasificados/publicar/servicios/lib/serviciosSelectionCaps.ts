@@ -1,9 +1,9 @@
 import type { ClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationTypes";
 
-/** Max preset service chips selected at once */
-export const MAX_SERVICES_SELECTION = 4;
+/** Max preset service chips selected at once (generous cap for real listings) */
+export const MAX_SERVICES_SELECTION = 24;
 /** Max free-text custom services (independent of preset cap) */
-export const MAX_CUSTOM_SERVICES_OFFERED = 16;
+export const MAX_CUSTOM_SERVICES_OFFERED = 40;
 export const MAX_REASONS_SELECTION = 3;
 export const MAX_QUICK_FACTS_SELECTION = 3;
 

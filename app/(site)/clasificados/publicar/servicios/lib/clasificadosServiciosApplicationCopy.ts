@@ -1,5 +1,5 @@
 import type { ServiciosLang } from "./clasificadosServiciosApplicationTypes";
-import { MAX_CUSTOM_SERVICES_OFFERED } from "./serviciosSelectionCaps";
+import { MAX_CUSTOM_SERVICES_OFFERED, MAX_SERVICES_SELECTION } from "./serviciosSelectionCaps";
 
 export type ClasificadosServiciosCopy = {
   pageTitle: string;
@@ -136,7 +136,11 @@ export type ClasificadosServiciosCopy = {
     addCustomChip: string;
     addedCustomServicesSection: string;
     customServicesMax: string;
-    selectionMaxFour: string;
+    /** When the advertiser reaches the preset selection cap */
+    selectionMaxSuggestedPresets: string;
+    servicesSuggestedHeading: string;
+    addOtherServiceHeading: string;
+    customServicesHelperHint: string;
     selectionMaxThree: string;
     aboutServicesGapNote: string;
     leonixVerified: string;
@@ -353,9 +357,13 @@ const es: ClasificadosServiciosCopy = {
     customChipPlaceholder: "Etiqueta breve",
     customChipShortHint: "Usa pocas palabras",
     addCustomChip: "Añadir",
-    addedCustomServicesSection: "Servicios agregados",
+    addedCustomServicesSection: "Servicios agregados:",
     customServicesMax: `Máximo ${MAX_CUSTOM_SERVICES_OFFERED} servicios personalizados`,
-    selectionMaxFour: "Máximo 4 opciones",
+    selectionMaxSuggestedPresets: `Puedes elegir hasta ${MAX_SERVICES_SELECTION} servicios sugeridos.`,
+    servicesSuggestedHeading: "Servicios sugeridos:",
+    addOtherServiceHeading: "Agregar otro servicio:",
+    customServicesHelperHint:
+      "Puedes agregar varios servicios. Los primeros aparecerán destacados en el anuncio.",
     selectionMaxThree: "Máximo 3 opciones",
     aboutServicesGapNote:
       "Si algo de tu oferta no encaja en las opciones sugeridas, detállalo aquí: especialidades, materiales, alcance y condiciones. Ayuda a los clientes a entender exactamente qué resuelves.",
@@ -566,9 +574,13 @@ const en: ClasificadosServiciosCopy = {
     customChipPlaceholder: "Short label",
     customChipShortHint: "Keep it short",
     addCustomChip: "Add",
-    addedCustomServicesSection: "Added services",
+    addedCustomServicesSection: "Added services:",
     customServicesMax: `Up to ${MAX_CUSTOM_SERVICES_OFFERED} custom services`,
-    selectionMaxFour: "Maximum 4 options",
+    selectionMaxSuggestedPresets: `You can select up to ${MAX_SERVICES_SELECTION} suggested services.`,
+    servicesSuggestedHeading: "Suggested services:",
+    addOtherServiceHeading: "Add another service:",
+    customServicesHelperHint:
+      "You can add multiple services. The first ones may appear highlighted in the listing.",
     selectionMaxThree: "Maximum 3 options",
     aboutServicesGapNote:
       "If your offer is not fully covered by the suggested chips, describe specialties, scope, and constraints here so clients know exactly what you deliver.",
