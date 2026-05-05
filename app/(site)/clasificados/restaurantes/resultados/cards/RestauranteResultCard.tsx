@@ -115,11 +115,8 @@ export function RestauranteResultCard({
     return undefined;
   };
 
-  // Build CTA array in required order
+  // Build CTA array - REMOVED problematic CTAs (Llamar, Sitio web, Direcciones)
   const ctas = [
-    { key: 'call', label: 'Llamar', href: listing.phoneNumber ? `tel:${listing.phoneNumber}` : undefined, icon: FiPhone },
-    { key: 'website', label: 'Sitio web', href: listing.websiteUrl, icon: FiExternalLink },
-    { key: 'directions', label: 'Direcciones', href: generateMapsUrl(), icon: FiMapPin },
     { key: 'whatsapp', label: 'WhatsApp', href: listing.whatsAppNumber ? generateWhatsAppUrl(listing.whatsAppNumber) : undefined, icon: FaWhatsapp },
     { key: 'order', label: 'Ordenar', href: listing.orderUrl, icon: () => <span>🛒</span> },
     { key: 'reserve', label: 'Reservar', href: listing.reservationUrl, icon: () => <span>📅</span> }

@@ -11,6 +11,7 @@ import { RestauranteShellPlatillosBlock } from "./RestauranteShellPlatillosBlock
 import { RestauranteShellVenueGalleryBlock } from "./RestauranteShellVenueGalleryBlock";
 import { RestauranteShellDestacadosSection } from "./RestauranteShellDestacadosSection";
 import { RestauranteGroupedFeaturesSection } from "./RestauranteGroupedFeaturesSection";
+import { normalizeActionableUrl } from "../lib/urlNormalization";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)]";
@@ -498,12 +499,38 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
                 </div>
                 <div className={`${CARD} px-6 py-6 sm:px-8`}>
                   <dl className="space-y-4 text-sm">
-                    {stack.rows.map((row) => (
-                      <div key={`${row.label}-${row.value}`} className="grid gap-1 sm:grid-cols-[200px_1fr]">
-                        <dt className="font-semibold text-[color:var(--lx-muted)]">{row.label}</dt>
-                        <dd className="text-[color:var(--lx-text-2)]">{row.value}</dd>
-                      </div>
-                    ))}
+                    {stack.rows.map((row) => {
+                      // Check if this field should be clickable
+                      const isClickableField = 
+                        row.label.includes('Ubicación actual') ||
+                        row.label.includes('Enlace') ||
+                        row.label.includes('Ruta semanal') ||
+                        row.label.includes('Solicitud') ||
+                        row.label.includes('cotización');
+                      
+                      const actionableUrl = isClickableField ? normalizeActionableUrl(row.value) : null;
+                      
+                      return (
+                        <div key={`${row.label}-${row.value}`} className="grid gap-1 sm:grid-cols-[200px_1fr]">
+                          <dt className="font-semibold text-[color:var(--lx-muted)]">{row.label}</dt>
+                          <dd className="text-[color:var(--lx-text-2)]">
+                            {actionableUrl ? (
+                              <a
+                                href={actionableUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[color:var(--lx-gold)] hover:text-[color:var(--lx-gold-border)] underline decoration-[color:var(--lx-gold-border)]/50 underline-offset-2 transition-colors"
+                              >
+                                {row.value}
+                                <FiExternalLink className="w-3 h-3" />
+                              </a>
+                            ) : (
+                              row.value
+                            )}
+                          </dd>
+                        </div>
+                      );
+                    })}
                   </dl>
                 </div>
               </section>
