@@ -12,7 +12,11 @@ import type {
 } from "../shell/restaurantDetailShellTypes";
 import { normalizeRestaurantFeatures } from "../lib/restauranteFeaturesNormalization";
 import { computePublishGallerySequence } from "./restauranteGalleryMediaSequence";
-import { isRestauranteDisplayableImageRef, isRestauranteLocalVideoDataUrl } from "./restauranteMediaDisplay";
+import {
+  firstRestauranteBucketImageRef,
+  isRestauranteDisplayableImageRef,
+  isRestauranteLocalVideoDataUrl,
+} from "./restauranteMediaDisplay";
 import {
   hasPrimaryContactPath,
   RESTAURANTE_SHELL_HIGHLIGHT_CAP,
@@ -506,7 +510,11 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
   const firstGalIdx = seq.find((x): x is number => typeof x === "number" && Number.isFinite(x) && x >= 0 && x < imgs.length);
   const firstGal = firstGalIdx != null ? imgs[firstGalIdx] : undefined;
   const heroTrim = d.heroImage?.trim();
-  const heroResolved = nonEmpty(heroTrim) ? heroTrim : nonEmpty(firstGal) ? firstGal : undefined;
+  let heroResolved = nonEmpty(heroTrim) ? heroTrim : nonEmpty(firstGal) ? firstGal : undefined;
+  if (!heroResolved) {
+    const bucket = firstRestauranteBucketImageRef(d);
+    if (bucket) heroResolved = bucket;
+  }
 
   const quick = buildQuickInfo(d, hp.scheduleSummary).filter((q) => nonEmpty(q.value));
   const highlights = (d.highlights ?? [])

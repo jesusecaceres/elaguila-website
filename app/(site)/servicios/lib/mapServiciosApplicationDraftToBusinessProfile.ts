@@ -79,6 +79,8 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   if (phone) contact.phone = phone;
   const phoneOffice = trim(draft.contact?.phoneOffice);
   if (phoneOffice) contact.phoneOffice = phoneOffice;
+  const quoteMessagePhone = trim(draft.contact?.quoteMessagePhone);
+  if (quoteMessagePhone) contact.quoteMessagePhone = quoteMessagePhone;
   const email = trim(draft.contact?.email);
   if (email) contact.email = email;
   const websiteUrl = trim(draft.contact?.websiteUrl);

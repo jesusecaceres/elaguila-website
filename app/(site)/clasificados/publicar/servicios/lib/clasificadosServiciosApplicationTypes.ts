@@ -98,6 +98,10 @@ export type ClasificadosServiciosApplicationState = {
   whatsapp: string;
   /** Public WhatsApp Business / profile URL if the number field is not used */
   whatsappBusinessUrl: string;
+  /**
+   * Dedicated SMS/call-to-message number for quote & inquiry CTAs (distinct from main/office phone and WhatsApp).
+   */
+  quoteMessagePhone: string;
   /** Advertiser email — shown when `enableEmail` */
   email: string;
   /** Chip ids from LANGUAGE_OPTION_CHIPS */

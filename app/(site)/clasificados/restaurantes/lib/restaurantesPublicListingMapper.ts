@@ -1,4 +1,5 @@
 import { computePublishGallerySequence } from "@/app/clasificados/restaurantes/application/restauranteGalleryMediaSequence";
+import { firstRestauranteBucketImageRef } from "@/app/clasificados/restaurantes/application/restauranteMediaDisplay";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import type {
@@ -175,6 +176,8 @@ export function resolveRestauranteHeroForPublish(d: RestauranteListingDraft): st
   const firstGalIdx = seq.find((x): x is number => typeof x === "number" && Number.isFinite(x) && x >= 0 && x < imgs.length);
   const firstGal = firstGalIdx != null ? imgs[firstGalIdx] : undefined;
   if (nonEmpty(firstGal)) return firstGal!.trim();
+  const bucket = firstRestauranteBucketImageRef(d);
+  if (bucket != null && nonEmpty(bucket)) return bucket.trim();
   return null;
 }
 

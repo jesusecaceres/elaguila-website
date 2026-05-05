@@ -889,6 +889,19 @@ export function ClasificadosServiciosApplication() {
                   />
                   {whatsappBizInvalid ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
                 </div>
+                <div className="sm:col-span-2">
+                  <label className={labelClass}>{copy.labels.quoteMessagePhone}</label>
+                  <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.quoteMessagePhoneHelp}</p>
+                  <input
+                    className={`${inputClass} mt-2`}
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    placeholder={lang === "es" ? "(408) 555-7777" : "(408) 555-7777"}
+                    value={formatPhoneInputDisplay(state.quoteMessagePhone)}
+                    onChange={(e) => setState((s) => ({ ...s, quoteMessagePhone: formatPhoneInputDisplay(e.target.value) }))}
+                  />
+                </div>
               </div>
             </div>
 

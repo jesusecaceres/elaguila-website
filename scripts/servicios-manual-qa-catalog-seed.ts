@@ -162,6 +162,7 @@ function buildApplicationState(preset: BusinessTypePreset): ClasificadosServicio
     phoneOffice: "+52 81 4000 2101",
     website: "https://leonix.global/clasificados/servicios",
     whatsapp: "528140002100",
+    quoteMessagePhone: "+1 408 555 7777",
     whatsappBusinessUrl: "",
     email: process.env.SMOKE_SELLER_EMAIL ?? "smoke.seller@yourdomain.com",
     languageIds: ["lang_es", "lang_en", "lang_otro"],

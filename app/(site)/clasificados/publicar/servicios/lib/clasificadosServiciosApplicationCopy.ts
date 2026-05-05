@@ -64,6 +64,8 @@ export type ClasificadosServiciosCopy = {
     website: string;
     whatsapp: string;
     whatsappBusinessUrl: string;
+    quoteMessagePhone: string;
+    quoteMessagePhoneHelp: string;
     contactPhonesHeading: string;
     contactEmailWebHeading: string;
     contactSocialHeading: string;
@@ -276,6 +278,9 @@ const es: ClasificadosServiciosCopy = {
     website: "Sitio web",
     whatsapp: "WhatsApp (número)",
     whatsappBusinessUrl: "WhatsApp — enlace de perfil o negocio (opcional)",
+    quoteMessagePhone: "Número para mensajes/cotizaciones",
+    quoteMessagePhoneHelp:
+      "Este número recibirá mensajes de clientes interesados en pedir información o una cotización.",
     contactPhonesHeading: "Teléfonos y WhatsApp",
     contactEmailWebHeading: "Correo y sitio web",
     contactSocialHeading: "Redes sociales (URL pública)",
@@ -484,6 +489,9 @@ const en: ClasificadosServiciosCopy = {
     website: "Website",
     whatsapp: "WhatsApp (number)",
     whatsappBusinessUrl: "WhatsApp — business or profile link (optional)",
+    quoteMessagePhone: "Number for messages / quotes",
+    quoteMessagePhoneHelp:
+      "This number receives messages from customers who want information or a quote.",
     contactPhonesHeading: "Phones & WhatsApp",
     contactEmailWebHeading: "Email & website",
     contactSocialHeading: "Social profiles (public URL)",

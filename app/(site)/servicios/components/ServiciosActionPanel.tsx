@@ -4,8 +4,10 @@ import type { ServiciosProfileResolved, ServiciosLang } from "../types/servicios
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { nonEmpty } from "../lib/serviciosProfilePrimitives";
 import {
+  appendWhatsAppPrefill,
   buildServiciosSecondaryActions,
   resolveServiciosQuoteDestination,
+  SERVICIOS_UNIVERSAL_QUOTE_MESSAGE_ES,
   type ServiciosQuoteDestinationKind,
   type ServiciosSecondaryAction,
 } from "../lib/serviciosContactActions";
@@ -48,6 +50,7 @@ function secondaryLabel(
 }
 
 function analyticsForQuoteKind(kind: ServiciosQuoteDestinationKind): string {
+  if (kind === "sms") return "cta_quote_sms_click";
   if (kind === "whatsapp") return "cta_whatsapp_click";
   if (kind === "tel") return "cta_call_click";
   if (kind === "mailto") return "cta_email_click";
@@ -92,6 +95,11 @@ export function ServiciosActionPanel({
   const featuredLabel = profile.contact.featuredLabel?.trim() || L.featured;
 
   const quote = resolveServiciosQuoteDestination(profile, lang);
+  const quoteHref = quote
+    ? quote.kind === "whatsapp"
+      ? appendWhatsAppPrefill(quote.href, SERVICIOS_UNIVERSAL_QUOTE_MESSAGE_ES)
+      : quote.href
+    : null;
   const secondary = buildServiciosSecondaryActions(profile, quote);
   const whatsappInConversionRail =
     quote?.kind === "whatsapp" || secondary.some((s) => s.id === "whatsapp");
@@ -140,12 +148,12 @@ export function ServiciosActionPanel({
             {lang === "en" ? "Contact" : "Contacto"}
           </p>
 
-          {quote ? (
+          {quote && quoteHref ? (
             listingSlug ? (
               <ServiciosTrackedLink
                 listingSlug={listingSlug}
                 eventType={analyticsForQuoteKind(quote.kind)}
-                href={quote.href}
+                href={quoteHref}
                 {...(quote.kind === "website" || quote.kind === "whatsapp"
                   ? { target: "_blank", rel: "noopener noreferrer" }
                   : {})}
@@ -157,7 +165,7 @@ export function ServiciosActionPanel({
               </ServiciosTrackedLink>
             ) : (
               <a
-                href={quote.href}
+                href={quoteHref}
                 {...(quote.kind === "website" || quote.kind === "whatsapp"
                   ? { target: "_blank", rel: "noopener noreferrer" }
                   : {})}

@@ -7,6 +7,7 @@
  */
 
 import { computePublishGallerySequence } from "./restauranteGalleryMediaSequence";
+import { firstRestauranteBucketImageRef } from "./restauranteMediaDisplay";
 
 // ---------------------------------------------------------------------------
 // Shared primitives
@@ -444,13 +445,15 @@ export type RestauranteMinimumValidPreviewInput = Pick<
   | "galleryOrder"
   | "videoFile"
   | "videoUrl"
+  | "foodImages"
+  | "interiorImages"
+  | "exteriorImages"
 > &
   RestauranteContactCta &
   RestauranteWeeklyHours;
 
 /**
- * Single rule for minimum publish/preview image readiness (matches shell hero fallback + publish API).
- * Hero: any non-empty string. Gallery fallback: first index in `computePublishGallerySequence` with non-empty slot.
+ * Single rule for minimum publish/preview image readiness (full draft: hero, general gallery sequence, or venue buckets).
  */
 export function hasRestauranteMinimumPublishImage(row: RestauranteMinimumValidPreviewInput): boolean {
   if (nonEmpty(row.heroImage)) return true;
@@ -460,7 +463,8 @@ export function hasRestauranteMinimumPublishImage(row: RestauranteMinimumValidPr
     (x): x is number => typeof x === "number" && Number.isFinite(x) && x >= 0 && x < imgs.length,
   );
   const firstGal = firstIdx != null ? imgs[firstIdx] : undefined;
-  return nonEmpty(firstGal);
+  if (nonEmpty(firstGal)) return true;
+  return Boolean(firstRestauranteBucketImageRef(row));
 }
 
 function classifyPublishImageRefShape(s: string | undefined): "empty" | "https" | "http" | "data" | "blob" | "relative" | "other" {
@@ -481,6 +485,10 @@ export type RestaurantePublishMediaReadinessDebug = {
   galleryImagesCount: number;
   firstGalleryRawShape: ReturnType<typeof classifyPublishImageRefShape>;
   firstResolvedGalleryImagePresent: boolean;
+  hasBucketPublishImage: boolean;
+  foodImagesCount: number;
+  interiorImagesCount: number;
+  exteriorImagesCount: number;
   hasAnyPublishImage: boolean;
 };
 
@@ -492,12 +500,17 @@ export function auditRestaurantePublishMediaReadinessSafe(row: RestauranteMinimu
   );
   const firstGal = firstIdx != null ? imgs[firstIdx] : undefined;
   const hasAnyPublishImage = hasRestauranteMinimumPublishImage(row);
+  const bucket = firstRestauranteBucketImageRef(row);
   return {
     hasHeroImage: nonEmpty(row.heroImage),
     heroImageValueShape: classifyPublishImageRefShape(row.heroImage),
     galleryImagesCount: imgs.length,
     firstGalleryRawShape: imgs.length > 0 ? classifyPublishImageRefShape(imgs[0]) : "empty",
     firstResolvedGalleryImagePresent: nonEmpty(firstGal),
+    hasBucketPublishImage: Boolean(bucket),
+    foodImagesCount: row.foodImages?.length ?? 0,
+    interiorImagesCount: row.interiorImages?.length ?? 0,
+    exteriorImagesCount: row.exteriorImages?.length ?? 0,
     hasAnyPublishImage,
   };
 }

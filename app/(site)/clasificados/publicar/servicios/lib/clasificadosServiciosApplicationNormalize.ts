@@ -158,6 +158,7 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     website: str("website", d.website),
     whatsapp: str("whatsapp", d.whatsapp),
     whatsappBusinessUrl: str("whatsappBusinessUrl", d.whatsappBusinessUrl),
+    quoteMessagePhone: str("quoteMessagePhone", d.quoteMessagePhone ?? ""),
     email: str("email", d.email),
     languageIds,
     languageOtherLines: (() => {

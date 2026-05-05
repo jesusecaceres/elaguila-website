@@ -41,6 +41,7 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     website: "",
     whatsapp: "",
     whatsappBusinessUrl: "",
+    quoteMessagePhone: "",
     email: "",
     languageIds: ["lang_es"],
     languageOtherLines: "",

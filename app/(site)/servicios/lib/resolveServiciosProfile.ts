@@ -27,6 +27,7 @@ import {
   formatPhysicalAddressDisplay,
   buildGoogleMapsSearchHrefFromPhysical,
 } from "./serviciosProfileSanitize";
+import { buildQuoteSmsHref } from "./serviciosContactActions";
 
 /**
  * Turn canonical wire data into a presentation-safe model (filtered lists, safe URLs, fallbacks).
@@ -46,6 +47,7 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
   const phoneTelHref = sanitizeTelHref(contactIn.phone);
   const phoneOfficeDisplay = sanitizePhoneDisplay(contactIn.phoneOffice);
   const phoneOfficeTelHref = sanitizeTelHref(contactIn.phoneOffice);
+  const quoteSmsHref = buildQuoteSmsHref(contactIn.quoteMessagePhone) ?? undefined;
   const emailRaw = trimText(contactIn.email);
   const emailMailtoHref =
     emailRaw && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw) ? `mailto:${emailRaw}` : undefined;
@@ -150,6 +152,7 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
       phoneTelHref: phoneTelHref ?? undefined,
       phoneOfficeDisplay: phoneOfficeDisplay ?? undefined,
       phoneOfficeTelHref: phoneOfficeTelHref ?? undefined,
+      quoteSmsHref,
       email: emailRaw || undefined,
       emailMailtoHref: emailMailtoHref ?? undefined,
       websiteHref: websiteHref ?? undefined,

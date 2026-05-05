@@ -5,7 +5,7 @@ import { chipLabel, getBusinessTypePreset } from "./businessTypePresets";
 import type { ClasificadosServiciosApplicationState, DayKey } from "./clasificadosServiciosApplicationTypes";
 import { inferServiceVisualVariant } from "./inferServiceVisualVariant";
 import { serviciosQuickFactKindFromPresetChip } from "./serviciosQuickFactKindFromChip";
-import { buildLeonixContactCtaLabels, isValidEmail } from "./leonixContactCtaPriority";
+import { isValidEmail } from "./leonixContactCtaPriority";
 import { parseLanguageOtherLines } from "./languageOtherLines";
 import { digitsOnly } from "./serviciosPhoneUi";
 import { isProbablyValidWebUrl, normalizeHttpUrl } from "./socialAndUrlHelpers";
@@ -18,6 +18,19 @@ const JS_DAY_TO_ROW: DayKey[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"
 const WEEK_ORDER: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 const TRUST_ICONS: ServiciosTrustItem["icon"][] = ["shield", "shieldCheck", "star", "clock", "heart", "check"];
+
+function serviciosHasQuoteDestination(state: ClasificadosServiciosApplicationState): boolean {
+  if (digitsOnly(state.quoteMessagePhone).length >= 8) return true;
+  if (
+    state.enableWhatsapp &&
+    (digitsOnly(state.whatsapp).length >= 8 ||
+      (state.whatsappBusinessUrl.trim().length > 0 && isProbablyValidWebUrl(state.whatsappBusinessUrl)))
+  ) {
+    return true;
+  }
+  if (state.enableEmail && isValidEmail(state.email)) return true;
+  return false;
+}
 
 function waMeUrl(raw: string): string | undefined {
   const d = raw.replace(/\D/g, "");
@@ -190,10 +203,6 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       : `${todayRow.open} – ${todayRow.close}`;
   }
 
-  const leonixCta = buildLeonixContactCtaLabels(state, lang);
-  const primaryCtaLabel = leonixCta.primaryCtaLabel;
-  const secondaryCtaLabels = leonixCta.secondaryCtaLabels;
-
   const contact: ServiciosApplicationDraft["contact"] = {
     messageEnabled: state.enableMessage === true,
   };
@@ -210,8 +219,13 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     const w = safeWebsiteForDraft(state.website);
     if (w) contact.websiteUrl = w;
   }
-  if (primaryCtaLabel) contact.primaryCtaLabel = primaryCtaLabel;
-  if (secondaryCtaLabels.length) contact.secondaryCtaLabels = secondaryCtaLabels;
+  const qm = state.quoteMessagePhone.trim();
+  if (qm && digitsOnly(qm).length >= 8) {
+    contact.quoteMessagePhone = qm;
+  }
+  if (serviciosHasQuoteDestination(state)) {
+    contact.primaryCtaLabel = lang === "en" ? "Request quote" : "Pedir cotización";
+  }
   if (hoursOpenNowLabel && hoursTodayLine) {
     contact.hoursOpenNowLabel = hoursOpenNowLabel;
     contact.hoursTodayLine = hoursTodayLine;

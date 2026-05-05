@@ -1,8 +1,40 @@
 import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
+import { trimText } from "./serviciosProfileSanitize";
 
-export type ServiciosQuoteDestinationKind = "whatsapp" | "tel" | "mailto" | "website";
+export type ServiciosQuoteDestinationKind = "sms" | "whatsapp" | "tel" | "mailto" | "website";
 
-/** Same priority as typical quote outreach: WhatsApp → call → email → website. */
+/** Phase 1 universal Spanish copy for quote / inquiry CTAs (clasificados Servicios). */
+export const SERVICIOS_UNIVERSAL_QUOTE_MESSAGE_ES =
+  "Hola, vi tu negocio en Leonix Media y estoy buscando un servicio. ¿Estás disponible para hablar ahora?";
+
+export function appendWhatsAppPrefill(href: string, text: string): string {
+  const t = href.trim();
+  if (!t) return t;
+  const enc = encodeURIComponent(text);
+  if (/[?&]text=/.test(t)) return t;
+  const sep = t.includes("?") ? "&" : "?";
+  return `${t}${sep}text=${enc}`;
+}
+
+export function buildQuoteSmsHref(rawPhone: string | undefined | null): string | null {
+  const d = trimText(rawPhone ?? "").replace(/\D/g, "");
+  if (d.length < 8) return null;
+  return `sms:${d}?body=${encodeURIComponent(SERVICIOS_UNIVERSAL_QUOTE_MESSAGE_ES)}`;
+}
+
+export function buildMailtoQuoteHref(mailtoBase: string, lang: ServiciosLang): string {
+  const subject = encodeURIComponent(
+    lang === "en" ? "Quote request from Leonix Media" : "Solicitud de cotización desde Leonix Media",
+  );
+  const body = encodeURIComponent(SERVICIOS_UNIVERSAL_QUOTE_MESSAGE_ES);
+  const sep = mailtoBase.includes("?") ? "&" : "?";
+  return `${mailtoBase}${sep}subject=${subject}&body=${body}`;
+}
+
+/**
+ * Quote / message CTA destination for the contact panel.
+ * Priority: dedicated quote SMS number → WhatsApp (href without text; panel appends) → email → (no website in phase 1).
+ */
 export function resolveServiciosQuoteDestination(
   profile: ServiciosProfileResolved,
   lang: ServiciosLang,
@@ -11,15 +43,12 @@ export function resolveServiciosQuoteDestination(
   href: string;
 } | null {
   const c = profile.contact;
+  if (c.quoteSmsHref) return { kind: "sms", href: c.quoteSmsHref };
   const wa = c.socialLinks?.whatsapp;
   if (wa) return { kind: "whatsapp", href: wa };
-  if (c.phoneTelHref) return { kind: "tel", href: c.phoneTelHref };
   if (c.emailMailtoHref) {
-    const subj = encodeURIComponent(lang === "en" ? "Quote request" : "Solicitud de cotización");
-    const sep = c.emailMailtoHref.includes("?") ? "&" : "?";
-    return { kind: "mailto", href: `${c.emailMailtoHref}${sep}subject=${subj}` };
+    return { kind: "mailto", href: buildMailtoQuoteHref(c.emailMailtoHref, lang) };
   }
-  if (c.websiteHref) return { kind: "website", href: c.websiteHref };
   return null;
 }
 
@@ -44,6 +73,19 @@ function mailtoAddrKey(h: string): string | null {
   return decodeURIComponent(rest).toLowerCase();
 }
 
+function waMeDigits(href: string): string | null {
+  const t = href.trim().toLowerCase();
+  const m = /wa\.me\/(\d+)/.exec(t) || /api\.whatsapp\.com\/send\?phone=(\d+)/.exec(t);
+  return m?.[1] ?? null;
+}
+
+function smsHrefDigits(href: string): string | null {
+  const s = href.trim();
+  const m = /^sms:([\d+]+)/i.exec(s);
+  if (!m?.[1]) return null;
+  return m[1].replace(/\D/g, "");
+}
+
 function sameAsPrimary(
   primary: { href: string; kind: ServiciosQuoteDestinationKind } | null,
   candidateHref: string,
@@ -54,6 +96,16 @@ function sameAsPrimary(
     const p = mailtoAddrKey(primary.href);
     const c = mailtoAddrKey(candidateHref);
     if (p && c) return p === c;
+  }
+  if (primary.kind === "sms" && candidateKind === "tel") {
+    const pd = smsHrefDigits(primary.href);
+    const cd = candidateHref.replace(/^tel:/i, "").replace(/\D/g, "");
+    if (pd && cd) return pd === cd;
+  }
+  if (primary.kind === "whatsapp" && candidateKind === "whatsapp") {
+    const pd = waMeDigits(primary.href);
+    const cd = waMeDigits(candidateHref);
+    if (pd && cd) return pd === cd;
   }
   return normHttpOrTel(candidateHref) === normHttpOrTel(primary.href);
 }

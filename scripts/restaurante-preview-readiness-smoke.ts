@@ -4,6 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { mergeRestauranteDraft } from "../app/(site)/clasificados/restaurantes/application/createEmptyRestauranteDraft";
+import { buildRestaurantePublishPayload } from "../app/(site)/clasificados/restaurantes/application/buildRestaurantePublishPayload";
 import {
   auditRestaurantePublishReadiness,
   auditRestaurantePublishMediaReadinessSafe,
@@ -115,6 +116,23 @@ function main() {
     auditRestaurantePublishMediaReadinessSafe(galleryOnly).hasAnyPublishImage,
     hasRestauranteMinimumPublishImage(galleryOnly),
   );
+
+  // 10. Food-bucket-only image (full ad gallery) satisfies readiness + survives publish payload round-trip
+  const foodOnly = baseComplete({
+    heroImage: "",
+    galleryImages: [],
+    foodImages: [sampleHttpsImage],
+    interiorImages: [],
+    exteriorImages: [],
+  });
+  assert.ok(satisfiesRestauranteMinimumValidPreview(foodOnly));
+  const mdFood = auditRestaurantePublishMediaReadinessSafe(foodOnly);
+  assert.equal(mdFood.hasBucketPublishImage, true);
+  const payloadFood = buildRestaurantePublishPayload(foodOnly, undefined, "free", "es");
+  assert.ok(Array.isArray(payloadFood.foodImages) && payloadFood.foodImages.length > 0);
+  assert.ok(!("heroImageUrl" in payloadFood), "payload must be draft-shaped, not shell/card model");
+  const roundTripFood = mergeRestauranteDraft(payloadFood);
+  assert.ok(satisfiesRestauranteMinimumValidPreview(roundTripFood), "API merge + validator must see food image");
 
   console.log("restaurante-preview-readiness-smoke: OK");
 }

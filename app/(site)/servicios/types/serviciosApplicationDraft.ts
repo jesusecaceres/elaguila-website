@@ -48,6 +48,8 @@ export type ServiciosApplicationHeroBadgeDraft = {
 export type ServiciosApplicationContactDraft = {
   phone?: string;
   phoneOffice?: string;
+  /** Dedicated quote / SMS inquiry number (clasificados Servicios) */
+  quoteMessagePhone?: string;
   /** Plain email local-part@domain — rendered as mailto: in shell when present */
   email?: string;
   websiteUrl?: string;

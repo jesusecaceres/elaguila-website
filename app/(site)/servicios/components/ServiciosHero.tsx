@@ -4,7 +4,6 @@ import { FaCheckCircle, FaHeart, FaBookmark, FaShare } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
-import { resolveServiciosQuoteDestination } from "../lib/serviciosContactActions";
 import { ServiciosStarRating } from "./ServiciosStarRating";
 import { SV } from "./serviciosDesignTokens";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";

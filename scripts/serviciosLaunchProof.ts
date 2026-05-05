@@ -36,6 +36,7 @@ function baseState(): ClasificadosServiciosApplicationState {
     phoneOffice: "",
     website: "https://example.com",
     whatsapp: "",
+    quoteMessagePhone: "",
     whatsappBusinessUrl: "",
     email: "hi@example.com",
     languageIds: ["lang_es", "lang_en"],
