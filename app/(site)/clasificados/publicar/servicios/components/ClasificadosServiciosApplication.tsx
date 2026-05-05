@@ -4,18 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import {
-  FiCheck,
-  FiChevronDown,
-  FiChevronLeft,
-  FiChevronRight,
-  FiChevronUp,
-  FiImage,
-  FiPlus,
-  FiStar,
-  FiTrash2,
-  FiUpload,
-} from "react-icons/fi";
+import { FiCheck, FiImage, FiPlus, FiUpload } from "react-icons/fi";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
 import {
   clearLeonixReturningToEditSessionFlag,
@@ -28,6 +17,7 @@ import {
   getBusinessTypePreset,
 } from "../lib/businessTypePresets";
 import { getClasificadosServiciosCopy } from "../lib/clasificadosServiciosApplicationCopy";
+import { ServiciosPublishSortableGallery } from "./ServiciosPublishSortableGallery";
 import type {
   ChipDef,
   ClasificadosServiciosApplicationState,
@@ -491,29 +481,6 @@ export function ClasificadosServiciosApplication() {
         fg.push(id);
       }
       return { ...prev, featuredGalleryIds: fg.slice(0, 4) };
-    });
-  };
-
-  const moveGalleryItem = (index: number, delta: number) => {
-    setState((prev) => {
-      const next = index + delta;
-      if (next < 0 || next >= prev.gallery.length) return prev;
-      const gallery = [...prev.gallery];
-      const [m] = gallery.splice(index, 1);
-      gallery.splice(next, 0, m!);
-      return { ...prev, gallery };
-    });
-  };
-
-  const moveFeaturedOrder = (featuredIndex: number, delta: number) => {
-    setState((prev) => {
-      const fg = [...prev.featuredGalleryIds];
-      const j = featuredIndex + delta;
-      if (j < 0 || j >= fg.length) return prev;
-      const a = fg[featuredIndex]!;
-      fg[featuredIndex] = fg[j]!;
-      fg[j] = a;
-      return { ...prev, featuredGalleryIds: fg };
     });
   };
 
@@ -1254,116 +1221,36 @@ export function ClasificadosServiciosApplication() {
                   .replace("{featured}", String(state.featuredGalleryIds.length))}
               </p>
             ) : null}
-            {state.featuredGalleryIds.length > 0 ? (
-              <div className="mt-6 rounded-xl border border-[#D8C79A]/50 bg-[#FFFCF7]/80 p-4">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#5D4A25]">{copy.labels.featuredStripTitle}</p>
+            {state.gallery.length > 0 ? (
+              <>
+                <p className="mt-3 text-xs font-bold uppercase tracking-wide text-[#5D4A25]">{copy.labels.featuredStripTitle}</p>
                 <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.featuredStripHint}</p>
-                <div className="mt-3 flex flex-wrap gap-3">
-                  {state.featuredGalleryIds.map((fid, fi) => {
-                    const g = state.gallery.find((x) => x.id === fid);
-                    if (!g) return null;
-                    return (
-                      <div key={fid} className="flex flex-col items-center gap-1">
-                        <div className="relative h-16 w-20 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 sm:h-[72px] sm:w-[104px]">
-                          <Image src={g.url} alt="" fill className="object-cover" unoptimized />
-                          <span className="absolute left-1 top-1 rounded bg-black/55 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                            {fi + 1}
-                          </span>
-                        </div>
-                        <div className="flex gap-1">
-                          <button
-                            type="button"
-                            className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded border border-[#D8C79A]/80 p-1.5 text-[#3D2C12] hover:bg-white"
-                            onClick={() => moveFeaturedOrder(fi, -1)}
-                            aria-label={copy.labels.moveFeaturedLeft}
-                          >
-                            <FiChevronLeft className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded border border-[#D8C79A]/80 p-1.5 text-[#3D2C12] hover:bg-white"
-                            onClick={() => moveFeaturedOrder(fi, 1)}
-                            aria-label={copy.labels.moveFeaturedRight}
-                          >
-                            <FiChevronRight className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              </>
             ) : null}
             {state.gallery.length === 0 ? (
               <p className="mt-4 text-sm text-[#8a7a62]">{copy.labels.emptyGallery}</p>
             ) : (
-              <ul className="mt-4 space-y-3">
-                {state.gallery.map((g, gi) => {
-                  const isFeatured = state.featuredGalleryIds.includes(g.id);
-                  return (
-                    <li
-                      key={g.id}
-                      className={[
-                        "flex flex-col gap-3 rounded-xl border border-neutral-200/90 bg-[#FFFCF7] p-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 sm:p-3",
-                        isFeatured ? "ring-2 ring-[#B28A2F]/45 ring-offset-2 ring-offset-[#FFFCF7]" : "",
-                      ].join(" ")}
-                    >
-                      <div className="relative mx-auto h-24 w-full max-w-[12rem] shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 sm:mx-0 sm:h-24 sm:w-32 sm:max-w-none">
-                        <Image src={g.url} alt="" fill className="object-cover" unoptimized />
-                        <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                          {g.source === "file" ? copy.labels.assetFromFile : copy.labels.assetFromUrl}
-                        </span>
-                      </div>
-                      <div className="flex min-w-0 w-full flex-1 flex-wrap items-center justify-center gap-2 sm:w-auto sm:justify-end">
-                        <button
-                          type="button"
-                          className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-lg border border-[#D8C79A]/80 text-[#3D2C12] hover:bg-white"
-                          onClick={() => moveGalleryItem(gi, -1)}
-                          aria-label={copy.labels.moveUp}
-                        >
-                          <FiChevronUp className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-lg border border-[#D8C79A]/80 text-[#3D2C12] hover:bg-white"
-                          onClick={() => moveGalleryItem(gi, 1)}
-                          aria-label={copy.labels.moveDown}
-                        >
-                          <FiChevronDown className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => toggleFeaturedGallery(g.id)}
-                          className={[
-                            "inline-flex min-h-[40px] touch-manipulation items-center gap-1 rounded-full border px-3 py-2 text-xs font-semibold sm:py-1",
-                            isFeatured
-                              ? "border-[#B28A2F] bg-[#FFF3D6] text-[#6b4f0a] ring-1 ring-[#B28A2F]/25"
-                              : "border-neutral-200 bg-white text-[#5D4A25]",
-                          ].join(" ")}
-                        >
-                          <FiStar className={isFeatured ? "h-3.5 w-3.5 text-[#B28A2F]" : "h-3.5 w-3.5"} aria-hidden />
-                          {copy.labels.featuredToggle}
-                          {isFeatured ? ` (${state.featuredGalleryIds.indexOf(g.id) + 1}/4)` : ""}
-                        </button>
-                        <button
-                          type="button"
-                          className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-red-700 hover:bg-red-50"
-                          onClick={() =>
-                            setState((s) => ({
-                              ...s,
-                              gallery: s.gallery.filter((x) => x.id !== g.id),
-                              featuredGalleryIds: s.featuredGalleryIds.filter((fid) => fid !== g.id),
-                            }))
-                          }
-                        >
-                          <FiTrash2 className="h-4 w-4 shrink-0" aria-hidden />
-                          <span>{copy.labels.remove}</span>
-                        </button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+              <ServiciosPublishSortableGallery
+                gallery={state.gallery}
+                featuredGalleryIds={state.featuredGalleryIds}
+                lang={lang}
+                copy={{
+                  assetFromFile: copy.labels.assetFromFile,
+                  assetFromUrl: copy.labels.assetFromUrl,
+                  featuredToggle: copy.labels.featuredToggle,
+                }}
+                onReorder={(nextGallery, nextFeaturedIds) =>
+                  setState((s) => ({ ...s, gallery: nextGallery, featuredGalleryIds: nextFeaturedIds }))
+                }
+                onRemove={(id) =>
+                  setState((s) => ({
+                    ...s,
+                    gallery: s.gallery.filter((x) => x.id !== id),
+                    featuredGalleryIds: s.featuredGalleryIds.filter((fid) => fid !== id),
+                  }))
+                }
+                onToggleFeatured={toggleFeaturedGallery}
+              />
             )}
           </div>
 
