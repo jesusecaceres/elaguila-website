@@ -9,7 +9,6 @@ import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsD
 import {
   clearLeonixReturningToEditSessionFlag,
   markPublishFlowOpeningPreview,
-  useLeonixPublishLeaveGuard,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import {
   BUSINESS_TYPE_PRESETS,
@@ -279,11 +278,7 @@ export function ClasificadosServiciosApplication() {
     state.promotions,
   ]);
 
-  useLeonixPublishLeaveGuard({
-    lang,
-    isDirty: hydrated && clasificadosServiciosApplicationHasProgress(state),
-    muxAssetIds: [],
-  });
+  /* Servicios draft is session-persisted; do not register native beforeunload warnings. */
 
   const previewHref = `/clasificados/publicar/servicios/preview?lang=${lang}`;
   const publicarHref = `/clasificados/publicar?lang=${lang}`;
