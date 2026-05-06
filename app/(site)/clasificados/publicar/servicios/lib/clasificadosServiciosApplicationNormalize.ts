@@ -16,6 +16,7 @@ import {
 import { BUSINESS_HIGHLIGHT_LABEL_MAX } from "./serviciosHighlightCaps";
 import { SERVICIOS_APPLICATION_STEP_COUNT } from "./serviciosApplicationStepLabels";
 import { CUSTOM_PAYMENT_LABEL_MAX } from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
+import { CUSTOM_SERVICIOS_AMENITY_LABEL_MAX } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 
 const DAY_KEYS: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
@@ -194,6 +195,14 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
   if (Array.isArray(o.customPaymentMethods)) {
     customPaymentMethods = o.customPaymentMethods.filter((x): x is string => typeof x === "string");
   }
+  let amenityOptionIds = d.amenityOptionIds;
+  if (Array.isArray(o.amenityOptionIds)) {
+    amenityOptionIds = o.amenityOptionIds.filter((x): x is string => typeof x === "string");
+  }
+  let customAmenityOptions = d.customAmenityOptions;
+  if (Array.isArray(o.customAmenityOptions)) {
+    customAmenityOptions = o.customAmenityOptions.filter((x): x is string => typeof x === "string");
+  }
 
   return enforceServiciosSelectionCaps({
     applicationStepIndex,
@@ -276,6 +285,12 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     customPaymentMethodLabel: str("customPaymentMethodLabel", d.customPaymentMethodLabel).slice(
       0,
       CUSTOM_PAYMENT_LABEL_MAX,
+    ),
+    amenityOptionIds,
+    customAmenityOptions,
+    pendingCustomAmenityOption: str("pendingCustomAmenityOption", d.pendingCustomAmenityOption).slice(
+      0,
+      CUSTOM_SERVICIOS_AMENITY_LABEL_MAX,
     ),
   });
 }

@@ -21,6 +21,10 @@ import {
   sanitizeCustomPaymentMethodLabels,
   sanitizeServiciosPaymentMethodIds,
 } from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
+import {
+  sanitizeCustomServiciosAmenityLabels,
+  sanitizeServiciosAmenityOptionIds,
+} from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 
 const JS_DAY_TO_ROW: DayKey[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
@@ -389,6 +393,11 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   const customPay = sanitizeCustomPaymentMethodLabels(state.customPaymentMethods);
   if (paymentIds.length) draft.paymentMethodIds = paymentIds;
   if (customPay.length) draft.customPaymentMethods = customPay;
+
+  const amenityIds = sanitizeServiciosAmenityOptionIds(state.amenityOptionIds);
+  const customAmenities = sanitizeCustomServiciosAmenityLabels(state.customAmenityOptions);
+  if (amenityIds.length) draft.amenityOptionIds = amenityIds;
+  if (customAmenities.length) draft.customAmenityOptions = customAmenities;
 
   return draft;
 }

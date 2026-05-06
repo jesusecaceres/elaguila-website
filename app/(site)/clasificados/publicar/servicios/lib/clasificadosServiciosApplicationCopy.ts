@@ -237,6 +237,13 @@ export type ClasificadosServiciosCopy = {
     paymentsAddedList: string;
     paymentsCustomMax: string;
     paymentsStandardHeading: string;
+    amenitiesSection: string;
+    amenitiesSectionHint: string;
+    amenitiesOtherLabel: string;
+    amenitiesPlaceholder: string;
+    amenitiesAdd: string;
+    amenitiesAddedList: string;
+    amenitiesCustomMax: string;
   };
 };
 
@@ -470,6 +477,13 @@ const es: ClasificadosServiciosCopy = {
     paymentsAddedList: "Métodos agregados:",
     paymentsCustomMax: "Has alcanzado el máximo de métodos personalizados (24).",
     paymentsStandardHeading: "Métodos estándar",
+    amenitiesSection: "Opciones y facilidades",
+    amenitiesSectionHint: "Selecciona detalles útiles para que el cliente entienda cómo trabajas.",
+    amenitiesOtherLabel: "Otra opción o facilidad",
+    amenitiesPlaceholder: "Ej.: Servicio para propiedades comerciales",
+    amenitiesAdd: "Añadir",
+    amenitiesAddedList: "Opciones agregadas:",
+    amenitiesCustomMax: "Has alcanzado el máximo de opciones personalizadas (24).",
   },
 };
 
@@ -703,6 +717,13 @@ const en: ClasificadosServiciosCopy = {
     paymentsAddedList: "Added methods:",
     paymentsCustomMax: "You’ve reached the maximum number of custom payment methods (24).",
     paymentsStandardHeading: "Standard methods",
+    amenitiesSection: "Options & amenities",
+    amenitiesSectionHint: "Select helpful details so customers understand how you work.",
+    amenitiesOtherLabel: "Other option or amenity",
+    amenitiesPlaceholder: "Ex: Service for commercial properties",
+    amenitiesAdd: "Add",
+    amenitiesAddedList: "Added options:",
+    amenitiesCustomMax: "You’ve reached the maximum number of custom options (24).",
   },
 };
 

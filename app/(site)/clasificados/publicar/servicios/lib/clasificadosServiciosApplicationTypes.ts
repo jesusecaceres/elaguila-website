@@ -182,4 +182,10 @@ export type ClasificadosServiciosApplicationState = {
   customPaymentMethods: string[];
   /** Pending custom payment input — flushed on Add / Next */
   customPaymentMethodLabel: string;
+  /** Standard amenities / options ids */
+  amenityOptionIds: string[];
+  /** Custom amenities / options labels */
+  customAmenityOptions: string[];
+  /** Pending custom amenity input (flushed on Next) */
+  pendingCustomAmenityOption: string;
 };

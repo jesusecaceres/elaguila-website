@@ -85,6 +85,15 @@ import {
 } from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
 import { ServiciosPaymentMethodBadge } from "@/app/servicios/components/ServiciosPaymentMethodBadge";
 import { evaluateAddCustomPaymentMethod } from "../lib/serviciosCustomPaymentMethods";
+import {
+  CUSTOM_SERVICIOS_AMENITY_LABEL_MAX,
+  MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS,
+  SERVICIOS_AMENITY_GROUPS,
+  SERVICIOS_AMENITY_OPTIONS,
+  sanitizeServiciosAmenityOptionIds,
+} from "@/app/servicios/lib/serviciosAmenitiesCatalog";
+import { ServiciosAmenityBadge } from "@/app/servicios/components/ServiciosAmenityBadge";
+import { evaluateAddCustomAmenityOption } from "../lib/serviciosCustomAmenityOptions";
 
 const DEBOUNCE_MS = 500;
 const GALLERY_MAX = 24;
@@ -2089,6 +2098,118 @@ export function ClasificadosServiciosApplication() {
             </div>
           ) : null}
         </section>
+
+        <section className={sectionCard} aria-labelledby="sec-amenities">
+          <h2 id="sec-amenities" className="text-lg font-bold text-[#3D2C12]">
+            {copy.labels.amenitiesSection}
+          </h2>
+          <p className="mt-1 text-sm text-[#5D4A25]/85">{copy.labels.amenitiesSectionHint}</p>
+
+          <div className="mt-5 space-y-5">
+            {SERVICIOS_AMENITY_GROUPS.filter((g) => g.id !== "other").map((group) => {
+              const options = SERVICIOS_AMENITY_OPTIONS.filter((o) => o.groupId === group.id);
+              if (options.length === 0) return null;
+              return (
+                <div key={group.id}>
+                  <p className="text-sm font-semibold text-[#3D2C12]">{group.label[lang]}</p>
+                  <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1 pb-1">
+                    {options.map((opt) => {
+                      const selected = sanitizeServiciosAmenityOptionIds(state.amenityOptionIds).includes(opt.id);
+                      return (
+                        <Chip
+                          key={opt.id}
+                          selected={selected}
+                          onClick={() => {
+                            setState((prev) => {
+                              const cur = new Set(sanitizeServiciosAmenityOptionIds(prev.amenityOptionIds));
+                              if (cur.has(opt.id)) cur.delete(opt.id);
+                              else cur.add(opt.id);
+                              return enforceServiciosSelectionCaps({
+                                ...prev,
+                                amenityOptionIds: sanitizeServiciosAmenityOptionIds([...cur]),
+                              });
+                            });
+                          }}
+                        >
+                          <ServiciosAmenityBadge lang={lang} standardId={opt.id} compact />
+                        </Chip>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <label className={`mt-6 block ${labelClass}`}>{copy.labels.amenitiesOtherLabel}</label>
+          <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+            <input
+              className={inputClass}
+              placeholder={copy.labels.amenitiesPlaceholder}
+              maxLength={CUSTOM_SERVICIOS_AMENITY_LABEL_MAX}
+              value={state.pendingCustomAmenityOption}
+              onChange={(e) =>
+                setState((s) => ({
+                  ...s,
+                  pendingCustomAmenityOption: e.target.value.slice(0, CUSTOM_SERVICIOS_AMENITY_LABEL_MAX),
+                }))
+              }
+            />
+            <button
+              type="button"
+              disabled={
+                !state.pendingCustomAmenityOption.trim() ||
+                state.customAmenityOptions.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS
+              }
+              className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+              onClick={() => {
+                setState((prev) => {
+                  const r = evaluateAddCustomAmenityOption(prev, prev.pendingCustomAmenityOption);
+                  if (!r.ok) return prev;
+                  return enforceServiciosSelectionCaps({
+                    ...prev,
+                    customAmenityOptions: [...prev.customAmenityOptions, r.label],
+                    pendingCustomAmenityOption: "",
+                  });
+                });
+              }}
+            >
+              {copy.labels.amenitiesAdd}
+            </button>
+          </div>
+
+          {state.customAmenityOptions.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS ? (
+            <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.amenitiesCustomMax}</p>
+          ) : null}
+
+          {state.customAmenityOptions.length > 0 ? (
+            <div className="mt-5">
+              <p className="text-sm font-semibold text-[#3D2C12]">{copy.labels.amenitiesAddedList}</p>
+              <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1">
+                {state.customAmenityOptions.map((label, i) => (
+                  <button
+                    key={`amenity-${i}-${label}`}
+                    type="button"
+                    title={label}
+                    aria-label={`${copy.labels.remove}: ${label}`}
+                    onClick={() =>
+                      setState((prev) =>
+                        enforceServiciosSelectionCaps({
+                          ...prev,
+                          customAmenityOptions: prev.customAmenityOptions.filter((_, j) => j !== i),
+                        }),
+                      )
+                    }
+                    className="inline-flex max-w-full min-w-0 min-h-[40px] touch-manipulation items-center gap-1.5 rounded-full border border-[#3B66AD] bg-[#3B66AD]/10 px-3 py-2 text-left text-sm font-medium text-[#1e3a5f] ring-1 ring-[#3B66AD]/20"
+                  >
+                    <ServiciosAmenityBadge lang={lang} customLabel={label} compact />
+                    <FiX className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </section>
           </>
         ) : null}
 
@@ -2434,10 +2555,24 @@ export function ClasificadosServiciosApplication() {
                                 })
                               : enforceServiciosSelectionCaps({ ...w, customPaymentMethodLabel: "" });
                           }
+                          const pendingAmenity = w.pendingCustomAmenityOption.trim();
+                          if (pendingAmenity) {
+                            const r = evaluateAddCustomAmenityOption(w, pendingAmenity);
+                            w = r.ok
+                              ? enforceServiciosSelectionCaps({
+                                  ...w,
+                                  customAmenityOptions: [...w.customAmenityOptions, r.label],
+                                  pendingCustomAmenityOption: "",
+                                })
+                              : enforceServiciosSelectionCaps({ ...w, pendingCustomAmenityOption: "" });
+                          }
                           return {
                             paymentMethodIds: w.paymentMethodIds,
                             customPaymentMethods: w.customPaymentMethods,
                             customPaymentMethodLabel: w.customPaymentMethodLabel,
+                            amenityOptionIds: w.amenityOptionIds,
+                            customAmenityOptions: w.customAmenityOptions,
+                            pendingCustomAmenityOption: w.pendingCustomAmenityOption,
                           };
                         })()
                       : {}),

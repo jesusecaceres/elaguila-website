@@ -179,4 +179,10 @@ export type ServiciosApplicationDraft = {
   customPaymentMethods?: string[];
   /** Pending custom payment input (flushed on preview navigation where applicable) */
   customPaymentMethodLabel?: string;
+  /** Standard amenities / options ids; sanitized on map/resolve */
+  amenityOptionIds?: string[];
+  /** Custom amenities / options labels; sanitized on map/resolve */
+  customAmenityOptions?: string[];
+  /** Pending custom amenity input (flushed on step Next where applicable) */
+  pendingCustomAmenityOption?: string;
 };

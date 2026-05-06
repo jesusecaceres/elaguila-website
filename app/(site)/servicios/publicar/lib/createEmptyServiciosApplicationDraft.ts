@@ -8,5 +8,8 @@ export function createEmptyServiciosApplicationDraft(): ServiciosApplicationDraf
     paymentMethodIds: [],
     customPaymentMethods: [],
     customPaymentMethodLabel: "",
+    amenityOptionIds: [],
+    customAmenityOptions: [],
+    pendingCustomAmenityOption: "",
   };
 }

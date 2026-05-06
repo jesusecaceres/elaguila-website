@@ -1,5 +1,7 @@
 import type { ServiciosBusinessProfile, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 import {
+  filterAmenityOptionIds,
+  filterCustomAmenityOptions,
   filterCustomPaymentMethods,
   filterPaymentMethodIds,
   meaningfulReviews,
@@ -74,6 +76,13 @@ export function hasPaymentMethods(p: ServiciosBusinessProfile): boolean {
   );
 }
 
+export function hasAmenityOptions(p: ServiciosBusinessProfile): boolean {
+  return (
+    filterAmenityOptionIds(p.amenityOptionIds).length > 0 ||
+    filterCustomAmenityOptions(p.customAmenityOptions).length > 0
+  );
+}
+
 /** Resolved profile — guards on sanitized output */
 export function hasHeroIdentityResolved(p: ServiciosProfileResolved): boolean {
   return nonEmpty(p.identity.businessName) || nonEmpty(p.identity.slug);
@@ -125,4 +134,8 @@ export function hasOfferSectionResolved(p: ServiciosProfileResolved): boolean {
 
 export function hasPaymentMethodsResolved(p: ServiciosProfileResolved): boolean {
   return p.paymentMethodIds.length > 0 || p.customPaymentMethods.length > 0;
+}
+
+export function hasAmenityOptionsResolved(p: ServiciosProfileResolved): boolean {
+  return p.amenityOptionIds.length > 0 || p.customAmenityOptions.length > 0;
 }

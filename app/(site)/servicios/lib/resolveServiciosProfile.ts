@@ -8,6 +8,8 @@ import {
   filterBusinessHighlights,
   filterGallery,
   filterGalleryVideos,
+  filterAmenityOptionIds,
+  filterCustomAmenityOptions,
   filterHeroBadges,
   filterQuickFacts,
   filterServiceAreas,
@@ -186,6 +188,8 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
     },
     paymentMethodIds: filterPaymentMethodIds(input.paymentMethodIds),
     customPaymentMethods: filterCustomPaymentMethods(input.customPaymentMethods),
+    amenityOptionIds: filterAmenityOptionIds(input.amenityOptionIds),
+    customAmenityOptions: filterCustomAmenityOptions(input.customAmenityOptions),
     promo,
   };
 }

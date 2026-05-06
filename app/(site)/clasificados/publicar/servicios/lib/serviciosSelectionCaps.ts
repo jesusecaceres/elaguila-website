@@ -11,6 +11,11 @@ import {
   sanitizeCustomPaymentMethodLabels,
   sanitizeServiciosPaymentMethodIds,
 } from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
+import {
+  CUSTOM_SERVICIOS_AMENITY_LABEL_MAX,
+  sanitizeCustomServiciosAmenityLabels,
+  sanitizeServiciosAmenityOptionIds,
+} from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 
 /** Max preset service chips selected at once (generous cap for real listings) */
 export const MAX_SERVICES_SELECTION = 24;
@@ -100,6 +105,13 @@ export function enforceServiciosSelectionCaps(
       ? s.customPaymentMethodLabel.trim().slice(0, CUSTOM_PAYMENT_LABEL_MAX)
       : "";
 
+  const amenityOptionIds = sanitizeServiciosAmenityOptionIds(s.amenityOptionIds);
+  const customAmenityOptions = sanitizeCustomServiciosAmenityLabels(s.customAmenityOptions);
+  const pendingCustomAmenityOption =
+    typeof s.pendingCustomAmenityOption === "string"
+      ? s.pendingCustomAmenityOption.trim().slice(0, CUSTOM_SERVICIOS_AMENITY_LABEL_MAX)
+      : "";
+
   return {
     ...s,
     selectedServiceIds: sis,
@@ -115,5 +127,8 @@ export function enforceServiciosSelectionCaps(
     paymentMethodIds,
     customPaymentMethods,
     customPaymentMethodLabel,
+    amenityOptionIds,
+    customAmenityOptions,
+    pendingCustomAmenityOption,
   };
 }

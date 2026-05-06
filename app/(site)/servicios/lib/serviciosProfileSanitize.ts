@@ -18,6 +18,11 @@ import {
   sanitizeServiciosPaymentMethodIds,
   type ServiciosPaymentMethodId,
 } from "./serviciosPaymentMethodCatalog";
+import {
+  sanitizeCustomServiciosAmenityLabels,
+  sanitizeServiciosAmenityOptionIds,
+  type ServiciosAmenityOptionId,
+} from "./serviciosAmenitiesCatalog";
 
 const SERVICE_VARIANTS = new Set<ServiciosServiceVisualVariant>([
   "instalacion",
@@ -377,4 +382,12 @@ export function filterPaymentMethodIds(raw: string[] | undefined): ServiciosPaym
 
 export function filterCustomPaymentMethods(raw: string[] | undefined): string[] {
   return sanitizeCustomPaymentMethodLabels(raw);
+}
+
+export function filterAmenityOptionIds(raw: string[] | undefined): ServiciosAmenityOptionId[] {
+  return sanitizeServiciosAmenityOptionIds(raw);
+}
+
+export function filterCustomAmenityOptions(raw: string[] | undefined): string[] {
+  return sanitizeCustomServiciosAmenityLabels(raw);
 }

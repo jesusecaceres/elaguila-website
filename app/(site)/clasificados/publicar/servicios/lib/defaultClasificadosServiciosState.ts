@@ -93,6 +93,9 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     paymentMethodIds: [],
     customPaymentMethods: [],
     customPaymentMethodLabel: "",
+    amenityOptionIds: [],
+    customAmenityOptions: [],
+    pendingCustomAmenityOption: "",
   };
 }
 
@@ -157,6 +160,13 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
     s.paymentMethodIds.length > 0 ||
     s.customPaymentMethods.length > 0 ||
     s.customPaymentMethodLabel.trim()
+  ) {
+    return true;
+  }
+  if (
+    s.amenityOptionIds.length > 0 ||
+    s.customAmenityOptions.length > 0 ||
+    s.pendingCustomAmenityOption.trim()
   ) {
     return true;
   }

@@ -231,6 +231,10 @@ export type ServiciosBusinessProfile = {
   paymentMethodIds?: string[];
   /** Advertiser-typed payment labels (non-catalog); sanitized at resolve */
   customPaymentMethods?: string[];
+  /** Standard amenity/option ids (Opciones y facilidades); sanitized at resolve */
+  amenityOptionIds?: string[];
+  /** Custom amenity/option labels; sanitized at resolve */
+  customAmenityOptions?: string[];
 };
 
 /**
@@ -302,6 +306,10 @@ export type ServiciosProfileResolved = {
   paymentMethodIds: string[];
   /** Trimmed custom payment labels */
   customPaymentMethods: string[];
+  /** Whitelisted amenity option ids */
+  amenityOptionIds: string[];
+  /** Sanitized custom amenity labels */
+  customAmenityOptions: string[];
   /** Sanitized offer — only safe href exposed for links */
   promo?: {
     id: string;
