@@ -31,5 +31,6 @@ export function mergeStateForBusinessTypeChange(
     primaryCtaId: "",
     secondaryCtaIds: [],
     featuredGalleryIds: prev.featuredGalleryIds.filter((id) => gIds.has(id)).slice(0, 4),
+    customServiceDescription: p.id === "servicio_otro_generico" ? prev.customServiceDescription : "",
   });
 }

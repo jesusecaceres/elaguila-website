@@ -42,6 +42,7 @@
     "verify:restaurantes:launch:full": "npm run typecheck && npm run build && node scripts/restaurantes-http-smoke.mjs && npm run verify:restaurantes:selftest",
     "verify:servicios:manual-qa-seed": "npx tsx scripts/servicios-manual-qa-catalog-seed.ts",
     "verify:servicios:unit": "npx tsx scripts/serviciosLaunchProof.ts",
+    "verify:servicios:preset-smoke": "npx tsx scripts/smoke-servicios-business-presets.ts",
     "verify:servicios:http-smoke": "node scripts/servicios-http-smoke.mjs",
     "verify:servicios:e2e": "npx playwright test",
     "verify:servicios": "npm run typecheck && npm run lint:servicios && npm run build && npm run verify:servicios:unit && npm run verify:servicios:http-smoke && npm run verify:servicios:e2e",

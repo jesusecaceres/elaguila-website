@@ -159,7 +159,7 @@ export const BUSINESS_TYPE_PRESETS: BusinessTypePreset[] = [
     "Jardinería / Paisajismo",
     "Gardening / Landscaping",
     [
-      C("jard_diseño", "Diseño de jardines", "Garden design"),
+      C("jard_diseno", "Diseño de jardines", "Garden design"),
       C("jard_mantenimiento", "Mantenimiento de jardines", "Garden maintenance"),
       C("jard_cesped", "Instalación de césped", "Sod installation"),
       C("jard_riego", "Sistemas de riego", "Irrigation systems"),
@@ -201,7 +201,7 @@ export const BUSINESS_TYPE_PRESETS: BusinessTypePreset[] = [
     [
       C("repar_hogar", "Reparaciones del hogar", "Home repairs"),
       C("repar_mantenimiento", "Mantenimiento general", "General maintenance"),
-      C("repar_pequeños", "Pequeños arreglos", "Small repairs"),
+      C("repar_pequenos", "Pequeños arreglos", "Small repairs"),
       C("repar_emergencias", "Reparaciones de emergencia", "Emergency repairs"),
     ],
     [
@@ -282,8 +282,9 @@ export const BUSINESS_TYPE_PRESETS: BusinessTypePreset[] = [
     "Smog / Inspection",
     [
       C("smog_certificacion", "Certificación Smog", "Smog certification"),
-      C("smog_inspeccion", "Inspección vehicular", "Vehicle inspection"),
+      C("smog_vehicular", "Inspección vehicular", "Vehicle inspection"),
       C("smog_diagnostico", "Diagnóstico de emisiones", "Emissions diagnostics"),
+      C("smog_star", "Certificación STAR / BAR", "STAR / BAR certification"),
     ],
     [
       C("smog_r1", "Estación certificada", "Certified station"),
@@ -303,6 +304,7 @@ export const BUSINESS_TYPE_PRESETS: BusinessTypePreset[] = [
       C("grua_emergencia", "Remolque de emergencia", "Emergency towing"),
       C("grua_larga_distancia", "Remolque larga distancia", "Long distance towing"),
       C("grua_carga", "Transporte de carga", "Cargo transport"),
+      C("grua_moto", "Remolque de motocicletas", "Motorcycle towing"),
     ],
     [
       C("grua_r1", "Servicio 24/7", "24/7 service"),
@@ -341,7 +343,8 @@ export const BUSINESS_TYPE_PRESETS: BusinessTypePreset[] = [
     [
       C("aceite_cambio", "Cambio de aceite", "Oil change"),
       C("aceite_filtro", "Cambio de filtro", "Filter change"),
-      C("aceite_revisión", "Revisión general", "General checkup"),
+      C("aceite_revision", "Revisión general", "General checkup"),
+      C("aceite_sintetico", "Aceite sintético / premium", "Synthetic / premium oil"),
     ],
     [
       C("aceite_r1", "Aceite de calidad", "Quality oil"),
@@ -441,6 +444,7 @@ export const BUSINESS_TYPE_PRESETS: BusinessTypePreset[] = [
       C("alin_alineacion", "Alineación", "Alignment"),
       C("alin_balanceo", "Balanceo", "Balancing"),
       C("alin_suspension", "Revisión de suspensión", "Suspension check"),
+      C("alin_rotacion", "Rotación de llantas", "Tire rotation"),
     ],
     [
       C("alin_r1", "Equipos precisos", "Precision equipment"),
@@ -460,6 +464,7 @@ export const BUSINESS_TYPE_PRESETS: BusinessTypePreset[] = [
       C("trans_reparacion", "Reparación de transmisión", "Transmission repair"),
       C("trans_mantenimiento", "Mantenimiento", "Maintenance"),
       C("trans_diagnostico", "Diagnóstico", "Diagnostics"),
+      C("trans_reconstruccion", "Reconstrucción", "Rebuilding"),
     ],
     [
       C("trans_r1", "Especialistas en transmisiones", "Transmission specialists"),
@@ -521,7 +526,7 @@ export const BUSINESS_TYPE_PRESETS: BusinessTypePreset[] = [
       C("unas_manicure", "Manicure", "Manicure"),
       C("unas_pedicure", "Pedicure", "Pedicure"),
       C("unas_acrilicas", "Uñas acrílicas", "Acrylic nails"),
-      C("unas_diseño", "Diseño de uñas", "Nail art"),
+      C("unas_diseno", "Diseño de uñas", "Nail art"),
     ],
     [
       C("unas_r1", "Técnicas expertas", "Expert technicians"),
@@ -640,8 +645,8 @@ export const BUSINESS_TYPE_PRESETS: BusinessTypePreset[] = [
     [
       C("acup_tratamiento", "Tratamiento de acupuntura", "Acupuncture treatment"),
       C("acup_dolor", "Manejo del dolor", "Pain management"),
-      C("acup_estrés", "Reducción de estrés", "Stress reduction"),
-      C("acup_energía", "Balance de energía", "Energy balance"),
+      C("acup_estres", "Reducción de estrés", "Stress reduction"),
+      C("acup_energia", "Balance de energía", "Energy balance"),
     ],
     [
       C("acup_r1", "Practicantes certificados", "Certified practitioners"),
@@ -880,7 +885,7 @@ export const BUSINESS_TYPE_PRESETS: BusinessTypePreset[] = [
     "Arquitectura",
     "Architecture",
     [
-      C("arq_diseño", "Diseño arquitectónico", "Architectural design"),
+      C("arq_diseno", "Diseño arquitectónico", "Architectural design"),
       C("arq_planos", "Planos de construcción", "Construction plans"),
       C("arq_supervision", "Supervisión de obra", "Construction supervision"),
       C("arq_remodelacion", "Diseño de remodelación", "Remodeling design"),
@@ -1471,10 +1476,12 @@ export const BUSINESS_TYPE_PRESETS: BusinessTypePreset[] = [
       C("otro_svc", "Servicio a medida", "Custom service"),
       C("otro_consulta", "Consultoría / asesoría", "Consulting"),
       C("otro_urgente", "Atención con cita", "By appointment"),
+      C("otro_domicilio", "Servicio a domicilio", "On-site service"),
     ],
     [
       C("otro_r1", "Servicio local", "Local service"),
       C("otro_r2", "Referencias previas", "References on request"),
+      C("otro_r3", "Atención personalizada", "Personalized attention"),
     ],
     [C("otro_q1", "Horario flexible", "Flexible hours")],
     [C("cta_cotiz", "Solicitar cotización", "Request quote"), C("cta_llamar", "Llamar ahora", "Call now")],
