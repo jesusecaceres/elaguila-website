@@ -1,5 +1,11 @@
 import "server-only";
 
+import {
+  adminQueueExtractServiciosSlugFromUrl,
+  adminQueueIsUuid,
+  adminQueueNormalizeLeonixAdId,
+} from "@/app/admin/_lib/adminAdSearch";
+import { fetchProfileIdsMatchingAdminQueueSearch } from "@/app/lib/supabase/adminQueueProfileSearch";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
 import {
@@ -145,4 +151,179 @@ export async function getServiciosPublicListingBySlugForDiscovery(slug: string):
   const fromDb = await getServiciosPublicListingBySlugFromDb(slug, { visibility: "slug_page" });
   if (fromDb) return fromDb;
   return getServiciosDevPublishRowBySlug(slug);
+}
+
+const SERVICIOS_ADMIN_QUEUE_SELECT =
+  "id, slug, business_name, city, published_at, updated_at, leonix_verified, listing_status, internal_group, owner_user_id, moderation_notes, profile_json";
+
+export type ServiciosPublicListingAdminDbRow = {
+  id: string;
+  slug: string;
+  business_name: string;
+  city: string;
+  published_at: string;
+  updated_at: string | null;
+  leonix_verified: boolean;
+  listing_status: string | null;
+  internal_group: string | null;
+  owner_user_id: string | null;
+  moderation_notes: string | null;
+  profile_json: unknown;
+};
+
+function mergeServiciosAdminRows(rows: ServiciosPublicListingAdminDbRow[], cap: number): ServiciosPublicListingAdminDbRow[] {
+  const seen = new Set<string>();
+  const out: ServiciosPublicListingAdminDbRow[] = [];
+  for (const r of rows) {
+    if (!r.id || seen.has(r.id)) continue;
+    seen.add(r.id);
+    out.push(r);
+    if (out.length >= cap) break;
+  }
+  return out;
+}
+
+function escapeIlikeServicios(s: string): string {
+  return s.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
+export type ServiciosAdminQueueFilters = {
+  limit?: number;
+  q?: string;
+  slug?: string;
+  id?: string;
+  leonix_ad_id?: string;
+  owner_user_id?: string;
+};
+
+/**
+ * Admin workspace queue for `servicios_public_listings` with Phase 4 search (q, slug, id, owner, optional leonix_ad_id).
+ */
+export async function listServiciosPublicListingsAdminQueueFromDb(
+  opts: ServiciosAdminQueueFilters = {},
+): Promise<{ rows: ServiciosPublicListingAdminDbRow[]; fullSchema: boolean; unavailable: boolean }> {
+  if (!isSupabaseAdminConfigured()) return { rows: [], fullSchema: true, unavailable: true };
+  const limit = Math.min(Math.max(opts.limit ?? 500, 1), 800);
+  const slug = opts.slug?.trim();
+  const id = opts.id?.trim();
+  const owner = opts.owner_user_id?.trim();
+  const leonixParam = opts.leonix_ad_id?.trim();
+  const qRaw = opts.q?.trim() ?? "";
+  const supabase = getAdminSupabase();
+  const qb = () => supabase.from("servicios_public_listings").select(SERVICIOS_ADMIN_QUEUE_SELECT);
+
+  try {
+    if (slug || id || owner) {
+      let rowQuery = qb();
+      if (slug) rowQuery = rowQuery.eq("slug", slug);
+      if (id) rowQuery = rowQuery.eq("id", id);
+      if (owner) rowQuery = rowQuery.eq("owner_user_id", owner);
+      const { data, error } = await rowQuery.order("updated_at", { ascending: false }).limit(limit);
+      if (error) {
+        if (/column|does not exist|schema cache/i.test(error.message)) return { rows: [], fullSchema: false, unavailable: true };
+        return { rows: [], fullSchema: true, unavailable: true };
+      }
+      let rows = (data ?? []) as ServiciosPublicListingAdminDbRow[];
+      if (leonixParam) {
+        const lx = adminQueueNormalizeLeonixAdId(leonixParam) ?? leonixParam.toUpperCase();
+        const lxRes = await supabase
+          .from("servicios_public_listings")
+          .select(SERVICIOS_ADMIN_QUEUE_SELECT)
+          .eq("leonix_ad_id", lx)
+          .limit(limit);
+        if (!lxRes.error && lxRes.data?.length) {
+          rows = mergeServiciosAdminRows([...rows, ...(lxRes.data as ServiciosPublicListingAdminDbRow[])], limit);
+        }
+      }
+      return { rows, fullSchema: true, unavailable: false };
+    }
+
+    if (leonixParam) {
+      const lx = adminQueueNormalizeLeonixAdId(leonixParam) ?? leonixParam.toUpperCase();
+      const { data, error } = await supabase
+        .from("servicios_public_listings")
+        .select(SERVICIOS_ADMIN_QUEUE_SELECT)
+        .eq("leonix_ad_id", lx)
+        .order("updated_at", { ascending: false })
+        .limit(limit);
+      if (!error && data?.length) return { rows: data as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
+    }
+
+    if (qRaw) {
+      const q = qRaw;
+      const qLower = q.toLowerCase();
+
+      if (adminQueueIsUuid(q)) {
+        const { data, error } = await qb().or(`id.eq.${q},owner_user_id.eq.${q}`).limit(50);
+        if (!error && data?.length) return { rows: data as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
+      }
+
+      const normLx = adminQueueNormalizeLeonixAdId(q);
+      if (normLx) {
+        const { data, error } = await qb().eq("leonix_ad_id", normLx).limit(30);
+        if (!error && data?.length) return { rows: data as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
+      }
+
+      const fromUrl = adminQueueExtractServiciosSlugFromUrl(q);
+      if (fromUrl) {
+        const { data, error } = await qb().eq("slug", fromUrl).limit(20);
+        if (!error && data?.length) return { rows: data as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
+      }
+
+      const { data: bySlug, error: slugErr } = await qb().eq("slug", qLower).limit(20);
+      if (!slugErr && bySlug?.length) return { rows: bySlug as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
+
+      const term = `%${escapeIlikeServicios(qLower)}%`;
+      const [nameRes, slugRes] = await Promise.all([
+        qb().ilike("business_name", term).order("updated_at", { ascending: false }).limit(80),
+        qb().ilike("slug", term).order("updated_at", { ascending: false }).limit(80),
+      ]);
+      let merged = mergeServiciosAdminRows(
+        [...((nameRes.data ?? []) as ServiciosPublicListingAdminDbRow[]), ...((slugRes.data ?? []) as ServiciosPublicListingAdminDbRow[])],
+        limit,
+      );
+      const profileIds = await fetchProfileIdsMatchingAdminQueueSearch(supabase, qRaw);
+      if (profileIds.length > 0) {
+        const { data: profRows } = await qb().in("owner_user_id", profileIds).order("updated_at", { ascending: false }).limit(limit);
+        if (profRows?.length) {
+          merged = mergeServiciosAdminRows([...merged, ...(profRows as ServiciosPublicListingAdminDbRow[])], limit);
+        }
+      }
+      if (merged.length) return { rows: merged, fullSchema: true, unavailable: false };
+      if (profileIds.length > 0) {
+        const { data: profOnly } = await qb().in("owner_user_id", profileIds).order("updated_at", { ascending: false }).limit(limit);
+        if (profOnly?.length) return { rows: profOnly as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
+      }
+      return { rows: [], fullSchema: true, unavailable: false };
+    }
+
+    const { data, error } = await qb().order("updated_at", { ascending: false }).limit(limit);
+    if (error) {
+      if (/column|does not exist|schema cache/i.test(error.message)) {
+        const leg = await supabase
+          .from("servicios_public_listings")
+          .select("id, slug, business_name, city, published_at, leonix_verified")
+          .order("published_at", { ascending: false })
+          .limit(limit);
+        if (leg.error) return { rows: [], fullSchema: false, unavailable: true };
+        return {
+          rows: (leg.data ?? []).map((r) => ({
+            ...(r as ServiciosPublicListingAdminDbRow),
+            updated_at: null,
+            listing_status: null,
+            internal_group: null,
+            owner_user_id: null,
+            moderation_notes: null,
+            profile_json: null,
+          })),
+          fullSchema: false,
+          unavailable: false,
+        };
+      }
+      return { rows: [], fullSchema: true, unavailable: true };
+    }
+    return { rows: (data ?? []) as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
+  } catch {
+    return { rows: [], fullSchema: false, unavailable: true };
+  }
 }

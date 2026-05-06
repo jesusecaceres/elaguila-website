@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { empleosRowMatchesAdminQueueSearch } from "@/app/admin/_lib/adminAdSearch";
 import {
   fetchAllEmpleosListingsForAdmin,
   fetchEmpleosApplicationHealthByListingIds,
 } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
-import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { fetchProfileIdsMatchingAdminQueueSearch } from "@/app/lib/supabase/adminQueueProfileSearch";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
 
@@ -15,7 +17,29 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   if (!isSupabaseAdminConfigured()) {
     return NextResponse.json({ ok: false, error: "supabase_not_configured" }, { status: 503 });
   }
-  const rows = await fetchAllEmpleosListingsForAdmin();
+  const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
+  let rows = await fetchAllEmpleosListingsForAdmin();
+  if (q) {
+    const supabase = getAdminSupabase();
+    const profileIds = await fetchProfileIdsMatchingAdminQueueSearch(supabase, q);
+    const profileSet = new Set(profileIds);
+    rows = rows.filter((r) =>
+      empleosRowMatchesAdminQueueSearch(
+        {
+          id: r.id,
+          slug: r.slug,
+          title: r.title,
+          company_name: r.company_name,
+          owner_user_id: r.owner_user_id,
+          city: r.city,
+          state: r.state,
+          leonix_ad_id: (r as { leonix_ad_id?: string | null }).leonix_ad_id ?? null,
+        },
+        q,
+        profileSet,
+      ),
+    );
+  }
   const ids = rows.map((r) => r.id);
   const health = await fetchEmpleosApplicationHealthByListingIds(ids);
   const enriched = rows.map((r) => ({

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
-import { adminCardBase, adminCtaChipSecondary } from "@/app/admin/_components/adminTheme";
+import { adminBtnSecondary, adminCardBase, adminCtaChipSecondary } from "@/app/admin/_components/adminTheme";
 import {
   isServiciosDevPublishPersistenceEnabled,
   listServiciosDevPublishRows,
 } from "@/app/clasificados/servicios/lib/serviciosDevPublishPersistence";
+import { listServiciosPublicListingsAdminQueueFromDb } from "@/app/clasificados/servicios/lib/serviciosPublicListingsServer";
 import { listPendingServiciosReviews } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
 import {
   setServiciosListingLeonixVerifiedAction,
@@ -28,10 +29,6 @@ export type ServiciosPublicAdminRow = {
   moderation_notes?: string | null;
   profile_json?: { opsMeta?: { leonixVerifiedInterest?: boolean } } | null;
 };
-
-function schemaMissing(msg: string): boolean {
-  return /column|does not exist|schema cache/i.test(msg.toLowerCase());
-}
 
 type ServiciosLeadAdminRow = {
   id: string;
@@ -58,54 +55,6 @@ async function fetchServiciosLeadsForAdmin(): Promise<ServiciosLeadAdminRow[]> {
   }
 }
 
-async function fetchServiciosPublicForAdmin(): Promise<{
-  rows: ServiciosPublicAdminRow[];
-  unavailable: boolean;
-  fullSchema: boolean;
-}> {
-  try {
-    const supabase = getAdminSupabase();
-    const full = await supabase
-      .from("servicios_public_listings")
-      .select(
-        "id, slug, business_name, city, published_at, updated_at, leonix_verified, listing_status, internal_group, owner_user_id, moderation_notes, profile_json",
-      )
-      .order("updated_at", { ascending: false })
-      .limit(80);
-
-    if (!full.error && full.data) {
-      const rows = (full.data as ServiciosPublicAdminRow[]).map((r) => ({
-        ...r,
-        listing_status: r.listing_status ?? null,
-        updated_at: r.updated_at ?? null,
-        owner_user_id: r.owner_user_id ?? null,
-      }));
-      return { rows, unavailable: false, fullSchema: true };
-    }
-
-    const msg = full.error?.message ?? "";
-    if (schemaMissing(msg)) {
-      const leg = await supabase
-        .from("servicios_public_listings")
-        .select("id, slug, business_name, city, published_at, leonix_verified")
-        .order("published_at", { ascending: false })
-        .limit(80);
-      if (leg.error) return { rows: [], unavailable: true, fullSchema: false };
-      const rows = (leg.data ?? []).map((r) => ({
-        ...(r as Omit<ServiciosPublicAdminRow, "updated_at" | "listing_status" | "internal_group">),
-        updated_at: null,
-        listing_status: null,
-        internal_group: null,
-      }));
-      return { rows, unavailable: false, fullSchema: false };
-    }
-
-    return { rows: [], unavailable: true, fullSchema: false };
-  } catch {
-    return { rows: [], unavailable: true, fullSchema: false };
-  }
-}
-
 function devFileRowsAsAdmin(): ServiciosPublicAdminRow[] {
   if (!isServiciosDevPublishPersistenceEnabled()) return [];
   return listServiciosDevPublishRows().map((r) => ({
@@ -121,9 +70,52 @@ function devFileRowsAsAdmin(): ServiciosPublicAdminRow[] {
   }));
 }
 
-export default async function AdminServiciosWorkspacePage() {
-  const { rows, unavailable, fullSchema } = await fetchServiciosPublicForAdmin();
-  const devAdminRows = devFileRowsAsAdmin();
+function firstParam(v: string | string[] | undefined): string | undefined {
+  if (typeof v === "string") return v;
+  if (Array.isArray(v) && v.length > 0) return v[0];
+  return undefined;
+}
+
+function filterDevServiciosRows(rows: ServiciosPublicAdminRow[], q: string | undefined): ServiciosPublicAdminRow[] {
+  const n = (q ?? "").trim().toLowerCase();
+  if (!n) return rows;
+  return rows.filter(
+    (r) =>
+      r.slug.toLowerCase().includes(n) ||
+      r.business_name.toLowerCase().includes(n) ||
+      r.id.toLowerCase().includes(n),
+  );
+}
+
+export default async function AdminServiciosWorkspacePage(props: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = props.searchParams ? await props.searchParams : {};
+  const queueFilters = {
+    limit: 500,
+    q: firstParam(sp.q),
+    slug: firstParam(sp.slug),
+    id: firstParam(sp.id),
+    leonix_ad_id: firstParam(sp.leonix_ad_id),
+    owner_user_id: firstParam(sp.owner_user_id),
+  };
+  const queueRes = await listServiciosPublicListingsAdminQueueFromDb(queueFilters);
+  const rows: ServiciosPublicAdminRow[] = queueRes.rows.map((r) => ({
+    id: r.id,
+    slug: r.slug,
+    business_name: r.business_name,
+    city: r.city,
+    published_at: r.published_at,
+    updated_at: r.updated_at,
+    leonix_verified: r.leonix_verified,
+    listing_status: r.listing_status,
+    internal_group: r.internal_group,
+    owner_user_id: r.owner_user_id,
+    moderation_notes: (r.moderation_notes ?? null) as string | null,
+    profile_json: r.profile_json as ServiciosPublicAdminRow["profile_json"],
+  }));
+  const { unavailable, fullSchema } = queueRes;
+  const devAdminRows = filterDevServiciosRows(devFileRowsAsAdmin(), queueFilters.q);
   const pendingReviews = await listPendingServiciosReviews(80);
   const recentLeads = await fetchServiciosLeadsForAdmin();
 
@@ -145,6 +137,70 @@ export default async function AdminServiciosWorkspacePage() {
           </Link>
         </div>
       </div>
+
+      {!unavailable ? (
+        <div className={`${adminCardBase} mb-4 space-y-3 p-4 text-sm text-[#5C5346]`}>
+          <p className="font-bold text-[#1E1810]">Buscar cola</p>
+          <p className="text-[10px] text-[#7A7164]">
+            Leonix Ad ID (si existe columna), UUID interno o de usuario, slug, URL pública /clasificados/servicios/…, nombre del
+            negocio, y coincidencia por nombre / correo / teléfono del perfil propietario.
+          </p>
+          <form className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end" method="get" action="/admin/workspace/clasificados/servicios">
+            <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs">
+              <span className="font-semibold text-[#5C5346]">q</span>
+              <input
+                name="q"
+                defaultValue={queueFilters.q ?? ""}
+                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs text-[#1E1810]"
+                placeholder="UUID, URL, negocio, email…"
+                autoComplete="off"
+              />
+            </label>
+            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
+              <span className="font-semibold text-[#5C5346]">slug</span>
+              <input
+                name="slug"
+                defaultValue={queueFilters.slug ?? ""}
+                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs"
+                autoComplete="off"
+              />
+            </label>
+            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
+              <span className="font-semibold text-[#5C5346]">id</span>
+              <input
+                name="id"
+                defaultValue={queueFilters.id ?? ""}
+                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs"
+                autoComplete="off"
+              />
+            </label>
+            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
+              <span className="font-semibold text-[#5C5346]">leonix_ad_id</span>
+              <input
+                name="leonix_ad_id"
+                defaultValue={queueFilters.leonix_ad_id ?? ""}
+                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs"
+                autoComplete="off"
+              />
+            </label>
+            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
+              <span className="font-semibold text-[#5C5346]">owner_user_id</span>
+              <input
+                name="owner_user_id"
+                defaultValue={queueFilters.owner_user_id ?? ""}
+                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs"
+                autoComplete="off"
+              />
+            </label>
+            <button type="submit" className="rounded-xl bg-[#2A2620] px-4 py-2 text-xs font-bold text-[#FAF7F2]">
+              Aplicar
+            </button>
+            <Link href="/admin/workspace/clasificados/servicios" className={`${adminBtnSecondary} inline-flex items-center text-xs`}>
+              Limpiar
+            </Link>
+          </form>
+        </div>
+      ) : null}
 
       {!unavailable ? (
         <div className={`${adminCardBase} overflow-hidden p-0`}>

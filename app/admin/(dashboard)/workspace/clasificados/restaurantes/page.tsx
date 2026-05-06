@@ -66,7 +66,9 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
           <p className="font-bold text-[#1E1810]">Buscar cola</p>
           <form className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end" method="get" action="/admin/workspace/clasificados/restaurantes">
             <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs">
-              <span className="font-semibold text-[#5C5346]">q (slug, REST-…, UUID, URL, nombre)</span>
+              <span className="font-semibold text-[#5C5346]">
+                q (Leonix ID, UUID, user ID, slug, URL, negocio, nombre/email/teléfono del perfil)
+              </span>
               <input
                 name="q"
                 defaultValue={firstParam(sp.q) ?? ""}

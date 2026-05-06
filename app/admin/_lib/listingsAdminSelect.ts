@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { adminQueueNormalizeLeonixAdId } from "@/app/admin/_lib/adminAdSearch";
+import { fetchProfileIdsMatchingAdminQueueSearch } from "@/app/lib/supabase/adminQueueProfileSearch";
+
 const LISTINGS_ADMIN_CORE =
   "id, title, description, city, category, price, is_free, status, owner_id, created_at, images";
 
@@ -87,7 +90,7 @@ function escapeIlike(s: string): string {
 }
 
 export type ListingsAdminWorkspaceFilters = {
-  /** Lowercased trimmed search across title, city, id, owner_id (substring). */
+  /** Trimmed search (preserve case for UUID / Leonix-style ids). */
   q?: string;
   category?: string;
   status?: string;
@@ -121,29 +124,37 @@ export async function fetchListingsForAdminWorkspaceFiltered(
   const cat = (filters.category ?? "").trim();
   const status = (filters.status ?? "").trim();
   const ownerFrag = (filters.ownerFrag ?? "").trim().toLowerCase();
-  const qRaw = (filters.q ?? "").trim().toLowerCase();
-  const safeQ = escapeIlike(qRaw);
+  const qInput = (filters.q ?? "").trim();
+  const qLower = qInput.toLowerCase();
+  const safeQ = escapeIlike(qLower);
+
+  const applyListingFilters = <T extends { eq: (column: string, value: string) => T }>(qb: T): T => {
+    let q = qb;
+    if (cat) q = q.eq("category", cat);
+    if (status) q = q.eq("status", status);
+    if (ownerFrag && isUuid(ownerFrag)) {
+      q = q.eq("owner_id", ownerFrag);
+    }
+    return q;
+  };
 
   const buildQuery = (cols: string, qMode: "none" | "text_uuid" | "owner_like") => {
-    let qb = supabase.from("listings").select(cols).order("created_at", { ascending: false }).limit(limit);
-    if (cat) qb = qb.eq("category", cat);
-    if (status) qb = qb.eq("status", status);
-    if (ownerFrag && isUuid(ownerFrag)) {
-      qb = qb.eq("owner_id", ownerFrag);
-    }
-    if (qRaw) {
+    let qb = applyListingFilters(
+      supabase.from("listings").select(cols).order("created_at", { ascending: false }).limit(limit),
+    );
+    if (qLower) {
       if (qMode === "text_uuid") {
         const parts = [`title.ilike.%${safeQ}%`, `city.ilike.%${safeQ}%`];
-        if (!isUuid(qRaw)) {
+        if (!isUuid(qInput)) {
           parts.push(`description.ilike.%${safeQ}%`);
         }
-        if (isUuid(qRaw)) {
-          parts.push(`id.eq.${qRaw}`);
-          parts.push(`owner_id.eq.${qRaw}`);
+        if (isUuid(qInput)) {
+          parts.push(`id.eq.${qInput}`);
+          parts.push(`owner_id.eq.${qInput}`);
         }
         qb = qb.or(parts.join(","));
       } else if (qMode === "owner_like") {
-        qb = qb.filter("owner_id", "ilike", `%${qRaw}%`);
+        qb = qb.filter("owner_id", "ilike", `%${qLower}%`);
       }
     }
     return qb;
@@ -152,25 +163,57 @@ export async function fetchListingsForAdminWorkspaceFiltered(
   const run = async (
     cols: string
   ): Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }> => {
-    if (!qRaw || isUuid(qRaw)) {
-      const res = await buildQuery(cols, qRaw ? "text_uuid" : "none");
-      return {
-        data: (res.data as unknown as Record<string, unknown>[]) ?? null,
-        error: res.error ? { message: res.error.message } : null,
-      };
-    }
-
-    const [a, b] = await Promise.all([
-      buildQuery(cols, "text_uuid"),
-      buildQuery(cols, "owner_like"),
-    ]);
-
     let merged: Record<string, unknown>[] = [];
-    if (!a.error && a.data?.length) merged = merged.concat(a.data as unknown as Record<string, unknown>[]);
-    if (!b.error && b.data?.length) merged = merged.concat(b.data as unknown as Record<string, unknown>[]);
-    if (a.error && b.error) {
-      return { data: null, error: { message: a.error.message } };
+
+    if (!qLower) {
+      const res = await buildQuery(cols, "none");
+      if (res.error) return { data: null, error: { message: res.error.message } };
+      merged = (res.data as unknown as Record<string, unknown>[]) ?? [];
+    } else if (isUuid(qInput)) {
+      const res = await buildQuery(cols, "text_uuid");
+      if (res.error) return { data: null, error: { message: res.error.message } };
+      merged = (res.data as unknown as Record<string, unknown>[]) ?? [];
+    } else {
+      const [a, b] = await Promise.all([
+        buildQuery(cols, "text_uuid"),
+        buildQuery(cols, "owner_like"),
+      ]);
+      if (a.error && b.error) {
+        return { data: null, error: { message: a.error.message } };
+      }
+      if (!a.error && a.data?.length) merged = merged.concat(a.data as unknown as Record<string, unknown>[]);
+      if (!b.error && b.data?.length) merged = merged.concat(b.data as unknown as Record<string, unknown>[]);
+      merged.sort((x, y) => {
+        const tx = new Date(String((x as { created_at?: string }).created_at ?? 0)).getTime();
+        const ty = new Date(String((y as { created_at?: string }).created_at ?? 0)).getTime();
+        return ty - tx;
+      });
     }
+
+    const normLeonix = adminQueueNormalizeLeonixAdId(qInput);
+    if (normLeonix) {
+      const lxb = applyListingFilters(
+        supabase.from("listings").select(cols).eq("leonix_ad_id", normLeonix).order("created_at", { ascending: false }).limit(limit),
+      );
+      const lx = await lxb;
+      if (!lx.error && lx.data?.length) {
+        merged = merged.concat(lx.data as unknown as Record<string, unknown>[]);
+      }
+    }
+
+    if (qInput.length >= 2) {
+      const profileIds = await fetchProfileIdsMatchingAdminQueueSearch(supabase, qInput);
+      if (profileIds.length > 0) {
+        let pb = applyListingFilters(
+          supabase.from("listings").select(cols).in("owner_id", profileIds).order("created_at", { ascending: false }).limit(limit),
+        );
+        const pr = await pb;
+        if (!pr.error && pr.data?.length) {
+          merged = merged.concat(pr.data as unknown as Record<string, unknown>[]);
+        }
+      }
+    }
+
     merged.sort((x, y) => {
       const tx = new Date(String((x as { created_at?: string }).created_at ?? 0)).getTime();
       const ty = new Date(String((y as { created_at?: string }).created_at ?? 0)).getTime();

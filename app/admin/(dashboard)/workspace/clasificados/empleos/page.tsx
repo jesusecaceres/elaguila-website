@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { adminBtnSecondary, adminCardBase, adminInputClass } from "@/app/admin/_components/adminTheme";
@@ -44,9 +44,12 @@ export default function AdminEmpleosListingsPage() {
     if (q) setNeedle(q);
   }, [sp]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (q: string, signal?: AbortSignal) => {
     setErr(null);
-    const res = await fetch("/api/admin/empleos/listings", { credentials: "same-origin" });
+    const url = new URL("/api/admin/empleos/listings", window.location.origin);
+    const qt = q.trim();
+    if (qt) url.searchParams.set("q", qt);
+    const res = await fetch(url.toString(), { credentials: "same-origin", signal });
     const json = (await res.json()) as { ok?: boolean; rows?: Row[]; error?: string };
     if (!res.ok || !json.ok) {
       setErr(json.error ?? "load_failed");
@@ -57,20 +60,15 @@ export default function AdminEmpleosListingsPage() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
-
-  const filtered = useMemo(() => {
-    const n = needle.trim().toLowerCase();
-    if (!n) return rows;
-    return rows.filter(
-      (r) =>
-        r.title.toLowerCase().includes(n) ||
-        r.company_name.toLowerCase().includes(n) ||
-        r.slug.toLowerCase().includes(n) ||
-        r.id.toLowerCase().includes(n),
-    );
-  }, [rows, needle]);
+    const ac = new AbortController();
+    const t = window.setTimeout(() => {
+      void load(needle, ac.signal);
+    }, 300);
+    return () => {
+      window.clearTimeout(t);
+      ac.abort();
+    };
+  }, [needle, load]);
 
   async function moderate(id: string, lifecycle_status: string) {
     const res = await fetch("/api/admin/empleos/listings/moderate", {
@@ -80,7 +78,7 @@ export default function AdminEmpleosListingsPage() {
       body: JSON.stringify({ id, lifecycle_status }),
     });
     const json = (await res.json()) as { ok?: boolean };
-    if (json.ok) void load();
+    if (json.ok) void load(needle);
   }
 
   return (
@@ -104,6 +102,10 @@ export default function AdminEmpleosListingsPage() {
 
       <div className={`${adminCardBase} p-4`}>
         <label className="text-xs font-bold uppercase text-[#7A7164]">Buscar</label>
+        <p className="mt-1 max-w-3xl text-[10px] leading-snug text-[#7A7164]">
+          Leonix Ad ID (si existe columna), UUID interno, slug o URL /clasificados/empleos/…, user ID del propietario, título o empresa,
+          ciudad/estado, y coincidencia por nombre / correo / teléfono del perfil.
+        </p>
         <input className={`${adminInputClass} mt-1 max-w-md`} value={needle} onChange={(e) => setNeedle(e.target.value)} />
       </div>
 
@@ -122,7 +124,7 @@ export default function AdminEmpleosListingsPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((r) => (
+            {rows.map((r) => (
               <tr key={r.id} className="border-b border-[#E8DFD0]/70 last:border-0">
                 <td className="px-4 py-3">
                   <div className="max-w-[200px] truncate font-semibold">{r.title}</div>

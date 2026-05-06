@@ -50,7 +50,8 @@ type PageProps = {
 export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   const supabase = getAdminSupabase();
   const sp = props.searchParams ? await props.searchParams : {};
-  const qRaw = (sp.q ?? "").trim().toLowerCase();
+  const qInput = (sp.q ?? "").trim();
+  const qRaw = qInput.toLowerCase();
   const catFilter = (sp.category ?? "").trim().toLowerCase();
   const statusFilter = (sp.status ?? "").trim().toLowerCase();
   const ownerFrag = (sp.owner ?? "").trim().toLowerCase();
@@ -62,7 +63,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
 
   const [{ data: listings, error, detailPairsAvailable, boostExpiresAvailable }, cats, registry] = await Promise.all([
     fetchListingsForAdminWorkspaceFiltered(supabase, {
-      q: qRaw || undefined,
+      q: qInput || undefined,
       category: catFilter || undefined,
       status: statusFilter || undefined,
       ownerFrag: ownerFrag && isUuidString(ownerFrag) ? ownerFrag : undefined,
@@ -176,15 +177,16 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
       <div className={`${adminCardBase} mb-6 p-4`}>
         <form className="flex flex-col gap-3" method="get" aria-describedby="clasificados-filter-hint">
           <p id="clasificados-filter-hint" className="text-[10px] leading-snug text-[#7A7164]">
-            Los filtros se aplican en esta página (GET). El campo <span className="font-mono">q</span> va a Supabase; BR/Rentas
-            refinan en cliente sobre <span className="font-mono">detail_pairs</span>.{" "}
-            <span className="font-mono">limit</span> acota filas devueltas (50–500; por defecto 300).
+            Búsqueda <span className="font-mono">q</span>: Leonix Ad ID (si existe columna), UUID de anuncio u owner, título, ciudad,
+            descripción, slug/URL, y coincidencia por nombre / correo / teléfono del perfil (owner). Respeta{" "}
+            <span className="font-mono">category</span>. BR/Rentas refinan en cliente sobre{" "}
+            <span className="font-mono">detail_pairs</span>. <span className="font-mono">limit</span> 50–500 (default 300).
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
             <input
               name="q"
-              defaultValue={qRaw}
-              placeholder="Título, ciudad, fragmento de UUID de anuncio u owner…"
+              defaultValue={qInput}
+              placeholder="Leonix ID, UUID, título, owner, email/teléfono, URL…"
               className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-4 py-3 text-base sm:min-w-[12rem] sm:flex-1 sm:py-2 sm:text-sm"
               aria-describedby="clasificados-filter-hint"
               autoComplete="off"

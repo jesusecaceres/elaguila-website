@@ -1,5 +1,6 @@
 import "server-only";
 
+import { fetchProfileIdsMatchingAdminQueueSearch } from "@/app/lib/supabase/adminQueueProfileSearch";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export { isSupabaseAdminConfigured };
@@ -206,6 +207,15 @@ export async function listRestaurantesPublicListingsAdminFromDb(
         100,
       );
       if (merged.length) return merged;
+
+      const profileIds = await fetchProfileIdsMatchingAdminQueueSearch(supabase, qRaw);
+      if (profileIds.length > 0) {
+        const { data: byProf, error: pErr } = await qb()
+          .in("owner_user_id", profileIds)
+          .order("updated_at", { ascending: false })
+          .limit(limit);
+        if (!pErr && byProf?.length) return byProf as RestaurantesPublicListingDbRow[];
+      }
 
       return [];
     }
