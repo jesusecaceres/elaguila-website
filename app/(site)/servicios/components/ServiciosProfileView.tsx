@@ -89,9 +89,9 @@ export function ServiciosProfileView({
           />
         ) : null}
 
-        {hasQuickFactsResolved(profile) && profile.quickFacts.length > 3 ? (
+        {hasQuickFactsResolved(profile) ? (
           <div className="mt-5 md:mt-8">
-            <ServiciosQuickFacts facts={profile.quickFacts.slice(3)} lang={lang} />
+            <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} />
           </div>
         ) : null}
 

@@ -1,19 +1,25 @@
 import Image from "next/image";
-import { FiMapPin, FiStar, FiClock } from "react-icons/fi";
-import { FaCheckCircle, FaHeart, FaBookmark, FaShare } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
-import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
-import { ServiciosStarRating } from "./ServiciosStarRating";
 import { SV } from "./serviciosDesignTokens";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
+import { buildServiciosHeroHoursPill } from "./serviciosHeroHoursStatus";
 
-function badgeStyle(kind: string) {
-  if (kind === "verified") return "border-[#3B66AD]/35 bg-[#3B66AD]/10 text-[#2d528d]";
-  return "border-black/[0.08] bg-white/90 text-[color:var(--lx-text-2)]";
+function buildHeroMetadataLine(profile: ServiciosProfileResolved): string | null {
+  const { hero } = profile;
+  const parts: string[] = [];
+  const cat = hero.categoryLine?.trim();
+  if (cat) parts.push(cat);
+  const loc = hero.locationSummary?.trim();
+  if (loc) {
+    const segments = loc.split(/\s*·\s*/).map((s) => s.trim()).filter(Boolean);
+    parts.push(...segments);
+  }
+  if (parts.length === 0) return null;
+  return parts.join(" · ");
 }
 
 export function ServiciosHero({
@@ -27,17 +33,11 @@ export function ServiciosHero({
   engagementListingId?: string | null;
   engagementOwnerUserId?: string | null;
 }) {
-  const L = getServiciosProfileLabels(lang);
   const { identity, hero } = profile;
-  const rating = hero.rating;
-  const reviewCount = hero.reviewCount;
   const about = profile.about;
-  const heroFacts = profile.quickFacts.slice(0, 3);
-
-  const headlineSub =
-    hero.categoryLine && hero.locationSummary
-      ? `${hero.categoryLine} · ${hero.locationSummary}`
-      : hero.categoryLine || hero.locationSummary || null;
+  const metadataLine = buildHeroMetadataLine(profile);
+  const hoursPill = buildServiciosHeroHoursPill(profile.contact.hours, lang);
+  const featuredServices = profile.services.slice(0, 3);
 
   const lxListingId = (engagementListingId ?? "").trim() || identity.slug;
   const lxOwner = (engagementOwnerUserId ?? "").trim() || undefined;
@@ -64,14 +64,12 @@ export function ServiciosHero({
             }}
           />
         )}
-        
-        {/* Premium dark overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" aria-hidden />
-        
-        {/* Top-right engagement actions */}
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/25" aria-hidden />
+
         <div className="absolute top-4 right-4 z-20">
           <div className="flex flex-col gap-2">
-            <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
+            <div className="rounded-full bg-white/92 p-1 shadow-lg backdrop-blur-sm">
               <LeonixLikeButton
                 listingId={lxListingId}
                 ownerUserId={lxOwner}
@@ -82,7 +80,7 @@ export function ServiciosHero({
                 persistEngagement={persistEngagement}
               />
             </div>
-            <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
+            <div className="rounded-full bg-white/92 p-1 shadow-lg backdrop-blur-sm">
               <LeonixSaveButton
                 listingId={lxListingId}
                 ownerUserId={lxOwner}
@@ -93,7 +91,7 @@ export function ServiciosHero({
                 persistEngagement={persistEngagement}
               />
             </div>
-            <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
+            <div className="rounded-full bg-white/92 p-1 shadow-lg backdrop-blur-sm">
               <LeonixShareButton
                 listingId={lxListingId}
                 ownerUserId={lxOwner}
@@ -107,61 +105,55 @@ export function ServiciosHero({
             </div>
           </div>
         </div>
-        
-        {/* Hero content - centered */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 sm:p-8 text-white text-center">
-          <div className="max-w-4xl mx-auto space-y-4">
-            {/* Business logo */}
+
+        <div className="absolute inset-0 flex flex-col items-center justify-center px-4 py-6 text-center text-white sm:px-8">
+          <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 sm:gap-4">
             {hero.logoUrl ? (
-              <div className="mb-8 flex justify-center">
-                <Image
-                  src={hero.logoUrl}
-                  alt={hero.logoAlt || identity.businessName}
-                  width={320}
-                  height={320}
-                  className="w-72 h-72 sm:w-80 sm:h-80 rounded-full bg-white/20 p-6 object-contain shadow-xl"
-                  unoptimized={serviciosImageUnoptimized(hero.logoUrl)}
-                />
+              <div className="flex justify-center">
+                <div className="rounded-2xl border border-white/35 bg-black/20 p-2 shadow-lg shadow-black/20 backdrop-blur-[2px] sm:p-2.5">
+                  <Image
+                    src={hero.logoUrl}
+                    alt={hero.logoAlt || identity.businessName}
+                    width={112}
+                    height={112}
+                    className="h-20 w-20 object-contain sm:h-24 sm:w-24"
+                    unoptimized={serviciosImageUnoptimized(hero.logoUrl)}
+                  />
+                </div>
               </div>
             ) : (
-              <div className="mb-8 flex justify-center">
+              <div className="flex justify-center">
                 <div
-                  className="w-72 h-72 sm:w-80 sm:h-80 rounded-full bg-white/20 p-6 shadow-xl flex items-center justify-center"
-                  style={{ background: SV.blue }}
+                  className="flex h-20 w-20 items-center justify-center rounded-2xl border border-white/40 bg-black/25 shadow-lg backdrop-blur-sm sm:h-24 sm:w-24"
+                  style={{ backgroundColor: `${SV.blue}cc` }}
                 >
-                  <span className="text-6xl font-bold text-white">
+                  <span className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
                     {(identity.businessName.trim().charAt(0) || "?").toUpperCase()}
                   </span>
                 </div>
               </div>
             )}
-            
-            {/* Business name */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight drop-shadow-2xl">
+
+            <h1 className="text-balance text-3xl font-bold leading-tight tracking-tight drop-shadow-md sm:text-4xl md:text-5xl">
               {identity.businessName}
             </h1>
-            
-            {/* Category and location */}
-            {headlineSub && (
-              <div className="flex flex-wrap justify-center gap-2 text-lg sm:text-xl font-medium drop-shadow">
-                {headlineSub.split(' · ').map((item, index) => (
-                  <span key={index} className="px-3 py-1 bg-white/20 rounded-full backdrop-blur-sm">
-                    {item.trim()}
-                  </span>
-                ))}
-              </div>
-            )}
 
-            {profile.services.length > 0 ? (
-              <div className="mt-1 flex flex-wrap justify-center gap-1.5 sm:gap-2">
-                {profile.services.slice(0, 4).map((s) => {
+            {metadataLine ? (
+              <p className="max-w-2xl text-pretty text-sm font-medium leading-snug text-white/95 drop-shadow sm:text-base md:text-lg">
+                {metadataLine}
+              </p>
+            ) : null}
+
+            {featuredServices.length > 0 ? (
+              <div className="flex max-w-xl flex-wrap justify-center gap-1.5 sm:gap-2">
+                {featuredServices.map((s) => {
                   const { emoji } = resolveServiciosServiceVisual({ id: s.id, label: s.title });
                   return (
                     <span
                       key={s.id}
-                      className="inline-flex max-w-[11rem] items-center gap-1 rounded-full border border-white/25 bg-black/25 px-2.5 py-1 text-xs font-medium backdrop-blur-sm sm:max-w-[14rem] sm:text-sm"
+                      className="inline-flex max-w-[10.5rem] items-center gap-1 rounded-full border border-white/30 bg-black/30 px-2.5 py-1 text-[0.7rem] font-medium text-white/95 backdrop-blur-sm sm:max-w-[12rem] sm:text-xs"
                     >
-                      <span className="shrink-0 text-[0.8rem] leading-none sm:text-[0.85rem]" aria-hidden>
+                      <span className="shrink-0 text-[0.72rem] leading-none sm:text-[0.8rem]" aria-hidden>
                         {emoji}
                       </span>
                       <span className="min-w-0 truncate">{s.title}</span>
@@ -170,75 +162,26 @@ export function ServiciosHero({
                 })}
               </div>
             ) : null}
-            
-            {/* Specialties */}
-            {about?.specialtiesLine && (
-              <div className="text-xl sm:text-2xl font-medium drop-shadow">
+
+            {about?.specialtiesLine ? (
+              <p className="max-w-2xl text-pretty text-base font-medium leading-snug text-white/90 drop-shadow sm:text-lg">
                 {about.specialtiesLine}
-              </div>
-            )}
-            
-            {/* Status, hours, service zones row */}
-            <div className="flex flex-wrap justify-center items-center gap-3 text-sm sm:text-base">
-              {/* Hours status */}
-              {profile.contact.hours?.openNowLabel && (
-                <span className="px-4 py-2 rounded-full font-semibold backdrop-blur-sm bg-green-500/30 text-white border border-green-400/50">
-                  🟢 {profile.contact.hours.openNowLabel}
-                </span>
-              )}
-              
-              {/* Service zones */}
-              {hero.locationSummary && (
-                <span className="px-4 py-2 bg-white/20 rounded-full backdrop-blur-sm flex items-center gap-1">
-                  <FiMapPin className="w-4 h-4" />
-                  {hero.locationSummary}
-                </span>
-              )}
-              
-              {/* Rating */}
-              {rating != null && (
-                <span className="px-4 py-2 bg-white/20 rounded-full backdrop-blur-sm flex items-center gap-1">
-                  <FiStar className="w-4 h-4 text-yellow-400 fill-current" />
-                  <span>{rating.toFixed(1)}</span>
-                  {reviewCount != null && (
-                    <span className="text-white/80">({reviewCount})</span>
-                  )}
-                </span>
-              )}
-            </div>
-            
-            {/* Full address */}
-            {profile.contact.physicalAddressDisplay && (
-              <div className="text-base sm:text-lg drop-shadow">
-                <span className="px-4 py-2 bg-white/10 rounded-lg backdrop-blur-sm inline-block">
-                  {profile.contact.physicalAddressDisplay}
-                </span>
-              </div>
-            )}
-            
-                        
-            {/* Quick facts chips */}
-            {heroFacts.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2 text-sm">
-                {heroFacts.map((f, index) => (
-                  <span key={index} className="px-3 py-1 bg-white/20 rounded-full backdrop-blur-sm">
-                    ✓ {f.label}
-                  </span>
-                ))}
-              </div>
-            )}
-            
-            {/* Badges */}
-            {hero.badges.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2 text-sm">
-                {hero.badges.map((b, index) => (
-                  <span key={index} className="px-3 py-1 bg-white/20 rounded-full backdrop-blur-sm flex items-center gap-1">
-                    {b.kind === "verified" && <FaCheckCircle className="w-4 h-4" />}
-                    {b.label}
-                  </span>
-                ))}
-              </div>
-            )}
+              </p>
+            ) : null}
+
+            {hoursPill ? (
+              <span
+                className={
+                  hoursPill.variant === "open"
+                    ? "inline-flex max-w-[min(100%,28rem)] items-center justify-center rounded-full border border-emerald-300/50 bg-emerald-950/35 px-3 py-2 text-xs font-semibold leading-snug text-white shadow-sm backdrop-blur-sm sm:px-4 sm:text-sm"
+                    : hoursPill.variant === "closed"
+                      ? "inline-flex max-w-[min(100%,28rem)] items-center justify-center rounded-full border border-white/25 bg-black/35 px-3 py-2 text-xs font-semibold leading-snug text-white shadow-sm backdrop-blur-sm sm:px-4 sm:text-sm"
+                      : "inline-flex max-w-[min(100%,28rem)] items-center justify-center rounded-full border border-white/30 bg-white/15 px-3 py-2 text-xs font-semibold leading-snug text-white shadow-sm backdrop-blur-sm sm:px-4 sm:text-sm"
+                }
+              >
+                {hoursPill.text}
+              </span>
+            ) : null}
           </div>
         </div>
       </div>
