@@ -65,6 +65,11 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
             analyticsOwnerUserId={row.owner_user_id}
           />
         </ClasificadosPreviewAdCanvas>
+        {row.leonix_ad_id ? (
+          <p className="pb-6 pt-1 text-xs text-[color:var(--lx-muted)]">
+            Leonix Ad ID # {row.leonix_ad_id}
+          </p>
+        ) : null}
       </div>
     </RestaurantesShellChrome>
   );

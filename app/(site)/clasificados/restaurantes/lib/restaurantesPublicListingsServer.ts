@@ -8,6 +8,8 @@ export { isSupabaseAdminConfigured };
 export type RestaurantesPublicListingDbRow = {
   id: string;
   slug: string;
+  /** Stable public Leonix ad code (`REST-YYYY-000001`); present once migration `20260505140000` is applied. */
+  leonix_ad_id?: string | null;
   owner_user_id: string | null;
   draft_listing_id: string | null;
   status: string;
@@ -38,7 +40,39 @@ export type RestaurantesPublicListingDbRow = {
 };
 
 const LIST_SELECT =
-  "id, slug, owner_user_id, draft_listing_id, status, package_tier, leonix_verified, promoted, published_at, updated_at, business_name, city_canonical, zip_code, neighborhood, primary_cuisine, secondary_cuisine, business_type, price_level, service_modes, moving_vendor, home_based_business, food_truck, pop_up, highlights, summary_short, hero_image_url, external_rating_value, external_review_count, listing_json";
+  "id, slug, leonix_ad_id, owner_user_id, draft_listing_id, status, package_tier, leonix_verified, promoted, published_at, updated_at, business_name, city_canonical, zip_code, neighborhood, primary_cuisine, secondary_cuisine, business_type, price_level, service_modes, moving_vendor, home_based_business, food_truck, pop_up, highlights, summary_short, hero_image_url, external_rating_value, external_review_count, listing_json";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function escapeIlike(s: string): string {
+  return s.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
+function slugFromRestaurantPublicUrl(input: string): string | null {
+  const m = input.trim().match(/\/clasificados\/restaurantes\/([^/?#]+)/i);
+  return m?.[1] ? decodeURIComponent(m[1]).trim() || null : null;
+}
+
+function mergeRestaurantRowsById(rows: RestaurantesPublicListingDbRow[], cap: number): RestaurantesPublicListingDbRow[] {
+  const seen = new Set<string>();
+  const out: RestaurantesPublicListingDbRow[] = [];
+  for (const r of rows) {
+    if (!r.id || seen.has(r.id)) continue;
+    seen.add(r.id);
+    out.push(r);
+    if (out.length >= cap) break;
+  }
+  return out;
+}
+
+export type RestaurantesAdminQueueFilters = {
+  limit?: number;
+  q?: string;
+  slug?: string;
+  id?: string;
+  leonix_ad_id?: string;
+  owner_user_id?: string;
+};
 
 export async function listRestaurantesPublicListingsFromDb(limit = 200): Promise<RestaurantesPublicListingDbRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
@@ -109,16 +143,74 @@ export async function getRestaurantePublicListingBySlugFromDb(slug: string): Pro
   }
 }
 
-/** Admin workspace (service role): all statuses, newest updates first. */
-export async function listRestaurantesPublicListingsAdminFromDb(limit = 300): Promise<RestaurantesPublicListingDbRow[]> {
+/**
+ * Admin workspace (service role): all statuses, optional queue filters.
+ * Supports `q`, `slug`, `id`, `leonix_ad_id`, `owner_user_id` (combined as AND when multiple set).
+ */
+export async function listRestaurantesPublicListingsAdminFromDb(
+  opts: RestaurantesAdminQueueFilters = {},
+): Promise<RestaurantesPublicListingDbRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
+  const limit = Math.min(Math.max(opts.limit ?? 400, 1), 800);
+  const slug = opts.slug?.trim();
+  const id = opts.id?.trim();
+  const leonixAd = opts.leonix_ad_id?.trim();
+  const owner = opts.owner_user_id?.trim();
+  const qRaw = opts.q?.trim();
+
   try {
     const supabase = getAdminSupabase();
-    const { data, error } = await supabase
-      .from("restaurantes_public_listings")
-      .select(LIST_SELECT)
-      .order("updated_at", { ascending: false })
-      .limit(limit);
+    const qb = () => supabase.from("restaurantes_public_listings").select(LIST_SELECT);
+
+    if (slug || id || leonixAd || owner) {
+      let rowQuery = qb();
+      if (slug) rowQuery = rowQuery.eq("slug", slug);
+      if (id) rowQuery = rowQuery.eq("id", id);
+      if (leonixAd) rowQuery = rowQuery.eq("leonix_ad_id", leonixAd.toUpperCase());
+      if (owner) rowQuery = rowQuery.eq("owner_user_id", owner);
+      const { data, error } = await rowQuery.order("updated_at", { ascending: false }).limit(limit);
+      if (error || !data) return [];
+      return data as RestaurantesPublicListingDbRow[];
+    }
+
+    if (qRaw) {
+      const q = qRaw;
+      const qLower = q.toLowerCase();
+
+      if (/^REST-\d{4}-\d{6}$/i.test(q)) {
+        const { data, error } = await qb().eq("leonix_ad_id", q.toUpperCase()).limit(20);
+        if (!error && data?.length) return data as RestaurantesPublicListingDbRow[];
+      }
+
+      if (UUID_RE.test(q)) {
+        const { data, error } = await qb().or(`id.eq.${q},owner_user_id.eq.${q}`).limit(50);
+        if (!error && data?.length) return data as RestaurantesPublicListingDbRow[];
+      }
+
+      const fromUrl = slugFromRestaurantPublicUrl(q);
+      if (fromUrl) {
+        const { data, error } = await qb().eq("slug", fromUrl).limit(20);
+        if (!error && data?.length) return data as RestaurantesPublicListingDbRow[];
+      }
+
+      const { data: bySlug, error: slugErr } = await qb().eq("slug", qLower).limit(20);
+      if (!slugErr && bySlug?.length) return bySlug as RestaurantesPublicListingDbRow[];
+
+      const term = `%${escapeIlike(qLower)}%`;
+      const [nameRes, slugRes] = await Promise.all([
+        qb().ilike("business_name", term).order("updated_at", { ascending: false }).limit(80),
+        qb().ilike("slug", term).order("updated_at", { ascending: false }).limit(80),
+      ]);
+      const merged = mergeRestaurantRowsById(
+        [...((nameRes.data ?? []) as RestaurantesPublicListingDbRow[]), ...((slugRes.data ?? []) as RestaurantesPublicListingDbRow[])],
+        100,
+      );
+      if (merged.length) return merged;
+
+      return [];
+    }
+
+    const { data, error } = await qb().order("updated_at", { ascending: false }).limit(limit);
     if (error || !data) return [];
     return data as RestaurantesPublicListingDbRow[];
   } catch {

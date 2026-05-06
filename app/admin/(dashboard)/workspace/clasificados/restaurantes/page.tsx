@@ -16,9 +16,36 @@ function fmt(ts: string | null | undefined) {
   }
 }
 
-export default async function AdminRestaurantesPublicListingsPage() {
+function firstParam(v: string | string[] | undefined): string | undefined {
+  if (typeof v === "string") return v;
+  if (Array.isArray(v) && v.length > 0) return v[0];
+  return undefined;
+}
+
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function AdminRestaurantesPublicListingsPage(props: PageProps) {
   const configured = isSupabaseAdminConfigured();
-  const rows = configured ? await listRestaurantesPublicListingsAdminFromDb(400) : [];
+  const sp = props.searchParams ? await props.searchParams : {};
+  const hasFilters = !!(
+    firstParam(sp.q) ||
+    firstParam(sp.slug) ||
+    firstParam(sp.id) ||
+    firstParam(sp.leonix_ad_id) ||
+    firstParam(sp.owner_user_id)
+  );
+  const rows = configured
+    ? await listRestaurantesPublicListingsAdminFromDb({
+        limit: 500,
+        q: firstParam(sp.q),
+        slug: firstParam(sp.slug),
+        id: firstParam(sp.id),
+        leonix_ad_id: firstParam(sp.leonix_ad_id),
+        owner_user_id: firstParam(sp.owner_user_id),
+      })
+    : [];
 
   return (
     <div className="max-w-[1200px] space-y-6">
@@ -34,18 +61,84 @@ export default async function AdminRestaurantesPublicListingsPage() {
         }
       />
 
+      {configured ? (
+        <div className={`${adminCardBase} mb-4 space-y-3 p-4 text-sm text-[#5C5346]`}>
+          <p className="font-bold text-[#1E1810]">Buscar cola</p>
+          <form className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end" method="get" action="/admin/workspace/clasificados/restaurantes">
+            <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs">
+              <span className="font-semibold text-[#5C5346]">q (slug, REST-…, UUID, URL, nombre)</span>
+              <input
+                name="q"
+                defaultValue={firstParam(sp.q) ?? ""}
+                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs text-[#1E1810]"
+                placeholder="REST-2026-000002 o tacos-el-chuy"
+                autoComplete="off"
+              />
+            </label>
+            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
+              <span className="font-semibold text-[#5C5346]">slug</span>
+              <input
+                name="slug"
+                defaultValue={firstParam(sp.slug) ?? ""}
+                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs"
+                autoComplete="off"
+              />
+            </label>
+            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
+              <span className="font-semibold text-[#5C5346]">id (UUID)</span>
+              <input
+                name="id"
+                defaultValue={firstParam(sp.id) ?? ""}
+                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs"
+                autoComplete="off"
+              />
+            </label>
+            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
+              <span className="font-semibold text-[#5C5346]">leonix_ad_id</span>
+              <input
+                name="leonix_ad_id"
+                defaultValue={firstParam(sp.leonix_ad_id) ?? ""}
+                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs"
+                autoComplete="off"
+              />
+            </label>
+            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
+              <span className="font-semibold text-[#5C5346]">owner_user_id</span>
+              <input
+                name="owner_user_id"
+                defaultValue={firstParam(sp.owner_user_id) ?? ""}
+                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs"
+                autoComplete="off"
+              />
+            </label>
+            <button
+              type="submit"
+              className="rounded-xl bg-[#2A2620] px-4 py-2 text-xs font-bold text-[#FAF7F2]"
+            >
+              Aplicar
+            </button>
+            <Link href="/admin/workspace/clasificados/restaurantes" className={`${adminBtnSecondary} inline-flex items-center text-xs`}>
+              Limpiar filtros
+            </Link>
+          </form>
+        </div>
+      ) : null}
+
       {!configured ? (
         <p className={`${adminCardBase} p-4 text-sm text-[#5C5346]`}>
           Supabase admin no está configurado en este entorno (<code className="rounded bg-[#FBF7EF] px-1">SUPABASE_SERVICE_ROLE_KEY</code>
           ). No hay filas que mostrar.
         </p>
       ) : rows.length === 0 ? (
-        <p className={`${adminCardBase} p-4 text-sm text-[#5C5346]`}>La tabla existe pero no hay filas todavía.</p>
+        <p className={`${adminCardBase} p-4 text-sm text-[#5C5346]`}>
+          {hasFilters ? "Sin resultados para estos filtros." : "La tabla existe pero no hay filas todavía."}
+        </p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] shadow-sm">
           <table className="min-w-full border-collapse text-left text-xs text-[#2C2416]">
             <thead className="bg-[#F3EBDD] text-[10px] font-bold uppercase tracking-wide text-[#5C5346]">
               <tr>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Leonix Ad ID</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Negocio</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Slug</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Estado</th>
@@ -68,6 +161,9 @@ export default async function AdminRestaurantesPublicListingsPage() {
                 const resultsHref = `/clasificados/restaurantes/resultados?lang=es&q=${encodeURIComponent(r.business_name)}`;
                 return (
                   <tr key={r.id} className="border-b border-[#F0E8DA] odd:bg-white/60">
+                    <td className="max-w-[140px] whitespace-nowrap px-3 py-2 font-mono text-[10px] font-bold text-[#5C4E2E]">
+                      {r.leonix_ad_id ?? "—"}
+                    </td>
                     <td className="max-w-[200px] px-3 py-2 font-semibold">{r.business_name}</td>
                     <td className="px-3 py-2 font-mono text-[10px]">{r.slug}</td>
                     <td className="px-3 py-2">{r.status}</td>

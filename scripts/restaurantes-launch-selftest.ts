@@ -35,6 +35,7 @@ import { draftToRestaurantePublicListingInsert } from "../app/(site)/clasificado
 import { filterRestaurantesBlueprintRows, sortRestaurantesBlueprintRows } from "../app/(site)/clasificados/restaurantes/lib/filterRestaurantesBlueprintRows";
 import { mapRestaurantesPublicListingDbRowToShellInventoryRow } from "../app/(site)/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import type { RestaurantesPublicListingDbRow } from "../app/(site)/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
+import { allocateNextRestauranteLeonixAdId } from "../app/(site)/clasificados/restaurantes/lib/restaurantesLeonixAdId";
 import { defaultRestaurantesDiscoveryState } from "../app/(site)/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
 
 function openDay(): RestauranteDaySchedule {
@@ -87,6 +88,7 @@ function mainLogicOnly() {
   const fakeRow: RestaurantesPublicListingDbRow = {
     id: "00000000-0000-4000-8000-000000000001",
     slug,
+    leonix_ad_id: "REST-2099-000099",
     owner_user_id: null,
     draft_listing_id: draft.draftListingId,
     status: "published",
@@ -144,10 +146,11 @@ async function mainDb() {
     packageTier: "standard",
   });
   const now = new Date().toISOString();
+  const leonix_ad_id = await allocateNextRestauranteLeonixAdId(supabase);
 
   const { data: inserted, error: insErr } = await supabase
     .from("restaurantes_public_listings")
-    .insert({ ...row, published_at: now, updated_at: now })
+    .insert({ ...row, leonix_ad_id, published_at: now, updated_at: now })
     .select("id")
     .single();
   if (insErr || !inserted?.id) throw new Error(`insert_failed: ${insErr?.message ?? "no id"}`);

@@ -29,6 +29,7 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
 type RestRow = {
   id: string;
   slug: string;
+  leonix_ad_id?: string | null;
   status: string;
   promoted: boolean;
   leonix_verified: boolean;
@@ -68,6 +69,7 @@ export default function DashboardRestaurantesPage() {
             publishCta: "Publicar un restaurante",
             previewCta: "Vista previa (misma sesión)",
             colBusiness: "Negocio",
+            colLeonixAdId: "Leonix Ad ID",
             colStatus: "Estado",
             colSlug: "Slug",
             colPromo: "Destacado",
@@ -92,6 +94,7 @@ export default function DashboardRestaurantesPage() {
             publishCta: "Publish a restaurant",
             previewCta: "Preview (this session)",
             colBusiness: "Business",
+            colLeonixAdId: "Leonix Ad ID",
             colStatus: "Status",
             colSlug: "Slug",
             colPromo: "Promoted",
@@ -157,7 +160,9 @@ export default function DashboardRestaurantesPage() {
     setFetchErr(null);
     const { data, error } = await supabase
       .from("restaurantes_public_listings")
-      .select("id, slug, status, promoted, leonix_verified, package_tier, published_at, updated_at, business_name, draft_listing_id")
+      .select(
+        "id, slug, leonix_ad_id, status, promoted, leonix_verified, package_tier, published_at, updated_at, business_name, draft_listing_id",
+      )
       .eq("owner_user_id", user.id)
       .order("updated_at", { ascending: false });
     if (error) {
@@ -286,6 +291,7 @@ export default function DashboardRestaurantesPage() {
               <thead className="bg-[#F3EBDD] text-[10px] font-bold uppercase tracking-wide text-[#5C5346]">
                 <tr>
                   <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colBusiness}</th>
+                  <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colLeonixAdId}</th>
                   <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colStatus}</th>
                   <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colSlug}</th>
                   <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colPromo}</th>
@@ -303,6 +309,9 @@ export default function DashboardRestaurantesPage() {
                   return (
                     <tr key={r.id} className="border-b border-[#F0E8DA]">
                       <td className="max-w-[200px] px-3 py-2 font-semibold">{r.business_name}</td>
+                      <td className="whitespace-nowrap px-3 py-2 font-mono text-[10px] font-semibold text-[#5C4E2E]">
+                        {r.leonix_ad_id ?? "—"}
+                      </td>
                       <td className="px-3 py-2">{r.status}</td>
                       <td className="px-3 py-2 font-mono text-[10px]">{r.slug}</td>
                       <td className="px-3 py-2">{r.promoted ? (lang === "es" ? "sí" : "yes") : "—"}</td>

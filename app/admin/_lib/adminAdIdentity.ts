@@ -45,7 +45,7 @@ const SERVICIOS_PUBLIC_PATH = "/clasificados/servicios";
 const GENERIC_ANUNCIO_PATH = "/clasificados/anuncio";
 
 /** Known DB column names that may carry a human-facing public id (additive; absent on older DBs). */
-const PUBLISHED_ID_KEYS = ["published_id", "public_id", "public_listing_id", "listing_public_id"] as const;
+const PUBLISHED_ID_KEYS = ["leonix_ad_id", "published_id", "public_id", "public_listing_id", "listing_public_id"] as const;
 
 function nonEmptyString(v: unknown): string | null {
   if (v == null) return null;
@@ -184,6 +184,7 @@ export function normalizeGenericListingForAdmin(
 export type RestaurantePublicListingAdminInput = {
   id: string;
   slug: string;
+  leonix_ad_id?: string | null;
   business_name: string;
   status?: string | null;
   owner_user_id?: string | null;
@@ -211,7 +212,10 @@ export function normalizeRestaurantePublicListingForAdmin(
   const title = nonEmptyString(row.business_name) ?? "(sin nombre)";
 
   const publicUrl = `${RESTAURANT_PUBLIC_PATH}/${encodeURIComponent(slug)}?lang=es`;
-  const adminUrl = `/admin/workspace/clasificados/restaurantes?slug=${encodeURIComponent(slug)}`;
+  const leonix = nonEmptyString(row.leonix_ad_id);
+  const adminUrl = leonix
+    ? `/admin/workspace/clasificados/restaurantes?leonix_ad_id=${encodeURIComponent(leonix)}`
+    : `/admin/workspace/clasificados/restaurantes?slug=${encodeURIComponent(slug)}`;
 
   return {
     source: "restaurantes",

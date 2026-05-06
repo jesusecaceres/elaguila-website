@@ -17,6 +17,11 @@ import {
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
 import { slugifyRestauranteBusinessName } from "@/app/clasificados/restaurantes/lib/restaurantesSlug";
 import { buildRestaurantePublish422MediaAudit } from "@/app/clasificados/restaurantes/application/restaurantePublishMediaAudit";
+import { allocateNextRestauranteLeonixAdId } from "@/app/clasificados/restaurantes/lib/restaurantesLeonixAdId";
+
+function isUniqueViolation(err: { code?: string; message?: string } | null | undefined): boolean {
+  return err?.code === "23505" || /duplicate key|unique constraint/i.test(err?.message ?? "");
+}
 
 /**
  * Public publish may only select **free** or **standard (Pro)** from the UI body.
@@ -197,7 +202,7 @@ export async function POST(req: Request) {
 
   const { data: existingByDraft, error: exErr } = await supabase
     .from("restaurantes_public_listings")
-    .select("slug, leonix_verified, status, promoted, package_tier, owner_user_id")
+    .select("slug, leonix_verified, status, promoted, package_tier, owner_user_id, leonix_ad_id")
     .eq("draft_listing_id", draft.draftListingId)
     .maybeSingle();
 
@@ -216,13 +221,35 @@ export async function POST(req: Request) {
         packageTier: requestedLane,
       }) as Record<string, unknown>;
 
-      const ex = existingByDraft as { leonix_verified?: boolean; status?: string; promoted?: boolean; package_tier?: string | null; owner_user_id?: string | null };
+      const ex = existingByDraft as {
+        leonix_verified?: boolean;
+        status?: string;
+        promoted?: boolean;
+        package_tier?: string | null;
+        owner_user_id?: string | null;
+        leonix_ad_id?: string | null;
+      };
       baseRow.leonix_verified = ex.leonix_verified ?? false;
       baseRow.status = ex.status ?? "published";
       /** Paid placement is admin-controlled only; republish/renew must not flip it from the client. */
       baseRow.promoted = ex.promoted ?? false;
       baseRow.package_tier = mergePackageTierForUpdate(ex.package_tier, requestedLane);
       baseRow.owner_user_id = ownerUserId ?? ex.owner_user_id ?? null;
+      {
+        const existingLeonix = typeof ex.leonix_ad_id === "string" && ex.leonix_ad_id.trim() ? ex.leonix_ad_id.trim() : null;
+        if (existingLeonix) {
+          baseRow.leonix_ad_id = existingLeonix;
+        } else {
+          try {
+            baseRow.leonix_ad_id = await allocateNextRestauranteLeonixAdId(supabase);
+          } catch (e) {
+            return NextResponse.json(
+              { ok: false, error: "leonix_ad_id_allocate_failed", detail: e instanceof Error ? e.message : "unknown" },
+              { status: 500 },
+            );
+          }
+        }
+      }
 
       const { error } = await supabase
         .from("restaurantes_public_listings")
@@ -244,13 +271,33 @@ export async function POST(req: Request) {
         promoted: false,
         packageTier: requestedLane,
       });
-      const { error } = await supabase.from("restaurantes_public_listings").insert({
-        ...row,
-        published_at: now,
-        updated_at: now,
-      });
-      if (error) {
-        return NextResponse.json({ ok: false, error: "insert_failed", detail: error.message }, { status: 500 });
+      let insertError: { message: string; code?: string } | null = null;
+      for (let attempt = 0; attempt < 8; attempt++) {
+        let leonix_ad_id: string;
+        try {
+          leonix_ad_id = await allocateNextRestauranteLeonixAdId(supabase);
+        } catch (e) {
+          return NextResponse.json(
+            { ok: false, error: "leonix_ad_id_allocate_failed", detail: e instanceof Error ? e.message : "unknown" },
+            { status: 500 },
+          );
+        }
+        const { error } = await supabase.from("restaurantes_public_listings").insert({
+          ...row,
+          leonix_ad_id,
+          published_at: now,
+          updated_at: now,
+        });
+        if (!error) {
+          insertError = null;
+          break;
+        }
+        insertError = error;
+        if (isUniqueViolation(error)) continue;
+        break;
+      }
+      if (insertError) {
+        return NextResponse.json({ ok: false, error: "insert_failed", detail: insertError.message }, { status: 500 });
       }
     }
   } catch (e) {
