@@ -4,6 +4,7 @@ import { mergePartialBienesRaicesPrivadoState } from "@/app/clasificados/publica
 import type { BienesRaicesPrivadoFormState } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import { RENTAS_PLAZO_LABELS } from "@/app/clasificados/rentas/shared/utils/rentasPublishConstants";
 import {
+  buildRentasAssembledAddressLine,
   buildRentasCityStateZipLine,
   buildRentasGoogleMapsSearchQuery,
   buildRentasStreetLine,
@@ -130,12 +131,10 @@ function rentOperationSummary(cat: RentasPrivadoFormState["categoriaPropiedad"])
 export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): BienesRaicesPrivadoPreviewVm {
   const base = mapBienesRaicesPrivadoStateToPreviewVm(toBienesRaicesPrivadoShape(s));
   const line1 = buildRentasStreetLine(s);
-  const cityZip = buildRentasCityStateZipLine(s);
-  const zona = trim(s.zonaVecindario);
-  const cityStateZip = cityZip;
+  const cityStateZip = buildRentasCityStateZipLine(s);
   const mapsUrl = rentasGoogleMapsUrlFromQuery(buildRentasGoogleMapsSearchQuery(s));
-  const hasMeaningfulAddress = Boolean(line1 || trim(s.ciudad) || zona || mapsUrl);
-  const addressLine = [line1, trim(s.ciudad), zona ? `Zona: ${zona}` : ""].filter(Boolean).join(" · ");
+  const hasMeaningfulAddress = Boolean(line1 || trim(s.ciudad) || trim(s.direccionCodigoPostal) || mapsUrl);
+  const addressLine = buildRentasAssembledAddressLine(s);
   const rentRows = rentalDetailRows(s);
   const rentFacts = rentalQuickFacts(s);
   const mailto =

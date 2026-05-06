@@ -5,9 +5,14 @@ import type {
 import { mapBienesRaicesNegocioStateToPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/mapBienesRaicesNegocioStateToPreviewVm";
 import { RENTAS_PLAZO_LABELS } from "@/app/clasificados/rentas/shared/utils/rentasPublishConstants";
 import {
+  buildRentasAssembledAddressLine,
+  buildRentasCityStateZipLine,
+  buildRentasGoogleMapsSearchQuery,
+  buildRentasStreetLine,
   formatRentasDepositUsdPreview,
   formatRentasDisponibilidadDisplay,
   formatRentasServiciosIncluidosOutput,
+  rentasGoogleMapsUrlFromQuery,
 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import type { RentasNegocioFormState } from "../../schema/rentasNegocioFormState";
 import { rentasNegocioToBienesRaicesNegocioState } from "./rentasNegocioToBienesRaicesNegocioState";
@@ -64,14 +69,30 @@ export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): Bie
     priceDisplay = `${priceDisplay} / mes`;
   }
   const smsHref = smsHrefFromState(s.negocioMensajesTexto);
+  const line1 = buildRentasStreetLine(s);
+  const cityStateZip = buildRentasCityStateZipLine(s);
+  const assembled = buildRentasAssembledAddressLine(s);
+  const mapsUrl = rentasGoogleMapsUrlFromQuery(buildRentasGoogleMapsSearchQuery(s));
+  const zona = trim(s.zonaVecindario);
+  const hasMeaningfulAddress = Boolean(line1 || trim(s.ciudad) || trim(s.direccionCodigoPostal) || mapsUrl);
   return {
     ...vm,
     priceDisplay,
+    addressLine: assembled || vm.addressLine,
     propertyDetailsRows: extra.length ? [...extra, ...vm.propertyDetailsRows] : vm.propertyDetailsRows,
     contact: {
       ...vm.contact,
       showSms: Boolean(smsHref),
       smsHref,
+    },
+    location: {
+      ...vm.location,
+      line1,
+      colonia: zona,
+      cityStateZip,
+      fullAddress: assembled || vm.location.fullAddress,
+      mapsUrl,
+      hasMeaningfulAddress,
     },
   };
 }

@@ -88,16 +88,46 @@ export function formatRentasDepositUsdPreview(digitsRaw: string): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
 
+/** Primary street line: single field first, then legacy número+calle, then referencia. */
 export function buildRentasStreetLine(parts: {
+  direccionLinea1?: string;
   direccionNumero: string;
   direccionCalle: string;
   ubicacionLinea: string;
 }): string {
+  const line = trim(parts.direccionLinea1);
+  if (line) return line;
   const num = trim(parts.direccionNumero);
   const calle = trim(parts.direccionCalle);
   const legacy = trim(parts.ubicacionLinea);
   const structured = [num, calle].filter(Boolean).join(" ").trim();
   return structured || legacy;
+}
+
+/** Código postal US: hasta 5 dígitos. */
+export function coerceRentasPostalDigits5(raw: string): string {
+  return String(raw ?? "")
+    .replace(/\D/g, "")
+    .slice(0, 5);
+}
+
+/** Hero / summary: «Dirección, Ciudad, Estado CP» (sin zona; la zona va aparte). */
+export function buildRentasAssembledAddressLine(parts: {
+  direccionLinea1?: string;
+  direccionNumero: string;
+  direccionCalle: string;
+  ubicacionLinea: string;
+  ciudad: string;
+  direccionEstado: string;
+  direccionCodigoPostal: string;
+}): string {
+  const line1 = buildRentasStreetLine(parts);
+  const city = trim(parts.ciudad);
+  const st = trim(parts.direccionEstado);
+  const zip = coerceRentasPostalDigits5(parts.direccionCodigoPostal);
+  const stZip = [st, zip].filter(Boolean).join(" ").trim();
+  const tail = [city, stZip].filter(Boolean).join(", ");
+  return [line1, tail].filter(Boolean).join(", ");
 }
 
 export function buildRentasCityStateZipLine(parts: {
@@ -107,13 +137,14 @@ export function buildRentasCityStateZipLine(parts: {
 }): string {
   const city = trim(parts.ciudad);
   const st = trim(parts.direccionEstado);
-  const zip = trim(parts.direccionCodigoPostal);
+  const zip = coerceRentasPostalDigits5(parts.direccionCodigoPostal);
   const stZip = [st, zip].filter(Boolean).join(" ").trim();
   return [city, stZip].filter(Boolean).join(", ");
 }
 
 /** Query string for Google Maps search (no API key). */
 export function buildRentasGoogleMapsSearchQuery(parts: {
+  direccionLinea1?: string;
   direccionNumero: string;
   direccionCalle: string;
   ubicacionLinea: string;
@@ -125,9 +156,10 @@ export function buildRentasGoogleMapsSearchQuery(parts: {
   const line1 = buildRentasStreetLine(parts);
   const city = trim(parts.ciudad);
   const st = trim(parts.direccionEstado);
-  const zip = trim(parts.direccionCodigoPostal);
+  const zip = coerceRentasPostalDigits5(parts.direccionCodigoPostal);
   const zona = trim(parts.zonaVecindario);
-  const q = [line1, zona, city, [st, zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  const cityStZip = [city, [st, zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  const q = [line1, cityStZip, zona].filter(Boolean).join(", ");
   return q.trim() || null;
 }
 

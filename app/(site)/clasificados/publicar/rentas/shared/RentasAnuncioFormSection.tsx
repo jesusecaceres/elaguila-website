@@ -11,6 +11,7 @@ import {
 import { RENTAS_PLAZO_LABELS } from "@/app/clasificados/rentas/shared/utils/rentasPublishConstants";
 import {
   RENTAS_SERVICIOS_INCLUIDOS_DEFS,
+  coerceRentasPostalDigits5,
   formatRentasDepositUsdPreview,
   formatRentasMensualAnuncioPreview,
   rentasDisponibilidadIsIsoDate,
@@ -54,6 +55,8 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
   const dispLegacyNote = state.disponibilidad.trim() && !dispIso ? state.disponibilidad : "";
   const showOtroPlazo = state.plazoContrato === "otro";
   const servicioOtro = state.serviciosIncluidosKeys.includes("otro");
+  const showLegacyUbicacionExtra =
+    state.ubicacionLinea.trim() !== "" && state.ubicacionLinea.trim() !== state.direccionLinea1.trim();
 
   return (
     <section className={`${aiCardClass} min-w-0`}>
@@ -266,95 +269,107 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
             />
           </AiField>
         </div>
-        <AiField label="Estado del anuncio">
-          <select
-            className={fieldClass}
-            value={state.estadoAnuncio}
-            onChange={(e) => setState((s) => ({ ...s, estadoAnuncio: e.target.value as typeof s.estadoAnuncio }))}
+        <div className="sm:col-span-2 grid min-w-0 gap-4 sm:grid-cols-2 sm:items-end sm:gap-5">
+          <AiField label="Estado del anuncio">
+            <select
+              className={fieldClass}
+              value={state.estadoAnuncio}
+              onChange={(e) => setState((s) => ({ ...s, estadoAnuncio: e.target.value as typeof s.estadoAnuncio }))}
+            >
+              {estadoOptions.map((o) => (
+                <option key={String(o.id)} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </AiField>
+          <AiField label="Zona o vecindario" hint="Opcional. Barrio, colonia o referencia local (no sustituye la ciudad).">
+            <input
+              className={fieldClass}
+              value={state.zonaVecindario}
+              onChange={(e) => setState((s) => ({ ...s, zonaVecindario: e.target.value }))}
+              autoComplete="off"
+            />
+          </AiField>
+        </div>
+        <div className="sm:col-span-2">
+          <AiField label="Dirección" hint="Calle y número para ubicar la propiedad.">
+            <input
+              className={fieldClass}
+              value={state.direccionLinea1}
+              onChange={(e) =>
+                setState((s) => ({
+                  ...s,
+                  direccionLinea1: e.target.value,
+                  direccionNumero: "",
+                  direccionCalle: "",
+                }))
+              }
+              autoComplete="street-address"
+              placeholder="Calle y número"
+            />
+          </AiField>
+        </div>
+        <div className="sm:col-span-2 grid min-w-0 gap-4 sm:grid-cols-3 sm:gap-5">
+          <AiField
+            required
+            label="Ciudad"
+            hint="Escribe y elige una sugerencia, o escribe la ciudad. Sirve para ubicación y filtros."
           >
-            {estadoOptions.map((o) => (
-              <option key={String(o.id)} value={o.id}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </AiField>
-        <AiField
-          required
-          label="Ciudad"
-          hint="Escribe y elige una sugerencia, o escribe la ciudad. Sirve para ubicación y filtros."
-        >
-          <BrPrivadoCiudadZonaCombobox
-            className={fieldClass}
-            value={state.ciudad}
-            onChange={(v) => setState((s) => ({ ...s, ciudad: v }))}
-          />
-        </AiField>
-        <AiField label="Zona o vecindario" hint="Opcional. Barrio, colonia o referencia local (no sustituye la ciudad).">
-          <input
-            className={fieldClass}
-            value={state.zonaVecindario}
-            onChange={(e) => setState((s) => ({ ...s, zonaVecindario: e.target.value }))}
-            autoComplete="off"
-          />
-        </AiField>
-        <AiField label="Número de calle">
-          <input
-            className={fieldClass}
-            value={state.direccionNumero}
-            onChange={(e) => setState((s) => ({ ...s, direccionNumero: e.target.value }))}
-            autoComplete="street-address"
-          />
-        </AiField>
-        <AiField label="Nombre de la calle">
-          <input
-            className={fieldClass}
-            value={state.direccionCalle}
-            onChange={(e) => setState((s) => ({ ...s, direccionCalle: e.target.value }))}
-            autoComplete="address-line1"
-          />
-        </AiField>
-        <AiField label="Estado">
-          <input
-            className={fieldClass}
-            value={state.direccionEstado}
-            onChange={(e) => setState((s) => ({ ...s, direccionEstado: e.target.value }))}
-            autoComplete="address-level1"
-            placeholder="CA"
-          />
-        </AiField>
-        <AiField label="Código postal">
-          <input
-            className={fieldClass}
-            inputMode="numeric"
-            value={state.direccionCodigoPostal}
-            onChange={(e) => setState((s) => ({ ...s, direccionCodigoPostal: e.target.value }))}
-            autoComplete="postal-code"
-          />
-        </AiField>
-        <AiField
-          label="Referencia de ubicación (opcional)"
-          hint="Si tenías un solo texto de ubicación en un borrador anterior, puede aparecer aquí. También puedes usarlo como nota adicional."
-        >
-          <input
-            className={fieldClass}
-            value={state.ubicacionLinea}
-            onChange={(e) => setState((s) => ({ ...s, ubicacionLinea: e.target.value }))}
-            autoComplete="off"
-          />
-        </AiField>
+            <BrPrivadoCiudadZonaCombobox
+              className={fieldClass}
+              value={state.ciudad}
+              onChange={(v) => setState((s) => ({ ...s, ciudad: v }))}
+            />
+          </AiField>
+          <AiField label="Estado">
+            <input
+              className={fieldClass}
+              value={state.direccionEstado}
+              onChange={(e) => setState((s) => ({ ...s, direccionEstado: e.target.value }))}
+              autoComplete="address-level1"
+              placeholder="CA"
+            />
+          </AiField>
+          <AiField label="Código postal" hint="Hasta 5 dígitos (EE. UU.).">
+            <input
+              className={fieldClass}
+              inputMode="numeric"
+              maxLength={5}
+              value={state.direccionCodigoPostal}
+              onChange={(e) =>
+                setState((s) => ({
+                  ...s,
+                  direccionCodigoPostal: coerceRentasPostalDigits5(e.target.value),
+                }))
+              }
+              autoComplete="postal-code"
+            />
+          </AiField>
+        </div>
+        {showLegacyUbicacionExtra ? (
+          <details className="sm:col-span-2 min-w-0 rounded-lg border border-[#E8DFD0] bg-[#FAF6EE] px-3 py-2.5">
+            <summary className="cursor-pointer text-sm font-medium text-[#5C5346]">
+              Texto de ubicación adicional (borrador anterior)
+            </summary>
+            <p className={`${aiHintClass} mt-2`}>
+              Solo si necesitas conservar o editar un texto distinto a la dirección principal.
+            </p>
+            <input
+              className={`mt-2 ${fieldClass}`}
+              value={state.ubicacionLinea}
+              onChange={(e) => setState((s) => ({ ...s, ubicacionLinea: e.target.value }))}
+              autoComplete="off"
+            />
+          </details>
+        ) : null}
         <p className="sm:col-span-2 text-xs text-[#5C5346]">
-          Para vista previa: ciudad
+          Para vista previa indica la ciudad
           <span className="text-[#B8954A]" aria-hidden>
             {" "}
             *
           </span>{" "}
-          y calle o referencia (al menos uno)
-          <span className="text-[#B8954A]" aria-hidden>
-            {" "}
-            *
-          </span>
-          . El enlace al mapa se genera automáticamente con la dirección.
+          y la dirección o el código postal. El mapa se genera automáticamente a partir de la dirección reunida.
         </p>
         <div className="sm:col-span-2">
           <AiField

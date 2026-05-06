@@ -68,7 +68,13 @@ function zipFromRentasDraft(state: { direccionCodigoPostal: string; ubicacionLin
   return zipFromRentasLocation(state.ubicacionLinea, state.ciudad);
 }
 
-function rentasPublishCity(state: { ciudad: string; direccionNumero: string; direccionCalle: string; ubicacionLinea: string }): string {
+function rentasPublishCity(state: {
+  ciudad: string;
+  direccionLinea1?: string;
+  direccionNumero: string;
+  direccionCalle: string;
+  ubicacionLinea: string;
+}): string {
   const c = trim(state.ciudad);
   if (c) return c;
   return trim(buildRentasStreetLine(state)) || trim(state.ubicacionLinea);

@@ -49,6 +49,7 @@ type RentasPersistCommon = Pick<
 
 type RentasMapQueryState = Pick<
   RentasPrivadoFormState,
+  | "direccionLinea1"
   | "direccionNumero"
   | "direccionCalle"
   | "ubicacionLinea"

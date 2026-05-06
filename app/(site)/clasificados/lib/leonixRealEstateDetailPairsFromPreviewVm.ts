@@ -24,7 +24,6 @@ export function buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm: BienesRaice
   } else {
     pushFact(out, "Ubicación", vm.addressLine);
   }
-  if (vm.location?.mapsUrl) pushFact(out, "Mapa / enlace", vm.location.mapsUrl);
   for (const q of vm.quickFacts ?? []) {
     pushFact(out, q.label, q.value);
   }
@@ -43,7 +42,6 @@ export function buildDetailPairsFromBienesRaicesNegocioPreviewVm(vm: BienesRaice
   pushFact(out, "Operación", vm.operationSummary);
   pushFact(out, "Estado", vm.listingStatusLabel);
   pushFact(out, "Dirección", vm.location?.fullAddress?.trim() || vm.addressLine);
-  if (vm.location?.mapsUrl) pushFact(out, "Mapa / enlace", vm.location.mapsUrl);
   for (const q of vm.quickFacts ?? []) {
     pushFact(out, q.label, q.value);
   }

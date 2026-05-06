@@ -12,6 +12,7 @@ import {
   mergePartialBienesRaicesPrivadoState,
 } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import type { RentasServicioIncluidoId } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+import { coerceRentasPostalDigits5 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 
 export type { RentasServicioIncluidoId } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 
@@ -52,6 +53,8 @@ export type RentasPrivadoFormState = {
   ciudad: string;
   /** Optional neighborhood / zone (not the city field) */
   zonaVecindario: string;
+  /** Calle y número (línea única). Los campos número/calle siguen en el tipo por borradores antiguos. */
+  direccionLinea1: string;
   direccionNumero: string;
   direccionCalle: string;
   direccionEstado: string;
@@ -159,6 +162,7 @@ export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
     requisitos: "",
     ciudad: "",
     zonaVecindario: "",
+    direccionLinea1: "",
     direccionNumero: "",
     direccionCalle: "",
     direccionEstado: "CA",
@@ -237,6 +241,14 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
     v: BR_PRIVADO_FORM_VERSION,
   });
 
+  const mergedNum = typeof partial.direccionNumero === "string" ? partial.direccionNumero : base.direccionNumero;
+  const mergedCalle = typeof partial.direccionCalle === "string" ? partial.direccionCalle : base.direccionCalle;
+  const mergedUbicRaw = typeof partial.ubicacionLinea === "string" ? partial.ubicacionLinea : br.ubicacionLinea;
+  const fromParts = [mergedNum.trim(), mergedCalle.trim()].filter(Boolean).join(" ").trim();
+  const partialLine1 = typeof partial.direccionLinea1 === "string" ? partial.direccionLinea1.trim() : "";
+  const direccionLinea1 =
+    partialLine1 || fromParts || mergedUbicRaw.trim() || base.direccionLinea1;
+
   return {
     v: RENTAS_PRIVADO_FORM_VERSION,
     categoriaPropiedad: coerceBrNegocioCategoriaPropiedad(partial.categoriaPropiedad ?? br.categoriaPropiedad),
@@ -272,13 +284,16 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
     requisitos: typeof partial.requisitos === "string" ? partial.requisitos : base.requisitos,
     ciudad: br.ciudad,
     zonaVecindario: typeof partial.zonaVecindario === "string" ? partial.zonaVecindario : base.zonaVecindario,
-    direccionNumero: typeof partial.direccionNumero === "string" ? partial.direccionNumero : base.direccionNumero,
-    direccionCalle: typeof partial.direccionCalle === "string" ? partial.direccionCalle : base.direccionCalle,
+    direccionLinea1,
+    direccionNumero: mergedNum,
+    direccionCalle: mergedCalle,
     direccionEstado:
       typeof partial.direccionEstado === "string" && partial.direccionEstado.trim()
         ? partial.direccionEstado.trim()
         : base.direccionEstado,
-    direccionCodigoPostal: typeof partial.direccionCodigoPostal === "string" ? partial.direccionCodigoPostal : base.direccionCodigoPostal,
+    direccionCodigoPostal: coerceRentasPostalDigits5(
+      typeof partial.direccionCodigoPostal === "string" ? partial.direccionCodigoPostal : base.direccionCodigoPostal,
+    ),
     ubicacionLinea: br.ubicacionLinea,
     enlaceMapa: typeof partial.enlaceMapa === "string" ? partial.enlaceMapa : br.enlaceMapa,
     descripcion: br.descripcion,
