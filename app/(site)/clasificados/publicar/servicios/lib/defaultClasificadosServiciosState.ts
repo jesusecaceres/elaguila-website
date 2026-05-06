@@ -90,6 +90,9 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     confirmListingAccurate: false,
     confirmPhotosRepresentBusiness: false,
     confirmCommunityRules: false,
+    paymentMethodIds: [],
+    customPaymentMethods: [],
+    customPaymentMethodLabel: "",
   };
 }
 
@@ -150,6 +153,13 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
   }
   if (s.offerQrLater) return true;
   if (s.confirmListingAccurate || s.confirmPhotosRepresentBusiness || s.confirmCommunityRules) return true;
+  if (
+    s.paymentMethodIds.length > 0 ||
+    s.customPaymentMethods.length > 0 ||
+    s.customPaymentMethodLabel.trim()
+  ) {
+    return true;
+  }
   if (s.languageOtherLines.trim()) return true;
   if (s.languageIds.length !== 1 || s.languageIds[0] !== "lang_es") return true;
   if (hoursDifferFromTemplate(s.hours)) return true;

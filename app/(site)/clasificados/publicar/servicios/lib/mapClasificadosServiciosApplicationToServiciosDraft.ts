@@ -17,6 +17,10 @@ import { normalizeBusinessHighlightDedupeKey } from "./serviciosCustomBusinessHi
 import { normalizeServiceOfferedDedupeKey } from "./serviciosCustomServicesOffered";
 import { BUSINESS_HIGHLIGHT_LABEL_MAX } from "./serviciosHighlightCaps";
 import { CUSTOM_CHIP_MAX_LENGTH } from "./serviciosSelectionCaps";
+import {
+  sanitizeCustomPaymentMethodLabels,
+  sanitizeServiciosPaymentMethodIds,
+} from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
 
 const JS_DAY_TO_ROW: DayKey[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
@@ -380,6 +384,11 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       ...(state.offerQrLater === true ? { qrIntent: true } : {}),
     };
   }
+
+  const paymentIds = sanitizeServiciosPaymentMethodIds(state.paymentMethodIds);
+  const customPay = sanitizeCustomPaymentMethodLabels(state.customPaymentMethods);
+  if (paymentIds.length) draft.paymentMethodIds = paymentIds;
+  if (customPay.length) draft.customPaymentMethods = customPay;
 
   return draft;
 }

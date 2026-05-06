@@ -176,4 +176,10 @@ export type ClasificadosServiciosApplicationState = {
   confirmListingAccurate: boolean;
   confirmPhotosRepresentBusiness: boolean;
   confirmCommunityRules: boolean;
+  /** Canonical payment method ids (shared catalog) */
+  paymentMethodIds: string[];
+  /** Advertiser custom payment labels */
+  customPaymentMethods: string[];
+  /** Pending custom payment input — flushed on Add / Next */
+  customPaymentMethodLabel: string;
 };

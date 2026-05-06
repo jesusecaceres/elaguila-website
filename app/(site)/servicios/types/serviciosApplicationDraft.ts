@@ -175,4 +175,8 @@ export type ServiciosApplicationDraft = {
   promo?: ServiciosApplicationPromoDraft;
   /** Accepted payment methods (Leonix Servicios); sanitized on map/resolve */
   paymentMethodIds?: string[];
+  /** Custom payment method labels; sanitized on map/resolve */
+  customPaymentMethods?: string[];
+  /** Pending custom payment input (flushed on preview navigation where applicable) */
+  customPaymentMethodLabel?: string;
 };

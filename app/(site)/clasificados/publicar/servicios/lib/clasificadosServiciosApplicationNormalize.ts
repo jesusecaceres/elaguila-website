@@ -15,6 +15,7 @@ import {
 } from "./serviciosSelectionCaps";
 import { BUSINESS_HIGHLIGHT_LABEL_MAX } from "./serviciosHighlightCaps";
 import { SERVICIOS_APPLICATION_STEP_COUNT } from "./serviciosApplicationStepLabels";
+import { CUSTOM_PAYMENT_LABEL_MAX } from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
 
 const DAY_KEYS: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
@@ -185,6 +186,15 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     }
   }
 
+  let paymentMethodIds = d.paymentMethodIds;
+  if (Array.isArray(o.paymentMethodIds)) {
+    paymentMethodIds = o.paymentMethodIds.filter((x): x is string => typeof x === "string");
+  }
+  let customPaymentMethods = d.customPaymentMethods;
+  if (Array.isArray(o.customPaymentMethods)) {
+    customPaymentMethods = o.customPaymentMethods.filter((x): x is string => typeof x === "string");
+  }
+
   return enforceServiciosSelectionCaps({
     applicationStepIndex,
     businessTypeId: str("businessTypeId", d.businessTypeId),
@@ -261,5 +271,11 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     confirmListingAccurate: bool("confirmListingAccurate", d.confirmListingAccurate),
     confirmPhotosRepresentBusiness: bool("confirmPhotosRepresentBusiness", d.confirmPhotosRepresentBusiness),
     confirmCommunityRules: bool("confirmCommunityRules", d.confirmCommunityRules),
+    paymentMethodIds,
+    customPaymentMethods,
+    customPaymentMethodLabel: str("customPaymentMethodLabel", d.customPaymentMethodLabel).slice(
+      0,
+      CUSTOM_PAYMENT_LABEL_MAX,
+    ),
   });
 }

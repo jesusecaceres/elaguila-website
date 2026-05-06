@@ -1,5 +1,9 @@
 import type { ServiciosBusinessProfile, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
-import { filterPaymentMethodIds, meaningfulReviews } from "./serviciosProfileSanitize";
+import {
+  filterCustomPaymentMethods,
+  filterPaymentMethodIds,
+  meaningfulReviews,
+} from "./serviciosProfileSanitize";
 import { nonEmpty } from "./serviciosProfilePrimitives";
 
 /** Raw wire profile — section guards before sanitization */
@@ -64,7 +68,10 @@ export function hasOfferSection(p: ServiciosBusinessProfile): boolean {
 }
 
 export function hasPaymentMethods(p: ServiciosBusinessProfile): boolean {
-  return filterPaymentMethodIds(p.paymentMethodIds).length > 0;
+  return (
+    filterPaymentMethodIds(p.paymentMethodIds).length > 0 ||
+    filterCustomPaymentMethods(p.customPaymentMethods).length > 0
+  );
 }
 
 /** Resolved profile — guards on sanitized output */
@@ -117,5 +124,5 @@ export function hasOfferSectionResolved(p: ServiciosProfileResolved): boolean {
 }
 
 export function hasPaymentMethodsResolved(p: ServiciosProfileResolved): boolean {
-  return p.paymentMethodIds.length > 0;
+  return p.paymentMethodIds.length > 0 || p.customPaymentMethods.length > 0;
 }

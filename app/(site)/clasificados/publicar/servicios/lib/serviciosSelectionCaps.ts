@@ -6,6 +6,11 @@ import {
   MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION,
   MAX_CUSTOM_BUSINESS_HIGHLIGHTS,
 } from "./serviciosHighlightCaps";
+import {
+  CUSTOM_PAYMENT_LABEL_MAX,
+  sanitizeCustomPaymentMethodLabels,
+  sanitizeServiciosPaymentMethodIds,
+} from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
 
 /** Max preset service chips selected at once (generous cap for real listings) */
 export const MAX_SERVICES_SELECTION = 24;
@@ -88,6 +93,13 @@ export function enforceServiciosSelectionCaps(
       ? s.customBusinessHighlightLabel.trim().slice(0, BUSINESS_HIGHLIGHT_LABEL_MAX)
       : "";
 
+  const paymentMethodIds = sanitizeServiciosPaymentMethodIds(s.paymentMethodIds);
+  const customPaymentMethods = sanitizeCustomPaymentMethodLabels(s.customPaymentMethods);
+  const customPaymentMethodLabel =
+    typeof s.customPaymentMethodLabel === "string"
+      ? s.customPaymentMethodLabel.trim().slice(0, CUSTOM_PAYMENT_LABEL_MAX)
+      : "";
+
   return {
     ...s,
     selectedServiceIds: sis,
@@ -100,5 +112,8 @@ export function enforceServiciosSelectionCaps(
     selectedBusinessHighlightIds: highlightIds,
     customBusinessHighlights: bhCustom,
     customBusinessHighlightLabel,
+    paymentMethodIds,
+    customPaymentMethods,
+    customPaymentMethodLabel,
   };
 }

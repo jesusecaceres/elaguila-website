@@ -79,6 +79,12 @@ export type PublicarCopy = {
     describeServicePlaceholder: string;
     noCategoryQuestion: string;
     paymentsHint: string;
+    paymentsStandardHeading: string;
+    paymentsOtherLabel: string;
+    paymentsPlaceholder: string;
+    paymentsAdd: string;
+    paymentsAddedList: string;
+    paymentsCustomMax: string;
   };
 };
 
@@ -175,6 +181,12 @@ const es: PublicarCopy = {
     describeServicePlaceholder: "Ej. Reparación de celulares",
     noCategoryQuestion: "¿No ves tu categoría?",
     paymentsHint: "Opcional. Indica cómo puede pagar el cliente.",
+    paymentsStandardHeading: "Métodos estándar",
+    paymentsOtherLabel: "Otro método de pago",
+    paymentsPlaceholder: "Ej.: Apple Pay",
+    paymentsAdd: "Añadir",
+    paymentsAddedList: "Métodos agregados:",
+    paymentsCustomMax: "Has alcanzado el máximo de métodos personalizados (24).",
   },
 };
 
@@ -271,6 +283,12 @@ const en: PublicarCopy = {
     describeServicePlaceholder: "e.g. Cell phone repair",
     noCategoryQuestion: "Don't see your category?",
     paymentsHint: "Optional. Tell customers how they can pay.",
+    paymentsStandardHeading: "Standard methods",
+    paymentsOtherLabel: "Other payment method",
+    paymentsPlaceholder: "Ex: Apple Pay",
+    paymentsAdd: "Add",
+    paymentsAddedList: "Added methods:",
+    paymentsCustomMax: "You’ve reached the maximum number of custom payment methods (24).",
   },
 };
 

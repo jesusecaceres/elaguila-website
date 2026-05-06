@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
+import { FiX } from "react-icons/fi";
 import { collectServiciosDraftFieldIssues } from "../lib/serviciosApplicationFieldValidation";
 import { getServiciosPublishReadiness } from "../lib/serviciosApplicationPublishReadiness";
 import { useServiciosApplicationDraftState } from "../hooks/useServiciosApplicationDraftState";
@@ -14,11 +15,15 @@ import type {
 } from "../../types/serviciosBusinessProfile";
 import type { ServiciosTrustItem } from "../../types/serviciosBusinessProfile";
 import {
+  CUSTOM_PAYMENT_LABEL_MAX,
+  MAX_CUSTOM_PAYMENT_METHODS,
   MAX_SERVICIOS_PAYMENT_METHODS_SELECTED,
   SERVICIOS_PAYMENT_METHOD_ORDER,
-  getServiciosPaymentMethodLabel,
   sanitizeServiciosPaymentMethodIds,
 } from "../../lib/serviciosPaymentMethodCatalog";
+import { evaluateAddCustomPaymentLabel, flushPendingCustomPaymentOnDraft } from "../../lib/serviciosPaymentCustom";
+import { writeServiciosApplicationDraftToBrowser } from "../../lib/serviciosDraftStorage";
+import { ServiciosPaymentMethodBadge } from "../../components/ServiciosPaymentMethodBadge";
 
 const HERO_BADGE_KINDS: ServiciosHeroBadgeKind[] = [
   "verified",
@@ -76,6 +81,9 @@ export function ServiciosApplicationForm({ lang }: { lang: ServiciosLang }) {
   const issueMsg = (path: string) => issues.find((i) => i.path === path)?.message;
 
   const openPreview = () => {
+    const flushed = flushPendingCustomPaymentOnDraft(draft);
+    setDraft(flushed);
+    writeServiciosApplicationDraftToBrowser(flushed);
     persistNow();
     window.open(`/clasificados/publicar/servicios/preview?lang=${lang}`, "_blank", "noopener,noreferrer");
   };
@@ -491,6 +499,7 @@ export function ServiciosApplicationForm({ lang }: { lang: ServiciosLang }) {
 
           <Section id="section-payments" title={copy.sections.payments}>
             <p className="mb-4 text-sm text-neutral-600">{copy.labels.paymentsHint}</p>
+            <p className="mb-3 text-sm font-medium text-neutral-800">{copy.labels.paymentsStandardHeading}</p>
             <div className="flex flex-wrap gap-2">
               {SERVICIOS_PAYMENT_METHOD_ORDER.map((id) => {
                 const selected = sanitizeServiciosPaymentMethodIds(draft.paymentMethodIds).includes(id);
@@ -511,17 +520,84 @@ export function ServiciosApplicationForm({ lang }: { lang: ServiciosLang }) {
                       });
                     }}
                     className={[
-                      "rounded-full border px-3.5 py-2 text-sm font-medium shadow-sm transition",
+                      "inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium shadow-sm transition",
                       selected
                         ? "border-[#3B66AD] bg-[#3B66AD]/[0.12] text-[#14305c] ring-1 ring-[#3B66AD]/25"
                         : "border-neutral-200/90 bg-white text-neutral-800 hover:border-[#3B66AD]/40 hover:bg-neutral-50/80",
                     ].join(" ")}
                   >
-                    {getServiciosPaymentMethodLabel(id, lang)}
+                    <ServiciosPaymentMethodBadge lang={lang} standardId={id} compact />
                   </button>
                 );
               })}
             </div>
+            <label className="mt-6 block text-sm font-medium text-neutral-800">{copy.labels.paymentsOtherLabel}</label>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+              <input
+                className={inputClass()}
+                placeholder={copy.labels.paymentsPlaceholder}
+                maxLength={CUSTOM_PAYMENT_LABEL_MAX}
+                value={draft.customPaymentMethodLabel ?? ""}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    customPaymentMethodLabel: e.target.value.slice(0, CUSTOM_PAYMENT_LABEL_MAX),
+                  }))
+                }
+              />
+              <button
+                type="button"
+                disabled={
+                  !(draft.customPaymentMethodLabel ?? "").trim() ||
+                  (draft.customPaymentMethods ?? []).length >= MAX_CUSTOM_PAYMENT_METHODS
+                }
+                className="rounded-xl bg-[#3B66AD] px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-[44px]"
+                onClick={() => {
+                  setDraft((prev) => {
+                    const r = evaluateAddCustomPaymentLabel({
+                      customPaymentMethods: prev.customPaymentMethods,
+                      raw: prev.customPaymentMethodLabel ?? "",
+                    });
+                    if (!r.ok) return prev;
+                    return {
+                      ...prev,
+                      customPaymentMethods: [...(prev.customPaymentMethods ?? []), r.label],
+                      customPaymentMethodLabel: "",
+                    };
+                  });
+                }}
+              >
+                {copy.labels.paymentsAdd}
+              </button>
+            </div>
+            {(draft.customPaymentMethods ?? []).length >= MAX_CUSTOM_PAYMENT_METHODS ? (
+              <p className="mt-2 text-xs text-amber-800">{copy.labels.paymentsCustomMax}</p>
+            ) : null}
+            {(draft.customPaymentMethods ?? []).length > 0 ? (
+              <div className="mt-5">
+                <p className="text-sm font-semibold text-neutral-800">{copy.labels.paymentsAddedList}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {(draft.customPaymentMethods ?? []).map((label, i) => (
+                    <button
+                      key={`cpay-${i}-${label.slice(0, 16)}`}
+                      type="button"
+                      title={label}
+                      aria-label={`${copy.labels.remove}: ${label}`}
+                      onClick={() =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          customPaymentMethods: (prev.customPaymentMethods ?? []).filter((_, j) => j !== i),
+                        }))
+                      }
+                      className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-full border border-[#3B66AD] bg-[#3B66AD]/10 px-3 py-2 text-sm font-medium text-[#1e3a5f] ring-1 ring-[#3B66AD]/20"
+                    >
+                      <ServiciosPaymentMethodBadge lang={lang} customLabel={label} compact />
+                      <FiX className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </Section>
 
           <Section id="section-quick" title={copy.sections.quickFacts}>

@@ -16,7 +16,10 @@ import type {
   ServiciosServiceCard,
   ServiciosTrustItem,
 } from "../types/serviciosBusinessProfile";
-import { sanitizeServiciosPaymentMethodIds } from "./serviciosPaymentMethodCatalog";
+import {
+  sanitizeCustomPaymentMethodLabels,
+  sanitizeServiciosPaymentMethodIds,
+} from "./serviciosPaymentMethodCatalog";
 
 function trim(s: string | undefined | null): string {
   return typeof s === "string" ? s.trim().replace(/\s+/g, " ") : "";
@@ -161,6 +164,7 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   const serviceAreas = mapServiceAreas(draft.serviceAreas);
   const promo = mapPromo(draft.promo);
   const paymentMethodIds = sanitizeServiciosPaymentMethodIds(draft.paymentMethodIds);
+  const customPaymentMethods = sanitizeCustomPaymentMethodLabels(draft.customPaymentMethods);
 
   const out: ServiciosBusinessProfile = {
     identity,
@@ -184,6 +188,7 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   if (serviceAreas) out.serviceAreas = serviceAreas;
   if (promo) out.promo = promo;
   if (paymentMethodIds.length) out.paymentMethodIds = paymentMethodIds;
+  if (customPaymentMethods.length) out.customPaymentMethods = customPaymentMethods;
 
   return out;
 }

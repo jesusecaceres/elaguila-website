@@ -1,14 +1,12 @@
 import { FaMoneyBillWave } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
-import {
-  getServiciosPaymentMethodLabel,
-  isServiciosPaymentMethodId,
-} from "../lib/serviciosPaymentMethodCatalog";
+import { isServiciosPaymentMethodId } from "../lib/serviciosPaymentMethodCatalog";
+import { ServiciosPaymentMethodBadge } from "./ServiciosPaymentMethodBadge";
 import { SV } from "./serviciosDesignTokens";
 
 export function ServiciosPagosCard({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
-  if (!profile.paymentMethodIds.length) return null;
+  if (!profile.paymentMethodIds.length && !profile.customPaymentMethods.length) return null;
   const L = getServiciosProfileLabels(lang);
 
   return (
@@ -25,13 +23,22 @@ export function ServiciosPagosCard({ profile, lang }: { profile: ServiciosProfil
           isServiciosPaymentMethodId(id) ? (
             <div
               key={id}
-              className="rounded-xl border border-black/[0.06] bg-white/95 px-3.5 py-2 text-sm font-medium leading-snug text-[color:var(--lx-text)] shadow-sm"
+              className="rounded-xl border border-black/[0.06] bg-white/95 px-3 py-2 shadow-sm"
               style={{ borderColor: SV.goldBorder }}
             >
-              {getServiciosPaymentMethodLabel(id, lang)}
+              <ServiciosPaymentMethodBadge lang={lang} standardId={id} />
             </div>
           ) : null,
         )}
+        {profile.customPaymentMethods.map((label, i) => (
+          <div
+            key={`pm-custom-${i}-${label.slice(0, 24)}`}
+            className="rounded-xl border border-black/[0.06] bg-white/95 px-3 py-2 shadow-sm"
+            style={{ borderColor: SV.goldBorder }}
+          >
+            <ServiciosPaymentMethodBadge lang={lang} customLabel={label} />
+          </div>
+        ))}
       </div>
     </section>
   );

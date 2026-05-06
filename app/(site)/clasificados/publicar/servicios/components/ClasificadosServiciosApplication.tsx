@@ -76,6 +76,15 @@ import {
   normalizeHttpUrl,
 } from "../lib/socialAndUrlHelpers";
 import { ServiciosPublishModal } from "./ServiciosPublishModal";
+import {
+  CUSTOM_PAYMENT_LABEL_MAX,
+  MAX_CUSTOM_PAYMENT_METHODS,
+  MAX_SERVICIOS_PAYMENT_METHODS_SELECTED,
+  SERVICIOS_PAYMENT_METHOD_ORDER,
+  sanitizeServiciosPaymentMethodIds,
+} from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
+import { ServiciosPaymentMethodBadge } from "@/app/servicios/components/ServiciosPaymentMethodBadge";
+import { evaluateAddCustomPaymentMethod } from "../lib/serviciosCustomPaymentMethods";
 
 const DEBOUNCE_MS = 500;
 const GALLERY_MAX = 24;
@@ -1977,6 +1986,109 @@ export function ClasificadosServiciosApplication() {
             <p className="mt-3 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.contactMessageFootnote}</p>
           </div>
         </section>
+
+        <section className={sectionCard} aria-labelledby="sec-payments">
+          <h2 id="sec-payments" className="text-lg font-bold text-[#3D2C12]">
+            {copy.labels.paymentsSection}
+          </h2>
+          <p className="mt-1 text-sm text-[#5D4A25]/85">{copy.labels.paymentsSectionHint}</p>
+
+          <p className="mt-5 text-sm font-semibold text-[#3D2C12]">{copy.labels.paymentsStandardHeading}</p>
+          <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1 pb-1">
+            {SERVICIOS_PAYMENT_METHOD_ORDER.map((id) => {
+              const selected = sanitizeServiciosPaymentMethodIds(state.paymentMethodIds).includes(id);
+              return (
+                <Chip
+                  key={id}
+                  selected={selected}
+                  onClick={() => {
+                    setState((prev) => {
+                      const cur = new Set(sanitizeServiciosPaymentMethodIds(prev.paymentMethodIds));
+                      if (cur.has(id)) cur.delete(id);
+                      else {
+                        if (cur.size >= MAX_SERVICIOS_PAYMENT_METHODS_SELECTED) return prev;
+                        cur.add(id);
+                      }
+                      return enforceServiciosSelectionCaps({
+                        ...prev,
+                        paymentMethodIds: sanitizeServiciosPaymentMethodIds([...cur]),
+                      });
+                    });
+                  }}
+                >
+                  <ServiciosPaymentMethodBadge lang={lang} standardId={id} compact />
+                </Chip>
+              );
+            })}
+          </div>
+
+          <label className={`mt-6 block ${labelClass}`}>{copy.labels.paymentsOtherLabel}</label>
+          <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+            <input
+              className={inputClass}
+              placeholder={copy.labels.paymentsPlaceholder}
+              maxLength={CUSTOM_PAYMENT_LABEL_MAX}
+              value={state.customPaymentMethodLabel}
+              onChange={(e) =>
+                setState((s) => ({
+                  ...s,
+                  customPaymentMethodLabel: e.target.value.slice(0, CUSTOM_PAYMENT_LABEL_MAX),
+                }))
+              }
+            />
+            <button
+              type="button"
+              disabled={
+                !state.customPaymentMethodLabel.trim() ||
+                state.customPaymentMethods.length >= MAX_CUSTOM_PAYMENT_METHODS
+              }
+              className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+              onClick={() => {
+                setState((prev) => {
+                  const r = evaluateAddCustomPaymentMethod(prev, prev.customPaymentMethodLabel);
+                  if (!r.ok) return prev;
+                  return enforceServiciosSelectionCaps({
+                    ...prev,
+                    customPaymentMethods: [...prev.customPaymentMethods, r.label],
+                    customPaymentMethodLabel: "",
+                  });
+                });
+              }}
+            >
+              {copy.labels.paymentsAdd}
+            </button>
+          </div>
+          {state.customPaymentMethods.length >= MAX_CUSTOM_PAYMENT_METHODS ? (
+            <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.paymentsCustomMax}</p>
+          ) : null}
+          {state.customPaymentMethods.length > 0 ? (
+            <div className="mt-5">
+              <p className="text-sm font-semibold text-[#3D2C12]">{copy.labels.paymentsAddedList}</p>
+              <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1">
+                {state.customPaymentMethods.map((label, i) => (
+                  <button
+                    key={`cpay-${i}-${label}`}
+                    type="button"
+                    title={label}
+                    aria-label={`${copy.labels.remove}: ${label}`}
+                    onClick={() =>
+                      setState((prev) =>
+                        enforceServiciosSelectionCaps({
+                          ...prev,
+                          customPaymentMethods: prev.customPaymentMethods.filter((_, j) => j !== i),
+                        }),
+                      )
+                    }
+                    className="inline-flex max-w-full min-w-0 min-h-[40px] touch-manipulation items-center gap-1.5 rounded-full border border-[#3B66AD] bg-[#3B66AD]/10 px-3 py-2 text-left text-sm font-medium text-[#1e3a5f] ring-1 ring-[#3B66AD]/20"
+                  >
+                    <ServiciosPaymentMethodBadge lang={lang} customLabel={label} compact />
+                    <FiX className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </section>
           </>
         ) : null}
 
@@ -2305,6 +2417,27 @@ export function ClasificadosServiciosApplication() {
                             selectedBusinessHighlightIds: w.selectedBusinessHighlightIds,
                             customBusinessHighlights: w.customBusinessHighlights,
                             customBusinessHighlightLabel: w.customBusinessHighlightLabel,
+                          };
+                        })()
+                      : {}),
+                    ...(s.applicationStepIndex === 5
+                      ? (() => {
+                          let w: ClasificadosServiciosApplicationState = { ...s };
+                          const pending = w.customPaymentMethodLabel.trim();
+                          if (pending) {
+                            const r = evaluateAddCustomPaymentMethod(w, pending);
+                            w = r.ok
+                              ? enforceServiciosSelectionCaps({
+                                  ...w,
+                                  customPaymentMethods: [...w.customPaymentMethods, r.label],
+                                  customPaymentMethodLabel: "",
+                                })
+                              : enforceServiciosSelectionCaps({ ...w, customPaymentMethodLabel: "" });
+                          }
+                          return {
+                            paymentMethodIds: w.paymentMethodIds,
+                            customPaymentMethods: w.customPaymentMethods,
+                            customPaymentMethodLabel: w.customPaymentMethodLabel,
                           };
                         })()
                       : {}),

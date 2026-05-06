@@ -6,5 +6,7 @@ export function createEmptyServiciosApplicationDraft(): ServiciosApplicationDraf
     hero: {},
     contact: {},
     paymentMethodIds: [],
+    customPaymentMethods: [],
+    customPaymentMethodLabel: "",
   };
 }

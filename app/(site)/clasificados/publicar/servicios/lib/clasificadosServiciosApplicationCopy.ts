@@ -229,6 +229,14 @@ export type ClasificadosServiciosCopy = {
     contactSummaryNone: string;
     /** In-app message channel not offered in this phase */
     contactMessageFootnote: string;
+    paymentsSection: string;
+    paymentsSectionHint: string;
+    paymentsOtherLabel: string;
+    paymentsPlaceholder: string;
+    paymentsAdd: string;
+    paymentsAddedList: string;
+    paymentsCustomMax: string;
+    paymentsStandardHeading: string;
   };
 };
 
@@ -454,6 +462,14 @@ const es: ClasificadosServiciosCopy = {
     contactSummaryNone: "Aún no hay un método de contacto válido activo.",
     contactMessageFootnote:
       "El canal “Mensaje” dentro de la vitrina no está activo en esta fase. Activa llamada, WhatsApp, correo o sitio según corresponda.",
+    paymentsSection: "Pagos",
+    paymentsSectionHint: "Opcional. Indica cómo pueden pagar tus clientes.",
+    paymentsOtherLabel: "Otro método de pago",
+    paymentsPlaceholder: "Ej.: Apple Pay",
+    paymentsAdd: "Añadir",
+    paymentsAddedList: "Métodos agregados:",
+    paymentsCustomMax: "Has alcanzado el máximo de métodos personalizados (24).",
+    paymentsStandardHeading: "Métodos estándar",
   },
 };
 
@@ -679,6 +695,14 @@ const en: ClasificadosServiciosCopy = {
     contactSummaryNone: "No valid contact method is active yet.",
     contactMessageFootnote:
       "The in-showcase “Message” channel is not active in this phase. Enable call, WhatsApp, email, or website as needed.",
+    paymentsSection: "Payments",
+    paymentsSectionHint: "Optional. Tell customers how they can pay you.",
+    paymentsOtherLabel: "Other payment method",
+    paymentsPlaceholder: "Ex: Apple Pay",
+    paymentsAdd: "Add",
+    paymentsAddedList: "Added methods:",
+    paymentsCustomMax: "You’ve reached the maximum number of custom payment methods (24).",
+    paymentsStandardHeading: "Standard methods",
   },
 };
 
