@@ -293,7 +293,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
           </AiField>
         </div>
         <div className="sm:col-span-2">
-          <AiField label="Dirección" hint="Calle y número para ubicar la propiedad.">
+          <AiField label="Dirección línea 1" hint="Calle y número para ubicar la propiedad.">
             <input
               className={fieldClass}
               value={state.direccionLinea1}

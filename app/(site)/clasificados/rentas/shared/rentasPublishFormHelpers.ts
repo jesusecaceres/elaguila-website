@@ -178,11 +178,12 @@ export function rentasGoogleMapsUrlFromQuery(query: string | null): string | nul
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
 }
 
-export function formatRentasServiciosIncluidosOutput(parts: {
+/** Ordered unique labels + single custom “Otro” line when applicable (no duplicate otro). */
+export function formatRentasServiciosIncluidosList(parts: {
   serviciosIncluidosKeys: readonly RentasServicioIncluidoId[];
   serviciosIncluidosOtro: string;
   serviciosIncluidosLegacy: string;
-}): string {
+}): string[] {
   const keys = [...parts.serviciosIncluidosKeys];
   const otroText = trim(parts.serviciosIncluidosOtro);
   const labels: string[] = [];
@@ -192,6 +193,28 @@ export function formatRentasServiciosIncluidosOutput(parts: {
     if (lb) labels.push(lb);
   }
   if (keys.includes("otro") && otroText) labels.push(otroText);
-  if (labels.length) return labels.join(", ");
-  return trim(parts.serviciosIncluidosLegacy);
+  if (labels.length) return [...new Set(labels)];
+  const leg = trim(parts.serviciosIncluidosLegacy);
+  return leg ? [leg] : [];
+}
+
+export function formatRentasServiciosIncluidosOutput(parts: {
+  serviciosIncluidosKeys: readonly RentasServicioIncluidoId[];
+  serviciosIncluidosOtro: string;
+  serviciosIncluidosLegacy: string;
+}): string {
+  const list = formatRentasServiciosIncluidosList(parts);
+  if (list.length) return list.join(", ");
+  return "";
+}
+
+/** Readable multiline block for detail / preview (no emoji). */
+export function formatRentasServiciosIncluidosOutputMultiline(parts: {
+  serviciosIncluidosKeys: readonly RentasServicioIncluidoId[];
+  serviciosIncluidosOtro: string;
+  serviciosIncluidosLegacy: string;
+}): string {
+  const list = formatRentasServiciosIncluidosList(parts);
+  if (!list.length) return "";
+  return list.map((line) => `• ${line}`).join("\n");
 }

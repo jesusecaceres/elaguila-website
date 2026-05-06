@@ -36,21 +36,22 @@ function publicationForCategory(cat: RentasNegocioFormState["categoriaPropiedad"
   return "terreno";
 }
 
-function buildTipoPropiedadLine(s: RentasNegocioFormState): string {
+function rentasNegocioTipoLabel(s: RentasNegocioFormState): string {
   const cat = s.categoriaPropiedad;
   if (cat === "residencial") {
-    const tipoLabel = TIPO_PROPIEDAD_OPCIONES.find((o) => o.value === s.residencial.tipoCodigo)?.label ?? "";
-    const subLbl = labelForSubtipo(s.residencial.tipoCodigo, s.residencial.subtipo);
-    return [tipoLabel, subLbl].filter(Boolean).join(" · ");
+    return TIPO_PROPIEDAD_OPCIONES.find((o) => o.value === s.residencial.tipoCodigo)?.label ?? "";
   }
   if (cat === "comercial") {
-    const tipoLabel = COMERCIAL_TIPO_OPCIONES.find((o) => o.value === s.comercial.tipoCodigo)?.label ?? "";
-    const subLbl = labelComercialSubtipo(s.comercial.tipoCodigo, s.comercial.subtipo);
-    return [tipoLabel, subLbl].filter(Boolean).join(" · ");
+    return COMERCIAL_TIPO_OPCIONES.find((o) => o.value === s.comercial.tipoCodigo)?.label ?? "";
   }
-  const tipoLabel = TERRENO_TIPO_OPCIONES.find((o) => o.value === s.terreno.tipoCodigo)?.label ?? "";
-  const subLbl = labelTerrenoSubtipo(s.terreno.tipoCodigo, s.terreno.subtipo);
-  return [tipoLabel, subLbl].filter(Boolean).join(" · ");
+  return TERRENO_TIPO_OPCIONES.find((o) => o.value === s.terreno.tipoCodigo)?.label ?? "";
+}
+
+function rentasNegocioSubtipoLabel(s: RentasNegocioFormState): string {
+  const cat = s.categoriaPropiedad;
+  if (cat === "residencial") return labelForSubtipo(s.residencial.tipoCodigo, s.residencial.subtipo);
+  if (cat === "comercial") return labelComercialSubtipo(s.comercial.tipoCodigo, s.comercial.subtipo);
+  return labelTerrenoSubtipo(s.terreno.tipoCodigo, s.terreno.subtipo);
 }
 
 function listingStatusFromRentas(estado: RentasNegocioFormState["estadoAnuncio"]): BienesRaicesListingStatus {
@@ -99,7 +100,8 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
     descripcionLarga: s.descripcion,
     descripcionCorta: "",
     listingStatus: listingStatusFromRentas(s.estadoAnuncio),
-    tipoPropiedad: buildTipoPropiedadLine(s),
+    tipoPropiedad: rentasNegocioTipoLabel(s),
+    propertySubtype: rentasNegocioSubtipoLabel(s),
     media: {
       photoUrls: [...s.media.photoDataUrls],
       primaryImageIndex: s.media.primaryImageIndex,

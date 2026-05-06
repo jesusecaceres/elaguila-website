@@ -316,7 +316,10 @@ export default function AdminListingsTable({
                   {enVentaVisibilityAdminLine(row, detailPairsAvailable, boostExpiresAvailable)}
                 </td>
                 <td className="p-3">
-                  <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1">
+                  <div
+                    className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1"
+                    title="Gestión staff en la misma fila (publicar/ocultar/eliminar). Edición de texto e imágenes: panel del anunciante con validación owner_id."
+                  >
                     {(row.category ?? "").toLowerCase() === "rentas" ? (
                       <Link
                         href={rentasListingPublicPath(row.id)}

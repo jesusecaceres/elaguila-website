@@ -218,7 +218,7 @@ function FactBlock({ title, rows }: { title: string; rows: Array<{ label: string
             <dt className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
               {r.label}
             </dt>
-            <dd className="mt-1 text-sm font-medium leading-snug" style={{ color: CHARCOAL }}>
+            <dd className="mt-1 whitespace-pre-line text-sm font-medium leading-snug" style={{ color: CHARCOAL }}>
               {r.value}
             </dd>
           </div>
@@ -237,7 +237,7 @@ function FactRowsList({ rows }: { rows: Array<{ label: string; value: string }> 
           <dt className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
             {r.label}
           </dt>
-          <dd className="mt-1 text-sm font-medium leading-snug" style={{ color: CHARCOAL }}>
+          <dd className="mt-1 whitespace-pre-line text-sm font-medium leading-snug" style={{ color: CHARCOAL }}>
             {r.value}
           </dd>
         </div>
@@ -776,14 +776,17 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
         <section className="mt-10 grid gap-5 lg:grid-cols-[1fr_1fr_minmax(280px,340px)] lg:items-stretch lg:gap-5">
           <FactBlock title="Detalles de la propiedad" rows={vm.propertyDetailsRows} />
           {vm.hasHighlights ? (
-            <FactBlock title="Características destacadas" rows={vm.highlightsRows ?? []} />
+            <FactBlock
+              title={String(vm.highlightsSectionTitle ?? "").trim() || "Características destacadas"}
+              rows={vm.highlightsRows ?? []}
+            />
           ) : (
             <div
               className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]"
               style={{ borderColor: BORDER, background: CREAM_CARD }}
             >
               <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-                Características destacadas
+                {String(vm.highlightsSectionTitle ?? "").trim() || "Características destacadas"}
               </h3>
               <p className="mt-4 text-sm leading-relaxed" style={{ color: MUTED }}>
                 Sin elementos destacados en este anuncio.

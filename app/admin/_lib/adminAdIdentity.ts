@@ -179,7 +179,8 @@ export function normalizeGenericListingForAdmin(
     adminUrl: publishedId
       ? `/admin/workspace/clasificados?q=${encodeURIComponent(publishedId)}`
       : `/admin/workspace/clasificados?q=${encodeURIComponent(internalId)}`,
-    editUrl: `/dashboard/mis-anuncios/${encodeURIComponent(internalId)}/editar`,
+    /** Seller-only; see `resolveAdminAdActions` — not staff “edit as owner”. */
+    editUrl: null,
     sourceMeta: {
       table: "listings",
       hasPublishedIdColumn: publishedFromRow != null,
@@ -370,11 +371,12 @@ export function normalizeEmpleosPublicListingForAdmin(
     updatedAt: nonEmptyString(row.updated_at),
     publicUrl,
     adminUrl,
-    editUrl: `/dashboard/empleos/${encodeURIComponent(internalId)}?lang=${(lang ?? "es").trim().toLowerCase() === "en" ? "en" : "es"}`,
+    editUrl: null,
     sourceMeta: {
       table: "empleos_public_listings",
       hasPublishedIdColumn: publishedFromRow != null,
       lane: nonEmptyString(row.lane),
+      lang: (lang ?? "es").trim().toLowerCase() === "en" ? "en" : "es",
     },
   };
 }

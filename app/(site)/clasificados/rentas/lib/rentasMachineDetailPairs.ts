@@ -35,6 +35,8 @@ export const RENTAS_DP_VIDEO_URL = "Leonix:rent:video_url";
 export const RENTAS_DP_HALF_BATHS_COUNT = "Leonix:rent:half_baths_count";
 /** Dígitos US (10) para SMS; distinto de `contact_phone` cuando el usuario separa SMS. */
 export const RENTAS_DP_CONTACT_SMS_DIGITS = "Leonix:rent:contact_sms_digits";
+/** Dígitos para `https://wa.me/...` cuando el anunciante publicó WhatsApp. */
+export const RENTAS_DP_CONTACT_WHATSAPP_DIGITS = "Leonix:rent:contact_whatsapp_digits";
 
 type RentasPersistCommon = Pick<
   RentasPrivadoFormState,
@@ -127,5 +129,7 @@ export function mergeRentasNegocioMachinePairs(
   push(out, RENTAS_DP_BUSINESS_SOCIAL, state.negocioRedes);
   const smsN = digitsOnly15(state.negocioMensajesTexto ?? "");
   if (smsN.length >= 10) push(out, RENTAS_DP_CONTACT_SMS_DIGITS, smsN);
+  const waN = digitsOnly15(state.negocioWhatsapp ?? "");
+  if (waN.length >= 10) push(out, RENTAS_DP_CONTACT_WHATSAPP_DIGITS, waN);
   return out;
 }

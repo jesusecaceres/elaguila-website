@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { FiChevronLeft, FiMapPin } from "react-icons/fi";
+import { FaWhatsapp } from "react-icons/fa";
 import { IconBath, IconBed, IconRuler } from "@/app/clasificados/bienes-raices/resultados/cards/cardIcons";
 import { EnVentaCorreoModal } from "@/app/clasificados/en-venta/preview/EnVentaCorreoModal";
 import { trackRentasContactClick, trackRentasListingView, trackRentasMessageSent } from "@/app/clasificados/rentas/analytics/rentasAnalytics";
@@ -306,6 +307,18 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
                       className={`inline-flex items-center justify-center ${rentasCtaSecondaryClass} w-full sm:w-auto sm:min-w-[11rem]`}
                     >
                       {lang === "es" ? "Enviar texto" : "Send text"}
+                    </a>
+                  ) : null}
+                  {extra.contactWhatsappDigits && extra.contactWhatsappDigits.replace(/\D/g, "").length >= 10 ? (
+                    <a
+                      href={`https://wa.me/${extra.contactWhatsappDigits.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => void trackRentasContactClick(listing.id, null)}
+                      className={`inline-flex items-center justify-center gap-2 ${rentasCtaSecondaryClass} w-full sm:w-auto sm:min-w-[11rem]`}
+                    >
+                      <FaWhatsapp className="h-4 w-4 shrink-0" aria-hidden />
+                      WhatsApp
                     </a>
                   ) : null}
                   {listingUuid ? (

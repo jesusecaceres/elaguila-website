@@ -11,6 +11,7 @@ export type RentasListingDetailExtra = {
   contactPhone?: string;
   contactEmail?: string;
   contactSmsDigits?: string;
+  contactWhatsappDigits?: string;
 };
 
 /** @deprecated Prefer `getRentasListingById` from `rentasPublicData` — kept for call sites. */
@@ -36,6 +37,9 @@ export function getRentasListingDetailExtra(listing: RentasPublicListing): Renta
   const contactSmsDigits = listing.contactSmsDigits?.replace(/\D/g, "").length
     ? listing.contactSmsDigits.replace(/\D/g, "").slice(0, 15)
     : undefined;
+  const contactWhatsappDigits = listing.contactWhatsappDigits?.replace(/\D/g, "").length
+    ? listing.contactWhatsappDigits.replace(/\D/g, "").slice(0, 15)
+    : undefined;
   if (listing.description && listing.sellerDisplay) {
     return {
       descriptionEs: listing.description.es,
@@ -46,8 +50,9 @@ export function getRentasListingDetailExtra(listing: RentasPublicListing): Renta
       contactPhone,
       contactEmail,
       contactSmsDigits,
+      contactWhatsappDigits,
     };
   }
   const base = defaultExtra(listing);
-  return { ...base, contactPhone, contactEmail, contactSmsDigits };
+  return { ...base, contactPhone, contactEmail, contactSmsDigits, contactWhatsappDigits };
 }

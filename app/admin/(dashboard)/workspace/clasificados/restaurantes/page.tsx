@@ -152,7 +152,12 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Cocinas / tipo</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Publicado</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Actualizado</th>
-                <th className="border-b border-[#E8DFD0] px-3 py-2">Enlaces</th>
+                <th
+                  className="border-b border-[#E8DFD0] px-3 py-2"
+                  title="Público + resultados. Moderación de estado en columna Acciones (misma fila; sin editor de contenido staff)."
+                >
+                  Enlaces
+                </th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Acciones</th>
               </tr>
             </thead>
@@ -185,8 +190,9 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
                         className="block font-semibold text-[#6B5B2E] underline"
                         target="_blank"
                         rel="noreferrer"
+                        title="Vista pública. Edición de negocio: flujo del anunciante, no Leonix staff."
                       >
-                        Ficha pública
+                        Ver público
                       </Link>
                       <Link href={resultsHref} className="block text-[#6B5B2E] underline" target="_blank" rel="noreferrer">
                         Resultados

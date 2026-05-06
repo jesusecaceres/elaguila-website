@@ -26,6 +26,8 @@ export type RentasPublicListing = {
   contactEmail?: string;
   /** Dígitos para `sms:` cuando el anunciante publicó número de texto (machine pair). */
   contactSmsDigits?: string;
+  /** Dígitos para WhatsApp (`wa.me`) cuando aplica (machine pair). */
+  contactWhatsappDigits?: string;
   /** Nota breve del contacto para interesados (cuando fue publicada en el formulario). */
   contactNote?: string;
   addressLine: string;

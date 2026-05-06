@@ -146,6 +146,8 @@ export type BienesRaicesNegocioPreviewVm = {
   description: string;
   hasDescription: boolean;
   hasHighlights: boolean;
+  /** When set (e.g. Rentas), overrides the highlights card title in preview. */
+  highlightsSectionTitle?: string;
   contact: BienesRaicesPreviewContactVm;
   /** @deprecated Prefer `detailClusters` for render; retained for any legacy consumers */
   deepBlocks: BienesRaicesPreviewDeepBlockVm[];

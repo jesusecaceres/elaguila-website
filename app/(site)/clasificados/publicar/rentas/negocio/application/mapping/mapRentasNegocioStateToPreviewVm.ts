@@ -1,8 +1,13 @@
 import type {
   BienesRaicesNegocioPreviewVm,
   BienesRaicesPreviewFact,
+  BienesRaicesPreviewQuickFactVm,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { mapBienesRaicesNegocioStateToPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/mapBienesRaicesNegocioStateToPreviewVm";
+import {
+  digitsOnly,
+  formatUsPhoneDisplay,
+} from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
 import { RENTAS_PLAZO_LABELS } from "@/app/clasificados/rentas/shared/utils/rentasPublishConstants";
 import {
   buildRentasAssembledAddressLine,
@@ -11,9 +16,10 @@ import {
   buildRentasStreetLine,
   formatRentasDepositUsdPreview,
   formatRentasDisponibilidadDisplay,
-  formatRentasServiciosIncluidosOutput,
+  formatRentasServiciosIncluidosOutputMultiline,
   rentasGoogleMapsUrlFromQuery,
 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+import { buildRentasResidencialPropertyRows } from "@/app/clasificados/rentas/shared/rentasResidencialPreviewRows";
 import type { RentasNegocioFormState } from "../../schema/rentasNegocioFormState";
 import { rentasNegocioToBienesRaicesNegocioState } from "./rentasNegocioToBienesRaicesNegocioState";
 
@@ -23,6 +29,22 @@ function trim(s: string): string {
 
 function priceDigits(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "");
+}
+
+function formatUsdMonthly(precio: string): string {
+  const d = priceDigits(precio);
+  if (!d) return "";
+  const n = Number(d);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  const cur = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+  return `${cur} / mes`;
+}
+
+function phoneDisplayFormatted(raw: string): string {
+  const t = trim(raw);
+  if (!t) return "";
+  const d = digitsOnly(t);
+  return d.length >= 10 ? formatUsPhoneDisplay(d) : t;
 }
 
 function digitsOnly15(raw: string): string {
@@ -43,8 +65,8 @@ function waHrefFromPhoneDisplay(raw: string): string | null {
 
 function smsHrefFromState(raw: string): string | null {
   const d = digitsOnly15(raw);
-  if (d.replace(/\D/g, "").length < 10) return null;
-  return `sms:${d.replace(/\D/g, "")}`;
+  if (d.length < 10) return null;
+  return `sms:${d}`;
 }
 
 function plazoDisplay(s: RentasNegocioFormState): string {
@@ -65,15 +87,38 @@ function rentalContractRows(s: RentasNegocioFormState): BienesRaicesPreviewFact[
   if (s.amueblado === "sin_amueblar") rows.push({ label: "Amueblado", value: "Sin amueblar" });
   if (s.mascotas === "permitidas") rows.push({ label: "Mascotas", value: "Permitidas" });
   if (s.mascotas === "no_permitidas") rows.push({ label: "Mascotas", value: "No permitidas" });
-  const svc = formatRentasServiciosIncluidosOutput(s);
+  const svc = formatRentasServiciosIncluidosOutputMultiline(s);
   if (svc) rows.push({ label: "Servicios incluidos", value: svc });
   const req = trim(s.requisitos);
   if (req) rows.push({ label: "Requisitos", value: req });
   const zona = trim(s.zonaVecindario);
   if (zona) rows.push({ label: "Zona o vecindario", value: zona });
-  const note = trim(s.negocioBio);
-  if (note) rows.push({ label: "Mensaje del contacto", value: note });
   return rows;
+}
+
+function dedupeQuickFactsByLabel(items: BienesRaicesPreviewQuickFactVm[]): BienesRaicesPreviewQuickFactVm[] {
+  const seen = new Set<string>();
+  const out: BienesRaicesPreviewQuickFactVm[] = [];
+  for (const x of items) {
+    if (seen.has(x.label)) continue;
+    seen.add(x.label);
+    out.push(x);
+  }
+  return out;
+}
+
+function normalizeRentasNegocioHighlights(rows: BienesRaicesPreviewFact[]): BienesRaicesPreviewFact[] {
+  const out: BienesRaicesPreviewFact[] = [];
+  for (const r of rows) {
+    const v = trim(r.value);
+    if (!v || /Agrega características en el formulario/i.test(v)) continue;
+    if (r.label === "Destacado") {
+      out.push({ label: v, value: "Sí" });
+    } else if (r.label === "Personalizado") {
+      out.push({ label: v, value: "Sí" });
+    }
+  }
+  return out;
 }
 
 export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): BienesRaicesNegocioPreviewVm {
@@ -85,9 +130,13 @@ export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): Bie
   if (d && priceDisplay !== "—") {
     priceDisplay = `${priceDisplay} / mes`;
   }
+
+  const primaryPhoneRaw = trim(s.negocioTelDirecto) || trim(s.negocioTelOficina);
   const smsHref = smsHrefFromState(s.negocioMensajesTexto);
-  const telHref = telHrefFromPhoneDisplay(trim(s.negocioTelDirecto) || trim(s.negocioTelOficina));
-  const waHref = waHrefFromPhoneDisplay(trim(s.negocioWhatsapp) || trim(s.negocioTelDirecto) || trim(s.negocioTelOficina));
+  const telHref = telHrefFromPhoneDisplay(primaryPhoneRaw);
+  const waRaw = trim(s.negocioWhatsapp) || primaryPhoneRaw;
+  const waHref = waHrefFromPhoneDisplay(waRaw);
+
   const exact = s.mostrarDireccionExacta !== false;
   const cross = trim(s.direccionCruceCercano);
   const line1 = exact ? buildRentasStreetLine(s) : cross;
@@ -96,14 +145,40 @@ export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): Bie
   const mapsUrl = rentasGoogleMapsUrlFromQuery(buildRentasGoogleMapsSearchQuery(s));
   const zona = trim(s.zonaVecindario);
   const hasMeaningfulAddress = Boolean(line1 || trim(s.ciudad) || trim(s.direccionCodigoPostal) || mapsUrl);
+
+  const propertyDetailsRows: BienesRaicesPreviewFact[] =
+    s.categoriaPropiedad === "residencial"
+      ? [...extra, ...buildRentasResidencialPropertyRows(s.residencial)]
+      : extra.length
+        ? [...extra, ...vm.propertyDetailsRows]
+        : vm.propertyDetailsRows;
+
+  const contractQuickStrip: BienesRaicesPreviewQuickFactVm[] = [];
+  const rent = formatUsdMonthly(s.rentaMensual);
+  if (rent) contractQuickStrip.push({ label: "Renta mensual", value: rent, icon: "calendar" });
+  const dep = formatRentasDepositUsdPreview(s.deposito);
+  if (dep) contractQuickStrip.push({ label: "Depósito", value: dep, icon: "pin" });
+  const pl = plazoDisplay(s);
+  if (pl) contractQuickStrip.push({ label: "Plazo", value: pl, icon: "calendar" });
+  const disp = formatRentasDisponibilidadDisplay(s.disponibilidad);
+  if (disp) contractQuickStrip.push({ label: "Disponibilidad", value: disp, icon: "calendar" });
+
+  const quickFacts = dedupeQuickFactsByLabel([...contractQuickStrip, ...vm.quickFacts]);
+
+  const highlightsRows = normalizeRentasNegocioHighlights(vm.highlightsRows ?? []);
+
   return {
     ...vm,
     priceDisplay,
     addressLine: assembled || vm.addressLine,
-    propertyDetailsRows: extra.length ? [...extra, ...vm.propertyDetailsRows] : vm.propertyDetailsRows,
+    quickFacts,
+    propertyDetailsRows,
+    highlightsRows,
+    hasHighlights: highlightsRows.length > 0,
+    highlightsSectionTitle: "Destacados",
     identity: {
       ...vm.identity,
-      contactPhone: trim(s.negocioTelDirecto) || trim(s.negocioTelOficina),
+      contactPhone: phoneDisplayFormatted(primaryPhoneRaw),
       contactEmail: trim(s.negocioEmail),
       bioLine: trim(s.negocioBio) || vm.identity.bioLine,
     },
@@ -114,7 +189,7 @@ export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): Bie
       whatsappHref: waHref ?? vm.contact.whatsappHref,
       showWhatsapp: Boolean(waHref ?? vm.contact.whatsappHref),
       showSms: Boolean(smsHref),
-      smsHref,
+      smsHref: smsHref ?? vm.contact.smsHref,
     },
     location: {
       ...vm.location,

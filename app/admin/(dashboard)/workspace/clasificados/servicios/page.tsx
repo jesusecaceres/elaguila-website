@@ -230,7 +230,9 @@ export default async function AdminServiciosWorkspacePage(props: {
                     <th className="p-3">Verif. Leonix</th>
                     <th className="p-3">Interés verif.</th>
                     <th className="p-3">Actualizado</th>
-                    <th className="p-3"> </th>
+                    <th className="p-3" title="Vista pública. Estado y notas: moderación staff en esta fila (sin editor de perfil completo).">
+                      &nbsp;
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -307,8 +309,9 @@ export default async function AdminServiciosWorkspacePage(props: {
                           target="_blank"
                           rel="noreferrer"
                           className="text-xs font-bold text-[#6B5B2E] underline"
+                          title="Sitio público. Cambios de copy/imágenes: flujo del anunciante."
                         >
-                          Vista pública ↗
+                          Ver público ↗
                         </Link>
                       </td>
                     </tr>
@@ -338,7 +341,9 @@ export default async function AdminServiciosWorkspacePage(props: {
                   <th className="p-3">Negocio</th>
                   <th className="p-3">Ciudad</th>
                   <th className="p-3">Slug</th>
-                  <th className="p-3"> </th>
+                  <th className="p-3" title="Solo vista pública de prueba">
+                    &nbsp;
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -353,8 +358,9 @@ export default async function AdminServiciosWorkspacePage(props: {
                         target="_blank"
                         rel="noreferrer"
                         className="text-xs font-bold text-[#6B5B2E] underline"
+                        title="Vista pública (dev)"
                       >
-                        Vista pública ↗
+                        Ver público ↗
                       </Link>
                     </td>
                   </tr>

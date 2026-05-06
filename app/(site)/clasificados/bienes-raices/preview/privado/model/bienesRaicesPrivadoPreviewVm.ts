@@ -60,6 +60,8 @@ export type BienesRaicesPrivadoPreviewVm = {
   propertyDetailsRows: BienesRaicesPreviewFact[];
   highlightsRows: BienesRaicesPreviewFact[];
   hasHighlights: boolean;
+  /** When set (e.g. Rentas), overrides the highlights card title in preview. */
+  highlightsSectionTitle?: string;
   description: string;
   hasDescription: boolean;
   contactRailTitle: string;

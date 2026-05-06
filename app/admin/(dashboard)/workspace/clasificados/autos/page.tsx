@@ -142,7 +142,12 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                 <th className="px-3 py-2">Actualizado</th>
                 <th className="px-3 py-2">Owner</th>
                 <th className="px-3 py-2">Img</th>
-                <th className="px-3 py-2">Acciones</th>
+                <th
+                  className="px-3 py-2"
+                  title="Cola operativa: enlace público cuando aplica. Sin edición de contenido staff aquí; gestión del anunciante en cuenta."
+                >
+                  Acciones
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -191,7 +196,13 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                     <td className="px-3 py-2">{dash.thumbUrl ? "sí" : "no"}</td>
                     <td className="px-3 py-2">
                       {liveHref ? (
-                        <Link href={liveHref} className="font-bold text-[#6B5B2E] underline" target="_blank" rel="noreferrer">
+                        <Link
+                          href={liveHref}
+                          className="font-bold text-[#6B5B2E] underline"
+                          target="_blank"
+                          rel="noreferrer"
+                          title="Listado público Autos. Moderación/edición de pago: flujo del anunciante."
+                        >
                           Ver público
                         </Link>
                       ) : (

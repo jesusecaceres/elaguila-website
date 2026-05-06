@@ -20,7 +20,7 @@ const MEDIA = "min-w-0 bg-[#F5F0E8] p-3 md:p-5 md:pr-3";
 const MEDIA_FRAME =
   "relative aspect-[16/9] w-full overflow-hidden rounded-[22px] bg-[#EFE7DA] md:aspect-[16/10]";
 
-const CONTENT = "flex min-w-0 flex-col gap-3 px-4 pb-5 pt-4 md:gap-4 md:px-7 md:pb-7 md:pt-6";
+const CONTENT = "flex min-w-0 flex-col gap-2.5 px-4 pb-4 pt-3 md:gap-4 md:px-7 md:pb-7 md:pt-6";
 
 const TITLE =
   "text-[22px] font-bold leading-[1.12] tracking-tight text-[#1F1A17] sm:text-[24px] md:text-[32px] lg:text-[34px]";
@@ -37,7 +37,7 @@ const STATUS_CLOSED = "bg-rose-50 text-rose-900 border-rose-200/80";
 const ADDRESS_LINK =
   "group inline-flex min-h-[44px] w-full items-center gap-2 rounded-2xl border border-[#E1CFB3] bg-white/80 px-4 py-3 text-sm font-semibold text-[#2B241F] shadow-sm transition hover:bg-white hover:border-[#BEA98E] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3B66AD]/40";
 
-const SUMMARY = "text-sm leading-snug text-[#5A5148] md:leading-relaxed";
+const SUMMARY = "text-xs leading-snug text-[#5A5148] md:text-sm md:leading-relaxed";
 
 const FEATURE_ROW = "flex flex-wrap gap-2";
 const FEATURE_CHIP =
@@ -112,7 +112,7 @@ interface RestaurantePreviewCardProps {
  * Follows LEONIX_PREVIEW_CARD_CONTRACT.md with engagement metrics integration
  */
 const RESULT_PRIMARY_CTA =
-  "flex min-h-[48px] w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#D4A574] to-[#b45309] text-sm font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(180,83,9,0.45)] transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2";
+  "flex min-h-[44px] w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#D4A574] to-[#b45309] text-xs font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(180,83,9,0.45)] transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 md:min-h-[48px] md:text-sm";
 
 export function RestaurantePreviewCard({ 
   data, 
@@ -181,7 +181,7 @@ export function RestaurantePreviewCard({
 
   const summary = (data.summaryShort || data.aboutBody || "").trim();
 
-  const ctas = useMemo(() => {
+  const ctasDesktop = useMemo(() => {
     const want = new Set(["call", "website", "directions", "whatsapp"]);
     const filtered = (data.primaryCtas ?? []).filter((c) => want.has(c.key) && c.href?.trim() && c.enabled !== false);
     const byKey = new Map<string, (typeof filtered)[number]>();
@@ -189,6 +189,18 @@ export function RestaurantePreviewCard({
       if (!byKey.has(c.key)) byKey.set(c.key, c);
     }
     const order = ["call", "website", "directions", "whatsapp"] as const;
+    return order.map((k) => byKey.get(k)).filter(Boolean) as (typeof filtered)[number][];
+  }, [data.primaryCtas]);
+
+  /** Mobile results: Llamar + Direcciones only (no web / WhatsApp). */
+  const ctasMobile = useMemo(() => {
+    const want = new Set(["call", "directions"]);
+    const filtered = (data.primaryCtas ?? []).filter((c) => want.has(c.key) && c.href?.trim() && c.enabled !== false);
+    const byKey = new Map<string, (typeof filtered)[number]>();
+    for (const c of filtered) {
+      if (!byKey.has(c.key)) byKey.set(c.key, c);
+    }
+    const order = ["call", "directions"] as const;
     return order.map((k) => byKey.get(k)).filter(Boolean) as (typeof filtered)[number][];
   }, [data.primaryCtas]);
 
@@ -216,11 +228,38 @@ export function RestaurantePreviewCard({
                 </div>
               </div>
             )}
+            <div
+              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent md:hidden"
+              aria-hidden
+            />
+            <div className="absolute inset-x-0 bottom-0 z-[1] flex items-end justify-between gap-2 px-2 pb-2 pt-8 md:hidden">
+              {quick.neighborhood ? (
+                <div className="min-w-0 max-w-[58%] rounded-md border border-white/25 bg-black/45 px-2 py-1 text-[10px] font-semibold leading-tight text-white shadow-sm backdrop-blur-sm">
+                  <span className="block truncate">{quick.neighborhood}</span>
+                </div>
+              ) : (
+                <span className="min-w-0 max-w-[58%]" aria-hidden />
+              )}
+              <span
+                className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-semibold shadow-sm backdrop-blur-sm ${
+                  data.hoursPreview.status === "open"
+                    ? "border-emerald-300/40 bg-emerald-950/75 text-emerald-50"
+                    : data.hoursPreview.status === "closed"
+                      ? "border-rose-300/40 bg-rose-950/80 text-rose-50"
+                      : "border-white/30 bg-black/55 text-white"
+                }`}
+              >
+                <span className="line-clamp-2 text-left leading-snug">
+                  {data.hoursPreview.statusLine?.trim() ||
+                    (lang === "en" ? "Hours" : "Horario")}
+                </span>
+              </span>
+            </div>
           </div>
         </div>
 
         <div className={CONTENT}>
-          <div className="min-w-0 space-y-2 md:space-y-3">
+          <div className="min-w-0 space-y-1.5 md:space-y-3">
             {data.trustRating ? (
               <div className="flex items-center gap-2">
                 <StarRow rating={data.trustRating.average} />
@@ -236,16 +275,14 @@ export function RestaurantePreviewCard({
                   className={`${CHIP_ROW} md:hidden`}
                   aria-label={lang === "en" ? "Cuisine and type" : "Cocina y tipo"}
                 >
-                  {identityChips.slice(0, 4).map((chip) => (
-                    <span key={chip} className={CHIP}>
+                  {identityChips.slice(0, 3).map((chip) => (
+                    <span
+                      key={chip}
+                      className="inline-flex items-center rounded-full border border-[#E1CFB3] bg-white/70 px-2 py-0.5 text-[10px] font-semibold text-[#2B241F] shadow-sm"
+                    >
                       {chip}
                     </span>
                   ))}
-                  {identityChips.length > 4 ? (
-                    <span className={CHIP} aria-label={lang === "en" ? "More tags" : "Más etiquetas"}>
-                      +{identityChips.length - 4}
-                    </span>
-                  ) : null}
                 </div>
                 <div
                   className={`${CHIP_ROW} hidden md:flex`}
@@ -260,7 +297,7 @@ export function RestaurantePreviewCard({
               </>
             ) : null}
 
-            <div className={META_ROW}>
+            <div className={`${META_ROW} hidden md:flex`}>
               <span
                 className={[
                   META_PILL,
@@ -278,17 +315,29 @@ export function RestaurantePreviewCard({
             </div>
 
             {addressQuery ? (
-              <a
-                href={addressHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={ADDRESS_LINK}
-                aria-label={lang === "en" ? "Open address in maps" : "Abrir dirección en mapas"}
-              >
-                <FiMapPin className="h-4 w-4 shrink-0 text-[#8B7E70]" aria-hidden />
-                <span className="min-w-0 truncate">{addressQuery}</span>
-                <span className="ml-auto text-xs font-bold text-[#8B7E70] group-hover:text-[#5A5148]">›</span>
-              </a>
+              <>
+                <a
+                  href={addressHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex w-full min-w-0 items-center gap-1.5 py-0.5 text-[12px] font-semibold leading-snug text-[#3D3630] md:hidden"
+                  aria-label={lang === "en" ? "Open address in maps" : "Abrir dirección en mapas"}
+                >
+                  <FiMapPin className="h-3.5 w-3.5 shrink-0 text-[#8B7E70]" aria-hidden />
+                  <span className="min-w-0 truncate">{addressQuery}</span>
+                </a>
+                <a
+                  href={addressHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${ADDRESS_LINK} hidden md:inline-flex`}
+                  aria-label={lang === "en" ? "Open address in maps" : "Abrir dirección en mapas"}
+                >
+                  <FiMapPin className="h-4 w-4 shrink-0 text-[#8B7E70]" aria-hidden />
+                  <span className="min-w-0 truncate">{addressQuery}</span>
+                  <span className="ml-auto text-xs font-bold text-[#8B7E70] group-hover:text-[#5A5148]">›</span>
+                </a>
+              </>
             ) : null}
 
             {summary ? (
@@ -303,9 +352,12 @@ export function RestaurantePreviewCard({
             {features.length ? (
               <>
                 <div className="relative md:hidden" aria-label={lang === "en" ? "Services and features" : "Servicios y características"}>
-                  <div className="-mx-1 flex gap-2 overflow-x-auto overflow-y-hidden px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]">
+                  <div className="-mx-1 flex gap-1.5 overflow-x-auto overflow-y-hidden px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]">
                     {features.map((f) => (
-                      <span key={f} className={`${FEATURE_CHIP} shrink-0 whitespace-nowrap`}>
+                      <span
+                        key={f}
+                        className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-[#E1CFB3] bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-semibold text-[#2B241F]"
+                      >
                         {f}
                       </span>
                     ))}
@@ -333,14 +385,14 @@ export function RestaurantePreviewCard({
           </div>
 
           {publicDetailHref?.trim() ? (
-            <div className="flex min-w-0 flex-col gap-2">
+            <div className="flex min-w-0 flex-col gap-1.5 md:gap-2">
               <Link href={publicDetailHref} className={RESULT_PRIMARY_CTA}>
                 {publicDetailLabel?.trim() || (lang === "en" ? "View full listing" : "Ver anuncio completo")}
               </Link>
               {discoveryRefineHref?.trim() && discoveryRefineLabel?.trim() ? (
                 <Link
                   href={discoveryRefineHref}
-                  className="text-center text-[11px] font-semibold text-[#8B5E34] underline-offset-4 hover:underline sm:text-xs"
+                  className="text-center text-[10px] font-semibold text-[#8B5E34] underline-offset-4 hover:underline md:text-xs"
                 >
                   {discoveryRefineLabel}
                 </Link>
@@ -348,9 +400,37 @@ export function RestaurantePreviewCard({
             </div>
           ) : null}
 
-          {ctas.length ? (
-            <div className={CTA_ROW} aria-label={lang === "en" ? "Actions" : "Acciones"}>
-              {ctas.map((cta) => {
+          {ctasMobile.length ? (
+            <div className="grid grid-cols-2 gap-2 pt-1 md:hidden" aria-label={lang === "en" ? "Actions" : "Acciones"}>
+              {ctasMobile.map((cta) => {
+                const n = ctasMobile.length;
+                const alone = n === 1;
+                const primary = cta.key === "directions";
+                const Icon = cta.key === "call" ? FiPhone : FiMapPin;
+                return (
+                  <div key={cta.key} className={alone ? "col-span-2 flex justify-center" : undefined}>
+                    <a
+                      href={cta.href}
+                      className={[
+                        CTA_BTN_BASE,
+                        primary ? CTA_PRIMARY : CTA_SECONDARY,
+                        "min-h-[40px] px-3 py-2 text-xs",
+                        alone ? "w-full max-w-[260px]" : "w-full",
+                      ].join(" ")}
+                      {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    >
+                      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      <span className="min-w-0 truncate">{cta.label}</span>
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {ctasDesktop.length ? (
+            <div className={`${CTA_ROW} hidden md:flex`} aria-label={lang === "en" ? "Actions" : "Acciones"}>
+              {ctasDesktop.map((cta) => {
                 const primary = cta.key === "directions";
                 const Icon =
                   cta.key === "call" ? FiPhone : cta.key === "website" ? FiGlobe : cta.key === "whatsapp" ? FaWhatsapp : FiMapPin;
@@ -370,7 +450,7 @@ export function RestaurantePreviewCard({
           ) : null}
 
           {showEngagementMetrics && listingId ? (
-            <div className={ENGAGEMENT_SECTION}>
+            <div className={`${ENGAGEMENT_SECTION} hidden md:block`}>
               <div className="flex items-center gap-3">
                 <LeonixLikeButton
                   listingId={listingId}

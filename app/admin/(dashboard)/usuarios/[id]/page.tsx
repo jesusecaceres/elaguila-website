@@ -9,6 +9,7 @@ import AdminUserActions from "../AdminUserActions";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { adminBtnDark, adminBtnSecondary, adminCardBase } from "../../../_components/adminTheme";
 import { fetchAdminUserAdsForUser } from "../../../_lib/adminUserAds";
+import { adminEditSupportStatusLabelEs, resolveAdminAdActions } from "../../../_lib/adminAdEditSupportMap";
 
 type ProfileRow = {
   id: string;
@@ -527,6 +528,11 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
           Todas las fuentes soportadas para esta cuenta (mismo <span className="font-mono">owner</span> en cada tabla). IDs de trazabilidad
           para soporte y moderación.
         </p>
+        <p className="mt-2 text-[10px] leading-snug text-[#7A7164]">
+          <span className="font-semibold text-[#5C5346]">Edición en nombre del cliente:</span> Leonix no suplanta sesión. «Gestionar» abre la
+          cola staff (misma fila, sin duplicar). «Editar como admin» solo aparecería si existiera flujo TRUE_EDIT documentado; el panel del
+          anunciante requiere su inicio de sesión.
+        </p>
         <p className="mt-2 font-mono text-[10px] text-[#9A9084] break-all">Owner user id: {row.id}</p>
         {adsBundle.totalAds === 0 ? (
           <p className="mt-4 text-sm text-[#5C5346]">Sin anuncios en fuentes conectadas para este usuario.</p>
@@ -549,50 +555,64 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                 <p className="mt-1 text-sm text-[#5C5346]/90">Ninguno en esta fuente.</p>
               ) : (
                 <ul className="mt-2 space-y-3">
-                  {g.ads.map((ad) => (
-                    <li key={`${ad.source}-${ad.internalId}`} className="rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/90 p-3 text-sm">
-                      <p className="font-semibold text-[#1E1810]">{ad.title}</p>
-                      <p className="mt-1 font-mono text-sm font-bold text-[#6B5B2E]">{ad.displayId}</p>
-                      {ad.publishedId && ad.publishedId !== ad.displayId ? (
-                        <p className="text-[11px] text-[#5C5346]">
-                          ID público: <span className="font-mono">{ad.publishedId}</span>
+                  {g.ads.map((ad) => {
+                    const actions = resolveAdminAdActions(ad);
+                    return (
+                      <li key={`${ad.source}-${ad.internalId}`} className="rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/90 p-3 text-sm">
+                        <p className="font-semibold text-[#1E1810]">{ad.title}</p>
+                        <p className="mt-1 font-mono text-sm font-bold text-[#6B5B2E]">{ad.displayId}</p>
+                        {ad.publishedId && ad.publishedId !== ad.displayId ? (
+                          <p className="text-[11px] text-[#5C5346]">
+                            ID público: <span className="font-mono">{ad.publishedId}</span>
+                          </p>
+                        ) : null}
+                        <p className="text-[10px] text-[#9A9084] break-all">
+                          Interno: <span className="font-mono">{ad.internalId}</span>
                         </p>
-                      ) : null}
-                      <p className="text-[10px] text-[#9A9084] break-all">
-                        Interno: <span className="font-mono">{ad.internalId}</span>
-                        {ad.ownerUserId ? (
-                          <>
-                            {" "}
-                            · Owner: <span className="font-mono">{ad.ownerUserId}</span>
-                          </>
-                        ) : null}
-                      </p>
-                      <p className="mt-1 text-xs text-[#5C5346]">
-                        {(ad.status ?? "—") +
-                          (ad.city ? ` · ${ad.city}` : "") +
-                          (ad.updatedAt ? ` · Actualizado ${formatDate(ad.updatedAt)}` : ad.createdAt ? ` · ${formatDate(ad.createdAt)}` : "")}
-                      </p>
-                      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold">
-                        <Link
-                          href={ad.publicUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[#6B5B2E] underline"
-                          title="Vista pública del anuncio"
-                        >
-                          Ver público
-                        </Link>
-                        <Link href={ad.adminUrl} className="text-[#6B5B2E] underline" title="Cola o vista admin para este anuncio">
-                          Admin / cola
-                        </Link>
-                        {ad.editUrl ? (
-                          <Link href={ad.editUrl} className="text-[#6B5B2E] underline" title="Flujo de edición del anunciante cuando existe">
-                            Editar (cuenta)
+                        <p className="mt-1 text-[10px] text-[#7A7164]">
+                          <span className="font-semibold text-[#5C5346]">Soporte edición:</span> {adminEditSupportStatusLabelEs(actions.editSupportStatus)} —{" "}
+                          {actions.editSupportNote}
+                        </p>
+                        <p className="mt-1 text-xs text-[#5C5346]">
+                          {(ad.status ?? "—") +
+                            (ad.city ? ` · ${ad.city}` : "") +
+                            (ad.updatedAt ? ` · Actualizado ${formatDate(ad.updatedAt)}` : ad.createdAt ? ` · ${formatDate(ad.createdAt)}` : "")}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold">
+                          <Link
+                            href={actions.publicUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#6B5B2E] underline"
+                            title="Vista pública del anuncio"
+                          >
+                            Ver público
                           </Link>
-                        ) : null}
-                      </div>
-                    </li>
-                  ))}
+                          <Link
+                            href={actions.adminManageUrl}
+                            className="text-[#6B5B2E] underline"
+                            title="Cola Leonix: moderación y estado en la misma fila (sin suplantar al anunciante)"
+                          >
+                            Gestionar (admin)
+                          </Link>
+                          {actions.adminEditUrl ? (
+                            <Link href={actions.adminEditUrl} className="text-[#6B5B2E] underline" title="Edición staff con guardas de owner y Leonix Ad ID">
+                              Editar como admin
+                            </Link>
+                          ) : null}
+                          {actions.sellerSelfServiceUrl ? (
+                            <Link
+                              href={actions.sellerSelfServiceUrl}
+                              className="text-[#9A9084] underline"
+                              title="Requiere inicio de sesión del propietario del anuncio; no es edición Leonix en su nombre"
+                            >
+                              Panel del anunciante
+                            </Link>
+                          ) : null}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>

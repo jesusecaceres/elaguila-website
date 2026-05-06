@@ -657,7 +657,10 @@ export function RentasNegocioForm() {
               </AiField>
             </div>
             <div className="sm:col-span-2">
-              <AiField label="Bio corta (opcional)">
+              <AiField
+                label="Mensaje para interesados (opcional)"
+                hint="Texto breve que verán antes de escribirte o llamarte."
+              >
                 <textarea
                   className={textareaFieldClass}
                   rows={3}

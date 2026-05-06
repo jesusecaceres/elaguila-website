@@ -216,7 +216,9 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
   lang: "es" | "en"
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
   const vm = mapRentasPrivadoStateToPreviewVm(state);
-  const human = buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm);
+  let human = buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm);
+  const note = trim(state.seller.notaContacto);
+  if (note) human = [...human, { label: "Mensaje del contacto", value: note }];
   const withMachine = mergeRentasPrivadoMachinePairs(state, human);
   const pairs = mergeLeonixListingContractDetailPairs(withMachine, {
     branch: "rentas_privado",
@@ -297,7 +299,9 @@ export async function publishLeonixListingFromRentasNegocioDraft(
   lang: "es" | "en"
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
   const vm = mapRentasNegocioStateToPreviewVm(state);
-  const human = buildDetailPairsFromBienesRaicesNegocioPreviewVm(vm);
+  let human = buildDetailPairsFromBienesRaicesNegocioPreviewVm(vm);
+  const noteN = trim(state.negocioBio);
+  if (noteN) human = [...human, { label: "Mensaje del contacto", value: noteN }];
   const withMachine = mergeRentasNegocioMachinePairs(state, human);
   const br = rentasNegocioToBienesRaicesNegocioState(state);
   const pairs = mergeLeonixListingContractDetailPairs(withMachine, {

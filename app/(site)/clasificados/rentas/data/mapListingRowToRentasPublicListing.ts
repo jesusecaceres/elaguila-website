@@ -140,6 +140,8 @@ function bathsFromPairs(dp: unknown): string {
 
 function sqftFromPairs(dp: unknown): string {
   return (
+    pairValue(dp, "interior (ft²)") ??
+    pairValue(dp, "interior (ft2)") ??
     pairValue(dp, "tamaño interior") ??
     pairValue(dp, "interior") ??
     pairValue(dp, "superficie") ??
@@ -261,6 +263,8 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const contactEmail = emailRaw.includes("@") ? emailRaw : undefined;
   const smsRaw = (rx.contactSmsDigits ?? "").replace(/\D/g, "");
   const contactSmsDigits = smsRaw.length >= 10 ? smsRaw.slice(0, 15) : undefined;
+  const waRaw = (rx.contactWhatsappDigits ?? "").replace(/\D/g, "");
+  const contactWhatsappDigits = waRaw.length >= 10 ? waRaw.slice(0, 15) : undefined;
   const contactNote =
     pairValue(row.detail_pairs, "Mensaje del contacto") ??
     pairValue(row.detail_pairs, "Nota para interesados") ??
@@ -300,7 +304,11 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const sqftStr = sqftFromPairs(row.detail_pairs);
   const fullBaths = pairValue(row.detail_pairs, "Baños completos") ?? undefined;
   const halfBaths = pairValue(row.detail_pairs, "Medios baños") ?? undefined;
-  const lotSqft = pairValue(row.detail_pairs, "Tamaño del lote") ?? undefined;
+  const lotSqft =
+    pairValue(row.detail_pairs, "Lote (ft²)") ??
+    pairValue(row.detail_pairs, "Lote (ft2)") ??
+    pairValue(row.detail_pairs, "Tamaño del lote") ??
+    undefined;
   const yearBuilt = pairValue(row.detail_pairs, "Año de construcción") ?? undefined;
   const condition = pairValue(row.detail_pairs, "Condición") ?? undefined;
   const parking = pairValue(row.detail_pairs, "Estacionamiento") ?? undefined;
@@ -324,6 +332,7 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     contactPhone,
     contactEmail,
     contactSmsDigits,
+    contactWhatsappDigits,
     contactNote,
     addressLine,
     city,

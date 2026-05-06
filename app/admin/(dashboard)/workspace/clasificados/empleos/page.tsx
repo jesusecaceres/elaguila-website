@@ -176,12 +176,20 @@ export default function AdminEmpleosListingsPage() {
                   </div>
                 </td>
                 <td className="px-4 py-3 text-xs font-semibold">
-                  <Link href={appendLangToPath(`/clasificados/empleos/${r.slug}`, lang)} className="text-[#6B5B2E] underline">
-                    Detalle
+                  <Link
+                    href={appendLangToPath(`/clasificados/empleos/${r.slug}`, lang)}
+                    className="text-[#6B5B2E] underline"
+                    title="Vista pública del puesto"
+                  >
+                    Ver público
                   </Link>
                   <br />
-                  <Link href={`/dashboard/empleos/${r.id}?lang=${lang}`} className="text-[#6B5B2E] underline">
-                    Panel empleador
+                  <Link
+                    href={`/dashboard/empleos/${r.id}?lang=${lang}`}
+                    className="text-[#6B5B2E] underline"
+                    title="Panel del anunciante: API valida propietario; sesión staff no edita en su nombre"
+                  >
+                    Panel anunciante (su sesión)
                   </Link>
                 </td>
               </tr>

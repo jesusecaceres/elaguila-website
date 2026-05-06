@@ -162,7 +162,7 @@ function FactBlock({ title, rows }: { title: string; rows: Array<{ label: string
               {r.label}
             </dt>
             <dd
-              className="mt-1 break-words text-sm font-medium leading-snug [overflow-wrap:anywhere] [font-variant-numeric:tabular-nums]"
+              className="mt-1 whitespace-pre-line break-words text-sm font-medium leading-snug [overflow-wrap:anywhere] [font-variant-numeric:tabular-nums]"
               style={{ color: CHARCOAL }}
             >
               {r.value}
@@ -651,7 +651,9 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
           {hasDetailRows ? (
             <FactBlock title="Detalles de la propiedad" rows={vm.propertyDetailsRows} />
           ) : null}
-          {vm.hasHighlights ? <FactBlock title="Características destacadas" rows={vm.highlightsRows ?? []} /> : null}
+          {vm.hasHighlights ? (
+            <FactBlock title={String(vm.highlightsSectionTitle ?? "").trim() || "Características destacadas"} rows={vm.highlightsRows ?? []} />
+          ) : null}
           <aside
             className={`flex min-h-full flex-col lg:sticky lg:top-6 lg:min-h-0 lg:self-start ${
               !hasDetailRows && !vm.hasHighlights ? "lg:mx-auto lg:w-full lg:max-w-md" : ""
