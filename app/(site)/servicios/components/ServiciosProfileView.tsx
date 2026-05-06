@@ -15,6 +15,7 @@ import { ServiciosAbout } from "./ServiciosAbout";
 import { ServiciosHighlightsSection } from "./ServiciosHighlightsSection";
 import { ServiciosOfferedSection } from "./ServiciosServicesGrid";
 import { ServiciosGallery } from "./ServiciosGallery";
+import { ServiciosSmartTrustSummary } from "./ServiciosSmartTrustSummary";
 import { ServiciosPromocionesCard } from "./ServiciosPromocionesCard";
 import { ServiciosTrustSection } from "./ServiciosTrustSection";
 import { ServiciosReviews } from "./ServiciosReviews";
@@ -93,6 +94,7 @@ export function ServiciosProfileView({
             {analyticsListingSlug && showPublicConversionForms ? (
               <ServiciosLeadInquiryForm listingSlug={analyticsListingSlug} lang={lang} />
             ) : null}
+            <ServiciosSmartTrustSummary profile={profile} lang={lang} />
             <ServiciosPromocionesCard profile={profile} lang={lang} />
             {hasAboutSectionResolved(profile) ? <ServiciosAbout profile={profile} lang={lang} /> : null}
             <ServiciosOfferedSection services={profile.services} lang={lang} profileForQuote={profile} />

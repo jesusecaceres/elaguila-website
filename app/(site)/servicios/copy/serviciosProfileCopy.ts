@@ -31,6 +31,19 @@ export function getServiciosCredentialsCardCopy(lang: ServiciosLang) {
   };
 }
 
+export function getServiciosSmartTrustSummaryCopy(lang: ServiciosLang) {
+  if (lang === "en") {
+    return {
+      title: "Quick summary",
+      subtitle: "Why consider this business",
+    };
+  }
+  return {
+    title: "Resumen rápido",
+    subtitle: "Por qué considerar este negocio",
+  };
+}
+
 export function getServiciosPromocionesSectionCopy(lang: ServiciosLang) {
   if (lang === "en") {
     return {
