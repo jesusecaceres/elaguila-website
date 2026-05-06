@@ -39,6 +39,11 @@ export default function AdminEmpleosListingsPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
+  useEffect(() => {
+    const q = sp?.get("q")?.trim();
+    if (q) setNeedle(q);
+  }, [sp]);
+
   const load = useCallback(async () => {
     setErr(null);
     const res = await fetch("/api/admin/empleos/listings", { credentials: "same-origin" });

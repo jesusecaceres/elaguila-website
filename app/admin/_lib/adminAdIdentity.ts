@@ -3,7 +3,10 @@
  * Pure helpers — no DB writes. URLs follow existing site/admin routes.
  */
 
-export type AdminAdSource = "generic" | "restaurantes" | "servicios";
+import type { AutosClassifiedsListingRow } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
+import { autosClassifiedsRowToDashboardRow } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
+
+export type AdminAdSource = "generic" | "restaurantes" | "servicios" | "empleos" | "autos";
 
 /** Optional owner hints (e.g. from `profiles`) — never required for normalization. */
 export type AdminAdOwnerHints = {
@@ -43,6 +46,7 @@ export type AdminNormalizedAd = {
 const RESTAURANT_PUBLIC_PATH = "/clasificados/restaurantes";
 const SERVICIOS_PUBLIC_PATH = "/clasificados/servicios";
 const GENERIC_ANUNCIO_PATH = "/clasificados/anuncio";
+const EMPLEOS_PUBLIC_PATH = "/clasificados/empleos";
 
 /** Known DB column names that may carry a human-facing public id (additive; absent on older DBs). */
 const PUBLISHED_ID_KEYS = ["leonix_ad_id", "published_id", "public_id", "public_listing_id", "listing_public_id"] as const;
@@ -294,6 +298,122 @@ export function normalizeServiciosPublicListingForAdmin(
     sourceMeta: {
       table: "servicios_public_listings",
       hasPublishedIdColumn: publishedFromRow != null,
+    },
+  };
+}
+
+export type EmpleosPublicListingAdminInput = {
+  id: string;
+  slug: string;
+  title: string;
+  company_name: string;
+  lifecycle_status?: string | null;
+  lane?: string | null;
+  owner_user_id?: string | null;
+  city?: string | null;
+  published_at?: string | null;
+  updated_at?: string | null;
+  lang?: string | null;
+} & Record<string, unknown>;
+
+function empleosPublicPathWithLang(slug: string, lang: string | null | undefined): string {
+  const l = (lang ?? "es").trim().toLowerCase() === "en" ? "en" : "es";
+  const base = `${EMPLEOS_PUBLIC_PATH}/${encodeURIComponent(slug)}`;
+  return `${base}?lang=${l}`;
+}
+
+/**
+ * Normalize an `empleos_public_listings` row for admin (workspace + public job detail).
+ */
+export function normalizeEmpleosPublicListingForAdmin(
+  row: EmpleosPublicListingAdminInput,
+  hints?: AdminAdOwnerHints | null,
+): AdminNormalizedAd | null {
+  const internalId = nonEmptyString(row.id);
+  const slug = nonEmptyString(row.slug);
+  if (!internalId || !slug) return null;
+
+  const categorySlug = "empleos";
+  const publishedFromRow = readPublishedIdFromRow(row as Record<string, unknown>);
+  const { publishedId, fallbackDisplayId, displayId } = finalizeDisplayIds(categorySlug, internalId, publishedFromRow);
+
+  const owner = mergeOwner(nonEmptyString(row.owner_user_id), hints);
+  const titleBase = nonEmptyString(row.title) ?? "(sin título)";
+  const company = nonEmptyString(row.company_name);
+  const title = company ? `${titleBase} · ${company}` : titleBase;
+
+  const lang = nonEmptyString(row.lang);
+  const publicUrl = empleosPublicPathWithLang(slug, lang);
+  const adminUrl = `/admin/workspace/clasificados/empleos?q=${encodeURIComponent(internalId)}`;
+
+  return {
+    source: "empleos",
+    categorySlug,
+    internalId,
+    publishedId,
+    fallbackDisplayId,
+    displayId,
+    ...owner,
+    title,
+    slug,
+    status: nonEmptyString(row.lifecycle_status),
+    city: nonEmptyString(row.city),
+    createdAt: nonEmptyString(row.published_at) ?? nonEmptyString(row.updated_at),
+    updatedAt: nonEmptyString(row.updated_at),
+    publicUrl,
+    adminUrl,
+    editUrl: `/dashboard/empleos/${encodeURIComponent(internalId)}?lang=${(lang ?? "es").trim().toLowerCase() === "en" ? "en" : "es"}`,
+    sourceMeta: {
+      table: "empleos_public_listings",
+      hasPublishedIdColumn: publishedFromRow != null,
+      lane: nonEmptyString(row.lane),
+    },
+  };
+}
+
+/**
+ * Normalize an `autos_classifieds_listings` row for admin (paid Autos vertical).
+ */
+export function normalizeAutosClassifiedsListingForAdmin(
+  row: AutosClassifiedsListingRow,
+  hints?: AdminAdOwnerHints | null,
+): AdminNormalizedAd | null {
+  const internalId = nonEmptyString(row.id);
+  if (!internalId) return null;
+
+  const categorySlug = "autos";
+  const publishedFromRow = readPublishedIdFromRow(row as unknown as Record<string, unknown>);
+  const { publishedId, fallbackDisplayId, displayId } = finalizeDisplayIds(categorySlug, internalId, publishedFromRow);
+
+  const owner = mergeOwner(nonEmptyString(row.owner_user_id), hints);
+  const dash = autosClassifiedsRowToDashboardRow(row);
+  const title = (dash.title ?? "").trim() ? dash.title.trim() : "(sin título)";
+
+  const lang = row.lang === "en" ? "en" : "es";
+  const publicUrl = `/clasificados/autos/vehiculo/${encodeURIComponent(internalId)}?lang=${lang}`;
+  const adminUrl = `/admin/workspace/clasificados/autos?q=${encodeURIComponent(internalId)}`;
+
+  return {
+    source: "autos",
+    categorySlug,
+    internalId,
+    publishedId,
+    fallbackDisplayId,
+    displayId,
+    ...owner,
+    title,
+    slug: null,
+    status: nonEmptyString(row.status),
+    city: (dash.city ?? "").trim() ? dash.city.trim() : null,
+    createdAt: nonEmptyString(row.published_at) ?? nonEmptyString(row.created_at),
+    updatedAt: nonEmptyString(row.updated_at),
+    publicUrl,
+    adminUrl,
+    editUrl: null,
+    sourceMeta: {
+      table: "autos_classifieds_listings",
+      hasPublishedIdColumn: publishedFromRow != null,
+      lane: nonEmptyString(row.lane),
     },
   };
 }

@@ -14,6 +14,10 @@ import { adminCardBase, adminCtaChipSecondary } from "../../../../_components/ad
 
 export const dynamic = "force-dynamic";
 
+type AutosAdminPageProps = {
+  searchParams?: Promise<{ q?: string }>;
+};
+
 function autosStripeAdminHint(row: AutosClassifiedsListingRow): string {
   if (row.stripe_payment_intent_id?.trim()) {
     const id = row.stripe_payment_intent_id.trim();
@@ -26,8 +30,16 @@ function autosStripeAdminHint(row: AutosClassifiedsListingRow): string {
   return "—";
 }
 
-export default async function AdminAutosClassifiedsPage() {
-  const rows = await listAllAutosClassifiedsRowsForAdmin(400);
+export default async function AdminAutosClassifiedsPage(props: AutosAdminPageProps) {
+  const sp = props.searchParams ? await props.searchParams : {};
+  const qRaw = typeof sp.q === "string" ? sp.q.trim() : "";
+  let rows = await listAllAutosClassifiedsRowsForAdmin(400);
+  if (qRaw) {
+    const ql = qRaw.toLowerCase();
+    rows = rows.filter(
+      (r) => r.id === qRaw || r.owner_user_id === qRaw || r.id.toLowerCase().startsWith(ql),
+    );
+  }
 
   return (
     <div className="mx-auto max-w-[110rem] px-4 py-8 sm:px-6">

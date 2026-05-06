@@ -8,6 +8,7 @@ import { getSupabaseAuthUsersDashboardUrl } from "@/app/admin/_lib/supabaseDashb
 import AdminUserActions from "../AdminUserActions";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { adminBtnDark, adminBtnSecondary, adminCardBase } from "../../../_components/adminTheme";
+import { fetchAdminUserAdsForUser } from "../../../_lib/adminUserAds";
 
 type ProfileRow = {
   id: string;
@@ -21,18 +22,6 @@ type ProfileRow = {
   owned_city_slug: string | null;
   newsletter_opt_in: boolean | null;
   is_disabled: boolean | null;
-};
-
-type ListingRow = {
-  id: string;
-  title: string | null;
-  price: number | string | null;
-  city: string | null;
-  zip: string | null;
-  status: string | null;
-  created_at: string | null;
-  category: string | null;
-  images?: unknown | null;
 };
 
 type ReportMini = {
@@ -50,7 +39,6 @@ type TiendaOrderMini = {
   created_at: string;
 };
 
-const LISTINGS_LIMIT = 12;
 const ALLOWED_ACCOUNT_TYPES = ["personal", "business"] as const;
 const PERSONAL_TIERS = ["gratis", "pro"] as const;
 const BUSINESS_TIERS = ["business_lite", "business_premium"] as const;
@@ -77,62 +65,6 @@ function formatDate(iso: string | null): string {
   } catch {
     return "—";
   }
-}
-
-function formatMoney(price: number | string | null): string {
-  if (price === null || price === undefined) return "—";
-  const n = typeof price === "number" ? price : Number(price);
-  if (!Number.isFinite(n)) return "—";
-  if (n === 0) return "Gratis";
-  try {
-    return new Intl.NumberFormat("es-MX", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
-  } catch {
-    return "—";
-  }
-}
-
-function getListingImage(row: ListingRow): string | null {
-  try {
-    const images = row.images;
-    if (images == null) return null;
-    if (typeof images === "string" && images.trim()) return images.trim();
-    if (!Array.isArray(images) || images.length === 0) return null;
-    const first = images[0];
-    if (typeof first === "string" && first.trim()) return first.trim();
-    if (first && typeof first === "object") {
-      const obj = first as Record<string, unknown>;
-      const url = (obj.url ?? obj.src ?? obj.path) as string | undefined;
-      if (typeof url === "string" && url.trim()) return url.trim();
-    }
-  } catch {
-    /* ignore */
-  }
-  return null;
-}
-
-function humanStatus(status: string | null): string {
-  const s = (status ?? "").trim().toLowerCase();
-  if (s === "active") return "Activo";
-  if (s === "draft") return "Borrador";
-  if (s === "sold") return "Vendido";
-  if (s === "expired") return "Expirado";
-  return s || "—";
-}
-
-function humanCategory(cat: string | null): string {
-  const c = (cat ?? "").trim();
-  if (!c) return "—";
-  const map: Record<string, string> = {
-    "en-venta": "En venta",
-    rentas: "Rentas",
-    autos: "Autos",
-    empleos: "Empleos",
-    servicios: "Servicios",
-    restaurantes: "Restaurantes",
-    travel: "Viajes",
-    viajes: "Viajes",
-  };
-  return map[c] ?? c;
 }
 
 function displayName(row: ProfileRow): string {
@@ -290,26 +222,15 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
     notFound();
   }
 
-  let listings: ListingRow[] = [];
-  let listingsError: string | null = null;
-
-  try {
-    const supabase = getAdminSupabase();
-    const { data, error } = await supabase
-      .from("listings")
-      .select("id,title,price,city,zip,status,created_at,category,images")
-      .eq("owner_id", clientId)
-      .order("created_at", { ascending: false })
-      .limit(LISTINGS_LIMIT);
-
-    if (error) {
-      listingsError = error.message;
-    } else if (data && Array.isArray(data)) {
-      listings = data as ListingRow[];
-    }
-  } catch {
-    listingsError = "No se pudieron cargar los anuncios.";
-  }
+  const ownerHints = {
+    ownerUserId: clientId,
+    ownerName: row.display_name,
+    ownerEmail: row.email,
+    ownerPhone: row.phone,
+  };
+  const adsBundle = await fetchAdminUserAdsForUser(clientId, ownerHints);
+  const ownedIds =
+    adsBundle.groups.find((g) => g.source === "generic")?.ads.map((a) => a.internalId).filter(Boolean) ?? [];
 
   let tiendaOrderCount: number | null = null;
   let tiendaOrdersPreview: TiendaOrderMini[] = [];
@@ -345,7 +266,6 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
       reportsByReporter = rRep as ReportMini[];
     }
 
-    const ownedIds = listings.map((l) => l.id).filter(Boolean);
     if (ownedIds.length > 0) {
       const { data: rOwn, error: re2 } = await supabase
         .from("listing_reports")
@@ -601,6 +521,85 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
         ) : null}
       </div>
 
+      <div className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-base font-bold text-[#1E1810]">Anuncios — centro de comando</h2>
+        <p className="mt-1 text-xs text-[#7A7164]">
+          Todas las fuentes soportadas para esta cuenta (mismo <span className="font-mono">owner</span> en cada tabla). IDs de trazabilidad
+          para soporte y moderación.
+        </p>
+        <p className="mt-2 font-mono text-[10px] text-[#9A9084] break-all">Owner user id: {row.id}</p>
+        {adsBundle.totalAds === 0 ? (
+          <p className="mt-4 text-sm text-[#5C5346]">Sin anuncios en fuentes conectadas para este usuario.</p>
+        ) : (
+          <p className="mt-2 text-sm font-semibold text-[#1E1810]">Total: {adsBundle.totalAds} anuncio(s)</p>
+        )}
+        <div className="mt-4 space-y-6">
+          {adsBundle.groups.map((g) => (
+            <div key={g.source}>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">
+                {g.labelEs} — {g.ads.length}
+                {g.loadStatus === "error" ? (
+                  <span className="ml-2 normal-case font-semibold text-red-700">(error al cargar)</span>
+                ) : null}
+              </h3>
+              {g.loadStatus === "error" && g.errorMessage ? (
+                <p className="mt-1 text-xs text-red-700">{g.errorMessage}</p>
+              ) : null}
+              {g.ads.length === 0 && g.loadStatus === "ok" ? (
+                <p className="mt-1 text-sm text-[#5C5346]/90">Ninguno en esta fuente.</p>
+              ) : (
+                <ul className="mt-2 space-y-3">
+                  {g.ads.map((ad) => (
+                    <li key={`${ad.source}-${ad.internalId}`} className="rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/90 p-3 text-sm">
+                      <p className="font-semibold text-[#1E1810]">{ad.title}</p>
+                      <p className="mt-1 font-mono text-sm font-bold text-[#6B5B2E]">{ad.displayId}</p>
+                      {ad.publishedId && ad.publishedId !== ad.displayId ? (
+                        <p className="text-[11px] text-[#5C5346]">
+                          ID público: <span className="font-mono">{ad.publishedId}</span>
+                        </p>
+                      ) : null}
+                      <p className="text-[10px] text-[#9A9084] break-all">
+                        Interno: <span className="font-mono">{ad.internalId}</span>
+                        {ad.ownerUserId ? (
+                          <>
+                            {" "}
+                            · Owner: <span className="font-mono">{ad.ownerUserId}</span>
+                          </>
+                        ) : null}
+                      </p>
+                      <p className="mt-1 text-xs text-[#5C5346]">
+                        {(ad.status ?? "—") +
+                          (ad.city ? ` · ${ad.city}` : "") +
+                          (ad.updatedAt ? ` · Actualizado ${formatDate(ad.updatedAt)}` : ad.createdAt ? ` · ${formatDate(ad.createdAt)}` : "")}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold">
+                        <Link
+                          href={ad.publicUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#6B5B2E] underline"
+                          title="Vista pública del anuncio"
+                        >
+                          Ver público
+                        </Link>
+                        <Link href={ad.adminUrl} className="text-[#6B5B2E] underline" title="Cola o vista admin para este anuncio">
+                          Admin / cola
+                        </Link>
+                        {ad.editUrl ? (
+                          <Link href={ad.editUrl} className="text-[#6B5B2E] underline" title="Flujo de edición del anunciante cuando existe">
+                            Editar (cuenta)
+                          </Link>
+                        ) : null}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
       {crossEntityError ? (
         <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950">{crossEntityError}</div>
       ) : null}
@@ -688,60 +687,6 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                 </div>
               </li>
             ))}
-          </ul>
-        )}
-      </div>
-
-      <div className={`${adminCardBase} mb-6 p-5`}>
-        <h2 className="text-base font-bold text-[#1E1810]">Clasificados del cliente</h2>
-        {listingsError ? (
-          <p className="mt-2 text-sm text-red-700">{listingsError}</p>
-        ) : listings.length === 0 ? (
-          <p className="mt-2 text-sm text-[#5C5346]">Sin anuncios.</p>
-        ) : (
-          <ul className="mt-3 space-y-3">
-            {listings.map((listing) => {
-              const imgUrl = getListingImage(listing);
-              const title = (listing.title ?? "").trim() || "(sin título)";
-              return (
-                <li key={listing.id} className="flex flex-wrap gap-4 rounded-2xl border border-[#E8DFD0] bg-white/80 p-4">
-                  {imgUrl ? (
-                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-[#EDE6DC]">
-                      { }
-                      <img src={imgUrl} alt="" className="h-full w-full object-cover" />
-                    </div>
-                  ) : null}
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-[#1E1810]">{title}</p>
-                    <p className="mt-1 text-xs text-[#7A7164]">
-                      {humanCategory(listing.category)} · {formatMoney(listing.price)} · {listing.city ?? "—"} ·{" "}
-                      {humanStatus(listing.status)} · {formatDate(listing.created_at)}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <Link
-                        href={`/clasificados/anuncio/${listing.id}`}
-                        className="text-xs font-bold text-[#6B5B2E] underline"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Vista pública del anuncio (sitio)"
-                      >
-                        Ver público
-                      </Link>
-                      <Link
-                        href={`/dashboard/mis-anuncios/${listing.id}/editar`}
-                        className="text-xs font-semibold text-[#5C5346] underline"
-                        title="Abre el editor del vendedor en el dashboard del cliente — no es moderación Leonix"
-                      >
-                        Editar en dashboard vendedor
-                      </Link>
-                    </div>
-                    <p className="mt-1 text-[10px] text-[#9A9084] md:hidden">
-                      Público = sitio. Vendedor = editor del cliente, no cola admin.
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
           </ul>
         )}
       </div>
