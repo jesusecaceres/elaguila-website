@@ -104,6 +104,16 @@ function HelperText({ children, className }: { children: React.ReactNode; classN
   );
 }
 
+/** Decorative leading marker for publish chips; label text remains the accessible name. */
+function TaxonomyChipLeading({ chipEmoji }: { chipEmoji?: string }) {
+  if (!chipEmoji) return null;
+  return (
+    <span className="shrink-0 select-none text-sm leading-none" aria-hidden="true">
+      {chipEmoji}
+    </span>
+  );
+}
+
 export default function RestauranteApplicationClient() {
   const searchParams = useSearchParams();
   const { hydrated, draft, draftRef, setDraftPatch, resetDraft } = useRestauranteDraft();
@@ -576,15 +586,17 @@ export default function RestauranteApplicationClient() {
                     return (
                       <label
                         key={o.key}
-                        className={`inline-flex items-center gap-2 text-sm ${atCap ? "cursor-not-allowed opacity-50" : ""}`}
+                        className={`inline-flex items-center gap-1.5 text-sm ${atCap ? "cursor-not-allowed opacity-50" : ""}`}
                       >
                         <input
                           type="checkbox"
+                          className="shrink-0"
                           checked={checked}
                           disabled={atCap}
                           onChange={() => toggleAdditionalCuisine(o.key)}
                         />
-                        {o.labelEs}
+                        <TaxonomyChipLeading chipEmoji={o.chipEmoji} />
+                        <span className="min-w-0">{o.labelEs}</span>
                       </label>
                     );
                   })}
@@ -661,13 +673,15 @@ export default function RestauranteApplicationClient() {
               </HelperText>
               <div className="mt-3 flex flex-wrap gap-2 rounded-xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/40 p-3">
                 {RESTAURANTE_LANGUAGES.map((o) => (
-                  <label key={o.key} className="inline-flex items-center gap-2 text-sm">
+                  <label key={o.key} className="inline-flex items-center gap-1.5 text-sm">
                     <input
                       type="checkbox"
+                      className="shrink-0"
                       checked={(draft.languagesSpoken ?? []).includes(o.key)}
                       onChange={() => toggleLanguage(o.key)}
                     />
-                    {o.labelEs}
+                    <TaxonomyChipLeading chipEmoji={o.chipEmoji} />
+                    <span className="min-w-0">{o.labelEs}</span>
                   </label>
                 ))}
               </div>
@@ -930,14 +944,16 @@ export default function RestauranteApplicationClient() {
             {RESTAURANTE_SERVICE_MODES.map((o) => (
               <label
                 key={o.key}
-                className="inline-flex items-center gap-2 rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1.5 text-sm"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1.5 text-sm"
               >
                 <input
                   type="checkbox"
+                  className="shrink-0"
                   checked={(draft.serviceModes ?? []).includes(o.key)}
                   onChange={() => toggleServiceMode(o.key)}
                 />
-                {o.labelEs}
+                <TaxonomyChipLeading chipEmoji={o.chipEmoji} />
+                <span className="min-w-0">{o.labelEs}</span>
               </label>
             ))}
             </div>
@@ -991,27 +1007,31 @@ export default function RestauranteApplicationClient() {
           <div className={`mt-3 grid gap-2 sm:grid-cols-2 ${SECONDARY_CHANNEL_CLUSTER}`}>
             {(
               [
-                ["dineIn", "Comer en local"],
-                ["takeout", "Para llevar"],
-                ["delivery", "Entrega"],
-                ["reservationsAvailable", "Reservas"],
-                ["preorderRequired", "Preorden obligatoria"],
-                ["pickupAvailable", "Recogida"],
-                ["foodTruck", "Food truck"],
-                ["popUp", "Pop-up"],
-                ["personalChef", "Chef personal"],
+                ["dineIn", "Comer en local", "🍽️"],
+                ["takeout", "Para llevar", "🛍️"],
+                ["delivery", "Entrega", "🚚"],
+                ["reservationsAvailable", "Reservas", "📅"],
+                ["preorderRequired", "Preorden obligatoria", "📲"],
+                ["pickupAvailable", "Recogida", "🛍️"],
+                ["foodTruck", "Food truck", "🚚"],
+                ["popUp", "Pop-up", "✨"],
+                ["personalChef", "Chef personal", "👨‍🍳"],
               ] as const
-            ).map(([key, label]) => (
-              <label key={key} className="inline-flex items-center gap-2 text-sm">
+            ).map(([key, label, emoji]) => (
+              <label key={key} className="inline-flex items-center gap-1.5 text-sm">
                 <input
                   type="checkbox"
+                  className="shrink-0"
                   checked={Boolean(draft[key])}
                   onChange={(e) => {
                     const checked = e.target.checked;
                     setDraftPatch({ [key]: checked } as Partial<RestauranteListingDraft>);
                   }}
                 />
-                {label}
+                <span className="shrink-0 select-none text-sm leading-none" aria-hidden="true">
+                  {emoji}
+                </span>
+                <span className="min-w-0">{label}</span>
               </label>
             ))}
           </div>
@@ -1763,15 +1783,17 @@ export default function RestauranteApplicationClient() {
               return (
                 <label
                   key={o.key}
-                  className={`inline-flex items-center gap-2 rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1.5 text-sm ${atCap ? "cursor-not-allowed opacity-50" : ""}`}
+                  className={`inline-flex items-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1.5 text-sm ${atCap ? "cursor-not-allowed opacity-50" : ""}`}
                 >
                   <input
                     type="checkbox"
+                    className="shrink-0"
                     disabled={atCap}
                     checked={checked}
                     onChange={() => toggleHighlight(o.key)}
                   />
-                  {o.labelEs}
+                  <TaxonomyChipLeading chipEmoji={o.chipEmoji} />
+                  <span className="min-w-0">{o.labelEs}</span>
                 </label>
               );
             })}

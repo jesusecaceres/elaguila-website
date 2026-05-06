@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
 import type { RestauranteDraftPatch } from "@/app/clasificados/restaurantes/application/useRestauranteDraft";
+import { RestaurantePublishChipMarker } from "@/app/clasificados/restaurantes/components/RestaurantePublishChipMarker";
 import {
   getRestauranteAmenityGroupMeta,
   RESTAURANTE_AMENITY_GROUP_ORDER,
@@ -74,15 +75,16 @@ export function RestauranteAmenitiesFormBlock({
                 return (
                   <label
                     key={item.id}
-                    className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-1.5 text-sm text-[color:var(--lx-text)] shadow-sm transition hover:border-[color:var(--lx-gold-border)]/60"
+                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-1.5 text-sm text-[color:var(--lx-text)] shadow-sm transition hover:border-[color:var(--lx-gold-border)]/60"
                   >
                     <input
                       type="checkbox"
-                      className="mt-0.5"
+                      className="mt-0.5 shrink-0"
                       checked={checked}
                       onChange={() => toggle(group, item.id)}
                     />
-                    <span>{item.labelEs}</span>
+                    <RestaurantePublishChipMarker leading={item.leading} compact />
+                    <span className="min-w-0">{item.labelEs}</span>
                   </label>
                 );
               })}

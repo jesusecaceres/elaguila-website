@@ -4,6 +4,7 @@
  */
 
 import type { ShellAmenitiesSection } from "@/app/clasificados/restaurantes/shell/restaurantDetailShellTypes";
+import type { RestaurantePublishChipLeading } from "./restaurantePublishChipVisual";
 
 export type RestauranteAmenityGroupId =
   | "payments"
@@ -15,9 +16,14 @@ export type RestauranteAmenityGroupId =
 
 export type RestauranteAmenitiesSelection = Partial<Record<RestauranteAmenityGroupId, string[]>>;
 
-type ItemDef = { id: string; labelEs: string; labelEn: string };
+type ItemDef = { id: string; labelEs: string; labelEn: string; leading: RestaurantePublishChipLeading };
 
-const I = (id: string, labelEs: string, labelEn: string): ItemDef => ({ id, labelEs, labelEn });
+const I = (id: string, labelEs: string, labelEn: string, leading: RestaurantePublishChipLeading): ItemDef => ({
+  id,
+  labelEs,
+  labelEn,
+  leading,
+});
 
 const GROUP_META: Record<
   RestauranteAmenityGroupId,
@@ -27,81 +33,89 @@ const GROUP_META: Record<
     titleEs: "Pagos",
     titleEn: "Payments",
     items: [
-      I("cash", "Efectivo", "Cash"),
-      I("credit_cards", "Tarjetas de crédito", "Credit cards"),
-      I("apple_pay", "Apple Pay", "Apple Pay"),
-      I("google_pay", "Google Pay", "Google Pay"),
-      I("zelle", "Zelle", "Zelle"),
-      I("venmo", "Venmo", "Venmo"),
-      I("cash_app", "Cash App", "Cash App"),
-      I("paypal", "PayPal", "PayPal"),
+      I("cash", "Efectivo", "Cash", { kind: "emoji", emoji: "💵" }),
+      I("credit_cards", "Tarjetas de crédito", "Credit cards", { kind: "emoji", emoji: "💳" }),
+      I("apple_pay", "Apple Pay", "Apple Pay", {
+        kind: "pill",
+        text: "Apple",
+        className: "bg-neutral-900",
+      }),
+      I("google_pay", "Google Pay", "Google Pay", {
+        kind: "pill",
+        text: "Google",
+        className: "bg-[#4285F4]",
+      }),
+      I("zelle", "Zelle", "Zelle", { kind: "brand", brand: "zelle" }),
+      I("venmo", "Venmo", "Venmo", { kind: "brand", brand: "venmo" }),
+      I("cash_app", "Cash App", "Cash App", { kind: "brand", brand: "cash_app" }),
+      I("paypal", "PayPal", "PayPal", { kind: "brand", brand: "paypal" }),
     ],
   },
   service: {
     titleEs: "Servicio",
     titleEn: "Service",
     items: [
-      I("reservations", "Reservaciones", "Reservations"),
-      I("dine_in", "Comer en local", "Dine-in"),
-      I("takeout", "Para llevar", "Takeout"),
-      I("delivery", "Entrega a domicilio", "Delivery"),
-      I("pickup", "Recoger pedido", "Pickup"),
-      I("catering", "Catering", "Catering"),
-      I("drive_thru", "Auto servicio (drive-thru)", "Drive-thru"),
-      I("advance_order", "Pedido anticipado", "Advance order"),
+      I("reservations", "Reservaciones", "Reservations", { kind: "emoji", emoji: "📅" }),
+      I("dine_in", "Comer en local", "Dine-in", { kind: "emoji", emoji: "🍽️" }),
+      I("takeout", "Para llevar", "Takeout", { kind: "emoji", emoji: "🛍️" }),
+      I("delivery", "Entrega a domicilio", "Delivery", { kind: "emoji", emoji: "🚚" }),
+      I("pickup", "Recoger pedido", "Pickup", { kind: "emoji", emoji: "🛍️" }),
+      I("catering", "Catering", "Catering", { kind: "emoji", emoji: "🍽️" }),
+      I("drive_thru", "Auto servicio (drive-thru)", "Drive-thru", { kind: "emoji", emoji: "🚗" }),
+      I("advance_order", "Pedido anticipado", "Advance order", { kind: "emoji", emoji: "📲" }),
     ],
   },
   accessibility: {
     titleEs: "Accesibilidad",
     titleEn: "Accessibility",
     items: [
-      I("wheelchair_accessible", "Accesible en silla de ruedas", "Wheelchair accessible"),
-      I("ada_entrance", "Entrada ADA", "ADA entrance"),
-      I("accessible_restroom", "Baño accesible", "Accessible restroom"),
-      I("accessible_parking", "Estacionamiento accesible", "Accessible parking"),
-      I("no_steps", "Sin escalones", "No steps"),
+      I("wheelchair_accessible", "Accesible en silla de ruedas", "Wheelchair accessible", { kind: "emoji", emoji: "♿" }),
+      I("ada_entrance", "Entrada ADA", "ADA entrance", { kind: "emoji", emoji: "♿" }),
+      I("accessible_restroom", "Baño accesible", "Accessible restroom", { kind: "emoji", emoji: "🚻" }),
+      I("accessible_parking", "Estacionamiento accesible", "Accessible parking", { kind: "emoji", emoji: "🅿️" }),
+      I("no_steps", "Sin escalones", "No steps", { kind: "emoji", emoji: "🚶" }),
     ],
   },
   atmosphere: {
     titleEs: "Ambiente",
     titleEn: "Atmosphere",
     items: [
-      I("casual", "Casual", "Casual"),
-      I("family_friendly", "Familiar", "Family-friendly"),
-      I("good_for_groups", "Ideal para grupos", "Good for groups"),
-      I("good_for_kids", "Ideal para niños", "Good for kids"),
-      I("romantic", "Romántico", "Romantic"),
-      I("trendy", "De moda", "Trendy"),
-      I("quiet", "Tranquilo", "Quiet"),
-      I("loud", "Animado / ruidoso", "Loud"),
+      I("casual", "Casual", "Casual", { kind: "emoji", emoji: "😊" }),
+      I("family_friendly", "Familiar", "Family-friendly", { kind: "emoji", emoji: "👨‍👩‍👧‍👦" }),
+      I("good_for_groups", "Ideal para grupos", "Good for groups", { kind: "emoji", emoji: "👥" }),
+      I("good_for_kids", "Ideal para niños", "Good for kids", { kind: "emoji", emoji: "🧒" }),
+      I("romantic", "Romántico", "Romantic", { kind: "emoji", emoji: "💛" }),
+      I("trendy", "De moda", "Trendy", { kind: "emoji", emoji: "✨" }),
+      I("quiet", "Tranquilo", "Quiet", { kind: "emoji", emoji: "🤫" }),
+      I("loud", "Animado / ruidoso", "Loud", { kind: "emoji", emoji: "🎶" }),
     ],
   },
   amenities: {
     titleEs: "Comodidades",
     titleEn: "Amenities",
     items: [
-      I("wifi", "Wi‑Fi", "Wi‑Fi"),
-      I("outdoor_seating", "Terraza / exterior", "Outdoor seating"),
-      I("tv", "TV", "TV"),
-      I("dogs_allowed", "Se admiten perros", "Dogs allowed"),
-      I("parking_available", "Estacionamiento", "Parking available"),
-      I("validated_parking", "Estacionamiento con validación", "Validated parking"),
-      I("qr_menu", "Menú QR", "QR menu"),
-      I("restrooms", "Baños", "Restrooms"),
+      I("wifi", "Wi‑Fi", "Wi‑Fi", { kind: "emoji", emoji: "📶" }),
+      I("outdoor_seating", "Terraza / exterior", "Outdoor seating", { kind: "emoji", emoji: "🌿" }),
+      I("tv", "TV", "TV", { kind: "emoji", emoji: "📺" }),
+      I("dogs_allowed", "Se admiten perros", "Dogs allowed", { kind: "emoji", emoji: "🐾" }),
+      I("parking_available", "Estacionamiento", "Parking available", { kind: "emoji", emoji: "🅿️" }),
+      I("validated_parking", "Estacionamiento con validación", "Validated parking", { kind: "emoji", emoji: "🅿️" }),
+      I("qr_menu", "Menú QR", "QR menu", { kind: "emoji", emoji: "📖" }),
+      I("restrooms", "Baños", "Restrooms", { kind: "emoji", emoji: "🚻" }),
     ],
   },
   foodOptions: {
     titleEs: "Opciones de comida",
     titleEn: "Food options",
     items: [
-      I("vegetarian_options", "Opciones vegetarianas", "Vegetarian options"),
-      I("vegan_options", "Opciones veganas", "Vegan options"),
-      I("gluten_free_options", "Sin gluten", "Gluten-free options"),
-      I("halal", "Halal", "Halal"),
-      I("kosher", "Kosher", "Kosher"),
-      I("breakfast", "Desayuno", "Breakfast"),
-      I("brunch", "Brunch", "Brunch"),
-      I("late_night", "Abierto hasta tarde", "Late night"),
+      I("vegetarian_options", "Opciones vegetarianas", "Vegetarian options", { kind: "emoji", emoji: "🥗" }),
+      I("vegan_options", "Opciones veganas", "Vegan options", { kind: "emoji", emoji: "🌱" }),
+      I("gluten_free_options", "Sin gluten", "Gluten-free options", { kind: "emoji", emoji: "🌾" }),
+      I("halal", "Halal", "Halal", { kind: "emoji", emoji: "🕌" }),
+      I("kosher", "Kosher", "Kosher", { kind: "emoji", emoji: "✡️" }),
+      I("breakfast", "Desayuno", "Breakfast", { kind: "emoji", emoji: "🍳" }),
+      I("brunch", "Brunch", "Brunch", { kind: "emoji", emoji: "🍳" }),
+      I("late_night", "Abierto hasta tarde", "Late night", { kind: "emoji", emoji: "🌙" }),
     ],
   },
 };
