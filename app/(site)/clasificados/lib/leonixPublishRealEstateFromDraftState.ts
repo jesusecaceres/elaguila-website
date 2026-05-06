@@ -32,6 +32,7 @@ import {
 } from "@/app/clasificados/lib/leonixPublishRealEstateListingCore";
 import { mergeRentasNegocioMachinePairs, mergeRentasPrivadoMachinePairs } from "@/app/clasificados/rentas/lib/rentasMachineDetailPairs";
 import { normalizeZipForBrowse } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
+import { buildRentasStreetLine } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 
 /** Draft → core publish params (never conflates with `{ ok: true; listingId }` from persisted publish). */
 export type LeonixBrDraftPublishBuildResult =
@@ -59,6 +60,18 @@ function zipFromRentasLocation(ubicacionLinea: string, ciudad: string): string |
   const fromCity = normalizeZipForBrowse(ciudad);
   if (fromCity.length >= 4) return fromCity;
   return null;
+}
+
+function zipFromRentasDraft(state: { direccionCodigoPostal: string; ubicacionLinea: string; ciudad: string }): string | null {
+  const z = normalizeZipForBrowse(state.direccionCodigoPostal);
+  if (z.length >= 5) return z;
+  return zipFromRentasLocation(state.ubicacionLinea, state.ciudad);
+}
+
+function rentasPublishCity(state: { ciudad: string; direccionNumero: string; direccionCalle: string; ubicacionLinea: string }): string {
+  const c = trim(state.ciudad);
+  if (c) return c;
+  return trim(buildRentasStreetLine(state)) || trim(state.ubicacionLinea);
 }
 
 function privadoSellerContact(seller: {
@@ -201,8 +214,8 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
   return publishLeonixRealEstateListingCore({
     title: state.titulo,
     description: state.descripcion,
-    city: trim(state.ciudad) || trim(state.ubicacionLinea),
-    zip: zipFromRentasLocation(state.ubicacionLinea, state.ciudad),
+    city: rentasPublishCity(state),
+    zip: zipFromRentasDraft(state),
     price: priceNumberFromDigitsString(state.rentaMensual),
     isFree: false,
     category: "rentas",
@@ -288,8 +301,8 @@ export async function publishLeonixListingFromRentasNegocioDraft(
   return publishLeonixRealEstateListingCore({
     title: state.titulo,
     description: state.descripcion,
-    city: trim(state.ciudad) || trim(state.ubicacionLinea),
-    zip: zipFromRentasLocation(state.ubicacionLinea, state.ciudad),
+    city: rentasPublishCity(state),
+    zip: zipFromRentasDraft(state),
     price: priceNumberFromDigitsString(state.rentaMensual),
     isFree: false,
     category: "rentas",

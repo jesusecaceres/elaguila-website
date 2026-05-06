@@ -11,7 +11,6 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
 import { gateRentasNegocioPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
-import { RENTAS_PLAZO_LABELS } from "@/app/clasificados/rentas/shared/utils/rentasPublishConstants";
 import {
   RENTAS_PREVIEW_NEGOCIO,
   RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY,
@@ -41,7 +40,7 @@ import {
   readVideoFileAsDataUrlLimited,
 } from "@/app/clasificados/publicar/bienes-raices/privado/application/utils/brPrivadoMediaCompress";
 import { LeonixRealEstateSortablePhotoStrip } from "@/app/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
-import { BrPrivadoCiudadZonaCombobox } from "@/app/clasificados/publicar/bienes-raices/privado/application/components/BrPrivadoCiudadZonaCombobox";
+import { RentasAnuncioFormSection } from "@/app/clasificados/publicar/rentas/shared/RentasAnuncioFormSection";
 import {
   COMERCIAL_DESTACADOS_DEFS,
   COMERCIAL_SUBTIPO_POR_TIPO,
@@ -63,19 +62,6 @@ import {
 
 const MAX_PHOTOS = 8;
 const MAX_VIDEO_BYTES = 32 * 1024 * 1024;
-
-function precioDigitsUnbounded(raw: string): string {
-  return String(raw ?? "").replace(/\D/g, "");
-}
-
-function formatRentPreviewUsd(digitsRaw: string): string {
-  const d = precioDigitsUnbounded(digitsRaw);
-  if (!d) return "";
-  const n = Number(d);
-  if (!Number.isFinite(n) || n <= 0) return "";
-  const cur = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
-  return `${cur} / mes`;
-}
 
 const RENTAS_NEGOCIO_PREVIEW_ACTION_LABELS = {
   preview: "Validar y ver vista previa",
@@ -250,8 +236,6 @@ export function RentasNegocioForm() {
   const confirmAll =
     state.confirmListingAccurate && state.confirmPhotosRepresentItem && state.confirmCommunityRules;
 
-  const rentPreview = formatRentPreviewUsd(state.rentaMensual);
-
   const previewActionsProps = {
     onPreviewValidated: () => {
       if (!confirmAll) return;
@@ -339,195 +323,13 @@ export function RentasNegocioForm() {
           </div>
         </section>
 
-        <section className={`${aiCardClass} min-w-0`}>
-          <h2 className={aiTitleClass}>Anuncio</h2>
-          <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-            <div className="sm:col-span-2">
-              <AiField required label="Título">
-                <input
-                  className={fieldClass}
-                  value={state.titulo}
-                  onChange={(e) => setState((s) => ({ ...s, titulo: e.target.value }))}
-                  autoComplete="off"
-                />
-              </AiField>
-            </div>
-            <AiField
-              required
-              label="Renta mensual (USD)"
-              hint="Escribe solo números (sin símbolos). Abajo ves cómo quedará en el anuncio."
-            >
-              <input
-                className={fieldClass}
-                inputMode="numeric"
-                value={state.rentaMensual}
-                onChange={(e) => setState((s) => ({ ...s, rentaMensual: precioDigitsUnbounded(e.target.value) }))}
-                autoComplete="off"
-              />
-              {rentPreview ? (
-                <p className="mt-2 text-sm font-semibold [font-variant-numeric:tabular-nums] text-[#6E5418]">
-                  En el anuncio:{" "}
-                  <span className="text-[#1E1810]" aria-live="polite">
-                    {rentPreview}
-                  </span>
-                </p>
-              ) : (
-                <p className="mt-2 text-xs text-[#5C5346]/85">
-                  {state.rentaMensual.trim()
-                    ? "Revisa el número (debe ser mayor que cero)."
-                    : "Ejemplo: al escribir 2500 se mostrará la renta en dólares con formato y “/ mes”."}
-                </p>
-              )}
-            </AiField>
-            <AiField label="Depósito" hint="Texto libre o monto (ej. un mes de renta).">
-              <input
-                className={fieldClass}
-                value={state.deposito}
-                onChange={(e) => setState((s) => ({ ...s, deposito: e.target.value }))}
-                autoComplete="off"
-              />
-            </AiField>
-            <AiField label="Plazo del contrato">
-              <select
-                className={fieldClass}
-                value={state.plazoContrato}
-                onChange={(e) =>
-                  setState((s) => ({
-                    ...s,
-                    plazoContrato: e.target.value as RentasNegocioFormState["plazoContrato"],
-                  }))
-                }
-              >
-                <option value="">—</option>
-                {Object.entries(RENTAS_PLAZO_LABELS).map(([key, lbl]) => (
-                  <option key={key} value={key}>
-                    {lbl.es}
-                  </option>
-                ))}
-              </select>
-            </AiField>
-            <AiField label="Disponibilidad" hint="Ej. inmediata, a partir del 1 de mayo…">
-              <input
-                className={fieldClass}
-                value={state.disponibilidad}
-                onChange={(e) => setState((s) => ({ ...s, disponibilidad: e.target.value }))}
-              />
-            </AiField>
-            <AiField label="Amueblado">
-              <select
-                className={fieldClass}
-                value={state.amueblado}
-                onChange={(e) =>
-                  setState((s) => ({ ...s, amueblado: e.target.value as RentasNegocioFormState["amueblado"] }))
-                }
-              >
-                <option value="">—</option>
-                <option value="amueblado">Amueblado</option>
-                <option value="sin_amueblar">Sin amueblar</option>
-              </select>
-            </AiField>
-            <AiField label="Mascotas">
-              <select
-                className={fieldClass}
-                value={state.mascotas}
-                onChange={(e) =>
-                  setState((s) => ({ ...s, mascotas: e.target.value as RentasNegocioFormState["mascotas"] }))
-                }
-              >
-                <option value="">—</option>
-                <option value="permitidas">Permitidas</option>
-                <option value="no_permitidas">No permitidas</option>
-              </select>
-            </AiField>
-            <div className="sm:col-span-2">
-              <AiField label="Servicios incluidos" hint="Ej. agua, luz, internet, mantenimiento…">
-                <input
-                  className={fieldClass}
-                  value={state.serviciosIncluidos}
-                  onChange={(e) => setState((s) => ({ ...s, serviciosIncluidos: e.target.value }))}
-                />
-              </AiField>
-            </div>
-            <div className="sm:col-span-2">
-              <AiField label="Requisitos" hint="Ej. aval, comprobante de ingresos, meses de depósito…">
-                <textarea
-                  className={textareaFieldClass}
-                  rows={3}
-                  value={state.requisitos}
-                  onChange={(e) => setState((s) => ({ ...s, requisitos: e.target.value }))}
-                />
-              </AiField>
-            </div>
-            <AiField label="Estado del anuncio">
-              <select
-                className={fieldClass}
-                value={state.estadoAnuncio}
-                onChange={(e) =>
-                  setState((s) => ({ ...s, estadoAnuncio: e.target.value as RentasNegocioFormState["estadoAnuncio"] }))
-                }
-              >
-                {ESTADOS.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </AiField>
-            <AiField
-              label="Ciudad o zona"
-              hint="Escribe y elige una sugerencia NorCal, o escribe tu propia zona. Sirve para ubicación en el anuncio y para filtros futuros."
-            >
-              <BrPrivadoCiudadZonaCombobox
-                className={fieldClass}
-                value={state.ciudad}
-                onChange={(v) => setState((s) => ({ ...s, ciudad: v }))}
-              />
-            </AiField>
-            <AiField
-              label="Dirección o referencia"
-              hint="Ubicación aproximada o segura para publicar: no hace falta la dirección completa. Ejemplos ficticios: “Cerca de la esquina de Oak y 12 · barrio tranquilo”, “Zona residencial al norte del centro”, “Frente al parque de la colonia (referencia).”"
-            >
-              <input
-                className={fieldClass}
-                value={state.ubicacionLinea}
-                onChange={(e) => setState((s) => ({ ...s, ubicacionLinea: e.target.value }))}
-                autoComplete="off"
-              />
-            </AiField>
-            <p className="sm:col-span-2 text-xs text-[#5C5346]">
-              Para vista previa: ciudad o línea de ubicación (al menos uno)
-              <span className="text-[#B8954A]" aria-hidden>
-                {" "}
-                *
-              </span>
-              .
-            </p>
-            <div className="sm:col-span-2">
-              <AiField label="Enlace a mapa (opcional)" hint="Pega un enlace https (por ejemplo Google Maps).">
-                <input
-                  className={fieldClass}
-                  type="url"
-                  placeholder="https://"
-                  value={state.enlaceMapa}
-                  onChange={(e) => setState((s) => ({ ...s, enlaceMapa: e.target.value }))}
-                />
-              </AiField>
-            </div>
-            <div className="sm:col-span-2">
-              <AiField
-                label="Descripción de la propiedad"
-                hint="Describe la vivienda o terreno: distribución, estado, luz, vecindario, accesos. Es el texto principal del anuncio."
-              >
-                <textarea
-                  className={textareaFieldClass}
-                  rows={6}
-                  value={state.descripcion}
-                  onChange={(e) => setState((s) => ({ ...s, descripcion: e.target.value }))}
-                />
-              </AiField>
-            </div>
-          </div>
-        </section>
+        <RentasAnuncioFormSection
+          state={state}
+          setState={setState}
+          fieldClass={fieldClass}
+          textareaFieldClass={textareaFieldClass}
+          estadoOptions={ESTADOS}
+        />
 
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>Fotos y video</h2>

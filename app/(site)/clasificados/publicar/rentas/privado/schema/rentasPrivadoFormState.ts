@@ -11,8 +11,11 @@ import {
   BR_PRIVADO_FORM_VERSION,
   mergePartialBienesRaicesPrivadoState,
 } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
+import type { RentasServicioIncluidoId } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 
-export const RENTAS_PRIVADO_FORM_VERSION = 1 as const;
+export type { RentasServicioIncluidoId } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+
+export const RENTAS_PRIVADO_FORM_VERSION = 2 as const;
 
 export type RentasPlazoContratoCodigo =
   | ""
@@ -20,7 +23,8 @@ export type RentasPlazoContratoCodigo =
   | "6-meses"
   | "12-meses"
   | "1-ano"
-  | "2-anos";
+  | "2-anos"
+  | "otro";
 
 export type RentasPrivadoListingStatus = "disponible" | "pendiente" | "bajo_contrato" | "rentado";
 
@@ -30,15 +34,31 @@ export type RentasPrivadoFormState = {
   titulo: string;
   /** Digits only, USD whole dollars per month */
   rentaMensual: string;
+  /** Digits only, USD whole dollars (one-time deposit) */
   deposito: string;
   plazoContrato: RentasPlazoContratoCodigo;
+  /** Free text when `plazoContrato === "otro"` */
+  plazoContratoOtro: string;
+  /** ISO `YYYY-MM-DD` from date input, or legacy free-text availability */
   disponibilidad: string;
   amueblado: "" | "amueblado" | "sin_amueblar";
   mascotas: "" | "permitidas" | "no_permitidas";
-  serviciosIncluidos: string;
+  serviciosIncluidosKeys: RentasServicioIncluidoId[];
+  serviciosIncluidosOtro: string;
+  /** Migrated from v1 `serviciosIncluidos` string when checklist empty */
+  serviciosIncluidosLegacy: string;
   requisitos: string;
+  /** Ciudad (NorCal combobox) — primary city for listing */
   ciudad: string;
+  /** Optional neighborhood / zone (not the city field) */
+  zonaVecindario: string;
+  direccionNumero: string;
+  direccionCalle: string;
+  direccionEstado: string;
+  direccionCodigoPostal: string;
+  /** Legacy single-line location; used if structured street fields are empty */
   ubicacionLinea: string;
+  /** Deprecated: manual map URL removed from UI; kept for draft merge only */
   enlaceMapa: string;
   descripcion: string;
   estadoAnuncio: RentasPrivadoListingStatus;
@@ -77,8 +97,34 @@ function coerceRentasListingStatus(raw: unknown): RentasPrivadoListingStatus {
 
 function coercePlazo(raw: unknown): RentasPlazoContratoCodigo {
   const v = typeof raw === "string" ? raw : "";
-  if (v === "mes-a-mes" || v === "6-meses" || v === "12-meses" || v === "1-ano" || v === "2-anos") return v;
+  if (v === "mes-a-mes" || v === "6-meses" || v === "12-meses" || v === "1-ano" || v === "2-anos" || v === "otro") return v;
   return "";
+}
+
+const SERVICIO_IDS = new Set<RentasServicioIncluidoId>([
+  "agua",
+  "luz",
+  "gas",
+  "internet",
+  "mantenimiento",
+  "basura",
+  "estacionamiento",
+  "lavanderia",
+  "aire_acondicionado",
+  "seguridad",
+  "piscina",
+  "otro",
+]);
+
+function coerceServiciosKeys(raw: unknown): RentasServicioIncluidoId[] {
+  if (!Array.isArray(raw)) return [];
+  const out: RentasServicioIncluidoId[] = [];
+  for (const x of raw) {
+    if (typeof x === "string" && SERVICIO_IDS.has(x as RentasServicioIncluidoId)) {
+      out.push(x as RentasServicioIncluidoId);
+    }
+  }
+  return [...new Set(out)];
 }
 
 function coerceAmueblado(raw: unknown): RentasPrivadoFormState["amueblado"] {
@@ -102,12 +148,20 @@ export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
     rentaMensual: "",
     deposito: "",
     plazoContrato: "",
+    plazoContratoOtro: "",
     disponibilidad: "",
     amueblado: "",
     mascotas: "",
-    serviciosIncluidos: "",
+    serviciosIncluidosKeys: [],
+    serviciosIncluidosOtro: "",
+    serviciosIncluidosLegacy: "",
     requisitos: "",
     ciudad: "",
+    zonaVecindario: "",
+    direccionNumero: "",
+    direccionCalle: "",
+    direccionEstado: "CA",
+    direccionCodigoPostal: "",
     ubicacionLinea: "",
     enlaceMapa: "",
     descripcion: "",
@@ -188,16 +242,42 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
       typeof partial.rentaMensual === "string"
         ? String(partial.rentaMensual).replace(/\D/g, "")
         : String(br.precio ?? "").replace(/\D/g, ""),
-    deposito: typeof partial.deposito === "string" ? partial.deposito : base.deposito,
+    deposito:
+      typeof partial.deposito === "string"
+        ? String(partial.deposito).replace(/\D/g, "")
+        : String(base.deposito).replace(/\D/g, ""),
     plazoContrato: coercePlazo(partial.plazoContrato),
+    plazoContratoOtro: typeof partial.plazoContratoOtro === "string" ? partial.plazoContratoOtro : base.plazoContratoOtro,
     disponibilidad: typeof partial.disponibilidad === "string" ? partial.disponibilidad : base.disponibilidad,
     amueblado: coerceAmueblado(partial.amueblado),
     mascotas: coerceMascotas(partial.mascotas),
-    serviciosIncluidos: typeof partial.serviciosIncluidos === "string" ? partial.serviciosIncluidos : base.serviciosIncluidos,
+    serviciosIncluidosKeys: coerceServiciosKeys(partial.serviciosIncluidosKeys),
+    serviciosIncluidosOtro: typeof partial.serviciosIncluidosOtro === "string" ? partial.serviciosIncluidosOtro : base.serviciosIncluidosOtro,
+    serviciosIncluidosLegacy: (() => {
+      const keys = coerceServiciosKeys(partial.serviciosIncluidosKeys);
+      const otroT =
+        typeof partial.serviciosIncluidosOtro === "string" ? partial.serviciosIncluidosOtro.trim() : "";
+      const explicit =
+        typeof partial.serviciosIncluidosLegacy === "string" ? partial.serviciosIncluidosLegacy.trim() : "";
+      const oldV1 =
+        typeof (partial as { serviciosIncluidos?: unknown }).serviciosIncluidos === "string"
+          ? String((partial as { serviciosIncluidos: string }).serviciosIncluidos).trim()
+          : "";
+      if (keys.length || otroT) return explicit;
+      return explicit || oldV1 || "";
+    })(),
     requisitos: typeof partial.requisitos === "string" ? partial.requisitos : base.requisitos,
     ciudad: br.ciudad,
+    zonaVecindario: typeof partial.zonaVecindario === "string" ? partial.zonaVecindario : base.zonaVecindario,
+    direccionNumero: typeof partial.direccionNumero === "string" ? partial.direccionNumero : base.direccionNumero,
+    direccionCalle: typeof partial.direccionCalle === "string" ? partial.direccionCalle : base.direccionCalle,
+    direccionEstado:
+      typeof partial.direccionEstado === "string" && partial.direccionEstado.trim()
+        ? partial.direccionEstado.trim()
+        : base.direccionEstado,
+    direccionCodigoPostal: typeof partial.direccionCodigoPostal === "string" ? partial.direccionCodigoPostal : base.direccionCodigoPostal,
     ubicacionLinea: br.ubicacionLinea,
-    enlaceMapa: br.enlaceMapa,
+    enlaceMapa: typeof partial.enlaceMapa === "string" ? partial.enlaceMapa : br.enlaceMapa,
     descripcion: br.descripcion,
     estadoAnuncio: coerceRentasListingStatus(partial.estadoAnuncio ?? br.estadoAnuncio),
     media: { ...br.media },

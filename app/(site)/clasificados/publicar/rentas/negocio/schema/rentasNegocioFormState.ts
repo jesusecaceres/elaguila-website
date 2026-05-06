@@ -9,36 +9,20 @@ import type {
 } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import { mergePartialBienesRaicesPrivadoState } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import type { RentasPlazoContratoCodigo, RentasPrivadoListingStatus } from "../../privado/schema/rentasPrivadoFormState";
+import type { RentasServicioIncluidoId } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import {
   createEmptyRentasPrivadoFormState,
   mergePartialRentasPrivadoState,
+  RENTAS_PRIVADO_FORM_VERSION,
 } from "../../privado/schema/rentasPrivadoFormState";
 
-export const RENTAS_NEGOCIO_FORM_VERSION = 2 as const;
+export const RENTAS_NEGOCIO_FORM_VERSION = 3 as const;
 
 function coerceRentasListingStatus(raw: unknown): RentasPrivadoListingStatus {
   const v = typeof raw === "string" ? raw : "";
   if (v === "vendido") return "rentado";
   if (v === "pendiente" || v === "bajo_contrato" || v === "rentado") return v;
   return "disponible";
-}
-
-function coercePlazo(raw: unknown): RentasPlazoContratoCodigo {
-  const v = typeof raw === "string" ? raw : "";
-  if (v === "mes-a-mes" || v === "6-meses" || v === "12-meses" || v === "1-ano" || v === "2-anos") return v;
-  return "";
-}
-
-function coerceAmueblado(raw: unknown): "" | "amueblado" | "sin_amueblar" {
-  const v = typeof raw === "string" ? raw : "";
-  if (v === "amueblado" || v === "sin_amueblar") return v;
-  return "";
-}
-
-function coerceMascotas(raw: unknown): "" | "permitidas" | "no_permitidas" {
-  const v = typeof raw === "string" ? raw : "";
-  if (v === "permitidas" || v === "no_permitidas") return v;
-  return "";
 }
 
 export type RentasNegocioFormState = {
@@ -48,12 +32,20 @@ export type RentasNegocioFormState = {
   rentaMensual: string;
   deposito: string;
   plazoContrato: RentasPlazoContratoCodigo;
+  plazoContratoOtro: string;
   disponibilidad: string;
   amueblado: "" | "amueblado" | "sin_amueblar";
   mascotas: "" | "permitidas" | "no_permitidas";
-  serviciosIncluidos: string;
+  serviciosIncluidosKeys: RentasServicioIncluidoId[];
+  serviciosIncluidosOtro: string;
+  serviciosIncluidosLegacy: string;
   requisitos: string;
   ciudad: string;
+  zonaVecindario: string;
+  direccionNumero: string;
+  direccionCalle: string;
+  direccionEstado: string;
+  direccionCodigoPostal: string;
   ubicacionLinea: string;
   enlaceMapa: string;
   descripcion: string;
@@ -94,12 +86,20 @@ export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
     rentaMensual: "",
     deposito: "",
     plazoContrato: "",
+    plazoContratoOtro: "",
     disponibilidad: "",
     amueblado: "",
     mascotas: "",
-    serviciosIncluidos: "",
+    serviciosIncluidosKeys: [...p.serviciosIncluidosKeys],
+    serviciosIncluidosOtro: "",
+    serviciosIncluidosLegacy: "",
     requisitos: "",
     ciudad: "",
+    zonaVecindario: "",
+    direccionNumero: "",
+    direccionCalle: "",
+    direccionEstado: p.direccionEstado,
+    direccionCodigoPostal: "",
     ubicacionLinea: "",
     enlaceMapa: "",
     descripcion: "",
@@ -147,7 +147,7 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
 
   const asPrivado = mergePartialRentasPrivadoState({
     ...(propLike as Partial<import("../../privado/schema/rentasPrivadoFormState").RentasPrivadoFormState>),
-    v: 1,
+    v: RENTAS_PRIVADO_FORM_VERSION,
     seller: {
       fotoDataUrl: "",
       nombre: typeof nn === "string" ? nn : "",
@@ -167,20 +167,24 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
   return {
     v: RENTAS_NEGOCIO_FORM_VERSION,
     categoriaPropiedad: coerceBrNegocioCategoriaPropiedad(partial.categoriaPropiedad ?? asPrivado.categoriaPropiedad),
-    titulo: typeof partial.titulo === "string" ? partial.titulo : asPrivado.titulo,
-    rentaMensual:
-      typeof partial.rentaMensual === "string"
-        ? String(partial.rentaMensual).replace(/\D/g, "")
-        : asPrivado.rentaMensual,
-    deposito: typeof partial.deposito === "string" ? partial.deposito : asPrivado.deposito,
-    plazoContrato: coercePlazo(partial.plazoContrato ?? asPrivado.plazoContrato),
-    disponibilidad: typeof partial.disponibilidad === "string" ? partial.disponibilidad : asPrivado.disponibilidad,
-    amueblado: coerceAmueblado(partial.amueblado ?? asPrivado.amueblado),
-    mascotas: coerceMascotas(partial.mascotas ?? asPrivado.mascotas),
-    serviciosIncluidos:
-      typeof partial.serviciosIncluidos === "string" ? partial.serviciosIncluidos : asPrivado.serviciosIncluidos,
-    requisitos: typeof partial.requisitos === "string" ? partial.requisitos : asPrivado.requisitos,
+    titulo: asPrivado.titulo,
+    rentaMensual: asPrivado.rentaMensual,
+    deposito: asPrivado.deposito,
+    plazoContrato: asPrivado.plazoContrato,
+    plazoContratoOtro: asPrivado.plazoContratoOtro,
+    disponibilidad: asPrivado.disponibilidad,
+    amueblado: asPrivado.amueblado,
+    mascotas: asPrivado.mascotas,
+    serviciosIncluidosKeys: asPrivado.serviciosIncluidosKeys,
+    serviciosIncluidosOtro: asPrivado.serviciosIncluidosOtro,
+    serviciosIncluidosLegacy: asPrivado.serviciosIncluidosLegacy,
+    requisitos: asPrivado.requisitos,
     ciudad: asPrivado.ciudad,
+    zonaVecindario: asPrivado.zonaVecindario,
+    direccionNumero: asPrivado.direccionNumero,
+    direccionCalle: asPrivado.direccionCalle,
+    direccionEstado: asPrivado.direccionEstado,
+    direccionCodigoPostal: asPrivado.direccionCodigoPostal,
     ubicacionLinea: asPrivado.ubicacionLinea,
     enlaceMapa: asPrivado.enlaceMapa,
     descripcion: asPrivado.descripcion,

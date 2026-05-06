@@ -1,0 +1,156 @@
+/**
+ * Shared formatting + address helpers for Rentas Privado/Negocio publish flows.
+ */
+
+export type RentasServicioIncluidoId =
+  | "agua"
+  | "luz"
+  | "gas"
+  | "internet"
+  | "mantenimiento"
+  | "basura"
+  | "estacionamiento"
+  | "lavanderia"
+  | "aire_acondicionado"
+  | "seguridad"
+  | "piscina"
+  | "otro";
+
+export const RENTAS_SERVICIOS_INCLUIDOS_DEFS: readonly {
+  id: Exclude<RentasServicioIncluidoId, "otro">;
+  label: string;
+  emoji: string;
+}[] = [
+  { id: "agua", label: "Agua", emoji: "💧" },
+  { id: "luz", label: "Luz", emoji: "💡" },
+  { id: "gas", label: "Gas", emoji: "🔥" },
+  { id: "internet", label: "Internet", emoji: "🌐" },
+  { id: "mantenimiento", label: "Mantenimiento", emoji: "🧹" },
+  { id: "basura", label: "Basura", emoji: "🗑️" },
+  { id: "estacionamiento", label: "Estacionamiento", emoji: "🚗" },
+  { id: "lavanderia", label: "Lavandería", emoji: "🧺" },
+  { id: "aire_acondicionado", label: "Aire acondicionado", emoji: "❄️" },
+  { id: "seguridad", label: "Seguridad", emoji: "🛡️" },
+  { id: "piscina", label: "Piscina", emoji: "🏊" },
+] as const;
+
+const SERVICIO_LABEL = new Map(
+  RENTAS_SERVICIOS_INCLUIDOS_DEFS.map((d) => [d.id, d.label] as const),
+);
+
+function trim(s: unknown): string {
+  if (s == null) return "";
+  return typeof s === "string" ? s.trim() : String(s).trim();
+}
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export function rentasDisponibilidadIsIsoDate(raw: string): boolean {
+  return ISO_DATE_RE.test(trim(raw));
+}
+
+/** Spanish long date for ISO YYYY-MM-DD; otherwise returns trimmed legacy text. */
+export function formatRentasDisponibilidadDisplay(raw: string): string {
+  const t = trim(raw);
+  if (!t) return "";
+  if (!rentasDisponibilidadIsIsoDate(t)) return t;
+  const [y, m, d] = t.split("-").map((x) => Number(x));
+  if (!y || !m || !d) return t;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  if (Number.isNaN(dt.getTime())) return t;
+  try {
+    return new Intl.DateTimeFormat("es-MX", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    }).format(dt);
+  } catch {
+    return t;
+  }
+}
+
+/** Same pattern as renta mensual helper in publish forms: formatted USD + “/ mes”. */
+export function formatRentasMensualAnuncioPreview(digitsRaw: string): string {
+  const d = String(digitsRaw ?? "").replace(/\D/g, "");
+  if (!d) return "";
+  const n = Number(d);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  const cur = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+  return `${cur} / mes`;
+}
+
+export function formatRentasDepositUsdPreview(digitsRaw: string): string {
+  const d = String(digitsRaw ?? "").replace(/\D/g, "");
+  if (!d) return "";
+  const n = Number(d);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+}
+
+export function buildRentasStreetLine(parts: {
+  direccionNumero: string;
+  direccionCalle: string;
+  ubicacionLinea: string;
+}): string {
+  const num = trim(parts.direccionNumero);
+  const calle = trim(parts.direccionCalle);
+  const legacy = trim(parts.ubicacionLinea);
+  const structured = [num, calle].filter(Boolean).join(" ").trim();
+  return structured || legacy;
+}
+
+export function buildRentasCityStateZipLine(parts: {
+  ciudad: string;
+  direccionEstado: string;
+  direccionCodigoPostal: string;
+}): string {
+  const city = trim(parts.ciudad);
+  const st = trim(parts.direccionEstado);
+  const zip = trim(parts.direccionCodigoPostal);
+  const stZip = [st, zip].filter(Boolean).join(" ").trim();
+  return [city, stZip].filter(Boolean).join(", ");
+}
+
+/** Query string for Google Maps search (no API key). */
+export function buildRentasGoogleMapsSearchQuery(parts: {
+  direccionNumero: string;
+  direccionCalle: string;
+  ubicacionLinea: string;
+  zonaVecindario: string;
+  ciudad: string;
+  direccionEstado: string;
+  direccionCodigoPostal: string;
+}): string | null {
+  const line1 = buildRentasStreetLine(parts);
+  const city = trim(parts.ciudad);
+  const st = trim(parts.direccionEstado);
+  const zip = trim(parts.direccionCodigoPostal);
+  const zona = trim(parts.zonaVecindario);
+  const q = [line1, zona, city, [st, zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  return q.trim() || null;
+}
+
+export function rentasGoogleMapsUrlFromQuery(query: string | null): string | null {
+  const q = trim(query);
+  if (!q) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+}
+
+export function formatRentasServiciosIncluidosOutput(parts: {
+  serviciosIncluidosKeys: readonly RentasServicioIncluidoId[];
+  serviciosIncluidosOtro: string;
+  serviciosIncluidosLegacy: string;
+}): string {
+  const keys = [...parts.serviciosIncluidosKeys];
+  const otroText = trim(parts.serviciosIncluidosOtro);
+  const labels: string[] = [];
+  for (const k of keys) {
+    if (k === "otro") continue;
+    const lb = SERVICIO_LABEL.get(k);
+    if (lb) labels.push(lb);
+  }
+  if (keys.includes("otro") && otroText) labels.push(otroText);
+  if (labels.length) return labels.join(", ");
+  return trim(parts.serviciosIncluidosLegacy);
+}

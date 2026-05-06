@@ -13,6 +13,7 @@ import {
   type BienesRaicesNegocioFormState,
   type BienesRaicesPublicationType,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState";
+import { buildRentasStreetLine } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import type { RentasNegocioFormState } from "../../schema/rentasNegocioFormState";
 
 function trim(s: string): string {
@@ -87,11 +88,11 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
     publicationType: pub,
     titulo: s.titulo,
     precio: s.rentaMensual,
-    direccion: s.ubicacionLinea,
+    direccion: buildRentasStreetLine(s),
     ciudad: s.ciudad,
-    estado: "CA",
-    codigoPostal: "",
-    colonia: "",
+    estado: trim(s.direccionEstado) || "CA",
+    codigoPostal: s.direccionCodigoPostal,
+    colonia: s.zonaVecindario,
     descripcionLarga: s.descripcion,
     descripcionCorta: "",
     listingStatus: listingStatusFromRentas(s.estadoAnuncio),

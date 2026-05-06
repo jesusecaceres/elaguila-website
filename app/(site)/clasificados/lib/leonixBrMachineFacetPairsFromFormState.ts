@@ -9,6 +9,7 @@ import type {
 } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import type { BienesRaicesNegocioFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState";
 import type { RentasNegocioFormState } from "@/app/clasificados/publicar/rentas/negocio/schema/rentasNegocioFormState";
+import { buildRentasStreetLine } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
 import { normalizeZipForBrowse } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
 import { mergePartialBienesRaicesPrivadoState } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
@@ -108,8 +109,8 @@ export function buildLeonixMachineFacetPairsFromRentasPrivadoFormState(
     titulo: state.titulo,
     precio: state.rentaMensual,
     ciudad: state.ciudad,
-    ubicacionLinea: state.ubicacionLinea,
-    enlaceMapa: state.enlaceMapa,
+    ubicacionLinea: buildRentasStreetLine(state),
+    enlaceMapa: "",
     descripcion: state.descripcion,
     estadoAnuncio: ((): BrPrivadoListingStatus | undefined => {
       if (state.estadoAnuncio === "rentado") return "vendido";
@@ -126,7 +127,11 @@ export function buildLeonixMachineFacetPairsFromRentasPrivadoFormState(
     petsAllowed:
       state.mascotas === "permitidas" ? "yes" : state.mascotas === "no_permitidas" ? "no" : "",
   });
-  return buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(br);
+  const base = buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(br);
+  const zipRentas = normalizeZipForBrowse(`${state.direccionCodigoPostal} ${state.ubicacionLinea} ${state.ciudad}`.trim());
+  if (zipRentas.length < 5) return base;
+  const withoutZip = base.filter((p) => p.label !== LEONIX_DP_POSTAL_CODE);
+  return [...withoutZip, { label: LEONIX_DP_POSTAL_CODE, value: zipRentas }];
 }
 
 export function buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(

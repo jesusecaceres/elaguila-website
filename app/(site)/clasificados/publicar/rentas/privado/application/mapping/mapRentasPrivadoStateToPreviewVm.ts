@@ -3,6 +3,15 @@ import { mapBienesRaicesPrivadoStateToPreviewVm } from "@/app/clasificados/publi
 import { mergePartialBienesRaicesPrivadoState } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import type { BienesRaicesPrivadoFormState } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import { RENTAS_PLAZO_LABELS } from "@/app/clasificados/rentas/shared/utils/rentasPublishConstants";
+import {
+  buildRentasCityStateZipLine,
+  buildRentasGoogleMapsSearchQuery,
+  buildRentasStreetLine,
+  formatRentasDepositUsdPreview,
+  formatRentasDisponibilidadDisplay,
+  formatRentasServiciosIncluidosOutput,
+  rentasGoogleMapsUrlFromQuery,
+} from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import type { RentasPrivadoFormState } from "../../schema/rentasPrivadoFormState";
 import type { BienesRaicesPreviewFact, BienesRaicesPreviewQuickFactVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 
@@ -31,13 +40,14 @@ function formatUsdMonthly(precio: string): string {
 }
 
 function toBienesRaicesPrivadoShape(s: RentasPrivadoFormState): BienesRaicesPrivadoFormState {
+  const line1 = buildRentasStreetLine(s);
   return mergePartialBienesRaicesPrivadoState({
     categoriaPropiedad: s.categoriaPropiedad,
     titulo: s.titulo,
     precio: s.rentaMensual,
     ciudad: s.ciudad,
-    ubicacionLinea: s.ubicacionLinea,
-    enlaceMapa: s.enlaceMapa,
+    ubicacionLinea: line1,
+    enlaceMapa: "",
     descripcion: s.descripcion,
     estadoAnuncio: s.estadoAnuncio === "rentado" ? "vendido" : s.estadoAnuncio,
     media: {
@@ -62,25 +72,32 @@ function toBienesRaicesPrivadoShape(s: RentasPrivadoFormState): BienesRaicesPriv
   });
 }
 
+function plazoDisplay(s: RentasPrivadoFormState): string {
+  if (s.plazoContrato === "otro") return trim(s.plazoContratoOtro);
+  if (s.plazoContrato && RENTAS_PLAZO_LABELS[s.plazoContrato]) return RENTAS_PLAZO_LABELS[s.plazoContrato].es;
+  return "";
+}
+
 function rentalDetailRows(s: RentasPrivadoFormState): BienesRaicesPreviewFact[] {
   const rows: BienesRaicesPreviewFact[] = [];
   const rent = formatUsdMonthly(s.rentaMensual);
   if (rent) rows.push({ label: "Renta mensual", value: rent });
-  const dep = trim(s.deposito);
+  const dep = formatRentasDepositUsdPreview(s.deposito);
   if (dep) rows.push({ label: "Depósito", value: dep });
-  if (s.plazoContrato && RENTAS_PLAZO_LABELS[s.plazoContrato]) {
-    rows.push({ label: "Plazo del contrato", value: RENTAS_PLAZO_LABELS[s.plazoContrato].es });
-  }
-  const disp = trim(s.disponibilidad);
+  const pl = plazoDisplay(s);
+  if (pl) rows.push({ label: "Plazo del contrato", value: pl });
+  const disp = formatRentasDisponibilidadDisplay(s.disponibilidad);
   if (disp) rows.push({ label: "Disponibilidad", value: disp });
   if (s.amueblado === "amueblado") rows.push({ label: "Amueblado", value: "Amueblado" });
   if (s.amueblado === "sin_amueblar") rows.push({ label: "Amueblado", value: "Sin amueblar" });
   if (s.mascotas === "permitidas") rows.push({ label: "Mascotas", value: "Permitidas" });
   if (s.mascotas === "no_permitidas") rows.push({ label: "Mascotas", value: "No permitidas" });
-  const svc = trim(s.serviciosIncluidos);
+  const svc = formatRentasServiciosIncluidosOutput(s);
   if (svc) rows.push({ label: "Servicios incluidos", value: svc });
   const req = trim(s.requisitos);
   if (req) rows.push({ label: "Requisitos", value: req });
+  const zona = trim(s.zonaVecindario);
+  if (zona) rows.push({ label: "Zona o vecindario", value: zona });
   return rows;
 }
 
@@ -88,18 +105,17 @@ function rentalQuickFacts(s: RentasPrivadoFormState): BienesRaicesPreviewQuickFa
   const out: BienesRaicesPreviewQuickFactVm[] = [];
   const rent = formatUsdMonthly(s.rentaMensual);
   if (rent) out.push({ label: "Renta mensual", value: rent, icon: "calendar" });
-  const dep = trim(s.deposito);
+  const dep = formatRentasDepositUsdPreview(s.deposito);
   if (dep) out.push({ label: "Depósito", value: dep, icon: "pin" });
-  if (s.plazoContrato && RENTAS_PLAZO_LABELS[s.plazoContrato]) {
-    out.push({ label: "Plazo", value: RENTAS_PLAZO_LABELS[s.plazoContrato].es, icon: "calendar" });
-  }
-  const disp = trim(s.disponibilidad);
+  const pl = plazoDisplay(s);
+  if (pl) out.push({ label: "Plazo", value: pl, icon: "calendar" });
+  const disp = formatRentasDisponibilidadDisplay(s.disponibilidad);
   if (disp) out.push({ label: "Disponibilidad", value: disp, icon: "calendar" });
   if (s.amueblado === "amueblado") out.push({ label: "Amueblado", value: "Sí", icon: "home" });
   if (s.amueblado === "sin_amueblar") out.push({ label: "Amueblado", value: "No", icon: "home" });
   if (s.mascotas === "permitidas") out.push({ label: "Mascotas", value: "Permitidas", icon: "sparkle" });
   if (s.mascotas === "no_permitidas") out.push({ label: "Mascotas", value: "No", icon: "sparkle" });
-  const svc = trim(s.serviciosIncluidos);
+  const svc = formatRentasServiciosIncluidosOutput(s);
   if (svc) out.push({ label: "Servicios", value: svc, icon: "sparkle" });
   return out;
 }
@@ -112,6 +128,13 @@ function rentOperationSummary(cat: RentasPrivadoFormState["categoriaPropiedad"])
 
 export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): BienesRaicesPrivadoPreviewVm {
   const base = mapBienesRaicesPrivadoStateToPreviewVm(toBienesRaicesPrivadoShape(s));
+  const line1 = buildRentasStreetLine(s);
+  const cityZip = buildRentasCityStateZipLine(s);
+  const zona = trim(s.zonaVecindario);
+  const cityStateZip = cityZip;
+  const mapsUrl = rentasGoogleMapsUrlFromQuery(buildRentasGoogleMapsSearchQuery(s));
+  const hasMeaningfulAddress = Boolean(line1 || trim(s.ciudad) || zona || mapsUrl);
+  const addressLine = [line1, trim(s.ciudad), zona ? `Zona: ${zona}` : ""].filter(Boolean).join(" · ");
   const rentRows = rentalDetailRows(s);
   const rentFacts = rentalQuickFacts(s);
   const mailto =
@@ -124,6 +147,7 @@ export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): Bie
 
   return {
     ...base,
+    addressLine,
     priceDisplay: formatUsdMonthly(s.rentaMensual),
     listingStatusLabel: ESTADO_RENTAS[s.estadoAnuncio],
     operationSummary: rentOperationSummary(s.categoriaPropiedad),
@@ -138,6 +162,13 @@ export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): Bie
       solicitarInfoHref: mailto,
       showSolicitarInfo: Boolean(mailto),
       instructionsLine: "",
+    },
+    location: {
+      ...base.location,
+      line1,
+      cityStateZip,
+      mapsUrl,
+      hasMeaningfulAddress,
     },
   };
 }

@@ -5,9 +5,16 @@
 
 import type { RentasNegocioFormState } from "@/app/clasificados/publicar/rentas/negocio/schema/rentasNegocioFormState";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
+import {
+  buildRentasGoogleMapsSearchQuery,
+  formatRentasDisponibilidadDisplay,
+  formatRentasServiciosIncluidosOutput,
+  rentasGoogleMapsUrlFromQuery,
+} from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 
 export const RENTAS_DP_DEPOSIT_USD = "Leonix:rent:deposit_usd";
 export const RENTAS_DP_LEASE_TERM = "Leonix:rent:lease_term_code";
+export const RENTAS_DP_LEASE_TERM_CUSTOM = "Leonix:rent:lease_term_custom";
 export const RENTAS_DP_AVAILABILITY = "Leonix:rent:availability_note";
 export const RENTAS_DP_SERVICES_INCLUDED = "Leonix:rent:services_included";
 export const RENTAS_DP_REQUIREMENTS = "Leonix:rent:requirements";
@@ -25,7 +32,27 @@ export const RENTAS_DP_HALF_BATHS_COUNT = "Leonix:rent:half_baths_count";
 
 type RentasPersistCommon = Pick<
   RentasPrivadoFormState,
-  "deposito" | "plazoContrato" | "disponibilidad" | "amueblado" | "mascotas" | "serviciosIncluidos" | "requisitos"
+  | "deposito"
+  | "plazoContrato"
+  | "plazoContratoOtro"
+  | "disponibilidad"
+  | "amueblado"
+  | "mascotas"
+  | "serviciosIncluidosKeys"
+  | "serviciosIncluidosOtro"
+  | "serviciosIncluidosLegacy"
+  | "requisitos"
+>;
+
+type RentasMapQueryState = Pick<
+  RentasPrivadoFormState,
+  | "direccionNumero"
+  | "direccionCalle"
+  | "ubicacionLinea"
+  | "zonaVecindario"
+  | "ciudad"
+  | "direccionEstado"
+  | "direccionCodigoPostal"
 >;
 
 function push(out: Array<{ label: string; value: string }>, label: string, value: string) {
@@ -39,17 +66,22 @@ function digitsUsd(raw: string): string {
 }
 
 function mergeRentasCommonMachinePairs(
-  state: RentasPersistCommon,
+  state: RentasPersistCommon & RentasMapQueryState,
   base: Array<{ label: string; value: string }>,
 ): Array<{ label: string; value: string }> {
   const out = [...base];
   const dep = digitsUsd(state.deposito);
   if (dep) push(out, RENTAS_DP_DEPOSIT_USD, dep);
-  if (state.plazoContrato) push(out, RENTAS_DP_LEASE_TERM, state.plazoContrato);
-  push(out, RENTAS_DP_AVAILABILITY, state.disponibilidad);
+  if (state.plazoContrato === "otro") {
+    push(out, RENTAS_DP_LEASE_TERM, "otro");
+    push(out, RENTAS_DP_LEASE_TERM_CUSTOM, state.plazoContratoOtro);
+  } else if (state.plazoContrato) {
+    push(out, RENTAS_DP_LEASE_TERM, state.plazoContrato);
+  }
+  push(out, RENTAS_DP_AVAILABILITY, formatRentasDisponibilidadDisplay(state.disponibilidad));
   if (state.amueblado) push(out, RENTAS_DP_FURNISHED_CODE, state.amueblado);
   if (state.mascotas) push(out, RENTAS_DP_PETS_CODE, state.mascotas);
-  push(out, RENTAS_DP_SERVICES_INCLUDED, state.serviciosIncluidos);
+  push(out, RENTAS_DP_SERVICES_INCLUDED, formatRentasServiciosIncluidosOutput(state));
   push(out, RENTAS_DP_REQUIREMENTS, state.requisitos);
   return out;
 }
@@ -60,7 +92,8 @@ export function mergeRentasPrivadoMachinePairs(
 ): Array<{ label: string; value: string }> {
   const out = mergeRentasCommonMachinePairs(state, base);
   if (state.estadoAnuncio) push(out, RENTAS_DP_LISTING_STATUS, state.estadoAnuncio);
-  push(out, RENTAS_DP_MAP_URL, state.enlaceMapa);
+  const mapAuto = rentasGoogleMapsUrlFromQuery(buildRentasGoogleMapsSearchQuery(state));
+  if (mapAuto) push(out, RENTAS_DP_MAP_URL, mapAuto);
   const vid = String(state.media.videoUrl ?? "").trim();
   if (vid && /^https?:\/\//i.test(vid)) push(out, RENTAS_DP_VIDEO_URL, vid);
   const half = parseInt(String(state.residencial.mediosBanos ?? "").replace(/\D/g, ""), 10);
@@ -74,7 +107,8 @@ export function mergeRentasNegocioMachinePairs(
 ): Array<{ label: string; value: string }> {
   const out = mergeRentasCommonMachinePairs(state, base);
   if (state.estadoAnuncio) push(out, RENTAS_DP_LISTING_STATUS, state.estadoAnuncio);
-  push(out, RENTAS_DP_MAP_URL, state.enlaceMapa);
+  const mapAuto = rentasGoogleMapsUrlFromQuery(buildRentasGoogleMapsSearchQuery(state));
+  if (mapAuto) push(out, RENTAS_DP_MAP_URL, mapAuto);
   const vid = String(state.media.videoUrl ?? "").trim();
   if (vid && /^https?:\/\//i.test(vid)) push(out, RENTAS_DP_VIDEO_URL, vid);
   const half = parseInt(String(state.residencial.mediosBanos ?? "").replace(/\D/g, ""), 10);

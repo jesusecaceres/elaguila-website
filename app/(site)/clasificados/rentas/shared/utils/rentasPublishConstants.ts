@@ -8,4 +8,5 @@ export const RENTAS_PLAZO_LABELS: Record<string, { es: string; en: string }> = {
   "12-meses": { es: "12 meses", en: "12 months" },
   "1-ano": { es: "1 año", en: "1 year" },
   "2-anos": { es: "2 años", en: "2 years" },
+  otro: { es: "Otro", en: "Other" },
 };
