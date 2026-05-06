@@ -133,7 +133,8 @@ function rowSvcMulti(pj: ServiciosBusinessProfile): boolean {
 
 function rowOffer(pj: ServiciosBusinessProfile): boolean {
   if (pj.opsMeta?.discovery?.hasPromoHeadline === true) return true;
-  return Boolean(pj.promo?.headline?.trim());
+  if (pj.promo?.headline?.trim()) return true;
+  return (pj.promotions ?? []).some((p) => p?.headline?.trim());
 }
 
 function rowLegalComplete(pj: ServiciosBusinessProfile): boolean {
@@ -252,7 +253,7 @@ export function filterServiciosPublicListingRows(
     if (wantWa || wantPromo || wantCall) {
       const profile = resolvedProfile(row, lang);
       if (wantWa && !profile.contact.socialLinks?.whatsapp) return false;
-      if (wantPromo && !profile.promo?.headline?.trim()) return false;
+      if (wantPromo && !profile.promotions.some((p) => p.headline?.trim())) return false;
       if (wantCall && !(profile.contact.phoneDisplay && profile.contact.phoneTelHref)) return false;
     }
 

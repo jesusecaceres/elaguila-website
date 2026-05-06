@@ -1,10 +1,12 @@
 import type {
   ClasificadosServiciosApplicationState,
+  ClasificadosServiciosPromoRow,
   DayKey,
   GalleryItem,
   TestimonialRow,
   VideoItem,
 } from "./clasificadosServiciosApplicationTypes";
+import { createEmptyClasificadosPromoRow } from "./clasificadosServiciosPromo";
 import { createDefaultClasificadosServiciosState } from "./defaultClasificadosServiciosState";
 import { isBusinessHighlightPresetId } from "./businessHighlightPresets";
 import { normalizeServiceOfferedDedupeKey } from "./serviciosCustomServicesOffered";
@@ -54,10 +56,54 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
   const bool = (k: string, fallback: boolean) => (typeof o[k] === "boolean" ? (o[k] as boolean) : fallback);
 
   const offerPrimaryRaw = o.offerPrimaryAsset;
-  let offerPrimaryAsset: ClasificadosServiciosApplicationState["offerPrimaryAsset"] = d.offerPrimaryAsset;
+  let legacyOfferPrimary: ClasificadosServiciosPromoRow["primaryAsset"] = "none";
   if (offerPrimaryRaw === "link" || offerPrimaryRaw === "image" || offerPrimaryRaw === "pdf" || offerPrimaryRaw === "none") {
-    offerPrimaryAsset = offerPrimaryRaw;
+    legacyOfferPrimary = offerPrimaryRaw;
   }
+
+  const parsePromoPrimary = (v: unknown): ClasificadosServiciosPromoRow["primaryAsset"] => {
+    if (v === "link" || v === "image" || v === "pdf" || v === "none") return v;
+    return "none";
+  };
+
+  let promotions: ClasificadosServiciosPromoRow[] = [...d.promotions];
+  if (Array.isArray(o.promotions)) {
+    const parsed: ClasificadosServiciosPromoRow[] = [];
+    for (const item of o.promotions) {
+      if (!item || typeof item !== "object") continue;
+      const r = item as Record<string, unknown>;
+      parsed.push({
+        title: typeof r.title === "string" ? r.title : "",
+        details: typeof r.details === "string" ? r.details : "",
+        link: typeof r.link === "string" ? r.link : "",
+        imageUrl: typeof r.imageUrl === "string" ? r.imageUrl : "",
+        pdfUrl: typeof r.pdfUrl === "string" ? r.pdfUrl : "",
+        primaryAsset: parsePromoPrimary(r.primaryAsset),
+        qrLater: r.qrLater === true,
+      });
+    }
+    if (parsed.length > 0) promotions = parsed;
+  } else if (
+    (typeof o.offerTitle === "string" && o.offerTitle.trim()) ||
+    (typeof o.offerDetails === "string" && o.offerDetails.trim()) ||
+    (typeof o.offerLink === "string" && o.offerLink.trim()) ||
+    (typeof o.offerImageUrl === "string" && o.offerImageUrl.trim()) ||
+    (typeof o.offerPdfUrl === "string" && o.offerPdfUrl.trim()) ||
+    o.offerQrLater === true
+  ) {
+    promotions = [
+      {
+        title: str("offerTitle", ""),
+        details: str("offerDetails", ""),
+        link: str("offerLink", ""),
+        imageUrl: str("offerImageUrl", ""),
+        pdfUrl: str("offerPdfUrl", ""),
+        primaryAsset: legacyOfferPrimary,
+        qrLater: bool("offerQrLater", false),
+      },
+    ];
+  }
+  if (promotions.length === 0) promotions = [createEmptyClasificadosPromoRow()];
 
   let hours = d.hours;
   if (Array.isArray(o.hours) && o.hours.length === 7) {
@@ -275,13 +321,7 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     socialLinkedin: str("socialLinkedin", d.socialLinkedin),
     hours,
     testimonials,
-    offerTitle: str("offerTitle", d.offerTitle),
-    offerDetails: str("offerDetails", d.offerDetails),
-    offerLink: str("offerLink", d.offerLink),
-    offerImageUrl: str("offerImageUrl", d.offerImageUrl),
-    offerPdfUrl: str("offerPdfUrl", d.offerPdfUrl),
-    offerPrimaryAsset,
-    offerQrLater: bool("offerQrLater", d.offerQrLater),
+    promotions,
     confirmListingAccurate: bool("confirmListingAccurate", d.confirmListingAccurate),
     confirmPhotosRepresentBusiness: bool("confirmPhotosRepresentBusiness", d.confirmPhotosRepresentBusiness),
     confirmCommunityRules: bool("confirmCommunityRules", d.confirmCommunityRules),

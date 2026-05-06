@@ -94,6 +94,13 @@ import {
 } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 import { ServiciosAmenityBadge } from "@/app/servicios/components/ServiciosAmenityBadge";
 import { evaluateAddCustomAmenityOption } from "../lib/serviciosCustomAmenityOptions";
+import {
+  MAX_CLASIFICADOS_PROMOTIONS,
+  CLASIFICADOS_PROMO_TITLE_MAX,
+  CLASIFICADOS_PROMO_DETAILS_MAX,
+  CLASIFICADOS_PROMO_LINK_MAX,
+  createEmptyClasificadosPromoRow,
+} from "../lib/clasificadosServiciosPromo";
 import { evaluateAddCertificationLabel } from "@/app/servicios/lib/serviciosCredentialsCustom";
 import {
   MAX_SERVICIOS_CERTIFICATIONS,
@@ -194,8 +201,8 @@ export function ClasificadosServiciosApplication() {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
-  const offerImageInputRef = useRef<HTMLInputElement>(null);
-  const offerPdfInputRef = useRef<HTMLInputElement>(null);
+  const promoImageInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const promoPdfInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const [logoUrlDraft, setLogoUrlDraft] = useState("");
   const [coverUrlDraft, setCoverUrlDraft] = useState("");
   const [galleryUrlDraft, setGalleryUrlDraft] = useState("");
@@ -269,8 +276,7 @@ export function ClasificadosServiciosApplication() {
     state.featuredGalleryIds,
     state.coverUrl,
     state.logoUrl,
-    state.offerImageUrl,
-    state.offerPdfUrl,
+    state.promotions,
   ]);
 
   useLeonixPublishLeaveGuard({
@@ -366,7 +372,6 @@ export function ClasificadosServiciosApplication() {
   }, []);
 
   const websiteInvalid = state.website.trim() && !isProbablyValidWebUrl(state.website);
-  const offerLinkInvalid = state.offerLink.trim() && !isProbablyValidWebUrl(state.offerLink);
   const emailInvalid = state.email.trim().length > 0 && !isValidEmail(state.email);
   const whatsappBizInvalid = state.whatsappBusinessUrl.trim().length > 0 && !isProbablyValidWebUrl(state.whatsappBusinessUrl);
   const socialInvalid = {
@@ -2489,132 +2494,265 @@ export function ClasificadosServiciosApplication() {
 
         {step === 7 ? (
           <>
-        {/* Promoción (testimonials hidden — state preserved in draft) */}
         <section className={sectionCard} aria-labelledby="sec-promo">
           <h2 id="sec-promo" className="text-lg font-bold text-[#3D2C12]">
             {copy.sections.offer}
           </h2>
-          <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">{copy.labels.promoSectionIntro}</p>
-          <label className={`mt-5 block ${labelClass}`}>{copy.labels.offerTitle}</label>
-          <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerTitleHelp}</p>
-          <input
-            className={inputClass}
-            value={state.offerTitle}
-            onChange={(e) => setState((s) => ({ ...s, offerTitle: e.target.value }))}
-          />
-          <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerDetails}</label>
-          <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerDetailsHelp}</p>
-          <textarea className={inputClass} rows={3} value={state.offerDetails} onChange={(e) => setState((s) => ({ ...s, offerDetails: e.target.value }))} />
-          <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerLink}</label>
-          <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerLinkHelp}</p>
-          <input
-            className={`${inputClass} ${offerLinkInvalid ? inputWarn : ""}`}
-            type="url"
-            placeholder="https://"
-            value={state.offerLink}
-            onChange={(e) => setState((s) => ({ ...s, offerLink: e.target.value }))}
-          />
-          {offerLinkInvalid ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
-          <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerImage}</label>
-          <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerImageHelp}</p>
-          <input
-            ref={offerImageInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (!f) return;
-              if (!f.type.startsWith("image/")) {
-                setMediaFlash(copy.labels.mediaWrongFileType);
-                e.target.value = "";
-                return;
-              }
-              void readFileAsDataUrl(f).then((url) => setState((s) => ({ ...s, offerImageUrl: url })));
-            }}
-          />
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <div className="flex flex-wrap items-center gap-2">
+          <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">{copy.labels.promotionsSectionIntro}</p>
+
+          {state.promotions.map((row, i) => {
+            const linkInvalid = row.link.trim() && !isProbablyValidWebUrl(row.link);
+            return (
+              <div
+                key={`promo-block-${i}`}
+                className={i === 0 ? "mt-6" : "mt-8 border-t border-[#D8C79A]/40 pt-8"}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-base font-bold text-[#3D2C12]">{copy.labels.promotionSlot(i + 1)}</h3>
+                  {state.promotions.length > 1 ? (
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-red-800 underline"
+                      onClick={() =>
+                        setState((s) =>
+                          enforceServiciosSelectionCaps({
+                            ...s,
+                            promotions:
+                              s.promotions.length > 1
+                                ? s.promotions.filter((_, j) => j !== i)
+                                : [createEmptyClasificadosPromoRow()],
+                          }),
+                        )
+                      }
+                    >
+                      {copy.labels.promoRemovePromotion}
+                    </button>
+                  ) : null}
+                </div>
+
+                <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerTitle}</label>
+                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerTitleHelp}</p>
+                <input
+                  className={inputClass}
+                  placeholder={copy.labels.promoTitlePlaceholder}
+                  maxLength={CLASIFICADOS_PROMO_TITLE_MAX}
+                  value={row.title}
+                  onChange={(e) =>
+                    setState((s) => {
+                      const next = [...s.promotions];
+                      const cur = next[i] ?? createEmptyClasificadosPromoRow();
+                      next[i] = { ...cur, title: e.target.value.slice(0, CLASIFICADOS_PROMO_TITLE_MAX) };
+                      return enforceServiciosSelectionCaps({ ...s, promotions: next });
+                    })
+                  }
+                />
+                <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerDetails}</label>
+                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerDetailsHelp}</p>
+                <textarea
+                  className={inputClass}
+                  rows={3}
+                  placeholder={copy.labels.promoDetailsPlaceholder}
+                  maxLength={CLASIFICADOS_PROMO_DETAILS_MAX}
+                  value={row.details}
+                  onChange={(e) =>
+                    setState((s) => {
+                      const next = [...s.promotions];
+                      const cur = next[i] ?? createEmptyClasificadosPromoRow();
+                      next[i] = { ...cur, details: e.target.value.slice(0, CLASIFICADOS_PROMO_DETAILS_MAX) };
+                      return enforceServiciosSelectionCaps({ ...s, promotions: next });
+                    })
+                  }
+                />
+                <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerLink}</label>
+                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerLinkHelp}</p>
+                <input
+                  className={`${inputClass} ${linkInvalid ? inputWarn : ""}`}
+                  type="url"
+                  placeholder={copy.labels.promoLinkPlaceholder}
+                  value={row.link}
+                  onChange={(e) =>
+                    setState((s) => {
+                      const next = [...s.promotions];
+                      const cur = next[i] ?? createEmptyClasificadosPromoRow();
+                      next[i] = { ...cur, link: e.target.value.slice(0, CLASIFICADOS_PROMO_LINK_MAX) };
+                      return enforceServiciosSelectionCaps({ ...s, promotions: next });
+                    })
+                  }
+                />
+                {linkInvalid ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
+
+                <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerImage}</label>
+                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerImageHelp}</p>
+                <input
+                  ref={(el) => {
+                    promoImageInputRefs.current[i] = el;
+                  }}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    if (!f.type.startsWith("image/")) {
+                      setMediaFlash(copy.labels.mediaWrongFileType);
+                      e.target.value = "";
+                      return;
+                    }
+                    void readFileAsDataUrl(f).then((url) =>
+                      setState((s) => {
+                        const next = [...s.promotions];
+                        const cur = next[i] ?? createEmptyClasificadosPromoRow();
+                        next[i] = { ...cur, imageUrl: url };
+                        return enforceServiciosSelectionCaps({ ...s, promotions: next });
+                      }),
+                    );
+                  }}
+                />
+                <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      className="inline-flex min-h-[44px] items-center rounded-xl border border-[#D8C79A]/80 bg-white px-3 py-2 text-xs font-semibold text-[#3D2C12]"
+                      onClick={() => promoImageInputRefs.current[i]?.click()}
+                    >
+                      {copy.labels.upload}
+                    </button>
+                    {row.imageUrl ? (
+                      <button
+                        type="button"
+                        className="min-h-[44px] text-xs font-semibold text-red-700 underline"
+                        onClick={() =>
+                          setState((s) => {
+                            const next = [...s.promotions];
+                            const cur = next[i] ?? createEmptyClasificadosPromoRow();
+                            next[i] = { ...cur, imageUrl: "" };
+                            return enforceServiciosSelectionCaps({ ...s, promotions: next });
+                          })
+                        }
+                      >
+                        {copy.labels.remove}
+                      </button>
+                    ) : null}
+                  </div>
+                  {row.imageUrl ? (
+                    <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
+                        <Image src={row.imageUrl} alt="" fill className="object-cover" unoptimized />
+                      </div>
+                      <p className="text-xs font-medium text-[#2d528d]">{copy.labels.mediaUploadedBadge}</p>
+                    </div>
+                  ) : null}
+                </div>
+
+                <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerPdf}</label>
+                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerPdfHelp}</p>
+                <input
+                  ref={(el) => {
+                    promoPdfInputRefs.current[i] = el;
+                  }}
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    if (f.type !== "application/pdf") {
+                      setMediaFlash(copy.labels.mediaWrongPdfType);
+                      e.target.value = "";
+                      return;
+                    }
+                    void readFileAsDataUrl(f).then((url) =>
+                      setState((s) => {
+                        const next = [...s.promotions];
+                        const cur = next[i] ?? createEmptyClasificadosPromoRow();
+                        next[i] = { ...cur, pdfUrl: url };
+                        return enforceServiciosSelectionCaps({ ...s, promotions: next });
+                      }),
+                    );
+                  }}
+                />
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    className="inline-flex min-h-[44px] items-center rounded-xl border border-[#D8C79A]/80 bg-white px-3 py-2 text-xs font-semibold text-[#3D2C12]"
+                    onClick={() => promoPdfInputRefs.current[i]?.click()}
+                  >
+                    {copy.labels.upload}
+                  </button>
+                  {row.pdfUrl ? (
+                    <>
+                      <span className="inline-flex items-center rounded-full bg-[#3B66AD]/10 px-2.5 py-1 text-[11px] font-semibold text-[#2d528d]">
+                        PDF
+                      </span>
+                      <button
+                        type="button"
+                        className="min-h-[44px] text-xs font-semibold text-red-700 underline"
+                        onClick={() =>
+                          setState((s) => {
+                            const next = [...s.promotions];
+                            const cur = next[i] ?? createEmptyClasificadosPromoRow();
+                            next[i] = { ...cur, pdfUrl: "" };
+                            return enforceServiciosSelectionCaps({ ...s, promotions: next });
+                          })
+                        }
+                      >
+                        {copy.labels.remove}
+                      </button>
+                    </>
+                  ) : null}
+                </div>
+
+                <p className={`mt-6 ${labelClass}`}>{copy.labels.offerPrimaryLabel}</p>
+                <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
+                  {(
+                    [
+                      ["none", copy.labels.offerPrimaryNone] as const,
+                      ["link", copy.labels.offerPrimaryLink] as const,
+                      ["image", copy.labels.offerPrimaryImage] as const,
+                      ["pdf", copy.labels.offerPrimaryPdf] as const,
+                    ] as const
+                  ).map(([val, lab]) => (
+                    <Chip
+                      key={`${i}-${val}`}
+                      selected={row.primaryAsset === val}
+                      onClick={() =>
+                        setState((s) => {
+                          const next = [...s.promotions];
+                          const cur = next[i] ?? createEmptyClasificadosPromoRow();
+                          next[i] = { ...cur, primaryAsset: val };
+                          return enforceServiciosSelectionCaps({ ...s, promotions: next });
+                        })
+                      }
+                    >
+                      {lab}
+                    </Chip>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerAssetContractNote}</p>
+              </div>
+            );
+          })}
+
+          <div className="mt-6 flex flex-col gap-2 border-t border-[#D8C79A]/40 pt-5">
+            {state.promotions.length >= MAX_CLASIFICADOS_PROMOTIONS ? (
+              <p className="text-xs text-[#8a7a62]">{copy.labels.promoMaxNote}</p>
+            ) : (
               <button
                 type="button"
-                className="inline-flex min-h-[44px] items-center rounded-xl border border-[#D8C79A]/80 bg-white px-3 py-2 text-xs font-semibold text-[#3D2C12]"
-                onClick={() => offerImageInputRef.current?.click()}
+                className="inline-flex min-h-[44px] max-w-md items-center justify-center rounded-xl border border-[#3B66AD]/35 bg-[#3B66AD]/10 px-4 text-sm font-semibold text-[#1e3a5f]"
+                onClick={() =>
+                  setState((s) =>
+                    enforceServiciosSelectionCaps({
+                      ...s,
+                      promotions: [...s.promotions, createEmptyClasificadosPromoRow()],
+                    }),
+                  )
+                }
               >
-                {copy.labels.upload}
+                {copy.labels.promoAddPromotion}
               </button>
-              {state.offerImageUrl ? (
-                <button
-                  type="button"
-                  className="min-h-[44px] text-xs font-semibold text-red-700 underline"
-                  onClick={() => setState((s) => ({ ...s, offerImageUrl: "" }))}
-                >
-                  {copy.labels.remove}
-                </button>
-              ) : null}
-            </div>
-            {state.offerImageUrl ? (
-              <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
-                  <Image src={state.offerImageUrl} alt="" fill className="object-cover" unoptimized />
-                </div>
-                <p className="text-xs font-medium text-[#2d528d]">{copy.labels.mediaUploadedBadge}</p>
-              </div>
-            ) : null}
+            )}
           </div>
-          <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerPdf}</label>
-          <input
-            ref={offerPdfInputRef}
-            type="file"
-            accept="application/pdf"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (!f) return;
-              if (f.type !== "application/pdf") {
-                setMediaFlash(copy.labels.mediaWrongPdfType);
-                e.target.value = "";
-                return;
-              }
-              void readFileAsDataUrl(f).then((url) => setState((s) => ({ ...s, offerPdfUrl: url })));
-            }}
-          />
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="inline-flex min-h-[44px] items-center rounded-xl border border-[#D8C79A]/80 bg-white px-3 py-2 text-xs font-semibold text-[#3D2C12]"
-              onClick={() => offerPdfInputRef.current?.click()}
-            >
-              {copy.labels.upload}
-            </button>
-            {state.offerPdfUrl ? (
-              <>
-                <span className="inline-flex items-center rounded-full bg-[#3B66AD]/10 px-2.5 py-1 text-[11px] font-semibold text-[#2d528d]">PDF</span>
-                <button
-                  type="button"
-                  className="min-h-[44px] text-xs font-semibold text-red-700 underline"
-                  onClick={() => setState((s) => ({ ...s, offerPdfUrl: "" }))}
-                >
-                  {copy.labels.remove}
-                </button>
-              </>
-            ) : null}
-          </div>
-          <p className={`mt-6 ${labelClass}`}>{copy.labels.offerPrimaryLabel}</p>
-          <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
-            {(
-              [
-                ["none", copy.labels.offerPrimaryNone] as const,
-                ["link", copy.labels.offerPrimaryLink] as const,
-                ["image", copy.labels.offerPrimaryImage] as const,
-                ["pdf", copy.labels.offerPrimaryPdf] as const,
-              ] as const
-            ).map(([val, lab]) => (
-              <Chip key={val} selected={state.offerPrimaryAsset === val} onClick={() => setState((s) => ({ ...s, offerPrimaryAsset: val }))}>
-                {lab}
-              </Chip>
-            ))}
-          </div>
-          <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerAssetContractNote}</p>
         </section>
           </>
         ) : null}

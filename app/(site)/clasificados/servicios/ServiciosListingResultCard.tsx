@@ -44,7 +44,7 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
   const web = profile.contact.websiteHref;
   const wa = profile.contact.socialLinks?.whatsapp;
   const msg = profile.contact.messageEnabled === true;
-  const promo = profile.promo?.headline?.trim();
+  const promo = profile.promotions[0]?.headline?.trim();
   const qf = profile.quickFacts[0]?.label;
   const groupDiscovery = formatServiciosInternalGroupForDiscovery(row.internal_group, lang);
   const groupLabel = groupDiscovery?.trim() ?? "";

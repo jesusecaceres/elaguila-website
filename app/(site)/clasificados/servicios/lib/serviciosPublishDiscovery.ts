@@ -17,7 +17,9 @@ export function buildServiciosDiscoveryFacet(
     languageChipIds: [...state.languageIds],
     hasPhysicalAddress: [state.physicalStreet, state.physicalAddressCity, state.physicalPostalCode].some((s) => s.trim().length > 0),
     hasServiceAreaMultiLine: tokens.length > 1 || area.includes("\n"),
-    hasPromoHeadline: Boolean(wire.promo?.headline?.trim()),
+    hasPromoHeadline: Boolean(
+      wire.promo?.headline?.trim() || (wire.promotions ?? []).some((p) => p?.headline?.trim()),
+    ),
     listerAttestationsComplete:
       state.confirmListingAccurate === true &&
       state.confirmPhotosRepresentBusiness === true &&

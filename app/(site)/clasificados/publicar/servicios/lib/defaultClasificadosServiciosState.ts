@@ -1,4 +1,8 @@
 import type { ClasificadosServiciosApplicationState, DayHoursRow, DayKey } from "./clasificadosServiciosApplicationTypes";
+import {
+  createEmptyClasificadosPromoRow,
+  clasificadosPromoRowHasProgress,
+} from "./clasificadosServiciosPromo";
 
 const DAY_ORDER: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
@@ -80,13 +84,7 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     socialLinkedin: "",
     hours: defaultHours(),
     testimonials: [],
-    offerTitle: "",
-    offerDetails: "",
-    offerLink: "",
-    offerImageUrl: "",
-    offerPdfUrl: "",
-    offerPrimaryAsset: "none",
-    offerQrLater: false,
+    promotions: [createEmptyClasificadosPromoRow()],
     confirmListingAccurate: false,
     confirmPhotosRepresentBusiness: false,
     confirmCommunityRules: false,
@@ -162,10 +160,7 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
     return true;
   }
   if (s.testimonials.length > 0) return true;
-  if (s.offerTitle.trim() || s.offerDetails.trim() || s.offerLink.trim() || s.offerImageUrl.trim() || s.offerPdfUrl.trim()) {
-    return true;
-  }
-  if (s.offerQrLater) return true;
+  if (s.promotions.some((r) => clasificadosPromoRowHasProgress(r))) return true;
   if (s.confirmListingAccurate || s.confirmPhotosRepresentBusiness || s.confirmCommunityRules) return true;
   if (
     s.paymentMethodIds.length > 0 ||

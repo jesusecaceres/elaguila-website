@@ -188,7 +188,10 @@ export type ServiciosApplicationDraft = {
   highlights?: ServiciosApplicationHighlightDraft[];
   reviews?: ServiciosApplicationReviewDraft[];
   serviceAreas?: ServiciosApplicationServiceAreasDraft;
+  /** @deprecated Prefer `promotions` for classified multi-promo; still used by `/servicios/publicar` */
   promo?: ServiciosApplicationPromoDraft;
+  /** Featured promotions (max 4) — classified Servicios Phase 7A */
+  promotions?: ServiciosApplicationPromoDraft[];
   /** Accepted payment methods (Leonix Servicios); sanitized on map/resolve */
   paymentMethodIds?: string[];
   /** Custom payment method labels; sanitized on map/resolve */

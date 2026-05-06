@@ -1,4 +1,8 @@
-import type { ServiciosBusinessProfile, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
+import type {
+  ServiciosBusinessProfile,
+  ServiciosProfileResolved,
+  ServiciosPromoOffer,
+} from "../types/serviciosBusinessProfile";
 import {
   filterAmenityOptionIds,
   filterCustomAmenityOptions,
@@ -65,8 +69,20 @@ export function hasSidebarServiceAreasMap(p: ServiciosBusinessProfile): boolean 
   return nonEmpty(p.serviceAreas?.mapImageUrl);
 }
 
+function wirePromoOfferActive(o?: ServiciosPromoOffer | null): boolean {
+  if (!o) return false;
+  return Boolean(
+    nonEmpty(o.headline) ||
+      nonEmpty(o.footnote) ||
+      nonEmpty(o.href) ||
+      nonEmpty(o.assetImageUrl) ||
+      nonEmpty(o.assetPdfUrl),
+  );
+}
+
 export function hasOfferSection(p: ServiciosBusinessProfile): boolean {
-  return Boolean(p.promo && nonEmpty(p.promo.headline));
+  if (Array.isArray(p.promotions) && p.promotions.some((x) => wirePromoOfferActive(x))) return true;
+  return wirePromoOfferActive(p.promo);
 }
 
 export function hasPaymentMethods(p: ServiciosBusinessProfile): boolean {
@@ -129,7 +145,7 @@ export function hasSidebarServiceAreasMapResolved(p: ServiciosProfileResolved): 
 }
 
 export function hasOfferSectionResolved(p: ServiciosProfileResolved): boolean {
-  return Boolean(p.promo && nonEmpty(p.promo.headline));
+  return p.promotions.length > 0;
 }
 
 export function hasPaymentMethodsResolved(p: ServiciosProfileResolved): boolean {

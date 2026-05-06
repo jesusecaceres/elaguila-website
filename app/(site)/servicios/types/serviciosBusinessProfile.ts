@@ -256,7 +256,10 @@ export type ServiciosBusinessProfile = {
   businessHighlights?: ServiciosBusinessHighlightItem[];
   reviews?: ServiciosReview[];
   serviceAreas?: ServiciosServiceAreasBlock;
+  /** @deprecated Prefer `promotions`; kept for older `profile_json` rows */
   promo?: ServiciosPromoOffer;
+  /** Featured promotions (up to 4); sanitized at resolve */
+  promotions?: ServiciosPromoOffer[];
   /** Canonical payment method ids; sanitized at resolve */
   paymentMethodIds?: string[];
   /** Advertiser-typed payment labels (non-catalog); sanitized at resolve */
@@ -342,15 +345,15 @@ export type ServiciosProfileResolved = {
   amenityOptionIds: string[];
   /** Sanitized custom amenity labels */
   customAmenityOptions: string[];
-  /** Sanitized offer — only safe href exposed for links */
-  promo?: {
+  /** Active promotions (max 4); safe hrefs only */
+  promotions: Array<{
     id: string;
     headline: string;
     footnote?: string;
     hrefSafe?: string;
     assetImageHrefSafe?: string;
     assetPdfHrefSafe?: string;
-  };
+  }>;
   /** Sanitized credentials block — omitted when nothing meaningful remains */
   credentials?: ServiciosCredentialsResolved;
 };

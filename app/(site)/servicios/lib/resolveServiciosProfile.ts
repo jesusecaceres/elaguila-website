@@ -3,6 +3,7 @@ import type {
   ServiciosGalleryImage,
   ServiciosProfileResolved,
   ServiciosLang,
+  ServiciosPromoOffer,
 } from "../types/serviciosBusinessProfile";
 import {
   filterBusinessHighlights,
@@ -103,21 +104,7 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
 
   const credentials = resolveServiciosCredentials(input.credentials);
 
-  const promoIn = input.promo;
-  let promo: ServiciosProfileResolved["promo"];
-  if (promoIn && trimText(promoIn.headline)) {
-    const hrefSafe = safePromoHref(promoIn.href) ?? undefined;
-    const assetImageHrefSafe = safePromoAssetHref(promoIn.assetImageUrl) ?? undefined;
-    const assetPdfHrefSafe = safePromoAssetHref(promoIn.assetPdfUrl) ?? undefined;
-    promo = {
-      id: trimText(promoIn.id) || "promo",
-      headline: trimText(promoIn.headline),
-      footnote: trimText(promoIn.footnote) || undefined,
-      hrefSafe,
-    };
-    if (assetImageHrefSafe) promo.assetImageHrefSafe = assetImageHrefSafe;
-    if (assetPdfHrefSafe) promo.assetPdfHrefSafe = assetPdfHrefSafe;
-  }
+  const promotions = resolveWirePromotions(input, lang);
 
   /** Testimonials: quote + author only (no self-serve per-quote stars) */
   const reviews = meaningfulReviews(input.reviews).map((r) => ({
@@ -193,9 +180,58 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
     customPaymentMethods: filterCustomPaymentMethods(input.customPaymentMethods),
     amenityOptionIds: filterAmenityOptionIds(input.amenityOptionIds),
     customAmenityOptions: filterCustomAmenityOptions(input.customAmenityOptions),
-    promo,
+    promotions,
     ...(credentials ? { credentials } : {}),
   };
+}
+
+function resolveWirePromotions(
+  input: ServiciosBusinessProfile,
+  lang: ServiciosLang,
+): ServiciosProfileResolved["promotions"] {
+  const raw: ServiciosPromoOffer[] = [];
+  if (Array.isArray(input.promotions) && input.promotions.length > 0) {
+    for (const p of input.promotions.slice(0, 4)) {
+      if (p && typeof p === "object" && typeof p.id === "string") raw.push(p);
+    }
+  } else if (input.promo && typeof input.promo === "object") {
+    raw.push(input.promo);
+  }
+  const out: ServiciosProfileResolved["promotions"] = [];
+  for (const offer of raw) {
+    const row = resolveOnePromoWire(offer, lang);
+    if (row) out.push(row);
+  }
+  return out;
+}
+
+function resolveOnePromoWire(
+  promoIn: ServiciosPromoOffer,
+  lang: ServiciosLang,
+): ServiciosProfileResolved["promotions"][number] | null {
+  const footnote = trimText(promoIn.footnote) || undefined;
+  const headlineRaw = trimText(promoIn.headline);
+  const hrefSafe = safePromoHref(promoIn.href) ?? undefined;
+  const assetImageHrefSafe = safePromoAssetHref(promoIn.assetImageUrl) ?? undefined;
+  const assetPdfHrefSafe = safePromoAssetHref(promoIn.assetPdfUrl) ?? undefined;
+  const hasWire =
+    headlineRaw ||
+    footnote ||
+    hrefSafe ||
+    assetImageHrefSafe ||
+    assetPdfHrefSafe;
+  if (!hasWire) return null;
+  const headline = headlineRaw || (lang === "en" ? "Special offer" : "Oferta especial");
+  const id = trimText(promoIn.id) || "promo";
+  const row: ServiciosProfileResolved["promotions"][number] = {
+    id,
+    headline,
+  };
+  if (footnote) row.footnote = footnote;
+  if (hrefSafe) row.hrefSafe = hrefSafe;
+  if (assetImageHrefSafe) row.assetImageHrefSafe = assetImageHrefSafe;
+  if (assetPdfHrefSafe) row.assetPdfHrefSafe = assetPdfHrefSafe;
+  return row;
 }
 
 const MAX_SECONDARY_CTA_LABELS = 6;

@@ -31,6 +31,17 @@ export function getServiciosCredentialsCardCopy(lang: ServiciosLang) {
   };
 }
 
+export function getServiciosPromocionesSectionCopy(lang: ServiciosLang) {
+  if (lang === "en") {
+    return {
+      sectionTitle: "Special offers",
+    };
+  }
+  return {
+    sectionTitle: "Ofertas especiales",
+  };
+}
+
 export function getServiciosProfileLabels(lang: ServiciosLang) {
   if (lang === "en") {
     return {

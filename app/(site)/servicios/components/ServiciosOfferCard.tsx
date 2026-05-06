@@ -23,7 +23,9 @@ function OfferHeadline({ text }: { text: string }) {
 export function ServiciosOfferCard({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
   const L = getServiciosProfileLabels(lang);
   if (!hasOfferSectionResolved(profile)) return null;
-  const promo = profile.promo!;
+  /** Sidebar teaser: single-promo layouts keep the legacy sticky-panel offer; multiple promos render in main content only. */
+  if (profile.promotions.length !== 1) return null;
+  const promo = profile.promotions[0]!;
 
   const actionLine = (
     <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 border-t border-[#3B66AD]/15 pt-3 text-xs font-semibold">

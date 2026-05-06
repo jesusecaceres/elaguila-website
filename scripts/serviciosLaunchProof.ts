@@ -76,13 +76,17 @@ function baseState(): ClasificadosServiciosApplicationState {
     socialLinkedin: "",
     hours: [],
     testimonials: [],
-    offerTitle: "Free estimates",
-    offerDetails: "",
-    offerLink: "",
-    offerImageUrl: "",
-    offerPdfUrl: "",
-    offerPrimaryAsset: "none",
-    offerQrLater: false,
+    promotions: [
+      {
+        title: "Free estimates",
+        details: "",
+        link: "",
+        imageUrl: "",
+        pdfUrl: "",
+        primaryAsset: "none",
+        qrLater: false,
+      },
+    ],
     paymentMethodIds: [],
     customPaymentMethods: [],
     customPaymentMethodLabel: "",
@@ -103,7 +107,7 @@ function baseState(): ClasificadosServiciosApplicationState {
     confirmListingAccurate: true,
     confirmPhotosRepresentBusiness: true,
     confirmCommunityRules: true,
-  } as ClasificadosServiciosApplicationState);
+  });
 }
 
 function rowFixture(over: Partial<ServiciosPublicListingRow>): ServiciosPublicListingRow {

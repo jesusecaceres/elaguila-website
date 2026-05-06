@@ -235,13 +235,17 @@ function buildApplicationState(preset: BusinessTypePreset): ClasificadosServicio
           "La cotización fue detallada y sin sorpresas. Nos explicaron opciones y plazos reales; la comunicación fue bilingüe cuando lo necesitamos.",
       },
     ],
-    offerTitle: `Promoción ${chipLabel(preset.suggestedServices[0]!, "es")} — consulta prioritaria`,
-    offerDetails: "Válido para nuevos clientes en zona metropolitana; sujeto a disponibilidad.",
-    offerLink: "https://leonix.global/",
-    offerImageUrl: GALLERY_IMGS[0]!,
-    offerPdfUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    offerPrimaryAsset: "image",
-    offerQrLater: true,
+    promotions: [
+      {
+        title: `Promoción ${chipLabel(preset.suggestedServices[0]!, "es")} — consulta prioritaria`,
+        details: "Válido para nuevos clientes en zona metropolitana; sujeto a disponibilidad.",
+        link: "https://leonix.global/",
+        imageUrl: GALLERY_IMGS[0]!,
+        pdfUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        primaryAsset: "image",
+        qrLater: true,
+      },
+    ],
     paymentMethodIds: [],
     customPaymentMethods: [],
     customPaymentMethodLabel: "",
@@ -284,7 +288,8 @@ function rowSvcMulti(pj: ServiciosBusinessProfile): boolean {
 
 function rowOffer(pj: ServiciosBusinessProfile): boolean {
   if (pj.opsMeta?.discovery?.hasPromoHeadline === true) return true;
-  return Boolean(pj.promo?.headline?.trim());
+  if (pj.promo?.headline?.trim()) return true;
+  return (pj.promotions ?? []).some((p) => p?.headline?.trim());
 }
 
 function rowPhysDiscovery(pj: ServiciosBusinessProfile): boolean {

@@ -109,8 +109,15 @@ export type ClasificadosServiciosCopy = {
     offerLink: string;
     offerNote: string;
     testimonialsNote: string;
-    /** Step promo — overall intro */
-    promoSectionIntro: string;
+    /** Step promotions — overall intro (Phase 7A) */
+    promotionsSectionIntro: string;
+    promoAddPromotion: string;
+    promoRemovePromotion: string;
+    promoMaxNote: string;
+    promotionSlot: (index: number) => string;
+    promoTitlePlaceholder: string;
+    promoDetailsPlaceholder: string;
+    promoLinkPlaceholder: string;
     offerTitleHelp: string;
     offerDetailsHelp: string;
     offerLinkHelp: string;
@@ -311,7 +318,7 @@ const es: ClasificadosServiciosCopy = {
     social: "9 · Redes sociales",
     hours: "10 · Horarios",
     testimonials: "11 · Testimonios (opcional)",
-    offer: "12 · Promoción destacada (opcional)",
+    offer: "12 · Promociones destacadas (opcional)",
   },
   labels: {
     businessType: "Tipo de negocio",
@@ -435,8 +442,15 @@ const es: ClasificadosServiciosCopy = {
     offerPrimaryPdf: "PDF",
     offerQrLater: "",
     offerAssetContractNote: "Solo ordena el foco visual cuando hay más de un archivo o enlace.",
-    promoSectionIntro:
-      "Añade una promoción breve para tu vitrina: descuento, temporada, estimado gratis, consulta inicial o paquete especial. Sé concreto; un bloque corto funciona mejor que un texto largo.",
+    promotionsSectionIntro:
+      "Añade hasta 4 ofertas breves para tu vitrina. Usa promociones claras, específicas y fáciles de entender.",
+    promoAddPromotion: "Añadir promoción",
+    promoRemovePromotion: "Quitar promoción",
+    promoMaxNote: "Puedes agregar hasta 4 promociones.",
+    promotionSlot: (n: number) => `Promoción ${n}`,
+    promoTitlePlaceholder: "Ej.: 15% en primera visita",
+    promoDetailsPlaceholder: "Incluye condiciones, fechas o qué servicio aplica.",
+    promoLinkPlaceholder: "https://",
     offerTitleHelp: "Titular directo: qué ofreces y para quién (ej. “15% en limpieza profunda esta semana”).",
     offerDetailsHelp:
       "Incluye la oferta, quién califica, condiciones y vigencia si aplica. Evita letras pequeñas ilegibles: lo esencial aquí.",
@@ -573,7 +587,7 @@ const en: ClasificadosServiciosCopy = {
     social: "9 · Social media",
     hours: "10 · Hours",
     testimonials: "11 · Testimonials (optional)",
-    offer: "12 · Featured promotion (optional)",
+    offer: "12 · Featured promotions (optional)",
   },
   labels: {
     businessType: "Business type",
@@ -697,8 +711,15 @@ const en: ClasificadosServiciosCopy = {
     offerPrimaryPdf: "PDF",
     offerQrLater: "",
     offerAssetContractNote: "This only sets visual emphasis when more than one link or file is present.",
-    promoSectionIntro:
-      "Add one short promotion for your profile: a seasonal offer, discount, free estimate, consultation, or package. Keep it clear and scannable—a tight block beats a long paragraph.",
+    promotionsSectionIntro:
+      "Add up to 4 short offers for your profile. Use clear, specific promotions customers can understand quickly.",
+    promoAddPromotion: "Add promotion",
+    promoRemovePromotion: "Remove promotion",
+    promoMaxNote: "You can add up to 4 promotions.",
+    promotionSlot: (n: number) => `Promotion ${n}`,
+    promoTitlePlaceholder: "Ex: 15% off first visit",
+    promoDetailsPlaceholder: "Include conditions, dates, or which service applies.",
+    promoLinkPlaceholder: "https://",
     offerTitleHelp: "Use a direct headline: what you offer and for whom (e.g. “15% off deep cleaning this week”).",
     offerDetailsHelp:
       "Include the offer, who qualifies, conditions, and timing if relevant. Keep must-know terms here—avoid tiny-print surprises.",

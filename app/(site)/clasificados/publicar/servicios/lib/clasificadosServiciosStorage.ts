@@ -123,7 +123,10 @@ export async function clearServiciosDraftStorageAndIdb(): Promise<void> {
 
 export function serviciosDraftJsonMayContainIdbRefs(state: ClasificadosServiciosApplicationState): boolean {
   const check = (s: string) => typeof s === "string" && s.startsWith(SV_IDB_PREFIX);
-  if (check(state.logoUrl) || check(state.coverUrl) || check(state.offerImageUrl) || check(state.offerPdfUrl)) return true;
+  if (check(state.logoUrl) || check(state.coverUrl)) return true;
+  for (const row of state.promotions ?? []) {
+    if (check(row.imageUrl) || check(row.pdfUrl)) return true;
+  }
   for (const g of state.gallery ?? []) {
     if (check(g.url)) return true;
   }

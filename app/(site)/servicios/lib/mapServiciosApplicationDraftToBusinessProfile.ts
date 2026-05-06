@@ -1,4 +1,4 @@
-import type { ServiciosApplicationDraft } from "../types/serviciosApplicationDraft";
+import type { ServiciosApplicationDraft, ServiciosApplicationPromoDraft } from "../types/serviciosApplicationDraft";
 import type {
   ServiciosAboutBlock,
   ServiciosBusinessProfile,
@@ -168,7 +168,7 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   const businessHighlights = mapBusinessHighlights(draft.highlights);
   const reviews = mapReviews(draft.reviews);
   const serviceAreas = mapServiceAreas(draft.serviceAreas);
-  const promo = mapPromo(draft.promo);
+  const promotionsWire = collectPromotionsWire(draft);
   const paymentMethodIds = sanitizeServiciosPaymentMethodIds(draft.paymentMethodIds);
   const customPaymentMethods = sanitizeCustomPaymentMethodLabels(draft.customPaymentMethods);
   const amenityOptionIds = sanitizeServiciosAmenityOptionIds(draft.amenityOptionIds);
@@ -195,7 +195,7 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   if (businessHighlights.length) out.businessHighlights = businessHighlights;
   if (reviews.length) out.reviews = reviews;
   if (serviceAreas) out.serviceAreas = serviceAreas;
-  if (promo) out.promo = promo;
+  if (promotionsWire.length) out.promotions = promotionsWire;
   if (paymentMethodIds.length) out.paymentMethodIds = paymentMethodIds;
   if (customPaymentMethods.length) out.customPaymentMethods = customPaymentMethods;
   if (amenityOptionIds.length) out.amenityOptionIds = amenityOptionIds;
@@ -406,20 +406,46 @@ function mapServiceAreas(raw: ServiciosApplicationDraft["serviceAreas"]): Servic
   return block;
 }
 
-function mapPromo(raw: ServiciosApplicationDraft["promo"]): ServiciosPromoOffer | undefined {
-  if (!raw) return undefined;
-  const headline = trim(raw.headline);
-  if (!headline) return undefined;
+function promoDraftRowIsActive(raw: ServiciosApplicationPromoDraft): boolean {
+  return Boolean(
+    trim(raw.headline) ||
+      trim(raw.footnote) ||
+      trim(raw.href) ||
+      trim(raw.assetImageUrl) ||
+      trim(raw.assetPdfUrl),
+  );
+}
+
+function mapPromoDraftToWire(raw: ServiciosApplicationPromoDraft): ServiciosPromoOffer | undefined {
+  if (!raw || typeof raw.id !== "string") return undefined;
+  if (!promoDraftRowIsActive(raw)) return undefined;
   const id = trim(raw.id) || "promo";
+  const headline = trim(raw.headline);
   const footnote = trim(raw.footnote);
   const href = trim(raw.href);
   const assetImageUrl = trim(raw.assetImageUrl);
   const assetPdfUrl = trim(raw.assetPdfUrl);
-  const promo: ServiciosPromoOffer = { id, headline };
+  const promo: ServiciosPromoOffer = { id, headline: headline || "" };
   if (footnote) promo.footnote = footnote;
   if (href) promo.href = href;
   if (assetImageUrl) promo.assetImageUrl = assetImageUrl;
   if (assetPdfUrl) promo.assetPdfUrl = assetPdfUrl;
-  // primaryAssetKind / qrIntent are draft-only until publish tooling consumes them
   return promo;
+}
+
+function collectPromotionsWire(draft: ServiciosApplicationDraft): ServiciosPromoOffer[] {
+  const list: ServiciosApplicationPromoDraft[] = [];
+  if (Array.isArray(draft.promotions) && draft.promotions.length > 0) {
+    for (const p of draft.promotions.slice(0, 4)) {
+      if (p && typeof p === "object" && typeof p.id === "string") list.push(p);
+    }
+  } else if (draft.promo && typeof draft.promo.id === "string") {
+    list.push(draft.promo);
+  }
+  const out: ServiciosPromoOffer[] = [];
+  for (const p of list) {
+    const w = mapPromoDraftToWire(p);
+    if (w) out.push(w);
+  }
+  return out.slice(0, 4);
 }

@@ -1,4 +1,14 @@
-import type { ClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationTypes";
+import type {
+  ClasificadosServiciosApplicationState,
+  ClasificadosServiciosPromoRow,
+} from "./clasificadosServiciosApplicationTypes";
+import {
+  MAX_CLASIFICADOS_PROMOTIONS,
+  CLASIFICADOS_PROMO_TITLE_MAX,
+  CLASIFICADOS_PROMO_DETAILS_MAX,
+  CLASIFICADOS_PROMO_LINK_MAX,
+  createEmptyClasificadosPromoRow,
+} from "./clasificadosServiciosPromo";
 import { isBusinessHighlightPresetId } from "./businessHighlightPresets";
 import { normalizeBusinessHighlightDedupeKey } from "./serviciosCustomBusinessHighlights";
 import {
@@ -129,6 +139,26 @@ export function enforceServiciosSelectionCaps(
     return t.slice(0, max);
   };
 
+  const normalizePromoPrimaryAsset = (v: unknown): ClasificadosServiciosPromoRow["primaryAsset"] => {
+    if (v === "link" || v === "image" || v === "pdf" || v === "none") return v;
+    return "none";
+  };
+
+  let promotions: ClasificadosServiciosPromoRow[] = Array.isArray(s.promotions)
+    ? s.promotions.filter((x): x is ClasificadosServiciosPromoRow => x != null && typeof x === "object")
+    : [createEmptyClasificadosPromoRow()];
+  if (promotions.length === 0) promotions = [createEmptyClasificadosPromoRow()];
+  promotions = promotions.slice(0, MAX_CLASIFICADOS_PROMOTIONS);
+  promotions = promotions.map((row) => ({
+    title: typeof row.title === "string" ? row.title.trim().slice(0, CLASIFICADOS_PROMO_TITLE_MAX) : "",
+    details: typeof row.details === "string" ? row.details.trim().slice(0, CLASIFICADOS_PROMO_DETAILS_MAX) : "",
+    link: typeof row.link === "string" ? row.link.trim().slice(0, CLASIFICADOS_PROMO_LINK_MAX) : "",
+    imageUrl: typeof row.imageUrl === "string" ? row.imageUrl.trim() : "",
+    pdfUrl: typeof row.pdfUrl === "string" ? row.pdfUrl.trim() : "",
+    primaryAsset: normalizePromoPrimaryAsset(row.primaryAsset),
+    qrLater: row.qrLater === true,
+  }));
+
   return {
     ...s,
     selectedServiceIds: sis,
@@ -158,5 +188,6 @@ export function enforceServiciosSelectionCaps(
     insuranceDocumentUrl: trimCred(s.insuranceDocumentUrl, SERVICIOS_CREDENTIAL_STRING_MAX.documentUrl),
     certifications,
     pendingCertification,
+    promotions,
   };
 }

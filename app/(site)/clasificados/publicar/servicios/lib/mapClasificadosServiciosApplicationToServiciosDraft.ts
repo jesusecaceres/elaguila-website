@@ -10,6 +10,7 @@ import { parseLanguageOtherLines } from "./languageOtherLines";
 import { digitsOnly } from "./serviciosPhoneUi";
 import { isProbablyValidWebUrl, normalizeHttpUrl } from "./socialAndUrlHelpers";
 import { slugifyServiciosBusinessName } from "./serviciosSlug";
+import { clasificadosPromoRowIsActive } from "./clasificadosServiciosPromo";
 import { WEEK_DAY_LABELS } from "./defaultClasificadosServiciosState";
 import { resolveServiciosPublicCategoryLabel } from "./resolveServiciosPublicCategoryLabel";
 import { getBusinessHighlightPreset } from "./businessHighlightPresets";
@@ -341,8 +342,6 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     .slice(0, 2);
   galleryVideosRaw.sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
 
-  const offerTitle = state.offerTitle.trim();
-
   const about: ServiciosApplicationDraft["about"] | undefined =
     state.aboutText.trim() || state.specialtiesLine.trim()
       ? {
@@ -375,19 +374,24 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (highlights.length) draft.highlights = highlights;
   if (reviews.length) draft.reviews = reviews;
   if (serviceAreas && (serviceAreas.items?.length || serviceAreas.mapImageUrl)) draft.serviceAreas = serviceAreas;
-  if (offerTitle) {
-    const pa = state.offerPrimaryAsset;
-    draft.promo = {
-      id: "promo-clasificados",
-      headline: offerTitle,
-      footnote: state.offerDetails.trim() || undefined,
-      href: state.offerLink.trim() ? normalizeHttpUrl(state.offerLink.trim()) : undefined,
-      assetImageUrl: state.offerImageUrl.trim() || undefined,
-      assetPdfUrl: state.offerPdfUrl.trim() || undefined,
+  const draftPromos: NonNullable<ServiciosApplicationDraft["promotions"]> = [];
+  for (let i = 0; i < state.promotions.length; i++) {
+    const r = state.promotions[i]!;
+    if (!clasificadosPromoRowIsActive(r)) continue;
+    const hrefRaw = r.link.trim();
+    const pa = r.primaryAsset;
+    draftPromos.push({
+      id: `clasificados-promo-${i}`,
+      headline: r.title.trim(),
+      footnote: r.details.trim() || undefined,
+      ...(hrefRaw ? { href: normalizeHttpUrl(hrefRaw) } : {}),
+      ...(r.imageUrl.trim() ? { assetImageUrl: r.imageUrl.trim() } : {}),
+      ...(r.pdfUrl.trim() ? { assetPdfUrl: r.pdfUrl.trim() } : {}),
       ...(pa === "link" || pa === "image" || pa === "pdf" ? { primaryAssetKind: pa } : {}),
-      ...(state.offerQrLater === true ? { qrIntent: true } : {}),
-    };
+      ...(r.qrLater === true ? { qrIntent: true } : {}),
+    });
   }
+  if (draftPromos.length) draft.promotions = draftPromos;
 
   const paymentIds = sanitizeServiciosPaymentMethodIds(state.paymentMethodIds);
   const customPay = sanitizeCustomPaymentMethodLabels(state.customPaymentMethods);

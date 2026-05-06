@@ -73,6 +73,17 @@ export type TestimonialRow = {
   quote: string;
 };
 
+/** One promo slot in the classified Servicios form (Phase 7A — up to 4). */
+export type ClasificadosServiciosPromoRow = {
+  title: string;
+  details: string;
+  link: string;
+  imageUrl: string;
+  pdfUrl: string;
+  primaryAsset: "none" | "link" | "image" | "pdf";
+  qrLater: boolean;
+};
+
 export type ClasificadosServiciosApplicationState = {
   /**
    * Current stepped UI index (0-based), persisted for preview roundtrips.
@@ -159,19 +170,8 @@ export type ClasificadosServiciosApplicationState = {
   socialLinkedin: string;
   hours: DayHoursRow[];
   testimonials: TestimonialRow[];
-  offerTitle: string;
-  offerDetails: string;
-  offerLink: string;
-  /** Local-first promo attachments (data URLs or https) — publish wiring comes later */
-  offerImageUrl: string;
-  offerPdfUrl: string;
-  /**
-   * Which attachment the advertiser treats as primary (UI + future publish).
-   * Does not change the promo shell in this phase.
-   */
-  offerPrimaryAsset: "none" | "link" | "image" | "pdf";
-  /** Placeholder intent for a future QR asset on the coupon card */
-  offerQrLater: boolean;
+  /** Featured promotions — 1–4 rows; legacy single-promo fields migrate in normalize */
+  promotions: ClasificadosServiciosPromoRow[];
   /** Pre-publish attestations (same pattern as En Venta) */
   confirmListingAccurate: boolean;
   confirmPhotosRepresentBusiness: boolean;
