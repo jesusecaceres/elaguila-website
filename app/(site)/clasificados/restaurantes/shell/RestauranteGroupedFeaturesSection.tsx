@@ -4,23 +4,26 @@ import type { GroupedFeatures } from "../lib/restauranteFeaturesNormalization";
 
 // Leonix visual tokens
 const SECTION_CARD = "rounded-3xl border border-[#D8C2A0] bg-[#FFFAF3] shadow-[0_16px_64px_-24px_rgba(212,165,116,0.18)] overflow-hidden";
-const SECTION_PADDING = "p-6 sm:p-8";
+const SECTION_PADDING = "p-4 sm:p-6 md:p-8";
 
-// Centered section header styling
-const HEADER_CONTAINER = "text-center mb-12";
-const SECTION_TITLE = "text-2xl sm:text-3xl font-bold text-[#1F1A17] leading-tight mb-4";
-const SECTION_DIVIDER = "w-24 h-1 bg-gradient-to-r from-transparent via-[#BEA98E] to-transparent mx-auto mb-4";
-const SECTION_DESCRIPTION = "text-base text-[#5A5148] leading-relaxed max-w-2xl mx-auto";
+// Header: compact left on mobile, centered on md+
+const HEADER_CONTAINER = "mb-6 text-left md:mb-12 md:text-center";
+const SECTION_TITLE = "mb-3 text-xl font-bold leading-tight tracking-tight text-[#1F1A17] md:mb-4 md:text-2xl lg:text-3xl";
+const SECTION_DIVIDER = "mx-auto mb-3 h-1 w-20 bg-gradient-to-r from-transparent via-[#BEA98E] to-transparent md:mb-4 md:w-24";
+const SECTION_DESCRIPTION = "max-w-2xl text-sm leading-relaxed text-[#5A5148] md:mx-auto md:text-base";
 
-// Grouped block styling (matches mockup)
-const GROUP_BLOCK = "rounded-2xl border border-[#D8C2A0]/50 bg-[#FFFAF3] p-6 shadow-sm";
-const GROUP_CONTAINER = "flex items-start gap-4";
-const ICON_MEDALLION = "w-12 h-12 rounded-full bg-[#F6EBDD] flex items-center justify-center text-xl flex-shrink-0";
+// Grouped block: tighter on mobile
+const GROUP_BLOCK = "rounded-2xl border border-[#D8C2A0]/50 bg-[#FFFAF3] p-3 shadow-sm md:p-6";
+const GROUP_CONTAINER = "flex items-start gap-2 md:gap-4";
+const ICON_MEDALLION =
+  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F6EBDD] text-base md:h-12 md:w-12 md:text-xl";
 const GROUP_CONTENT = "flex-1 min-w-0";
-const GROUP_TITLE = "text-lg font-semibold text-[#1F1A17] mb-2";
-const GROUP_DESCRIPTION = "text-sm text-[#5A5148] mb-4";
-const FEATURE_CHIP = "px-3 py-1.5 rounded-full bg-[#F6EBDD] text-[#1F1A17] text-xs font-semibold border border-[#D8C2A0] inline-flex items-center gap-1";
-const CHIPS_CONTAINER = "flex flex-wrap gap-2";
+const GROUP_TITLE = "mb-1 text-base font-semibold text-[#1F1A17] md:mb-2 md:text-lg";
+const GROUP_DESCRIPTION = "mb-2 text-xs leading-snug text-[#5A5148] md:mb-4 md:text-sm";
+const FEATURE_CHIP =
+  "inline-flex shrink-0 items-center gap-1 rounded-full border border-[#D8C2A0] bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-semibold text-[#1F1A17] md:px-3 md:py-1.5 md:text-xs";
+const CHIPS_CONTAINER =
+  "-mx-1 flex flex-nowrap gap-1.5 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] md:flex-wrap md:overflow-visible md:gap-2";
 
 // Layout containers
 const FULL_WIDTH_GROUPS = "space-y-6 mb-6";
@@ -84,7 +87,7 @@ export function RestauranteGroupedFeaturesSection({
         </div>
 
         {/* Mobile Layout - Stacked */}
-        <div className="md:hidden space-y-6">
+        <div className="space-y-3 md:hidden">
           {nonEmptyGroups.map(([groupKey, group]) => (
             <GroupBlock key={groupKey} group={group} />
           ))}

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { FiX, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiX, FiChevronLeft, FiChevronRight, FiExternalLink } from "react-icons/fi";
 import type { ShellVenueGalleryBundle } from "./restaurantDetailShellTypes";
 
 interface RestauranteLockedGallerySectionProps {
@@ -87,14 +87,16 @@ export function RestauranteLockedGallerySection({
     <>
       {/* Gallery Section */}
       <section className="rounded-3xl border border-[#D8C2A0] bg-[#FFFAF3] shadow-[0_16px_64px_-24px_rgba(212,165,116,0.18)] overflow-hidden">
-        <div className="p-6 sm:p-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#1F1A17] leading-tight mb-8">Galería</h2>
+        <div className="p-4 sm:p-6 md:p-8">
+          <h2 className="mb-4 text-xl font-bold leading-tight tracking-tight text-[#1F1A17] md:mb-8 md:text-2xl lg:text-3xl">
+            Galería
+          </h2>
           
           {/* Preview Grid - Comida by default */}
           {previewImages.length > 0 && (
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {/* Desktop: 4x2 grid, Mobile: 2x3 grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4">
                 {previewImages.map((item, index) => (
                   <button
                     key={index}
@@ -116,14 +118,14 @@ export function RestauranteLockedGallerySection({
                 ))}
               </div>
               
-              {/* CTA Button */}
-              <div className="text-center">
+              <div className="flex justify-center">
                 <button
+                  type="button"
                   onClick={() => openModal("comida", 0)}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#BEA98E] text-[#1F1A17] rounded-full font-semibold hover:bg-[#D8C2A0] transition-colors"
+                  className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#BEA98E] px-5 py-2.5 text-sm font-semibold text-[#1F1A17] transition-colors hover:bg-[#D8C2A0] md:px-6 md:py-3 md:text-base"
                 >
                   Explorar fotos y videos
-                  <FiExternalLink className="w-4 h-4" />
+                  <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />
                 </button>
               </div>
             </div>
@@ -252,6 +254,3 @@ export function RestauranteLockedGallerySection({
     </>
   );
 }
-
-// Import FiExternalLink
-import { FiExternalLink } from "react-icons/fi";

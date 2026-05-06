@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { FiExternalLink, FiMail, FiMapPin, FiPhone, FiInstagram, FiFacebook, FiYoutube, FiClock, FiStar } from "react-icons/fi";
 import { FaTiktok, FaWhatsapp } from "react-icons/fa";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
@@ -28,8 +30,8 @@ const LEONIX_INFO_BLUE = "#355C7D";
 const LEONIX_ELEVATED_CHIP = "#F6EBDD";
 
 const SECTION_CARD = "rounded-3xl border border-[#D8C2A0] bg-[#FFFAF3] shadow-[0_8px_32px_-8px_rgba(212,165,116,0.15)] overflow-hidden";
-const SECTION_PADDING = "p-6 sm:p-8";
-const SECTION_TITLE = "text-2xl font-bold text-[#1F1A17] mb-6 tracking-tight";
+const SECTION_PADDING = "p-4 sm:p-6 md:p-8";
+const SECTION_TITLE = "text-xl font-bold text-[#1F1A17] mb-4 tracking-tight md:mb-6 md:text-2xl";
 const SECTION_DESCRIPTION = "text-base text-[#5A5148] leading-relaxed";
 const SUBSECTION_TITLE = "text-lg font-semibold text-[#1F1A17] mb-4";
 const DETAIL_LABEL = "text-sm font-semibold text-[#5A5148] mb-2";
@@ -56,6 +58,37 @@ export function RestauranteAdStoryPreview({
   analyticsOwnerUserId,
 }: RestauranteAdStoryPreviewProps) {
   const ownerUid = (analyticsOwnerUserId ?? "").trim() || listingId || "";
+  const pathname = usePathname();
+  const [shareAbs, setShareAbs] = useState("");
+  const [aboutExpanded, setAboutExpanded] = useState(false);
+  const [hoursFull, setHoursFull] = useState(false);
+  const [contactMore, setContactMore] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const p = pathname || "";
+    setShareAbs(p ? `${window.location.origin}${p}` : window.location.href);
+  }, [pathname]);
+
+  const mobileIdentityChips = useMemo(() => {
+    const chips: string[] = [];
+    if (data.cuisineTypeLine) {
+      for (const raw of data.cuisineTypeLine.split(" · ")) {
+        const t = raw.trim();
+        if (t) chips.push(t);
+      }
+    }
+    if (data.taxonomyChips?.length) {
+      for (const tc of data.taxonomyChips) {
+        const t = tc.label?.trim();
+        if (t) chips.push(t);
+      }
+    }
+    return Array.from(new Set(chips));
+  }, [data.cuisineTypeLine, data.taxonomyChips]);
+
+  const priceQuick = data.quickInfo?.find((q) => q.key === "price")?.value?.trim() ?? "";
+
   // Helper functions
   const hasHeroImage = data.heroImageUrl;
 
@@ -71,7 +104,7 @@ export function RestauranteAdStoryPreview({
   const hasContactInfo = data.contact;
   const hasMenuHighlights = data.menuHighlights && data.menuHighlights.length > 0;
   const hasGallery = data.venueGallery || data.gallery;
-  const hasHours = data.hoursDetail;
+  const hasHoursSection = Boolean(data.hoursPreview);
   const hasTrustInfo = data.trustRating || data.trustLight;
   const hasStackSections = data.stackSections && data.stackSections.length > 0;
 
@@ -84,13 +117,164 @@ export function RestauranteAdStoryPreview({
     ['menu', 'menuAsset', 'reserve', 'order'].includes(cta.key)
   );
 
+  const neighborhoodDisplay = data.quickInfo?.find((item) => item.key === "neighborhood")?.value || "";
+
+  const todayHoursRow = useMemo(() => {
+    const rows = data.hoursDetail?.rows;
+    if (!rows?.length) return null;
+    const idx = new Date().getDay();
+    const label = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"][idx];
+    return rows.find((r) => r.dayLabel === label) ?? null;
+  }, [data.hoursDetail]);
+
+  const renderStackValue = (row: { label: string; value: string }) => {
+    const isClickableField =
+      row.label.includes("Ubicación actual") ||
+      row.label.includes("Enlace") ||
+      row.label.includes("Ruta semanal") ||
+      row.label.includes("Solicitud") ||
+      row.label.includes("cotización");
+    const actionableUrl = isClickableField ? normalizeActionableUrl(row.value) : null;
+    if (actionableUrl) {
+      return (
+        <a
+          href={actionableUrl}
+          target={row.value.startsWith("http") ? "_blank" : undefined}
+          rel={row.value.startsWith("http") ? "noopener noreferrer" : undefined}
+          className="break-words text-[#6B5B2E] underline decoration-[#BEA98E] underline-offset-2 transition-colors hover:text-[#1F1A17] hover:decoration-[#D8C2A0]"
+        >
+          {row.value}
+        </a>
+      );
+    }
+    return <span className="break-words text-[#1F1A17]">{row.value}</span>;
+  };
+
   return (
-    <div className="space-y-8" style={{ background: LEONIX_PAGE_BG }}>
+    <div className="space-y-4 md:space-y-8" style={{ background: LEONIX_PAGE_BG }}>
       
       {/* A. Cover / Hero Zone */}
       <section className={SECTION_CARD}>
         {hasHeroImage ? (
-          <div className="relative aspect-[16/10] overflow-hidden">
+          <>
+            {/* Mobile: image only + content below (no engagement over image) */}
+            <div className="md:hidden">
+              <div className="relative aspect-[5/4] w-full overflow-hidden bg-[#EFE7DA]">
+                <Image
+                  src={data.heroImageUrl!}
+                  alt={data.heroImageAlt || data.businessName}
+                  fill
+                  className="object-cover"
+                  priority
+                  sizes="100vw"
+                />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" aria-hidden />
+              </div>
+              <div className="border-t border-[#D8C2A0] bg-[#FFFAF3] px-4 py-3">
+                <h1 className="text-2xl font-bold leading-tight tracking-tight text-[#1F1A17]">{data.businessName}</h1>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-left text-xs text-[#5A5148]">
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-1 font-semibold ${
+                      data.hoursPreview.status === "open"
+                        ? "bg-emerald-100 text-emerald-900"
+                        : "bg-rose-100 text-rose-900"
+                    }`}
+                  >
+                    {data.hoursPreview.status === "open" ? "Abierto" : "Cerrado"}
+                  </span>
+                  {neighborhoodDisplay ? (
+                    <span className="inline-flex max-w-full min-w-0 items-center gap-1 truncate rounded-full border border-[#D8C2A0]/80 bg-white/80 px-2.5 py-1 font-medium text-[#1F1A17]">
+                      <FiMapPin className="h-3.5 w-3.5 shrink-0 text-[#8B7E70]" aria-hidden />
+                      <span className="truncate">{neighborhoodDisplay}</span>
+                    </span>
+                  ) : null}
+                  {priceQuick ? (
+                    <span className="rounded-full border border-[#D8C2A0]/80 bg-white/80 px-2.5 py-1 font-semibold text-[#1F1A17]">
+                      {priceQuick}
+                    </span>
+                  ) : null}
+                  {data.trustRating ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#D8C2A0]/80 bg-white/80 px-2.5 py-1 font-medium text-[#1F1A17]">
+                      <FiStar className="h-3.5 w-3.5 text-amber-500" aria-hidden />
+                      {data.trustRating.average.toFixed(1)} ({data.trustRating.count})
+                    </span>
+                  ) : null}
+                </div>
+                {mobileIdentityChips.length > 0 ? (
+                  <div className="relative mt-3">
+                    <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]">
+                      {mobileIdentityChips.slice(0, 4).map((chip) => (
+                        <span
+                          key={chip}
+                          className="shrink-0 whitespace-nowrap rounded-full border border-[#D8C2A0]/90 bg-[#F6EBDD] px-2.5 py-1 text-[11px] font-semibold text-[#1F1A17]"
+                        >
+                          {chip}
+                        </span>
+                      ))}
+                      {mobileIdentityChips.length > 4 ? (
+                        <span className="shrink-0 rounded-full border border-[#D8C2A0]/90 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#5A5148]">
+                          +{mobileIdentityChips.length - 4}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div
+                      className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[#FFFAF3] to-transparent"
+                      aria-hidden
+                    />
+                  </div>
+                ) : null}
+                {listingId ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#D8C2A0]/40 pt-3">
+                    <LeonixLikeButton
+                      listingId={listingId}
+                      ownerUserId={ownerUid}
+                      variant="small"
+                      lang={lang}
+                      category="restaurantes"
+                    />
+                    <LeonixSaveButton
+                      listingId={listingId}
+                      ownerUserId={ownerUid}
+                      variant="small"
+                      lang={lang}
+                      category="restaurantes"
+                    />
+                    <LeonixShareButton
+                      listingId={listingId}
+                      ownerUserId={ownerUid}
+                      listingTitle={data.businessName}
+                      listingUrl={shareAbs || undefined}
+                      variant="small"
+                      lang={lang}
+                      category="restaurantes"
+                      preferNativeShareOnNarrowViewports
+                    />
+                  </div>
+                ) : null}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {primaryCtas
+                    .filter((cta) => ["call", "whatsapp", "directions", "website"].includes(cta.key))
+                    .slice(0, 4)
+                    .map((cta) => (
+                      <a
+                        key={`m-${cta.key}`}
+                        href={cta.href}
+                        className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-[#D8C2A0] bg-white px-2 text-center text-xs font-semibold text-[#1F1A17] shadow-sm"
+                        {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                      >
+                        {cta.key === "call" && <FiPhone className="h-4 w-4 shrink-0" aria-hidden />}
+                        {cta.key === "website" && <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />}
+                        {cta.key === "directions" && <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />}
+                        {cta.key === "whatsapp" && <FaWhatsapp className="h-4 w-4 shrink-0 text-emerald-700" aria-hidden />}
+                        <span className="leading-tight">{cta.label}</span>
+                      </a>
+                    ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop: existing hero overlay */}
+            <div className="relative hidden aspect-[16/10] overflow-hidden md:block">
             <Image
               src={data.heroImageUrl!}
               alt={data.heroImageAlt || data.businessName}
@@ -100,43 +284,6 @@ export function RestauranteAdStoryPreview({
             />
             {/* Premium dark overlay for text readability */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
-            
-            {/* Top-right engagement actions */}
-            <div className="absolute top-4 right-4 z-20">
-              <div className="flex flex-col gap-2">
-                <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
-                  <LeonixLikeButton
-                    listingId={listingId}
-                    ownerUserId={ownerUid}
-                    variant="small"
-                    lang={lang}
-                    category="restaurantes"
-                    className="border-0"
-                  />
-                </div>
-                <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
-                  <LeonixSaveButton
-                    listingId={listingId}
-                    ownerUserId={ownerUid}
-                    variant="small"
-                    lang={lang}
-                    category="restaurantes"
-                    className="border-0"
-                  />
-                </div>
-                <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
-                  <LeonixShareButton
-                    listingId={listingId}
-                    ownerUserId={ownerUid}
-                    listingTitle={data.businessName}
-                    variant="small"
-                    lang={lang}
-                    category="restaurantes"
-                    className="border-0"
-                  />
-                </div>
-              </div>
-            </div>
             
             {/* Hero content - centered */}
             <div className="absolute inset-0 flex flex-col items-center justify-center p-6 sm:p-8 text-white text-center">
@@ -248,7 +395,43 @@ export function RestauranteAdStoryPreview({
                 </div>
               </div>
             </div>
+            <div className="absolute top-4 right-4 z-20 hidden md:block">
+              <div className="flex flex-col gap-2">
+                <div className="rounded-full bg-white/90 p-1 shadow-lg backdrop-blur-sm">
+                  <LeonixLikeButton
+                    listingId={listingId}
+                    ownerUserId={ownerUid}
+                    variant="small"
+                    lang={lang}
+                    category="restaurantes"
+                    className="border-0"
+                  />
+                </div>
+                <div className="rounded-full bg-white/90 p-1 shadow-lg backdrop-blur-sm">
+                  <LeonixSaveButton
+                    listingId={listingId}
+                    ownerUserId={ownerUid}
+                    variant="small"
+                    lang={lang}
+                    category="restaurantes"
+                    className="border-0"
+                  />
+                </div>
+                <div className="rounded-full bg-white/90 p-1 shadow-lg backdrop-blur-sm">
+                  <LeonixShareButton
+                    listingId={listingId}
+                    ownerUserId={ownerUid}
+                    listingTitle={data.businessName}
+                    listingUrl={shareAbs || undefined}
+                    variant="small"
+                    lang={lang}
+                    category="restaurantes"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
+          </>
         ) : (
           // Fallback hero without image
           <div className={`${SECTION_PADDING} text-center`}>
@@ -358,13 +541,26 @@ export function RestauranteAdStoryPreview({
             <h2 className={SECTION_TITLE}>Sobre el Negocio</h2>
             <div className="prose prose-lg max-w-none">
               {data.aboutBody ? (
-                <div className="text-base text-[#1F1A17] leading-relaxed whitespace-pre-wrap">
-                  {data.aboutBody}
-                </div>
+                <>
+                  <div
+                    className={`text-sm leading-relaxed text-[#1F1A17] whitespace-pre-wrap md:text-base ${
+                      aboutExpanded ? "" : "line-clamp-5 md:line-clamp-none"
+                    }`}
+                  >
+                    {data.aboutBody}
+                  </div>
+                  {data.aboutBody.length > 220 ? (
+                    <button
+                      type="button"
+                      onClick={() => setAboutExpanded((e) => !e)}
+                      className="mt-2 text-sm font-semibold text-[#6B5B2E] underline underline-offset-2 md:hidden"
+                    >
+                      {aboutExpanded ? "Leer menos" : "Leer más"}
+                    </button>
+                  ) : null}
+                </>
               ) : (
-                <p className="text-base text-[#1F1A17] leading-relaxed">
-                  {data.summaryShort}
-                </p>
+                <p className="text-base text-[#1F1A17] leading-relaxed">{data.summaryShort}</p>
               )}
             </div>
           </div>
@@ -376,162 +572,283 @@ export function RestauranteAdStoryPreview({
         <section className={SECTION_CARD}>
           <div className={SECTION_PADDING}>
             <h2 className={SECTION_TITLE}>Contacto y Ubicación</h2>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Contact Information */}
+
+            {/* Mobile: priority CTAs + compact layout */}
+            <div className="md:hidden">
+              <div className="grid grid-cols-2 gap-2">
+                {data.contact?.phoneDisplay && data.contact.phoneTelHref ? (
+                  <a
+                    href={data.contact.phoneTelHref}
+                    className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-[#D8C2A0] bg-[#F6EBDD] px-2 text-xs font-semibold text-[#1F1A17]"
+                  >
+                    <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
+                    Llamar
+                  </a>
+                ) : null}
+                {data.contact?.whatsappHref ? (
+                  <a
+                    href={data.contact.whatsappHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-[#D8C2A0] bg-[#F6EBDD] px-2 text-xs font-semibold text-[#1F1A17]"
+                  >
+                    <FaWhatsapp className="h-4 w-4 shrink-0 text-emerald-700" aria-hidden />
+                    WhatsApp
+                  </a>
+                ) : null}
+                {data.contact?.mapsSearchQuery ? (
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.contact.mapsSearchQuery.trim())}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-[#D8C2A0] bg-white px-2 text-xs font-semibold text-[#1F1A17]"
+                  >
+                    <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
+                    Direcciones
+                  </a>
+                ) : null}
+                {data.contact?.websiteHref ? (
+                  <a
+                    href={data.contact.websiteHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-[#D8C2A0] bg-white px-2 text-xs font-semibold text-[#1F1A17]"
+                  >
+                    <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />
+                    Sitio web
+                  </a>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={() => setContactMore((v) => !v)}
+                className="mt-3 w-full rounded-xl border border-[#D8C2A0]/80 bg-white py-2 text-center text-xs font-semibold text-[#5A5148]"
+              >
+                {contactMore ? "Ocultar detalles" : "Más contacto"}
+              </button>
+              {contactMore ? (
+                <div className="mt-3 space-y-3 border-t border-[#D8C2A0]/40 pt-3 text-left text-sm">
+                  {data.contact?.addressLine1 ? (
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8B7E70]">Dirección</p>
+                      <p className="mt-0.5 break-words font-medium text-[#1F1A17]">{data.contact.addressLine1}</p>
+                      {data.contact.addressLine2 ? (
+                        <p className="mt-0.5 break-words text-[#5A5148]">{data.contact.addressLine2}</p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {data.contact?.email ? (
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8B7E70]">Correo</p>
+                      <ContactEmailMenu
+                        email={data.contact.email}
+                        {...buildRestauranteInquiryMailto(data.contact.email, "es")}
+                        lang="es"
+                        rootClassName="relative mt-1 w-full min-w-0"
+                        triggerClassName="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-lg border border-[#D8C2A0] bg-[#FFFAF3] px-3 py-2 text-left text-sm font-medium text-[#1F1A17]"
+                      >
+                        <FiMail className="h-4 w-4 shrink-0" aria-hidden />
+                        <span className="min-w-0 truncate">{data.contact.email}</span>
+                      </ContactEmailMenu>
+                    </div>
+                  ) : null}
+                  {(data.contact?.menuFileHref || data.fullMenuCta) && (
+                    <div className="flex flex-wrap gap-2">
+                      {data.contact?.menuFileHref ? (
+                        <a
+                          href={data.contact.menuFileHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex min-h-[40px] items-center rounded-lg border border-[#D8C2A0] bg-[#F6EBDD] px-3 text-xs font-semibold"
+                        >
+                          Menú (archivo)
+                        </a>
+                      ) : null}
+                      {data.fullMenuCta ? (
+                        <a
+                          href={data.fullMenuCta.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex min-h-[40px] items-center rounded-lg border border-[#D8C2A0] bg-[#F6EBDD] px-3 text-xs font-semibold"
+                        >
+                          {data.fullMenuCta.label}
+                        </a>
+                      ) : null}
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {data.contact?.instagramHref ? (
+                      <a href={data.contact.instagramHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#D8C2A0] bg-white" aria-label="Instagram">
+                        <FiInstagram className="h-4 w-4" />
+                      </a>
+                    ) : null}
+                    {data.contact?.facebookHref ? (
+                      <a href={data.contact.facebookHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#D8C2A0] bg-white" aria-label="Facebook">
+                        <FiFacebook className="h-4 w-4" />
+                      </a>
+                    ) : null}
+                    {data.contact?.tiktokHref ? (
+                      <a href={data.contact.tiktokHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#D8C2A0] bg-white" aria-label="TikTok">
+                        <FaTiktok className="h-4 w-4" />
+                      </a>
+                    ) : null}
+                    {data.contact?.youtubeHref ? (
+                      <a href={data.contact.youtubeHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#D8C2A0] bg-white" aria-label="YouTube">
+                        <FiYoutube className="h-4 w-4" />
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Desktop: original two-column layout */}
+            <div className="hidden gap-8 md:grid md:grid-cols-2">
               <div>
                 <h3 className={SUBSECTION_TITLE}>Información de Contacto</h3>
-                <div className="flex flex-wrap gap-2 items-center">
-                  {data.contact?.phoneDisplay && (
-                    <a 
-                      href={`tel:${data.contact.phoneTelHref}`} 
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-medium hover:bg-[#BEA98E] transition-colors border border-[#D8C2A0]"
+                <div className="flex flex-wrap items-center gap-2">
+                  {data.contact?.phoneDisplay && data.contact.phoneTelHref ? (
+                    <a
+                      href={data.contact.phoneTelHref}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[#D8C2A0] bg-[#F6EBDD] px-3 py-1.5 text-sm font-medium text-[#1F1A17] hover:bg-[#BEA98E]"
                     >
-                      <FiPhone className="w-4 h-4" />
+                      <FiPhone className="h-4 w-4" aria-hidden />
                       <span>Llamar</span>
-                      <span className="text-xs opacity-70 ml-1">{data.contact.phoneDisplay}</span>
+                      <span className="ml-1 text-xs opacity-70">{data.contact.phoneDisplay}</span>
                     </a>
-                  )}
-                  
+                  ) : null}
+
                   {data.contact?.email ? (
                     <ContactEmailMenu
                       email={data.contact.email}
                       {...buildRestauranteInquiryMailto(data.contact.email, "es")}
                       lang="es"
                       rootClassName="relative w-auto min-w-0 max-w-full"
-                      triggerClassName="inline-flex min-h-[44px] w-full max-w-full items-center gap-1.5 px-3 py-1.5 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-medium hover:bg-[#BEA98E] transition-colors border border-[#D8C2A0] justify-between sm:w-auto sm:max-w-none"
+                      triggerClassName="inline-flex min-h-[44px] w-full max-w-full items-center justify-between gap-1.5 rounded-full border border-[#D8C2A0] bg-[#F6EBDD] px-3 py-1.5 text-sm font-medium text-[#1F1A17] hover:bg-[#BEA98E] sm:w-auto sm:max-w-none"
                     >
                       <span className="flex min-w-0 items-center gap-1.5">
-                        <FiMail className="w-4 h-4 shrink-0" aria-hidden />
+                        <FiMail className="h-4 w-4 shrink-0" aria-hidden />
                         <span>Correo</span>
                         <span className="truncate text-xs opacity-70">{data.contact.email}</span>
                       </span>
                     </ContactEmailMenu>
                   ) : null}
-                  
-                  {data.contact?.websiteDisplay && data.contact?.websiteHref && (
-                    <a 
-                      href={data.contact.websiteHref} 
-                      target="_blank" 
+
+                  {data.contact?.websiteDisplay && data.contact?.websiteHref ? (
+                    <a
+                      href={data.contact.websiteHref}
+                      target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-medium hover:bg-[#BEA98E] transition-colors border border-[#D8C2A0]"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[#D8C2A0] bg-[#F6EBDD] px-3 py-1.5 text-sm font-medium text-[#1F1A17] hover:bg-[#BEA98E]"
                     >
-                      <FiExternalLink className="w-4 h-4" />
+                      <FiExternalLink className="h-4 w-4" aria-hidden />
                       <span>Sitio web</span>
-                      <span className="text-xs opacity-70 ml-1">{data.contact.websiteDisplay}</span>
+                      <span className="ml-1 text-xs opacity-70">{data.contact.websiteDisplay}</span>
                     </a>
-                  )}
-                  
-                  {data.contact?.whatsappHref && (
-                    <a 
-                      href={data.contact.whatsappHref} 
-                      target="_blank" 
+                  ) : null}
+
+                  {data.contact?.whatsappHref ? (
+                    <a
+                      href={data.contact.whatsappHref}
+                      target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-medium hover:bg-[#BEA98E] transition-colors border border-[#D8C2A0]"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[#D8C2A0] bg-[#F6EBDD] px-3 py-1.5 text-sm font-medium text-[#1F1A17] hover:bg-[#BEA98E]"
                     >
-                      <FaWhatsapp className="w-4 h-4" />
+                      <FaWhatsapp className="h-4 w-4" aria-hidden />
                       <span>WhatsApp</span>
                     </a>
-                  )}
-                  
-                  {/* Menu links */}
+                  ) : null}
+
                   {(data.contact?.menuFileHref || data.fullMenuCta) && (
-                    <div className="pt-4 border-t border-[#D8C2A0]/30">
-                      <h4 className="font-semibold text-[#1F1A17] mb-3">Menú</h4>
+                    <div className="w-full border-t border-[#D8C2A0]/30 pt-4">
+                      <h4 className="mb-3 font-semibold text-[#1F1A17]">Menú</h4>
                       <div className="flex flex-wrap gap-2">
-                        {data.contact?.menuFileHref && (
-                          <a 
-                            href={data.contact?.menuFileHref}
+                        {data.contact?.menuFileHref ? (
+                          <a
+                            href={data.contact.menuFileHref}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
+                            className="inline-flex items-center gap-2 rounded-full bg-[#F6EBDD] px-4 py-2 text-sm font-semibold text-[#1F1A17] hover:bg-[#BEA98E]"
                           >
-                            📋 Ver menú
+                            Ver menú
                           </a>
-                        )}
-                        {data.fullMenuCta && (
-                          <a 
+                        ) : null}
+                        {data.fullMenuCta ? (
+                          <a
                             href={data.fullMenuCta.href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
+                            className="inline-flex items-center gap-2 rounded-full bg-[#F6EBDD] px-4 py-2 text-sm font-semibold text-[#1F1A17] hover:bg-[#BEA98E]"
                           >
-                            📋 {data.fullMenuCta.label}
+                            {data.fullMenuCta.label}
                           </a>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   )}
                 </div>
               </div>
-              
-              {/* Location Information */}
+
               <div>
                 <h3 className={SUBSECTION_TITLE}>Ubicación</h3>
                 <div className="space-y-4">
-                  {data.contact?.addressLine1 && (
+                  {data.contact?.addressLine1 ? (
                     <div className="flex items-start gap-3">
-                      <FiMapPin className="w-5 h-5 text-[#BEA98E] mt-1" />
+                      <FiMapPin className="mt-1 h-5 w-5 shrink-0 text-[#BEA98E]" aria-hidden />
                       <div>
-                        <p className="text-[#1F1A17] font-medium">{data.contact.addressLine1}</p>
-                        {data.contact?.addressLine2 && (
-                          <p className="text-[#5A5148] text-sm">{data.contact.addressLine2}</p>
-                        )}
+                        <p className="font-medium text-[#1F1A17]">{data.contact.addressLine1}</p>
+                        {data.contact.addressLine2 ? <p className="text-sm text-[#5A5148]">{data.contact.addressLine2}</p> : null}
                       </div>
                     </div>
-                  )}
-                  
-                  {/* Social Links */}
-                  <div className="pt-4 border-t border-[#D8C2A0]/30">
-                    <h4 className="font-semibold text-[#1F1A17] mb-3">Redes Sociales</h4>
+                  ) : null}
+
+                  <div className="border-t border-[#D8C2A0]/30 pt-4">
+                    <h4 className="mb-3 font-semibold text-[#1F1A17]">Redes Sociales</h4>
                     <div className="flex flex-wrap gap-3">
-                      {data.contact?.instagramHref && (
-                        <a 
+                      {data.contact?.instagramHref ? (
+                        <a
                           href={data.contact.instagramHref}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-3 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
+                          className="flex items-center gap-2 rounded-full bg-[#F6EBDD] px-3 py-2 text-sm font-semibold text-[#1F1A17] hover:bg-[#BEA98E]"
                         >
-                          <FiInstagram className="w-4 h-4" />
+                          <FiInstagram className="h-4 w-4" />
                           Instagram
                         </a>
-                      )}
-                      
-                      {data.contact?.facebookHref && (
-                        <a 
+                      ) : null}
+                      {data.contact?.facebookHref ? (
+                        <a
                           href={data.contact.facebookHref}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-3 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
+                          className="flex items-center gap-2 rounded-full bg-[#F6EBDD] px-3 py-2 text-sm font-semibold text-[#1F1A17] hover:bg-[#BEA98E]"
                         >
-                          <FiFacebook className="w-4 h-4" />
+                          <FiFacebook className="h-4 w-4" />
                           Facebook
                         </a>
-                      )}
-                      
-                      {data.contact?.tiktokHref && (
-                        <a 
+                      ) : null}
+                      {data.contact?.tiktokHref ? (
+                        <a
                           href={data.contact.tiktokHref}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-3 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
+                          className="flex items-center gap-2 rounded-full bg-[#F6EBDD] px-3 py-2 text-sm font-semibold text-[#1F1A17] hover:bg-[#BEA98E]"
                         >
-                          <FaTiktok className="w-4 h-4" />
+                          <FaTiktok className="h-4 w-4" />
                           TikTok
                         </a>
-                      )}
-                      
-                      {data.contact?.youtubeHref && (
-                        <a 
+                      ) : null}
+                      {data.contact?.youtubeHref ? (
+                        <a
                           href={data.contact.youtubeHref}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-3 py-2 bg-[#F6EBDD] text-[#1F1A17] rounded-full text-sm font-semibold hover:bg-[#BEA98E] transition-colors"
+                          className="flex items-center gap-2 rounded-full bg-[#F6EBDD] px-3 py-2 text-sm font-semibold text-[#1F1A17] hover:bg-[#BEA98E]"
                         >
-                          <FiYoutube className="w-4 h-4" />
+                          <FiYoutube className="h-4 w-4" />
                           YouTube
                         </a>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -556,26 +873,44 @@ export function RestauranteAdStoryPreview({
         <section className={SECTION_CARD}>
           <div className={SECTION_PADDING}>
             <h2 className={SECTION_TITLE}>Especialidades de la Casa</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Mobile: horizontal snap carousel */}
+            <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] md:hidden">
               {data.menuHighlights!.map((dish, index) => (
-                <div key={index} className="bg-white rounded-2xl border border-[#D8C2A0] p-4 shadow-sm">
+                <div
+                  key={`m-dish-${index}`}
+                  className="flex w-[min(82vw,300px)] shrink-0 snap-center flex-col rounded-2xl border border-[#D8C2A0] bg-white p-3 shadow-sm"
+                >
+                  {dish.imageUrl ? (
+                    <div className="relative mb-2 aspect-[5/4] w-full overflow-hidden rounded-xl bg-[#F5F0E8]">
+                      <Image src={dish.imageUrl} alt={dish.name} fill className="object-cover" sizes="85vw" />
+                    </div>
+                  ) : null}
+                  <h3 className="line-clamp-1 text-sm font-bold text-[#1F1A17]">{dish.name}</h3>
+                  {dish.supportingLine ? (
+                    <p className="mt-1 line-clamp-2 text-xs leading-snug text-[#5A5148]">{dish.supportingLine}</p>
+                  ) : null}
+                  {dish.badge ? (
+                    <span className="mt-2 inline-flex max-w-full self-start truncate rounded-full border border-[#D8C2A0]/80 bg-[#F6EBDD] px-2.5 py-1 text-[10px] font-bold text-[#1F1A17]">
+                      {dish.badge}
+                    </span>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+            {/* Desktop: grid (md+) */}
+            <div className="hidden gap-6 md:grid md:grid-cols-2">
+              {data.menuHighlights!.map((dish, index) => (
+                <div key={index} className="rounded-2xl border border-[#D8C2A0] bg-white p-4 shadow-sm">
                   {dish.imageUrl && (
-                    <div className="relative aspect-[16/10] mb-4 rounded-xl overflow-hidden">
-                      <Image
-                        src={dish.imageUrl}
-                        alt={dish.name}
-                        fill
-                        className="object-cover"
-                      />
+                    <div className="relative mb-4 aspect-[16/10] w-full overflow-hidden rounded-xl">
+                      <Image src={dish.imageUrl} alt={dish.name} fill className="object-cover" />
                     </div>
                   )}
                   <div className="space-y-2">
                     <h3 className="font-semibold text-[#1F1A17]">{dish.name}</h3>
-                    {dish.supportingLine && (
-                      <p className="text-sm text-[#5A5148]">{dish.supportingLine}</p>
-                    )}
+                    {dish.supportingLine && <p className="text-sm text-[#5A5148]">{dish.supportingLine}</p>}
                     {dish.badge && (
-                      <span className="inline-block px-2 py-1 bg-[#F6EBDD] text-[#1F1A17] text-xs font-semibold rounded-full">
+                      <span className="inline-block rounded-full bg-[#F6EBDD] px-2 py-1 text-xs font-semibold text-[#1F1A17]">
                         {dish.badge}
                       </span>
                     )}
@@ -593,45 +928,87 @@ export function RestauranteAdStoryPreview({
       
       
       {/* H. Details / Hours Zone */}
-      {hasHours && (
+      {hasHoursSection && (
         <section className={SECTION_CARD}>
           <div className={SECTION_PADDING}>
             <h2 className={SECTION_TITLE}>Horarios</h2>
-            <div className="space-y-4">
-              {/* Current status */}
-              <div className="flex items-center gap-3">
-                <span className={`px-4 py-2 rounded-full font-semibold ${
-                  data.hoursPreview.status === 'open' 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-orange-100 text-orange-800'
-                }`}>
-                  {data.hoursPreview.status === 'open' ? '🟢 Abierto ahora' : '🔴 Cerrado'}
+            <div className="space-y-3 md:space-y-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <span
+                  className={`inline-flex w-fit rounded-full px-3 py-1.5 text-xs font-semibold md:px-4 md:py-2 md:text-sm ${
+                    data.hoursPreview.status === "open"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-orange-100 text-orange-800"
+                  }`}
+                >
+                  {data.hoursPreview.status === "open" ? "Abierto ahora" : "Cerrado"}
                 </span>
-                <span className="text-[#5A5148]">{data.hoursPreview.statusLine}</span>
-              </div>
-              
-              {/* Hours table */}
-              {data.hoursDetail && (
-                <div className="bg-white rounded-2xl border border-[#D8C2A0] p-6">
-                  <dl className="space-y-3">
-                    {data.hoursDetail.rows.map((row, index) => (
-                      <div key={index} className="flex justify-between items-center py-2 border-b border-[#D8C2A0]/30 last:border-0">
-                        <dt className="font-semibold text-[#1F1A17]">{row.dayLabel}</dt>
-                        <dd className="text-[#5A5148]">{convertTo12Hour(row.line)}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                  
-                  {/* Special notes */}
-                  {data.hoursDetail.specialNote && (
-                    <div className="mt-4 p-4 bg-[#F6EBDD] rounded-xl">
-                      <p className="text-sm text-[#1F1A17]">
-                        <strong>Nota especial:</strong> {data.hoursDetail.specialNote}
-                      </p>
-                    </div>
-                  )}
+                <div className="min-w-0 text-sm text-[#5A5148] md:text-base">
+                  <p className="font-medium text-[#1F1A17]">{data.hoursPreview.statusLine}</p>
+                  <p className="mt-0.5 text-xs leading-snug md:text-sm">{data.hoursPreview.scheduleSummary}</p>
                 </div>
-              )}
+              </div>
+
+              {todayHoursRow ? (
+                <div className="rounded-xl border border-[#D8C2A0]/80 bg-white/90 px-3 py-2.5 md:hidden">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8B7E70]">Hoy · {todayHoursRow.dayLabel}</p>
+                  <p className="mt-1 text-sm font-medium text-[#1F1A17]">{convertTo12Hour(todayHoursRow.line)}</p>
+                </div>
+              ) : null}
+
+              {data.hoursDetail ? (
+                <>
+                  <div className="hidden rounded-2xl border border-[#D8C2A0] bg-white p-4 md:block md:p-6">
+                    <dl className="space-y-3">
+                      {data.hoursDetail.rows.map((row, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between gap-4 border-b border-[#D8C2A0]/30 py-2 last:border-0"
+                        >
+                          <dt className="shrink-0 font-semibold text-[#1F1A17]">{row.dayLabel}</dt>
+                          <dd className="min-w-0 text-right text-[#5A5148]">{convertTo12Hour(row.line)}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    {data.hoursDetail.specialNote ? (
+                      <div className="mt-4 rounded-xl bg-[#F6EBDD] p-4">
+                        <p className="text-sm text-[#1F1A17]">
+                          <strong>Nota especial:</strong> {data.hoursDetail.specialNote}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="md:hidden">
+                    <button
+                      type="button"
+                      onClick={() => setHoursFull((v) => !v)}
+                      className="w-full rounded-xl border border-[#D8C2A0] bg-white py-2.5 text-sm font-semibold text-[#1F1A17]"
+                    >
+                      {hoursFull ? "Ocultar horarios completos" : "Ver horarios completos"}
+                    </button>
+                    {hoursFull ? (
+                      <div className="mt-3 rounded-2xl border border-[#D8C2A0] bg-white p-4">
+                        <dl className="space-y-3">
+                          {data.hoursDetail.rows.map((row, index) => (
+                            <div key={index} className="border-b border-[#D8C2A0]/25 py-2 last:border-0">
+                              <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#8B7E70]">
+                                {row.dayLabel}
+                              </dt>
+                              <dd className="mt-1 break-words text-sm text-[#1F1A17]">{convertTo12Hour(row.line)}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                        {data.hoursDetail.specialNote ? (
+                          <p className="mt-3 rounded-lg bg-[#F6EBDD] p-3 text-xs text-[#1F1A17]">
+                            <strong>Nota:</strong> {data.hoursDetail.specialNote}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                </>
+              ) : null}
             </div>
           </div>
         </section>
@@ -647,7 +1024,7 @@ export function RestauranteAdStoryPreview({
             
             {/* Rating display */}
             {data.trustRating && (
-              <div className="bg-white rounded-2xl border border-[#D8C2A0] p-6 mb-6">
+              <div className="mb-4 rounded-2xl border border-[#D8C2A0] bg-white p-4 md:mb-6 md:p-6">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1">
                     {Array.from({ length: 5 }, (_, i) => (
@@ -675,7 +1052,7 @@ export function RestauranteAdStoryPreview({
             
             {/* Trust light information */}
             {data.trustLight && (
-              <div className="bg-white rounded-2xl border border-[#D8C2A0] p-6">
+              <div className="rounded-2xl border border-[#D8C2A0] bg-white p-4 md:p-6">
                 <p className="text-base text-[#1F1A17] leading-relaxed mb-4">
                   {data.trustLight.summaryLine}
                 </p>
@@ -702,43 +1079,46 @@ export function RestauranteAdStoryPreview({
         <section className={SECTION_CARD}>
           <div className={SECTION_PADDING}>
             <h2 className={SECTION_TITLE}>Información Adicional</h2>
-            <div className="space-y-6">
-              {data.stackSections!.map((stack, index) => (
-                <div key={stack.id} className="bg-white rounded-2xl border border-[#D8C2A0] p-6">
-                  <h3 className={SUBSECTION_TITLE}>{stack.title}</h3>
-                  <dl className="space-y-3 mt-4">
-                    {stack.rows.map((row, rowIndex) => {
-                      // Check if this field should be clickable (same logic as detail shell)
-                      const isClickableField = 
-                        row.label.includes('Ubicación actual') ||
-                        row.label.includes('Enlace') ||
-                        row.label.includes('Ruta semanal') ||
-                        row.label.includes('Solicitud') ||
-                        row.label.includes('cotización');
-                      
-                      const actionableUrl = isClickableField ? normalizeActionableUrl(row.value) : null;
-                      
-                      return (
-                        <div key={rowIndex} className="flex justify-between items-center py-2 border-b border-[#D8C2A0]/30 last:border-0">
-                          <dt className="font-semibold text-[#1F1A17]">{row.label}</dt>
-                          <dd className="text-[#5A5148]">
-                            {actionableUrl ? (
-                              <a
-                                href={actionableUrl}
-                                target={row.value.startsWith('http') ? "_blank" : undefined}
-                                rel={row.value.startsWith('http') ? "noopener noreferrer" : undefined}
-                                className="text-[#6B5B2E] hover:text-[#1F1A17] underline decoration-[#BEA98E] underline-offset-2 hover:decoration-[#D8C2A0] transition-colors cursor-pointer"
-                              >
-                                {row.value}
-                              </a>
-                            ) : (
-                              row.value
-                            )}
-                          </dd>
+            <div className="space-y-3 md:space-y-6">
+              {data.stackSections!.map((stack) => (
+                <div key={stack.id}>
+                  <div className="hidden rounded-2xl border border-[#D8C2A0] bg-white p-6 md:block">
+                    <h3 className={SUBSECTION_TITLE}>{stack.title}</h3>
+                    <dl className="mt-4 space-y-0">
+                      {stack.rows.map((row, rowIndex) => (
+                        <div
+                          key={rowIndex}
+                          className="flex items-start justify-between gap-4 border-b border-[#D8C2A0]/30 py-2.5 last:border-0"
+                        >
+                          <dt className="max-w-[40%] shrink-0 font-semibold text-[#1F1A17]">{row.label}</dt>
+                          <dd className="min-w-0 text-right text-sm text-[#5A5148]">{renderStackValue(row)}</dd>
                         </div>
-                      );
-                    })}
-                  </dl>
+                      ))}
+                    </dl>
+                  </div>
+
+                  <details className="group rounded-2xl border border-[#D8C2A0] bg-white md:hidden">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
+                      <span className="text-base font-semibold text-[#1F1A17]">{stack.title}</span>
+                      <span className="text-xs font-semibold text-[#8B7E70] group-open:hidden">Ver</span>
+                      <span className="hidden text-xs font-semibold text-[#8B7E70] group-open:inline">Ocultar</span>
+                    </summary>
+                    <div className="border-t border-[#D8C2A0]/40 px-4 pb-4 pt-1">
+                      <dl className="space-y-0">
+                        {stack.rows.map((row, rowIndex) => (
+                          <div
+                            key={rowIndex}
+                            className="border-b border-[#D8C2A0]/25 py-3 last:border-0"
+                          >
+                            <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#8B7E70]">
+                              {row.label}
+                            </dt>
+                            <dd className="mt-1.5 min-w-0 text-sm leading-snug text-[#5A5148]">{renderStackValue(row)}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  </details>
                 </div>
               ))}
             </div>

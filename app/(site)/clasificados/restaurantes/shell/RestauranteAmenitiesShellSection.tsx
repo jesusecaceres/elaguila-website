@@ -5,8 +5,8 @@ import type { ShellAmenitiesSection } from "./restaurantDetailShellTypes";
 
 const SECTION_CARD =
   "rounded-3xl border border-[#D8C2A0] bg-[#FFFAF3] shadow-[0_8px_32px_-8px_rgba(212,165,116,0.15)] overflow-hidden";
-const SECTION_PADDING = "p-6 sm:p-8";
-const SECTION_TITLE = "text-2xl font-bold text-[#1F1A17] mb-6 tracking-tight";
+const SECTION_PADDING = "p-4 sm:p-6 md:p-8";
+const SECTION_TITLE = "mb-4 text-xl font-bold tracking-tight text-[#1F1A17] md:mb-6 md:text-2xl";
 
 export function RestauranteAmenitiesShellSection({
   section,
@@ -24,7 +24,7 @@ export function RestauranteAmenitiesShellSection({
         <h2 id="restaurante-amenities-heading" className={SECTION_TITLE}>
           {title}
         </h2>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
           {section.groups.map((g, gi) => {
             const gTitle = lang === "en" ? g.titleEn : g.titleEs;
             return (
