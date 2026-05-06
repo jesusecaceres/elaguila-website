@@ -5,6 +5,10 @@ import { AdminSectionCard } from "../_components/AdminSectionCard";
 import { AdminStatCard } from "../_components/AdminStatCard";
 import { adminCardBase, adminCtaChip, adminCtaChipSecondary } from "../_components/adminTheme";
 import { getAdminDashboardSnapshot } from "../_lib/adminDashboardData";
+import {
+  adminCategoryOpenQueueCtaCopy,
+  adminCategoryWorkspaceQueueHref,
+} from "../_lib/adminCategoryWorkspaceQueueHref";
 import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
 import { AdminTiendaOrderStatusBadge } from "../_components/tienda/AdminTiendaOrderStatusBadge";
 import { tiendaOrderFlowLabel } from "../_lib/tiendaOrderFlowLabel";
@@ -292,25 +296,40 @@ export default async function AdminHomePage() {
             subtitle={`Efectivo en admin (código + overlay Supabase): live ${regSum.live} · staged ${regSum.staged} · coming soon ${regSum.comingSoon}. Público aún usa código hasta integración.`}
           >
             <div className="grid gap-3 sm:grid-cols-2">
-              {registry.slice(0, 8).map((c) => (
-                <div key={c.slug} className={`${adminCardBase} p-4`}>
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-xl">{c.emoji}</span>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="rounded-full bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C4E2E]">
-                        {c.operationalStatus}
+              {registry.map((c) => {
+                const queueHref = adminCategoryWorkspaceQueueHref(c.slug);
+                const cta = adminCategoryOpenQueueCtaCopy(c.operationalStatus);
+                return (
+                  <Link
+                    key={c.slug}
+                    href={queueHref}
+                    className={`${adminCardBase} block p-4 transition hover:ring-1 hover:ring-[#C9B46A]/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6B5B2E]`}
+                    aria-label={`${c.displayNameEs}: ${cta.label}`}
+                    title={cta.title}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xl" aria-hidden>
+                        {c.emoji}
                       </span>
-                      {c.configLayer === "database" ? (
-                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-bold uppercase text-emerald-900">
-                          DB
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="rounded-full bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C4E2E]">
+                          {c.operationalStatus}
                         </span>
-                      ) : null}
+                        {c.configLayer === "database" ? (
+                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-bold uppercase text-emerald-900">
+                            DB
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                  <p className="mt-2 font-bold text-[#1E1810]">{c.displayNameEs}</p>
-                  <p className="text-xs text-[#7A7164]">{c.slug}</p>
-                </div>
-              ))}
+                    <p className="mt-2 font-bold text-[#1E1810]">{c.displayNameEs}</p>
+                    <p className="text-xs text-[#7A7164]">{c.slug}</p>
+                    <p className="mt-3 text-xs font-bold text-[#6B5B2E] underline underline-offset-2">
+                      {cta.label} →
+                    </p>
+                  </Link>
+                );
+              })}
             </div>
             <Link href="/admin/categories" className={`${adminCtaChipSecondary} mt-4 inline-flex`}>
               Manage categories →

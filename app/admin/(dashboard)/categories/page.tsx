@@ -12,6 +12,10 @@ import {
 import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
 import { fetchListingStatsForCategorySlugs } from "../../_lib/adminCategoryListingStats";
 import { saveSiteCategoryConfigRowAction } from "../../siteCategoryConfigActions";
+import {
+  adminCategoryOpenQueueCtaCopy,
+  adminCategoryWorkspaceQueueHref,
+} from "../../_lib/adminCategoryWorkspaceQueueHref";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +55,7 @@ function sourceBadge(layer: "code" | "database" | undefined) {
   );
 }
 
-const COL_COUNT = 11;
+const COL_COUNT = 12;
 
 export default async function AdminCategoriesPage() {
   const registry = await getClasificadosCategoryRegistryMerged();
@@ -140,6 +144,7 @@ export default async function AdminCategoriesPage() {
                 <th className="p-3">Readiness</th>
                 <th className="p-3 whitespace-nowrap">Listings (DB)</th>
                 <th className="p-3 whitespace-nowrap">Pending / flagged</th>
+                <th className="p-3">Cola anuncios</th>
                 <th className="p-3">Moderation</th>
                 <th className="p-3">Landing</th>
                 <th className="p-3">Notes</th>
@@ -148,6 +153,7 @@ export default async function AdminCategoriesPage() {
             <tbody>
               {registry.map((c) => {
                 const st = statsBySlug[c.slug];
+                const openCta = adminCategoryOpenQueueCtaCopy(c.operationalStatus);
                 return (
                   <Fragment key={c.slug}>
                     <tr className="border-t border-[#E8DFD0]/80 align-top">
@@ -186,14 +192,17 @@ export default async function AdminCategoriesPage() {
                         {st?.queryError ? "—" : (st?.pendingOrFlagged ?? "—")}
                       </td>
                       <td className="p-3 text-xs font-bold">
+                        <Link
+                          href={adminCategoryWorkspaceQueueHref(c.slug)}
+                          className={`${adminCtaChipCompact} inline-flex w-full justify-center text-center`}
+                          aria-label={`${c.displayNameEs}: ${openCta.label}`}
+                          title={openCta.title}
+                        >
+                          {openCta.label} →
+                        </Link>
+                      </td>
+                      <td className="p-3 text-xs font-bold">
                         <div className="flex flex-col gap-1">
-                          <Link
-                            href={`/admin/workspace/clasificados?category=${encodeURIComponent(c.slug)}`}
-                            className="text-[#6B5B2E] underline"
-                            title="Cola filtrada por categoría"
-                          >
-                            Queue →
-                          </Link>
                           <Link
                             href={`/admin/workspace/clasificados?category=${encodeURIComponent(c.slug)}&status=pending`}
                             className="text-[#6B5B2E] underline"
