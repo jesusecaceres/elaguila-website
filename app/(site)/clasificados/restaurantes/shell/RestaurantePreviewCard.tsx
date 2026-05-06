@@ -16,13 +16,14 @@ const PREVIEW_CARD =
 /** Landscape results card: wide overall, left media ~40%, right content ~60%, media height capped by aspect (not stretched to content). */
 const GRID =
   "grid min-w-0 grid-cols-1 gap-0 md:grid-cols-[minmax(0,42%)_minmax(0,58%)] md:items-start";
-const MEDIA = "min-w-0 bg-[#F5F0E8] p-4 md:p-5 md:pr-3";
-const MEDIA_FRAME = "relative aspect-[16/10] w-full overflow-hidden rounded-[22px] bg-[#EFE7DA]";
+const MEDIA = "min-w-0 bg-[#F5F0E8] p-3 md:p-5 md:pr-3";
+const MEDIA_FRAME =
+  "relative aspect-[16/9] w-full overflow-hidden rounded-[22px] bg-[#EFE7DA] md:aspect-[16/10]";
 
-const CONTENT = "flex min-w-0 flex-col gap-4 px-5 pb-6 pt-5 md:gap-4 md:px-7 md:pb-7 md:pt-6";
+const CONTENT = "flex min-w-0 flex-col gap-3 px-4 pb-5 pt-4 md:gap-4 md:px-7 md:pb-7 md:pt-6";
 
 const TITLE =
-  "text-[26px] font-bold leading-[1.12] tracking-tight text-[#1F1A17] sm:text-[28px] md:text-[32px] lg:text-[34px]";
+  "text-[22px] font-bold leading-[1.12] tracking-tight text-[#1F1A17] sm:text-[24px] md:text-[32px] lg:text-[34px]";
 const CHIP_ROW = "flex flex-wrap gap-2";
 const CHIP =
   "inline-flex items-center rounded-full border border-[#E1CFB3] bg-white/70 px-3 py-1.5 text-[12px] font-semibold text-[#2B241F] shadow-sm";
@@ -36,7 +37,7 @@ const STATUS_CLOSED = "bg-rose-50 text-rose-900 border-rose-200/80";
 const ADDRESS_LINK =
   "group inline-flex min-h-[44px] w-full items-center gap-2 rounded-2xl border border-[#E1CFB3] bg-white/80 px-4 py-3 text-sm font-semibold text-[#2B241F] shadow-sm transition hover:bg-white hover:border-[#BEA98E] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3B66AD]/40";
 
-const SUMMARY = "text-sm leading-relaxed text-[#5A5148]";
+const SUMMARY = "text-sm leading-snug text-[#5A5148] md:leading-relaxed";
 
 const FEATURE_ROW = "flex flex-wrap gap-2";
 const FEATURE_CHIP =
@@ -144,7 +145,7 @@ export function RestaurantePreviewCard({
         if (cleaned) chips.push(cleaned);
       }
     }
-    return Array.from(new Set(chips)).slice(0, 6);
+    return Array.from(new Set(chips)).slice(0, 20);
   }, [data.cuisineTypeLine, data.taxonomyChips]);
 
   const quick = useMemo(() => {
@@ -216,7 +217,7 @@ export function RestaurantePreviewCard({
         </div>
 
         <div className={CONTENT}>
-          <div className="min-w-0 space-y-2.5 md:space-y-3">
+          <div className="min-w-0 space-y-2 md:space-y-3">
             {data.trustRating ? (
               <div className="flex items-center gap-2">
                 <StarRow rating={data.trustRating.average} />
@@ -227,13 +228,33 @@ export function RestaurantePreviewCard({
             <h2 className={TITLE}>{data.businessName}</h2>
 
             {identityChips.length ? (
-              <div className={CHIP_ROW} aria-label={lang === "en" ? "Cuisine and type" : "Cocina y tipo"}>
-                {identityChips.map((chip) => (
-                  <span key={chip} className={CHIP}>
-                    {chip}
-                  </span>
-                ))}
-              </div>
+              <>
+                <div
+                  className={`${CHIP_ROW} md:hidden`}
+                  aria-label={lang === "en" ? "Cuisine and type" : "Cocina y tipo"}
+                >
+                  {identityChips.slice(0, 4).map((chip) => (
+                    <span key={chip} className={CHIP}>
+                      {chip}
+                    </span>
+                  ))}
+                  {identityChips.length > 4 ? (
+                    <span className={CHIP} aria-label={lang === "en" ? "More tags" : "Más etiquetas"}>
+                      +{identityChips.length - 4}
+                    </span>
+                  ) : null}
+                </div>
+                <div
+                  className={`${CHIP_ROW} hidden md:flex`}
+                  aria-label={lang === "en" ? "Cuisine and type" : "Cocina y tipo"}
+                >
+                  {identityChips.slice(0, 6).map((chip) => (
+                    <span key={chip} className={CHIP}>
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              </>
             ) : null}
 
             <div className={META_ROW}>
@@ -268,22 +289,43 @@ export function RestaurantePreviewCard({
             ) : null}
 
             {summary ? (
-              <p className={SUMMARY}>
-                {summary.length > 180 ? `${summary.slice(0, 180).trim()}…` : summary}
-              </p>
+              <>
+                <p className={`${SUMMARY} line-clamp-2 md:hidden`}>{summary}</p>
+                <p className={`${SUMMARY} hidden md:block`}>
+                  {summary.length > 180 ? `${summary.slice(0, 180).trim()}…` : summary}
+                </p>
+              </>
             ) : null}
 
             {features.length ? (
-              <div className={FEATURE_ROW} aria-label={lang === "en" ? "Services and features" : "Servicios y características"}>
-                {features.slice(0, 5).map((f) => (
-                  <span key={f} className={FEATURE_CHIP}>
-                    {f}
-                  </span>
-                ))}
-                {features.length > 5 ? (
-                  <span className={FEATURE_CHIP}>+{features.length - 5}</span>
-                ) : null}
-              </div>
+              <>
+                <div className="relative md:hidden" aria-label={lang === "en" ? "Services and features" : "Servicios y características"}>
+                  <div className="-mx-1 flex gap-2 overflow-x-auto overflow-y-hidden px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]">
+                    {features.map((f) => (
+                      <span key={f} className={`${FEATURE_CHIP} shrink-0 whitespace-nowrap`}>
+                        {f}
+                      </span>
+                    ))}
+                  </div>
+                  <div
+                    className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-9 bg-gradient-to-l from-[#FFFAF3] to-transparent"
+                    aria-hidden
+                  />
+                </div>
+                <div
+                  className={`${FEATURE_ROW} hidden md:flex`}
+                  aria-label={lang === "en" ? "Services and features" : "Servicios y características"}
+                >
+                  {features.slice(0, 5).map((f) => (
+                    <span key={f} className={FEATURE_CHIP}>
+                      {f}
+                    </span>
+                  ))}
+                  {features.length > 5 ? (
+                    <span className={FEATURE_CHIP}>+{features.length - 5}</span>
+                  ) : null}
+                </div>
+              </>
             ) : null}
           </div>
 
@@ -345,6 +387,8 @@ export function RestaurantePreviewCard({
                   listingUrl={shareUrl || undefined}
                   variant="small"
                   lang={lang}
+                  category="restaurantes"
+                  preferNativeShareOnNarrowViewports
                 />
               </div>
             </div>

@@ -133,10 +133,23 @@ function telHref(phone: string): string {
   return `tel:${phone.trim()}`;
 }
 
-function waHref(raw: string): string {
+const RESTAURANT_WA_MSG_GENERIC_ES =
+  "Hola, vi tu restaurante en Leonix Media. Me gustaría recibir más información, por favor.";
+
+function buildRestaurantWhatsAppPrefill(businessName: string | undefined): string {
+  const name = (businessName ?? "").trim();
+  if (name) {
+    return `Hola, vi ${name} en Leonix Media. Me gustaría recibir más información, por favor.`;
+  }
+  return RESTAURANT_WA_MSG_GENERIC_ES;
+}
+
+function waHref(raw: string, businessName?: string): string {
   const digits = raw.replace(/\D/g, "");
   if (!digits) return "";
-  return `https://wa.me/${digits}`;
+  const base = `https://wa.me/${digits}`;
+  const text = encodeURIComponent(buildRestaurantWhatsAppPrefill(businessName));
+  return `${base}?text=${text}`;
 }
 
 function websiteDisplayFromUrl(url: string): string {
@@ -229,7 +242,7 @@ function buildPrimaryCtas(d: RestauranteListingDraft): ShellPrimaryCta[] {
   
   // 4. WhatsApp
   if (nonEmpty(d.whatsAppNumber)) {
-    const href = waHref(d.whatsAppNumber!);
+    const href = waHref(d.whatsAppNumber!, d.businessName);
     if (href) ctas.push({ key: "whatsapp", label: "WhatsApp", href });
   }
   
@@ -366,7 +379,7 @@ function buildContact(d: RestauranteListingDraft): ShellContactBlock | undefined
   if (nonEmpty(d.tiktokUrl)) c.tiktokHref = normalizeUrl(d.tiktokUrl!);
   if (nonEmpty(d.youtubeUrl)) c.youtubeHref = normalizeUrl(d.youtubeUrl!);
   if (nonEmpty(d.whatsAppNumber)) {
-    const h = waHref(d.whatsAppNumber!);
+    const h = waHref(d.whatsAppNumber!, d.businessName);
     if (h) c.whatsappHref = h;
   }
   if (nonEmpty(d.menuFile)) {

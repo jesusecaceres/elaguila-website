@@ -13,6 +13,11 @@ type Props = {
   lang?: "es" | "en";
   category?: string;
   ownerUserId?: string;
+  /**
+   * When true, viewports ≤767px use `navigator.share` (then clipboard fallback) instead of a dropdown.
+   * Avoids menus clipped inside overflow-hidden cards (e.g. restaurant results on mobile).
+   */
+  preferNativeShareOnNarrowViewports?: boolean;
 };
 
 const LABELS = {
@@ -44,11 +49,14 @@ export function LeonixShareButton({
   className = "",
   lang = "es",
   category,
-  ownerUserId
+  ownerUserId,
+  preferNativeShareOnNarrowViewports = false,
 }: Props) {
   const [isSharing, setIsSharing] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  /** Shown only after narrow-viewport clipboard fallback (not dropdown copy). */
+  const [mobileInlineCopyAck, setMobileInlineCopyAck] = useState(false);
   const labels = LABELS[lang];
   
   const sizeClasses = {
@@ -85,6 +93,63 @@ export function LeonixShareButton({
     }
   };
   
+  const handleShareButtonClick = async () => {
+    const narrow =
+      preferNativeShareOnNarrowViewports &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 767px)").matches;
+
+    if (narrow) {
+      const url = (listingUrl ?? "").trim();
+      const title = (listingTitle ?? "").trim() || (typeof document !== "undefined" ? document.title : "");
+      if (!url) {
+        setShowDropdown((v) => !v);
+        return;
+      }
+      const text =
+        lang === "en"
+          ? `Check out this restaurant on Leonix Media: ${title}`.trim()
+          : `Mira este restaurante en Leonix Media: ${title}`.trim();
+
+      setIsSharing(true);
+      try {
+        if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+          try {
+            await navigator.share({ title, text, url });
+            await trackListingShare(listingId, {
+              category,
+              ownerUserId,
+              eventSource: "cta_card",
+              shareMethod: "web_share",
+              metadata: { listingTitle: title },
+            });
+            return;
+          } catch (err: unknown) {
+            const n = err && typeof err === "object" && "name" in err ? (err as { name: string }).name : "";
+            if (n === "AbortError") return;
+          }
+        }
+        await navigator.clipboard.writeText(url);
+        setMobileInlineCopyAck(true);
+        await trackListingShare(listingId, {
+          category,
+          ownerUserId,
+          eventSource: "cta_card",
+          shareMethod: "copy_link",
+          metadata: { listingTitle: title },
+        });
+        window.setTimeout(() => setMobileInlineCopyAck(false), 2200);
+      } catch {
+        setShowDropdown(true);
+      } finally {
+        setIsSharing(false);
+      }
+      return;
+    }
+
+    setShowDropdown((v) => !v);
+  };
+
   const handleShareMethod = async (method: string) => {
     setIsSharing(true);
     
@@ -132,7 +197,8 @@ export function LeonixShareButton({
   return (
     <div className={`relative ${className}`}>
       <button
-        onClick={() => setShowDropdown(!showDropdown)}
+        type="button"
+        onClick={() => void handleShareButtonClick()}
         disabled={isSharing}
         className={`
           inline-flex items-center gap-2 rounded-full font-medium
@@ -145,6 +211,12 @@ export function LeonixShareButton({
         <FiShare2 className={iconSizes[variant]} />
         <span>{isSharing ? labels.sharing : labels.share}</span>
       </button>
+
+      {preferNativeShareOnNarrowViewports && mobileInlineCopyAck ? (
+        <p className="mt-1 text-xs font-medium text-emerald-800" role="status">
+          {labels.copied}
+        </p>
+      ) : null}
       
       {showDropdown && (
         <div className="absolute top-full left-0 mt-2 w-56 rounded-2xl bg-white border border-[#E5E5E5] shadow-lg z-50">
