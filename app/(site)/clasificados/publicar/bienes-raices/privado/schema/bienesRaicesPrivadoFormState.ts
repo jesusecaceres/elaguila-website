@@ -137,6 +137,8 @@ export type BienesRaicesPrivadoFormState = {
     etiquetaRol: string;
     telefono: string;
     whatsapp: string;
+    /** Optional SMS contact; same masking as tel/WhatsApp in UI. */
+    mensajesTexto: string;
     correo: string;
     notaContacto: string;
   };
@@ -175,6 +177,7 @@ export function createEmptyBienesRaicesPrivadoFormState(): BienesRaicesPrivadoFo
       etiquetaRol: "",
       telefono: "",
       whatsapp: "",
+      mensajesTexto: "",
       correo: "",
       notaContacto: "",
     },
@@ -268,6 +271,7 @@ export function mergePartialBienesRaicesPrivadoState(
       etiquetaRol: typeof sellerIn?.etiquetaRol === "string" ? sellerIn.etiquetaRol : base.seller.etiquetaRol,
       telefono: typeof sellerIn?.telefono === "string" ? sellerIn.telefono : base.seller.telefono,
       whatsapp: typeof sellerIn?.whatsapp === "string" ? sellerIn.whatsapp : base.seller.whatsapp,
+      mensajesTexto: typeof sellerIn?.mensajesTexto === "string" ? sellerIn.mensajesTexto : base.seller.mensajesTexto,
       correo: typeof sellerIn?.correo === "string" ? sellerIn.correo : base.seller.correo,
       notaContacto: typeof sellerIn?.notaContacto === "string" ? sellerIn.notaContacto : base.seller.notaContacto,
     },

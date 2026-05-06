@@ -88,6 +88,12 @@ function buildTelHref(phoneDigits: string): string | null {
   return `tel:${d}`;
 }
 
+function buildSmsHref(phoneDigits: string): string | null {
+  const d = digitsOnly(phoneDigits);
+  if (d.length < 10) return null;
+  return `sms:${d}`;
+}
+
 function hrefFromUserInput(raw: string): string | null {
   const s = trim(raw);
   if (!s) return null;
@@ -352,6 +358,7 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
   const telHref = buildTelHref(s.seller.telefono);
   const waRaw = trim(s.seller.whatsapp) || trim(s.seller.telefono);
   const waHref = previewWhatsappClickHref(waRaw);
+  const smsHref = buildSmsHref(s.seller.mensajesTexto);
 
   const city = trim(s.ciudad);
   const line = trim(s.ubicacionLinea);
@@ -361,6 +368,7 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
   const phoneDisp = trim(s.seller.telefono) ? formatUsPhoneDisplay(digitsOnly(s.seller.telefono)) : "";
   const emailDisp = trim(s.seller.correo);
   const waDisp = trim(s.seller.whatsapp) ? formatUsPhoneDisplay(digitsOnly(s.seller.whatsapp)) : "";
+  const smsDisp = trim(s.seller.mensajesTexto) ? formatUsPhoneDisplay(digitsOnly(s.seller.mensajesTexto)) : "";
 
   return {
     categoria: cat,
@@ -379,6 +387,7 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
       phoneDisplay: phoneDisp,
       emailDisplay: emailDisp,
       whatsappDisplay: waDisp,
+      smsDisplay: smsDisp,
       noteLine: trim(s.seller.notaContacto),
     },
     media: buildMediaVm(s),
@@ -392,9 +401,11 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
       showSolicitarInfo: Boolean(mailto),
       showLlamar: Boolean(telHref),
       showWhatsapp: Boolean(waHref),
+      showSms: Boolean(smsHref),
       solicitarInfoHref: mailto,
       llamarHref: telHref,
       whatsappHref: waHref,
+      smsHref,
       instructionsLine: "",
     },
     location: {

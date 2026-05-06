@@ -17,6 +17,7 @@ import {
   RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
+import { RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL } from "@/app/clasificados/rentas/shared/rentasResidencialHighlightFormVisuals";
 import {
   AiField,
   aiCardClass,
@@ -490,14 +491,14 @@ export function RentasPrivadoForm() {
         </section>
 
         <section className={`${aiCardClass} min-w-0`}>
-          <h2 className={aiTitleClass}>Arrendador (particular)</h2>
+          <h2 className={aiTitleClass}>Información de contacto</h2>
           <p className={aiSubClass}>
-            Tu nombre y cómo te contactan. No se pide sitio web ni redes sociales. Para vista previa: nombre
+            Tu nombre y cómo quieres que te contacten. Para vista previa: nombre
             <span className="text-[#B8954A]" aria-hidden>
               {" "}
               *
             </span>{" "}
-            y al menos un medio de contacto (teléfono, WhatsApp o correo)
+            y al menos un medio de contacto (teléfono, WhatsApp, mensajes de texto o correo)
             <span className="text-[#B8954A]" aria-hidden>
               {" "}
               *
@@ -506,7 +507,7 @@ export function RentasPrivadoForm() {
           </p>
           <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
             <div className="sm:col-span-2">
-              <span className={aiLabelClass}>Foto del arrendador (opcional)</span>
+              <span className={aiLabelClass}>Foto de contacto (opcional)</span>
               <input
                 ref={ownerPhotoInputRef}
                 type="file"
@@ -590,6 +591,23 @@ export function RentasPrivadoForm() {
                   const prev = digitsOnly(state.seller.whatsapp);
                   const { display } = onPhoneInputChange(e.target.value, prev);
                   setState((s) => ({ ...s, seller: { ...s.seller, whatsapp: display } }));
+                }}
+                autoComplete="tel"
+              />
+            </AiField>
+            <AiField
+              label="Número para mensajes de texto"
+              hint="Puede ser el mismo número de teléfono o uno diferente."
+            >
+              <input
+                className={fieldClass}
+                inputMode="numeric"
+                placeholder="Puede ser el mismo número de teléfono o uno diferente."
+                value={formatUsPhoneDisplay(digitsOnly(state.seller.mensajesTexto))}
+                onChange={(e) => {
+                  const prev = digitsOnly(state.seller.mensajesTexto);
+                  const { display } = onPhoneInputChange(e.target.value, prev);
+                  setState((s) => ({ ...s, seller: { ...s.seller, mensajesTexto: display } }));
                 }}
                 autoComplete="tel"
               />
@@ -746,6 +764,9 @@ export function RentasPrivadoForm() {
                         })
                       }
                     />
+                    <span className="text-base leading-none shrink-0 pt-0.5" aria-hidden>
+                      {RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL[d.key as keyof typeof RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL]}
+                    </span>
                     <span className="min-w-0 flex-1">{d.label}</span>
                   </label>
                 ))}

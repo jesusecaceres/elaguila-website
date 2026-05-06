@@ -288,6 +288,15 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
                       {lang === "es" ? "Enviar correo" : "Send email"}
                     </a>
                   ) : null}
+                  {extra.contactSmsDigits && extra.contactSmsDigits.replace(/\D/g, "").length >= 10 ? (
+                    <a
+                      href={`sms:${extra.contactSmsDigits.replace(/\D/g, "")}`}
+                      onClick={() => void trackRentasContactClick(listing.id, null)}
+                      className={`inline-flex items-center justify-center ${rentasCtaSecondaryClass} w-full sm:w-auto sm:min-w-[11rem]`}
+                    >
+                      {lang === "es" ? "Enviar texto" : "Send text"}
+                    </a>
+                  ) : null}
                   {listingUuid ? (
                     <button
                       type="button"

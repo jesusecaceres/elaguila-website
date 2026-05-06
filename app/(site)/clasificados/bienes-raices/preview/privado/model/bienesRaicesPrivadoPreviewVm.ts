@@ -19,6 +19,8 @@ export type BienesRaicesPrivadoSellerVm = {
   phoneDisplay: string;
   emailDisplay: string;
   whatsappDisplay: string;
+  /** SMS número distinto; vacío si no aplica. */
+  smsDisplay: string;
   /** Optional short trust line; keep free of Negocio/broker language */
   noteLine: string;
 };
@@ -28,9 +30,11 @@ export type BienesRaicesPrivadoContactRailVm = {
   showSolicitarInfo: boolean;
   showLlamar: boolean;
   showWhatsapp: boolean;
+  showSms: boolean;
   solicitarInfoHref: string | null;
   llamarHref: string | null;
   whatsappHref: string | null;
+  smsHref: string | null;
   instructionsLine: string;
 };
 

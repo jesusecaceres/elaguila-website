@@ -108,7 +108,7 @@ export function RentasAnuncioPostDescriptionSections(props: {
           <>
             <p className="text-sm font-semibold text-[#111111]">{lang === "es" ? "Anunciante privado" : "Private advertiser"}</p>
             <p className="mt-1 text-xs text-[#111111]/80">
-              {lang === "es" ? "Arrendador o dueño (persona)." : "Landlord or owner (individual)."}
+              {lang === "es" ? "Persona que publica el anuncio (particular)." : "Individual listing this rental."}
             </p>
             <p className="mt-2 text-[11px] text-[#111111]/60">{lang === "es" ? "Respuesta: —" : "Response: —"}</p>
           </>

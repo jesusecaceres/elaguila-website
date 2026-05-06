@@ -65,6 +65,8 @@ export type RentasNegocioFormState = {
   negocioTelOficina: string;
   negocioEmail: string;
   negocioWhatsapp: string;
+  /** Número opcional solo para SMS (distinto de WhatsApp). */
+  negocioMensajesTexto: string;
   negocioSitioWeb: string;
   negocioRedes: string;
   negocioBio: string;
@@ -113,6 +115,7 @@ export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
     negocioTelOficina: "",
     negocioEmail: "",
     negocioWhatsapp: "",
+    negocioMensajesTexto: "",
     negocioSitioWeb: "",
     negocioRedes: "",
     negocioBio: "",
@@ -139,6 +142,7 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
     negocioTelOficina: nto,
     negocioEmail: ne,
     negocioWhatsapp: nw,
+    negocioMensajesTexto: nSms,
     negocioSitioWeb: ns,
     negocioRedes: nr,
     negocioBio: nb,
@@ -153,6 +157,7 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
       nombre: typeof nn === "string" ? nn : "",
       telefono: typeof ntd === "string" ? ntd : "",
       whatsapp: typeof nw === "string" ? nw : "",
+      mensajesTexto: typeof nSms === "string" ? nSms : "",
       correo: typeof ne === "string" ? ne : "",
       notaContacto: "",
     },
@@ -198,6 +203,7 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
     negocioTelOficina: typeof nto === "string" ? nto : base.negocioTelOficina,
     negocioEmail: typeof ne === "string" ? ne : base.negocioEmail,
     negocioWhatsapp: typeof nw === "string" ? nw : base.negocioWhatsapp,
+    negocioMensajesTexto: typeof nSms === "string" ? nSms : base.negocioMensajesTexto,
     negocioSitioWeb: typeof ns === "string" ? ns : base.negocioSitioWeb,
     negocioRedes: typeof nr === "string" ? nr : base.negocioRedes,
     negocioBio: typeof nb === "string" ? nb : base.negocioBio,

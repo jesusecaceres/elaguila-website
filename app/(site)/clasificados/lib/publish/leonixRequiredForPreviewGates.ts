@@ -8,6 +8,7 @@ import type { BienesRaicesPrivadoFormState } from "@/app/clasificados/publicar/b
 import type { RentasNegocioFormState } from "@/app/clasificados/publicar/rentas/negocio/schema/rentasNegocioFormState";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
 import { buildRentasStreetLine } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+import { digitsOnly } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
 
 export type LeonixPreviewGateResult = { ok: true } | { ok: false; message: string };
 
@@ -25,8 +26,13 @@ export function gateBienesRaicesPrivadoPreview(state: BienesRaicesPrivadoFormSta
   if (!state.media.photoDataUrls.length) return { ok: false, message: "Sube al menos una foto (portada)." };
   if (!trim(state.seller.nombre)) return { ok: false, message: "Indica tu nombre o cómo aparecerás como particular." };
   const hasContact =
-    trim(state.seller.telefono) || trim(state.seller.whatsapp) || trim(state.seller.correo);
-  if (!hasContact) return { ok: false, message: "Agrega al menos un medio de contacto (teléfono, WhatsApp o correo)." };
+    trim(state.seller.telefono) ||
+    trim(state.seller.whatsapp) ||
+    trim(state.seller.correo) ||
+    digitsOnly(state.seller.mensajesTexto).length >= 10;
+  if (!hasContact) {
+    return { ok: false, message: "Agrega al menos un medio de contacto (teléfono, WhatsApp, mensajes de texto o correo)." };
+  }
   if (state.petsAllowed !== "yes" && state.petsAllowed !== "no") {
     return { ok: false, message: "Indica si se permiten mascotas (sí / no) en la propiedad." };
   }
@@ -44,8 +50,13 @@ export function gateRentasPrivadoPreview(state: RentasPrivadoFormState): LeonixP
   if (!state.media.photoDataUrls.length) return { ok: false, message: "Sube al menos una foto (portada)." };
   if (!trim(state.seller.nombre)) return { ok: false, message: "Indica tu nombre o cómo aparecerás como particular." };
   const hasContact =
-    trim(state.seller.telefono) || trim(state.seller.whatsapp) || trim(state.seller.correo);
-  if (!hasContact) return { ok: false, message: "Agrega al menos un medio de contacto (teléfono, WhatsApp o correo)." };
+    trim(state.seller.telefono) ||
+    trim(state.seller.whatsapp) ||
+    trim(state.seller.correo) ||
+    digitsOnly(state.seller.mensajesTexto).length >= 10;
+  if (!hasContact) {
+    return { ok: false, message: "Agrega al menos un medio de contacto (teléfono, WhatsApp, mensajes de texto o correo)." };
+  }
   return { ok: true };
 }
 

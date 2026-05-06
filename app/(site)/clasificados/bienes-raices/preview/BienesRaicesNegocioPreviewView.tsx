@@ -861,6 +861,15 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                     Enviar por WhatsApp
                   </a>
                 ) : null}
+                {vm.contact.showSms && vm.contact.smsHref ? (
+                  <a
+                    href={vm.contact.smsHref}
+                    className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E3F2FD] transition hover:bg-white/5"
+                    style={{ borderColor: "rgba(100,181,246,0.45)" }}
+                  >
+                    Enviar texto
+                  </a>
+                ) : null}
               </div>
               <div className="space-y-3 border-t px-5 py-4" style={{ borderColor: "rgba(255,255,255,0.08)", background: "#3A342E" }}>
                 {vm.identity.contactPhone || vm.identity.contactEmail ? (

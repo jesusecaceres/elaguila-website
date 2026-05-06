@@ -62,6 +62,7 @@ function toBienesRaicesPrivadoShape(s: RentasPrivadoFormState): BienesRaicesPriv
       etiquetaRol: "",
       telefono: s.seller.telefono,
       whatsapp: s.seller.whatsapp,
+      mensajesTexto: s.seller.mensajesTexto,
       correo: s.seller.correo,
       notaContacto: s.seller.notaContacto,
     },
@@ -139,11 +140,8 @@ export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): Bie
   const rentFacts = rentalQuickFacts(s);
   const mailto =
     trim(s.seller.correo) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trim(s.seller.correo))
-      ? `mailto:${trim(s.seller.correo)}?subject=${encodeURIComponent("Pregunta sobre tu renta (Leonix — particular)")}`
+      ? `mailto:${trim(s.seller.correo)}?subject=${encodeURIComponent("Pregunta sobre tu renta (Leonix)")}`
       : null;
-
-  const nameShown = trim(s.seller.nombre);
-  const byOwner = nameShown ? "Arrendador" : "";
 
   return {
     ...base,
@@ -155,7 +153,7 @@ export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): Bie
     propertyDetailsRows: [...rentRows, ...base.propertyDetailsRows],
     seller: {
       ...base.seller,
-      byOwnerLabel: byOwner,
+      byOwnerLabel: "",
     },
     contact: {
       ...base.contact,

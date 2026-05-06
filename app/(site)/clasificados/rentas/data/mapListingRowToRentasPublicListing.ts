@@ -243,6 +243,8 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const emailRaw = trim(row.contact_email);
   const contactPhone = phoneRaw.replace(/\D/g, "").length >= 10 ? phoneRaw : undefined;
   const contactEmail = emailRaw.includes("@") ? emailRaw : undefined;
+  const smsRaw = (rx.contactSmsDigits ?? "").replace(/\D/g, "");
+  const contactSmsDigits = smsRaw.length >= 10 ? smsRaw.slice(0, 15) : undefined;
 
   const img = firstImageUrl(row.images);
   const gal = galleryUrls(row.images);
@@ -295,6 +297,7 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     depositUsd,
     contactPhone,
     contactEmail,
+    contactSmsDigits,
     addressLine,
     city,
     postalCode,

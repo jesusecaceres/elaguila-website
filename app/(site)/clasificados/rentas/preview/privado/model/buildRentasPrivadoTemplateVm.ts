@@ -38,10 +38,11 @@ const SELLER_PLACEHOLDER = {
   photoUrl: null as string | null,
   hasPhoto: false,
   name: "Nombre del particular",
-  byOwnerLabel: "Arrendador (plantilla)",
-  phoneDisplay: "Teléfono (plantilla)",
+  byOwnerLabel: "",
+  phoneDisplay: "(555) 123-4567",
   emailDisplay: "correo@ejemplo.com",
-  whatsappDisplay: "WhatsApp (plantilla)",
+  whatsappDisplay: "(555) 123-4567",
+  smsDisplay: "",
   noteLine: "Mensaje breve opcional para quien ve el anuncio (plantilla).",
 };
 
@@ -49,9 +50,11 @@ const CONTACT_TEMPLATE = {
   showSolicitarInfo: true,
   showLlamar: true,
   showWhatsapp: true,
+  showSms: false,
   solicitarInfoHref: "mailto:correo@ejemplo.com?subject=Pregunta%20sobre%20tu%20renta%20(Leonix)",
   llamarHref: "tel:+15551234567",
   whatsappHref: "https://wa.me/15551234567",
+  smsHref: null,
   instructionsLine: "Plantilla: texto opcional del particular antes de los botones de contacto.",
 };
 
@@ -84,7 +87,7 @@ export function buildRentasPrivadoTemplateVm(categoria: BrNegocioCategoriaPropie
     highlightsRows: [],
     hasHighlights: true,
     description:
-      "Descripción del inmueble en renta (plantilla). Incluye reglas de la propiedad, horarios de visita y lo que el arrendador ofrece. Sin datos reales en esta fase.",
+      "Descripción del inmueble en renta (plantilla). Incluye reglas de la propiedad, horarios de visita y lo que ofreces como anunciante. Sin datos reales en esta fase.",
     hasDescription: true,
     contactRailTitle: "Contacto",
     contact: { ...CONTACT_TEMPLATE },

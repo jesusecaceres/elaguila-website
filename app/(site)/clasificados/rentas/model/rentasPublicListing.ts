@@ -24,6 +24,8 @@ export type RentasPublicListing = {
   /** Public contact surfaced on detail when policy allows (from `listings.contact_*`). */
   contactPhone?: string;
   contactEmail?: string;
+  /** Dígitos para `sms:` cuando el anunciante publicó número de texto (machine pair). */
+  contactSmsDigits?: string;
   addressLine: string;
   /** Normalized city/metro for browse filters (maps from publish `ciudad` + geocoding). */
   city?: string;

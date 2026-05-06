@@ -96,7 +96,12 @@ export function RentasPreviewCard({
   const hasLocation = data.addressLine || data.operationSummary;
   const hasMonthlyRent = data.priceDisplay;
   const hasFacts = data.quickFacts.length > 0;
-  const hasCtas = data.contact.showLlamar || data.contact.showSolicitarInfo || data.contact.showProgramarVisita || data.contact.showWhatsapp;
+  const hasCtas =
+    data.contact.showLlamar ||
+    data.contact.showSolicitarInfo ||
+    data.contact.showProgramarVisita ||
+    data.contact.showWhatsapp ||
+    data.contact.showSms;
 
   // Determine primary media
   const primaryMedia = data.media.heroUrl;
@@ -270,7 +275,7 @@ export function RentasPreviewCard({
                 className={`${CTA_BUTTON} ${CTA_SECONDARY}`}
               >
                 <FiMessageCircle className="w-4 h-4" />
-                Contactar arrendador
+                Contactar por correo
               </a>
             )}
             {data.contact.showProgramarVisita && data.contact.programarVisitaHref && (
@@ -291,6 +296,12 @@ export function RentasPreviewCard({
               >
                 <FaWhatsapp className="w-4 h-4" />
                 WhatsApp
+              </a>
+            )}
+            {data.contact.showSms && data.contact.smsHref && (
+              <a href={data.contact.smsHref} className={`${CTA_BUTTON} ${CTA_SECONDARY}`}>
+                <FiMessageCircle className="w-4 h-4" />
+                Enviar texto
               </a>
             )}
           </div>

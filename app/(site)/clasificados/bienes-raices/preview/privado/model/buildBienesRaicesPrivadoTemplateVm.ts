@@ -41,6 +41,7 @@ const SELLER_PLACEHOLDER = {
   phoneDisplay: "Teléfono (plantilla)",
   emailDisplay: "correo@ejemplo.com",
   whatsappDisplay: "WhatsApp (plantilla)",
+  smsDisplay: "",
   noteLine: "Mensaje breve opcional para quien ve el anuncio (plantilla).",
 };
 
@@ -48,9 +49,11 @@ const CONTACT_TEMPLATE = {
   showSolicitarInfo: true,
   showLlamar: true,
   showWhatsapp: true,
+  showSms: false,
   solicitarInfoHref: "mailto:correo@ejemplo.com?subject=Pregunta%20sobre%20tu%20propiedad%20(Leonix)",
   llamarHref: "tel:+15551234567",
   whatsappHref: "https://wa.me/15551234567",
+  smsHref: null,
   instructionsLine: "Plantilla: texto opcional del particular antes de los botones de contacto.",
 };
 

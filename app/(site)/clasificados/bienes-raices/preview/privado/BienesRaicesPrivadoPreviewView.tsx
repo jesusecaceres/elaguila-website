@@ -304,6 +304,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
     Boolean(String(vm.seller.noteLine ?? "").trim()) ||
     Boolean(String(vm.seller.phoneDisplay ?? "").trim()) ||
     Boolean(String(vm.seller.whatsappDisplay ?? "").trim()) ||
+    Boolean(String(vm.seller.smsDisplay ?? "").trim()) ||
     Boolean(String(vm.seller.emailDisplay ?? "").trim());
 
   const renderGallerySpec = (spec: GalleryTopSpec, idx: number) => {
@@ -618,6 +619,16 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                     {vm.seller.whatsappDisplay}
                   </p>
                 ) : null}
+                {vm.seller.smsDisplay ? (
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
+                    Mensajes de texto
+                  </p>
+                ) : null}
+                {vm.seller.smsDisplay ? (
+                  <p className="[font-variant-numeric:tabular-nums]" style={{ color: CHARCOAL }}>
+                    {vm.seller.smsDisplay}
+                  </p>
+                ) : null}
                 {vm.seller.emailDisplay ? (
                   <p className="break-all text-sm leading-snug opacity-90" style={{ color: CHARCOAL }}>
                     {vm.seller.emailDisplay}
@@ -689,6 +700,15 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                     style={{ borderColor: "rgba(37,211,102,0.35)" }}
                   >
                     WhatsApp
+                  </a>
+                ) : null}
+                {vm.contact.showSms && vm.contact.smsHref ? (
+                  <a
+                    href={vm.contact.smsHref}
+                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E3F2FD] transition hover:bg-white/5"
+                    style={{ borderColor: "rgba(100,181,246,0.45)" }}
+                  >
+                    Enviar texto
                   </a>
                 ) : null}
               </div>

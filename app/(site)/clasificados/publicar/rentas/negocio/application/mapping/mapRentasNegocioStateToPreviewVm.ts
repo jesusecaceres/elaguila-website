@@ -11,6 +11,7 @@ import {
 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import type { RentasNegocioFormState } from "../../schema/rentasNegocioFormState";
 import { rentasNegocioToBienesRaicesNegocioState } from "./rentasNegocioToBienesRaicesNegocioState";
+import { digitsOnly } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
 
 function trim(s: string): string {
   return String(s ?? "").trim();
@@ -18,6 +19,12 @@ function trim(s: string): string {
 
 function priceDigits(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "");
+}
+
+function smsHrefFromState(raw: string): string | null {
+  const d = digitsOnly(raw);
+  if (d.length < 10) return null;
+  return `sms:${d}`;
 }
 
 function plazoDisplay(s: RentasNegocioFormState): string {
@@ -56,9 +63,15 @@ export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): Bie
   if (d && priceDisplay !== "—") {
     priceDisplay = `${priceDisplay} / mes`;
   }
+  const smsHref = smsHrefFromState(s.negocioMensajesTexto);
   return {
     ...vm,
     priceDisplay,
     propertyDetailsRows: extra.length ? [...extra, ...vm.propertyDetailsRows] : vm.propertyDetailsRows,
+    contact: {
+      ...vm.contact,
+      showSms: Boolean(smsHref),
+      smsHref,
+    },
   };
 }

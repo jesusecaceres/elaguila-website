@@ -11,6 +11,7 @@ import {
   RENTAS_DP_DEPOSIT_USD,
   RENTAS_DP_FURNISHED_CODE,
   RENTAS_DP_HALF_BATHS_COUNT,
+  RENTAS_DP_CONTACT_SMS_DIGITS,
   RENTAS_DP_LEASE_TERM,
   RENTAS_DP_LISTING_STATUS,
   RENTAS_DP_MAP_URL,
@@ -36,6 +37,7 @@ export type RentasDetailMachineRead = {
   mapUrl: string | null;
   videoUrl: string | null;
   halfBathsDigits: string | null;
+  contactSmsDigits: string | null;
 };
 
 export function parseRentasDetailMachineRead(detailPairs: unknown): RentasDetailMachineRead {
@@ -54,5 +56,6 @@ export function parseRentasDetailMachineRead(detailPairs: unknown): RentasDetail
     mapUrl: readLeonixDetailPairValue(detailPairs, RENTAS_DP_MAP_URL),
     videoUrl: readLeonixDetailPairValue(detailPairs, RENTAS_DP_VIDEO_URL),
     halfBathsDigits: readLeonixDetailPairValue(detailPairs, RENTAS_DP_HALF_BATHS_COUNT),
+    contactSmsDigits: readLeonixDetailPairValue(detailPairs, RENTAS_DP_CONTACT_SMS_DIGITS),
   };
 }

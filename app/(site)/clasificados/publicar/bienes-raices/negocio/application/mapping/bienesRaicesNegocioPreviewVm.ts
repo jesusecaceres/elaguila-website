@@ -75,11 +75,13 @@ export type BienesRaicesPreviewContactVm = {
   showProgramarVisita: boolean;
   showLlamar: boolean;
   showWhatsapp: boolean;
+  showSms: boolean;
   /** `mailto:` solo si hay correo; si no, el botón no debe fingir acción. */
   solicitarInfoHref: string | null;
   programarVisitaHref: string | null;
   llamarHref: string | null;
   whatsappHref: string | null;
+  smsHref: string | null;
   /** Preferencias de contacto / instrucciones (misma ficha). */
   instructionsLine: string;
   /** Texto libre del formulario (visitas). */

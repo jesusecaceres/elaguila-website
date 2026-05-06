@@ -17,6 +17,7 @@ import {
   RENTAS_PUBLICAR_PRIVADO,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
+import { RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL } from "@/app/clasificados/rentas/shared/rentasResidencialHighlightFormVisuals";
 import {
   AiField,
   aiCardClass,
@@ -479,10 +480,10 @@ export function RentasNegocioForm() {
         </section>
 
         <section className={`${aiCardClass} min-w-0`}>
-          <h2 className={aiTitleClass}>Negocio / marca</h2>
+          <h2 className={aiTitleClass}>Información de contacto</h2>
           <p className={aiSubClass}>
-            Datos del anunciante comercial. La vista previa reutiliza el shell de Bienes Raíces Negocio (identidad, CTAs, redes).
-            Nombre visible
+            Tu nombre o marca y cómo quieres que te contacten. La vista previa reutiliza el shell de Bienes Raíces Negocio
+            (identidad, CTAs, redes). Nombre visible
             <span className="text-[#B8954A]" aria-hidden>
               {" "}
               *
@@ -602,6 +603,23 @@ export function RentasNegocioForm() {
                   const prev = digitsOnly(state.negocioWhatsapp);
                   const { display } = onPhoneInputChange(e.target.value, prev);
                   setState((s) => ({ ...s, negocioWhatsapp: display }));
+                }}
+                autoComplete="tel"
+              />
+            </AiField>
+            <AiField
+              label="Número para mensajes de texto"
+              hint="Puede ser el mismo número de teléfono o uno diferente."
+            >
+              <input
+                className={fieldClass}
+                inputMode="numeric"
+                placeholder="Puede ser el mismo número de teléfono o uno diferente."
+                value={formatUsPhoneDisplay(digitsOnly(state.negocioMensajesTexto))}
+                onChange={(e) => {
+                  const prev = digitsOnly(state.negocioMensajesTexto);
+                  const { display } = onPhoneInputChange(e.target.value, prev);
+                  setState((s) => ({ ...s, negocioMensajesTexto: display }));
                 }}
                 autoComplete="tel"
               />
@@ -779,6 +797,9 @@ export function RentasNegocioForm() {
                         })
                       }
                     />
+                    <span className="text-base leading-none shrink-0 pt-0.5" aria-hidden>
+                      {RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL[d.key as keyof typeof RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL]}
+                    </span>
                     <span className="min-w-0 flex-1">{d.label}</span>
                   </label>
                 ))}

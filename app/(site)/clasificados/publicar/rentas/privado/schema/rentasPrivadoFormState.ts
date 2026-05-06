@@ -74,6 +74,7 @@ export type RentasPrivadoFormState = {
     nombre: string;
     telefono: string;
     whatsapp: string;
+    mensajesTexto: string;
     correo: string;
     notaContacto: string;
   };
@@ -172,6 +173,7 @@ export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
       nombre: br.seller.nombre,
       telefono: br.seller.telefono,
       whatsapp: br.seller.whatsapp,
+      mensajesTexto: br.seller.mensajesTexto,
       correo: br.seller.correo,
       notaContacto: br.seller.notaContacto,
     },
@@ -218,6 +220,7 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
           etiquetaRol: "",
           telefono: partial.seller.telefono,
           whatsapp: partial.seller.whatsapp,
+          mensajesTexto: partial.seller.mensajesTexto,
           correo: partial.seller.correo,
           notaContacto: partial.seller.notaContacto,
         }
@@ -286,6 +289,7 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
       nombre: br.seller.nombre,
       telefono: br.seller.telefono,
       whatsapp: br.seller.whatsapp,
+      mensajesTexto: br.seller.mensajesTexto,
       correo: br.seller.correo,
       notaContacto: br.seller.notaContacto,
     },

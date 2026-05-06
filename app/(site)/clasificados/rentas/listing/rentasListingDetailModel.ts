@@ -10,6 +10,7 @@ export type RentasListingDetailExtra = {
   /** When `listings.contact_*` is populated and policy allows public display. */
   contactPhone?: string;
   contactEmail?: string;
+  contactSmsDigits?: string;
 };
 
 /** @deprecated Prefer `getRentasListingById` from `rentasPublicData` — kept for call sites. */
@@ -32,6 +33,9 @@ function defaultExtra(listing: RentasPublicListing): RentasListingDetailExtra {
 export function getRentasListingDetailExtra(listing: RentasPublicListing): RentasListingDetailExtra {
   const contactPhone = listing.contactPhone?.trim() || undefined;
   const contactEmail = listing.contactEmail?.trim() || undefined;
+  const contactSmsDigits = listing.contactSmsDigits?.replace(/\D/g, "").length
+    ? listing.contactSmsDigits.replace(/\D/g, "").slice(0, 15)
+    : undefined;
   if (listing.description && listing.sellerDisplay) {
     return {
       descriptionEs: listing.description.es,
@@ -41,8 +45,9 @@ export function getRentasListingDetailExtra(listing: RentasPublicListing): Renta
       gallery: listing.galleryUrls?.length ? listing.galleryUrls : [listing.imageUrl],
       contactPhone,
       contactEmail,
+      contactSmsDigits,
     };
   }
   const base = defaultExtra(listing);
-  return { ...base, contactPhone, contactEmail };
+  return { ...base, contactPhone, contactEmail, contactSmsDigits };
 }

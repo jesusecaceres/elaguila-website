@@ -11,6 +11,7 @@ import {
   formatRentasServiciosIncluidosOutput,
   rentasGoogleMapsUrlFromQuery,
 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+import { digitsOnly } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
 
 export const RENTAS_DP_DEPOSIT_USD = "Leonix:rent:deposit_usd";
 export const RENTAS_DP_LEASE_TERM = "Leonix:rent:lease_term_code";
@@ -29,6 +30,8 @@ export const RENTAS_DP_MAP_URL = "Leonix:rent:map_url";
 /** External video URL only (never data: URLs). */
 export const RENTAS_DP_VIDEO_URL = "Leonix:rent:video_url";
 export const RENTAS_DP_HALF_BATHS_COUNT = "Leonix:rent:half_baths_count";
+/** Dígitos US (10) para SMS; distinto de `contact_phone` cuando el usuario separa SMS. */
+export const RENTAS_DP_CONTACT_SMS_DIGITS = "Leonix:rent:contact_sms_digits";
 
 type RentasPersistCommon = Pick<
   RentasPrivadoFormState,
@@ -98,6 +101,8 @@ export function mergeRentasPrivadoMachinePairs(
   if (vid && /^https?:\/\//i.test(vid)) push(out, RENTAS_DP_VIDEO_URL, vid);
   const half = parseInt(String(state.residencial.mediosBanos ?? "").replace(/\D/g, ""), 10);
   if (Number.isFinite(half) && half > 0) push(out, RENTAS_DP_HALF_BATHS_COUNT, String(half));
+  const sms = digitsOnly(state.seller.mensajesTexto ?? "");
+  if (sms.length >= 10) push(out, RENTAS_DP_CONTACT_SMS_DIGITS, sms);
   return out;
 }
 
@@ -116,5 +121,7 @@ export function mergeRentasNegocioMachinePairs(
   push(out, RENTAS_DP_BUSINESS_LICENSE, state.negocioLicencia);
   push(out, RENTAS_DP_BUSINESS_WEBSITE, state.negocioSitioWeb);
   push(out, RENTAS_DP_BUSINESS_SOCIAL, state.negocioRedes);
+  const smsN = digitsOnly(state.negocioMensajesTexto ?? "");
+  if (smsN.length >= 10) push(out, RENTAS_DP_CONTACT_SMS_DIGITS, smsN);
   return out;
 }
