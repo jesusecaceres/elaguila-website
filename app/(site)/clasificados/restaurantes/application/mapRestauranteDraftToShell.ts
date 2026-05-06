@@ -10,6 +10,7 @@ import type {
   ShellVenueGalleryBundle,
   ShellVenueGalleryCategory,
 } from "../shell/restaurantDetailShellTypes";
+import { buildShellAmenitiesSection } from "../lib/restauranteAmenitiesCatalog";
 import { normalizeRestaurantFeatures } from "../lib/restauranteFeaturesNormalization";
 import { computePublishGallerySequence } from "./restauranteGalleryMediaSequence";
 import {
@@ -545,6 +546,8 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
   const logoTrim = d.businessLogo?.trim();
   const logoResolved = nonEmpty(logoTrim) ? logoTrim : undefined;
 
+  const amenitiesBlock = buildShellAmenitiesSection(d.restaurantAmenities);
+
   return {
     id: d.draftListingId,
     heroImageUrl: heroResolved != null && nonEmpty(heroResolved) ? heroResolved.trim() : undefined,
@@ -576,5 +579,6 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
     trustLight: buildTrustLight(d),
     stackSections: stacks.length ? stacks : undefined,
     groupedFeatures: normalizeRestaurantFeatures(d),
+    ...amenitiesBlock,
   };
 }

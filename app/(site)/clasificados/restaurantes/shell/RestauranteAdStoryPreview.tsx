@@ -7,6 +7,7 @@ import { LeonixShareButton } from "@/app/components/clasificados/analytics/Leoni
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
+import { RestauranteAmenitiesShellSection } from "./RestauranteAmenitiesShellSection";
 import { RestauranteGroupedFeaturesSection } from "./RestauranteGroupedFeaturesSection";
 import { RestauranteLockedGallerySection } from "./RestauranteLockedGallerySection";
 import { normalizeActionableUrl } from "../lib/urlNormalization";
@@ -544,6 +545,10 @@ export function RestauranteAdStoryPreview({
       {data.groupedFeatures && (
         <RestauranteGroupedFeaturesSection features={data.groupedFeatures} />
       )}
+
+      {data.amenitiesSection && data.amenitiesSection.groups.length > 0 ? (
+        <RestauranteAmenitiesShellSection section={data.amenitiesSection} lang={lang} />
+      ) : null}
 
       
       {/* D. Proof / Featured Menu Zone */}

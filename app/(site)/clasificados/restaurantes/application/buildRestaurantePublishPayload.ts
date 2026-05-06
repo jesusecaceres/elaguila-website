@@ -1,3 +1,4 @@
+import { hasAnyRestauranteAmenities, sanitizeRestauranteAmenities } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 
 /**
@@ -92,6 +93,7 @@ export function buildRestaurantePublishPayload(
   };
 
   const draft = canonicalDraft;
+  const amenitiesSanitized = sanitizeRestauranteAmenities(draft.restaurantAmenities);
 
   const payload: Record<string, unknown> = {
     draftListingId: blockHeavyMedia(draft.draftListingId, "draftListingId"),
@@ -162,6 +164,10 @@ export function buildRestaurantePublishPayload(
     yelpReviewUrl: blockHeavyMedia(draft.yelpReviewUrl, "yelpReviewUrl"),
     testimonialSnippet: blockHeavyMedia(draft.testimonialSnippet, "testimonialSnippet"),
     aiSummaryEnabled: blockHeavyMedia(draft.aiSummaryEnabled, "aiSummaryEnabled"),
+    restaurantAmenities: blockHeavyMedia(
+      hasAnyRestauranteAmenities(amenitiesSanitized) ? amenitiesSanitized : undefined,
+      "restaurantAmenities",
+    ),
     reservationsAvailable: blockHeavyMedia(draft.reservationsAvailable, "reservationsAvailable"),
     preorderRequired: blockHeavyMedia(draft.preorderRequired, "preorderRequired"),
     pickupAvailable: blockHeavyMedia(draft.pickupAvailable, "pickupAvailable"),

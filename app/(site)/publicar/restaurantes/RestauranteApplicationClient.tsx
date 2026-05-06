@@ -35,6 +35,7 @@ import { resolveRestauranteGallerySequence } from "@/app/clasificados/restaurant
 import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
 import { buildRestauranteApplicationSectionNavItems } from "./restauranteApplicationSectionModel";
 import { RestauranteApplicationSectionNav } from "./RestauranteApplicationSectionNav";
+import { RestauranteAmenitiesFormBlock } from "./RestauranteAmenitiesFormBlock";
 
 const PREVIEW_HREF = "/clasificados/restaurantes/preview";
 
@@ -1803,6 +1804,18 @@ export default function RestauranteApplicationClient() {
             })}
           </div>
         </section>
+        ) : null}
+
+        {/* L — Amenidades y más */}
+        {activeSectionId === "restaurantes-section-amenities" ? (
+          <section id="restaurantes-section-amenities" className={stepPanel}>
+            <SectionTitle>L · Amenidades y más</SectionTitle>
+            <HelperText>
+              Opcional. No es obligatorio para publicar. Las opciones aparecen en la vista previa y en la ficha pública
+              solo cuando marcas al menos una.
+            </HelperText>
+            <RestauranteAmenitiesFormBlock draft={draft} setDraftPatch={setDraftPatch} />
+          </section>
         ) : null}
 
         {/* I */}

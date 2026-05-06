@@ -118,6 +118,21 @@ export type ShellStackSection = {
   rows: { label: string; value: string }[];
 };
 
+/** Bilingual amenities block for preview + public detail */
+export type ShellAmenitiesItem = { labelEs: string; labelEn: string };
+
+export type ShellAmenitiesGroup = {
+  titleEs: string;
+  titleEn: string;
+  items: ShellAmenitiesItem[];
+};
+
+export type ShellAmenitiesSection = {
+  titleEs: string;
+  titleEn: string;
+  groups: ShellAmenitiesGroup[];
+};
+
 /**
  * Full shell payload — one object per listing in production.
  * Optional sections may be omitted or empty; shell hides them without layout breaks.
@@ -163,4 +178,6 @@ export type RestaurantDetailShellData = {
   stackSections?: ShellStackSection[];
   /** Grouped features for Servicios y Características section */
   groupedFeatures?: import("../lib/restauranteFeaturesNormalization").GroupedFeatures;
+  /** Optional amenities (payments, accessibility, etc.) — labels only; hidden when empty */
+  amenitiesSection?: ShellAmenitiesSection;
 };

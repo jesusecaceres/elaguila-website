@@ -6,6 +6,7 @@
  * @see `getCanonicalCityName` — `cityCanonical` must match NorCal pipeline output where applicable.
  */
 
+import type { RestauranteAmenitiesSelection } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
 import { isRestauranteIdbRef } from "./restauranteDraftMedia";
 import { computePublishGallerySequence } from "./restauranteGalleryMediaSequence";
 import {
@@ -315,6 +316,8 @@ export type RestauranteListingApplication = RestauranteBusinessIdentity &
     movingVendorStack?: Partial<RestauranteMovingVendorStack>;
     homeBasedStack?: Partial<RestauranteHomeBasedStack>;
     cateringEventsStack?: Partial<RestauranteCateringEventsStack>;
+    /** Optional structured amenities (payments, accessibility, etc.) */
+    restaurantAmenities?: RestauranteAmenitiesSelection;
   };
 
 // ---------------------------------------------------------------------------

@@ -1,3 +1,4 @@
+import { sanitizeRestauranteAmenities, hasAnyRestauranteAmenities } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 import type { RestauranteDaySchedule } from "./restauranteListingApplicationModel";
 
@@ -126,6 +127,7 @@ export function createEmptyRestauranteDraft(): RestauranteListingDraft {
     externalReviewCount: undefined,
     testimonialSnippet: undefined,
     aiSummaryEnabled: false,
+    restaurantAmenities: undefined,
   };
 }
 
@@ -189,5 +191,8 @@ export function mergeRestauranteDraft(loaded: unknown): RestauranteListingDraft 
         };
       })
     : [];
+  const rawAmenities = (draft as Record<string, unknown>).restaurantAmenities;
+  merged.restaurantAmenities = sanitizeRestauranteAmenities(rawAmenities);
+  if (!hasAnyRestauranteAmenities(merged.restaurantAmenities)) merged.restaurantAmenities = undefined;
   return merged;
 }
