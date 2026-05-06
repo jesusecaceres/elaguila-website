@@ -96,6 +96,17 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     amenityOptionIds: [],
     customAmenityOptions: [],
     pendingCustomAmenityOption: "",
+    hasLicense: false,
+    licenseType: "",
+    licenseNumber: "",
+    licenseAuthority: "",
+    licenseExpiration: "",
+    isInsured: false,
+    insuranceType: "",
+    certifications: [],
+    pendingCertification: "",
+    licenseDocumentUrl: "",
+    insuranceDocumentUrl: "",
   };
 }
 
@@ -167,6 +178,19 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
     s.amenityOptionIds.length > 0 ||
     s.customAmenityOptions.length > 0 ||
     s.pendingCustomAmenityOption.trim()
+  ) {
+    return true;
+  }
+  if (s.hasLicense || s.isInsured) return true;
+  if (s.certifications.length > 0 || s.pendingCertification.trim()) return true;
+  if (
+    s.licenseType.trim() ||
+    s.licenseNumber.trim() ||
+    s.licenseAuthority.trim() ||
+    s.licenseExpiration.trim() ||
+    s.insuranceType.trim() ||
+    s.licenseDocumentUrl.trim() ||
+    s.insuranceDocumentUrl.trim()
   ) {
     return true;
   }

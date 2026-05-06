@@ -193,6 +193,36 @@ export type ServiciosAboutBlock = {
   specialtiesLine?: string;
 };
 
+/** Advertiser-provided license / insurance / certifications (never implies Leonix verification). */
+export type ServiciosCredentialsWire = {
+  hasLicense?: boolean;
+  licenseType?: string;
+  licenseNumber?: string;
+  licenseAuthority?: string;
+  licenseExpiration?: string;
+  isInsured?: boolean;
+  insuranceType?: string;
+  certifications?: string[];
+  /** Optional https link to a license document (no blob upload in this phase). */
+  licenseDocumentUrl?: string;
+  /** Optional https link to insurance or certificate document. */
+  insuranceDocumentUrl?: string;
+};
+
+/** Resolver output — safe hrefs only for external document links. */
+export type ServiciosCredentialsResolved = {
+  hasLicense: boolean;
+  isInsured: boolean;
+  licenseType?: string;
+  licenseNumber?: string;
+  licenseAuthority?: string;
+  licenseExpiration?: string;
+  insuranceType?: string;
+  certifications: string[];
+  licenseDocumentHrefSafe?: string;
+  insuranceDocumentHrefSafe?: string;
+};
+
 /** Cities / neighborhoods / ZIPs + optional static map asset */
 export type ServiciosServiceAreasBlock = {
   items?: ServiciosServiceArea[];
@@ -235,6 +265,8 @@ export type ServiciosBusinessProfile = {
   amenityOptionIds?: string[];
   /** Custom amenity/option labels; sanitized at resolve */
   customAmenityOptions?: string[];
+  /** License, insurance, certifications (self-serve; not verified by Leonix). */
+  credentials?: ServiciosCredentialsWire;
 };
 
 /**
@@ -319,4 +351,6 @@ export type ServiciosProfileResolved = {
     assetImageHrefSafe?: string;
     assetPdfHrefSafe?: string;
   };
+  /** Sanitized credentials block — omitted when nothing meaningful remains */
+  credentials?: ServiciosCredentialsResolved;
 };

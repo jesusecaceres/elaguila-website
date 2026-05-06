@@ -84,6 +84,22 @@ export type ServiciosApplicationAboutDraft = {
   specialtiesLine?: string;
 };
 
+/** License / insurance / certifications (clasificados Servicios Phase 6A). */
+export type ServiciosApplicationCredentialsDraft = {
+  hasLicense?: boolean;
+  licenseType?: string;
+  licenseNumber?: string;
+  licenseAuthority?: string;
+  licenseExpiration?: string;
+  isInsured?: boolean;
+  insuranceType?: string;
+  certifications?: string[];
+  /** Flushed on step Next where applicable; omitted on wire profile */
+  pendingCertification?: string;
+  licenseDocumentUrl?: string;
+  insuranceDocumentUrl?: string;
+};
+
 export type ServiciosApplicationServiceDraft = {
   id: string;
   title: string;
@@ -185,4 +201,6 @@ export type ServiciosApplicationDraft = {
   customAmenityOptions?: string[];
   /** Pending custom amenity input (flushed on step Next where applicable) */
   pendingCustomAmenityOption?: string;
+  /** Credentials, license & insurance (optional) */
+  credentials?: ServiciosApplicationCredentialsDraft;
 };

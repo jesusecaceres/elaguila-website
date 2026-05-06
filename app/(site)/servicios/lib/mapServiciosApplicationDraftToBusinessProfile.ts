@@ -3,6 +3,7 @@ import type {
   ServiciosAboutBlock,
   ServiciosBusinessProfile,
   ServiciosContactBlock,
+  ServiciosCredentialsWire,
   ServiciosGalleryImage,
   ServiciosGalleryVideo,
   ServiciosHeroBadge,
@@ -24,6 +25,7 @@ import {
   sanitizeCustomServiciosAmenityLabels,
   sanitizeServiciosAmenityOptionIds,
 } from "./serviciosAmenitiesCatalog";
+import { sanitizeCertificationLabels } from "./serviciosCredentialsCatalog";
 
 function trim(s: string | undefined | null): string {
   return typeof s === "string" ? s.trim().replace(/\s+/g, " ") : "";
@@ -171,6 +173,7 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   const customPaymentMethods = sanitizeCustomPaymentMethodLabels(draft.customPaymentMethods);
   const amenityOptionIds = sanitizeServiciosAmenityOptionIds(draft.amenityOptionIds);
   const customAmenityOptions = sanitizeCustomServiciosAmenityLabels(draft.customAmenityOptions);
+  const credentials = mapCredentials(draft.credentials);
 
   const out: ServiciosBusinessProfile = {
     identity,
@@ -197,7 +200,45 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   if (customPaymentMethods.length) out.customPaymentMethods = customPaymentMethods;
   if (amenityOptionIds.length) out.amenityOptionIds = amenityOptionIds;
   if (customAmenityOptions.length) out.customAmenityOptions = customAmenityOptions;
+  if (credentials) out.credentials = credentials;
 
+  return out;
+}
+
+function mapCredentials(
+  raw: ServiciosApplicationDraft["credentials"],
+): ServiciosCredentialsWire | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const hasLicense = raw.hasLicense === true;
+  const isInsured = raw.isInsured === true;
+  const certifications = sanitizeCertificationLabels(raw.certifications);
+  const licenseType = hasLicense ? trim(raw.licenseType) || undefined : undefined;
+  const licenseNumber = hasLicense ? trim(raw.licenseNumber) || undefined : undefined;
+  const licenseAuthority = hasLicense ? trim(raw.licenseAuthority) || undefined : undefined;
+  const licenseExpiration = hasLicense ? trim(raw.licenseExpiration) || undefined : undefined;
+  const insuranceType = isInsured ? trim(raw.insuranceType) || undefined : undefined;
+  const licenseDocumentUrl = trim(raw.licenseDocumentUrl) || undefined;
+  const insuranceDocumentUrl = trim(raw.insuranceDocumentUrl) || undefined;
+
+  const meaningful =
+    hasLicense ||
+    isInsured ||
+    certifications.length > 0 ||
+    Boolean(licenseDocumentUrl) ||
+    Boolean(insuranceDocumentUrl);
+  if (!meaningful) return undefined;
+
+  const out: ServiciosCredentialsWire = {};
+  if (hasLicense) out.hasLicense = true;
+  if (isInsured) out.isInsured = true;
+  if (licenseType) out.licenseType = licenseType;
+  if (licenseNumber) out.licenseNumber = licenseNumber;
+  if (licenseAuthority) out.licenseAuthority = licenseAuthority;
+  if (licenseExpiration) out.licenseExpiration = licenseExpiration;
+  if (insuranceType) out.insuranceType = insuranceType;
+  if (certifications.length) out.certifications = certifications;
+  if (licenseDocumentUrl) out.licenseDocumentUrl = licenseDocumentUrl;
+  if (insuranceDocumentUrl) out.insuranceDocumentUrl = insuranceDocumentUrl;
   return out;
 }
 

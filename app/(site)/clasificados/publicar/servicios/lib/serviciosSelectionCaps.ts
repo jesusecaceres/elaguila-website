@@ -16,6 +16,11 @@ import {
   sanitizeCustomServiciosAmenityLabels,
   sanitizeServiciosAmenityOptionIds,
 } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
+import {
+  SERVICIOS_CERTIFICATION_LABEL_MAX,
+  SERVICIOS_CREDENTIAL_STRING_MAX,
+  sanitizeCertificationLabels,
+} from "@/app/servicios/lib/serviciosCredentialsCatalog";
 
 /** Max preset service chips selected at once (generous cap for real listings) */
 export const MAX_SERVICES_SELECTION = 24;
@@ -112,6 +117,18 @@ export function enforceServiciosSelectionCaps(
       ? s.pendingCustomAmenityOption.trim().slice(0, CUSTOM_SERVICIOS_AMENITY_LABEL_MAX)
       : "";
 
+  const certifications = sanitizeCertificationLabels(
+    Array.isArray(s.certifications) ? s.certifications.filter((x): x is string => typeof x === "string") : [],
+  );
+  const pendingCertification =
+    typeof s.pendingCertification === "string"
+      ? s.pendingCertification.trim().slice(0, SERVICIOS_CERTIFICATION_LABEL_MAX)
+      : "";
+  const trimCred = (v: unknown, max: number) => {
+    const t = typeof v === "string" ? v.trim().replace(/\s+/g, " ") : "";
+    return t.slice(0, max);
+  };
+
   return {
     ...s,
     selectedServiceIds: sis,
@@ -130,5 +147,16 @@ export function enforceServiciosSelectionCaps(
     amenityOptionIds,
     customAmenityOptions,
     pendingCustomAmenityOption,
+    hasLicense: s.hasLicense === true,
+    isInsured: s.isInsured === true,
+    licenseType: trimCred(s.licenseType, SERVICIOS_CREDENTIAL_STRING_MAX.licenseType),
+    licenseNumber: trimCred(s.licenseNumber, SERVICIOS_CREDENTIAL_STRING_MAX.licenseNumber),
+    licenseAuthority: trimCred(s.licenseAuthority, SERVICIOS_CREDENTIAL_STRING_MAX.licenseAuthority),
+    licenseExpiration: trimCred(s.licenseExpiration, SERVICIOS_CREDENTIAL_STRING_MAX.licenseExpiration),
+    insuranceType: trimCred(s.insuranceType, SERVICIOS_CREDENTIAL_STRING_MAX.insuranceType),
+    licenseDocumentUrl: trimCred(s.licenseDocumentUrl, SERVICIOS_CREDENTIAL_STRING_MAX.documentUrl),
+    insuranceDocumentUrl: trimCred(s.insuranceDocumentUrl, SERVICIOS_CREDENTIAL_STRING_MAX.documentUrl),
+    certifications,
+    pendingCertification,
   };
 }

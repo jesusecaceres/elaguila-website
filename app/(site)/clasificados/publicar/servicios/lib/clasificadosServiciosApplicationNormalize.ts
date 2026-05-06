@@ -204,6 +204,11 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     customAmenityOptions = o.customAmenityOptions.filter((x): x is string => typeof x === "string");
   }
 
+  let certifications = d.certifications;
+  if (Array.isArray(o.certifications)) {
+    certifications = o.certifications.filter((x): x is string => typeof x === "string");
+  }
+
   return enforceServiciosSelectionCaps({
     applicationStepIndex,
     businessTypeId: str("businessTypeId", d.businessTypeId),
@@ -292,5 +297,16 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
       0,
       CUSTOM_SERVICIOS_AMENITY_LABEL_MAX,
     ),
+    hasLicense: bool("hasLicense", d.hasLicense),
+    isInsured: bool("isInsured", d.isInsured),
+    licenseType: str("licenseType", d.licenseType),
+    licenseNumber: str("licenseNumber", d.licenseNumber),
+    licenseAuthority: str("licenseAuthority", d.licenseAuthority),
+    licenseExpiration: str("licenseExpiration", d.licenseExpiration),
+    insuranceType: str("insuranceType", d.insuranceType),
+    licenseDocumentUrl: str("licenseDocumentUrl", d.licenseDocumentUrl),
+    insuranceDocumentUrl: str("insuranceDocumentUrl", d.insuranceDocumentUrl),
+    certifications,
+    pendingCertification: str("pendingCertification", d.pendingCertification),
   });
 }

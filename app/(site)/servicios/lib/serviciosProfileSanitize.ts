@@ -11,7 +11,13 @@ import type {
   ServiciosServiceCard,
   ServiciosServiceVisualVariant,
   ServiciosTrustItem,
+  ServiciosCredentialsWire,
+  ServiciosCredentialsResolved,
 } from "../types/serviciosBusinessProfile";
+import {
+  sanitizeCertificationLabels,
+  SERVICIOS_CREDENTIAL_STRING_MAX,
+} from "./serviciosCredentialsCatalog";
 import { isAllowedServiciosImageUrl, isAllowedServiciosVideoUrl } from "./serviciosMediaUrl";
 import {
   sanitizeCustomPaymentMethodLabels,
@@ -390,4 +396,61 @@ export function filterAmenityOptionIds(raw: string[] | undefined): ServiciosAmen
 
 export function filterCustomAmenityOptions(raw: string[] | undefined): string[] {
   return sanitizeCustomServiciosAmenityLabels(raw);
+}
+
+/**
+ * Sanitize advertiser credential wire → presentation-safe block.
+ * Never implies Leonix verification; external links are https-only.
+ */
+export function resolveServiciosCredentials(wire?: ServiciosCredentialsWire | null): ServiciosCredentialsResolved | undefined {
+  if (!wire || typeof wire !== "object") return undefined;
+  const hasLicense = wire.hasLicense === true;
+  const isInsured = wire.isInsured === true;
+  const certifications = sanitizeCertificationLabels(wire.certifications);
+
+  const licenseType =
+    hasLicense && trimText(wire.licenseType)
+      ? trimText(wire.licenseType).slice(0, SERVICIOS_CREDENTIAL_STRING_MAX.licenseType)
+      : undefined;
+  const licenseNumber =
+    hasLicense && trimText(wire.licenseNumber)
+      ? trimText(wire.licenseNumber).slice(0, SERVICIOS_CREDENTIAL_STRING_MAX.licenseNumber)
+      : undefined;
+  const licenseAuthority =
+    hasLicense && trimText(wire.licenseAuthority)
+      ? trimText(wire.licenseAuthority).slice(0, SERVICIOS_CREDENTIAL_STRING_MAX.licenseAuthority)
+      : undefined;
+  const licenseExpiration =
+    hasLicense && trimText(wire.licenseExpiration)
+      ? trimText(wire.licenseExpiration).slice(0, SERVICIOS_CREDENTIAL_STRING_MAX.licenseExpiration)
+      : undefined;
+  const insuranceType =
+    isInsured && trimText(wire.insuranceType)
+      ? trimText(wire.insuranceType).slice(0, SERVICIOS_CREDENTIAL_STRING_MAX.insuranceType)
+      : undefined;
+
+  const licenseDocumentHrefSafe = safeExternalWebsiteHref(wire.licenseDocumentUrl) ?? undefined;
+  const insuranceDocumentHrefSafe = safeExternalWebsiteHref(wire.insuranceDocumentUrl) ?? undefined;
+
+  const showCard =
+    hasLicense ||
+    isInsured ||
+    certifications.length > 0 ||
+    Boolean(licenseDocumentHrefSafe) ||
+    Boolean(insuranceDocumentHrefSafe);
+  if (!showCard) return undefined;
+
+  const out: ServiciosCredentialsResolved = {
+    hasLicense,
+    isInsured,
+    certifications,
+  };
+  if (licenseType) out.licenseType = licenseType;
+  if (licenseNumber) out.licenseNumber = licenseNumber;
+  if (licenseAuthority) out.licenseAuthority = licenseAuthority;
+  if (licenseExpiration) out.licenseExpiration = licenseExpiration;
+  if (insuranceType) out.insuranceType = insuranceType;
+  if (licenseDocumentHrefSafe) out.licenseDocumentHrefSafe = licenseDocumentHrefSafe;
+  if (insuranceDocumentHrefSafe) out.insuranceDocumentHrefSafe = insuranceDocumentHrefSafe;
+  return out;
 }

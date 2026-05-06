@@ -244,6 +244,27 @@ export type ClasificadosServiciosCopy = {
     amenitiesAdd: string;
     amenitiesAddedList: string;
     amenitiesCustomMax: string;
+    credentialsSection: string;
+    credentialsSectionHint: string;
+    hasLicense: string;
+    licenseType: string;
+    licenseTypePlaceholder: string;
+    licenseNumber: string;
+    licenseAuthority: string;
+    licenseAuthorityPlaceholder: string;
+    licenseExpiration: string;
+    hasInsurance: string;
+    insuranceType: string;
+    insuranceTypePlaceholder: string;
+    certificationsLabel: string;
+    certificationsPlaceholder: string;
+    certificationsAdd: string;
+    certificationsAddedList: string;
+    certificationsCustomMax: string;
+    licenseDocumentLink: string;
+    licenseDocumentLinkHelp: string;
+    insuranceDocumentLink: string;
+    insuranceDocumentLinkHelp: string;
   };
 };
 
@@ -484,6 +505,28 @@ const es: ClasificadosServiciosCopy = {
     amenitiesAdd: "Añadir",
     amenitiesAddedList: "Opciones agregadas:",
     amenitiesCustomMax: "Has alcanzado el máximo de opciones personalizadas (24).",
+    credentialsSection: "Credenciales, licencia y seguro",
+    credentialsSectionHint:
+      "Agrega información que ayude al cliente a confiar. No marques nada como verificado a menos que Leonix lo verifique.",
+    hasLicense: "Tengo licencia",
+    licenseType: "Tipo de licencia",
+    licenseTypePlaceholder: "Ej.: Contratista, cosmetología, plomería",
+    licenseNumber: "Número de licencia",
+    licenseAuthority: "Autoridad o estado emisor",
+    licenseAuthorityPlaceholder: "Ej.: California, CSLB, junta estatal",
+    licenseExpiration: "Fecha de vencimiento",
+    hasInsurance: "Tengo seguro",
+    insuranceType: "Tipo de seguro",
+    insuranceTypePlaceholder: "Ej.: Responsabilidad general",
+    certificationsLabel: "Certificaciones",
+    certificationsPlaceholder: "Ej.: Técnico certificado",
+    certificationsAdd: "Añadir",
+    certificationsAddedList: "Certificaciones agregadas:",
+    certificationsCustomMax: "Has alcanzado el máximo de certificaciones (24).",
+    licenseDocumentLink: "Enlace al documento de licencia",
+    licenseDocumentLinkHelp: "Opcional. Enlace https a un PDF o página con tu licencia.",
+    insuranceDocumentLink: "Enlace al documento de seguro o certificado",
+    insuranceDocumentLinkHelp: "Opcional. Enlace https a póliza, certificado o constancia.",
   },
 };
 
@@ -724,6 +767,28 @@ const en: ClasificadosServiciosCopy = {
     amenitiesAdd: "Add",
     amenitiesAddedList: "Added options:",
     amenitiesCustomMax: "You’ve reached the maximum number of custom options (24).",
+    credentialsSection: "Credentials, license & insurance",
+    credentialsSectionHint:
+      "Add information that helps customers trust your business. Do not mark anything as verified unless Leonix verifies it.",
+    hasLicense: "I have a license",
+    licenseType: "License type",
+    licenseTypePlaceholder: "Ex: Contractor, cosmetology, plumbing",
+    licenseNumber: "License number",
+    licenseAuthority: "Issuing authority or state",
+    licenseAuthorityPlaceholder: "Ex: California, CSLB, state board",
+    licenseExpiration: "Expiration date",
+    hasInsurance: "I am insured",
+    insuranceType: "Insurance type",
+    insuranceTypePlaceholder: "Ex: General liability",
+    certificationsLabel: "Certifications",
+    certificationsPlaceholder: "Ex: Certified technician",
+    certificationsAdd: "Add",
+    certificationsAddedList: "Added certifications:",
+    certificationsCustomMax: "You’ve reached the maximum of 24 certifications.",
+    licenseDocumentLink: "License document link",
+    licenseDocumentLinkHelp: "Optional. https link to a PDF or page for your license.",
+    insuranceDocumentLink: "Insurance or certificate document link",
+    insuranceDocumentLinkHelp: "Optional. https link to policy, certificate, or proof.",
   },
 };
 

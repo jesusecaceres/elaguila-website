@@ -31,6 +31,7 @@ import {
   trimText,
   formatPhysicalAddressDisplay,
   buildGoogleMapsSearchHrefFromPhysical,
+  resolveServiciosCredentials,
 } from "./serviciosProfileSanitize";
 
 /**
@@ -99,6 +100,8 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
   const areasBlock = input.serviceAreas;
   const mapImageUrl = normalizeMapImageUrl(areasBlock?.mapImageUrl);
   const areaItems = filterServiceAreas(areasBlock?.items);
+
+  const credentials = resolveServiciosCredentials(input.credentials);
 
   const promoIn = input.promo;
   let promo: ServiciosProfileResolved["promo"];
@@ -191,6 +194,7 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
     amenityOptionIds: filterAmenityOptionIds(input.amenityOptionIds),
     customAmenityOptions: filterCustomAmenityOptions(input.customAmenityOptions),
     promo,
+    ...(credentials ? { credentials } : {}),
   };
 }
 

@@ -188,4 +188,16 @@ export type ClasificadosServiciosApplicationState = {
   customAmenityOptions: string[];
   /** Pending custom amenity input (flushed on Next) */
   pendingCustomAmenityOption: string;
+  /** Credentials, license & insurance (Phase 6A) */
+  hasLicense: boolean;
+  licenseType: string;
+  licenseNumber: string;
+  licenseAuthority: string;
+  licenseExpiration: string;
+  isInsured: boolean;
+  insuranceType: string;
+  certifications: string[];
+  pendingCertification: string;
+  licenseDocumentUrl: string;
+  insuranceDocumentUrl: string;
 };

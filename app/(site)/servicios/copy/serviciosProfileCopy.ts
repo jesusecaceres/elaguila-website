@@ -1,5 +1,36 @@
 import type { ServiciosLang } from "../types/serviciosBusinessProfile";
 
+export function getServiciosCredentialsCardCopy(lang: ServiciosLang) {
+  if (lang === "en") {
+    return {
+      title: "Credentials",
+      subtitle:
+        "Information provided by the business to help you evaluate trust and experience.",
+      licenseProvided: "License provided",
+      insuranceProvided: "Insurance provided",
+      licenseType: "License type",
+      licenseNumber: "License #",
+      issuingAuthority: "Issuing authority or state",
+      expires: "Expires",
+      certifications: "Certifications",
+      viewDocument: "View document",
+    };
+  }
+  return {
+    title: "Credenciales",
+    subtitle:
+      "Información proporcionada por el negocio para ayudarte a evaluar confianza y experiencia.",
+    licenseProvided: "Licencia proporcionada",
+    insuranceProvided: "Seguro proporcionado",
+    licenseType: "Tipo de licencia",
+    licenseNumber: "Núm. licencia",
+    issuingAuthority: "Autoridad o estado emisor",
+    expires: "Vence",
+    certifications: "Certificaciones",
+    viewDocument: "Ver documento",
+  };
+}
+
 export function getServiciosProfileLabels(lang: ServiciosLang) {
   if (lang === "en") {
     return {

@@ -139,3 +139,7 @@ export function hasPaymentMethodsResolved(p: ServiciosProfileResolved): boolean 
 export function hasAmenityOptionsResolved(p: ServiciosProfileResolved): boolean {
   return p.amenityOptionIds.length > 0 || p.customAmenityOptions.length > 0;
 }
+
+export function hasCredentialsResolved(p: ServiciosProfileResolved): boolean {
+  return p.credentials != null;
+}

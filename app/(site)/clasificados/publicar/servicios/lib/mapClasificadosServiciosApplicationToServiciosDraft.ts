@@ -399,5 +399,27 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (amenityIds.length) draft.amenityOptionIds = amenityIds;
   if (customAmenities.length) draft.customAmenityOptions = customAmenities;
 
+  const credHasLicense = state.hasLicense === true;
+  const credIsInsured = state.isInsured === true;
+  const credCertList = state.certifications.length ? [...state.certifications] : [];
+  const cred: NonNullable<ServiciosApplicationDraft["credentials"]> = {};
+  if (credHasLicense) cred.hasLicense = true;
+  if (credIsInsured) cred.isInsured = true;
+  if (credHasLicense && state.licenseType.trim()) cred.licenseType = state.licenseType.trim();
+  if (credHasLicense && state.licenseNumber.trim()) cred.licenseNumber = state.licenseNumber.trim();
+  if (credHasLicense && state.licenseAuthority.trim()) cred.licenseAuthority = state.licenseAuthority.trim();
+  if (credHasLicense && state.licenseExpiration.trim()) cred.licenseExpiration = state.licenseExpiration.trim();
+  if (credIsInsured && state.insuranceType.trim()) cred.insuranceType = state.insuranceType.trim();
+  if (credCertList.length) cred.certifications = credCertList;
+  if (state.licenseDocumentUrl.trim()) cred.licenseDocumentUrl = state.licenseDocumentUrl.trim();
+  if (state.insuranceDocumentUrl.trim()) cred.insuranceDocumentUrl = state.insuranceDocumentUrl.trim();
+  const credMeaningful =
+    credHasLicense ||
+    credIsInsured ||
+    credCertList.length > 0 ||
+    Boolean(state.licenseDocumentUrl.trim()) ||
+    Boolean(state.insuranceDocumentUrl.trim());
+  if (credMeaningful) draft.credentials = cred;
+
   return draft;
 }

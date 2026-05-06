@@ -94,6 +94,12 @@ import {
 } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 import { ServiciosAmenityBadge } from "@/app/servicios/components/ServiciosAmenityBadge";
 import { evaluateAddCustomAmenityOption } from "../lib/serviciosCustomAmenityOptions";
+import { evaluateAddCertificationLabel } from "@/app/servicios/lib/serviciosCredentialsCustom";
+import {
+  MAX_SERVICIOS_CERTIFICATIONS,
+  SERVICIOS_CERTIFICATION_LABEL_MAX,
+  SERVICIOS_CREDENTIAL_STRING_MAX,
+} from "@/app/servicios/lib/serviciosCredentialsCatalog";
 
 const DEBOUNCE_MS = 500;
 const GALLERY_MAX = 24;
@@ -2210,6 +2216,226 @@ export function ClasificadosServiciosApplication() {
             </div>
           ) : null}
         </section>
+
+        <section className={sectionCard} aria-labelledby="sec-credentials">
+          <h2 id="sec-credentials" className="text-lg font-bold text-[#3D2C12]">
+            {copy.labels.credentialsSection}
+          </h2>
+          <p className="mt-1 text-sm leading-relaxed text-[#5D4A25]/90">{copy.labels.credentialsSectionHint}</p>
+
+          <label className={`mt-5 flex min-h-[44px] cursor-pointer items-center gap-2 text-sm sm:min-h-0`}>
+            <input
+              type="checkbox"
+              className="h-4 w-4 shrink-0 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
+              checked={state.hasLicense}
+              onChange={(e) =>
+                setState((s) => enforceServiciosSelectionCaps({ ...s, hasLicense: e.target.checked }))
+              }
+            />
+            {copy.labels.hasLicense}
+          </label>
+          <label className={`mt-4 block ${labelClass}`}>{copy.labels.licenseType}</label>
+          <input
+            className={inputClass}
+            disabled={!state.hasLicense}
+            placeholder={copy.labels.licenseTypePlaceholder}
+            maxLength={SERVICIOS_CREDENTIAL_STRING_MAX.licenseType}
+            value={state.licenseType}
+            onChange={(e) =>
+              setState((s) =>
+                enforceServiciosSelectionCaps({
+                  ...s,
+                  licenseType: e.target.value.slice(0, SERVICIOS_CREDENTIAL_STRING_MAX.licenseType),
+                }),
+              )
+            }
+          />
+          <label className={`mt-4 block ${labelClass}`}>{copy.labels.licenseNumber}</label>
+          <input
+            className={inputClass}
+            disabled={!state.hasLicense}
+            maxLength={SERVICIOS_CREDENTIAL_STRING_MAX.licenseNumber}
+            value={state.licenseNumber}
+            onChange={(e) =>
+              setState((s) =>
+                enforceServiciosSelectionCaps({
+                  ...s,
+                  licenseNumber: e.target.value.slice(0, SERVICIOS_CREDENTIAL_STRING_MAX.licenseNumber),
+                }),
+              )
+            }
+          />
+          <label className={`mt-4 block ${labelClass}`}>{copy.labels.licenseAuthority}</label>
+          <input
+            className={inputClass}
+            disabled={!state.hasLicense}
+            placeholder={copy.labels.licenseAuthorityPlaceholder}
+            maxLength={SERVICIOS_CREDENTIAL_STRING_MAX.licenseAuthority}
+            value={state.licenseAuthority}
+            onChange={(e) =>
+              setState((s) =>
+                enforceServiciosSelectionCaps({
+                  ...s,
+                  licenseAuthority: e.target.value.slice(0, SERVICIOS_CREDENTIAL_STRING_MAX.licenseAuthority),
+                }),
+              )
+            }
+          />
+          <label className={`mt-4 block ${labelClass}`}>{copy.labels.licenseExpiration}</label>
+          <input
+            type="date"
+            className={inputClass}
+            disabled={!state.hasLicense}
+            value={state.licenseExpiration}
+            onChange={(e) =>
+              setState((s) =>
+                enforceServiciosSelectionCaps({
+                  ...s,
+                  licenseExpiration: e.target.value.slice(0, SERVICIOS_CREDENTIAL_STRING_MAX.licenseExpiration),
+                }),
+              )
+            }
+          />
+
+          <label className={`mt-6 flex min-h-[44px] cursor-pointer items-center gap-2 text-sm sm:min-h-0`}>
+            <input
+              type="checkbox"
+              className="h-4 w-4 shrink-0 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
+              checked={state.isInsured}
+              onChange={(e) =>
+                setState((s) => enforceServiciosSelectionCaps({ ...s, isInsured: e.target.checked }))
+              }
+            />
+            {copy.labels.hasInsurance}
+          </label>
+          <label className={`mt-4 block ${labelClass}`}>{copy.labels.insuranceType}</label>
+          <input
+            className={inputClass}
+            disabled={!state.isInsured}
+            placeholder={copy.labels.insuranceTypePlaceholder}
+            maxLength={SERVICIOS_CREDENTIAL_STRING_MAX.insuranceType}
+            value={state.insuranceType}
+            onChange={(e) =>
+              setState((s) =>
+                enforceServiciosSelectionCaps({
+                  ...s,
+                  insuranceType: e.target.value.slice(0, SERVICIOS_CREDENTIAL_STRING_MAX.insuranceType),
+                }),
+              )
+            }
+          />
+
+          <label className={`mt-6 block ${labelClass}`}>{copy.labels.certificationsLabel}</label>
+          <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+            <input
+              className={inputClass}
+              placeholder={copy.labels.certificationsPlaceholder}
+              maxLength={SERVICIOS_CERTIFICATION_LABEL_MAX}
+              value={state.pendingCertification}
+              onChange={(e) =>
+                setState((s) =>
+                  enforceServiciosSelectionCaps({
+                    ...s,
+                    pendingCertification: e.target.value.slice(0, SERVICIOS_CERTIFICATION_LABEL_MAX),
+                  }),
+                )
+              }
+            />
+            <button
+              type="button"
+              disabled={
+                !state.pendingCertification.trim() ||
+                state.certifications.length >= MAX_SERVICIOS_CERTIFICATIONS ||
+                !evaluateAddCertificationLabel({
+                  certifications: state.certifications,
+                  raw: state.pendingCertification,
+                }).ok
+              }
+              className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+              onClick={() => {
+                setState((prev) => {
+                  const r = evaluateAddCertificationLabel({
+                    certifications: prev.certifications,
+                    raw: prev.pendingCertification,
+                  });
+                  if (!r.ok) return prev;
+                  return enforceServiciosSelectionCaps({
+                    ...prev,
+                    certifications: [...prev.certifications, r.label],
+                    pendingCertification: "",
+                  });
+                });
+              }}
+            >
+              {copy.labels.certificationsAdd}
+            </button>
+          </div>
+          {state.certifications.length >= MAX_SERVICIOS_CERTIFICATIONS ? (
+            <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.certificationsCustomMax}</p>
+          ) : null}
+          {state.certifications.length > 0 ? (
+            <div className="mt-5">
+              <p className="text-sm font-semibold text-[#3D2C12]">{copy.labels.certificationsAddedList}</p>
+              <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1">
+                {state.certifications.map((label, i) => (
+                  <button
+                    key={`cert-${i}-${label}`}
+                    type="button"
+                    title={label}
+                    aria-label={`${copy.labels.remove}: ${label}`}
+                    onClick={() =>
+                      setState((prev) =>
+                        enforceServiciosSelectionCaps({
+                          ...prev,
+                          certifications: prev.certifications.filter((_, j) => j !== i),
+                        }),
+                      )
+                    }
+                    className="inline-flex max-w-full min-w-0 min-h-[40px] touch-manipulation items-center gap-1.5 rounded-full border border-[#3B66AD] bg-[#3B66AD]/10 px-3 py-2 text-left text-sm font-medium text-[#1e3a5f] ring-1 ring-[#3B66AD]/20"
+                  >
+                    <span className="min-w-0 break-words">{label}</span>
+                    <FiX className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <label className={`mt-6 block ${labelClass}`}>{copy.labels.licenseDocumentLink}</label>
+          <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.licenseDocumentLinkHelp}</p>
+          <input
+            className={inputClass}
+            type="url"
+            placeholder="https://"
+            maxLength={SERVICIOS_CREDENTIAL_STRING_MAX.documentUrl}
+            value={state.licenseDocumentUrl}
+            onChange={(e) =>
+              setState((s) =>
+                enforceServiciosSelectionCaps({
+                  ...s,
+                  licenseDocumentUrl: e.target.value.slice(0, SERVICIOS_CREDENTIAL_STRING_MAX.documentUrl),
+                }),
+              )
+            }
+          />
+          <label className={`mt-4 block ${labelClass}`}>{copy.labels.insuranceDocumentLink}</label>
+          <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.insuranceDocumentLinkHelp}</p>
+          <input
+            className={inputClass}
+            type="url"
+            placeholder="https://"
+            maxLength={SERVICIOS_CREDENTIAL_STRING_MAX.documentUrl}
+            value={state.insuranceDocumentUrl}
+            onChange={(e) =>
+              setState((s) =>
+                enforceServiciosSelectionCaps({
+                  ...s,
+                  insuranceDocumentUrl: e.target.value.slice(0, SERVICIOS_CREDENTIAL_STRING_MAX.documentUrl),
+                }),
+              )
+            }
+          />
+        </section>
           </>
         ) : null}
 
@@ -2566,6 +2792,20 @@ export function ClasificadosServiciosApplication() {
                                 })
                               : enforceServiciosSelectionCaps({ ...w, pendingCustomAmenityOption: "" });
                           }
+                          const pendingCert = w.pendingCertification.trim();
+                          if (pendingCert) {
+                            const r = evaluateAddCertificationLabel({
+                              certifications: w.certifications,
+                              raw: pendingCert,
+                            });
+                            w = r.ok
+                              ? enforceServiciosSelectionCaps({
+                                  ...w,
+                                  certifications: [...w.certifications, r.label],
+                                  pendingCertification: "",
+                                })
+                              : enforceServiciosSelectionCaps({ ...w, pendingCertification: "" });
+                          }
                           return {
                             paymentMethodIds: w.paymentMethodIds,
                             customPaymentMethods: w.customPaymentMethods,
@@ -2573,6 +2813,8 @@ export function ClasificadosServiciosApplication() {
                             amenityOptionIds: w.amenityOptionIds,
                             customAmenityOptions: w.customAmenityOptions,
                             pendingCustomAmenityOption: w.pendingCustomAmenityOption,
+                            certifications: w.certifications,
+                            pendingCertification: w.pendingCertification,
                           };
                         })()
                       : {}),
