@@ -61,11 +61,11 @@ export function AutosPublicStandardCard({
         trackAutosListingEvent(listing.id, AUTOS_CLASSIFIEDS_EVENT.resultCardClick, { lane: trackLane });
         // Also track with shared analytics
         void trackClasificadosEvent({
-          listing_id: listing.id,
+          listing_id: (listing.leonixAdId ?? "").trim() || listing.id,
           category: "autos",
           event_type: "listing_open",
           event_source: "search_results",
-          owner_user_id: listing.id,
+          owner_user_id: listing.ownerUserId ?? null,
           metadata: { 
             sellerType: listing.sellerType,
             vehicleType: listing.condition,
@@ -120,24 +120,27 @@ export function AutosPublicStandardCard({
         {/* Engagement Metrics */}
         <div className={ENGAGEMENT_ROW}>
           <LeonixLikeButton
-            listingId={listing.id}
-            ownerUserId={listing.id}
+            listingId={(listing.leonixAdId ?? "").trim() || listing.id}
+            ownerUserId={listing.ownerUserId ?? undefined}
             variant="small"
             lang={lang as "es" | "en"}
+            category="autos"
           />
           <LeonixSaveButton
-            listingId={listing.id}
-            ownerUserId={listing.id}
+            listingId={(listing.leonixAdId ?? "").trim() || listing.id}
+            ownerUserId={listing.ownerUserId ?? undefined}
             variant="small"
             lang={lang as "es" | "en"}
+            category="autos"
           />
           <LeonixShareButton
-            listingId={listing.id}
-            ownerUserId={listing.id}
+            listingId={(listing.leonixAdId ?? "").trim() || listing.id}
+            ownerUserId={listing.ownerUserId ?? undefined}
             listingTitle={listing.vehicleTitle}
             listingUrl={typeof window !== "undefined" ? `${window.location.origin}${href}` : ""}
             variant="small"
             lang={lang as "es" | "en"}
+            category="autos"
           />
         </div>
       </div>

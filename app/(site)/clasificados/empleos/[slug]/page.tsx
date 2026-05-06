@@ -86,6 +86,8 @@ export default async function EmpleoPublicDetailPage({ params, searchParams }: P
   const snap = row?.listing_snapshot as EmpleosListingSnapshotJson | undefined;
   const envelope = snap?.envelope ?? null;
   const useLaneShell = Boolean(row && job && (job.publicationLane || envelope?.lane));
+  const engagementListingKey = row ? ((row.leonix_ad_id ?? "").trim() || row.id) : null;
+  const persistListingEngagement = Boolean(row);
 
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#FAF7F2] pt-24" aria-busy="true" />}>
@@ -99,6 +101,9 @@ export default async function EmpleoPublicDetailPage({ params, searchParams }: P
           relatedExtra={relatedExtra}
           omitMarketingSeedCatalog={omitSeed}
           trackPublicViewsForSlug={row ? slug : null}
+          engagementListingKey={engagementListingKey}
+          engagementOwnerUserId={row?.owner_user_id ?? null}
+          persistListingEngagement={persistListingEngagement}
         />
       ) : (
         <EmpleoPublicDetailClient
@@ -108,6 +113,9 @@ export default async function EmpleoPublicDetailPage({ params, searchParams }: P
           relatedExtra={relatedExtra}
           omitMarketingSeedCatalog={omitSeed}
           trackPublicViewsForSlug={row ? slug : null}
+          engagementListingKey={engagementListingKey}
+          engagementOwnerUserId={row?.owner_user_id ?? null}
+          persistListingEngagement={persistListingEngagement}
         />
       )}
     </Suspense>

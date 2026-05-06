@@ -5,14 +5,16 @@ import { FiShare2, FiLink, FiMessageCircle, FiMail } from "react-icons/fi";
 import { trackListingShare } from "@/app/lib/clasificadosAnalytics";
 
 type Props = {
-  listingId: string;
+  listingId: string | null | undefined;
   listingUrl?: string;
   listingTitle?: string;
   variant?: "default" | "small" | "large";
   className?: string;
   lang?: "es" | "en";
   category?: string;
-  ownerUserId?: string;
+  ownerUserId?: string | null;
+  /** When false, share UI works but analytics are not recorded. */
+  persistEngagement?: boolean;
   /**
    * When true, viewports ≤767px use `navigator.share` (then clipboard fallback) instead of a dropdown.
    * Avoids menus clipped inside overflow-hidden cards (e.g. restaurant results on mobile).
@@ -51,7 +53,21 @@ export function LeonixShareButton({
   category,
   ownerUserId,
   preferNativeShareOnNarrowViewports = false,
+  persistEngagement,
 }: Props) {
+  const effectiveId = (listingId ?? "").trim();
+  const allowTrack = persistEngagement !== false && Boolean(effectiveId);
+
+  const trackShare = async (shareMethod: string, extraMeta?: Record<string, unknown>) => {
+    if (!allowTrack || !effectiveId) return;
+    await trackListingShare(effectiveId, {
+      category,
+      ownerUserId: ownerUserId ?? undefined,
+      eventSource: "cta_card",
+      shareMethod,
+      metadata: { listingTitle: listingTitle || "", ...extraMeta },
+    });
+  };
   const [isSharing, setIsSharing] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -78,14 +94,7 @@ export function LeonixShareButton({
       await navigator.clipboard.writeText(listingUrl);
       setCopySuccess(true);
       
-      // Track share event
-      await trackListingShare(listingId, {
-        category,
-        ownerUserId,
-        eventSource: "cta_card",
-        shareMethod: "copy_link",
-        metadata: { listingTitle: listingTitle || "" }
-      });
+      await trackShare("copy_link");
       
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (error) {
@@ -116,13 +125,7 @@ export function LeonixShareButton({
         if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
           try {
             await navigator.share({ title, text, url });
-            await trackListingShare(listingId, {
-              category,
-              ownerUserId,
-              eventSource: "cta_card",
-              shareMethod: "web_share",
-              metadata: { listingTitle: title },
-            });
+            await trackShare("web_share", { listingTitle: title });
             return;
           } catch (err: unknown) {
             const n = err && typeof err === "object" && "name" in err ? (err as { name: string }).name : "";
@@ -131,13 +134,7 @@ export function LeonixShareButton({
         }
         await navigator.clipboard.writeText(url);
         setMobileInlineCopyAck(true);
-        await trackListingShare(listingId, {
-          category,
-          ownerUserId,
-          eventSource: "cta_card",
-          shareMethod: "copy_link",
-          metadata: { listingTitle: title },
-        });
+        await trackShare("copy_link", { listingTitle: title });
         window.setTimeout(() => setMobileInlineCopyAck(false), 2200);
       } catch {
         setShowDropdown(true);
@@ -154,14 +151,7 @@ export function LeonixShareButton({
     setIsSharing(true);
     
     try {
-      // Track share event
-      await trackListingShare(listingId, {
-        category,
-        ownerUserId,
-        eventSource: "cta_card",
-        shareMethod: method,
-        metadata: { listingTitle: listingTitle || "" }
-      });
+      await trackShare(method);
       
       // Handle different share methods
       const safeUrl = listingUrl || "";

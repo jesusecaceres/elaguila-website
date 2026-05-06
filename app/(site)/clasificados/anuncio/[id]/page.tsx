@@ -16,6 +16,7 @@ import ContactActions from "../../components/ContactActions";
 import AiInsightsPanel from "../../components/AiInsightsPanel";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { trackEvent } from "@/app/lib/listingAnalytics";
+import { trackListingSave } from "@/app/lib/clasificadosAnalytics";
 import { addListingView } from "@/app/lib/recentlyViewed";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { submitListingReportAction } from "@/app/admin/actions";
@@ -695,10 +696,11 @@ export default function AnuncioDetallePage() {
     if (saved) {
       await supabase.from("user_saved_listings").delete().eq("user_id", user.id).eq("listing_id", listing.id);
       setSaved(false);
+      void trackListingSave(listing.id, false, { ownerUserId: (listing as { owner_id?: string | null }).owner_id ?? undefined });
     } else {
       await supabase.from("user_saved_listings").upsert({ user_id: user.id, listing_id: listing.id }, { onConflict: "user_id,listing_id" });
       setSaved(true);
-      void trackEvent(listing.id, "listing_save", user.id);
+      void trackListingSave(listing.id, true, { ownerUserId: (listing as { owner_id?: string | null }).owner_id ?? undefined });
     }
   };
 

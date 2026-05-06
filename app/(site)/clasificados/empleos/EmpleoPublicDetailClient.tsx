@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
@@ -20,6 +20,7 @@ import {
   EMPLEOS_CTA_PRIMARY,
   EMPLEOS_LINK_MUTED,
 } from "./lib/empleosPremiumUi";
+import { EmpleosClasificadosEngagementRow } from "./components/EmpleosClasificadosEngagementRow";
 
 type Props = {
   slug: string;
@@ -31,6 +32,9 @@ type Props = {
   omitMarketingSeedCatalog?: boolean;
   /** When set, increments persisted `view_count` once per browser session load (published slug only). */
   trackPublicViewsForSlug?: string | null;
+  engagementListingKey?: string | null;
+  engagementOwnerUserId?: string | null;
+  persistListingEngagement?: boolean;
 };
 
 export function EmpleoPublicDetailClient({
@@ -40,10 +44,18 @@ export function EmpleoPublicDetailClient({
   relatedExtra = [],
   omitMarketingSeedCatalog = false,
   trackPublicViewsForSlug = null,
+  engagementListingKey = null,
+  engagementOwnerUserId = null,
+  persistListingEngagement = false,
 }: Props) {
   const sp = useSearchParams();
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
   const job = initialJob;
+  const [shareAbs, setShareAbs] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") setShareAbs(window.location.href);
+  }, []);
 
   useEffect(() => {
     const s = trackPublicViewsForSlug?.trim();
@@ -207,6 +219,17 @@ export function EmpleoPublicDetailClient({
                   <dd className="mt-0.5">{job.jobType}</dd>
                 </div>
               </dl>
+
+              {engagementListingKey?.trim() ? (
+                <EmpleosClasificadosEngagementRow
+                  lang={lang}
+                  listingId={engagementListingKey.trim()}
+                  ownerUserId={engagementOwnerUserId}
+                  listingTitle={job.title}
+                  shareUrl={shareAbs || (typeof window !== "undefined" ? window.location.href : "")}
+                  persistEngagement={persistListingEngagement}
+                />
+              ) : null}
 
               <section>
                 <h2 className="text-lg font-bold tracking-tight">{lang === "es" ? "Descripción" : "Description"}</h2>

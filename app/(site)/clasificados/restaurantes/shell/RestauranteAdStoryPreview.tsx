@@ -49,6 +49,8 @@ interface RestauranteAdStoryPreviewProps {
   lang?: "es" | "en";
   /** Supabase listing owner — prefer over `data.id` (draft id) for analytics. */
   analyticsOwnerUserId?: string | null;
+  /** When false, engagement buttons do not write analytics or saved/liked tables. */
+  persistListingEngagement?: boolean;
 }
 
 export function RestauranteAdStoryPreview({
@@ -56,8 +58,9 @@ export function RestauranteAdStoryPreview({
   listingId = "",
   lang = "es",
   analyticsOwnerUserId,
+  persistListingEngagement = true,
 }: RestauranteAdStoryPreviewProps) {
-  const ownerUid = (analyticsOwnerUserId ?? "").trim() || listingId || "";
+  const ownerUid = (analyticsOwnerUserId ?? "").trim() || undefined;
   const pathname = usePathname();
   const [shareAbs, setShareAbs] = useState("");
   const [aboutExpanded, setAboutExpanded] = useState(false);
@@ -320,6 +323,7 @@ export function RestauranteAdStoryPreview({
                       variant="small"
                       lang={lang}
                       category="restaurantes"
+                      persistEngagement={persistListingEngagement}
                       className="min-h-0 flex-1 min-w-0 basis-0 !px-2 !py-1 text-[11px] font-medium opacity-90 [&>span]:min-w-0 [&>span]:truncate"
                     />
                     <LeonixSaveButton
@@ -328,6 +332,7 @@ export function RestauranteAdStoryPreview({
                       variant="small"
                       lang={lang}
                       category="restaurantes"
+                      persistEngagement={persistListingEngagement}
                       className="min-h-0 flex-1 min-w-0 basis-0 !px-2 !py-1 text-[11px] font-medium opacity-90 [&>span]:min-w-0 [&>span]:truncate"
                     />
                     <LeonixShareButton
@@ -339,6 +344,7 @@ export function RestauranteAdStoryPreview({
                       lang={lang}
                       category="restaurantes"
                       preferNativeShareOnNarrowViewports
+                      persistEngagement={persistListingEngagement}
                       className="flex-1 min-w-0 basis-0 [&>button]:flex [&>button]:h-full [&>button]:w-full [&>button]:min-h-0 [&>button]:min-w-0 [&>button]:justify-center [&>button]:gap-1 [&>button]:!px-2 [&>button]:!py-1 [&>button]:text-[11px] [&>button]:font-medium [&>button]:opacity-90 [&>button>span]:min-w-0 [&>button>span]:truncate"
                     />
                   </div>
@@ -477,6 +483,7 @@ export function RestauranteAdStoryPreview({
                     variant="small"
                     lang={lang}
                     category="restaurantes"
+                    persistEngagement={persistListingEngagement}
                     className="border-0"
                   />
                 </div>
@@ -487,6 +494,7 @@ export function RestauranteAdStoryPreview({
                     variant="small"
                     lang={lang}
                     category="restaurantes"
+                    persistEngagement={persistListingEngagement}
                     className="border-0"
                   />
                 </div>
@@ -499,6 +507,7 @@ export function RestauranteAdStoryPreview({
                     variant="small"
                     lang={lang}
                     category="restaurantes"
+                    persistEngagement={persistListingEngagement}
                   />
                 </div>
               </div>

@@ -13,6 +13,10 @@ export type AutosPublicCondition = "new" | "used" | "certified";
  */
 export type AutosPublicListing = {
   id: string;
+  /** Stable Leonix code from paid row when mapped from DB. */
+  leonixAdId?: string | null;
+  /** Owner auth user id when mapped from DB. */
+  ownerUserId?: string | null;
   /** Future detail URL slug; optional in blueprint samples. */
   slug?: string;
   sellerType: AutosPublicSellerType;

@@ -39,6 +39,8 @@ export function ServiciosProfileView({
   noticeBanner,
   showTopBar = true,
   analyticsListingSlug,
+  engagementListingId = null,
+  engagementOwnerUserId = null,
   showPublicConversionForms = false,
 }: {
   profile: ServiciosProfileResolved;
@@ -53,6 +55,10 @@ export function ServiciosProfileView({
   showTopBar?: boolean;
   /** Public Clasificados slug — enables analytics + tracked outbound CTAs on the action panel. */
   analyticsListingSlug?: string;
+  /** Stable Leonix ad id (`servicios_public_listings.leonix_ad_id`) for saves/likes/shares. */
+  engagementListingId?: string | null;
+  /** Listing owner auth id for analytics rollup. */
+  engagementOwnerUserId?: string | null;
   /** When true with `analyticsListingSlug`, shows moderated lead + review forms on the public listing. */
   showPublicConversionForms?: boolean;
 }) {
@@ -74,7 +80,14 @@ export function ServiciosProfileView({
             {noticeBanner}
           </p>
         ) : null}
-        {hasHeroIdentityResolved(profile) ? <ServiciosHero profile={profile} lang={lang} /> : null}
+        {hasHeroIdentityResolved(profile) ? (
+          <ServiciosHero
+            profile={profile}
+            lang={lang}
+            engagementListingId={engagementListingId}
+            engagementOwnerUserId={engagementOwnerUserId}
+          />
+        ) : null}
 
         {hasQuickFactsResolved(profile) && profile.quickFacts.length > 3 ? (
           <div className="mt-5 md:mt-8">

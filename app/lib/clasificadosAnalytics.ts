@@ -4,6 +4,7 @@
  */
 
 import { createSupabaseBrowserClient } from "./supabase/browser";
+import { collectOwnerListingKeysForAnalytics, countOwnerInventoryListings } from "./ownerEngagementListingKeys";
 
 // ---------------------------------------------------------------------------
 // Event Types
@@ -151,8 +152,12 @@ class DuplicateEventProtection {
  */
 export async function trackClasificadosEvent(event: AnalyticsEvent): Promise<void> {
   try {
-    // Get user context
-    const userId = event.actor_user_id || getCurrentUserId();
+    const supabase = createSupabaseBrowserClient();
+    let userId = event.actor_user_id ?? getCurrentUserId();
+    if (!userId) {
+      const { data: authData } = await supabase.auth.getUser();
+      userId = authData?.user?.id ?? null;
+    }
     const sessionId = getAnonymousSessionId();
     
     // Apply double-count protection for certain event types
@@ -182,8 +187,6 @@ export async function trackClasificadosEvent(event: AnalyticsEvent): Promise<voi
       metadata: event.metadata || {},
     };
     
-    // Send to database
-    const supabase = createSupabaseBrowserClient();
     await supabase.from("listing_analytics").insert(payload);
     
   } catch (error) {
@@ -454,8 +457,14 @@ export async function getListingMetrics(
         case "listing_like":
           metrics.likes++;
           break;
+        case "listing_unlike":
+          metrics.likes--;
+          break;
         case "listing_save":
           metrics.saves++;
+          break;
+        case "listing_unsave":
+          metrics.saves--;
           break;
         case "listing_share":
           metrics.shares++;
@@ -479,6 +488,8 @@ export async function getListingMetrics(
     
     metrics.uniqueViews = viewUsers.size;
     metrics.lastEngagement = lastEngagement || undefined;
+    metrics.likes = Math.max(0, metrics.likes);
+    metrics.saves = Math.max(0, metrics.saves);
     
     return metrics;
     
@@ -508,15 +519,7 @@ export async function getOwnerMetrics(
   supabase: any
 ): Promise<OwnerMetrics | null> {
   try {
-    // Get owner's listings
-    const { data: listings, error: listingsError } = await supabase
-      .from("listings")
-      .select("id")
-      .eq("owner_id", ownerId);
-      
-    if (listingsError || !listings) return null;
-    
-    const listingIds = listings.map((l: any) => l.id);
+    const listingIds = await collectOwnerListingKeysForAnalytics(supabase, ownerId);
     if (listingIds.length === 0) {
       return {
         totalViews: 0,
@@ -529,7 +532,9 @@ export async function getOwnerMetrics(
         listingCount: 0,
       };
     }
-    
+
+    const invCount = await countOwnerInventoryListings(supabase, ownerId);
+
     // Get all analytics events for owner's listings
     const { data: events, error: eventsError } = await supabase
       .from("listing_analytics")
@@ -546,7 +551,7 @@ export async function getOwnerMetrics(
       totalCtaClicks: 0,
       totalLeads: 0,
       totalApplications: 0,
-      listingCount: listingIds.length,
+      listingCount: invCount,
     };
     
     let lastEngagement: string | null = null;
@@ -567,8 +572,14 @@ export async function getOwnerMetrics(
         case "listing_like":
           metrics.totalLikes++;
           break;
+        case "listing_unlike":
+          metrics.totalLikes--;
+          break;
         case "listing_save":
           metrics.totalSaves++;
+          break;
+        case "listing_unsave":
+          metrics.totalSaves--;
           break;
         case "listing_share":
           metrics.totalShares++;
@@ -591,6 +602,8 @@ export async function getOwnerMetrics(
     }
     
     metrics.lastEngagement = lastEngagement || undefined;
+    metrics.totalLikes = Math.max(0, metrics.totalLikes);
+    metrics.totalSaves = Math.max(0, metrics.totalSaves);
     
     return metrics;
     

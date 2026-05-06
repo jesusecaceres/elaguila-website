@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
+import { resolveSavedListingsForDashboard } from "@/app/lib/savedListingsDashboardResolve";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 
@@ -59,7 +60,15 @@ export default function GuardadosPage() {
 
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState<
-    Array<{ listing_id: string; title?: string | null; city?: string | null; category?: string | null; thumb?: string | null; price?: number | string | null }>
+    Array<{
+      listing_id: string;
+      title?: string | null;
+      city?: string | null;
+      category?: string | null;
+      thumb?: string | null;
+      price?: number | string | null;
+      href?: string;
+    }>
   >([]);
   const [name, setName] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
@@ -107,54 +116,17 @@ export default function GuardadosPage() {
       setLoading(false);
       return;
     }
-    const { data: listings } = await supabase
-      .from("listings")
-      .select("id, title, city, category, images, price")
-      .in("id", ids);
-    const listingRows = (listings ?? []) as Array<{
-      id: string;
-      title?: string | null;
-      city?: string | null;
-      category?: string | null;
-      images?: unknown;
-      price?: number | string | null;
-    }>;
-    const byId = new Map(
-      listingRows.map((l) => {
-        let thumb: string | null = null;
-        const im = l.images;
-        if (Array.isArray(im) && im.length > 0) {
-          const first = im[0];
-          if (typeof first === "string" && first.trim()) thumb = first.trim();
-          else if (first && typeof first === "object") {
-            const u = (first as Record<string, unknown>).url ?? (first as Record<string, unknown>).src;
-            if (typeof u === "string" && u.trim()) thumb = u.trim();
-          }
-        }
-        return [
-          l.id,
-          {
-            title: l.title ?? null,
-            city: l.city ?? null,
-            category: l.category ?? null,
-            thumb,
-            price: l.price ?? null,
-          },
-        ] as const;
-      })
-    );
+    const resolved = await resolveSavedListingsForDashboard(supabase, ids, lang);
     setSaved(
-      ids.map((id) => {
-        const meta = byId.get(id);
-        return {
-          listing_id: id,
-          title: meta?.title ?? null,
-          city: meta?.city ?? null,
-          category: meta?.category ?? null,
-          thumb: meta?.thumb ?? null,
-          price: meta?.price ?? null,
-        };
-      })
+      resolved.map((r) => ({
+        listing_id: r.listing_id,
+        title: r.title,
+        city: r.city,
+        category: r.category,
+        thumb: r.thumb,
+        price: r.price,
+        href: r.href,
+      }))
     );
     setLoading(false);
   }, [router, q]);
@@ -197,9 +169,9 @@ export default function GuardadosPage() {
             </div>
           ) : (
             <ul className="mt-8 space-y-3">
-              {saved.map(({ listing_id, title, city, category, thumb, price }) => (
+              {saved.map(({ listing_id, title, city, category, thumb, price, href }) => (
                 <li key={listing_id}>
-                  <Link href={`/clasificados/anuncio/${listing_id}?${q}`} className={listLinkClass}>
+                  <Link href={href ?? `/clasificados/anuncio/${encodeURIComponent(listing_id)}?${q}`} className={listLinkClass}>
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]">
                       {thumb ? (
                         <Image src={thumb} alt="" fill className="object-cover" sizes="64px" unoptimized />

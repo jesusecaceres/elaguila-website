@@ -124,6 +124,8 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
         editBackHref={`/clasificados/publicar/servicios?lang=${lang}`}
         noticeBanner={noticeBanner}
         analyticsListingSlug={slug}
+        engagementListingId={row.leonix_ad_id?.trim() ? row.leonix_ad_id.trim() : null}
+        engagementOwnerUserId={row.owner_user_id ?? null}
         showPublicConversionForms={isPublishedLive}
       />
     </>

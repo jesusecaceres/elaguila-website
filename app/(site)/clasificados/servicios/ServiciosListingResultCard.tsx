@@ -167,24 +167,30 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
             {/* Engagement Actions */}
             <div className="flex items-center gap-3 mb-4">
               <LeonixLikeButton
-                listingId={row.slug}
-                ownerUserId={row.owner_user_id || row.slug}
+                listingId={(row.leonix_ad_id ?? "").trim() || row.slug}
+                ownerUserId={row.owner_user_id ?? undefined}
                 variant="small"
                 lang={lang}
+                category="servicios"
+                persistEngagement={Boolean((row.leonix_ad_id ?? "").trim())}
               />
               <LeonixSaveButton
-                listingId={row.slug}
-                ownerUserId={row.owner_user_id || row.slug}
+                listingId={(row.leonix_ad_id ?? "").trim() || row.slug}
+                ownerUserId={row.owner_user_id ?? undefined}
                 variant="small"
                 lang={lang}
+                category="servicios"
+                persistEngagement={Boolean((row.leonix_ad_id ?? "").trim())}
               />
               <LeonixShareButton
-                listingId={row.slug}
-                ownerUserId={row.owner_user_id || row.slug}
+                listingId={(row.leonix_ad_id ?? "").trim() || row.slug}
+                ownerUserId={row.owner_user_id ?? undefined}
                 listingTitle={profile.identity.businessName}
                 listingUrl={typeof window !== "undefined" ? window.location.origin + href : ""}
                 variant="small"
                 lang={lang}
+                category="servicios"
+                persistEngagement={Boolean((row.leonix_ad_id ?? "").trim())}
               />
             </div>
 

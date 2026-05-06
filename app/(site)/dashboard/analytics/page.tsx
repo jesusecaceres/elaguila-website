@@ -52,6 +52,10 @@ export default function DashboardAnalyticsPage() {
             profiles: "Vistas de perfil",
             opens: "Aperturas de ficha",
             listings: "Anuncios",
+            likes: "Me gusta",
+            cta: "Clics en CTA",
+            leads: "Contactos / leads",
+            apps: "Solicitudes",
           }
         : {
             title: "Analytics",
@@ -72,6 +76,10 @@ export default function DashboardAnalyticsPage() {
             profiles: "Profile views",
             opens: "Listing opens",
             listings: "Listings",
+            likes: "Likes",
+            cta: "CTA clicks",
+            leads: "Leads / contact",
+            apps: "Applications",
           },
     [lang]
   );
@@ -89,6 +97,10 @@ export default function DashboardAnalyticsPage() {
     messages: number;
     profileViews: number;
     listingOpens: number;
+    likes: number;
+    ctaClicks: number;
+    leads: number;
+    applications: number;
   } | null>(null);
   const [listingCount, setListingCount] = useState<number | null>(null);
   const [aggErr, setAggErr] = useState<string | null>(null);
@@ -173,6 +185,10 @@ export default function DashboardAnalyticsPage() {
                   { k: t.msgs, v: totals.messages },
                   { k: t.profiles, v: totals.profileViews },
                   { k: t.opens, v: totals.listingOpens },
+                  { k: t.likes, v: totals.likes },
+                  { k: t.cta, v: totals.ctaClicks },
+                  { k: t.leads, v: totals.leads },
+                  { k: t.apps, v: totals.applications },
                 ].map((row) => (
                   <div key={row.k} className="rounded-2xl border border-[#E8DFD0]/80 bg-white/90 px-4 py-3">
                     <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{row.k}</p>

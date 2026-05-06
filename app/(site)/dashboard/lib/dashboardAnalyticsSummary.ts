@@ -2,6 +2,7 @@
  * Owner-level rollup of listing_analytics — only uses persisted event_type values.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { collectOwnerListingKeysForAnalytics, countOwnerInventoryListings } from "@/app/lib/ownerEngagementListingKeys";
 
 export type OwnerAnalyticsTotals = {
   listingViews: number;
@@ -23,9 +24,8 @@ export async function fetchOwnerAnalyticsTotals(
   sb: SupabaseClient,
   ownerId: string
 ): Promise<{ totals: OwnerAnalyticsTotals | null; listingCount: number; error: string | null }> {
-  const { data: owned, error: e1 } = await sb.from("listings").select("id").eq("owner_id", ownerId);
-  if (e1) return { totals: null, listingCount: 0, error: e1.message };
-  const ids = (owned ?? []).map((r) => String((r as { id: string }).id)).filter(Boolean);
+  const inventoryCount = await countOwnerInventoryListings(sb, ownerId);
+  const ids = await collectOwnerListingKeysForAnalytics(sb, ownerId);
   if (ids.length === 0) {
     return {
       totals: {
@@ -41,7 +41,7 @@ export async function fetchOwnerAnalyticsTotals(
         leads: 0,
         applications: 0,
       },
-      listingCount: 0,
+      listingCount: inventoryCount,
       error: null,
     };
   }
@@ -50,7 +50,7 @@ export async function fetchOwnerAnalyticsTotals(
     .from("listing_analytics")
     .select("listing_id, event_type, user_id, created_at")
     .in("listing_id", ids);
-  if (e2) return { totals: null, listingCount: ids.length, error: e2.message };
+  if (e2) return { totals: null, listingCount: inventoryCount, error: e2.message };
 
   const viewUsers = new Set<string>();
   let listingViews = 0;
@@ -80,12 +80,14 @@ export async function fetchOwnerAnalyticsTotals(
       listingViews += 1;
       if (uid) viewUsers.add(uid);
     } else if (t === "listing_save") saves += 1;
+    else if (t === "listing_unsave") saves -= 1;
     else if (t === "listing_share") shares += 1;
     else if (t === "message_sent") messages += 1;
     else if (t === "profile_view") profileViews += 1;
     else if (t === "listing_open") listingOpens += 1;
     // New event types
     else if (t === "listing_like") likes += 1;
+    else if (t === "listing_unlike") likes -= 1;
     else if (t === "cta_click" || t === "phone_click" || t === "whatsapp_click" || t === "website_click" || t === "directions_click") ctaClicks += 1;
     else if (t === "lead_created") leads += 1;
     else if (t === "apply_started" || t === "apply_submitted") applications += 1;
@@ -95,18 +97,18 @@ export async function fetchOwnerAnalyticsTotals(
     totals: {
       listingViews,
       uniqueListingViewsEstimate: viewUsers.size,
-      saves,
+      saves: Math.max(0, saves),
       shares,
       messages,
       profileViews,
       listingOpens,
-      likes,
+      likes: Math.max(0, likes),
       ctaClicks,
       leads,
       applications,
       lastEngagement,
     },
-    listingCount: ids.length,
+    listingCount: inventoryCount,
     error: null,
   };
 }

@@ -60,9 +60,10 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
         <ClasificadosPreviewAdCanvas className="overflow-hidden">
           <RestauranteAdStoryPreview
             data={shellForPublic}
-            listingId={row.id}
+            listingId={(row.leonix_ad_id ?? "").trim() || row.id}
             lang="es"
             analyticsOwnerUserId={row.owner_user_id}
+            persistListingEngagement
           />
         </ClasificadosPreviewAdCanvas>
         {row.leonix_ad_id ? (

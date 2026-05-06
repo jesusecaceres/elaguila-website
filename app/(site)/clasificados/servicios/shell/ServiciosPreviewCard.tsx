@@ -66,6 +66,8 @@ interface ServiciosPreviewCardProps {
   lang?: "es" | "en";
   showEngagementMetrics?: boolean;
   listingId?: string;
+  /** Default false — set true only when `listingId` is a published key (e.g. Leonix ad id). */
+  persistEngagement?: boolean;
 }
 
 /**
@@ -78,7 +80,8 @@ export function ServiciosPreviewCard({
   className = "", 
   lang = "es",
   showEngagementMetrics = true,
-  listingId
+  listingId,
+  persistEngagement = false,
 }: ServiciosPreviewCardProps) {
   const hasHeroImage = data.hero.logoUrl || data.hero.coverImageUrl;
   const hasLocation = data.hero.locationSummary;
@@ -247,23 +250,26 @@ export function ServiciosPreviewCard({
             <div className="flex items-center gap-3 mb-4">
               <LeonixLikeButton
                 listingId={listingId}
-                ownerUserId={data.identity.slug}
                 variant="small"
                 lang={lang}
+                category="servicios"
+                persistEngagement={persistEngagement}
               />
               <LeonixSaveButton
                 listingId={listingId}
-                ownerUserId={data.identity.slug}
                 variant="small"
                 lang={lang}
+                category="servicios"
+                persistEngagement={persistEngagement}
               />
               <LeonixShareButton
                 listingId={listingId}
-                ownerUserId={data.identity.slug}
                 listingTitle={data.identity.businessName}
                 listingUrl={typeof window !== "undefined" ? window.location.href : ""}
                 variant="small"
                 lang={lang}
+                category="servicios"
+                persistEngagement={persistEngagement}
               />
             </div>
 

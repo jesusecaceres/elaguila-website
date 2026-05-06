@@ -63,11 +63,11 @@ export function AutosResultCard({
   // Track click when card is clicked
   const handleCardClick = () => {
     void trackClasificadosEvent({
-      listing_id: listing.id,
+      listing_id: (listing.leonixAdId ?? "").trim() || listing.id,
       category: "autos",
       event_type: "listing_open",
       event_source: "search_results",
-      owner_user_id: listing.id, // This would be the actual owner ID in production
+      owner_user_id: listing.ownerUserId ?? null,
       metadata: { 
         sellerType: listing.sellerType,
         vehicleType: listing.condition,
@@ -207,24 +207,27 @@ export function AutosResultCard({
           <div className={ENGAGEMENT_ROW}>
             <div className="flex items-center gap-3 flex-1">
               <LeonixLikeButton
-                listingId={listing.id}
-                ownerUserId={listing.id}
+                listingId={(listing.leonixAdId ?? "").trim() || listing.id}
+                ownerUserId={listing.ownerUserId ?? undefined}
                 variant="small"
                 lang={lang}
+                category="autos"
               />
               <LeonixSaveButton
-                listingId={listing.id}
-                ownerUserId={listing.id}
+                listingId={(listing.leonixAdId ?? "").trim() || listing.id}
+                ownerUserId={listing.ownerUserId ?? undefined}
                 variant="small"
                 lang={lang}
+                category="autos"
               />
               <LeonixShareButton
-                listingId={listing.id}
-                ownerUserId={listing.id}
+                listingId={(listing.leonixAdId ?? "").trim() || listing.id}
+                ownerUserId={listing.ownerUserId ?? undefined}
                 listingTitle={listing.vehicleTitle}
                 listingUrl={typeof window !== "undefined" ? `${window.location.origin}${detailHref}` : ""}
                 variant="small"
                 lang={lang}
+                category="autos"
               />
             </div>
           </div>

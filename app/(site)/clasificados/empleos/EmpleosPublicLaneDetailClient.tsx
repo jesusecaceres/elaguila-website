@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
@@ -25,6 +25,7 @@ import {
   mapPublishedQuickToShell,
 } from "./lib/empleosPublishedLaneShell";
 import { buildEmpleosResultadosUrl } from "./shared/utils/empleosListaUrl";
+import { EmpleosClasificadosEngagementRow } from "./components/EmpleosClasificadosEngagementRow";
 
 type Props = {
   slug: string;
@@ -34,13 +35,36 @@ type Props = {
   relatedExtra?: EmpleosJobRecord[];
   omitMarketingSeedCatalog?: boolean;
   trackPublicViewsForSlug?: string | null;
+  engagementListingKey?: string | null;
+  engagementOwnerUserId?: string | null;
+  persistListingEngagement?: boolean;
 };
 
-function PublicApplyFooter({ job, lang }: { job: EmpleosJobRecord; lang: Lang }) {
+function PublicApplyFooter({
+  job,
+  lang,
+  engagement,
+}: {
+  job: EmpleosJobRecord;
+  lang: Lang;
+  engagement?: { listingId: string; ownerUserId?: string | null; persist: boolean; shareUrl: string } | null;
+}) {
   const resultsHref = appendLangToPath("/clasificados/empleos/resultados", lang);
   const publishHref = appendLangToPath("/clasificados/publicar/empleos", lang);
   return (
     <div className="rounded-[18px] border border-[#E8DFD0] bg-[#FFFBF7] p-6 shadow-[0_10px_32px_rgba(42,40,38,0.06)]">
+      {engagement?.listingId ? (
+        <div className="mb-4">
+          <EmpleosClasificadosEngagementRow
+            lang={lang}
+            listingId={engagement.listingId}
+            ownerUserId={engagement.ownerUserId}
+            listingTitle={job.title}
+            shareUrl={engagement.shareUrl}
+            persistEngagement={engagement.persist}
+          />
+        </div>
+      ) : null}
       <p className="text-xs font-semibold uppercase tracking-wide text-[#7A8899]">
         {lang === "es" ? "Siguiente paso" : "Next step"}
       </p>
@@ -91,9 +115,17 @@ export function EmpleosPublicLaneDetailClient({
   relatedExtra = [],
   omitMarketingSeedCatalog = false,
   trackPublicViewsForSlug = null,
+  engagementListingKey = null,
+  engagementOwnerUserId = null,
+  persistListingEngagement = false,
 }: Props) {
   const sp = useSearchParams();
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
+  const [shareAbs, setShareAbs] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") setShareAbs(window.location.href);
+  }, []);
 
   useEffect(() => {
     const s = trackPublicViewsForSlug?.trim();
@@ -118,7 +150,15 @@ export function EmpleosPublicLaneDetailClient({
   );
 
   const lane = job.publicationLane ?? envelope?.lane ?? "quick";
-  const footer = <PublicApplyFooter job={job} lang={lang} />;
+  const engagement = engagementListingKey?.trim()
+    ? {
+        listingId: engagementListingKey.trim(),
+        ownerUserId: engagementOwnerUserId,
+        persist: persistListingEngagement,
+        shareUrl: shareAbs || (typeof window !== "undefined" ? window.location.href : ""),
+      }
+    : null;
+  const footer = <PublicApplyFooter job={job} lang={lang} engagement={engagement} />;
   const leonixBanner = leonixAdId?.trim() ? (
     <div className="border-b border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-center text-xs text-[#5C5346]">
       {lang === "es" ? "Leonix Ad ID" : "Leonix Ad ID"} # {leonixAdId.trim()}

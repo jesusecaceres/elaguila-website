@@ -60,6 +60,8 @@ export function autosClassifiedsRowToPublicListing(row: AutosClassifiedsListingR
   const publicSortTimestamp = recencyMs > 0 ? new Date(recencyMs).toISOString() : undefined;
   return {
     id: row.id,
+    leonixAdId: row.leonix_ad_id ?? null,
+    ownerUserId: row.owner_user_id,
     sellerType,
     featured: row.featured && sellerType === "dealer",
     year: L.year ?? new Date().getFullYear(),

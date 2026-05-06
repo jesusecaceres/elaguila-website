@@ -30,7 +30,12 @@ export default function RestaurantesDetailShellPage() {
           <code className="rounded bg-black/10 px-1">/clasificados/restaurantes/[slug]</code>.
         </p>
       </div>
-      <RestauranteAdStoryPreview data={DEMO_RESTAURANT_DETAIL_SHELL} listingId="demo-shell" lang="es" />
+      <RestauranteAdStoryPreview
+        data={DEMO_RESTAURANT_DETAIL_SHELL}
+        listingId="demo-shell"
+        lang="es"
+        persistListingEngagement={false}
+      />
     </RestaurantesShellChrome>
   );
 }

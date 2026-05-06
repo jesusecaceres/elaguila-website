@@ -29,12 +29,9 @@ import { BrLiveFactsStrip } from "@/app/clasificados/bienes-raices/listing/BrLiv
 import { LeonixInlineListingReport } from "@/app/clasificados/components/LeonixInlineListingReport";
 import { buildLeonixBusinessLiveDisplay, parseLeonixBusinessMetaForLive } from "@/app/clasificados/lib/leonixBusinessLiveDisplay";
 import { resolveLeonixLiveListingContact } from "@/app/clasificados/lib/leonixListingContactResolve";
-import {
-  trackEnVentaListingOpen,
-  trackEnVentaListingView,
-  trackEnVentaSaveClick,
-  trackEnVentaShare,
-} from "../analytics/enVentaAnalytics";
+import { trackEnVentaListingOpen, trackEnVentaListingView } from "../analytics/enVentaAnalytics";
+import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
+import { trackListingSave, trackListingShare } from "@/app/lib/clasificadosAnalytics";
 
 type Lang = "es" | "en";
 
@@ -199,6 +196,8 @@ export function EnVentaAnuncioLayout({
     };
   }, [listing.id]);
 
+  const ownerId = listing.owner_id?.trim() || null;
+
   const onToggleSave = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
     const {
@@ -212,14 +211,15 @@ export function EnVentaAnuncioLayout({
     if (saved) {
       await supabase.from("user_saved_listings").delete().eq("user_id", user.id).eq("listing_id", listing.id);
       setSaved(false);
+      void trackListingSave(listing.id, false, { ownerUserId: ownerId ?? undefined, category: surface === "en-venta" ? "en-venta" : "bienes-raices" });
     } else {
       await supabase
         .from("user_saved_listings")
         .upsert({ user_id: user.id, listing_id: listing.id }, { onConflict: "user_id,listing_id" });
       setSaved(true);
-      trackEnVentaSaveClick(listing.id, user.id);
+      void trackListingSave(listing.id, true, { ownerUserId: ownerId ?? undefined, category: surface === "en-venta" ? "en-venta" : "bienes-raices" });
     }
-  }, [listing.id, saved]);
+  }, [listing.id, saved, ownerId, surface]);
 
   const onShareListing = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -228,9 +228,11 @@ export function EnVentaAnuncioLayout({
     } = await supabase.auth.getUser();
     const url = typeof window !== "undefined" ? window.location.href : "";
     const title = listing.title[lang];
+    let shareMethod: "web_share" | "copy_link" | "unknown" = "unknown";
     try {
       if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
         await navigator.share({ title, url });
+        shareMethod = "web_share";
       } else {
         throw new Error("no_share");
       }
@@ -238,13 +240,20 @@ export function EnVentaAnuncioLayout({
       try {
         if (typeof navigator !== "undefined" && navigator.clipboard) {
           await navigator.clipboard.writeText(url);
+          shareMethod = "copy_link";
         }
       } catch {
         /* ignore */
       }
     }
-    trackEnVentaShare(listing.id, user?.id ?? null);
-  }, [lang, listing.id, listing.title]);
+    void trackListingShare(listing.id, {
+      ownerUserId: ownerId ?? undefined,
+      eventSource: "detail",
+      shareMethod,
+      category: surface === "en-venta" ? "en-venta" : "bienes-raices",
+      metadata: { actorHint: user?.id ?? null },
+    });
+  }, [lang, listing.id, listing.title, ownerId, surface]);
 
   const jsonLd = enVentaClassifiedAdJsonLd({
     title: listing.title[lang],
@@ -260,7 +269,6 @@ export function EnVentaAnuncioLayout({
   const showWhatsAppCta =
     Boolean(waDigits) && (contactChannel === "whatsapp" || contactChannel === "both");
   const email = String(resolvedContact.emailForMailto || "").trim();
-  const ownerId = listing.owner_id?.trim() || null;
 
   const scrollToContact = useCallback(() => {
     const el = document.getElementById("leonix-contact-actions");
@@ -404,6 +412,13 @@ export function EnVentaAnuncioLayout({
                 <span className="ml-2 select-all">{listing.id}</span>
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
+                <LeonixLikeButton
+                  listingId={listing.id}
+                  ownerUserId={ownerId}
+                  variant="small"
+                  lang={lang}
+                  category={surface === "en-venta" ? "en-venta" : "bienes-raices"}
+                />
                 <button
                   type="button"
                   title={saveHint}

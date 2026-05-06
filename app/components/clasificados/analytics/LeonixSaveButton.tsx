@@ -1,38 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FiBookmark } from "react-icons/fi";
 import { trackListingSave } from "@/app/lib/clasificadosAnalytics";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 type Props = {
-  listingId: string;
+  listingId: string | null | undefined;
   isSaved?: boolean;
   onToggle?: (isSaved: boolean) => void;
   variant?: "default" | "small" | "large";
   className?: string;
   lang?: "es" | "en";
   category?: string;
-  ownerUserId?: string;
+  ownerUserId?: string | null;
+  /** When false, no analytics or `user_saved_listings` writes. */
+  persistEngagement?: boolean;
 };
 
 const LABELS = {
   es: {
     save: "Guardar",
     saved: "Guardado",
-    saving: "Guardando..."
+    saving: "Guardando...",
+    preview: "Vista previa",
   },
   en: {
     save: "Save",
-    saved: "Saved", 
-    saving: "Saving..."
-  }
+    saved: "Saved",
+    saving: "Saving...",
+    preview: "Preview",
+  },
 } as const;
 
-/**
- * Interactive save button following Leonix design system
- * Handles save/unsave actions with analytics tracking
- */
-export function LeonixSaveButton({ 
+export function LeonixSaveButton({
   listingId,
   isSaved: initialSaved = false,
   onToggle,
@@ -40,75 +41,129 @@ export function LeonixSaveButton({
   className = "",
   lang = "es",
   category,
-  ownerUserId
+  ownerUserId,
+  persistEngagement,
 }: Props) {
+  const effectiveId = (listingId ?? "").trim();
+  const allowEngage = persistEngagement !== false && Boolean(effectiveId);
   const [isSaved, setIsSaved] = useState(initialSaved);
   const [isSaving, setIsSaving] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const labels = LABELS[lang];
-  
+
   const sizeClasses = {
     small: "px-3 py-1.5 text-sm",
     default: "px-4 py-2 text-sm",
-    large: "px-5 py-3 text-base"
+    large: "px-5 py-3 text-base",
   };
-  
+
   const iconSizes = {
     small: "h-4 w-4",
     default: "h-4 w-4",
-    large: "h-5 w-5"
+    large: "h-5 w-5",
   };
-  
-  const handleToggle = async () => {
-    if (isSaving) return;
-    
-    setIsSaving(true);
-    
-    try {
-      // Track analytics event
-      await trackListingSave(listingId, !isSaved, {
-        category,
-        ownerUserId,
-        eventSource: "cta_card",
-        metadata: { previousState: isSaved }
-      });
-      
-      // Update local state
-      const newState = !isSaved;
-      setIsSaved(newState);
-      
-      // Call parent callback if provided
-      if (onToggle) {
-        onToggle(newState);
+
+  useEffect(() => {
+    setIsSaved(initialSaved);
+  }, [initialSaved]);
+
+  useEffect(() => {
+    if (!allowEngage || !effectiveId) {
+      setHydrated(true);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const sb = createSupabaseBrowserClient();
+      const {
+        data: { user },
+      } = await sb.auth.getUser();
+      if (cancelled) return;
+      if (user) {
+        const { data } = await sb
+          .from("user_saved_listings")
+          .select("listing_id")
+          .eq("user_id", user.id)
+          .eq("listing_id", effectiveId)
+          .maybeSingle();
+        if (!cancelled) setIsSaved(!!data);
+      } else if (!cancelled) {
+        setIsSaved(false);
       }
-      
-    } catch (error) {
-      console.warn("Save toggle failed:", error);
-      // Optionally revert state on error
+      if (!cancelled) setHydrated(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [allowEngage, effectiveId]);
+
+  const handleToggle = useCallback(async () => {
+    if (isSaving) return;
+    if (!allowEngage || !effectiveId) return;
+
+    setIsSaving(true);
+    const nextState = !isSaved;
+
+    try {
+      const sb = createSupabaseBrowserClient();
+      const {
+        data: { user },
+      } = await sb.auth.getUser();
+      if (!user) {
+        const here = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search || ""}` : "/clasificados";
+        window.location.href = `/login?redirect=${encodeURIComponent(here)}`;
+        return;
+      }
+
+      if (nextState) {
+        const { error } = await sb
+          .from("user_saved_listings")
+          .upsert({ user_id: user.id, listing_id: effectiveId }, { onConflict: "user_id,listing_id" });
+        if (error) return;
+      } else {
+        const { error } = await sb.from("user_saved_listings").delete().eq("user_id", user.id).eq("listing_id", effectiveId);
+        if (error) return;
+      }
+
+      await trackListingSave(effectiveId, nextState, {
+        category,
+        ownerUserId: ownerUserId ?? undefined,
+        eventSource: "cta_card",
+        metadata: {},
+      });
+
+      setIsSaved(nextState);
+      onToggle?.(nextState);
     } finally {
       setIsSaving(false);
     }
-  };
-  
+  }, [allowEngage, effectiveId, isSaved, isSaving, onToggle, category, ownerUserId]);
+
+  const inert = !allowEngage || !effectiveId;
+
   return (
     <button
-      onClick={handleToggle}
-      disabled={isSaving}
+      type="button"
+      onClick={() => void handleToggle()}
+      disabled={isSaving || !hydrated || inert}
+      title={inert ? labels.preview : undefined}
       className={`
         inline-flex items-center gap-2 rounded-full font-medium
         transition-all duration-200
-        ${isSaved 
-          ? "bg-[#D4A574] text-white border border-[#D4A574] hover:bg-[#C19A6B]" 
-          : "bg-white text-[#1A1A1A] border border-[#D4A574] hover:bg-[#FFFAF0]"
+        ${
+          isSaved
+            ? "bg-[#D4A574] text-white border border-[#D4A574] hover:bg-[#C19A6B]"
+            : "bg-white text-[#1A1A1A] border border-[#D4A574] hover:bg-[#FFFAF0]"
         }
+        ${inert ? "opacity-60 cursor-not-allowed" : ""}
         ${sizeClasses[variant]}
         ${className}
       `}
-      aria-label={isSaved ? labels.saved : labels.save}
+      aria-label={inert ? labels.preview : isSaved ? labels.saved : labels.save}
+      aria-disabled={inert || !hydrated}
     >
       <FiBookmark className={`${iconSizes[variant]} ${isSaved ? "fill-current" : ""}`} />
-      <span>
-        {isSaving ? labels.saving : (isSaved ? labels.saved : labels.save)}
-      </span>
+      <span>{isSaving ? labels.saving : inert ? labels.preview : isSaved ? labels.saved : labels.save}</span>
     </button>
   );
 }

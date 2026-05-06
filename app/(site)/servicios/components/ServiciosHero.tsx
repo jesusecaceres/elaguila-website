@@ -16,7 +16,17 @@ function badgeStyle(kind: string) {
   return "border-black/[0.08] bg-white/90 text-[color:var(--lx-text-2)]";
 }
 
-export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
+export function ServiciosHero({
+  profile,
+  lang,
+  engagementListingId = null,
+  engagementOwnerUserId = null,
+}: {
+  profile: ServiciosProfileResolved;
+  lang: ServiciosLang;
+  engagementListingId?: string | null;
+  engagementOwnerUserId?: string | null;
+}) {
   const L = getServiciosProfileLabels(lang);
   const { identity, hero } = profile;
   const rating = hero.rating;
@@ -28,6 +38,10 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
     hero.categoryLine && hero.locationSummary
       ? `${hero.categoryLine} · ${hero.locationSummary}`
       : hero.categoryLine || hero.locationSummary || null;
+
+  const lxListingId = (engagementListingId ?? "").trim() || identity.slug;
+  const lxOwner = (engagementOwnerUserId ?? "").trim() || undefined;
+  const persistEngagement = Boolean((engagementListingId ?? "").trim());
 
   return (
     <section className="relative w-full overflow-hidden rounded-xl shadow-[0_20px_60px_rgba(30,24,16,0.12)] sm:rounded-2xl md:rounded-3xl">
@@ -59,33 +73,36 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
           <div className="flex flex-col gap-2">
             <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
               <LeonixLikeButton
-                listingId={identity.slug}
-                ownerUserId={identity.slug}
+                listingId={lxListingId}
+                ownerUserId={lxOwner}
                 variant="small"
                 lang={lang}
                 category="servicios"
                 className="border-0"
+                persistEngagement={persistEngagement}
               />
             </div>
             <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
               <LeonixSaveButton
-                listingId={identity.slug}
-                ownerUserId={identity.slug}
+                listingId={lxListingId}
+                ownerUserId={lxOwner}
                 variant="small"
                 lang={lang}
                 category="servicios"
                 className="border-0"
+                persistEngagement={persistEngagement}
               />
             </div>
             <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg">
               <LeonixShareButton
-                listingId={identity.slug}
-                ownerUserId={identity.slug}
+                listingId={lxListingId}
+                ownerUserId={lxOwner}
                 listingTitle={identity.businessName}
                 variant="small"
                 lang={lang}
                 category="servicios"
                 className="border-0"
+                persistEngagement={persistEngagement}
               />
             </div>
           </div>

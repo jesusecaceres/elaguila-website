@@ -103,6 +103,8 @@ interface RestaurantePreviewCardProps {
   /** When set with `onResultsSavedToggle`, save button reflects results “saved” filter. */
   resultsSaved?: boolean;
   onResultsSavedToggle?: () => void;
+  /** When false, like/save/share do not persist or emit analytics (demo rows). */
+  persistListingEngagement?: boolean;
 }
 
 /**
@@ -126,6 +128,7 @@ export function RestaurantePreviewCard({
   discoveryRefineLabel,
   resultsSaved,
   onResultsSavedToggle,
+  persistListingEngagement = true,
 }: RestaurantePreviewCardProps) {
   const heroImage = data.heroImageUrl?.trim() || "";
   const ownerForEngagement = (analyticsOwnerUserId ?? "").trim() || undefined;
@@ -369,13 +372,22 @@ export function RestaurantePreviewCard({
           {showEngagementMetrics && listingId ? (
             <div className={ENGAGEMENT_SECTION}>
               <div className="flex items-center gap-3">
-                <LeonixLikeButton listingId={listingId} ownerUserId={ownerForEngagement} variant="small" lang={lang} />
+                <LeonixLikeButton
+                  listingId={listingId}
+                  ownerUserId={ownerForEngagement}
+                  variant="small"
+                  lang={lang}
+                  category="restaurantes"
+                  persistEngagement={persistListingEngagement}
+                />
                 <LeonixSaveButton
                   key={onResultsSavedToggle ? `lx-sv-${listingId}-${String(resultsSaved)}` : `lx-sv-${listingId}`}
                   listingId={listingId}
                   ownerUserId={ownerForEngagement}
                   variant="small"
                   lang={lang}
+                  category="restaurantes"
+                  persistEngagement={persistListingEngagement}
                   {...(onResultsSavedToggle
                     ? { isSaved: Boolean(resultsSaved), onToggle: () => onResultsSavedToggle() }
                     : {})}
@@ -389,6 +401,7 @@ export function RestaurantePreviewCard({
                   lang={lang}
                   category="restaurantes"
                   preferNativeShareOnNarrowViewports
+                  persistEngagement={persistListingEngagement}
                 />
               </div>
             </div>

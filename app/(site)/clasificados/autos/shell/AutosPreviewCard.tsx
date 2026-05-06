@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useEffect } from "react";
 import Image from "next/image";
 import { FiExternalLink, FiMail, FiMapPin, FiPhone, FiCalendar, FiGlobe, FiTrendingUp, FiEye, FiHeart, FiBookmark, FiShare2 } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
@@ -53,6 +54,8 @@ interface AutosPreviewCardProps {
   lang?: "es" | "en";
   showEngagementMetrics?: boolean;
   listingId?: string;
+  /** Preview cards default false — avoids analytics/DB writes without a published listing key. */
+  persistEngagement?: boolean;
 }
 
 /**
@@ -65,21 +68,20 @@ export function AutosPreviewCard({
   className = "", 
   lang = "es",
   showEngagementMetrics = true,
-  listingId
+  listingId,
+  persistEngagement = false,
 }: AutosPreviewCardProps) {
-  // Track view when card is rendered
-  React.useEffect(() => {
-    if (listingId) {
-      void trackClasificadosEvent({
-        listing_id: listingId,
-        category: "autos",
-        event_type: "listing_view",
-        event_source: "card",
-        owner_user_id: listingId, // This would be the actual owner ID in production
-        metadata: { cardType: "preview", vehicleType: data.condition }
-      });
-    }
-  }, [listingId, data.condition]);
+  useEffect(() => {
+    if (!listingId || !persistEngagement) return;
+    void trackClasificadosEvent({
+      listing_id: listingId,
+      category: "autos",
+      event_type: "listing_view",
+      event_source: "card",
+      owner_user_id: null,
+      metadata: { cardType: "preview", vehicleType: data.condition },
+    });
+  }, [listingId, persistEngagement, data.condition]);
 
   const hasHeroImage = data.mediaImages && data.mediaImages.length > 0;
   const hasLocation = data.city && data.state;
@@ -226,14 +228,14 @@ export function AutosPreviewCard({
                 href={`tel:${data.dealerPhoneOffice}`}
                 className={`${CTA_BUTTON} ${CTA_PRIMARY}`}
                 onClick={() => {
-                  if (listingId) {
+                  if (listingId && persistEngagement) {
                     void trackClasificadosEvent({
                       listing_id: listingId,
                       category: "autos",
                       event_type: "phone_click",
                       event_source: "card",
-                      owner_user_id: listingId,
-                      metadata: { contactType: "office" }
+                      owner_user_id: null,
+                      metadata: { contactType: "office" },
                     });
                   }
                 }}
@@ -249,14 +251,14 @@ export function AutosPreviewCard({
                 rel="noopener noreferrer"
                 className={`${CTA_BUTTON} ${CTA_SECONDARY}`}
                 onClick={() => {
-                  if (listingId) {
+                  if (listingId && persistEngagement) {
                     void trackClasificadosEvent({
                       listing_id: listingId,
                       category: "autos",
                       event_type: "whatsapp_click",
                       event_source: "card",
-                      owner_user_id: listingId,
-                      metadata: { contactType: "whatsapp" }
+                      owner_user_id: null,
+                      metadata: { contactType: "whatsapp" },
                     });
                   }
                 }}
@@ -272,14 +274,14 @@ export function AutosPreviewCard({
                 rel="noopener noreferrer"
                 className={`${CTA_BUTTON} ${CTA_SECONDARY}`}
                 onClick={() => {
-                  if (listingId) {
+                  if (listingId && persistEngagement) {
                     void trackClasificadosEvent({
                       listing_id: listingId,
                       category: "autos",
                       event_type: "website_click",
                       event_source: "card",
-                      owner_user_id: listingId,
-                      metadata: { contactType: "website" }
+                      owner_user_id: null,
+                      metadata: { contactType: "website" },
                     });
                   }
                 }}
@@ -295,14 +297,14 @@ export function AutosPreviewCard({
                 rel="noopener noreferrer"
                 className={`${CTA_BUTTON} ${CTA_SECONDARY}`}
                 onClick={() => {
-                  if (listingId) {
+                  if (listingId && persistEngagement) {
                     void trackClasificadosEvent({
                       listing_id: listingId,
                       category: "autos",
                       event_type: "cta_click",
                       event_source: "card",
-                      owner_user_id: listingId,
-                      metadata: { contactType: "booking" }
+                      owner_user_id: null,
+                      metadata: { contactType: "booking" },
                     });
                   }
                 }}
@@ -327,23 +329,26 @@ export function AutosPreviewCard({
             <div className="flex items-center gap-3 mb-4">
               <LeonixLikeButton
                 listingId={listingId}
-                ownerUserId={listingId}
                 variant="small"
                 lang={lang}
+                category="autos"
+                persistEngagement={persistEngagement}
               />
               <LeonixSaveButton
                 listingId={listingId}
-                ownerUserId={listingId}
                 variant="small"
                 lang={lang}
+                category="autos"
+                persistEngagement={persistEngagement}
               />
               <LeonixShareButton
                 listingId={listingId}
-                ownerUserId={listingId}
                 listingTitle={vehicleTitle}
                 listingUrl={typeof window !== "undefined" ? window.location.href : ""}
                 variant="small"
                 lang={lang}
+                category="autos"
+                persistEngagement={persistEngagement}
               />
             </div>
 
@@ -357,6 +362,3 @@ export function AutosPreviewCard({
     </div>
   );
 }
-
-// Import React for useEffect
-import React from "react";
