@@ -2702,33 +2702,6 @@ export function ClasificadosServiciosApplication() {
                   ) : null}
                 </div>
 
-                <p className={`mt-6 ${labelClass}`}>{copy.labels.offerPrimaryLabel}</p>
-                <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
-                  {(
-                    [
-                      ["none", copy.labels.offerPrimaryNone] as const,
-                      ["link", copy.labels.offerPrimaryLink] as const,
-                      ["image", copy.labels.offerPrimaryImage] as const,
-                      ["pdf", copy.labels.offerPrimaryPdf] as const,
-                    ] as const
-                  ).map(([val, lab]) => (
-                    <Chip
-                      key={`${i}-${val}`}
-                      selected={row.primaryAsset === val}
-                      onClick={() =>
-                        setState((s) => {
-                          const next = [...s.promotions];
-                          const cur = next[i] ?? createEmptyClasificadosPromoRow();
-                          next[i] = { ...cur, primaryAsset: val };
-                          return enforceServiciosSelectionCaps({ ...s, promotions: next });
-                        })
-                      }
-                    >
-                      {lab}
-                    </Chip>
-                  ))}
-                </div>
-                <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerAssetContractNote}</p>
               </div>
             );
           })}

@@ -174,13 +174,7 @@ export type ClasificadosServiciosCopy = {
     featuredStripHint: string;
     moveFeaturedLeft: string;
     moveFeaturedRight: string;
-    offerPrimaryLabel: string;
-    offerPrimaryNone: string;
-    offerPrimaryLink: string;
-    offerPrimaryImage: string;
-    offerPrimaryPdf: string;
     offerQrLater: string;
-    offerAssetContractNote: string;
     /** How logo / cover / featured / gallery relate in the public profile */
     mediaStructureIntro: string;
     logoHelp: string;
@@ -435,13 +429,7 @@ const es: ClasificadosServiciosCopy = {
       "No otorga el distintivo: Leonix lo asigna en un paso controlado. Esto solo registra tu interés.",
     offerImage: "Imagen opcional",
     offerPdf: "PDF o volante (opcional)",
-    offerPrimaryLabel: "Si añades varios recursos, ¿cuál mostrar primero?",
-    offerPrimaryNone: "Sin preferencia",
-    offerPrimaryLink: "Enlace",
-    offerPrimaryImage: "Imagen",
-    offerPrimaryPdf: "PDF",
     offerQrLater: "",
-    offerAssetContractNote: "Solo ordena el foco visual cuando hay más de un archivo o enlace.",
     promotionsSectionIntro:
       "Añade hasta 4 ofertas breves para tu vitrina. Usa promociones claras, específicas y fáciles de entender.",
     promoAddPromotion: "Añadir promoción",
@@ -704,13 +692,7 @@ const en: ClasificadosServiciosCopy = {
       "This does not grant the badge — Leonix assigns verification in a controlled step. This only records your interest.",
     offerImage: "Optional image",
     offerPdf: "Optional PDF / flyer",
-    offerPrimaryLabel: "If you add several assets, which should lead?",
-    offerPrimaryNone: "No preference",
-    offerPrimaryLink: "Link",
-    offerPrimaryImage: "Image",
-    offerPrimaryPdf: "PDF",
     offerQrLater: "",
-    offerAssetContractNote: "This only sets visual emphasis when more than one link or file is present.",
     promotionsSectionIntro:
       "Add up to 4 short offers for your profile. Use clear, specific promotions customers can understand quickly.",
     promoAddPromotion: "Add promotion",

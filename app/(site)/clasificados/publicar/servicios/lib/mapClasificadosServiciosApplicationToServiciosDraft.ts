@@ -379,7 +379,6 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     const r = state.promotions[i]!;
     if (!clasificadosPromoRowIsActive(r)) continue;
     const hrefRaw = r.link.trim();
-    const pa = r.primaryAsset;
     draftPromos.push({
       id: `clasificados-promo-${i}`,
       headline: r.title.trim(),
@@ -387,7 +386,6 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       ...(hrefRaw ? { href: normalizeHttpUrl(hrefRaw) } : {}),
       ...(r.imageUrl.trim() ? { assetImageUrl: r.imageUrl.trim() } : {}),
       ...(r.pdfUrl.trim() ? { assetPdfUrl: r.pdfUrl.trim() } : {}),
-      ...(pa === "link" || pa === "image" || pa === "pdf" ? { primaryAssetKind: pa } : {}),
       ...(r.qrLater === true ? { qrIntent: true } : {}),
     });
   }
