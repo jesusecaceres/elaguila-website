@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const LINKS = [
+  { href: "/admin/tienda", label: "Inicio Tienda", hint: "Centro de comando y mapa de rutas" },
   { href: "/admin/workspace/tienda", label: "Mapa del workspace", hint: "Resumen y enlaces de la vitrina" },
   { href: "/admin/tienda/orders", label: "Pedidos", hint: "Bandeja e inbox de órdenes" },
   { href: "/admin/tienda/catalog", label: "Catálogo", hint: "Lista y edición de artículos" },
@@ -15,6 +16,7 @@ function cx(...p: Array<string | false | undefined>) {
 }
 
 function tiendaSubnavActive(pathname: string, href: string): boolean {
+  if (href === "/admin/tienda") return pathname === href;
   if (href === "/admin/workspace/tienda") return pathname === href;
   if (href === "/admin/tienda/orders") return pathname === href || pathname.startsWith(`${href}/`);
   if (href === "/admin/tienda/catalog/new") {

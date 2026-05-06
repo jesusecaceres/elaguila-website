@@ -6,13 +6,11 @@ export type AdminGlobalNavItem = {
   badgeFrom?: "tienda";
 };
 
-/**
- * Tienda: no `/admin/tienda` index page in repo — hub is the orders inbox (`/admin/tienda/orders`).
- */
+/** Tienda sidebar entry opens the command hub at `/admin/tienda`. */
 export const ADMIN_GLOBAL_NAV: AdminGlobalNavItem[] = [
   { href: "/admin", label: "Dashboard", icon: "◆", badgeFrom: "tienda" },
   { href: "/admin/categories", label: "Categories", icon: "▤" },
-  { href: "/admin/tienda/orders", label: "Tienda", icon: "🛒" },
+  { href: "/admin/tienda", label: "Tienda", icon: "🛒" },
   { href: "/admin/workspace", label: "Site sections", icon: "🧩" },
   { href: "/admin/clasificados/viajes", label: "Viajes", icon: "✈" },
   { href: "/admin/usuarios", label: "Users", icon: "◎" },

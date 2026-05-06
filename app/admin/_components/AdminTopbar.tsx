@@ -33,10 +33,10 @@ export function AdminTopbar({
           </span>
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <Link
-              href="/admin/tienda/orders"
+              href="/admin/tienda"
               className="relative flex h-11 min-w-[44px] items-center justify-center rounded-full border border-[#E8DFD0] bg-white p-2 text-[#5C5346] shadow-sm"
-              title={alertCount > 0 ? "Tienda inbox" : "Tienda orders"}
-              aria-label={alertCount > 0 ? `Tienda inbox, ${alertCount} unread` : "Tienda orders"}
+              title={alertCount > 0 ? "Tienda (hub · inbox con avisos)" : "Tienda — centro de comando"}
+              aria-label={alertCount > 0 ? `Tienda, ${alertCount} sin leer` : "Tienda — centro de comando"}
             >
               🔔
               {alertCount > 0 ? (
@@ -86,10 +86,10 @@ export function AdminTopbar({
             ✦ Leonix +admin
           </span>
           <Link
-            href="/admin/tienda/orders"
+            href="/admin/tienda"
             className="relative rounded-full border border-[#E8DFD0] bg-white p-2 text-[#5C5346] shadow-sm"
-            title={alertCount > 0 ? "Tienda inbox" : "Tienda orders"}
-            aria-label={alertCount > 0 ? `Tienda inbox, ${alertCount} unread` : "Tienda orders"}
+            title={alertCount > 0 ? "Tienda (hub · inbox con avisos)" : "Tienda — centro de comando"}
+            aria-label={alertCount > 0 ? `Tienda, ${alertCount} sin leer` : "Tienda — centro de comando"}
           >
             🔔
             {alertCount > 0 ? (

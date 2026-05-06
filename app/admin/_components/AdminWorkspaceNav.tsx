@@ -22,7 +22,8 @@ const TIENDA_CRUD_PREFIX = "/admin/tienda";
 
 function isSectionActive(pathname: string, item: WorkspaceNavItem): boolean {
   if (pathname === item.href || pathname.startsWith(`${item.href}/`)) return true;
-  if (item.href === "/admin/workspace/tienda" && pathname.startsWith(`${TIENDA_CRUD_PREFIX}/`)) return true;
+  if (item.href === "/admin/workspace/tienda" && (pathname === TIENDA_CRUD_PREFIX || pathname.startsWith(`${TIENDA_CRUD_PREFIX}/`)))
+    return true;
   return false;
 }
 
