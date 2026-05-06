@@ -20,6 +20,7 @@ type ApplicationHealth = {
 type Row = {
   id: string;
   slug: string;
+  leonix_ad_id?: string | null;
   title: string;
   company_name: string;
   lifecycle_status: string;
@@ -114,6 +115,7 @@ export default function AdminEmpleosListingsPage() {
           <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2] text-xs font-bold uppercase text-[#7A7164]">
             <tr>
               <th className="px-4 py-3">Título</th>
+              <th className="px-4 py-3">Leonix Ad ID</th>
               <th className="px-4 py-3">Estado</th>
               <th className="px-4 py-3">Carril</th>
               <th className="px-4 py-3">Owner</th>
@@ -134,6 +136,7 @@ export default function AdminEmpleosListingsPage() {
                     <div className="mt-1 max-w-[220px] text-[11px] text-amber-900">Moderación: {r.moderation_reason}</div>
                   ) : null}
                 </td>
+                <td className="px-4 py-3 font-mono text-[10px] text-[#3D3428]">{r.leonix_ad_id ?? "—"}</td>
                 <td className="px-4 py-3 capitalize">{r.lifecycle_status}</td>
                 <td className="px-4 py-3 capitalize">{r.lane}</td>
                 <td className="px-4 py-3">

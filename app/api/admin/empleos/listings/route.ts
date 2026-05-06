@@ -33,7 +33,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           owner_user_id: r.owner_user_id,
           city: r.city,
           state: r.state,
-          leonix_ad_id: (r as { leonix_ad_id?: string | null }).leonix_ad_id ?? null,
+          leonix_ad_id: r.leonix_ad_id ?? null,
         },
         q,
         profileSet,
@@ -45,6 +45,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const enriched = rows.map((r) => ({
     id: r.id,
     slug: r.slug,
+    leonix_ad_id: r.leonix_ad_id ?? null,
     title: r.title,
     company_name: r.company_name,
     lifecycle_status: r.lifecycle_status,

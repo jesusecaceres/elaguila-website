@@ -18,6 +18,7 @@ import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/
 
 type Row = {
   id: string;
+  leonix_ad_id?: string | null;
   title: string | null;
   description: string | null;
   city: string | null;
@@ -213,6 +214,7 @@ export default function AdminListingsTable({
           <thead>
             <tr className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90">
               <th className="p-3 font-semibold text-[#5C4E2E]">ID</th>
+              <th className="min-w-[9rem] p-3 font-semibold text-[#5C4E2E]">Leonix Ad ID</th>
               <th className="min-w-[180px] p-3 font-semibold text-[#5C4E2E]">Título</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">Categoría</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">Ciudad</th>
@@ -253,6 +255,9 @@ export default function AdminListingsTable({
             {listings.map((row) => (
               <tr key={row.id} className="border-b border-[#E8DFD0]/60">
                 <td className="p-3 font-mono text-xs text-[#3D3428]">{row.id.slice(0, 8)}…</td>
+                <td className="max-w-[10rem] truncate p-3 font-mono text-[10px] text-[#3D3428]" title={row.leonix_ad_id ?? ""}>
+                  {row.leonix_ad_id ?? "—"}
+                </td>
                 <td className="max-w-[200px] truncate p-3 text-[#1E1810]" title={row.title ?? ""}>
                   {row.title ?? "—"}
                 </td>

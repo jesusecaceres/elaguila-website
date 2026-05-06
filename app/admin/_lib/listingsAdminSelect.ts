@@ -4,7 +4,7 @@ import { adminQueueNormalizeLeonixAdId } from "@/app/admin/_lib/adminAdSearch";
 import { fetchProfileIdsMatchingAdminQueueSearch } from "@/app/lib/supabase/adminQueueProfileSearch";
 
 const LISTINGS_ADMIN_CORE =
-  "id, title, description, city, category, price, is_free, status, owner_id, created_at, images";
+  "id, leonix_ad_id, title, description, city, category, price, is_free, status, owner_id, created_at, images";
 
 /** Columns for Clasificados admin queue — includes JSON used by En Venta visibility helpers. */
 export const LISTINGS_ADMIN_SELECT_WITH_DETAIL_PAIRS =

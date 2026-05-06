@@ -17,6 +17,7 @@ import { autosClassifiedsRowToPublicListing } from "./mapAutosClassifiedsToPubli
 function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
   return {
     id: String(r.id),
+    leonix_ad_id: r.leonix_ad_id != null && String(r.leonix_ad_id).trim() ? String(r.leonix_ad_id).trim() : null,
     owner_user_id: String(r.owner_user_id),
     lane: r.lane as AutosClassifiedsLane,
     status: r.status as AutosClassifiedsListingStatus,
@@ -275,7 +276,12 @@ export async function markAutosListingCancelledFromCheckout(listingId: string): 
 export async function getActiveLiveAutosBundle(
   id: string,
   lang: AutosClassifiedsLang,
-): Promise<{ listing: AutoDealerListing; lane: AutosClassifiedsLane; publicRow: AutosPublicListing } | null> {
+): Promise<{
+  listing: AutoDealerListing;
+  lane: AutosClassifiedsLane;
+  publicRow: AutosPublicListing;
+  leonix_ad_id: string | null;
+} | null> {
   const row = await getAutosClassifiedsListingById(id);
   if (!row || row.status !== "active") return null;
   const poolRows = await listActiveAutosClassifiedsRows();
@@ -288,5 +294,6 @@ export async function getActiveLiveAutosBundle(
   if (row.lane === "negocios" && publicPool.length > 0) {
     normalized.relatedDealerListings = buildRelatedPublicListings(currentPublic, publicPool, lang);
   }
-  return { listing: normalized, lane: row.lane, publicRow: currentPublic };
+  const leonix_ad_id = row.leonix_ad_id?.trim() ? row.leonix_ad_id.trim() : null;
+  return { listing: normalized, lane: row.lane, publicRow: currentPublic, leonix_ad_id };
 }

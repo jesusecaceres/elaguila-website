@@ -23,6 +23,8 @@ import {
 
 type Props = {
   slug: string;
+  /** Permanent DB `leonix_ad_id` when present */
+  leonixAdId?: string | null;
   initialJob: EmpleosJobRecord | null;
   relatedExtra?: EmpleosJobRecord[];
   /** When true, “related” excludes `EMPLEOS_JOB_CATALOG` (must match `empleosOmitMarketingSeedCatalog()` on the server). */
@@ -33,6 +35,7 @@ type Props = {
 
 export function EmpleoPublicDetailClient({
   slug,
+  leonixAdId = null,
   initialJob,
   relatedExtra = [],
   omitMarketingSeedCatalog = false,
@@ -113,6 +116,12 @@ export function EmpleoPublicDetailClient({
           </Link>
         </div>
       </header>
+
+      {leonixAdId?.trim() ? (
+        <div className="border-b border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-center text-xs text-[#5C5346]">
+          {lang === "es" ? "Leonix Ad ID" : "Leonix Ad ID"} # {leonixAdId.trim()}
+        </div>
+      ) : null}
 
       <main className="mx-auto max-w-6xl px-4 pt-24 sm:px-6 sm:pt-28 lg:px-8">
         <div className="overflow-hidden rounded-[1.35rem] border border-[#E8DFD0] bg-white shadow-[0_18px_52px_rgba(42,40,38,0.085)] ring-1 ring-[#F0E8DC]/80">

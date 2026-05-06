@@ -44,7 +44,7 @@ import type { AutosAnuncioListingLike } from "../../autos/listing/types/autosAnu
 type Lang = "es" | "en";
 
 const ANUNCIO_LISTING_SELECT_BASE =
-  "id, owner_id, title, description, city, category, price, is_free, detail_pairs, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, original_price, current_price, price_last_updated, images, boost_expires";
+  "id, leonix_ad_id, owner_id, title, description, city, category, price, is_free, detail_pairs, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, original_price, current_price, price_last_updated, images, boost_expires";
 
 type CategoryKey =
   | "en-venta"
@@ -89,6 +89,7 @@ type Listing = {
   rentas_tier?: string | null;
   servicesTier?: string | null;
   business_meta?: string | null;
+  leonix_ad_id?: string | null;
 };
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -223,6 +224,7 @@ function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
     rentasTier: row.rentas_tier != null ? String(row.rentas_tier) : null,
     rentas_tier: row.rentas_tier != null ? String(row.rentas_tier) : null,
     business_meta: typeof row.business_meta === "string" ? row.business_meta : null,
+    leonix_ad_id: row.leonix_ad_id != null && String(row.leonix_ad_id).trim() ? String(row.leonix_ad_id).trim() : null,
   };
 
   const out = base as Listing & { detailPairs?: unknown; contact_phone?: unknown; contact_email?: unknown; seller_type?: string };
@@ -1152,6 +1154,11 @@ export default function AnuncioDetallePage() {
                       <h1 className="text-4xl md:text-5xl font-bold text-[#111111] leading-tight">
                         {listing.title[lang]}
                       </h1>
+                      {listing.leonix_ad_id?.trim() ? (
+                        <p className="mt-2 text-sm text-[#5C5346]">
+                          {lang === "es" ? "Leonix Ad ID" : "Leonix Ad ID"} # {listing.leonix_ad_id.trim()}
+                        </p>
+                      ) : null}
                       {listing.category === "rentas" ? (
                         <RentasAnuncioHeroMonthlyRent
                           lang={lang}

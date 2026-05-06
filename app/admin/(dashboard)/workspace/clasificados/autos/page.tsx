@@ -62,7 +62,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
         .filter((x) => x != null && String(x).trim() !== "")
         .join(" ")
         .toLowerCase();
-      const lx = (r as { leonix_ad_id?: string | null }).leonix_ad_id ?? null;
+      const lx = r.leonix_ad_id ?? null;
       return autosRowMatchesAdminQueueSearch(
         {
           id: r.id,
@@ -131,6 +131,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
             <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2] text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
               <tr>
                 <th className="px-3 py-2">ID</th>
+                <th className="px-3 py-2">Leonix Ad ID</th>
                 <th className="px-3 py-2">Título</th>
                 <th className="px-3 py-2">Vía</th>
                 <th className="px-3 py-2">Dest.</th>
@@ -165,6 +166,9 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                   <tr key={r.id} className="border-b border-[#E8DFD0]/80">
                     <td className="max-w-[7rem] truncate px-3 py-2 font-mono text-[10px]" title={r.id}>
                       {r.id.slice(0, 8)}…
+                    </td>
+                    <td className="max-w-[9rem] truncate px-3 py-2 font-mono text-[10px]" title={r.leonix_ad_id ?? ""}>
+                      {r.leonix_ad_id ?? "—"}
                     </td>
                     <td className="max-w-[14rem] truncate px-3 py-2 font-semibold" title={dash.title}>
                       {dash.title}

@@ -52,7 +52,7 @@ async function loadGenericListings(ownerUserId: string, hints: AdminAdOwnerHints
     const supabase = getAdminSupabase();
     const { data, error } = await supabase
       .from("listings")
-      .select("id,title,price,city,zip,status,created_at,category,images,owner_id")
+      .select("id,leonix_ad_id,title,price,city,zip,status,created_at,category,images,owner_id")
       .eq("owner_id", ownerUserId)
       .order("created_at", { ascending: false })
       .limit(PER_SOURCE_LIMIT);
@@ -110,7 +110,7 @@ async function loadServicios(ownerUserId: string, hints: AdminAdOwnerHints | nul
     const supabase = getAdminSupabase();
     const { data, error } = await supabase
       .from("servicios_public_listings")
-      .select("id, slug, business_name, city, listing_status, owner_user_id, published_at, updated_at")
+      .select("id, slug, leonix_ad_id, business_name, city, listing_status, owner_user_id, published_at, updated_at")
       .eq("owner_user_id", ownerUserId)
       .order("updated_at", { ascending: false })
       .limit(PER_SOURCE_LIMIT);
@@ -140,6 +140,7 @@ async function loadEmpleos(ownerUserId: string, hints: AdminAdOwnerHints | null)
           {
             id: r.id,
             slug: r.slug,
+            leonix_ad_id: r.leonix_ad_id,
             title: r.title,
             company_name: r.company_name,
             lifecycle_status: r.lifecycle_status,

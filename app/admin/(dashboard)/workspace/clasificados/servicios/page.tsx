@@ -18,6 +18,7 @@ export const dynamic = "force-dynamic";
 export type ServiciosPublicAdminRow = {
   id: string;
   slug: string;
+  leonix_ad_id?: string | null;
   business_name: string;
   city: string;
   published_at: string;
@@ -103,6 +104,7 @@ export default async function AdminServiciosWorkspacePage(props: {
   const rows: ServiciosPublicAdminRow[] = queueRes.rows.map((r) => ({
     id: r.id,
     slug: r.slug,
+    leonix_ad_id: r.leonix_ad_id ?? null,
     business_name: r.business_name,
     city: r.city,
     published_at: r.published_at,
@@ -222,6 +224,7 @@ export default async function AdminServiciosWorkspacePage(props: {
                     <th className="p-3">Negocio</th>
                     <th className="p-3">Ciudad</th>
                     <th className="p-3">Slug</th>
+                    <th className="p-3">Leonix Ad ID</th>
                     <th className="p-3">Propietario</th>
                     <th className="p-3">Estado</th>
                     <th className="p-3">Verif. Leonix</th>
@@ -236,6 +239,7 @@ export default async function AdminServiciosWorkspacePage(props: {
                       <td className="p-3 font-semibold text-[#1E1810]">{r.business_name}</td>
                       <td className="p-3 text-xs text-[#5C5346]">{r.city}</td>
                       <td className="p-3 font-mono text-xs text-[#3D3428]">{r.slug}</td>
+                      <td className="p-3 font-mono text-[10px] text-[#3D3428]">{r.leonix_ad_id ?? "—"}</td>
                       <td className="p-3 font-mono text-[10px] text-[#7A7164]">{r.owner_user_id?.slice(0, 8) ?? "—"}…</td>
                       <td className="p-3 text-xs">
                         <form action={updateServiciosPublicListingStatusAction} className="flex max-w-[14rem] flex-col gap-1">

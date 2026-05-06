@@ -113,6 +113,11 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
       <div className="hidden" aria-hidden data-servicios-ssr-anchor="1">
         {slug} · {profile.identity.businessName}
       </div>
+      {row.leonix_ad_id?.trim() ? (
+        <p className="mx-auto max-w-3xl px-4 pt-3 text-center text-xs text-[#5C5346]">
+          {lang === "en" ? "Leonix Ad ID" : "Leonix Ad ID"} # {row.leonix_ad_id.trim()}
+        </p>
+      ) : null}
       <ServiciosProfileView
         profile={profile}
         lang={lang}

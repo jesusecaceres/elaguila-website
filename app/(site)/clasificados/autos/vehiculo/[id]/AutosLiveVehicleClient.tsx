@@ -22,6 +22,7 @@ type PublicListingApiOk = {
   listing: AutoDealerListing;
   lane: AutosClassifiedsLane;
   lang: "es" | "en";
+  leonix_ad_id?: string | null;
 };
 
 export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
@@ -30,6 +31,7 @@ export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
   const lang: AutosPublicLang = qs.get("lang") === "en" ? "en" : "es";
   const [data, setData] = useState<AutoDealerListing | null>(null);
   const [lane, setLane] = useState<AutosClassifiedsLane | null>(null);
+  const [leonixAdId, setLeonixAdId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,17 +44,21 @@ export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
         );
         const j = (await r.json()) as PublicListingApiOk | { ok?: false };
         if (cancelled) return;
-        if (r.ok && j && "ok" in j && j.ok && j.listing) {
-          setData(normalizeLoadedListing({ ...j.listing, autosLane: j.lane }));
-          setLane(j.lane);
+        if (r.ok && j && "ok" in j && j.ok === true && "listing" in j) {
+          const payload = j as PublicListingApiOk;
+          setData(normalizeLoadedListing({ ...payload.listing, autosLane: payload.lane }));
+          setLane(payload.lane);
+          setLeonixAdId(payload.leonix_ad_id?.trim() || null);
         } else {
           setData(null);
           setLane(null);
+          setLeonixAdId(null);
         }
       } catch {
         if (!cancelled) {
           setData(null);
           setLane(null);
+          setLeonixAdId(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -114,6 +120,11 @@ export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
     return (
       <AutosPrivadoPreviewLocaleProvider>
         <AutoPrivadoPreviewPage data={data} editBackHref={undefined} />
+        {leonixAdId ? (
+          <p className="bg-[color:var(--lx-page)] px-4 py-2 text-center text-xs text-[color:var(--lx-muted)]">
+            {lang === "es" ? "Leonix Ad ID" : "Leonix Ad ID"} # {leonixAdId}
+          </p>
+        ) : null}
         <div className="border-t border-[color:var(--lx-nav-border)] bg-[color:var(--lx-page)] px-[max(1rem,env(safe-area-inset-left))] py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] text-center">
           <Link href={resultsHref} className="text-sm font-semibold text-[color:var(--lx-gold)]">
             {lang === "es" ? "← Volver a resultados" : "← Back to results"}
@@ -129,6 +140,11 @@ export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
   return (
     <AutosNegociosPreviewLocaleProvider>
       <AutoDealerPreviewPage data={data} editBackHref={undefined} />
+      {leonixAdId ? (
+        <p className="bg-[color:var(--lx-page)] px-4 py-2 text-center text-xs text-[color:var(--lx-muted)]">
+          {lang === "es" ? "Leonix Ad ID" : "Leonix Ad ID"} # {leonixAdId}
+        </p>
+      ) : null}
       <div className="border-t border-[color:var(--lx-nav-border)] bg-[color:var(--lx-page)] px-[max(1rem,env(safe-area-inset-left))] py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] text-center">
         <Link href={resultsHref} className="text-sm font-semibold text-[color:var(--lx-gold)]">
           {lang === "es" ? "← Volver a resultados" : "← Back to results"}

@@ -20,6 +20,7 @@ export type EmpleosListingLifecycleDb =
 export type EmpleosPublicListingRow = {
   id: string;
   slug: string;
+  leonix_ad_id?: string | null;
   lane: string;
   owner_user_id: string | null;
   lifecycle_status: EmpleosListingLifecycleDb;

@@ -18,7 +18,7 @@ import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "./serviciosListingLifecycle"
 
 /** Keep aligned with migrations present on all envs; omit columns not yet applied on older DBs (breaks PostgREST `.select()`). */
 const LISTING_SELECT =
-  "slug, business_name, city, published_at, profile_json, leonix_verified, internal_group, listing_status, owner_user_id";
+  "slug, business_name, city, published_at, profile_json, leonix_verified, internal_group, listing_status, owner_user_id, leonix_ad_id";
 
 export type ServiciosPublicListingRow = {
   slug: string;
@@ -33,6 +33,7 @@ export type ServiciosPublicListingRow = {
   listing_status: string;
   /** Auth user id of provider (nullable legacy) */
   owner_user_id?: string | null;
+  leonix_ad_id?: string | null;
   /** Approved DB reviews aggregate (optional; discovery + ranking) */
   review_rating_avg?: number | null;
   review_rating_count?: number | null;
@@ -154,7 +155,7 @@ export async function getServiciosPublicListingBySlugForDiscovery(slug: string):
 }
 
 const SERVICIOS_ADMIN_QUEUE_SELECT =
-  "id, slug, business_name, city, published_at, updated_at, leonix_verified, listing_status, internal_group, owner_user_id, moderation_notes, profile_json";
+  "id, slug, business_name, city, published_at, updated_at, leonix_verified, listing_status, internal_group, owner_user_id, moderation_notes, profile_json, leonix_ad_id";
 
 export type ServiciosPublicListingAdminDbRow = {
   id: string;
@@ -169,6 +170,7 @@ export type ServiciosPublicListingAdminDbRow = {
   owner_user_id: string | null;
   moderation_notes: string | null;
   profile_json: unknown;
+  leonix_ad_id?: string | null;
 };
 
 function mergeServiciosAdminRows(rows: ServiciosPublicListingAdminDbRow[], cap: number): ServiciosPublicListingAdminDbRow[] {

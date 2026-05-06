@@ -93,6 +93,7 @@ export default async function EmpleoPublicDetailPage({ params, searchParams }: P
       {useLaneShell && job ? (
         <EmpleosPublicLaneDetailClient
           slug={slug}
+          leonixAdId={row?.leonix_ad_id ?? null}
           job={job}
           envelope={envelope}
           relatedExtra={relatedExtra}
@@ -102,6 +103,7 @@ export default async function EmpleoPublicDetailPage({ params, searchParams }: P
       ) : (
         <EmpleoPublicDetailClient
           slug={slug}
+          leonixAdId={row?.leonix_ad_id ?? null}
           initialJob={job}
           relatedExtra={relatedExtra}
           omitMarketingSeedCatalog={omitSeed}

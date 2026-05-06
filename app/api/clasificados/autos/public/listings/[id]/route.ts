@@ -25,5 +25,6 @@ export async function GET(request: Request, { params }: Props) {
     listing: bundle.listing,
     lane: bundle.lane,
     lang,
+    leonix_ad_id: bundle.leonix_ad_id,
   });
 }

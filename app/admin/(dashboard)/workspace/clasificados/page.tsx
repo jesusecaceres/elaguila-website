@@ -18,6 +18,7 @@ export const dynamic = "force-dynamic";
 
 type Row = {
   id: string;
+  leonix_ad_id?: string | null;
   title: string | null;
   description: string | null;
   city: string | null;

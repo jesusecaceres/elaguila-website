@@ -176,7 +176,9 @@ export function normalizeGenericListingForAdmin(
     createdAt: nonEmptyString(row.created_at),
     updatedAt: nonEmptyString(row.updated_at),
     publicUrl: `${GENERIC_ANUNCIO_PATH}/${encodeURIComponent(internalId)}`,
-    adminUrl: `/admin/workspace/clasificados?q=${encodeURIComponent(internalId)}`,
+    adminUrl: publishedId
+      ? `/admin/workspace/clasificados?q=${encodeURIComponent(publishedId)}`
+      : `/admin/workspace/clasificados?q=${encodeURIComponent(internalId)}`,
     editUrl: `/dashboard/mis-anuncios/${encodeURIComponent(internalId)}/editar`,
     sourceMeta: {
       table: "listings",
@@ -249,6 +251,7 @@ export function normalizeRestaurantePublicListingForAdmin(
 export type ServiciosPublicListingAdminInput = {
   id: string;
   slug: string;
+  leonix_ad_id?: string | null;
   business_name: string;
   city?: string | null;
   listing_status?: string | null;
@@ -276,7 +279,10 @@ export function normalizeServiciosPublicListingForAdmin(
   const title = nonEmptyString(row.business_name) ?? "(sin nombre)";
 
   const publicUrl = `${SERVICIOS_PUBLIC_PATH}/${encodeURIComponent(slug)}?lang=es`;
-  const adminUrl = `/admin/workspace/clasificados/servicios?slug=${encodeURIComponent(slug)}`;
+  const leonix = nonEmptyString(row.leonix_ad_id);
+  const adminUrl = leonix
+    ? `/admin/workspace/clasificados/servicios?leonix_ad_id=${encodeURIComponent(leonix)}`
+    : `/admin/workspace/clasificados/servicios?slug=${encodeURIComponent(slug)}`;
 
   return {
     source: "servicios",
@@ -305,6 +311,7 @@ export function normalizeServiciosPublicListingForAdmin(
 export type EmpleosPublicListingAdminInput = {
   id: string;
   slug: string;
+  leonix_ad_id?: string | null;
   title: string;
   company_name: string;
   lifecycle_status?: string | null;
@@ -344,7 +351,8 @@ export function normalizeEmpleosPublicListingForAdmin(
 
   const lang = nonEmptyString(row.lang);
   const publicUrl = empleosPublicPathWithLang(slug, lang);
-  const adminUrl = `/admin/workspace/clasificados/empleos?q=${encodeURIComponent(internalId)}`;
+  const leonixQ = nonEmptyString(row.leonix_ad_id);
+  const adminUrl = `/admin/workspace/clasificados/empleos?q=${encodeURIComponent(leonixQ ?? internalId)}`;
 
   return {
     source: "empleos",
@@ -391,7 +399,8 @@ export function normalizeAutosClassifiedsListingForAdmin(
 
   const lang = row.lang === "en" ? "en" : "es";
   const publicUrl = `/clasificados/autos/vehiculo/${encodeURIComponent(internalId)}?lang=${lang}`;
-  const adminUrl = `/admin/workspace/clasificados/autos?q=${encodeURIComponent(internalId)}`;
+  const lx = nonEmptyString(row.leonix_ad_id);
+  const adminUrl = `/admin/workspace/clasificados/autos?q=${encodeURIComponent(lx ?? internalId)}`;
 
   return {
     source: "autos",

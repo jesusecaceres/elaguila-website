@@ -28,6 +28,7 @@ import { buildEmpleosResultadosUrl } from "./shared/utils/empleosListaUrl";
 
 type Props = {
   slug: string;
+  leonixAdId?: string | null;
   job: EmpleosJobRecord;
   envelope: EmpleosPublishEnvelope | null;
   relatedExtra?: EmpleosJobRecord[];
@@ -84,6 +85,7 @@ function PublicApplyFooter({ job, lang }: { job: EmpleosJobRecord; lang: Lang })
 
 export function EmpleosPublicLaneDetailClient({
   slug,
+  leonixAdId = null,
   job,
   envelope,
   relatedExtra = [],
@@ -117,11 +119,17 @@ export function EmpleosPublicLaneDetailClient({
 
   const lane = job.publicationLane ?? envelope?.lane ?? "quick";
   const footer = <PublicApplyFooter job={job} lang={lang} />;
+  const leonixBanner = leonixAdId?.trim() ? (
+    <div className="border-b border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-center text-xs text-[#5C5346]">
+      {lang === "es" ? "Leonix Ad ID" : "Leonix Ad ID"} # {leonixAdId.trim()}
+    </div>
+  ) : null;
 
   if (lane === "premium") {
     const data = mapPublishedPremiumToShell(job, envelope);
     return (
       <>
+        {leonixBanner}
         <EmpleoPremiumDetailPage data={data} withSiteChrome={false} publicFooterSlot={footer} />
         {related.length > 0 ? (
           <section className="mx-auto mt-12 max-w-6xl px-4 pb-16 sm:px-5 lg:px-8">
@@ -141,6 +149,7 @@ export function EmpleosPublicLaneDetailClient({
     const data = mapPublishedFeriaToShell(job, envelope);
     return (
       <>
+        {leonixBanner}
         <EmpleoJobFairDetailPage data={data} withSiteChrome={false} publicFooterSlot={footer} />
         {related.length > 0 ? (
           <section className="mx-auto mt-12 max-w-6xl px-4 pb-16 sm:px-5 lg:px-8">
@@ -159,6 +168,7 @@ export function EmpleosPublicLaneDetailClient({
   const quickData = mapPublishedQuickToShell(job, envelope);
   return (
     <>
+      {leonixBanner}
       <EmpleoQuickDetailPage data={quickData} withSiteChrome={false} publicFooterSlot={footer} />
       {related.length > 0 ? (
         <section className="mx-auto mt-12 max-w-6xl px-4 pb-16 sm:px-5 lg:px-8">

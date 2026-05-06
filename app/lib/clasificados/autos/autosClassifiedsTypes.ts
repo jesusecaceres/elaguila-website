@@ -15,6 +15,7 @@ export type AutosClassifiedsLang = "es" | "en";
 
 export type AutosClassifiedsListingRow = {
   id: string;
+  leonix_ad_id?: string | null;
   owner_user_id: string;
   lane: AutosClassifiedsLane;
   status: AutosClassifiedsListingStatus;
