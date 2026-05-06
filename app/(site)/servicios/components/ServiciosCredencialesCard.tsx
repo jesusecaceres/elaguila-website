@@ -77,7 +77,7 @@ export function ServiciosCredencialesCard({
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#1e3a5f] underline decoration-[#3B66AD]/40 underline-offset-2 hover:text-[#152a45]"
                 >
                   <span aria-hidden>🧾</span>
-                  {copy.viewDocument}
+                  {copy.viewLicenseDocument}
                 </a>
               </p>
             ) : null}
@@ -94,7 +94,7 @@ export function ServiciosCredencialesCard({
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#1e3a5f] underline decoration-[#3B66AD]/40 underline-offset-2 hover:text-[#152a45]"
             >
               <span aria-hidden>🧾</span>
-              {copy.viewDocument}
+              {copy.viewLicenseDocument}
             </a>
           </div>
         ) : null}
@@ -122,7 +122,7 @@ export function ServiciosCredencialesCard({
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#1e3a5f] underline decoration-[#3B66AD]/40 underline-offset-2 hover:text-[#152a45]"
                 >
                   <span aria-hidden>🧾</span>
-                  {copy.viewDocument}
+                  {copy.viewInsuranceDocument}
                 </a>
               </p>
             ) : null}
@@ -139,7 +139,7 @@ export function ServiciosCredencialesCard({
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#1e3a5f] underline decoration-[#3B66AD]/40 underline-offset-2 hover:text-[#152a45]"
             >
               <span aria-hidden>🧾</span>
-              {copy.viewDocument}
+              {copy.viewCertificate}
             </a>
           </div>
         ) : null}

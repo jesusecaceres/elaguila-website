@@ -66,6 +66,23 @@ export function safeExternalWebsiteHref(raw: string | undefined | null): string 
   }
 }
 
+/**
+ * Credential document links from advertisers often omit the scheme (e.g. `www.example.com/doc.pdf`).
+ * Normalize to https before the same http(s) whitelist as `safeExternalWebsiteHref`.
+ */
+export function sanitizeCredentialDocumentHref(raw: string | undefined | null): string | null {
+  let t = trimText(raw);
+  if (!t) return null;
+  const lower = t.toLowerCase();
+  if (lower.startsWith("javascript:") || lower.startsWith("data:") || lower.startsWith("vbscript:")) {
+    return null;
+  }
+  if (!/^https?:\/\//i.test(t)) {
+    t = `https://${t.replace(/^\/+/, "")}`;
+  }
+  return safeExternalWebsiteHref(t);
+}
+
 /** Relative in-app paths (e.g. /cupones/abc) — safe for Next Link */
 export function safePromoHref(raw: string | undefined | null): string | null {
   const t = trimText(raw);
@@ -429,8 +446,8 @@ export function resolveServiciosCredentials(wire?: ServiciosCredentialsWire | nu
       ? trimText(wire.insuranceType).slice(0, SERVICIOS_CREDENTIAL_STRING_MAX.insuranceType)
       : undefined;
 
-  const licenseDocumentHrefSafe = safeExternalWebsiteHref(wire.licenseDocumentUrl) ?? undefined;
-  const insuranceDocumentHrefSafe = safeExternalWebsiteHref(wire.insuranceDocumentUrl) ?? undefined;
+  const licenseDocumentHrefSafe = sanitizeCredentialDocumentHref(wire.licenseDocumentUrl) ?? undefined;
+  const insuranceDocumentHrefSafe = sanitizeCredentialDocumentHref(wire.insuranceDocumentUrl) ?? undefined;
 
   const showCard =
     hasLicense ||

@@ -14,6 +14,9 @@ export function getServiciosCredentialsCardCopy(lang: ServiciosLang) {
       expires: "Expires",
       certifications: "Certifications",
       viewDocument: "View document",
+      viewLicenseDocument: "View license document",
+      viewInsuranceDocument: "View insurance document",
+      viewCertificate: "View certificate",
     };
   }
   return {
@@ -28,6 +31,9 @@ export function getServiciosCredentialsCardCopy(lang: ServiciosLang) {
     expires: "Vence",
     certifications: "Certificaciones",
     viewDocument: "Ver documento",
+    viewLicenseDocument: "Ver documento de licencia",
+    viewInsuranceDocument: "Ver documento de seguro",
+    viewCertificate: "Ver certificado",
   };
 }
 
