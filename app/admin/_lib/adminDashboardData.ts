@@ -18,6 +18,7 @@ import { normalizeGenericListingForAdmin, type GenericListingAdminInput } from "
 
 const EXPIRING_SOON_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_EXPIRING_ROWS = 15;
+const MAX_PENDING_REVIEW_ROWS = 12;
 
 export type AdminDashboardExpiringQueueRow = {
   source: "generic_listings" | "viajes_staged";
@@ -39,6 +40,20 @@ export type AdminDashboardExpiringQueueRow = {
   publicHref: string | null;
 };
 
+export type AdminDashboardPendingReviewQueueRow = {
+  source: "generic_listings" | "empleos_public_listings" | "viajes_staged_listings";
+  title: string;
+  categorySource: string;
+  leonixAdId: string | null;
+  internalId: string;
+  ownerUserId: string | null;
+  status: string;
+  reason: string | null;
+  updatedAtIso: string | null;
+  adminHref: string;
+  publicHref: string | null;
+};
+
 export type AdminDashboardSnapshot = {
   pendingListingsReview: number;
   pendingReports: number;
@@ -50,14 +65,7 @@ export type AdminDashboardSnapshot = {
   magazineUpdated: string | null;
   categoryCounts: Array<{ category: string; count: number }>;
   expiringQueueItems: AdminDashboardExpiringQueueRow[];
-  pendingReviewItems: Array<{
-    id: string;
-    title: string | null;
-    category: string | null;
-    status: string | null;
-    created_at: string | null;
-    owner_id: string | null;
-  }>;
+  pendingReviewQueueItems: AdminDashboardPendingReviewQueueRow[];
   /** When true, pending listing count may be incomplete (DB doesn't filter as expected). */
   listingsQueryFallback: boolean;
 };
@@ -78,6 +86,12 @@ function parseDeadlineMs(iso: unknown): number | null {
   if (iso == null) return null;
   const t = Date.parse(String(iso));
   return Number.isFinite(t) ? t : null;
+}
+
+function nonEmptyString(v: unknown): string | null {
+  if (v == null) return null;
+  const s = String(v).trim();
+  return s.length ? s : null;
 }
 
 async function listingsTableHasColumn(
@@ -233,6 +247,180 @@ async function buildExpiringQueueMerged(
     .slice(0, MAX_EXPIRING_ROWS);
 }
 
+type ListingsPendingReviewDbRow = {
+  id: string;
+  title: string | null;
+  category: string | null;
+  status: string;
+  owner_id: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  leonix_ad_id?: string | null;
+};
+
+async function fetchListingsPendingReview(
+  supabase: ReturnType<typeof getAdminSupabase>,
+): Promise<AdminDashboardPendingReviewQueueRow[]> {
+  const hasLeonix = await listingsTableHasColumn(supabase, "leonix_ad_id");
+  const baseCols = ["id", "title", "category", "status", "owner_id", "created_at", "updated_at"];
+  if (hasLeonix) baseCols.push("leonix_ad_id");
+  const selectCols = baseCols.join(",");
+
+  const { data, error } = await supabase
+    .from("listings")
+    .select(selectCols)
+    .in("status", ["pending", "flagged"])
+    .order("updated_at", { ascending: false })
+    .limit(40);
+  if (error || !data) return [];
+
+  const out: AdminDashboardPendingReviewQueueRow[] = [];
+  for (const row of (data as unknown) as ListingsPendingReviewDbRow[]) {
+    const internalId = nonEmptyString(row.id);
+    const status = nonEmptyString(row.status);
+    if (!internalId || !status) continue;
+    const category = nonEmptyString(row.category) ?? "unknown";
+    const norm = normalizeGenericListingForAdmin(row as unknown as GenericListingAdminInput);
+    out.push({
+      source: "generic_listings",
+      title: norm?.title ?? nonEmptyString(row.title) ?? "(sin título)",
+      categorySource: `listings · ${category}`,
+      leonixAdId: norm?.publishedId ?? null,
+      internalId,
+      ownerUserId: nonEmptyString(row.owner_id),
+      status,
+      reason: null,
+      updatedAtIso: nonEmptyString(row.updated_at) ?? nonEmptyString(row.created_at),
+      adminHref: norm?.adminUrl ?? `/admin/workspace/clasificados?q=${encodeURIComponent(internalId)}`,
+      publicHref: `/clasificados/anuncio/${encodeURIComponent(internalId)}`,
+    });
+  }
+  return out;
+}
+
+type EmpleosPendingReviewDbRow = {
+  id: string;
+  slug: string;
+  title: string;
+  company_name: string;
+  owner_user_id: string | null;
+  lifecycle_status: string;
+  moderation_reason: string | null;
+  review_notes: string | null;
+  updated_at: string | null;
+  created_at: string | null;
+  published_at: string | null;
+  leonix_ad_id?: string | null;
+};
+
+async function fetchEmpleosPendingReview(
+  supabase: ReturnType<typeof getAdminSupabase>,
+): Promise<AdminDashboardPendingReviewQueueRow[]> {
+  // Phase 5 added leonix_ad_id; still be defensive on older DBs.
+  const cols =
+    "id,slug,title,company_name,owner_user_id,lifecycle_status,moderation_reason,review_notes,updated_at,created_at,published_at,leonix_ad_id";
+  const { data, error } = await supabase
+    .from("empleos_public_listings")
+    .select(cols)
+    .eq("lifecycle_status", "pending_review")
+    .order("updated_at", { ascending: false })
+    .limit(40);
+  if (error || !data) return [];
+
+  const out: AdminDashboardPendingReviewQueueRow[] = [];
+  for (const row of (data as unknown) as EmpleosPendingReviewDbRow[]) {
+    const internalId = nonEmptyString(row.id);
+    const status = nonEmptyString(row.lifecycle_status);
+    if (!internalId || !status) continue;
+    const title = `${nonEmptyString(row.title) ?? "(sin título)"} · ${nonEmptyString(row.company_name) ?? "—"}`;
+    const leonix = nonEmptyString((row as { leonix_ad_id?: unknown }).leonix_ad_id);
+    const reason = nonEmptyString(row.moderation_reason) ?? nonEmptyString(row.review_notes);
+    const adminHref = leonix
+      ? `/admin/workspace/clasificados/empleos?q=${encodeURIComponent(leonix)}`
+      : `/admin/workspace/clasificados/empleos?q=${encodeURIComponent(internalId)}`;
+
+    out.push({
+      source: "empleos_public_listings",
+      title,
+      categorySource: "empleos_public_listings",
+      leonixAdId: leonix,
+      internalId,
+      ownerUserId: nonEmptyString(row.owner_user_id),
+      status,
+      reason,
+      updatedAtIso: nonEmptyString(row.updated_at) ?? nonEmptyString(row.created_at) ?? nonEmptyString(row.published_at),
+      adminHref,
+      publicHref: null, // not safe/available while pending_review
+    });
+  }
+  return out;
+}
+
+type ViajesPendingReviewDbRow = {
+  id: string;
+  slug: string;
+  title: string;
+  owner_user_id: string | null;
+  lifecycle_status: string;
+  review_notes: string | null;
+  moderation_reason: string | null;
+  updated_at: string | null;
+  submitted_at: string | null;
+  is_public: boolean;
+};
+
+async function fetchViajesPendingReview(
+  supabase: ReturnType<typeof getAdminSupabase>,
+): Promise<AdminDashboardPendingReviewQueueRow[]> {
+  const { data, error } = await supabase
+    .from("viajes_staged_listings")
+    .select("id,slug,title,owner_user_id,lifecycle_status,review_notes,moderation_reason,updated_at,submitted_at,is_public")
+    .in("lifecycle_status", ["submitted", "in_review", "changes_requested"])
+    .order("updated_at", { ascending: false })
+    .limit(40);
+  if (error || !data) return [];
+
+  const out: AdminDashboardPendingReviewQueueRow[] = [];
+  for (const row of (data as unknown) as ViajesPendingReviewDbRow[]) {
+    const internalId = nonEmptyString(row.id);
+    const status = nonEmptyString(row.lifecycle_status);
+    if (!internalId || !status) continue;
+    const reason = nonEmptyString(row.moderation_reason) ?? nonEmptyString(row.review_notes);
+    out.push({
+      source: "viajes_staged_listings",
+      title: nonEmptyString(row.title) ?? "(sin título)",
+      categorySource: "viajes_staged_listings",
+      leonixAdId: null,
+      internalId,
+      ownerUserId: nonEmptyString(row.owner_user_id),
+      status,
+      reason,
+      updatedAtIso: nonEmptyString(row.updated_at) ?? nonEmptyString(row.submitted_at),
+      adminHref: "/admin/clasificados/viajes/business-offers",
+      publicHref: null, // staged moderation rows should not be linked publicly from here
+    });
+  }
+  return out;
+}
+
+async function buildPendingReviewQueueMerged(
+  supabase: ReturnType<typeof getAdminSupabase>,
+): Promise<AdminDashboardPendingReviewQueueRow[]> {
+  const [listings, empleos, viajes] = await Promise.all([
+    fetchListingsPendingReview(supabase),
+    fetchEmpleosPendingReview(supabase),
+    fetchViajesPendingReview(supabase),
+  ]);
+
+  const merged = [...listings, ...empleos, ...viajes].sort((a, b) => {
+    const ta = a.updatedAtIso ? Date.parse(a.updatedAtIso) : 0;
+    const tb = b.updatedAtIso ? Date.parse(b.updatedAtIso) : 0;
+    return tb - ta;
+  });
+
+  return merged.slice(0, MAX_PENDING_REVIEW_ROWS);
+}
+
 export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapshot> {
   const supabase = getAdminSupabase();
   let listingsQueryFallback = false;
@@ -288,37 +476,8 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     .sort((a, b) => b.count - a.count)
     .slice(0, 12);
 
-  /** Only for pending-review fallback — never shown as expiring. */
-  let recentForPendingFallback: AdminDashboardSnapshot["pendingReviewItems"] = [];
-  try {
-    const { data } = await supabase
-      .from("listings")
-      .select("id,title,category,status,created_at,owner_id")
-      .order("created_at", { ascending: false })
-      .limit(6);
-    recentForPendingFallback = (data as AdminDashboardSnapshot["pendingReviewItems"]) ?? [];
-  } catch {
-    recentForPendingFallback = [];
-  }
-
-  let pendingReviewItems: AdminDashboardSnapshot["pendingReviewItems"] = [];
-  try {
-    const { data } = await supabase
-      .from("listings")
-      .select("id,title,category,status,created_at,owner_id")
-      .in("status", ["pending", "flagged"])
-      .order("created_at", { ascending: false })
-      .limit(6);
-    if (data && data.length > 0) {
-      pendingReviewItems = data as AdminDashboardSnapshot["pendingReviewItems"];
-    } else {
-      pendingReviewItems = recentForPendingFallback;
-    }
-  } catch {
-    pendingReviewItems = recentForPendingFallback;
-  }
-
   const expiringQueueItems = await buildExpiringQueueMerged(supabase);
+  const pendingReviewQueueItems = await buildPendingReviewQueueMerged(supabase);
 
   return {
     pendingListingsReview,
@@ -331,7 +490,7 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     magazineUpdated: mag.updated,
     categoryCounts,
     expiringQueueItems,
-    pendingReviewItems,
+    pendingReviewQueueItems,
     listingsQueryFallback,
   };
 }

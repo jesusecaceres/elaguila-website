@@ -307,41 +307,92 @@ export default async function AdminHomePage() {
             </ul>
           </AdminSectionCard>
 
-          <AdminSectionCard title="Ads pending review" subtitle="Newest items in pending/flagged or recent fallback.">
+          <AdminSectionCard
+            title="Ads pending review (real review only)"
+            subtitle="Solo filas en pending / flagged (listings) o estados reales de revisión en tablas dedicadas (p. ej. empleos pending_review, viajes staged in_review). No se usa fallback de anuncios recientes."
+          >
             <ul className="space-y-3">
-              {snap.pendingReviewItems.map((row) => (
-                <li
-                  key={row.id}
-                  className="rounded-2xl border border-[#E8DFD0]/80 bg-white/90 px-3 py-2 text-sm"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-medium text-[#1E1810]">{row.title ?? "—"}</span>
-                    <span className="rounded-full bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C4E2E]">
-                      {row.status ?? "—"}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {row.owner_id ? (
+              {snap.pendingReviewQueueItems.length === 0 ? (
+                <li className="text-sm text-[#5C5346]/90">No pending or flagged ads found.</li>
+              ) : (
+                snap.pendingReviewQueueItems.map((row) => (
+                  <li
+                    key={`${row.source}-${row.internalId}`}
+                    className="rounded-2xl border border-[#E8DFD0]/80 bg-white/90 px-3 py-2 text-sm"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-[#1E1810]">{row.title}</p>
+                        <p className="text-xs text-[#7A7164]">
+                          {row.categorySource} · status: {row.status}
+                        </p>
+                        <p className="mt-1 font-mono text-[11px] text-[#3D3428]">
+                          ID: {row.internalId}
+                          {row.leonixAdId ? (
+                            <>
+                              {" "}
+                              · Leonix: <span className="font-bold">{row.leonixAdId}</span>
+                            </>
+                          ) : null}
+                        </p>
+                        {row.ownerUserId ? (
+                          <p className="mt-0.5 font-mono text-[10px] text-[#7A7164]">
+                            {row.source === "generic_listings" ? "owner_id" : "owner_user_id"}: {row.ownerUserId}
+                          </p>
+                        ) : null}
+                        {row.updatedAtIso ? (
+                          <p className="mt-1 text-xs text-[#5C5346]">
+                            Actualizado:{" "}
+                            <time dateTime={row.updatedAtIso}>
+                              {new Date(row.updatedAtIso).toLocaleString("es-MX", {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              })}
+                            </time>
+                          </p>
+                        ) : null}
+                        {row.reason ? <p className="mt-1 text-xs text-[#5C5346]">Motivo: {row.reason}</p> : null}
+                      </div>
+                      <span className="rounded-full bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C4E2E]">
+                        {row.status}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
                       <Link
-                        href={`/admin/usuarios/${row.owner_id}`}
+                        href={row.adminHref}
                         className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-2 py-1 text-xs font-semibold text-[#2C2416]"
-                        title="Ficha del vendedor en Leonix admin"
+                        title="Abrir cola / herramienta admin"
                       >
-                        Ficha vendedor
+                        Admin / cola
                       </Link>
-                    ) : null}
-                    <Link
-                      href={`/clasificados/anuncio/${row.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-900"
-                      title="Vista pública del anuncio (nueva pestaña)"
-                    >
-                      Ver público
-                    </Link>
-                  </div>
-                </li>
-              ))}
+                      {row.ownerUserId ? (
+                        <Link
+                          href={`/admin/usuarios/${row.ownerUserId}`}
+                          className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-2 py-1 text-xs font-semibold text-[#2C2416]"
+                          title="Ficha del vendedor en Leonix admin"
+                        >
+                          Ficha vendedor
+                        </Link>
+                      ) : null}
+                      {row.publicHref ? (
+                        <Link
+                          href={row.publicHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-900"
+                          title="Vista pública (si aplica)"
+                        >
+                          Ver público
+                        </Link>
+                      ) : (
+                        <span className="rounded-xl border border-dashed border-[#D8D0C4] px-2 py-1 text-[10px] font-semibold text-[#9A9084]">
+                          Sin URL pública
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))
+              )}
             </ul>
           </AdminSectionCard>
         </div>
