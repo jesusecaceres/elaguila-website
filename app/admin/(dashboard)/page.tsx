@@ -218,33 +218,89 @@ export default async function AdminHomePage() {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <AdminSectionCard
-            title="Expiring & moderation queue"
-            subtitle={snap.expiringNote}
+            title="Expiring queue (real expiration only)"
+            subtitle="Solo anuncios con fecha de expiración persistida (p. ej. listings.boost_expires, listings.expires_at si existe, o viajes_staged_listings.expires_at). No se usan anuncios recientes como sustituto."
           >
             <ul className="space-y-3">
-              {snap.recentQueueItems.length === 0 ? (
-                <li className="text-sm text-[#5C5346]/90">No listings loaded.</li>
+              {snap.expiringQueueItems.length === 0 ? (
+                <li className="text-sm text-[#5C5346]/90">No ads with real expiration data found.</li>
               ) : (
-                snap.recentQueueItems.map((row) => (
+                snap.expiringQueueItems.map((row) => (
                   <li
-                    key={row.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-3 py-2 text-sm"
+                    key={`${row.source}-${row.internalId}`}
+                    className="rounded-2xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-3 py-2 text-sm"
                   >
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-[#1E1810]">{row.title ?? "—"}</p>
-                      <p className="text-xs text-[#7A7164]">
-                        {row.category ?? "—"} · {row.status ?? "—"}
-                      </p>
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold text-[#1E1810]">{row.title}</p>
+                        <p className="text-xs text-[#7A7164]">
+                          {row.categorySource} · status: {row.status ?? "—"}
+                        </p>
+                        <p className="mt-1 font-mono text-[11px] text-[#3D3428]">
+                          ID: {row.internalId}
+                          {row.leonixAdId ? (
+                            <>
+                              {" "}
+                              · Leonix: <span className="font-bold">{row.leonixAdId}</span>
+                            </>
+                          ) : null}
+                        </p>
+                        {row.ownerUserId ? (
+                          <p className="mt-0.5 font-mono text-[10px] text-[#7A7164]">
+                            {row.source === "generic_listings" ? "owner_id" : "owner_user_id"}: {row.ownerUserId}
+                          </p>
+                        ) : null}
+                        <p className="mt-1 text-xs text-[#5C5346]">
+                          Expira:{" "}
+                          <time dateTime={row.expiresAtIso}>
+                            {new Date(row.expiresAtIso).toLocaleString("es-MX", {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            })}
+                          </time>
+                          <span className="text-[#9A9084]"> ({row.expirationFieldLabel})</span>
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        {row.isExpired ? (
+                          <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold uppercase text-rose-900">
+                            Expired
+                          </span>
+                        ) : row.isExpiringSoon ? (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-950">
+                            Expiring soon
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-[#EEF6FF] px-2 py-0.5 text-[10px] font-bold uppercase text-[#2F4A65]">
+                            Active window
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <Link
-                      href={`/clasificados/anuncio/${row.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 text-xs font-bold text-[#6B5B2E] underline"
-                      title="Abre el anuncio en el sitio público (nueva pestaña)"
-                    >
-                      Ver público
-                    </Link>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Link
+                        href={row.adminHref}
+                        className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-2 py-1 text-xs font-semibold text-[#2C2416]"
+                        title="Cola o herramienta admin relacionada"
+                      >
+                        Admin / cola
+                      </Link>
+                      {row.publicHref ? (
+                        <Link
+                          href={row.publicHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-900"
+                          title="Anuncio en el sitio público"
+                        >
+                          Ver público
+                        </Link>
+                      ) : (
+                        <span className="rounded-xl border border-dashed border-[#D8D0C4] px-2 py-1 text-[10px] font-semibold text-[#9A9084]">
+                          Sin URL pública
+                        </span>
+                      )}
+                    </div>
                   </li>
                 ))
               )}
@@ -357,9 +413,10 @@ export default async function AdminHomePage() {
 
         <div className="mt-8 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFF8F0]/80 p-4 text-xs text-[#7A7164]">
           <strong className="text-[#5C5346]">Data honesty:</strong> Pending counts use live Supabase where columns exist. “Users
-          needing help” is a disabled-account proxy until a support queue exists. Expiring ads require duration fields —
-          see queue subtitle. Tienda dashboard counts need{" "}
-          <code className="rounded bg-white/80 px-1">tienda_orders</code> migration applied.
+          needing help” is a disabled-account proxy until a support queue exists. The expiring queue lists only rows with a
+          real expiration timestamp in the database (no “recent listings” proxy). Verticals sin campo de expiración (restaurantes,
+          servicios, empleos, autos en sus tablas públicas actuales) no aparecen aquí hasta que exista persistencia. Tienda
+          dashboard counts need <code className="rounded bg-white/80 px-1">tienda_orders</code> migration applied.
         </div>
       </div>
 
