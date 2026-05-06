@@ -13,6 +13,12 @@ import type {
   ServiciosQuickFactKind,
 } from "../../types/serviciosBusinessProfile";
 import type { ServiciosTrustItem } from "../../types/serviciosBusinessProfile";
+import {
+  MAX_SERVICIOS_PAYMENT_METHODS_SELECTED,
+  SERVICIOS_PAYMENT_METHOD_ORDER,
+  getServiciosPaymentMethodLabel,
+  sanitizeServiciosPaymentMethodIds,
+} from "../../lib/serviciosPaymentMethodCatalog";
 
 const HERO_BADGE_KINDS: ServiciosHeroBadgeKind[] = [
   "verified",
@@ -480,6 +486,41 @@ export function ServiciosApplicationForm({ lang }: { lang: ServiciosLang }) {
                   }
                 />
               </div>
+            </div>
+          </Section>
+
+          <Section id="section-payments" title={copy.sections.payments}>
+            <p className="mb-4 text-sm text-neutral-600">{copy.labels.paymentsHint}</p>
+            <div className="flex flex-wrap gap-2">
+              {SERVICIOS_PAYMENT_METHOD_ORDER.map((id) => {
+                const selected = sanitizeServiciosPaymentMethodIds(draft.paymentMethodIds).includes(id);
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      setDraft((d) => {
+                        const cur = new Set(sanitizeServiciosPaymentMethodIds(d.paymentMethodIds));
+                        if (cur.has(id)) {
+                          cur.delete(id);
+                        } else {
+                          if (cur.size >= MAX_SERVICIOS_PAYMENT_METHODS_SELECTED) return d;
+                          cur.add(id);
+                        }
+                        return { ...d, paymentMethodIds: sanitizeServiciosPaymentMethodIds([...cur]) };
+                      });
+                    }}
+                    className={[
+                      "rounded-full border px-3.5 py-2 text-sm font-medium shadow-sm transition",
+                      selected
+                        ? "border-[#3B66AD] bg-[#3B66AD]/[0.12] text-[#14305c] ring-1 ring-[#3B66AD]/25"
+                        : "border-neutral-200/90 bg-white text-neutral-800 hover:border-[#3B66AD]/40 hover:bg-neutral-50/80",
+                    ].join(" ")}
+                  >
+                    {getServiciosPaymentMethodLabel(id, lang)}
+                  </button>
+                );
+              })}
             </div>
           </Section>
 

@@ -13,6 +13,7 @@ import type {
   ServiciosTrustItem,
 } from "../types/serviciosBusinessProfile";
 import { isAllowedServiciosImageUrl, isAllowedServiciosVideoUrl } from "./serviciosMediaUrl";
+import { sanitizeServiciosPaymentMethodIds, type ServiciosPaymentMethodId } from "./serviciosPaymentMethodCatalog";
 
 const SERVICE_VARIANTS = new Set<ServiciosServiceVisualVariant>([
   "instalacion",
@@ -363,4 +364,9 @@ export function buildGoogleMapsSearchHrefFromPhysical(p: {
   if (q.length < 3) return undefined;
   const clipped = q.length > 500 ? q.slice(0, 500) : q;
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(clipped)}`;
+}
+
+/** Whitelist, dedupe, cap, catalog order — used in resolver and presence checks on wire data. */
+export function filterPaymentMethodIds(raw: string[] | undefined): ServiciosPaymentMethodId[] {
+  return sanitizeServiciosPaymentMethodIds(raw);
 }

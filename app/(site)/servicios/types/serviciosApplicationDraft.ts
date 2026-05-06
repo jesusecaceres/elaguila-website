@@ -173,4 +173,6 @@ export type ServiciosApplicationDraft = {
   reviews?: ServiciosApplicationReviewDraft[];
   serviceAreas?: ServiciosApplicationServiceAreasDraft;
   promo?: ServiciosApplicationPromoDraft;
+  /** Accepted payment methods (Leonix Servicios); sanitized on map/resolve */
+  paymentMethodIds?: string[];
 };

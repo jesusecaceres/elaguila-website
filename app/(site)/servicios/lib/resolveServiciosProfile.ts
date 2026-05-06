@@ -13,6 +13,7 @@ import {
   filterServiceAreas,
   filterServices,
   filterTrustItems,
+  filterPaymentMethodIds,
   humanizeSlug,
   meaningfulReviews,
   normalizeHours,
@@ -182,6 +183,7 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
       items: areaItems,
       mapImageUrl: mapImageUrl,
     },
+    paymentMethodIds: filterPaymentMethodIds(input.paymentMethodIds),
     promo,
   };
 }

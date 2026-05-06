@@ -5,5 +5,6 @@ export function createEmptyServiciosApplicationDraft(): ServiciosApplicationDraf
     identity: { slug: "", businessName: "" },
     hero: {},
     contact: {},
+    paymentMethodIds: [],
   };
 }

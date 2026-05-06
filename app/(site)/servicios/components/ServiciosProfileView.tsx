@@ -3,6 +3,7 @@ import {
   hasAboutSectionResolved,
   hasBusinessHighlightsResolved,
   hasHeroIdentityResolved,
+  hasPaymentMethodsResolved,
   hasQuickFactsResolved,
 } from "../lib/serviciosProfilePresence";
 import { ServiciosTopBar } from "./ServiciosTopBar";
@@ -18,6 +19,7 @@ import { ServiciosReviews } from "./ServiciosReviews";
 import { ServiciosServiceAreas } from "./ServiciosServiceAreas";
 import { ServiciosHours } from "./ServiciosHours";
 import { ServiciosLicense } from "./ServiciosLicense";
+import { ServiciosPagosCard } from "./ServiciosPagosCard";
 import { ServiciosActionPanel } from "./ServiciosActionPanel";
 import { ServiciosLeadInquiryForm } from "./ServiciosLeadInquiryForm";
 import { ServiciosProfileViewAnalytics } from "./ServiciosProfileViewAnalytics";
@@ -96,6 +98,7 @@ export function ServiciosProfileView({
             <ServiciosGallery profile={profile} lang={lang} />
             <ServiciosHours profile={profile} lang={lang} />
             <ServiciosLicense profile={profile} lang={lang} />
+            {hasPaymentMethodsResolved(profile) ? <ServiciosPagosCard profile={profile} lang={lang} /> : null}
             <ServiciosTrustSection profile={profile} lang={lang} />
             <ServiciosReviews profile={profile} lang={lang} />
             {analyticsListingSlug && showPublicConversionForms ? (

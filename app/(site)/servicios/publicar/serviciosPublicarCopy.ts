@@ -24,6 +24,7 @@ export type PublicarCopy = {
     areas: string;
     promo: string;
     review: string;
+    payments: string;
   };
   labels: {
     businessName: string;
@@ -77,6 +78,7 @@ export type PublicarCopy = {
     describeService: string;
     describeServicePlaceholder: string;
     noCategoryQuestion: string;
+    paymentsHint: string;
   };
 };
 
@@ -87,6 +89,7 @@ const es: PublicarCopy = {
     { id: "section-identity", label: "Identidad" },
     { id: "section-hero", label: "Categoría y portada" },
     { id: "section-contact", label: "Contacto" },
+    { id: "section-payments", label: "Pagos" },
     { id: "section-quick", label: "Datos rápidos" },
     { id: "section-about", label: "Acerca de" },
     { id: "section-services", label: "Servicios" },
@@ -117,6 +120,7 @@ const es: PublicarCopy = {
     areas: "Zonas de servicio",
     promo: "Oferta o cupón",
     review: "Revisar y previsualizar",
+    payments: "Pagos",
   },
   labels: {
     businessName: "Nombre comercial",
@@ -170,6 +174,7 @@ const es: PublicarCopy = {
     describeService: "Describe tu servicio",
     describeServicePlaceholder: "Ej. Reparación de celulares",
     noCategoryQuestion: "¿No ves tu categoría?",
+    paymentsHint: "Opcional. Indica cómo puede pagar el cliente.",
   },
 };
 
@@ -180,6 +185,7 @@ const en: PublicarCopy = {
     { id: "section-identity", label: "Identity" },
     { id: "section-hero", label: "Category & hero" },
     { id: "section-contact", label: "Contact" },
+    { id: "section-payments", label: "Payments" },
     { id: "section-quick", label: "Quick facts" },
     { id: "section-about", label: "About" },
     { id: "section-services", label: "Services" },
@@ -210,6 +216,7 @@ const en: PublicarCopy = {
     areas: "Service areas",
     promo: "Offer / coupon",
     review: "Review & preview",
+    payments: "Payments",
   },
   labels: {
     businessName: "Business display name",
@@ -263,6 +270,7 @@ const en: PublicarCopy = {
     describeService: "Describe your service",
     describeServicePlaceholder: "e.g. Cell phone repair",
     noCategoryQuestion: "Don't see your category?",
+    paymentsHint: "Optional. Tell customers how they can pay.",
   },
 };
 

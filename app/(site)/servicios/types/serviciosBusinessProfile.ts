@@ -227,6 +227,8 @@ export type ServiciosBusinessProfile = {
   reviews?: ServiciosReview[];
   serviceAreas?: ServiciosServiceAreasBlock;
   promo?: ServiciosPromoOffer;
+  /** Canonical payment method ids; sanitized at resolve */
+  paymentMethodIds?: string[];
 };
 
 /**
@@ -294,6 +296,8 @@ export type ServiciosProfileResolved = {
   highlights: ServiciosBusinessHighlightItem[];
   reviews: ServiciosReview[];
   serviceAreas: { items: ServiciosServiceArea[]; mapImageUrl?: string };
+  /** Whitelisted payment method ids in catalog order */
+  paymentMethodIds: string[];
   /** Sanitized offer — only safe href exposed for links */
   promo?: {
     id: string;

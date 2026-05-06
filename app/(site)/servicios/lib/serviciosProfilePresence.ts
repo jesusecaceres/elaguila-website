@@ -1,5 +1,5 @@
 import type { ServiciosBusinessProfile, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
-import { meaningfulReviews } from "./serviciosProfileSanitize";
+import { filterPaymentMethodIds, meaningfulReviews } from "./serviciosProfileSanitize";
 import { nonEmpty } from "./serviciosProfilePrimitives";
 
 /** Raw wire profile — section guards before sanitization */
@@ -63,6 +63,10 @@ export function hasOfferSection(p: ServiciosBusinessProfile): boolean {
   return Boolean(p.promo && nonEmpty(p.promo.headline));
 }
 
+export function hasPaymentMethods(p: ServiciosBusinessProfile): boolean {
+  return filterPaymentMethodIds(p.paymentMethodIds).length > 0;
+}
+
 /** Resolved profile — guards on sanitized output */
 export function hasHeroIdentityResolved(p: ServiciosProfileResolved): boolean {
   return nonEmpty(p.identity.businessName) || nonEmpty(p.identity.slug);
@@ -110,4 +114,8 @@ export function hasSidebarServiceAreasMapResolved(p: ServiciosProfileResolved): 
 
 export function hasOfferSectionResolved(p: ServiciosProfileResolved): boolean {
   return Boolean(p.promo && nonEmpty(p.promo.headline));
+}
+
+export function hasPaymentMethodsResolved(p: ServiciosProfileResolved): boolean {
+  return p.paymentMethodIds.length > 0;
 }

@@ -39,6 +39,7 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
       openInMaps: "Open in Maps",
       showMoreServices: "See all services",
       showLessServices: "Show less",
+      paymentsTitle: "Payments",
     };
   }
   return {
@@ -78,5 +79,6 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
     openInMaps: "Abrir en mapa",
     showMoreServices: "Ver todos los servicios",
     showLessServices: "Ver menos",
+    paymentsTitle: "Pagos",
   };
 }
