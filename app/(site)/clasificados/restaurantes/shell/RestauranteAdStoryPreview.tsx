@@ -88,8 +88,6 @@ export function RestauranteAdStoryPreview({
     return Array.from(new Set(chips));
   }, [data.cuisineTypeLine, data.taxonomyChips]);
 
-  const priceQuick = data.quickInfo?.find((q) => q.key === "price")?.value?.trim() ?? "";
-
   // Helper functions
   const hasHeroImage = data.heroImageUrl;
 
@@ -117,6 +115,20 @@ export function RestauranteAdStoryPreview({
   const actionCtas = primaryCtas.filter(cta => 
     ['menu', 'menuAsset', 'reserve', 'order'].includes(cta.key)
   );
+
+  /** Mobile hero: Llamar → Sitio web → Direcciones → WhatsApp; omit WhatsApp when no href. */
+  const mobileHeroPrimaryCtas = useMemo(() => {
+    const want = new Set(["call", "website", "directions", "whatsapp"]);
+    const filtered = primaryCtas.filter(
+      (c) => want.has(c.key) && c.href?.trim() && c.enabled !== false,
+    );
+    const byKey = new Map<string, (typeof filtered)[number]>();
+    for (const c of filtered) {
+      if (!byKey.has(c.key)) byKey.set(c.key, c);
+    }
+    const order = ["call", "website", "directions", "whatsapp"] as const;
+    return order.map((k) => byKey.get(k)).filter(Boolean) as (typeof filtered)[number][];
+  }, [primaryCtas]);
 
   const neighborhoodDisplay = data.quickInfo?.find((item) => item.key === "neighborhood")?.value || "";
 
@@ -169,50 +181,40 @@ export function RestauranteAdStoryPreview({
                   priority
                   sizes="100vw"
                 />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" aria-hidden />
-              </div>
-              <div className="border-t border-[#D8C2A0] bg-[#FFFAF3] px-4 py-2">
-                {/* Business name */}
-                <h1 className="text-xl font-bold leading-tight tracking-tight text-[#1F1A17]">{data.businessName}</h1>
-                
-                {/* Compact meta row: status + neighborhood/zone + price */}
-                <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-[#5A5148]">
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" aria-hidden />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 px-2.5 pb-2.5 pt-10">
+                  {neighborhoodDisplay ? (
+                    <div className="min-w-0 max-w-[58%] rounded-md border border-white/25 bg-black/45 px-2 py-1 text-[10px] font-semibold leading-tight text-white shadow-sm backdrop-blur-sm">
+                      <span className="block truncate">{neighborhoodDisplay}</span>
+                    </div>
+                  ) : (
+                    <span className="min-w-0 max-w-[58%]" aria-hidden />
+                  )}
                   <span
-                    className={`inline-flex items-center rounded-full px-2 py-0.5 font-semibold ${
+                    className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-semibold shadow-sm backdrop-blur-sm ${
                       data.hoursPreview.status === "open"
-                        ? "bg-emerald-100 text-emerald-900"
-                        : "bg-rose-100 text-rose-900"
+                        ? "border-emerald-300/40 bg-emerald-950/75 text-emerald-50"
+                        : "border-rose-300/40 bg-rose-950/80 text-rose-50"
                     }`}
                   >
                     {data.hoursPreview.status === "open" ? "Abierto" : "Cerrado"}
                   </span>
-                  {neighborhoodDisplay ? (
-                    <span className="inline-flex max-w-full min-w-0 items-center gap-1 truncate rounded-full border border-[#D8C2A0]/80 bg-white/80 px-2 py-0.5 font-medium text-[#1F1A17]">
-                      <FiMapPin className="h-3 w-3 shrink-0 text-[#8B7E70]" aria-hidden />
-                      <span className="truncate">{neighborhoodDisplay}</span>
-                    </span>
-                  ) : null}
-                  {priceQuick ? (
-                    <span className="rounded-full border border-[#D8C2A0]/80 bg-white/80 px-2 py-0.5 font-semibold text-[#1F1A17]">
-                      {priceQuick}
-                    </span>
-                  ) : null}
                 </div>
+              </div>
+              <div className="border-t border-[#D8C2A0] bg-[#FFFAF3] px-4 pb-3 pt-2.5">
+                <h1 className="text-center text-2xl font-bold leading-[1.15] tracking-tight text-[#1F1A17]">
+                  {data.businessName}
+                </h1>
 
-                {/* Compact address line */}
-                {data.contact?.addressLine1 && (
-                  <div className="mt-2 text-xs text-[#5A5148]">
-                    <span className="inline-flex items-center gap-1">
-                      <FiMapPin className="h-3 w-3 shrink-0" aria-hidden />
-                      <span className="truncate">{data.contact.addressLine1}</span>
-                    </span>
-                  </div>
-                )}
+                {data.contact?.addressLine1 ? (
+                  <p className="mx-auto mt-1.5 max-w-full truncate text-center text-[13px] font-semibold leading-snug text-[#3D3630]">
+                    {data.contact.addressLine1}
+                  </p>
+                ) : null}
 
-                {/* Category/offer chips - max 3 visible + tappable +N */}
                 {mobileIdentityChips.length > 0 && (
                   <div className="mt-2">
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap justify-center gap-1">
                       {mobileIdentityChips.slice(0, chipsExpanded ? undefined : 3).map((chip) => (
                         <span
                           key={chip}
@@ -234,60 +236,91 @@ export function RestauranteAdStoryPreview({
                   </div>
                 )}
 
-                {/* Primary CTA grid (2x2): Llamar, WhatsApp, Direcciones, Sitio web */}
-                <div className="mt-3 grid grid-cols-2 gap-1.5">
-                  {primaryCtas
-                    .filter((cta) => ["call", "whatsapp", "directions", "website"].includes(cta.key))
-                    .slice(0, 4)
-                    .map((cta) => (
-                      <a
-                        key={`m-${cta.key}`}
-                        href={cta.href}
-                        className="inline-flex min-h-[40px] items-center justify-center gap-1 rounded-lg border border-[#D8C2A0] bg-white px-2 text-center text-xs font-semibold text-[#1F1A17] shadow-sm"
-                        {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                      >
-                        {cta.key === "call" && <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />}
-                        {cta.key === "website" && <FiExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />}
-                        {cta.key === "directions" && <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />}
-                        {cta.key === "whatsapp" && <FaWhatsapp className="h-3.5 w-3.5 shrink-0 text-emerald-700" aria-hidden />}
-                        <span className="leading-tight">{cta.label}</span>
-                      </a>
-                    ))}
+                <div className="mt-2.5 grid grid-cols-2 gap-1.5">
+                  {mobileHeroPrimaryCtas.map((cta, index) => {
+                    const n = mobileHeroPrimaryCtas.length;
+                    const aloneLast = n % 2 === 1 && index === n - 1;
+                    const aloneFirst = n === 1;
+                    const wrapClass =
+                      aloneFirst || aloneLast ? "col-span-2 flex justify-center" : undefined;
+                    return (
+                      <div key={`m-${cta.key}`} className={wrapClass}>
+                        <a
+                          href={cta.href}
+                          className={`inline-flex min-h-[36px] items-center justify-center gap-1 rounded-lg border border-[#D8C2A0] bg-white px-2 text-center text-[11px] font-semibold leading-tight text-[#1F1A17] shadow-sm ${
+                            aloneFirst || aloneLast
+                              ? "w-[calc((100%-0.375rem)/2)] max-w-[200px]"
+                              : "w-full"
+                          }`}
+                          {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                        >
+                          {cta.key === "call" && <FiPhone className="h-3 w-3 shrink-0" aria-hidden />}
+                          {cta.key === "website" && <FiExternalLink className="h-3 w-3 shrink-0" aria-hidden />}
+                          {cta.key === "directions" && <FiMapPin className="h-3 w-3 shrink-0" aria-hidden />}
+                          {cta.key === "whatsapp" && <FaWhatsapp className="h-3 w-3 shrink-0 text-emerald-700" aria-hidden />}
+                          <span className="min-w-0 truncate">{cta.label}</span>
+                        </a>
+                      </div>
+                    );
+                  })}
                 </div>
 
-                {/* Social icon row */}
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-2.5 flex flex-wrap justify-center gap-1.5">
                   {data.contact?.instagramHref ? (
-                    <a href={data.contact.instagramHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#D8C2A0] bg-white" aria-label="Instagram">
-                      <FiInstagram className="h-3.5 w-3.5" />
+                    <a
+                      href={data.contact.instagramHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#D8C2A0] bg-white text-[#1F1A17] shadow-sm"
+                      aria-label="Instagram"
+                    >
+                      <FiInstagram className="h-3 w-3" />
                     </a>
                   ) : null}
                   {data.contact?.facebookHref ? (
-                    <a href={data.contact.facebookHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#D8C2A0] bg-white" aria-label="Facebook">
-                      <FiFacebook className="h-3.5 w-3.5" />
+                    <a
+                      href={data.contact.facebookHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#D8C2A0] bg-white text-[#1F1A17] shadow-sm"
+                      aria-label="Facebook"
+                    >
+                      <FiFacebook className="h-3 w-3" />
                     </a>
                   ) : null}
                   {data.contact?.tiktokHref ? (
-                    <a href={data.contact.tiktokHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#D8C2A0] bg-white" aria-label="TikTok">
-                      <FaTiktok className="h-3.5 w-3.5" />
+                    <a
+                      href={data.contact.tiktokHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#D8C2A0] bg-white text-[#1F1A17] shadow-sm"
+                      aria-label="TikTok"
+                    >
+                      <FaTiktok className="h-3 w-3" />
                     </a>
                   ) : null}
                   {data.contact?.youtubeHref ? (
-                    <a href={data.contact.youtubeHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#D8C2A0] bg-white" aria-label="YouTube">
-                      <FiYoutube className="h-3.5 w-3.5" />
+                    <a
+                      href={data.contact.youtubeHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#D8C2A0] bg-white text-[#1F1A17] shadow-sm"
+                      aria-label="YouTube"
+                    >
+                      <FiYoutube className="h-3 w-3" />
                     </a>
                   ) : null}
                 </div>
 
-                {/* Secondary action row: Me gusta, Guardado, Compartir */}
                 {listingId ? (
-                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#D8C2A0]/40 pt-2">
+                  <div className="mt-2.5 flex flex-nowrap items-stretch gap-1 border-t border-[#D8C2A0]/40 pt-2">
                     <LeonixLikeButton
                       listingId={listingId}
                       ownerUserId={ownerUid}
                       variant="small"
                       lang={lang}
                       category="restaurantes"
+                      className="min-h-0 flex-1 min-w-0 basis-0 !px-2 !py-1 text-[11px] font-medium opacity-90 [&>span]:min-w-0 [&>span]:truncate"
                     />
                     <LeonixSaveButton
                       listingId={listingId}
@@ -295,6 +328,7 @@ export function RestauranteAdStoryPreview({
                       variant="small"
                       lang={lang}
                       category="restaurantes"
+                      className="min-h-0 flex-1 min-w-0 basis-0 !px-2 !py-1 text-[11px] font-medium opacity-90 [&>span]:min-w-0 [&>span]:truncate"
                     />
                     <LeonixShareButton
                       listingId={listingId}
@@ -305,6 +339,7 @@ export function RestauranteAdStoryPreview({
                       lang={lang}
                       category="restaurantes"
                       preferNativeShareOnNarrowViewports
+                      className="flex-1 min-w-0 basis-0 [&>button]:flex [&>button]:h-full [&>button]:w-full [&>button]:min-h-0 [&>button]:min-w-0 [&>button]:justify-center [&>button]:gap-1 [&>button]:!px-2 [&>button]:!py-1 [&>button]:text-[11px] [&>button]:font-medium [&>button]:opacity-90 [&>button>span]:min-w-0 [&>button>span]:truncate"
                     />
                   </div>
                 ) : null}
