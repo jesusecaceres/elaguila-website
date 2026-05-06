@@ -15,6 +15,7 @@ import { ServiciosAbout } from "./ServiciosAbout";
 import { ServiciosHighlightsSection } from "./ServiciosHighlightsSection";
 import { ServiciosOfferedSection } from "./ServiciosServicesGrid";
 import { ServiciosGallery } from "./ServiciosGallery";
+import { ServiciosGalleryWithTabs } from "./ServiciosGalleryWithTabs";
 import { ServiciosSmartTrustSummary } from "./ServiciosSmartTrustSummary";
 import { ServiciosPromocionesCard } from "./ServiciosPromocionesCard";
 import { ServiciosTrustSection } from "./ServiciosTrustSection";
@@ -96,40 +97,116 @@ export function ServiciosProfileView({
         ) : null}
 
         {/*
-          Mobile / tablet: action panel stacks above main column (order) so CTAs sit near hero + quick facts.
-          lg+: classic two-column [content | sticky panel].
+          NEW LAYOUT: Two-column desktop with reorganized sections
+          Mobile: stacked order per requirements
         */}
         <div className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_min(100%,380px)] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_400px]">
+          {/* RIGHT SIDEBAR - Desktop */}
           <aside className={`order-1 min-w-0 lg:order-2 lg:sticky ${stickyAsideTop} lg:z-10 lg:self-start`}>
+            {/* Contacto card - conversion center */}
             <ServiciosActionPanel profile={profile} lang={lang} listingSlug={analyticsListingSlug} />
+            
+            {/* Ofertas especiales - moved under Contacto */}
+            <div className="mt-5 lg:mt-6">
+              <ServiciosPromocionesCard profile={profile} lang={lang} />
+            </div>
           </aside>
+          
+          {/* LEFT MAIN COLUMN - Desktop */}
           <div className="order-2 flex min-w-0 flex-col gap-6 sm:gap-8 lg:order-1">
-            {analyticsListingSlug && showPublicConversionForms ? (
-              <ServiciosLeadInquiryForm listingSlug={analyticsListingSlug} lang={lang} />
+            {/* Mobile Contacto card - appears first on mobile */}
+            <div className="lg:hidden">
+              <ServiciosActionPanel profile={profile} lang={lang} listingSlug={analyticsListingSlug} />
+            </div>
+            
+            {/* Mobile Ofertas especiales - appears after Contacto on mobile */}
+            <div className="mt-5 lg:hidden">
+              <ServiciosPromocionesCard profile={profile} lang={lang} />
+            </div>
+            
+            {/* 1. Sobre Nosotros (moved up, merged with Resumen Rápido) */}
+            {hasAboutSectionResolved(profile) ? (
+              <div className="lg:order-1">
+                <ServiciosAbout profile={profile} lang={lang} />
+                {/* Trust & fit chips from quick facts */}
+                {hasQuickFactsResolved(profile) ? (
+                  <div className="mt-4">
+                    <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} compact={true} />
+                  </div>
+                ) : null}
+              </div>
             ) : null}
-            <ServiciosSmartTrustSummary profile={profile} lang={lang} />
-            <ServiciosPromocionesCard profile={profile} lang={lang} />
-            {hasAboutSectionResolved(profile) ? <ServiciosAbout profile={profile} lang={lang} /> : null}
-            <ServiciosOfferedSection services={profile.services} lang={lang} profileForQuote={profile} />
-            {hasBusinessHighlightsResolved(profile) ? (
-              <ServiciosHighlightsSection highlights={profile.highlights} lang={lang} />
-            ) : null}
-            <ServiciosLicense profile={profile} lang={lang} />
-            {hasPaymentMethodsResolved(profile) ? <ServiciosPagosCard profile={profile} lang={lang} /> : null}
-            {hasAmenityOptionsResolved(profile) ? (
-              <ServiciosOpcionesFacilidadesCard profile={profile} lang={lang} />
-            ) : null}
+            
+            {/* 2. Galería de trabajos / Media (moved up with tabs) */}
+            <div className="lg:order-2">
+              <ServiciosGalleryWithTabs profile={profile} lang={lang} />
+            </div>
+            
+            {/* 3. Credenciales (moved up) */}
             {hasCredentialsResolved(profile) ? (
-              <ServiciosCredencialesCard profile={profile} lang={lang} />
+              <div className="lg:order-3">
+                <ServiciosLicense profile={profile} lang={lang} />
+              </div>
             ) : null}
-            <ServiciosGallery profile={profile} lang={lang} />
-            <ServiciosHours profile={profile} lang={lang} />
-            <ServiciosTrustSection profile={profile} lang={lang} />
-            <ServiciosReviews profile={profile} lang={lang} />
+            
+            {/* 4. Nuestros servicios */}
+            <div className="lg:order-4">
+              <ServiciosOfferedSection services={profile.services} lang={lang} profileForQuote={profile} />
+            </div>
+            
+            {/* 5. Confianza y beneficios (merged highlights + trust) */}
+            <div className="lg:order-5">
+              {hasBusinessHighlightsResolved(profile) ? (
+                <ServiciosHighlightsSection highlights={profile.highlights} lang={lang} />
+              ) : null}
+              <ServiciosTrustSection profile={profile} lang={lang} />
+            </div>
+            
+            {/* 6. Opciones y facilidades */}
+            {hasAmenityOptionsResolved(profile) ? (
+              <div className="lg:order-6">
+                <ServiciosOpcionesFacilidadesCard profile={profile} lang={lang} />
+              </div>
+            ) : null}
+            
+            {/* 7. Pagos */}
+            {hasPaymentMethodsResolved(profile) ? (
+              <div className="lg:order-7">
+                <ServiciosPagosCard profile={profile} lang={lang} />
+              </div>
+            ) : null}
+            
+            {/* 8. Zonas de servicio (bottom) */}
+            <div className="lg:order-8">
+              <ServiciosServiceAreas profile={profile} lang={lang} />
+            </div>
+            
+            {/* Lead inquiry form (if enabled) */}
             {analyticsListingSlug && showPublicConversionForms ? (
-              <ServiciosReviewSubmitForm listingSlug={analyticsListingSlug} lang={lang} />
+              <div className="lg:order-9">
+                <ServiciosLeadInquiryForm listingSlug={analyticsListingSlug} lang={lang} />
+              </div>
             ) : null}
-            <ServiciosServiceAreas profile={profile} lang={lang} />
+            
+            {/* Reviews (bottom) */}
+            <div className="lg:order-10">
+              <ServiciosReviews profile={profile} lang={lang} />
+              {analyticsListingSlug && showPublicConversionForms ? (
+                <ServiciosReviewSubmitForm listingSlug={analyticsListingSlug} lang={lang} />
+              ) : null}
+            </div>
+            
+            {/* Smart trust summary (bottom) */}
+            <div className="lg:order-11">
+              <ServiciosSmartTrustSummary profile={profile} lang={lang} />
+            </div>
+            
+            {/* Hours only if not shown in contact panel */}
+            {!profile.contact.hours?.weeklyRows ? (
+              <div className="lg:order-12">
+                <ServiciosHours profile={profile} lang={lang} />
+              </div>
+            ) : null}
           </div>
         </div>
       </main>

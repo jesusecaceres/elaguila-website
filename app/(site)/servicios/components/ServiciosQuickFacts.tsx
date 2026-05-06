@@ -27,8 +27,38 @@ function iconFor(kind: ServiciosQuickFactKind) {
 }
 
 /** Additional quick facts below the hero (first 3 may appear in the hero). */
-export function ServiciosQuickFacts({ facts, lang }: { facts: ServiciosQuickFact[]; lang: ServiciosLang }) {
+export function ServiciosQuickFacts({ 
+  facts, 
+  lang, 
+  compact = false 
+}: { 
+  facts: ServiciosQuickFact[]; 
+  lang: ServiciosLang; 
+  compact?: boolean;
+}) {
   if (!facts.length) return null;
+  
+  if (compact) {
+    // Compact chip strip mode for Sobre Nosotros section
+    return (
+      <div className="flex flex-wrap gap-2" aria-label={lang === "en" ? "Trust signals" : "Señales de confianza"}>
+        {facts.map((f) => {
+          const Icon = iconFor(f.kind);
+          return (
+            <span
+              key={`${f.kind}-${f.label}`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#3B66AD]/20 bg-[#3B66AD]/[0.06] px-3 py-1 text-[11px] font-medium text-[#3B66AD]"
+            >
+              <Icon className="h-3 w-3" aria-hidden />
+              {f.label}
+            </span>
+          );
+        })}
+      </div>
+    );
+  }
+  
+  // Full card mode
   return (
     <section
       className="rounded-2xl border px-4 py-5 shadow-sm sm:px-6 sm:py-6"
