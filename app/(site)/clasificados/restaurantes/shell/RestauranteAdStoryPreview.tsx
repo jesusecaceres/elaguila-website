@@ -63,6 +63,7 @@ export function RestauranteAdStoryPreview({
   const [aboutExpanded, setAboutExpanded] = useState(false);
   const [hoursFull, setHoursFull] = useState(false);
   const [contactMore, setContactMore] = useState(false);
+  const [chipsExpanded, setChipsExpanded] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -157,7 +158,7 @@ export function RestauranteAdStoryPreview({
       <section className={SECTION_CARD}>
         {hasHeroImage ? (
           <>
-            {/* Mobile: image only + content below (no engagement over image) */}
+            {/* Mobile: image only + compacted content below */}
             <div className="md:hidden">
               <div className="relative aspect-[5/4] w-full overflow-hidden bg-[#EFE7DA]">
                 <Image
@@ -170,11 +171,14 @@ export function RestauranteAdStoryPreview({
                 />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" aria-hidden />
               </div>
-              <div className="border-t border-[#D8C2A0] bg-[#FFFAF3] px-4 py-3">
-                <h1 className="text-2xl font-bold leading-tight tracking-tight text-[#1F1A17]">{data.businessName}</h1>
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-left text-xs text-[#5A5148]">
+              <div className="border-t border-[#D8C2A0] bg-[#FFFAF3] px-4 py-2">
+                {/* Business name */}
+                <h1 className="text-xl font-bold leading-tight tracking-tight text-[#1F1A17]">{data.businessName}</h1>
+                
+                {/* Compact meta row: status + neighborhood/zone + price */}
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-[#5A5148]">
                   <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-1 font-semibold ${
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 font-semibold ${
                       data.hoursPreview.status === "open"
                         ? "bg-emerald-100 text-emerald-900"
                         : "bg-rose-100 text-rose-900"
@@ -183,48 +187,101 @@ export function RestauranteAdStoryPreview({
                     {data.hoursPreview.status === "open" ? "Abierto" : "Cerrado"}
                   </span>
                   {neighborhoodDisplay ? (
-                    <span className="inline-flex max-w-full min-w-0 items-center gap-1 truncate rounded-full border border-[#D8C2A0]/80 bg-white/80 px-2.5 py-1 font-medium text-[#1F1A17]">
-                      <FiMapPin className="h-3.5 w-3.5 shrink-0 text-[#8B7E70]" aria-hidden />
+                    <span className="inline-flex max-w-full min-w-0 items-center gap-1 truncate rounded-full border border-[#D8C2A0]/80 bg-white/80 px-2 py-0.5 font-medium text-[#1F1A17]">
+                      <FiMapPin className="h-3 w-3 shrink-0 text-[#8B7E70]" aria-hidden />
                       <span className="truncate">{neighborhoodDisplay}</span>
                     </span>
                   ) : null}
                   {priceQuick ? (
-                    <span className="rounded-full border border-[#D8C2A0]/80 bg-white/80 px-2.5 py-1 font-semibold text-[#1F1A17]">
+                    <span className="rounded-full border border-[#D8C2A0]/80 bg-white/80 px-2 py-0.5 font-semibold text-[#1F1A17]">
                       {priceQuick}
                     </span>
                   ) : null}
-                  {data.trustRating ? (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[#D8C2A0]/80 bg-white/80 px-2.5 py-1 font-medium text-[#1F1A17]">
-                      <FiStar className="h-3.5 w-3.5 text-amber-500" aria-hidden />
-                      {data.trustRating.average.toFixed(1)} ({data.trustRating.count})
-                    </span>
-                  ) : null}
                 </div>
-                {mobileIdentityChips.length > 0 ? (
-                  <div className="relative mt-3">
-                    <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]">
-                      {mobileIdentityChips.slice(0, 4).map((chip) => (
+
+                {/* Compact address line */}
+                {data.contact?.addressLine1 && (
+                  <div className="mt-2 text-xs text-[#5A5148]">
+                    <span className="inline-flex items-center gap-1">
+                      <FiMapPin className="h-3 w-3 shrink-0" aria-hidden />
+                      <span className="truncate">{data.contact.addressLine1}</span>
+                    </span>
+                  </div>
+                )}
+
+                {/* Category/offer chips - max 3 visible + tappable +N */}
+                {mobileIdentityChips.length > 0 && (
+                  <div className="mt-2">
+                    <div className="flex flex-wrap gap-1">
+                      {mobileIdentityChips.slice(0, chipsExpanded ? undefined : 3).map((chip) => (
                         <span
                           key={chip}
-                          className="shrink-0 whitespace-nowrap rounded-full border border-[#D8C2A0]/90 bg-[#F6EBDD] px-2.5 py-1 text-[11px] font-semibold text-[#1F1A17]"
+                          className="shrink-0 whitespace-nowrap rounded-full border border-[#D8C2A0]/90 bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-semibold text-[#1F1A17]"
                         >
                           {chip}
                         </span>
                       ))}
-                      {mobileIdentityChips.length > 4 ? (
-                        <span className="shrink-0 rounded-full border border-[#D8C2A0]/90 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#5A5148]">
-                          +{mobileIdentityChips.length - 4}
-                        </span>
-                      ) : null}
+                      {!chipsExpanded && mobileIdentityChips.length > 3 && (
+                        <button
+                          type="button"
+                          onClick={() => setChipsExpanded(true)}
+                          className="shrink-0 rounded-full border border-[#D8C2A0]/90 bg-white px-2 py-0.5 text-[10px] font-semibold text-[#5A5148] hover:bg-[#F6EBDD]"
+                        >
+                          +{mobileIdentityChips.length - 3}
+                        </button>
+                      )}
                     </div>
-                    <div
-                      className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[#FFFAF3] to-transparent"
-                      aria-hidden
-                    />
                   </div>
-                ) : null}
+                )}
+
+                {/* Primary CTA grid (2x2): Llamar, WhatsApp, Direcciones, Sitio web */}
+                <div className="mt-3 grid grid-cols-2 gap-1.5">
+                  {primaryCtas
+                    .filter((cta) => ["call", "whatsapp", "directions", "website"].includes(cta.key))
+                    .slice(0, 4)
+                    .map((cta) => (
+                      <a
+                        key={`m-${cta.key}`}
+                        href={cta.href}
+                        className="inline-flex min-h-[40px] items-center justify-center gap-1 rounded-lg border border-[#D8C2A0] bg-white px-2 text-center text-xs font-semibold text-[#1F1A17] shadow-sm"
+                        {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                      >
+                        {cta.key === "call" && <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />}
+                        {cta.key === "website" && <FiExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />}
+                        {cta.key === "directions" && <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />}
+                        {cta.key === "whatsapp" && <FaWhatsapp className="h-3.5 w-3.5 shrink-0 text-emerald-700" aria-hidden />}
+                        <span className="leading-tight">{cta.label}</span>
+                      </a>
+                    ))}
+                </div>
+
+                {/* Social icon row */}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {data.contact?.instagramHref ? (
+                    <a href={data.contact.instagramHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#D8C2A0] bg-white" aria-label="Instagram">
+                      <FiInstagram className="h-3.5 w-3.5" />
+                    </a>
+                  ) : null}
+                  {data.contact?.facebookHref ? (
+                    <a href={data.contact.facebookHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#D8C2A0] bg-white" aria-label="Facebook">
+                      <FiFacebook className="h-3.5 w-3.5" />
+                    </a>
+                  ) : null}
+                  {data.contact?.tiktokHref ? (
+                    <a href={data.contact.tiktokHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#D8C2A0] bg-white" aria-label="TikTok">
+                      <FaTiktok className="h-3.5 w-3.5" />
+                    </a>
+                  ) : null}
+                  {data.contact?.youtubeHref ? (
+                    <a href={data.contact.youtubeHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#D8C2A0] bg-white" aria-label="YouTube">
+                      <FiYoutube className="h-3.5 w-3.5" />
+                    </a>
+                  ) : null}
+                </div>
+
+                {/* Secondary action row: Me gusta, Guardado, Compartir */}
                 {listingId ? (
-                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#D8C2A0]/40 pt-3">
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#D8C2A0]/40 pt-2">
                     <LeonixLikeButton
                       listingId={listingId}
                       ownerUserId={ownerUid}
@@ -251,25 +308,6 @@ export function RestauranteAdStoryPreview({
                     />
                   </div>
                 ) : null}
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  {primaryCtas
-                    .filter((cta) => ["call", "whatsapp", "directions", "website"].includes(cta.key))
-                    .slice(0, 4)
-                    .map((cta) => (
-                      <a
-                        key={`m-${cta.key}`}
-                        href={cta.href}
-                        className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-[#D8C2A0] bg-white px-2 text-center text-xs font-semibold text-[#1F1A17] shadow-sm"
-                        {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                      >
-                        {cta.key === "call" && <FiPhone className="h-4 w-4 shrink-0" aria-hidden />}
-                        {cta.key === "website" && <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />}
-                        {cta.key === "directions" && <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />}
-                        {cta.key === "whatsapp" && <FaWhatsapp className="h-4 w-4 shrink-0 text-emerald-700" aria-hidden />}
-                        <span className="leading-tight">{cta.label}</span>
-                      </a>
-                    ))}
-                </div>
               </div>
             </div>
 
@@ -573,133 +611,73 @@ export function RestauranteAdStoryPreview({
           <div className={SECTION_PADDING}>
             <h2 className={SECTION_TITLE}>Contacto y Ubicación</h2>
 
-            {/* Mobile: priority CTAs + compact layout */}
+            {/* Mobile: lighter contact section - primary CTAs moved to hero */}
             <div className="md:hidden">
-              <div className="grid grid-cols-2 gap-2">
-                {data.contact?.phoneDisplay && data.contact.phoneTelHref ? (
-                  <a
-                    href={data.contact.phoneTelHref}
-                    className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-[#D8C2A0] bg-[#F6EBDD] px-2 text-xs font-semibold text-[#1F1A17]"
+              {/* Only show "Más contacto" if there are lower-priority details to reveal */}
+              {(data.contact?.email || data.contact?.menuFileHref || data.fullMenuCta || data.contact?.addressLine2) && (
+                <>
+                  <p className="mb-2 text-xs text-[#5A5148]">Contacto principal disponible en la parte superior</p>
+                  <button
+                    type="button"
+                    onClick={() => setContactMore((v) => !v)}
+                    className="w-full rounded-xl border border-[#D8C2A0]/80 bg-white py-2 text-center text-xs font-semibold text-[#5A5148]"
                   >
-                    <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
-                    Llamar
-                  </a>
-                ) : null}
-                {data.contact?.whatsappHref ? (
-                  <a
-                    href={data.contact.whatsappHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-[#D8C2A0] bg-[#F6EBDD] px-2 text-xs font-semibold text-[#1F1A17]"
-                  >
-                    <FaWhatsapp className="h-4 w-4 shrink-0 text-emerald-700" aria-hidden />
-                    WhatsApp
-                  </a>
-                ) : null}
-                {data.contact?.mapsSearchQuery ? (
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.contact.mapsSearchQuery.trim())}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-[#D8C2A0] bg-white px-2 text-xs font-semibold text-[#1F1A17]"
-                  >
-                    <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
-                    Direcciones
-                  </a>
-                ) : null}
-                {data.contact?.websiteHref ? (
-                  <a
-                    href={data.contact.websiteHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-[#D8C2A0] bg-white px-2 text-xs font-semibold text-[#1F1A17]"
-                  >
-                    <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />
-                    Sitio web
-                  </a>
-                ) : null}
-              </div>
-              <button
-                type="button"
-                onClick={() => setContactMore((v) => !v)}
-                className="mt-3 w-full rounded-xl border border-[#D8C2A0]/80 bg-white py-2 text-center text-xs font-semibold text-[#5A5148]"
-              >
-                {contactMore ? "Ocultar detalles" : "Más contacto"}
-              </button>
-              {contactMore ? (
-                <div className="mt-3 space-y-3 border-t border-[#D8C2A0]/40 pt-3 text-left text-sm">
-                  {data.contact?.addressLine1 ? (
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8B7E70]">Dirección</p>
-                      <p className="mt-0.5 break-words font-medium text-[#1F1A17]">{data.contact.addressLine1}</p>
-                      {data.contact.addressLine2 ? (
-                        <p className="mt-0.5 break-words text-[#5A5148]">{data.contact.addressLine2}</p>
+                    {contactMore ? "Ocultar detalles" : "Más contacto"}
+                  </button>
+                  {contactMore ? (
+                    <div className="mt-3 space-y-3 border-t border-[#D8C2A0]/40 pt-3 text-left text-sm">
+                      {data.contact?.addressLine1 ? (
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8B7E70]">Dirección completa</p>
+                          <p className="mt-0.5 break-words font-medium text-[#1F1A17]">{data.contact.addressLine1}</p>
+                          {data.contact.addressLine2 ? (
+                            <p className="mt-0.5 break-words text-[#5A5148]">{data.contact.addressLine2}</p>
+                          ) : null}
+                        </div>
                       ) : null}
+                      {data.contact?.email ? (
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8B7E70]">Correo</p>
+                          <ContactEmailMenu
+                            email={data.contact.email}
+                            {...buildRestauranteInquiryMailto(data.contact.email, "es")}
+                            lang="es"
+                            rootClassName="relative mt-1 w-full min-w-0"
+                            triggerClassName="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-lg border border-[#D8C2A0] bg-[#FFFAF3] px-3 py-2 text-left text-sm font-medium text-[#1F1A17]"
+                          >
+                            <FiMail className="h-4 w-4 shrink-0" aria-hidden />
+                            <span className="min-w-0 truncate">{data.contact.email}</span>
+                          </ContactEmailMenu>
+                        </div>
+                      ) : null}
+                      {(data.contact?.menuFileHref || data.fullMenuCta) && (
+                        <div className="flex flex-wrap gap-2">
+                          {data.contact?.menuFileHref ? (
+                            <a
+                              href={data.contact.menuFileHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex min-h-[40px] items-center rounded-lg border border-[#D8C2A0] bg-[#F6EBDD] px-3 text-xs font-semibold"
+                            >
+                              Menú (archivo)
+                            </a>
+                          ) : null}
+                          {data.fullMenuCta ? (
+                            <a
+                              href={data.fullMenuCta.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex min-h-[40px] items-center rounded-lg border border-[#D8C2A0] bg-[#F6EBDD] px-3 text-xs font-semibold"
+                            >
+                              {data.fullMenuCta.label}
+                            </a>
+                          ) : null}
+                        </div>
+                      )}
                     </div>
                   ) : null}
-                  {data.contact?.email ? (
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8B7E70]">Correo</p>
-                      <ContactEmailMenu
-                        email={data.contact.email}
-                        {...buildRestauranteInquiryMailto(data.contact.email, "es")}
-                        lang="es"
-                        rootClassName="relative mt-1 w-full min-w-0"
-                        triggerClassName="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-lg border border-[#D8C2A0] bg-[#FFFAF3] px-3 py-2 text-left text-sm font-medium text-[#1F1A17]"
-                      >
-                        <FiMail className="h-4 w-4 shrink-0" aria-hidden />
-                        <span className="min-w-0 truncate">{data.contact.email}</span>
-                      </ContactEmailMenu>
-                    </div>
-                  ) : null}
-                  {(data.contact?.menuFileHref || data.fullMenuCta) && (
-                    <div className="flex flex-wrap gap-2">
-                      {data.contact?.menuFileHref ? (
-                        <a
-                          href={data.contact.menuFileHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex min-h-[40px] items-center rounded-lg border border-[#D8C2A0] bg-[#F6EBDD] px-3 text-xs font-semibold"
-                        >
-                          Menú (archivo)
-                        </a>
-                      ) : null}
-                      {data.fullMenuCta ? (
-                        <a
-                          href={data.fullMenuCta.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex min-h-[40px] items-center rounded-lg border border-[#D8C2A0] bg-[#F6EBDD] px-3 text-xs font-semibold"
-                        >
-                          {data.fullMenuCta.label}
-                        </a>
-                      ) : null}
-                    </div>
-                  )}
-                  <div className="flex flex-wrap gap-2">
-                    {data.contact?.instagramHref ? (
-                      <a href={data.contact.instagramHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#D8C2A0] bg-white" aria-label="Instagram">
-                        <FiInstagram className="h-4 w-4" />
-                      </a>
-                    ) : null}
-                    {data.contact?.facebookHref ? (
-                      <a href={data.contact.facebookHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#D8C2A0] bg-white" aria-label="Facebook">
-                        <FiFacebook className="h-4 w-4" />
-                      </a>
-                    ) : null}
-                    {data.contact?.tiktokHref ? (
-                      <a href={data.contact.tiktokHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#D8C2A0] bg-white" aria-label="TikTok">
-                        <FaTiktok className="h-4 w-4" />
-                      </a>
-                    ) : null}
-                    {data.contact?.youtubeHref ? (
-                      <a href={data.contact.youtubeHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#D8C2A0] bg-white" aria-label="YouTube">
-                        <FiYoutube className="h-4 w-4" />
-                      </a>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
+                </>
+              )}
             </div>
 
             {/* Desktop: original two-column layout */}
