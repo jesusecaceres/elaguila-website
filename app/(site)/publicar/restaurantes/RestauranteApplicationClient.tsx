@@ -30,7 +30,6 @@ import {
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
 import { readRestauranteImageAsDataUrl } from "@/app/clasificados/restaurantes/application/compressRestauranteImage";
 import { RestaurantePublishMediaBuckets } from "@/app/clasificados/restaurantes/application/RestaurantePublishMediaBuckets";
-import { RestauranteSubGalleryBucket } from "@/app/clasificados/restaurantes/application/RestauranteSubGalleryBucket";
 import { resolveRestauranteGallerySequence } from "@/app/clasificados/restaurantes/application/restauranteGalleryMediaSequence";
 import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
 import { buildRestauranteApplicationSectionNavItems } from "./restauranteApplicationSectionModel";
@@ -1691,32 +1690,6 @@ export default function RestauranteApplicationClient() {
               draft={draft}
               onChange={setDraftPatch}
             />
-            <div className="grid gap-6 sm:grid-cols-3">
-              {(
-                [
-                  ["interiorImages", "Interiores", "interiores"] as const,
-                  ["foodImages", "Comida", "comida"] as const,
-                  ["exteriorImages", "Exteriores", "exteriores"] as const,
-                ] as const
-              ).map(([field, lab, hint]) => (
-                <div key={field}>
-                  <FieldLabel optional>{lab}</FieldLabel>
-                  <HelperText>
-                    {field === "interiorImages"
-                      ? "Ambiente y espacio; se agrupa en la galería del detalle. Mismo control de orden ⋮⋮ que la galería general."
-                      : field === "foodImages"
-                        ? "Platos y mesa; refuerza la sección de comida en la ficha. Reordena con ⋮⋮ como arriba."
-                        : "Fachada y entorno; categoría exterior en la ficha. Reordena con ⋮⋮ como arriba."}
-                  </HelperText>
-                  <RestauranteSubGalleryBucket
-                    field={field}
-                    emptyHintLabel={hint}
-                    draft={draft}
-                    setDraftPatch={setDraftPatch}
-                  />
-                </div>
-              ))}
-            </div>
             <div>
               <FieldLabel optional>Video (URL externo)</FieldLabel>
               <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)] sm:max-w-2xl">
