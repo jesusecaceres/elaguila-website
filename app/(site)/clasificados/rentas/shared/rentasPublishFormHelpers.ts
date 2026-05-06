@@ -91,12 +91,14 @@ export function formatRentasDepositUsdPreview(digitsRaw: string): string {
 /** Primary street line: single field first, then legacy número+calle, then referencia. */
 export function buildRentasStreetLine(parts: {
   direccionLinea1?: string;
+  direccionLinea2?: string;
   direccionNumero: string;
   direccionCalle: string;
   ubicacionLinea: string;
 }): string {
   const line = trim(parts.direccionLinea1);
-  if (line) return line;
+  const line2 = trim(parts.direccionLinea2);
+  if (line) return [line, line2].filter(Boolean).join(", ");
   const num = trim(parts.direccionNumero);
   const calle = trim(parts.direccionCalle);
   const legacy = trim(parts.ubicacionLinea);
@@ -114,6 +116,7 @@ export function coerceRentasPostalDigits5(raw: string): string {
 /** Hero / summary: «Dirección, Ciudad, Estado CP» (sin zona; la zona va aparte). */
 export function buildRentasAssembledAddressLine(parts: {
   direccionLinea1?: string;
+  direccionLinea2?: string;
   direccionNumero: string;
   direccionCalle: string;
   ubicacionLinea: string;
@@ -145,21 +148,27 @@ export function buildRentasCityStateZipLine(parts: {
 /** Query string for Google Maps search (no API key). */
 export function buildRentasGoogleMapsSearchQuery(parts: {
   direccionLinea1?: string;
+  direccionLinea2?: string;
   direccionNumero: string;
   direccionCalle: string;
   ubicacionLinea: string;
+  direccionCruceCercano?: string;
+  mostrarDireccionExacta?: boolean;
   zonaVecindario: string;
   ciudad: string;
   direccionEstado: string;
   direccionCodigoPostal: string;
 }): string | null {
-  const line1 = buildRentasStreetLine(parts);
+  const exactOk = parts.mostrarDireccionExacta !== false;
+  const cross = trim(parts.direccionCruceCercano);
+  const line1 = exactOk ? buildRentasStreetLine(parts) : "";
   const city = trim(parts.ciudad);
   const st = trim(parts.direccionEstado);
   const zip = coerceRentasPostalDigits5(parts.direccionCodigoPostal);
   const zona = trim(parts.zonaVecindario);
   const cityStZip = [city, [st, zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-  const q = [line1, cityStZip, zona].filter(Boolean).join(", ");
+  const primary = exactOk ? line1 : cross;
+  const q = [primary, cityStZip, zona].filter(Boolean).join(", ");
   return q.trim() || null;
 }
 

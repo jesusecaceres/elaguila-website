@@ -19,6 +19,7 @@ import {
 } from "@/app/clasificados/rentas/rentasLandingTheme";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import { parseNegocioRedesSocialLinks } from "@/app/clasificados/rentas/listing/utils/negocioRedesSocialLinks";
+import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 import {
   RENTAS_PUBLICAR_NEGOCIO,
   RENTAS_PUBLICAR_PRIVADO,
@@ -105,6 +106,16 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
     () => parseNegocioRedesSocialLinks(listing.businessSocial),
     [listing.businessSocial],
   );
+  const highlightLabels = useMemo(() => {
+    const map = new Map(BR_HIGHLIGHT_PRESET_DEFS.map((d) => [d.key.toLowerCase(), d.label] as const));
+    return (listing.highlightSlugs ?? [])
+      .map((k) => {
+        const kk = String(k ?? "").trim();
+        if (!kk) return "";
+        return map.get(kk.toLowerCase()) ?? kk;
+      })
+      .filter(Boolean);
+  }, [listing.highlightSlugs]);
 
   const publishPrivado = withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, lang);
   const publishNegocio = withRentasLandingLang(RENTAS_PUBLICAR_NEGOCIO, lang);
@@ -321,6 +332,14 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
                     {copy.detail.ctaPublish}
                   </Link>
                 </div>
+                {listing.contactNote?.trim() ? (
+                  <div className="mt-4 rounded-xl border border-[#E8DFD0]/70 bg-[#FFFCF7] px-4 py-3 text-sm text-[#4A4338] shadow-sm">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/75">
+                      {lang === "es" ? "Mensaje del contacto" : "Contact note"}
+                    </p>
+                    <p className="mt-1.5 whitespace-pre-line leading-relaxed">{listing.contactNote.trim()}</p>
+                  </div>
+                ) : null}
                 <p className="mt-4 text-xs leading-relaxed text-[#5C5346]/88">{copy.detail.trustNote}</p>
               </div>
             </div>
@@ -338,6 +357,18 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
               <IconBath className="text-[#5B7C99]" />
               <span className="text-[#5C5346]/80">{copy.featured.baths}</span> {listing.baths}
             </li>
+            {listing.fullBaths?.trim() ? (
+              <li>
+                <span className="font-semibold text-[#1E1810]">{lang === "es" ? "Baños completos" : "Full baths"}:</span>{" "}
+                {listing.fullBaths.trim()}
+              </li>
+            ) : null}
+            {listing.halfBaths?.trim() ? (
+              <li>
+                <span className="font-semibold text-[#1E1810]">{lang === "es" ? "Medios baños" : "Half baths"}:</span>{" "}
+                {listing.halfBaths.trim()}
+              </li>
+            ) : null}
             {typeof listing.halfBathsCount === "number" && listing.halfBathsCount > 0 ? (
               <li>
                 <span className="font-semibold text-[#1E1810]">{copy.detail.halfBaths}:</span> {listing.halfBathsCount}
@@ -347,15 +378,39 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
               <IconRuler className="text-[#5B7C99]" />
               <span className="text-[#5C5346]/80">{copy.featured.sqft}</span> {listing.sqft}
             </li>
+            {listing.lotSqft?.trim() ? (
+              <li>
+                <span className="font-semibold text-[#1E1810]">{lang === "es" ? "Lote (ft²)" : "Lot (ft²)"}:</span>{" "}
+                {listing.lotSqft.trim()}
+              </li>
+            ) : null}
             {typeof listing.parkingSpots === "number" && listing.parkingSpots > 0 ? (
               <li>
                 <span className="font-semibold text-[#1E1810]">{lang === "es" ? "Estacionamientos" : "Parking"}:</span>{" "}
                 {listing.parkingSpots}
               </li>
             ) : null}
+            {listing.parking?.trim() ? (
+              <li>
+                <span className="font-semibold text-[#1E1810]">{lang === "es" ? "Estacionamiento" : "Parking"}:</span>{" "}
+                {listing.parking.trim()}
+              </li>
+            ) : null}
             {listing.pool === true ? (
               <li>
                 <span className="font-semibold text-[#1E1810]">{lang === "es" ? "Alberca / piscina" : "Pool"}:</span> {copy.detail.yes}
+              </li>
+            ) : null}
+            {listing.yearBuilt?.trim() ? (
+              <li>
+                <span className="font-semibold text-[#1E1810]">{lang === "es" ? "Año de construcción" : "Year built"}:</span>{" "}
+                {listing.yearBuilt.trim()}
+              </li>
+            ) : null}
+            {listing.condition?.trim() ? (
+              <li>
+                <span className="font-semibold text-[#1E1810]">{lang === "es" ? "Condición" : "Condition"}:</span>{" "}
+                {listing.condition.trim()}
               </li>
             ) : null}
             {listing.propertySubtype ? (
@@ -372,7 +427,7 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
             {listing.highlightSlugs?.length ? (
               <li className="w-full min-w-0">
                 <span className="font-semibold text-[#1E1810]">{lang === "es" ? "Destacados" : "Highlights"}:</span>{" "}
-                <span className="break-words">{listing.highlightSlugs.join(", ")}</span>
+                <span className="break-words">{highlightLabels.join(", ")}</span>
               </li>
             ) : null}
             <li>

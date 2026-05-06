@@ -43,6 +43,9 @@ export type RentasNegocioFormState = {
   ciudad: string;
   zonaVecindario: string;
   direccionLinea1: string;
+  direccionLinea2: string;
+  direccionCruceCercano: string;
+  mostrarDireccionExacta: boolean;
   direccionNumero: string;
   direccionCalle: string;
   direccionEstado: string;
@@ -100,6 +103,9 @@ export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
     ciudad: "",
     zonaVecindario: "",
     direccionLinea1: p.direccionLinea1,
+    direccionLinea2: p.direccionLinea2,
+    direccionCruceCercano: p.direccionCruceCercano,
+    mostrarDireccionExacta: p.mostrarDireccionExacta,
     direccionNumero: "",
     direccionCalle: "",
     direccionEstado: p.direccionEstado,
@@ -189,6 +195,9 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
     ciudad: asPrivado.ciudad,
     zonaVecindario: asPrivado.zonaVecindario,
     direccionLinea1: asPrivado.direccionLinea1,
+    direccionLinea2: asPrivado.direccionLinea2,
+    direccionCruceCercano: asPrivado.direccionCruceCercano,
+    mostrarDireccionExacta: asPrivado.mostrarDireccionExacta,
     direccionNumero: asPrivado.direccionNumero,
     direccionCalle: asPrivado.direccionCalle,
     direccionEstado: asPrivado.direccionEstado,

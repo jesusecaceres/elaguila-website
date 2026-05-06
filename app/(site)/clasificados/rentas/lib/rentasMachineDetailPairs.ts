@@ -11,7 +11,10 @@ import {
   formatRentasServiciosIncluidosOutput,
   rentasGoogleMapsUrlFromQuery,
 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
-import { digitsOnly } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
+
+function digitsOnly15(raw: string): string {
+  return String(raw ?? "").replace(/\D/g, "").slice(0, 15);
+}
 
 export const RENTAS_DP_DEPOSIT_USD = "Leonix:rent:deposit_usd";
 export const RENTAS_DP_LEASE_TERM = "Leonix:rent:lease_term_code";
@@ -102,7 +105,7 @@ export function mergeRentasPrivadoMachinePairs(
   if (vid && /^https?:\/\//i.test(vid)) push(out, RENTAS_DP_VIDEO_URL, vid);
   const half = parseInt(String(state.residencial.mediosBanos ?? "").replace(/\D/g, ""), 10);
   if (Number.isFinite(half) && half > 0) push(out, RENTAS_DP_HALF_BATHS_COUNT, String(half));
-  const sms = digitsOnly(state.seller.mensajesTexto ?? "");
+  const sms = digitsOnly15(state.seller.mensajesTexto ?? "");
   if (sms.length >= 10) push(out, RENTAS_DP_CONTACT_SMS_DIGITS, sms);
   return out;
 }
@@ -122,7 +125,7 @@ export function mergeRentasNegocioMachinePairs(
   push(out, RENTAS_DP_BUSINESS_LICENSE, state.negocioLicencia);
   push(out, RENTAS_DP_BUSINESS_WEBSITE, state.negocioSitioWeb);
   push(out, RENTAS_DP_BUSINESS_SOCIAL, state.negocioRedes);
-  const smsN = digitsOnly(state.negocioMensajesTexto ?? "");
+  const smsN = digitsOnly15(state.negocioMensajesTexto ?? "");
   if (smsN.length >= 10) push(out, RENTAS_DP_CONTACT_SMS_DIGITS, smsN);
   return out;
 }

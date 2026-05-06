@@ -55,6 +55,15 @@ export type RentasPrivadoFormState = {
   zonaVecindario: string;
   /** Calle y número (línea única). Los campos número/calle siguen en el tipo por borradores antiguos. */
   direccionLinea1: string;
+  /** Dpto / unidad / suite (opcional). */
+  direccionLinea2: string;
+  /**
+   * Calles principales o cruce cercano (opcional).
+   * Se usa cuando NO se quiere exponer la dirección exacta públicamente.
+   */
+  direccionCruceCercano: string;
+  /** Cuando es true, la salida pública puede usar la dirección exacta (líneas 1/2). */
+  mostrarDireccionExacta: boolean;
   direccionNumero: string;
   direccionCalle: string;
   direccionEstado: string;
@@ -163,6 +172,9 @@ export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
     ciudad: "",
     zonaVecindario: "",
     direccionLinea1: "",
+    direccionLinea2: "",
+    direccionCruceCercano: "",
+    mostrarDireccionExacta: true,
     direccionNumero: "",
     direccionCalle: "",
     direccionEstado: "CA",
@@ -248,6 +260,15 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
   const partialLine1 = typeof partial.direccionLinea1 === "string" ? partial.direccionLinea1.trim() : "";
   const direccionLinea1 =
     partialLine1 || fromParts || mergedUbicRaw.trim() || base.direccionLinea1;
+  const direccionLinea2 = typeof partial.direccionLinea2 === "string" ? partial.direccionLinea2 : base.direccionLinea2;
+  const direccionCruceCercano =
+    typeof (partial as { direccionCruceCercano?: unknown }).direccionCruceCercano === "string"
+      ? String((partial as { direccionCruceCercano: string }).direccionCruceCercano)
+      : base.direccionCruceCercano;
+  const mostrarDireccionExacta =
+    typeof (partial as { mostrarDireccionExacta?: unknown }).mostrarDireccionExacta === "boolean"
+      ? Boolean((partial as { mostrarDireccionExacta: boolean }).mostrarDireccionExacta)
+      : base.mostrarDireccionExacta;
 
   return {
     v: RENTAS_PRIVADO_FORM_VERSION,
@@ -285,6 +306,9 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
     ciudad: br.ciudad,
     zonaVecindario: typeof partial.zonaVecindario === "string" ? partial.zonaVecindario : base.zonaVecindario,
     direccionLinea1,
+    direccionLinea2,
+    direccionCruceCercano,
+    mostrarDireccionExacta,
     direccionNumero: mergedNum,
     direccionCalle: mergedCalle,
     direccionEstado:

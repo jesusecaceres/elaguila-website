@@ -71,12 +71,20 @@ function zipFromRentasDraft(state: { direccionCodigoPostal: string; ubicacionLin
 function rentasPublishCity(state: {
   ciudad: string;
   direccionLinea1?: string;
+  direccionLinea2?: string;
+  direccionCruceCercano?: string;
+  mostrarDireccionExacta?: boolean;
   direccionNumero: string;
   direccionCalle: string;
   ubicacionLinea: string;
 }): string {
   const c = trim(state.ciudad);
   if (c) return c;
+  const exactOk = state.mostrarDireccionExacta !== false;
+  if (!exactOk) {
+    const cross = trim(state.direccionCruceCercano);
+    return cross || trim(state.ubicacionLinea);
+  }
   return trim(buildRentasStreetLine(state)) || trim(state.ubicacionLinea);
 }
 

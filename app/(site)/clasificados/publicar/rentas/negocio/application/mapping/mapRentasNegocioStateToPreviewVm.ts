@@ -16,7 +16,6 @@ import {
 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import type { RentasNegocioFormState } from "../../schema/rentasNegocioFormState";
 import { rentasNegocioToBienesRaicesNegocioState } from "./rentasNegocioToBienesRaicesNegocioState";
-import { digitsOnly } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
 
 function trim(s: string): string {
   return String(s ?? "").trim();
@@ -26,10 +25,26 @@ function priceDigits(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "");
 }
 
-function smsHrefFromState(raw: string): string | null {
-  const d = digitsOnly(raw);
+function digitsOnly15(raw: string): string {
+  return String(raw ?? "").replace(/\D/g, "").slice(0, 15);
+}
+
+function telHrefFromPhoneDisplay(raw: string): string | null {
+  const d = digitsOnly15(raw);
   if (d.length < 10) return null;
-  return `sms:${d}`;
+  return `tel:${d}`;
+}
+
+function waHrefFromPhoneDisplay(raw: string): string | null {
+  const d = digitsOnly15(raw);
+  if (d.length < 10) return null;
+  return `https://wa.me/${d}`;
+}
+
+function smsHrefFromState(raw: string): string | null {
+  const d = digitsOnly15(raw);
+  if (d.replace(/\D/g, "").length < 10) return null;
+  return `sms:${d.replace(/\D/g, "")}`;
 }
 
 function plazoDisplay(s: RentasNegocioFormState): string {
@@ -56,6 +71,8 @@ function rentalContractRows(s: RentasNegocioFormState): BienesRaicesPreviewFact[
   if (req) rows.push({ label: "Requisitos", value: req });
   const zona = trim(s.zonaVecindario);
   if (zona) rows.push({ label: "Zona o vecindario", value: zona });
+  const note = trim(s.negocioBio);
+  if (note) rows.push({ label: "Mensaje del contacto", value: note });
   return rows;
 }
 
@@ -69,9 +86,13 @@ export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): Bie
     priceDisplay = `${priceDisplay} / mes`;
   }
   const smsHref = smsHrefFromState(s.negocioMensajesTexto);
-  const line1 = buildRentasStreetLine(s);
+  const telHref = telHrefFromPhoneDisplay(trim(s.negocioTelDirecto) || trim(s.negocioTelOficina));
+  const waHref = waHrefFromPhoneDisplay(trim(s.negocioWhatsapp) || trim(s.negocioTelDirecto) || trim(s.negocioTelOficina));
+  const exact = s.mostrarDireccionExacta !== false;
+  const cross = trim(s.direccionCruceCercano);
+  const line1 = exact ? buildRentasStreetLine(s) : cross;
   const cityStateZip = buildRentasCityStateZipLine(s);
-  const assembled = buildRentasAssembledAddressLine(s);
+  const assembled = exact ? buildRentasAssembledAddressLine(s) : [line1, trim(s.ciudad), trim(s.zonaVecindario)].filter(Boolean).join(", ");
   const mapsUrl = rentasGoogleMapsUrlFromQuery(buildRentasGoogleMapsSearchQuery(s));
   const zona = trim(s.zonaVecindario);
   const hasMeaningfulAddress = Boolean(line1 || trim(s.ciudad) || trim(s.direccionCodigoPostal) || mapsUrl);
@@ -80,8 +101,18 @@ export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): Bie
     priceDisplay,
     addressLine: assembled || vm.addressLine,
     propertyDetailsRows: extra.length ? [...extra, ...vm.propertyDetailsRows] : vm.propertyDetailsRows,
+    identity: {
+      ...vm.identity,
+      contactPhone: trim(s.negocioTelDirecto) || trim(s.negocioTelOficina),
+      contactEmail: trim(s.negocioEmail),
+      bioLine: trim(s.negocioBio) || vm.identity.bioLine,
+    },
     contact: {
       ...vm.contact,
+      llamarHref: telHref ?? vm.contact.llamarHref,
+      showLlamar: Boolean(telHref ?? vm.contact.llamarHref),
+      whatsappHref: waHref ?? vm.contact.whatsappHref,
+      showWhatsapp: Boolean(waHref ?? vm.contact.whatsappHref),
       showSms: Boolean(smsHref),
       smsHref,
     },

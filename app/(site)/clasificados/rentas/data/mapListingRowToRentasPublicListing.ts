@@ -139,7 +139,14 @@ function bathsFromPairs(dp: unknown): string {
 }
 
 function sqftFromPairs(dp: unknown): string {
-  return pairValue(dp, "superficie") ?? pairValue(dp, "sqft") ?? pairValue(dp, "m²") ?? "—";
+  return (
+    pairValue(dp, "tamaño interior") ??
+    pairValue(dp, "interior") ??
+    pairValue(dp, "superficie") ??
+    pairValue(dp, "sqft") ??
+    pairValue(dp, "m²") ??
+    "—"
+  );
 }
 
 function amuebladoFromPairs(dp: unknown): boolean | undefined {
@@ -228,7 +235,16 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const city = trim(row.city) || undefined;
   const zipRaw = trim(row.zip);
   const postalCode = zipRaw.replace(/\D/g, "").slice(0, 10) || mf.postalCode?.replace(/\D/g, "").slice(0, 10) || undefined;
-  const addressLine = [city, postalCode].filter(Boolean).join(city && postalCode ? ", " : "") || city || postalCode || "—";
+  const publicLocationLine =
+    pairValue(row.detail_pairs, "Ubicación") ??
+    pairValue(row.detail_pairs, "Dirección") ??
+    null;
+  const addressLine =
+    trim(publicLocationLine) ||
+    [city, postalCode].filter(Boolean).join(city && postalCode ? ", " : "") ||
+    city ||
+    postalCode ||
+    "—";
 
   const priceNum =
     typeof row.price === "number" && Number.isFinite(row.price)
@@ -245,6 +261,10 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const contactEmail = emailRaw.includes("@") ? emailRaw : undefined;
   const smsRaw = (rx.contactSmsDigits ?? "").replace(/\D/g, "");
   const contactSmsDigits = smsRaw.length >= 10 ? smsRaw.slice(0, 15) : undefined;
+  const contactNote =
+    pairValue(row.detail_pairs, "Mensaje del contacto") ??
+    pairValue(row.detail_pairs, "Nota para interesados") ??
+    undefined;
 
   const img = firstImageUrl(row.images);
   const gal = galleryUrls(row.images);
@@ -278,6 +298,12 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const bedsHuman = bedsFromPairs(row.detail_pairs);
   const bathsHuman = bathsFromPairs(row.detail_pairs);
   const sqftStr = sqftFromPairs(row.detail_pairs);
+  const fullBaths = pairValue(row.detail_pairs, "Baños completos") ?? undefined;
+  const halfBaths = pairValue(row.detail_pairs, "Medios baños") ?? undefined;
+  const lotSqft = pairValue(row.detail_pairs, "Tamaño del lote") ?? undefined;
+  const yearBuilt = pairValue(row.detail_pairs, "Año de construcción") ?? undefined;
+  const condition = pairValue(row.detail_pairs, "Condición") ?? undefined;
+  const parking = pairValue(row.detail_pairs, "Estacionamiento") ?? undefined;
   const beds = mf.bedroomsCount != null ? String(mf.bedroomsCount) : bedsHuman;
   const baths = mf.bathroomsCount != null ? String(mf.bathroomsCount) : bathsHuman;
 
@@ -298,6 +324,7 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     contactPhone,
     contactEmail,
     contactSmsDigits,
+    contactNote,
     addressLine,
     city,
     postalCode,
@@ -307,7 +334,13 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     beds,
     baths,
     halfBathsCount,
+    fullBaths,
+    halfBaths,
     sqft: sqftStr,
+    lotSqft,
+    yearBuilt,
+    condition,
+    parking,
     interiorSqftApprox: sqftNumericFromText(sqftStr),
     parkingSpots: mf.parkingSpots,
     pool: mf.pool,

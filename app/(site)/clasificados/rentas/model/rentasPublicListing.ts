@@ -26,6 +26,8 @@ export type RentasPublicListing = {
   contactEmail?: string;
   /** Dígitos para `sms:` cuando el anunciante publicó número de texto (machine pair). */
   contactSmsDigits?: string;
+  /** Nota breve del contacto para interesados (cuando fue publicada en el formulario). */
+  contactNote?: string;
   addressLine: string;
   /** Normalized city/metro for browse filters (maps from publish `ciudad` + geocoding). */
   city?: string;
@@ -46,7 +48,19 @@ export type RentasPublicListing = {
   baths: string;
   /** Half-baths count when persisted (`Leonix:rent:half_baths_count`). */
   halfBathsCount?: number | null;
+  /** Human pair: "Baños completos" when available. */
+  fullBaths?: string;
+  /** Human pair: "Medios baños" when available. */
+  halfBaths?: string;
   sqft: string;
+  /** Human pair: "Tamaño del lote" when available. */
+  lotSqft?: string;
+  /** Human pair: "Año de construcción" when available. */
+  yearBuilt?: string;
+  /** Human pair: "Condición" when available. */
+  condition?: string;
+  /** Human pair: "Estacionamiento" when available. */
+  parking?: string;
   categoriaPropiedad: BrNegocioCategoriaPropiedad;
   branch: RentasSellerType;
   badges: string[];

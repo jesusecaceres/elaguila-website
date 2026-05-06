@@ -310,6 +310,42 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
             />
           </AiField>
         </div>
+        <div className="sm:col-span-2 grid min-w-0 gap-4 sm:grid-cols-2 sm:items-end sm:gap-5">
+          <AiField label="Dirección línea 2" hint="Departamento, unidad, suite, edificio… (opcional).">
+            <input
+              className={fieldClass}
+              value={state.direccionLinea2}
+              onChange={(e) => setState((s) => ({ ...s, direccionLinea2: e.target.value }))}
+              autoComplete="address-line2"
+              placeholder="Departamento, unidad, suite…"
+            />
+          </AiField>
+          <AiField label="Mostrar dirección exacta cuando aplique">
+            <label className="flex min-h-[44px] items-center gap-3 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-3 py-2 text-sm text-[#2C2416]">
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                checked={Boolean(state.mostrarDireccionExacta)}
+                onChange={(e) => setState((s) => ({ ...s, mostrarDireccionExacta: e.target.checked }))}
+              />
+              <span className="min-w-0">Permitir mostrar la dirección exacta en el anuncio.</span>
+            </label>
+          </AiField>
+        </div>
+        <div className="sm:col-span-2">
+          <AiField
+            label="Calles principales o cruce cercano (opcional)"
+            hint="Si no quieres mostrar la dirección exacta, puedes indicar calles principales, un cruce cercano o una referencia general."
+          >
+            <input
+              className={fieldClass}
+              value={state.direccionCruceCercano}
+              onChange={(e) => setState((s) => ({ ...s, direccionCruceCercano: e.target.value }))}
+              autoComplete="off"
+              placeholder="Calles principales o cruce cercano"
+            />
+          </AiField>
+        </div>
         <div className="sm:col-span-2 grid min-w-0 gap-4 sm:grid-cols-3 sm:gap-5">
           <AiField
             required
@@ -369,7 +405,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
             {" "}
             *
           </span>{" "}
-          y la dirección o el código postal. El mapa se genera automáticamente a partir de la dirección reunida.
+          y la referencia (dirección exacta o cruce cercano). El mapa se genera automáticamente a partir de la referencia reunida.
         </p>
         <div className="sm:col-span-2">
           <AiField

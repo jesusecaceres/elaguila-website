@@ -20,6 +20,28 @@ function trim(s: string): string {
   return String(s ?? "").trim();
 }
 
+function digitsOnly15(raw: string): string {
+  return String(raw ?? "").replace(/\D/g, "").slice(0, 15);
+}
+
+function telHrefFromPhoneDisplay(raw: string): string | null {
+  const d = digitsOnly15(raw);
+  if (d.length < 10) return null;
+  return `tel:${d}`;
+}
+
+function smsHrefFromPhoneDisplay(raw: string): string | null {
+  const d = digitsOnly15(raw);
+  if (d.length < 10) return null;
+  return `sms:${d}`;
+}
+
+function waHrefFromPhoneDisplay(raw: string): string | null {
+  const d = digitsOnly15(raw);
+  if (d.length < 10) return null;
+  return `https://wa.me/${d}`;
+}
+
 const ESTADO_RENTAS: Record<RentasPrivadoFormState["estadoAnuncio"], string> = {
   disponible: "Disponible",
   pendiente: "Pendiente",
@@ -100,6 +122,8 @@ function rentalDetailRows(s: RentasPrivadoFormState): BienesRaicesPreviewFact[] 
   if (req) rows.push({ label: "Requisitos", value: req });
   const zona = trim(s.zonaVecindario);
   if (zona) rows.push({ label: "Zona o vecindario", value: zona });
+  const note = trim(s.seller.notaContacto);
+  if (note) rows.push({ label: "Mensaje del contacto", value: note });
   return rows;
 }
 
@@ -130,13 +154,20 @@ function rentOperationSummary(cat: RentasPrivadoFormState["categoriaPropiedad"])
 
 export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): BienesRaicesPrivadoPreviewVm {
   const base = mapBienesRaicesPrivadoStateToPreviewVm(toBienesRaicesPrivadoShape(s));
-  const line1 = buildRentasStreetLine(s);
+  const exact = s.mostrarDireccionExacta !== false;
+  const cross = trim(s.direccionCruceCercano);
+  const line1 = exact ? buildRentasStreetLine(s) : cross;
   const cityStateZip = buildRentasCityStateZipLine(s);
   const mapsUrl = rentasGoogleMapsUrlFromQuery(buildRentasGoogleMapsSearchQuery(s));
   const hasMeaningfulAddress = Boolean(line1 || trim(s.ciudad) || trim(s.direccionCodigoPostal) || mapsUrl);
-  const addressLine = buildRentasAssembledAddressLine(s);
+  const addressLine = exact
+    ? buildRentasAssembledAddressLine(s)
+    : [line1, trim(s.ciudad), trim(s.zonaVecindario)].filter(Boolean).join(", ");
   const rentRows = rentalDetailRows(s);
   const rentFacts = rentalQuickFacts(s);
+  const telHref = telHrefFromPhoneDisplay(s.seller.telefono);
+  const smsHref = smsHrefFromPhoneDisplay(s.seller.mensajesTexto);
+  const waHref = waHrefFromPhoneDisplay(trim(s.seller.whatsapp) || trim(s.seller.telefono));
   const mailto =
     trim(s.seller.correo) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trim(s.seller.correo))
       ? `mailto:${trim(s.seller.correo)}?subject=${encodeURIComponent("Pregunta sobre tu renta (Leonix)")}`
@@ -153,11 +184,21 @@ export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): Bie
     seller: {
       ...base.seller,
       byOwnerLabel: "",
+      phoneDisplay: trim(s.seller.telefono),
+      whatsappDisplay: trim(s.seller.whatsapp),
+      smsDisplay: trim(s.seller.mensajesTexto),
+      noteLine: trim(s.seller.notaContacto),
     },
     contact: {
       ...base.contact,
       solicitarInfoHref: mailto,
       showSolicitarInfo: Boolean(mailto),
+      llamarHref: telHref,
+      showLlamar: Boolean(telHref),
+      whatsappHref: waHref,
+      showWhatsapp: Boolean(waHref),
+      smsHref,
+      showSms: Boolean(smsHref),
       instructionsLine: "",
     },
     location: {
