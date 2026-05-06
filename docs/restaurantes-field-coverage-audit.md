@@ -23,7 +23,7 @@
 | `zipCode` | identity | col + json | yes | zip | yes | `zip` | — | |
 | `neighborhood` | identity | col + json | yes | optional | yes | URL `nbh` (substring on column) | — | Also in free-text `q` blob |
 | `priceLevel` | identity | col + json | yes | — | no | `price` | — | |
-| `languagesSpoken` | identity | json | yes | — | **intentionally no** | no | — | Detail / trust; not a current discovery axis |
+| `languagesSpoken` | identity | json | yes | — | **intentionally no** | URL `spoken` (CSV) | — | Uses `RESTAURANTE_LANGUAGES` keys (`es`, `en`, `other_lang`). Distinct from UI `lang`. |
 | `serviceModes[]` | operating | col + json | yes | implied chips | no | `svc` (whitelisted) | — | Shell row carries full taxonomy modes |
 | `dineIn` / `takeout` / `delivery` booleans | operating | json | yes | CTA copy | no | covered by `serviceModes` / `svc` | — | Publish path relies on `serviceModes` for discovery |
 | `reservationsAvailable` | operating | json | yes | — | no | URL `rsv=1` | — | Mapped on shell row from `listing_json` |
@@ -41,9 +41,14 @@
 | `addressLine*` / `state` | location | json | yes | map/address | no | no | — | Detail-first; not in `q` (noise) |
 | `serviceAreaText` | location | json | yes | map/address | yes (in `q` blob) | no | — | Free-text service area description |
 | `deliveryRadiusMiles` | location | json | yes | — | no | URL `drm` (minimum declared miles) | — | Requires numeric value on listing |
+| `restaurantAmenities` (payments/service/accessibility/atmosphere/amenities/foodOptions) | amenities catalog | json | yes | — | no | URL `pay`, `amb`, `amen`, `acc`, `food` (CSV) | — | Canonical ids from `lib/restauranteAmenitiesCatalog.ts`; discovery row stores normalized keys per group. |
 | `locationPrivacyMode` | location | json | yes | — | no | no | — | Compliance; not discovery |
 | `heroImage` / gallery / video | media | json (+ `hero_image_url` col) | yes | card image | no | no | — | Hero denormalized for listing performance |
 | `featuredDishes[]` | media/extra | json | yes | — | **intentionally no** in `q` | no | — | Avoid partial dish match noise; can promote to `q` later with indexing story |
+| `menuUrl` / `menuFile` | contact/CTA | json | yes | — | no | URL `menu=1` | — | Derived `hasMenu` boolean on discovery row. |
+| Social URLs (`instagramUrl`, `facebookUrl`, `tiktokUrl`, `youtubeUrl`) | contact/CTA | json | yes | — | no | URL `social=1` | — | Derived `hasSocial` boolean on discovery row. |
+| `websiteUrl` | contact/CTA | json | yes | — | no | URL `web=1` | — | Derived `hasWebsite` boolean on discovery row. |
+| `whatsAppNumber` | contact/CTA | json | yes | — | no | URL `wa=1` | — | Derived `hasWhatsApp` boolean on discovery row. |
 | `highlights[]` | extras | col + json | yes | — | no | `hl`, `family`, `diet` | — | |
 | `movingVendorStack` etc. | stacks | json | yes | detail modules | no | no | — | Stacks are detail-first |
 | `googleReviewUrl` / `yelpReviewUrl` | trust | json | yes | — | no | no | — | |
@@ -91,3 +96,4 @@
 - Full-text search inside `longDescription`, dish titles, or phone numbers (privacy/indexing tradeoff).
 - Geospatial radius discovery (`near` with coords) — contract still intent-only without coords, unchanged.
 - **Driving-time** or polygon service-area matching — only text `q` + numeric minimum **declared** delivery miles (`drm`).
+- Replacing existing `diet=` contract: `diet` remains for landing simplicity; advanced results can additionally use `food=` (CSV) for granular food options.

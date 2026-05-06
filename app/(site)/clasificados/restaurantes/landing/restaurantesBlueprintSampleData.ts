@@ -53,6 +53,12 @@ export const RESTAURANTES_BLUEPRINT_QUICK_FILTERS: RestaurantesQuickFilter[] = [
     resultParams: { family: "1" },
   },
   {
+    id: "vegan",
+    labelEs: "Opciones veganas",
+    labelEn: "Vegan options",
+    resultParams: { diet: "vegan" },
+  },
+  {
     id: "top_rated",
     labelEs: "Mejor valorados",
     labelEn: "Top rated",
@@ -63,6 +69,12 @@ export const RESTAURANTES_BLUEPRINT_QUICK_FILTERS: RestaurantesQuickFilter[] = [
     labelEs: "Precio",
     labelEn: "Price",
     resultParams: { price: "$$" },
+  },
+  {
+    id: "menu",
+    labelEs: "Menú disponible",
+    labelEn: "Menu available",
+    resultParams: { menu: "1" },
   },
 ];
 

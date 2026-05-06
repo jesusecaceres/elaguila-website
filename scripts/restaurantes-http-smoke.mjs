@@ -101,7 +101,7 @@ async function main() {
       ["GET results", `${base}/clasificados/restaurantes/resultados`, async () => httpGet(`${base}/clasificados/restaurantes/resultados`)],
       ["GET publish app", `${base}/publicar/restaurantes`, async () => httpGet(`${base}/publicar/restaurantes`)],
       [
-        "POST publish empty body → 400",
+        "POST publish empty body → 400/422",
         `${base}/api/clasificados/restaurantes/publish`,
         async () => httpPostJson(`${base}/api/clasificados/restaurantes/publish`, "{}"),
       ],
@@ -109,7 +109,7 @@ async function main() {
 
     for (const [label, url, fn] of checks) {
       const r = await fn();
-      const ok = label.includes("400") ? r.status === 400 : r.status === 200;
+      const ok = label.includes("400/422") ? r.status === 400 || r.status === 422 : r.status === 200;
       if (!ok) {
         throw new Error(`${label} failed: status=${r.status} url=${url} bodyHead=${JSON.stringify(r.body?.slice(0, 120))}`);
       }

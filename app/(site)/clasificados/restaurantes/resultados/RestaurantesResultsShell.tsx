@@ -12,6 +12,7 @@ import {
   RESTAURANTE_BUSINESS_TYPES,
   RESTAURANTE_CUISINES,
   RESTAURANTE_HIGHLIGHTS,
+  RESTAURANTE_LANGUAGES,
   RESTAURANTE_PRICE_LEVELS,
 } from "@/app/clasificados/restaurantes/application/restauranteTaxonomy";
 import { type RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
@@ -27,6 +28,7 @@ import {
   type RestaurantesDiscoveryState,
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
 import { requestCoarsePlaceFromBrowserGeolocation } from "@/app/clasificados/restaurantes/lib/restaurantesCoarseGeolocation";
+import { getRestauranteAmenityGroupMeta } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
 import {
   readRestaurantesSavedIds,
   rememberRestaurantesDiscoveryFromState,
@@ -77,6 +79,14 @@ function mergeDiscovery(
   patch: Partial<RestaurantesDiscoveryState>,
 ): RestaurantesDiscoveryState {
   return { ...base, ...patch };
+}
+
+function toggleKey(list: string[], key: string): string[] {
+  if (!key) return list;
+  const set = new Set(list);
+  if (set.has(key)) set.delete(key);
+  else set.add(key);
+  return Array.from(set);
 }
 
 export function RestaurantesResultsShell({
@@ -256,6 +266,17 @@ export function RestaurantesResultsShell({
         promotedOnly: "Featured only",
         verifiedOnly: "Leonix verified only",
         deliveryRadiusMin: "Min. delivery radius (miles)",
+        sectionDiet: "Diet",
+        sectionPayments: "Payments",
+        sectionAmbience: "Atmosphere",
+        sectionAmenities: "Amenities",
+        sectionAccessibility: "Accessibility",
+        sectionLanguages: "Languages",
+        sectionExtras: "Extras",
+        menuOnly: "Menu available",
+        socialOnly: "Has social media",
+        websiteOnly: "Has website",
+        whatsappOnly: "Has WhatsApp",
       };
     }
     return {
@@ -334,10 +355,40 @@ export function RestaurantesResultsShell({
       promotedOnly: "Solo destacados",
       verifiedOnly: "Solo verificados Leonix",
       deliveryRadiusMin: "Radio mín. de entrega (millas)",
+      sectionDiet: "Dieta",
+      sectionPayments: "Pagos",
+      sectionAmbience: "Ambiente",
+      sectionAmenities: "Comodidades",
+      sectionAccessibility: "Accesibilidad",
+      sectionLanguages: "Idiomas",
+      sectionExtras: "Extras",
+      menuOnly: "Menú disponible",
+      socialOnly: "Con redes sociales",
+      websiteOnly: "Con sitio web",
+      whatsappOnly: "Con WhatsApp",
     };
   }, [lang]);
 
   const landingHref = appendLangToPath("/clasificados/restaurantes", lang);
+
+  const amenityLabel = useMemo(() => {
+    const payments = getRestauranteAmenityGroupMeta("payments");
+    const atmosphere = getRestauranteAmenityGroupMeta("atmosphere");
+    const amenities = getRestauranteAmenityGroupMeta("amenities");
+    const accessibility = getRestauranteAmenityGroupMeta("accessibility");
+    const foodOptions = getRestauranteAmenityGroupMeta("foodOptions");
+    const meta = {
+      payments,
+      atmosphere,
+      amenities,
+      accessibility,
+      foodOptions,
+    } as const;
+    return (group: keyof typeof meta, id: string) =>
+      (lang === "en"
+        ? meta[group].items.find((x) => x.id === id)?.labelEn
+        : meta[group].items.find((x) => x.id === id)?.labelEs) ?? id;
+  }, [lang]);
 
   const filterPanel = (
     <div className="space-y-6">
@@ -531,6 +582,198 @@ export function RestaurantesResultsShell({
         </div>
       </section>
 
+      <section aria-labelledby="rx-f-diet">
+        <h3 id="rx-f-diet" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+          {t.sectionDiet}
+        </h3>
+        <div className="mt-2 space-y-3">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-[#2D241E]/20"
+              checked={parsed.family}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { family: e.target.checked, page: 1 }))}
+            />
+            {t.family}
+          </label>
+          <div>
+            <label className="text-xs font-semibold text-[#2D241E]/60" htmlFor="rx-filter-diet">
+              {t.dietFull}
+            </label>
+            <select
+              id="rx-filter-diet"
+              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+              value={parsed.diet}
+              onChange={(e) =>
+                pushState(
+                  mergeDiscovery(parsed, {
+                    diet: (e.target.value as RestaurantesDiscoveryState["diet"]) || "",
+                    page: 1,
+                  }),
+                )
+              }
+            >
+              <option value="">{t.any}</option>
+              <option value="vegan">Vegano (opciones)</option>
+              <option value="glutenfree">Sin gluten</option>
+              <option value="halal">Halal</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {getRestauranteAmenityGroupMeta("foodOptions").items.map((it) => (
+              <label key={it.id} className="flex cursor-pointer items-start gap-2 rounded-[12px] border border-[#2D241E]/10 bg-[#FFFCF7] p-2 text-xs font-semibold text-[#2D241E]">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 rounded border-[#2D241E]/20"
+                  checked={parsed.food.includes(it.id)}
+                  onChange={() => pushState(mergeDiscovery(parsed, { food: toggleKey(parsed.food, it.id), page: 1 }))}
+                />
+                <span className="leading-snug">{lang === "en" ? it.labelEn : it.labelEs}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="rx-f-payments">
+        <h3 id="rx-f-payments" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+          {t.sectionPayments}
+        </h3>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {getRestauranteAmenityGroupMeta("payments").items.map((it) => (
+            <label key={it.id} className="flex cursor-pointer items-start gap-2 rounded-[12px] border border-[#2D241E]/10 bg-[#FFFCF7] p-2 text-xs font-semibold text-[#2D241E]">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-[#2D241E]/20"
+                checked={parsed.pay.includes(it.id)}
+                onChange={() => pushState(mergeDiscovery(parsed, { pay: toggleKey(parsed.pay, it.id), page: 1 }))}
+              />
+              <span className="leading-snug">{lang === "en" ? it.labelEn : it.labelEs}</span>
+            </label>
+          ))}
+        </div>
+      </section>
+
+      <section aria-labelledby="rx-f-ambience">
+        <h3 id="rx-f-ambience" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+          {t.sectionAmbience}
+        </h3>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {getRestauranteAmenityGroupMeta("atmosphere").items.map((it) => (
+            <label key={it.id} className="flex cursor-pointer items-start gap-2 rounded-[12px] border border-[#2D241E]/10 bg-[#FFFCF7] p-2 text-xs font-semibold text-[#2D241E]">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-[#2D241E]/20"
+                checked={parsed.amb.includes(it.id)}
+                onChange={() => pushState(mergeDiscovery(parsed, { amb: toggleKey(parsed.amb, it.id), page: 1 }))}
+              />
+              <span className="leading-snug">{lang === "en" ? it.labelEn : it.labelEs}</span>
+            </label>
+          ))}
+        </div>
+      </section>
+
+      <section aria-labelledby="rx-f-amen">
+        <h3 id="rx-f-amen" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+          {t.sectionAmenities}
+        </h3>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {getRestauranteAmenityGroupMeta("amenities").items.map((it) => (
+            <label key={it.id} className="flex cursor-pointer items-start gap-2 rounded-[12px] border border-[#2D241E]/10 bg-[#FFFCF7] p-2 text-xs font-semibold text-[#2D241E]">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-[#2D241E]/20"
+                checked={parsed.amen.includes(it.id)}
+                onChange={() => pushState(mergeDiscovery(parsed, { amen: toggleKey(parsed.amen, it.id), page: 1 }))}
+              />
+              <span className="leading-snug">{lang === "en" ? it.labelEn : it.labelEs}</span>
+            </label>
+          ))}
+        </div>
+      </section>
+
+      <section aria-labelledby="rx-f-acc">
+        <h3 id="rx-f-acc" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+          {t.sectionAccessibility}
+        </h3>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {getRestauranteAmenityGroupMeta("accessibility").items.map((it) => (
+            <label key={it.id} className="flex cursor-pointer items-start gap-2 rounded-[12px] border border-[#2D241E]/10 bg-[#FFFCF7] p-2 text-xs font-semibold text-[#2D241E]">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-[#2D241E]/20"
+                checked={parsed.acc.includes(it.id)}
+                onChange={() => pushState(mergeDiscovery(parsed, { acc: toggleKey(parsed.acc, it.id), page: 1 }))}
+              />
+              <span className="leading-snug">{lang === "en" ? it.labelEn : it.labelEs}</span>
+            </label>
+          ))}
+        </div>
+      </section>
+
+      <section aria-labelledby="rx-f-langs">
+        <h3 id="rx-f-langs" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+          {t.sectionLanguages}
+        </h3>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {RESTAURANTE_LANGUAGES.filter((l) => l.key !== "other_lang").map((it) => (
+            <label key={it.key} className="flex cursor-pointer items-center gap-2 rounded-[12px] border border-[#2D241E]/10 bg-[#FFFCF7] p-2 text-xs font-semibold text-[#2D241E]">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-[#2D241E]/20"
+                checked={parsed.spoken.includes(it.key)}
+                onChange={() => pushState(mergeDiscovery(parsed, { spoken: toggleKey(parsed.spoken, it.key), page: 1 }))}
+              />
+              <span className="leading-snug">{it.labelEs}</span>
+            </label>
+          ))}
+        </div>
+      </section>
+
+      <section aria-labelledby="rx-f-extras">
+        <h3 id="rx-f-extras" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+          {t.sectionExtras}
+        </h3>
+        <div className="mt-2 space-y-3">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-[#2D241E]/20"
+              checked={parsed.menuOnly}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { menuOnly: e.target.checked, page: 1 }))}
+            />
+            {t.menuOnly}
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-[#2D241E]/20"
+              checked={parsed.socialOnly}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { socialOnly: e.target.checked, page: 1 }))}
+            />
+            {t.socialOnly}
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-[#2D241E]/20"
+              checked={parsed.websiteOnly}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { websiteOnly: e.target.checked, page: 1 }))}
+            />
+            {t.websiteOnly}
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-[#2D241E]/20"
+              checked={parsed.whatsappOnly}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { whatsappOnly: e.target.checked, page: 1 }))}
+            />
+            {t.whatsappOnly}
+          </label>
+        </div>
+      </section>
+
       <section aria-labelledby="rx-f-more">
         <h3 id="rx-f-more" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
           {t.sectionMore}
@@ -579,38 +822,6 @@ export function RestaurantesResultsShell({
                 );
               }}
             />
-          </div>
-          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
-            <input
-              type="checkbox"
-              className="h-5 w-5 rounded border-[#2D241E]/20"
-              checked={parsed.family}
-              onChange={(e) => pushState(mergeDiscovery(parsed, { family: e.target.checked, page: 1 }))}
-            />
-            {t.family}
-          </label>
-          <div>
-            <label className="text-xs font-semibold text-[#2D241E]/60" htmlFor="rx-filter-diet">
-              {t.dietFull}
-            </label>
-            <select
-              id="rx-filter-diet"
-              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
-              value={parsed.diet}
-              onChange={(e) =>
-                pushState(
-                  mergeDiscovery(parsed, {
-                    diet: (e.target.value as RestaurantesDiscoveryState["diet"]) || "",
-                    page: 1,
-                  }),
-                )
-              }
-            >
-              <option value="">{t.any}</option>
-              <option value="vegan">Vegano (opciones)</option>
-              <option value="glutenfree">Sin gluten</option>
-              <option value="halal">Halal</option>
-            </select>
           </div>
           <div>
             <label className="text-xs font-semibold text-[#2D241E]/60" htmlFor="rx-filter-hl">
@@ -765,6 +976,68 @@ export function RestaurantesResultsShell({
         clear: () => pushState(mergeDiscovery(parsed, { pickupOnly: false, page: 1 })),
       });
     if (parsed.diet) chips.push({ id: "diet", label: parsed.diet, clear: () => pushState(mergeDiscovery(parsed, { diet: "", page: 1 })) });
+    for (const id of parsed.food) {
+      chips.push({
+        id: `food:${id}`,
+        label: amenityLabel("foodOptions", id),
+        clear: () => pushState(mergeDiscovery(parsed, { food: parsed.food.filter((x) => x !== id), page: 1 })),
+      });
+    }
+    for (const id of parsed.pay) {
+      chips.push({
+        id: `pay:${id}`,
+        label: amenityLabel("payments", id),
+        clear: () => pushState(mergeDiscovery(parsed, { pay: parsed.pay.filter((x) => x !== id), page: 1 })),
+      });
+    }
+    for (const id of parsed.amb) {
+      chips.push({
+        id: `amb:${id}`,
+        label: amenityLabel("atmosphere", id),
+        clear: () => pushState(mergeDiscovery(parsed, { amb: parsed.amb.filter((x) => x !== id), page: 1 })),
+      });
+    }
+    for (const id of parsed.amen) {
+      chips.push({
+        id: `amen:${id}`,
+        label: amenityLabel("amenities", id),
+        clear: () => pushState(mergeDiscovery(parsed, { amen: parsed.amen.filter((x) => x !== id), page: 1 })),
+      });
+    }
+    for (const id of parsed.acc) {
+      chips.push({
+        id: `acc:${id}`,
+        label: amenityLabel("accessibility", id),
+        clear: () => pushState(mergeDiscovery(parsed, { acc: parsed.acc.filter((x) => x !== id), page: 1 })),
+      });
+    }
+    for (const id of parsed.spoken) {
+      chips.push({
+        id: `spoken:${id}`,
+        label: RESTAURANTE_LANGUAGES.find((x) => x.key === id)?.labelEs ?? id,
+        clear: () => pushState(mergeDiscovery(parsed, { spoken: parsed.spoken.filter((x) => x !== id), page: 1 })),
+      });
+    }
+    if (parsed.menuOnly)
+      chips.push({ id: "menu", label: t.menuOnly, clear: () => pushState(mergeDiscovery(parsed, { menuOnly: false, page: 1 })) });
+    if (parsed.socialOnly)
+      chips.push({
+        id: "social",
+        label: t.socialOnly,
+        clear: () => pushState(mergeDiscovery(parsed, { socialOnly: false, page: 1 })),
+      });
+    if (parsed.websiteOnly)
+      chips.push({
+        id: "web",
+        label: t.websiteOnly,
+        clear: () => pushState(mergeDiscovery(parsed, { websiteOnly: false, page: 1 })),
+      });
+    if (parsed.whatsappOnly)
+      chips.push({
+        id: "wa",
+        label: t.whatsappOnly,
+        clear: () => pushState(mergeDiscovery(parsed, { whatsappOnly: false, page: 1 })),
+      });
     if (parsed.hl)
       chips.push({
         id: "hl",

@@ -19,6 +19,12 @@ const DISCOVERY_SVC_PARAM_WHITELIST = new Set<string>([
   "other",
 ]);
 
+function intersectsAny(a: string[] | undefined, b: string[]): boolean {
+  if (!a?.length || b.length === 0) return false;
+  const set = new Set(a);
+  return b.some((x) => set.has(x));
+}
+
 /**
  * Free-text `q` matches (case-insensitive substring) against the same fields we intend to index for publish:
  * business name, cuisine copy line, primary/secondary cuisine keys (taxonomy), city, ZIP, neighborhood,
@@ -88,9 +94,14 @@ export function filterRestaurantesBlueprintRows(
     if (s.family && !row.familyFriendly) return false;
     if (s.price && row.priceLevel !== s.price) return false;
     if (s.open && !row.openNowDemo) return false;
-    if (s.diet === "vegan" && !row.veganOptions) return false;
-    if (s.diet === "glutenfree" && !row.glutenFreeOptions) return false;
-    if (s.diet === "halal" && !row.halalCuisine && row.primaryCuisineKey !== "halal") return false;
+    if (s.diet === "vegan" && !(row.veganOptions || (row.foodOptionKeys ?? []).includes("vegan_options"))) return false;
+    if (s.diet === "glutenfree" && !(row.glutenFreeOptions || (row.foodOptionKeys ?? []).includes("gluten_free_options")))
+      return false;
+    if (
+      s.diet === "halal" &&
+      !(row.halalCuisine || row.primaryCuisineKey === "halal" || row.secondaryCuisineKey === "halal" || (row.foodOptionKeys ?? []).includes("halal"))
+    )
+      return false;
     if (s.top && row.rating < 4.5) return false;
 
     if (s.reservationsOnly && row.reservationsAvailable !== true) return false;
@@ -107,6 +118,18 @@ export function filterRestaurantesBlueprintRows(
     if (s.homeBasedBusiness && !row.homeBasedBusiness) return false;
     if (s.foodTruck && !row.foodTruck) return false;
     if (s.popUp && !row.popUp) return false;
+
+    if (s.menuOnly && row.hasMenu !== true) return false;
+    if (s.socialOnly && row.hasSocial !== true) return false;
+    if (s.websiteOnly && row.hasWebsite !== true) return false;
+    if (s.whatsappOnly && row.hasWhatsApp !== true) return false;
+
+    if (s.spoken.length > 0 && !intersectsAny(row.spokenLanguageKeys, s.spoken)) return false;
+    if (s.pay.length > 0 && !intersectsAny(row.paymentMethodKeys, s.pay)) return false;
+    if (s.amb.length > 0 && !intersectsAny(row.ambienceKeys, s.amb)) return false;
+    if (s.amen.length > 0 && !intersectsAny(row.amenityKeys, s.amen)) return false;
+    if (s.acc.length > 0 && !intersectsAny(row.accessibilityKeys, s.acc)) return false;
+    if (s.food.length > 0 && !intersectsAny(row.foodOptionKeys, s.food)) return false;
 
     if (s.hl) {
       const keys = row.highlightKeys ?? [];

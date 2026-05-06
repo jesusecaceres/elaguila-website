@@ -35,7 +35,6 @@ import { draftToRestaurantePublicListingInsert } from "../app/(site)/clasificado
 import { filterRestaurantesBlueprintRows, sortRestaurantesBlueprintRows } from "../app/(site)/clasificados/restaurantes/lib/filterRestaurantesBlueprintRows";
 import { mapRestaurantesPublicListingDbRowToShellInventoryRow } from "../app/(site)/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import type { RestaurantesPublicListingDbRow } from "../app/(site)/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
-import { allocateNextRestauranteLeonixAdId } from "../app/(site)/clasificados/restaurantes/lib/restaurantesLeonixAdId";
 import { defaultRestaurantesDiscoveryState } from "../app/(site)/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
 
 function openDay(): RestauranteDaySchedule {
@@ -59,6 +58,18 @@ function buildSelftestDraft(slugSuffix: string) {
     zipCode: "94103",
     neighborhood: "Mission",
     serviceModes: ["dine_in"],
+    languagesSpoken: ["es", "en"],
+    restaurantAmenities: {
+      payments: ["cash", "credit_cards"],
+      atmosphere: ["casual"],
+      accessibility: ["wheelchair_accessible"],
+      amenities: ["wifi"],
+      foodOptions: ["vegan_options"],
+    },
+    websiteUrl: "https://example.com",
+    whatsAppNumber: "14155550199",
+    menuUrl: "https://example.com/menu",
+    instagramUrl: "https://instagram.com/example",
     heroImage: hero,
     phoneNumber: "+14155550199",
     monday: openDay(),
@@ -121,7 +132,21 @@ function mainLogicOnly() {
   const shell = mapRestaurantesPublicListingDbRowToShellInventoryRow(fakeRow);
   assert.ok(shell.name.includes("Leonix E2E"));
 
-  const state = { ...defaultRestaurantesDiscoveryState("es"), q: "Leonix E2E", city: "San Francisco", neighborhoodQuery: "Mission" };
+  const state = {
+    ...defaultRestaurantesDiscoveryState("es"),
+    q: "Leonix E2E",
+    city: "San Francisco",
+    neighborhoodQuery: "Mission",
+    pay: ["cash"],
+    acc: ["wheelchair_accessible"],
+    amen: ["wifi"],
+    food: ["vegan_options"],
+    spoken: ["es"],
+    menuOnly: true,
+    socialOnly: true,
+    websiteOnly: true,
+    whatsappOnly: true,
+  };
   const filtered = filterRestaurantesBlueprintRows([shell], state);
   assert.ok(filtered.some((r) => r.id === shell.id), "q + city + nbh filters should keep row");
 
@@ -146,6 +171,9 @@ async function mainDb() {
     packageTier: "standard",
   });
   const now = new Date().toISOString();
+  const { allocateNextRestauranteLeonixAdId } = await import(
+    "../app/(site)/clasificados/restaurantes/lib/restaurantesLeonixAdId"
+  );
   const leonix_ad_id = await allocateNextRestauranteLeonixAdId(supabase);
 
   const { data: inserted, error: insErr } = await supabase

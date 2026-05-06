@@ -8,6 +8,7 @@ import type {
 } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 import { isRestauranteOpenNowFromWeeklyHours } from "@/app/clasificados/restaurantes/lib/restauranteOpenNowFromHours";
+import type { RestauranteAmenityGroupId } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
 import type { RestaurantesPublicListingDbRow } from "./restaurantesPublicListingsServer";
 import { mapRestauranteDraftToShellData } from "@/app/clasificados/restaurantes/application/mapRestauranteDraftToShell";
 
@@ -104,6 +105,15 @@ export function mapRestaurantesPublicListingDbRowToShellInventoryRow(row: Restau
   const pr = dbRowToPublicResultsRow(row);
   const draft = listingJsonToDraft(row.listing_json ?? {});
 
+  const getAmenityIds = (group: RestauranteAmenityGroupId): string[] | undefined => {
+    const ids = draft.restaurantAmenities?.[group];
+    if (!Array.isArray(ids) || ids.length === 0) return undefined;
+    const out = ids
+      .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+      .map((x) => x.trim());
+    return out.length ? out : undefined;
+  };
+
   const fromDraftModes = Array.isArray(draft.serviceModes)
     ? draft.serviceModes.filter((m): m is RestauranteServiceMode => typeof m === "string")
     : [];
@@ -125,6 +135,17 @@ export function mapRestaurantesPublicListingDbRowToShellInventoryRow(row: Restau
       ? draft.deliveryRadiusMiles
       : undefined;
   const serviceAreaTrim = (draft.serviceAreaText ?? "").trim();
+  const spokenLanguageKeys = Array.isArray(draft.languagesSpoken)
+    ? draft.languagesSpoken
+        .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+        .map((x) => x.trim())
+    : undefined;
+
+  const hasWebsite = nonEmpty(draft.websiteUrl);
+  const hasWhatsApp = nonEmpty(draft.whatsAppNumber);
+  const hasMenu = nonEmpty(draft.menuUrl) || nonEmpty(draft.menuFile);
+  const hasSocial =
+    nonEmpty(draft.instagramUrl) || nonEmpty(draft.facebookUrl) || nonEmpty(draft.tiktokUrl) || nonEmpty(draft.youtubeUrl);
 
   const shellBase = mapRestauranteDraftToShellData(draft);
   const previewShellData = { ...shellBase, id: pr.id };
@@ -169,6 +190,16 @@ export function mapRestaurantesPublicListingDbRowToShellInventoryRow(row: Restau
     pickupAvailable: draft.pickupAvailable === true,
     serviceAreaText: serviceAreaTrim || undefined,
     deliveryRadiusMiles,
+    paymentMethodKeys: getAmenityIds("payments"),
+    ambienceKeys: getAmenityIds("atmosphere"),
+    amenityKeys: getAmenityIds("amenities"),
+    accessibilityKeys: getAmenityIds("accessibility"),
+    foodOptionKeys: getAmenityIds("foodOptions"),
+    spokenLanguageKeys: spokenLanguageKeys?.length ? spokenLanguageKeys : undefined,
+    hasMenu,
+    hasSocial,
+    hasWebsite,
+    hasWhatsApp,
     ownerUserId: row.owner_user_id ?? null,
     previewShellData,
   };

@@ -19,6 +19,16 @@
  * | `family` | `highlights` includes family_friendly OR family signal | Blueprint uses `familyFriendly` boolean. |
  * | `price` | `priceLevel` | `$` … `$$$$`. |
  * | `diet` | vegan/gluten/halal signals | Maps to diet flags + cuisine. |
+ * | `spoken` | `languagesSpoken` | CSV list; do **not** overload UI `lang`. |
+ * | `pay` | `restaurantAmenities.payments` | CSV list (e.g. `cash,credit_cards`). |
+ * | `amb` | `restaurantAmenities.atmosphere` | CSV list. |
+ * | `amen` | `restaurantAmenities.amenities` | CSV list. |
+ * | `acc` | `restaurantAmenities.accessibility` | CSV list. |
+ * | `food` | `restaurantAmenities.foodOptions` | CSV list (e.g. `vegan_options`). |
+ * | `menu` | menu present | `1` = only listings with menu URL/file. |
+ * | `social` | social present | `1` = any IG/FB/TikTok/YouTube present. |
+ * | `web` | website present | `1` = has website URL. |
+ * | `wa` | WhatsApp present | `1` = has WhatsApp. |
  * | `open` | `weeklyHours` + `temporaryHours*` evaluated server-side | Blueprint: `openNowDemo`. |
  * | `near` | Geolocation + radius (future) | **Without** city/zip: intent-only (no row exclusion). With city/zip: same as location filters. |
  * | `mv` | `movingVendor` | `1` / absent. |
@@ -64,6 +74,16 @@ export const RESTAURANTES_DISCOVERY_URL_KEYS = [
   "family",
   "price",
   "diet",
+  "spoken",
+  "pay",
+  "amb",
+  "amen",
+  "acc",
+  "food",
+  "menu",
+  "social",
+  "web",
+  "wa",
   "sort",
   "open",
   "near",
@@ -104,6 +124,26 @@ export type RestaurantesDiscoveryState = {
   family: boolean;
   price: string;
   diet: "" | "glutenfree" | "halal" | "vegan";
+  /** Spoken language keys (from `languagesSpoken` on the listing). Comma-separated in URL. */
+  spoken: string[];
+  /** Payment method keys (from `restaurantAmenities.payments`). Comma-separated in URL. */
+  pay: string[];
+  /** Ambience keys (from `restaurantAmenities.atmosphere`). Comma-separated in URL. */
+  amb: string[];
+  /** Amenity keys (from `restaurantAmenities.amenities`). Comma-separated in URL. */
+  amen: string[];
+  /** Accessibility keys (from `restaurantAmenities.accessibility`). Comma-separated in URL. */
+  acc: string[];
+  /** Food option keys (from `restaurantAmenities.foodOptions`). Comma-separated in URL. */
+  food: string[];
+  /** Listing has menu (URL `menu=1`). */
+  menuOnly: boolean;
+  /** Listing has any social platform (URL `social=1`). */
+  socialOnly: boolean;
+  /** Listing has website (URL `web=1`). */
+  websiteOnly: boolean;
+  /** Listing has WhatsApp (URL `wa=1`). */
+  whatsappOnly: boolean;
   sort: RestaurantesResultsSortId;
   /** Open now — requires hours evaluation (demo: blueprint flag). */
   open: boolean;
@@ -146,6 +186,16 @@ export function defaultRestaurantesDiscoveryState(lang: RestaurantesDiscoveryLan
     family: false,
     price: "",
     diet: "",
+    spoken: [],
+    pay: [],
+    amb: [],
+    amen: [],
+    acc: [],
+    food: [],
+    menuOnly: false,
+    socialOnly: false,
+    websiteOnly: false,
+    whatsappOnly: false,
     sort: "newest",
     open: false,
     near: false,
@@ -165,6 +215,17 @@ export function defaultRestaurantesDiscoveryState(lang: RestaurantesDiscoveryLan
     verifiedOnly: false,
     deliveryRadiusMin: undefined,
   };
+}
+
+function parseCsvList(raw: string | null | undefined): string[] {
+  const t = (raw ?? "").trim();
+  if (!t) return [];
+  const parts = t
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .filter((x) => /^[a-z0-9_]+$/i.test(x));
+  return Array.from(new Set(parts));
 }
 
 export function parseRestaurantesResultsSearchParams(
@@ -201,6 +262,16 @@ export function parseRestaurantesResultsSearchParams(
     family: flag("family"),
     price: (sp.get("price") ?? "").trim(),
     diet,
+    spoken: parseCsvList(sp.get("spoken")),
+    pay: parseCsvList(sp.get("pay")),
+    amb: parseCsvList(sp.get("amb")),
+    amen: parseCsvList(sp.get("amen")),
+    acc: parseCsvList(sp.get("acc")),
+    food: parseCsvList(sp.get("food")),
+    menuOnly: flag("menu"),
+    socialOnly: flag("social"),
+    websiteOnly: flag("web"),
+    whatsappOnly: flag("wa"),
     sort,
     open: flag("open"),
     near: flag("near"),
@@ -225,6 +296,7 @@ export function parseRestaurantesResultsSearchParams(
 export function restaurantesDiscoveryStateToParams(
   s: RestaurantesDiscoveryState,
 ): Record<string, string | undefined> {
+  const join = (arr: string[]) => (arr?.length ? arr.join(",") : undefined);
   const out: Record<string, string | undefined> = {
     lang: s.lang,
     q: s.q || undefined,
@@ -236,6 +308,16 @@ export function restaurantesDiscoveryStateToParams(
     family: s.family ? "1" : undefined,
     price: s.price || undefined,
     diet: s.diet || undefined,
+    spoken: join(s.spoken),
+    pay: join(s.pay),
+    amb: join(s.amb),
+    amen: join(s.amen),
+    acc: join(s.acc),
+    food: join(s.food),
+    menu: s.menuOnly ? "1" : undefined,
+    social: s.socialOnly ? "1" : undefined,
+    web: s.websiteOnly ? "1" : undefined,
+    wa: s.whatsappOnly ? "1" : undefined,
     sort: s.sort !== "newest" ? s.sort : undefined,
     open: s.open ? "1" : undefined,
     near: s.near ? "1" : undefined,

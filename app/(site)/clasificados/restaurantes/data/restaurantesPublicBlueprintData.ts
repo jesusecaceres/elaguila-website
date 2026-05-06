@@ -62,6 +62,23 @@ export type RestaurantesPublicBlueprintRow = {
   serviceAreaText?: string;
   /** `RestauranteLocationDetails.deliveryRadiusMiles` — min-mile filter when URL `drm` is set. */
   deliveryRadiusMiles?: number;
+  /** From `restaurantAmenities.payments` */
+  paymentMethodKeys?: string[];
+  /** From `restaurantAmenities.atmosphere` */
+  ambienceKeys?: string[];
+  /** From `restaurantAmenities.amenities` */
+  amenityKeys?: string[];
+  /** From `restaurantAmenities.accessibility` */
+  accessibilityKeys?: string[];
+  /** From `restaurantAmenities.foodOptions` */
+  foodOptionKeys?: string[];
+  /** From `languagesSpoken` (taxonomy keys like `es`, `en`, `other_lang`). */
+  spokenLanguageKeys?: string[];
+  /** Derived from contact fields */
+  hasMenu?: boolean;
+  hasSocial?: boolean;
+  hasWebsite?: boolean;
+  hasWhatsApp?: boolean;
   /** Subset of `highlights` keys */
   highlightKeys?: string[];
   /** `externalReviewCount` */
