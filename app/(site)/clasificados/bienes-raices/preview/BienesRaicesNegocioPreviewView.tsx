@@ -14,6 +14,8 @@ import {
 import { LeonixPreviewGalleryLightbox } from "@/app/clasificados/lib/LeonixPreviewGalleryLightbox";
 import { LeonixPreviewGalleryVideoTile } from "@/app/clasificados/lib/leonixPreviewGalleryVideoTile";
 import { LeonixPreviewQuickFactsStrip } from "@/app/clasificados/lib/leonixPrivadoPreviewQuickFacts";
+import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
+import { RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL } from "@/app/clasificados/rentas/shared/rentasResidencialHighlightFormVisuals";
 
 const IVORY = "#F9F6F1";
 const CREAM_CARD = "#FDFBF7";
@@ -350,10 +352,10 @@ function deepIcon(id: string) {
   }
 }
 
-type GalleryTopSpec = { kind: "photo"; url: string } | { kind: "video"; slot: 0 | 1 };
+type GalleryTopSpec = { kind: "photo"; url: string } | { kind: "video"; slot: 0 | 1 } | { kind: "more" };
 
 /** Video slots take priority in the top 2×2 so destacados no desplazan el video cuando hay muchas fotos. */
-function galleryTopCells(vm: BienesRaicesNegocioPreviewVm): [GalleryTopSpec | null, GalleryTopSpec | null] {
+function galleryTopCells(vm: BienesRaicesNegocioPreviewVm): [GalleryTopSpec | null, GalleryTopSpec | null, GalleryTopSpec | null, GalleryTopSpec | null] {
   const m = vm.media;
   const all = m?.allPhotoUrls ?? [];
   const coverIdx = Math.min(Math.max(0, m?.coverPhotoIndex ?? 0), Math.max(0, all.length - 1));
@@ -365,19 +367,84 @@ function galleryTopCells(vm: BienesRaicesNegocioPreviewVm): [GalleryTopSpec | nu
     pi += 1;
     return x.url;
   };
-  const cellA: GalleryTopSpec | null = m?.hasVideo1
-    ? { kind: "video", slot: 0 }
+  const videoSlot: 0 | 1 | null = m?.hasVideo1 ? 0 : m?.hasVideo2 ? 1 : null;
+  const topLeft = (() => {
+    const u = nextPhoto();
+    return u ? ({ kind: "photo", url: u } as const) : null;
+  })();
+  const topRight = (() => {
+    const u = nextPhoto();
+    return u ? ({ kind: "photo", url: u } as const) : null;
+  })();
+  const bottomLeft = (() => {
+    const u = nextPhoto();
+    return u ? ({ kind: "photo", url: u } as const) : null;
+  })();
+  const bottomRight = videoSlot != null
+    ? ({ kind: "video", slot: videoSlot } as const)
     : (() => {
         const u = nextPhoto();
-        return u ? { kind: "photo", url: u } : null;
+        if (u) return { kind: "photo", url: u } as const;
+        return { kind: "more" } as const;
       })();
-  const cellB: GalleryTopSpec | null = m?.hasVideo2
-    ? { kind: "video", slot: 1 }
-    : (() => {
-        const u = nextPhoto();
-        return u ? { kind: "photo", url: u } : null;
-      })();
-  return [cellA, cellB];
+  return [topLeft, topRight, bottomLeft, bottomRight];
+}
+
+function splitCsvAndBullets(value: string): string[] {
+  const raw = String(value ?? "").trim();
+  if (!raw) return [];
+  const normalized = raw.replace(/^•\s*/gm, "").replace(/\n/g, ",");
+  return normalized
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+function groupedRentasRows(rows: Array<{ label: string; value: string }> | undefined) {
+  const list = Array.isArray(rows) ? rows : [];
+  const byLabel = new Map(list.map((r) => [r.label, r.value] as const));
+  const pick = (label: string) => {
+    const v = byLabel.get(label);
+    if (!v || !String(v).trim()) return null;
+    return { label, value: String(v).trim() };
+  };
+  return {
+    resumen: [
+      pick("Renta mensual"),
+      pick("Depósito"),
+      pick("Plazo del contrato"),
+      pick("Disponibilidad"),
+      pick("Estado del anuncio"),
+    ].filter((x): x is { label: string; value: string } => x != null),
+    caracteristicas: [
+      pick("Tipo"),
+      pick("Subtipo"),
+      pick("Recámaras"),
+      pick("Baños completos"),
+      pick("Medios baños"),
+      pick("Interior (ft²)"),
+      pick("Lote (ft²)"),
+      pick("Estacionamiento"),
+      pick("Año de construcción"),
+      pick("Condición"),
+      pick("Amueblado"),
+      pick("Mascotas"),
+      pick("Zona o vecindario"),
+    ].filter((x): x is { label: string; value: string } => x != null),
+    servicios: splitCsvAndBullets(String(byLabel.get("Servicios incluidos") ?? "")),
+    requisitos: String(byLabel.get("Requisitos") ?? "").trim(),
+  };
+}
+
+const HIGHLIGHT_LABEL_TO_EMOJI = new Map(
+  BR_HIGHLIGHT_PRESET_DEFS.map((d) => [d.label.toLowerCase(), RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL[d.key]] as const),
+);
+
+function highlightChipText(label: string): string {
+  const t = String(label ?? "").trim();
+  if (!t) return "";
+  const e = HIGHLIGHT_LABEL_TO_EMOJI.get(t.toLowerCase());
+  return e ? `${e} ${t}` : t;
 }
 
 /** Publishable ad canvas only — chrome (“Volver a editar”) lives in `LeonixPreviewPageShell`. */
@@ -395,7 +462,8 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
     label: qf.label,
     value: qf.value,
   }));
-  const [gTopA, gTopB] = galleryTopCells(vm);
+  const [gTopA, gTopB, gBottomA, gBottomB] = galleryTopCells(vm);
+  const grouped = groupedRentasRows(vm.propertyDetailsRows);
 
   const dedupedPhotoSlides = leonixGalleryPhotoSlidesWithCaptions(vm.media?.allPhotoUrls, vm.media?.photoCaptionsFull);
   const uniquePhotoCount = dedupedPhotoSlides.length;
@@ -480,14 +548,14 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                 </p>
               ) : null}
             </div>
-            <div className="grid grid-cols-2 gap-3 lg:col-span-5">
-              {[gTopA, gTopB].map((spec, idx) => (
+              <div className="grid grid-cols-2 gap-3 lg:col-span-5">
+              {[gTopA, gTopB, gBottomA, gBottomB].map((spec, idx) => (
                 <div key={idx} className="relative min-h-0 overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
-                  {!spec ? (
+                  {!spec || spec.kind === "more" ? (
                     <div className="aspect-[4/3] w-full">
                       <EmptyMedia
-                        title={idx === 0 ? "Medio 1" : "Medio 2"}
-                        subtitle="Sin contenido en este espacio."
+                        title={idx === 3 ? "Ver imágenes" : idx === 0 ? "Medio 1" : idx === 1 ? "Medio 2" : "Medio 3"}
+                        subtitle={idx === 3 ? "Abrir galería completa." : "Sin contenido en este espacio."}
                         icon={<IconHome className="h-6 w-6" />}
                       />
                     </div>
@@ -514,93 +582,12 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                         style={{ borderColor: BORDER, background: "rgba(253,251,247,0.95)", color: CHARCOAL_DEEP }}
                         onClick={() => openGallery(leonixSlideIndexForVideoSlot(vm.media, spec.slot))}
                       >
-                        Galería
+                        Ver imágenes
                       </button>
                     </div>
                   )}
                 </div>
               ))}
-              {vm.media?.virtualTourUrl ? (
-                <a
-                  href={vm.media.virtualTourUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex min-h-[120px] flex-col justify-center gap-2 rounded-2xl border px-4 py-3 text-white shadow-md sm:min-h-[130px]"
-                  style={{
-                    borderColor: "rgba(26,39,68,0.4)",
-                    background: "linear-gradient(135deg, #1a2744 0%, #243a5e 50%, #1e3050 100%)",
-                  }}
-                >
-                  <IconVr className="shrink-0 opacity-95" />
-                  <div>
-                    <p className="text-sm font-bold">Tour virtual</p>
-                    <p className="mt-0.5 text-xs opacity-85">Abrir recorrido</p>
-                  </div>
-                </a>
-              ) : (
-                <div
-                  className="flex min-h-[120px] flex-col justify-center gap-2 rounded-2xl border px-4 py-3 shadow-sm sm:min-h-[130px]"
-                  style={{ borderColor: BORDER, background: "rgba(249,246,241,0.85)" }}
-                >
-                  <IconVr className="shrink-0 opacity-60" style={{ color: BRONZE }} />
-                  <p className="text-sm font-bold" style={{ color: MUTED }}>
-                    Tour virtual
-                  </p>
-                  <p className="text-xs" style={{ color: MUTED }}>
-                    No disponible en este anuncio.
-                  </p>
-                </div>
-              )}
-              {vm.location.mapsUrl ? (
-                <a
-                  href={vm.location.mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex min-h-[120px] flex-col justify-center gap-2 rounded-2xl border px-4 py-3 shadow-md sm:min-h-[130px]"
-                  style={{ borderColor: BORDER, background: CREAM_CARD }}
-                >
-                  <span style={{ color: BRONZE }}>
-                    <IconPin className="block h-6 w-6" />
-                  </span>
-                  <p className="text-sm font-bold" style={{ color: CHARCOAL }}>
-                    Ubicación en mapa
-                  </p>
-                  <p className="text-xs" style={{ color: MUTED }}>
-                    Ver en mapa externo
-                  </p>
-                </a>
-              ) : vm.media?.floorPlanUrls?.[0] ? (
-                <div className="overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
-                  { }
-                  <img src={vm.media.floorPlanUrls[0]!} alt="" className="aspect-[4/3] w-full object-cover" />
-                  <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
-                    Plano de planta
-                  </p>
-                </div>
-              ) : vm.media?.hasSitePlan && vm.media?.sitePlanUrl ? (
-                <div className="overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
-                  { }
-                  <img src={vm.media.sitePlanUrl} alt="" className="aspect-[4/3] w-full object-contain bg-white" />
-                  <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
-                    Plano de sitio
-                  </p>
-                </div>
-              ) : (
-                <div
-                  className="flex min-h-[120px] flex-col justify-center gap-2 rounded-2xl border px-4 py-3 shadow-sm sm:min-h-[130px]"
-                  style={{ borderColor: BORDER, background: CREAM_CARD }}
-                >
-                  <span style={{ color: BRONZE }}>
-                    <IconFloor className="block h-6 w-6" />
-                  </span>
-                  <p className="text-sm font-bold" style={{ color: CHARCOAL }}>
-                    Plano / mapa
-                  </p>
-                  <p className="text-xs" style={{ color: MUTED }}>
-                    Sin plano ni enlace de mapa en este anuncio.
-                  </p>
-                </div>
-              )}
             </div>
           </div>
           {(vm.media?.floorPlanUrls?.length ?? 0) > 1 ? (
@@ -626,6 +613,22 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
             </div>
           ) : null}
         </section>
+
+        {vm.hasDescription ? (
+          <section className="mt-8">
+            <div
+              className="rounded-2xl border p-6 sm:p-7 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]"
+              style={{ borderColor: BORDER, background: CREAM_CARD }}
+            >
+              <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+                Descripción
+              </h2>
+              <p className="mt-5 whitespace-pre-wrap text-sm leading-[1.75]" style={{ color: CHARCOAL }}>
+                {vm.description}
+              </p>
+            </div>
+          </section>
+        ) : null}
 
         <section className="mt-7 grid gap-6 border-t pt-7 lg:grid-cols-[1fr_minmax(280px,340px)] lg:items-start lg:gap-8" style={{ borderColor: BORDER }}>
           <div>
@@ -659,6 +662,43 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
             ) : null}
 
             <LeonixPreviewQuickFactsStrip quickFacts={quickFacts} />
+
+            <div className="mt-6 space-y-4">
+              {grouped.resumen.length > 0 ? <FactBlock title="Resumen de renta" rows={grouped.resumen} /> : null}
+              {grouped.caracteristicas.length > 0 ? <FactBlock title="Características" rows={grouped.caracteristicas} /> : null}
+              {grouped.servicios.length > 0 ? (
+                <div className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]" style={{ borderColor: BORDER, background: CREAM_CARD }}>
+                  <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>Servicios incluidos</h3>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {grouped.servicios.map((svc) => (
+                      <span key={svc} className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: BORDER, background: "#fff", color: CHARCOAL }}>
+                        {svc}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {vm.hasHighlights && (vm.highlightsRows?.length ?? 0) > 0 ? (
+                <div className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]" style={{ borderColor: BORDER, background: CREAM_CARD }}>
+                  <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+                    {String(vm.highlightsSectionTitle ?? "").trim() || "Destacados"}
+                  </h3>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(vm.highlightsRows ?? []).map((row) => (
+                      <span key={row.label} className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: BORDER, background: "#fff", color: CHARCOAL }}>
+                        {highlightChipText(row.label)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {grouped.requisitos ? (
+                <div className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]" style={{ borderColor: BORDER, background: CREAM_CARD }}>
+                  <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>Requisitos</h3>
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed" style={{ color: CHARCOAL }}>{grouped.requisitos}</p>
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <aside
@@ -826,6 +866,8 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                 </div>
               ) : null}
               <div className="flex flex-1 flex-col space-y-3 px-5 py-5" style={{ background: "#2F2A24" }}>
+                <p className="text-sm font-bold text-[#F5F0E8]">{vm.identity.name}</p>
+                {vm.identity.bioLine ? <p className="text-xs leading-relaxed text-[#D8CFC3]">{vm.identity.bioLine}</p> : null}
                 {vm.contact.showSolicitarInfo && vm.contact.solicitarInfoHref ? (
                   <a
                     href={vm.contact.solicitarInfoHref}
@@ -872,6 +914,25 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                   >
                     Enviar texto
                   </a>
+                ) : null}
+                {(vm.location.line1 || vm.location.colonia || vm.location.cityStateZip || vm.location.mapsUrl) ? (
+                  <div className="rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.15)" }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#E8DFD4]">Ubicación</p>
+                    {vm.location.line1 ? <p className="mt-1 text-xs text-[#F5F0E8]">{vm.location.line1}</p> : null}
+                    {vm.location.colonia ? <p className="mt-1 text-xs text-[#D8CFC3]">{vm.location.colonia}</p> : null}
+                    {vm.location.cityStateZip ? <p className="mt-1 text-xs text-[#D8CFC3]">{vm.location.cityStateZip}</p> : null}
+                    {vm.location.mapsUrl ? (
+                      <a
+                        href={vm.location.mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 inline-flex rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold text-[#F5F0E8]"
+                        style={{ borderColor: "rgba(255,255,255,0.35)" }}
+                      >
+                        Ver en mapa
+                      </a>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
               <div className="space-y-3 border-t px-5 py-4" style={{ borderColor: "rgba(255,255,255,0.08)", background: "#3A342E" }}>
@@ -932,135 +993,6 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
             </div>
           </aside>
         </section>
-
-        <section className="mt-8">
-          <div
-            className="rounded-2xl border p-6 sm:p-7 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]"
-            style={{ borderColor: BORDER, background: CREAM_CARD }}
-          >
-            <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-              Descripción
-            </h2>
-            {vm.hasDescription ? (
-              <p className="mt-5 whitespace-pre-wrap text-sm leading-[1.75]" style={{ color: CHARCOAL }}>
-                {vm.description}
-              </p>
-            ) : (
-              <p className="mt-5 text-sm leading-[1.75]" style={{ color: MUTED }}>
-                Sin descripción en este anuncio.
-              </p>
-            )}
-          </div>
-        </section>
-
-        {vm.location.hasMeaningfulAddress ||
-        vm.community.showModule ||
-        vm.schools.showModule ||
-        vm.hoaDevelopment.showModule ? (
-          <section className="mt-14 space-y-9">
-            <div className="text-center">
-              <h2
-                className="text-xl font-bold uppercase tracking-[0.12em] sm:text-2xl"
-                style={{ color: CHARCOAL_DEEP, fontFamily: "Georgia, serif" }}
-              >
-                Ubicación y entorno
-              </h2>
-              <p className="mx-auto mt-3 max-w-2xl text-sm" style={{ color: MUTED }}>
-                Ubicación, entorno y datos de la ficha incluidos en este anuncio.
-              </p>
-            </div>
-
-            <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-              {vm.location.hasMeaningfulAddress ? (
-                <LowerModuleCard
-                  eyebrow="Mapa"
-                  title="Ubicación"
-                  subtitle="Dirección del anuncio y enlace para abrir en Google Maps."
-                >
-                  {vm.location.line1 ? (
-                    <p className="text-sm font-semibold" style={{ color: CHARCOAL }}>
-                      {vm.location.line1}
-                    </p>
-                  ) : null}
-                  {vm.location.colonia ? (
-                    <p className="mt-1 text-sm" style={{ color: CHARCOAL }}>
-                      {vm.location.colonia}
-                    </p>
-                  ) : null}
-                  {vm.location.cityStateZip ? (
-                    <p className="mt-1 text-sm" style={{ color: MUTED }}>
-                      {vm.location.cityStateZip}
-                    </p>
-                  ) : null}
-                  {vm.location.mapsUrl ? (
-                    <a
-                      href={vm.location.mapsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-5 inline-flex items-center justify-center rounded-xl border-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wide transition hover:bg-[rgba(197,160,89,0.08)]"
-                      style={{ borderColor: BRONZE, color: BRONZE_SOFT }}
-                    >
-                      Ver en mapa
-                    </a>
-                  ) : null}
-                </LowerModuleCard>
-              ) : null}
-
-              {vm.community.showModule ? (
-                <LowerModuleCard
-                  eyebrow="Entorno"
-                  title={communityModuleTitle(vm.publicationType)}
-                  subtitle={
-                    vm.publicationType === "comercial"
-                      ? "Referencias de zona y accesos según la ficha."
-                      : "Vecindario, transporte y puntos de referencia desde tu captura."
-                  }
-                >
-                  <FactRowsList rows={vm.community.rows} />
-                </LowerModuleCard>
-              ) : null}
-            </div>
-
-            {vm.schools.showModule ? (
-              <LowerModuleCard
-                eyebrow="Educación"
-                title="Escuelas y distrito"
-                subtitle="Información proporcionada en la ficha del anuncio."
-              >
-                <FactRowsList rows={vm.schools.rows} />
-              </LowerModuleCard>
-            ) : null}
-
-            {vm.hoaDevelopment.showModule ? (
-              <LowerModuleCard
-                eyebrow="Comunidad"
-                title={
-                  vm.publicationType === "proyecto_nuevo" || vm.publicationType === "terreno"
-                    ? "HOA, comunidad y desarrollo"
-                    : "HOA y desarrollo"
-                }
-                subtitle={
-                  vm.publicationType === "comercial"
-                    ? "Cuotas de asociación o complejo cuando apliquen."
-                    : "Reglas de comunidad, amenidades y cronograma del proyecto cuando corresponda."
-                }
-              >
-                {(vm.hoaDevelopment?.rows ?? []).length > 0 ? <FactRowsList rows={vm.hoaDevelopment?.rows} /> : null}
-                {vm.hoaDevelopment?.sitePlanCallout ? (
-                  <p
-                    className={`text-sm leading-relaxed ${(vm.hoaDevelopment?.rows ?? []).length > 0 ? "mt-6 border-t border-[rgba(61,54,48,0.12)] pt-5" : ""}`}
-                    style={{ color: MUTED }}
-                  >
-                    <span className="font-semibold" style={{ color: CHARCOAL_DEEP }}>
-                      Plano de sitio:{" "}
-                    </span>
-                    disponible en la galería multimedia de este anuncio.
-                  </p>
-                ) : null}
-              </LowerModuleCard>
-            ) : null}
-          </section>
-        ) : null}
 
         <section className="mt-14">
           <div className="mb-8 text-center">

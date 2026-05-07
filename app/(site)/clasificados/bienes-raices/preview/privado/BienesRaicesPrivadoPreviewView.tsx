@@ -11,6 +11,8 @@ import {
 import { LeonixPreviewGalleryLightbox } from "@/app/clasificados/lib/LeonixPreviewGalleryLightbox";
 import { LeonixPreviewGalleryVideoTile } from "@/app/clasificados/lib/leonixPreviewGalleryVideoTile";
 import { LeonixPrivadoPreviewQuickFactsStrip } from "@/app/clasificados/lib/leonixPrivadoPreviewQuickFacts";
+import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
+import { RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL } from "@/app/clasificados/rentas/shared/rentasResidencialHighlightFormVisuals";
 import type { BienesRaicesPrivadoPreviewVm } from "./model/bienesRaicesPrivadoPreviewVm";
 
 const IVORY = "#F9F6F1";
@@ -208,9 +210,9 @@ function LowerModuleCard({
   );
 }
 
-type GalleryTopSpec = { kind: "photo"; url: string } | { kind: "video"; slot: 0 | 1 };
+type GalleryTopSpec = { kind: "photo"; url: string } | { kind: "video"; slot: 0 | 1 } | { kind: "more" };
 
-function galleryTopCells(vm: BienesRaicesPrivadoPreviewVm): [GalleryTopSpec | null, GalleryTopSpec | null] {
+function galleryTopCells(vm: BienesRaicesPrivadoPreviewVm): [GalleryTopSpec | null, GalleryTopSpec | null, GalleryTopSpec | null, GalleryTopSpec | null] {
   const m = vm.media;
   const all = m?.allPhotoUrls ?? [];
   const coverIdx = Math.min(Math.max(0, m?.coverPhotoIndex ?? 0), Math.max(0, all.length - 1));
@@ -222,25 +224,33 @@ function galleryTopCells(vm: BienesRaicesPrivadoPreviewVm): [GalleryTopSpec | nu
     pi += 1;
     return x.url;
   };
-  const cellA: GalleryTopSpec | null = m?.hasVideo1
-    ? { kind: "video", slot: 0 }
+  const videoSlot: 0 | 1 | null = m?.hasVideo1 ? 0 : m?.hasVideo2 ? 1 : null;
+  const topLeft = (() => {
+    const u = nextPhoto();
+    return u ? ({ kind: "photo", url: u } as const) : null;
+  })();
+  const topRight = (() => {
+    const u = nextPhoto();
+    return u ? ({ kind: "photo", url: u } as const) : null;
+  })();
+  const bottomLeft = (() => {
+    const u = nextPhoto();
+    return u ? ({ kind: "photo", url: u } as const) : null;
+  })();
+  const bottomRight = videoSlot != null
+    ? ({ kind: "video", slot: videoSlot } as const)
     : (() => {
         const u = nextPhoto();
-        return u ? { kind: "photo", url: u } : null;
+        if (u) return { kind: "photo", url: u } as const;
+        return { kind: "more" } as const;
       })();
-  const cellB: GalleryTopSpec | null = m?.hasVideo2
-    ? { kind: "video", slot: 1 }
-    : (() => {
-        const u = nextPhoto();
-        return u ? { kind: "photo", url: u } : null;
-      })();
-  return [cellA, cellB];
+  return [topLeft, topRight, bottomLeft, bottomRight];
 }
 
 /** When the primary video is shown in the hero column, reserve sidebar slots for extra photos only. */
-function galleryTopCellsSidebarOnly(vm: BienesRaicesPrivadoPreviewVm): [GalleryTopSpec | null, GalleryTopSpec | null] {
+function galleryTopCellsSidebarOnly(vm: BienesRaicesPrivadoPreviewVm): [GalleryTopSpec | null, GalleryTopSpec | null, GalleryTopSpec | null, GalleryTopSpec | null] {
   const m = vm.media;
-  if (!m) return [null, null];
+  if (!m) return [null, null, null, { kind: "more" }];
   return galleryTopCells({
     ...vm,
     media: {
@@ -249,6 +259,63 @@ function galleryTopCellsSidebarOnly(vm: BienesRaicesPrivadoPreviewVm): [GalleryT
       hasVideo2: false,
     },
   });
+}
+
+function splitCsvAndBullets(value: string): string[] {
+  const raw = String(value ?? "").trim();
+  if (!raw) return [];
+  const normalized = raw.replace(/^•\s*/gm, "").replace(/\n/g, ",");
+  return normalized
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+function groupedRentasRows(rows: Array<{ label: string; value: string }> | undefined) {
+  const list = Array.isArray(rows) ? rows : [];
+  const byLabel = new Map(list.map((r) => [r.label, r.value] as const));
+  const pick = (label: string) => {
+    const v = byLabel.get(label);
+    if (!v || !String(v).trim()) return null;
+    return { label, value: String(v).trim() };
+  };
+  return {
+    resumen: [
+      pick("Renta mensual"),
+      pick("Depósito"),
+      pick("Plazo del contrato"),
+      pick("Disponibilidad"),
+      pick("Estado del anuncio"),
+    ].filter((x): x is { label: string; value: string } => x != null),
+    caracteristicas: [
+      pick("Tipo"),
+      pick("Subtipo"),
+      pick("Recámaras"),
+      pick("Baños completos"),
+      pick("Medios baños"),
+      pick("Interior (ft²)"),
+      pick("Lote (ft²)"),
+      pick("Estacionamiento"),
+      pick("Año de construcción"),
+      pick("Condición"),
+      pick("Amueblado"),
+      pick("Mascotas"),
+      pick("Zona o vecindario"),
+    ].filter((x): x is { label: string; value: string } => x != null),
+    servicios: splitCsvAndBullets(String(byLabel.get("Servicios incluidos") ?? "")),
+    requisitos: String(byLabel.get("Requisitos") ?? "").trim(),
+  };
+}
+
+const HIGHLIGHT_LABEL_TO_EMOJI = new Map(
+  BR_HIGHLIGHT_PRESET_DEFS.map((d) => [d.label.toLowerCase(), RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL[d.key]] as const),
+);
+
+function highlightChipText(label: string): string {
+  const t = String(label ?? "").trim();
+  if (!t) return "";
+  const e = HIGHLIGHT_LABEL_TO_EMOJI.get(t.toLowerCase());
+  return e ? `${e} ${t}` : t;
 }
 
 /** Publishable ad canvas only — preview chrome (`LeonixPreviewPageShell`) wraps edit back-link. */
@@ -271,7 +338,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
   const hasPhotos = Boolean(media?.hasPhotos && media?.heroUrl);
   const hasPrimaryVideo = Boolean(media?.hasVideo1);
   const videoOnlyHero = !hasPhotos && hasPrimaryVideo;
-  const [gTopA, gTopB] = videoOnlyHero ? galleryTopCellsSidebarOnly(vm) : galleryTopCells(vm);
+  const [gTopA, gTopB, gBottomA, gBottomB] = videoOnlyHero ? galleryTopCellsSidebarOnly(vm) : galleryTopCells(vm);
 
   const dedupedPhotoSlides = leonixGalleryPhotoSlidesWithCaptions(media?.allPhotoUrls, media?.photoCaptionsFull);
   const uniquePhotoCount = dedupedPhotoSlides.length;
@@ -290,7 +357,12 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
     Boolean(media?.hasSitePlan && media?.sitePlanUrl) ||
     Boolean(vm.location.mapsUrl);
 
-  const hasDetailRows = (vm.propertyDetailsRows ?? []).length > 0;
+  const grouped = groupedRentasRows(vm.propertyDetailsRows);
+  const hasDetailRows =
+    grouped.resumen.length > 0 ||
+    grouped.caracteristicas.length > 0 ||
+    grouped.servicios.length > 0 ||
+    Boolean(grouped.requisitos);
   const heroTitleShown = String(vm.heroTitle ?? "").trim();
   const addressLineShown = String(vm.addressLine ?? "").trim();
   const priceShown = String(vm.priceDisplay ?? "").trim();
@@ -307,7 +379,26 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
     Boolean(String(vm.seller.smsDisplay ?? "").trim()) ||
     Boolean(String(vm.seller.emailDisplay ?? "").trim());
 
-  const renderGallerySpec = (spec: GalleryTopSpec, idx: number) => {
+  const renderGallerySpec = (spec: GalleryTopSpec | null, idx: number) => {
+    if (!spec) {
+      return (
+        <button
+          key={`empty-${idx}`}
+          type="button"
+          className="relative min-h-0 overflow-hidden rounded-2xl border bg-[#F7F2E9] text-left shadow-md"
+          style={{ borderColor: BORDER }}
+          onClick={() =>
+            openGallery(
+              leonixSlideIndexForCoverPhoto(vm.media?.allPhotoUrls, vm.media?.coverPhotoIndex ?? 0, vm.media?.photoCaptionsFull),
+            )
+          }
+        >
+          <div className="flex aspect-[4/3] items-center justify-center p-4 text-center text-xs font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
+            Ver más fotos
+          </div>
+        </button>
+      );
+    }
     if (spec.kind === "photo") {
       return (
         <div key={`ph-${spec.url}-${idx}`} className="relative min-h-0 overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
@@ -323,6 +414,26 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
             <img src={spec.url} alt="" className="aspect-[4/3] w-full object-cover" />
           </button>
         </div>
+      );
+    }
+    if (spec.kind === "more") {
+      return (
+        <button
+          key="more"
+          type="button"
+          className="relative min-h-0 overflow-hidden rounded-2xl border bg-[#F7F2E9] text-left shadow-md"
+          style={{ borderColor: BORDER }}
+          onClick={() =>
+            openGallery(
+              leonixSlideIndexForCoverPhoto(vm.media?.allPhotoUrls, vm.media?.coverPhotoIndex ?? 0, vm.media?.photoCaptionsFull),
+            )
+          }
+        >
+          <div className="flex aspect-[4/3] flex-col items-center justify-center gap-1 p-4 text-center">
+            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: CHARCOAL_DEEP }}>Ver imágenes</span>
+            <span className="text-[11px]" style={{ color: MUTED }}>Abrir galería completa</span>
+          </div>
+        </button>
       );
     }
     return (
@@ -347,65 +458,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
     );
   };
 
-  const sidebarGallerySpecs = [gTopA, gTopB].filter((s): s is GalleryTopSpec => s != null);
-
-  const fourthTile =
-    vm.location.mapsUrl ? (
-      <a
-        key="maps"
-        href={vm.location.mapsUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex min-h-[120px] flex-col justify-center gap-2 rounded-2xl border px-4 py-3 shadow-md sm:min-h-[130px]"
-        style={{ borderColor: BORDER, background: CREAM_CARD }}
-      >
-        <span style={{ color: BRONZE }}>
-          <IconPin className="block h-6 w-6" />
-        </span>
-        <p className="text-sm font-bold" style={{ color: CHARCOAL }}>
-          Ubicación en mapa
-        </p>
-        <p className="text-xs" style={{ color: MUTED }}>
-          Ver en mapa externo
-        </p>
-      </a>
-    ) : media?.floorPlanUrls?.[0] ? (
-      <div key="floor" className="overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
-        { }
-        <img src={media.floorPlanUrls[0]!} alt="" className="aspect-[4/3] w-full object-cover" />
-        <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
-          Plano de planta
-        </p>
-      </div>
-    ) : media?.hasSitePlan && media?.sitePlanUrl ? (
-      <div key="site" className="overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
-        { }
-        <img src={media.sitePlanUrl} alt="" className="aspect-[4/3] w-full object-contain bg-white" />
-        <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
-          Plano de sitio
-        </p>
-      </div>
-    ) : null;
-
-  const tourTile = media?.virtualTourUrl ? (
-    <a
-      key="tour"
-      href={media.virtualTourUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex min-h-[120px] flex-col justify-center gap-2 rounded-2xl border px-4 py-3 text-white shadow-md sm:min-h-[130px]"
-      style={{
-        borderColor: "rgba(26,39,68,0.4)",
-        background: "linear-gradient(135deg, #1a2744 0%, #243a5e 50%, #1e3050 100%)",
-      }}
-    >
-      <IconVr className="shrink-0 opacity-95" />
-      <div>
-        <p className="text-sm font-bold">Tour virtual</p>
-        <p className="mt-0.5 text-xs opacity-85">Abrir recorrido</p>
-      </div>
-    </a>
-  ) : null;
+  const sidebarGallerySpecs: Array<GalleryTopSpec | null> = [gTopA, gTopB, gBottomA, gBottomB];
 
   return (
     <div className="w-full min-w-0 max-w-[100vw] overflow-x-hidden antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
@@ -498,13 +551,28 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                   ) : null}
                 </div>
               ) : null}
-              <div
-                className={`grid min-w-0 grid-cols-2 gap-2 sm:gap-2.5 ${hasPhotos || videoOnlyHero ? "lg:col-span-5" : "lg:col-span-12"} [grid-template-columns:minmax(0,1fr)_minmax(0,1fr)]`}
-              >
+              <div className={`grid min-w-0 grid-cols-2 gap-2 sm:gap-2.5 ${hasPhotos || videoOnlyHero ? "lg:col-span-5" : "lg:col-span-12"}`}>
                 {sidebarGallerySpecs.map((spec, idx) => renderGallerySpec(spec, idx))}
-                {tourTile}
-                {fourthTile}
               </div>
+            </div>
+          </section>
+        ) : null}
+
+        {vm.hasDescription ? (
+          <section className="mt-3 min-w-0 sm:mt-4">
+            <div
+              className="min-w-0 rounded-xl border p-4 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)] sm:p-5 md:p-5"
+              style={{ borderColor: BORDER, background: CREAM_CARD }}
+            >
+              <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+                Descripción
+              </h2>
+              <p
+                className="mt-3.5 whitespace-pre-wrap text-[15px] leading-[1.72] [overflow-wrap:anywhere] sm:mt-4 sm:text-sm sm:leading-[1.78]"
+                style={{ color: CHARCOAL }}
+              >
+                {vm.description}
+              </p>
             </div>
           </section>
         ) : null}
@@ -639,25 +707,45 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
           ) : null}
         </section>
 
-        <section
-          className={`mt-3 grid min-w-0 grid-cols-1 gap-3 sm:mt-4 lg:items-stretch lg:gap-3 ${
-            hasDetailRows && vm.hasHighlights
-              ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(260px,320px)]"
-              : hasDetailRows || vm.hasHighlights
-                ? "lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]"
-                : "lg:grid-cols-1"
-          }`}
-        >
-          {hasDetailRows ? (
-            <FactBlock title="Detalles de la propiedad" rows={vm.propertyDetailsRows} />
-          ) : null}
-          {vm.hasHighlights ? (
-            <FactBlock title={String(vm.highlightsSectionTitle ?? "").trim() || "Características destacadas"} rows={vm.highlightsRows ?? []} />
-          ) : null}
+        <section className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:mt-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:gap-4">
+          <div className="space-y-3">
+            {grouped.resumen.length > 0 ? <FactBlock title="Resumen de renta" rows={grouped.resumen} /> : null}
+            {grouped.caracteristicas.length > 0 ? <FactBlock title="Características" rows={grouped.caracteristicas} /> : null}
+            {grouped.servicios.length > 0 ? (
+              <div className="rounded-xl border p-3.5 sm:p-4" style={{ borderColor: BORDER, background: CREAM_CARD }}>
+                <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>Servicios incluidos</h3>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {grouped.servicios.map((svc) => (
+                    <span key={svc} className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: BORDER, background: "#fff", color: CHARCOAL }}>
+                      {svc}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {vm.hasHighlights && (vm.highlightsRows?.length ?? 0) > 0 ? (
+              <div className="rounded-xl border p-3.5 sm:p-4" style={{ borderColor: BORDER, background: CREAM_CARD }}>
+                <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+                  {String(vm.highlightsSectionTitle ?? "").trim() || "Destacados"}
+                </h3>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(vm.highlightsRows ?? []).map((row) => (
+                    <span key={row.label} className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: BORDER, background: "#fff", color: CHARCOAL }}>
+                      {highlightChipText(row.label)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {grouped.requisitos ? (
+              <div className="rounded-xl border p-3.5 sm:p-4" style={{ borderColor: BORDER, background: CREAM_CARD }}>
+                <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>Requisitos</h3>
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed" style={{ color: CHARCOAL }}>{grouped.requisitos}</p>
+              </div>
+            ) : null}
+          </div>
           <aside
-            className={`flex min-h-full flex-col lg:sticky lg:top-6 lg:min-h-0 lg:self-start ${
-              !hasDetailRows && !vm.hasHighlights ? "lg:mx-auto lg:w-full lg:max-w-md" : ""
-            }`}
+            className="flex min-h-full flex-col lg:sticky lg:top-6 lg:min-h-0 lg:self-start"
           >
             <div
               className="flex flex-1 flex-col overflow-hidden rounded-2xl border shadow-[0_24px_64px_-20px_rgba(26,24,20,0.35)]"
@@ -675,6 +763,8 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                 </p>
               ) : null}
               <div className="flex flex-1 flex-col space-y-2.5 px-4 py-3.5 sm:px-5 sm:py-4" style={{ background: "#2F2A24" }}>
+                {sellerNameShown ? <p className="text-sm font-bold text-[#F5F0E8]">{sellerNameShown}</p> : null}
+                {vm.seller.noteLine ? <p className="text-xs leading-relaxed text-[#D8CFC3]">{vm.seller.noteLine}</p> : null}
                 {vm.contact.showSolicitarInfo && vm.contact.solicitarInfoHref ? (
                   <a
                     href={vm.contact.solicitarInfoHref}
@@ -713,67 +803,28 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                     Enviar texto
                   </a>
                 ) : null}
+                {(vm.location.line1 || vm.location.cityStateZip || vm.location.mapsUrl) ? (
+                  <div className="mt-1 rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.15)" }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#E8DFD4]">Ubicación</p>
+                    {vm.location.line1 ? <p className="mt-1 text-xs text-[#F5F0E8]">{vm.location.line1}</p> : null}
+                    {vm.location.cityStateZip ? <p className="mt-1 text-xs text-[#D8CFC3]">{vm.location.cityStateZip}</p> : null}
+                    {vm.location.mapsUrl ? (
+                      <a
+                        href={vm.location.mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 inline-flex rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold text-[#F5F0E8]"
+                        style={{ borderColor: "rgba(255,255,255,0.35)" }}
+                      >
+                        Ver en mapa
+                      </a>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>
           </aside>
         </section>
-
-        {vm.hasDescription ? (
-          <section className="mt-3 min-w-0 sm:mt-4">
-            <div
-              className="min-w-0 rounded-xl border p-4 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)] sm:p-5 md:p-5"
-              style={{ borderColor: BORDER, background: CREAM_CARD }}
-            >
-              <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-                Descripción
-              </h2>
-              <p
-                className="mt-3.5 whitespace-pre-wrap text-[15px] leading-[1.72] [overflow-wrap:anywhere] sm:mt-4 sm:text-sm sm:leading-[1.78]"
-                style={{ color: CHARCOAL }}
-              >
-                {vm.description}
-              </p>
-            </div>
-          </section>
-        ) : null}
-
-        {vm.location.hasMeaningfulAddress ? (
-          <section className="mt-5 min-w-0 sm:mt-6">
-            <div className="px-1 text-center">
-              <h2
-                className="text-lg font-bold uppercase tracking-[0.12em] sm:text-xl"
-                style={{ color: CHARCOAL_DEEP, fontFamily: "Georgia, serif" }}
-              >
-                Ubicación
-              </h2>
-            </div>
-            <div className="mx-auto mt-4 w-full max-w-3xl sm:mt-5">
-              <LowerModuleCard eyebrow="Referencia" title="Ubicación aproximada">
-                {vm.location.line1 ? (
-                  <p className="break-words text-sm font-semibold leading-snug [overflow-wrap:anywhere]" style={{ color: CHARCOAL }}>
-                    {vm.location.line1}
-                  </p>
-                ) : null}
-                {vm.location.cityStateZip ? (
-                  <p className="mt-1 break-words text-sm leading-snug [overflow-wrap:anywhere]" style={{ color: MUTED }}>
-                    {vm.location.cityStateZip}
-                  </p>
-                ) : null}
-                {vm.location.mapsUrl ? (
-                  <a
-                    href={vm.location.mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-5 inline-flex items-center justify-center rounded-xl border-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wide transition hover:bg-[rgba(197,160,89,0.08)]"
-                    style={{ borderColor: BRONZE, color: BRONZE_SOFT }}
-                  >
-                    Ver en mapa
-                  </a>
-                ) : null}
-              </LowerModuleCard>
-            </div>
-          </section>
-        ) : null}
 
         {String(vm.footerNote ?? "").trim() ? (
           <footer className="mt-8 border-t pt-4 text-center text-xs" style={{ borderColor: BORDER, color: MUTED }}>
