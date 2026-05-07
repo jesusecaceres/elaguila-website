@@ -66,7 +66,9 @@ function waHrefFromPhoneDisplay(raw: string): string | null {
 function smsHrefFromState(raw: string): string | null {
   const d = digitsOnly15(raw);
   if (d.length < 10) return null;
-  return `sms:${d}`;
+  const msg =
+    "Vi tu anuncio de renta en Leonix Media. Quiero saber si todavia esta disponible y si podemos hablar.";
+  return `sms:${d}?&body=${encodeURIComponent(msg)}`;
 }
 
 function plazoDisplay(s: RentasNegocioFormState): string {

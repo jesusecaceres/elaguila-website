@@ -13,6 +13,7 @@ import { LeonixPreviewGalleryVideoTile } from "@/app/clasificados/lib/leonixPrev
 import { LeonixPrivadoPreviewQuickFactsStrip } from "@/app/clasificados/lib/leonixPrivadoPreviewQuickFacts";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 import { RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL } from "@/app/clasificados/rentas/shared/rentasResidencialHighlightFormVisuals";
+import { RENTAS_SERVICIOS_INCLUIDOS_DEFS } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import type { BienesRaicesPrivadoPreviewVm } from "./model/bienesRaicesPrivadoPreviewVm";
 
 const IVORY = "#F9F6F1";
@@ -269,6 +270,17 @@ function splitCsvAndBullets(value: string): string[] {
     .split(",")
     .map((x) => x.trim())
     .filter(Boolean);
+}
+
+const SERVICIOS_EMOJI_BY_LABEL = new Map(
+  RENTAS_SERVICIOS_INCLUIDOS_DEFS.map((s) => [s.label.toLowerCase(), s.emoji] as const),
+);
+
+function servicioChipText(label: string): string {
+  const t = String(label ?? "").trim();
+  if (!t) return "";
+  const emoji = SERVICIOS_EMOJI_BY_LABEL.get(t.toLowerCase());
+  return emoji ? `${emoji} ${t}` : `✨ ${t}`;
 }
 
 function groupedRentasRows(rows: Array<{ label: string; value: string }> | undefined) {
@@ -579,7 +591,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
 
         <section
           className={`grid min-w-0 grid-cols-1 gap-3 lg:items-start lg:gap-5 ${showGallerySection ? "mt-2 border-t pt-3" : "mt-0 border-0 pt-1"} ${
-            showMainSellerAside ? "lg:grid-cols-[1fr_minmax(260px,320px)]" : ""
+            false && showMainSellerAside ? "lg:grid-cols-[1fr_minmax(260px,320px)]" : ""
           }`}
           style={{ borderColor: BORDER }}
         >
@@ -631,7 +643,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
             <LeonixPrivadoPreviewQuickFactsStrip quickFacts={quickFacts} />
           </div>
 
-          {showMainSellerAside ? (
+          {false && showMainSellerAside ? (
             <aside
               className="min-w-0 rounded-xl border p-3 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.18)] sm:p-3.5 lg:sticky lg:top-4 lg:self-start"
               style={{ borderColor: BORDER, background: CREAM_CARD }}
@@ -640,7 +652,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                 <div className="overflow-hidden rounded-2xl border shadow-sm" style={{ borderColor: BORDER }}>
                   { }
                   <img
-                    src={vm.seller.photoUrl}
+                    src={vm.seller.photoUrl ?? undefined}
                     alt=""
                     className="aspect-[4/5] w-full max-h-[min(280px,40vh)] object-cover object-top sm:max-h-[min(340px,44vh)] lg:max-h-[360px]"
                   />
@@ -710,6 +722,12 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
         <section className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:mt-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:gap-4">
           <div className="space-y-3">
             {grouped.resumen.length > 0 ? <FactBlock title="Resumen de renta" rows={grouped.resumen} /> : null}
+            {grouped.requisitos ? (
+              <div className="rounded-xl border p-3.5 sm:p-4" style={{ borderColor: BORDER, background: CREAM_CARD }}>
+                <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>Requisitos</h3>
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed" style={{ color: CHARCOAL }}>{grouped.requisitos}</p>
+              </div>
+            ) : null}
             {grouped.caracteristicas.length > 0 ? <FactBlock title="Características" rows={grouped.caracteristicas} /> : null}
             {grouped.servicios.length > 0 ? (
               <div className="rounded-xl border p-3.5 sm:p-4" style={{ borderColor: BORDER, background: CREAM_CARD }}>
@@ -717,7 +735,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                 <div className="mt-3 flex flex-wrap gap-2">
                   {grouped.servicios.map((svc) => (
                     <span key={svc} className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: BORDER, background: "#fff", color: CHARCOAL }}>
-                      {svc}
+                      {servicioChipText(svc)}
                     </span>
                   ))}
                 </div>
@@ -735,12 +753,6 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                     </span>
                   ))}
                 </div>
-              </div>
-            ) : null}
-            {grouped.requisitos ? (
-              <div className="rounded-xl border p-3.5 sm:p-4" style={{ borderColor: BORDER, background: CREAM_CARD }}>
-                <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>Requisitos</h3>
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed" style={{ color: CHARCOAL }}>{grouped.requisitos}</p>
               </div>
             ) : null}
           </div>

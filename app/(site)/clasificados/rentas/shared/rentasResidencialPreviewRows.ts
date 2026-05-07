@@ -57,7 +57,7 @@ export function buildRentasResidencialPropertyRows(r: BienesRaicesPrivadoResiden
     row("Interior (ft²)", r.interiorSqft ? prettifySqft(r.interiorSqft) : ""),
     row("Lote (ft²)", r.loteSqft ? prettifySqft(r.loteSqft) : ""),
     row("Estacionamiento", r.estacionamiento),
-    row("Año de construcción", prettifyPlainNumber(r.ano)),
+    row("Año de construcción", trim(r.ano)),
     row("Condición", r.condicion ? CONDICION_LABEL[r.condicion] ?? r.condicion : ""),
   ];
   return rows.filter((x): x is BienesRaicesPreviewFact => x != null);

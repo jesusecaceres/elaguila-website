@@ -16,6 +16,7 @@ import { LeonixPreviewGalleryVideoTile } from "@/app/clasificados/lib/leonixPrev
 import { LeonixPreviewQuickFactsStrip } from "@/app/clasificados/lib/leonixPrivadoPreviewQuickFacts";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 import { RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL } from "@/app/clasificados/rentas/shared/rentasResidencialHighlightFormVisuals";
+import { RENTAS_SERVICIOS_INCLUIDOS_DEFS } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 
 const IVORY = "#F9F6F1";
 const CREAM_CARD = "#FDFBF7";
@@ -400,6 +401,17 @@ function splitCsvAndBullets(value: string): string[] {
     .filter(Boolean);
 }
 
+const SERVICIOS_EMOJI_BY_LABEL = new Map(
+  RENTAS_SERVICIOS_INCLUIDOS_DEFS.map((s) => [s.label.toLowerCase(), s.emoji] as const),
+);
+
+function servicioChipText(label: string): string {
+  const t = String(label ?? "").trim();
+  if (!t) return "";
+  const emoji = SERVICIOS_EMOJI_BY_LABEL.get(t.toLowerCase());
+  return emoji ? `${emoji} ${t}` : `✨ ${t}`;
+}
+
 function groupedRentasRows(rows: Array<{ label: string; value: string }> | undefined) {
   const list = Array.isArray(rows) ? rows : [];
   const byLabel = new Map(list.map((r) => [r.label, r.value] as const));
@@ -630,7 +642,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
           </section>
         ) : null}
 
-        <section className="mt-7 grid gap-6 border-t pt-7 lg:grid-cols-[1fr_minmax(280px,340px)] lg:items-start lg:gap-8" style={{ borderColor: BORDER }}>
+        <section className="mt-7 grid gap-6 border-t pt-7 lg:grid-cols-1 lg:items-start lg:gap-8" style={{ borderColor: BORDER }}>
           <div>
             <h1
               className="max-w-[720px] break-words text-[1.65rem] font-bold leading-[1.15] tracking-tight [overflow-wrap:anywhere] sm:text-[2rem] lg:text-[2.35rem]"
@@ -665,6 +677,12 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
 
             <div className="mt-6 space-y-4">
               {grouped.resumen.length > 0 ? <FactBlock title="Resumen de renta" rows={grouped.resumen} /> : null}
+              {grouped.requisitos ? (
+                <div className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]" style={{ borderColor: BORDER, background: CREAM_CARD }}>
+                  <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>Requisitos</h3>
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed" style={{ color: CHARCOAL }}>{grouped.requisitos}</p>
+                </div>
+              ) : null}
               {grouped.caracteristicas.length > 0 ? <FactBlock title="Características" rows={grouped.caracteristicas} /> : null}
               {grouped.servicios.length > 0 ? (
                 <div className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]" style={{ borderColor: BORDER, background: CREAM_CARD }}>
@@ -672,7 +690,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                   <div className="mt-3 flex flex-wrap gap-2">
                     {grouped.servicios.map((svc) => (
                       <span key={svc} className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: BORDER, background: "#fff", color: CHARCOAL }}>
-                        {svc}
+                        {servicioChipText(svc)}
                       </span>
                     ))}
                   </div>
@@ -692,17 +710,12 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
                   </div>
                 </div>
               ) : null}
-              {grouped.requisitos ? (
-                <div className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]" style={{ borderColor: BORDER, background: CREAM_CARD }}>
-                  <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>Requisitos</h3>
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed" style={{ color: CHARCOAL }}>{grouped.requisitos}</p>
-                </div>
-              ) : null}
             </div>
           </div>
 
           <aside
             className="rounded-2xl border p-5 shadow-[0_16px_44px_-12px_rgba(42,36,22,0.15)] lg:sticky lg:top-6 lg:self-start"
+            hidden
             style={{ borderColor: BORDER, background: CREAM_CARD }}
           >
             <div className="overflow-hidden rounded-2xl border shadow-sm" style={{ borderColor: BORDER }}>

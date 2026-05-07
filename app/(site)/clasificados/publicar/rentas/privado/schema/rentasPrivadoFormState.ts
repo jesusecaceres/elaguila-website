@@ -78,8 +78,13 @@ export type RentasPrivadoFormState = {
     photoDataUrls: string[];
     primaryImageIndex: number;
     videoUrl: string;
-    /** Kept aligned with BR Privado draft shape; Rentas UI may omit local video for now. */
+    /** Transient object/data URL used by preview runtime (never persisted as giant JSON). */
     videoLocalDataUrl: string;
+    videoLocalDraftId: string;
+    videoLocalFileName: string;
+    videoLocalMimeType: string;
+    videoLocalSizeBytes: number;
+    videoLocalUpdatedAt: number;
   };
   seller: {
     fotoDataUrl: string;
@@ -152,6 +157,11 @@ function coerceMascotas(raw: unknown): RentasPrivadoFormState["mascotas"] {
   return "";
 }
 
+function coerceNumber(raw: unknown): number {
+  const n = typeof raw === "number" ? raw : Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
   const br = mergePartialBienesRaicesPrivadoState({});
   return {
@@ -183,7 +193,14 @@ export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
     enlaceMapa: "",
     descripcion: "",
     estadoAnuncio: "disponible",
-    media: { ...br.media },
+    media: {
+      ...br.media,
+      videoLocalDraftId: "",
+      videoLocalFileName: "",
+      videoLocalMimeType: "",
+      videoLocalSizeBytes: 0,
+      videoLocalUpdatedAt: 0,
+    },
     seller: {
       fotoDataUrl: br.seller.fotoDataUrl,
       nombre: br.seller.nombre,
@@ -322,7 +339,23 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
     enlaceMapa: typeof partial.enlaceMapa === "string" ? partial.enlaceMapa : br.enlaceMapa,
     descripcion: br.descripcion,
     estadoAnuncio: coerceRentasListingStatus(partial.estadoAnuncio ?? br.estadoAnuncio),
-    media: { ...br.media },
+    media: {
+      ...br.media,
+      videoLocalDraftId:
+        typeof (partial.media as { videoLocalDraftId?: unknown } | undefined)?.videoLocalDraftId === "string"
+          ? String((partial.media as { videoLocalDraftId: string }).videoLocalDraftId)
+          : "",
+      videoLocalFileName:
+        typeof (partial.media as { videoLocalFileName?: unknown } | undefined)?.videoLocalFileName === "string"
+          ? String((partial.media as { videoLocalFileName: string }).videoLocalFileName)
+          : "",
+      videoLocalMimeType:
+        typeof (partial.media as { videoLocalMimeType?: unknown } | undefined)?.videoLocalMimeType === "string"
+          ? String((partial.media as { videoLocalMimeType: string }).videoLocalMimeType)
+          : "",
+      videoLocalSizeBytes: coerceNumber((partial.media as { videoLocalSizeBytes?: unknown } | undefined)?.videoLocalSizeBytes),
+      videoLocalUpdatedAt: coerceNumber((partial.media as { videoLocalUpdatedAt?: unknown } | undefined)?.videoLocalUpdatedAt),
+    },
     seller: {
       fotoDataUrl: br.seller.fotoDataUrl,
       nombre: br.seller.nombre,

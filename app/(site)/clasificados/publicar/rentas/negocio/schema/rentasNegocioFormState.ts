@@ -58,8 +58,13 @@ export type RentasNegocioFormState = {
     photoDataUrls: string[];
     primaryImageIndex: number;
     videoUrl: string;
-    /** Session-local video for preview; takes priority over `videoUrl` in mapping. */
+    /** Transient object/data URL used by preview runtime (never persisted as giant JSON). */
     videoLocalDataUrl: string;
+    videoLocalDraftId: string;
+    videoLocalFileName: string;
+    videoLocalMimeType: string;
+    videoLocalSizeBytes: number;
+    videoLocalUpdatedAt: number;
   };
   negocioNombre: string;
   negocioMarca: string;

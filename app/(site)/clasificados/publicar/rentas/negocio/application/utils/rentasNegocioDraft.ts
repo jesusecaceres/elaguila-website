@@ -52,7 +52,13 @@ export function loadRentasNegocioDraft(): RentasNegocioFormState | null {
 
 export function saveRentasNegocioDraft(state: RentasNegocioFormState): void {
   if (typeof window === "undefined") return;
-  const raw = JSON.stringify(state);
+  const raw = JSON.stringify({
+    ...state,
+    media: {
+      ...state.media,
+      videoLocalDataUrl: "",
+    },
+  } satisfies RentasNegocioFormState);
   try {
     sessionStorage.setItem(RENTAS_NEGOCIO_DRAFT_STORAGE_KEY, raw);
     try {

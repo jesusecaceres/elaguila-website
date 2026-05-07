@@ -38,8 +38,13 @@ import {
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
 import {
   compressImageFileToJpegDataUrl,
-  readVideoFileAsDataUrlLimited,
 } from "@/app/clasificados/publicar/bienes-raices/privado/application/utils/brPrivadoMediaCompress";
+import {
+  createRentasDraftVideoId,
+  deleteRentasDraftVideo,
+  putRentasDraftVideo,
+  readRentasDraftVideo,
+} from "@/app/clasificados/rentas/shared/rentasDraftVideoStore";
 import { LeonixRealEstateSortablePhotoStrip } from "@/app/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
 import { RentasAnuncioFormSection } from "@/app/clasificados/publicar/rentas/shared/RentasAnuncioFormSection";
 import {
@@ -106,6 +111,7 @@ export function RentasNegocioForm() {
   const [hydrated, setHydrated] = useState(false);
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
   const [localVideoFileName, setLocalVideoFileName] = useState("");
+  const videoObjectUrlRef = useRef<string | null>(null);
   const [mediaNotice, setMediaNotice] = useState<string | null>(null);
 
   const stateRef = useRef(state);
@@ -144,10 +150,52 @@ export function RentasNegocioForm() {
 
   useEffect(() => {
     if (!hydrated) return;
+    if (state.media.videoLocalFileName && !localVideoFileName) {
+      setLocalVideoFileName(state.media.videoLocalFileName);
+      return;
+    }
     if (state.media.videoLocalDataUrl && !localVideoFileName) {
       setLocalVideoFileName("Video local (sesión)");
     }
-  }, [hydrated, state.media.videoLocalDataUrl, localVideoFileName]);
+  }, [hydrated, state.media.videoLocalDataUrl, state.media.videoLocalFileName, localVideoFileName]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const id = String(state.media.videoLocalDraftId || "").trim();
+    if (!id || state.media.videoLocalDataUrl) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const rec = await readRentasDraftVideo(id);
+        if (!rec || cancelled) return;
+        const objectUrl = URL.createObjectURL(rec.blob);
+        if (videoObjectUrlRef.current) URL.revokeObjectURL(videoObjectUrlRef.current);
+        videoObjectUrlRef.current = objectUrl;
+        setState((prev) => ({
+          ...prev,
+          media: {
+            ...prev.media,
+            videoLocalDataUrl: objectUrl,
+            videoLocalFileName: prev.media.videoLocalFileName || rec.fileName || "",
+            videoLocalMimeType: prev.media.videoLocalMimeType || rec.mimeType || "",
+            videoLocalSizeBytes: prev.media.videoLocalSizeBytes || rec.sizeBytes || 0,
+            videoLocalUpdatedAt: prev.media.videoLocalUpdatedAt || rec.updatedAt || Date.now(),
+          },
+        }));
+      } catch {
+        /* keep metadata; blob may be gone */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, state.media.videoLocalDraftId, state.media.videoLocalDataUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (videoObjectUrlRef.current) URL.revokeObjectURL(videoObjectUrlRef.current);
+    };
+  }, []);
 
   const flushSave = useCallback(() => {
     saveRentasNegocioDraft(stateRef.current);
@@ -186,12 +234,29 @@ export function RentasNegocioForm() {
     if (!f) return;
     setMediaNotice(null);
     try {
-      const data = await readVideoFileAsDataUrlLimited(f, MAX_VIDEO_BYTES);
-      setLocalVideoFileName(f.name);
+      if (!/^video\//.test(f.type)) throw new Error("not_video");
+      if (f.size > MAX_VIDEO_BYTES) throw new Error("video_too_large");
+      const nextId = createRentasDraftVideoId("negocio");
+      const prevId = String(stateRef.current.media.videoLocalDraftId || "").trim();
+      const meta = await putRentasDraftVideo(nextId, f);
+      if (prevId) await deleteRentasDraftVideo(prevId);
+      if (videoObjectUrlRef.current) URL.revokeObjectURL(videoObjectUrlRef.current);
+      const objectUrl = URL.createObjectURL(f);
+      videoObjectUrlRef.current = objectUrl;
+      setLocalVideoFileName(meta.videoLocalFileName || f.name);
       setState((s) => {
         const out: RentasNegocioFormState = {
           ...s,
-          media: { ...s.media, videoLocalDataUrl: data, videoUrl: "" },
+          media: {
+            ...s.media,
+            videoUrl: "",
+            videoLocalDataUrl: objectUrl,
+            videoLocalDraftId: meta.videoLocalDraftId,
+            videoLocalFileName: meta.videoLocalFileName,
+            videoLocalMimeType: meta.videoLocalMimeType,
+            videoLocalSizeBytes: meta.videoLocalSizeBytes,
+            videoLocalUpdatedAt: meta.videoLocalUpdatedAt,
+          },
         };
         queueMicrotask(() => saveRentasNegocioDraft(out));
         return out;
@@ -209,24 +274,74 @@ export function RentasNegocioForm() {
     if (videoFileInputRef.current) videoFileInputRef.current.value = "";
   };
 
-  const clearLocalVideo = () => {
+  const clearLocalVideo = async () => {
+    const prevId = String(stateRef.current.media.videoLocalDraftId || "").trim();
+    if (prevId) {
+      try {
+        await deleteRentasDraftVideo(prevId);
+      } catch {
+        /* ignore */
+      }
+    }
+    if (videoObjectUrlRef.current) {
+      URL.revokeObjectURL(videoObjectUrlRef.current);
+      videoObjectUrlRef.current = null;
+    }
     setLocalVideoFileName("");
     setMediaNotice(null);
     setState((s) => {
-      const out: RentasNegocioFormState = { ...s, media: { ...s.media, videoLocalDataUrl: "" } };
+      const out: RentasNegocioFormState = {
+        ...s,
+        media: {
+          ...s.media,
+          videoLocalDataUrl: "",
+          videoLocalDraftId: "",
+          videoLocalFileName: "",
+          videoLocalMimeType: "",
+          videoLocalSizeBytes: 0,
+          videoLocalUpdatedAt: 0,
+        },
+      };
       queueMicrotask(() => saveRentasNegocioDraft(out));
       return out;
     });
   };
 
-  const onVideoUrlChange = (raw: string) => {
+  const onVideoUrlChange = async (raw: string) => {
     setMediaNotice(null);
     const t = raw.trim();
-    if (t) setLocalVideoFileName("");
+    if (t) {
+      const prevId = String(stateRef.current.media.videoLocalDraftId || "").trim();
+      if (prevId) {
+        try {
+          await deleteRentasDraftVideo(prevId);
+        } catch {
+          /* ignore */
+        }
+      }
+      if (videoObjectUrlRef.current) {
+        URL.revokeObjectURL(videoObjectUrlRef.current);
+        videoObjectUrlRef.current = null;
+      }
+      setLocalVideoFileName("");
+    }
     setState((s) => {
       const out: RentasNegocioFormState = {
         ...s,
-        media: { ...s.media, videoUrl: raw, ...(t ? { videoLocalDataUrl: "" } : {}) },
+        media: {
+          ...s.media,
+          videoUrl: raw,
+          ...(t
+            ? {
+                videoLocalDataUrl: "",
+                videoLocalDraftId: "",
+                videoLocalFileName: "",
+                videoLocalMimeType: "",
+                videoLocalSizeBytes: 0,
+                videoLocalUpdatedAt: 0,
+              }
+            : {}),
+        },
       };
       queueMicrotask(() => saveRentasNegocioDraft(out));
       return out;
@@ -254,7 +369,19 @@ export function RentasNegocioForm() {
     disableValidatedPreview: !confirmAll,
     validationBlockedMessage: previewGateMessage ?? (!confirmAll ? CONFIRM_PREVIEW_BLOCKED[lang] : null),
     labels: RENTAS_NEGOCIO_PREVIEW_ACTION_LABELS,
-    onDeleteApplication: () => {
+    onDeleteApplication: async () => {
+      const prevId = String(stateRef.current.media.videoLocalDraftId || "").trim();
+      if (prevId) {
+        try {
+          await deleteRentasDraftVideo(prevId);
+        } catch {
+          /* ignore */
+        }
+      }
+      if (videoObjectUrlRef.current) {
+        URL.revokeObjectURL(videoObjectUrlRef.current);
+        videoObjectUrlRef.current = null;
+      }
       clearRentasNegocioDraft();
       const empty = createEmptyRentasNegocioFormState();
       try {

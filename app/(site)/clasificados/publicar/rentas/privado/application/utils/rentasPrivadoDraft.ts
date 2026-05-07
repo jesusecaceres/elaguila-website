@@ -49,7 +49,13 @@ export function loadRentasPrivadoDraft(): RentasPrivadoFormState | null {
 
 export function saveRentasPrivadoDraft(state: RentasPrivadoFormState): void {
   if (typeof window === "undefined") return;
-  const raw = JSON.stringify(state);
+  const raw = JSON.stringify({
+    ...state,
+    media: {
+      ...state.media,
+      videoLocalDataUrl: "",
+    },
+  } satisfies RentasPrivadoFormState);
   try {
     sessionStorage.setItem(RENTAS_PRIVADO_DRAFT_STORAGE_KEY, raw);
     try {

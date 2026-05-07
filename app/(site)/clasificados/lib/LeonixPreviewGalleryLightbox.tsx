@@ -152,7 +152,7 @@ export function LeonixPreviewGalleryLightbox({
 
   return !show ? null : (
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-[130] flex items-center justify-center bg-black/80 p-3 pt-[max(4.25rem,env(safe-area-inset-top,0px))] backdrop-blur-sm sm:p-6 sm:pt-[max(5rem,env(safe-area-inset-top,0px))]"
       role="dialog"
       aria-modal="true"
       aria-label="Galería de fotos y videos"
