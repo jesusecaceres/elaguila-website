@@ -827,9 +827,24 @@ export default function MyListingsPage() {
                     ]}
                     actions={[
                       { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
-                      { href: item.editHref, label: lang === "es" ? "Editar" : "Edit" },
-                      { href: item.resultsHref ?? undefined, label: lang === "es" ? "Ver resultados" : "View results", tone: "subtle" as const },
-                      { href: item.messagesHref ?? undefined, label: lang === "es" ? "Mensajes" : "Messages", tone: "subtle" as const },
+                      {
+                        href: item.editHref,
+                        label: lang === "es" ? "Gestionar vacante" : "Manage listing",
+                      },
+                      ...(item.previewHref
+                        ? [
+                            {
+                              href: item.previewHref,
+                              label: lang === "es" ? "Vista previa" : "Preview",
+                              tone: "subtle" as const,
+                            },
+                          ]
+                        : []),
+                      {
+                        href: item.resultsHref ?? undefined,
+                        label: lang === "es" ? "Ver resultados" : "View results",
+                        tone: "subtle" as const,
+                      },
                     ].filter((action) => Boolean(action.href))}
                   />
                 ))}
@@ -865,9 +880,24 @@ export default function MyListingsPage() {
                     ]}
                     actions={[
                       { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
-                      { href: item.editHref, label: lang === "es" ? "Editar" : "Edit" },
-                      { href: item.resultsHref ?? undefined, label: lang === "es" ? "Ver resultados" : "View results", tone: "subtle" as const },
-                      { href: item.messagesHref ?? undefined, label: lang === "es" ? "Mensajes" : "Messages", tone: "subtle" as const },
+                      {
+                        href: item.editHref,
+                        label: lang === "es" ? "Gestionar envío" : "Manage submission",
+                      },
+                      ...(item.previewHref
+                        ? [
+                            {
+                              href: item.previewHref,
+                              label: lang === "es" ? "Vista previa" : "Preview",
+                              tone: "subtle" as const,
+                            },
+                          ]
+                        : []),
+                      {
+                        href: item.resultsHref ?? undefined,
+                        label: lang === "es" ? "Ver resultados" : "View results",
+                        tone: "subtle" as const,
+                      },
                     ].filter((action) => Boolean(action.href))}
                   />
                 ))}

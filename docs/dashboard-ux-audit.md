@@ -3,6 +3,32 @@
 Audit date: 2026-05-07  
 Scope: dashboard clarity, navigation, mobile usability, and category pipeline readiness.
 
+## Unified inventory — Mis anuncios (safe categories only)
+
+**Goal:** Surface real owned rows where we have Supabase-backed `owner_user_id` `/ `owner_id` and verifiable URLs. No synthesized counts or placeholder detail links.
+
+### Included in Mis anuncios unified feed today
+
+| Source | Categories covered | Owner data | Duplicate control | Notes |
+|--------|----------------------|------------|-------------------|--------|
+| `listings` (Supabase) | En Venta · Autos · Rentas · Bienes Raíces (and other `listings.category` branches using existing cards) | `owner_id` | Tabs + search scoped to listing id | Existing `LeonixRealEstateListingManageCard`, `AutosClassifiedListingManageCard`, `EnVentaListingManageCard`, Rentas/branches unchanged. |
+| `restaurantes_public_listings` | Restaurantes | `owner_user_id` | `dedupeRestaurantInventoryWithListings()` vs `draft_listing_id` / `leonix_ad_id` detail_pairs | Sections above main listing grid. |
+| `empleos_public_listings` | Empleos | `owner_user_id` | Rows are keyed by listing id (`empleos_*` separate from generic `listings` ids) — no merge with `listings` today | **Public:** `/clasificados/empleos/[slug]`. **Manage:** `/dashboard/empleos/[listingId]` (id param, **not** slug). **Draft preview shells:** `quick-preview` / `premium-preview` / `feria-preview` + `from=publicar` when lane matches. |
+| `viajes_staged_listings` | Viajes **(only rows with `is_public = true`)** | `owner_user_id` | Staged ids are disjoint from `listings` ids | Matches live public shell: **`/clasificados/viajes/oferta/[slug]`**. **Moderation UI:** `/dashboard/viajes?stagedId=…`. Preview: **`/clasificados/viajes/preview/privado`** vs **`…/preview/negocios`** from `lane`. |
+
+### Intentionally not merged (honest exclusions)
+
+| Category | Reason |
+|----------|--------|
+| **Servicios** | Ownership/read model is **`/api/clasificados/servicios/my-listings`** (not the unified `listings` row shape). Unified cards would require a second fetch + contract mapping — out of scope for this safe gate. **UX:** Jump link to `/dashboard/servicios` remains in the category helper panel. |
+| **Clases** | No dedicated Leonix seller publish pipeline + unified owner table surfaced in dashboard for clasificados clases listings. Public browse exists without a mirrored “Mis anuncios” source. |
+| **Comunidad** | Same as Clases — no safe owner-linked inventory wired for dashboard aggregation. |
+
+### Actions policy (Mis anuncios)
+
+- Buttons use **real `href`s only**; optional preview links are omitted when lane/surface cannot be mapped.
+- Labels avoid implying **Messages** unless the destination is `/dashboard/mensajes` threaded to that listing — Empleos/Viajes use **Gestionar** + optional **Preview** + **Results** instead.
+
 ## Strict TRUE/FALSE audit
 
 | Area | User expectation | Current TRUE/FALSE | Evidence | Fix needed |
@@ -18,7 +44,7 @@ Scope: dashboard clarity, navigation, mobile usability, and category pipeline re
 | Dashboard summary | Next best action is visible | TRUE | Quick actions + attention panel in `/dashboard` | None |
 | Dashboard summary | Publish CTA is obvious | TRUE | Global publish CTA in shell and page-level quick actions | None |
 | Dashboard summary | Empty/sign-in states accurate | TRUE | Login redirect and explicit sign-in placeholder in `/dashboard` | None |
-| Mis anuncios | All owned listings across categories are visible | FALSE | Pulls `listings` + restaurants inventory, but not empleos/servicios/viajes staged rows | Keep as known multi-table gap; avoid fake merge |
+| Mis anuncios | All owned listings across categories are visible | PARTIAL TRUE | Safe multi-table: `listings` + `restaurantes_public_listings` + `empleos_public_listings` + `viajes_staged_listings` (public only). Servicios still separate (API-owned). | Extend only with real owner sources + routes |
 | Mis anuncios | Restaurants appear when owned | TRUE | `dashboardInventory.ts` + section in `mis-anuncios/page.tsx` | None |
 | Mis anuncios | Duplicate avoidance works | TRUE | `dedupeRestaurantInventoryWithListings()` filters by draft/ad identifiers | None |
 | Mis anuncios | Empty state accurate when restaurants exist | TRUE | `hasAnyInventory` prevents false empty state | None |
@@ -47,13 +73,13 @@ Scope: dashboard clarity, navigation, mobile usability, and category pipeline re
 | Category | Publish route exists | Public/results route exists | Dashboard manage route exists | Owned data source exists | Appears in Mis anuncios | Edit/update flow exists | Preview exists | Analytics/messages wired or clearly marked | Mobile dashboard usable | TRUE/FALSE ready |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Restaurantes | TRUE (`/publicar/restaurantes`) | TRUE (`/clasificados/restaurantes`, `/clasificados/restaurantes/resultados`) | TRUE (`/dashboard/restaurantes`) | TRUE (`restaurantes_public_listings`) | TRUE | TRUE (hydrate to publish form) | TRUE (`/clasificados/restaurantes/preview`) | PARTIAL TRUE (dashboard links to analytics/messages, no fake numbers) | TRUE | TRUE |
-| Servicios | TRUE (`/clasificados/publicar/servicios`) | TRUE (`/clasificados/servicios`, `/clasificados/servicios/resultados`) | TRUE (`/dashboard/servicios`) | TRUE (`/api/clasificados/servicios/my-listings` + local/dev fallbacks) | FALSE | PARTIAL TRUE (edit uses publish form) | TRUE (`/clasificados/publicar/servicios/preview`) | PARTIAL TRUE (real leads only when cloud rows exist) | TRUE (fixed) | FALSE |
+| Servicios | TRUE (`/clasificados/publicar/servicios`) | TRUE (`/clasificados/servicios`, `/clasificados/servicios/resultados`) | TRUE (`/dashboard/servicios`) | TRUE (`/api/clasificados/servicios/my-listings` + local/dev fallbacks) | FALSE (not merged into unified Mis anuncios feed) | PARTIAL TRUE (edit uses publish form) | TRUE (`/clasificados/publicar/servicios/preview`) | PARTIAL TRUE (real leads only when cloud rows exist) | TRUE (fixed) | FALSE |
 | En venta | TRUE (`/clasificados/publicar/en-venta/*`) | TRUE (`/clasificados/en-venta`, `/clasificados/en-venta/results`) | TRUE (via `/dashboard/mis-anuncios`) | TRUE (`listings`) | TRUE | TRUE (`/dashboard/mis-anuncios/[id]/editar`) | TRUE (`/clasificados/en-venta/preview`) | TRUE (real listing analytics + messages links) | TRUE | TRUE |
 | Autos | TRUE (`/publicar/autos`, variants) | TRUE (`/clasificados/autos`, `/clasificados/autos/resultados`) | PARTIAL TRUE (managed in `/dashboard/mis-anuncios`) | TRUE (`listings`) | TRUE | PARTIAL FALSE (no clear dedicated edit path from dashboard card) | TRUE (preview routes exist) | PARTIAL TRUE | TRUE | FALSE |
-| Empleos | TRUE (`/clasificados/publicar/empleos`) | TRUE (`/clasificados/empleos`, `/clasificados/empleos/resultados`) | TRUE (`/dashboard/empleos`) | TRUE (`empleos_public_listings`) | FALSE | TRUE (lane-specific edit links) | TRUE (quick/premium/feria preview routes) | PARTIAL TRUE (apps/messages in manage view, no fake totals) | TRUE (fixed) | FALSE |
+| Empleos | TRUE (`/clasificados/publicar/empleos`) | TRUE (`/clasificados/empleos`, `/clasificados/empleos/resultados`) | TRUE (`/dashboard/empleos`, `/dashboard/empleos/[listingId]`) | TRUE (`empleos_public_listings`) | TRUE (unified section when rows exist) | TRUE (manage page uses **listing id** route param) | TRUE (`quick-preview` / `premium-preview` / `feria-preview` + `from=publicar`) | PARTIAL TRUE (applications in manage view; no fake totals on Mis anuncios cards) | TRUE (fixed) | TRUE (safe subset) |
 | Rentas | TRUE (`/publicar/rentas/privado`, `/publicar/rentas/negocio`) | TRUE (`/clasificados/rentas`, `/clasificados/rentas/results`) | TRUE (generic via `/dashboard/mis-anuncios`) | TRUE (`listings` + detail pairs) | TRUE | TRUE (generic edit route + publish flow) | TRUE (`/clasificados/rentas/preview/*`) | PARTIAL TRUE | TRUE | TRUE |
 | Bienes Raíces | TRUE (`/publicar/bienes-raices*`) | TRUE (`/clasificados/bienes-raices`, `/clasificados/bienes-raices/resultados`) | TRUE (generic via `/dashboard/mis-anuncios`) | TRUE (`listings` + detail pairs) | TRUE | TRUE (generic edit route + publish flow) | TRUE (`/clasificados/bienes-raices/preview/*`) | PARTIAL TRUE | TRUE | TRUE |
-| Viajes | TRUE (`/publicar/viajes/*`) | TRUE (`/clasificados/viajes/resultados`, detail pages) | TRUE (`/dashboard/viajes`) | TRUE (`viajes_staged_listings`) | FALSE | TRUE (`stagedId` edit/resubmit flow) | TRUE (`/clasificados/viajes/preview/*`) | PARTIAL TRUE (moderation + owner actions, not unified analytics) | TRUE (fixed) | FALSE |
+| Viajes | TRUE (`/publicar/viajes/*`) | TRUE (`/clasificados/viajes/oferta/[slug]`, `/clasificados/viajes/resultados`) | TRUE (`/dashboard/viajes` + `stagedId`) | TRUE (`viajes_staged_listings`) | TRUE (unified section; **only `is_public`**) | TRUE (`stagedId` edit/resubmit flow) | TRUE (`…/preview/privado` or `…/preview/negocios` by lane) | PARTIAL TRUE (moderation + owner actions; no fake analytics on cards) | TRUE (fixed) | TRUE (safe subset) |
 | Clases | FALSE (no dedicated publish flow found) | PARTIAL TRUE (`/clasificados/clases`) | FALSE | FALSE | FALSE | FALSE | FALSE | FALSE | N/A | FALSE |
 | Comunidad | FALSE (no dedicated publish flow found) | PARTIAL TRUE (`/clasificados/comunidad`) | FALSE | FALSE | FALSE | FALSE | FALSE | FALSE | N/A | FALSE |
 
@@ -63,9 +89,9 @@ Scope: dashboard clarity, navigation, mobile usability, and category pipeline re
 - **Servicios:** public/results/edit/update and pause/resume exist; dashboard ownership uses cloud + fallback sources; not unified with `Mis anuncios`.
 - **En venta:** full action bar present in `Mis anuncios` (public/edit/status/archive/delete/promote/analytics/messages).
 - **Autos:** management exists in `Mis anuncios`, but explicit edit/update path is weaker than other categories.
-- **Empleos:** manage route and application actions exist; not merged into `Mis anuncios`.
+- **Empleos:** merged into `Mis anuncios` when `empleos_public_listings` returns rows; manage uses `/dashboard/empleos/[listingId]` (id, not slug).
 - **Rentas / Bienes Raíces:** managed through generic listings workspace and real-estate card actions; public routes and previews exist.
-- **Viajes:** staged moderation lifecycle with preview/edit/resubmit/unpublish; not merged into `Mis anuncios`.
+- **Viajes:** merged into `Mis anuncios` for **public** staged offers only; public URL is `/clasificados/viajes/oferta/[slug]`; manage uses `/dashboard/viajes?stagedId=…`.
 - **Clases / Comunidad:** visible public categories but dashboard management pipeline is missing.
 
 ## Mobile route checks

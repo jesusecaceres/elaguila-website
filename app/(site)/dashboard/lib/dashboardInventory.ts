@@ -1,4 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { EMPLEOS_PREVIEW_ROUTES } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
 
 export type DashboardInventoryItem = {
   id: string;
@@ -125,6 +128,20 @@ export async function fetchOwnerViajesListings(
   return data as DashboardViajesRow[];
 }
 
+function empleosPreviewHrefForLane(lane: string, lang: Lang): string | null {
+  const raw = String(lane ?? "").trim().toLowerCase();
+  if (raw !== "quick" && raw !== "premium" && raw !== "feria") return null;
+  const basePath = EMPLEOS_PREVIEW_ROUTES[raw];
+  const withFrom = `${basePath}?from=publicar`;
+  return appendLangToPath(withFrom, lang);
+}
+
+function viajesStagedPreviewPath(lane: string): string {
+  const raw = String(lane ?? "").trim().toLowerCase();
+  if (raw === "private") return "/clasificados/viajes/preview/privado";
+  return "/clasificados/viajes/preview/negocios";
+}
+
 export function buildRestaurantInventoryItems(
   rows: DashboardRestaurantRow[],
   lang: "es" | "en",
@@ -159,17 +176,19 @@ export function buildEmpleosInventoryItems(
   lang: "es" | "en",
 ): DashboardInventoryItem[] {
   const q = `lang=${lang}`;
+  const L = lang as Lang;
   return rows.map((row) => ({
     id: row.id,
     category: "empleos",
     title: row.title,
     status: row.lifecycle_status,
-    publicHref: `/clasificados/empleos/${encodeURIComponent(row.slug)}?${q}`,
-    editHref: `/dashboard/empleos/${encodeURIComponent(row.slug)}?${q}`,
-    previewHref: `/clasificados/empleos/preview/${row.lane}?${q}`,
+    publicHref: appendLangToPath(`/clasificados/empleos/${encodeURIComponent(row.slug)}`, L),
+    /** Manage applications + lifecycle — route param is listing id, not slug. */
+    editHref: `/dashboard/empleos/${encodeURIComponent(row.id)}?${q}`,
+    previewHref: empleosPreviewHrefForLane(row.lane, L),
     resultsHref: `/clasificados/empleos/resultados?${q}`,
     analyticsHref: `/dashboard/empleos?${q}`,
-    messagesHref: `/dashboard/empleos?${q}`,
+    messagesHref: `/dashboard/empleos/${encodeURIComponent(row.id)}?${q}`,
     publishedAt: null,
     updatedAt: row.updated_at,
     image: null,
@@ -188,17 +207,18 @@ export function buildViajesInventoryItems(
   lang: "es" | "en",
 ): DashboardInventoryItem[] {
   const q = `lang=${lang}`;
+  const L = lang as Lang;
   return rows.map((row) => ({
     id: row.id,
     category: "viajes",
     title: row.title,
     status: row.lifecycle_status,
-    publicHref: `/clasificados/viajes/${encodeURIComponent(row.slug)}?${q}`,
+    publicHref: appendLangToPath(`/clasificados/viajes/oferta/${encodeURIComponent(row.slug)}`, L),
     editHref: `/dashboard/viajes?${q}&stagedId=${encodeURIComponent(row.id)}`,
-    previewHref: `/clasificados/viajes/preview/${row.lane}?${q}`,
+    previewHref: appendLangToPath(viajesStagedPreviewPath(row.lane), L),
     resultsHref: `/clasificados/viajes/resultados?${q}`,
     analyticsHref: `/dashboard/viajes?${q}`,
-    messagesHref: `/dashboard/viajes?${q}`,
+    messagesHref: `/dashboard/viajes?${q}&stagedId=${encodeURIComponent(row.id)}`,
     publishedAt: row.published_at,
     updatedAt: row.updated_at,
     image: row.hero_image_url,
