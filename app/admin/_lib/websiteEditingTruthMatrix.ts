@@ -15,120 +15,239 @@ export type WebsiteEditingTruthRow = {
   /** Set only when a single sensible admin URL exists; omit for MISSING or fragmented flows. */
   ctaHref?: string;
   ctaLabel?: string;
+  /** What can be edited today (for smoke-test guidance) */
+  editableToday?: string;
+  /** What still requires code (for smoke-test guidance) */
+  requiresCode?: string;
+  /** Public route for preview if known */
+  publicRoute?: string;
+  /** How to add new content/blocks */
+  addNewGuidance?: string;
 };
 
 export const WEBSITE_EDITING_TRUTH_ROWS: readonly WebsiteEditingTruthRow[] = [
   {
     area: "Home (`/home`)",
-    purpose: "Hero, titulares, CTAs, chips manuales, módulos visibles de la portada de la revista.",
+    purpose: "Hero, headlines, CTAs, manual chips, visible modules from magazine cover.",
     routeLabel: "/admin/workspace/home/content",
     status: "TRUE",
-    notes: "Persistido en `home_marketing` vía formulario con acción de guardado.",
+    notes: "Persisted in `home_marketing` via form with save action.",
     ctaHref: "/admin/workspace/home/content",
-    ctaLabel: "Abrir editor →",
+    ctaLabel: "Open editor →",
+    editableToday: "Hero text, CTAs, manual chips, all visible modules",
+    requiresCode: "Layout structure and new module types",
+    publicRoute: "/home",
+    addNewGuidance: "Use existing fields. New block types require schema field or block editor."
   },
   {
-    area: "Tienda — vitrina",
-    purpose: "Copy bilingüe, hero, imágenes y merchandising de la ruta pública `/tienda`.",
+    area: "Tienda — storefront",
+    purpose: "Bilingual copy, hero, images and merchandising for public `/tienda` route.",
     routeLabel: "/admin/workspace/tienda/storefront",
     status: "TRUE",
-    notes: "No sustituye precios ni fichas de producto (catálogo).",
+    notes: "Does not replace prices or product sheets (catalog).",
     ctaHref: "/admin/workspace/tienda/storefront",
-    ctaLabel: "Abrir editor →",
+    ctaLabel: "Open editor →",
+    editableToday: "Storefront copy, hero images, featured items",
+    requiresCode: "New storefront sections or block types",
+    publicRoute: "/tienda",
+    addNewGuidance: "Use existing fields. New sections require development."
   },
   {
-    area: "Tienda — catálogo / ítems",
-    purpose: "Alta, edición y visibilidad de artículos del catálogo comercial.",
+    area: "Tienda — catalog / items",
+    purpose: "Create, edit and visibility of commercial catalog items.",
     routeLabel: "/admin/tienda/catalog",
     status: "TRUE",
-    notes: "CRUD real por ítem; la vitrina de marketing es otra ruta (storefront).",
+    notes: "Real CRUD per item; storefront marketing is separate route.",
     ctaHref: "/admin/tienda/catalog",
-    ctaLabel: "Abrir catálogo →",
+    ctaLabel: "Open catalog →",
+    editableToday: "All catalog items, pricing, images, descriptions",
+    requiresCode: "New product types or catalog structure",
+    publicRoute: "/tienda/catalog",
+    addNewGuidance: "Use catalog CRUD. New item types require schema changes."
   },
   {
-    area: "Clasificados — categorías y operación",
-    purpose: "Colas de anuncios, moderación, registro de categorías y editores de copy del flujo publicar (donde existen).",
+    area: "Clasificados — categories and operations",
+    purpose: "Ad queues, moderation, category registration and copy from publish flow (where exists).",
     routeLabel: "/admin/workspace/clasificados · /admin/categories · /admin/workspace/clasificados/category/editor/[slug]",
     status: "PARTIAL",
-    notes: "Landings y esquemas largos siguen mayormente en código; hay colas y overrides por categoría en admin.",
+    notes: "Landings and long schemas are mostly in code; queues and category overrides exist in admin.",
     ctaHref: "/admin/workspace/clasificados",
-    ctaLabel: "Hub Clasificados →",
+    ctaLabel: "Clasificados hub →",
+    editableToday: "Category copy, form fields, moderation queue",
+    requiresCode: "Landing page templates, new category structures",
+    publicRoute: "/clasificados",
+    addNewGuidance: "Use category editor for form fields. New landing layouts need code."
   },
   {
-    area: "Restaurantes — páginas públicas",
-    purpose: "Experiencia pública de la vertical (hub, fichas); no confundir con moderación de anuncios.",
+    area: "Restaurantes — public pages",
+    purpose: "Public experience for vertical (hub, sheets); not to be confused with ad moderation.",
     routeLabel: "/admin/workspace/clasificados/category/restaurantes · …/category/editor/restaurantes",
     status: "PARTIAL",
-    notes: "Workspace por categoría + editor de etiquetas/campos del formulario publicar; plantilla de hub/listado sigue en código.",
+    notes: "Workspace per category + editor of tags/publish form fields; hub/listing template still in code.",
     ctaHref: "/admin/workspace/clasificados/category/restaurantes",
     ctaLabel: "Workspace Restaurantes →",
+    editableToday: "Form field labels, category-specific copy",
+    requiresCode: "Hub page layout, listing detail templates",
+    publicRoute: "/clasificados/restaurantes",
+    addNewGuidance: "Use category editor for form fields. New block types require development."
   },
   {
-    area: "Servicios — páginas públicas",
-    purpose: "Igual que arriba para la vertical Servicios.",
+    area: "Servicios — public pages",
+    purpose: "Same as above for Servicios vertical.",
     routeLabel: "/admin/workspace/clasificados/category/servicios · …/category/editor/servicios",
     status: "PARTIAL",
-    notes: "Cola dedicada y simulación local en otras rutas; copy de landings mayormente código.",
+    notes: "Dedicated queue and local simulation in other routes; landing copy mostly code.",
     ctaHref: "/admin/workspace/clasificados/category/servicios",
     ctaLabel: "Workspace Servicios →",
+    editableToday: "Form field labels, category copy",
+    requiresCode: "Landing page layouts, listing templates",
+    publicRoute: "/clasificados/servicios",
+    addNewGuidance: "Use category editor for form fields. New layouts need development."
   },
   {
-    area: "Autos — páginas públicas",
-    purpose: "Vertical Autos (listados y detalle público).",
+    area: "Autos — public pages",
+    purpose: "Autos vertical (listings and public detail).",
     routeLabel: "/admin/workspace/clasificados/category/autos · …/category/editor/autos · /admin/workspace/clasificados/autos",
     status: "PARTIAL",
-    notes: "Moderación/cola admin; editor de campos publicar; sin CMS de plantilla de listado.",
+    notes: "Admin moderation/queue; publish form field editor; no CMS for listing template.",
     ctaHref: "/admin/workspace/clasificados/category/autos",
     ctaLabel: "Workspace Autos →",
+    editableToday: "Form field labels, moderation queue",
+    requiresCode: "Listing detail templates, search layouts",
+    publicRoute: "/clasificados/autos",
+    addNewGuidance: "Use category editor for form fields. New templates require development."
   },
   {
-    area: "Empleos — páginas públicas",
-    purpose: "Vertical Empleos (ofertas públicas).",
+    area: "Empleos — public pages",
+    purpose: "Empleos vertical (public job offers).",
     routeLabel: "/admin/workspace/clasificados/category/empleos · …/category/editor/empleos · /admin/workspace/clasificados/empleos",
     status: "PARTIAL",
-    notes: "Cola Supabase + editor de campos publicar; detalle público es contenido de anunciantes.",
+    notes: "Supabase queue + publish form field editor; public detail is advertiser content.",
     ctaHref: "/admin/workspace/clasificados/category/empleos",
     ctaLabel: "Workspace Empleos →",
+    editableToday: "Form field labels, moderation queue",
+    requiresCode: "Job listing templates, search layouts",
+    publicRoute: "/clasificados/empleos",
+    addNewGuidance: "Use category editor for form fields. New layouts need development."
   },
   {
-    area: "Cabecera / navegación principal",
-    purpose: "Estructura del menú superior y enlaces globales.",
-    routeLabel: "/admin/site-settings (solo franjas bajo el menú)",
+    area: "Header / main navigation",
+    purpose: "Top menu structure and global links.",
+    routeLabel: "/admin/site-settings (only strips under menu)",
     status: "PARTIAL",
-    notes: "Los enlaces y la estructura del nav siguen en código; esta pantalla controla textos/toggles de franjas bajo la navegación.",
+    notes: "Links and nav structure remain in code; this screen controls text/toggles of strips under navigation.",
     ctaHref: "/admin/site-settings",
-    ctaLabel: "Ajustes globales →",
+    ctaLabel: "Global settings →",
+    editableToday: "Banner texts, toggle switches for strips",
+    requiresCode: "Navigation structure, new menu items",
+    publicRoute: "All pages (header)",
+    addNewGuidance: "Use global settings for banners. New nav items need code changes."
   },
   {
-    area: "Pie de página (footer)",
-    purpose: "Bloque inferior transversal del sitio.",
-    routeLabel: "(sin ruta admin)",
+    area: "Footer (pie de página)",
+    purpose: "Bottom cross-site block.",
+    routeLabel: "(no admin route)",
     status: "HONESTLY_DISABLED",
-    notes: "Documentado en `/admin/site-settings`: pie sigue en código; no hay formulario de edición.",
+    notes: "Documented in `/admin/site-settings`: footer remains in code; no edit form.",
+    editableToday: "Nothing (intentionally disabled)",
+    requiresCode: "Footer content, layout, links",
+    publicRoute: "All pages (footer)",
+    addNewGuidance: "Not editable from admin. Requires code changes."
   },
   {
-    area: "Ajustes globales del sitio",
-    purpose: "Avisos y franjas que pueden mostrarse en muchas páginas.",
+    area: "Global site settings",
+    purpose: "Banners and strips that may show on many pages.",
     routeLabel: "/admin/site-settings",
     status: "TRUE",
-    notes: "Formulario persistente (`global_site`); no crea anuncios de Clasificados.",
+    notes: "Persisting form (`global_site`); does not create Clasificados ads.",
     ctaHref: "/admin/site-settings",
-    ctaLabel: "Abrir ajustes →",
+    ctaLabel: "Open settings →",
+    editableToday: "Banner texts, global toggles, strip content",
+    requiresCode: "New strip types, banner locations",
+    publicRoute: "Multiple pages",
+    addNewGuidance: "Use existing fields. New strip types require development."
   },
   {
-    area: "SEO / metadatos",
-    purpose: "Títulos, descripciones y Open Graph coherentes en todo el sitio.",
-    routeLabel: "Fragmentado (p. ej. Home, Tienda storefront, Revista…)",
+    area: "SEO / metadata",
+    purpose: "Consistent titles, descriptions and Open Graph across site.",
+    routeLabel: "Fragmented (e.g. Home, Tienda storefront, Revista…)",
     status: "PARTIAL",
-    notes: "No hay un panel SEO único; parte del copy visible se edita por sección. Metadatos de número de revista: workspace Revista.",
+    notes: "No single SEO panel; part of visible copy edited per section. Magazine issue metadata: workspace Revista.",
     ctaHref: "/admin/workspace/revista",
-    ctaLabel: "Workspace Revista (metadatos número) →",
+    ctaLabel: "Workspace Revista (issue metadata) →",
+    editableToday: "Individual page metadata, magazine issue data",
+    requiresCode: "Unified SEO panel, automated metadata generation",
+    publicRoute: "All pages (varied)",
+    addNewGuidance: "Edit metadata per section. Unified SEO needs development."
   },
   {
-    area: "Legal / páginas legales",
-    purpose: "Términos, privacidad, avisos legales estáticos.",
-    routeLabel: "(sin ruta admin dedicada)",
+    area: "Legal / legal pages",
+    purpose: "Terms, privacy, static legal notices.",
+    routeLabel: "(no dedicated admin route)",
     status: "MISSING",
-    notes: "No existe flujo admin en este repo para editar páginas legales; suelen vivir en código o contenido estático.",
+    notes: "No admin flow exists in this repo for editing legal pages; usually live in code or static content.",
+    editableToday: "Nothing (no admin route)",
+    requiresCode: "Legal page editor, content management system",
+    publicRoute: "Various (legal pages)",
+    addNewGuidance: "Not editable from admin yet. Requires legal page editor development."
   },
 ] as const;
+
+// Smoke-test helper functions
+export function getWebsiteEditingSummary() {
+  const summary = {
+    TRUE: 0,
+    PARTIAL: 0,
+    MISSING: 0,
+    HONESTLY_DISABLED: 0,
+    needsBuild: 0
+  };
+
+  WEBSITE_EDITING_TRUTH_ROWS.forEach(row => {
+    summary[row.status]++;
+    if (row.status !== "TRUE") {
+      summary.needsBuild++;
+    }
+  });
+
+  return summary;
+}
+
+export function validateWebsiteEditingMatrix() {
+  const warnings: string[] = [];
+  const errors: string[] = [];
+
+  WEBSITE_EDITING_TRUTH_ROWS.forEach(row => {
+    // Validate TRUE rows have working CTAs
+    if ((row.status === "TRUE" || row.status === "PARTIAL") && !row.ctaHref) {
+      warnings.push(`${row.area}: Status is ${row.status} but missing ctaHref`);
+    }
+
+    // Validate TRUE rows have actual editors
+    if (row.status === "TRUE" && !row.editableToday) {
+      warnings.push(`${row.area}: Status is TRUE but missing editableToday guidance`);
+    }
+
+    // Validate missing guidance for non-TRUE rows
+    if (row.status !== "TRUE" && !row.requiresCode) {
+      warnings.push(`${row.area}: Status is ${row.status} but missing requiresCode guidance`);
+    }
+  });
+
+  return { warnings, errors };
+}
+
+export function getSmokeTestStatusMessage(status: WebsiteEditingTruthStatus): string {
+  switch (status) {
+    case "TRUE":
+      return "Fully editable from admin today";
+    case "PARTIAL":
+      return "Some content editable, template/layout still in code";
+    case "MISSING":
+      return "No admin route exists yet";
+    case "HONESTLY_DISABLED":
+      return "Intentionally disabled, requires code changes";
+    default:
+      return "Unknown status";
+  }
+}
