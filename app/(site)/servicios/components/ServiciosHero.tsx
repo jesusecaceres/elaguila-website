@@ -110,13 +110,13 @@ export function ServiciosHero({
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 sm:gap-4">
             {hero.logoUrl ? (
               <div className="flex justify-center">
-                <div className="rounded-2xl border border-white/35 bg-black/20 p-2 shadow-lg shadow-black/20 backdrop-blur-[2px] sm:p-2.5">
+                <div className="rounded-2xl border border-white/35 bg-black/20 p-2.5 shadow-lg shadow-black/20 backdrop-blur-[2px] sm:p-3">
                   <Image
                     src={hero.logoUrl}
                     alt={hero.logoAlt || identity.businessName}
-                    width={112}
-                    height={112}
-                    className="h-20 w-20 object-contain sm:h-24 sm:w-24"
+                    width={192}
+                    height={192}
+                    className="h-36 w-36 object-contain sm:h-44 sm:w-44"
                     unoptimized={serviciosImageUnoptimized(hero.logoUrl)}
                   />
                 </div>
@@ -124,10 +124,10 @@ export function ServiciosHero({
             ) : (
               <div className="flex justify-center">
                 <div
-                  className="flex h-20 w-20 items-center justify-center rounded-2xl border border-white/40 bg-black/25 shadow-lg backdrop-blur-sm sm:h-24 sm:w-24"
+                  className="flex h-36 w-36 items-center justify-center rounded-2xl border border-white/40 bg-black/25 shadow-lg backdrop-blur-sm sm:h-44 sm:w-44"
                   style={{ backgroundColor: `${SV.blue}cc` }}
                 >
-                  <span className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                  <span className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
                     {(identity.businessName.trim().charAt(0) || "?").toUpperCase()}
                   </span>
                 </div>

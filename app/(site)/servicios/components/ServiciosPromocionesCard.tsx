@@ -90,7 +90,7 @@ function PromoInnerCard({
   return (
     <article
       className={`relative overflow-hidden rounded-2xl border border-[#D4A574]/45 shadow-[0_8px_28px_-12px_rgba(61,44,18,0.18)] transition hover:border-[#C9A84A]/55 hover:shadow-md ${
-        compact ? "px-3 py-4 sm:px-4 sm:py-5" : "px-4 py-5 sm:px-6 sm:py-6"
+        compact ? "px-3 py-3.5 sm:px-4 sm:py-4" : "px-4 py-5 sm:px-6 sm:py-6"
       }`}
       style={{
         background: "linear-gradient(165deg, #FFFCF5 0%, #FFF8EC 42%, #FAF0E4 100%)",
@@ -102,13 +102,13 @@ function PromoInnerCard({
       />
       <div className="pointer-events-none absolute bottom-0 left-0 h-16 w-16 rounded-tr-[100%] bg-[#C9A84A]/[0.07]" aria-hidden />
 
-      <div className="relative flex flex-col gap-3 sm:flex-row sm:gap-4">
-        <div className="flex shrink-0 flex-col gap-2 sm:w-[min(100%,7.5rem)]">
+      <div className="relative flex flex-col gap-2.5 sm:flex-row sm:gap-3">
+        <div className="flex shrink-0 flex-col gap-1.5 sm:w-[min(100%,6.75rem)]">
           {hasImage && thumb ? (
             <button
               type="button"
               onClick={() => onImageOpen(thumb)}
-              className="group relative aspect-[4/3] w-full max-w-[200px] overflow-hidden rounded-xl border border-[#D4A574]/40 bg-[#F5EFE3] shadow-inner sm:max-w-none"
+              className="group relative aspect-[4/3] w-full max-w-[180px] overflow-hidden rounded-xl border border-[#D4A574]/40 bg-[#F5EFE3] shadow-inner sm:max-w-none"
               aria-label={L.promoViewImage}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -117,13 +117,13 @@ function PromoInnerCard({
           ) : (
             <div
               className={`flex aspect-[4/3] w-full max-w-[200px] items-center justify-center rounded-xl border border-dashed border-[#C4A574]/50 bg-[#FAF4EA] sm:max-w-none ${
-                compact ? "max-h-[88px]" : ""
+                compact ? "max-h-[82px]" : ""
               }`}
             >
               <FaTicketAlt className={`text-[#9A7329]/85 ${compact ? "h-7 w-7" : "h-9 w-9"}`} aria-hidden />
             </div>
           )}
-          <span className="inline-flex w-fit max-w-full items-center rounded-full border border-[#C9A84A]/35 bg-[#FFF3DC] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#6B5420]">
+          <span className="inline-flex w-fit max-w-full items-center rounded-full border border-[#C9A84A]/35 bg-[#FFF3DC] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#6B5420]">
             {L.promoCouponBadge}
           </span>
         </div>
@@ -131,11 +131,21 @@ function PromoInnerCard({
         <div className="min-w-0 flex-1">
           <OfferHeadline text={promo.headline} />
           {promo.footnote ? (
-            <p className="mt-2 text-sm leading-relaxed text-[#5D4A38]/95">{promo.footnote}</p>
+            <p
+              className="mt-1.5 text-sm leading-relaxed text-[#5D4A38]/95"
+              style={{
+                display: "-webkit-box",
+                WebkitLineClamp: compact ? 2 : 4,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }}
+            >
+              {promo.footnote}
+            </p>
           ) : null}
 
           {primary || secondary.length > 0 ? (
-            <div className="mt-4 flex flex-wrap gap-2 border-t border-[#D4A574]/25 pt-3">
+            <div className="mt-2.5 flex flex-wrap gap-2 border-t border-[#D4A574]/25 pt-2.5">
               {primary ? (
                 <PromoCtaButton
                   key={`p-${primary.kind}`}
@@ -174,12 +184,7 @@ export function ServiciosPromocionesCard({ profile, lang }: { profile: Servicios
   if (!hasOfferSectionResolved(profile)) return null;
 
   const n = profile.promotions.length;
-  const listClass =
-    n === 1
-      ? "mt-5"
-      : n === 2
-        ? "mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5"
-        : "mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-5";
+  const listClass = "mt-4 flex flex-col gap-3 sm:mt-5 sm:gap-3.5";
 
   return (
     <>
@@ -202,7 +207,7 @@ export function ServiciosPromocionesCard({ profile, lang }: { profile: Servicios
         </h2>
         <div className={listClass}>
           {profile.promotions.map((p) => (
-            <PromoInnerCard key={p.id} promo={p} lang={lang} compact={n > 1} onImageOpen={openLightbox} />
+            <PromoInnerCard key={p.id} promo={p} lang={lang} compact={true} onImageOpen={openLightbox} />
           ))}
         </div>
       </section>
