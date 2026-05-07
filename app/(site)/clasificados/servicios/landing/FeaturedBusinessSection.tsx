@@ -1,13 +1,13 @@
 import Link from "next/link";
-import { FeaturedBusinessCard } from "./FeaturedBusinessCard";
-import type { ServiciosLandingFeaturedBusiness } from "./serviciosLandingSampleData";
+import type { ServiciosPublicListingRow } from "../lib/serviciosPublicListingsServer";
+import { ServiciosHorizontalResultCard } from "../components/ServiciosHorizontalResultCard";
 
 export function FeaturedBusinessSection({
   lang,
-  items,
+  rows,
 }: {
   lang: "es" | "en";
-  items: ServiciosLandingFeaturedBusiness[];
+  rows: ServiciosPublicListingRow[];
 }) {
   const resultsHref = `/clasificados/servicios/resultados?lang=${lang}`;
   const publishHref = `/clasificados/publicar/servicios?lang=${lang}`;
@@ -32,7 +32,7 @@ export function FeaturedBusinessSection({
           </p>
         </div>
       </div>
-      {items.length === 0 ? (
+      {rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[#c9b8a4] bg-gradient-to-b from-[#FFFCF7] to-[#faf6f0] px-5 py-12 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
           <p className="mx-auto max-w-lg text-sm font-medium leading-relaxed text-[#142a42]">
             {lang === "en"
@@ -60,11 +60,13 @@ export function FeaturedBusinessSection({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-7 sm:gap-8 md:grid-cols-2 md:gap-8 xl:grid-cols-3 xl:gap-9">
-          {items.map((row) => (
-            <FeaturedBusinessCard key={row.id} row={row} lang={lang} />
+        <ul className="mx-auto flex max-w-[1100px] list-none flex-col gap-5 sm:gap-6">
+          {rows.map((row) => (
+            <li key={row.slug} className="min-w-0">
+              <ServiciosHorizontalResultCard row={row} lang={lang} persistListingEngagement={Boolean((row.leonix_ad_id || "").trim())} />
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </section>
   );

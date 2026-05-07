@@ -260,9 +260,15 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                 >
                   {lang === "en" ? "Featured on Leonix" : "Destacados en Leonix"}
                 </h2>
-                <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-2 xl:grid-cols-3">
+                <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-4 sm:gap-5">
                   {promotedRows.map((r) => (
-                    <ServiciosHorizontalResultCard key={r.slug} row={r} lang={lang} />
+                    <li key={r.slug} className="min-w-0">
+                      <ServiciosHorizontalResultCard
+                        row={r}
+                        lang={lang}
+                        persistListingEngagement={Boolean((r.leonix_ad_id || "").trim())}
+                      />
+                    </li>
                   ))}
                 </ul>
               </section>
@@ -277,9 +283,15 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                     {lang === "en" ? "More showcases" : "Más vitrinas"}
                   </h2>
                 ) : null}
-                <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-2 xl:grid-cols-3">
+                <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-4 sm:gap-5">
                   {standardRows.map((r) => (
-                    <ServiciosHorizontalResultCard key={r.slug} row={r} lang={lang} />
+                    <li key={r.slug} className="min-w-0">
+                      <ServiciosHorizontalResultCard
+                        row={r}
+                        lang={lang}
+                        persistListingEngagement={Boolean((r.leonix_ad_id || "").trim())}
+                      />
+                    </li>
                   ))}
                 </ul>
               </section>

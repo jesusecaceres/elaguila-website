@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
-import { FiGlobe, FiMapPin, FiPhone, FiMessageCircle, FiHeart, FiBookmark, FiShare2 } from "react-icons/fi";
+import { FiGlobe, FiMapPin, FiPhone, FiMessageCircle } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
@@ -11,10 +11,7 @@ import { LeonixShareButton } from "@/app/components/clasificados/analytics/Leoni
 import type { ServiciosPublicListingRow } from "../lib/serviciosPublicListingsServer";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import { getServiciosProfileLabels } from "@/app/servicios/copy/serviciosProfileCopy";
-import { formatServiciosInternalGroupForDiscovery } from "../lib/serviciosInternalGroupDisplay";
-import { inferServiciosSellerPresentation } from "../lib/serviciosSellerKind";
 import { isServiciosListingPromoted } from "../lib/serviciosResultsFilter";
-import { SV } from "@/app/servicios/components/serviciosDesignTokens";
 
 const PREVIEW_CARD =
   "overflow-hidden rounded-[28px] border border-[#E8D7B8] bg-[#FFFDF7] shadow-[0_18px_70px_-30px_rgba(47,42,35,0.25)] transition-shadow duration-300 hover:shadow-[0_22px_90px_-36px_rgba(47,42,35,0.32)]";
@@ -53,7 +50,6 @@ const FEATURE_CHIP =
 const CTA_ROW = "flex flex-wrap items-stretch gap-2.5 pt-1 md:items-center";
 const CTA_BTN_BASE =
   "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-bold shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]/40";
-const CTA_PRIMARY = "border-[#E8D7B8] bg-[#6F7A3A] text-white hover:bg-[#5a6a2f]";
 const CTA_SECONDARY = "border-[#E8D7B8] bg-white text-[#2F2A23] hover:bg-[#FCF9F2] hover:border-[#D4AF37]";
 
 const ENGAGEMENT_SECTION = "mt-1 border-t border-[#E8D7B8]/50 pt-5";
@@ -140,7 +136,6 @@ export function ServiciosHorizontalResultCard({
   }
   
   const profile = resolveServiciosProfile(wire, lang);
-  const ownerForEngagement = (analyticsOwnerUserId ?? "").trim() || undefined;
   const shareUrl = (shareListingAbsoluteUrl ?? "").trim();
 
   const identityChips = useMemo(() => {
@@ -170,6 +165,12 @@ export function ServiciosHorizontalResultCard({
     };
   }, [profile.quickFacts]);
 
+  const locationLine = useMemo(() => {
+    const fromHero = (profile.hero.locationSummary || "").trim();
+    if (fromHero) return fromHero;
+    return (row.city || "").trim();
+  }, [profile.hero.locationSummary, row.city]);
+
   const features = useMemo(() => {
     const serviceChips: string[] = [];
     if (quick.serviceArea) {
@@ -178,52 +179,78 @@ export function ServiciosHorizontalResultCard({
         if (cleaned) serviceChips.push(cleaned);
       }
     }
-    const unique = Array.from(new Set(serviceChips));
-    return unique;
-  }, [quick.serviceArea]);
+    for (const s of profile.services.slice(0, 6)) {
+      const cleaned = cleanOtherLabel(s.title);
+      if (cleaned) serviceChips.push(cleaned);
+    }
+    return Array.from(new Set(serviceChips));
+  }, [quick.serviceArea, profile.services]);
 
   const addressQuery = (profile.contact?.physicalAddressDisplay || "").trim();
-  const addressHref = addressQuery ? mapsSearchHref(addressQuery) : "";
+  const mapsHref = ((profile.contact?.mapsSearchHref || "").trim() || (addressQuery ? mapsSearchHref(addressQuery) : "")).trim();
 
   const summary = (profile.about?.text || "").trim();
 
-  const ctasDesktop = useMemo(() => {
-    const want = new Set(["call", "website", "whatsapp"]);
-    const source = (profile.contact?.secondaryCtaLabels ?? []) as unknown[];
-    const filtered = source.filter(
-      (c: any) => c && typeof c === "object" && want.has(String(c.key)) && String(c.href ?? "").trim() && c.enabled !== false,
-    ) as Array<{ key: string; href?: string; enabled?: boolean; label?: string }>;
-    const byKey = new Map<string, (typeof filtered)[number]>();
-    for (const c of filtered) {
-      if (!byKey.has(c.key)) byKey.set(c.key, c);
-    }
-    const order = ["call", "website", "whatsapp"] as const;
-    return order.map((k) => byKey.get(k)).filter(Boolean) as (typeof filtered)[number][];
-  }, [profile.contact?.secondaryCtaLabels]);
+  const mediaUrl =
+    (profile.hero.coverImageUrl || "").trim() ||
+    (profile.gallery[0]?.url || "").trim() ||
+    (profile.hero.logoUrl || "").trim() ||
+    "";
+  const mediaAlt =
+    (profile.hero.coverImageAlt || "").trim() ||
+    (profile.gallery[0]?.alt || "").trim() ||
+    (profile.hero.logoAlt || "").trim() ||
+    profile.identity.businessName;
 
-  const ctasMobile = useMemo(() => {
-    const want = new Set(["phone", "directions"]);
-    const source = (profile.contact?.secondaryCtaLabels ?? []) as unknown[];
-    const filtered = source.filter(
-      (c: any) => c && typeof c === "object" && want.has(String(c.key)) && String(c.href ?? "").trim() && c.enabled !== false,
-    ) as Array<{ key: string; href?: string; enabled?: boolean; label?: string }>;
-    const byKey = new Map<string, (typeof filtered)[number]>();
-    for (const c of filtered) {
-      if (!byKey.has(c.key)) byKey.set(c.key, c);
+  type ContactAction = { key: string; href: string; label: string };
+
+  const contactActions = useMemo((): ContactAction[] => {
+    const out: ContactAction[] = [];
+    const tel = (profile.contact.phoneTelHref || "").trim();
+    if (tel && profile.contact.phoneDisplay) {
+      out.push({ key: "call", href: tel, label: L.call });
     }
-    const order = ["phone", "directions"] as const;
-    return order.map((k) => byKey.get(k)).filter(Boolean) as (typeof filtered)[number][];
-  }, [profile.contact?.secondaryCtaLabels]);
+    const web = (profile.contact.websiteHref || "").trim();
+    if (web) {
+      out.push({ key: "website", href: web, label: L.visitWebsite });
+    }
+    const wa = (profile.contact.socialLinks?.whatsapp || "").trim();
+    if (wa) {
+      out.push({ key: "whatsapp", href: wa, label: L.whatsapp });
+    }
+    if (mapsHref && !addressQuery) {
+      out.push({ key: "maps", href: mapsHref, label: L.openInMaps });
+    }
+    const mail = (profile.contact.emailMailtoHref || "").trim();
+    if (mail) {
+      out.push({ key: "email", href: mail, label: L.email });
+    }
+    return out;
+  }, [L, profile.contact, mapsHref, addressQuery]);
+
+  const vitrinaHref = (publicDetailHref || "").trim() || `/clasificados/servicios/${encodeURIComponent(row.slug)}?lang=${lang}`;
+  const vitrinaLabel =
+    (publicDetailLabel || "").trim() ||
+    (lang === "en" ? "View showcase" : "Ver vitrina");
+
+  const effectiveListingId = (listingId || "").trim() || (row.leonix_ad_id || "").trim() || row.slug;
+  const effectiveOwnerUserId = (analyticsOwnerUserId || "").trim() || (row.owner_user_id || "").trim() || undefined;
+  const promoted = isServiciosListingPromoted(row);
+
+  const ratingValue =
+    typeof profile.hero.rating === "number" && Number.isFinite(profile.hero.rating) ? profile.hero.rating : undefined;
+  const reviewCount =
+    typeof profile.hero.reviewCount === "number" && profile.hero.reviewCount > 0 ? profile.hero.reviewCount : undefined;
 
   return (
     <div className={`${PREVIEW_CARD} w-full min-w-0`}>
       <div className={GRID}>
         <div className={MEDIA}>
           <div className={MEDIA_FRAME}>
-            {profile.hero.logoUrl ? (
+            {mediaUrl ? (
               <Image
-                src={profile.hero.logoUrl}
-                alt={profile.hero.logoAlt || profile.identity.businessName}
+                src={mediaUrl}
+                alt={mediaAlt}
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, (max-width: 1280px) 42vw, 520px"
@@ -239,6 +266,18 @@ export function ServiciosHorizontalResultCard({
                 </div>
               </div>
             )}
+            <div className="absolute left-2 top-2 z-[2] flex max-w-[calc(100%-1rem)] flex-wrap gap-1">
+              {promoted ? (
+                <span className="rounded-full border border-white/70 bg-gradient-to-r from-[#D4AF37] to-[#9A7329] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                  {L.featured}
+                </span>
+              ) : null}
+              {row.leonix_verified ? (
+                <span className="rounded-full border border-white/80 bg-white/95 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#2A7F3E] shadow-sm">
+                  {lang === "en" ? "Verified" : "Verificado"}
+                </span>
+              ) : null}
+            </div>
             <div
               className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent md:hidden"
               aria-hidden
@@ -260,9 +299,7 @@ export function ServiciosHorizontalResultCard({
               >
                 <span className="h-2 w-2 rounded-full bg-current opacity-70" aria-hidden />
                 <span className="line-clamp-2 text-left leading-snug">
-                  {((profile.contact?.hours as any)?.statusLine?.trim?.() ||
-                    profile.contact?.hours?.todayHoursLine?.trim() ||
-                    (lang === "en" ? "Hours" : "Horario"))}
+                  {profile.contact?.hours?.todayHoursLine?.trim() || (lang === "en" ? "Hours" : "Horario")}
                 </span>
               </span>
             </div>
@@ -271,10 +308,12 @@ export function ServiciosHorizontalResultCard({
 
         <div className={CONTENT}>
           <div className="min-w-0 space-y-1.5 md:space-y-3">
-            {profile.hero.rating ? (
+            {ratingValue != null && ratingValue > 0 ? (
               <div className="flex items-center gap-2">
-                <StarRow rating={Number((profile.hero.rating as any)?.average ?? profile.hero.rating ?? 0)} />
-                <span className="text-xs font-semibold text-[#6F6254]">({Number((profile.hero.rating as any)?.count ?? 0)})</span>
+                <StarRow rating={ratingValue} />
+                {reviewCount != null ? (
+                  <span className="text-xs font-semibold text-[#6F6254]">{L.reviewsSuffix(reviewCount)}</span>
+                ) : null}
               </div>
             ) : null}
 
@@ -317,19 +356,20 @@ export function ServiciosHorizontalResultCard({
               >
                 <span className="h-2 w-2 rounded-full bg-current opacity-70" aria-hidden />
                 <span className="min-w-0 truncate">
-                  {((profile.contact?.hours as any)?.statusLine?.trim?.() ||
-                    profile.contact?.hours?.todayHoursLine?.trim() ||
-                    (lang === "en" ? "Hours" : "Horario"))}
+                  {profile.contact?.hours?.todayHoursLine?.trim() || (lang === "en" ? "Hours" : "Horario")}
                 </span>
               </span>
 
-              {quick.serviceArea ? <span className={META_PILL}>{quick.serviceArea}</span> : null}
+              {locationLine ? <span className={META_PILL}>{locationLine}</span> : null}
+              {quick.serviceArea && quick.serviceArea !== locationLine ? (
+                <span className={META_PILL}>{quick.serviceArea}</span>
+              ) : null}
             </div>
 
-            {addressQuery ? (
+            {addressQuery && mapsHref ? (
               <>
                 <a
-                  href={addressHref}
+                  href={mapsHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex w-full min-w-0 items-center gap-1.5 py-0.5 text-[12px] font-semibold leading-snug text-[#3B2117] md:hidden"
@@ -339,7 +379,7 @@ export function ServiciosHorizontalResultCard({
                   <span className="min-w-0 truncate">{addressQuery}</span>
                 </a>
                 <a
-                  href={addressHref}
+                  href={mapsHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={`${ADDRESS_LINK} hidden md:inline-flex`}
@@ -396,94 +436,69 @@ export function ServiciosHorizontalResultCard({
             ) : null}
           </div>
 
-          {publicDetailHref?.trim() ? (
-            <div className="flex min-w-0 flex-col gap-1.5 md:gap-2">
-              <Link href={publicDetailHref} className="flex min-h-[44px] w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#6F7A3A] to-[#5a6a2f] text-xs font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(111,122,58,0.45)] transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 md:min-h-[48px] md:text-sm">
-                {publicDetailLabel?.trim() || (lang === "en" ? "View full listing" : "Ver vitrina")}
+          <div className="flex min-w-0 flex-col gap-1.5 md:gap-2">
+            <Link
+              href={vitrinaHref}
+              className="flex min-h-[44px] w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#6F7A3A] to-[#5a6a2f] text-xs font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(111,122,58,0.45)] transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 md:min-h-[48px] md:text-sm"
+            >
+              {vitrinaLabel}
+            </Link>
+            {discoveryRefineHref?.trim() && discoveryRefineLabel?.trim() ? (
+              <Link
+                href={discoveryRefineHref}
+                className="text-center text-[10px] font-semibold text-[#6F6254] underline-offset-4 hover:underline md:text-xs"
+              >
+                {discoveryRefineLabel}
               </Link>
-              {discoveryRefineHref?.trim() && discoveryRefineLabel?.trim() ? (
-                <Link
-                  href={discoveryRefineHref}
-                  className="text-center text-[10px] font-semibold text-[#6F6254] underline-offset-4 hover:underline md:text-xs"
-                >
-                  {discoveryRefineLabel}
-                </Link>
-              ) : null}
-            </div>
-          ) : null}
-
-          {/* CTA Section */}
-          <div className="mt-auto flex flex-wrap gap-2.5 pt-1 md:items-center">
-            {ctasMobile.length ? (
-              <div className="grid grid-cols-2 gap-2 pt-1 md:hidden" aria-label={lang === "en" ? "Actions" : "Acciones"}>
-                {ctasMobile.map((cta) => {
-                  const n = ctasMobile.length;
-                  const alone = n === 1;
-                  const primary = cta.key === "directions";
-                  const Icon = cta.key === "call" ? FiPhone : FiMapPin;
-                  const href = String(cta.href ?? "");
-                  return (
-                    <div key={cta.key} className={alone ? "col-span-2 flex justify-center" : undefined}>
-                      <a
-                        href={href}
-                        className={[
-                          CTA_BTN_BASE,
-                          primary ? CTA_PRIMARY : CTA_SECONDARY,
-                          "min-h-[40px] px-3 py-2 text-xs",
-                          alone ? "w-full max-w-[260px]" : "w-full",
-                        ].join(" ")}
-                        {...(href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                      >
-                        <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        <span className="min-w-0 truncate">{cta.label}</span>
-                      </a>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
-
-            {ctasDesktop.length ? (
-              <div className={`${CTA_ROW} hidden md:flex`} aria-label={lang === "en" ? "Actions" : "Acciones"}>
-                {ctasDesktop.map((cta) => {
-                  const primary = cta.key === "directions";
-                  const Icon =
-                    cta.key === "call" ? FiPhone : cta.key === "website" ? FiGlobe : cta.key === "whatsapp" ? FaWhatsapp : FiMapPin;
-                  const href = String(cta.href ?? "");
-                  return (
-                    <a
-                      key={cta.key}
-                      href={href}
-                      className={[CTA_BTN_BASE, primary ? CTA_PRIMARY : CTA_SECONDARY].join(" ")}
-                      {...(href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                    >
-                      <Icon className="h-[1.05rem] w-[1.05rem] shrink-0" aria-hidden />
-                      {cta.label}
-                    </a>
-                  );
-                })}
-              </div>
             ) : null}
           </div>
+
+          {contactActions.length ? (
+            <div className={`${CTA_ROW}`} aria-label={lang === "en" ? "Contact actions" : "Acciones de contacto"}>
+              {contactActions.map(({ key, href, label }) => {
+                const Icon =
+                  key === "call"
+                    ? FiPhone
+                    : key === "website"
+                      ? FiGlobe
+                      : key === "whatsapp"
+                        ? FaWhatsapp
+                        : key === "email"
+                          ? FiMessageCircle
+                          : FiMapPin;
+                const external = href.startsWith("http");
+                return (
+                  <a
+                    key={key}
+                    href={href}
+                    className={[CTA_BTN_BASE, CTA_SECONDARY, "min-h-[44px] flex-1 min-w-[8.5rem] sm:min-w-[9.5rem] sm:flex-none"].join(" ")}
+                    {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                  >
+                    <Icon className="h-[1.05rem] w-[1.05rem] shrink-0" aria-hidden />
+                    <span className="min-w-0 truncate">{label}</span>
+                  </a>
+                );
+              })}
+            </div>
+          ) : null}
         </div>
       </div>
 
-      {/* Engagement Section */}
-      {showEngagementMetrics && listingId ? (
-        <div className={`${ENGAGEMENT_SECTION} hidden md:block`}>
-          <div className="flex items-center gap-3">
+      {showEngagementMetrics && effectiveListingId ? (
+        <div className={ENGAGEMENT_SECTION}>
+          <div className="flex flex-wrap items-center gap-3">
             <LeonixLikeButton
-              listingId={listingId}
-              ownerUserId={ownerForEngagement}
+              listingId={effectiveListingId}
+              ownerUserId={effectiveOwnerUserId}
               variant="small"
               lang={lang}
               category="servicios"
               persistEngagement={persistListingEngagement}
             />
             <LeonixSaveButton
-              key={onResultsSavedToggle ? `lx-sv-${listingId}-${String(resultsSaved)}` : `lx-sv-${listingId}`}
-              listingId={listingId}
-              ownerUserId={ownerForEngagement}
+              key={onResultsSavedToggle ? `lx-sv-${effectiveListingId}-${String(resultsSaved)}` : `lx-sv-${effectiveListingId}`}
+              listingId={effectiveListingId}
+              ownerUserId={effectiveOwnerUserId}
               variant="small"
               lang={lang}
               category="servicios"
@@ -493,8 +508,8 @@ export function ServiciosHorizontalResultCard({
                 : {})}
             />
             <LeonixShareButton
-              listingId={listingId}
-              ownerUserId={ownerForEngagement}
+              listingId={effectiveListingId}
+              ownerUserId={effectiveOwnerUserId}
               listingTitle={profile.identity.businessName}
               listingUrl={shareUrl || undefined}
               variant="small"

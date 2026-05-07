@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { selectLandingDestacadosRecientes } from "../lib/serviciosLandingBuild";
-import { mapServiciosRowToLandingFeatured, mapServiciosRowToLandingRecent } from "../lib/serviciosLandingPublicMappers";
 import type { ServiciosPublicListingRow } from "../lib/serviciosPublicListingsServer";
 import { FeaturedBusinessSection } from "./FeaturedBusinessSection";
 import { PublishServiceCTA } from "./PublishServiceCTA";
@@ -31,8 +30,6 @@ export function ServiciosLandingPage({
   liveRows: ServiciosPublicListingRow[];
 }) {
   const { destacadosRows, recientesRows } = selectLandingDestacadosRecientes(liveRows, lang);
-  const destacadosItems = destacadosRows.map((r) => mapServiciosRowToLandingFeatured(r, lang));
-  const recientesItems = recientesRows.map((r) => mapServiciosRowToLandingRecent(r, lang));
 
   return (
     <div className="relative min-h-screen overflow-x-hidden text-[#142a42]">
@@ -82,7 +79,7 @@ export function ServiciosLandingPage({
 
         <div className="mt-16 space-y-16 sm:mt-20 sm:space-y-20 md:mt-24 md:space-y-[5.5rem]">
           <div className={`${sectionShell} p-7 sm:p-9 md:p-11 lg:p-12`}>
-            <FeaturedBusinessSection lang={lang} items={destacadosItems} />
+            <FeaturedBusinessSection lang={lang} rows={destacadosRows} />
           </div>
 
           <div
@@ -93,7 +90,7 @@ export function ServiciosLandingPage({
           </div>
 
           <div className={`${sectionShell} p-7 sm:p-9 md:p-11 lg:p-12`}>
-            <RecentServicesSection lang={lang} items={recientesItems} />
+            <RecentServicesSection lang={lang} rows={recientesRows} />
           </div>
 
           <TrustValueStrip lang={lang} />
