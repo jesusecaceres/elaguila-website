@@ -20,8 +20,12 @@ import { aggregateListingAnalyticsEvents, type ListingAnalyticsBucket } from "..
 import { fetchOwnerListingsForDashboard, mapOwnerListingRow } from "../lib/ownerListingsQuery";
 import {
   buildRestaurantInventoryItems,
+  buildEmpleosInventoryItems,
+  buildViajesInventoryItems,
   dedupeRestaurantInventoryWithListings,
   fetchOwnerRestaurantListings,
+  fetchOwnerEmpleosListings,
+  fetchOwnerViajesListings,
   type DashboardInventoryItem,
 } from "../lib/dashboardInventory";
 import { isListingBoosted, listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
@@ -260,6 +264,8 @@ export default function MyListingsPage() {
   const [listingsLoading, setListingsLoading] = useState(false);
   const [listings, setListings] = useState<ListingRow[]>([]);
   const [restaurantInventory, setRestaurantInventory] = useState<DashboardInventoryItem[]>([]);
+  const [empleosInventory, setEmpleosInventory] = useState<DashboardInventoryItem[]>([]);
+  const [viajesInventory, setViajesInventory] = useState<DashboardInventoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [boostExpiresAvailable, setBoostExpiresAvailable] = useState(true);
   const [analyticsByListing, setAnalyticsByListing] = useState<Record<string, ListingAnalyticsBucket>>({});
@@ -329,8 +335,17 @@ export default function MyListingsPage() {
       setListings(list);
       const restaurantRows = await fetchOwnerRestaurantListings(supabase, u.id);
       const restaurantItems = buildRestaurantInventoryItems(restaurantRows, lang);
+      
+      const empleosRows = await fetchOwnerEmpleosListings(supabase, u.id);
+      const empleosItems = buildEmpleosInventoryItems(empleosRows, lang);
+      
+      const viajesRows = await fetchOwnerViajesListings(supabase, u.id);
+      const viajesItems = buildViajesInventoryItems(viajesRows, lang);
+      
       if (!mounted) return;
       setRestaurantInventory(dedupeRestaurantInventoryWithListings(restaurantItems, list));
+      setEmpleosInventory(empleosItems);
+      setViajesInventory(viajesItems);
       setListingsLoading(false);
 
       if (list.length > 0) {
@@ -533,7 +548,8 @@ export default function MyListingsPage() {
   const pm = previewStats?.messages ?? 0;
 
   const showLoading = authLoading || listingsLoading;
-  const hasAnyInventory = listings.length > 0 || restaurantInventory.length > 0;
+  const hasAnyInventory = listings.length > 0 || restaurantInventory.length > 0 || empleosInventory.length > 0 || viajesInventory.length > 0;
+
   const accountRef = userId ? accountRefFromId(userId) : null;
 
   const tabBtn = (id: Tab, label: string) => (
@@ -770,12 +786,87 @@ export default function MyListingsPage() {
                       { label: "Slug", value: item.slug ?? "—" },
                       { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
                       { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
-                      { label: lang === "es" ? "Plan" : "Plan", value: item.packageTier ?? "—" },
                     ]}
                     actions={[
                       { href: item.publicHref, label: lang === "es" ? "Ver publico" : "View public", tone: "primary" as const },
                       { href: "/dashboard/restaurantes?" + q, label: lang === "es" ? "Gestionar restaurante" : "Manage restaurant" },
                       { href: item.resultsHref ?? undefined, label: lang === "es" ? "Ver en resultados" : "View in results", tone: "subtle" as const },
+                      { href: item.messagesHref ?? undefined, label: lang === "es" ? "Mensajes" : "Messages", tone: "subtle" as const },
+                    ].filter((action) => Boolean(action.href))}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {empleosInventory.length > 0 ? (
+            <section className="mt-8">
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-[#1E1810]">
+                  {lang === "es" ? "Empleos" : "Jobs"} ({empleosInventory.length})
+                </h2>
+                <p className="mt-1 text-sm text-[#5C5346]/90">
+                  {lang === "es"
+                    ? "Tus vacantes publicadas en Leonix. Gestiona aplicaciones y estado."
+                    : "Your published job listings in Leonix. Manage applications and status."}
+                </p>
+              </div>
+              <div className="grid gap-4">
+                {empleosInventory.map((item) => (
+                  <DashboardCategoryListingCard
+                    key={item.id}
+                    lang={lang}
+                    categoryLabel={lang === "es" ? "Empleo" : "Job"}
+                    title={item.title}
+                    status={item.status}
+                    subtitle={item.slug}
+                    metaItems={[
+                      { label: "Slug", value: item.slug ?? "—" },
+                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
+                      { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
+                    ]}
+                    actions={[
+                      { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
+                      { href: item.editHref, label: lang === "es" ? "Editar" : "Edit" },
+                      { href: item.resultsHref ?? undefined, label: lang === "es" ? "Ver resultados" : "View results", tone: "subtle" as const },
+                      { href: item.messagesHref ?? undefined, label: lang === "es" ? "Mensajes" : "Messages", tone: "subtle" as const },
+                    ].filter((action) => Boolean(action.href))}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {viajesInventory.length > 0 ? (
+            <section className="mt-8">
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-[#1E1810]">
+                  {lang === "es" ? "Viajes" : "Travel"} ({viajesInventory.length})
+                </h2>
+                <p className="mt-1 text-sm text-[#5C5346]/90">
+                  {lang === "es"
+                    ? "Tus ofertas de viaje publicadas. Gestiona estado y moderación."
+                    : "Your published travel offers. Manage status and moderation."}
+                </p>
+              </div>
+              <div className="grid gap-4">
+                {viajesInventory.map((item) => (
+                  <DashboardCategoryListingCard
+                    key={item.id}
+                    lang={lang}
+                    categoryLabel={lang === "es" ? "Viaje" : "Travel"}
+                    title={item.title}
+                    status={item.status}
+                    subtitle={item.slug}
+                    metaItems={[
+                      { label: "Slug", value: item.slug ?? "—" },
+                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
+                      { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
+                    ]}
+                    actions={[
+                      { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
+                      { href: item.editHref, label: lang === "es" ? "Editar" : "Edit" },
+                      { href: item.resultsHref ?? undefined, label: lang === "es" ? "Ver resultados" : "View results", tone: "subtle" as const },
                       { href: item.messagesHref ?? undefined, label: lang === "es" ? "Mensajes" : "Messages", tone: "subtle" as const },
                     ].filter((action) => Boolean(action.href))}
                   />

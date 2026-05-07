@@ -24,7 +24,7 @@ export type DashboardInventoryItem = {
   promoted?: boolean;
   verified?: boolean;
   draftListingId?: string | null;
-  source: "listings" | "restaurantes_public_listings";
+  source: "listings" | "restaurantes_public_listings" | "empleos_public_listings" | "viajes_staged_listings";
 };
 
 export type DashboardRestaurantRow = {
@@ -40,6 +40,30 @@ export type DashboardRestaurantRow = {
   business_name: string;
   draft_listing_id: string | null;
   hero_image_url?: string | null;
+};
+
+export type DashboardEmpleosRow = {
+  id: string;
+  slug: string;
+  title: string;
+  company_name: string;
+  lifecycle_status: string;
+  lane: string;
+  updated_at: string;
+};
+
+export type DashboardViajesRow = {
+  id: string;
+  slug: string;
+  title: string;
+  category: string;
+  lane: string;
+  owner_user_id: string | null;
+  lifecycle_status: string;
+  is_public: boolean;
+  hero_image_url: string | null;
+  published_at: string | null;
+  updated_at: string;
 };
 
 function extractDetailPairValue(detailPairs: unknown, key: string): string | null {
@@ -70,6 +94,37 @@ export async function fetchOwnerRestaurantListings(
   return data as DashboardRestaurantRow[];
 }
 
+export async function fetchOwnerEmpleosListings(
+  sb: SupabaseClient,
+  ownerId: string,
+): Promise<DashboardEmpleosRow[]> {
+  const { data, error } = await sb
+    .from("empleos_public_listings")
+    .select(
+      "id, slug, title, company_name, lifecycle_status, lane, updated_at",
+    )
+    .eq("owner_user_id", ownerId)
+    .order("updated_at", { ascending: false });
+  if (error || !data) return [];
+  return data as DashboardEmpleosRow[];
+}
+
+export async function fetchOwnerViajesListings(
+  sb: SupabaseClient,
+  ownerId: string,
+): Promise<DashboardViajesRow[]> {
+  const { data, error } = await sb
+    .from("viajes_staged_listings")
+    .select(
+      "id, slug, title, category, lane, owner_user_id, lifecycle_status, is_public, hero_image_url, published_at, updated_at",
+    )
+    .eq("owner_user_id", ownerId)
+    .eq("is_public", true)
+    .order("updated_at", { ascending: false });
+  if (error || !data) return [];
+  return data as DashboardViajesRow[];
+}
+
 export function buildRestaurantInventoryItems(
   rows: DashboardRestaurantRow[],
   lang: "es" | "en",
@@ -96,6 +151,64 @@ export function buildRestaurantInventoryItems(
     verified: row.leonix_verified,
     draftListingId: row.draft_listing_id,
     source: "restaurantes_public_listings",
+  }));
+}
+
+export function buildEmpleosInventoryItems(
+  rows: DashboardEmpleosRow[],
+  lang: "es" | "en",
+): DashboardInventoryItem[] {
+  const q = `lang=${lang}`;
+  return rows.map((row) => ({
+    id: row.id,
+    category: "empleos",
+    title: row.title,
+    status: row.lifecycle_status,
+    publicHref: `/clasificados/empleos/${encodeURIComponent(row.slug)}?${q}`,
+    editHref: `/dashboard/empleos/${encodeURIComponent(row.slug)}?${q}`,
+    previewHref: `/clasificados/empleos/preview/${row.lane}?${q}`,
+    resultsHref: `/clasificados/empleos/resultados?${q}`,
+    analyticsHref: `/dashboard/empleos?${q}`,
+    messagesHref: `/dashboard/empleos?${q}`,
+    publishedAt: null,
+    updatedAt: row.updated_at,
+    image: null,
+    leonixAdId: null,
+    slug: row.slug,
+    packageTier: null,
+    promoted: false,
+    verified: false,
+    draftListingId: null,
+    source: "empleos_public_listings",
+  }));
+}
+
+export function buildViajesInventoryItems(
+  rows: DashboardViajesRow[],
+  lang: "es" | "en",
+): DashboardInventoryItem[] {
+  const q = `lang=${lang}`;
+  return rows.map((row) => ({
+    id: row.id,
+    category: "viajes",
+    title: row.title,
+    status: row.lifecycle_status,
+    publicHref: `/clasificados/viajes/${encodeURIComponent(row.slug)}?${q}`,
+    editHref: `/dashboard/viajes?${q}&stagedId=${encodeURIComponent(row.id)}`,
+    previewHref: `/clasificados/viajes/preview/${row.lane}?${q}`,
+    resultsHref: `/clasificados/viajes/resultados?${q}`,
+    analyticsHref: `/dashboard/viajes?${q}`,
+    messagesHref: `/dashboard/viajes?${q}`,
+    publishedAt: row.published_at,
+    updatedAt: row.updated_at,
+    image: row.hero_image_url,
+    leonixAdId: null,
+    slug: row.slug,
+    packageTier: null,
+    promoted: false,
+    verified: false,
+    draftListingId: null,
+    source: "viajes_staged_listings",
   }));
 }
 
