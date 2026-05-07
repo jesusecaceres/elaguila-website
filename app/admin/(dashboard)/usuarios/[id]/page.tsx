@@ -159,6 +159,154 @@ type PageProps = {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
+// Language-aware labels
+const labels = {
+  en: {
+    pageTitle: "Admin User Detail",
+    pageSubtitle: "Administrative account view — Leonix operations.",
+    eyebrow: "Account",
+    backToUsers: "← Back to users",
+    dashboard: "Dashboard",
+    idLabel: "ID",
+    changesSaved: "Changes saved successfully.",
+    statusAndAccess: "Status & Access",
+    accountActive: "Account active",
+    accountDisabled: "Account disabled",
+    summary: "Summary",
+    type: "Type",
+    membership: "Membership",
+    newsletter: "Newsletter",
+    city: "City",
+    created: "Created",
+    contact: "Contact",
+    email: "Email",
+    phone: "Phone",
+    manageAccount: "Admin Account",
+    accountOverride: "Administrative override. Account type and membership only.",
+    saveHint: "Saves to profiles (type and membership). Does not change password or Auth.",
+    accountType: "Account Type",
+    membershipLabel: "Membership",
+    saveTypeAndMembership: "Save type and membership",
+    authAndPassword: "Auth & Password",
+    enableDisableInfo: "Enable/disable account: use the button above in this card (real action in profiles).",
+    passwordResetInfo: "Password reset or magic link: not generated from Leonix admin for security. Open Supabase Auth and locate the user by email.",
+    openSupabaseAuth: "Open Supabase Auth (users) ↗",
+    configureSupabase: "Configure NEXT_PUBLIC_SUPABASE_URL to link to project.",
+    viewAsUser: "\"View as user\" replica: not available — no impersonation from this panel.",
+    crossOperations: "Cross Operations",
+    unifiedSearch: "Unified search (account + ads + print orders):",
+    openCustomerOps: "Open Customer ops with this UUID →",
+    searchByEmail: "By email:",
+    searchByPhone: "By phone:",
+    searchBy: "Search «{query}» →",
+    adsCommandCenter: "Ads Command Center",
+    allSourcesInfo: "All supported sources for this account (same owner in each table). Traceability IDs for support and moderation.",
+    editOnBehalfInfo: "Edit on behalf of client: Leonix does not impersonate sessions. \"Manage\" opens staff queue (same row, no duplication). \"Edit as admin\" would only appear if TRUE_EDIT flow existed documented; the advertiser panel requires their login.",
+    ownerUserId: "Owner user id:",
+    noAds: "No ads in connected sources for this user.",
+    totalAds: "Total: {count} ad(s)",
+    noneInSource: "None in this source.",
+    supportEdit: "Edit support:",
+    publicView: "Public view",
+    manageAdmin: "Manage (admin)",
+    editAsAdmin: "Edit as admin",
+    advertiserPanel: "Advertiser panel",
+    tiendaOrders: "Tienda — Orders (customer_user_id)",
+    tiendaOrdersInfo: "Count and preview from tienda_orders.",
+    inboxFiltered: "Inbox filtered →",
+    orders: "order(s)",
+    noOrders: "No orders linked to this account.",
+    viewOrder: "View order",
+    reports: "Reports (moderation)",
+    globalQueue: "Global queue:",
+    reportsQueue: "/admin/reportes →",
+    sentByUser: "Sent by this user",
+    none: "None",
+    reportListing: "Listing",
+    openReportQueue: "Open in reports queue",
+    viewAd: "View ad",
+    pendingOnOwned: "Pending on owned ads",
+    nonePending: "None pending.",
+    viewReport: "View report",
+    clasificadosQueue: "Clasificados Queue",
+    report: "Report",
+  },
+  es: {
+    pageTitle: "Detalle de Usuario Admin",
+    pageSubtitle: "Vista administrativa de cuenta — operaciones Leonix.",
+    eyebrow: "Cuenta",
+    backToUsers: "← Volver a clientes",
+    dashboard: "Dashboard",
+    idLabel: "ID",
+    changesSaved: "Cambios guardados correctamente.",
+    statusAndAccess: "Estado y acceso",
+    accountActive: "Cuenta activa",
+    accountDisabled: "Cuenta deshabilitada",
+    summary: "Resumen",
+    type: "Tipo",
+    membership: "Membresía",
+    newsletter: "Newsletter",
+    city: "Ciudad",
+    created: "Creado",
+    contact: "Contacto",
+    email: "Correo",
+    phone: "Teléfono",
+    manageAccount: "Administrar cuenta",
+    accountOverride: "Sobrescritura administrativa. Solo tipo de cuenta y membresía.",
+    saveHint: "Guarda en profiles (tipo y membresía). No cambia contraseña ni Auth.",
+    accountType: "Tipo de cuenta",
+    membershipLabel: "Membresía",
+    saveTypeAndMembership: "Guardar tipo y membresía",
+    authAndPassword: "Auth y contraseña",
+    enableDisableInfo: "Habilitar / deshabilitar la cuenta: usa el botón arriba en esta ficha (acción real en profiles).",
+    passwordResetInfo: "Recuperación de contraseña o magic link: no se generan desde Leonix admin por seguridad. Abre Supabase Auth y localiza al usuario por email.",
+    openSupabaseAuth: "Abrir Supabase Auth (usuarios) ↗",
+    configureSupabase: "Configura NEXT_PUBLIC_SUPABASE_URL para enlazar al proyecto.",
+    viewAsUser: "Réplica \"ver como el usuario\": no disponible — no hay suplantación desde este panel.",
+    crossOperations: "Operaciones cruzadas",
+    unifiedSearch: "Búsqueda unificada (cuenta + anuncios + pedidos impresión):",
+    openCustomerOps: "Abrir Customer ops con este UUID →",
+    searchByEmail: "Por correo:",
+    searchByPhone: "Por teléfono:",
+    searchBy: "Buscar «{query}» →",
+    adsCommandCenter: "Anuncios — centro de comando",
+    allSourcesInfo: "Todas las fuentes soportadas para esta cuenta (mismo owner en cada tabla). IDs de trazabilidad para soporte y moderación.",
+    editOnBehalfInfo: "Edición en nombre del cliente: Leonix no suplanta sesión. «Gestionar» abre la cola staff (misma fila, sin duplicar). «Editar como admin» solo aparecería si existiera flujo TRUE_EDIT documentado; el panel del anunciante requiere su inicio de sesión.",
+    ownerUserId: "Owner user id:",
+    noAds: "Sin anuncios en fuentes conectadas para este usuario.",
+    totalAds: "Total: {count} anuncio(s)",
+    noneInSource: "Ninguno en esta fuente.",
+    supportEdit: "Soporte edición:",
+    publicView: "Ver público",
+    manageAdmin: "Gestionar (admin)",
+    editAsAdmin: "Editar como admin",
+    advertiserPanel: "Panel del anunciante",
+    tiendaOrders: "Tienda — pedidos (customer_user_id)",
+    tiendaOrdersInfo: "Conteo y vista previa desde tienda_orders.",
+    inboxFiltered: "Inbox filtrado →",
+    orders: "pedido(s)",
+    noOrders: "Sin pedidos ligados a esta cuenta.",
+    viewOrder: "Ver pedido",
+    reports: "Reportes (moderación)",
+    globalQueue: "Cola global:",
+    reportsQueue: "/admin/reportes →",
+    sentByUser: "Enviados por este usuario",
+    none: "Ninguno.",
+    reportListing: "Listing",
+    openReportQueue: "Abrir en cola de reportes",
+    viewAd: "Ver anuncio",
+    pendingOnOwned: "Pendientes sobre anuncios de su propiedad",
+    nonePending: "Ninguno pendiente.",
+    viewReport: "Ver reporte",
+    clasificadosQueue: "Cola Clasificados",
+    report: "Reporte",
+  },
+};
+
+function getLabels(lang: 'en' | 'es' = 'en') {
+  return labels[lang];
+}
+
 export default async function AdminUsuarioDetailPage(props: PageProps) {
   const cookieStore = await cookies();
   if (!requireAdminCookie(cookieStore)) {
@@ -172,9 +320,15 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
     redirect("/admin/usuarios");
   }
 
+  // Get language preference from search params, default to 'en'
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const langParam = typeof searchParams.lang === "string" && (searchParams.lang === "es" || searchParams.lang === "en") 
+    ? searchParams.lang as "en" | "es" 
+    : "en";
+  const t = getLabels(langParam);
+
   const authUsersDashboardUrl = getSupabaseAuthUsersDashboardUrl();
 
-  const searchParams = props.searchParams ? await props.searchParams : {};
   const updated = searchParams.updated;
   const errorParam = searchParams.error;
   const isUpdated = updated === "1" || (Array.isArray(updated) && updated.includes("1"));
@@ -325,24 +479,48 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
     <>
       <AdminPageHeader
         title={name}
-        subtitle="Vista administrativa de cuenta — operaciones Leonix."
-        eyebrow={`Cuenta #${accountRefFromId(row.id)}`}
+        subtitle={t.pageSubtitle}
+        eyebrow={`${t.eyebrow} #${accountRefFromId(row.id)}`}
       />
 
       <div className="mb-4 flex flex-wrap gap-2">
-        <Link href="/admin/usuarios" className={adminBtnSecondary} title="Volver a la lista de usuarios">
-          ← Volver a clientes
+        <Link href="/admin/usuarios" className={adminBtnSecondary} title={t.backToUsers}>
+          {t.backToUsers}
         </Link>
-        <Link href="/admin" className={adminBtnDark} title="Panel principal Leonix">
-          Dashboard
+        <Link href="/admin" className={adminBtnDark} title={t.dashboard}>
+          {t.dashboard}
         </Link>
+        
+        {/* Language Toggle */}
+        <div className="ml-auto flex items-center gap-1 rounded-lg border border-[#E8DFD0] bg-[#FFFCF7] p-1">
+          <Link
+            href={`/admin/usuarios/${row.id}?lang=en`}
+            className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
+              langParam === "en" 
+                ? "bg-[#C9B46A] text-white" 
+                : "text-[#5C5346] hover:bg-[#E8DFD0]"
+            }`}
+          >
+            EN
+          </Link>
+          <Link
+            href={`/admin/usuarios/${row.id}?lang=es`}
+            className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
+              langParam === "es" 
+                ? "bg-[#C9B46A] text-white" 
+                : "text-[#5C5346] hover:bg-[#E8DFD0]"
+            }`}
+          >
+            ES
+          </Link>
+        </div>
       </div>
 
-      <p className="mb-6 font-mono text-xs text-[#7A7164] break-all">ID: {row.id}</p>
+      <p className="mb-6 font-mono text-xs text-[#7A7164] break-all">{t.idLabel}: {row.id}</p>
 
       {isUpdated && (
         <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-          Cambios guardados correctamente.
+          {t.changesSaved}
         </div>
       )}
       {errorMessage && (
@@ -350,46 +528,46 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
       )}
 
       <div className={`${adminCardBase} mb-6 p-5`}>
-        <h2 className="text-base font-bold text-[#1E1810]">Estado y acceso</h2>
+        <h2 className="text-lg font-bold text-[#1E1810]">{t.statusAndAccess}</h2>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <span className="rounded-full bg-[#FBF7EF] px-3 py-1 text-xs font-bold text-[#5C4E2E]">
-            {row.is_disabled === true ? "Cuenta deshabilitada" : "Cuenta activa"}
+            {row.is_disabled === true ? t.accountDisabled : t.accountActive}
           </span>
           <AdminUserActions userId={row.id} disabled={row.is_disabled} as="div" />
         </div>
       </div>
 
       <div className={`${adminCardBase} mb-6 p-5`}>
-        <h2 className="text-base font-bold text-[#1E1810]">Resumen</h2>
+        <h2 className="text-lg font-bold text-[#1E1810]">{t.summary}</h2>
         <dl className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
           <div>
-            <dt className="text-xs text-[#7A7164]">Tipo</dt>
+            <dt className="text-xs text-[#7A7164]">{t.type}</dt>
             <dd className="font-medium text-[#1E1810]">{accountTypeLabel(row.account_type)}</dd>
           </div>
           <div>
-            <dt className="text-xs text-[#7A7164]">Membresía</dt>
+            <dt className="text-xs text-[#7A7164]">{t.membership}</dt>
             <dd className="font-medium text-[#1E1810]">{membershipTierLabel(row.membership_tier)}</dd>
           </div>
           <div>
-            <dt className="text-xs text-[#7A7164]">Newsletter</dt>
+            <dt className="text-xs text-[#7A7164]">{t.newsletter}</dt>
             <dd className="font-medium text-[#1E1810]">{newsletterStatus(row.newsletter_opt_in)}</dd>
           </div>
           <div>
-            <dt className="text-xs text-[#7A7164]">Ciudad</dt>
+            <dt className="text-xs text-[#7A7164]">{t.city}</dt>
             <dd className="font-medium text-[#1E1810]">{row.home_city ?? "—"}</dd>
           </div>
           <div>
-            <dt className="text-xs text-[#7A7164]">Creado</dt>
+            <dt className="text-xs text-[#7A7164]">{t.created}</dt>
             <dd className="font-medium text-[#1E1810]">{formatDate(row.created_at)}</dd>
           </div>
         </dl>
       </div>
 
       <div className={`${adminCardBase} mb-6 p-5`}>
-        <h2 className="text-base font-bold text-[#1E1810]">Contacto</h2>
+        <h2 className="text-lg font-bold text-[#1E1810]">{t.contact}</h2>
         <dl className="mt-3 space-y-2 text-sm">
           <div>
-            <dt className="text-xs text-[#7A7164]">Correo</dt>
+            <dt className="text-xs text-[#7A7164]">{t.email}</dt>
             <dd>
               {hasEmail ? (
                 <a href={`mailto:${emailRaw}`} className="font-semibold text-[#6B5B2E] underline">
@@ -401,7 +579,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-[#7A7164]">Teléfono</dt>
+            <dt className="text-xs text-[#7A7164]">{t.phone}</dt>
             <dd>
               {hasPhone ? (
                 <a href={`tel:${phoneRaw}`} className="font-semibold text-[#6B5B2E] underline">
@@ -416,18 +594,18 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
       </div>
 
       <div className={`${adminCardBase} mb-6 p-5`}>
-        <h2 className="text-base font-bold text-[#1E1810]">Administrar cuenta</h2>
+        <h2 className="text-lg font-bold text-[#1E1810]">{t.manageAccount}</h2>
         <p className="mt-1 text-sm text-[#5C5346]/90">
-          Sobrescritura administrativa. Solo tipo de cuenta y membresía.
+          {t.accountOverride}
         </p>
         <form action={updateClientAccountAction} className="mt-4 space-y-4" aria-describedby="account-save-hint">
           <input type="hidden" name="clientId" value={row.id} />
           <p id="account-save-hint" className="text-[10px] text-[#7A7164]">
-            Guarda en <span className="font-mono">profiles</span> (tipo y membresía). No cambia contraseña ni Auth.
+            {t.saveHint}
           </p>
           <div>
             <label htmlFor="account_type" className="mb-1 block text-sm text-[#5C5346]">
-              Tipo de cuenta
+              {t.accountType}
             </label>
             <select id="account_type" name="account_type" defaultValue={selectedAccountType} className={inputClass}>
               <option value="personal">Personal</option>
@@ -436,7 +614,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
           </div>
           <div>
             <label htmlFor="membership_tier" className="mb-1 block text-sm text-[#5C5346]">
-              Membresía
+              {t.membershipLabel}
             </label>
             <select id="membership_tier" name="membership_tier" defaultValue={selectedMembershipTier} className={inputClass}>
               {isPersonal ? (
@@ -455,22 +633,20 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
           <button
             type="submit"
             className={`${adminBtnDark} w-full sm:w-auto`}
-            title="Persistir tipo de cuenta y membresía en Supabase (auditoría)"
+            title="Persist account type and membership in Supabase (with audit)"
           >
-            Guardar tipo y membresía
+            {t.saveTypeAndMembership}
           </button>
         </form>
       </div>
 
       <div className={`${adminCardBase} mb-6 p-5`}>
-        <h2 className="text-base font-bold text-[#1E1810]">Auth y contraseña</h2>
+        <h2 className="text-lg font-bold text-[#1E1810]">{t.authAndPassword}</h2>
         <p className="mt-1 text-sm text-[#5C5346]/90">
-          <strong className="text-[#1E1810]">Habilitar / deshabilitar</strong> la cuenta: usa el botón arriba en esta ficha (acción
-          real en <code className="rounded bg-white/80 px-1">profiles</code>).
+          <strong className="text-[#1E1810]">{t.enableDisableInfo}</strong>
         </p>
         <p className="mt-2 text-sm text-[#5C5346]/90">
-          <strong className="text-[#1E1810]">Recuperación de contraseña o magic link:</strong> no se generan desde Leonix admin por
-          seguridad. Abre Supabase Auth y localiza al usuario por email.
+          <strong className="text-[#1E1810]">{t.passwordResetInfo}</strong>
         </p>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           {authUsersDashboardUrl ? (
@@ -480,64 +656,60 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
               rel="noreferrer"
               className={`${adminBtnSecondary} inline-flex min-h-[44px] justify-center sm:min-h-0`}
             >
-              Abrir Supabase Auth (usuarios) ↗
+              {t.openSupabaseAuth}
             </a>
           ) : (
-            <p className="text-xs text-[#9A9084]">Configura NEXT_PUBLIC_SUPABASE_URL para enlazar al proyecto.</p>
+            <p className="text-xs text-[#9A9084]">{t.configureSupabase}</p>
           )}
         </div>
         <p className="mt-3 text-xs text-[#7A7164]">
-          Réplica “ver como el usuario”:{" "}
-          <span className="font-semibold text-[#5C5346]">no disponible</span> — no hay suplantación desde este panel.
+          {t.viewAsUser}
         </p>
       </div>
 
       <div className={`${adminCardBase} mb-6 p-5`}>
-        <h2 className="text-base font-bold text-[#1E1810]">Operaciones cruzadas</h2>
+        <h2 className="text-lg font-bold text-[#1E1810]">{t.crossOperations}</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Búsqueda unificada (cuenta + anuncios + pedidos impresión):{" "}
+          {t.unifiedSearch}{" "}
           <Link
             href={`/admin/ops?q=${encodeURIComponent(row.id)}`}
             className="font-bold text-[#6B5B2E] underline"
-            title="Búsqueda unificada: perfil, anuncios, pedidos Tienda y reportes con este identificador"
+            title="Unified search: profile, ads, Tienda orders and reports with this identifier"
           >
-            Abrir Customer ops con este UUID →
+            {t.openCustomerOps}
           </Link>
         </p>
         {hasEmail ? (
           <p className="mt-2 text-xs text-[#7A7164]">
-            Por correo:{" "}
+            {t.searchByEmail}{" "}
             <Link href={`/admin/ops?q=${encodeURIComponent(emailRaw)}`} className="font-bold text-[#6B5B2E] underline">
-              Buscar «{emailRaw}» →
+              {t.searchBy.replace('{query}', emailRaw)}
             </Link>
           </p>
         ) : null}
         {hasPhone ? (
           <p className="mt-1 text-xs text-[#7A7164]">
-            Por teléfono:{" "}
+            {t.searchByPhone}{" "}
             <Link href={`/admin/ops?q=${encodeURIComponent(phoneRaw)}`} className="font-bold text-[#6B5B2E] underline">
-              Buscar «{phoneRaw}» →
+              {t.searchBy.replace('{query}', phoneRaw)}
             </Link>
           </p>
         ) : null}
       </div>
 
-      <div className={`${adminCardBase} mb-6 p-5`}>
-        <h2 className="text-base font-bold text-[#1E1810]">Anuncios — centro de comando</h2>
+      <div className={`${adminCardBase} mb-6 p-5 border-2 border-[#C9B46A] bg-[#FFFCF7]`}>
+        <h2 className="text-xl font-bold text-[#1E1810]">{t.adsCommandCenter}</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Todas las fuentes soportadas para esta cuenta (mismo <span className="font-mono">owner</span> en cada tabla). IDs de trazabilidad
-          para soporte y moderación.
+          {t.allSourcesInfo}
         </p>
         <p className="mt-2 text-[10px] leading-snug text-[#7A7164]">
-          <span className="font-semibold text-[#5C5346]">Edición en nombre del cliente:</span> Leonix no suplanta sesión. «Gestionar» abre la
-          cola staff (misma fila, sin duplicar). «Editar como admin» solo aparecería si existiera flujo TRUE_EDIT documentado; el panel del
-          anunciante requiere su inicio de sesión.
+          <span className="font-semibold text-[#5C5346]">{t.editOnBehalfInfo}</span>
         </p>
-        <p className="mt-2 font-mono text-[10px] text-[#9A9084] break-all">Owner user id: {row.id}</p>
+        <p className="mt-2 font-mono text-[10px] text-[#9A9084] break-all">{t.ownerUserId} {row.id}</p>
         {adsBundle.totalAds === 0 ? (
-          <p className="mt-4 text-sm text-[#5C5346]">Sin anuncios en fuentes conectadas para este usuario.</p>
+          <p className="mt-4 text-sm text-[#5C5346]">{t.noAds}</p>
         ) : (
-          <p className="mt-2 text-sm font-semibold text-[#1E1810]">Total: {adsBundle.totalAds} anuncio(s)</p>
+          <p className="mt-2 text-sm font-semibold text-[#1E1810]">{t.totalAds.replace('{count}', adsBundle.totalAds.toString())}</p>
         )}
         <div className="mt-4 space-y-6">
           {adsBundle.groups.map((g) => (
@@ -552,7 +724,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                 <p className="mt-1 text-xs text-red-700">{g.errorMessage}</p>
               ) : null}
               {g.ads.length === 0 && g.loadStatus === "ok" ? (
-                <p className="mt-1 text-sm text-[#5C5346]/90">Ninguno en esta fuente.</p>
+                <p className="mt-1 text-sm text-[#5C5346]/90">{t.noneInSource}</p>
               ) : (
                 <ul className="mt-2 space-y-3">
                   {g.ads.map((ad) => {
@@ -570,13 +742,13 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                           Interno: <span className="font-mono">{ad.internalId}</span>
                         </p>
                         <p className="mt-1 text-[10px] text-[#7A7164]">
-                          <span className="font-semibold text-[#5C5346]">Soporte edición:</span> {adminEditSupportStatusLabelEs(actions.editSupportStatus)} —{" "}
+                          <span className="font-semibold text-[#5C5346]">{t.supportEdit}</span> {adminEditSupportStatusLabelEs(actions.editSupportStatus)} —{" "}
                           {actions.editSupportNote}
                         </p>
                         <p className="mt-1 text-xs text-[#5C5346]">
                           {(ad.status ?? "—") +
                             (ad.city ? ` · ${ad.city}` : "") +
-                            (ad.updatedAt ? ` · Actualizado ${formatDate(ad.updatedAt)}` : ad.createdAt ? ` · ${formatDate(ad.createdAt)}` : "")}
+                            (ad.updatedAt ? ` · Updated ${formatDate(ad.updatedAt)}` : ad.createdAt ? ` · ${formatDate(ad.createdAt)}` : "")}
                         </p>
                         <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold">
                           <Link
@@ -584,29 +756,29 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-[#6B5B2E] underline"
-                            title="Vista pública del anuncio"
+                            title={t.publicView}
                           >
-                            Ver público
+                            {t.publicView}
                           </Link>
                           <Link
                             href={actions.adminManageUrl}
                             className="text-[#6B5B2E] underline"
-                            title="Cola Leonix: moderación y estado en la misma fila (sin suplantar al anunciante)"
+                            title="Leonix queue: moderation and status in same row (no impersonation)"
                           >
-                            Gestionar (admin)
+                            {t.manageAdmin}
                           </Link>
                           {actions.adminEditUrl ? (
-                            <Link href={actions.adminEditUrl} className="text-[#6B5B2E] underline" title="Edición staff con guardas de owner y Leonix Ad ID">
-                              Editar como admin
+                            <Link href={actions.adminEditUrl} className="text-[#6B5B2E] underline" title="Staff editing with owner and Leonix Ad ID guards">
+                              {t.editAsAdmin}
                             </Link>
                           ) : null}
                           {actions.sellerSelfServiceUrl ? (
                             <Link
                               href={actions.sellerSelfServiceUrl}
                               className="text-[#9A9084] underline"
-                              title="Requiere inicio de sesión del propietario del anuncio; no es edición Leonix en su nombre"
+                              title="Requires ad owner login; not Leonix editing on their behalf"
                             >
-                              Panel del anunciante
+                              {t.advertiserPanel}
                             </Link>
                           ) : null}
                         </div>
@@ -625,16 +797,16 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
       ) : null}
 
       <div className={`${adminCardBase} mb-6 p-5`}>
-        <h2 className="text-base font-bold text-[#1E1810]">Tienda — pedidos (customer_user_id)</h2>
+        <h2 className="text-lg font-bold text-[#1E1810]">{t.tiendaOrders}</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Conteo y vista previa desde <code className="rounded bg-white/80 px-1">tienda_orders</code>.{" "}
+          {t.tiendaOrdersInfo}{" "}
           <Link href={`/admin/tienda/orders?q=${encodeURIComponent(clientId)}`} className="font-bold text-[#6B5B2E] underline">
-            Inbox filtrado →
+            {t.inboxFiltered}
           </Link>
         </p>
-        <p className="mt-2 text-sm font-semibold text-[#1E1810]">{tiendaOrderCount ?? "—"} pedido(s)</p>
+        <p className="mt-2 text-sm font-semibold text-[#1E1810]">{tiendaOrderCount ?? "—"} {t.orders}</p>
         {tiendaOrdersPreview.length === 0 ? (
-          <p className="mt-2 text-sm text-[#5C5346]">Sin pedidos ligados a esta cuenta.</p>
+          <p className="mt-2 text-sm text-[#5C5346]">{t.noOrders}</p>
         ) : (
           <ul className="mt-3 space-y-2 text-sm">
             {tiendaOrdersPreview.map((o) => (
@@ -646,7 +818,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                   </p>
                 </div>
                 <Link href={`/admin/tienda/orders/${o.id}`} className="text-xs font-bold text-[#6B5B2E] underline">
-                  Ver pedido
+                  {t.viewOrder}
                 </Link>
               </li>
             ))}
@@ -655,22 +827,22 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
       </div>
 
       <div className={`${adminCardBase} mb-6 p-5`}>
-        <h2 className="text-base font-bold text-[#1E1810]">Reportes (moderación)</h2>
+        <h2 className="text-lg font-bold text-[#1E1810]">{t.reports}</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Cola global:{" "}
+          {t.globalQueue}{" "}
           <Link href="/admin/reportes" className="font-bold text-[#6B5B2E] underline">
-            /admin/reportes →
+            {t.reportsQueue}
           </Link>
         </p>
-        <h3 className="mt-4 text-xs font-bold uppercase text-[#7A7164]">Enviados por este usuario</h3>
+        <h3 className="mt-4 text-xs font-bold uppercase text-[#7A7164]">{t.sentByUser}</h3>
         {reportsByReporter.length === 0 ? (
-          <p className="mt-1 text-sm text-[#5C5346]">Ninguno.</p>
+          <p className="mt-1 text-sm text-[#5C5346]">{t.none}</p>
         ) : (
           <ul className="mt-2 space-y-2 text-sm">
             {reportsByReporter.map((r) => (
               <li key={r.id} className="rounded-xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-3 py-2">
                 <p className="text-xs font-mono text-[#6B5B2E]">
-                  Reporte <Link href={`/admin/reportes?q=${encodeURIComponent(r.id)}`} className="font-bold underline">{r.id.slice(0, 8)}…</Link> · Listing {r.listing_id.slice(0, 8)}…
+                  {t.report} <Link href={`/admin/reportes?q=${encodeURIComponent(r.id)}`} className="font-bold underline">{r.id.slice(0, 8)}…</Link> · {t.reportListing} {r.listing_id.slice(0, 8)}…
                 </p>
                 <p className="text-xs text-[#5C5346]">
                   {r.status} · {formatDate(r.created_at)}
@@ -678,31 +850,31 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                 <p className="text-xs text-[#3D3428]">{r.reason}</p>
                 <div className="mt-1 flex flex-wrap gap-2">
                   <Link href={`/admin/reportes?q=${encodeURIComponent(r.id)}`} className="inline-block text-xs font-bold text-[#6B5B2E] underline">
-                    Abrir en cola de reportes
+                    {t.openReportQueue}
                   </Link>
                   <Link href={`/clasificados/anuncio/${r.listing_id}`} target="_blank" className="inline-block text-xs font-bold text-[#6B5B2E] underline">
-                    Ver anuncio
+                    {t.viewAd}
                   </Link>
                 </div>
               </li>
             ))}
           </ul>
         )}
-        <h3 className="mt-6 text-xs font-bold uppercase text-[#7A7164]">Pendientes sobre anuncios de su propiedad</h3>
+        <h3 className="mt-6 text-xs font-bold uppercase text-[#7A7164]">{t.pendingOnOwned}</h3>
         {reportsOnOwnedPending.length === 0 ? (
-          <p className="mt-1 text-sm text-[#5C5346]">Ninguno pendiente.</p>
+          <p className="mt-1 text-sm text-[#5C5346]">{t.nonePending}</p>
         ) : (
           <ul className="mt-2 space-y-2 text-sm">
             {reportsOnOwnedPending.map((r) => (
               <li key={r.id} className="rounded-xl border border-amber-200/80 bg-amber-50/60 px-3 py-2">
-                <p className="text-xs font-mono text-[#6B5B2E]">Listing {r.listing_id.slice(0, 8)}…</p>
+                <p className="text-xs font-mono text-[#6B5B2E]">{t.reportListing} {r.listing_id.slice(0, 8)}…</p>
                 <p className="text-xs text-[#5C5346]">{r.reason}</p>
                 <div className="mt-1 flex flex-wrap gap-2">
                   <Link href={`/admin/reportes?q=${encodeURIComponent(r.id)}`} className="inline-block text-xs font-bold text-[#6B5B2E] underline">
-                    Ver reporte
+                    {t.viewReport}
                   </Link>
                   <Link href={`/admin/workspace/clasificados?q=${encodeURIComponent(r.listing_id)}`} className="inline-block text-xs font-bold text-[#6B5B2E] underline">
-                    Cola Clasificados
+                    {t.clasificadosQueue}
                   </Link>
                 </div>
               </li>

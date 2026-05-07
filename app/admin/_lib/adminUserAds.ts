@@ -15,6 +15,28 @@ import {
 
 const PER_SOURCE_LIMIT = 200;
 
+/**
+ * Safely checks if a column exists in a table by attempting a minimal query.
+ * Returns false if the column doesn't exist or any error occurs.
+ */
+async function safeCheckColumnExists(tableName: string, columnName: string): Promise<boolean> {
+  if (!isSupabaseAdminConfigured()) return false;
+  
+  try {
+    const supabase = getAdminSupabase();
+    const { error } = await supabase
+      .from(tableName)
+      .select(columnName)
+      .limit(1);
+    
+    // If there's no error, the column likely exists
+    return !error;
+  } catch {
+    // Any error means we should assume the column doesn't exist
+    return false;
+  }
+}
+
 export type AdminUserAdsGroup = {
   source: AdminAdSource;
   labelEs: string;
@@ -48,11 +70,21 @@ async function loadGenericListings(ownerUserId: string, hints: AdminAdOwnerHints
   if (!isSupabaseAdminConfigured()) {
     return emptyGroup(source, "error", "Supabase no configurado.");
   }
+  
   try {
     const supabase = getAdminSupabase();
+    
+    // Check if leonix_ad_id column exists
+    const hasLeonixAdId = await safeCheckColumnExists("listings", "leonix_ad_id");
+    
+    // Build select query dynamically based on column existence
+    const selectFields = hasLeonixAdId 
+      ? "id,leonix_ad_id,title,price,city,zip,status,created_at,category,images,owner_id"
+      : "id,title,price,city,zip,status,created_at,category,images,owner_id";
+    
     const { data, error } = await supabase
       .from("listings")
-      .select("id,leonix_ad_id,title,price,city,zip,status,created_at,category,images,owner_id")
+      .select(selectFields)
       .eq("owner_id", ownerUserId)
       .order("created_at", { ascending: false })
       .limit(PER_SOURCE_LIMIT);
@@ -62,7 +94,13 @@ async function loadGenericListings(ownerUserId: string, hints: AdminAdOwnerHints
     }
     const rows = Array.isArray(data) ? data : [];
     const ads = rows
-      .map((r) => normalizeGenericListingForAdmin(r as GenericListingAdminInput, hints))
+      .map((r) => {
+        // Ensure the row has required fields before normalizing
+        if (r && typeof r === 'object' && 'id' in r) {
+          return normalizeGenericListingForAdmin(r as GenericListingAdminInput, hints);
+        }
+        return null;
+      })
       .filter((x): x is AdminNormalizedAd => x != null);
     return { source, labelEs: LABELS[source], ads, loadStatus: "ok" };
   } catch (e) {
@@ -106,11 +144,21 @@ async function loadServicios(ownerUserId: string, hints: AdminAdOwnerHints | nul
   if (!isSupabaseAdminConfigured()) {
     return { ...emptyGroup(source, "error", "Supabase no configurado.") };
   }
+  
   try {
     const supabase = getAdminSupabase();
+    
+    // Check if leonix_ad_id column exists
+    const hasLeonixAdId = await safeCheckColumnExists("servicios_public_listings", "leonix_ad_id");
+    
+    // Build select query dynamically based on column existence
+    const selectFields = hasLeonixAdId 
+      ? "id, slug, leonix_ad_id, business_name, city, listing_status, owner_user_id, published_at, updated_at"
+      : "id, slug, business_name, city, listing_status, owner_user_id, published_at, updated_at";
+    
     const { data, error } = await supabase
       .from("servicios_public_listings")
-      .select("id, slug, leonix_ad_id, business_name, city, listing_status, owner_user_id, published_at, updated_at")
+      .select(selectFields)
       .eq("owner_user_id", ownerUserId)
       .order("updated_at", { ascending: false })
       .limit(PER_SOURCE_LIMIT);
@@ -120,7 +168,13 @@ async function loadServicios(ownerUserId: string, hints: AdminAdOwnerHints | nul
     }
     const rows = Array.isArray(data) ? data : [];
     const ads = rows
-      .map((r) => normalizeServiciosPublicListingForAdmin(r as ServiciosPublicListingAdminInput, hints))
+      .map((r) => {
+        // Ensure row has required fields before normalizing
+        if (r && typeof r === 'object' && 'id' in r && 'slug' in r) {
+          return normalizeServiciosPublicListingForAdmin(r as ServiciosPublicListingAdminInput, hints);
+        }
+        return null;
+      })
       .filter((x): x is AdminNormalizedAd => x != null);
     return { source, labelEs: LABELS[source], ads, loadStatus: "ok" };
   } catch (e) {
