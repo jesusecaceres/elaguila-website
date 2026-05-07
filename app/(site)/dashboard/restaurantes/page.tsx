@@ -10,6 +10,9 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { fetchOwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
 import { LeonixListingMetricsSummary } from "@/app/components/clasificados/analytics/LeonixListingMetricsSummary";
+import { DashboardCategoryListingCard } from "../components/DashboardCategoryListingCard";
+import { DashboardStatsCard } from "../components/DashboardStatsCard";
+import type { DashboardRestaurantRow } from "../lib/dashboardInventory";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -25,20 +28,6 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
   if (v === "pro" || v === "business_lite" || v === "business_premium") return "pro";
   return "free";
 }
-
-type RestRow = {
-  id: string;
-  slug: string;
-  leonix_ad_id?: string | null;
-  status: string;
-  promoted: boolean;
-  leonix_verified: boolean;
-  package_tier: string | null;
-  published_at: string;
-  updated_at: string;
-  business_name: string;
-  draft_listing_id: string | null;
-};
 
 function fmt(ts: string, lang: Lang) {
   try {
@@ -63,50 +52,60 @@ export default function DashboardRestaurantesPage() {
         ? {
             title: "Mis restaurantes (Clasificados)",
             subtitle:
-              "Listados en `restaurantes_public_listings` para tu cuenta. Usa «Cargar en formulario» para traer el `listing_json` publicado al borrador de esta sesión y republicar (mismo `draft_listing_id` = actualización sin duplicar).",
+              "Gestiona restaurantes publicados de tu cuenta. Edita desde el formulario cargando el anuncio para actualizarlo sin duplicados.",
             loading: "Cargando…",
             empty: "Aún no hay restaurantes publicados con esta cuenta.",
             publishCta: "Publicar un restaurante",
             previewCta: "Vista previa (misma sesión)",
-            colBusiness: "Negocio",
-            colLeonixAdId: "Leonix Ad ID",
-            colStatus: "Estado",
-            colSlug: "Slug",
-            colPromo: "Destacado",
-            colPlan: "Plan",
-            colPub: "Publicado",
-            colUpd: "Actualizado",
             linkPublic: "Ficha pública",
             linkResults: "Buscar en resultados",
-            linkForm: "Formulario publicar",
-            hydrate: "Cargar en formulario",
+            linkForm: "Formulario",
+            hydrate: "Editar restaurante",
             hydrateBusy: "Cargando borrador…",
-            colVerified: "Verificado",
+            hydrateHelp: "Carga los datos en el formulario para actualizar esta publicación.",
+            openAnalytics: "Analíticas",
+            openMessages: "Mensajes",
+            cardStatus: "Estado",
+            cardSlug: "Slug",
+            cardPlan: "Plan",
+            cardPublished: "Publicado",
+            cardUpdated: "Actualizado",
+            cardLeonixAdId: "Leonix Ad ID",
+            cardStatsTitle: "Resumen",
+            statActive: "Activos",
+            statPublished: "Publicados",
+            statPromoted: "Destacados",
+            statVerified: "Verificados",
             errRl: "No se pudieron cargar los listados (revisa sesión y políticas RLS en Supabase).",
             errHydrate: "No se pudo cargar el borrador publicado.",
           }
         : {
             title: "My restaurants (Classifieds)",
             subtitle:
-              "Rows in `restaurantes_public_listings` for your account. Use “Load into form” to copy published `listing_json` into this session’s draft and republish (same `draft_listing_id` updates without duplicates).",
+              "Manage published restaurants for your account. Edit from the publish form by loading the listing and updating without duplicates.",
             loading: "Loading…",
             empty: "No restaurant listings are published for this account yet.",
             publishCta: "Publish a restaurant",
             previewCta: "Preview (this session)",
-            colBusiness: "Business",
-            colLeonixAdId: "Leonix Ad ID",
-            colStatus: "Status",
-            colSlug: "Slug",
-            colPromo: "Promoted",
-            colPlan: "Plan",
-            colPub: "Published",
-            colUpd: "Updated",
             linkPublic: "Public page",
             linkResults: "Open in results",
-            linkForm: "Publish form",
-            hydrate: "Load into form",
+            linkForm: "Form",
+            hydrate: "Edit restaurant",
             hydrateBusy: "Loading draft…",
-            colVerified: "Verified",
+            hydrateHelp: "Loads listing data into the form so you can update this publication.",
+            openAnalytics: "Analytics",
+            openMessages: "Messages",
+            cardStatus: "Status",
+            cardSlug: "Slug",
+            cardPlan: "Plan",
+            cardPublished: "Published",
+            cardUpdated: "Updated",
+            cardLeonixAdId: "Leonix Ad ID",
+            cardStatsTitle: "Overview",
+            statActive: "Active",
+            statPublished: "Published",
+            statPromoted: "Promoted",
+            statVerified: "Verified",
             errRl: "Could not load listings (check sign-in and Supabase RLS policies).",
             errHydrate: "Could not load published draft.",
           },
@@ -114,7 +113,7 @@ export default function DashboardRestaurantesPage() {
   );
 
   const [loading, setLoading] = useState(true);
-  const [rows, setRows] = useState<RestRow[]>([]);
+  const [rows, setRows] = useState<DashboardRestaurantRow[]>([]);
   const [fetchErr, setFetchErr] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
@@ -161,7 +160,7 @@ export default function DashboardRestaurantesPage() {
     const { data, error } = await supabase
       .from("restaurantes_public_listings")
       .select(
-        "id, slug, leonix_ad_id, status, promoted, leonix_verified, package_tier, published_at, updated_at, business_name, draft_listing_id",
+        "id, slug, leonix_ad_id, status, promoted, leonix_verified, package_tier, published_at, updated_at, business_name, draft_listing_id, hero_image_url",
       )
       .eq("owner_user_id", user.id)
       .order("updated_at", { ascending: false });
@@ -169,7 +168,7 @@ export default function DashboardRestaurantesPage() {
       setFetchErr(t.errRl);
       setRows([]);
     } else {
-      setRows((data ?? []) as RestRow[]);
+      setRows((data ?? []) as DashboardRestaurantRow[]);
     }
     setLoading(false);
     
@@ -229,6 +228,9 @@ export default function DashboardRestaurantesPage() {
 
   const previewHref = appendLangToPath("/clasificados/restaurantes/preview", lang);
   const publishHref = appendLangToPath("/publicar/restaurantes", lang);
+  const activeCount = rows.filter((row) => row.status === "published").length;
+  const promotedCount = rows.filter((row) => row.promoted).length;
+  const verifiedCount = rows.filter((row) => row.leonix_verified).length;
 
   return (
     <LeonixDashboardShell
@@ -281,70 +283,60 @@ export default function DashboardRestaurantesPage() {
           <p className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{hydrateErr}</p>
         ) : null}
 
-        {loading ? (
-          <p className="mt-8 text-sm text-[#5C5346]">{t.loading}</p>
-        ) : rows.length === 0 ? (
-          <p className="mt-8 text-sm text-[#5C5346]">{t.empty}</p>
-        ) : (
-          <div className="mt-8 overflow-x-auto rounded-2xl border border-[#E8DFD0] bg-white/70">
-            <table className="min-w-full border-collapse text-left text-xs text-[#2C2416]">
-              <thead className="bg-[#F3EBDD] text-[10px] font-bold uppercase tracking-wide text-[#5C5346]">
-                <tr>
-                  <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colBusiness}</th>
-                  <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colLeonixAdId}</th>
-                  <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colStatus}</th>
-                  <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colSlug}</th>
-                  <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colPromo}</th>
-                  <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colVerified}</th>
-                  <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colPlan}</th>
-                  <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colPub}</th>
-                  <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colUpd}</th>
-                  <th className="border-b border-[#E8DFD0] px-3 py-2"> </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => {
-                  const publicHref = appendLangToPath(`/clasificados/restaurantes/${encodeURIComponent(r.slug)}`, lang);
-                  const resultsHref = `/clasificados/restaurantes/resultados?lang=${lang}&q=${encodeURIComponent(r.business_name)}`;
-                  return (
-                    <tr key={r.id} className="border-b border-[#F0E8DA]">
-                      <td className="max-w-[200px] px-3 py-2 font-semibold">{r.business_name}</td>
-                      <td className="whitespace-nowrap px-3 py-2 font-mono text-[10px] font-semibold text-[#5C4E2E]">
-                        {r.leonix_ad_id ?? "—"}
-                      </td>
-                      <td className="px-3 py-2">{r.status}</td>
-                      <td className="px-3 py-2 font-mono text-[10px]">{r.slug}</td>
-                      <td className="px-3 py-2">{r.promoted ? (lang === "es" ? "sí" : "yes") : "—"}</td>
-                      <td className="px-3 py-2">{r.leonix_verified ? (lang === "es" ? "sí" : "yes") : "—"}</td>
-                      <td className="px-3 py-2">{r.package_tier ?? "—"}</td>
-                      <td className="whitespace-nowrap px-3 py-2">{fmt(r.published_at, lang)}</td>
-                      <td className="whitespace-nowrap px-3 py-2">{fmt(r.updated_at, lang)}</td>
-                      <td className="space-y-1 px-3 py-2">
-                        <Link href={publicHref} className="block font-semibold text-[#6B5B2E] underline">
-                          {t.linkPublic}
-                        </Link>
-                        <Link href={resultsHref} className="block text-[#6B5B2E] underline">
-                          {t.linkResults}
-                        </Link>
-                        <Link href={publishHref} className="block text-[11px] text-[#5C5346] underline">
-                          {t.linkForm}
-                        </Link>
-                        <button
-                          type="button"
-                          disabled={hydrateId === r.id}
-                          onClick={() => void loadIntoForm(r.id)}
-                          className="mt-1 block w-full text-left text-[11px] font-bold text-[#92400E] underline disabled:opacity-50"
-                        >
-                          {hydrateId === r.id ? t.hydrateBusy : t.hydrate}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {loading ? <p className="mt-8 text-sm text-[#5C5346]">{t.loading}</p> : null}
+        {!loading && rows.length === 0 ? <p className="mt-8 text-sm text-[#5C5346]">{t.empty}</p> : null}
+        {!loading && rows.length > 0 ? (
+          <>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <DashboardStatsCard label={t.statActive} value={activeCount} icon="📣" />
+              <DashboardStatsCard label={t.statPublished} value={rows.length} icon="🧾" />
+              <DashboardStatsCard label={t.statPromoted} value={promotedCount} icon="⭐" />
+              <DashboardStatsCard label={t.statVerified} value={verifiedCount} icon="✅" />
+            </div>
+            <div className="mt-8 grid gap-4">
+              {rows.map((r) => {
+                const publicHref = appendLangToPath(`/clasificados/restaurantes/${encodeURIComponent(r.slug)}`, lang);
+                const resultsHref = `/clasificados/restaurantes/resultados?lang=${lang}&q=${encodeURIComponent(r.business_name)}`;
+                const statusLabel =
+                  r.status === "published" ? (lang === "es" ? "Publicado" : "Published") : r.status;
+                return (
+                  <DashboardCategoryListingCard
+                    key={r.id}
+                    lang={lang}
+                    categoryLabel={lang === "es" ? "Restaurante" : "Restaurant"}
+                    title={r.business_name}
+                    status={statusLabel}
+                    subtitle={`${t.cardLeonixAdId}: ${r.leonix_ad_id ?? "—"}`}
+                    badges={[
+                      r.promoted ? (lang === "es" ? "Destacado" : "Promoted") : "",
+                      r.leonix_verified ? (lang === "es" ? "Verificado" : "Verified") : "",
+                    ].filter(Boolean)}
+                    metaItems={[
+                      { label: t.cardSlug, value: r.slug },
+                      { label: t.cardPlan, value: r.package_tier ?? "—" },
+                      { label: t.cardPublished, value: fmt(r.published_at, lang) },
+                      { label: t.cardUpdated, value: fmt(r.updated_at, lang) },
+                    ]}
+                    actions={[
+                      { href: publicHref, label: t.linkPublic, tone: "primary" },
+                      { href: resultsHref, label: t.linkResults, tone: "subtle" },
+                      { href: `/dashboard/analytics?${q}`, label: t.openAnalytics, tone: "subtle" },
+                      { href: `/dashboard/mensajes?${q}`, label: t.openMessages, tone: "subtle" },
+                      { href: publishHref, label: t.linkForm },
+                      {
+                        label: hydrateId === r.id ? t.hydrateBusy : t.hydrate,
+                        onClick: () => void loadIntoForm(r.id),
+                        disabled: hydrateId === r.id,
+                        tone: "primary",
+                      },
+                    ]}
+                  />
+                );
+              })}
+            </div>
+            <p className="mt-4 text-xs text-[#5C5346]">{t.hydrateHelp}</p>
+          </>
+        ) : null}
       </div>
     </LeonixDashboardShell>
   );

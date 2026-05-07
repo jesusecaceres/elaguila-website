@@ -14,8 +14,16 @@ import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/
 import { LeonixRealEstateListingManageCard } from "../components/LeonixRealEstateListingManageCard";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { DashboardMobilePreview } from "../components/DashboardMobilePreview";
+import { DashboardCategoryListingCard } from "../components/DashboardCategoryListingCard";
+import { DashboardStatsCard } from "../components/DashboardStatsCard";
 import { aggregateListingAnalyticsEvents, type ListingAnalyticsBucket } from "../lib/listingAnalyticsAggregate";
 import { fetchOwnerListingsForDashboard, mapOwnerListingRow } from "../lib/ownerListingsQuery";
+import {
+  buildRestaurantInventoryItems,
+  dedupeRestaurantInventoryWithListings,
+  fetchOwnerRestaurantListings,
+  type DashboardInventoryItem,
+} from "../lib/dashboardInventory";
 import { isListingBoosted, listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
 import {
   resolveListingUiStatus,
@@ -207,9 +215,13 @@ export default function MyListingsPage() {
             statActive: "Activos",
             statViews: "Vistas",
             statMsg: "Mensajes",
+            statSaves: "Guardados",
+            statShares: "Compartidos",
             loading: "Cargando…",
             empty: "No hay anuncios en esta vista.",
             emptyAll: "Aún no tienes anuncios.",
+            restaurantSectionTitle: "Restaurantes",
+            restaurantSectionHint: "Gestiona tus restaurantes publicados sin salir del dashboard.",
             cta: "Publicar anuncio",
             errorTitle: "No pudimos cargar tus anuncios",
             back: "Volver al resumen",
@@ -230,6 +242,8 @@ export default function MyListingsPage() {
             loading: "Loading…",
             empty: "No listings in this view.",
             emptyAll: "You don't have any listings yet.",
+            restaurantSectionTitle: "Restaurants",
+            restaurantSectionHint: "Manage your published restaurants from dashboard.",
             cta: "Post an ad",
             errorTitle: "We couldn't load your listings",
             back: "Back to overview",
@@ -245,6 +259,7 @@ export default function MyListingsPage() {
 
   const [listingsLoading, setListingsLoading] = useState(false);
   const [listings, setListings] = useState<ListingRow[]>([]);
+  const [restaurantInventory, setRestaurantInventory] = useState<DashboardInventoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [boostExpiresAvailable, setBoostExpiresAvailable] = useState(true);
   const [analyticsByListing, setAnalyticsByListing] = useState<Record<string, ListingAnalyticsBucket>>({});
@@ -312,6 +327,10 @@ export default function MyListingsPage() {
       setBoostExpiresAvailable(meta?.boostExpiresAvailable !== false);
       const list = ((rows ?? []) as Record<string, unknown>[]).map((r) => mapOwnerListingRow(r)) as ListingRow[];
       setListings(list);
+      const restaurantRows = await fetchOwnerRestaurantListings(supabase, u.id);
+      const restaurantItems = buildRestaurantInventoryItems(restaurantRows, lang);
+      if (!mounted) return;
+      setRestaurantInventory(dedupeRestaurantInventoryWithListings(restaurantItems, list));
       setListingsLoading(false);
 
       if (list.length > 0) {
@@ -330,7 +349,7 @@ export default function MyListingsPage() {
     return () => {
       mounted = false;
     };
-  }, [router, pathname]);
+  }, [router, pathname, lang]);
 
   async function markUnpublish(id: string) {
     const supabase = createSupabaseBrowserClient();
@@ -514,6 +533,7 @@ export default function MyListingsPage() {
   const pm = previewStats?.messages ?? 0;
 
   const showLoading = authLoading || listingsLoading;
+  const hasAnyInventory = listings.length > 0 || restaurantInventory.length > 0;
   const accountRef = userId ? accountRefFromId(userId) : null;
 
   const tabBtn = (id: Tab, label: string) => (
@@ -628,18 +648,7 @@ export default function MyListingsPage() {
               { label: t.statSaves, value: totalSavesSum, icon: "🔖" },
               { label: t.statShares, value: totalSharesSum, icon: "↗" },
             ].map((c) => (
-              <div
-                key={c.label}
-                className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF7F2] p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{c.label}</p>
-                  <span className="text-lg opacity-80" aria-hidden>
-                    {c.icon}
-                  </span>
-                </div>
-                <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{c.value}</p>
-              </div>
+              <DashboardStatsCard key={c.label} label={c.label} value={c.value} icon={c.icon} />
             ))}
           </div>
 
@@ -688,7 +697,46 @@ export default function MyListingsPage() {
             </div>
           ) : null}
 
-          {listings.length === 0 ? (
+          {restaurantInventory.length > 0 ? (
+            <section className="mt-8">
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-[#1E1810]">
+                  {t.restaurantSectionTitle} ({restaurantInventory.length})
+                </h2>
+                <p className="mt-1 text-sm text-[#5C5346]/90">{t.restaurantSectionHint}</p>
+              </div>
+              <div className="grid gap-4">
+                {restaurantInventory.map((item) => (
+                  <DashboardCategoryListingCard
+                    key={item.id}
+                    lang={lang}
+                    categoryLabel={lang === "es" ? "Restaurante" : "Restaurant"}
+                    title={item.title}
+                    status={item.status}
+                    subtitle={`${lang === "es" ? "Leonix Ad ID" : "Leonix Ad ID"}: ${item.leonixAdId ?? "—"}`}
+                    badges={[
+                      item.promoted ? (lang === "es" ? "Destacado" : "Promoted") : "",
+                      item.verified ? (lang === "es" ? "Verificado" : "Verified") : "",
+                    ].filter(Boolean)}
+                    metaItems={[
+                      { label: "Slug", value: item.slug ?? "—" },
+                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
+                      { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
+                      { label: lang === "es" ? "Plan" : "Plan", value: item.packageTier ?? "—" },
+                    ]}
+                    actions={[
+                      { href: item.publicHref, label: lang === "es" ? "Ver publico" : "View public", tone: "primary" as const },
+                      { href: "/dashboard/restaurantes?" + q, label: lang === "es" ? "Gestionar restaurante" : "Manage restaurant" },
+                      { href: item.resultsHref ?? undefined, label: lang === "es" ? "Ver en resultados" : "View in results", tone: "subtle" as const },
+                      { href: item.messagesHref ?? undefined, label: lang === "es" ? "Mensajes" : "Messages", tone: "subtle" as const },
+                    ].filter((action) => Boolean(action.href))}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {!hasAnyInventory ? (
             <div className="mt-8 rounded-3xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-8 text-center">
               <p className="font-semibold text-[#1E1810]">{t.emptyAll}</p>
               <Link
@@ -698,9 +746,9 @@ export default function MyListingsPage() {
                 {t.cta}
               </Link>
             </div>
-          ) : visible.length === 0 ? (
+          ) : listings.length > 0 && visible.length === 0 ? (
             <div className="mt-8 rounded-3xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-8 text-center text-[#5C5346]">{t.empty}</div>
-          ) : (
+          ) : listings.length > 0 ? (
             <div className="mt-8 flex flex-col gap-5">
               {visible.map((x) => {
                 const status = normalizeStatus(x.status);
@@ -906,7 +954,7 @@ export default function MyListingsPage() {
                 );
               })}
             </div>
-          )}
+          ) : null}
 
           <Link href={`/dashboard?${q}`} className="mt-10 inline-flex text-sm font-semibold text-[#2A2620] underline">
             ← {t.back}
