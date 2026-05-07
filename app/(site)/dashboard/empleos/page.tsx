@@ -116,8 +116,45 @@ export default function EmpleosEmployerDashboardPage() {
       {rows.length === 0 ? (
         <p className="mt-10 text-[#5C5346]">{t.empty}</p>
       ) : (
-        <div className="mt-8 overflow-x-auto rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/95">
-          <table className="min-w-full text-left text-sm">
+        <>
+          <ul className="mt-8 space-y-3 md:hidden">
+            {rows.map((r) => (
+              <li key={r.id} className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4">
+                <p className="text-base font-bold text-[#1E1810]">{r.title}</p>
+                <p className="mt-1 text-xs text-[#7A7164]">{r.company_name}</p>
+                <p className="mt-2 text-xs text-[#5C5346]">
+                  {t.colLane}: {r.lane} · {t.colStatus}: {r.lifecycle_status}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link href={`/dashboard/empleos/${r.id}?${q}`} className="rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-3 py-2 text-xs font-semibold text-[#5C4E2E]">
+                    {t.manage}
+                  </Link>
+                  {r.lane === "quick" ? (
+                    <Link href={`/publicar/empleos/quick?edit=${r.id}&${q}`} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
+                      {t.edit}
+                    </Link>
+                  ) : null}
+                  {r.lane === "premium" ? (
+                    <Link href={`/publicar/empleos/premium?edit=${r.id}&${q}`} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
+                      {t.edit}
+                    </Link>
+                  ) : null}
+                  {r.lane === "feria" ? (
+                    <Link href={`/publicar/empleos/feria?edit=${r.id}&${q}`} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
+                      {t.edit}
+                    </Link>
+                  ) : null}
+                  {r.lifecycle_status === "published" ? (
+                    <Link href={appendLangToPath(`/clasificados/empleos/${r.slug}`, lang)} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
+                      {t.public}
+                    </Link>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-8 hidden overflow-x-auto rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/95 md:block">
+            <table className="min-w-full text-left text-sm">
             <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2] text-xs font-bold uppercase text-[#7A7164]">
               <tr>
                 <th className="px-4 py-3">{t.colTitle}</th>
@@ -167,8 +204,9 @@ export default function EmpleosEmployerDashboardPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+            </table>
+          </div>
+        </>
       )}
 
       <Link href={`/dashboard?${q}`} className="mt-10 inline-flex text-sm font-semibold text-[#2A2620] underline">

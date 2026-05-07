@@ -264,8 +264,59 @@ export default function DashboardViajesStagedPage() {
         {!loading && userId && !err && rows.length === 0 ? <p className="mt-8 text-sm text-[#7A7164]">{t.empty}</p> : null}
 
         {!loading && rows.length > 0 ? (
-          <div className="mt-8 overflow-x-auto">
-            <table className="min-w-[920px] w-full border-collapse text-left text-sm">
+          <>
+            <ul className="mt-8 space-y-3 md:hidden">
+              {rows.map((r) => (
+                <li key={r.id} className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4">
+                  <p className="text-base font-bold text-[#1E1810]">{r.title}</p>
+                  <p className="mt-1 text-xs text-[#5C5346]">
+                    {t.thLane}: {r.lane} · {t.thStatus}: {lifecycleStatusLabel(r.lifecycle_status, lang)}
+                    {r.is_public ? (lang === "es" ? " · visible público" : " · public") : ""}
+                  </p>
+                  <p className="mt-1 text-xs text-[#7A7164]">{t.thModeration}: {modLine(r)}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {r.lifecycle_status === "approved" && r.is_public ? (
+                      <Link
+                        href={appendLangToPath(`/clasificados/viajes/oferta/${r.slug}`, lang)}
+                        className="rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-3 py-2 text-xs font-semibold text-[#5C4E2E]"
+                      >
+                        {t.viewPublic}
+                      </Link>
+                    ) : null}
+                    {r.lane === "private" && privateLaneDisabled ? (
+                      <span className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-3 py-2 text-xs text-[#7A7164]" title={t.privatePreviewDisabled}>
+                        {t.preview}
+                      </span>
+                    ) : (
+                      <Link href={previewHref(r)} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
+                        {t.preview}
+                      </Link>
+                    )}
+                    {r.lane === "private" && privateLaneDisabled ? (
+                      <span className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-3 py-2 text-xs text-[#7A7164]" title={t.privateEditDisabled}>
+                        {t.edit}
+                      </span>
+                    ) : (
+                      <Link href={editHref(r)} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
+                        {t.edit}
+                      </Link>
+                    )}
+                    {canResubmit(r.lifecycle_status) ? (
+                      <button
+                        type="button"
+                        disabled={busyId === r.id}
+                        className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416] disabled:opacity-50"
+                        onClick={() => void ownerAction(r.id, "resubmit")}
+                      >
+                        {busyId === r.id ? t.busy : t.resubmit}
+                      </button>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-8 hidden overflow-x-auto md:block">
+              <table className="min-w-[920px] w-full border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-[#E8DFD0] text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
                   <th className="py-2 pr-4">{t.thTitle}</th>
@@ -343,8 +394,9 @@ export default function DashboardViajesStagedPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+              </table>
+            </div>
+          </>
         ) : null}
       </div>
     </LeonixDashboardShell>

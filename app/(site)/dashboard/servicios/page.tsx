@@ -290,8 +290,53 @@ export default function DashboardServiciosPage() {
               {t.empty}
             </div>
           ) : (
-            <div className="mt-8 overflow-x-auto rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90">
-              <table className="min-w-full border-collapse text-sm">
+            <>
+              <ul className="mt-8 space-y-3 md:hidden">
+                {rows.map((r) => (
+                  <li key={r.slug} className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4">
+                    <p className="text-base font-bold text-[#1E1810]">{r.businessName}</p>
+                    <p className="mt-1 font-mono text-[11px] text-[#7A7164]">{r.slug}</p>
+                    <p className="mt-2 text-xs text-[#5C5346]">
+                      {t.city}: {r.city || "—"} · {t.status}: {r.listingStatus ?? "—"}
+                    </p>
+                    <p className="mt-1 text-xs text-[#5C5346]">
+                      {t.source}: {sourceLabel(r)}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Link href={`/clasificados/servicios/${encodeURIComponent(r.slug)}?${q}`} className="rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-3 py-2 text-xs font-semibold text-[#5C4E2E]">
+                        {t.view}
+                      </Link>
+                      <Link href={`/clasificados/servicios/resultados?${q}&q=${encodeURIComponent(r.businessName)}`} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
+                        {t.results}
+                      </Link>
+                      <Link href={`/clasificados/publicar/servicios?${q}`} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
+                        {t.edit}
+                      </Link>
+                      {r.source === "cloud" && r.listingStatus === "published" ? (
+                        <button
+                          type="button"
+                          disabled={manageBusy !== null}
+                          onClick={() => void manageListing(r.slug, "pause")}
+                          className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 disabled:opacity-50"
+                        >
+                          {t.pause}
+                        </button>
+                      ) : r.source === "cloud" && r.listingStatus === "paused_unpublished" ? (
+                        <button
+                          type="button"
+                          disabled={manageBusy !== null}
+                          onClick={() => void manageListing(r.slug, "resume")}
+                          className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900 disabled:opacity-50"
+                        >
+                          {t.resume}
+                        </button>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-8 hidden overflow-x-auto rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 md:block">
+                <table className="min-w-full border-collapse text-sm">
                 <thead className="bg-[#FAF7F2]/95 text-left text-xs font-bold uppercase text-[#7A7164]">
                   <tr>
                     <th className="p-3">{t.slug}</th>
@@ -359,8 +404,9 @@ export default function DashboardServiciosPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+                </table>
+              </div>
+            </>
           )}
 
           {leads.length > 0 ? (
