@@ -294,11 +294,13 @@ export function ServiciosGalleryWithTabs({ profile, lang }: { profile: Servicios
                   : ""
             }`}>
               {videos.map((v) => (
-                <div key={v.id}>
+                <div key={v.id} className="flex flex-col">
                   {videos.length > 1 && v.isPrimary && (
                     <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#3B66AD]/90">{L.videoTour}</p>
                   )}
-                  <VideoTile v={v} lang={lang} />
+                  <div className="flex-1">
+                    <VideoTile v={v} lang={lang} />
+                  </div>
                 </div>
               ))}
             </div>
