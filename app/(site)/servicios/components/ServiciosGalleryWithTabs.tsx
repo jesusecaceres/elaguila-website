@@ -214,18 +214,18 @@ export function ServiciosGalleryWithTabs({ profile, lang }: { profile: Servicios
         className="rounded-2xl border p-4 shadow-sm sm:p-6 md:p-8"
         style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
       >
-        <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">
+        <h2 className="text-lg font-bold tracking-tight text-[#2F2A23] md:text-xl">
           {L.gallery}
         </h2>
 
         <div className="mt-4">
-          <nav className="inline-flex rounded-xl border border-[#D8C5A7] bg-[#F9F2E6] p-1 shadow-sm" aria-label={L.gallery}>
+          <nav className="inline-flex rounded-xl border border-[#E8D7B8] bg-[#FCF9F2] p-1 shadow-sm" aria-label={L.gallery}>
             <button
               onClick={() => setActiveTab('photos')}
               className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                 activeTab === 'photos'
-                  ? 'bg-white text-[#3B66AD] shadow-sm ring-1 ring-[#D8C5A7]'
-                  : 'text-[color:var(--lx-muted)] hover:text-[color:var(--lx-text)]'
+                  ? 'bg-white text-[#6F7A3A] shadow-sm ring-1 ring-[#E8D7B8]'
+                  : 'text-[#6F6254] hover:text-[#2F2A23]'
               }`}
             >
               {lang === "en" ? "Photos" : "Fotos"}
@@ -235,8 +235,8 @@ export function ServiciosGalleryWithTabs({ profile, lang }: { profile: Servicios
                 onClick={() => setActiveTab('videos')}
                 className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                   activeTab === 'videos'
-                    ? 'bg-white text-[#3B66AD] shadow-sm ring-1 ring-[#D8C5A7]'
-                    : 'text-[color:var(--lx-muted)] hover:text-[color:var(--lx-text)]'
+                    ? 'bg-white text-[#6F7A3A] shadow-sm ring-1 ring-[#E8D7B8]'
+                    : 'text-[#6F6254] hover:text-[#2F2A23]'
                 }`}
               >
                 {lang === "en" ? "Videos" : "Videos"}
@@ -267,10 +267,11 @@ export function ServiciosGalleryWithTabs({ profile, lang }: { profile: Servicios
                     <div className="mt-6 text-center">
                       <button
                         onClick={() => openModal(6)}
-                        className="inline-flex items-center gap-2 rounded-xl border border-[#3B66AD]/20 bg-[#3B66AD]/[0.06] px-4 py-2.5 text-sm font-medium text-[#3B66AD] transition hover:border-[#3B66AD]/40 hover:bg-[#3B66AD]/[0.1]"
+                        className="inline-flex items-center gap-2 rounded-xl border border-[#E8D7B8] bg-[#FCF9F2] px-4 py-2.5 text-sm font-medium text-[#2F2A23] transition hover:border-[#D4AF37] hover:bg-[#D4AF37]/[0.08]"
                       >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="h-4 w-4 text-[#6F7A3A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.586a1 1 0 01.707.293l1.414 1.414A1 1 0 0011.414 5H19a2 2 0 012 2v1m0 4v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7m18 0H3m18 0l-2.5-3a1 1 0 00-.8-.4H6.3a1 1 0 00-.8.4L3 12" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13a2 2 0 012-2h3a2 2 0 012 2 3v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6h3a2 2 0 012-2 3v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6h3a2 2 0 012-2 3v6A2 2 0 01-2 2H6a2 2 0 01-2-2V13z" />
                         </svg>
                         {lang === "en" ? "View more photos" : "Ver más fotos"}
                       </button>

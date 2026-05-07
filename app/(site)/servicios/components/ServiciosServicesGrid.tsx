@@ -129,8 +129,8 @@ export function ServiciosOfferedSection({ services, lang, profileForQuote }: Ser
                   : "cursor-default opacity-95"
               }`}
               style={{
-                borderColor: SV.warmBorder,
-                backgroundColor: SV.beige,
+                borderColor: SV.border,
+                backgroundColor: SV.card,
                 color: SV.text,
               }}
             >

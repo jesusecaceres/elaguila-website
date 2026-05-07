@@ -60,7 +60,7 @@ export function ServiciosHero({
           <div
             className="absolute inset-0"
             style={{
-              background: `linear-gradient(135deg, ${SV.warm} 0%, ${SV.gold} 45%, ${SV.beige} 100%)`,
+              background: `linear-gradient(135deg, ${SV.warm} 0%, ${SV.gold} 45%, ${SV.card} 100%)`,
             }}
           />
         )}
@@ -125,7 +125,7 @@ export function ServiciosHero({
               <div className="flex justify-center">
                 <div
                   className="flex h-36 w-36 items-center justify-center rounded-2xl border border-white/40 bg-black/25 shadow-lg backdrop-blur-sm sm:h-44 sm:w-44"
-                  style={{ backgroundColor: `${SV.blue}cc` }}
+                  style={{ backgroundColor: `${SV.accent}cc` }}
                 >
                   <span className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
                     {(identity.businessName.trim().charAt(0) || "?").toUpperCase()}

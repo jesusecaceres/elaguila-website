@@ -72,7 +72,10 @@ export function ServiciosProfileView({
         <ServiciosTopBar lang={lang} editBackHref={editBackHref} beforeEditBackNavigate={beforeEditBackNavigate} />
       ) : null}
 
-      <main className="mx-auto max-w-[1280px] px-4 pb-10 pt-4 sm:pt-6 md:px-6 md:pt-8">
+      <main
+        className="rounded-2xl border px-4 py-5 shadow-sm sm:px-6 sm:py-6"
+        style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
+      >
         {noticeBanner ? (
           <p
             className="mb-4 rounded-xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 text-center text-sm font-medium text-amber-950 shadow-sm"

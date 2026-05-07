@@ -47,9 +47,9 @@ export function ServiciosQuickFacts({
           return (
             <span
               key={`${f.kind}-${f.label}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#3B66AD]/20 bg-[#3B66AD]/[0.06] px-3 py-1 text-[11px] font-medium text-[#3B66AD]"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#E8D7B8] bg-[#FCF9F2] px-3 py-1 text-[11px] font-medium text-[#2F2A23]"
             >
-              <Icon className="h-3 w-3" aria-hidden />
+              <Icon className="h-3 w-3 text-[#6F7A3A]" aria-hidden />
               {f.label}
             </span>
           );
@@ -65,7 +65,7 @@ export function ServiciosQuickFacts({
       style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
       aria-label={lang === "en" ? "Trust signals" : "Señales de confianza"}
     >
-      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#3B66AD]/90">
+      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#2F2A23]">
         {lang === "en" ? "What sets us apart" : "Lo que nos distingue"}
       </p>
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -74,15 +74,17 @@ export function ServiciosQuickFacts({
           return (
             <div
               key={`${f.kind}-${f.label}`}
-              className="flex min-w-0 items-start gap-3 rounded-xl border border-black/[0.06] bg-white/90 px-3.5 py-3 shadow-sm sm:items-center sm:gap-3.5 sm:px-4 sm:py-3.5"
+              className="flex min-w-0 items-start gap-3 rounded-xl border border-[#E8D7B8] bg-white/90 px-3.5 py-3 shadow-sm sm:items-center sm:gap-3.5 sm:px-4 sm:py-3.5"
             >
               <span
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#3B66AD]/[0.08] text-[#3B66AD]"
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#FCF9F2] text-sm text-[#6F7A3A]"
                 aria-hidden
               >
                 <Icon className="h-4 w-4" />
               </span>
-              <span className="min-w-0 text-sm font-semibold leading-snug text-[color:var(--lx-text)]">{f.label}</span>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-[#2F2A23]">{f.label}</p>
+              </div>
             </div>
           );
         })}

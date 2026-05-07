@@ -123,14 +123,14 @@ export function ServiciosActionPanel({
     quote?.kind === "whatsapp" || secondary.some((s) => s.id === "whatsapp");
 
   const linkBase =
-    "flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full border px-3 py-3 text-sm font-semibold shadow-sm transition hover:shadow-md";
+    "flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full border border-[#E8D7B8] bg-[#FCF9F2] px-3 py-3 text-sm font-semibold text-[#2F2A23] shadow-sm transition hover:shadow-md";
   const primaryClass =
     "flex min-h-[50px] w-full items-center justify-center gap-2 rounded-full px-4 py-3.5 text-sm font-bold text-white shadow-lg transition hover:opacity-[0.97] active:scale-[0.99]";
 
   const headerBlock = featured ? (
     <div className="flex flex-wrap items-center gap-2 border-b border-black/[0.06] pb-4">
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#C9A84A]/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[#9a7b28]">
-        <FaStar className="h-3.5 w-3.5 text-[#C9A84A]" aria-hidden />
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D4AF37]/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
+        <FaStar className="h-3.5 w-3.5 text-white" aria-hidden />
         {featuredLabel}
       </span>
       {rating != null && reviewCount != null ? (

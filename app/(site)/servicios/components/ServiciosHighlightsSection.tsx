@@ -67,8 +67,8 @@ export function ServiciosHighlightsSection({ highlights, lang }: ServiciosHighli
               key={h.id}
               className="flex min-h-[44px] min-w-0 items-start gap-2 rounded-xl border px-3 py-2.5 shadow-sm"
               style={{
-                borderColor: SV.warmBorder,
-                backgroundColor: SV.beige,
+                borderColor: SV.border,
+                backgroundColor: SV.card,
                 color: SV.text,
               }}
             >

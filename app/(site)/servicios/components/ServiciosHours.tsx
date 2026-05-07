@@ -21,9 +21,9 @@ export function ServiciosHours({ profile, lang }: { profile: ServiciosProfileRes
           <span 
             className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
             style={{
-              borderColor: hours.openNowLabel.toLowerCase().includes('cerrado') ? SV.warmBorder : SV.greenBorder,
-              backgroundColor: hours.openNowLabel.toLowerCase().includes('cerrado') ? SV.warmSoft : SV.greenSoft,
-              color: hours.openNowLabel.toLowerCase().includes('cerrado') ? SV.warm : SV.green,
+              borderColor: hours.openNowLabel.toLowerCase().includes('cerrado') ? SV.border : SV.accentBorder,
+              backgroundColor: hours.openNowLabel.toLowerCase().includes('cerrado') ? SV.warmSoft : SV.accentSoft,
+              color: hours.openNowLabel.toLowerCase().includes('cerrado') ? SV.warm : SV.accent,
             }}
           >
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'currentColor' }} aria-hidden />

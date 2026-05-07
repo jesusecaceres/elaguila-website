@@ -1,24 +1,39 @@
-/** Servicios public profile — visual tokens aligned with Leonix + reference design */
+/** Servicios public profile — lion-habitat visual tokens */
 export const SV = {
-  bg: "#F9F8F6",
-  blue: "#3B66AD",
-  blueHover: "#2d528d",
-  blueSoft: "rgba(59, 102, 173, 0.08)",
-  card: "#ffffff",
-  text: "#1a1a1a",
-  textMuted: "#5c5c5c",
-  border: "rgba(30, 24, 16, 0.12)",
-  gold: "#C9A84A",
-  goldSoft: "rgba(201, 168, 74, 0.1)",
-  goldBorder: "rgba(201, 168, 74, 0.3)",
-  warm: "#D4A574",
-  warmSoft: "rgba(212, 165, 116, 0.1)",
-  warmBorder: "rgba(212, 165, 116, 0.2)",
-  green: "#6B8E4A",
-  greenSoft: "rgba(107, 142, 74, 0.1)",
-  greenBorder: "rgba(107, 142, 74, 0.2)",
-  beige: "#F5F2ED",
+  // Main backgrounds
+  bg: "#FCF9F2",           // warm cream / ivory
+  card: "#FFFDF7",          // soft white / cream 
+  
+  // Text colors
+  text: "#2F2A23",            // charcoal / espresso
+  textMuted: "#6F6254",        // warm taupe / stone
+  
+  // Borders & accents
+  border: "#E8D7B8",          // warm beige / sand
+  borderSoft: "rgba(232, 215, 184, 0.5)",
+  
+  // Primary accent - muted olive green
+  accent: "#6F7A3A",           // muted olive green
+  accentSoft: "rgba(111, 122, 58, 0.08)",
+  accentBorder: "rgba(111, 122, 58, 0.2)",
+  
+  // Gold accent - refined amber/gold
+  gold: "#D4AF37",             // refined amber/gold
+  goldSoft: "rgba(212, 175, 55, 0.1)",
+  goldBorder: "rgba(212, 175, 55, 0.3)",
+  
+  // Warm accent - clay / terracotta
+  warm: "#B86A32",             // clay / terracotta
+  warmSoft: "rgba(184, 106, 50, 0.1)",
+  warmBorder: "rgba(184, 106, 50, 0.2)",
+  
+  // CTA dark - espresso brown
+  cta: "#3B2117",             // espresso brown
+  ctaSoft: "rgba(59, 33, 23, 0.08)",
+  ctaBorder: "rgba(59, 33, 23, 0.2)",
+  
+  // Shadows
   shadow: "0 12px 40px rgba(30, 24, 16, 0.08)",
   shadowSm: "0 4px 20px rgba(30, 24, 16, 0.06)",
-  shadowPremium: "0 20px 60px rgba(30, 24, 16, 0.12)",
+  shadowPremium: "0 20px 60px rgba(47, 42, 35, 0.12)",
 } as const;

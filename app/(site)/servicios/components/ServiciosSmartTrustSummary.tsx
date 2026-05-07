@@ -17,17 +17,17 @@ export function ServiciosSmartTrustSummary({
 
   return (
     <section
-      className="rounded-2xl border border-[#D4A574]/45 bg-gradient-to-br from-[#FFFCF7] via-[#FFF8EC] to-[#FAF0E4] p-4 shadow-[0_8px_24px_-14px_rgba(61,44,18,0.2)] sm:p-5"
+      className="rounded-2xl border border-[#E8D7B8] bg-[#FCF9F2] p-4 shadow-sm sm:p-5"
       aria-labelledby="servicios-smart-trust-heading"
     >
       <div className="flex min-w-0 items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#C9A84A]/35 bg-[#FFF3DC]/90 shadow-sm">
-          <FaShieldAlt className="h-5 w-5 text-[#8A6B2E]" aria-hidden />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#D4AF37]/30 bg-[#FCF9F2] shadow-sm">
+          <FaShieldAlt className="h-5 w-5 text-[#D4AF37]" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
           <h2
             id="servicios-smart-trust-heading"
-            className="text-base font-bold tracking-tight text-[#2C2214] md:text-lg"
+            className="text-base font-bold tracking-tight text-[#2F2A23] md:text-lg"
           >
             {copy.title}
           </h2>
