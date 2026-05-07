@@ -589,6 +589,54 @@ export default function MyListingsPage() {
             </Link>
           </header>
 
+          {/* Category clarity section */}
+          <div className="mt-4 rounded-2xl border border-blue-200/80 bg-blue-50/90 p-4 text-xs leading-relaxed text-[#1E3A8A]">
+            <p className="font-semibold text-[#1E1810]">Gestión por categorías</p>
+            <p className="mt-1">
+              {lang === "es" 
+                ? "Algunas categorías todavía se administran en su propia sección. Usa los enlaces para acceder a cada área."
+                : "Some categories are still managed in their own sections. Use the links to access each area."
+              }
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <Link
+                href={`/dashboard/restaurantes?${q}`}
+                className="flex items-center gap-2 rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm font-medium text-[#2C2416] hover:bg-[#FAF7F2]"
+              >
+                <span className="text-[#C9A84A]" aria-hidden>🍽</span>
+                {lang === "es" ? "Restaurantes" : "Restaurants"}
+              </Link>
+              <Link
+                href={`/dashboard/servicios?${q}`}
+                className="flex items-center gap-2 rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm font-medium text-[#2C2416] hover:bg-[#FAF7F2]"
+              >
+                <span className="text-[#C9A84A]" aria-hidden>⚙️</span>
+                {lang === "es" ? "Servicios" : "Services"}
+              </Link>
+              <Link
+                href={`/dashboard/empleos?${q}`}
+                className="flex items-center gap-2 rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm font-medium text-[#2C2416] hover:bg-[#FAF7F2]"
+              >
+                <span className="text-[#C9A84A]" aria-hidden>💼</span>
+                {lang === "es" ? "Empleos" : "Jobs"}
+              </Link>
+              <Link
+                href={`/dashboard/viajes?${q}`}
+                className="flex items-center gap-2 rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm font-medium text-[#2C2416] hover:bg-[#FAF7F2]"
+              >
+                <span className="text-[#C9A84A]" aria-hidden>✈️</span>
+                {lang === "es" ? "Viajes" : "Travel"}
+              </Link>
+              <Link
+                href={`/dashboard/mis-anuncios?${q}`}
+                className="flex items-center gap-2 rounded-lg border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] px-3 py-2 text-sm font-medium text-[#1E1810] hover:brightness-[1.03]"
+              >
+                <span className="text-[#C9A84A]" aria-hidden>📦</span>
+                {lang === "es" ? "En Venta / Autos / BR / Rentas" : "For Sale / Autos / Real Estate / Rentals"}
+              </Link>
+            </div>
+          </div>
+
           <AutosLeonixPaidListingsSection lang={lang} />
 
           <div className="mt-4 rounded-2xl border border-amber-200/80 bg-amber-50/90 p-4 text-xs leading-relaxed text-[#5C5346]">
@@ -596,7 +644,7 @@ export default function MyListingsPage() {
             <p className="mt-1">
               Las vacantes publicadas desde los flujos Empleos (rápido / premium / feria) se guardan en{" "}
               <code className="rounded bg-white/80 px-1 text-[11px]">empleos_public_listings</code> (requiere sesión). Aparecen en
-              resultados mezcladas con el catálogo de muestra. Gestión y enlaces:
+              resultados mezclados con el catálogo de muestra. Gestión y enlaces:
             </p>
             <p className="mt-2">
               <Link href={`/dashboard/empleos?${q}`} className="font-semibold text-[#8A6A1A] underline">

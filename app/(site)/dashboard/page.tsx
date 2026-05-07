@@ -397,6 +397,7 @@ export default function DashboardPage() {
             ) : null}
           </header>
 
+          {/* Real stats only */}
           <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
             <Link href={`/dashboard/mis-anuncios?${q}`} className={summaryCardClass}>
               <div className="flex items-start justify-between gap-2">
@@ -416,15 +417,6 @@ export default function DashboardPage() {
               </div>
               <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{fmtNum(totalViews)}</p>
             </Link>
-            <Link href={`/dashboard/mis-anuncios?${q}`} className={summaryCardClass}>
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.totalSaves}</p>
-                <span className="text-lg opacity-80" aria-hidden>
-                  ★
-                </span>
-              </div>
-              <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{fmtNum(totalSaves)}</p>
-            </Link>
             <Link href={`/dashboard/mensajes?${q}`} className={summaryCardClass}>
               <div className="flex items-start justify-between gap-2">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.totalMsg}</p>
@@ -433,6 +425,15 @@ export default function DashboardPage() {
                 </span>
               </div>
               <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{fmtNum(totalMessages)}</p>
+            </Link>
+            <Link href={`/dashboard/mis-anuncios?${q}`} className={summaryCardClass}>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.totalSaves}</p>
+                <span className="text-lg opacity-80" aria-hidden>
+                  ★
+                </span>
+              </div>
+              <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{fmtNum(totalSaves)}</p>
             </Link>
             <Link href={`/dashboard/mis-anuncios?${q}`} className={summaryCardClass}>
               <div className="flex items-start justify-between gap-2">
@@ -445,260 +446,314 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          <div className="mt-4 rounded-3xl border border-dashed border-[#C9B46A]/40 bg-[#FBF7EF]/50 p-4 text-center text-xs text-[#7A7164]">
-            {t.earnings}: <span className="font-semibold text-[#5C5346]">{t.earningsSoon}</span>
+          {/* Category management overview */}
+          <div className="mt-8 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.08)]">
+            <h2 className="text-lg font-bold text-[#1E1810]">{lang === "es" ? "Gestión de Categorías" : "Category Management"}</h2>
+            <p className="mt-2 text-sm text-[#5C5346]/95">
+              {lang === "es" 
+                ? "Administra tus anuncios por categoría. El estado muestra lo que está disponible ahora."
+                : "Manage your listings by category. Status shows what's available now."
+              }
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {/* Restaurantes - READY */}
+              <div className="rounded-2xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-[#1E1810]">Restaurantes</h3>
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
+                    Listo
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-[#5C5346]/90">
+                  {lang === "es" ? "Gestiona restaurantes publicados" : "Manage published restaurants"}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href={`/dashboard/restaurantes?${q}`}
+                    className="inline-flex rounded-lg bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                  >
+                    {lang === "es" ? "Gestionar" : "Manage"}
+                  </Link>
+                  <Link
+                    href={`/publicar/restaurantes?${q}`}
+                    className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+                  >
+                    {lang === "es" ? "Publicar" : "Publish"}
+                  </Link>
+                </div>
+              </div>
+
+              {/* Servicios - PARTIAL */}
+              <div className="rounded-2xl border border-amber-200/80 bg-amber-50/90 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-[#1E1810]">Servicios</h3>
+                  <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">
+                    Parcial
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-[#5C5346]/90">
+                  {lang === "es" ? "Gestión básica disponible" : "Basic management available"}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href={`/dashboard/servicios?${q}`}
+                    className="inline-flex rounded-lg bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                  >
+                    {lang === "es" ? "Gestionar" : "Manage"}
+                  </Link>
+                  <Link
+                    href={`/clasificados/publicar/servicios?${q}`}
+                    className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+                  >
+                    {lang === "es" ? "Publicar" : "Publish"}
+                  </Link>
+                </div>
+              </div>
+
+              {/* En venta - READY */}
+              <div className="rounded-2xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-[#1E1810]">{t.enVentaTitle}</h3>
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
+                    Listo
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-[#5C5346]/90">
+                  {lang === "es" ? "Gestionado en Mis anuncios" : "Managed in My listings"}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href={`/dashboard/mis-anuncios?${q}`}
+                    className="inline-flex rounded-lg bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                  >
+                    {t.enVentaCta}
+                  </Link>
+                  <Link
+                    href={`/clasificados/publicar/en-venta?${q}`}
+                    className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+                  >
+                    {t.enVentaPost}
+                  </Link>
+                </div>
+              </div>
+
+              {/* Autos - PARTIAL */}
+              <div className="rounded-2xl border border-amber-200/80 bg-amber-50/90 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-[#1E1810]">Autos</h3>
+                  <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">
+                    Parcial
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-[#5C5346]/90">
+                  {lang === "es" ? "Gestión básica disponible" : "Basic management available"}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href={`/dashboard/mis-anuncios?${q}`}
+                    className="inline-flex rounded-lg bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                  >
+                    {lang === "es" ? "Gestionar" : "Manage"}
+                  </Link>
+                  <Link
+                    href={`/publicar/autos?${q}`}
+                    className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+                  >
+                    {lang === "es" ? "Publicar" : "Publish"}
+                  </Link>
+                </div>
+              </div>
+
+              {/* Empleos - READY */}
+              <div className="rounded-2xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-[#1E1810]">Empleos</h3>
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
+                    Listo
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-[#5C5346]/90">
+                  {lang === "es" ? "Gestión dedicada disponible" : "Dedicated management available"}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href={`/dashboard/empleos?${q}`}
+                    className="inline-flex rounded-lg bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                  >
+                    {lang === "es" ? "Gestionar" : "Manage"}
+                  </Link>
+                  <Link
+                    href={`/clasificados/publicar/empleos?${q}`}
+                    className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+                  >
+                    {lang === "es" ? "Publicar" : "Publish"}
+                  </Link>
+                </div>
+              </div>
+
+              {/* Rentas - READY */}
+              <div className="rounded-2xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-[#1E1810]">Rentas</h3>
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
+                    Listo
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-[#5C5346]/90">
+                  {lang === "es" ? "Gestionado en Mis anuncios" : "Managed in My listings"}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href={`/dashboard/mis-anuncios?${q}`}
+                    className="inline-flex rounded-lg bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                  >
+                    {lang === "es" ? "Gestionar" : "Manage"}
+                  </Link>
+                  <Link
+                    href={`/publicar/rentas/privado?${q}`}
+                    className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+                  >
+                    {lang === "es" ? "Publicar privado" : "Publish private"}
+                  </Link>
+                </div>
+              </div>
+
+              {/* Bienes Raíces - READY */}
+              <div className="rounded-2xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-[#1E1810]">Bienes Raíces</h3>
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
+                    Listo
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-[#5C5346]/90">
+                  {lang === "es" ? "Gestión completa disponible" : "Full management available"}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href={`${BR_PUBLICAR_HUB}?${q}`}
+                    className="inline-flex rounded-lg bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                  >
+                    {lang === "es" ? "Publicar" : "Publish"}
+                  </Link>
+                  <Link
+                    href={`${BR_RESULTS}?${q}`}
+                    className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+                  >
+                    {lang === "es" ? "Ver resultados" : "View results"}
+                  </Link>
+                </div>
+              </div>
+
+              {/* Viajes - READY */}
+              <div className="rounded-2xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-[#1E1810]">Viajes</h3>
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
+                    Listo
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-[#5C5346]/90">
+                  {lang === "es" ? "Gestión dedicada disponible" : "Dedicated management available"}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href={`/dashboard/viajes?${q}`}
+                    className="inline-flex rounded-lg bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                  >
+                    {lang === "es" ? "Gestionar" : "Manage"}
+                  </Link>
+                  <Link
+                    href={`/publicar/viajes?${q}`}
+                    className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+                  >
+                    {lang === "es" ? "Publicar" : "Publish"}
+                  </Link>
+                </div>
+              </div>
+
+              {/* Clases - MISSING */}
+              <div className="rounded-2xl border border-gray-200/60 bg-gray-50/80 p-4 opacity-75">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-[#5C5346]">Clases</h3>
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
+                    Próximamente
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-[#7A7164]/90">
+                  {lang === "es" ? "Flujo de publicación no disponible" : "Publish flow not available"}
+                </p>
+              </div>
+
+              {/* Comunidad - MISSING */}
+              <div className="rounded-2xl border border-gray-200/60 bg-gray-50/80 p-4 opacity-75">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-[#5C5346]">Comunidad</h3>
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
+                    Próximamente
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-[#7A7164]/90">
+                  {lang === "es" ? "Flujo de publicación no disponible" : "Publish flow not available"}
+                </p>
+              </div>
+            </div>
           </div>
 
+          {/* Next actions */}
           <div className="mt-8 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-inner">
-            <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.quick}</p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Link
-                href={`/clasificados/publicar?${q}`}
-                className="inline-flex rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md hover:brightness-[1.03]"
-              >
-                {t.post}
-              </Link>
-              <Link
-                href={`${BR_PUBLICAR_HUB}?${q}`}
-                className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
-              >
-                {lang === "es" ? "Publicar Bienes Raíces" : "Post real estate"}
-              </Link>
+            <h2 className="text-lg font-bold text-[#1E1810]">{lang === "es" ? "Qué puedes hacer ahora" : "What you can do now"}</h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <Link
                 href={`/dashboard/mis-anuncios?${q}`}
-                className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+                className="flex items-center gap-3 rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4 text-left text-sm text-[#2C2416] transition hover:border-[#C9B46A]/45 hover:bg-[#FFFCF7]"
               >
-                {t.myAds}
-              </Link>
-              <Link
-                href={`/dashboard/mensajes?${q}`}
-                className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
-              >
-                {t.quickOpenMsg}
+                <span className="text-[#C9A84A]" aria-hidden>
+                  📋
+                </span>
+                <div>
+                  <p className="font-semibold text-[#1E1810]">{lang === "es" ? "Gestionar anuncios publicados" : "Manage published listings"}</p>
+                  <p className="mt-1 text-xs text-[#5C5346]/95">{lang === "es" ? "Revisa estado, analíticas y promociona" : "Review status, analytics, and promote"}</p>
+                </div>
               </Link>
               <Link
                 href={`/dashboard/drafts?${q}`}
-                className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+                className="flex items-center gap-3 rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4 text-left text-sm text-[#2C2416] transition hover:border-[#C9B46A]/45 hover:bg-[#FFFCF7]"
               >
-                {t.quickDrafts}
+                <span className="text-[#C9A84A]" aria-hidden>
+                  📝
+                </span>
+                <div>
+                  <p className="font-semibold text-[#1E1810]">{lang === "es" ? "Continuar borradores" : "Continue drafts"}</p>
+                  <p className="mt-1 text-xs text-[#5C5346]/95">{lang === "es" ? "Completa y publica anuncios incompletos" : "Complete and publish incomplete listings"}</p>
+                </div>
               </Link>
               <Link
-                href={`/dashboard/servicios?${q}`}
-                className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+                href={`/dashboard/mensajes?${q}`}
+                className="flex items-center gap-3 rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4 text-left text-sm text-[#2C2416] transition hover:border-[#C9B46A]/45 hover:bg-[#FFFCF7]"
               >
-                {t.quickServicios}
+                <span className="text-[#C9A84A]" aria-hidden>
+                  💬
+                </span>
+                <div>
+                  <p className="font-semibold text-[#1E1810]">{lang === "es" ? "Ver mensajes" : "View messages"}</p>
+                  <p className="mt-1 text-xs text-[#5C5346]/95">{lang === "es" ? "Responde a consultas de interesados" : "Respond to interested buyers"}</p>
+                </div>
               </Link>
               <Link
-                href={`/dashboard/perfil?${q}`}
-                className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+                href={`/clasificados/publicar?${q}`}
+                className="flex items-center gap-3 rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4 text-left text-sm text-[#2C2416] transition hover:border-[#C9B46A]/45 hover:bg-[#FFFCF7]"
               >
-                {t.quickProfile}
-              </Link>
-              <Link
-                href={`/dashboard/analytics?${q}`}
-                className="inline-flex rounded-2xl border border-transparent px-5 py-2.5 text-sm font-semibold text-[#5C5346] hover:text-[#1E1810]"
-              >
-                {t.quickAnalytics}
-              </Link>
-              <Link
-                href={`/clasificados?${q}`}
-                className="inline-flex rounded-2xl border border-transparent px-5 py-2.5 text-sm font-semibold text-[#5C5346] hover:text-[#1E1810]"
-              >
-                {t.browse}
+                <span className="text-[#C9A84A]" aria-hidden>
+                  ➕
+                </span>
+                <div>
+                  <p className="font-semibold text-[#1E1810]">{lang === "es" ? "Publicar nuevo anuncio" : "Publish new listing"}</p>
+                  <p className="mt-1 text-xs text-[#5C5346]/95">{lang === "es" ? "Crea un nuevo anuncio en cualquier categoría lista" : "Create a new listing in any ready category"}</p>
+                </div>
               </Link>
             </div>
           </div>
-
-          <div className="mt-8 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.08)]">
-            <h2 className="text-lg font-bold text-[#1E1810]">{t.attention}</h2>
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-              {(expiringSoon ?? 0) > 0 ? (
-                <li className="rounded-2xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
-                  <Link href={`/dashboard/mis-anuncios?${q}`} className="font-semibold underline decoration-amber-300">
-                    {t.attExpire}
-                  </Link>
-                  <span className="ml-2 tabular-nums">({fmtNum(expiringSoon)})</span>
-                </li>
-              ) : null}
-              {!homeCity ? (
-                <li className="rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/80 px-4 py-3 text-sm text-[#2C2416]">
-                  <Link href={`/dashboard/perfil?${q}`} className="font-semibold underline decoration-[#C9B46A]/50">
-                    {t.attProfile}
-                  </Link>
-                </li>
-              ) : null}
-              {(activeListings ?? 0) > 0 && (totalViews ?? 0) === 0 ? (
-                <li className="rounded-2xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm text-[#5C5346]">{t.attLow}</li>
-              ) : null}
-              {(totalMessages ?? 0) > 0 ? (
-                <li className="rounded-2xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm text-[#5C5346]">
-                  <Link href={`/dashboard/mensajes?${q}`} className="font-semibold underline decoration-[#C9B46A]/50">
-                    {t.attUnread}
-                  </Link>
-                </li>
-              ) : null}
-              {(draftCount ?? 0) > 0 ? (
-                <li className="rounded-2xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm text-[#5C5346]">
-                  <Link href={`/dashboard/drafts?${q}`} className="font-semibold underline decoration-[#C9B46A]/50">
-                    {t.attDrafts}
-                  </Link>
-                  <span className="ml-2 tabular-nums">({fmtNum(draftCount)})</span>
-                </li>
-              ) : null}
-            </ul>
-          </div>
-
-          <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
-            <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.1)]">
-              <h2 className="text-lg font-bold text-[#1E1810]">{t.feedTitle}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.feedSubtitle}</p>
-              {derivedFeed.length === 0 ? (
-                <p className="mt-4 text-sm font-medium text-[#3D3428]/90">{t.feedEmpty}</p>
-              ) : (
-                <ul className="mt-4 space-y-2">
-                  {derivedFeed.slice(0, 8).map((it) => (
-                    <li key={it.id}>
-                      <Link
-                        href={it.href}
-                        className="flex gap-3 rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 px-4 py-3 text-left text-sm text-[#2C2416] transition hover:border-[#C9B46A]/45 hover:bg-[#FFFCF7]"
-                      >
-                        <span className="text-[#C9A84A]" aria-hidden>
-                          ✦
-                        </span>
-                        <span className="min-w-0">
-                          <span className="font-semibold text-[#1E1810]">{it.title}</span>
-                          {it.detail ? (
-                            <span className="mt-0.5 block text-xs text-[#5C5346]/95">{it.detail}</span>
-                          ) : null}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <div className="mt-5 flex flex-wrap gap-3">
-                <Link
-                  href={`/dashboard/mis-anuncios?${q}`}
-                  className="inline-flex items-center gap-2 text-sm font-bold text-[#2A2620] underline decoration-[#C9B46A]/60 underline-offset-4 hover:decoration-[#C9B46A]"
-                >
-                  {t.ctaManage} →
-                </Link>
-                <Link
-                  href={`/dashboard/notificaciones?${q}`}
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-[#5C5346] underline decoration-[#C9B46A]/40 underline-offset-4 hover:text-[#1E1810]"
-                >
-                  {lang === "es" ? "Centro de avisos →" : "Alerts center →"}
-                </Link>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-[#C9B46A]/25 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_12px_36px_-12px_rgba(201,164,74,0.15)]">
-              <h2 className="text-lg font-bold text-[#1E1810]">{lang === "es" ? "Preferencias" : "Preferences"}</h2>
-              <p className="mt-2 text-sm text-[#5C5346]/95">
-                {lang === "es"
-                  ? "Ajusta recordatorios locales; la cuenta persistente llegará con una tabla de preferencias."
-                  : "Tune local reminders; account-wide persistence will ship with a preferences table."}
-              </p>
-              <Link
-                href={`/dashboard/notificaciones?${q}`}
-                className="mt-5 inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
-              >
-                {t.notifPrefs} →
-              </Link>
-            </div>
-          </div>
-
-          {showBizTeaser ? (
-            <div className="mt-8 rounded-3xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] via-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_14px_44px_-14px_rgba(201,164,74,0.22)]">
-              <h2 className="text-lg font-bold text-[#1E1810]">{t.bizTeaser}</h2>
-              <p className="mt-2 text-sm text-[#5C5346]/95">{t.bizBody}</p>
-              <Link
-                href={`/dashboard/business-tools?${q}`}
-                className="mt-4 inline-flex rounded-2xl bg-[#2A2620] px-5 py-2.5 text-sm font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
-              >
-                {t.bizCta} →
-              </Link>
-            </div>
-          ) : (
-            <div className="mt-8 rounded-3xl border border-dashed border-[#E8DFD0] bg-[#FAF7F2]/60 p-6 text-sm text-[#5C5346]/95">
-              <p className="font-semibold text-[#1E1810]">{t.bizTeaser}</p>
-              <p className="mt-2">{t.bizBody}</p>
-              <Link href={`/dashboard/business-tools?${q}`} className="mt-3 inline-flex font-bold text-[#2A2620] underline decoration-[#C9B46A]/50">
-                {t.bizCta} →
-              </Link>
-            </div>
-          )}
-
-          <div className="mt-8 grid gap-6 lg:grid-cols-3">
-            <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.1)]">
-              <h2 className="text-lg font-bold text-[#1E1810]">{t.activity}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.activityBody}</p>
-              <Link
-                href={`/dashboard/mis-anuncios?${q}`}
-                className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#2A2620] underline decoration-[#C9B46A]/60 underline-offset-4 hover:decoration-[#C9B46A]"
-              >
-                {t.ctaManage} →
-              </Link>
-            </div>
-
-            <div className="rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_12px_36px_-12px_rgba(201,164,74,0.2)]">
-              <h2 className="text-lg font-bold text-[#1E1810]">{t.enVentaTitle}</h2>
-              <p className="mt-2 text-sm text-[#5C5346]/95">{t.enVentaBody}</p>
-              <p className="mt-3 text-sm text-[#5C5346]/90">{t.freeHint}</p>
-              <p className="mt-4 text-sm font-semibold text-[#3D3428]">
-                {typeof enVentaActiveCount === "number" ? `${t.enVentaActive}: ${fmtNum(enVentaActiveCount)}` : `${t.enVentaActive}: —`}
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Link
-                  href={`/dashboard/mis-anuncios?${q}`}
-                  className="inline-flex rounded-2xl bg-[#2A2620] px-4 py-2.5 text-sm font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
-                >
-                  {t.enVentaCta}
-                </Link>
-                <Link
-                  href={`/clasificados/publicar/en-venta?${q}`}
-                  className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
-                >
-                  {t.enVentaPost}
-                </Link>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#eef3f9]/40 p-6 shadow-[0_12px_36px_-12px_rgba(201,164,74,0.18)]">
-              <h2 className="text-lg font-bold text-[#1E1810]">{t.brTitle}</h2>
-              <p className="mt-2 text-sm text-[#5C5346]/95">{t.brBody}</p>
-              <p className="mt-4 text-sm font-semibold text-[#3D3428]">
-                {typeof brActiveCount === "number" ? `${t.brActive}: ${fmtNum(brActiveCount)}` : `${t.brActive}: —`}
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Link
-                  href={`${BR_PUBLICAR_HUB}?${q}`}
-                  className="inline-flex rounded-2xl bg-[#2A2620] px-4 py-2.5 text-sm font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
-                >
-                  {t.brPost}
-                </Link>
-                <Link
-                  href={`${BR_RESULTS}?${q}`}
-                  className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
-                >
-                  {t.brResults}
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {plan === "free" ? (
-            <div className="mt-8 rounded-3xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/90 p-6 shadow-inner">
-              <h3 className="text-base font-bold text-[#1E1810]">Leonix Pro</h3>
-              <p className="mt-2 text-sm text-[#5C5346]/95">{t.proPitch}</p>
-              <Link
-                href={`/clasificados/publicar/en-venta/pro?${q}`}
-                className="mt-4 inline-flex rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md hover:brightness-[1.03]"
-              >
-                {t.upgrade}
-              </Link>
-            </div>
-          ) : null}
         </>
       )}
     </LeonixDashboardShell>
