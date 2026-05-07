@@ -143,37 +143,36 @@ export function ServiciosProfileView({
               </div>
             ) : null}
             
-            {/* 4. Nuestros servicios */}
+            {/* 4. Por qué elegirnos (moved after gallery) */}
             <div className="lg:order-4">
-              <ServiciosOfferedSection services={profile.services} lang={lang} profileForQuote={profile} />
-            </div>
-            
-            {/* 5. Confianza y beneficios (merged highlights + trust) */}
-            <div className="lg:order-5">
-              {hasBusinessHighlightsResolved(profile) ? (
-                <ServiciosHighlightsSection highlights={profile.highlights} lang={lang} />
-              ) : null}
               <ServiciosTrustSection profile={profile} lang={lang} />
             </div>
             
-            {/* 6. Opciones y facilidades */}
+            {/* 5. Nuestros servicios */}
+            <div className="lg:order-5">
+              <ServiciosOfferedSection services={profile.services} lang={lang} profileForQuote={profile} />
+            </div>
+            
+            {/* 6. Confianza y beneficios (merged highlights + trust) */}
+            <div className="lg:order-6">
+              {hasBusinessHighlightsResolved(profile) ? (
+                <ServiciosHighlightsSection highlights={profile.highlights} lang={lang} />
+              ) : null}
+            </div>
+            
+            {/* 7. Opciones y facilidades */}
             {hasAmenityOptionsResolved(profile) ? (
-              <div className="lg:order-6">
+              <div className="lg:order-7">
                 <ServiciosOpcionesFacilidadesCard profile={profile} lang={lang} />
               </div>
             ) : null}
             
-            {/* 7. Pagos */}
+            {/* 8. Pagos */}
             {hasPaymentMethodsResolved(profile) ? (
-              <div className="lg:order-7">
+              <div className="lg:order-8">
                 <ServiciosPagosCard profile={profile} lang={lang} />
               </div>
             ) : null}
-            
-            {/* 8. Zonas de servicio (bottom) */}
-            <div className="lg:order-8">
-              <ServiciosServiceAreas profile={profile} lang={lang} />
-            </div>
             
             {/* Lead inquiry form (if enabled) */}
             {analyticsListingSlug && showPublicConversionForms ? (
@@ -190,7 +189,7 @@ export function ServiciosProfileView({
               ) : null}
             </div>
             
-            {/* Smart trust summary (bottom) */}
+            {/* Smart trust summary (moved up, after reviews) */}
             <div className="lg:order-11">
               <ServiciosSmartTrustSummary profile={profile} lang={lang} />
             </div>
