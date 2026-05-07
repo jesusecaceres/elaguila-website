@@ -10,7 +10,8 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
 import { BienesRaicesNegocioPreviewView } from "@/app/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView";
-import { RentasPreviewCard } from "@/app/(site)/clasificados/rentas/shell/RentasPreviewCard";
+import { RentasPreviewResultCardSection } from "@/app/clasificados/rentas/preview/shared/RentasPreviewResultCardSection";
+import { buildRentasResultCardPreviewListingFromNegocioVm } from "@/app/clasificados/rentas/preview/shared/rentasPreviewResultCardListing";
 import { mapRentasNegocioStateToPreviewVm } from "@/app/clasificados/publicar/rentas/negocio/application/mapping/mapRentasNegocioStateToPreviewVm";
 import {
   clearRentasNegocioDraft,
@@ -101,23 +102,14 @@ export default function RentasNegocioPreviewClient() {
             Ir a publicar — Negocio
           </Link>
         </p>
-        <div className="space-y-8">
-          {/* New Rentas Preview Card */}
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Vista previa de la renta</h2>
-            <RentasPreviewCard 
-              data={vm} 
-              lang={lang}
-              showEngagementMetrics={true}
-            />
-          </div>
-          
-          {/* Original Detail View */}
-          <div>
-            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Vista completa del anuncio</h2>
-            <BienesRaicesNegocioPreviewView vm={vm} />
-          </div>
-        </div>
+        <RentasPreviewResultCardSection
+          listing={buildRentasResultCardPreviewListingFromNegocioVm(vm, shell.categoriaPropiedad)}
+          lang={lang}
+        />
+        <section className="mx-auto w-full max-w-[1240px] px-4 pt-6 sm:px-6 lg:px-8">
+          <h2 className="text-lg font-semibold text-[#1A1A1A]">Vista previa completa</h2>
+        </section>
+        <BienesRaicesNegocioPreviewView vm={vm} />
       </LeonixPreviewPageShell>
     );
   }
@@ -147,23 +139,14 @@ export default function RentasNegocioPreviewClient() {
         </div>
       }
     >
-      <div className="space-y-8">
-          {/* New Rentas Preview Card */}
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Vista previa de la renta</h2>
-            <RentasPreviewCard 
-              data={vm} 
-              lang={lang}
-              showEngagementMetrics={true}
-            />
-          </div>
-          
-          {/* Original Detail View */}
-          <div>
-            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Vista completa del anuncio</h2>
-            <BienesRaicesNegocioPreviewView vm={vm} />
-          </div>
-        </div>
+      <RentasPreviewResultCardSection
+        listing={buildRentasResultCardPreviewListingFromNegocioVm(vm, draft.categoriaPropiedad)}
+        lang={lang}
+      />
+      <section className="mx-auto w-full max-w-[1240px] px-4 pt-6 sm:px-6 lg:px-8">
+        <h2 className="text-lg font-semibold text-[#1A1A1A]">Vista previa completa</h2>
+      </section>
+      <BienesRaicesNegocioPreviewView vm={vm} />
     </LeonixPreviewPageShell>
   );
 }

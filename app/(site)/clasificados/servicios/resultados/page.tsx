@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ServiciosListingResultCard } from "../ServiciosListingResultCard";
+import { ServiciosHorizontalResultCard } from "../components/ServiciosHorizontalResultCard";
 import { ServiciosResultsActiveSummary } from "../ServiciosResultsActiveSummary";
 import { ServiciosResultsFilters } from "../ServiciosResultsFilters";
 import {
@@ -150,7 +150,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
             </h1>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#4a5d6e]">
               {lang === "en"
-                ? "Same search power as the home page — refine by area, trade, trust signals, and how providers want to be reached."
+                ? "Same search power as home page — refine by area, trade, trust signals, and how providers want to be reached."
                 : "La misma lógica que en inicio: afinar por zona, giro, señales de confianza y formas de contacto publicadas."}
             </p>
           </div>
@@ -200,7 +200,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
             {displayRows.length > 0 && displayRows.length < 4 && hasActiveFilters ? (
               <p className="mb-4 rounded-xl border border-[#dfe6ef] bg-white/90 px-4 py-3 text-[13px] leading-relaxed text-[#4a5d6e]">
                 {lang === "en"
-                  ? "Few matches — try clearing one filter, removing keywords, or browsing all services from the landing page."
+                  ? "Few matches — try clearing one filter, removing keywords, or browsing all services from landing page."
                   : "Pocos resultados: prueba quitar un filtro, acortar palabras clave o volver al inicio para explorar todo."}
               </p>
             ) : null}
@@ -250,42 +250,40 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                   ) : null}
                 </div>
               </div>
-            ) : (
-              <div className="space-y-10">
+            ) : null}
+
+            {promotedRows.length > 0 ? (
+              <section aria-labelledby="servicios-res-destacados">
+                <h2
+                  id="servicios-res-destacados"
+                  className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em] text-[#7a6220]"
+                >
+                  {lang === "en" ? "Featured on Leonix" : "Destacados en Leonix"}
+                </h2>
+                <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-2 xl:grid-cols-3">
+                  {promotedRows.map((r) => (
+                    <ServiciosHorizontalResultCard key={r.slug} row={r} lang={lang} />
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+            {standardRows.length > 0 ? (
+              <section aria-labelledby="servicios-res-mas">
                 {promotedRows.length > 0 ? (
-                  <section aria-labelledby="servicios-res-destacados">
-                    <h2
-                      id="servicios-res-destacados"
-                      className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em] text-[#7a6220]"
-                    >
-                      {lang === "en" ? "Featured on Leonix" : "Destacados en Leonix"}
-                    </h2>
-                    <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-2 xl:grid-cols-3">
-                      {promotedRows.map((r) => (
-                        <ServiciosListingResultCard key={r.slug} row={r} lang={lang} />
-                      ))}
-                    </ul>
-                  </section>
+                  <h2
+                    id="servicios-res-mas"
+                    className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em] text-[#3d5a73]/90"
+                  >
+                    {lang === "en" ? "More showcases" : "Más vitrinas"}
+                  </h2>
                 ) : null}
-                {standardRows.length > 0 ? (
-                  <section aria-labelledby="servicios-res-mas">
-                    {promotedRows.length > 0 ? (
-                      <h2
-                        id="servicios-res-mas"
-                        className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em] text-[#3d5a73]/90"
-                      >
-                        {lang === "en" ? "More showcases" : "Más vitrinas"}
-                      </h2>
-                    ) : null}
-                    <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-2 xl:grid-cols-3">
-                      {standardRows.map((r) => (
-                        <ServiciosListingResultCard key={r.slug} row={r} lang={lang} />
-                      ))}
-                    </ul>
-                  </section>
-                ) : null}
-              </div>
-            )}
+                <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-2 xl:grid-cols-3">
+                  {standardRows.map((r) => (
+                    <ServiciosHorizontalResultCard key={r.slug} row={r} lang={lang} />
+                  ))}
+                </ul>
+              </section>
+            ) : null}
           </div>
         </div>
 
@@ -293,9 +291,9 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
           href="#servicios-resultados-filtros"
           className="fixed bottom-5 left-1/2 z-40 flex min-h-[48px] -translate-x-1/2 items-center gap-2 rounded-full border border-[#1a3352]/12 bg-[#FFFCF7]/95 px-6 text-sm font-bold text-[#142a42] shadow-[0_14px_44px_-12px_rgba(20,38,58,0.45)] backdrop-blur-md transition hover:bg-white lg:hidden"
         >
-          {lang === "en" ? "Refine search" : "Refinar búsqueda"}
-          <span aria-hidden className="text-[#3B66AD]">
-            ↑
+          {lang === "en" ? "Filters" : "Filtros"}
+          <span className="ml-2" aria-hidden>
+            ↓
           </span>
         </a>
       </div>

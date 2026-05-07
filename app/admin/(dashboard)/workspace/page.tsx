@@ -19,80 +19,106 @@ const labels = {
     pageSubtitle: "Admin workspace for managing website content. Not a Wix-style drag/drop builder yet.",
     eyebrow: "Workspace",
     backToAdmin: "← Back to admin",
-    smokeTestTitle: "Website editing smoke test",
-    smokeTestExplanation: "This is not a Wix-style drag/drop builder yet. TRUE means editable from admin today. PARTIAL means some content is editable but template/layout may still live in code.",
+    canIEditWholeWebsite: "Can I edit the whole website from here?",
+    canIEditExplanation: "This admin is currently a structured CMS, not a Wix-style drag/drop builder. Fully editable means admin has a real save workflow for that area. Partly editable means some content can be changed, but layout or new sections still need code. Not built yet means there is no complete admin editor for that area. Locked on purpose means that area is intentionally not editable from admin.",
+    smokeTestTitle: "Website editing status",
+    smokeTestExplanation: "This shows what you can edit today and what still needs development work.",
     area: "Area",
     purpose: "Purpose",
     adminRoutePattern: "Admin route / pattern",
     status: "Status",
-    notes: "Notes",
+    notes: "Developer notes",
     action: "Action",
     open: "Open →",
     whatThisControls: "What this controls",
     whatYouCanEditToday: "What you can edit today",
-    whatStillRequiresCode: "What still requires code",
+    whatStillRequiresCode: "Still requires code",
     primaryAdminAction: "Primary admin action",
     publicPreview: "Public preview",
-    addNewLineBlock: "Add new line/block?",
-    useExistingFields: "Use existing fields. New block types require a new schema field or block editor.",
-    useRepeatableItems: "Use the repeatable items list to add/reorder/remove content.",
+    addNewLineBlock: "Add new content?",
+    useExistingFields: "Use existing fields. New content types need development.",
+    useRepeatableItems: "Use the items list to add/reorder/remove content.",
     notEditableYet: "Not editable from admin yet. Requires development.",
     howAddingContentWorks: "How adding content works here",
-    contentExplanation: "This admin is currently structured CMS, not freeform drag/drop. Existing fields can be edited immediately. New lines/sections require either: 1) a field added to existing editor, 2) a repeatable block list, or 3) a future page-builder/block-builder module.",
-    recommendedNextBuild: "Recommended next build: \"Reusable page block editor.\"",
-    modulesCrossingPages: "Modules that cross multiple pages",
-    modulesExplanation: "Switches or lists that affect more than one route live in global settings. For support and traceability between account, ad and Tienda order, use the unified Customer ops search.",
+    contentExplanation: "This admin is currently structured CMS, not freeform drag/drop. Existing fields can be edited immediately. New content requires either: 1) a field added to existing editor, 2) a repeatable content list, or 3) a future page-builder/block-builder module.",
+    recommendedNextBuild: "Recommended next build: reusable page block editor",
+    blockEditorExplanation: "This would let you add/reorder/remove controlled content blocks like text sections, image sections, CTA buttons, card groups, and announcement strips.",
+    planBlockEditor: "Plan block editor",
+    modulesCrossingPages: "Modules that affect multiple pages",
+    modulesExplanation: "Settings that affect more than one page live in global settings. For customer support and tracking between accounts, ads, and Tienda orders, use the unified Customer ops search.",
     globalSiteSettings: "Global site settings →",
     customerOpsSearch: "Customer ops search →",
-    summaryCounts: "Summary counts",
-    needsBuild: "Needs build",
+    summaryCounts: "Summary",
+    needsBuild: "Needs work",
     fullyEditable: "Fully editable",
-    partiallyEditable: "Partially editable", 
-    missingEditor: "Missing editor",
-    honestlyDisabled: "Intentionally disabled",
+    partlyEditable: "Partly editable", 
+    notBuiltYet: "Not built yet",
+    lockedOnPurpose: "Locked on purpose",
     openWorkspace: "Open workspace →",
-    validationWarnings: "Validation warnings",
-    validationErrors: "Validation errors",
+    validationWarnings: "Status warnings",
+    validationErrors: "Status errors",
+    filterAll: "All",
+    filterFullyEditable: "Fully editable",
+    filterPartlyEditable: "Partly editable",
+    filterNotBuilt: "Not built yet",
+    filterLocked: "Locked",
+    whatHappensWhenIClick: "What happens when I click this?",
+    editingAdminContent: "You'll edit admin content that appears on the public website.",
+    previewingPublicWebsite: "You'll see how this looks on the public website.",
+    safeToChange: "Safe to change - this is the admin editor.",
   },
   es: {
     pageTitle: "Espacio de trabajo del sitio web",
     pageSubtitle: "Espacio de trabajo admin para gestionar contenido del sitio. Todavía no es un constructor de arrastrar/soltar estilo Wix.",
     eyebrow: "Workspace",
     backToAdmin: "← Volver a admin",
-    smokeTestTitle: "Prueba de humo de edición del sitio",
-    smokeTestExplanation: "Esto aún no es un constructor de arrastrar/soltar estilo Wix. VERDADERO significa editable desde admin hoy. PARCIAL significa que algo es editable pero la plantilla/diseño puede estar en código.",
+    canIEditWholeWebsite: "¿Puedo editar todo el sitio web desde aquí?",
+    canIEditExplanation: "Este admin es actualmente CMS estructurado, no arrastrar/soltar libre. Totalmente editable significa que admin tiene un flujo de guardado real para esa área. Parcialmente editable significa que algo de contenido se puede cambiar, pero el diseño o nuevas secciones aún necesitan código. No construido aún significa que no hay editor admin completo para esa área. Bloqueado a propósito significa que esa área intencionalmente no es editable desde admin.",
+    smokeTestTitle: "Estado de edición del sitio",
+    smokeTestExplanation: "Esto muestra lo que puedes editar hoy y qué aún necesita trabajo de desarrollo.",
     area: "Área",
     purpose: "Propósito",
     adminRoutePattern: "Ruta admin / patrón",
     status: "Estado",
-    notes: "Notas",
+    notes: "Notas de desarrollador",
     action: "Acción",
     open: "Abrir →",
     whatThisControls: "Qué controla esto",
     whatYouCanEditToday: "Qué puedes editar hoy",
-    whatStillRequiresCode: "Qué aún requiere código",
-    primaryAdminAction: "Acción admin primaria",
+    whatStillRequiresCode: "Aún requiere código",
+    primaryAdminAction: "Acción admin principal",
     publicPreview: "Vista previa pública",
-    addNewLineBlock: "¿Agregar nueva línea/bloque?",
-    useExistingFields: "Usa los campos existentes. Nuevos tipos de bloque requieren un nuevo campo de esquema o editor de bloques.",
-    useRepeatableItems: "Usa la lista de elementos repetibles para agregar/reordenar/eliminar contenido.",
+    addNewLineBlock: "¿Agregar nuevo contenido?",
+    useExistingFields: "Usa los campos existentes. Nuevos tipos de contenido necesitan desarrollo.",
+    useRepeatableItems: "Usa la lista de elementos para agregar/reordenar/eliminar contenido.",
     notEditableYet: "Aún no editable desde admin. Requiere desarrollo.",
     howAddingContentWorks: "Cómo funciona agregar contenido aquí",
-    contentExplanation: "Este admin es actualmente CMS estructurado, no arrastrar/soltar libre. Los campos existentes se pueden editar inmediatamente. Nuevas líneas/secciones requieren: 1) un campo agregado al editor existente, 2) una lista de bloques repetibles, o 3) un futuro módulo constructor de páginas/bloques.",
-    recommendedNextBuild: "Próxima construcción recomendada: \"Editor de bloques de página reutilizables.\"",
-    modulesCrossingPages: "Módulos que cruzan múltiples páginas",
-    modulesExplanation: "Los interruptores o listas que afectan más de una ruta viven en ajustes globales. Para soporte y trazabilidad entre cuenta, anuncio y pedido Tienda, usa la búsqueda unificada de operaciones de cliente.",
+    contentExplanation: "Este admin es actualmente CMS estructurado, no arrastrar/soltar libre. Los campos existentes se pueden editar inmediatamente. Nuevo contenido requiere: 1) un campo agregado al editor existente, 2) una lista de contenido repetible, o 3) un futuro módulo constructor de páginas/bloques.",
+    recommendedNextBuild: "Próxima construcción recomendada: editor de bloques de página reutilizables",
+    blockEditorExplanation: "Esto te permitiría agregar/reordenar/eliminar bloques de contenido controlados como secciones de texto, secciones de imagen, botones CTA, grupos de tarjetas y tiras de anuncios.",
+    planBlockEditor: "Planificar editor de bloques",
+    modulesCrossingPages: "Módulos que afectan múltiples páginas",
+    modulesExplanation: "Las configuraciones que afectan más de una página viven en ajustes globales. Para soporte al cliente y seguimiento entre cuentas, anuncios y pedidos Tienda, usa la búsqueda unificada de operaciones de cliente.",
     globalSiteSettings: "Ajustes globales del sitio →",
     customerOpsSearch: "Búsqueda de operaciones de cliente →",
-    summaryCounts: "Resumen de conteos",
-    needsBuild: "Necesita construcción",
+    summaryCounts: "Resumen",
+    needsBuild: "Necesita trabajo",
     fullyEditable: "Totalmente editable",
-    partiallyEditable: "Parcialmente editable", 
-    missingEditor: "Editor faltante",
-    honestlyDisabled: "Intencionalmente deshabilitado",
+    partlyEditable: "Parcialmente editable", 
+    notBuiltYet: "No construido aún",
+    lockedOnPurpose: "Bloqueado a propósito",
     openWorkspace: "Abrir espacio de trabajo →",
-    validationWarnings: "Advertencias de validación",
-    validationErrors: "Errores de validación",
+    validationWarnings: "Advertencias de estado",
+    validationErrors: "Errores de estado",
+    filterAll: "Todos",
+    filterFullyEditable: "Totalmente editable",
+    filterPartlyEditable: "Parcialmente editable",
+    filterNotBuilt: "No construido aún",
+    filterLocked: "Bloqueado",
+    whatHappensWhenIClick: "¿Qué pasa cuando hago clic en esto?",
+    editingAdminContent: "Editarás contenido admin que aparece en el sitio web público.",
+    previewingPublicWebsite: "Verás cómo se ve esto en el sitio web público.",
+    safeToChange: "Seguro para cambiar - este es el editor admin.",
   },
 };
 
@@ -197,11 +223,60 @@ export default async function AdminWorkspaceHubPage(props: {
   const langParam = typeof searchParams.lang === "string" && (searchParams.lang === "es" || searchParams.lang === "en") 
     ? searchParams.lang as "en" | "es" 
     : "en";
+  const filterParam = typeof searchParams.filter === "string" ? searchParams.filter : "all";
   const t = getLabels(langParam);
 
   // Get validation results
   const validation = validateWebsiteEditingMatrix();
   const summary = getWebsiteEditingSummary();
+
+  // Filter rows based on filter
+  const filteredRows = WEBSITE_EDITING_TRUTH_ROWS.filter(row => {
+    switch (filterParam) {
+      case "fully-editable":
+        return row.status === "TRUE";
+      case "partly-editable":
+        return row.status === "PARTIAL";
+      case "not-built":
+        return row.status === "MISSING";
+      case "locked":
+        return row.status === "HONESTLY_DISABLED";
+      default:
+        return true;
+    }
+  });
+
+  // Helper function to get human-readable status label
+  function getStatusLabel(status: WebsiteEditingTruthStatus): string {
+    switch (status) {
+      case "TRUE":
+        return t.fullyEditable;
+      case "PARTIAL":
+        return t.partlyEditable;
+      case "MISSING":
+        return t.notBuiltYet;
+      case "HONESTLY_DISABLED":
+        return t.lockedOnPurpose;
+      default:
+        return status;
+    }
+  }
+
+  // Helper function to get owner answer
+  function getOwnerAnswer(status: WebsiteEditingTruthStatus): string {
+    switch (status) {
+      case "TRUE":
+        return langParam === "es" ? "Sí — esta área es totalmente editable desde admin." : "Yes — this area is fully editable from admin.";
+      case "PARTIAL":
+        return langParam === "es" ? "Parcialmente — puedes editar copia/imagenes/configuración, pero nuevas secciones aún requieren código." : "Partly — you can edit copy/images/settings, but new sections still require code.";
+      case "MISSING":
+        return langParam === "es" ? "No — este editor aún necesita ser construido." : "No — this editor still needs to be built.";
+      case "HONESTLY_DISABLED":
+        return langParam === "es" ? "Bloqueado — esta área intencionalmente no es editable desde admin." : "Locked — this area is intentionally not editable from admin.";
+      default:
+        return "";
+    }
+  }
 
   return (
     <div>
@@ -241,6 +316,73 @@ export default async function AdminWorkspaceHubPage(props: {
         </div>
       </div>
 
+      {/* Filter Tabs */}
+      <div className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-lg font-bold text-[#1E1810]">Filter by status</h2>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href="/admin/workspace?lang=en"
+            className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
+              filterParam === "all" 
+                ? "bg-[#C9B46A] text-white" 
+                : "text-[#5C5346] hover:bg-[#E8DFD0]"
+            }`}
+          >
+            {t.filterAll}
+          </Link>
+          <Link
+            href="/admin/workspace?lang=en&filter=fully-editable"
+            className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
+              filterParam === "fully-editable" 
+                ? "bg-emerald-600 text-white" 
+                : "text-[#5C5346] hover:bg-[#E8DFD0]"
+            }`}
+          >
+            {t.filterFullyEditable}
+          </Link>
+          <Link
+            href="/admin/workspace?lang=en&filter=partly-editable"
+            className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
+              filterParam === "partly-editable" 
+                ? "bg-amber-600 text-white" 
+                : "text-[#5C5346] hover:bg-[#E8DFD0]"
+            }`}
+          >
+            {t.filterPartlyEditable}
+          </Link>
+          <Link
+            href="/admin/workspace?lang=en&filter=not-built"
+            className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
+              filterParam === "not-built" 
+                ? "bg-[#5C5346] text-white" 
+                : "text-[#5C5346] hover:bg-[#E8DFD0]"
+            }`}
+          >
+            {t.filterNotBuilt}
+          </Link>
+          <Link
+            href="/admin/workspace?lang=en&filter=locked"
+            className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
+              filterParam === "locked" 
+                ? "bg-[#4A4744] text-white" 
+                : "text-[#5C5346] hover:bg-[#E8DFD0]"
+            }`}
+          >
+            {t.filterLocked}
+          </Link>
+        </div>
+      </div>
+
+      {/* Owner-Friendly Explanation */}
+      <div className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-xl font-bold text-[#1E1810]">{t.canIEditWholeWebsite}</h2>
+        <div className="mt-3 rounded-lg border border-[#E8DFD0]/60 bg-[#FFFCF7] p-4">
+          <p className="text-sm leading-relaxed text-[#5C5346]">
+            {t.canIEditExplanation}
+          </p>
+        </div>
+      </div>
+
       {/* Summary Counts */}
       <div className={`${adminCardBase} mb-6 p-5`}>
         <h2 className="text-lg font-bold text-[#1E1810]">{t.summaryCounts}</h2>
@@ -251,15 +393,15 @@ export default async function AdminWorkspaceHubPage(props: {
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-amber-600">{summary.PARTIAL}</div>
-            <div className="text-xs text-[#7A7164]">{t.partiallyEditable}</div>
+            <div className="text-xs text-[#7A7164]">{t.partlyEditable}</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-[#5C5346]">{summary.MISSING}</div>
-            <div className="text-xs text-[#7A7164]">{t.missingEditor}</div>
+            <div className="text-xs text-[#7A7164]">{t.notBuiltYet}</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-[#4A4744]">{summary.HONESTLY_DISABLED}</div>
-            <div className="text-xs text-[#7A7164]">{t.honestlyDisabled}</div>
+            <div className="text-xs text-[#7A7164]">{t.lockedOnPurpose}</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-red-600">{summary.needsBuild}</div>
@@ -306,24 +448,32 @@ export default async function AdminWorkspaceHubPage(props: {
               </tr>
             </thead>
             <tbody>
-              {WEBSITE_EDITING_TRUTH_ROWS.map((row) => (
+              {filteredRows.map((row) => (
                 <tr key={row.area} className="border-b border-[#F0EBE3] align-top text-[#5C5346] last:border-b-0">
-                  <td className="p-3 font-semibold text-[#1E1810] sm:p-4">{row.area}</td>
-                  <td className="p-3 text-xs leading-relaxed sm:p-4">{row.purpose}</td>
-                  <td className="p-3 font-mono text-[11px] text-[#3D3428] sm:p-4">{row.routeLabel}</td>
+                  <td className="p-3 font-semibold text-lg text-[#1E1810] sm:p-4">{row.area}</td>
+                  <td className="p-3 text-sm leading-relaxed sm:p-4">{row.purpose}</td>
+                  <td className="p-3 font-mono text-xs text-[#3D3428] sm:p-4">{row.routeLabel}</td>
                   <td className="p-3 sm:p-4">
                     <span
-                      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 ${websiteEditingStatusClass(row.status)}`}
+                      className={`inline-flex rounded-full px-3 py-1 text-sm font-medium tracking-wide ring-1 ${websiteEditingStatusClass(row.status)}`}
                     >
-                      {row.status}
+                      {getStatusLabel(row.status)}
                     </span>
                   </td>
-                  <td className="p-3 text-xs leading-relaxed text-[#5C5346] sm:p-4">{row.notes}</td>
+                  <td className="p-3 text-xs leading-relaxed text-[#5C5346] sm:p-4">
+                    <div className="font-medium text-[#1E1810] mb-1">{getOwnerAnswer(row.status)}</div>
+                    <div className="text-xs text-[#7A7164]">{t.notes}: {row.notes}</div>
+                  </td>
                   <td className="p-3 sm:p-4">
                     {row.ctaHref ? (
-                      <Link href={row.ctaHref} className="text-xs font-bold text-[#6B5B2E] underline">
-                        {row.ctaLabel ?? t.open}
-                      </Link>
+                      <div>
+                        <Link href={row.ctaHref} className="text-xs font-bold text-[#6B5B2E] underline mb-1 block">
+                          {row.ctaLabel ?? t.open}
+                        </Link>
+                        <div className="text-xs text-[#7A7164]">{t.whatHappensWhenIClick}</div>
+                        <div className="text-xs text-[#7A7164]">{t.editingAdminContent}</div>
+                        <div className="text-xs text-[#7A7164]">{t.safeToChange}</div>
+                      </div>
                     ) : (
                       <span className="text-xs text-[#9A9084]">—</span>
                     )}
@@ -342,9 +492,13 @@ export default async function AdminWorkspaceHubPage(props: {
           For each editing area, you can see exactly what's editable today and what still requires development work.
         </p>
         <div className="mt-4 space-y-6">
-          {WEBSITE_EDITING_TRUTH_ROWS.map((row) => (
+          {filteredRows.map((row) => (
             <div key={row.area} className="border border-[#E8DFD0]/60 rounded-xl p-4 bg-white/80">
-              <h3 className="font-semibold text-[#1E1810] mb-2">{row.area}</h3>
+              <h3 className="text-lg font-semibold text-[#1E1810] mb-2">{row.area}</h3>
+              
+              <div className="mb-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <p className="text-sm font-medium text-emerald-900">{getOwnerAnswer(row.status)}</p>
+              </div>
               
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
@@ -397,6 +551,36 @@ export default async function AdminWorkspaceHubPage(props: {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Recommended Next Build */}
+      <div className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-xl font-bold text-[#1E1810]">{t.recommendedNextBuild}</h2>
+        <div className="mt-3 rounded-lg border border-[#E8DFD0]/60 bg-[#FFFCF7] p-4">
+          <p className="text-sm leading-relaxed text-[#5C5346] mb-3">
+            {t.blockEditorExplanation}
+          </p>
+          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+            <p className="text-sm font-medium text-emerald-900 mb-2">
+              This would let you add/reorder/remove:
+            </p>
+            <ul className="text-sm text-emerald-800 space-y-1 ml-4">
+              <li>• Text sections</li>
+              <li>• Image sections</li>
+              <li>• CTA buttons</li>
+              <li>• Card groups</li>
+              <li>• Announcement strips</li>
+            </ul>
+          </div>
+          <div className="mt-4">
+            <Link
+              href="/admin/workspace?focus=block-editor"
+              className={`${adminCtaChip} text-sm`}
+            >
+              {t.planBlockEditor}
+            </Link>
+          </div>
         </div>
       </div>
 

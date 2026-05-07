@@ -11,6 +11,8 @@ import {
 import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
 import { BienesRaicesPrivadoPreviewView } from "@/app/clasificados/bienes-raices/preview/privado/BienesRaicesPrivadoPreviewView";
 import { buildRentasPrivadoTemplateVm } from "../model/buildRentasPrivadoTemplateVm";
+import { RentasPreviewResultCardSection } from "@/app/clasificados/rentas/preview/shared/RentasPreviewResultCardSection";
+import { buildRentasResultCardPreviewListingFromPrivadoVm } from "@/app/clasificados/rentas/preview/shared/rentasPreviewResultCardListing";
 import { mapRentasPrivadoStateToPreviewVm } from "@/app/clasificados/publicar/rentas/privado/application/mapping/mapRentasPrivadoStateToPreviewVm";
 import {
   clearRentasPrivadoDraft,
@@ -93,6 +95,13 @@ export default function RentasPrivadoPreviewClient() {
             Ir a publicar — Privado
           </Link>
         </p>
+        <RentasPreviewResultCardSection
+          listing={buildRentasResultCardPreviewListingFromPrivadoVm(templateVm)}
+          lang={lang}
+        />
+        <section className="mx-auto w-full max-w-[1240px] px-4 pt-6 sm:px-6 lg:px-8">
+          <h2 className="text-lg font-semibold text-[#1A1A1A]">Vista previa completa</h2>
+        </section>
         <BienesRaicesPrivadoPreviewView vm={templateVm} />
       </LeonixPreviewPageShell>
     );
@@ -124,6 +133,13 @@ export default function RentasPrivadoPreviewClient() {
         </div>
       }
     >
+      <RentasPreviewResultCardSection
+        listing={buildRentasResultCardPreviewListingFromPrivadoVm(vm)}
+        lang={lang}
+      />
+      <section className="mx-auto w-full max-w-[1240px] px-4 pt-6 sm:px-6 lg:px-8">
+        <h2 className="text-lg font-semibold text-[#1A1A1A]">Vista previa completa</h2>
+      </section>
       <BienesRaicesPrivadoPreviewView vm={vm} />
     </LeonixPreviewPageShell>
   );
