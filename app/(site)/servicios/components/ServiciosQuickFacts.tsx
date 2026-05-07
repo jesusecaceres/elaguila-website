@@ -66,7 +66,7 @@ export function ServiciosQuickFacts({
       aria-label={lang === "en" ? "Trust signals" : "Señales de confianza"}
     >
       <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#3B66AD]/90">
-        {lang === "en" ? "Trust & fit" : "Confianza y encaje"}
+        {lang === "en" ? "What sets us apart" : "Lo que nos distingue"}
       </p>
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {facts.map((f) => {

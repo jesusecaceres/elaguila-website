@@ -128,12 +128,6 @@ export function ServiciosProfileView({
             {hasAboutSectionResolved(profile) ? (
               <div className="lg:order-1">
                 <ServiciosAbout profile={profile} lang={lang} />
-                {/* Trust & fit chips from quick facts */}
-                {hasQuickFactsResolved(profile) ? (
-                  <div className="mt-4">
-                    <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} compact={true} />
-                  </div>
-                ) : null}
               </div>
             ) : null}
             
