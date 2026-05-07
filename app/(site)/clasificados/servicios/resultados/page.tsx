@@ -263,11 +263,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                 <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-4 sm:gap-5">
                   {promotedRows.map((r) => (
                     <li key={r.slug} className="min-w-0">
-                      <ServiciosHorizontalResultCard
-                        row={r}
-                        lang={lang}
-                        persistListingEngagement={Boolean((r.leonix_ad_id || "").trim())}
-                      />
+                      <ServiciosHorizontalResultCard row={r} lang={lang} />
                     </li>
                   ))}
                 </ul>
@@ -286,11 +282,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                 <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-4 sm:gap-5">
                   {standardRows.map((r) => (
                     <li key={r.slug} className="min-w-0">
-                      <ServiciosHorizontalResultCard
-                        row={r}
-                        lang={lang}
-                        persistListingEngagement={Boolean((r.leonix_ad_id || "").trim())}
-                      />
+                      <ServiciosHorizontalResultCard row={r} lang={lang} />
                     </li>
                   ))}
                 </ul>

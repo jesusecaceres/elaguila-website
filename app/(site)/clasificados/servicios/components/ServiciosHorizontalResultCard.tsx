@@ -5,54 +5,48 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { FiGlobe, FiMapPin, FiPhone, FiMessageCircle } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
-import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
-import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
-import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import type { ServiciosPublicListingRow } from "../lib/serviciosPublicListingsServer";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import { getServiciosProfileLabels } from "@/app/servicios/copy/serviciosProfileCopy";
+import { serviciosImageUnoptimized } from "@/app/servicios/lib/serviciosMediaUrl";
 import { isServiciosListingPromoted } from "../lib/serviciosResultsFilter";
 
-const PREVIEW_CARD =
-  "overflow-hidden rounded-[28px] border border-[#E8D7B8] bg-[#FFFDF7] shadow-[0_18px_70px_-30px_rgba(47,42,35,0.25)] transition-shadow duration-300 hover:shadow-[0_22px_90px_-36px_rgba(47,42,35,0.32)]";
+/** Marketplace result row — low profile, warm Phase 9D palette (not tall preview canvas). */
+const CARD =
+  "overflow-hidden rounded-2xl border border-[#E4D4BC] bg-[#FFFDF9] shadow-sm transition-shadow duration-200 hover:shadow-md";
 
-/** Landscape results card: wide overall, left media ~40%, right content ~60%, media height capped by aspect (not stretched to content). */
+/** Desktop: fixed-height media band so the row reads as a horizontal listing, not a tall card. */
 const GRID =
-  "grid min-w-0 grid-cols-1 gap-0 md:grid-cols-[minmax(0,42%)_minmax(0,58%)] md:items-start";
-const MEDIA = "min-w-0 bg-[#FCF9F2] p-3 md:p-5 md:pr-3";
+  "grid min-w-0 grid-cols-1 md:grid-cols-[minmax(0,34%)_minmax(0,1fr)] md:items-stretch md:gap-0";
+
+const MEDIA_CELL = "min-w-0 bg-[#F6F0E8] p-2.5 md:p-0 md:pl-2.5 md:pt-2.5 md:pb-2.5";
 const MEDIA_FRAME =
-  "relative aspect-[16/9] w-full overflow-hidden rounded-[22px] bg-[#E8D7B8] md:aspect-[16/10]";
+  "relative h-[min(200px,48vw)] w-full min-h-[140px] overflow-hidden rounded-xl border border-[#E4D4BC]/80 bg-[#EDE4D8] md:h-[168px] md:min-h-[168px] md:rounded-l-xl md:rounded-r-none";
 
-const CONTENT = "flex min-w-0 flex-col gap-2.5 px-4 pb-4 pt-3 md:gap-4 md:px-7 md:pb-7 md:pt-6";
+const CONTENT =
+  "flex min-w-0 flex-col gap-2.5 px-3 pb-3 pt-2.5 md:gap-3 md:px-5 md:pb-4 md:pt-3.5 md:pr-4";
 
-const TITLE =
-  "text-[22px] font-bold leading-[1.12] tracking-tight text-[#2F2A23] sm:text-[24px] md:text-[32px] lg:text-[34px]";
-const CHIP_ROW = "flex flex-wrap gap-2";
+const TITLE = "text-lg font-bold leading-snug tracking-tight text-[#2A2620] md:text-xl";
+const SUBTITLE = "text-[13px] font-semibold leading-snug text-[#5c5147]";
+const BODY = "text-[13px] leading-relaxed text-[#6F6254]";
+
 const CHIP =
-  "inline-flex items-center rounded-full border border-[#E8D7B8] bg-white/70 px-3 py-1.5 text-[12px] font-semibold text-[#2F2A23] shadow-sm";
+  "inline-flex h-7 max-w-full items-center rounded-full border border-[#E0D0B8] bg-[#FFFCF7] px-2.5 text-[12px] font-semibold leading-none text-[#2A2620]";
 
-const META_ROW = "flex flex-wrap items-center gap-2.5 text-[13px] font-semibold text-[#6F6254]";
 const META_PILL =
-  "inline-flex items-center gap-2 rounded-full border border-[#E8D7B8] bg-[#FCF9F2] px-3 py-1.5 shadow-sm";
+  "inline-flex h-7 max-w-full items-center gap-1.5 rounded-full border border-[#E0D0B8] bg-[#F9F4EC] px-2.5 text-[12px] font-semibold leading-none text-[#5c5147]";
 
-const STATUS_OPEN = "bg-[#6F7A3A]/20 text-[#6F7A3A] border-[#6F7A3A]/80";
-const STATUS_CLOSED = "bg-[#B86A32]/20 text-[#B86A32] border-[#B86A32]/80";
+const STATUS_OPEN = "border-[#6F7A3A]/50 bg-[#6F7A3A]/12 text-[#4d5630]";
+const STATUS_CLOSED = "border-[#B86A32]/45 bg-[#B86A32]/12 text-[#6b3f18]";
 
 const ADDRESS_LINK =
-  "group inline-flex min-h-[44px] w-full items-center gap-2 rounded-2xl border border-[#E8D7B8] bg-[#FCF9F2] px-4 py-3 text-sm font-semibold text-[#2F2A23] shadow-sm transition hover:bg-[#D4AF37]/[0.08] hover:border-[#D4AF37] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]/40";
+  "group inline-flex min-h-[40px] w-full items-center gap-2 rounded-xl border border-[#E0D0B8] bg-[#F9F4EC] px-3 py-2 text-[13px] font-semibold text-[#2A2620] transition hover:border-[#C9A84A] hover:bg-[#FFF9EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/40";
 
-const SUMMARY = "text-xs leading-snug text-[#6F6254] md:text-sm md:leading-relaxed";
-
-const FEATURE_ROW = "flex flex-wrap gap-2";
-const FEATURE_CHIP =
-  "inline-flex items-center rounded-full border border-[#E8D7B8] bg-[#FCF9F2] px-3 py-1.5 text-[12px] font-semibold text-[#2F2A23]";
-
-const CTA_ROW = "flex flex-wrap items-stretch gap-2.5 pt-1 md:items-center";
-const CTA_BTN_BASE =
-  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-bold shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]/40";
-const CTA_SECONDARY = "border-[#E8D7B8] bg-white text-[#2F2A23] hover:bg-[#FCF9F2] hover:border-[#D4AF37]";
-
-const ENGAGEMENT_SECTION = "mt-1 border-t border-[#E8D7B8]/50 pt-5";
+const CTA_ROW = "mt-auto flex flex-wrap gap-2 pt-0.5";
+const CTA_PRIMARY =
+  "inline-flex min-h-[40px] w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#6F7A3A] to-[#5a6a2f] px-4 text-[13px] font-bold text-[#FFFCF7] shadow-sm transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/50";
+const CTA_SECONDARY =
+  "inline-flex min-h-[40px] flex-1 min-w-[9rem] items-center justify-center gap-2 rounded-xl border border-[#E0D0B8] bg-white px-3 text-[13px] font-bold text-[#2A2620] shadow-sm transition hover:border-[#C9A84A] hover:bg-[#FFFCF7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/40 sm:flex-none";
 
 function cleanOtherLabel(raw: string): string {
   const t = String(raw ?? "").trim();
@@ -71,16 +65,21 @@ function mapsSearchHref(query: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
-function StarRow({ rating }: { rating: number }) {
+function StarRow({ rating, lang }: { rating: number; lang: "es" | "en" }) {
+  const aria = lang === "en" ? `${rating.toFixed(1)} out of 5 stars` : `${rating.toFixed(1)} de 5 estrellas`;
   return (
-    <div className="flex items-center gap-0.5" role="img" aria-label={`${rating.toFixed(1)} de 5 estrellas`}>
+    <div className="flex items-center gap-0.5" role="img" aria-label={aria}>
       {Array.from({ length: 5 }, (_, i) => {
         const v = rating - i;
         const pct = Math.round(Math.min(1, Math.max(0, v)) * 100);
         return (
-          <span key={i} className="relative h-4 w-[1.05em] text-[15px] leading-none">
-            <span className="absolute text-white/35" aria-hidden>★</span>
-            <span className="absolute overflow-hidden text-[#D4AF37]" style={{ width: `${pct}%` }} aria-hidden>★</span>
+          <span key={i} className="relative h-3.5 w-[0.95em] text-[13px] leading-none">
+            <span className="absolute text-[#d4cfc4]" aria-hidden>
+              ★
+            </span>
+            <span className="absolute overflow-hidden text-[#C9A84A]" style={{ width: `${pct}%` }} aria-hidden>
+              ★
+            </span>
           </span>
         );
       })}
@@ -88,45 +87,31 @@ function StarRow({ rating }: { rating: number }) {
   );
 }
 
-interface ServiciosHorizontalResultCardProps {
+export interface ServiciosHorizontalResultCardProps {
   row: ServiciosPublicListingRow;
   lang: "es" | "en";
-  showEngagementMetrics?: boolean;
-  listingId?: string;
-  analyticsOwnerUserId?: string | null;
-  shareListingAbsoluteUrl?: string;
   publicDetailHref?: string;
   publicDetailLabel?: string;
   discoveryRefineHref?: string;
   discoveryRefineLabel?: string;
-  resultsSaved?: boolean;
-  onResultsSavedToggle?: () => void;
-  persistListingEngagement?: boolean;
 }
 
 /**
- * Servicios horizontal result card modeled after Restaurants pattern
- * Uses Phase 9D lion-habitat visual system
+ * Servicios discovery result card — horizontal marketplace row (not vitrina canvas).
+ * Engagement (like/save/share) belongs on the open profile only, not here.
  */
 export function ServiciosHorizontalResultCard({
   row,
   lang,
-  showEngagementMetrics = true,
-  listingId,
-  analyticsOwnerUserId,
-  shareListingAbsoluteUrl,
   publicDetailHref,
   publicDetailLabel,
   discoveryRefineHref,
   discoveryRefineLabel,
-  resultsSaved,
-  onResultsSavedToggle,
-  persistListingEngagement = true,
 }: ServiciosHorizontalResultCardProps) {
   const L = getServiciosProfileLabels(lang);
   const wire = { ...row.profile_json };
   wire.identity = { ...wire.identity, leonixVerified: row.leonix_verified === true };
-  
+
   if ((row.review_rating_count ?? 0) > 0 && typeof row.review_rating_avg === "number" && Number.isFinite(row.review_rating_avg)) {
     wire.hero = {
       ...wire.hero,
@@ -134,24 +119,46 @@ export function ServiciosHorizontalResultCard({
       reviewCount: row.review_rating_count ?? undefined,
     };
   }
-  
-  const profile = resolveServiciosProfile(wire, lang);
-  const shareUrl = (shareListingAbsoluteUrl ?? "").trim();
 
-  const identityChips = useMemo(() => {
-    const chips: string[] = [];
-    if (profile.hero.categoryLine?.trim()) {
-      const cleaned = cleanOtherLabel(profile.hero.categoryLine);
-      if (cleaned) chips.push(cleaned);
+  const profile = resolveServiciosProfile(wire, lang);
+
+  const logoUrl = (profile.hero.logoUrl || "").trim();
+  const logoAlt = (profile.hero.logoAlt || "").trim() || profile.identity.businessName;
+
+  const mediaUrl =
+    (profile.hero.coverImageUrl || "").trim() ||
+    (profile.gallery[0]?.url || "").trim() ||
+    logoUrl ||
+    "";
+  const mediaAlt =
+    (profile.hero.coverImageAlt || "").trim() ||
+    (profile.gallery[0]?.alt || "").trim() ||
+    logoAlt ||
+    profile.identity.businessName;
+
+  const mediaIsLogoOnly = Boolean(logoUrl && mediaUrl === logoUrl);
+
+  const categoryChip = useMemo(() => {
+    const raw = (profile.hero.categoryLine || "").trim();
+    return cleanOtherLabel(raw);
+  }, [profile.hero.categoryLine]);
+
+  const slogan = (profile.about?.specialtiesLine || "").trim();
+
+  const trustChips = useMemo(() => {
+    const out: string[] = [];
+    const seen = new Set<string>();
+    const cat = categoryChip.toLowerCase();
+    for (const qf of profile.quickFacts ?? []) {
+      const v = cleanOtherLabel(qf.label);
+      if (!v || seen.has(v)) continue;
+      if (cat && v.toLowerCase() === cat) continue;
+      seen.add(v);
+      out.push(v);
+      if (out.length >= 2) break;
     }
-    if (profile.quickFacts?.length) {
-      for (const qf of profile.quickFacts.slice(0, 3)) {
-        const cleaned = cleanOtherLabel(qf.label);
-        if (cleaned) chips.push(cleaned);
-      }
-    }
-    return Array.from(new Set(chips)).slice(0, 20);
-  }, [profile.hero.categoryLine, profile.quickFacts]);
+    return out;
+  }, [profile.quickFacts, categoryChip]);
 
   const quick = useMemo(() => {
     const byKey = new Map<string, string>();
@@ -159,10 +166,7 @@ export function ServiciosHorizontalResultCard({
       const v = cleanOtherLabel(item.label);
       if (v) byKey.set(item.kind, v);
     }
-    return {
-      serviceArea: byKey.get("service_area") || "",
-      responseTime: byKey.get("response_time") || "",
-    };
+    return { serviceArea: byKey.get("service_area") || "" };
   }, [profile.quickFacts]);
 
   const locationLine = useMemo(() => {
@@ -171,36 +175,33 @@ export function ServiciosHorizontalResultCard({
     return (row.city || "").trim();
   }, [profile.hero.locationSummary, row.city]);
 
-  const features = useMemo(() => {
-    const serviceChips: string[] = [];
+  const serviceChips = useMemo(() => {
+    const out: string[] = [];
+    const seen = new Set<string>();
     if (quick.serviceArea) {
       for (const raw of quick.serviceArea.split(" · ")) {
-        const cleaned = cleanOtherLabel(raw);
-        if (cleaned) serviceChips.push(cleaned);
+        const c = cleanOtherLabel(raw);
+        if (c && !seen.has(c)) {
+          seen.add(c);
+          out.push(c);
+        }
       }
     }
-    for (const s of profile.services.slice(0, 6)) {
-      const cleaned = cleanOtherLabel(s.title);
-      if (cleaned) serviceChips.push(cleaned);
+    for (const s of profile.services) {
+      const c = cleanOtherLabel(s.title);
+      if (c && !seen.has(c)) {
+        seen.add(c);
+        out.push(c);
+      }
+      if (out.length >= 4) break;
     }
-    return Array.from(new Set(serviceChips));
+    return out;
   }, [quick.serviceArea, profile.services]);
 
   const addressQuery = (profile.contact?.physicalAddressDisplay || "").trim();
   const mapsHref = ((profile.contact?.mapsSearchHref || "").trim() || (addressQuery ? mapsSearchHref(addressQuery) : "")).trim();
 
   const summary = (profile.about?.text || "").trim();
-
-  const mediaUrl =
-    (profile.hero.coverImageUrl || "").trim() ||
-    (profile.gallery[0]?.url || "").trim() ||
-    (profile.hero.logoUrl || "").trim() ||
-    "";
-  const mediaAlt =
-    (profile.hero.coverImageAlt || "").trim() ||
-    (profile.gallery[0]?.alt || "").trim() ||
-    (profile.hero.logoAlt || "").trim() ||
-    profile.identity.businessName;
 
   type ContactAction = { key: string; href: string; label: string };
 
@@ -229,12 +230,8 @@ export function ServiciosHorizontalResultCard({
   }, [L, profile.contact, mapsHref, addressQuery]);
 
   const vitrinaHref = (publicDetailHref || "").trim() || `/clasificados/servicios/${encodeURIComponent(row.slug)}?lang=${lang}`;
-  const vitrinaLabel =
-    (publicDetailLabel || "").trim() ||
-    (lang === "en" ? "View showcase" : "Ver vitrina");
+  const vitrinaLabel = (publicDetailLabel || "").trim() || (lang === "en" ? "View showcase" : "Ver vitrina");
 
-  const effectiveListingId = (listingId || "").trim() || (row.leonix_ad_id || "").trim() || row.slug;
-  const effectiveOwnerUserId = (analyticsOwnerUserId || "").trim() || (row.owner_user_id || "").trim() || undefined;
   const promoted = isServiciosListingPromoted(row);
 
   const ratingValue =
@@ -242,31 +239,36 @@ export function ServiciosHorizontalResultCard({
   const reviewCount =
     typeof profile.hero.reviewCount === "number" && profile.hero.reviewCount > 0 ? profile.hero.reviewCount : undefined;
 
+  const hoursLine = profile.contact?.hours?.todayHoursLine?.trim() || "";
+  const openLbl = profile.contact?.hours?.openNowLabel?.trim() || "";
+  const hoursClosed =
+    openLbl.toLowerCase().includes("cerrado") || openLbl.toLowerCase().includes("closed");
+  const hoursPillText =
+    openLbl && hoursLine ? `${openLbl} · ${hoursLine}` : openLbl || hoursLine || (lang === "en" ? "Hours" : "Horario");
+
+  const showLogoOverlay = Boolean(logoUrl && mediaUrl && !mediaIsLogoOnly);
+
   return (
-    <div className={`${PREVIEW_CARD} w-full min-w-0`}>
+    <article className={`${CARD} w-full min-w-0`}>
       <div className={GRID}>
-        <div className={MEDIA}>
+        <div className={MEDIA_CELL}>
           <div className={MEDIA_FRAME}>
             {mediaUrl ? (
               <Image
                 src={mediaUrl}
                 alt={mediaAlt}
                 fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 42vw, 520px"
+                className={mediaIsLogoOnly ? "object-contain p-6" : "object-cover"}
+                sizes="(max-width: 768px) 100vw, 34vw"
                 priority={false}
+                unoptimized={serviciosImageUnoptimized(mediaUrl)}
               />
             ) : (
-              <div className="flex h-full min-h-[140px] w-full items-center justify-center">
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FCF9F2] border border-[#E8D7B8] shadow-sm">
-                    <FiMapPin className="h-6 w-6 text-[#6F7A3A]" aria-hidden />
-                  </div>
-                  <p className="text-xs font-semibold text-[#6F6254]">{lang === "en" ? "No image yet" : "Sin imagen"}</p>
-                </div>
+              <div className="flex h-full w-full items-center justify-center">
+                <FiMapPin className="h-8 w-8 text-[#9A8F82]" aria-hidden />
               </div>
             )}
-            <div className="absolute left-2 top-2 z-[2] flex max-w-[calc(100%-1rem)] flex-wrap gap-1">
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-[2] flex flex-wrap gap-1 p-2">
               {promoted ? (
                 <span className="rounded-full border border-white/70 bg-gradient-to-r from-[#D4AF37] to-[#9A7329] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
                   {L.featured}
@@ -278,175 +280,107 @@ export function ServiciosHorizontalResultCard({
                 </span>
               ) : null}
             </div>
-            <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent md:hidden"
-              aria-hidden
-            />
-            <div className="absolute inset-x-0 bottom-0 z-[1] flex items-end justify-between gap-2 px-2 pb-2 pt-8 md:hidden">
-              {profile.contact?.hours?.openNowLabel ? (
-                <div className="min-w-0 max-w-[58%] rounded-md border border-white/25 bg-black/45 px-2 py-1 text-[10px] font-semibold leading-tight text-white shadow-sm backdrop-blur-sm">
-                  <span className="block truncate">{profile.contact.hours.openNowLabel}</span>
-                </div>
-              ) : (
-                <span className="min-w-0 max-w-[58%]" aria-hidden />
-              )}
-              <span
-                className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-semibold shadow-sm backdrop-blur-sm ${
-                  profile.contact?.hours?.openNowLabel?.toLowerCase().includes('cerrado')
-                    ? STATUS_CLOSED
-                    : STATUS_OPEN
-                }`}
-              >
-                <span className="h-2 w-2 rounded-full bg-current opacity-70" aria-hidden />
-                <span className="line-clamp-2 text-left leading-snug">
-                  {profile.contact?.hours?.todayHoursLine?.trim() || (lang === "en" ? "Hours" : "Horario")}
-                </span>
-              </span>
-            </div>
+            {showLogoOverlay ? (
+              <div className="absolute bottom-2 left-2 z-[3] rounded-lg border border-white/80 bg-white/95 p-1 shadow-md">
+                <Image
+                  src={logoUrl}
+                  alt={logoAlt}
+                  width={44}
+                  height={44}
+                  className="h-11 w-11 rounded-md object-contain"
+                  unoptimized={serviciosImageUnoptimized(logoUrl)}
+                />
+              </div>
+            ) : null}
           </div>
         </div>
 
         <div className={CONTENT}>
-          <div className="min-w-0 space-y-1.5 md:space-y-3">
-            {ratingValue != null && ratingValue > 0 ? (
-              <div className="flex items-center gap-2">
-                <StarRow rating={ratingValue} />
-                {reviewCount != null ? (
-                  <span className="text-xs font-semibold text-[#6F6254]">{L.reviewsSuffix(reviewCount)}</span>
-                ) : null}
+          <div className="flex min-w-0 gap-3">
+            {logoUrl && mediaIsLogoOnly ? (
+              <div className="hidden shrink-0 rounded-lg border border-[#E4D4BC] bg-white p-1 md:block">
+                <Image
+                  src={logoUrl}
+                  alt={logoAlt}
+                  width={48}
+                  height={48}
+                  className="h-12 w-12 rounded object-contain"
+                  unoptimized={serviciosImageUnoptimized(logoUrl)}
+                />
               </div>
             ) : null}
-
-            <h2 className={TITLE}>{profile.identity.businessName}</h2>
-
-            {identityChips.length ? (
-              <>
-                <div
-                  className={`${CHIP_ROW} md:hidden`}
-                  aria-label={lang === "en" ? "Category and services" : "Categoría y servicios"}
-                >
-                  {identityChips.slice(0, 3).map((chip) => (
-                    <span
-                      key={chip}
-                      className="inline-flex items-center rounded-full border border-[#E8D7B8] bg-white/70 px-2 py-0.5 text-[10px] font-semibold text-[#2F2A23] shadow-sm"
-                    >
-                      {chip}
-                    </span>
-                  ))}
+            <div className="min-w-0 flex-1 space-y-1">
+              {ratingValue != null && ratingValue > 0 ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <StarRow rating={ratingValue} lang={lang} />
+                  {reviewCount != null ? <span className={`${BODY} font-semibold`}>{L.reviewsSuffix(reviewCount)}</span> : null}
                 </div>
-                <div
-                  className={`${CHIP_ROW} hidden md:flex`}
-                  aria-label={lang === "en" ? "Category and services" : "Categoría y servicios"}
-                >
-                  {identityChips.slice(0, 6).map((chip) => (
-                    <span key={chip} className={CHIP}>
-                      {chip}
-                    </span>
-                  ))}
-                </div>
-              </>
-            ) : null}
-
-            <div className={`${META_ROW} hidden md:flex`}>
-              <span
-                className={[
-                  META_PILL,
-                  profile.contact?.hours?.openNowLabel?.toLowerCase().includes('cerrado') ? STATUS_CLOSED : STATUS_OPEN,
-                ].join(" ")}
-              >
-                <span className="h-2 w-2 rounded-full bg-current opacity-70" aria-hidden />
-                <span className="min-w-0 truncate">
-                  {profile.contact?.hours?.todayHoursLine?.trim() || (lang === "en" ? "Hours" : "Horario")}
-                </span>
-              </span>
-
-              {locationLine ? <span className={META_PILL}>{locationLine}</span> : null}
-              {quick.serviceArea && quick.serviceArea !== locationLine ? (
-                <span className={META_PILL}>{quick.serviceArea}</span>
               ) : null}
+              <h2 className={TITLE}>{profile.identity.businessName}</h2>
+              {slogan ? <p className={`${SUBTITLE} line-clamp-2`}>{slogan}</p> : null}
             </div>
-
-            {addressQuery && mapsHref ? (
-              <>
-                <a
-                  href={mapsHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex w-full min-w-0 items-center gap-1.5 py-0.5 text-[12px] font-semibold leading-snug text-[#3B2117] md:hidden"
-                  aria-label={lang === "en" ? "Open address in maps" : "Abrir dirección en mapas"}
-                >
-                  <FiMapPin className="h-3.5 w-3.5 shrink-0 text-[#6F7A3A]" aria-hidden />
-                  <span className="min-w-0 truncate">{addressQuery}</span>
-                </a>
-                <a
-                  href={mapsHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`${ADDRESS_LINK} hidden md:inline-flex`}
-                  aria-label={lang === "en" ? "Open address in maps" : "Abrir dirección en mapas"}
-                >
-                  <FiMapPin className="h-4 w-4 shrink-0 text-[#6F7A3A]" aria-hidden />
-                  <span className="min-w-0 truncate">{addressQuery}</span>
-                  <span className="ml-auto text-xs font-bold text-[#6F6254] group-hover:text-[#D4AF37]">›</span>
-                </a>
-              </>
-            ) : null}
-
-            {summary ? (
-              <>
-                <p className={`${SUMMARY} line-clamp-2 md:hidden`}>{summary}</p>
-                <p className={`${SUMMARY} hidden md:block`}>
-                  {summary.length > 180 ? `${summary.slice(0, 180).trim()}…` : summary}
-                </p>
-              </>
-            ) : null}
-
-            {features.length ? (
-              <>
-                <div className="relative md:hidden" aria-label={lang === "en" ? "Services" : "Servicios"}>
-                  <div className="-mx-1 flex gap-1.5 overflow-x-auto overflow-y-hidden px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]">
-                    {features.map((f) => (
-                      <span
-                        key={f}
-                        className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-[#E8D7B8] bg-[#FCF9F2] px-2 py-0.5 text-[10px] font-semibold text-[#2F2A23]"
-                      >
-                        {f}
-                      </span>
-                    ))}
-                  </div>
-                  <div
-                    className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-9 bg-gradient-to-l from-[#FCF9F2] to-transparent"
-                    aria-hidden
-                  />
-                </div>
-                <div
-                  className={`${FEATURE_ROW} hidden md:flex`}
-                  aria-label={lang === "en" ? "Services" : "Servicios"}
-                >
-                  {features.slice(0, 5).map((f) => (
-                    <span key={f} className={FEATURE_CHIP}>
-                      {f}
-                    </span>
-                  ))}
-                  {features.length > 5 ? (
-                    <span className={FEATURE_CHIP}>+{features.length - 5}</span>
-                  ) : null}
-                </div>
-              </>
-            ) : null}
           </div>
 
-          <div className="flex min-w-0 flex-col gap-1.5 md:gap-2">
-            <Link
-              href={vitrinaHref}
-              className="flex min-h-[44px] w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#6F7A3A] to-[#5a6a2f] text-xs font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(111,122,58,0.45)] transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 md:min-h-[48px] md:text-sm"
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-1.5">
+              {categoryChip ? <span className={CHIP}>{categoryChip}</span> : null}
+              {locationLine ? <span className={CHIP}>{locationLine}</span> : null}
+              {trustChips.map((t) => (
+                <span key={t} className={CHIP}>
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {profile.contact?.hours && (openLbl || hoursLine) ? (
+            <div className="flex flex-wrap gap-1.5">
+              <span className={[META_PILL, hoursClosed ? STATUS_CLOSED : STATUS_OPEN].join(" ")}>
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-70" aria-hidden />
+                <span className="min-w-0 truncate">{hoursPillText}</span>
+              </span>
+            </div>
+          ) : null}
+
+          {addressQuery && mapsHref ? (
+            <a
+              href={mapsHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={ADDRESS_LINK}
+              aria-label={lang === "en" ? "Open address in maps" : "Abrir dirección en mapas"}
             >
+              <FiMapPin className="h-4 w-4 shrink-0 text-[#6F7A3A]" aria-hidden />
+              <span className="min-w-0 truncate">{addressQuery}</span>
+              <span className="ml-auto text-[12px] font-bold text-[#8A7E6E] group-hover:text-[#9A7329]">›</span>
+            </a>
+          ) : null}
+
+          {summary ? <p className={`${BODY} line-clamp-3`}>{summary}</p> : null}
+
+          {serviceChips.length ? (
+            <div className="flex flex-col gap-1.5">
+              <p className={`${SUBTITLE} text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A7E6E]`}>
+                {lang === "en" ? "Services" : "Servicios"}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {serviceChips.map((f) => (
+                  <span key={f} className={CHIP}>
+                    {f}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="flex min-w-0 flex-col gap-2">
+            <Link href={vitrinaHref} className={CTA_PRIMARY}>
               {vitrinaLabel}
             </Link>
             {discoveryRefineHref?.trim() && discoveryRefineLabel?.trim() ? (
               <Link
                 href={discoveryRefineHref}
-                className="text-center text-[10px] font-semibold text-[#6F6254] underline-offset-4 hover:underline md:text-xs"
+                className={`${BODY} text-center font-semibold underline underline-offset-4 hover:text-[#2A2620]`}
               >
                 {discoveryRefineLabel}
               </Link>
@@ -454,7 +388,7 @@ export function ServiciosHorizontalResultCard({
           </div>
 
           {contactActions.length ? (
-            <div className={`${CTA_ROW}`} aria-label={lang === "en" ? "Contact actions" : "Acciones de contacto"}>
+            <div className={CTA_ROW} aria-label={lang === "en" ? "Contact" : "Contacto"}>
               {contactActions.map(({ key, href, label }) => {
                 const Icon =
                   key === "call"
@@ -471,10 +405,10 @@ export function ServiciosHorizontalResultCard({
                   <a
                     key={key}
                     href={href}
-                    className={[CTA_BTN_BASE, CTA_SECONDARY, "min-h-[44px] flex-1 min-w-[8.5rem] sm:min-w-[9.5rem] sm:flex-none"].join(" ")}
+                    className={CTA_SECONDARY}
                     {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                   >
-                    <Icon className="h-[1.05rem] w-[1.05rem] shrink-0" aria-hidden />
+                    <Icon className="h-4 w-4 shrink-0" aria-hidden />
                     <span className="min-w-0 truncate">{label}</span>
                   </a>
                 );
@@ -483,44 +417,6 @@ export function ServiciosHorizontalResultCard({
           ) : null}
         </div>
       </div>
-
-      {showEngagementMetrics && effectiveListingId ? (
-        <div className={ENGAGEMENT_SECTION}>
-          <div className="flex flex-wrap items-center gap-3">
-            <LeonixLikeButton
-              listingId={effectiveListingId}
-              ownerUserId={effectiveOwnerUserId}
-              variant="small"
-              lang={lang}
-              category="servicios"
-              persistEngagement={persistListingEngagement}
-            />
-            <LeonixSaveButton
-              key={onResultsSavedToggle ? `lx-sv-${effectiveListingId}-${String(resultsSaved)}` : `lx-sv-${effectiveListingId}`}
-              listingId={effectiveListingId}
-              ownerUserId={effectiveOwnerUserId}
-              variant="small"
-              lang={lang}
-              category="servicios"
-              persistEngagement={persistListingEngagement}
-              {...(onResultsSavedToggle
-                ? { isSaved: Boolean(resultsSaved), onToggle: () => onResultsSavedToggle() }
-                : {})}
-            />
-            <LeonixShareButton
-              listingId={effectiveListingId}
-              ownerUserId={effectiveOwnerUserId}
-              listingTitle={profile.identity.businessName}
-              listingUrl={shareUrl || undefined}
-              variant="small"
-              lang={lang}
-              category="servicios"
-              preferNativeShareOnNarrowViewports
-              persistEngagement={persistListingEngagement}
-            />
-          </div>
-        </div>
-      ) : null}
-    </div>
+    </article>
   );
 }

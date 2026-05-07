@@ -63,7 +63,7 @@ export function FeaturedBusinessSection({
         <ul className="mx-auto flex max-w-[1100px] list-none flex-col gap-5 sm:gap-6">
           {rows.map((row) => (
             <li key={row.slug} className="min-w-0">
-              <ServiciosHorizontalResultCard row={row} lang={lang} persistListingEngagement={Boolean((row.leonix_ad_id || "").trim())} />
+              <ServiciosHorizontalResultCard row={row} lang={lang} />
             </li>
           ))}
         </ul>
