@@ -387,8 +387,6 @@ export default function RestaurantePreviewClient() {
             >
               <RestaurantePreviewCard
                 data={shellData}
-                listingId={shellData.id}
-                showEngagementMetrics={true}
                 className="mx-auto w-full max-w-6xl"
               />
             </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -25,16 +24,12 @@ export function RestaurantePublishedListingCard({
   badge,
   cta,
   narrowLabel,
-  isSaved,
-  onToggleSave,
 }: {
   row: RestaurantesPublicBlueprintRow;
   lang: RestaurantesDiscoveryLang | Lang;
   badge?: string;
   cta: string;
   narrowLabel: string;
-  isSaved?: boolean;
-  onToggleSave?: () => void;
 }) {
   const narrowHref = buildRestaurantesResultsHref(lang as RestaurantesDiscoveryLang, {
     ...restaurantesDiscoveryParamsForRowDeepLink({
@@ -50,12 +45,6 @@ export function RestaurantePublishedListingCard({
     ? appendLangToPath(`/clasificados/restaurantes/${encodeURIComponent(slug)}`, lang as Lang)
     : "";
 
-  const [origin, setOrigin] = useState("");
-  useEffect(() => {
-    setOrigin(typeof window !== "undefined" ? window.location.origin : "");
-  }, []);
-
-  const shareAbsolute = origin && primaryHref ? `${origin}${primaryHref}` : "";
   const shell = row.previewShellData;
 
   if (!shell) {
@@ -100,17 +89,11 @@ export function RestaurantePublishedListingCard({
       ) : null}
       <RestaurantePreviewCard
         data={shell}
-        listingId={row.id}
         lang={lang}
-        showEngagementMetrics
-        analyticsOwnerUserId={row.ownerUserId}
-        shareListingAbsoluteUrl={shareAbsolute}
         publicDetailHref={primaryHref || undefined}
         publicDetailLabel={cta}
         discoveryRefineHref={slug ? narrowHref : undefined}
         discoveryRefineLabel={slug ? narrowLabel : undefined}
-        resultsSaved={onToggleSave ? isSaved : undefined}
-        onResultsSavedToggle={onToggleSave}
         className={badge || row.promoted || row.leonixVerified ? "pt-9" : ""}
       />
     </article>

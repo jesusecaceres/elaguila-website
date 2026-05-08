@@ -32,7 +32,6 @@ import { getRestauranteAmenityGroupMeta } from "@/app/clasificados/restaurantes/
 import {
   readRestaurantesSavedIds,
   rememberRestaurantesDiscoveryFromState,
-  writeRestaurantesSavedIds,
 } from "@/app/clasificados/restaurantes/lib/restaurantesFirstPartyPreferences";
 import {
   RESTAURANTES_RESULTS_PROMOTED_BAND_MAX,
@@ -161,18 +160,6 @@ export function RestaurantesResultsShell({
       router.push(href);
     },
     [lang, router],
-  );
-
-  const toggleSavedId = useCallback(
-    (id: string) => {
-      if (!leonixPersonalizationAllowed()) return;
-      const next = new Set(savedIds);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      writeRestaurantesSavedIds(next);
-      setSavedIds(next);
-    },
-    [savedIds],
   );
 
   const onSearchSubmit = (e: FormEvent) => {
@@ -1297,8 +1284,6 @@ export function RestaurantesResultsShell({
                         badge={t.promotedBadge}
                         cta={t.verMas}
                         narrowLabel={t.resultNarrowInResults}
-                        isSaved={savedIds.has(row.id)}
-                        onToggleSave={leonixPersonalizationAllowed() ? () => toggleSavedId(row.id) : undefined}
                       />
                     </div>
                   ))}
@@ -1326,8 +1311,6 @@ export function RestaurantesResultsShell({
                       lang={lang}
                       cta={t.verMas}
                       narrowLabel={t.resultNarrowInResults}
-                      isSaved={savedIds.has(row.id)}
-                      onToggleSave={leonixPersonalizationAllowed() ? () => toggleSavedId(row.id) : undefined}
                     />
                   </li>
                 ))}

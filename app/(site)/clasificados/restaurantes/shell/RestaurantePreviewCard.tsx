@@ -5,9 +5,6 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { FiGlobe, FiMapPin, FiPhone } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
-import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
-import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
-import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
 
 const PREVIEW_CARD =
@@ -16,11 +13,11 @@ const PREVIEW_CARD =
 /** Landscape results card: wide overall, left media ~40%, right content ~60%, media height capped by aspect (not stretched to content). */
 const GRID =
   "grid min-w-0 grid-cols-1 gap-0 md:grid-cols-[minmax(0,42%)_minmax(0,58%)] md:items-start";
-const MEDIA = "min-w-0 bg-[#F5F0E8] p-3 md:p-5 md:pr-3";
+const MEDIA = "min-w-0 bg-[#F5F0E8] p-2.5 md:p-4 md:pr-3";
 const MEDIA_FRAME =
   "relative aspect-[16/9] w-full overflow-hidden rounded-[22px] bg-[#EFE7DA] md:aspect-[16/10]";
 
-const CONTENT = "flex min-w-0 flex-col gap-2.5 px-4 pb-4 pt-3 md:gap-4 md:px-7 md:pb-7 md:pt-6";
+const CONTENT = "flex min-w-0 flex-col gap-2 px-4 pb-3 pt-3 md:gap-3 md:px-7 md:pb-6 md:pt-5";
 
 const TITLE =
   "text-[22px] font-bold leading-[1.12] tracking-tight text-[#1F1A17] sm:text-[24px] md:text-[32px] lg:text-[34px]";
@@ -49,8 +46,6 @@ const CTA_BTN_BASE =
 const CTA_PRIMARY = "border-[#B98D4C]/60 bg-[#B98D4C] text-white hover:bg-[#a77f46]";
 const CTA_SECONDARY = "border-[#E1CFB3] bg-white text-[#2B241F] hover:bg-[#FFFCF7] hover:border-[#BEA98E]";
 
-const ENGAGEMENT_SECTION = "mt-1 border-t border-[#D8C2A0]/35 pt-5";
-
 function cleanOtherLabel(raw: string): string {
   const t = String(raw ?? "").trim();
   if (!t) return "";
@@ -66,6 +61,16 @@ function cleanOtherLabel(raw: string): string {
 
 function mapsSearchHref(query: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+/** Only allow URLs Next/Image can load without inventing storage paths. */
+function isRenderableLogoUrl(raw: string): boolean {
+  const u = raw.trim();
+  if (!u) return false;
+  if (u.startsWith("/")) return true;
+  if (u.startsWith("https://") || u.startsWith("http://")) return true;
+  if (u.startsWith("blob:")) return true;
+  return false;
 }
 
 function StarRow({ rating }: { rating: number }) {
@@ -89,27 +94,15 @@ interface RestaurantePreviewCardProps {
   data: RestaurantDetailShellData;
   className?: string;
   lang?: "es" | "en";
-  showEngagementMetrics?: boolean;
-  listingId?: string;
-  /** Published listing owner (Supabase); avoids misusing draft id as owner in analytics. */
-  analyticsOwnerUserId?: string | null;
-  /** Absolute URL for share/copy (e.g. `origin + path`). */
-  shareListingAbsoluteUrl?: string;
   /** Results grid: primary navigation to public detail. */
   publicDetailHref?: string;
   publicDetailLabel?: string;
   discoveryRefineHref?: string;
   discoveryRefineLabel?: string;
-  /** When set with `onResultsSavedToggle`, save button reflects results “saved” filter. */
-  resultsSaved?: boolean;
-  onResultsSavedToggle?: () => void;
-  /** When false, like/save/share do not persist or emit analytics (demo rows). */
-  persistListingEngagement?: boolean;
 }
 
 /**
- * Premium Leonix Restaurantes Preview Card
- * Follows LEONIX_PREVIEW_CARD_CONTRACT.md with engagement metrics integration
+ * Restaurantes preview / results card (compact). Social actions live on the full detail shell only.
  */
 const RESULT_PRIMARY_CTA =
   "flex min-h-[44px] w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#D4A574] to-[#b45309] text-xs font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(180,83,9,0.45)] transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 md:min-h-[48px] md:text-sm";
@@ -118,21 +111,14 @@ export function RestaurantePreviewCard({
   data, 
   className = "", 
   lang = "es",
-  showEngagementMetrics = true,
-  listingId,
-  analyticsOwnerUserId,
-  shareListingAbsoluteUrl,
   publicDetailHref,
   publicDetailLabel,
   discoveryRefineHref,
   discoveryRefineLabel,
-  resultsSaved,
-  onResultsSavedToggle,
-  persistListingEngagement = true,
 }: RestaurantePreviewCardProps) {
   const heroImage = data.heroImageUrl?.trim() || "";
-  const ownerForEngagement = (analyticsOwnerUserId ?? "").trim() || undefined;
-  const shareUrl = (shareListingAbsoluteUrl ?? "").trim();
+  const logoCandidate = (data.businessLogo ?? "").trim();
+  const logoUrl = isRenderableLogoUrl(logoCandidate) ? logoCandidate : "";
 
   const identityChips = useMemo(() => {
     const chips: string[] = [];
@@ -228,11 +214,23 @@ export function RestaurantePreviewCard({
                 </div>
               </div>
             )}
+            {heroImage && logoUrl ? (
+              <div className="pointer-events-none absolute right-3 top-12 z-[2] flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-white/40 bg-white/95 shadow-md ring-1 ring-black/5 md:h-14 md:w-14 md:top-14">
+                <Image
+                  src={logoUrl}
+                  alt={`${data.businessName} logo`}
+                  width={56}
+                  height={56}
+                  className="max-h-full max-w-full object-contain p-1"
+                  sizes="56px"
+                />
+              </div>
+            ) : null}
             <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent md:hidden"
+              className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-black/55 via-transparent to-transparent md:hidden"
               aria-hidden
             />
-            <div className="absolute inset-x-0 bottom-0 z-[1] flex items-end justify-between gap-2 px-2 pb-2 pt-8 md:hidden">
+            <div className="absolute inset-x-0 bottom-0 z-[3] flex items-end justify-between gap-2 px-2 pb-2 pt-8 md:hidden">
               {quick.neighborhood ? (
                 <div className="min-w-0 max-w-[58%] rounded-md border border-white/25 bg-black/45 px-2 py-1 text-[10px] font-semibold leading-tight text-white shadow-sm backdrop-blur-sm">
                   <span className="block truncate">{quick.neighborhood}</span>
@@ -385,7 +383,7 @@ export function RestaurantePreviewCard({
           </div>
 
           {publicDetailHref?.trim() ? (
-            <div className="flex min-w-0 flex-col gap-1.5 md:gap-2">
+            <div className="flex min-w-0 flex-col gap-1 md:gap-1.5">
               <Link href={publicDetailHref} className={RESULT_PRIMARY_CTA}>
                 {publicDetailLabel?.trim() || (lang === "en" ? "View full listing" : "Ver anuncio completo")}
               </Link>
@@ -401,7 +399,7 @@ export function RestaurantePreviewCard({
           ) : null}
 
           {ctasMobile.length ? (
-            <div className="grid grid-cols-2 gap-2 pt-1 md:hidden" aria-label={lang === "en" ? "Actions" : "Acciones"}>
+            <div className="grid grid-cols-2 gap-2 pt-0.5 md:hidden" aria-label={lang === "en" ? "Actions" : "Acciones"}>
               {ctasMobile.map((cta) => {
                 const n = ctasMobile.length;
                 const alone = n === 1;
@@ -429,7 +427,7 @@ export function RestaurantePreviewCard({
           ) : null}
 
           {ctasDesktop.length ? (
-            <div className={`${CTA_ROW} hidden md:flex`} aria-label={lang === "en" ? "Actions" : "Acciones"}>
+            <div className={`${CTA_ROW} hidden pt-0.5 md:flex`} aria-label={lang === "en" ? "Actions" : "Acciones"}>
               {ctasDesktop.map((cta) => {
                 const primary = cta.key === "directions";
                 const Icon =
@@ -446,44 +444,6 @@ export function RestaurantePreviewCard({
                   </a>
                 );
               })}
-            </div>
-          ) : null}
-
-          {showEngagementMetrics && listingId ? (
-            <div className={`${ENGAGEMENT_SECTION} hidden md:block`}>
-              <div className="flex items-center gap-3">
-                <LeonixLikeButton
-                  listingId={listingId}
-                  ownerUserId={ownerForEngagement}
-                  variant="small"
-                  lang={lang}
-                  category="restaurantes"
-                  persistEngagement={persistListingEngagement}
-                />
-                <LeonixSaveButton
-                  key={onResultsSavedToggle ? `lx-sv-${listingId}-${String(resultsSaved)}` : `lx-sv-${listingId}`}
-                  listingId={listingId}
-                  ownerUserId={ownerForEngagement}
-                  variant="small"
-                  lang={lang}
-                  category="restaurantes"
-                  persistEngagement={persistListingEngagement}
-                  {...(onResultsSavedToggle
-                    ? { isSaved: Boolean(resultsSaved), onToggle: () => onResultsSavedToggle() }
-                    : {})}
-                />
-                <LeonixShareButton
-                  listingId={listingId}
-                  ownerUserId={ownerForEngagement}
-                  listingTitle={data.businessName}
-                  listingUrl={shareUrl || undefined}
-                  variant="small"
-                  lang={lang}
-                  category="restaurantes"
-                  preferNativeShareOnNarrowViewports
-                  persistEngagement={persistListingEngagement}
-                />
-              </div>
             </div>
           ) : null}
         </div>
