@@ -3,6 +3,8 @@
  * Used by dashboard category cards and /admin/categories CTAs. Dedicated verticals use their routes;
  * generic `listings` queue uses `?category=` on the main clasificados workspace.
  */
+import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
+import { adminTr } from "@/app/admin/_lib/adminStrings";
 
 const GENERIC_QUEUE = "/admin/workspace/clasificados";
 
@@ -24,18 +26,21 @@ export function adminCategoryWorkspaceQueueHref(slug: string): string {
 }
 
 /** Primary CTA copy: avoid implying public “live” product for non-live registry rows. */
-export function adminCategoryOpenQueueCtaCopy(operationalStatus: AdminCategoryOperationalStatus): {
+export function adminCategoryOpenQueueCtaCopy(
+  operationalStatus: AdminCategoryOperationalStatus,
+  lang: AdminLang,
+): {
   label: string;
   title: string;
 } {
   if (operationalStatus === "live") {
     return {
-      label: "Ver anuncios",
-      title: "Abrir cola de anuncios de esta categoría en el workspace admin",
+      label: adminTr(lang, "cta.viewAds"),
+      title: adminTr(lang, "cta.viewAdsTitle"),
     };
   }
   return {
-    label: "Ver cola",
-    title: "Abrir cola operativa de esta categoría en el workspace admin",
+    label: adminTr(lang, "cta.viewQueue"),
+    title: adminTr(lang, "cta.viewQueueTitle"),
   };
 }

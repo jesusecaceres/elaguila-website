@@ -15,6 +15,7 @@ import {
 import { parseLeonixListingContract, parseLeonixMachineFacetRead } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
+import { useAdminLang, useAdminT } from "@/app/admin/_components/AdminI18nProvider";
 
 type Row = {
   id: string;
@@ -34,11 +35,11 @@ type Row = {
   is_published?: boolean | null;
 };
 
-function formatAdminDateTime(ms: number): string {
+function formatAdminDateTime(ms: number, locale: string): string {
   try {
     const d = new Date(ms);
     return Number.isFinite(d.getTime())
-      ? d.toLocaleString("es-MX", {
+      ? d.toLocaleString(locale, {
           year: "numeric",
           month: "short",
           day: "numeric",
@@ -83,16 +84,16 @@ function clasificadosLeonixAdminLine(row: Row, detailPairsAvailable: boolean): s
   return bits.length ? `${base} · ${bits.join(" · ")}` : base;
   }
   if (cat === "bienes-raices") {
-    const m = parseLeonixMachineFacetRead(row.detail_pairs);
+    const br = parseLeonixMachineFacetRead(row.detail_pairs);
     const bits: string[] = [];
-    if (m.resultsPropertyKind) bits.push(`kind:${m.resultsPropertyKind}`);
-    if (m.bedroomsCount != null) bits.push(`bd:${m.bedroomsCount}`);
-    if (m.bathroomsCount != null) bits.push(`ba:${m.bathroomsCount}`);
-    if (m.postalCode) bits.push(`zip:${m.postalCode}`);
-    if (m.pool === true) bits.push("pool");
-    if (m.petsAllowed === true) bits.push("pets");
-    else if (m.petsAllowed === false) bits.push("pets:no");
-    if (m.furnished === true) bits.push("furn");
+    if (br.resultsPropertyKind) bits.push(`kind:${br.resultsPropertyKind}`);
+    if (br.bedroomsCount != null) bits.push(`bd:${br.bedroomsCount}`);
+    if (br.bathroomsCount != null) bits.push(`ba:${br.bathroomsCount}`);
+    if (br.postalCode) bits.push(`zip:${br.postalCode}`);
+    if (br.pool === true) bits.push("pool");
+    if (br.petsAllowed === true) bits.push("pets");
+    else if (br.petsAllowed === false) bits.push("pets:no");
+    if (br.furnished === true) bits.push("furn");
     return bits.length ? `${base} · ${bits.join(" · ")}` : base;
   }
   return base;
@@ -101,27 +102,31 @@ function clasificadosLeonixAdminLine(row: Row, detailPairsAvailable: boolean): s
 function enVentaVisibilityAdminLine(
   row: Row,
   detailPairsAvailable: boolean,
-  boostExpiresAvailable: boolean
+  boostExpiresAvailable: boolean,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  locale: string,
 ): string {
   if ((row.category ?? "").toLowerCase() !== "en-venta") return "—";
-  if (!detailPairsAvailable) return "N/D · falta columna detail_pairs en BD";
+  if (!detailPairsAvailable) return t("listings.envLine.missingDetailPairs");
   const plan = listingPlanFromDetailPairs(row.detail_pairs);
   const now = Date.now();
   const boostPart = !boostExpiresAvailable
-    ? "boost N/D (sin columna boost_expires)"
+    ? t("listings.envLine.boostNoCol")
     : (() => {
         const boostEnd = parseBoostExpiresMs(row.boost_expires);
         return boostEnd != null && boostEnd > now
-          ? `boost ${formatAdminDateTime(boostEnd)}`
-          : "boost off";
+          ? `boost ${formatAdminDateTime(boostEnd, locale)}`
+          : t("listings.envLine.boostOff");
       })();
   const lastIso = parseDetailPairValue(row.detail_pairs, EN_VENTA_VISIBILITY_LAST_RENEWAL_LABEL);
-  const lastPart = lastIso ? `lastRenew ${formatAdminDateTime(new Date(lastIso).getTime())}` : "lastRenew —";
+  const lastPart = lastIso
+    ? `${t("listings.envLine.lastRenew")} ${formatAdminDateTime(new Date(lastIso).getTime(), locale)}`
+    : `${t("listings.envLine.lastRenew")} —`;
 
   if (plan === "free") return `free · ${boostPart} · ${lastPart}`;
 
   const renewPart = !boostExpiresAvailable
-    ? "renew N/D"
+    ? t("listings.envLine.renewNd")
     : (() => {
         const vm = computeEnVentaVisibilityRenewalVm({
           plan: "pro",
@@ -130,10 +135,10 @@ function enVentaVisibilityAdminLine(
           nowMs: now,
         });
         return vm?.canRenewNow
-          ? "renew OK"
+          ? t("listings.envLine.renewOk")
           : vm
-            ? `renew≥ ${formatAdminDateTime(vm.nextRenewEligibleAt)}`
-            : "renew —";
+            ? `renew≥ ${formatAdminDateTime(vm.nextRenewEligibleAt, locale)}`
+            : t("listings.envLine.renewDash");
       })();
 
   return `pro · ${boostPart} · ${lastPart} · ${renewPart}`;
@@ -154,28 +159,29 @@ export default function AdminListingsTable({
   listingsCategorySlug?: string;
 }) {
   const router = useRouter();
+  const t = useAdminT();
+  const lang = useAdminLang();
+  const locale = lang === "es" ? "es-MX" : "en-US";
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [publishBusyId, setPublishBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleDelete(id: string) {
-    if (!confirm("¿Marcar este anuncio como eliminado (removed)?")) return;
+    if (!confirm(t("listings.confirmDelete"))) return;
     setDeletingId(id);
     setError(null);
     try {
       await deleteListingAction(id);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al eliminar");
+      setError(e instanceof Error ? e.message : t("listings.errDelete"));
     } finally {
       setDeletingId(null);
     }
   }
 
   async function handleSetPublished(id: string, published: boolean) {
-    const msg = published
-      ? "¿Volver a mostrar este anuncio en el sitio (is_published=true)?"
-      : "¿Ocultar este anuncio del sitio público (is_published=false)? Sigue visible para staff.";
+    const msg = published ? t("listings.confirmShow") : t("listings.confirmHide");
     if (!confirm(msg)) return;
     setPublishBusyId(id);
     setError(null);
@@ -183,7 +189,7 @@ export default function AdminListingsTable({
       await setListingPublishedAction(id, published);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al actualizar publicación");
+      setError(e instanceof Error ? e.message : t("listings.errPublish"));
     } finally {
       setPublishBusyId(null);
     }
@@ -194,7 +200,7 @@ export default function AdminListingsTable({
     try {
       const d = new Date(iso);
       return Number.isFinite(d.getTime())
-        ? d.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+        ? d.toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
         : "—";
     } catch {
       return "—";
@@ -211,25 +217,27 @@ export default function AdminListingsTable({
       >
         {listingsCategorySlug ? (
           <>
-            <p className="font-bold text-[#1E1810]">No published listings found for this category.</p>
+            <p className="font-bold text-[#1E1810]">{t("listings.emptyCategoryTitle")}</p>
             <p className="mt-2 text-xs leading-relaxed text-[#5C5346]">
-              Active filter targets <span className="font-mono">public.listings.category</span> (case-insensitive) ={" "}
-              <span className="font-mono">{listingsCategorySlug}</span>
-              {listingsCategorySlug === "rentas"
-                ? ", plus merged rows with category «bienes-raices» and Leonix:operation=rent in detail_pairs when there is no text search (q)."
-                : "."}{" "}
-              Check the category dropdown for actual DB values, or open the dedicated vertical queue (Servicios, Empleos, Autos,
-              Restaurantes) if this category stores ads outside <span className="font-mono">listings</span>.
+              {t("listings.emptyCategoryBody", {
+                slug: listingsCategorySlug,
+                rentasExtra: listingsCategorySlug === "rentas" ? t("listings.emptyRentasExtra") : "",
+              })}
             </p>
           </>
         ) : (
-          "No hay anuncios en la cola global con los filtros actuales."
+          t("listings.emptyGlobal")
         )}
       </div>
     );
   }
 
   const enVentaColumnDegraded = !detailPairsAvailable || !boostExpiresAvailable;
+  const envVisTitle = !detailPairsAvailable
+    ? t("listings.col.envVisTitleNoDetailPairs")
+    : !boostExpiresAvailable
+      ? t("listings.col.envVisTitleNoBoost")
+      : t("listings.col.envVisTitleOk");
 
   return (
     <div className={adminTableWrap}>
@@ -238,24 +246,24 @@ export default function AdminListingsTable({
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90">
-              <th className="p-3 font-semibold text-[#5C4E2E]">ID</th>
-              <th className="min-w-[9rem] p-3 font-semibold text-[#5C4E2E]">Leonix Ad ID</th>
-              <th className="min-w-[180px] p-3 font-semibold text-[#5C4E2E]">Título</th>
-              <th className="p-3 font-semibold text-[#5C4E2E]">Categoría</th>
-              <th className="p-3 font-semibold text-[#5C4E2E]">Ciudad</th>
-              <th className="p-3 font-semibold text-[#5C4E2E]">Precio</th>
-              <th className="p-3 font-semibold text-[#5C4E2E]">Estado</th>
-              <th className="p-3 font-semibold text-[#5C4E2E]">Owner</th>
-              <th className="p-3 font-semibold text-[#5C4E2E]">Fecha</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.id")}</th>
+              <th className="min-w-[9rem] p-3 font-semibold text-[#5C4E2E]">{t("listings.col.leonixId")}</th>
+              <th className="min-w-[180px] p-3 font-semibold text-[#5C4E2E]">{t("listings.col.title")}</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.category")}</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.city")}</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.price")}</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.status")}</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.owner")}</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.date")}</th>
               <th
                 className={
                   detailPairsAvailable
                     ? "min-w-[200px] p-3 font-semibold text-[#5C4E2E]"
                     : "min-w-[200px] bg-amber-50/90 p-3 font-semibold text-amber-950"
                 }
-                title="Leonix BR/Rentas: rama, operación, categoría, publicado"
+                title={t("listings.col.leonixTitle")}
               >
-                Leonix
+                {t("listings.col.leonix")}
               </th>
               <th
                 className={
@@ -263,17 +271,11 @@ export default function AdminListingsTable({
                     ? "min-w-[220px] bg-amber-50/90 p-3 font-semibold text-amber-950"
                     : "min-w-[220px] p-3 font-semibold text-[#5C4E2E]"
                 }
-                title={
-                  !detailPairsAvailable
-                    ? "Columna detail_pairs no disponible en esta base — aplica migración listings.detail_pairs"
-                    : !boostExpiresAvailable
-                      ? "Columna boost_expires no disponible — aplica migración listings_engagement_boost"
-                      : "Plan y visibilidad En Venta (detail_pairs + boost_expires)"
-                }
+                title={envVisTitle}
               >
-                En venta · vis.
+                {t("listings.col.envVis")}
               </th>
-              <th className="p-3 font-semibold text-[#5C4E2E]">Acciones</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -292,7 +294,7 @@ export default function AdminListingsTable({
                   </span>
                 </td>
                 <td className="p-3 text-[#3D3428]">{row.city ?? "—"}</td>
-                <td className="p-3">{row.is_free ? "Gratis" : row.price != null ? `$${row.price}` : "—"}</td>
+                <td className="p-3">{row.is_free ? t("listings.free") : row.price != null ? `$${row.price}` : "—"}</td>
                 <td className="p-3">
                   <span
                     className={
@@ -311,9 +313,9 @@ export default function AdminListingsTable({
                     <Link
                       href={`/admin/usuarios/${row.owner_id}`}
                       className="inline-flex min-h-[44px] min-w-[44px] items-center text-xs font-semibold text-[#6B5B2E] underline sm:min-h-0 sm:min-w-0"
-                      title="Abrir ficha del vendedor en Leonix admin"
+                      title={t("listings.ownerCard")}
                     >
-                      Ficha vendedor
+                      {t("listings.ownerCard")}
                     </Link>
                   ) : (
                     "—"
@@ -336,14 +338,14 @@ export default function AdminListingsTable({
                       ? "max-w-[280px] bg-amber-50/40 p-3 align-top text-[11px] leading-snug text-amber-950"
                       : "max-w-[280px] p-3 align-top text-[11px] leading-snug text-[#5C5346]"
                   }
-                  title={enVentaVisibilityAdminLine(row, detailPairsAvailable, boostExpiresAvailable)}
+                  title={enVentaVisibilityAdminLine(row, detailPairsAvailable, boostExpiresAvailable, t, locale)}
                 >
-                  {enVentaVisibilityAdminLine(row, detailPairsAvailable, boostExpiresAvailable)}
+                  {enVentaVisibilityAdminLine(row, detailPairsAvailable, boostExpiresAvailable, t, locale)}
                 </td>
                 <td className="p-3">
                   <div
                     className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1"
-                    title="Gestión staff en la misma fila (publicar/ocultar/eliminar). Edición de texto e imágenes: panel del anunciante con validación owner_id."
+                    title={t("listings.rowActionsTitle")}
                   >
                     {(row.category ?? "").toLowerCase() === "rentas" ? (
                       <Link
@@ -351,9 +353,9 @@ export default function AdminListingsTable({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex min-h-[44px] items-center font-semibold text-[#6B5B2E] underline sm:min-h-0"
-                        title="Detalle público Rentas (ruta canónica)"
+                        title={t("listings.publicRentasTitle")}
                       >
-                        Ver público (Rentas)
+                        {t("listings.viewRentas")}
                       </Link>
                     ) : (
                       <Link
@@ -361,18 +363,18 @@ export default function AdminListingsTable({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex min-h-[44px] items-center font-semibold text-[#6B5B2E] underline sm:min-h-0"
-                        title="Abrir anuncio en el sitio público (nueva pestaña)"
+                        title={t("listings.publicGenericTitle")}
                       >
-                        Ver público
+                        {t("listings.viewPublic")}
                       </Link>
                     )}
                     {(row.category ?? "").toLowerCase() === "rentas" ? (
                       <Link
                         href={`/admin/workspace/clasificados/rentas/${row.id}`}
                         className="inline-flex min-h-[44px] items-center font-semibold text-[#4A6680] underline sm:min-h-0"
-                        title="Inspector completo Rentas (staff)"
+                        title={t("listings.inspectorRentas")}
                       >
-                        Inspector Rentas
+                        {t("listings.inspectorRentas")}
                       </Link>
                     ) : null}
                     {row.status !== "removed" && row.is_published !== false ? (
@@ -381,9 +383,9 @@ export default function AdminListingsTable({
                         disabled={publishBusyId === row.id}
                         onClick={() => void handleSetPublished(row.id, false)}
                         className="min-h-[44px] text-left text-sm font-semibold text-amber-900 hover:underline disabled:opacity-50 sm:min-h-0"
-                        title="Oculta del listado público (is_published=false). En Venta / resultados dejan de mostrarlo."
+                        title={t("listings.hidePublicTitle")}
                       >
-                        {publishBusyId === row.id ? "…" : "Ocultar del público"}
+                        {publishBusyId === row.id ? "…" : t("listings.hidePublic")}
                       </button>
                     ) : null}
                     {row.status !== "removed" && row.is_published === false ? (
@@ -392,9 +394,9 @@ export default function AdminListingsTable({
                         disabled={publishBusyId === row.id}
                         onClick={() => void handleSetPublished(row.id, true)}
                         className="min-h-[44px] text-left text-sm font-semibold text-emerald-900 hover:underline disabled:opacity-50 sm:min-h-0"
-                        title="Vuelve a publicar en el sitio (is_published=true) si el estado sigue activo."
+                        title={t("listings.republishTitle")}
                       >
-                        {publishBusyId === row.id ? "…" : "Republicar en sitio"}
+                        {publishBusyId === row.id ? "…" : t("listings.republish")}
                       </button>
                     ) : null}
                     {row.status !== "removed" && (
@@ -403,10 +405,10 @@ export default function AdminListingsTable({
                         disabled={deletingId === row.id}
                         onClick={() => handleDelete(row.id)}
                         className="min-h-[44px] text-left text-sm font-semibold text-red-700 hover:underline disabled:opacity-50 sm:min-h-0"
-                        title="Marca el anuncio como removed en base (acción de staff; aparece en auditoría)"
-                        aria-label="Marcar anuncio como eliminado en base de datos"
+                        title={t("listings.deleteTitle")}
+                        aria-label={t("listings.deleteAria")}
                       >
-                        {deletingId === row.id ? "…" : "Eliminar (staff)"}
+                        {deletingId === row.id ? "…" : t("listings.deleteStaff")}
                       </button>
                     )}
                   </div>

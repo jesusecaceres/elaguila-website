@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { Suspense } from "react";
+import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
+import { AdminI18nProvider } from "./AdminI18nProvider";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminTopbar } from "./AdminTopbar";
 import { AdminQueryFlash } from "./AdminQueryFlash";
@@ -8,12 +10,15 @@ import { adminPageBg } from "./adminTheme";
 export function AdminShell({
   children,
   tiendaInboxUnread = 0,
+  adminLang = "en",
 }: {
   children: ReactNode;
   /** Unread Tienda orders for sidebar + topbar badge */
   tiendaInboxUnread?: number;
+  adminLang?: AdminLang;
 }) {
   return (
+    <AdminI18nProvider lang={adminLang}>
     <div className={adminPageBg}>
       <div
         className="pointer-events-none fixed inset-0 opacity-[0.04]"
@@ -29,7 +34,7 @@ export function AdminShell({
           </div>
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
-          <AdminTopbar alertCount={tiendaInboxUnread} />
+          <AdminTopbar alertCount={tiendaInboxUnread} adminLang={adminLang} />
           <Suspense fallback={null}>
             <AdminQueryFlash />
           </Suspense>
@@ -37,5 +42,6 @@ export function AdminShell({
         </div>
       </div>
     </div>
+    </AdminI18nProvider>
   );
 }

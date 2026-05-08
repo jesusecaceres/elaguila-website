@@ -13,10 +13,12 @@ import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } 
 import { AdminTiendaOrderStatusBadge } from "../_components/tienda/AdminTiendaOrderStatusBadge";
 import { tiendaOrderFlowLabel } from "../_lib/tiendaOrderFlowLabel";
 import { getAdminTiendaDashboardCounts, getRecentTiendaOrdersPreview } from "../_lib/tiendaOrdersData";
+import { getAdminLang } from "../_lib/adminI18n";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminHomePage() {
+  const lang = await getAdminLang();
   const [snap, tiendaDash, tiendaRecent, registry] = await Promise.all([
     getAdminDashboardSnapshot(),
     getAdminTiendaDashboardCounts(),
@@ -405,7 +407,7 @@ export default async function AdminHomePage() {
             <div className="grid gap-3 sm:grid-cols-2">
               {registry.map((c) => {
                 const queueHref = adminCategoryWorkspaceQueueHref(c.slug);
-                const cta = adminCategoryOpenQueueCtaCopy(c.operationalStatus);
+                const cta = adminCategoryOpenQueueCtaCopy(c.operationalStatus, lang);
                 return (
                   <Link
                     key={c.slug}

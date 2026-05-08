@@ -16,6 +16,7 @@ import {
   adminCategoryOpenQueueCtaCopy,
   adminCategoryWorkspaceQueueHref,
 } from "../../_lib/adminCategoryWorkspaceQueueHref";
+import { getAdminLang } from "../../_lib/adminI18n";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +59,7 @@ function sourceBadge(layer: "code" | "database" | undefined) {
 const COL_COUNT = 12;
 
 export default async function AdminCategoriesPage() {
+  const lang = await getAdminLang();
   const registry = await getClasificadosCategoryRegistryMerged();
   const sum = summarizeRegistryForDashboard(registry);
   const statsRows = await fetchListingStatsForCategorySlugs(registry.map((c) => c.slug));
@@ -153,7 +155,7 @@ export default async function AdminCategoriesPage() {
             <tbody>
               {registry.map((c) => {
                 const st = statsBySlug[c.slug];
-                const openCta = adminCategoryOpenQueueCtaCopy(c.operationalStatus);
+                const openCta = adminCategoryOpenQueueCtaCopy(c.operationalStatus, lang);
                 return (
                   <Fragment key={c.slug}>
                     <tr className="border-t border-[#E8DFD0]/80 align-top">

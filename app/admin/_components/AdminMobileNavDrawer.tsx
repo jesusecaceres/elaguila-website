@@ -6,13 +6,22 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import newLogo from "../../../public/logo.png";
 import { ADMIN_GLOBAL_NAV } from "../_lib/adminGlobalNav";
+import { AdminLangToggle } from "./AdminLangToggle";
+import { useAdminT } from "./AdminI18nProvider";
 
 function cx(...p: Array<string | false | undefined>) {
   return p.filter(Boolean).join(" ");
 }
 
-export function AdminMobileNavDrawer({ tiendaInboxUnread = 0 }: { tiendaInboxUnread?: number }) {
+export function AdminMobileNavDrawer({
+  tiendaInboxUnread = 0,
+  adminLang,
+}: {
+  tiendaInboxUnread?: number;
+  adminLang: "en" | "es";
+}) {
   const pathname = usePathname() ?? "";
+  const t = useAdminT();
   const [open, setOpen] = useState(false);
 
   const close = useCallback(() => setOpen(false), []);
@@ -38,45 +47,43 @@ export function AdminMobileNavDrawer({ tiendaInboxUnread = 0 }: { tiendaInboxUnr
         className="flex h-11 min-w-[44px] items-center justify-center rounded-2xl border border-[#E8DFD0] bg-white px-3 text-sm font-bold text-[#2C2416] shadow-sm"
         aria-expanded={open}
         aria-controls="admin-mobile-nav-panel"
-        aria-label="Abrir menú de administración"
-        title="Menú: Dashboard, usuarios, workspaces…"
+        aria-label={t("mobile.openMenu")}
+        title={t("mobile.menuTitle")}
       >
         ☰
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Navegación admin">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/40"
-            aria-label="Cerrar menú"
-            onClick={close}
-          />
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={t("mobile.navDialog")}>
+          <button type="button" className="absolute inset-0 bg-black/40" aria-label={t("mobile.closeOverlay")} onClick={close} />
           <div
             id="admin-mobile-nav-panel"
             className="absolute left-0 top-0 flex h-full w-[min(20rem,92vw)] flex-col border-r border-[#E8DFD0]/90 bg-gradient-to-b from-[#FFF5ED] via-[#FFFCF7] to-[#FAF0E6] shadow-xl"
           >
             <div className="flex items-center justify-between gap-2 border-b border-[#E8DFD0]/80 px-4 py-4">
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex min-w-0 items-center gap-3">
                 <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-2 ring-[#D4BC6A]/50">
                   <Image src={newLogo} alt="" className="object-cover" fill sizes="40px" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">Leonix</p>
-                  <p className="truncate text-sm font-bold text-[#1E1810]">Global admin</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t("shell.leonixBrand")}</p>
+                  <p className="truncate text-sm font-bold text-[#1E1810]">{t("shell.globalAdmin")}</p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={close}
-                className="flex h-11 min-w-[44px] shrink-0 items-center justify-center rounded-xl border border-[#E8DFD0] bg-white text-sm font-bold text-[#5C5346]"
-                aria-label="Cerrar"
-              >
-                ✕
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <AdminLangToggle active={adminLang} />
+                <button
+                  type="button"
+                  onClick={close}
+                  className="flex h-11 min-w-[44px] shrink-0 items-center justify-center rounded-xl border border-[#E8DFD0] bg-white text-sm font-bold text-[#5C5346]"
+                  aria-label={t("mobile.close")}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
-            <nav className="flex-1 space-y-0.5 overflow-y-auto overscroll-contain px-2 py-3" aria-label="Administración global">
+            <nav className="flex-1 space-y-0.5 overflow-y-auto overscroll-contain px-2 py-3" aria-label={t("mobile.globalNav")}>
               {ADMIN_GLOBAL_NAV.map((item) => {
                 const active = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href));
                 return (
@@ -88,15 +95,15 @@ export function AdminMobileNavDrawer({ tiendaInboxUnread = 0 }: { tiendaInboxUnr
                       "flex min-h-[44px] items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
                       active
                         ? "bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] text-[#1E1810] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9B46A]/35"
-                        : "text-[#3D3428]/90 active:bg-[#FFFCF7]/90"
+                        : "text-[#3D3428]/90 active:bg-[#FFFCF7]/90",
                     )}
                   >
                     <span className="w-6 text-center text-base opacity-80" aria-hidden>
                       {item.icon}
                     </span>
-                    <span className="flex-1">{item.label}</span>
+                    <span className="flex-1">{t(item.labelKey)}</span>
                     {item.badgeFrom === "tienda" && tiendaInboxUnread > 0 ? (
-                      <span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white min-w-[1.25rem] text-center">
+                      <span className="min-w-[1.25rem] rounded-full bg-rose-500 px-1.5 py-0.5 text-center text-[10px] font-bold text-white">
                         {tiendaInboxUnread > 99 ? "99+" : tiendaInboxUnread}
                       </span>
                     ) : null}
@@ -108,13 +115,17 @@ export function AdminMobileNavDrawer({ tiendaInboxUnread = 0 }: { tiendaInboxUnr
             <div className="border-t border-[#E8DFD0]/80 p-3">
               <div className="rounded-2xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 p-3 text-[11px] font-semibold text-[#5C5346]">
                 <Link href="/admin/workspace" onClick={close} className="block min-h-[44px] py-2 text-[#6B5B2E] underline">
-                  Website sections (workspaces)
+                  {t("shell.websiteSectionsLink")}
                 </Link>
                 <Link href="/admin/site-settings" onClick={close} className="block min-h-[44px] py-2 text-[#6B5B2E] underline">
-                  Ajustes globales del sitio
+                  {t("shell.globalSiteSettingsLink")}
                 </Link>
-                <Link href="/" onClick={close} className="mt-1 block min-h-[44px] py-2 text-center text-xs font-bold text-[#6B5B2E] underline">
-                  Ver sitio público →
+                <Link
+                  href="/"
+                  onClick={close}
+                  className="mt-1 block min-h-[44px] py-2 text-center text-xs font-bold text-[#6B5B2E] underline"
+                >
+                  {t("shell.viewSite")}
                 </Link>
               </div>
             </div>

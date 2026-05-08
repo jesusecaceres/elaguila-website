@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getAdminLang, adminMessages } from "@/app/admin/_lib/adminI18n";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import {
   fetchListingsForAdminWorkspaceFiltered,
@@ -65,6 +66,8 @@ type PageProps = {
 };
 
 export default async function AdminClasificadosWorkspacePage(props: PageProps) {
+  const lang = await getAdminLang();
+  const m = adminMessages(lang);
   const supabase = getAdminSupabase();
   const sp = props.searchParams ? await props.searchParams : {};
   const qInput = (sp.q ?? "").trim();
@@ -107,26 +110,25 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   return (
     <>
       <AdminPageHeader
-        title="Clasificados — centro de operaciones"
-        subtitle="Arriba: mapa por categoría (esquema en código + postura en Supabase). Abajo: la misma cola global de anuncios con filtros — moderación, reportes y En Venta siguen aquí."
-        eyebrow="Workspace · Clasificados"
-        helperText={`Elige una categoría para ver planes, campos y atajos; o baja directo a la cola. Postgres (hasta ${queueLimit} filas): título, ciudad, descripción, id y owner. BR/Rentas refinan en cliente vía detail_pairs.`}
+        title={m("clasificados.title")}
+        subtitle={m("clasificados.subtitle")}
+        eyebrow={m("clasificados.eyebrow")}
+        helperText={m("clasificados.helper", { limit: queueLimit })}
       />
 
-      <ClasificadosCategoryHub registry={registry} />
+      <ClasificadosCategoryHub registry={registry} lang={lang} />
 
-      <ClasificadosCategoryOpsAudit registry={registry} />
+      <ClasificadosCategoryOpsAudit registry={registry} lang={lang} />
 
       {!detailPairsAvailable ? (
         <div
           className={`${adminCardBase} mb-4 max-w-3xl border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}
           role="status"
         >
-          <strong className="font-bold">Base sin columna listings.detail_pairs.</strong> La cola carga en modo reducido: la columna
-          “En venta · vis.” no puede mostrar plan / renovación hasta migrar. Aplica en Supabase la migración{" "}
-          <code className="rounded bg-white/80 px-1 text-[11px]">20250316200000_listings_detail_pairs.sql</code> o{" "}
-          <code className="rounded bg-white/80 px-1 text-[11px]">20260407140000_ensure_listings_detail_pairs.sql</code> (idempotente)
-          y vuelve a cargar.
+          <strong className="font-bold">{m("clasificados.detailPairsMissingTitle")}</strong> {m("clasificados.detailPairsMissingBody")}{" "}
+          <code className="rounded bg-white/80 px-1 text-[11px]">20250316200000_listings_detail_pairs.sql</code> or{" "}
+          <code className="rounded bg-white/80 px-1 text-[11px]">20260407140000_ensure_listings_detail_pairs.sql</code> (idempotent)
+          and reload.
         </div>
       ) : null}
 
@@ -135,29 +137,23 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
           className={`${adminCardBase} mb-4 max-w-3xl border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}
           role="status"
         >
-          <strong className="font-bold">Base sin columna listings.boost_expires.</strong> La cola carga sin fechas de boost; la
-          columna “En venta · vis.” muestra plan y lastRenew pero no el estado exacto de boost/renew hasta migrar. Aplica{" "}
-          <code className="rounded bg-white/80 px-1 text-[11px]">20250312000000_listings_engagement_boost.sql</code> en Supabase y
-          vuelve a cargar.
+          <strong className="font-bold">{m("clasificados.boostMissingTitle")}</strong> {m("clasificados.boostMissingBody")}{" "}
+          <code className="rounded bg-white/80 px-1 text-[11px]">20250312000000_listings_engagement_boost.sql</code> in Supabase and
+          reload.
         </div>
       ) : null}
 
       <div className={`${adminCardBase} mb-4 max-w-3xl space-y-3 p-4 text-xs text-[#5C5346]`}>
         <p>
-          <strong className="text-[#1E1810]">Destacados en la portada `/home`:</strong> no se generan solos desde esta cola. En
-          Home → contenido puedes enlazar manualmente a categorías o rutas públicas (chips). Aquí moderas anuncios en Supabase.
+          <strong className="text-[#1E1810]">{m("clasificados.homeChipsTitle")}</strong> {m("clasificados.homeChipsBody")}
         </p>
         <Link href="/admin/workspace/home/content" className={`${adminCtaChipSecondary} inline-flex text-xs`}>
-          Home → contenido
+          {m("clasificados.homeContentCta")}
         </Link>
       </div>
 
       <div className={`${adminCardBase} mb-4 max-w-3xl p-4 text-xs text-[#5C5346]`}>
-        <strong className="text-[#1E1810]">Ramas inmobiliarias (BR / Rentas):</strong> cuando los listados vivan en{" "}
-        <code className="rounded bg-white/80 px-1 text-[11px]">listings</code>, usa{" "}
-        <code className="rounded bg-white/80 px-1 text-[11px]">category</code> y{" "}
-        <code className="rounded bg-white/80 px-1 text-[11px]">detail_pairs</code> para distinguir venta vs renta, Privado vs
-        Negocio y tipo de propiedad. Vista previa de publicación no es listado público:{" "}
+        <strong className="text-[#1E1810]">{m("clasificados.brHintTitle")}</strong> {m("clasificados.brHintBody")}{" "}
         <code className="rounded bg-white/80 px-1 text-[11px]">/clasificados/bienes-raices/preview/*</code>,{" "}
         <code className="rounded bg-white/80 px-1 text-[11px]">/clasificados/rentas/preview/*</code>.
       </div>
@@ -166,46 +162,43 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         <Link
           href="/admin/workspace/clasificados/autos"
           className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-[#C9B46A]/55 bg-[#FBF7EF] px-4 py-2.5 text-center text-sm font-bold text-[#5C4E2E] shadow-sm transition hover:bg-[#F4EFE4] sm:min-h-10"
-          title="Tabla autos_classifieds_listings: estados de pago y publicación en /clasificados/autos"
+          title={m("clasificados.autosTitle")}
         >
-          Autos (pagos Leonix) →
+          {m("clasificados.autosCta")}
         </Link>
         <Link
           href="/admin/workspace/clasificados/servicios"
           className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-dashed border-[#7A9E6F]/55 bg-[#F4FAF2] px-4 py-2.5 text-center text-sm font-bold text-[#2C4A22] shadow-sm transition hover:bg-[#E8F4E4] sm:min-h-10"
-          title="Cola Supabase: servicios_public_listings (sandbox tiers es aparte)"
+          title={m("clasificados.serviciosTitle")}
         >
-          Servicios (Supabase) →
+          {m("clasificados.serviciosCta")}
         </Link>
         <Link
           href="/admin/categories"
           className={`${adminCtaChipSecondary} justify-center text-sm`}
-          title="Visibilidad, orden y estado operativo por categoría (site_category_config)"
+          title={m("clasificados.categoriesTitle")}
         >
-          Registro de categorías →
+          {m("clasificados.categoriesCta")}
         </Link>
         <Link
           href="/admin/reportes"
           className={`${adminCtaChipSecondary} justify-center text-sm`}
-          title="Cola de reportes de anuncios (listing_reports)"
+          title={m("clasificados.reportesTitle")}
         >
-          Reportes →
+          {m("clasificados.reportesCta")}
         </Link>
       </div>
 
       <div className={`${adminCardBase} mb-6 p-4`}>
         <form className="flex flex-col gap-3" method="get" aria-describedby="clasificados-filter-hint">
           <p id="clasificados-filter-hint" className="text-[10px] leading-snug text-[#7A7164]">
-            Búsqueda <span className="font-mono">q</span>: Leonix Ad ID (si existe columna), UUID de anuncio u owner, título, ciudad,
-            descripción, slug/URL, y coincidencia por nombre / correo / teléfono del perfil (owner). Respeta{" "}
-            <span className="font-mono">category</span>. BR/Rentas refinan en cliente sobre{" "}
-            <span className="font-mono">detail_pairs</span>. <span className="font-mono">limit</span> 50–500 (default 300).
+            {m("clasificados.filterHint")}
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
             <input
               name="q"
               defaultValue={qInput}
-              placeholder="Leonix ID, UUID, título, owner, email/teléfono, URL…"
+              placeholder={m("clasificados.placeholderQ")}
               className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-4 py-3 text-base sm:min-w-[12rem] sm:flex-1 sm:py-2 sm:text-sm"
               aria-describedby="clasificados-filter-hint"
               autoComplete="off"
@@ -221,7 +214,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
               defaultValue={catFilter ?? ""}
               className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[10rem] sm:py-2 sm:text-sm"
             >
-              <option value="">Todas las categorías</option>
+              <option value="">{m("common.allCategories")}</option>
               {cats.map((c) => (
                 <option key={c} value={listingCategorySelectValue(c)}>
                   {c}
@@ -233,7 +226,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
               defaultValue={statusFilter}
               className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[9rem] sm:py-2 sm:text-sm"
             >
-              <option value="">Todos los estados</option>
+              <option value="">{m("common.allStatuses")}</option>
               <option value="active">active</option>
               <option value="pending">pending</option>
               <option value="flagged">flagged</option>
@@ -245,26 +238,26 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
               name="limit"
               defaultValue={String(queueLimit)}
               className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[8rem] sm:py-2 sm:text-sm"
-              title="Máximo de anuncios a traer de Supabase en esta vista"
-              aria-label="Límite de filas"
+              title={m("clasificados.limitTitle")}
+              aria-label={m("clasificados.limitAria")}
             >
-              <option value="100">100 filas</option>
-              <option value="200">200 filas</option>
-              <option value="300">300 filas</option>
-              <option value="400">400 filas</option>
-              <option value="500">500 filas</option>
+              <option value="100">100 {m("common.rows")}</option>
+              <option value="200">200 {m("common.rows")}</option>
+              <option value="300">300 {m("common.rows")}</option>
+              <option value="400">400 {m("common.rows")}</option>
+              <option value="500">500 {m("common.rows")}</option>
             </select>
           </div>
           <div className="flex flex-col gap-2 border-t border-[#E8DFD0]/60 pt-3 sm:flex-row sm:flex-wrap sm:items-end">
             <p className="w-full text-[11px] font-semibold uppercase tracking-wide text-[#5C5346] sm:mb-1">
-              Leonix BR / Rentas (detail_pairs)
+              {m("clasificados.leonixFilters")}
             </p>
             <select
               name="leonix_branch"
               defaultValue={lxBranch}
               className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[12rem] sm:py-2 sm:text-sm"
             >
-              <option value="">Rama (todas)</option>
+              <option value="">{m("clasificados.branchAll")}</option>
               <option value="bienes_raices_privado">bienes_raices_privado</option>
               <option value="bienes_raices_negocio">bienes_raices_negocio</option>
               <option value="rentas_privado">rentas_privado</option>
@@ -275,9 +268,9 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
               defaultValue={lxOp}
               className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[9rem] sm:py-2 sm:text-sm"
             >
-              <option value="">Operación (todas)</option>
-              <option value="sale">sale (venta)</option>
-              <option value="rent">rent (renta)</option>
+              <option value="">{m("clasificados.operationAll")}</option>
+              <option value="sale">{m("clasificados.operationSale")}</option>
+              <option value="rent">{m("clasificados.operationRent")}</option>
             </select>
             <select
               name="leonix_propiedad"
@@ -292,9 +285,9 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
             <button
               type="submit"
               className="min-h-[44px] w-full rounded-2xl bg-[#2A2620] px-4 py-3 text-sm font-semibold text-[#FAF7F2] sm:min-h-0 sm:w-auto sm:py-2"
-              title="Recargar la cola con los filtros en la URL (sin mutar datos)"
+              title={m("clasificados.applyFiltersTitle")}
             >
-              Aplicar filtros
+              {m("common.applyFilters")}
             </button>
           </div>
         </form>
@@ -311,16 +304,13 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         />
       )}
 
-      <AdminSectionCard
-        title="En Venta — contrato de moderación"
-        subtitle="Solo referencia (lista de motivos). No envía cambios a la base — documentación para el equipo."
-      >
-        <EnVentaModerationFields lang="es" />
+      <AdminSectionCard title={m("clasificados.envSectionTitle")} subtitle={m("clasificados.envSectionSubtitle")}>
+        <EnVentaModerationFields lang={lang} />
       </AdminSectionCard>
 
       <div className="mt-8">
         <Link href="/admin/workspace" className={`${adminCtaChipCompact} inline-flex text-sm`}>
-          ← Resumen de secciones del sitio
+          {m("clasificados.backWorkspace")}
         </Link>
       </div>
     </>
