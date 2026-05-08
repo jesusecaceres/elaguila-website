@@ -27,6 +27,7 @@
     "verify:empleos": "npx tsx scripts/empleos-jobposting-schema-selftest.ts",
     "verify:empleos:http-smoke": "node scripts/empleos-http-smoke.mjs",
     "verify:empleos:db-read": "npx tsx scripts/empleos-supabase-read-smoke.mts",
+    "verify:analytics:table": "npx tsx scripts/verify-listing-analytics-table.mts",
     "seed:empleos:manual-qa": "npx playwright test -c playwright.empleos-runtime.config.mjs e2e/empleos/empleos-manual-qa-seed.spec.ts",
     "seed:en-venta:manual-qa": "npx playwright test -c playwright.config.mjs e2e/en-venta-manual-qa-seed.spec.ts",
     "verify:restaurantes": "npm run verify:restaurantes:launch",

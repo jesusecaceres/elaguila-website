@@ -103,6 +103,50 @@ This document maps **displayed metrics → `listing_analytics.event_type` → tr
 
 **If `listing_analytics` is missing:** apply **`20260507180000_listing_analytics_schema_complete.sql`** (and follow-up index migration), reload PostgREST schema cache, then repeat steps 1–17.
 
+---
+
+## Production: make `listing_analytics` live (Supabase)
+
+### 1) Repo migrations (must exist)
+
+| File | Purpose |
+|------|---------|
+| `supabase/migrations/20260507180000_listing_analytics_schema_complete.sql` | Idempotent full table shape, CHECK on `event_type`, indexes, RLS insert/select |
+| `supabase/migrations/20260507200000_listing_analytics_category_index.sql` | Index on `category` |
+
+### 2) Confirm they ran on **production**
+
+- **Supabase Dashboard** → your **production** project → **Database** → **Migrations** (or **SQL** history): look for timestamps `20260507180000` / `20260507200000`, **or**
+- **CLI** (with project linked): `supabase migration list` / `supabase db remote commit` per your team workflow.
+
+### 3) If not applied — apply using your normal workflow
+
+Typical options (pick what your team already uses):
+
+1. **Supabase CLI linked to prod:** `supabase db push` (or your CI job that runs migrations on deploy).
+2. **Dashboard SQL editor:** run the **contents** of the two migration files **in order** (idempotent `IF NOT EXISTS` / `DROP CONSTRAINT IF EXISTS` makes this safe).
+
+### 4) Reload PostgREST schema cache
+
+After DDL, PostgREST may still show `schema cache` until refreshed. Try **in order**:
+
+1. **SQL Editor** (often allowed on hosted Supabase):  
+   `NOTIFY pgrst, 'reload schema';`
+2. If errors persist: **Project Settings** → restart / pause-resume API (wording varies by dashboard version), or wait 1–2 minutes for propagation.
+
+### 5) Automated verify (from a machine with **production** URL + anon key in `.env.local`)
+
+```bash
+npm run verify:analytics:table
+```
+
+Expect: `LISTING_ANALYTICS_OK`. If it prints `LISTING_ANALYTICS_FAIL` with schema-cache text, migrations or reload step is still missing.
+
+### 6) Manual UI verify
+
+- `/dashboard?lang=en` and `?lang=es` — **blue “analytics not available”** banner should **disappear** once reads succeed (zeros are fine with no events).
+- `/dashboard/analytics?lang=en` and `?lang=es` — **no raw Supabase errors**; setup notice only when the table/read still fails; otherwise **zeros + normal empty/helper** copy when there are no events.
+
 ## Known gaps (honest)
 
 - **Unique viewers:** underestimated when viewers are anonymous (no `user_id`); distinct logged-in users only.
