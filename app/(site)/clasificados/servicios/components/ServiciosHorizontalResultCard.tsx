@@ -21,8 +21,15 @@ const GRID =
   "grid min-w-0 grid-cols-1 md:grid-cols-[minmax(0,38%)_minmax(0,1fr)] md:items-stretch md:gap-0";
 
 const MEDIA_CELL = "min-w-0 bg-[#F6F0E8] p-2.5 md:p-0 md:pl-2.5 md:pt-2.5 md:pb-2.5";
+/** Fixed “stage” for media — inner layers use object-contain so no crop/stretch. */
 const MEDIA_FRAME =
-  "relative h-[min(220px,52vw)] w-full min-h-[160px] overflow-hidden rounded-xl border border-[#E4D4BC]/80 bg-[#EDE4D8] md:h-[200px] md:min-h-[200px] md:rounded-l-xl md:rounded-r-none";
+  "relative h-[min(220px,52vw)] w-full min-h-[160px] overflow-hidden rounded-xl border border-[#E4D4BC]/80 bg-[#EDE4D8] shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] md:h-[200px] md:min-h-[200px] md:rounded-l-xl md:rounded-r-none";
+
+const MEDIA_CANVAS_BG =
+  "pointer-events-none absolute inset-0 z-0 bg-gradient-to-br from-[#EDE4D8] via-[#F5EFE6] to-[#E4D8C8]";
+
+const MEDIA_ASSET_SLOT = "absolute inset-0 z-[1] p-3 md:p-4";
+const MEDIA_ASSET_BOX = "relative h-full w-full min-h-0 min-w-0";
 
 const CONTENT =
   "flex min-w-0 flex-col gap-2.5 px-3 pb-3 pt-2.5 md:gap-3 md:px-5 md:pb-4 md:pt-4 md:pr-4";
@@ -274,33 +281,34 @@ export function ServiciosHorizontalResultCard({
       <div className={GRID}>
         <div className={MEDIA_CELL}>
           <div className={MEDIA_FRAME}>
-            {hasBackdrop ? (
-              <>
-                <Image
-                  src={backdropUrl}
-                  alt={backdropAlt}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 38vw"
-                  priority={false}
-                  unoptimized={serviciosImageUnoptimized(backdropUrl)}
-                />
-                <div
-                  className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-black/25 via-black/[0.06] to-black/10"
-                  aria-hidden
-                />
-              </>
-            ) : mediaIsLogoOnly ? (
-              <div className="absolute inset-0 z-[0] bg-[#F3EBDD]" aria-hidden />
+            {/* Layer A: fixed canvas fill (stage) */}
+            <div className={MEDIA_CANVAS_BG} aria-hidden />
+
+            {/* Layer B: primary asset — always centered + object-contain (no crop / no stretch) */}
+            {hasBackdrop || (logoUrl && mediaIsLogoOnly) ? (
+              <div className={MEDIA_ASSET_SLOT}>
+                <div className={MEDIA_ASSET_BOX}>
+                  <Image
+                    src={hasBackdrop ? backdropUrl : logoUrl}
+                    alt={hasBackdrop ? backdropAlt : logoAlt}
+                    fill
+                    className="object-contain object-center"
+                    sizes="(max-width: 768px) 100vw, 38vw"
+                    priority={false}
+                    unoptimized={serviciosImageUnoptimized(hasBackdrop ? backdropUrl : logoUrl)}
+                  />
+                </div>
+              </div>
             ) : (
-              <div className="absolute inset-0 z-[0] flex items-center justify-center bg-[#F3EBDD]">
+              <div className={`${MEDIA_ASSET_SLOT} flex items-center justify-center`}>
                 <FiMapPin className="h-9 w-9 text-[#9A8F82]" aria-hidden />
               </div>
             )}
 
-            {logoUrl ? (
+            {/* Layer C: separate logo mark only when hero photo is not logo-only */}
+            {hasBackdrop && logoUrl && !mediaIsLogoOnly ? (
               <div className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-center p-4">
-                <div className={hasBackdrop ? LOGO_FRAME : `${LOGO_FRAME} shadow-[0_8px_28px_-10px_rgba(42,36,22,0.2)]`}>
+                <div className={LOGO_FRAME}>
                   <Image
                     src={logoUrl}
                     alt={logoAlt}
@@ -313,7 +321,7 @@ export function ServiciosHorizontalResultCard({
               </div>
             ) : null}
 
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-[2] flex flex-wrap gap-1 p-2">
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-[4] flex flex-wrap gap-1 p-2">
               {promoted ? (
                 <span className="rounded-full border border-white/70 bg-gradient-to-r from-[#D4AF37] to-[#9A7329] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
                   {L.featured}
