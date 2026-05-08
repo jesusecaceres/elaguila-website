@@ -115,6 +115,16 @@ function main() {
   assert.equal(mg!.imageUrl, u1, "cover from LEONIX_IMAGES when images column empty");
   assert.deepEqual(mg!.galleryUrls, [u1, u2]);
 
+  const logoOnlyImages = baseRow({
+    id: "00000000-0000-4000-8000-00000000ff11",
+    images: ["/logo.png"],
+    description: `Stale images column with logo only.\n${descWithMarker}`,
+  });
+  const recovered = mapListingRowToRentasPublicListing(logoOnlyImages, "es");
+  assert.ok(recovered);
+  assert.equal(recovered!.imageUrl, u1, "ignore placeholder images[] when description has LEONIX_IMAGES");
+  assert.deepEqual(recovered!.galleryUrls, [u1, u2]);
+
   const list = [mapped!];
 
   const assertFinds = (qs: string, msg: string) => {

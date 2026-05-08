@@ -79,19 +79,6 @@ function pairValue(detailPairs: unknown, needle: string): string | null {
   return null;
 }
 
-function firstImageUrl(images: unknown): string {
-  if (images == null) return "";
-  if (Array.isArray(images) && images.length) {
-    const first = images[0];
-    if (typeof first === "string" && first.trim()) return first.trim();
-    if (first && typeof first === "object") {
-      const u = (first as Record<string, unknown>).url ?? (first as Record<string, unknown>).src;
-      if (typeof u === "string" && u.trim()) return u.trim();
-    }
-  }
-  return "";
-}
-
 function galleryUrls(images: unknown): string[] | undefined {
   if (!Array.isArray(images) || !images.length) return undefined;
   const out: string[] = [];
@@ -103,6 +90,37 @@ function galleryUrls(images: unknown): string[] | undefined {
     }
   }
   return out.length ? out : undefined;
+}
+
+/** Leonix app placeholder / brand defaults — must not win over real gallery URLs in `description`. */
+function isRentasPlaceholderImageUrl(u: string): boolean {
+  const t = u.trim().toLowerCase();
+  if (!t) return true;
+  if (t === "/logo.png" || t.endsWith("/logo.png")) return true;
+  const brand = String(process.env.NEXT_PUBLIC_LEONIX_BRAND_LOGO_URL ?? "").trim().toLowerCase();
+  if (brand && t === brand) return true;
+  return false;
+}
+
+function galleryUrlsSansPlaceholders(images: unknown): string[] | undefined {
+  const all = galleryUrls(images);
+  if (!all?.length) return undefined;
+  const kept = all.filter((x) => !isRentasPlaceholderImageUrl(x));
+  return kept.length ? kept : undefined;
+}
+
+function firstNonPlaceholderImageUrl(images: unknown): string {
+  if (images == null || !Array.isArray(images) || !images.length) return "";
+  for (const item of images) {
+    let u = "";
+    if (typeof item === "string" && item.trim()) u = item.trim();
+    else if (item && typeof item === "object") {
+      const raw = (item as Record<string, unknown>).url ?? (item as Record<string, unknown>).src;
+      if (typeof raw === "string" && raw.trim()) u = raw.trim();
+    }
+    if (u && !isRentasPlaceholderImageUrl(u)) return u;
+  }
+  return "";
 }
 
 function branchToSeller(branch: LeonixClasificadosBranch | null): "privado" | "negocio" {
@@ -290,11 +308,11 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     pairValue(row.detail_pairs, "Nota para interesados") ??
     undefined;
 
-  const galFromImages = galleryUrls(row.images);
+  const galFromImages = galleryUrlsSansPlaceholders(row.images);
   const galFromDesc = parseLeonixImageUrlsFromDescription(row.description);
   const gal =
     galFromImages && galFromImages.length ? galFromImages : galFromDesc.length ? galFromDesc : undefined;
-  const imgFromColumn = firstImageUrl(row.images);
+  const imgFromColumn = firstNonPlaceholderImageUrl(row.images);
   const img = imgFromColumn || (gal?.[0] ?? "") || (galFromDesc[0] ?? "");
   const imageUrl = img || "/logo.png";
 

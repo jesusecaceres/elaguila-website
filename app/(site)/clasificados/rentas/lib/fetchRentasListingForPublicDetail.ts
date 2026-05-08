@@ -28,5 +28,25 @@ export async function fetchRentasListingForPublicDetail(
   }
   const mapped = mapListingRowToRentasPublicListing(row, lang);
   if (!mapped || mapped.browseActive === false) return null;
+
+  if (process.env.RENTAS_DEBUG_PUBLIC_MEDIA === "1") {
+    const desc = typeof row.description === "string" ? row.description : "";
+    const markerHit = desc.includes("[LEONIX_IMAGES]");
+    const galLen = mapped.galleryUrls?.length ?? 0;
+    const rawIm = row.images;
+    // eslint-disable-next-line no-console -- opt-in server diagnostic only
+    console.info("[rentas public media]", id, {
+      cover: mapped.imageUrl?.slice(0, 160),
+      galleryCount: galLen,
+      galleryPreview: (mapped.galleryUrls ?? []).slice(0, 3).map((u) => u.slice(0, 100)),
+      videoUrl: mapped.videoUrl ?? null,
+      titleSnippet: mapped.title?.slice(0, 80),
+      descriptionLen: desc.length,
+      leonixImagesMarkerInDescription: markerHit,
+      rowImagesIsArray: Array.isArray(rawIm),
+      rowImagesLength: Array.isArray(rawIm) ? rawIm.length : 0,
+    });
+  }
+
   return mapped;
 }
