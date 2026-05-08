@@ -3,44 +3,54 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
-import { FiGlobe, FiMapPin, FiPhone, FiMessageCircle } from "react-icons/fi";
+import { FiGlobe, FiMapPin, FiPhone, FiMail } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import type { ServiciosPublicListingRow } from "../lib/serviciosPublicListingsServer";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import { getServiciosProfileLabels } from "@/app/servicios/copy/serviciosProfileCopy";
 import { serviciosImageUnoptimized } from "@/app/servicios/lib/serviciosMediaUrl";
 import { isServiciosListingPromoted } from "../lib/serviciosResultsFilter";
+import type { ServiciosProfileResolved } from "@/app/(site)/servicios/types/serviciosBusinessProfile";
 
 /** Marketplace result row — low profile, warm Phase 9D palette (not tall preview canvas). */
 const CARD =
   "overflow-hidden rounded-2xl border border-[#E4D4BC] bg-[#FFFDF9] shadow-sm transition-shadow duration-200 hover:shadow-md";
 
-/** Desktop: fixed-height media band so the row reads as a horizontal listing, not a tall card. */
+/** Desktop: media left, content right — true horizontal discovery row. */
 const GRID =
-  "grid min-w-0 grid-cols-1 md:grid-cols-[minmax(0,34%)_minmax(0,1fr)] md:items-stretch md:gap-0";
+  "grid min-w-0 grid-cols-1 md:grid-cols-[minmax(0,38%)_minmax(0,1fr)] md:items-stretch md:gap-0";
 
 const MEDIA_CELL = "min-w-0 bg-[#F6F0E8] p-2.5 md:p-0 md:pl-2.5 md:pt-2.5 md:pb-2.5";
 const MEDIA_FRAME =
-  "relative h-[min(200px,48vw)] w-full min-h-[140px] overflow-hidden rounded-xl border border-[#E4D4BC]/80 bg-[#EDE4D8] md:h-[168px] md:min-h-[168px] md:rounded-l-xl md:rounded-r-none";
+  "relative h-[min(220px,52vw)] w-full min-h-[160px] overflow-hidden rounded-xl border border-[#E4D4BC]/80 bg-[#EDE4D8] md:h-[200px] md:min-h-[200px] md:rounded-l-xl md:rounded-r-none";
 
 const CONTENT =
-  "flex min-w-0 flex-col gap-2.5 px-3 pb-3 pt-2.5 md:gap-3 md:px-5 md:pb-4 md:pt-3.5 md:pr-4";
+  "flex min-w-0 flex-col gap-2.5 px-3 pb-3 pt-2.5 md:gap-3 md:px-5 md:pb-4 md:pt-4 md:pr-4";
 
 const TITLE = "text-lg font-bold leading-snug tracking-tight text-[#2A2620] md:text-xl";
-const SUBTITLE = "text-[14px] font-bold leading-snug text-[#5c5147]";
+/** Business type / category — scan-friendly, slightly bolder than body. */
+const CATEGORY =
+  "text-[13px] font-extrabold uppercase leading-snug tracking-[0.06em] text-[#3d352c] md:text-[14px]";
 const BODY = "text-[13px] leading-relaxed text-[#6F6254]";
 
+/** Service chips — warm sand surface, espresso text (premium, readable). */
 const CHIP =
-  "inline-flex h-7 max-w-full items-center rounded-full border border-[#E0D0B8] bg-[#FFFCF7] px-2.5 text-[12px] font-semibold leading-none text-[#2A2620]";
+  "inline-flex h-8 max-w-full shrink-0 items-center rounded-full border border-[#D4C4A8]/90 bg-[#EBDCC4] px-3 text-[13px] font-semibold leading-none text-[#1E1814]";
 
 const META_PILL =
-  "inline-flex h-8 max-w-full items-center gap-1.5 rounded-full border border-[#E0D0B8] bg-[#F9F4EC] px-2.5 text-[13px] font-bold leading-none text-[#5c5147]";
+  "inline-flex h-9 max-w-full items-center gap-1.5 rounded-full border border-[#E0D0B8] bg-[#F9F4EC] px-3 text-[14px] font-bold leading-none text-[#4a4036]";
 
 const STATUS_OPEN = "border-[#6F7A3A]/50 bg-[#6F7A3A]/12 text-[#4d5630]";
 const STATUS_CLOSED = "border-[#B86A32]/45 bg-[#B86A32]/12 text-[#6b3f18]";
 
 const ADDRESS_LINK =
-  "group inline-flex min-h-[40px] w-full items-center gap-2 rounded-xl border border-[#E0D0B8] bg-[#F9F4EC] px-3 py-2 text-[13px] font-semibold text-[#2A2620] transition hover:border-[#C9A84A] hover:bg-[#FFF9EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/40";
+  "group inline-flex min-h-[44px] w-full items-center gap-2 rounded-xl border border-[#E0D0B8] bg-[#F9F4EC] px-3 py-2.5 text-[14px] font-semibold text-[#2A2620] transition hover:border-[#C9A84A] hover:bg-[#FFF9EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/40";
+
+const LOCATION_LINE =
+  "flex min-h-[40px] items-start gap-2 rounded-xl border border-[#E8D9C4] bg-[#FFFCF7] px-3 py-2 text-[14px] font-semibold leading-snug text-[#2A2620]";
+
+const LOGO_FRAME =
+  "rounded-2xl border border-[#E8DDD0] bg-white/95 p-3 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.28)] ring-1 ring-black/[0.04] backdrop-blur-[2px]";
 
 const CTA_ROW = "mt-auto flex flex-wrap gap-2 pt-0.5";
 const CTA_PRIMARY =
@@ -59,6 +69,21 @@ function cleanOtherLabel(raw: string): string {
   if (lower.startsWith("otro ")) return t.replace(/^otro\s+/i, "").trim();
   if (lower.startsWith("other ")) return t.replace(/^other\s+/i, "").trim();
   return t;
+}
+
+/** Exclude filler / trust-style labels from “Nuestros servicios” chip row. */
+function isWeakServiceChipLabel(label: string): boolean {
+  const low = label.trim().toLowerCase();
+  if (!low) return true;
+  const weak = new Set([
+    "innovación constante",
+    "innovacion constante",
+    "etiqueta breve",
+    "constant innovation",
+    "brief tag",
+    "brief label",
+  ]);
+  return weak.has(low);
 }
 
 function mapsSearchHref(query: string): string {
@@ -88,8 +113,12 @@ function StarRow({ rating, lang }: { rating: number; lang: "es" | "en" }) {
 }
 
 export interface ServiciosHorizontalResultCardProps {
-  row: ServiciosPublicListingRow;
+  /** Published discovery row — omit when `previewProfile` is set. */
+  row?: ServiciosPublicListingRow;
+  /** Draft / expert preview — same card shell as discovery (publish preview page). */
+  previewProfile?: ServiciosProfileResolved;
   lang: "es" | "en";
+  className?: string;
   publicDetailHref?: string;
   publicDetailLabel?: string;
   discoveryRefineHref?: string;
@@ -102,41 +131,55 @@ export interface ServiciosHorizontalResultCardProps {
  */
 export function ServiciosHorizontalResultCard({
   row,
+  previewProfile,
   lang,
+  className = "",
   publicDetailHref,
   publicDetailLabel,
   discoveryRefineHref,
   discoveryRefineLabel,
 }: ServiciosHorizontalResultCardProps) {
   const L = getServiciosProfileLabels(lang);
-  const wire = { ...row.profile_json };
-  wire.identity = { ...wire.identity, leonixVerified: row.leonix_verified === true };
 
-  if ((row.review_rating_count ?? 0) > 0 && typeof row.review_rating_avg === "number" && Number.isFinite(row.review_rating_avg)) {
-    wire.hero = {
-      ...wire.hero,
-      rating: row.review_rating_avg,
-      reviewCount: row.review_rating_count ?? undefined,
-    };
+  const profile = useMemo((): ServiciosProfileResolved | null => {
+    if (previewProfile) return previewProfile;
+    if (!row) return null;
+    const wire = { ...row.profile_json };
+    wire.identity = { ...wire.identity, leonixVerified: row.leonix_verified === true };
+    if ((row.review_rating_count ?? 0) > 0 && typeof row.review_rating_avg === "number" && Number.isFinite(row.review_rating_avg)) {
+      wire.hero = {
+        ...wire.hero,
+        rating: row.review_rating_avg,
+        reviewCount: row.review_rating_count ?? undefined,
+      };
+    }
+    return resolveServiciosProfile(wire, lang);
+  }, [previewProfile, row, lang]);
+
+  if (!profile) {
+    return null;
   }
 
-  const profile = resolveServiciosProfile(wire, lang);
+  const listingSlug = (row?.slug || "").trim() || profile.identity.slug;
+  const cityFallback = (row?.city || "").trim();
 
   const logoUrl = (profile.hero.logoUrl || "").trim();
   const logoAlt = (profile.hero.logoAlt || "").trim() || profile.identity.businessName;
 
-  const mediaUrl =
-    (profile.hero.coverImageUrl || "").trim() ||
-    (profile.gallery[0]?.url || "").trim() ||
-    logoUrl ||
+  const coverUrl = (profile.hero.coverImageUrl || "").trim();
+  const galleryFirstUrl = (profile.gallery[0]?.url || "").trim();
+  const backdropUrl =
+    coverUrl ||
+    (galleryFirstUrl && galleryFirstUrl !== logoUrl ? galleryFirstUrl : "") ||
     "";
-  const mediaAlt =
+  const backdropAlt =
     (profile.hero.coverImageAlt || "").trim() ||
     (profile.gallery[0]?.alt || "").trim() ||
     logoAlt ||
     profile.identity.businessName;
 
-  const mediaIsLogoOnly = Boolean(logoUrl && mediaUrl === logoUrl);
+  const hasBackdrop = Boolean(backdropUrl);
+  const mediaIsLogoOnly = Boolean(logoUrl && !hasBackdrop);
 
   const categoryChip = useMemo(() => {
     const raw = (profile.hero.categoryLine || "").trim();
@@ -148,22 +191,25 @@ export function ServiciosHorizontalResultCard({
   const locationLine = useMemo(() => {
     const fromHero = (profile.hero.locationSummary || "").trim();
     if (fromHero) return fromHero;
-    return (row.city || "").trim();
-  }, [profile.hero.locationSummary, row.city]);
+    return cityFallback;
+  }, [profile.hero.locationSummary, cityFallback]);
 
-  const serviceChips = useMemo(() => {
+  const serviceChipList = useMemo(() => {
     const out: string[] = [];
     const seen = new Set<string>();
     for (const s of profile.services) {
       const c = cleanOtherLabel(s.title);
-      if (c && !seen.has(c)) {
-        seen.add(c);
-        out.push(c);
-      }
-      if (out.length >= 4) break;
+      if (!c || isWeakServiceChipLabel(c)) continue;
+      const dedupeKey = c.toLowerCase();
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+      out.push(c);
     }
     return out;
   }, [profile.services]);
+
+  const serviceChipsVisible = serviceChipList.slice(0, 5);
+  const serviceChipsMore = serviceChipList.length > 5 ? serviceChipList.length - 5 : 0;
 
   const addressQuery = (profile.contact?.physicalAddressDisplay || "").trim();
   const mapsHref = ((profile.contact?.mapsSearchHref || "").trim() || (addressQuery ? mapsSearchHref(addressQuery) : "")).trim();
@@ -174,32 +220,40 @@ export function ServiciosHorizontalResultCard({
 
   const contactActions = useMemo((): ContactAction[] => {
     const out: ContactAction[] = [];
+    const officeTel = (profile.contact.phoneOfficeTelHref || "").trim();
+    const officeDisplay = (profile.contact.phoneOfficeDisplay || "").trim();
     const tel = (profile.contact.phoneTelHref || "").trim();
-    if (tel && profile.contact.phoneDisplay) {
-      out.push({ key: "call", href: tel, label: L.call });
+    const phoneDisplay = (profile.contact.phoneDisplay || "").trim();
+    if (officeTel && officeDisplay) {
+      out.push({ key: "callOffice", href: officeTel, label: L.callOffice });
     }
-    const web = (profile.contact.websiteHref || "").trim();
-    if (web) {
-      out.push({ key: "website", href: web, label: L.visitWebsite });
+    if (tel && phoneDisplay && tel !== officeTel) {
+      out.push({ key: "call", href: tel, label: L.call });
     }
     const wa = (profile.contact.socialLinks?.whatsapp || "").trim();
     if (wa) {
       out.push({ key: "whatsapp", href: wa, label: L.whatsapp });
     }
-    if (mapsHref && !addressQuery) {
-      out.push({ key: "maps", href: mapsHref, label: L.openInMaps });
-    }
     const mail = (profile.contact.emailMailtoHref || "").trim();
     if (mail) {
       out.push({ key: "email", href: mail, label: L.email });
     }
+    const web = (profile.contact.websiteHref || "").trim();
+    if (web) {
+      out.push({ key: "website", href: web, label: L.visitWebsite });
+    }
+    if (mapsHref && !addressQuery) {
+      out.push({ key: "maps", href: mapsHref, label: L.openInMaps });
+    }
     return out;
   }, [L, profile.contact, mapsHref, addressQuery]);
 
-  const vitrinaHref = (publicDetailHref || "").trim() || `/clasificados/servicios/${encodeURIComponent(row.slug)}?lang=${lang}`;
+  const vitrinaHref =
+    (publicDetailHref || "").trim() || `/clasificados/servicios/${encodeURIComponent(listingSlug)}?lang=${lang}`;
   const vitrinaLabel = (publicDetailLabel || "").trim() || (lang === "en" ? "View showcase" : "Ver vitrina");
 
-  const promoted = isServiciosListingPromoted(row);
+  const promoted = row ? isServiciosListingPromoted(row) : false;
+  const verifiedListing = row ? row.leonix_verified === true : profile.hero.badges.some((b) => b.kind === "verified");
 
   const ratingValue =
     typeof profile.hero.rating === "number" && Number.isFinite(profile.hero.rating) ? profile.hero.rating : undefined;
@@ -213,101 +267,103 @@ export function ServiciosHorizontalResultCard({
   const hoursPillText =
     openLbl && hoursLine ? `${openLbl} · ${hoursLine}` : openLbl || hoursLine || (lang === "en" ? "Hours" : "Horario");
 
-  const showLogoOverlay = Boolean(logoUrl && mediaUrl && !mediaIsLogoOnly);
+  const showLocationServiceRow = Boolean(locationLine) && !addressQuery;
 
   return (
-    <article className={`${CARD} w-full min-w-0`}>
+    <article className={`${CARD} w-full min-w-0 ${className}`.trim()}>
       <div className={GRID}>
         <div className={MEDIA_CELL}>
           <div className={MEDIA_FRAME}>
-            {mediaUrl ? (
-              <Image
-                src={mediaUrl}
-                alt={mediaAlt}
-                fill
-                className={mediaIsLogoOnly ? "object-contain p-6" : "object-cover"}
-                sizes="(max-width: 768px) 100vw, 34vw"
-                priority={false}
-                unoptimized={serviciosImageUnoptimized(mediaUrl)}
-              />
+            {hasBackdrop ? (
+              <>
+                <Image
+                  src={backdropUrl}
+                  alt={backdropAlt}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 38vw"
+                  priority={false}
+                  unoptimized={serviciosImageUnoptimized(backdropUrl)}
+                />
+                <div
+                  className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-black/25 via-black/[0.06] to-black/10"
+                  aria-hidden
+                />
+              </>
+            ) : mediaIsLogoOnly ? (
+              <div className="absolute inset-0 z-[0] bg-[#F3EBDD]" aria-hidden />
             ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <FiMapPin className="h-8 w-8 text-[#9A8F82]" aria-hidden />
+              <div className="absolute inset-0 z-[0] flex items-center justify-center bg-[#F3EBDD]">
+                <FiMapPin className="h-9 w-9 text-[#9A8F82]" aria-hidden />
               </div>
             )}
+
+            {logoUrl ? (
+              <div className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-center p-4">
+                <div className={hasBackdrop ? LOGO_FRAME : `${LOGO_FRAME} shadow-[0_8px_28px_-10px_rgba(42,36,22,0.2)]`}>
+                  <Image
+                    src={logoUrl}
+                    alt={logoAlt}
+                    width={112}
+                    height={112}
+                    className="h-16 w-16 object-contain md:h-[5.5rem] md:w-[5.5rem]"
+                    unoptimized={serviciosImageUnoptimized(logoUrl)}
+                  />
+                </div>
+              </div>
+            ) : null}
+
             <div className="pointer-events-none absolute inset-x-0 top-0 z-[2] flex flex-wrap gap-1 p-2">
               {promoted ? (
                 <span className="rounded-full border border-white/70 bg-gradient-to-r from-[#D4AF37] to-[#9A7329] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
                   {L.featured}
                 </span>
               ) : null}
-              {row.leonix_verified ? (
+              {verifiedListing ? (
                 <span className="rounded-full border border-white/80 bg-white/95 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#2A7F3E] shadow-sm">
                   {lang === "en" ? "Verified" : "Verificado"}
                 </span>
               ) : null}
             </div>
-            {showLogoOverlay ? (
-              <div className="absolute bottom-2 left-2 z-[3] rounded-xl border border-white/80 bg-white/95 p-1.5 shadow-md">
-                <Image
-                  src={logoUrl}
-                  alt={logoAlt}
-                  width={56}
-                  height={56}
-                  className="h-14 w-14 rounded-lg object-contain"
-                  unoptimized={serviciosImageUnoptimized(logoUrl)}
-                />
-              </div>
-            ) : null}
           </div>
         </div>
 
         <div className={CONTENT}>
-          <div className="flex min-w-0 gap-3">
-            {logoUrl && mediaIsLogoOnly ? (
-              <div className="hidden shrink-0 rounded-lg border border-[#E4D4BC] bg-white p-1 md:block">
-                <Image
-                  src={logoUrl}
-                  alt={logoAlt}
-                  width={48}
-                  height={48}
-                  className="h-12 w-12 rounded object-contain"
-                  unoptimized={serviciosImageUnoptimized(logoUrl)}
-                />
+          <div className="min-w-0 space-y-1">
+            {ratingValue != null && ratingValue > 0 ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <StarRow rating={ratingValue} lang={lang} />
+                {reviewCount != null ? <span className={`${BODY} font-semibold`}>{L.reviewsSuffix(reviewCount)}</span> : null}
               </div>
             ) : null}
-            <div className="min-w-0 flex-1 space-y-1">
-              {ratingValue != null && ratingValue > 0 ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <StarRow rating={ratingValue} lang={lang} />
-                  {reviewCount != null ? <span className={`${BODY} font-semibold`}>{L.reviewsSuffix(reviewCount)}</span> : null}
-                </div>
-              ) : null}
-              <h2 className={TITLE}>{profile.identity.businessName}</h2>
-              {categoryChip ? <p className={`${SUBTITLE} line-clamp-1`}>{categoryChip}</p> : null}
-              {slogan ? <p className={`${BODY} line-clamp-2 font-semibold`}>{slogan}</p> : null}
-            </div>
+            <h2 className={TITLE}>{profile.identity.businessName}</h2>
+            {categoryChip ? <p className={`${CATEGORY} line-clamp-2`}>{categoryChip}</p> : null}
+            {slogan ? <p className={`${BODY} line-clamp-2 text-[14px] font-semibold text-[#4a4036]`}>{slogan}</p> : null}
           </div>
 
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap gap-1.5">
-              {!addressQuery && locationLine ? <span className={CHIP}>{locationLine}</span> : null}
-              {serviceChips.slice(0, 3).map((f) => (
+          {serviceChipsVisible.length > 0 || serviceChipsMore > 0 ? (
+            <div className="flex min-w-0 flex-wrap gap-1.5">
+              {serviceChipsVisible.map((f) => (
                 <span key={f} className={CHIP}>
                   {f}
                 </span>
               ))}
-              {serviceChips.length > 3 ? (
-                <span className={CHIP}>+{serviceChips.length - 3}</span>
-              ) : null}
+              {serviceChipsMore > 0 ? <span className={CHIP}>+{serviceChipsMore}</span> : null}
             </div>
-          </div>
+          ) : null}
+
+          {showLocationServiceRow ? (
+            <div className={LOCATION_LINE}>
+              <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#6F7A3A]" aria-hidden />
+              <span className="min-w-0 flex-1 leading-snug">{locationLine}</span>
+            </div>
+          ) : null}
 
           {profile.contact?.hours && (openLbl || hoursLine) ? (
             <div className="flex flex-wrap gap-1.5">
               <span className={[META_PILL, hoursClosed ? STATUS_CLOSED : STATUS_OPEN].join(" ")}>
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-70" aria-hidden />
-                <span className="min-w-0 truncate">{hoursPillText}</span>
+                <span className="h-2 w-2 shrink-0 rounded-full bg-current opacity-70" aria-hidden />
+                <span className="min-w-0 truncate font-extrabold">{hoursPillText}</span>
               </span>
             </div>
           ) : null}
@@ -321,7 +377,7 @@ export function ServiciosHorizontalResultCard({
               aria-label={lang === "en" ? "Open address in maps" : "Abrir dirección en mapas"}
             >
               <FiMapPin className="h-4 w-4 shrink-0 text-[#6F7A3A]" aria-hidden />
-              <span className="min-w-0 truncate">{addressQuery}</span>
+              <span className="min-w-0 flex-1 leading-snug">{addressQuery}</span>
               <span className="ml-auto text-[12px] font-bold text-[#8A7E6E] group-hover:text-[#9A7329]">›</span>
             </a>
           ) : null}
@@ -346,14 +402,14 @@ export function ServiciosHorizontalResultCard({
             <div className={CTA_ROW} aria-label={lang === "en" ? "Contact" : "Contacto"}>
               {contactActions.map(({ key, href, label }) => {
                 const Icon =
-                  key === "call"
+                  key === "call" || key === "callOffice"
                     ? FiPhone
                     : key === "website"
                       ? FiGlobe
                       : key === "whatsapp"
                         ? FaWhatsapp
                         : key === "email"
-                          ? FiMessageCircle
+                          ? FiMail
                           : FiMapPin;
                 const external = href.startsWith("http");
                 return (

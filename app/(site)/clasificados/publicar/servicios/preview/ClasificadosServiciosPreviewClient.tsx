@@ -6,7 +6,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "reac
 import { clearLeonixPreviewNavSessionFlag, markPublishFlowReturningToEdit } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
 import { ServiciosProfileView } from "@/app/servicios/components/ServiciosProfileView";
-import { ServiciosPreviewCard } from "@/app/(site)/clasificados/servicios/shell/ServiciosPreviewCard";
+import { ServiciosHorizontalResultCard } from "@/app/(site)/clasificados/servicios/components/ServiciosHorizontalResultCard";
 import { getServiciosWireProfileFromSample } from "@/app/servicios/data/demoServiciosBusinessProfile";
 import { mapServiciosApplicationDraftToBusinessProfile } from "@/app/servicios/lib/mapServiciosApplicationDraftToBusinessProfile";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
@@ -259,12 +259,7 @@ export function ClasificadosServiciosPreviewClient() {
           {/* Premium Preview Card */}
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Vista previa de la tarjeta</h2>
-            <ServiciosPreviewCard 
-              data={profile} 
-              listingId={profile.identity.slug}
-              showEngagementMetrics={true}
-              className="max-w-2xl mx-auto"
-            />
+            <ServiciosHorizontalResultCard previewProfile={profile} lang={lang} className="mx-auto max-w-4xl" />
           </div>
           
           {/* Full Profile View */}
