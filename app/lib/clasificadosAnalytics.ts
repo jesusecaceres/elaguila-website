@@ -185,6 +185,7 @@ export async function trackClasificadosEvent(event: AnalyticsEvent): Promise<voi
       owner_user_id: event.owner_user_id || null,
       anonymous_session_id: userId ? null : sessionId,
       metadata: event.metadata || {},
+      category: event.category ?? null,
     };
     
     await supabase.from("listing_analytics").insert(payload);
