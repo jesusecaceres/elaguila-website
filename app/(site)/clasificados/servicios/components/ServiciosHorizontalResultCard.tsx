@@ -16,19 +16,23 @@ import type { ServiciosProfileResolved } from "@/app/(site)/servicios/types/serv
 const CARD =
   "overflow-hidden rounded-2xl border border-[#E4D4BC] bg-[#FFFDF9] shadow-sm transition-shadow duration-200 hover:shadow-md";
 
-/** Desktop: media left, content right — true horizontal discovery row. */
+/** Desktop: ~Restaurants preview balance — left ~42%, right ~58%, natural column heights. */
 const GRID =
-  "grid min-w-0 grid-cols-1 md:grid-cols-[minmax(0,38%)_minmax(0,1fr)] md:items-stretch md:gap-0";
+  "grid min-w-0 grid-cols-1 md:grid-cols-[minmax(0,42%)_minmax(0,58%)] md:items-start md:gap-0";
 
-const MEDIA_CELL = "min-w-0 bg-[#F6F0E8] p-2.5 md:p-0 md:pl-2.5 md:pt-2.5 md:pb-2.5";
-/** Fixed “stage” for media — inner layers use object-contain so no crop/stretch. */
+/** Match Restaurants horizontal card media padding (RestaurantePreviewCard MEDIA). */
+const MEDIA_CELL = "min-w-0 bg-[#F6F0E8] p-2.5 md:p-4 md:pr-3";
+/**
+ * Landscape stage sized like Restaurants preview (16:9 mobile, 16:10 desktop) — width drives height.
+ * Inner layers stay object-contain (no crop/stretch).
+ */
 const MEDIA_FRAME =
-  "relative h-[min(220px,52vw)] w-full min-h-[160px] overflow-hidden rounded-xl border border-[#E4D4BC]/80 bg-[#EDE4D8] shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] md:h-[200px] md:min-h-[200px] md:rounded-l-xl md:rounded-r-none";
+  "relative aspect-[16/9] w-full min-h-[180px] overflow-hidden rounded-xl border border-[#E4D4BC]/80 bg-[#EDE4D8] shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] md:aspect-[16/10] md:min-h-0 md:rounded-l-xl md:rounded-r-none";
 
 const MEDIA_CANVAS_BG =
   "pointer-events-none absolute inset-0 z-0 bg-gradient-to-br from-[#EDE4D8] via-[#F5EFE6] to-[#E4D8C8]";
 
-const MEDIA_ASSET_SLOT = "absolute inset-0 z-[1] p-3 md:p-4";
+const MEDIA_ASSET_SLOT = "absolute inset-0 z-[1] p-2.5 md:p-3";
 const MEDIA_ASSET_BOX = "relative h-full w-full min-h-0 min-w-0";
 
 const CONTENT =
@@ -293,7 +297,7 @@ export function ServiciosHorizontalResultCard({
                     alt={hasBackdrop ? backdropAlt : logoAlt}
                     fill
                     className="object-contain object-center"
-                    sizes="(max-width: 768px) 100vw, 38vw"
+                    sizes="(max-width: 768px) 100vw, 42vw"
                     priority={false}
                     unoptimized={serviciosImageUnoptimized(hasBackdrop ? backdropUrl : logoUrl)}
                   />
@@ -314,7 +318,7 @@ export function ServiciosHorizontalResultCard({
                     alt={logoAlt}
                     width={112}
                     height={112}
-                    className="h-16 w-16 object-contain md:h-[5.5rem] md:w-[5.5rem]"
+                    className="h-[4.5rem] w-[4.5rem] object-contain md:h-28 md:w-28"
                     unoptimized={serviciosImageUnoptimized(logoUrl)}
                   />
                 </div>
