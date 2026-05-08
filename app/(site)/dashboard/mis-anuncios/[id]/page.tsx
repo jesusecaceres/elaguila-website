@@ -9,6 +9,7 @@ import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLa
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
 import { DashboardMobilePreview } from "../../components/DashboardMobilePreview";
+import { rollupListingAnalyticsEvents } from "../../lib/listingAnalyticsAggregate";
 import { isListingBoosted, listingPlanFromDetailPairs } from "../../lib/dashboardListingMeta";
 import {
   expiresInDaysLabel,
@@ -24,6 +25,7 @@ type Tab = "overview" | "analytics" | "messages" | "edit" | "promotion" | "statu
 
 type ListingRow = {
   id: string;
+  leonix_ad_id?: string | null;
   owner_id?: string | null;
   title?: string | null;
   price?: number | string | null;
@@ -134,6 +136,12 @@ export default function ListingWorkspacePage() {
             msg: "Mensajes",
             shares: "Compartidos",
             prof: "Clics a perfil",
+            opens: "Aperturas de ficha",
+            likes: "Me gusta",
+            cta: "Clics en CTA",
+            leads: "Leads / contacto",
+            apps: "Solicitudes",
+            lastEng: "Última interacción",
             msgPlaceholder: "Mensajes que mencionan este anuncio (misma tabla de mensajes que la bandeja).",
             msgEmpty: "Aún no hay mensajes enlazados a este anuncio.",
             openMessages: "Abrir bandeja completa",
@@ -166,6 +174,9 @@ export default function ListingWorkspacePage() {
             publicLink: "Public view",
             listingRef: "Reference",
             created: "Created",
+            updated: "Last updated",
+            published: "Published",
+            listingExpires: "Listing expiry",
             expires: "Boost / visibility until",
             plan: "Listing plan",
             boost: "Promotion state",
@@ -175,6 +186,12 @@ export default function ListingWorkspacePage() {
             msg: "Messages",
             shares: "Shares",
             prof: "Profile clicks",
+            opens: "Listing opens",
+            likes: "Likes",
+            cta: "CTA clicks",
+            leads: "Leads / contact",
+            apps: "Applications",
+            lastEng: "Last interaction",
             msgPlaceholder: "Messages tied to this listing ID (same messages table as your inbox).",
             msgEmpty: "No messages linked to this listing yet.",
             openMessages: "Open full inbox",
@@ -209,6 +226,12 @@ export default function ListingWorkspacePage() {
     saves: number;
     shares: number;
     profileClicks: number;
+    listingOpens: number;
+    likes: number;
+    ctaClicks: number;
+    leads: number;
+    applications: number;
+    lastEngagement?: string;
   } | null>(null);
   const [access, setAccess] = useState<"loading" | "ok" | "missing" | "forbidden">("loading");
   const [listingMessages, setListingMessages] = useState<ListingMsgRow[]>([]);
@@ -248,9 +271,9 @@ export default function ListingWorkspacePage() {
     }
 
     const selFull =
-      "id,owner_id,title,price,city,status,created_at,updated_at,published_at,expires_at,category,images,detail_pairs,boost_expires,is_published,original_price,current_price,price_last_updated";
+      "id,leonix_ad_id,owner_id,title,price,city,status,created_at,updated_at,published_at,expires_at,category,images,detail_pairs,boost_expires,is_published,original_price,current_price,price_last_updated";
     const selBase =
-      "id,owner_id,title,price,city,status,created_at,category,images,detail_pairs,boost_expires,is_published,original_price,current_price,price_last_updated";
+      "id,leonix_ad_id,owner_id,title,price,city,status,created_at,category,images,detail_pairs,boost_expires,is_published,original_price,current_price,price_last_updated";
 
     let listing: ListingRow | null = null;
     let q = await sb.from("listings").select(selFull).eq("id", id).maybeSingle();
@@ -278,32 +301,26 @@ export default function ListingWorkspacePage() {
     setRow(listing);
     setAccess("ok");
 
-    const { data: events } = await sb.from("listing_analytics").select("listing_id, event_type, user_id").eq("listing_id", id);
+    const listingKeys = [listing.id, (listing.leonix_ad_id ?? "").trim()].filter(Boolean) as string[];
+    const { data: events } = await sb
+      .from("listing_analytics")
+      .select("listing_id, event_type, user_id, created_at")
+      .in("listing_id", listingKeys);
 
-    const viewUsers = new Set<string>();
-    let views = 0;
-    let messages = 0;
-    let saves = 0;
-    let shares = 0;
-    let profileClicks = 0;
-    for (const e of events ?? []) {
-      const r = e as { event_type?: string; user_id?: string | null };
-      const type = r.event_type;
-      if (type === "listing_view") {
-        views++;
-        if (r.user_id) viewUsers.add(r.user_id);
-      } else if (type === "message_sent") messages++;
-      else if (type === "listing_save") saves++;
-      else if (type === "listing_share") shares++;
-      else if (type === "profile_view") profileClicks++;
-    }
+    const rolled = rollupListingAnalyticsEvents(events ?? [], listingKeys);
     setStats({
-      views,
-      uniqueViews: viewUsers.size,
-      messages,
-      saves,
-      shares,
-      profileClicks,
+      views: rolled.views,
+      uniqueViews: rolled.uniqueViews,
+      messages: rolled.messages,
+      saves: rolled.saves,
+      shares: rolled.shares,
+      profileClicks: rolled.profileClicks,
+      listingOpens: rolled.listingOpens,
+      likes: rolled.likes,
+      ctaClicks: rolled.ctaClicks,
+      leads: rolled.leads,
+      applications: rolled.applications,
+      lastEngagement: rolled.lastEngagement,
     });
 
     const selMsg = "id, sender_id, receiver_id, listing_id, message, created_at, read_at";
@@ -418,7 +435,7 @@ export default function ListingWorkspacePage() {
           city={cityLine}
           views={stats?.views ?? 0}
           saves={stats?.saves ?? 0}
-          messages={stats?.messages ?? 0}
+          messages={(stats?.messages ?? 0) + (stats?.leads ?? 0)}
         />
       }
     >
@@ -552,17 +569,22 @@ export default function ListingWorkspacePage() {
                 <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.tabs.analytics}</p>
                 <p className="mt-2 text-sm text-[#5C5346]/95">
                   {lang === "es"
-                    ? "Cada métrica cuenta eventos guardados en listing_analytics para este anuncio."
-                    : "Each metric counts persisted listing_analytics events for this listing."}
+                    ? "Cada métrica cuenta eventos reales guardados en analíticas para este anuncio (incluye el ID del anuncio y tu Leonix ad ID si aplica)."
+                    : "Each metric counts real persisted analytics events for this listing (listing id and Leonix ad id when applicable)."}
                 </p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {[
                     { k: t.views, v: stats?.views ?? 0 },
                     { k: t.uniq, v: stats?.uniqueViews ?? 0 },
                     { k: t.msg, v: stats?.messages ?? 0 },
+                    { k: t.leads, v: stats?.leads ?? 0 },
                     { k: t.saves, v: stats?.saves ?? 0 },
                     { k: t.shares, v: stats?.shares ?? 0 },
+                    { k: t.likes, v: stats?.likes ?? 0 },
+                    { k: t.cta, v: stats?.ctaClicks ?? 0 },
+                    { k: t.opens, v: stats?.listingOpens ?? 0 },
                     { k: t.prof, v: stats?.profileClicks ?? 0 },
+                    { k: t.apps, v: stats?.applications ?? 0 },
                   ].map((x) => (
                     <div key={x.k} className="rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4">
                       <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{x.k}</p>
@@ -570,6 +592,15 @@ export default function ListingWorkspacePage() {
                     </div>
                   ))}
                 </div>
+                {stats?.lastEngagement && !Number.isNaN(new Date(stats.lastEngagement).getTime()) ? (
+                  <p className="mt-4 text-sm text-[#5C5346]">
+                    <span className="font-semibold text-[#3D3428]">{t.lastEng}:</span>{" "}
+                    {new Intl.DateTimeFormat(lang === "es" ? "es-MX" : "en-US", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    }).format(new Date(stats.lastEngagement))}
+                  </p>
+                ) : null}
               </div>
               <div className="rounded-3xl border border-[#C9B46A]/30 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6">
                 <p className="text-xs font-bold uppercase tracking-wide text-[#6B5B2E]">

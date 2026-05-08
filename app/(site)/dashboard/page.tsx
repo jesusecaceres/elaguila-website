@@ -6,8 +6,10 @@ import { useSearchParams, usePathname } from "next/navigation";
 import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { LeonixDashboardShell } from "./components/LeonixDashboardShell";
 import { supabase } from "../../lib/supabaseClient";
+import { countOwnerActiveListingsAcrossSources } from "@/app/lib/ownerEngagementListingKeys";
 import { fetchDashboardNavCounts } from "./lib/dashboardNavCounts";
 import { fetchDerivedDashboardFeed, type DerivedFeedItem } from "./lib/derivedDashboardFeed";
+import { fetchOwnerAnalyticsTotals } from "./lib/dashboardAnalyticsSummary";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -88,6 +90,12 @@ export default function DashboardPage() {
             bizTeaser: "Herramientas de negocio",
             bizBody: "WhatsApp, perfil, SEO local y Leonix Concierge.",
             bizCta: "Explorar",
+            metricsFootnote:
+              "Estas métricas vienen de interacciones reales guardadas en analíticas. Si acabas de publicar, pueden aparecer en cero hasta que alguien vea o interactúe con tu anuncio.",
+            expiringFootnote:
+              "“Por expirar” usa fechas de visibilidad/boost y expiración del anuncio en la tabla principal de Leonix. Otras categorías pueden no reflejarse aquí hasta que esos campos existan para ellas.",
+            analyticsDegraded:
+              "Las analíticas de Leonix aún no están disponibles en la base de datos (o el caché de esquema está desactualizado). Los totales de vistas, guardados y contactos mostrados aquí son cero hasta que se restaure la tabla `listing_analytics`.",
           }
         : {
             title: "Account overview",
@@ -144,6 +152,12 @@ export default function DashboardPage() {
             bizTeaser: "Business tools",
             bizBody: "WhatsApp, profile, local SEO, and Leonix Concierge.",
             bizCta: "Explore",
+            metricsFootnote:
+              "These metrics come from real interactions stored in analytics. If you just published, numbers may stay at zero until someone views or engages with your listing.",
+            expiringFootnote:
+              "“Expiring soon” uses boost/visibility and listing expiry dates on Leonix’s primary listings table. Other categories may not appear here until the same fields exist for them.",
+            analyticsDegraded:
+              "Leonix analytics are not available in the database yet (or the schema cache is stale). View, save, and contact totals shown here stay at zero until `listing_analytics` is restored.",
           },
     [lang]
   );
@@ -162,6 +176,7 @@ export default function DashboardPage() {
   const [brActiveCount, setBrActiveCount] = useState<number | null>(null);
   const [totalMessages, setTotalMessages] = useState<number | null>(null);
   const [expiringSoon, setExpiringSoon] = useState<number | null>(null);
+  const [listingAnalyticsDegraded, setListingAnalyticsDegraded] = useState(false);
   const [draftCount, setDraftCount] = useState<number | null>(null);
   const [membershipTier, setMembershipTier] = useState<string | null>(null);
   const [accountType, setAccountType] = useState<string | null>(null);
@@ -236,63 +251,38 @@ export default function DashboardPage() {
           /* ignore */
         }
 
-        let activeCt = 0;
-        const ids: string[] = [];
-
         try {
-          const { data: lst } = await supabase.from("listings").select("id, status").eq("owner_id", u.id);
-          if (lst && Array.isArray(lst)) {
-            for (const row of lst) {
-              const r = row as { id?: string; status?: string | null };
-              if (r.id) ids.push(r.id);
-              if (String(r.status ?? "active").toLowerCase() === "active") activeCt++;
-            }
-          }
+          const activeCt = await countOwnerActiveListingsAcrossSources(supabase, u.id);
           if (mounted) setActiveListings(activeCt);
         } catch {
           if (mounted) setActiveListings(null);
         }
 
-        if (ids.length > 0) {
-          try {
-            const { count: viewEvCt } = await supabase
-              .from("listing_analytics")
-              .select("id", { count: "exact", head: true })
-              .in("listing_id", ids)
-              .eq("event_type", "listing_view");
-            if (mounted) setTotalViews(typeof viewEvCt === "number" ? viewEvCt : 0);
-          } catch {
-            if (mounted) setTotalViews(null);
+        try {
+          const agg = await fetchOwnerAnalyticsTotals(supabase, u.id);
+          if (mounted) {
+            setListingAnalyticsDegraded(agg.listingAnalyticsUnavailable);
+            setTotalViews(agg.totals.listingViews);
+            setTotalSaves(agg.totals.saves);
+            setTotalMessages(agg.totals.messages + agg.totals.leads);
           }
-        } else if (mounted) {
-          setTotalViews(0);
-        }
-
-        if (ids.length > 0) {
-          try {
-            const { count } = await supabase
-              .from("listing_analytics")
-              .select("id", { count: "exact", head: true })
-              .in("listing_id", ids)
-              .eq("event_type", "listing_save");
-            if (mounted) setTotalSaves(typeof count === "number" ? count : 0);
-          } catch {
-            if (mounted) setTotalSaves(null);
+        } catch {
+          if (mounted) {
+            setListingAnalyticsDegraded(true);
+            setTotalViews(null);
+            setTotalSaves(null);
+            setTotalMessages(null);
           }
-        } else if (mounted) {
-          setTotalSaves(0);
         }
 
         try {
           const navCt = await fetchDashboardNavCounts(supabase, u.id);
           if (mounted) {
-            setTotalMessages(navCt.messageInbox);
             setExpiringSoon(navCt.expiringSoon);
             setDraftCount(navCt.drafts);
           }
         } catch {
           if (mounted) {
-            setTotalMessages(null);
             setExpiringSoon(null);
             setDraftCount(null);
           }
@@ -417,7 +407,7 @@ export default function DashboardPage() {
               </div>
               <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{fmtNum(totalViews)}</p>
             </Link>
-            <Link href={`/dashboard/mensajes?${q}`} className={summaryCardClass}>
+            <Link href={`/dashboard/analytics?${q}`} className={summaryCardClass}>
               <div className="flex items-start justify-between gap-2">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.totalMsg}</p>
                 <span className="text-lg opacity-80" aria-hidden>
@@ -445,6 +435,13 @@ export default function DashboardPage() {
               <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{fmtNum(expiringSoon)}</p>
             </Link>
           </div>
+          {listingAnalyticsDegraded ? (
+            <p className="mt-4 rounded-xl border border-sky-200/90 bg-sky-50/90 p-3 text-sm leading-relaxed text-sky-950" role="status">
+              {t.analyticsDegraded}
+            </p>
+          ) : null}
+          <p className="mt-4 max-w-4xl text-xs leading-relaxed text-[#5C5346]/95">{t.metricsFootnote}</p>
+          <p className="mt-2 max-w-4xl text-xs leading-relaxed text-[#7A7164]/95">{t.expiringFootnote}</p>
 
           {/* Category management overview */}
           <div className="mt-8 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.08)]">

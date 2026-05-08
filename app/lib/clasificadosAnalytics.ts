@@ -5,31 +5,13 @@
 
 import { createSupabaseBrowserClient } from "./supabase/browser";
 import { collectOwnerListingKeysForAnalytics, countOwnerInventoryListings } from "./ownerEngagementListingKeys";
+import type { ListingAnalyticsEventType } from "./listingAnalyticsEventTypes";
 
 // ---------------------------------------------------------------------------
-// Event Types
+// Event Types (single allowlist — see listingAnalyticsEventTypes.ts)
 // ---------------------------------------------------------------------------
 
-export type ClasificadosEventType =
-  // Existing events
-  | "listing_view"
-  | "listing_save" 
-  | "listing_share"
-  | "message_sent"
-  | "profile_view"
-  | "listing_open"
-  // New engagement events
-  | "listing_like"
-  | "listing_unlike"
-  | "listing_unsave"
-  | "cta_click"
-  | "lead_created"
-  | "apply_started"
-  | "apply_submitted"
-  | "phone_click"
-  | "whatsapp_click"
-  | "website_click"
-  | "directions_click";
+export type ClasificadosEventType = ListingAnalyticsEventType;
 
 export type EventSource = 
   | "card"
@@ -409,6 +391,9 @@ export type ListingMetrics = {
   likes: number;
   saves: number;
   shares: number;
+  messages?: number;
+  profileViews?: number;
+  listingOpens?: number;
   ctaClicks: number;
   leads: number;
   applications: number;
@@ -432,6 +417,9 @@ export async function getListingMetrics(
       likes: 0,
       saves: 0,
       shares: 0,
+      messages: 0,
+      profileViews: 0,
+      listingOpens: 0,
       ctaClicks: 0,
       leads: 0,
       applications: 0,
@@ -469,6 +457,15 @@ export async function getListingMetrics(
           break;
         case "listing_share":
           metrics.shares++;
+          break;
+        case "message_sent":
+          metrics.messages!++;
+          break;
+        case "profile_view":
+          metrics.profileViews!++;
+          break;
+        case "listing_open":
+          metrics.listingOpens!++;
           break;
         case "cta_click":
         case "phone_click":

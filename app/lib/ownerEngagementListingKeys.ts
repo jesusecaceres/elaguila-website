@@ -63,3 +63,68 @@ export async function countOwnerInventoryListings(sb: SupabaseClient, ownerId: s
   ]);
   return (nList ?? 0) + (nServ ?? 0) + (nEmp ?? 0) + (nAuto ?? 0) + (nRest ?? 0);
 }
+
+/**
+ * Active / published listings the owner can manage across `listings` + category public tables.
+ * Used for dashboard “Anuncios activos” (honest cross-source count).
+ */
+export async function countOwnerActiveListingsAcrossSources(sb: SupabaseClient, ownerId: string): Promise<number> {
+  let total = 0;
+
+  try {
+    const q = await sb.from("listings").select("id", { count: "exact", head: true }).eq("owner_id", ownerId).eq("status", "active");
+    if (!q.error && typeof q.count === "number") total += q.count;
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    const q = await sb
+      .from("servicios_public_listings")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_user_id", ownerId)
+      .eq("listing_status", "published");
+    if (!q.error && typeof q.count === "number") total += q.count;
+    else {
+      const q2 = await sb.from("servicios_public_listings").select("id", { count: "exact", head: true }).eq("owner_user_id", ownerId);
+      if (!q2.error && typeof q2.count === "number") total += q2.count;
+    }
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    const q = await sb
+      .from("empleos_public_listings")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_user_id", ownerId)
+      .eq("lifecycle_status", "published");
+    if (!q.error && typeof q.count === "number") total += q.count;
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    const q = await sb
+      .from("autos_classifieds_listings")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_user_id", ownerId)
+      .eq("status", "active");
+    if (!q.error && typeof q.count === "number") total += q.count;
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    const q = await sb
+      .from("restaurantes_public_listings")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_user_id", ownerId)
+      .eq("status", "published");
+    if (!q.error && typeof q.count === "number") total += q.count;
+  } catch {
+    /* ignore */
+  }
+
+  return total;
+}
