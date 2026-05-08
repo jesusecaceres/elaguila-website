@@ -459,8 +459,195 @@ function highlightChipText(label: string): string {
   return e ? `${e} ${t}` : t;
 }
 
+/** Dark contact + ubicación card (Rentas-style) — reused beside hero on duplex layout. */
+function BienesRaicesNegocioDarkContactAside({
+  vm,
+  onContactLinkClick,
+}: {
+  vm: BienesRaicesNegocioPreviewVm;
+  onContactLinkClick?: () => void;
+}) {
+  const track = () => onContactLinkClick?.();
+  return (
+    <aside className="flex min-h-full flex-col lg:sticky lg:top-8 lg:min-h-0 lg:self-start">
+      <div
+        className="flex flex-1 flex-col overflow-hidden rounded-2xl border shadow-[0_24px_64px_-20px_rgba(26,24,20,0.35)]"
+        style={{ borderColor: "rgba(255,255,255,0.08)" }}
+      >
+        <div className="px-5 py-3.5" style={{ background: CHARCOAL_DEEP }}>
+          <p className="text-center text-xs font-bold uppercase tracking-[0.2em] text-[#F5F0E8]">{vm.contactRailTitle}</p>
+        </div>
+        {vm.contact.instructionsLine ? (
+          <p
+            className="border-b px-5 py-3 text-xs leading-relaxed text-[#d8cfc3]"
+            style={{ borderColor: "rgba(255,255,255,0.08)", background: "#2F2A24" }}
+          >
+            {vm.contact.instructionsLine}
+          </p>
+        ) : null}
+        {vm.contact.horarioPreferidoLine || vm.contact.openHouseSummary ? (
+          <div
+            className="border-b px-5 py-3 text-xs leading-relaxed text-[#d8cfc3]"
+            style={{ borderColor: "rgba(255,255,255,0.08)", background: "#2F2A24" }}
+          >
+            {vm.contact.horarioPreferidoLine ? (
+              <p>
+                <span className="font-semibold text-[#F5F0E8]">Horario preferido</span>
+                <span className="mt-1 block text-[#d8cfc3]">{vm.contact.horarioPreferidoLine}</span>
+              </p>
+            ) : null}
+            {vm.contact.openHouseSummary ? (
+              <p className={vm.contact.horarioPreferidoLine ? "mt-3" : ""}>
+                <span className="font-semibold text-[#F5F0E8]">Open house</span>
+                <span className="mt-1 block whitespace-pre-line text-[#d8cfc3]">{vm.contact.openHouseSummary}</span>
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+        <div className="flex flex-1 flex-col space-y-3 px-5 py-5" style={{ background: "#2F2A24" }}>
+          <p className="text-sm font-bold text-[#F5F0E8]">{vm.identity.name}</p>
+          {vm.identity.bioLine ? <p className="text-xs leading-relaxed text-[#D8CFC3]">{vm.identity.bioLine}</p> : null}
+          {vm.contact.showSolicitarInfo && vm.contact.solicitarInfoHref ? (
+            <a
+              href={vm.contact.solicitarInfoHref}
+              onClick={track}
+              className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl px-3 py-3.5 text-center text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-105"
+              style={{ background: `linear-gradient(180deg, ${BRONZE} 0%, ${BRONZE_SOFT} 100%)` }}
+            >
+              Solicitar información
+            </a>
+          ) : null}
+          {vm.contact.showProgramarVisita && vm.contact.programarVisitaHref ? (
+            <a
+              href={vm.contact.programarVisitaHref}
+              onClick={track}
+              className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
+              style={{ borderColor: "rgba(245,240,232,0.25)" }}
+            >
+              Programar visita
+            </a>
+          ) : null}
+          {vm.contact.showLlamar && vm.contact.llamarHref ? (
+            <a
+              href={vm.contact.llamarHref}
+              onClick={track}
+              className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
+              style={{ borderColor: "rgba(245,240,232,0.25)" }}
+            >
+              Llamar ahora
+            </a>
+          ) : null}
+          {vm.contact.showWhatsapp && vm.contact.whatsappHref ? (
+            <a
+              href={vm.contact.whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={track}
+              className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E8F5E9] transition hover:bg-white/5"
+              style={{ borderColor: "rgba(37,211,102,0.35)" }}
+            >
+              Enviar por WhatsApp
+            </a>
+          ) : null}
+          {vm.contact.showSms && vm.contact.smsHref ? (
+            <a
+              href={vm.contact.smsHref}
+              onClick={track}
+              className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E3F2FD] transition hover:bg-white/5"
+              style={{ borderColor: "rgba(100,181,246,0.45)" }}
+            >
+              Enviar texto
+            </a>
+          ) : null}
+          {(vm.location.line1 || vm.location.colonia || vm.location.cityStateZip || vm.location.mapsUrl) ? (
+            <div className="rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.15)" }}>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[#E8DFD4]">Ubicación</p>
+              {vm.location.line1 ? <p className="mt-1 text-xs text-[#F5F0E8]">{vm.location.line1}</p> : null}
+              {vm.location.colonia ? <p className="mt-1 text-xs text-[#D8CFC3]">{vm.location.colonia}</p> : null}
+              {vm.location.cityStateZip ? <p className="mt-1 text-xs text-[#D8CFC3]">{vm.location.cityStateZip}</p> : null}
+              {vm.location.mapsUrl ? (
+                <a
+                  href={vm.location.mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={track}
+                  className="mt-3 inline-flex rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold text-[#F5F0E8]"
+                  style={{ borderColor: "rgba(255,255,255,0.35)" }}
+                >
+                  Ver en mapa
+                </a>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+        <div className="space-y-3 border-t px-5 py-4" style={{ borderColor: "rgba(255,255,255,0.08)", background: "#3A342E" }}>
+          {vm.identity.contactPhone || vm.identity.contactEmail ? (
+            <div className="flex gap-3 rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
+              {vm.identity.hasPhoto && vm.identity.photoUrl ? (
+                <img src={vm.identity.photoUrl} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
+              ) : (
+                <div className="h-11 w-11 shrink-0 rounded-full bg-[#5c5348]" />
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-[#F5F0E8]">{vm.identity.name}</p>
+                {vm.identity.contactPhone ? <p className="mt-1 text-xs text-[#e8dfd4]">{vm.identity.contactPhone}</p> : null}
+                {vm.identity.contactEmail ? (
+                  <p className="mt-0.5 truncate text-xs text-[#e8dfd4]">{vm.identity.contactEmail}</p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+          {vm.contact.secondAgent ? (
+            <div className="flex gap-3 rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
+              {vm.contact.secondAgent.photoUrl ? (
+                <img src={vm.contact.secondAgent.photoUrl} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
+              ) : (
+                <div className="h-11 w-11 shrink-0 rounded-full bg-[#5c5348]" />
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-[#F5F0E8]">{vm.contact.secondAgent.name}</p>
+                <p className="text-[10px] uppercase tracking-wide text-[#c4b8a8]">{vm.contact.secondAgent.role}</p>
+                <p className="mt-1 text-xs text-[#e8dfd4]">{vm.contact.secondAgent.phone}</p>
+                {vm.contact.secondAgent.emailLine ? (
+                  <p className="mt-0.5 truncate text-xs text-[#e8dfd4]">{vm.contact.secondAgent.emailLine}</p>
+                ) : null}
+                {vm.contact.secondAgent.bioLine ? (
+                  <p className="mt-2 text-[11px] leading-snug text-[#d8cfc3]">{vm.contact.secondAgent.bioLine}</p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+          {vm.contact.lender ? (
+            <div className="flex gap-3 rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
+              {vm.contact.lender.photoUrl ? (
+                <img src={vm.contact.lender.photoUrl} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
+              ) : (
+                <div className="h-11 w-11 shrink-0 rounded-full bg-[#5c5348]" />
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-[#F5F0E8]">{vm.contact.lender.name}</p>
+                <p className="text-[10px] uppercase tracking-wide text-[#c4b8a8]">{vm.contact.lender.role}</p>
+                <p className="mt-1 text-xs text-[#e8dfd4]">{vm.contact.lender.subtitle}</p>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 /** Publishable ad canvas only — chrome (“Volver a editar”) lives in `LeonixPreviewPageShell`. */
-export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocioPreviewVm }) {
+export function BienesRaicesNegocioPreviewView({
+  vm,
+  rentasPolishedDuplexLayout = false,
+  onContactLinkClick,
+}: {
+  vm: BienesRaicesNegocioPreviewVm;
+  /** When true, places the dark contact card beside the hero stack (Rentas) and omits legacy duplicate detail grids. */
+  rentasPolishedDuplexLayout?: boolean;
+  onContactLinkClick?: () => void;
+}) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
@@ -642,8 +829,15 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
           </section>
         ) : null}
 
-        <section className="mt-7 grid gap-6 border-t pt-7 lg:grid-cols-1 lg:items-start lg:gap-8" style={{ borderColor: BORDER }}>
-          <div>
+        <section
+          className={
+            rentasPolishedDuplexLayout
+              ? "mt-7 grid min-w-0 grid-cols-1 gap-4 border-t pt-7 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-start lg:gap-5"
+              : "mt-7 grid gap-6 border-t pt-7 lg:grid-cols-1 lg:items-start lg:gap-8"
+          }
+          style={{ borderColor: BORDER }}
+        >
+          <div className="min-w-0">
             <h1
               className="max-w-[720px] break-words text-[1.65rem] font-bold leading-[1.15] tracking-tight [overflow-wrap:anywhere] sm:text-[2rem] lg:text-[2.35rem]"
               style={{ color: CHARCOAL_DEEP, fontFamily: "Georgia, 'Times New Roman', serif" }}
@@ -713,119 +907,122 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
             </div>
           </div>
 
-          <aside
-            className="rounded-2xl border p-5 shadow-[0_16px_44px_-12px_rgba(42,36,22,0.15)] lg:sticky lg:top-6 lg:self-start"
-            hidden
-            style={{ borderColor: BORDER, background: CREAM_CARD }}
-          >
-            <div className="overflow-hidden rounded-2xl border shadow-sm" style={{ borderColor: BORDER }}>
-              {vm.identity.hasPhoto && vm.identity.photoUrl ? (
-                 
-                <img
-                  src={vm.identity.photoUrl}
-                  alt=""
-                  className="aspect-[4/5] w-full max-h-[min(340px,44vh)] object-cover object-top sm:max-h-[360px]"
-                />
-              ) : (
-                <div className="aspect-[4/5] w-full max-h-[min(260px,36vh)]">
-                  <EmptyMedia
-                    title="Identidad del anuncio"
-                    subtitle="Sin imagen principal cargada."
-                    icon={<IconEye className="h-6 w-6" />}
-                  />
-                </div>
-              )}
-            </div>
-            <p className="mt-4 text-lg font-bold leading-tight" style={{ color: CHARCOAL_DEEP }}>
-              {vm.identity.name}
-            </p>
-            <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: BRONZE_SOFT }}>
-              {vm.identity.role}
-            </p>
-            {vm.identity.bioLine ? (
-              <p className="mt-3 text-sm leading-relaxed" style={{ color: MUTED }}>
-                {vm.identity.bioLine}
-              </p>
-            ) : null}
-            {vm.identity.showBrokerageBlock !== false ? (
-              <div
-                className="mt-4 flex items-center gap-3 rounded-xl border px-3 py-3.5 sm:gap-4"
-                style={{ borderColor: BORDER, background: "rgba(249,246,241,0.6)" }}
-              >
-                {vm.identity.brokerageLogoUrl &&
-                !(vm.identity.photoUrl && vm.identity.brokerageLogoUrl && vm.identity.photoUrl === vm.identity.brokerageLogoUrl) ? (
-                   
+          {rentasPolishedDuplexLayout ? (
+            <BienesRaicesNegocioDarkContactAside vm={vm} onContactLinkClick={onContactLinkClick} />
+          ) : (
+            <aside
+              className="rounded-2xl border p-5 shadow-[0_16px_44px_-12px_rgba(42,36,22,0.15)] lg:sticky lg:top-6 lg:self-start"
+              hidden
+              style={{ borderColor: BORDER, background: CREAM_CARD }}
+            >
+              <div className="overflow-hidden rounded-2xl border shadow-sm" style={{ borderColor: BORDER }}>
+                {vm.identity.hasPhoto && vm.identity.photoUrl ? (
                   <img
-                    src={vm.identity.brokerageLogoUrl}
+                    src={vm.identity.photoUrl}
                     alt=""
-                    className="h-14 w-auto max-w-[152px] shrink-0 object-contain object-left sm:h-16 sm:max-w-[168px]"
+                    className="aspect-[4/5] w-full max-h-[min(340px,44vh)] object-cover object-top sm:max-h-[360px]"
                   />
-                ) : null}
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: MUTED }}>
-                    Inmobiliaria / marca
-                  </p>
-                  <p className="mt-1 text-sm font-bold leading-snug" style={{ color: CHARCOAL }}>
-                    {vm.identity.brokerageName}
-                  </p>
+                ) : (
+                  <div className="aspect-[4/5] w-full max-h-[min(260px,36vh)]">
+                    <EmptyMedia
+                      title="Identidad del anuncio"
+                      subtitle="Sin imagen principal cargada."
+                      icon={<IconEye className="h-6 w-6" />}
+                    />
+                  </div>
+                )}
+              </div>
+              <p className="mt-4 text-lg font-bold leading-tight" style={{ color: CHARCOAL_DEEP }}>
+                {vm.identity.name}
+              </p>
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: BRONZE_SOFT }}>
+                {vm.identity.role}
+              </p>
+              {vm.identity.bioLine ? (
+                <p className="mt-3 text-sm leading-relaxed" style={{ color: MUTED }}>
+                  {vm.identity.bioLine}
+                </p>
+              ) : null}
+              {vm.identity.showBrokerageBlock !== false ? (
+                <div
+                  className="mt-4 flex items-center gap-3 rounded-xl border px-3 py-3.5 sm:gap-4"
+                  style={{ borderColor: BORDER, background: "rgba(249,246,241,0.6)" }}
+                >
+                  {vm.identity.brokerageLogoUrl &&
+                  !(vm.identity.photoUrl && vm.identity.brokerageLogoUrl && vm.identity.photoUrl === vm.identity.brokerageLogoUrl) ? (
+                    <img
+                      src={vm.identity.brokerageLogoUrl}
+                      alt=""
+                      className="h-14 w-auto max-w-[152px] shrink-0 object-contain object-left sm:h-16 sm:max-w-[168px]"
+                    />
+                  ) : null}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: MUTED }}>
+                      Inmobiliaria / marca
+                    </p>
+                    <p className="mt-1 text-sm font-bold leading-snug" style={{ color: CHARCOAL }}>
+                      {vm.identity.brokerageName}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ) : null}
-            {vm.identity.verifiedLine || vm.identity.licenseLine ? (
-              <p className="mt-3 text-xs leading-relaxed" style={{ color: MUTED }}>
-                {vm.identity.verifiedLine ? (
-                  <span className="font-semibold" style={{ color: CHARCOAL }}>
-                    {vm.identity.verifiedLine}
-                  </span>
-                ) : null}
-                {vm.identity.licenseLine ? (
-                  <>
-                    {vm.identity.verifiedLine ? <br /> : null}
-                    {vm.identity.licenseLine}
-                  </>
-                ) : null}
-              </p>
-            ) : null}
-            {(vm.identity.contactPhone || vm.identity.contactEmail) ? (
-              <div className="mt-3 space-y-1 text-xs" style={{ color: CHARCOAL }}>
-                {vm.identity.contactPhone ? <p className="font-medium">{vm.identity.contactPhone}</p> : null}
-                {vm.identity.contactEmail ? <p className="truncate opacity-90">{vm.identity.contactEmail}</p> : null}
-              </div>
-            ) : null}
-            {(vm.identity?.socialLinks ?? []).length > 0 ? (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {(vm.identity?.socialLinks ?? []).map((sl) => (
-                  <a
-                    key={sl.href}
-                    href={sl.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-full border px-3 text-[10px] font-bold transition hover:bg-[rgba(197,160,89,0.1)]"
-                    style={{ borderColor: BORDER, color: CHARCOAL }}
-                  >
-                    {sl.label}
-                  </a>
-                ))}
-              </div>
-            ) : null}
-            {vm.identity.profileCtaEnabled && vm.identity.profileHref ? (
-              <a
-                href={vm.identity.profileHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-5 flex w-full items-center justify-center rounded-xl border-2 py-3 text-xs font-bold uppercase tracking-wide transition hover:bg-[rgba(197,160,89,0.08)]"
-                style={{ borderColor: BRONZE, color: BRONZE_SOFT }}
-              >
-                {vm.identity.profileCtaLabel}
-              </a>
-            ) : (
-              <p className="mt-5 text-center text-[11px] leading-snug" style={{ color: MUTED }}>
-                Añade un sitio web o red social en la ficha para activar el enlace público de perfil.
-              </p>
-            )}
-          </aside>
+              ) : null}
+              {vm.identity.verifiedLine || vm.identity.licenseLine ? (
+                <p className="mt-3 text-xs leading-relaxed" style={{ color: MUTED }}>
+                  {vm.identity.verifiedLine ? (
+                    <span className="font-semibold" style={{ color: CHARCOAL }}>
+                      {vm.identity.verifiedLine}
+                    </span>
+                  ) : null}
+                  {vm.identity.licenseLine ? (
+                    <>
+                      {vm.identity.verifiedLine ? <br /> : null}
+                      {vm.identity.licenseLine}
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+              {(vm.identity.contactPhone || vm.identity.contactEmail) ? (
+                <div className="mt-3 space-y-1 text-xs" style={{ color: CHARCOAL }}>
+                  {vm.identity.contactPhone ? <p className="font-medium">{vm.identity.contactPhone}</p> : null}
+                  {vm.identity.contactEmail ? <p className="truncate opacity-90">{vm.identity.contactEmail}</p> : null}
+                </div>
+              ) : null}
+              {(vm.identity?.socialLinks ?? []).length > 0 ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {(vm.identity?.socialLinks ?? []).map((sl) => (
+                    <a
+                      key={sl.href}
+                      href={sl.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-full border px-3 text-[10px] font-bold transition hover:bg-[rgba(197,160,89,0.1)]"
+                      style={{ borderColor: BORDER, color: CHARCOAL }}
+                    >
+                      {sl.label}
+                    </a>
+                  ))}
+                </div>
+              ) : null}
+              {vm.identity.profileCtaEnabled && vm.identity.profileHref ? (
+                <a
+                  href={vm.identity.profileHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-5 flex w-full items-center justify-center rounded-xl border-2 py-3 text-xs font-bold uppercase tracking-wide transition hover:bg-[rgba(197,160,89,0.08)]"
+                  style={{ borderColor: BRONZE, color: BRONZE_SOFT }}
+                >
+                  {vm.identity.profileCtaLabel}
+                </a>
+              ) : (
+                <p className="mt-5 text-center text-[11px] leading-snug" style={{ color: MUTED }}>
+                  Añade un sitio web o red social en la ficha para activar el enlace público de perfil.
+                </p>
+              )}
+            </aside>
+          )}
         </section>
 
+        {!rentasPolishedDuplexLayout ? (
         <section className="mt-10 grid gap-5 lg:grid-cols-[1fr_1fr_minmax(280px,340px)] lg:items-stretch lg:gap-5">
           <FactBlock title="Detalles de la propiedad" rows={vm.propertyDetailsRows} />
           {vm.hasHighlights ? (
@@ -846,167 +1043,11 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
               </p>
             </div>
           )}
-          <aside className="flex min-h-full flex-col lg:sticky lg:top-8 lg:min-h-0 lg:self-start">
-            <div
-              className="flex flex-1 flex-col overflow-hidden rounded-2xl border shadow-[0_24px_64px_-20px_rgba(26,24,20,0.35)]"
-              style={{ borderColor: "rgba(255,255,255,0.08)" }}
-            >
-              <div className="px-5 py-3.5" style={{ background: CHARCOAL_DEEP }}>
-                <p className="text-center text-xs font-bold uppercase tracking-[0.2em] text-[#F5F0E8]">{vm.contactRailTitle}</p>
-              </div>
-              {vm.contact.instructionsLine ? (
-                <p className="border-b px-5 py-3 text-xs leading-relaxed text-[#d8cfc3]" style={{ borderColor: "rgba(255,255,255,0.08)", background: "#2F2A24" }}>
-                  {vm.contact.instructionsLine}
-                </p>
-              ) : null}
-              {vm.contact.horarioPreferidoLine || vm.contact.openHouseSummary ? (
-                <div
-                  className="border-b px-5 py-3 text-xs leading-relaxed text-[#d8cfc3]"
-                  style={{ borderColor: "rgba(255,255,255,0.08)", background: "#2F2A24" }}
-                >
-                  {vm.contact.horarioPreferidoLine ? (
-                    <p>
-                      <span className="font-semibold text-[#F5F0E8]">Horario preferido</span>
-                      <span className="mt-1 block text-[#d8cfc3]">{vm.contact.horarioPreferidoLine}</span>
-                    </p>
-                  ) : null}
-                  {vm.contact.openHouseSummary ? (
-                    <p className={vm.contact.horarioPreferidoLine ? "mt-3" : ""}>
-                      <span className="font-semibold text-[#F5F0E8]">Open house</span>
-                      <span className="mt-1 block whitespace-pre-line text-[#d8cfc3]">{vm.contact.openHouseSummary}</span>
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-              <div className="flex flex-1 flex-col space-y-3 px-5 py-5" style={{ background: "#2F2A24" }}>
-                <p className="text-sm font-bold text-[#F5F0E8]">{vm.identity.name}</p>
-                {vm.identity.bioLine ? <p className="text-xs leading-relaxed text-[#D8CFC3]">{vm.identity.bioLine}</p> : null}
-                {vm.contact.showSolicitarInfo && vm.contact.solicitarInfoHref ? (
-                  <a
-                    href={vm.contact.solicitarInfoHref}
-                    className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl px-3 py-3.5 text-center text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-105"
-                    style={{ background: `linear-gradient(180deg, ${BRONZE} 0%, ${BRONZE_SOFT} 100%)` }}
-                  >
-                    Solicitar información
-                  </a>
-                ) : null}
-                {vm.contact.showProgramarVisita && vm.contact.programarVisitaHref ? (
-                  <a
-                    href={vm.contact.programarVisitaHref}
-                    className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
-                    style={{ borderColor: "rgba(245,240,232,0.25)" }}
-                  >
-                    Programar visita
-                  </a>
-                ) : null}
-                {vm.contact.showLlamar && vm.contact.llamarHref ? (
-                  <a
-                    href={vm.contact.llamarHref}
-                    className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
-                    style={{ borderColor: "rgba(245,240,232,0.25)" }}
-                  >
-                    Llamar ahora
-                  </a>
-                ) : null}
-                {vm.contact.showWhatsapp && vm.contact.whatsappHref ? (
-                  <a
-                    href={vm.contact.whatsappHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E8F5E9] transition hover:bg-white/5"
-                    style={{ borderColor: "rgba(37,211,102,0.35)" }}
-                  >
-                    Enviar por WhatsApp
-                  </a>
-                ) : null}
-                {vm.contact.showSms && vm.contact.smsHref ? (
-                  <a
-                    href={vm.contact.smsHref}
-                    className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E3F2FD] transition hover:bg-white/5"
-                    style={{ borderColor: "rgba(100,181,246,0.45)" }}
-                  >
-                    Enviar texto
-                  </a>
-                ) : null}
-                {(vm.location.line1 || vm.location.colonia || vm.location.cityStateZip || vm.location.mapsUrl) ? (
-                  <div className="rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.15)" }}>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#E8DFD4]">Ubicación</p>
-                    {vm.location.line1 ? <p className="mt-1 text-xs text-[#F5F0E8]">{vm.location.line1}</p> : null}
-                    {vm.location.colonia ? <p className="mt-1 text-xs text-[#D8CFC3]">{vm.location.colonia}</p> : null}
-                    {vm.location.cityStateZip ? <p className="mt-1 text-xs text-[#D8CFC3]">{vm.location.cityStateZip}</p> : null}
-                    {vm.location.mapsUrl ? (
-                      <a
-                        href={vm.location.mapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-3 inline-flex rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold text-[#F5F0E8]"
-                        style={{ borderColor: "rgba(255,255,255,0.35)" }}
-                      >
-                        Ver en mapa
-                      </a>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-              <div className="space-y-3 border-t px-5 py-4" style={{ borderColor: "rgba(255,255,255,0.08)", background: "#3A342E" }}>
-                {vm.identity.contactPhone || vm.identity.contactEmail ? (
-                  <div className="flex gap-3 rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
-                    {vm.identity.hasPhoto && vm.identity.photoUrl ? (
-                       
-                      <img src={vm.identity.photoUrl} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
-                    ) : (
-                      <div className="h-11 w-11 shrink-0 rounded-full bg-[#5c5348]" />
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-[#F5F0E8]">{vm.identity.name}</p>
-                      {vm.identity.contactPhone ? <p className="mt-1 text-xs text-[#e8dfd4]">{vm.identity.contactPhone}</p> : null}
-                      {vm.identity.contactEmail ? (
-                        <p className="mt-0.5 truncate text-xs text-[#e8dfd4]">{vm.identity.contactEmail}</p>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : null}
-                {vm.contact.secondAgent ? (
-                  <div className="flex gap-3 rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
-                    {vm.contact.secondAgent.photoUrl ? (
-                       
-                      <img src={vm.contact.secondAgent.photoUrl} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
-                    ) : (
-                      <div className="h-11 w-11 shrink-0 rounded-full bg-[#5c5348]" />
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-[#F5F0E8]">{vm.contact.secondAgent.name}</p>
-                      <p className="text-[10px] uppercase tracking-wide text-[#c4b8a8]">{vm.contact.secondAgent.role}</p>
-                      <p className="mt-1 text-xs text-[#e8dfd4]">{vm.contact.secondAgent.phone}</p>
-                      {vm.contact.secondAgent.emailLine ? (
-                        <p className="mt-0.5 truncate text-xs text-[#e8dfd4]">{vm.contact.secondAgent.emailLine}</p>
-                      ) : null}
-                      {vm.contact.secondAgent.bioLine ? (
-                        <p className="mt-2 text-[11px] leading-snug text-[#d8cfc3]">{vm.contact.secondAgent.bioLine}</p>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : null}
-                {vm.contact.lender ? (
-                  <div className="flex gap-3 rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
-                    {vm.contact.lender.photoUrl ? (
-                       
-                      <img src={vm.contact.lender.photoUrl} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
-                    ) : (
-                      <div className="h-11 w-11 shrink-0 rounded-full bg-[#5c5348]" />
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-[#F5F0E8]">{vm.contact.lender.name}</p>
-                      <p className="text-[10px] uppercase tracking-wide text-[#c4b8a8]">{vm.contact.lender.role}</p>
-                      <p className="mt-1 text-xs text-[#e8dfd4]">{vm.contact.lender.subtitle}</p>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </aside>
+          <BienesRaicesNegocioDarkContactAside vm={vm} onContactLinkClick={onContactLinkClick} />
         </section>
+        ) : null}
 
+        {!rentasPolishedDuplexLayout ? (
         <section className="mt-14">
           <div className="mb-8 text-center">
             <h2
@@ -1044,6 +1085,7 @@ export function BienesRaicesNegocioPreviewView({ vm }: { vm: BienesRaicesNegocio
             </div>
           )}
         </section>
+        ) : null}
 
         {String(vm.footerNote ?? "").trim() ? (
           <footer className="mt-12 border-t pt-6 text-center text-xs" style={{ borderColor: BORDER, color: MUTED }}>

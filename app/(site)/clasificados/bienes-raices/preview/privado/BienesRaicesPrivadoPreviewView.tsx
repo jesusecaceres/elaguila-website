@@ -331,7 +331,14 @@ function highlightChipText(label: string): string {
 }
 
 /** Publishable ad canvas only — preview chrome (`LeonixPreviewPageShell`) wraps edit back-link. */
-export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivadoPreviewVm }) {
+export function BienesRaicesPrivadoPreviewView({
+  vm,
+  onContactLinkClick,
+}: {
+  vm: BienesRaicesPrivadoPreviewVm;
+  onContactLinkClick?: () => void;
+}) {
+  const trackContact = () => onContactLinkClick?.();
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
@@ -780,6 +787,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                 {vm.contact.showSolicitarInfo && vm.contact.solicitarInfoHref ? (
                   <a
                     href={vm.contact.solicitarInfoHref}
+                    onClick={trackContact}
                     className="flex min-h-[48px] w-full items-center justify-center rounded-xl px-3 py-3.5 text-center text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-105"
                     style={{ background: `linear-gradient(180deg, ${BRONZE} 0%, ${BRONZE_SOFT} 100%)` }}
                   >
@@ -789,6 +797,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                 {vm.contact.showLlamar && vm.contact.llamarHref ? (
                   <a
                     href={vm.contact.llamarHref}
+                    onClick={trackContact}
                     className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(245,240,232,0.25)" }}
                   >
@@ -800,6 +809,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                     href={vm.contact.whatsappHref}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={trackContact}
                     className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E8F5E9] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(37,211,102,0.35)" }}
                   >
@@ -809,6 +819,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                 {vm.contact.showSms && vm.contact.smsHref ? (
                   <a
                     href={vm.contact.smsHref}
+                    onClick={trackContact}
                     className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E3F2FD] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(100,181,246,0.45)" }}
                   >
@@ -825,6 +836,7 @@ export function BienesRaicesPrivadoPreviewView({ vm }: { vm: BienesRaicesPrivado
                         href={vm.location.mapsUrl}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={trackContact}
                         className="mt-3 inline-flex rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold text-[#F5F0E8]"
                         style={{ borderColor: "rgba(255,255,255,0.35)" }}
                       >

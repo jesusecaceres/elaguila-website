@@ -109,7 +109,7 @@ export default function RentasNegocioPreviewClient() {
         <section className="mx-auto w-full max-w-[1240px] px-4 pt-6 sm:px-6 lg:px-8">
           <h2 className="text-lg font-semibold text-[#1A1A1A]">Vista previa completa</h2>
         </section>
-        <BienesRaicesNegocioPreviewView vm={vm} />
+        <BienesRaicesNegocioPreviewView vm={vm} rentasPolishedDuplexLayout />
       </LeonixPreviewPageShell>
     );
   }
@@ -146,7 +146,7 @@ export default function RentasNegocioPreviewClient() {
       <section className="mx-auto w-full max-w-[1240px] px-4 pt-6 sm:px-6 lg:px-8">
         <h2 className="text-lg font-semibold text-[#1A1A1A]">Vista previa completa</h2>
       </section>
-      <BienesRaicesNegocioPreviewView vm={vm} />
+      <BienesRaicesNegocioPreviewView vm={vm} rentasPolishedDuplexLayout />
     </LeonixPreviewPageShell>
   );
 }
