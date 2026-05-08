@@ -24,10 +24,12 @@ function rowValue(rows: Array<{ label: string; value: string }> | undefined, lab
 function privacySafeLocation(parts: { cityStateZip?: string; colonia?: string; fallback: string }): string {
   const cityStateZip = trim(parts.cityStateZip);
   const zona = trim(parts.colonia);
-  if (zona && cityStateZip) return `${zona}, ${cityStateZip}`;
+  if (cityStateZip && zona) return `${cityStateZip} · ${zona}`;
   if (cityStateZip) return cityStateZip;
   if (zona) return zona;
-  return trim(parts.fallback) || "—";
+  const fb = trim(parts.fallback);
+  if (fb && !/^\d+\s/.test(fb)) return fb;
+  return cityStateZip || zona || "—";
 }
 
 function inferAvailability(label: string): RentasPublicListing["rentasListingAvailability"] {
@@ -44,17 +46,19 @@ export function buildRentasResultCardPreviewListingFromPrivadoVm(
 ): RentasPublicListing {
   const rows = vm.propertyDetailsRows ?? [];
   const zona = rowValue(rows, ["zona o vecindario", "zona", "vecindario"]);
+  const browseLoc = privacySafeLocation({
+    cityStateZip: vm.location.cityStateZip,
+    colonia: zona,
+    fallback: vm.addressLine,
+  });
   return {
     id: "preview-rentas-privado",
     title: trim(vm.heroTitle) || "Renta",
     imageUrl: trim(vm.media.heroUrl) || "/logo.png",
     galleryUrls: vm.media.allPhotoUrls?.length ? vm.media.allPhotoUrls : undefined,
     rentDisplay: trim(vm.priceDisplay) || "Consultar",
-    addressLine: privacySafeLocation({
-      cityStateZip: vm.location.cityStateZip,
-      colonia: zona,
-      fallback: vm.addressLine,
-    }),
+    addressLine: browseLoc,
+    resultBrowseLocation: browseLoc,
     beds: rowValue(rows, ["recámaras", "recamaras"]) || "—",
     baths: rowValue(rows, ["baños completos", "baños", "banos"]) || "—",
     sqft: rowValue(rows, ["interior (ft²)", "interior (ft2)", "interior", "sqft"]) || "—",
@@ -74,17 +78,19 @@ export function buildRentasResultCardPreviewListingFromNegocioVm(
   categoria: BrNegocioCategoriaPropiedad,
 ): RentasPublicListing {
   const rows = vm.propertyDetailsRows ?? [];
+  const browseLoc = privacySafeLocation({
+    cityStateZip: vm.location.cityStateZip,
+    colonia: vm.location.colonia,
+    fallback: vm.addressLine,
+  });
   return {
     id: "preview-rentas-negocio",
     title: trim(vm.heroTitle) || "Renta",
     imageUrl: trim(vm.media.heroUrl) || "/logo.png",
     galleryUrls: vm.media.allPhotoUrls?.length ? vm.media.allPhotoUrls : undefined,
     rentDisplay: trim(vm.priceDisplay) || "Consultar",
-    addressLine: privacySafeLocation({
-      cityStateZip: vm.location.cityStateZip,
-      colonia: vm.location.colonia,
-      fallback: vm.addressLine,
-    }),
+    addressLine: browseLoc,
+    resultBrowseLocation: browseLoc,
     beds: rowValue(rows, ["recámaras", "recamaras"]) || "—",
     baths: rowValue(rows, ["baños completos", "baños", "banos"]) || "—",
     sqft: rowValue(rows, ["interior (ft²)", "interior (ft2)", "interior", "sqft"]) || "—",

@@ -31,6 +31,11 @@ export type RentasPublicListing = {
   /** Nota breve del contacto para interesados (cuando fue publicada en el formulario). */
   contactNote?: string;
   addressLine: string;
+  /**
+   * Privacy-safe location for browse/result cards (city/state · zona). Does not include calle/número.
+   * Detail pages continue to use `addressLine` when the publisher provided a full referencia.
+   */
+  resultBrowseLocation?: string;
   /** Normalized city/metro for browse filters (maps from publish `ciudad` + geocoding). */
   city?: string;
   /** State or entity label (e.g. NL, Jal.) — optional until backend normalizes. */

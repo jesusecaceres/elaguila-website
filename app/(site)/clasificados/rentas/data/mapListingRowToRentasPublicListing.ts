@@ -248,6 +248,25 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     postalCode ||
     "—";
 
+  const estadoPair = trim(pairValue(row.detail_pairs, "Estado") ?? "");
+  const zonaVecindario = trim(
+    pairValue(row.detail_pairs, "Zona o vecindario") ??
+      pairValue(row.detail_pairs, "zona o vecindario") ??
+      pairValue(row.detail_pairs, "Colonia") ??
+      "",
+  );
+  const cityStateZip = [city, estadoPair].filter(Boolean).join(", ");
+  const resultBrowseLocation = (() => {
+    if (cityStateZip && zonaVecindario) return `${cityStateZip} · ${zonaVecindario}`;
+    if (cityStateZip) return cityStateZip;
+    if (zonaVecindario && postalCode) return `${zonaVecindario} · ${postalCode}`;
+    if (zonaVecindario) return zonaVecindario;
+    if (postalCode && city) return `${city} · ${postalCode}`;
+    if (city) return city;
+    if (postalCode) return postalCode;
+    return "";
+  })();
+
   const priceNum =
     typeof row.price === "number" && Number.isFinite(row.price)
       ? Math.round(row.price)
@@ -335,7 +354,9 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     contactWhatsappDigits,
     contactNote,
     addressLine,
+    resultBrowseLocation: resultBrowseLocation || undefined,
     city,
+    stateRegion: estadoPair || undefined,
     postalCode,
     publishedAt,
     browseActive,
