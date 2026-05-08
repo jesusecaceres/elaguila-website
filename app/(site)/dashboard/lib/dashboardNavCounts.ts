@@ -90,7 +90,7 @@ export async function fetchDashboardNavCounts(sb: SupabaseClient, userId: string
       .select("id, status, boost_expires, expires_at")
       .eq("owner_id", userId)
       .eq("status", "active");
-    if (!withExp.error && withExp.data) {
+    if (!withExp.error && Array.isArray(withExp.data)) {
       out.expiringSoon = countExpiring(withExp.data as Array<{ boost_expires?: string | null; expires_at?: string | null }>);
     } else {
       const boostOnly = await sb
@@ -98,8 +98,10 @@ export async function fetchDashboardNavCounts(sb: SupabaseClient, userId: string
         .select("id, status, boost_expires")
         .eq("owner_id", userId)
         .eq("status", "active");
-      if (!boostOnly.error && boostOnly.data) {
+      if (!boostOnly.error && Array.isArray(boostOnly.data)) {
         out.expiringSoon = countExpiring(boostOnly.data as Array<{ boost_expires?: string | null; expires_at?: string | null }>);
+      } else if (!withExp.error && !boostOnly.error) {
+        out.expiringSoon = 0;
       }
     }
   } catch {

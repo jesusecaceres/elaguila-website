@@ -24,13 +24,13 @@ This document maps **displayed metrics → `listing_analytics.event_type` → tr
 
 ## `/dashboard?lang=es` — summary cards
 
-| Card (ES) | Metric | Source | `event_type` / table | Tracked? | Notes |
-|-----------|--------|--------|----------------------|----------|-------|
-| Anuncios activos | Active / published inventory | `countOwnerActiveListingsAcrossSources()` | `listings`, `servicios_public_listings`, `empleos_public_listings`, `autos_classifieds_listings`, `restaurantes_public_listings` | Yes | Per-source status filters (`active` / `published` / `lifecycle_status`). Servicios falls back to all rows if `listing_status` filter errors. |
-| Vistas totales | Total views | `fetchOwnerAnalyticsTotals().totals.listingViews` | `listing_analytics` | Yes | `listing_view` only. |
-| Mensajes totales | Contact signals | `totals.messages + totals.leads` | `listing_analytics` | Yes | **`message_sent` + `lead_created`** (not inbox unread). Card links to `/dashboard/analytics`. |
-| Guardados | Net saves | `fetchOwnerAnalyticsTotals().totals.saves` | `listing_analytics` | Yes | `listing_save` − `listing_unsave`, floored at 0. |
-| Por expirar (7 días) | Soon expiring | `fetchDashboardNavCounts().expiringSoon` | `listings.boost_expires`, `listings.expires_at` | Partial | **Listings table only** today. Footnote on dashboard explains other categories may be missing until the same fields exist. |
+| Card (ES) | Metric | Source | `event_type` / table | Tracked? | Notes | Recommended fix |
+|-----------|--------|--------|----------------------|----------|-------|-----------------|
+| Anuncios activos | Active / published inventory | `countOwnerActiveListingsAcrossSources()` | `listings`, `servicios_public_listings`, `empleos_public_listings`, `autos_classifieds_listings`, `restaurantes_public_listings` | Yes | Per-source status filters (`active` / `published` / `lifecycle_status`). Servicios falls back to all rows if `listing_status` filter errors. | Keep aligned with publish tables when new lanes ship. |
+| Vistas totales | Total views | `fetchOwnerAnalyticsTotals().totals.listingViews` | `listing_analytics` | Yes | `listing_view` only. | Apply migrations; ensure public pages call `trackListingView` / `trackEvent`. |
+| Mensajes totales | Contact signals | `totals.messages + totals.leads` | `listing_analytics` | Yes | **`message_sent` + `lead_created`** (not inbox unread). Card links to `/dashboard/analytics`. | Wire `trackLeadCreated` on any contact surface still missing it. |
+| Guardados | Net saves | `fetchOwnerAnalyticsTotals().totals.saves` | `listing_analytics` | Yes | `listing_save` − `listing_unsave`, floored at 0. | Ensure Leonix save buttons pass `owner_user_id` where possible. |
+| Por expirar (7 días) | Soon expiring | `fetchDashboardNavCounts().expiringSoon` | `listings.boost_expires`, `listings.expires_at` | Partial | **Listings table only** today. UI shows **“Aún no registrado” / “Not tracked yet”** when the count is `null` (could not compute). | Add parallel expiry fields + counts for Servicios/Empleos/Autos/Restaurantes when product defines them. |
 
 **Helper copy** (under cards): real interactions + zero-until-engagement explanation (see `app/(site)/dashboard/page.tsx`).
 
@@ -40,21 +40,21 @@ This document maps **displayed metrics → `listing_analytics.event_type` → tr
 
 ## `/dashboard/analytics?lang=es`
 
-| Card | `event_type` (and logic) | Aggregation |
-|------|--------------------------|---------------|
-| Anuncios | `countOwnerInventoryListings` | Row count across inventory tables (not event-based). |
-| Vistas (eventos) | `listing_view` | Count |
-| Vistas únicas | `listing_view` with distinct `user_id` | Estimate (logged-in viewers only). |
-| Guardados | `listing_save` / `listing_unsave` | Net ≥ 0 |
-| Compartidos | `listing_share` | Count |
-| Mensajes (evento) | `message_sent` | Count |
-| Vistas de perfil | `profile_view` | Count |
-| Aperturas de ficha | `listing_open` | Count |
-| Me gusta | `listing_like` / `listing_unlike` | Net ≥ 0 |
-| Clics en CTA | `cta_click`, `phone_click`, `whatsapp_click`, `website_click`, `directions_click` | Count |
-| Contactos / leads | `lead_created` | Count |
-| Solicitudes | `apply_started`, `apply_submitted` | Count |
-| Última interacción | any row `created_at` | Max timestamp |
+| Card | `event_type` (and logic) | Aggregation | Recommended fix |
+|------|--------------------------|-------------|-----------------|
+| Anuncios | — | `countOwnerInventoryListings` | Keep inventory helper in sync with new publish tables. |
+| Vistas (eventos) | `listing_view` | Count | Same as home — migrations + page view hooks. |
+| Vistas únicas | `listing_view` + distinct `user_id` | Estimate (logged-in only) | Optional: session-based dedupe in metadata for anon viewers (larger change). |
+| Guardados | `listing_save` / `listing_unsave` | Net ≥ 0 | — |
+| Compartidos | `listing_share` | Count | — |
+| Mensajes (evento) | `message_sent` | Count | — |
+| Vistas de perfil | `profile_view` | Count | Emit from profile surfaces that lack tracking today. |
+| Aperturas de ficha | `listing_open` | Count | Ensure modal/detail open paths call `trackEvent` / category analytics. |
+| Me gusta | `listing_like` / `listing_unlike` | Net ≥ 0 | — |
+| Clics en CTA | `cta_click`, `phone_click`, `whatsapp_click`, `website_click`, `directions_click` | Count | — |
+| Contactos / leads | `lead_created` | Count | — |
+| Solicitudes | `apply_started`, `apply_submitted` | Count | Empleos apply flows only today. |
+| Última interacción | any row `created_at` | Max timestamp | — |
 
 **Tracking entry points (examples):**
 
@@ -81,19 +81,27 @@ This document maps **displayed metrics → `listing_analytics.event_type` → tr
 
 ---
 
-## Manual smoke checklist
+## Manual smoke checklist (17 steps)
 
-1. Open a **public** listing in a **private/incognito** window (or second browser).
-2. Confirm **`listing_view`** increments on `/dashboard/analytics` and `/dashboard` “Vistas totales” for that owner.
-3. Click **Like** (Leonix) → **`listing_like`** increases; unlike → net likes correct.
-4. **Save** → **`listing_save`** / unsave → net **Guardados** correct.
-5. **Share** → **`listing_share`** increases.
-6. Click **phone / WhatsApp / web / directions** where present → **CTA** bucket increases.
-7. Send **contact / message** where implemented → **`message_sent`** and/or **`lead_created`** per flow.
-8. Return to owner session: open **`/dashboard?lang=es`** — numbers match expectations (or honest zeros + footnotes).
-9. Open **`/dashboard/analytics?lang=es`** — no raw Supabase schema errors; at most one setup notice if table missing.
-10. Open **`/dashboard/mis-anuncios/{id}?tab=analytics&lang=es`** — per-listing metrics match rollups; no fake totals.
-11. If **`listing_analytics`** is missing in Supabase, apply migrations and reload schema cache; repeat steps 2–10.
+1. Open a **public** listing in another browser or **incognito** session (not the owner account).
+2. Confirm **`listing_view`** increases for the owner on **`/dashboard/analytics?lang=es`** and **“Vistas totales”** on **`/dashboard?lang=es`**.
+3. Click **Like** on the listing (Leonix control).
+4. Confirm **likes** increase on **`/dashboard/analytics`** (and per-listing tab if applicable).
+5. **Save** the listing.
+6. Confirm **Guardados** (net saves) increase on **`/dashboard`** and **`/dashboard/analytics`**.
+7. **Share** the listing (share control).
+8. Confirm **Compartidos** increases on **`/dashboard/analytics`**.
+9. Tap **phone / WhatsApp / website / directions** CTAs if the listing exposes them.
+10. Confirm **CTA clicks** increase on **`/dashboard/analytics`**.
+11. Submit a **contact / message** (or lead form) where the product supports it.
+12. Confirm **Mensajes (evento)** and/or **Contactos / leads** increase (and home **Mensajes totales** = `message_sent` + `lead_created`).
+13. Open **`/dashboard?lang=es`** — summary cards show **real numbers** or **honest zeros** / **“Aún no registrado”** for expiring when unknown; read footnotes.
+14. Open **`/dashboard/analytics?lang=es`** — **no raw Supabase** errors; at most **one** setup notice if the table is missing; empty state if all zeros with inventory.
+15. Open **`/dashboard/mis-anuncios/{listingId}?tab=analytics&lang=es`** — metrics match the same event vocabulary (including **`leonix_ad_id`** rollup).
+16. Confirm **no duplicate** raw schema-cache error strings in the UI.
+17. With **no events** yet, confirm **zeros** plus **honest empty/setup** copy (no fake non-zero metrics).
+
+**If `listing_analytics` is missing:** apply **`20260507180000_listing_analytics_schema_complete.sql`** (and follow-up index migration), reload PostgREST schema cache, then repeat steps 1–17.
 
 ## Known gaps (honest)
 

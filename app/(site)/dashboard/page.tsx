@@ -343,6 +343,10 @@ export default function DashboardPage() {
   const fmtNum = (n: number | null) =>
     n == null ? "—" : new Intl.NumberFormat(lang === "es" ? "es-US" : "en-US").format(n);
 
+  /** Expiring window only uses `listings` date fields; `null` means we could not compute (honest unknown). */
+  const fmtExpiringSoon = (n: number | null) =>
+    n == null ? (lang === "es" ? "Aún no registrado" : "Not tracked yet") : fmtNum(n);
+
   const showBizTeaser =
     plan === "pro" || (membershipTier ?? "").toLowerCase().includes("business");
 
@@ -432,7 +436,15 @@ export default function DashboardPage() {
                   ⏱
                 </span>
               </div>
-              <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{fmtNum(expiringSoon)}</p>
+              <p
+                className={
+                  expiringSoon === null
+                    ? "mt-3 text-sm font-semibold leading-snug text-[#5C5346]"
+                    : "mt-3 text-2xl font-bold tabular-nums text-[#1E1810]"
+                }
+              >
+                {fmtExpiringSoon(expiringSoon)}
+              </p>
             </Link>
           </div>
           {listingAnalyticsDegraded ? (
