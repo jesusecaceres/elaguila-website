@@ -32,7 +32,7 @@ import {
 } from "@/app/clasificados/lib/leonixPublishRealEstateListingCore";
 import { mergeRentasNegocioMachinePairs, mergeRentasPrivadoMachinePairs } from "@/app/clasificados/rentas/lib/rentasMachineDetailPairs";
 import { normalizeZipForBrowse } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
-import { buildRentasStreetLine } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+import { buildRentasStreetLine, orderedRentasGallerySourcesForPublish } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 
 /** Draft → core publish params (never conflates with `{ ok: true; listingId }` from persisted publish). */
 export type LeonixBrDraftPublishBuildResult =
@@ -239,7 +239,7 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
     detailPairs: pairs,
     contactPhoneDigits: contact.phone,
     contactEmail: contact.email,
-    imageSources: [...state.media.photoDataUrls],
+    imageSources: orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex),
     lang,
   });
 }
@@ -330,7 +330,7 @@ export async function publishLeonixListingFromRentasNegocioDraft(
     detailPairs: pairs,
     contactPhoneDigits: phone.length >= 10 ? phone.slice(0, 15) : null,
     contactEmail: trim(state.negocioEmail) || null,
-    imageSources: [...state.media.photoDataUrls],
+    imageSources: orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex),
     lang,
   });
 }

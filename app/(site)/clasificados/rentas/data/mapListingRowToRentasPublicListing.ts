@@ -4,6 +4,7 @@
  */
 
 import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import { parseLeonixImageUrlsFromDescription } from "@/app/clasificados/lib/leonixListingGalleryMarker";
 import {
   parseLeonixListingContract,
   parseLeonixMachineFacetRead,
@@ -289,8 +290,12 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     pairValue(row.detail_pairs, "Nota para interesados") ??
     undefined;
 
-  const img = firstImageUrl(row.images);
-  const gal = galleryUrls(row.images);
+  const galFromImages = galleryUrls(row.images);
+  const galFromDesc = parseLeonixImageUrlsFromDescription(row.description);
+  const gal =
+    galFromImages && galFromImages.length ? galFromImages : galFromDesc.length ? galFromDesc : undefined;
+  const imgFromColumn = firstImageUrl(row.images);
+  const img = imgFromColumn || (gal?.[0] ?? "") || (galFromDesc[0] ?? "");
   const imageUrl = img || "/logo.png";
 
   const halfDigits = rx.halfBathsDigits ?? "";

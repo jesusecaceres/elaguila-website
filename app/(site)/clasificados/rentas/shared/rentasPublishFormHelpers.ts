@@ -218,3 +218,18 @@ export function formatRentasServiciosIncluidosOutputMultiline(parts: {
   if (!list.length) return "";
   return list.map((line) => `• ${line}`).join("\n");
 }
+
+/**
+ * Order gallery sources for Supabase upload: cover (primary) first, then remaining photos
+ * in capture order — matches preview hero + browse card when `primaryImageIndex` ≠ 0.
+ */
+export function orderedRentasGallerySourcesForPublish(urls: readonly string[], primaryImageIndex: number): string[] {
+  const u = urls
+    .map((x) => (typeof x === "string" ? x.trim() : ""))
+    .filter((x) => x.length > 0);
+  const n = u.length;
+  if (n === 0) return [];
+  const pi = Math.min(Math.max(0, Math.round(primaryImageIndex) || 0), n - 1);
+  if (pi === 0) return [...u];
+  return [...u.slice(pi), ...u.slice(0, pi)];
+}

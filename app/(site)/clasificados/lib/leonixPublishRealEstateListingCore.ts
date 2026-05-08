@@ -15,7 +15,21 @@ function devLog(...args: unknown[]) {
 }
 
 async function fetchAsBlob(src: string): Promise<Blob> {
-  const res = await fetch(src);
+  const s = src.trim();
+  if (s.startsWith("data:")) {
+    const comma = s.indexOf(",");
+    if (comma === -1) throw new Error("invalid data URL");
+    const header = s.slice(0, comma);
+    const payload = s.slice(comma + 1);
+    const isBase64 = /;base64/i.test(header);
+    const binary = isBase64 ? atob(payload) : decodeURIComponent(payload);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const mimeMatch = /^data:([^;,]+)/i.exec(header);
+    const type = mimeMatch?.[1]?.trim() || "application/octet-stream";
+    return new Blob([bytes], { type });
+  }
+  const res = await fetch(s);
   if (!res.ok) throw new Error("fetch blob failed");
   return res.blob();
 }
@@ -218,12 +232,16 @@ export async function publishLeonixRealEstateListingCore(
     }
 
     if (ordered.length > 0 && photoUrls.length === 0) {
-      warnings.push(
-        lang === "es"
-          ? "El anuncio quedó publicado pero ninguna foto se pudo subir (revisa bucket listing-images y políticas)."
-          : "The listing was published but no photos could be uploaded (check listing-images bucket and policies)."
-      );
-    } else if (uploadFailures > 0 && photoUrls.length > 0 && photoUrls.length < ordered.length) {
+      await supabase.from("listings").delete().eq("id", listingId);
+      return {
+        ok: false,
+        error:
+          lang === "es"
+            ? "No se pudo subir ninguna foto (revisa el bucket listing-images y las políticas de Storage). El anuncio no se publicó."
+            : "No photos could be uploaded (check the listing-images bucket and Storage policies). The listing was not published.",
+      };
+    }
+    if (uploadFailures > 0 && photoUrls.length > 0 && photoUrls.length < ordered.length) {
       warnings.push(
         lang === "es"
           ? `Algunas fotos no se subieron (${uploadFailures} error(es)); el anuncio muestra las que sí se guardaron.`
@@ -239,17 +257,30 @@ export async function publishLeonixRealEstateListingCore(
         .update({ description: descriptionForUpdate, images: photoUrls })
         .eq("id", listingId);
       if (updErr) {
-        warnings.push(
-          lang === "es"
-            ? `Fotos subidas pero no se pudo actualizar la descripción: ${updErr.message}`
-            : `Photos uploaded but description update failed: ${updErr.message}`
-        );
         devLog("description/images update failed", updErr);
+        await supabase.from("listings").delete().eq("id", listingId);
+        return {
+          ok: false,
+          error:
+            lang === "es"
+              ? `Las fotos se subieron pero no se pudo guardar la galería en el anuncio: ${updErr.message}`
+              : `Photos uploaded but the listing could not be updated with the gallery: ${updErr.message}`,
+        };
       }
     }
   } catch (e: unknown) {
     console.warn("[leonix publish] media upload error", e);
     devLog("media block error", e);
+    if (ordered.length > 0 && photoUrls.length === 0) {
+      await supabase.from("listings").delete().eq("id", listingId);
+      return {
+        ok: false,
+        error:
+          lang === "es"
+            ? "Error al procesar las fotos; el anuncio no se publicó."
+            : "Error while processing photos; the listing was not published.",
+      };
+    }
     if (ordered.length) {
       warnings.push(
         lang === "es"
@@ -257,6 +288,17 @@ export async function publishLeonixRealEstateListingCore(
           : "Error while processing photos; the listing exists without an updated gallery."
       );
     }
+  }
+
+  if (ordered.length > 0 && photoUrls.length === 0) {
+    await supabase.from("listings").delete().eq("id", listingId);
+    return {
+      ok: false,
+      error:
+        lang === "es"
+          ? "No se pudo guardar la galería de fotos; el anuncio no se publicó."
+          : "The photo gallery could not be saved; the listing was not published.",
+    };
   }
 
   devLog("publish ok", listingId, "warnings", warnings.length);

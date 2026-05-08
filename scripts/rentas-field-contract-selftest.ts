@@ -4,6 +4,7 @@
  * Run: npx tsx scripts/rentas-field-contract-selftest.ts
  */
 import assert from "node:assert/strict";
+import { parseLeonixImageUrlsFromDescription } from "../app/(site)/clasificados/lib/leonixListingGalleryMarker";
 import {
   LEONIX_DP_BATHROOMS_COUNT,
   LEONIX_DP_BEDROOMS_COUNT,
@@ -28,6 +29,7 @@ import {
 } from "../app/(site)/clasificados/rentas/lib/rentasMachineDetailPairs";
 import { parseRentasBrowseParams } from "../app/(site)/clasificados/rentas/shared/rentasBrowseContract";
 import { filterRentasPublicListings } from "../app/(site)/clasificados/rentas/shared/rentasBrowseFilters";
+import { orderedRentasGallerySourcesForPublish } from "../app/(site)/clasificados/rentas/shared/rentasPublishFormHelpers";
 
 function baseRow(overrides: Partial<Record<string, unknown>> = {}): Record<string, unknown> {
   const id = "00000000-0000-4000-8000-00000000ff01";
@@ -94,6 +96,24 @@ function main() {
   assert.equal((mapped!.propertySubtype ?? "").toLowerCase(), "casa");
   assert.equal(mapped!.postalCode, "66220");
   assert.equal(mapped!.browseActive, true);
+
+  assert.deepEqual(orderedRentasGallerySourcesForPublish(["a", "b", "c"], 1), ["b", "c", "a"]);
+  assert.deepEqual(orderedRentasGallerySourcesForPublish(["x"], 99), ["x"]);
+
+  const u1 = "https://cdn.example.com/rentas/parity-01.jpg";
+  const u2 = "https://cdn.example.com/rentas/parity-02.jpg";
+  const descWithMarker = `Body\n[LEONIX_IMAGES]\nurl=${u1}\nurl=${u2}\n[/LEONIX_IMAGES]\n`;
+  assert.deepEqual(parseLeonixImageUrlsFromDescription(descWithMarker), [u1, u2]);
+
+  const withGallery = baseRow({
+    id: "00000000-0000-4000-8000-00000000ff10",
+    images: [],
+    description: `Field contract + gallery marker.\n${descWithMarker}`,
+  });
+  const mg = mapListingRowToRentasPublicListing(withGallery, "es");
+  assert.ok(mg);
+  assert.equal(mg!.imageUrl, u1, "cover from LEONIX_IMAGES when images column empty");
+  assert.deepEqual(mg!.galleryUrls, [u1, u2]);
 
   const list = [mapped!];
 
