@@ -27,14 +27,14 @@ const CONTENT =
   "flex min-w-0 flex-col gap-2.5 px-3 pb-3 pt-2.5 md:gap-3 md:px-5 md:pb-4 md:pt-3.5 md:pr-4";
 
 const TITLE = "text-lg font-bold leading-snug tracking-tight text-[#2A2620] md:text-xl";
-const SUBTITLE = "text-[13px] font-semibold leading-snug text-[#5c5147]";
+const SUBTITLE = "text-[14px] font-bold leading-snug text-[#5c5147]";
 const BODY = "text-[13px] leading-relaxed text-[#6F6254]";
 
 const CHIP =
   "inline-flex h-7 max-w-full items-center rounded-full border border-[#E0D0B8] bg-[#FFFCF7] px-2.5 text-[12px] font-semibold leading-none text-[#2A2620]";
 
 const META_PILL =
-  "inline-flex h-7 max-w-full items-center gap-1.5 rounded-full border border-[#E0D0B8] bg-[#F9F4EC] px-2.5 text-[12px] font-semibold leading-none text-[#5c5147]";
+  "inline-flex h-8 max-w-full items-center gap-1.5 rounded-full border border-[#E0D0B8] bg-[#F9F4EC] px-2.5 text-[13px] font-bold leading-none text-[#5c5147]";
 
 const STATUS_OPEN = "border-[#6F7A3A]/50 bg-[#6F7A3A]/12 text-[#4d5630]";
 const STATUS_CLOSED = "border-[#B86A32]/45 bg-[#B86A32]/12 text-[#6b3f18]";
@@ -145,30 +145,6 @@ export function ServiciosHorizontalResultCard({
 
   const slogan = (profile.about?.specialtiesLine || "").trim();
 
-  const trustChips = useMemo(() => {
-    const out: string[] = [];
-    const seen = new Set<string>();
-    const cat = categoryChip.toLowerCase();
-    for (const qf of profile.quickFacts ?? []) {
-      const v = cleanOtherLabel(qf.label);
-      if (!v || seen.has(v)) continue;
-      if (cat && v.toLowerCase() === cat) continue;
-      seen.add(v);
-      out.push(v);
-      if (out.length >= 2) break;
-    }
-    return out;
-  }, [profile.quickFacts, categoryChip]);
-
-  const quick = useMemo(() => {
-    const byKey = new Map<string, string>();
-    for (const item of profile.quickFacts ?? []) {
-      const v = cleanOtherLabel(item.label);
-      if (v) byKey.set(item.kind, v);
-    }
-    return { serviceArea: byKey.get("service_area") || "" };
-  }, [profile.quickFacts]);
-
   const locationLine = useMemo(() => {
     const fromHero = (profile.hero.locationSummary || "").trim();
     if (fromHero) return fromHero;
@@ -178,15 +154,6 @@ export function ServiciosHorizontalResultCard({
   const serviceChips = useMemo(() => {
     const out: string[] = [];
     const seen = new Set<string>();
-    if (quick.serviceArea) {
-      for (const raw of quick.serviceArea.split(" · ")) {
-        const c = cleanOtherLabel(raw);
-        if (c && !seen.has(c)) {
-          seen.add(c);
-          out.push(c);
-        }
-      }
-    }
     for (const s of profile.services) {
       const c = cleanOtherLabel(s.title);
       if (c && !seen.has(c)) {
@@ -196,7 +163,7 @@ export function ServiciosHorizontalResultCard({
       if (out.length >= 4) break;
     }
     return out;
-  }, [quick.serviceArea, profile.services]);
+  }, [profile.services]);
 
   const addressQuery = (profile.contact?.physicalAddressDisplay || "").trim();
   const mapsHref = ((profile.contact?.mapsSearchHref || "").trim() || (addressQuery ? mapsSearchHref(addressQuery) : "")).trim();
@@ -281,13 +248,13 @@ export function ServiciosHorizontalResultCard({
               ) : null}
             </div>
             {showLogoOverlay ? (
-              <div className="absolute bottom-2 left-2 z-[3] rounded-lg border border-white/80 bg-white/95 p-1 shadow-md">
+              <div className="absolute bottom-2 left-2 z-[3] rounded-xl border border-white/80 bg-white/95 p-1.5 shadow-md">
                 <Image
                   src={logoUrl}
                   alt={logoAlt}
-                  width={44}
-                  height={44}
-                  className="h-11 w-11 rounded-md object-contain"
+                  width={56}
+                  height={56}
+                  className="h-14 w-14 rounded-lg object-contain"
                   unoptimized={serviciosImageUnoptimized(logoUrl)}
                 />
               </div>
@@ -317,19 +284,22 @@ export function ServiciosHorizontalResultCard({
                 </div>
               ) : null}
               <h2 className={TITLE}>{profile.identity.businessName}</h2>
-              {slogan ? <p className={`${SUBTITLE} line-clamp-2`}>{slogan}</p> : null}
+              {categoryChip ? <p className={`${SUBTITLE} line-clamp-1`}>{categoryChip}</p> : null}
+              {slogan ? <p className={`${BODY} line-clamp-2 font-semibold`}>{slogan}</p> : null}
             </div>
           </div>
 
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap gap-1.5">
-              {categoryChip ? <span className={CHIP}>{categoryChip}</span> : null}
-              {locationLine ? <span className={CHIP}>{locationLine}</span> : null}
-              {trustChips.map((t) => (
-                <span key={t} className={CHIP}>
-                  {t}
+              {!addressQuery && locationLine ? <span className={CHIP}>{locationLine}</span> : null}
+              {serviceChips.slice(0, 3).map((f) => (
+                <span key={f} className={CHIP}>
+                  {f}
                 </span>
               ))}
+              {serviceChips.length > 3 ? (
+                <span className={CHIP}>+{serviceChips.length - 3}</span>
+              ) : null}
             </div>
           </div>
 
@@ -356,22 +326,7 @@ export function ServiciosHorizontalResultCard({
             </a>
           ) : null}
 
-          {summary ? <p className={`${BODY} line-clamp-3`}>{summary}</p> : null}
-
-          {serviceChips.length ? (
-            <div className="flex flex-col gap-1.5">
-              <p className={`${SUBTITLE} text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A7E6E]`}>
-                {lang === "en" ? "Services" : "Servicios"}
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {serviceChips.map((f) => (
-                  <span key={f} className={CHIP}>
-                    {f}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : null}
+          {summary ? <p className={`${BODY} line-clamp-2`}>{summary}</p> : null}
 
           <div className="flex min-w-0 flex-col gap-2">
             <Link href={vitrinaHref} className={CTA_PRIMARY}>
