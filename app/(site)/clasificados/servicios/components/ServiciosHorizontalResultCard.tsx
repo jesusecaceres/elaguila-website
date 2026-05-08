@@ -29,8 +29,6 @@ const MEDIA_CELL = "min-w-0 bg-[#F6F0E8] p-2.5 md:p-4 md:pr-3";
 const MEDIA_FRAME =
   "relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-[#E4D4BC]/80 bg-[#EFE7DA] md:aspect-[16/10] md:rounded-l-xl md:rounded-r-none";
 
-const LOGO_OVERLAY =
-  "pointer-events-none absolute right-3 top-12 z-[2] flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-white/40 bg-white/95 shadow-md ring-1 ring-black/5 md:h-14 md:w-14 md:top-14";
 
 const CONTENT =
   "flex min-w-0 flex-col gap-2.5 px-3 pb-3 pt-2.5 md:gap-3 md:px-5 md:pb-4 md:pt-4 md:pr-4";
@@ -280,63 +278,42 @@ export function ServiciosHorizontalResultCard({
       <div className={GRID}>
         <div className={MEDIA_CELL}>
           <div className={MEDIA_FRAME}>
-            {/* Primary cover/gallery image - full-bleed like Restaurants */}
-            {hasBackdrop ? (
-              <Image
-                src={backdropUrl}
-                alt={backdropAlt}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 42vw, 520px"
-                priority={false}
-                unoptimized={serviciosImageUnoptimized(backdropUrl)}
-              />
-            ) : logoUrl ? (
-              /* Logo-only fallback - centered with premium background */
-              <div className="flex h-full min-h-[140px] w-full items-center justify-center bg-gradient-to-br from-[#3d352c] via-[#2a2620] to-[#1f1a17]">
+            {/* Logo-only media - centered with slogan underneath */}
+            {logoUrl ? (
+              <div className="flex h-full w-full flex-col items-center justify-center p-4">
                 <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-white/10 p-3 backdrop-blur-sm">
+                  {/* Logo as main hero element */}
+                  <div className="relative h-20 w-20 md:h-24 md:w-24">
                     <Image
                       src={logoUrl}
                       alt={logoAlt}
-                      width={64}
-                      height={64}
-                      className="max-h-full max-w-full object-contain"
-                      sizes="64px"
+                      fill
+                      className="object-contain"
+                      sizes="96px"
                       unoptimized={serviciosImageUnoptimized(logoUrl)}
                     />
                   </div>
-                  <p className="text-xs font-semibold text-white/80">{profile.identity.businessName}</p>
+                  {/* Slogan directly underneath logo */}
+                  {slogan ? (
+                    <p className="max-w-full text-center text-xs font-medium leading-tight text-[#6F6254] md:text-sm">
+                      {slogan}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             ) : (
-              /* No assets fallback */
-              <div className="flex h-full min-h-[140px] w-full items-center justify-center">
+              /* No logo fallback */
+              <div className="flex h-full w-full items-center justify-center">
                 <div className="flex flex-col items-center gap-2 text-center">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/5">
                     <FiMapPin className="h-6 w-6 text-[#8B7E70]" aria-hidden />
                   </div>
-                  <p className="text-xs font-semibold text-[#8B7E70]">{lang === "en" ? "No image yet" : "Sin imagen"}</p>
+                  <p className="text-xs font-semibold text-[#8B7E70]">{lang === "en" ? "No logo yet" : "Sin logo"}</p>
                 </div>
               </div>
             )}
             
-            {/* Logo overlay when cover image exists - like Restaurants */}
-            {hasBackdrop && logoUrl ? (
-              <div className={LOGO_OVERLAY}>
-                <Image
-                  src={logoUrl}
-                  alt={`${profile.identity.businessName} logo`}
-                  width={56}
-                  height={56}
-                  className="max-h-full max-w-full object-contain p-1"
-                  sizes="56px"
-                  unoptimized={serviciosImageUnoptimized(logoUrl)}
-                />
-              </div>
-            ) : null}
-
-            
+            {/* Status badges */}
             <div className="pointer-events-none absolute inset-x-0 top-0 z-[4] flex flex-wrap gap-1 p-2">
               {promoted ? (
                 <span className="rounded-full border border-white/70 bg-gradient-to-r from-[#D4AF37] to-[#9A7329] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
@@ -362,7 +339,6 @@ export function ServiciosHorizontalResultCard({
             ) : null}
             <h2 className={TITLE}>{profile.identity.businessName}</h2>
             {categoryChip ? <p className={`${CATEGORY} line-clamp-2`}>{categoryChip}</p> : null}
-            {slogan ? <p className={`${BODY} line-clamp-2 text-[14px] font-semibold text-[#4a4036]`}>{slogan}</p> : null}
           </div>
 
           {serviceChipsVisible.length > 0 || serviceChipsMore > 0 ? (
