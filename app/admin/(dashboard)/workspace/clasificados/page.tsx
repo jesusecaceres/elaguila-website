@@ -9,12 +9,28 @@ import { getClasificadosCategoryRegistryMerged } from "@/app/lib/clasificados/cl
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import AdminListingsTable from "./AdminListingsTable";
 import { ClasificadosCategoryHub } from "./ClasificadosCategoryHub";
+import { ClasificadosCategoryOpsAudit } from "./ClasificadosCategoryOpsAudit";
 import { EnVentaModerationFields } from "@/app/clasificados/en-venta/admin/EnVentaModerationFields";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { AdminSectionCard } from "../../../_components/AdminSectionCard";
 import { adminCardBase, adminCtaChipCompact, adminCtaChipSecondary } from "../../../_components/adminTheme";
 
 export const dynamic = "force-dynamic";
+
+/** Registry slug for `listings.category` is `travel`; public routes use `/clasificados/viajes`. Normalize URL typos. */
+function normalizeWorkspaceListingsCategoryParam(raw: string): string | undefined {
+  const t = raw.trim();
+  if (!t) return undefined;
+  const lower = t.toLowerCase();
+  if (lower === "viajes") return "travel";
+  return lower;
+}
+
+function listingCategorySelectValue(dbValue: string): string {
+  const t = dbValue.trim();
+  if (t.toLowerCase() === "viajes") return "travel";
+  return t.trim().toLowerCase();
+}
 
 type Row = {
   id: string;
@@ -53,7 +69,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   const sp = props.searchParams ? await props.searchParams : {};
   const qInput = (sp.q ?? "").trim();
   const qRaw = qInput.toLowerCase();
-  const catFilter = (sp.category ?? "").trim().toLowerCase();
+  const catFilter = normalizeWorkspaceListingsCategoryParam(typeof sp.category === "string" ? sp.category : "");
   const statusFilter = (sp.status ?? "").trim().toLowerCase();
   const ownerFrag = (sp.owner ?? "").trim().toLowerCase();
   const lxBranch = (sp.leonix_branch ?? "").trim();
@@ -65,7 +81,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   const [{ data: listings, error, detailPairsAvailable, boostExpiresAvailable }, cats, registry] = await Promise.all([
     fetchListingsForAdminWorkspaceFiltered(supabase, {
       q: qInput || undefined,
-      category: catFilter || undefined,
+      category: catFilter,
       status: statusFilter || undefined,
       ownerFrag: ownerFrag && isUuidString(ownerFrag) ? ownerFrag : undefined,
       limit: queueLimit,
@@ -98,6 +114,8 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
       />
 
       <ClasificadosCategoryHub registry={registry} />
+
+      <ClasificadosCategoryOpsAudit registry={registry} />
 
       {!detailPairsAvailable ? (
         <div
@@ -155,9 +173,9 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         <Link
           href="/admin/workspace/clasificados/servicios"
           className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-dashed border-[#7A9E6F]/55 bg-[#F4FAF2] px-4 py-2.5 text-center text-sm font-bold text-[#2C4A22] shadow-sm transition hover:bg-[#E8F4E4] sm:min-h-10"
-          title="Simulación en navegador (localStorage), no es la cola real de Supabase"
+          title="Cola Supabase: servicios_public_listings (sandbox tiers es aparte)"
         >
-          Servicios (simulación local) →
+          Servicios (Supabase) →
         </Link>
         <Link
           href="/admin/categories"
@@ -200,12 +218,12 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
             />
             <select
               name="category"
-              defaultValue={catFilter}
+              defaultValue={catFilter ?? ""}
               className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[10rem] sm:py-2 sm:text-sm"
             >
               <option value="">Todas las categorías</option>
               {cats.map((c) => (
-                <option key={c} value={c}>
+                <option key={c} value={listingCategorySelectValue(c)}>
                   {c}
                 </option>
               ))}
@@ -289,6 +307,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
           listings={rows}
           detailPairsAvailable={detailPairsAvailable}
           boostExpiresAvailable={boostExpiresAvailable}
+          listingsCategorySlug={catFilter}
         />
       )}
 

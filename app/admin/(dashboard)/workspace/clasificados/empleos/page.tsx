@@ -101,6 +101,18 @@ export default function AdminEmpleosListingsPage() {
         </div>
       ) : null}
 
+      {!err && rows.length === 0 ? (
+        <div className={`${adminCardBase} border-amber-200/80 bg-amber-50/90 p-4 text-sm text-amber-950`} role="status">
+          <p className="font-semibold text-[#1E1810]">No published listings found for this category.</p>
+          <p className="mt-2 text-xs leading-relaxed text-[#5C5346]">
+            La API <span className="font-mono">/api/admin/empleos/listings</span> respondió sin filas desde{" "}
+            <span className="font-mono">empleos_public_listings</span>
+            {needle.trim() ? " para el término de búsqueda actual." : " (sin término de búsqueda)."}{" "}
+            Si esperabas anuncios, confirma migraciones y datos en Supabase.
+          </p>
+        </div>
+      ) : null}
+
       <div className={`${adminCardBase} p-4`}>
         <label className="text-xs font-bold uppercase text-[#7A7164]">Buscar</label>
         <p className="mt-1 max-w-3xl text-[10px] leading-snug text-[#7A7164]">

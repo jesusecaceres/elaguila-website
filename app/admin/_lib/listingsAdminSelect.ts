@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { adminQueueNormalizeLeonixAdId } from "@/app/admin/_lib/adminAdSearch";
+import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { fetchProfileIdsMatchingAdminQueueSearch } from "@/app/lib/supabase/adminQueueProfileSearch";
 
 const LISTINGS_ADMIN_CORE =
@@ -128,14 +129,24 @@ export async function fetchListingsForAdminWorkspaceFiltered(
   const qLower = qInput.toLowerCase();
   const safeQ = escapeIlike(qLower);
 
-  const applyListingFilters = <T extends { eq: (column: string, value: string) => T }>(qb: T): T => {
+  /**
+   * Category / status values in `listings` are not guaranteed to match registry casing (e.g. `Rentas` vs `rentas`).
+   * Use case-insensitive `ilike` without wildcards so the filter stays an exact string match.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- PostgREST builder chain (or/filter/in) is wider than a narrow helper type.
+  const applyNonCategoryListingFilters = (qb: any): any => {
     let q = qb;
-    if (cat) q = q.eq("category", cat);
-    if (status) q = q.eq("status", status);
+    if (status) q = q.ilike("status", escapeIlike(status));
     if (ownerFrag && isUuid(ownerFrag)) {
       q = q.eq("owner_id", ownerFrag);
     }
     return q;
+  };
+
+  const applyListingFilters = (qb: any): any => {
+    let q = qb;
+    if (cat) q = q.ilike("category", escapeIlike(cat));
+    return applyNonCategoryListingFilters(q);
   };
 
   const buildQuery = (cols: string, qMode: "none" | "text_uuid" | "owner_like") => {
@@ -161,7 +172,8 @@ export async function fetchListingsForAdminWorkspaceFiltered(
   };
 
   const run = async (
-    cols: string
+    cols: string,
+    detailPairsAvailable: boolean,
   ): Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }> => {
     let merged: Record<string, unknown>[] = [];
 
@@ -214,6 +226,28 @@ export async function fetchListingsForAdminWorkspaceFiltered(
       }
     }
 
+    /**
+     * Rentas queue: primary rows use `listings.category` ~ rentas; some rent inventory is filed under
+     * `category=bienes-raices` with `detail_pairs` → Leonix:operation = rent (see `leonixRealEstateListingContract`).
+     * When there is no text search, merge those rent-operation rows so the admin queue matches public Rentas.
+     */
+    if (cat.toLowerCase() === "rentas" && !qLower && detailPairsAvailable) {
+      let brQ = supabase
+        .from("listings")
+        .select(cols)
+        .ilike("category", escapeIlike("bienes-raices"))
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      brQ = applyNonCategoryListingFilters(brQ);
+      const brRes = await brQ;
+      if (!brRes.error && brRes.data?.length) {
+        const rentOnly = (brRes.data as unknown as Record<string, unknown>[]).filter(
+          (r) => parseLeonixListingContract((r as { detail_pairs?: unknown }).detail_pairs).operation === "rent",
+        );
+        merged = merged.concat(rentOnly);
+      }
+    }
+
     merged.sort((x, y) => {
       const tx = new Date(String((x as { created_at?: string }).created_at ?? 0)).getTime();
       const ty = new Date(String((y as { created_at?: string }).created_at ?? 0)).getTime();
@@ -225,7 +259,7 @@ export async function fetchListingsForAdminWorkspaceFiltered(
   let lastErr: { message: string } | null = null;
 
   for (const tier of ADMIN_LISTING_SELECT_TIERS) {
-    const result = await run(tier.cols);
+    const result = await run(tier.cols, tier.detailPairsAvailable);
     if (!result.error) {
       return {
         data: result.data ?? [],

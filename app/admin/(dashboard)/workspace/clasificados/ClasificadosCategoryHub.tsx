@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ClasificadosCategoryRegistryEntry } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
 import { getCategorySchema } from "@/app/clasificados/config/categorySchema";
+import { adminCategoryWorkspaceQueueHref } from "@/app/admin/_lib/adminCategoryWorkspaceQueueHref";
 import { adminCardBase } from "../../../_components/adminTheme";
 
 function planSummary(plans: string[]): string {
@@ -121,8 +122,9 @@ export function ClasificadosCategoryHub({ registry }: { registry: ClasificadosCa
                     Espacio operativo →
                   </Link>
                   <Link
-                    href={`/admin/workspace/clasificados?category=${encodeURIComponent(entry.slug)}`}
+                    href={adminCategoryWorkspaceQueueHref(entry.slug)}
                     className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-dashed border-[#B8A990] bg-white/80 px-4 py-2.5 text-center text-xs font-semibold text-[#5C4E2E] hover:bg-[#FFFCF7] sm:min-h-0"
+                    title="Abre la cola operativa real: vertical dedicada (Restaurantes/Servicios/Empleos/Autos) o cola listings filtrada."
                   >
                     Cola de anuncios (filtrada)
                   </Link>

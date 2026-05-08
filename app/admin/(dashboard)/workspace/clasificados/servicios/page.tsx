@@ -215,7 +215,10 @@ export default async function AdminServiciosWorkspacePage(props: {
             ) : null}
           </div>
           {rows.length === 0 ? (
-            <p className="p-4 text-sm text-[#5C5346]">No hay filas en la tabla o el proyecto no tiene datos aún.</p>
+            <p className="p-4 text-sm text-[#5C5346]">
+              No published listings found for this category. Query: <span className="font-mono">servicios_public_listings</span> returned
+              zero rows with current filters (or the table is empty).
+            </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full border-collapse text-sm">

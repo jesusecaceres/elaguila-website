@@ -143,12 +143,15 @@ export default function AdminListingsTable({
   listings,
   detailPairsAvailable = true,
   boostExpiresAvailable = true,
+  listingsCategorySlug,
 }: {
   listings: Row[];
   /** When false, DB has no `listings.detail_pairs` — En Venta visibility column is degraded. */
   detailPairsAvailable?: boolean;
   /** When false, select omitted `listings.boost_expires` — boost/renew lines are degraded. */
   boostExpiresAvailable?: boolean;
+  /** Active `?category=` filter (registry slug), for empty-state copy. */
+  listingsCategorySlug?: string;
 }) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -200,7 +203,29 @@ export default function AdminListingsTable({
 
   if (listings.length === 0) {
     return (
-      <div className="rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-6 text-sm text-[#5C5346]">No hay anuncios.</div>
+      <div
+        className={`rounded-2xl border p-6 text-sm ${
+          listingsCategorySlug ? "border-amber-200/90 bg-amber-50/90 text-amber-950" : "border-[#E8DFD0] bg-[#FAF7F2]/80 text-[#5C5346]"
+        }`}
+        role="status"
+      >
+        {listingsCategorySlug ? (
+          <>
+            <p className="font-bold text-[#1E1810]">No published listings found for this category.</p>
+            <p className="mt-2 text-xs leading-relaxed text-[#5C5346]">
+              Active filter targets <span className="font-mono">public.listings.category</span> (case-insensitive) ={" "}
+              <span className="font-mono">{listingsCategorySlug}</span>
+              {listingsCategorySlug === "rentas"
+                ? ", plus merged rows with category «bienes-raices» and Leonix:operation=rent in detail_pairs when there is no text search (q)."
+                : "."}{" "}
+              Check the category dropdown for actual DB values, or open the dedicated vertical queue (Servicios, Empleos, Autos,
+              Restaurantes) if this category stores ads outside <span className="font-mono">listings</span>.
+            </p>
+          </>
+        ) : (
+          "No hay anuncios en la cola global con los filtros actuales."
+        )}
+      </div>
     );
   }
 

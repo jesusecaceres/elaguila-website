@@ -3,6 +3,10 @@
  */
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 
+function escapeIlikeExact(s: string): string {
+  return s.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
 export type CategoryListingStatsRow = {
   slug: string;
   totalListings: number | null;
@@ -18,12 +22,12 @@ export async function fetchListingStatsForCategorySlugs(slugs: string[]): Promis
     const { count: total, error: e1 } = await supabase
       .from("listings")
       .select("id", { count: "exact", head: true })
-      .eq("category", slug);
+      .ilike("category", escapeIlikeExact(slug));
 
     const { count: pf, error: e2 } = await supabase
       .from("listings")
       .select("id", { count: "exact", head: true })
-      .eq("category", slug)
+      .ilike("category", escapeIlikeExact(slug))
       .in("status", ["pending", "flagged"]);
 
     const err = e1?.message ?? e2?.message ?? null;
