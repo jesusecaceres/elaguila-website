@@ -1,5 +1,7 @@
 "use client";
 
+import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+
 type Primary = "phone" | "whatsapp" | "email";
 
 type Props = {
@@ -18,7 +20,14 @@ type Props = {
   };
   /** Shown under the primary-action fieldset (e.g. “others still appear if filled”). */
   primaryHint?: string;
+  /**
+   * When true (Clases / Comunidad quick), phone and WhatsApp use (###) ###-#### formatting.
+   * Empleos Quick omits this prop — unchanged free-form behavior.
+   */
+  formatUsPhone?: boolean;
 };
+
+const US_PHONE_PLACEHOLDER = "(555) 123-4567";
 
 export function EmpleosCtaFieldGroup({
   phone,
@@ -29,6 +38,7 @@ export function EmpleosCtaFieldGroup({
   onChange,
   labels,
   primaryHint,
+  formatUsPhone = false,
 }: Props) {
   return (
     <div className="space-y-4">
@@ -37,19 +47,33 @@ export function EmpleosCtaFieldGroup({
           <span className="font-semibold text-[color:var(--lx-text)]">{labels.phone}</span>
           <input
             value={phone}
-            onChange={(e) => onChange({ phone: e.target.value })}
+            onChange={(e) =>
+              onChange({
+                phone: formatUsPhone ? formatPhoneInputDisplay(e.target.value) : e.target.value,
+              })
+            }
             className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
             type="tel"
             autoComplete="tel"
+            inputMode={formatUsPhone ? "numeric" : undefined}
+            maxLength={formatUsPhone ? 14 : undefined}
+            placeholder={formatUsPhone ? US_PHONE_PLACEHOLDER : undefined}
           />
         </label>
         <label className="block text-sm">
           <span className="font-semibold text-[color:var(--lx-text)]">{labels.whatsapp}</span>
           <input
             value={whatsapp}
-            onChange={(e) => onChange({ whatsapp: e.target.value })}
+            onChange={(e) =>
+              onChange({
+                whatsapp: formatUsPhone ? formatPhoneInputDisplay(e.target.value) : e.target.value,
+              })
+            }
             className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
-            placeholder="15551234567"
+            type="tel"
+            inputMode={formatUsPhone ? "numeric" : undefined}
+            maxLength={formatUsPhone ? 14 : undefined}
+            placeholder={formatUsPhone ? US_PHONE_PLACEHOLDER : "15551234567"}
           />
         </label>
         <label className="block text-sm sm:col-span-2">

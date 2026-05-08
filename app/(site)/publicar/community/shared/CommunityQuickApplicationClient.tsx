@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { EmpleosApplicationFinalStep } from "@/app/publicar/empleos/shared/components/EmpleosApplicationFinalStep";
@@ -15,7 +16,6 @@ import {
   EmpleosSectionCard,
 } from "@/app/publicar/empleos/shared/ui/empleosFormPrimitives";
 
-import { COMMUNITY_DISCOVERY_REGION } from "./constants/communityRegion";
 import {
   COMMUNITY_SESSION_KEYS,
   type CommunityKind,
@@ -118,9 +118,9 @@ function ctaLabels(lang: Lang) {
 
 const MEDIA_COPY = {
   es: {
-    urlPh: "https://… (URL del flyer/imagen)",
+    urlPh: "https://… (URL de imagen o PDF)",
     addUrl: "Añadir URL",
-    upload: "Subir imagen",
+    upload: "Sube imagen, PDF o archivo del volante",
     main: "Principal",
     remove: "Quitar",
     up: "Arriba",
@@ -128,9 +128,9 @@ const MEDIA_COPY = {
     altImage: "Texto alternativo (imagen)",
   },
   en: {
-    urlPh: "https://… (image URL)",
+    urlPh: "https://… (image or PDF URL)",
     addUrl: "Add URL",
-    upload: "Upload image",
+    upload: "Upload an image, PDF, or flyer file",
     main: "Main",
     remove: "Remove",
     up: "Up",
@@ -460,6 +460,8 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
               upLabel={mediaCopy.up}
               downLabel={mediaCopy.down}
               altPlaceholder={mediaCopy.altImage}
+              uploadMode="imagesAndPdf"
+              lang={lang}
             />
           </EmpleosSectionCard>
 
@@ -473,19 +475,20 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
               onChange={(p) => patch(p)}
               labels={ctaL}
               primaryHint={ctaPrimaryHint}
+              formatUsPhone
             />
           </EmpleosSectionCard>
 
           <LocationSection
             lang={lang}
-            sharedCopy={sharedCopy}
+            discoveryLine={sharedCopy.discoveryRegionLine}
+            cityHint={sharedCopy.cityAutocompleteHint}
             publicCity={state.publicCity}
             stateLabel={copy.fields.stateLabel}
             zipLabel={copy.fields.zipLabel}
             venueLabel={copy.fields.venue}
             addressLabel={copy.fields.addressLine1}
             publicCityLabel={copy.fields.publicCity}
-            stateValue={state.state}
             zipValue={state.zip}
             venueValue={state.venue}
             addressValue={state.addressLine1}
@@ -765,6 +768,8 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
               upLabel={mediaCopy.up}
               downLabel={mediaCopy.down}
               altPlaceholder={mediaCopy.altImage}
+              uploadMode="imagesAndPdf"
+              lang={lang}
             />
           </EmpleosSectionCard>
 
@@ -778,19 +783,20 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
               onChange={(p) => patch(p)}
               labels={ctaL}
               primaryHint={ctaPrimaryHint}
+              formatUsPhone
             />
           </EmpleosSectionCard>
 
           <LocationSection
             lang={lang}
-            sharedCopy={sharedCopy}
+            discoveryLine={sharedCopy.discoveryRegionLine}
+            cityHint={sharedCopy.cityAutocompleteHint}
             publicCity={state.publicCity}
             publicCityLabel={copy.fields.publicCity}
             stateLabel={copy.fields.stateLabel}
             zipLabel={copy.fields.zipLabel}
             venueLabel={copy.fields.venue}
             addressLabel={copy.fields.addressLine1}
-            stateValue={state.state}
             zipValue={state.zip}
             venueValue={state.venue}
             addressValue={state.addressLine1}
@@ -833,14 +839,14 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
 
 type LocationProps = {
   lang: Lang;
-  sharedCopy: typeof COMMUNITY_PUBLISH_COPY[Lang];
+  discoveryLine: string;
+  cityHint: string;
   publicCity: string;
   publicCityLabel: string;
   stateLabel: string;
   zipLabel: string;
   venueLabel: string;
   addressLabel: string;
-  stateValue: string;
   zipValue: string;
   venueValue: string;
   addressValue: string;
@@ -850,14 +856,14 @@ type LocationProps = {
 
 function LocationSection({
   lang,
-  sharedCopy,
+  discoveryLine,
+  cityHint,
   publicCity,
   publicCityLabel,
   stateLabel,
   zipLabel,
   venueLabel,
   addressLabel,
-  stateValue,
   zipValue,
   venueValue,
   addressValue,
@@ -866,38 +872,30 @@ function LocationSection({
 }: LocationProps) {
   return (
     <EmpleosSectionCard title={sectionTitle}>
-      <p className="text-xs text-[color:var(--lx-muted)]">
-        {sharedCopy.discoveryRegionLine} ·{" "}
-        {lang === "es"
-          ? `La ciudad pública (${publicCity || "—"}) se muestra en las tarjetas; ${COMMUNITY_DISCOVERY_REGION} es la región de descubrimiento interna.`
-          : `The public city (${publicCity || "—"}) is shown on cards; ${COMMUNITY_DISCOVERY_REGION} is the internal discovery region.`}
-      </p>
-      <label className="block text-sm">
+      <p className="text-xs text-[color:var(--lx-muted)]">{discoveryLine}</p>
+      <div className="block text-sm">
         <EmpleosFieldLabel lang={lang} required>
           {publicCityLabel}
         </EmpleosFieldLabel>
-        <input
-          className={INPUT}
+        <CityAutocomplete
+          className="mt-1"
           value={publicCity}
-          onChange={(e) => onChange({ publicCity: e.target.value })}
+          onChange={(v) => onChange({ publicCity: v })}
+          lang={lang}
+          variant="light"
+          stripInvalidOnBlur
           placeholder={
-            lang === "es"
-              ? "Ej. San Jose, Alameda, Stockton, Oakland, Sacramento"
-              : "e.g. San Jose, Alameda, Stockton, Oakland, Sacramento"
+            lang === "es" ? "Ej. San José, Alameda, Stockton…" : "e.g. San José, Alameda, Stockton…"
           }
         />
-      </label>
+        <p className="mt-1.5 text-xs leading-relaxed text-[color:var(--lx-text-2)]">{cityHint}</p>
+      </div>
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="block text-sm">
           <EmpleosFieldLabel lang={lang} optional>
             {stateLabel}
           </EmpleosFieldLabel>
-          <input
-            className={INPUT}
-            value={stateValue}
-            onChange={(e) => onChange({ state: e.target.value })}
-            placeholder="CA"
-          />
+          <input className={`${INPUT} bg-black/[0.03]`} value="CA" readOnly aria-readonly="true" />
         </label>
         <label className="block text-sm">
           <EmpleosFieldLabel lang={lang} optional>

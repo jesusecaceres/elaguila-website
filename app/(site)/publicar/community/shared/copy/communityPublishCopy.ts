@@ -24,6 +24,8 @@ export const COMMUNITY_PUBLISH_COPY = {
       deleteConfirm: "¿Eliminar este borrador? Se perderán los cambios no publicados.",
     },
     discoveryRegionLine: "Región de descubrimiento: NorCal",
+    cityAutocompleteHint:
+      "Elige una ciudad de la lista para que el anuncio aparezca en los filtros de NorCal.",
     publishModal: {
       title: "Confirmar publicación",
       intro:
@@ -61,6 +63,8 @@ export const COMMUNITY_PUBLISH_COPY = {
       deleteConfirm: "Delete this draft? Unpublished changes will be lost.",
     },
     discoveryRegionLine: "Discovery region: NorCal",
+    cityAutocompleteHint:
+      "Choose a city from the list so the listing works with NorCal filters.",
     publishModal: {
       title: "Confirm publish",
       intro: "Final publishing arrives in a later phase. For now confirm you reviewed the listing.",
@@ -116,9 +120,8 @@ export const CLASES_QUICK_COPY = {
       scheduleTimePh: "Hora (ej. 6–8 pm)",
       scheduleAdd: "+ Añadir horario",
       description: "Descripción corta",
-      image: "Imagen principal o flyer",
-      imageHint:
-        "Sube una imagen del flyer o pega una URL. (PDF aún no soportado — TODO en utilidades de subida.)",
+      image: "Flyer / medios",
+      imageHint: "Sube imagen, PDF o archivo del volante, o pega una URL (imagen o PDF).",
       publicCity: "Ciudad donde se ofrece la clase",
       stateLabel: "Estado",
       zipLabel: "Código postal",
@@ -160,10 +163,9 @@ export const CLASES_QUICK_COPY = {
       scheduleTimePh: "Time (e.g. 6–8 pm)",
       scheduleAdd: "+ Add schedule row",
       description: "Short description",
-      image: "Main image or flyer",
-      imageHint:
-        "Upload a flyer image or paste a URL. (PDF not yet supported — TODO in upload utilities.)",
-      publicCity: "Public city where the class is offered",
+      image: "Flyer / media",
+      imageHint: "Upload an image, PDF, or flyer file, or paste a URL (image or PDF).",
+      publicCity: "City where the class is offered",
       stateLabel: "State",
       zipLabel: "ZIP",
       venue: "Venue name (optional)",
@@ -202,9 +204,8 @@ export const COMUNIDAD_QUICK_COPY = {
       startTime: "Hora de inicio",
       endTime: "Hora de fin (opcional)",
       description: "Descripción corta",
-      image: "Imagen principal o flyer",
-      imageHint:
-        "Sube una imagen del flyer o pega una URL. (PDF aún no soportado — TODO en utilidades de subida.)",
+      image: "Flyer / medios",
+      imageHint: "Sube imagen, PDF o archivo del volante, o pega una URL (imagen o PDF).",
       publicCity: "Ciudad donde se realiza el evento",
       stateLabel: "Estado",
       zipLabel: "Código postal",
@@ -243,10 +244,9 @@ export const COMUNIDAD_QUICK_COPY = {
       startTime: "Start time",
       endTime: "End time (optional)",
       description: "Short description",
-      image: "Main image or flyer",
-      imageHint:
-        "Upload a flyer image or paste a URL. (PDF not yet supported — TODO in upload utilities.)",
-      publicCity: "Public city where the event happens",
+      image: "Flyer / media",
+      imageHint: "Upload an image, PDF, or flyer file, or paste a URL (image or PDF).",
+      publicCity: "City where the event takes place",
       stateLabel: "State",
       zipLabel: "ZIP",
       venue: "Venue name (optional)",

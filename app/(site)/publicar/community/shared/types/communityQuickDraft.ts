@@ -1,3 +1,4 @@
+import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import type { EmpleosImageItem } from "@/app/publicar/empleos/shared/media/empleosMediaTypes";
 
 import { COMMUNITY_DEFAULT_STATE } from "../constants/communityRegion";
@@ -130,6 +131,15 @@ const COMUNIDAD_COST = new Set<ComunidadCostType>([
 
 const PRIMARY_CTA = new Set<CommunityPrimaryCta>(["phone", "whatsapp", "email", "website"]);
 
+function inferAttachmentMime(url: string, existing: unknown): string | undefined {
+  const fromObj = typeof existing === "string" ? existing.trim() : "";
+  if (fromObj) return fromObj;
+  if (url.startsWith("data:application/pdf")) return "application/pdf";
+  const base = url.split(/[?#]/)[0]?.toLowerCase() ?? "";
+  if (base.endsWith(".pdf")) return "application/pdf";
+  return undefined;
+}
+
 function normalizeImages(raw: unknown): EmpleosImageItem[] {
   if (!Array.isArray(raw)) return [];
   const out: EmpleosImageItem[] = [];
@@ -138,11 +148,13 @@ function normalizeImages(raw: unknown): EmpleosImageItem[] {
     const r = it as Partial<EmpleosImageItem>;
     const url = String(r.url ?? "").trim();
     if (!url && !r.id) continue;
+    const attachmentMime = inferAttachmentMime(url, r.attachmentMime);
     out.push({
       id: String(r.id ?? `img_${Math.random().toString(36).slice(2, 9)}`),
       url,
       alt: String(r.alt ?? ""),
       isMain: Boolean(r.isMain),
+      ...(attachmentMime ? { attachmentMime } : {}),
     });
   }
   return out;
@@ -154,6 +166,9 @@ function pickPrimaryCta(raw: unknown, fallback: CommunityPrimaryCta): CommunityP
 
 function normalizeCommon(p: Partial<CommunityCommonDraft>): CommunityCommonDraft {
   const e = emptyCommon();
+  const rawCity = String(p.publicCity ?? e.publicCity).trim();
+  /** Prefer canonical when input resolves; keep non-canonical text only while editing (gate blocks publish). */
+  const publicCity = rawCity ? getCanonicalCityName(rawCity) || rawCity : "";
   return {
     title: String(p.title ?? e.title),
     organizer: String(p.organizer ?? e.organizer),
@@ -161,8 +176,8 @@ function normalizeCommon(p: Partial<CommunityCommonDraft>): CommunityCommonDraft
     categoryCustom: String(p.categoryCustom ?? e.categoryCustom),
     description: String(p.description ?? e.description),
     images: normalizeImages(p.images),
-    publicCity: String(p.publicCity ?? e.publicCity),
-    state: String(p.state ?? e.state) || COMMUNITY_DEFAULT_STATE,
+    publicCity,
+    state: COMMUNITY_DEFAULT_STATE,
     zip: String(p.zip ?? e.zip),
     venue: String(p.venue ?? e.venue),
     addressLine1: String(p.addressLine1 ?? e.addressLine1),

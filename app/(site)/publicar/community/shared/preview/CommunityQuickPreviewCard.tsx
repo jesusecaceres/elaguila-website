@@ -19,14 +19,24 @@ import type {
 const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1200&q=70";
 
-function pickMain(images: { url: string; alt: string; isMain?: boolean }[]): {
-  url: string;
-  alt: string;
-} {
+function isNonImageAttachment(url: string, mime?: string): boolean {
+  if (mime === "application/pdf") return true;
+  if (url.startsWith("data:application/pdf")) return true;
+  const base = url.split(/[?#]/)[0]?.toLowerCase() ?? "";
+  return base.endsWith(".pdf");
+}
+
+function pickMain(
+  images: { url: string; alt: string; isMain?: boolean; attachmentMime?: string }[]
+): { url: string; alt: string; heroIsFlyerDoc?: boolean } {
   const withUrl = images.filter((x) => String(x.url ?? "").trim());
   if (!withUrl.length) return { url: FALLBACK_IMG, alt: "preview" };
   const main = withUrl.find((x) => x.isMain) ?? withUrl[0];
-  return { url: main.url, alt: main.alt || "preview" };
+  const url = main.url;
+  if (isNonImageAttachment(url, main.attachmentMime)) {
+    return { url: FALLBACK_IMG, alt: main.alt || "preview", heroIsFlyerDoc: true };
+  }
+  return { url, alt: main.alt || "preview" };
 }
 
 const COPY = {
@@ -102,6 +112,7 @@ function formatTimeRange(start: string, end: string): string {
 export function ClasesQuickPreviewCard({ draft, lang }: { draft: ClasesQuickDraft; lang: Lang }) {
   const t = COPY[lang];
   const main = pickMain(draft.images);
+  const flyerDoc = main.heroIsFlyerDoc;
   const isPaid = draft.classCostType === "pagada";
   const priceSummary = isPaid
     ? [
@@ -149,6 +160,11 @@ export function ClasesQuickPreviewCard({ draft, lang }: { draft: ClasesQuickDraf
             {clasesModeLabel(draft.mode, lang)}
           </span>
         </div>
+        {flyerDoc ? (
+          <div className="absolute bottom-3 left-3 rounded-lg bg-black/75 px-2.5 py-1 text-[10px] font-bold text-white">
+            {lang === "es" ? "Volante PDF (sin vista previa de imagen)" : "PDF flyer (no image preview)"}
+          </div>
+        ) : null}
       </div>
       <div className="space-y-4 p-5 sm:p-6">
         <header>
@@ -236,6 +252,7 @@ export function ComunidadQuickPreviewCard({
 }) {
   const t = COPY[lang];
   const main = pickMain(draft.images);
+  const flyerDoc = main.heroIsFlyerDoc;
 
   const cityLine =
     [draft.publicCity.trim(), draft.state.trim()].filter(Boolean).join(", ") || "—";
@@ -256,6 +273,11 @@ export function ComunidadQuickPreviewCard({
             {comunidadCostLabel(draft.eventCost, lang)}
           </span>
         </div>
+        {flyerDoc ? (
+          <div className="absolute bottom-3 left-3 rounded-lg bg-black/75 px-2.5 py-1 text-[10px] font-bold text-white">
+            {lang === "es" ? "Volante PDF (sin vista previa de imagen)" : "PDF flyer (no image preview)"}
+          </div>
+        ) : null}
       </div>
       <div className="space-y-4 p-5 sm:p-6">
         <header>

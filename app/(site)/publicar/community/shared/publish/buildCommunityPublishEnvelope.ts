@@ -1,5 +1,6 @@
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 
+import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { sanitizeHttpUrl } from "@/app/publicar/empleos/shared/publish/empleosPublishSanitize";
 
 import { COMMUNITY_DISCOVERY_REGION } from "../constants/communityRegion";
@@ -16,7 +17,7 @@ import type {
 } from "./communityPublishSnapshots";
 
 function mapImagesForPublish(
-  items: { url: string; alt: string; isMain?: boolean }[]
+  items: { url: string; alt: string; isMain?: boolean; attachmentMime?: string }[]
 ): CommunityPublishImageRef[] {
   const refs: CommunityPublishImageRef[] = [];
   for (const x of items) {
@@ -25,7 +26,13 @@ function mapImagesForPublish(
     if (u.startsWith("blob:") || u.startsWith("data:")) continue;
     const clean = sanitizeHttpUrl(u);
     if (!clean) continue;
-    refs.push({ url: clean, alt: String(x.alt ?? "").trim(), isMain: Boolean(x.isMain) });
+    const mime = String(x.attachmentMime ?? "").trim() || undefined;
+    refs.push({
+      url: clean,
+      alt: String(x.alt ?? "").trim(),
+      isMain: Boolean(x.isMain),
+      ...(mime ? { mimeType: mime } : {}),
+    });
   }
   return refs;
 }
@@ -65,7 +72,10 @@ function commonSnapshot(d: CommunityCommonDraft): {
     primaryCta: d.primaryCta,
     venue: d.venue.trim(),
     addressLine1: d.addressLine1.trim(),
-    publicCity: d.publicCity.trim(),
+    publicCity: (() => {
+      const t = d.publicCity.trim();
+      return t ? getCanonicalCityName(t) || "" : "";
+    })(),
     state: d.state.trim(),
     zip: d.zip.trim(),
     discoveryRegion: COMMUNITY_DISCOVERY_REGION,

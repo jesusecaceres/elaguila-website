@@ -13,6 +13,8 @@ export type CommunityPublishImageRef = {
   url: string;
   alt: string;
   isMain: boolean;
+  /** Present for non-image attachments when known (e.g. application/pdf). */
+  mimeType?: string;
 };
 
 export type ClasesQuickPublishSnapshot = {

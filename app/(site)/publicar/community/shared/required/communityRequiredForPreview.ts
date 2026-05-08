@@ -1,5 +1,8 @@
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 
+import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
+import { digitsOnly } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+
 import type {
   ClasesQuickDraft,
   ComunidadQuickDraft,
@@ -21,9 +24,12 @@ const GATE_CLASES = {
     mode: "Modalidad",
     schedule: "Horario / fechas",
     description: "Descripción corta",
-    image: "Imagen principal (sube o pega URL)",
+    image: "Medios (imagen o PDF del flyer, o URL)",
     cta: "Al menos un método de contacto (teléfono, WhatsApp o email)",
     publicCity: "Ciudad donde se ofrece la clase",
+    publicCityInvalid: "Ciudad: elige una ciudad válida de la lista NorCal",
+    phoneDigits: "Teléfono: ingresa 10 dígitos o déjalo vacío",
+    whatsappDigits: "WhatsApp: ingresa 10 dígitos o déjalo vacío",
   },
   en: {
     title: "Class title",
@@ -36,9 +42,12 @@ const GATE_CLASES = {
     mode: "Mode",
     schedule: "Schedule / dates",
     description: "Short description",
-    image: "Main image (upload or URL)",
+    image: "Media (image or flyer PDF, or URL)",
     cta: "At least one contact method (phone, WhatsApp, or email)",
-    publicCity: "Public city where the class is offered",
+    publicCity: "City where the class is offered",
+    publicCityInvalid: "City: pick a valid NorCal list city",
+    phoneDigits: "Phone: enter 10 digits or leave blank",
+    whatsappDigits: "WhatsApp: enter 10 digits or leave blank",
   },
 } as const;
 
@@ -53,9 +62,12 @@ const GATE_COMUNIDAD = {
     date: "Fecha del evento",
     startTime: "Hora de inicio",
     description: "Descripción corta",
-    image: "Imagen principal (sube o pega URL)",
+    image: "Medios (imagen o PDF del flyer, o URL)",
     cta: "Al menos un método de contacto (teléfono, WhatsApp o email)",
     publicCity: "Ciudad donde se realiza el evento",
+    publicCityInvalid: "Ciudad: elige una ciudad válida de la lista NorCal",
+    phoneDigits: "Teléfono: ingresa 10 dígitos o déjalo vacío",
+    whatsappDigits: "WhatsApp: ingresa 10 dígitos o déjalo vacío",
   },
   en: {
     title: "Event title",
@@ -67,9 +79,12 @@ const GATE_COMUNIDAD = {
     date: "Event date",
     startTime: "Start time",
     description: "Short description",
-    image: "Main image (upload or URL)",
+    image: "Media (image or flyer PDF, or URL)",
     cta: "At least one contact method (phone, WhatsApp, or email)",
-    publicCity: "Public city where the event happens",
+    publicCity: "City where the event takes place",
+    publicCityInvalid: "City: pick a valid NorCal list city",
+    phoneDigits: "Phone: enter 10 digits or leave blank",
+    whatsappDigits: "WhatsApp: enter 10 digits or leave blank",
   },
 } as const;
 
@@ -101,7 +116,11 @@ export function gateClasesQuickPreview(d: ClasesQuickDraft, lang: Lang = "es"): 
   if (!st(d.description)) issues.push(L.description);
   if (!hasMainImage(d)) issues.push(L.image);
   if (!hasContact(d)) issues.push(L.cta);
-  if (!st(d.publicCity)) issues.push(L.publicCity);
+  const cityRaw = st(d.publicCity);
+  if (!cityRaw) issues.push(L.publicCity);
+  else if (!getCanonicalCityName(cityRaw)) issues.push(L.publicCityInvalid);
+  if (st(d.phone) && digitsOnly(d.phone).length !== 10) issues.push(L.phoneDigits);
+  if (st(d.whatsapp) && digitsOnly(d.whatsapp).length !== 10) issues.push(L.whatsappDigits);
   return issues.length ? { ok: false, issues } : { ok: true };
 }
 
@@ -121,7 +140,11 @@ export function gateComunidadQuickPreview(d: ComunidadQuickDraft, lang: Lang = "
   if (!st(d.description)) issues.push(L.description);
   if (!hasMainImage(d)) issues.push(L.image);
   if (!hasContact(d)) issues.push(L.cta);
-  if (!st(d.publicCity)) issues.push(L.publicCity);
+  const cityRawC = st(d.publicCity);
+  if (!cityRawC) issues.push(L.publicCity);
+  else if (!getCanonicalCityName(cityRawC)) issues.push(L.publicCityInvalid);
+  if (st(d.phone) && digitsOnly(d.phone).length !== 10) issues.push(L.phoneDigits);
+  if (st(d.whatsapp) && digitsOnly(d.whatsapp).length !== 10) issues.push(L.whatsappDigits);
   return issues.length ? { ok: false, issues } : { ok: true };
 }
 
