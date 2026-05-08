@@ -100,7 +100,11 @@ export default function PublicarPageClient({
                 ? `/publicar/viajes?${p.toString()}`
                 : deepLinkCat === "rentas"
                   ? `${RENTAS_PUBLICAR_HUB}?${p.toString()}`
-                  : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
+                  : deepLinkCat === "clases"
+                    ? `/publicar/clases/quick?${p.toString()}`
+                    : deepLinkCat === "comunidad"
+                      ? `/publicar/comunidad/quick?${p.toString()}`
+                      : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
     router.replace(dest);
   }, [deepLinkCat, lang, router, searchParams]);
 
@@ -210,7 +214,11 @@ export default function PublicarPageClient({
                           ? `/clasificados/publicar/empleos?lang=${lang}`
                           : key === "rentas"
                             ? `${RENTAS_PUBLICAR_HUB}?lang=${lang}`
-                            : `/clasificados/publicar/${key}?lang=${lang}`;
+                            : key === "clases"
+                              ? `/publicar/clases/quick?lang=${lang}`
+                              : key === "comunidad"
+                                ? `/publicar/comunidad/quick?lang=${lang}`
+                                : `/clasificados/publicar/${key}?lang=${lang}`;
               return (
                 <Link
                   key={key}

@@ -1,0 +1,367 @@
+﻿
+> nextjs@0.1.0 prebuild
+> node scripts/dup-guard.js
+
+
+> nextjs@0.1.0 build
+> node scripts/next-build.js
+
+   Γû▓ Next.js 15.5.7
+   - Environments: .env.local
+   - Experiments (use with caution):
+     Γ¿» webpackBuildWorker
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 37.1s
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/218) ...
+   Generating static pages (54/218) 
+   Generating static pages (108/218) 
+   Generating static pages (163/218) 
+ Γ£ô Generating static pages (218/218)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                                                Size  First Load JS
+Γöî Γùï /                                                                   1.19 kB         140 kB
+Γö£ ╞Æ /_not-found                                                           412 B         102 kB
+Γö£ ╞Æ /about                                                                256 B         106 kB
+Γö£ ╞Æ /admin                                                                187 B         106 kB
+Γö£ ╞Æ /admin/activity-log                                                   412 B         102 kB
+Γö£ ╞Æ /admin/categories                                                     256 B         106 kB
+Γö£ ╞Æ /admin/clasificados                                                   412 B         102 kB
+Γö£ ╞Æ /admin/clasificados/servicios                                         412 B         102 kB
+Γö£ ╞Æ /admin/clasificados/viajes                                            187 B         106 kB
+Γö£ ╞Æ /admin/clasificados/viajes/affiliate-cards                          3.29 kB         109 kB
+Γö£ ΓùÅ /admin/clasificados/viajes/affiliate-cards/[id]/edit                  128 B         109 kB
+Γö£   Γö£ /admin/clasificados/viajes/affiliate-cards/aff-001/edit
+Γö£   Γö£ /admin/clasificados/viajes/affiliate-cards/aff-002/edit
+Γö£   Γö£ /admin/clasificados/viajes/affiliate-cards/aff-003/edit
+Γö£   Γöö [+2 more paths]
+Γö£ ╞Æ /admin/clasificados/viajes/affiliate-cards/new                        128 B         109 kB
+Γö£ ╞Æ /admin/clasificados/viajes/business-offers                          3.09 kB         108 kB
+Γö£ ╞Æ /admin/clasificados/viajes/businesses                               2.17 kB         108 kB
+Γö£ ╞Æ /admin/clasificados/viajes/campaigns                                2.16 kB         107 kB
+Γö£ ╞Æ /admin/clasificados/viajes/editorial                                  412 B         102 kB
+Γö£ ╞Æ /admin/clasificados/viajes/settings                                   412 B         102 kB
+Γö£ ╞Æ /admin/draw                                                           256 B         106 kB
+Γö£ Γùï /admin/login                                                        1.06 kB         106 kB
+Γö£ ╞Æ /admin/login/submit                                                   412 B         102 kB
+Γö£ ╞Æ /admin/magazine                                                       412 B         102 kB
+Γö£ ╞Æ /admin/ops                                                            256 B         106 kB
+Γö£ ╞Æ /admin/payments                                                       256 B         106 kB
+Γö£ ╞Æ /admin/reportes                                                     2.32 kB         108 kB
+Γö£ ╞Æ /admin/settings                                                       256 B         106 kB
+Γö£ ╞Æ /admin/site-settings                                                  256 B         106 kB
+Γö£ ╞Æ /admin/support                                                        256 B         106 kB
+Γö£ ╞Æ /admin/team                                                           412 B         102 kB
+Γö£ ╞Æ /admin/tienda                                                         256 B         106 kB
+Γö£ ╞Æ /admin/tienda/catalog                                                 184 B         111 kB
+Γö£ ╞Æ /admin/tienda/catalog/[id]                                            184 B         111 kB
+Γö£ ╞Æ /admin/tienda/catalog/new                                             256 B         106 kB
+Γö£ ╞Æ /admin/tienda/orders                                                  256 B         106 kB
+Γö£ ╞Æ /admin/tienda/orders/[id]                                             256 B         106 kB
+Γö£ ╞Æ /admin/usuarios                                                       912 B         106 kB
+Γö£ ╞Æ /admin/usuarios/[id]                                                  912 B         106 kB
+Γö£ ╞Æ /admin/website-content                                                412 B         102 kB
+Γö£ ╞Æ /admin/workspace                                                      256 B         106 kB
+Γö£ ╞Æ /admin/workspace/anunciate                                            187 B         106 kB
+Γö£ ╞Æ /admin/workspace/clasificados                                       7.86 kB         113 kB
+Γö£ ╞Æ /admin/workspace/clasificados/autos                                   256 B         106 kB
+Γö£ ╞Æ /admin/workspace/clasificados/category/[slug]                         619 B         106 kB
+Γö£ ╞Æ /admin/workspace/clasificados/category/editor/[slug]                  256 B         106 kB
+Γö£ ╞Æ /admin/workspace/clasificados/category/en-venta                       256 B         106 kB
+Γö£ ╞Æ /admin/workspace/clasificados/empleos                               3.63 kB         109 kB
+Γö£ ╞Æ /admin/workspace/clasificados/rentas/[id]                             256 B         106 kB
+Γö£ ╞Æ /admin/workspace/clasificados/restaurantes                            947 B         106 kB
+Γö£ ╞Æ /admin/workspace/clasificados/servicios                               256 B         106 kB
+Γö£ ╞Æ /admin/workspace/clasificados/servicios/sandbox                     5.51 kB         111 kB
+Γö£ ╞Æ /admin/workspace/contacto                                             256 B         106 kB
+Γö£ ╞Æ /admin/workspace/contacto/content                                     256 B         106 kB
+Γö£ ╞Æ /admin/workspace/cupones                                              187 B         106 kB
+Γö£ ╞Æ /admin/workspace/cupones/content                                      256 B         106 kB
+Γö£ ╞Æ /admin/workspace/home                                                 256 B         106 kB
+Γö£ ╞Æ /admin/workspace/home/content                                         256 B         106 kB
+Γö£ ╞Æ /admin/workspace/iglesias                                             187 B         106 kB
+Γö£ ╞Æ /admin/workspace/iglesias/content                                     256 B         106 kB
+Γö£ ╞Æ /admin/workspace/nosotros                                             256 B         106 kB
+Γö£ ╞Æ /admin/workspace/nosotros/content                                     256 B         106 kB
+Γö£ ╞Æ /admin/workspace/noticias                                             187 B         106 kB
+Γö£ ╞Æ /admin/workspace/noticias/content                                     256 B         106 kB
+Γö£ ╞Æ /admin/workspace/revista                                            2.92 kB         108 kB
+Γö£ ╞Æ /admin/workspace/tienda                                               187 B         106 kB
+Γö£ ╞Æ /admin/workspace/tienda/storefront                                    256 B         106 kB
+Γö£ ╞Æ /api/admin/empleos/listings                                           412 B         102 kB
+Γö£ ╞Æ /api/admin/empleos/listings/moderate                                  412 B         102 kB
+Γö£ ╞Æ /api/admin/magazine/upload                                            412 B         102 kB
+Γö£ ╞Æ /api/admin/restaurantes/listings/[id]                                 412 B         102 kB
+Γö£ ╞Æ /api/admin/viajes/staged-listings                                     412 B         102 kB
+Γö£ ╞Æ /api/admin/viajes/staged-listings/moderate                            412 B         102 kB
+Γö£ ╞Æ /api/clasificados/autos/checkout                                      412 B         102 kB
+Γö£ ╞Æ /api/clasificados/autos/checkout/cancel                               412 B         102 kB
+Γö£ ╞Æ /api/clasificados/autos/checkout/verify                               412 B         102 kB
+Γö£ ╞Æ /api/clasificados/autos/checkout/verify-internal                      412 B         102 kB
+Γö£ ╞Æ /api/clasificados/autos/listings                                      412 B         102 kB
+Γö£ ╞Æ /api/clasificados/autos/listings/[id]                                 412 B         102 kB
+Γö£ ╞Æ /api/clasificados/autos/listings/[id]/analytics                       412 B         102 kB
+Γö£ ╞Æ /api/clasificados/autos/listings/[id]/unpublish                       412 B         102 kB
+Γö£ ╞Æ /api/clasificados/autos/public/analytics/event                        412 B         102 kB
+Γö£ ╞Æ /api/clasificados/autos/public/listings                               412 B         102 kB
+Γö£ ╞Æ /api/clasificados/autos/public/listings/[id]                          412 B         102 kB
+Γö£ ╞Æ /api/clasificados/autos/stripe/webhook                                412 B         102 kB
+Γö£ ╞Æ /api/clasificados/distance                                            412 B         102 kB
+Γö£ ╞Æ /api/clasificados/empleos/applications                                412 B         102 kB
+Γö£ ╞Æ /api/clasificados/empleos/applications/[id]                           412 B         102 kB
+Γö£ ╞Æ /api/clasificados/empleos/listings                                    412 B         102 kB
+Γö£ ╞Æ /api/clasificados/empleos/listings/[listingId]                        412 B         102 kB
+Γö£ ╞Æ /api/clasificados/empleos/listings/[listingId]/applications           412 B         102 kB
+Γö£ ╞Æ /api/clasificados/empleos/listings/public-view                        412 B         102 kB
+Γö£ ╞Æ /api/clasificados/en-venta/dev-seed-listing                           412 B         102 kB
+Γö£ ╞Æ /api/clasificados/en-venta/inquiry                                    412 B         102 kB
+Γö£ ╞Æ /api/clasificados/leonix/stripe/checkout                              412 B         102 kB
+Γö£ ╞Æ /api/clasificados/listings/[id]/views                                 412 B         102 kB
+Γö£ ╞Æ /api/clasificados/rentas/inquiry                                      412 B         102 kB
+Γö£ ╞Æ /api/clasificados/restaurantes/draft-media-upload                     412 B         102 kB
+Γö£ ╞Æ /api/clasificados/restaurantes/publish                                412 B         102 kB
+Γö£ ╞Æ /api/clasificados/servicios/analytics                                 412 B         102 kB
+Γö£ ╞Æ /api/clasificados/servicios/dev-listings                              412 B         102 kB
+Γö£ ╞Æ /api/clasificados/servicios/inquiry                                   412 B         102 kB
+Γö£ ╞Æ /api/clasificados/servicios/manage                                    412 B         102 kB
+Γö£ ╞Æ /api/clasificados/servicios/my-leads                                  412 B         102 kB
+Γö£ ╞Æ /api/clasificados/servicios/my-listings                               412 B         102 kB
+Γö£ ╞Æ /api/clasificados/servicios/publish                                   412 B         102 kB
+Γö£ ╞Æ /api/clasificados/servicios/review                                    412 B         102 kB
+Γö£ ╞Æ /api/clasificados/servicios/smoke-row                                 412 B         102 kB
+Γö£ ╞Æ /api/clasificados/viajes/inquiry                                      412 B         102 kB
+Γö£ ╞Æ /api/clasificados/viajes/staged-owner                                 412 B         102 kB
+Γö£ ╞Æ /api/clasificados/viajes/submit                                       412 B         102 kB
+Γö£ ╞Æ /api/contact                                                          412 B         102 kB
+Γö£ ╞Æ /api/debug/mux-env                                                    412 B         102 kB
+Γö£ ╞Æ /api/magazine/manifest                                                412 B         102 kB
+Γö£ ╞Æ /api/mux/delete-assets                                                412 B         102 kB
+Γö£ ╞Æ /api/mux/direct-upload                                                412 B         102 kB
+Γö£ ╞Æ /api/mux/upload-status                                                412 B         102 kB
+Γö£ ╞Æ /api/rss                                                              412 B         102 kB
+Γö£ ╞Æ /api/seller-stats                                                     412 B         102 kB
+Γö£ ╞Æ /api/supabase-test                                                    412 B         102 kB
+Γö£ ╞Æ /api/test-env                                                         412 B         102 kB
+Γö£ ╞Æ /api/tienda/assets/upload                                             412 B         102 kB
+Γö£ ╞Æ /api/tienda/contact                                                   412 B         102 kB
+Γö£ ╞Æ /api/tienda/orders                                                    412 B         102 kB
+Γö£ ╞Æ /api/tienda/orders/prepare                                            412 B         102 kB
+Γö£ ╞Æ /api/tienda/self-serve-pricing                                        412 B         102 kB
+Γö£ Γùï /auth/callback                                                      2.06 kB         153 kB
+Γö£ Γùï /clasificados                                                       6.11 kB         171 kB
+Γö£ ╞Æ /clasificados/anuncio/[id]                                          33.2 kB         253 kB
+Γö£ Γùï /clasificados/autos                                                 9.06 kB         179 kB
+Γö£ Γùï /clasificados/autos/negocios/preview                                4.26 kB         235 kB
+Γö£ Γùï /clasificados/autos/pago/cancelado                                  4.44 kB         159 kB
+Γö£ Γùï /clasificados/autos/pago/error                                      3.76 kB         109 kB
+Γö£ Γùï /clasificados/autos/pago/exito                                      4.58 kB         159 kB
+Γö£ Γùï /clasificados/autos/privado/preview                                 4.28 kB         235 kB
+Γö£ Γùï /clasificados/autos/resultados                                      12.2 kB         225 kB
+Γö£ ╞Æ /clasificados/autos/vehiculo/[id]                                   6.57 kB         238 kB
+Γö£ Γùï /clasificados/bienes-raices                                         10.3 kB         231 kB
+Γö£ ╞Æ /clasificados/bienes-raices/anuncio/[id]                              412 B         102 kB
+Γö£ Γùï /clasificados/bienes-raices/negocio/preview-mockup                  3.15 kB         127 kB
+Γö£ Γùï /clasificados/bienes-raices/preview                                   256 B         106 kB
+Γö£ Γùï /clasificados/bienes-raices/preview/negocio                         10.6 kB         220 kB
+Γö£ Γùï /clasificados/bienes-raices/preview/privado                         2.96 kB         246 kB
+Γö£ Γùï /clasificados/bienes-raices/resultados                              11.4 kB         232 kB
+Γö£ Γùï /clasificados/clases                                                4.58 kB         169 kB
+Γö£ Γùï /clasificados/comunidad                                             4.54 kB         169 kB
+Γö£ Γùï /clasificados/cuenta                                                2.23 kB         162 kB
+Γö£ Γùï /clasificados/empleos                                               9.41 kB         140 kB
+Γö£ ╞Æ /clasificados/empleos/[slug]                                        14.8 kB         214 kB
+Γö£ Γùï /clasificados/empleos/feria-preview                                 6.79 kB         260 kB
+Γö£ Γùï /clasificados/empleos/premium-preview                               5.27 kB         266 kB
+Γö£ Γùï /clasificados/empleos/quick-preview                                 7.31 kB         265 kB
+Γö£ ╞Æ /clasificados/empleos/resultados                                    10.8 kB         141 kB
+Γö£ ╞Æ /clasificados/en-venta                                              7.01 kB         155 kB
+Γö£ Γùï /clasificados/en-venta/launch-checklist                               256 B         106 kB
+Γö£ Γùï /clasificados/en-venta/preview                                      13.5 kB         252 kB
+Γö£ Γùï /clasificados/en-venta/results                                      19.1 kB         220 kB
+Γö£ Γùï /clasificados/login                                                   635 B         103 kB
+Γö£ Γùï /clasificados/negocios                                                916 B         106 kB
+Γö£ ╞Æ /clasificados/publicar                                              5.59 kB         119 kB
+Γö£ ╞Æ /clasificados/publicar/[category]                                   2.91 kB         108 kB
+Γö£ Γùï /clasificados/publicar/bienes-raices                                  256 B         106 kB
+Γö£ Γùï /clasificados/publicar/bienes-raices/negocio                        13.6 kB         206 kB
+Γö£ Γùï /clasificados/publicar/bienes-raices/privado                          139 B         140 kB
+Γö£ ╞Æ /clasificados/publicar/clases                                         412 B         102 kB
+Γö£ ╞Æ /clasificados/publicar/comunidad                                      412 B         102 kB
+Γö£ Γùï /clasificados/publicar/empleos                                        133 B         113 kB
+Γö£ ╞Æ /clasificados/publicar/en-venta                                     2.33 kB         113 kB
+Γö£ ╞Æ /clasificados/publicar/en-venta/free                                1.63 kB         262 kB
+Γö£ ╞Æ /clasificados/publicar/en-venta/pro                                 1.72 kB         262 kB
+Γö£ Γùï /clasificados/publicar/en-venta/storefront                           1.3 kB         107 kB
+Γö£ ╞Æ /clasificados/publicar/rentas                                         256 B         106 kB
+Γö£ Γùï /clasificados/publicar/rentas/negocio                                 146 B         146 kB
+Γö£ Γùï /clasificados/publicar/rentas/privado                                 143 B         145 kB
+Γö£ Γùï /clasificados/publicar/servicios                                    36.1 kB         290 kB
+Γö£ Γùï /clasificados/publicar/servicios/preview                            10.4 kB         302 kB
+Γö£ Γùï /clasificados/reglas                                                1.46 kB         107 kB
+Γö£ ╞Æ /clasificados/rentas                                                6.71 kB         190 kB
+Γö£ ╞Æ /clasificados/rentas/anuncio/[id]                                     412 B         102 kB
+Γö£ ╞Æ /clasificados/rentas/listing/[id]                                    7.4 kB         185 kB
+Γö£ Γùï /clasificados/rentas/preview/negocio                                3.71 kB         261 kB
+Γö£ Γùï /clasificados/rentas/preview/privado                                7.02 kB         259 kB
+Γö£ ╞Æ /clasificados/rentas/results                                        10.3 kB         193 kB
+Γö£ ╞Æ /clasificados/restaurantes                                          9.94 kB         195 kB
+Γö£ ╞Æ /clasificados/restaurantes/[slug]                                     214 B         189 kB
+Γö£ ╞Æ /clasificados/restaurantes/paquetes                                   184 B         111 kB
+Γö£ Γùï /clasificados/restaurantes/preview                                  13.1 kB         217 kB
+Γö£ ╞Æ /clasificados/restaurantes/publicar                                   412 B         102 kB
+Γö£ ╞Æ /clasificados/restaurantes/resultados                               14.4 kB         200 kB
+Γö£ Γùï /clasificados/restaurantes/shell                                      214 B         189 kB
+Γö£ ╞Æ /clasificados/servicios                                             3.05 kB         177 kB
+Γö£ ╞Æ /clasificados/servicios/[slug]                                        282 B         212 kB
+Γö£ ╞Æ /clasificados/servicios/resultados                                   4.8 kB         179 kB
+Γö£ ╞Æ /clasificados/travel                                                  412 B         102 kB
+Γö£ Γùï /clasificados/viajes                                                17.1 kB         202 kB
+Γö£ ΓùÅ /clasificados/viajes/negocio/[slug]                                   808 B         166 kB
+Γö£ ΓùÅ /clasificados/viajes/oferta/[slug]                                    839 B         169 kB
+Γö£ ╞Æ /clasificados/viajes/preview                                          839 B         169 kB
+Γö£ Γùï /clasificados/viajes/preview/negocios                               3.89 kB         195 kB
+Γö£ Γùï /clasificados/viajes/preview/privado                                3.53 kB         194 kB
+Γö£ ╞Æ /clasificados/viajes/resultados                                     6.28 kB         191 kB
+Γö£ Γùï /contact                                                            1.78 kB         104 kB
+Γö£ ╞Æ /contacto                                                            1.9 kB         107 kB
+Γö£ ╞Æ /coupons                                                            1.61 kB         146 kB
+Γö£ ╞Æ /cupones                                                            1.61 kB         146 kB
+Γö£ Γùï /dashboard                                                          7.03 kB         172 kB
+Γö£ ╞Æ /dashboard/analiticas                                                 412 B         102 kB
+Γö£ Γùï /dashboard/analytics                                                4.01 kB         169 kB
+Γö£ ╞Æ /dashboard/borradores                                                 412 B         102 kB
+Γö£ Γùï /dashboard/business-tools                                           3.51 kB         168 kB
+Γö£ Γùï /dashboard/drafts                                                   5.25 kB         170 kB
+Γö£ Γùï /dashboard/empleos                                                  2.54 kB         167 kB
+Γö£ ╞Æ /dashboard/empleos/[listingId]                                      2.65 kB         168 kB
+Γö£ Γùï /dashboard/guardados                                                3.68 kB         169 kB
+Γö£ Γùï /dashboard/mensajes                                                   179 B         169 kB
+Γö£ Γùï /dashboard/messages                                                   232 B         169 kB
+Γö£ Γùï /dashboard/mis-anuncios                                             19.3 kB         264 kB
+Γö£ ╞Æ /dashboard/mis-anuncios/[id]                                        6.28 kB         251 kB
+Γö£ ╞Æ /dashboard/mis-anuncios/[id]/editar                                 4.05 kB         240 kB
+Γö£ Γùï /dashboard/notificaciones                                           4.24 kB         169 kB
+Γö£ ╞Æ /dashboard/notifications                                              412 B         102 kB
+Γö£ Γùï /dashboard/perfil                                                   7.76 kB         210 kB
+Γö£ Γùï /dashboard/restaurantes                                             7.36 kB         180 kB
+Γö£ Γùï /dashboard/servicios                                                4.09 kB         169 kB
+Γö£ Γùï /dashboard/viajes                                                   4.37 kB         169 kB
+Γö£ Γùï /dashboard/vistos-recientes                                         3.32 kB         168 kB
+Γö£ Γùï /home                                                               1.95 kB         141 kB
+Γö£ ╞Æ /iglesias                                                             749 B         103 kB
+Γö£ Γùï /legal                                                                490 B         102 kB
+Γö£ Γùï /login                                                              4.49 kB         159 kB
+Γö£ Γùï /magazine                                                           3.73 kB         111 kB
+Γö£ Γùï /magazine/2026                                                      2.46 kB         167 kB
+Γö£ Γùï /magazine/2026/april                                                  412 B         102 kB
+Γö£ Γùï /magazine/2026/april/read                                             412 B         102 kB
+Γö£ Γùï /magazine/2026/august                                                 412 B         102 kB
+Γö£ Γùï /magazine/2026/august/read                                            412 B         102 kB
+Γö£ Γùï /magazine/2026/december                                               412 B         102 kB
+Γö£ Γùï /magazine/2026/december/read                                          412 B         102 kB
+Γö£ Γùï /magazine/2026/february                                               412 B         102 kB
+Γö£ Γùï /magazine/2026/february/read                                          412 B         102 kB
+Γö£ Γùï /magazine/2026/january                                              1.18 kB         166 kB
+Γö£ Γùï /magazine/2026/january/read                                           412 B         102 kB
+Γö£ Γùï /magazine/2026/july                                                   412 B         102 kB
+Γö£ Γùï /magazine/2026/july/read                                              412 B         102 kB
+Γö£ Γùï /magazine/2026/june                                                   412 B         102 kB
+Γö£ Γùï /magazine/2026/june/read                                              412 B         102 kB
+Γö£ Γùï /magazine/2026/march                                                  412 B         102 kB
+Γö£ Γùï /magazine/2026/march/read                                             412 B         102 kB
+Γö£ Γùï /magazine/2026/may                                                    412 B         102 kB
+Γö£ Γùï /magazine/2026/may/read                                               412 B         102 kB
+Γö£ Γùï /magazine/2026/november                                               412 B         102 kB
+Γö£ Γùï /magazine/2026/november/read                                          412 B         102 kB
+Γö£ Γùï /magazine/2026/october                                                412 B         102 kB
+Γö£ Γùï /magazine/2026/october/read                                           412 B         102 kB
+Γö£ Γùï /magazine/2026/september                                              412 B         102 kB
+Γö£ Γùï /magazine/2026/september/read                                         412 B         102 kB
+Γö£ ╞Æ /noticias                                                           4.25 kB         148 kB
+Γö£ Γùï /publicar/autos                                                      3.2 kB         111 kB
+Γö£ Γùï /publicar/autos/negocios                                            6.47 kB         222 kB
+Γö£ Γùï /publicar/autos/negocios/confirm                                     2.7 kB         204 kB
+Γö£ Γùï /publicar/autos/privado                                             6.25 kB         222 kB
+Γö£ Γùï /publicar/autos/privado/confirm                                     2.47 kB         204 kB
+Γö£ Γùï /publicar/bienes-raices                                             3.29 kB         111 kB
+Γö£ Γùï /publicar/bienes-raices/negocios                                      412 B         102 kB
+Γö£ Γùï /publicar/bienes-raices/privado                                       139 B         140 kB
+Γö£ Γùï /publicar/clases/quick                                                286 B         199 kB
+Γö£ Γùï /publicar/clases/quick/preview                                        287 B         195 kB
+Γö£ Γùï /publicar/comunidad/quick                                             288 B         199 kB
+Γö£ Γùï /publicar/comunidad/quick/preview                                     290 B         195 kB
+Γö£ Γùï /publicar/empleos                                                     134 B         113 kB
+Γö£ Γùï /publicar/empleos/feria                                              6.1 kB         247 kB
+Γö£ Γùï /publicar/empleos/premium                                           5.57 kB         255 kB
+Γö£ Γùï /publicar/empleos/quick                                             5.89 kB         256 kB
+Γö£ Γùï /publicar/rentas/negocio                                              145 B         146 kB
+Γö£ Γùï /publicar/rentas/privado                                              143 B         145 kB
+Γö£ Γùï /publicar/restaurantes                                              22.9 kB         215 kB
+Γö£ Γùï /publicar/viajes                                                    5.06 kB         167 kB
+Γö£ Γùï /publicar/viajes/enviado                                            2.03 kB         162 kB
+Γö£ Γùï /publicar/viajes/negocios                                           9.23 kB         175 kB
+Γö£ Γùï /publicar/viajes/privado                                            8.61 kB         174 kB
+Γö£ Γùï /robots.txt                                                           412 B         102 kB
+Γö£ ╞Æ /servicios/perfil/[slug]                                              279 B         212 kB
+Γö£ Γùï /servicios/perfil/preview                                             742 B         230 kB
+Γö£ ╞Æ /servicios/publicar                                                   412 B         102 kB
+Γö£ Γùï /sitemap.xml                                                          412 B         102 kB
+Γö£ ╞Æ /tienda                                                               791 B         111 kB
+Γö£ ╞Æ /tienda/c/[slug]                                                      791 B         111 kB
+Γö£ ╞Æ /tienda/catalog/[slug]                                                795 B         111 kB
+Γö£ ΓùÅ /tienda/checkout/[source]/[slug]                                      758 B         128 kB
+Γö£   Γö£ /tienda/checkout/business-cards/standard-business-cards
+Γö£   Γö£ /tienda/checkout/business-cards/two-sided-business-cards
+Γö£   Γö£ /tienda/checkout/print-upload/flyers-standard
+Γö£   Γöö [+4 more paths]
+Γö£ ΓùÅ /tienda/configure/business-cards/[slug]                             31.6 kB         201 kB
+Γö£   Γö£ /tienda/configure/business-cards/standard-business-cards
+Γö£   Γöö /tienda/configure/business-cards/two-sided-business-cards
+Γö£ ΓùÅ /tienda/configure/business-cards/leo/[slug]                         5.33 kB         159 kB
+Γö£   Γö£ /tienda/configure/business-cards/leo/standard-business-cards
+Γö£   Γöö /tienda/configure/business-cards/leo/two-sided-business-cards
+Γö£ ΓùÅ /tienda/configure/business-cards/upload/[slug]                      8.83 kB         137 kB
+Γö£   Γö£ /tienda/configure/business-cards/upload/standard-business-cards
+Γö£   Γöö /tienda/configure/business-cards/upload/two-sided-business-cards
+Γö£ ΓùÅ /tienda/configure/print-upload/[slug]                               13.4 kB         126 kB
+Γö£   Γö£ /tienda/configure/print-upload/flyers-standard
+Γö£   Γö£ /tienda/configure/print-upload/brochures-standard
+Γö£   Γö£ /tienda/configure/print-upload/retractable-banners
+Γö£   Γöö [+2 more paths]
+Γö£ ╞Æ /tienda/contacto                                                    2.19 kB         108 kB
+Γö£ ΓùÅ /tienda/order/[source]/[slug]                                         14 kB         184 kB
+Γö£   Γö£ /tienda/order/business-cards/standard-business-cards
+Γö£   Γö£ /tienda/order/business-cards/two-sided-business-cards
+Γö£   Γö£ /tienda/order/print-upload/flyers-standard
+Γö£   Γöö [+4 more paths]
+Γö£ ╞Æ /tienda/order/complete                                              3.21 kB         109 kB
+Γöö ΓùÅ /tienda/p/[slug]                                                    1.13 kB         112 kB
+    Γö£ /tienda/p/standard-business-cards
+    Γö£ /tienda/p/two-sided-business-cards
+    Γö£ /tienda/p/flyers-standard
+    Γöö [+11 more paths]
++ First Load JS shared by all                                            102 kB
+  Γö£ chunks/1255-642c76f13c20a3ec.js                                     45.5 kB
+  Γö£ chunks/4bd1b696-100b9d70ed4e49c1.js                                 54.2 kB
+  Γöö other shared chunks (total)                                         2.15 kB
+
+Route (pages)                                                              Size  First Load JS
+Γöî   /_app                                                                   0 B        81.8 kB
+Γö£ ╞Æ /api/coupons                                                            0 B        81.8 kB
+Γöö ╞Æ /api/entries                                                            0 B        81.8 kB
++ First Load JS shared by all                                           81.8 kB
+  Γö£ chunks/framework-b9fd9bcc3ecde907.js                                44.8 kB
+  Γö£ chunks/main-3178a1907bf07fb0.js                                     34.8 kB
+  Γöö other shared chunks (total)                                          2.2 kB
+
+╞Æ Middleware                                                              34 kB
+
+Γùï  (Static)   prerendered as static content
+ΓùÅ  (SSG)      prerendered as static HTML (uses generateStaticParams)
+╞Æ  (Dynamic)  server-rendered on demand
+

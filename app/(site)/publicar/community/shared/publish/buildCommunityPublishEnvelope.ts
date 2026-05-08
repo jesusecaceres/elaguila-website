@@ -1,0 +1,179 @@
+import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+
+import { sanitizeHttpUrl } from "@/app/publicar/empleos/shared/publish/empleosPublishSanitize";
+
+import { COMMUNITY_DISCOVERY_REGION } from "../constants/communityRegion";
+import type {
+  ClasesQuickDraft,
+  ComunidadQuickDraft,
+  CommunityCommonDraft,
+} from "../types/communityQuickDraft";
+import type {
+  ClasesQuickPublishSnapshot,
+  ComunidadQuickPublishSnapshot,
+  CommunityPublishEnvelope,
+  CommunityPublishImageRef,
+} from "./communityPublishSnapshots";
+
+function mapImagesForPublish(
+  items: { url: string; alt: string; isMain?: boolean }[]
+): CommunityPublishImageRef[] {
+  const refs: CommunityPublishImageRef[] = [];
+  for (const x of items) {
+    const u = String(x.url ?? "").trim();
+    if (!u) continue;
+    if (u.startsWith("blob:") || u.startsWith("data:")) continue;
+    const clean = sanitizeHttpUrl(u);
+    if (!clean) continue;
+    refs.push({ url: clean, alt: String(x.alt ?? "").trim(), isMain: Boolean(x.isMain) });
+  }
+  return refs;
+}
+
+function commonSnapshot(d: CommunityCommonDraft): {
+  title: string;
+  organizer: string;
+  category: string;
+  categoryCustom?: string;
+  description: string;
+  images: CommunityPublishImageRef[];
+  phone: string;
+  whatsapp: string;
+  email: string;
+  website: string;
+  primaryCta: CommunityCommonDraft["primaryCta"];
+  venue: string;
+  addressLine1: string;
+  publicCity: string;
+  state: string;
+  zip: string;
+  discoveryRegion: "NorCal";
+} {
+  const images = mapImagesForPublish(d.images);
+  const cat = d.category.trim();
+  return {
+    title: d.title.trim(),
+    organizer: d.organizer.trim(),
+    category: cat,
+    categoryCustom: cat === "otro" ? d.categoryCustom.trim() || undefined : undefined,
+    description: d.description.trim(),
+    images,
+    phone: d.phone.trim(),
+    whatsapp: d.whatsapp.trim(),
+    email: d.email.trim(),
+    website: d.website.trim(),
+    primaryCta: d.primaryCta,
+    venue: d.venue.trim(),
+    addressLine1: d.addressLine1.trim(),
+    publicCity: d.publicCity.trim(),
+    state: d.state.trim(),
+    zip: d.zip.trim(),
+    discoveryRegion: COMMUNITY_DISCOVERY_REGION,
+  };
+}
+
+function draftSkippedBlobImages(d: { images: { url: string }[] }): boolean {
+  return d.images.some((x) => {
+    const u = String(x.url ?? "").trim();
+    return u.startsWith("blob:") || u.startsWith("data:");
+  });
+}
+
+export function buildClasesQuickPublishSnapshot(d: ClasesQuickDraft): ClasesQuickPublishSnapshot {
+  const base = commonSnapshot(d);
+  const isPaid = d.classCostType === "pagada";
+  return {
+    ...base,
+    kind: "clases",
+    classCostType: d.classCostType,
+    priceAmount: isPaid ? d.priceAmount.trim() : "",
+    priceFrequency: isPaid ? d.priceFrequency : "",
+    priceNote: d.priceNote.trim(),
+    mode: d.mode,
+    scheduleRows: d.scheduleRows
+      .map((r) => ({ day: r.day.trim(), time: r.time.trim() }))
+      .filter((r) => r.day || r.time),
+  };
+}
+
+export function buildComunidadQuickPublishSnapshot(
+  d: ComunidadQuickDraft
+): ComunidadQuickPublishSnapshot {
+  const base = commonSnapshot(d);
+  return {
+    ...base,
+    kind: "comunidad",
+    eventCost: d.eventCost,
+    admissionNote: d.admissionNote.trim(),
+    date: d.date.trim(),
+    startTime: d.startTime.trim(),
+    endTime: d.endTime.trim(),
+  };
+}
+
+function envelopeBase(
+  category: "clases" | "comunidad",
+  lang: Lang,
+  payload: CommunityPublishEnvelope["payload"],
+  mediaReferences: CommunityPublishEnvelope["mediaReferences"],
+  payment: CommunityPublishEnvelope["payment"]
+): CommunityPublishEnvelope {
+  const now = new Date().toISOString();
+  return {
+    schemaVersion: 1,
+    category,
+    lane: "quick",
+    language: lang,
+    listingStatus: "ready_for_publish",
+    listingId: null,
+    ownerId: null,
+    createdAt: null,
+    updatedAt: now,
+    publishedAt: null,
+    payload,
+    mediaReferences,
+    payment,
+  };
+}
+
+export function buildClasesQuickPublishEnvelope(
+  d: ClasesQuickDraft,
+  lang: Lang
+): CommunityPublishEnvelope {
+  const data = buildClasesQuickPublishSnapshot(d);
+  const primary = data.images.find((x) => x.isMain)?.url ?? data.images[0]?.url ?? null;
+  const requiresAdvertiserPayment = d.classCostType === "pagada";
+  return envelopeBase(
+    "clases",
+    lang,
+    { lane: "quick", data },
+    {
+      primaryImageUrl: primary,
+      imageUrls: data.images.map((r) => r.url),
+      hasDraftOnlyMedia: draftSkippedBlobImages(d),
+    },
+    {
+      requiresAdvertiserPayment,
+      status: requiresAdvertiserPayment ? "paid_class_pending" : "none",
+    }
+  );
+}
+
+export function buildComunidadQuickPublishEnvelope(
+  d: ComunidadQuickDraft,
+  lang: Lang
+): CommunityPublishEnvelope {
+  const data = buildComunidadQuickPublishSnapshot(d);
+  const primary = data.images.find((x) => x.isMain)?.url ?? data.images[0]?.url ?? null;
+  return envelopeBase(
+    "comunidad",
+    lang,
+    { lane: "quick", data },
+    {
+      primaryImageUrl: primary,
+      imageUrls: data.images.map((r) => r.url),
+      hasDraftOnlyMedia: draftSkippedBlobImages(d),
+    },
+    { requiresAdvertiserPayment: false, status: "none" }
+  );
+}

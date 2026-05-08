@@ -1,0 +1,47 @@
+﻿
+> nextjs@0.1.0 dev
+> next dev
+
+   Γû▓ Next.js 15.5.7
+   - Local:        http://localhost:3300
+   - Network:      http://10.0.0.217:3300
+   - Environments: .env.local
+   - Experiments (use with caution):
+     Γ¿» webpackBuildWorker
+
+ Γ£ô Starting...
+ Γ£ô Ready in 2.4s
+ Γùï Compiling /publicar/clases/quick ...
+ Γ£ô Compiled /publicar/clases/quick in 9.1s (930 modules)
+ GET /publicar/clases/quick?lang=es 200 in 10882ms
+ GET /publicar/clases/quick?lang=es 200 in 320ms
+ GET /publicar/clases/quick?lang=es 200 in 316ms
+ GET /publicar/clases/quick?lang=es 200 in 321ms
+ Γùï Compiling /publicar/comunidad/quick ...
+ Γ£ô Compiled /publicar/comunidad/quick in 1448ms (938 modules)
+ GET /publicar/comunidad/quick?lang=es 200 in 2360ms
+ Γ£ô Compiled /publicar/clases/quick/preview in 402ms (938 modules)
+ GET /publicar/clases/quick/preview?lang=es 200 in 1024ms
+ Γ£ô Compiled /publicar/comunidad/quick/preview in 470ms (946 modules)
+ GET /publicar/comunidad/quick/preview?lang=es 200 in 977ms
+ Γùï Compiling /clasificados/publicar/clases ...
+ Γ£ô Compiled /clasificados/publicar/clases in 1441ms (972 modules)
+ GET /clasificados/publicar/clases?lang=es 200 in 2251ms
+ Γ£ô Compiled /clasificados/publicar/comunidad in 439ms (960 modules)
+ GET /clasificados/publicar/comunidad?lang=es 200 in 927ms
+ GET /clasificados/publicar/clases?lang=es 200 in 387ms
+ GET /clasificados/publicar/clases?lang=es 200 in 353ms
+ GET /clasificados/publicar/clases?lang=en 200 in 361ms
+ GET /clasificados/publicar/clases?lang=en 200 in 330ms
+ GET /clasificados/publicar/clases?lang=en 200 in 294ms
+ GET /clasificados/publicar/clases?lang=en 200 in 412ms
+ GET /clasificados/publicar/clases?lang=en 200 in 462ms
+ GET /publicar/clases/quick?lang=es 200 in 416ms
+ GET /publicar/clases/quick/preview?from=publicar&lang=es 200 in 208ms
+ GET /publicar/clases/quick?lang=es 200 in 179ms
+ GET /publicar/comunidad/quick?lang=es 200 in 672ms
+ GET /publicar/comunidad/quick/preview?from=publicar&lang=es 200 in 299ms
+ Γùï Compiling /publicar/empleos/quick ...
+ Γ£ô Compiled /publicar/empleos/quick in 2.7s (1010 modules)
+ GET /publicar/comunidad/quick/preview?from=publicar&lang=es 200 in 703ms
+ GET /publicar/empleos/quick?lang=es 200 in 3764ms
