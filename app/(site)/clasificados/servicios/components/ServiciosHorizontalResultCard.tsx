@@ -24,16 +24,13 @@ const GRID =
 const MEDIA_CELL = "min-w-0 bg-[#F6F0E8] p-2.5 md:p-4 md:pr-3";
 /**
  * Landscape stage sized like Restaurants preview (16:9 mobile, 16:10 desktop) — width drives height.
- * Inner layers stay object-contain (no crop/stretch).
+ * Full-bleed image with object-cover like Restaurants.
  */
 const MEDIA_FRAME =
-  "relative aspect-[16/9] w-full min-h-[180px] overflow-hidden rounded-xl border border-[#E4D4BC]/80 bg-[#EDE4D8] shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] md:aspect-[16/10] md:min-h-0 md:rounded-l-xl md:rounded-r-none";
+  "relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-[#E4D4BC]/80 bg-[#EFE7DA] md:aspect-[16/10] md:rounded-l-xl md:rounded-r-none";
 
-const MEDIA_CANVAS_BG =
-  "pointer-events-none absolute inset-0 z-0 bg-gradient-to-br from-[#EDE4D8] via-[#F5EFE6] to-[#E4D8C8]";
-
-const MEDIA_ASSET_SLOT = "absolute inset-0 z-[1] p-2.5 md:p-3";
-const MEDIA_ASSET_BOX = "relative h-full w-full min-h-0 min-w-0";
+const LOGO_OVERLAY =
+  "pointer-events-none absolute right-3 top-12 z-[2] flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-white/40 bg-white/95 shadow-md ring-1 ring-black/5 md:h-14 md:w-14 md:top-14";
 
 const CONTENT =
   "flex min-w-0 flex-col gap-2.5 px-3 pb-3 pt-2.5 md:gap-3 md:px-5 md:pb-4 md:pt-4 md:pr-4";
@@ -60,8 +57,6 @@ const ADDRESS_LINK =
 const LOCATION_LINE =
   "flex min-h-[40px] items-start gap-2 rounded-xl border border-[#E8D9C4] bg-[#FFFCF7] px-3 py-2 text-[14px] font-semibold leading-snug text-[#2A2620]";
 
-const LOGO_FRAME =
-  "rounded-2xl border border-[#E8DDD0] bg-white/95 p-3 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.28)] ring-1 ring-black/[0.04] backdrop-blur-[2px]";
 
 const CTA_ROW = "mt-auto flex flex-wrap gap-2 pt-0.5";
 const CTA_PRIMARY =
@@ -285,46 +280,63 @@ export function ServiciosHorizontalResultCard({
       <div className={GRID}>
         <div className={MEDIA_CELL}>
           <div className={MEDIA_FRAME}>
-            {/* Layer A: fixed canvas fill (stage) */}
-            <div className={MEDIA_CANVAS_BG} aria-hidden />
-
-            {/* Layer B: primary asset — always centered + object-contain (no crop / no stretch) */}
-            {hasBackdrop || (logoUrl && mediaIsLogoOnly) ? (
-              <div className={MEDIA_ASSET_SLOT}>
-                <div className={MEDIA_ASSET_BOX}>
-                  <Image
-                    src={hasBackdrop ? backdropUrl : logoUrl}
-                    alt={hasBackdrop ? backdropAlt : logoAlt}
-                    fill
-                    className="object-contain object-center"
-                    sizes="(max-width: 768px) 100vw, 42vw"
-                    priority={false}
-                    unoptimized={serviciosImageUnoptimized(hasBackdrop ? backdropUrl : logoUrl)}
-                  />
+            {/* Primary cover/gallery image - full-bleed like Restaurants */}
+            {hasBackdrop ? (
+              <Image
+                src={backdropUrl}
+                alt={backdropAlt}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 42vw, 520px"
+                priority={false}
+                unoptimized={serviciosImageUnoptimized(backdropUrl)}
+              />
+            ) : logoUrl ? (
+              /* Logo-only fallback - centered with premium background */
+              <div className="flex h-full min-h-[140px] w-full items-center justify-center bg-gradient-to-br from-[#3d352c] via-[#2a2620] to-[#1f1a17]">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-white/10 p-3 backdrop-blur-sm">
+                    <Image
+                      src={logoUrl}
+                      alt={logoAlt}
+                      width={64}
+                      height={64}
+                      className="max-h-full max-w-full object-contain"
+                      sizes="64px"
+                      unoptimized={serviciosImageUnoptimized(logoUrl)}
+                    />
+                  </div>
+                  <p className="text-xs font-semibold text-white/80">{profile.identity.businessName}</p>
                 </div>
               </div>
             ) : (
-              <div className={`${MEDIA_ASSET_SLOT} flex items-center justify-center`}>
-                <FiMapPin className="h-9 w-9 text-[#9A8F82]" aria-hidden />
+              /* No assets fallback */
+              <div className="flex h-full min-h-[140px] w-full items-center justify-center">
+                <div className="flex flex-col items-center gap-2 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/5">
+                    <FiMapPin className="h-6 w-6 text-[#8B7E70]" aria-hidden />
+                  </div>
+                  <p className="text-xs font-semibold text-[#8B7E70]">{lang === "en" ? "No image yet" : "Sin imagen"}</p>
+                </div>
               </div>
             )}
-
-            {/* Layer C: separate logo mark only when hero photo is not logo-only */}
-            {hasBackdrop && logoUrl && !mediaIsLogoOnly ? (
-              <div className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-center p-4">
-                <div className={LOGO_FRAME}>
-                  <Image
-                    src={logoUrl}
-                    alt={logoAlt}
-                    width={112}
-                    height={112}
-                    className="h-[4.5rem] w-[4.5rem] object-contain md:h-28 md:w-28"
-                    unoptimized={serviciosImageUnoptimized(logoUrl)}
-                  />
-                </div>
+            
+            {/* Logo overlay when cover image exists - like Restaurants */}
+            {hasBackdrop && logoUrl ? (
+              <div className={LOGO_OVERLAY}>
+                <Image
+                  src={logoUrl}
+                  alt={`${profile.identity.businessName} logo`}
+                  width={56}
+                  height={56}
+                  className="max-h-full max-w-full object-contain p-1"
+                  sizes="56px"
+                  unoptimized={serviciosImageUnoptimized(logoUrl)}
+                />
               </div>
             ) : null}
 
+            
             <div className="pointer-events-none absolute inset-x-0 top-0 z-[4] flex flex-wrap gap-1 p-2">
               {promoted ? (
                 <span className="rounded-full border border-white/70 bg-gradient-to-r from-[#D4AF37] to-[#9A7329] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
