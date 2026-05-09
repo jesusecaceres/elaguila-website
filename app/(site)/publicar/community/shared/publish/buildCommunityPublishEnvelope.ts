@@ -100,9 +100,12 @@ export function buildClasesQuickPublishSnapshot(d: ClasesQuickDraft): ClasesQuic
     priceFrequency: isPaid ? d.priceFrequency : "",
     priceNote: d.priceNote.trim(),
     mode: d.mode,
-    scheduleRows: d.scheduleRows
-      .map((r) => ({ day: r.day.trim(), time: r.time.trim() }))
-      .filter((r) => r.day || r.time),
+    weeklySchedule: d.weeklySchedule.map((r) => ({
+      day: r.day,
+      closed: r.closed,
+      open: r.open.trim(),
+      close: r.close.trim(),
+    })),
   };
 }
 
@@ -116,8 +119,13 @@ export function buildComunidadQuickPublishSnapshot(
     eventCost: d.eventCost,
     admissionNote: d.admissionNote.trim(),
     date: d.date.trim(),
-    startTime: d.startTime.trim(),
-    endTime: d.endTime.trim(),
+    eventEndDate: d.eventEndDate.trim(),
+    weeklySchedule: d.weeklySchedule.map((r) => ({
+      day: r.day,
+      closed: r.closed,
+      open: r.open.trim(),
+      close: r.close.trim(),
+    })),
   };
 }
 

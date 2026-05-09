@@ -1,11 +1,18 @@
+import type { DayHoursRow } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import type { EmpleosImageItem } from "@/app/publicar/empleos/shared/media/empleosMediaTypes";
 
 import { COMMUNITY_DEFAULT_STATE } from "../constants/communityRegion";
+import {
+  emptyCommunityWeeklySchedule,
+  normalizeWeeklyScheduleArray,
+  type CommunityScheduleRowLegacy,
+} from "../lib/communityWeeklySchedule";
 
 export type CommunityPrimaryCta = "phone" | "whatsapp" | "email" | "website";
 
-export type CommunityScheduleRow = { day: string; time: string };
+/** @deprecated Legacy Clases quick — migrated into `weeklySchedule`. */
+export type CommunityScheduleRow = CommunityScheduleRowLegacy;
 
 export type ClasesCostType = "gratis" | "pagada";
 export type ClasesPriceFrequency =
@@ -50,7 +57,8 @@ export type ClasesQuickDraft = CommunityCommonDraft & {
   priceFrequency: ClasesPriceFrequency;
   priceNote: string;
   mode: ClasesMode;
-  scheduleRows: CommunityScheduleRow[];
+  /** Fixed Mon–Sun rows (Servicios-style). */
+  weeklySchedule: DayHoursRow[];
 };
 
 export type ComunidadQuickDraft = CommunityCommonDraft & {
@@ -58,10 +66,12 @@ export type ComunidadQuickDraft = CommunityCommonDraft & {
   eventCost: ComunidadCostType;
   /** Used when eventCost is paid or donation. */
   admissionNote: string;
-  /** Local date string YYYY-MM-DD. */
+  /** Event start date YYYY-MM-DD. */
   date: string;
-  startTime: string;
-  endTime: string;
+  /** Optional event end date YYYY-MM-DD (multi-day). */
+  eventEndDate: string;
+  /** When the event runs during the date range (fixed weekdays). */
+  weeklySchedule: DayHoursRow[];
 };
 
 export type CommunityQuickDraft = ClasesQuickDraft | ComunidadQuickDraft;
@@ -96,7 +106,7 @@ export function emptyClasesQuickDraft(): ClasesQuickDraft {
     priceFrequency: "porClase",
     priceNote: "",
     mode: "presencial",
-    scheduleRows: [{ day: "", time: "" }],
+    weeklySchedule: emptyCommunityWeeklySchedule(),
   };
 }
 
@@ -107,8 +117,8 @@ export function emptyComunidadQuickDraft(): ComunidadQuickDraft {
     eventCost: "gratis",
     admissionNote: "",
     date: "",
-    startTime: "",
-    endTime: "",
+    eventEndDate: "",
+    weeklySchedule: emptyCommunityWeeklySchedule(),
   };
 }
 
@@ -192,7 +202,7 @@ function normalizeCommon(p: Partial<CommunityCommonDraft>): CommunityCommonDraft
 export function normalizeClasesQuickDraft(raw: unknown): ClasesQuickDraft {
   const e = emptyClasesQuickDraft();
   if (!raw || typeof raw !== "object") return e;
-  const p = raw as Partial<ClasesQuickDraft>;
+  const p = raw as Partial<ClasesQuickDraft> & { scheduleRows?: unknown };
   const common = normalizeCommon(p);
   const classCostType = CLASES_COST.has(p.classCostType as ClasesCostType)
     ? (p.classCostType as ClasesCostType)
@@ -201,13 +211,13 @@ export function normalizeClasesQuickDraft(raw: unknown): ClasesQuickDraft {
     ? (p.priceFrequency as ClasesPriceFrequency)
     : e.priceFrequency;
   const mode = CLASES_MODE.has(p.mode as ClasesMode) ? (p.mode as ClasesMode) : e.mode;
-  let scheduleRows: CommunityScheduleRow[] = Array.isArray(p.scheduleRows)
-    ? p.scheduleRows.map((r) => ({
-        day: String((r as Partial<CommunityScheduleRow> | undefined)?.day ?? "").trim(),
-        time: String((r as Partial<CommunityScheduleRow> | undefined)?.time ?? "").trim(),
+  const legacyRows: CommunityScheduleRowLegacy[] = Array.isArray(p.scheduleRows)
+    ? (p.scheduleRows as unknown[]).map((r) => ({
+        day: String((r as Partial<CommunityScheduleRowLegacy> | undefined)?.day ?? "").trim(),
+        time: String((r as Partial<CommunityScheduleRowLegacy> | undefined)?.time ?? "").trim(),
       }))
     : [];
-  if (!scheduleRows.length) scheduleRows = [{ day: "", time: "" }];
+  const weeklySchedule = normalizeWeeklyScheduleArray(p.weeklySchedule, legacyRows);
   return {
     ...common,
     kind: "clases",
@@ -216,7 +226,7 @@ export function normalizeClasesQuickDraft(raw: unknown): ClasesQuickDraft {
     priceFrequency,
     priceNote: String(p.priceNote ?? e.priceNote),
     mode,
-    scheduleRows,
+    weeklySchedule,
   };
 }
 
@@ -228,13 +238,15 @@ export function normalizeComunidadQuickDraft(raw: unknown): ComunidadQuickDraft 
   const eventCost = COMUNIDAD_COST.has(p.eventCost as ComunidadCostType)
     ? (p.eventCost as ComunidadCostType)
     : e.eventCost;
+  const weeklySchedule = normalizeWeeklyScheduleArray(p.weeklySchedule);
+  const eventEndDate = String(p.eventEndDate ?? e.eventEndDate).trim();
   return {
     ...common,
     kind: "comunidad",
     eventCost,
     admissionNote: String(p.admissionNote ?? e.admissionNote),
     date: String(p.date ?? e.date),
-    startTime: String(p.startTime ?? e.startTime),
-    endTime: String(p.endTime ?? e.endTime),
+    eventEndDate,
+    weeklySchedule,
   };
 }

@@ -1,4 +1,5 @@
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import type { DayHoursRow } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 
 import type {
   ClasesCostType,
@@ -6,7 +7,6 @@ import type {
   ClasesPriceFrequency,
   ComunidadCostType,
   CommunityPrimaryCta,
-  CommunityScheduleRow,
 } from "../types/communityQuickDraft";
 
 export type CommunityPublishImageRef = {
@@ -29,7 +29,7 @@ export type ClasesQuickPublishSnapshot = {
   priceFrequency: ClasesPriceFrequency | "";
   priceNote: string;
   mode: ClasesMode;
-  scheduleRows: CommunityScheduleRow[];
+  weeklySchedule: DayHoursRow[];
   description: string;
   images: CommunityPublishImageRef[];
   phone: string;
@@ -56,8 +56,8 @@ export type ComunidadQuickPublishSnapshot = {
   eventCost: ComunidadCostType;
   admissionNote: string;
   date: string;
-  startTime: string;
-  endTime: string;
+  eventEndDate: string;
+  weeklySchedule: DayHoursRow[];
   description: string;
   images: CommunityPublishImageRef[];
   phone: string;

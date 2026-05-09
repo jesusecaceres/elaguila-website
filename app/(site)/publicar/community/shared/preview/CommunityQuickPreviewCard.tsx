@@ -11,6 +11,7 @@ import {
   clasesModeLabel,
   comunidadCostLabel,
 } from "../copy/communityPublishCopy";
+import { formatWeeklyScheduleLines } from "../lib/communityWeeklySchedule";
 import type {
   ClasesQuickDraft,
   ComunidadQuickDraft,
@@ -57,6 +58,8 @@ const COPY = {
     admission: "Nota de admisión",
     date: "Fecha",
     time: "Hora",
+    eventDates: "Fechas del evento",
+    eventWeekly: "Días y horarios",
     venue: "Lugar",
     address: "Dirección",
     websiteCta: "Sitio web / registro",
@@ -80,6 +83,8 @@ const COPY = {
     admission: "Admission note",
     date: "Date",
     time: "Time",
+    eventDates: "Event dates",
+    eventWeekly: "Days & times",
     venue: "Venue",
     address: "Address",
     websiteCta: "Website / registration",
@@ -103,10 +108,12 @@ function formatDate(iso: string, lang: Lang): string {
   }
 }
 
-function formatTimeRange(start: string, end: string): string {
-  if (!start && !end) return "—";
-  if (start && end) return `${start} – ${end}`;
-  return start || end;
+function formatComunidadEventDateRange(draft: ComunidadQuickDraft, lang: Lang): string {
+  const a = draft.date.trim();
+  const b = draft.eventEndDate.trim();
+  if (!a) return "—";
+  if (!b || b === a) return formatDate(a, lang);
+  return `${formatDate(a, lang)} - ${formatDate(b, lang)}`;
 }
 
 export function ClasesQuickPreviewCard({ draft, lang }: { draft: ClasesQuickDraft; lang: Lang }) {
@@ -125,14 +132,7 @@ export function ClasesQuickPreviewCard({ draft, lang }: { draft: ClasesQuickDraf
         .join(" ")
     : t.free;
 
-  const scheduleLines = draft.scheduleRows
-    .filter((r) => r.day.trim() || r.time.trim())
-    .map((r) => {
-      const day = r.day.trim();
-      const time = r.time.trim();
-      if (day && time) return `${day}: ${time}`;
-      return day || time;
-    });
+  const scheduleLines = formatWeeklyScheduleLines(draft.weeklySchedule, lang);
 
   const cityLine =
     [draft.publicCity.trim(), draft.state.trim()].filter(Boolean).join(", ") || "—";
@@ -257,6 +257,8 @@ export function ComunidadQuickPreviewCard({
   const cityLine =
     [draft.publicCity.trim(), draft.state.trim()].filter(Boolean).join(", ") || "—";
 
+  const weeklyLines = formatWeeklyScheduleLines(draft.weeklySchedule, lang);
+
   return (
     <article className="mx-auto my-6 w-full max-w-3xl overflow-hidden rounded-2xl border border-black/10 bg-white text-[#2A2826] shadow-md">
       <div className="relative aspect-[16/9] w-full bg-neutral-100">
@@ -317,18 +319,18 @@ export function ComunidadQuickPreviewCard({
               </p>
             ) : null}
           </div>
-          <div>
+          <div className="sm:col-span-2">
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
-              {t.date}
+              {t.eventDates}
             </dt>
-            <dd className="mt-0.5 font-semibold">{formatDate(draft.date, lang)}</dd>
+            <dd className="mt-0.5 font-semibold">{formatComunidadEventDateRange(draft, lang)}</dd>
           </div>
-          <div>
+          <div className="sm:col-span-2">
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
-              {t.time}
+              {t.eventWeekly}
             </dt>
-            <dd className="mt-0.5 font-semibold">
-              {formatTimeRange(draft.startTime, draft.endTime)}
+            <dd className="mt-0.5 whitespace-pre-line">
+              {weeklyLines.length ? weeklyLines.join("\n") : "—"}
             </dd>
           </div>
           {draft.venue.trim() || draft.addressLine1.trim() ? (

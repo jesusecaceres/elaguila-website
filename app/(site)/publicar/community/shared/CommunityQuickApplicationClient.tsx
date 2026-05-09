@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import CityAutocomplete from "@/app/components/CityAutocomplete";
+import type { DayKey } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { EmpleosApplicationFinalStep } from "@/app/publicar/empleos/shared/components/EmpleosApplicationFinalStep";
@@ -29,6 +30,7 @@ import {
   COMUNIDAD_QUICK_COPY,
   clasesCostLabel,
 } from "./copy/communityPublishCopy";
+import { WeeklyScheduleEditor } from "./components/WeeklyScheduleEditor";
 import {
   flushCommunityDraftToSession,
   useCommunityDraftSession,
@@ -400,47 +402,23 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
                 ))}
               </div>
             </fieldset>
-            <div>
+            <div className="mt-4">
               <EmpleosFieldLabel lang={lang} required>
-                {copy.fields.schedule}
+                {copy.fields.weeklySchedule}
               </EmpleosFieldLabel>
-              <div className="mt-2 space-y-2">
-                {state.scheduleRows.map((row, idx) => (
-                  <div key={idx} className="grid gap-2 sm:grid-cols-2">
-                    <input
-                      className={INPUT}
-                      value={row.day}
-                      placeholder={copy.fields.scheduleDayPh}
-                      onChange={(e) => {
-                        const next = state.scheduleRows.map((r, j) =>
-                          j === idx ? { ...r, day: e.target.value } : r,
-                        );
-                        patch({ scheduleRows: next });
-                      }}
-                    />
-                    <input
-                      className={INPUT}
-                      value={row.time}
-                      placeholder={copy.fields.scheduleTimePh}
-                      onChange={(e) => {
-                        const next = state.scheduleRows.map((r, j) =>
-                          j === idx ? { ...r, time: e.target.value } : r,
-                        );
-                        patch({ scheduleRows: next });
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-              <button
-                type="button"
-                className="mt-2 text-xs font-semibold text-[#2563EB] underline"
-                onClick={() =>
-                  patch({ scheduleRows: [...state.scheduleRows, { day: "", time: "" }] })
+              <WeeklyScheduleEditor
+                lang={lang}
+                rows={state.weeklySchedule}
+                closedLabel={copy.fields.weeklyClosed}
+                helperText={copy.fields.weeklyHelper}
+                onPatchDay={(day: DayKey, pr) =>
+                  patch({
+                    weeklySchedule: state.weeklySchedule.map((r) =>
+                      r.day === day ? { ...r, ...pr } : r,
+                    ),
+                  })
                 }
-              >
-                {copy.fields.scheduleAdd}
-              </button>
+              />
             </div>
           </EmpleosSectionCard>
 
@@ -715,7 +693,7 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
           </EmpleosSectionCard>
 
           <EmpleosSectionCard title={copy.sections.schedule}>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
                 <EmpleosFieldLabel lang={lang} required>
                   {copy.fields.date}
@@ -728,27 +706,35 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
                 />
               </label>
               <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang} required>
-                  {copy.fields.startTime}
-                </EmpleosFieldLabel>
-                <input
-                  type="time"
-                  className={INPUT}
-                  value={state.startTime}
-                  onChange={(e) => patch({ startTime: e.target.value })}
-                />
-              </label>
-              <label className="block text-sm">
                 <EmpleosFieldLabel lang={lang} optional>
-                  {copy.fields.endTime}
+                  {copy.fields.eventEndDate}
                 </EmpleosFieldLabel>
                 <input
-                  type="time"
+                  type="date"
                   className={INPUT}
-                  value={state.endTime}
-                  onChange={(e) => patch({ endTime: e.target.value })}
+                  value={state.eventEndDate}
+                  min={state.date || undefined}
+                  onChange={(e) => patch({ eventEndDate: e.target.value })}
                 />
               </label>
+            </div>
+            <div className="mt-4">
+              <EmpleosFieldLabel lang={lang} required>
+                {copy.fields.weeklySchedule}
+              </EmpleosFieldLabel>
+              <WeeklyScheduleEditor
+                lang={lang}
+                rows={state.weeklySchedule}
+                closedLabel={copy.fields.weeklyClosed}
+                helperText={copy.fields.weeklyHelper}
+                onPatchDay={(day: DayKey, pr) =>
+                  patch({
+                    weeklySchedule: state.weeklySchedule.map((r) =>
+                      r.day === day ? { ...r, ...pr } : r,
+                    ),
+                  })
+                }
+              />
             </div>
           </EmpleosSectionCard>
 
