@@ -71,6 +71,26 @@ export function ServiciosPublishModal({
         return;
       }
 
+      if (res.status === 413) {
+        setError(
+          (data.message as string | undefined)?.trim() ||
+            (lang === "en"
+              ? "Publish payload is too large. Wait for images to upload or use fewer photos."
+              : "El envío es demasiado grande. Espera a que suban las imágenes o usa menos fotos."),
+        );
+        setBusy(false);
+        return;
+      }
+      if (res.status === 400 && (data.error === "heavy_media_detected" || data.error === "media_upload_failed")) {
+        setError(
+          (data.message as string | undefined)?.trim() ||
+            (lang === "en"
+              ? "Could not prepare images for publishing. Check your connection and try again."
+              : "No se pudieron preparar las imágenes para publicar. Revisa tu conexión e inténtalo de nuevo."),
+        );
+        setBusy(false);
+        return;
+      }
       if (res.status === 503 && (data.error === "persist_failed" || !data.ok)) {
         setError(
           (data.message as string | undefined)?.trim() ||

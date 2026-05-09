@@ -122,6 +122,26 @@ export function ClasificadosServiciosPreviewClient() {
         setPublishBusy(false);
         return;
       }
+      if (res.status === 413) {
+        setPublishErr(
+          (data.message as string | undefined)?.trim() ||
+            (lang === "en"
+              ? "Publish payload is too large. Images should upload automatically—try again or reduce photos."
+              : "El envío es demasiado grande. Las imágenes deberían subirse solas—intenta de nuevo o usa menos fotos."),
+        );
+        setPublishBusy(false);
+        return;
+      }
+      if (res.status === 400 && (data.error === "heavy_media_detected" || data.error === "media_upload_failed")) {
+        setPublishErr(
+          (data.message as string | undefined)?.trim() ||
+            (lang === "en"
+              ? "Could not prepare images for publishing. Check your connection and try again."
+              : "No se pudieron preparar las imágenes para publicar. Revisa tu conexión e inténtalo de nuevo."),
+        );
+        setPublishBusy(false);
+        return;
+      }
       if (res.status === 503) {
         setPublishErr(
           (data.message as string | undefined)?.trim() ||

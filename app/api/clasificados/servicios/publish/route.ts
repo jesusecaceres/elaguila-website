@@ -26,6 +26,43 @@ import { isServiciosStrictPublishEnvironment, serviciosOwnerIdFromBearer } from 
 
 export const runtime = "nodejs";
 
+const MAX_PUBLISH_BODY_BYTES = 1024 * 1024;
+
+/** Reject transport payloads that still contain local-only media (defense in depth). */
+function detectServiciosHeavyTransport(value: unknown, path = ""): string[] {
+  const out: string[] = [];
+  if (value instanceof File || (typeof Blob !== "undefined" && value instanceof Blob)) {
+    out.push(`file_blob:${path}`);
+    return out;
+  }
+  if (typeof value === "string") {
+    const t = value;
+    if (t.startsWith("data:image/") || t.startsWith("data:video/") || /^data:application\//i.test(t)) {
+      out.push(`data_url:${path}`);
+    }
+    if (t.startsWith("blob:")) out.push(`blob_url:${path}`);
+    if (t.includes("__LX_SV_IDB__")) out.push(`idb_placeholder:${path}`);
+    if (t.length > 600_000) out.push(`string_too_large:${path}:${t.length}`);
+    return out;
+  }
+  if (Array.isArray(value)) {
+    const cap = Math.min(value.length, 100);
+    for (let i = 0; i < cap; i++) {
+      out.push(...detectServiciosHeavyTransport(value[i], `${path}[${i}]`));
+    }
+    return out;
+  }
+  if (typeof value === "object" && value !== null) {
+    const keys = Object.keys(value as object);
+    const cap = Math.min(keys.length, 150);
+    for (let i = 0; i < cap; i++) {
+      const k = keys[i]!;
+      out.push(...detectServiciosHeavyTransport((value as Record<string, unknown>)[k], path ? `${path}.${k}` : k));
+    }
+  }
+  return out;
+}
+
 async function allocateSlug(base: string): Promise<string> {
   if (!isSupabaseAdminConfigured()) return base;
   const supabase = getAdminSupabase();
@@ -63,6 +100,40 @@ export async function POST(req: NextRequest) {
 
   if (!body || typeof body !== "object") {
     return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });
+  }
+
+  const bodyStr = JSON.stringify(body);
+  const bodySize = new Blob([bodyStr]).size;
+  if (process.env.NODE_ENV === "development") {
+    const b0 = body as Record<string, unknown>;
+    console.log("[servicios publish api] incoming", {
+      kb: (bodySize / 1024).toFixed(1),
+      topLevelKeys: Object.keys(b0),
+    });
+  }
+
+  if (bodySize > MAX_PUBLISH_BODY_BYTES) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "payload_too_large",
+        message: `Request payload too large. Maximum is 1 MB; received ${(bodySize / 1024).toFixed(1)} KB.`,
+      },
+      { status: 413 },
+    );
+  }
+
+  const heavy = detectServiciosHeavyTransport(body);
+  if (heavy.length) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "heavy_media_detected",
+        message: "Publish body must not contain data: URLs, blob: URLs, or draft media placeholders. Upload images first.",
+        detail: heavy.slice(0, 12).join("; "),
+      },
+      { status: 400 },
+    );
   }
 
   const b = body as Record<string, unknown>;
@@ -250,6 +321,9 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  const detailPath = `/clasificados/servicios/${encodeURIComponent(slug)}`;
+  const resultsPath = `/clasificados/servicios/resultados?lang=${lang}`;
+
   return NextResponse.json({
     ok: true,
     slug,
@@ -260,5 +334,8 @@ export async function POST(req: NextRequest) {
     /** @deprecated use persistedToDatabase */
     persisted: persistedToDatabase,
     profile: wire,
+    publicUrl: detailPath,
+    detailUrl: detailPath,
+    resultsUrl: resultsPath,
   });
 }

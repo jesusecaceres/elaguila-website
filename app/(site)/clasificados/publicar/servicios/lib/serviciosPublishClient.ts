@@ -3,6 +3,8 @@
 import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationTypes";
 import type { ServiciosLang } from "./clasificadosServiciosApplicationTypes";
+import { buildServiciosPublishTransportBody } from "./buildServiciosPublishPayload";
+import { resolveServiciosDraftMediaToRemoteUrls } from "./serviciosDraftPublishPrepare";
 
 export type ServiciosPublishPersistence = "database" | "dev_workspace" | "none";
 
@@ -20,9 +22,28 @@ export type ServiciosPublishApiResponse = {
   missing?: { id?: string; label: string }[];
   error?: string;
   message?: string;
+  detail?: string;
 };
 
 const SESSION_SLUG_KEY = "servicios_last_published_slug";
+
+const MAX_TRANSPORT_BYTES = 1024 * 1024;
+
+function devLogTransport(body: Record<string, unknown>, byteSize: number) {
+  if (process.env.NODE_ENV !== "development") return;
+  const state = body.state as ClasificadosServiciosApplicationState | undefined;
+  const mediaHints = {
+    logoLen: state?.logoUrl?.length ?? 0,
+    coverLen: state?.coverUrl?.length ?? 0,
+    galleryCount: state?.gallery?.length ?? 0,
+    galleryDataish: (state?.gallery ?? []).filter((g) => g.url?.startsWith("data:")).length,
+  };
+  console.log("[servicios publish] transport", {
+    kb: (byteSize / 1024).toFixed(1),
+    topLevelKeys: Object.keys(body),
+    mediaHints,
+  });
+}
 
 export async function postServiciosPublishApi(args: {
   state: ClasificadosServiciosApplicationState;
@@ -37,14 +58,41 @@ export async function postServiciosPublishApi(args: {
   const existingPublicSlug =
     typeof window !== "undefined" ? sessionStorage.getItem(SESSION_SLUG_KEY) ?? undefined : undefined;
 
+  let resolved: ClasificadosServiciosApplicationState;
+  try {
+    resolved = await resolveServiciosDraftMediaToRemoteUrls(args.state);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "media_upload_failed";
+    const res = new Response(JSON.stringify({ ok: false, error: "media_upload_failed", message }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+    return { res, data: { ok: false, error: "media_upload_failed", message } };
+  }
+
+  const body = buildServiciosPublishTransportBody(resolved, args.lang, existingPublicSlug);
+  const raw = JSON.stringify(body);
+  const byteSize = new Blob([raw]).size;
+  devLogTransport(body as unknown as Record<string, unknown>, byteSize);
+
+  if (byteSize > MAX_TRANSPORT_BYTES) {
+    const detail = `El cuerpo del anuncio supera 1 MB (${(byteSize / 1024).toFixed(0)} KB). Reduce imágenes o texto.`;
+    const res = new Response(
+      JSON.stringify({
+        ok: false,
+        error: "payload_too_large_client",
+        message: detail,
+        detail: `${(byteSize / 1024).toFixed(1)} KB`,
+      }),
+      { status: 413, headers: { "Content-Type": "application/json" } },
+    );
+    return { res, data: { ok: false, error: "payload_too_large_client", message: detail, detail: `${(byteSize / 1024).toFixed(1)} KB` } };
+  }
+
   const res = await fetch("/api/clasificados/servicios/publish", {
     method: "POST",
     headers,
-    body: JSON.stringify({
-      state: args.state,
-      lang: args.lang,
-      ...(existingPublicSlug ? { existingPublicSlug } : {}),
-    }),
+    body: raw,
   });
   const data = (await res.json()) as ServiciosPublishApiResponse;
 
