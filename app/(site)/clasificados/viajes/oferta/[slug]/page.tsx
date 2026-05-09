@@ -72,6 +72,7 @@ export default async function ClasificadosViajesOfertaPage({ params, searchParam
         ui={ui}
         exploreViajesHref={exploreViajesHref}
         stagedListingId={stagedListingId}
+        leonixAdId={bundle?.leonix_ad_id ?? null}
       />
     </div>
   );

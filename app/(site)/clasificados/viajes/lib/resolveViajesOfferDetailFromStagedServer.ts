@@ -16,6 +16,7 @@ import { fetchViajesStagedRowBySlugPublic } from "./viajesStagedListingsDbServer
 export type ViajesStagedOfferDetailBundle = {
   offer: ViajesOfferDetailModel;
   stagedListingId: string;
+  leonix_ad_id: string | null;
 };
 
 async function resolveViajesStagedOfferDetailBundleUncached(slug: string, lang: "es" | "en"): Promise<ViajesStagedOfferDetailBundle | null> {
@@ -25,6 +26,8 @@ async function resolveViajesStagedOfferDetailBundleUncached(slug: string, lang: 
   const j = row.listing_json as { negocios?: ViajesNegociosDraft; privado?: ViajesPrivadoDraft };
   const hero = row.hero_image_url?.trim() || undefined;
   const stagedListingId = String(row.id);
+  const leonixRaw = (row as { leonix_ad_id?: string | null }).leonix_ad_id;
+  const leonix_ad_id = leonixRaw != null && String(leonixRaw).trim() ? String(leonixRaw).trim() : null;
 
   if (row.lane === "business" && j.negocios) {
     const c = getPublicarViajesNegociosCopy(lang);
@@ -35,6 +38,7 @@ async function resolveViajesStagedOfferDetailBundleUncached(slug: string, lang: 
         : "Listado publicado (pasó revisión interna). Leonix no es el vendedor final — confirma precio y disponibilidad con el operador.";
     return {
       stagedListingId,
+      leonix_ad_id,
       offer: {
         ...base,
         slug: row.slug,
@@ -56,6 +60,7 @@ async function resolveViajesStagedOfferDetailBundleUncached(slug: string, lang: 
         : "Anuncio de particular (pasó revisión interna). Leonix no verifica identidad ni cobra — contacta al anunciante directamente.";
     return {
       stagedListingId,
+      leonix_ad_id,
       offer: {
         ...base,
         slug: row.slug,
@@ -77,7 +82,7 @@ export async function resolveViajesStagedOfferDetailBundle(slug: string, lang: "
   if (!s) return null;
   return unstable_cache(
     async () => resolveViajesStagedOfferDetailBundleUncached(s, lang),
-    ["viajes-staged-offer-detail-v2", s, lang],
+    ["viajes-staged-offer-detail-v3", s, lang],
     { tags: [viajesOfferDetailCacheTag(s), VIAJES_CACHE_TAG_BROWSE] },
   )();
 }

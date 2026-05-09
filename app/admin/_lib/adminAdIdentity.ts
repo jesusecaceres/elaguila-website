@@ -22,6 +22,10 @@ export type AdminNormalizedAd = {
   internalId: string;
   /** Real public/published code from DB when present (optional columns). */
   publishedId: string | null;
+  /** `leonix_ad_id` column only (subset of `publishedId` when that column is the source). */
+  leonixAdId?: string | null;
+  /** Same as `displayId` — stable label for admin tables (Leonix code or fallback). */
+  publicIdLabel: string;
   /** Deterministic admin-only display code when no publishedId. */
   fallbackDisplayId: string;
   /** publishedId ?? fallbackDisplayId — always non-empty when internalId is valid. */
@@ -69,7 +73,9 @@ export function adminCategoryPrefixForSlug(categorySlug: string): string {
   if (s === "rentas") return "RENT";
   if (s === "empleos") return "JOB";
   if (s === "autos") return "AUTO";
-  if (s === "travel" || s === "viajes") return "TRVL";
+  if (s === "travel" || s === "viajes") return "TRAV";
+  if (s === "comunidad") return "COM";
+  if (s === "clases") return "CLASS";
   return "LIST";
 }
 
@@ -126,11 +132,11 @@ function finalizeDisplayIds(
   categorySlug: string,
   internalId: string,
   publishedId: string | null,
-): { publishedId: string | null; fallbackDisplayId: string; displayId: string } {
+): { publishedId: string | null; fallbackDisplayId: string; displayId: string; publicIdLabel: string } {
   const fb = buildAdminFallbackDisplayId(categorySlug, internalId);
   const pub = publishedId && publishedId.trim() ? publishedId.trim() : null;
   const displayId = pub ?? fb;
-  return { publishedId: pub, fallbackDisplayId: fb, displayId };
+  return { publishedId: pub, fallbackDisplayId: fb, displayId, publicIdLabel: displayId };
 }
 
 export type GenericListingAdminInput = {
@@ -156,7 +162,8 @@ export function normalizeGenericListingForAdmin(
 
   const categorySlug = nonEmptyString(row.category) ?? "unknown";
   const publishedFromRow = readPublishedIdFromRow(row as Record<string, unknown>);
-  const { publishedId, fallbackDisplayId, displayId } = finalizeDisplayIds(categorySlug, internalId, publishedFromRow);
+  const { publishedId, fallbackDisplayId, displayId, publicIdLabel } = finalizeDisplayIds(categorySlug, internalId, publishedFromRow);
+  const leonixAdId = nonEmptyString((row as Record<string, unknown>).leonix_ad_id);
 
   const owner = mergeOwner(nonEmptyString(row.owner_id), hints);
   const title = nonEmptyString(row.title) ?? "(sin título)";
@@ -166,6 +173,8 @@ export function normalizeGenericListingForAdmin(
     categorySlug,
     internalId,
     publishedId,
+    leonixAdId,
+    publicIdLabel,
     fallbackDisplayId,
     displayId,
     ...owner,
@@ -213,7 +222,7 @@ export function normalizeRestaurantePublicListingForAdmin(
 
   const categorySlug = "restaurantes";
   const publishedFromRow = readPublishedIdFromRow(row as Record<string, unknown>);
-  const { publishedId, fallbackDisplayId, displayId } = finalizeDisplayIds(categorySlug, internalId, publishedFromRow);
+  const { publishedId, fallbackDisplayId, displayId, publicIdLabel } = finalizeDisplayIds(categorySlug, internalId, publishedFromRow);
 
   const owner = mergeOwner(nonEmptyString(row.owner_user_id), hints);
   const title = nonEmptyString(row.business_name) ?? "(sin nombre)";
@@ -229,6 +238,8 @@ export function normalizeRestaurantePublicListingForAdmin(
     categorySlug,
     internalId,
     publishedId,
+    leonixAdId: leonix,
+    publicIdLabel,
     fallbackDisplayId,
     displayId,
     ...owner,
@@ -274,7 +285,7 @@ export function normalizeServiciosPublicListingForAdmin(
 
   const categorySlug = "servicios";
   const publishedFromRow = readPublishedIdFromRow(row as Record<string, unknown>);
-  const { publishedId, fallbackDisplayId, displayId } = finalizeDisplayIds(categorySlug, internalId, publishedFromRow);
+  const { publishedId, fallbackDisplayId, displayId, publicIdLabel } = finalizeDisplayIds(categorySlug, internalId, publishedFromRow);
 
   const owner = mergeOwner(nonEmptyString(row.owner_user_id), hints);
   const title = nonEmptyString(row.business_name) ?? "(sin nombre)";
@@ -290,6 +301,8 @@ export function normalizeServiciosPublicListingForAdmin(
     categorySlug,
     internalId,
     publishedId,
+    leonixAdId: leonix,
+    publicIdLabel,
     fallbackDisplayId,
     displayId,
     ...owner,
@@ -343,7 +356,7 @@ export function normalizeEmpleosPublicListingForAdmin(
 
   const categorySlug = "empleos";
   const publishedFromRow = readPublishedIdFromRow(row as Record<string, unknown>);
-  const { publishedId, fallbackDisplayId, displayId } = finalizeDisplayIds(categorySlug, internalId, publishedFromRow);
+  const { publishedId, fallbackDisplayId, displayId, publicIdLabel } = finalizeDisplayIds(categorySlug, internalId, publishedFromRow);
 
   const owner = mergeOwner(nonEmptyString(row.owner_user_id), hints);
   const titleBase = nonEmptyString(row.title) ?? "(sin título)";
@@ -353,13 +366,17 @@ export function normalizeEmpleosPublicListingForAdmin(
   const lang = nonEmptyString(row.lang);
   const publicUrl = empleosPublicPathWithLang(slug, lang);
   const leonixQ = nonEmptyString(row.leonix_ad_id);
-  const adminUrl = `/admin/workspace/clasificados/empleos?q=${encodeURIComponent(leonixQ ?? internalId)}`;
+  const adminUrl = leonixQ
+    ? `/admin/workspace/clasificados/empleos?q=${encodeURIComponent(leonixQ)}`
+    : `/admin/workspace/clasificados/empleos?q=${encodeURIComponent(internalId)}`;
 
   return {
     source: "empleos",
     categorySlug,
     internalId,
     publishedId,
+    leonixAdId: leonixQ,
+    publicIdLabel,
     fallbackDisplayId,
     displayId,
     ...owner,
@@ -393,7 +410,7 @@ export function normalizeAutosClassifiedsListingForAdmin(
 
   const categorySlug = "autos";
   const publishedFromRow = readPublishedIdFromRow(row as unknown as Record<string, unknown>);
-  const { publishedId, fallbackDisplayId, displayId } = finalizeDisplayIds(categorySlug, internalId, publishedFromRow);
+  const { publishedId, fallbackDisplayId, displayId, publicIdLabel } = finalizeDisplayIds(categorySlug, internalId, publishedFromRow);
 
   const owner = mergeOwner(nonEmptyString(row.owner_user_id), hints);
   const dash = autosClassifiedsRowToDashboardRow(row);
@@ -409,6 +426,8 @@ export function normalizeAutosClassifiedsListingForAdmin(
     categorySlug,
     internalId,
     publishedId,
+    leonixAdId: lx,
+    publicIdLabel,
     fallbackDisplayId,
     displayId,
     ...owner,

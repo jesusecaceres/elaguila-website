@@ -49,6 +49,15 @@ export async function collectOwnerListingKeysForAnalytics(sb: SupabaseClient, ow
     if (ad) keys.add(ad);
   }
 
+  const { data: via } = await sb.from("viajes_staged_listings").select("id, slug, leonix_ad_id").eq("owner_user_id", ownerId);
+  for (const r of via ?? []) {
+    const row = r as { id?: string; slug?: string; leonix_ad_id?: string | null };
+    if (row.id) keys.add(String(row.id));
+    if (row.slug?.trim()) keys.add(row.slug.trim());
+    const ad = row.leonix_ad_id?.trim();
+    if (ad) keys.add(ad);
+  }
+
   return [...keys].filter(Boolean);
 }
 

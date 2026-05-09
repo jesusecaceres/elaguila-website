@@ -20,6 +20,8 @@ export function adminCategoryWorkspaceQueueHref(slug: string): string {
       return "/admin/workspace/clasificados/empleos";
     case "autos":
       return "/admin/workspace/clasificados/autos";
+    case "travel":
+      return "/admin/clasificados/viajes/business-offers";
     default:
       return `${GENERIC_QUEUE}?category=${encodeURIComponent(slug)}`;
   }

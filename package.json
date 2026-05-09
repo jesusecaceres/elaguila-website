@@ -19,6 +19,7 @@
     "verify:br:launch-gate": "npm run typecheck && npm run lint:br && npm run verify:br",
     "prebuild": "node scripts/dup-guard.js",
     "audit:admin-language": "node scripts/audit-admin-language.mjs",
+    "audit:leonix-ad-ids": "npx tsx scripts/audit-leonix-ad-ids.mts",
     "build:admin-gate": "npm run build && npm run audit:admin-language",
     "dup:guard": "node scripts/dup-guard.js",
     "autos:enforce-smoke": "npx tsx scripts/autos-enforcement-smoke.ts",

@@ -296,12 +296,16 @@ export function listingRowMatchesAdminQuery(
   const city = (row.city ?? "").toLowerCase();
   const oid = (row.owner_id ?? "").toLowerCase();
   const desc = (row.description ?? "").toLowerCase();
+  const lx = String((row as { leonix_ad_id?: string | null }).leonix_ad_id ?? "")
+    .trim()
+    .toLowerCase();
   return (
     id.includes(qLower) ||
     title.includes(qLower) ||
     city.includes(qLower) ||
     oid.includes(qLower) ||
-    desc.includes(qLower)
+    desc.includes(qLower) ||
+    (lx.length > 0 && lx.includes(qLower))
   );
 }
 

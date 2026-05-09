@@ -20,6 +20,8 @@ export type ViajesStagedListingJsonV1 = {
 
 export type ViajesStagedListingRow = {
   id: string;
+  /** Permanent Leonix code (TRAV-YYYY-000001) when approved + public; null on drafts. */
+  leonix_ad_id?: string | null;
   slug: string;
   category: string;
   lane: ViajesStagedLane;

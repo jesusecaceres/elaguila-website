@@ -56,6 +56,7 @@ export function ViajesOfferDetailLayout({
   ui,
   exploreViajesHref,
   stagedListingId = null,
+  leonixAdId = null,
 }: {
   offer: ViajesOfferDetailModel;
   backHref: string;
@@ -67,6 +68,8 @@ export function ViajesOfferDetailLayout({
   exploreViajesHref: string;
   /** DB id for approved staged listing — enables Leonix-tracked inquiry. */
   stagedListingId?: string | null;
+  /** Permanent Leonix ad code from `viajes_staged_listings.leonix_ad_id` when assigned. */
+  leonixAdId?: string | null;
 }) {
   const { partner } = offer;
   const od = ui.offerDetail;
@@ -109,6 +112,13 @@ export function ViajesOfferDetailLayout({
   }
   if (!sparseSections || offer.departureCity.trim().length > 0) {
     metaItems.push({ label: od.metaDepartureLabel, value: offer.departureCity.trim() || "—" });
+  }
+  const lx = (leonixAdId ?? "").trim();
+  if (lx) {
+    metaItems.push({
+      label: ui.lang === "en" ? "Leonix Ad ID" : "Leonix Ad ID",
+      value: `# ${lx}`,
+    });
   }
 
   const showMetaStrip = metaItems.length > 0 && metaItems.some((m) => m.value !== "—");

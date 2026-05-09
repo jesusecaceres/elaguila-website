@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { adminBtnSecondary, adminInputClass } from "@/app/admin/_components/adminTheme";
+import { adminQueueIsUuid, adminQueueNormalizeLeonixAdId } from "@/app/admin/_lib/adminAdSearch";
 import type { ViajesStagedLifecycleStatus, ViajesStagedListingRow } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
 
 const STATUS_LABEL: Record<ViajesStagedLifecycleStatus, string> = {
@@ -72,15 +73,20 @@ export function AdminViajesBusinessOffersModeration() {
   const filtered = useMemo(() => {
     let list = [...rows];
     if (status !== "all") list = list.filter((r) => r.lifecycle_status === status);
-    const qq = q.trim().toLowerCase();
-    if (qq) {
-      list = list.filter(
-        (r) =>
+    const rawQ = q.trim();
+    const qq = rawQ.toLowerCase();
+    const nlx = adminQueueNormalizeLeonixAdId(rawQ);
+    if (rawQ) {
+      list = list.filter((r) => {
+        if (nlx && String(r.leonix_ad_id ?? "").trim().toUpperCase() === nlx) return true;
+        if (adminQueueIsUuid(rawQ) && r.id === rawQ) return true;
+        return (
           r.title.toLowerCase().includes(qq) ||
           r.slug.toLowerCase().includes(qq) ||
           (r.submitter_email ?? "").toLowerCase().includes(qq) ||
           (r.submitter_name ?? "").toLowerCase().includes(qq)
-      );
+        );
+      });
     }
     list.sort((a, b) => String(b.submitted_at ?? b.created_at).localeCompare(String(a.submitted_at ?? a.created_at)));
     return list;
@@ -119,7 +125,7 @@ export function AdminViajesBusinessOffersModeration() {
             className={adminInputClass}
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Title, slug, email…"
+            placeholder="Leonix ID, UUID, title, slug, email…"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -152,12 +158,13 @@ export function AdminViajesBusinessOffersModeration() {
       )}
 
       <div className="overflow-x-auto rounded-2xl border border-[#E8DFD0]/90 bg-white/95 shadow-sm">
-        <table className="min-w-[1100px] w-full border-collapse text-left text-sm">
+        <table className="min-w-[1220px] w-full border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-[#E8DFD0]/90 bg-[#FAF7F2]/90 text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
               <th className="px-3 py-3">Lane</th>
               <th className="px-3 py-3">Title</th>
               <th className="px-3 py-3">Slug</th>
+              <th className="px-3 py-3">Leonix Ad ID</th>
               <th className="px-3 py-3">Status</th>
               <th className="px-3 py-3">Submitted</th>
               <th className="px-3 py-3">Owner</th>
@@ -172,6 +179,7 @@ export function AdminViajesBusinessOffersModeration() {
                 <td className="px-3 py-2.5 text-xs font-semibold capitalize text-[#5C5346]">{r.lane}</td>
                 <td className="px-3 py-2.5 font-semibold text-[#1E1810]">{r.title}</td>
                 <td className="px-3 py-2.5 font-mono text-xs text-[#5C5346]">{r.slug}</td>
+                <td className="px-3 py-2.5 font-mono text-[10px] text-[#3D3428]">{r.leonix_ad_id?.trim() || "—"}</td>
                 <td className="px-3 py-2.5">{statusBadge(r.lifecycle_status)}</td>
                 <td className="px-3 py-2.5 text-xs tabular-nums text-[#5C5346]">{r.submitted_at ?? "—"}</td>
                 <td className="px-3 py-2.5 text-xs text-[#5C5346]">{r.owner_user_id ? r.owner_user_id.slice(0, 8) + "…" : "—"}</td>
