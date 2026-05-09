@@ -18,6 +18,10 @@ import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-rai
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import { parseNegocioRedesSocialLinks } from "@/app/clasificados/rentas/listing/utils/negocioRedesSocialLinks";
 import type { RentasListingDetailExtra } from "@/app/clasificados/rentas/listing/rentasListingDetailModel";
+import {
+  filterRentasPhotoUrlList,
+  rentasPublishedVideoShouldAppearInGallery,
+} from "@/app/clasificados/rentas/lib/rentasListingPublishedMediaGuards";
 
 function trim(s: unknown): string {
   if (s == null) return "";
@@ -126,15 +130,16 @@ function depositDisplay(listing: RentasPublicListing, lang: "es" | "en"): string
 }
 
 function buildLiveMediaVm(gallery: string[], videoUrl: string | null | undefined): BienesRaicesPreviewMediaVm {
-  const urls = gallery.map((u) => trim(u)).filter(Boolean);
+  const urls = filterRentasPhotoUrlList(gallery.map((u) => trim(u)).filter(Boolean));
   const n = urls.length;
   const pi = n === 0 ? 0 : 0;
   const heroUrl = n > 0 ? urls[pi]! : null;
   const v = trim(videoUrl ?? "");
-  const yt = v && !/^blob:/i.test(v) ? parseYoutubeId(v) : null;
-  const hasVid = Boolean(v);
+  const exposeVideo = rentasPublishedVideoShouldAppearInGallery(v);
+  const yt = exposeVideo ? parseYoutubeId(v) : null;
+  const hasVid = exposeVideo;
   const thumb0 = yt ? `https://img.youtube.com/vi/${yt}/hqdefault.jpg` : null;
-  const playback0 = hasVid ? v : null;
+  const playback0 = exposeVideo ? v : null;
   const metaLine = n > 0 ? `${n} foto${n === 1 ? "" : "s"} en la galería` : hasVid ? "Video en el anuncio" : "";
 
   return {

@@ -12,6 +12,11 @@ import {
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
+import {
+  filterRentasPhotoUrlList,
+  isRentasPlaceholderImageUrl,
+  rentasPublishedVideoShouldAppearInGallery,
+} from "@/app/clasificados/rentas/lib/rentasListingPublishedMediaGuards";
 import { rentasListingPromotedFromRow } from "@/app/clasificados/rentas/lib/rentasListingPromotionFromRow";
 
 function trim(s: unknown): string {
@@ -90,23 +95,6 @@ function galleryUrls(images: unknown): string[] | undefined {
     }
   }
   return out.length ? out : undefined;
-}
-
-/** Leonix app placeholder / brand defaults — must not win over real gallery URLs in `description`. */
-function isRentasPlaceholderImageUrl(u: string): boolean {
-  const t = u.trim().toLowerCase();
-  if (!t) return true;
-  if (t === "/logo.png" || t.endsWith("/logo.png")) return true;
-  const brand = String(process.env.NEXT_PUBLIC_LEONIX_BRAND_LOGO_URL ?? "").trim().toLowerCase();
-  if (brand && t === brand) return true;
-  return false;
-}
-
-function galleryUrlsSansPlaceholders(images: unknown): string[] | undefined {
-  const all = galleryUrls(images);
-  if (!all?.length) return undefined;
-  const kept = all.filter((x) => !isRentasPlaceholderImageUrl(x));
-  return kept.length ? kept : undefined;
 }
 
 function firstNonPlaceholderImageUrl(images: unknown): string {
@@ -308,8 +296,10 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     pairValue(row.detail_pairs, "Nota para interesados") ??
     undefined;
 
-  const galFromImages = galleryUrlsSansPlaceholders(row.images);
-  const galFromDesc = parseLeonixImageUrlsFromDescription(row.description);
+  const galRaw = galleryUrls(row.images);
+  const galFiltered = galRaw?.length ? filterRentasPhotoUrlList(galRaw) : [];
+  const galFromImages = galFiltered.length ? galFiltered : undefined;
+  const galFromDesc = filterRentasPhotoUrlList(parseLeonixImageUrlsFromDescription(row.description));
   const gal =
     galFromImages && galFromImages.length ? galFromImages : galFromDesc.length ? galFromDesc : undefined;
   const imgFromColumn = firstNonPlaceholderImageUrl(row.images);
@@ -321,7 +311,9 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const halfBathsCount = halfParsed > 0 ? halfParsed : null;
 
   const mapUrl = sanitizeHttpUrl(rx.mapUrl);
-  const videoUrl = sanitizeHttpUrl(rx.videoUrl);
+  const videoUrlSan = sanitizeHttpUrl(rx.videoUrl);
+  const videoUrl =
+    videoUrlSan && rentasPublishedVideoShouldAppearInGallery(videoUrlSan) ? videoUrlSan : undefined;
   const bizMeta = businessMetaFromRow(row);
   const businessSocial = (rx.businessSocial ?? "").trim() || bizMeta.redesFromMeta || undefined;
   const businessMarca = bizMeta.marca;

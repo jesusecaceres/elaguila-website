@@ -19,6 +19,8 @@ import {
   LEONIX_DP_RESULTS_PROPERTY_KIND,
 } from "../app/(site)/clasificados/lib/leonixRealEstateListingContract";
 import { mapListingRowToRentasPublicListing } from "../app/(site)/clasificados/rentas/data/mapListingRowToRentasPublicListing";
+import { getRentasListingDetailExtra } from "../app/(site)/clasificados/rentas/listing/rentasListingDetailModel";
+import { mapRentasListingToPrivadoPreviewVm } from "../app/(site)/clasificados/rentas/listing/mapRentasListingLiveToPreviewVm";
 import {
   RENTAS_DP_DEPOSIT_USD,
   RENTAS_DP_FURNISHED_CODE,
@@ -26,6 +28,7 @@ import {
   RENTAS_DP_LEASE_TERM,
   RENTAS_DP_LISTING_STATUS,
   RENTAS_DP_PETS_CODE,
+  RENTAS_DP_VIDEO_URL,
 } from "../app/(site)/clasificados/rentas/lib/rentasMachineDetailPairs";
 import { parseRentasBrowseParams } from "../app/(site)/clasificados/rentas/shared/rentasBrowseContract";
 import { filterRentasPublicListings } from "../app/(site)/clasificados/rentas/shared/rentasBrowseFilters";
@@ -124,6 +127,29 @@ function main() {
   assert.ok(recovered);
   assert.equal(recovered!.imageUrl, u1, "ignore placeholder images[] when description has LEONIX_IMAGES");
   assert.deepEqual(recovered!.galleryUrls, [u1, u2]);
+
+  const pairsBase = baseRow().detail_pairs as Array<{ label: string; value: string }>;
+  const mixedPhotosRow = baseRow({
+    id: "00000000-0000-4000-8000-00000000ff12",
+    images: ["https://cdn.example.com/aa.jpg", "/logo.png", "https://cdn.example.com/bb.jpg"],
+    detail_pairs: [...pairsBase, { label: RENTAS_DP_VIDEO_URL, value: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }],
+  });
+  const mMix = mapListingRowToRentasPublicListing(mixedPhotosRow, "es");
+  assert.ok(mMix);
+  const extraMix = getRentasListingDetailExtra(mMix!);
+  const vmMix = mapRentasListingToPrivadoPreviewVm(mMix!, extraMix, "es");
+  assert.deepEqual(vmMix.media.allPhotoUrls, ["https://cdn.example.com/aa.jpg", "https://cdn.example.com/bb.jpg"]);
+  assert.equal(vmMix.media.heroUrl, "https://cdn.example.com/aa.jpg");
+  assert.equal(vmMix.media.hasVideo1, true);
+  const blobVideoRow = baseRow({
+    id: "00000000-0000-4000-8000-00000000ff13",
+    images: ["https://cdn.example.com/only.jpg"],
+    detail_pairs: [...pairsBase, { label: RENTAS_DP_VIDEO_URL, value: "blob:http://local/abc" }],
+  });
+  const mBlob = mapListingRowToRentasPublicListing(blobVideoRow, "es");
+  assert.ok(mBlob);
+  const vmBlob = mapRentasListingToPrivadoPreviewVm(mBlob!, getRentasListingDetailExtra(mBlob!), "es");
+  assert.equal(vmBlob.media.hasVideo1, false);
 
   const list = [mapped!];
 

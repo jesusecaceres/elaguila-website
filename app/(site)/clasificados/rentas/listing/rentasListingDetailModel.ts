@@ -1,4 +1,5 @@
 import { resolveRentasPublicListingById } from "@/app/clasificados/rentas/data/rentasPublicLoader";
+import { filterRentasPhotoUrlList } from "@/app/clasificados/rentas/lib/rentasListingPublishedMediaGuards";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 
 export type RentasListingDetailExtra = {
@@ -19,6 +20,12 @@ export function findRentasDemoListingById(id: string): RentasPublicListing | und
   return resolveRentasPublicListingById(id);
 }
 
+function galleryStringsForDetail(listing: RentasPublicListing): string[] {
+  const fromGallery = filterRentasPhotoUrlList(listing.galleryUrls ?? []);
+  if (fromGallery.length) return fromGallery;
+  return filterRentasPhotoUrlList(listing.imageUrl ? [listing.imageUrl] : []);
+}
+
 function defaultExtra(listing: RentasPublicListing): RentasListingDetailExtra {
   const base = listing.title;
   return {
@@ -26,7 +33,7 @@ function defaultExtra(listing: RentasPublicListing): RentasListingDetailExtra {
     descriptionEn: `Rental property: ${base}. Sample copy while we connect published records to this view.`,
     sellerDisplayEs: listing.branch === "privado" ? "Particular en Leonix" : "Negocio en Leonix",
     sellerDisplayEn: listing.branch === "privado" ? "Private seller on Leonix" : "Business seller on Leonix",
-    gallery: listing.galleryUrls?.length ? listing.galleryUrls : [listing.imageUrl],
+    gallery: galleryStringsForDetail(listing),
   };
 }
 
@@ -46,7 +53,7 @@ export function getRentasListingDetailExtra(listing: RentasPublicListing): Renta
       descriptionEn: listing.description.en,
       sellerDisplayEs: listing.sellerDisplay.es,
       sellerDisplayEn: listing.sellerDisplay.en,
-      gallery: listing.galleryUrls?.length ? listing.galleryUrls : [listing.imageUrl],
+      gallery: galleryStringsForDetail(listing),
       contactPhone,
       contactEmail,
       contactSmsDigits,
