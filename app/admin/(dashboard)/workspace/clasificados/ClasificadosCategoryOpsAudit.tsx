@@ -44,6 +44,7 @@ export async function ClasificadosCategoryOpsAudit({
               <th className="border-b border-[#E8DFD0]/80 p-2">{m("audit.th.search")}</th>
               <th className="border-b border-[#E8DFD0]/80 p-2">{m("audit.th.public")}</th>
               <th className="border-b border-[#E8DFD0]/80 p-2">{m("audit.th.moderate")}</th>
+              <th className="border-b border-[#E8DFD0]/80 p-2">{m("audit.th.editAd")}</th>
               <th className="border-b border-[#E8DFD0]/80 p-2">{m("audit.th.rows")}</th>
               <th className="border-b border-[#E8DFD0]/80 p-2">{m("audit.th.reason")}</th>
             </tr>
@@ -60,6 +61,7 @@ export async function ClasificadosCategoryOpsAudit({
                 <td className="p-2">{boolCell(r.canSearchFilterListings, m)}</td>
                 <td className="p-2">{boolCell(r.canOpenPublicListingLink, m)}</td>
                 <td className="p-2">{boolCell(r.canModerateOrStatusManage, m)}</td>
+                <td className="p-2">{boolCell(r.canEditAdInAdmin, m)}</td>
                 <td className="p-2 tabular-nums text-[#5C5346]">{r.rowCount == null ? "—" : r.rowCount}</td>
                 <td className="max-w-xs p-2 text-[11px] leading-snug text-rose-900">
                   {r.falseReasons.length ? r.falseReasons.join(" · ") : "—"}

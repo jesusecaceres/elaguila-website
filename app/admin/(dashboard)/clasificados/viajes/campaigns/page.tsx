@@ -11,7 +11,7 @@ export default function AdminViajesCampaignsPage() {
       <AdminPageHeader
         eyebrow="Viajes · merchandising"
         title="Campaigns / Seasonal"
-        subtitle="Time-bound buckets: Verano, Último minuto, Cruceros del mes, Escapadas románticas, Viajes familiares, Renta de autos, and more. Use the staging grid below to plan what attaches where — persistence ships with the next backend phase."
+        subtitle="Time-bound buckets: Summer, last minute, cruises of the month, romantic getaways, family trips, car rental, and more. Use the staging grid below to plan what attaches where — persistence ships with the next backend phase."
         helperText="Keep affiliate cards, business offers, and editorial pieces in separate lanes when assigning; campaign storytelling should not blur disclosures."
       />
 

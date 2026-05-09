@@ -13,12 +13,23 @@ import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } 
 import { AdminTiendaOrderStatusBadge } from "../_components/tienda/AdminTiendaOrderStatusBadge";
 import { tiendaOrderFlowLabel } from "../_lib/tiendaOrderFlowLabel";
 import { getAdminTiendaDashboardCounts, getRecentTiendaOrdersPreview } from "../_lib/tiendaOrdersData";
-import { getAdminLang } from "../_lib/adminI18n";
+import { getAdminLang, adminMessages } from "../_lib/adminI18n";
 
 export const dynamic = "force-dynamic";
 
+function fmt(iso: string, locale: string) {
+  try {
+    const d = new Date(iso);
+    return Number.isFinite(d.getTime()) ? d.toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" }) : iso;
+  } catch {
+    return iso;
+  }
+}
+
 export default async function AdminHomePage() {
   const lang = await getAdminLang();
+  const m = adminMessages(lang);
+  const locale: string = lang === "es" ? "es-MX" : "en-US";
   const [snap, tiendaDash, tiendaRecent, registry] = await Promise.all([
     getAdminDashboardSnapshot(),
     getAdminTiendaDashboardCounts(),
@@ -30,106 +41,79 @@ export default async function AdminHomePage() {
   return (
     <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
       <div className="min-w-0">
-        <AdminPageHeader
-          title="Leonix Dashboard"
-          subtitle="Welcome back — here’s what’s happening today in operations."
-          helperText="La barra lateral es administración global. Para editar secciones del sitio (home, clasificados, tienda…), abre Website sections abajo o en el pie del menú."
-        />
+        <AdminPageHeader title={m("dashboard.title")} subtitle={m("dashboard.subtitle")} helperText={m("dashboard.helper")} />
 
         <div className="mb-6 rounded-2xl border border-[#C9B46A]/35 bg-[#FFFCF7]/95 p-4 text-sm text-[#5C5346] sm:p-5">
-          <p className="text-base font-bold text-[#1E1810]">Website editing (sections)</p>
-          <p className="mt-1.5 text-xs leading-relaxed text-[#7A7164]">
-            Public pages are grouped under workspaces — not the same links as the live site menu. Global toggles that cross many pages live in site-wide settings.
-          </p>
+          <p className="text-base font-bold text-[#1E1810]">{m("dashboard.editSectionsTitle")}</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-[#7A7164]">{m("dashboard.editSectionsBody")}</p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
-            <Link
-              href="/admin/workspace"
-              className={`${adminCtaChip} w-full justify-center sm:w-auto`}
-              title="Workspaces de contenido público (home, clasificados, tienda, revista…)"
-            >
-              Website sections →
+            <Link href="/admin/workspace" className={`${adminCtaChip} w-full justify-center sm:w-auto`} title={m("dashboard.linkWorkspaceTitle")}>
+              {m("dashboard.linkWorkspace")}
             </Link>
-            <Link
-              href="/admin/site-settings"
-              className={`${adminCtaChip} w-full justify-center sm:w-auto`}
-              title="Avisos globales, toggles y contenido que cruza varias páginas"
-            >
-              Ajustes globales del sitio →
+            <Link href="/admin/site-settings" className={`${adminCtaChip} w-full justify-center sm:w-auto`} title={m("dashboard.linkSiteSettingsTitle")}>
+              {m("dashboard.linkSiteSettings")}
             </Link>
-            <Link
-              href="/admin/ops"
-              className={`${adminCtaChip} w-full justify-center sm:w-auto`}
-              title="Buscar cuenta, anuncios, pedidos Tienda y reportes en una sola búsqueda"
-            >
-              Customer ops search →
+            <Link href="/admin/ops" className={`${adminCtaChip} w-full justify-center sm:w-auto`} title={m("dashboard.linkOpsTitle")}>
+              {m("dashboard.linkOps")}
             </Link>
           </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <AdminStatCard
-            title="Tienda — new orders"
+            title={m("dashboard.tiendaNewTitle")}
             value={tiendaDash.dataUnavailable ? "—" : tiendaDash.newOrders}
-            hint={
-              tiendaDash.dataUnavailable
-                ? tiendaDash.dataUnavailableNote ?? "Run migrations for tienda_orders."
-                : "Self-serve print / business card submissions."
-            }
+            hint={tiendaDash.dataUnavailable ? (tiendaDash.dataUnavailableNote ?? m("dashboard.tiendaMigrateHint")) : m("dashboard.tiendaNewHint")}
             icon="🛒"
-            actionLabel="Open Tienda inbox"
+            actionLabel={m("dashboard.tiendaInbox")}
             actionHref="/admin/tienda/orders"
-            actionTitle="Abre la bandeja de pedidos de impresión / self-serve (tienda_orders)"
+            actionTitle={m("dashboard.tiendaInboxTitle")}
             accent="amber"
           />
           <AdminStatCard
-            title="Tienda — unread"
+            title={m("dashboard.tiendaUnreadTitle")}
             value={tiendaDash.dataUnavailable ? "—" : tiendaDash.unreadCount}
-            hint="Orders not yet marked read by staff."
+            hint={m("dashboard.tiendaUnreadHint")}
             icon="✉️"
-            actionLabel="Unread inbox"
+            actionLabel={m("dashboard.tiendaUnreadInbox")}
             actionHref="/admin/tienda/orders?unread=1"
-            actionTitle="Solo pedidos marcados como no leídos por el equipo"
+            actionTitle={m("dashboard.tiendaUnreadTitleAttr")}
           />
           <AdminStatCard
-            title="Tienda — ready to fulfill"
+            title={m("dashboard.tiendaReadyTitle")}
             value={tiendaDash.dataUnavailable ? "—" : tiendaDash.readyToFulfill}
-            hint="Orders in ready_to_fulfill status."
+            hint={m("dashboard.tiendaReadyHint")}
             icon="📦"
-            actionLabel="View inbox"
+            actionLabel={m("dashboard.tiendaViewInbox")}
             actionHref="/admin/tienda/orders?status=ready_to_fulfill"
-            actionTitle="Pedidos listos para producción / cumplimiento"
+            actionTitle={m("dashboard.tiendaReadyTitleAttr")}
           />
           <AdminStatCard
-            title="Tienda — in review"
+            title={m("dashboard.tiendaReviewTitle")}
             value={tiendaDash.dataUnavailable ? "—" : tiendaDash.inReview}
-            hint="Staff marked as reviewing."
+            hint={m("dashboard.tiendaReviewHint")}
             icon="🔍"
-            actionLabel="Filter reviewing"
+            actionLabel={m("dashboard.tiendaFilterReview")}
             actionHref="/admin/tienda/orders?status=reviewing"
-            actionTitle="Pedidos en revisión de arte o especificaciones"
+            actionTitle={m("dashboard.tiendaReviewTitleAttr")}
           />
           <AdminStatCard
-            title="Tienda — total"
+            title={m("dashboard.tiendaTotalTitle")}
             value={tiendaDash.dataUnavailable ? "—" : tiendaDash.totalOrders}
-            hint={`Unread (new to staff): ${tiendaDash.dataUnavailable ? "—" : tiendaDash.unreadCount}`}
+            hint={m("dashboard.tiendaTotalHint", { n: tiendaDash.dataUnavailable ? "—" : String(tiendaDash.unreadCount) })}
             icon="∑"
-            actionLabel="All Tienda orders"
+            actionLabel={m("dashboard.tiendaAllOrders")}
             actionHref="/admin/tienda/orders"
-            actionTitle="Bandeja completa de pedidos Tienda"
+            actionTitle={m("dashboard.tiendaAllTitleAttr")}
           />
         </div>
 
         <div className="mt-8">
-          <AdminSectionCard
-            title="Recent Tienda orders"
-            subtitle="Newest persisted submissions — Supabase-backed inbox (not email)."
-          >
+          <AdminSectionCard title={m("dashboard.recentTiendaTitle")} subtitle={m("dashboard.recentTiendaSub")}>
             <ul className="space-y-3">
               {tiendaRecent.length === 0 ? (
                 <li className="text-sm text-[#5C5346]/90">
-                  {tiendaDash.dataUnavailable
-                    ? "Tienda table unavailable or no rows yet."
-                    : "No Tienda orders yet."}
+                  {tiendaDash.dataUnavailable ? m("dashboard.tiendaEmptyUnavailable") : m("dashboard.tiendaEmpty")}
                 </li>
               ) : (
                 tiendaRecent.map((row) => (
@@ -159,73 +143,68 @@ export default async function AdminHomePage() {
                     <Link
                       href={`/admin/tienda/orders/${row.id}`}
                       className="shrink-0 text-xs font-bold text-[#6B5B2E] underline"
-                      title="Abrir detalle del pedido, archivos y estado de cumplimiento"
+                      title={m("dashboard.viewOrderTitle")}
                     >
-                      Ver pedido
+                      {m("dashboard.viewOrder")}
                     </Link>
                   </li>
                 ))
               )}
             </ul>
             <Link href="/admin/tienda/orders" className={`${adminCtaChipSecondary} mt-4 inline-flex`}>
-              Full Tienda inbox →
+              {m("dashboard.fullInbox")}
             </Link>
           </AdminSectionCard>
         </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <AdminStatCard
-            title="Pending ads review"
+            title={m("dashboard.pendingAdsTitle")}
             value={snap.pendingListingsReview}
-            hint={snap.listingsQueryFallback ? "Count may need DB status alignment." : "Listings in pending/flagged review."}
+            hint={snap.listingsQueryFallback ? m("dashboard.pendingAdsHintDb") : m("dashboard.pendingAdsHint")}
             icon="📣"
-            actionLabel="Review ads"
+            actionLabel={m("dashboard.reviewAds")}
             actionHref="/admin/workspace/clasificados"
-            actionTitle="Cola administrativa de anuncios Clasificados (moderación)"
+            actionTitle={m("dashboard.reviewAdsTitle")}
             accent="rose"
           />
           <AdminStatCard
-            title="Users needing help (proxy)"
+            title={m("dashboard.usersHelpTitle")}
             value={snap.usersNeedingHelpProxy}
             hint={snap.usersNeedingHelpNote}
             icon="🆘"
-            actionLabel="View users"
+            actionLabel={m("dashboard.viewUsers")}
             actionHref="/admin/usuarios"
-            actionTitle="Lista de perfiles (búsqueda y ficha de cliente)"
+            actionTitle={m("dashboard.viewUsersTitle")}
           />
           <AdminStatCard
-            title="Magazine (featured)"
+            title={m("dashboard.magazineTitle")}
             value={snap.magazineFeaturedLabel ?? "—"}
             hint={
-              snap.magazineUpdated
-                ? `Última actualización en manifiesto: ${snap.magazineUpdated}`
-                : "Resuelto vía API (DB si hay números publicados; si no, editions.json)."
+              snap.magazineUpdated ? m("dashboard.magazineHintUpdated", { date: snap.magazineUpdated }) : m("dashboard.magazineHintApi")
             }
             icon="📰"
-            actionLabel="Manage magazines"
+            actionLabel={m("dashboard.manageMagazines")}
             actionHref="/admin/workspace/revista"
-            actionTitle="Números de revista, PDF/flipbook y número actual en portada"
+            actionTitle={m("dashboard.manageMagazinesTitle")}
           />
           <AdminStatCard
-            title="Reports / complaints"
+            title={m("dashboard.reportsTitle")}
             value={snap.pendingReports}
-            hint="Pending rows in listing_reports"
+            hint={m("dashboard.reportsHint")}
             icon="⚠️"
-            actionLabel="View reports"
+            actionLabel={m("dashboard.viewReports")}
             actionHref="/admin/reportes"
-            actionTitle="Cola de reportes de anuncios (listing_reports)"
+            actionTitle={m("dashboard.viewReportsTitle")}
             accent="amber"
           />
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <AdminSectionCard
-            title="Expiring queue (real expiration only)"
-            subtitle="Solo anuncios con fecha de expiración persistida (p. ej. listings.boost_expires, listings.expires_at si existe, o viajes_staged_listings.expires_at). No se usan anuncios recientes como sustituto."
-          >
+          <AdminSectionCard title={m("dashboard.expiringTitle")} subtitle={m("dashboard.expiringSub")}>
             <ul className="space-y-3">
               {snap.expiringQueueItems.length === 0 ? (
-                <li className="text-sm text-[#5C5346]/90">No ads with real expiration data found.</li>
+                <li className="text-sm text-[#5C5346]/90">{m("dashboard.expiringEmpty")}</li>
               ) : (
                 snap.expiringQueueItems.map((row) => (
                   <li
@@ -253,13 +232,8 @@ export default async function AdminHomePage() {
                           </p>
                         ) : null}
                         <p className="mt-1 text-xs text-[#5C5346]">
-                          Expira:{" "}
-                          <time dateTime={row.expiresAtIso}>
-                            {new Date(row.expiresAtIso).toLocaleString("es-MX", {
-                              dateStyle: "medium",
-                              timeStyle: "short",
-                            })}
-                          </time>
+                          {m("dashboard.expiresLabel")}{" "}
+                          <time dateTime={row.expiresAtIso}>{fmt(row.expiresAtIso, locale)}</time>
                           <span className="text-[#9A9084]"> ({row.expirationFieldLabel})</span>
                         </p>
                       </div>
@@ -283,9 +257,9 @@ export default async function AdminHomePage() {
                       <Link
                         href={row.adminHref}
                         className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-2 py-1 text-xs font-semibold text-[#2C2416]"
-                        title="Cola o herramienta admin relacionada"
+                        title={m("dashboard.adminQueueTitle")}
                       >
-                        Admin / cola
+                        {m("dashboard.adminQueue")}
                       </Link>
                       {row.publicHref ? (
                         <Link
@@ -293,13 +267,13 @@ export default async function AdminHomePage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-900"
-                          title="Anuncio en el sitio público"
+                          title={m("dashboard.viewPublicTitle")}
                         >
-                          Ver público
+                          {m("dashboard.viewPublic")}
                         </Link>
                       ) : (
                         <span className="rounded-xl border border-dashed border-[#D8D0C4] px-2 py-1 text-[10px] font-semibold text-[#9A9084]">
-                          Sin URL pública
+                          {m("dashboard.noPublicUrl")}
                         </span>
                       )}
                     </div>
@@ -309,13 +283,10 @@ export default async function AdminHomePage() {
             </ul>
           </AdminSectionCard>
 
-          <AdminSectionCard
-            title="Ads pending review (real review only)"
-            subtitle="Solo filas en pending / flagged (listings) o estados reales de revisión en tablas dedicadas (p. ej. empleos pending_review, viajes staged in_review). No se usa fallback de anuncios recientes."
-          >
+          <AdminSectionCard title={m("dashboard.pendingReviewTitle")} subtitle={m("dashboard.pendingReviewSub")}>
             <ul className="space-y-3">
               {snap.pendingReviewQueueItems.length === 0 ? (
-                <li className="text-sm text-[#5C5346]/90">No pending or flagged ads found.</li>
+                <li className="text-sm text-[#5C5346]/90">{m("dashboard.pendingReviewEmpty")}</li>
               ) : (
                 snap.pendingReviewQueueItems.map((row) => (
                   <li
@@ -344,16 +315,15 @@ export default async function AdminHomePage() {
                         ) : null}
                         {row.updatedAtIso ? (
                           <p className="mt-1 text-xs text-[#5C5346]">
-                            Actualizado:{" "}
-                            <time dateTime={row.updatedAtIso}>
-                              {new Date(row.updatedAtIso).toLocaleString("es-MX", {
-                                dateStyle: "medium",
-                                timeStyle: "short",
-                              })}
-                            </time>
+                            {m("dashboard.updatedLabel")}{" "}
+                            <time dateTime={row.updatedAtIso}>{fmt(row.updatedAtIso, locale)}</time>
                           </p>
                         ) : null}
-                        {row.reason ? <p className="mt-1 text-xs text-[#5C5346]">Motivo: {row.reason}</p> : null}
+                        {row.reason ? (
+                          <p className="mt-1 text-xs text-[#5C5346]">
+                            {m("dashboard.reasonLabel")} {row.reason}
+                          </p>
+                        ) : null}
                       </div>
                       <span className="rounded-full bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C4E2E]">
                         {row.status}
@@ -363,17 +333,17 @@ export default async function AdminHomePage() {
                       <Link
                         href={row.adminHref}
                         className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-2 py-1 text-xs font-semibold text-[#2C2416]"
-                        title="Abrir cola / herramienta admin"
+                        title={m("dashboard.openAdminQueueTitle")}
                       >
-                        Admin / cola
+                        {m("dashboard.adminQueue")}
                       </Link>
                       {row.ownerUserId ? (
                         <Link
                           href={`/admin/usuarios/${row.ownerUserId}`}
                           className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-2 py-1 text-xs font-semibold text-[#2C2416]"
-                          title="Ficha del vendedor en Leonix admin"
+                          title={m("dashboard.sellerCardTitle")}
                         >
-                          Ficha vendedor
+                          {m("dashboard.sellerCard")}
                         </Link>
                       ) : null}
                       {row.publicHref ? (
@@ -382,13 +352,13 @@ export default async function AdminHomePage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-900"
-                          title="Vista pública (si aplica)"
+                          title={m("dashboard.viewPublicTitle")}
                         >
-                          Ver público
+                          {m("dashboard.viewPublic")}
                         </Link>
                       ) : (
                         <span className="rounded-xl border border-dashed border-[#D8D0C4] px-2 py-1 text-[10px] font-semibold text-[#9A9084]">
-                          Sin URL pública
+                          {m("dashboard.noPublicUrl")}
                         </span>
                       )}
                     </div>
@@ -401,8 +371,12 @@ export default async function AdminHomePage() {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <AdminSectionCard
-            title="Categories (registry)"
-            subtitle={`Efectivo en admin (código + overlay Supabase): live ${regSum.live} · staged ${regSum.staged} · coming soon ${regSum.comingSoon}. Público aún usa código hasta integración.`}
+            title={m("dashboard.categoriesTitle")}
+            subtitle={m("dashboard.categoriesSub", {
+              live: String(regSum.live),
+              staged: String(regSum.staged),
+              comingSoon: String(regSum.comingSoon),
+            })}
           >
             <div className="grid gap-3 sm:grid-cols-2">
               {registry.map((c) => {
@@ -441,35 +415,28 @@ export default async function AdminHomePage() {
               })}
             </div>
             <Link href="/admin/categories" className={`${adminCtaChipSecondary} mt-4 inline-flex`}>
-              Manage categories →
+              {m("dashboard.manageCategories")}
             </Link>
           </AdminSectionCard>
 
-          <AdminSectionCard
-            title="Revista — número destacado"
-            subtitle="El hub /magazine lee el manifiesto público (prioridad: números en Supabase; respaldo editions.json)."
-          >
+          <AdminSectionCard title={m("dashboard.revistaCardTitle")} subtitle={m("dashboard.revistaCardSub")}>
             <div className={`${adminCardBase} p-4`}>
-              <p className="text-sm font-semibold text-[#1E1810]">{snap.magazineFeaturedLabel ?? "Sin número destacado"}</p>
+              <p className="text-sm font-semibold text-[#1E1810]">{snap.magazineFeaturedLabel ?? m("dashboard.revistaNoFeatured")}</p>
               <p className="mt-1 text-xs text-[#7A7164]">
-                {snap.magazineUpdated ? `Actualizado: ${snap.magazineUpdated}` : "Sin fecha en manifiesto."}
+                {snap.magazineUpdated ? m("dashboard.revistaUpdated", { date: snap.magazineUpdated }) : m("dashboard.revistaNoDate")}
               </p>
-              <p className="mt-3 text-xs text-[#5C5346]/90">
-                Métricas de lectura no están en este panel; usa analítica del sitio cuando aplique.
-              </p>
+              <p className="mt-3 text-xs text-[#5C5346]/90">{m("dashboard.revistaMetricsNote")}</p>
               <Link href="/admin/workspace/revista" className={`${adminCtaChipSecondary} mt-3 inline-flex`}>
-                Gestionar números →
+                {m("dashboard.revistaManage")}
               </Link>
             </div>
           </AdminSectionCard>
         </div>
 
         <div className="mt-8 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFF8F0]/80 p-4 text-xs text-[#7A7164]">
-          <strong className="text-[#5C5346]">Data honesty:</strong> Pending counts use live Supabase where columns exist. “Users
-          needing help” is a disabled-account proxy until a support queue exists. The expiring queue lists only rows with a
-          real expiration timestamp in the database (no “recent listings” proxy). Verticals sin campo de expiración (restaurantes,
-          servicios, empleos, autos en sus tablas públicas actuales) no aparecen aquí hasta que exista persistencia. Tienda
-          dashboard counts need <code className="rounded bg-white/80 px-1">tienda_orders</code> migration applied.
+          <p>
+            <strong className="text-[#5C5346]">{m("dashboard.dataHonestyLabel")}</strong> {m("dashboard.dataHonestyBody")}
+          </p>
         </div>
       </div>
 

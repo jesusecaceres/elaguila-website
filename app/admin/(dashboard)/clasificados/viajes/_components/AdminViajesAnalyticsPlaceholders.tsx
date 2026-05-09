@@ -44,9 +44,9 @@ export function AdminViajesAnalyticsPlaceholders() {
         <div className="rounded-xl border border-[#E8DFD0]/90 bg-white/90 p-4 text-sm text-[#5C5346]">
           <p className="text-xs font-bold text-[#1E1810]">Top-performing offers (mock ranking)</p>
           <ol className="mt-2 list-inside list-decimal space-y-1 text-xs">
-            <li>Cancún resort rail · affiliate</li>
-            <li>Último minuto Manuel Antonio · business (sample)</li>
-            <li>Crucero del mes · affiliate</li>
+            <li>Cancun resort rail · affiliate</li>
+            <li>Last-minute Manuel Antonio · business (sample)</li>
+            <li>Cruise of the month · affiliate</li>
           </ol>
         </div>
         <div className="rounded-xl border border-[#E8DFD0]/90 bg-white/90 p-4 text-sm text-[#5C5346]">

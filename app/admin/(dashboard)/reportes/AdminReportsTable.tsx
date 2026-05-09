@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { updateListingReportStatusAction, type ListingReportStatus } from "../../actions";
 import { useState } from "react";
 import { adminTableWrap } from "../../_components/adminTheme";
+import { useAdminLang, useAdminT } from "@/app/admin/_components/AdminI18nProvider";
 
 type ReportRow = {
   id: string;
@@ -24,6 +25,8 @@ export default function AdminReportsTable({
   highlightReportId?: string | null;
 }) {
   const router = useRouter();
+  const t = useAdminT();
+  const lang = useAdminLang();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,7 +37,7 @@ export default function AdminReportsTable({
       await updateListingReportStatusAction(id, status);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al actualizar");
+      setError(e instanceof Error ? e.message : t("reportsTable.errUpdate"));
     } finally {
       setUpdatingId(null);
     }
@@ -44,7 +47,13 @@ export default function AdminReportsTable({
     try {
       const d = new Date(iso);
       return Number.isFinite(d.getTime())
-        ? d.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+        ? d.toLocaleDateString(lang === "es" ? "es-MX" : "en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
         : "—";
     } catch {
       return "—";
@@ -53,7 +62,7 @@ export default function AdminReportsTable({
 
   if (reports.length === 0) {
     return (
-      <div className="rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-6 text-sm text-[#5C5346]">No hay reportes.</div>
+      <div className="rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-6 text-sm text-[#5C5346]">{t("reportsTable.empty")}</div>
     );
   }
 
@@ -66,12 +75,12 @@ export default function AdminReportsTable({
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90">
-              <th className="p-3 font-semibold text-[#5C4E2E]">Fecha</th>
-              <th className="p-3 font-semibold text-[#5C4E2E]">Anuncio</th>
-              <th className="p-3 font-semibold text-[#5C4E2E]">Reporter</th>
-              <th className="p-3 font-semibold text-[#5C4E2E]">Motivo</th>
-              <th className="p-3 font-semibold text-[#5C4E2E]">Estado</th>
-              <th className="p-3 font-semibold text-[#5C4E2E]">Acciones</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">{t("reportsTable.colDate")}</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">{t("reportsTable.colListing")}</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">{t("reportsTable.colReporter")}</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">{t("reportsTable.colReason")}</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">{t("reportsTable.colStatus")}</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">{t("reportsTable.colActions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -89,7 +98,7 @@ export default function AdminReportsTable({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-mono text-xs font-semibold text-[#6B5B2E] underline"
-                    title="Abrir anuncio público en nueva pestaña"
+                    title={t("reportsTable.openPublicTitle")}
                   >
                     {row.listing_id.slice(0, 8)}…
                   </Link>
@@ -99,7 +108,7 @@ export default function AdminReportsTable({
                     <Link
                       href={`/admin/usuarios/${row.reporter_id}`}
                       className="font-mono text-xs font-semibold text-[#6B5B2E] underline"
-                      title="Ficha del usuario que reportó (Leonix admin)"
+                      title={t("reportsTable.openReporterTitle")}
                     >
                       {row.reporter_id.slice(0, 8)}…
                     </Link>
@@ -121,20 +130,20 @@ export default function AdminReportsTable({
                         className="min-h-[40px] rounded-lg bg-emerald-600 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 sm:min-h-0"
                         onClick={() => handleStatus(row.id, "reviewed")}
                         disabled={updatingId === row.id}
-                        title="Marca el reporte como revisado en listing_reports"
-                        aria-label="Marcar reporte como revisado"
+                        title={t("reportsTable.btnReviewedTitle")}
+                        aria-label={t("reportsTable.btnReviewedAria")}
                       >
-                        Revisado
+                        {t("reportsTable.btnReviewed")}
                       </button>
                       <button
                         type="button"
                         className="min-h-[40px] rounded-lg border border-[#E8DFD0] bg-white px-2 py-1 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2] disabled:opacity-50 sm:min-h-0"
                         onClick={() => handleStatus(row.id, "dismissed")}
                         disabled={updatingId === row.id}
-                        title="Descarta el reporte (no implica borrar el anuncio)"
-                        aria-label="Descartar reporte"
+                        title={t("reportsTable.btnDismissTitle")}
+                        aria-label={t("reportsTable.btnDismissAria")}
                       >
-                        Descartar
+                        {t("reportsTable.btnDismiss")}
                       </button>
                     </span>
                   )}

@@ -1,33 +1,38 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
 import { adminCardBase, adminStubBadgeClass, adminCtaChipSecondary } from "../../_components/adminTheme";
+import { adminMessages, getAdminLang } from "../../_lib/adminI18n";
 
 export const dynamic = "force-dynamic";
 
 /** Legacy route — not linked from admin nav; kept stable so bookmarks do not 404. */
-export default function AdminDrawPlaceholderPage() {
+export default async function AdminDrawPlaceholderPage() {
+  const lang = await getAdminLang();
+  const m = adminMessages(lang);
   return (
     <div>
       <div className="mb-3 flex flex-wrap gap-2">
-        <span className={adminStubBadgeClass}>Sin función</span>
+        <span className={adminStubBadgeClass}>{m("drawPage.stub")}</span>
       </div>
       <AdminPageHeader
         title="Draw"
-        subtitle="Esta ruta no es una herramienta de administración. No hay controles ni vista previa aquí."
-        helperText="Si llegaste por un enlace antiguo, usa el panel principal o Secciones del sitio."
+        subtitle={m("drawPage.subtitle")}
+        helperText={m("drawPage.helperText")}
       />
       <div className={`${adminCardBase} p-6`}>
         <p className="text-sm leading-relaxed text-[#5C5346]">
-          Leonix admin vive en <strong className="text-[#1E1810]">Dashboard</strong>,{" "}
-          <strong className="text-[#1E1810]">Users</strong>, <strong className="text-[#1E1810]">Customer ops</strong> y{" "}
-          <strong className="text-[#1E1810]">Website sections</strong> — no en esta URL.
+          {m("drawPage.bodyLead")}{" "}
+          <strong className="text-[#1E1810]">{m("nav.dashboard")}</strong>,{" "}
+          <strong className="text-[#1E1810]">{m("nav.users")}</strong>,{" "}
+          <strong className="text-[#1E1810]">{m("nav.customerOps")}</strong> {m("common.and")}{" "}
+          <strong className="text-[#1E1810]">{m("nav.siteSections")}</strong> {m("drawPage.bodyTail")}
         </p>
         <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Link href="/admin" className={`${adminCtaChipSecondary} justify-center`}>
-            Ir al Dashboard →
+            {m("drawPage.ctaDashboard")}
           </Link>
           <Link href="/admin/workspace" className={`${adminCtaChipSecondary} justify-center`}>
-            Secciones del sitio →
+            {m("drawPage.ctaWorkspace")}
           </Link>
         </div>
       </div>

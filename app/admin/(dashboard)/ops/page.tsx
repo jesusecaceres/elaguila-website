@@ -5,6 +5,7 @@ import { requireAdminCookie } from "@/app/lib/supabase/server";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
 import { adminCardBase, adminTableWrap, adminBtnSecondary, adminCtaChipCompact } from "../../_components/adminTheme";
 import { runAdminUnifiedSearch } from "../../_lib/adminOpsUnifiedSearch";
+import { adminMessages, getAdminLang } from "../../_lib/adminI18n";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,8 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
   const q = qRaw.trim();
 
   const bundle = q ? await runAdminUnifiedSearch(q) : null;
+  const lang = await getAdminLang();
+  const m = adminMessages(lang);
 
   const pErr = bundle?.profiles.error ?? null;
   const lErr = bundle?.listings.error ?? null;
@@ -40,13 +43,13 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
       <AdminPageHeader
         eyebrow="Operations"
         title="Customer & records search"
-        subtitle="Una sola búsqueda agrupa cuenta, anuncios, pedidos Tienda y reportes. Los enlaces abren las pantallas ya existentes; aquí no hay suplantación ni CRM completo."
-        helperText="UUID de cuenta, nombre, correo, teléfono, listing id (misma UUID pública en /clasificados/anuncio/[id]), id de reporte, order id, order_ref o email de pedido. Si solo cae un perfil, verás un resumen de contexto (conteos) debajo."
+        subtitle={m("opsPage.subtitle")}
+        helperText={m("opsPage.helperText")}
       />
 
       <form method="get" className={`${adminCardBase} space-y-3 p-5`} aria-describedby="ops-search-hint">
         <label htmlFor="ops-q" className="text-sm font-semibold text-[#5C5346]">
-          Búsqueda unificada
+          {m("opsPage.searchLabel")}
         </label>
         <input
           id="ops-q"
@@ -59,29 +62,29 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
           autoComplete="off"
         />
         <p id="ops-search-hint" className="text-[10px] leading-snug text-[#7A7164]">
-          Misma búsqueda en perfiles, anuncios, pedidos Tienda y reportes (límite por sección). No es CRM ni suplantación.
+          {m("opsPage.searchHint")}
         </p>
         <div className="flex flex-wrap gap-2">
           <button
             type="submit"
             className="min-h-[44px] rounded-2xl bg-[#2A2620] px-4 py-2.5 text-sm font-semibold text-[#FAF7F2] sm:min-h-0"
-            title="Ejecutar búsqueda y mostrar resultados en esta página"
+            title={m("opsPage.searchSubmitTitle")}
           >
-            Buscar
+            {m("opsPage.searchSubmit")}
           </button>
           <Link
             href="/admin/ops"
             className={`${adminBtnSecondary} inline-flex min-h-[44px] items-center sm:min-h-0`}
-            title="Quitar término y volver al estado inicial"
+            title={m("opsPage.clearTitle")}
           >
-            Limpiar
+            {m("common.clear")}
           </Link>
           <Link
             href="/admin/usuarios"
             className={`${adminBtnSecondary} inline-flex min-h-[44px] items-center sm:min-h-0`}
-            title="Solo la lista de usuarios (misma cookie admin; no incluye pedidos ni reportes)"
+            title={m("opsPage.usersOnlyTitle")}
           >
-            Solo Users →
+            {m("opsPage.usersOnlyLink")}
           </Link>
         </div>
       </form>
@@ -91,31 +94,31 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
       ) : bundle ? (
         <>
           <nav
-            aria-label="Saltar a sección de resultados"
+            aria-label={m("opsPage.navJump")}
             className={`${adminCardBase} flex flex-col gap-2 p-3 sm:flex-row sm:flex-wrap sm:items-center`}
           >
-            <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">En esta página</span>
+            <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{m("opsPage.navOnPage")}</span>
             <div className="flex min-w-0 flex-wrap gap-2">
               <a href="#ops-profiles" className={adminCtaChipCompact}>
-                Perfiles
+                {m("opsPage.navProfiles")}
               </a>
               <a href="#ops-context" className={adminCtaChipCompact}>
-                Contexto
+                {m("opsPage.navContext")}
               </a>
               <a href="#ops-listings" className={adminCtaChipCompact}>
-                Anuncios
+                {m("opsPage.navListings")}
               </a>
               <a href="#ops-orders" className={adminCtaChipCompact}>
-                Tienda
+                {m("opsPage.navTienda")}
               </a>
               <a href="#ops-reports" className={adminCtaChipCompact}>
-                Reportes
+                {m("opsPage.navReports")}
               </a>
               <a href="#ops-support-tickets" className={adminCtaChipCompact}>
-                Tickets
+                {m("opsPage.navTickets")}
               </a>
               <a href="#ops-shortcuts" className={adminCtaChipCompact}>
-                Atajos
+                {m("opsPage.navShortcuts")}
               </a>
             </div>
           </nav>
@@ -143,7 +146,7 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
               <ul className="mt-4 space-y-2 text-sm">
                 {bundle.profiles.rows.map((row) => {
                   const id = String(row.id ?? "");
-                  const name = String(row.display_name ?? "").trim() || "(sin nombre)";
+                  const name = String(row.display_name ?? "").trim() || m("opsPage.anonymousName");
                   const email = String(row.email ?? "").trim() || "—";
                   return (
                     <li key={id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-3 py-2">
@@ -164,18 +167,15 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
           </section>
 
           <section id="ops-context" className={`${adminCardBase} scroll-mt-24 p-5`}>
-            <h2 className="text-base font-bold text-[#1E1810]">Customer context (solo lectura)</h2>
-            <p className="mt-1 text-xs text-[#7A7164]">
-              Aparece cuando hay exactamente un perfil en la búsqueda. Conteos en vivo; no es vista “como el usuario” ni
-              impersonación.
-            </p>
+            <h2 className="text-base font-bold text-[#1E1810]">{m("opsPage.contextTitle")}</h2>
+            <p className="mt-1 text-xs text-[#7A7164]">{m("opsPage.contextSub")}</p>
             {!bundle.supportContext ? (
               <p className="mt-3 text-sm text-[#5C5346]">
                 {bundle.profiles.rows.length === 0
-                  ? "Sin perfil único para resumir."
+                  ? m("opsPage.contextNoProfiles")
                   : bundle.profiles.rows.length > 1
-                    ? "Varios perfiles coinciden — abre el detalle o acota la búsqueda."
-                    : "Sin datos de contexto (error de lectura o perfil ausente)."}
+                    ? m("opsPage.contextMultiProfiles")
+                    : m("opsPage.contextMissing")}
               </p>
             ) : (
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -188,33 +188,33 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
                     href={`/admin/usuarios/${bundle.supportContext.profileId}`}
                     className="mt-2 inline-block text-xs font-bold text-[#6B5B2E] underline"
                   >
-                    Ficha completa →
+                    {m("opsPage.fullProfile")}
                   </Link>
                 </div>
                 <ul className="space-y-2 text-sm text-[#5C5346]">
                   <li>
-                    Anuncios (owner):{" "}
+                    {m("opsPage.adsOwner")}{" "}
                     <strong className="text-[#1E1810]">{bundle.supportContext.listingsTotal}</strong> · pending/flagged:{" "}
                     <strong className="text-[#1E1810]">{bundle.supportContext.listingsPendingOrFlagged}</strong>{" "}
                     <Link
                       href={`/admin/workspace/clasificados?q=${encodeURIComponent(bundle.supportContext.profileId)}`}
                       className="font-bold text-[#6B5B2E] underline"
                     >
-                      Cola →
+                      {m("opsPage.queueLink")}
                     </Link>
                   </li>
                   <li>
-                    Reportes como reporter:{" "}
+                    {m("opsPage.reportsAsReporter")}{" "}
                     <strong className="text-[#1E1810]">{bundle.supportContext.reportsAsReporter}</strong>{" "}
                     <Link
                       href={`/admin/reportes?q=${encodeURIComponent(bundle.supportContext.profileId)}`}
                       className="font-bold text-[#6B5B2E] underline"
                     >
-                      Cola (como reporter) →
+                      {m("opsPage.queueAsReporter")}
                     </Link>
                   </li>
                   <li>
-                    Pedidos Tienda (email coincidente):{" "}
+                    {m("opsPage.tiendaOrdersEmail")}{" "}
                     <strong className="text-[#1E1810]">{bundle.supportContext.tiendaOrdersMatchingEmail}</strong>
                     {bundle.supportContext.email?.trim() ? (
                       <>
@@ -227,28 +227,28 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
                         </Link>
                       </>
                     ) : (
-                      <span className="text-xs text-[#9A9084]"> · sin email en perfil</span>
+                      <span className="text-xs text-[#9A9084]">{m("opsPage.noEmailOnProfile")}</span>
                     )}
                   </li>
                   <li id="ops-support-tickets" className="scroll-mt-24">
-                    Tickets internos{" "}
+                    {m("opsPage.internalTickets")}{" "}
                     <span className="font-mono text-[10px] text-[#7A7164]">(support_tickets.user_id)</span>:{" "}
                     {bundle.supportContext.supportTicketsUnavailable ? (
                       <span className="text-xs text-amber-900">
-                        No disponible (tabla o columna <span className="font-mono">user_id</span>).
+                        {m("opsPage.ticketsUnavailable")}
                       </span>
                     ) : (
                       <>
                         total <strong className="text-[#1E1810]">{bundle.supportContext.supportTicketsTotal}</strong>
                         {" · "}
-                        abiertos / en curso{" "}
+                        {m("opsPage.ticketsOpen")}{" "}
                         <strong className="text-[#1E1810]">{bundle.supportContext.supportTicketsOpen}</strong>
                         {" · "}
                         <Link
                           href={`/admin/support?profile=${encodeURIComponent(bundle.supportContext.profileId)}`}
                           className="font-bold text-[#6B5B2E] underline"
                         >
-                          Support (filtrado) →
+                          {m("opsPage.supportFiltered")}
                         </Link>
                       </>
                     )}
@@ -259,14 +259,14 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
           </section>
 
           <section id="ops-listings" className={`${adminCardBase} scroll-mt-24 p-5`}>
-            <h2 className="text-base font-bold text-[#1E1810]">Clasificados listings</h2>
+            <h2 className="text-base font-bold text-[#1E1810]">{m("opsPage.listingsTitle")}</h2>
             <p className="mt-1 text-xs text-[#7A7164]">
-              Referencia pública estable hoy: <code className="rounded bg-[#FAF7F2] px-1">listings.id</code> (UUID en URL).{" "}
+              {m("opsPage.listingsSub")}{" "}
               <Link
                 href={`/admin/workspace/clasificados?q=${encodeURIComponent(q)}`}
                 className="font-bold text-[#6B5B2E] underline"
               >
-                Abrir cola Clasificados con la misma búsqueda →
+                {m("opsPage.openClasificadosSameQ")}
               </Link>
             </p>
             {bundle.listings.rows.length === 0 ? (
@@ -311,13 +311,13 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
                               target="_blank"
                               className="block text-xs font-bold text-[#6B5B2E] underline"
                             >
-                              Vista pública
+                              {m("opsPage.publicView")}
                             </Link>
                             <Link
                               href={`/admin/workspace/clasificados?q=${encodeURIComponent(row.id)}`}
                               className="block text-xs font-bold text-[#6B5B2E] underline"
                             >
-                              Cola admin
+                              {m("opsPage.adminQueue")}
                             </Link>
                           </td>
                         </tr>
@@ -361,14 +361,14 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
           </section>
 
           <section id="ops-reports" className={`${adminCardBase} scroll-mt-24 p-5`}>
-            <h2 className="text-base font-bold text-[#1E1810]">Reportes de anuncios</h2>
+            <h2 className="text-base font-bold text-[#1E1810]">{m("opsPage.reportsTitle")}</h2>
             <p className="mt-1 text-xs text-[#7A7164]">
-              Tabla <code className="rounded bg-[#FAF7F2] px-1">listing_reports</code>. Coincidencias por id de reporte, listing id o texto en el motivo.{" "}
+              {m("opsPage.reportsSub")}{" "}
               <Link
                 href={q ? `/admin/reportes?q=${encodeURIComponent(q)}` : "/admin/reportes"}
                 className="font-bold text-[#6B5B2E] underline"
               >
-                {q ? "Abrir cola con esta búsqueda →" : "Cola completa →"}
+                {q ? m("opsPage.openQueueThisSearch") : m("opsPage.openQueueFull")}
               </Link>
             </p>
             {bundle.reports.rows.length === 0 ? (
@@ -407,7 +407,7 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
                       href={`/admin/reportes?q=${encodeURIComponent(row.id)}`}
                       className="shrink-0 text-xs font-bold text-[#6B5B2E] underline"
                     >
-                      Abrir en cola →
+                      {m("opsPage.openInQueue")}
                     </Link>
                   </li>
                 ))}
@@ -419,25 +419,25 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
             id="ops-shortcuts"
             className={`${adminCardBase} scroll-mt-24 border-dashed border-[#C9B46A]/50 bg-[#FFF8F0]/80 p-4 text-xs text-[#5C5346]`}
           >
-            <p className="font-semibold text-[#1E1810]">Atajos</p>
+            <p className="font-semibold text-[#1E1810]">{m("opsPage.shortcutsTitle")}</p>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <Link href="/admin/usuarios" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
-                Usuarios
+                {m("opsPage.shortcutUsers")}
               </Link>
               <Link href="/admin/reportes" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
-                Reportes
+                {m("opsPage.shortcutReports")}
               </Link>
               <Link href="/admin/workspace/clasificados" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
-                Clasificados
+                {m("opsPage.shortcutClasificados")}
               </Link>
               <Link href="/admin/tienda/orders" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
-                Pedidos Tienda
+                {m("opsPage.shortcutTiendaOrders")}
               </Link>
               <Link href="/admin/support" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
-                Support / tickets
+                {m("opsPage.shortcutSupport")}
               </Link>
               <Link href="/admin/categories" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
-                Categorías
+                {m("opsPage.shortcutCategories")}
               </Link>
             </div>
           </section>

@@ -26,6 +26,8 @@ export type ClasificadosCategoryOpsAuditRow = {
   canSearchFilterListings: boolean;
   canOpenPublicListingLink: boolean;
   canModerateOrStatusManage: boolean;
+  /** Staff can change listing content or lifecycle from an authenticated admin surface (queue, inspector, or /api/admin/*). */
+  canEditAdInAdmin: boolean;
   falseReasons: string[];
   rowCount: number | null;
 };
@@ -66,6 +68,7 @@ export async function fetchClasificadosCategoryOpsAuditRows(
       canSearchFilterListings: false,
       canOpenPublicListingLink: false,
       canModerateOrStatusManage: false,
+      canEditAdInAdmin: false,
       falseReasons: [],
       rowCount: null,
     };
@@ -89,12 +92,14 @@ export async function fetchClasificadosCategoryOpsAuditRows(
         row.canSearchFilterListings = false;
         row.canOpenPublicListingLink = false;
         row.canModerateOrStatusManage = false;
+        row.canEditAdInAdmin = false;
       } else {
         row.rowCount = typeof count === "number" ? count : 0;
         row.canLoadPublishedListings = true;
         row.canSearchFilterListings = true;
         row.canOpenPublicListingLink = true;
         row.canModerateOrStatusManage = true;
+        row.canEditAdInAdmin = true;
       }
       out.push(row);
       continue;
@@ -110,6 +115,7 @@ export async function fetchClasificadosCategoryOpsAuditRows(
         row.canSearchFilterListings = false;
         row.canOpenPublicListingLink = false;
         row.canModerateOrStatusManage = false;
+        row.canEditAdInAdmin = false;
       } else {
         const { count, error } = await supabase
           .from("servicios_public_listings")
@@ -124,6 +130,7 @@ export async function fetchClasificadosCategoryOpsAuditRows(
         row.canSearchFilterListings = true;
         row.canOpenPublicListingLink = true;
         row.canModerateOrStatusManage = true;
+        row.canEditAdInAdmin = true;
       }
       out.push(row);
       continue;
@@ -141,12 +148,14 @@ export async function fetchClasificadosCategoryOpsAuditRows(
         row.canSearchFilterListings = false;
         row.canOpenPublicListingLink = false;
         row.canModerateOrStatusManage = false;
+        row.canEditAdInAdmin = false;
       } else {
         row.rowCount = typeof count === "number" ? count : 0;
         row.canLoadPublishedListings = true;
         row.canSearchFilterListings = true;
         row.canOpenPublicListingLink = true;
         row.canModerateOrStatusManage = true;
+        row.canEditAdInAdmin = true;
       }
       out.push(row);
       continue;
@@ -163,15 +172,15 @@ export async function fetchClasificadosCategoryOpsAuditRows(
         row.canLoadPublishedListings = false;
         row.canSearchFilterListings = false;
         row.canOpenPublicListingLink = false;
+        row.canModerateOrStatusManage = false;
+        row.canEditAdInAdmin = false;
       } else {
         row.rowCount = typeof count === "number" ? count : 0;
         row.canLoadPublishedListings = true;
         row.canSearchFilterListings = true;
         row.canOpenPublicListingLink = true;
-      }
-      row.canModerateOrStatusManage = false;
-      if (row.canLoadPublishedListings) {
-        pushReason(row, "Moderación de estado en esta cola es limitada; revisa flujo Autos / pagos Leonix.");
+        row.canModerateOrStatusManage = true;
+        row.canEditAdInAdmin = true;
       }
       out.push(row);
       continue;
@@ -211,6 +220,7 @@ export async function fetchClasificadosCategoryOpsAuditRows(
 
     row.canOpenPublicListingLink = row.canLoadPublishedListings;
     row.canModerateOrStatusManage = row.canLoadPublishedListings;
+    row.canEditAdInAdmin = row.canModerateOrStatusManage;
 
     out.push(row);
   }

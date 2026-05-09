@@ -3,6 +3,7 @@ import { getAdminSupabase } from "@/app/lib/supabase/server";
 import AdminReportsTable from "./AdminReportsTable";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
 import { adminCardBase, adminInputClass, adminBtnSecondary } from "../../_components/adminTheme";
+import { adminMessages, getAdminLang } from "../../_lib/adminI18n";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,8 @@ type PageProps = {
 };
 
 export default async function AdminReportesPage(props: PageProps) {
+  const lang = await getAdminLang();
+  const m = adminMessages(lang);
   const sp = props.searchParams ? await props.searchParams : {};
   const qRaw = typeof sp.q === "string" ? sp.q.trim() : "";
   const safeIlike = escapeIlike(qRaw.toLowerCase());
@@ -75,47 +78,43 @@ export default async function AdminReportesPage(props: PageProps) {
     <>
       <AdminPageHeader
         title="Reports & complaints"
-        subtitle="listing_reports — revisar o descartar desde la tabla (acciones reales en base)."
+        subtitle={m("reportsPage.subtitle")}
         eyebrow="Trust & safety"
-        helperText={
-          qRaw
-            ? "Filtro activo: UUID busca por id de reporte, listing o reporter; texto busca en el motivo."
-            : "Usa ?q= en la URL para acotar (también desde Ops o ficha de usuario)."
-        }
+        helperText={qRaw ? m("reportsPage.helperFiltered") : m("reportsPage.helperDefault")}
       />
 
       <form method="get" className={`${adminCardBase} mb-6 flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-end`}>
         <div className="min-w-[200px] flex-1">
-          <label htmlFor="reportes-q" className="text-xs font-bold uppercase text-[#5C5346]">
-            Buscar
+          <label htmlFor="admin-reports-q" className="text-xs font-bold uppercase text-[#5C5346]">
+            {m("reportsPage.searchLabel")}
           </label>
           <input
-            id="reportes-q"
+            id="admin-reports-q"
             name="q"
             defaultValue={qRaw}
-            placeholder="UUID (reporte / listing / reporter) o texto en motivo…"
+            placeholder={m("reportsPage.searchPlaceholder")}
             className={`${adminInputClass} mt-1`}
-            aria-describedby="reportes-search-hint"
+            aria-describedby="admin-reports-search-hint"
             autoComplete="off"
           />
-          <p id="reportes-search-hint" className="mt-1 text-[10px] leading-snug text-[#7A7164]">
-            UUID: reporte, anuncio o reporter. Texto libre: solo en el motivo.
+          <p id="admin-reports-search-hint" className="mt-1 text-[10px] leading-snug text-[#7A7164]">
+            {m("reportsPage.searchHint")}
           </p>
         </div>
         <button
           type="submit"
           className={`${adminBtnSecondary} min-h-[44px] sm:min-h-0`}
-          title="Filtrar la tabla con el criterio indicado"
+          title={m("reportsPage.applyTitle")}
         >
-          Aplicar filtro
+          {m("reportsPage.apply")}
         </button>
         {qRaw ? (
           <Link
             href="/admin/reportes"
             className={`${adminBtnSecondary} min-h-[44px] text-center sm:min-h-0`}
-            title="Quitar filtro y ver todos los reportes recientes"
+            title={m("reportsPage.clearTitle")}
           >
-            Limpiar búsqueda
+            {m("reportsPage.clear")}
           </Link>
         ) : null}
       </form>
@@ -130,7 +129,7 @@ export default async function AdminReportesPage(props: PageProps) {
             <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{x.label}</p>
             <p className="mt-2 text-2xl font-bold text-[#1E1810]">{x.value}</p>
             {qRaw ? (
-              <p className="mt-1 text-[10px] text-[#9A9084]">Sobre resultados filtrados</p>
+              <p className="mt-1 text-[10px] text-[#9A9084]">{m("reportsPage.filteredNote")}</p>
             ) : null}
           </div>
         ))}

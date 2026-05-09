@@ -54,7 +54,7 @@ export type AdminUserAdsBundle = {
 const SOURCE_ORDER: AdminAdSource[] = ["generic", "restaurantes", "servicios", "empleos", "autos"];
 
 const LABELS: Record<AdminAdSource, string> = {
-  generic: "Listings (catálogo genérico)",
+  generic: "Listings (generic catalog)",
   restaurantes: "Restaurantes",
   servicios: "Servicios",
   empleos: "Empleos",

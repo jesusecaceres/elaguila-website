@@ -1,6 +1,7 @@
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
 import { adminCardBase, adminStubBadgeClass } from "../../_components/adminTheme";
 import { fetchAdminAuditLogRecent, type AdminAuditLogRow } from "../../_lib/adminAuditLogServer";
+import { adminMessages, getAdminLang } from "../../_lib/adminI18n";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ function summarizeMeta(meta: Record<string, unknown>): string {
 }
 
 export default async function AdminActivityLogPage() {
+  const lang = await getAdminLang();
+  const m = adminMessages(lang);
   const audit = await fetchAdminAuditLogRecent(80);
 
   const showLive = audit.mode === "live" && audit.rows.length > 0;
@@ -45,49 +48,45 @@ export default async function AdminActivityLogPage() {
       <div className="mb-3 flex flex-wrap gap-2">
         {showLive ? (
           <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-900">
-            Supabase (admin_audit_log)
+            {m("activityLog.badgeLive")}
           </span>
         ) : showEmptyLive ? (
           <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-bold uppercase text-sky-900">
-            Tabla lista · sin filas
+            {m("activityLog.badgeEmptyTable")}
           </span>
         ) : showUnavailable ? (
-          <span className={adminStubBadgeClass}>Tabla no disponible</span>
+          <span className={adminStubBadgeClass}>{m("activityLog.badgeUnavailable")}</span>
         ) : (
-          <span className={adminStubBadgeClass}>Sin eventos</span>
+          <span className={adminStubBadgeClass}>{m("activityLog.badgeNoEvents")}</span>
         )}
       </div>
       <AdminPageHeader
         title="Activity log"
         subtitle={
           showLive
-            ? "Últimas filas desde `admin_audit_log` (acciones registradas por el servidor admin)."
+            ? m("activityLog.subtitleLive")
             : showEmptyLive
-              ? "La tabla existe pero aún no hay eventos. Habilitar/deshabilitar usuarios y otras acciones empezarán a aparecer cuando se usen."
+              ? m("activityLog.subtitleEmpty")
               : showUnavailable
-                ? "Aplica la migración `20260410120000_admin_audit_log_and_team_invites.sql` en Supabase para habilitar el registro persistente. No se muestran filas de ejemplo."
-                : "Estado de auditoría desconocido."
+                ? m("activityLog.subtitleUnavailable")
+                : m("activityLog.subtitleUnknown")
         }
         helperText={
-          audit.detail
-            ? `Detalle: ${audit.detail}`
-            : "No se guardan secretos ni enlaces de recuperación en esta tabla. Las mutaciones de anuncios en `listings` quedan en `listing_audit_event` (migración 20260423180000) para trazabilidad del vendedor."
+          audit.detail ? `${m("activityLog.detailPrefix")} ${audit.detail}` : m("activityLog.helperNoSecrets")
         }
       />
 
       <div className={`${adminCardBase} overflow-hidden`}>
         <div className="border-b border-[#E8DFD0]/80 bg-[#FFF8F0]/90 px-4 py-3 text-xs text-[#5C5346]">
-          {showLive
-            ? "Filas reales — actor siempre «server» hasta que exista identidad de staff por fila."
-            : "Sin datos de demostración: solo filas persistidas en Supabase."}
+          {showLive ? m("activityLog.bannerLive") : m("activityLog.bannerOther")}
         </div>
         <div className="overflow-x-auto">
           {displayRows.length === 0 && showEmptyLive ? (
-            <p className="p-6 text-sm text-[#5C5346]">Aún no hay eventos auditables. Las acciones como habilitar/deshabilitar cuenta generarán filas aquí.</p>
+            <p className="p-6 text-sm text-[#5C5346]">{m("activityLog.emptyLive")}</p>
           ) : displayRows.length === 0 && showUnavailable ? (
             <p className="p-6 text-sm text-[#5C5346]">
-              Cuando la tabla exista, verás aquí las acciones de staff registradas por el servidor. Mutaciones de clasificados en tabla `listings`: revisa{" "}
-              <code className="rounded bg-white/80 px-1">listing_audit_event</code> en Supabase o el panel del vendedor (lectura propia vía RLS).
+              {m("activityLog.unavailableP1")}{" "}
+              <code className="rounded bg-white/80 px-1">listing_audit_event</code> {m("activityLog.unavailableP2")}
             </p>
           ) : (
             <table className="min-w-full border-collapse text-sm">

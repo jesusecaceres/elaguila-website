@@ -47,7 +47,7 @@ export default async function AdminViajesOverviewPage() {
         <AdminStatCard
           title="Active seasonal campaigns"
           value={m.activeSeasonalCampaigns}
-          hint="Verano, último minuto, etc."
+          hint="Summer, last minute, etc."
           actionLabel="Campaigns"
           actionHref="/admin/clasificados/viajes/campaigns"
         />

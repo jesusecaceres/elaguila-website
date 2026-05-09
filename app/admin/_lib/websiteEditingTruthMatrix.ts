@@ -144,7 +144,7 @@ export const WEBSITE_EDITING_TRUTH_ROWS: readonly WebsiteEditingTruthRow[] = [
     addNewGuidance: "Use global settings for banners. New nav items need code changes."
   },
   {
-    area: "Footer (pie de página)",
+    area: "Footer (site-wide)",
     purpose: "Bottom cross-site block.",
     routeLabel: "(no admin route)",
     status: "HONESTLY_DISABLED",

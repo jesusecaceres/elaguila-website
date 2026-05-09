@@ -133,7 +133,7 @@ function mapListingToExpiringRow(row: ListingExpiringDbRow, listingsHasExpiresAt
   const norm = normalizeGenericListingForAdmin(row as GenericListingAdminInput);
   const adminHref = norm?.adminUrl ?? `/admin/workspace/clasificados?q=${encodeURIComponent(row.id)}`;
   const leonix = norm?.publishedId ?? null;
-  const title = norm?.title ?? (row.title?.trim() ? row.title : "(sin título)");
+  const title = norm?.title ?? (row.title?.trim() ? row.title : "(no title)");
   const cat = (row.category ?? "").trim() || "—";
   const fieldLabel = parts.length > 1 ? `${chosen.label} (soonest)` : chosen.label;
 
@@ -221,7 +221,7 @@ async function fetchViajesStagedExpiring(
     const publicOk = row.lifecycle_status === "approved" && row.is_public === true;
     out.push({
       source: "viajes_staged",
-      title: row.title?.trim() ? row.title : "(sin título)",
+      title: row.title?.trim() ? row.title : "(no title)",
       categorySource: "viajes_staged_listings",
       leonixAdId: null,
       internalId: row.id,
@@ -283,7 +283,7 @@ async function fetchListingsPendingReview(
     const norm = normalizeGenericListingForAdmin(row as unknown as GenericListingAdminInput);
     out.push({
       source: "generic_listings",
-      title: norm?.title ?? nonEmptyString(row.title) ?? "(sin título)",
+      title: norm?.title ?? nonEmptyString(row.title) ?? "(no title)",
       categorySource: `listings · ${category}`,
       leonixAdId: norm?.publishedId ?? null,
       internalId,
@@ -332,7 +332,7 @@ async function fetchEmpleosPendingReview(
     const internalId = nonEmptyString(row.id);
     const status = nonEmptyString(row.lifecycle_status);
     if (!internalId || !status) continue;
-    const title = `${nonEmptyString(row.title) ?? "(sin título)"} · ${nonEmptyString(row.company_name) ?? "—"}`;
+    const title = `${nonEmptyString(row.title) ?? "(no title)"} · ${nonEmptyString(row.company_name) ?? "—"}`;
     const leonix = nonEmptyString((row as { leonix_ad_id?: unknown }).leonix_ad_id);
     const reason = nonEmptyString(row.moderation_reason) ?? nonEmptyString(row.review_notes);
     const adminHref = leonix
@@ -388,7 +388,7 @@ async function fetchViajesPendingReview(
     const reason = nonEmptyString(row.moderation_reason) ?? nonEmptyString(row.review_notes);
     out.push({
       source: "viajes_staged_listings",
-      title: nonEmptyString(row.title) ?? "(sin título)",
+      title: nonEmptyString(row.title) ?? "(no title)",
       categorySource: "viajes_staged_listings",
       leonixAdId: null,
       internalId,

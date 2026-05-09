@@ -16,7 +16,7 @@ import {
   adminCategoryOpenQueueCtaCopy,
   adminCategoryWorkspaceQueueHref,
 } from "../../_lib/adminCategoryWorkspaceQueueHref";
-import { getAdminLang } from "../../_lib/adminI18n";
+import { adminMessages, getAdminLang } from "../../_lib/adminI18n";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +41,7 @@ function readinessStyle(r: string) {
   return "text-[#7A7164]";
 }
 
-function sourceBadge(layer: "code" | "database" | undefined) {
+function sourceBadge(layer: "code" | "database" | undefined, codeLabel: string) {
   if (layer === "database") {
     return (
       <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-900">
@@ -51,7 +51,7 @@ function sourceBadge(layer: "code" | "database" | undefined) {
   }
   return (
     <span className="rounded-full border border-[#E8DFD0] bg-white px-2 py-0.5 text-[10px] font-bold uppercase text-[#6B5B2E]">
-      Código
+      {codeLabel}
     </span>
   );
 }
@@ -60,6 +60,7 @@ const COL_COUNT = 12;
 
 export default async function AdminCategoriesPage() {
   const lang = await getAdminLang();
+  const m = adminMessages(lang);
   const registry = await getClasificadosCategoryRegistryMerged();
   const sum = summarizeRegistryForDashboard(registry);
   const statsRows = await fetchListingStatsForCategorySlugs(registry.map((c) => c.slug));
@@ -68,71 +69,70 @@ export default async function AdminCategoriesPage() {
   return (
     <div>
       <div className="mb-3 flex flex-wrap gap-2">
-        <span className={adminReadOnlyBadgeClass}>Base: categoryConfig (código)</span>
-        <span className={adminPartialBadgeClass}>Postura admin: site_category_config (merge)</span>
+        <span className={adminReadOnlyBadgeClass}>{m("categoriesPage.baseBadge")}</span>
+        <span className={adminPartialBadgeClass}>{m("categoriesPage.postureBadge")}</span>
         <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-900">
-          Conteos: DB en vivo
+          {m("categoriesPage.statsBadge")}
         </span>
       </div>
       <AdminPageHeader
-        title="Categories — operations"
-        subtitle="Los conteos y colas son lecturas reales de Supabase. Puedes persistir postura (orden, visibilidad, estado, destacado) en `site_category_config`. El hub `/clasificados/publicar` respeta visibilidad + orden fusionados; el resto de Clasificados sigue anclado a `categoryConfig` donde aún no se fusionó."
-        helperText="Sin fila en Supabase = solo defaults de código en esta vista. Guardar crea/actualiza overlay por slug. No hay ‘toggle simulado’: el botón escribe en base de datos."
+        title={m("categoriesPage.title")}
+        subtitle={m("categoriesPage.subtitle")}
+        helperText={m("categoriesPage.helperText")}
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <div className={`${adminCardBase} p-4`}>
-          <p className="text-xs font-bold uppercase text-[#7A7164]">Live (efectivo admin)</p>
+          <p className="text-xs font-bold uppercase text-[#7A7164]">{m("categoriesPage.cardLiveLabel")}</p>
           <p className="mt-1 text-2xl font-bold text-[#1E1810]">{sum.live}</p>
         </div>
         <div className={`${adminCardBase} p-4`}>
-          <p className="text-xs font-bold uppercase text-[#7A7164]">Staged</p>
+          <p className="text-xs font-bold uppercase text-[#7A7164]">{m("categoriesPage.cardStagedLabel")}</p>
           <p className="mt-1 text-2xl font-bold text-[#1E1810]">{sum.staged}</p>
         </div>
         <div className={`${adminCardBase} p-4`}>
-          <p className="text-xs font-bold uppercase text-[#7A7164]">Coming soon</p>
+          <p className="text-xs font-bold uppercase text-[#7A7164]">{m("categoriesPage.cardComingSoonLabel")}</p>
           <p className="mt-1 text-2xl font-bold text-[#1E1810]">{sum.comingSoon}</p>
         </div>
       </div>
 
       <div className={`${adminCardBase} mb-6 space-y-3 p-4 text-sm text-[#5C5346] sm:p-5`}>
-        <p className="font-bold text-[#1E1810]">Operational shortcuts</p>
+        <p className="font-bold text-[#1E1810]">{m("categoriesPage.shortcutsTitle")}</p>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Link
             href="/admin/workspace/clasificados"
             className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}
-            title="Cola operativa de anuncios (moderación)"
+            title={m("categoriesPage.ctaClasificadosTitle")}
           >
-            Cola Clasificados →
+            {m("categoriesPage.ctaClasificados")}
           </Link>
           <Link
             href="/admin/reportes"
             className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}
-            title="Reportes de anuncios (listing_reports)"
+            title={m("categoriesPage.ctaReportsTitle")}
           >
-            Cola de reportes →
+            {m("categoriesPage.ctaReports")}
           </Link>
           <Link
             href="/admin/ops"
             className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}
-            title="Buscar cuenta, anuncios, pedidos y reportes en una sola búsqueda"
+            title={m("categoriesPage.ctaOpsTitle")}
           >
-            Customer ops →
+            {m("categoriesPage.ctaOps")}
           </Link>
           <Link
             href="/admin/tienda/orders"
             className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}
-            title="Bandeja de pedidos de impresión / self-serve"
+            title={m("categoriesPage.ctaTiendaTitle")}
           >
-            Pedidos Tienda →
+            {m("categoriesPage.ctaTienda")}
           </Link>
         </div>
       </div>
 
       <div className={`${adminCardBase} overflow-hidden`}>
         <div className="border-b border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-4 py-3 text-xs text-[#5C5346]">
-          Conteos = filas <code className="rounded bg-white/80 px-1">listings</code> con <code className="rounded bg-white/80 px-1">category</code> = slug.
-          Pending/flagged = mismo filtro + estado. La segunda fila por categoría guarda overlay en Supabase (acción real).
+          {m("categoriesPage.tableHintTop")}
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-[920px] w-full border-collapse text-sm">
@@ -142,11 +142,11 @@ export default async function AdminCategoriesPage() {
                 <th className="p-3">Slug</th>
                 <th className="p-3">Display (ES)</th>
                 <th className="p-3">Status</th>
-                <th className="p-3">Fuente</th>
+                <th className="p-3">{m("categoriesPage.thSource")}</th>
                 <th className="p-3">Readiness</th>
                 <th className="p-3 whitespace-nowrap">Listings (DB)</th>
                 <th className="p-3 whitespace-nowrap">Pending / flagged</th>
-                <th className="p-3">Cola anuncios</th>
+                <th className="p-3">{m("categoriesPage.thAdsQueue")}</th>
                 <th className="p-3">Moderation</th>
                 <th className="p-3">Landing</th>
                 <th className="p-3">Notes</th>
@@ -179,7 +179,7 @@ export default async function AdminCategoriesPage() {
                           vis: {c.visibility}
                         </div>
                       </td>
-                      <td className="p-3">{sourceBadge(c.configLayer)}</td>
+                      <td className="p-3">{sourceBadge(c.configLayer, m("categoriesPage.codeLayer"))}</td>
                       <td className={`p-3 text-xs font-semibold ${readinessStyle(c.readiness)}`}>{c.readiness}</td>
                       <td className="p-3 text-xs tabular-nums">
                         {st?.queryError ? (
@@ -208,14 +208,14 @@ export default async function AdminCategoriesPage() {
                           <Link
                             href={`/admin/workspace/clasificados?category=${encodeURIComponent(c.slug)}&status=pending`}
                             className="text-[#6B5B2E] underline"
-                            title="Solo pending"
+                            title={m("categoriesPage.pendingOnlyTitle")}
                           >
                             Pending →
                           </Link>
                           <Link
                             href={`/admin/workspace/clasificados?category=${encodeURIComponent(c.slug)}&status=flagged`}
                             className="text-[#6B5B2E] underline"
-                            title="Solo flagged"
+                            title={m("categoriesPage.flaggedOnlyTitle")}
                           >
                             Flagged →
                           </Link>
@@ -237,7 +237,9 @@ export default async function AdminCategoriesPage() {
                         <form action={saveSiteCategoryConfigRowAction} className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
                           <input type="hidden" name="slug" value={c.slug} />
                           <div className="min-w-[140px] flex-1">
-                            <label className="mb-1 block text-[10px] font-bold uppercase text-[#7A7164]">Estado operativo</label>
+                            <label className="mb-1 block text-[10px] font-bold uppercase text-[#7A7164]">
+                              {m("categoriesPage.operationalStatusLabel")}
+                            </label>
                             <select
                               name="operational_status"
                               defaultValue={c.operationalStatus}
@@ -250,14 +252,18 @@ export default async function AdminCategoriesPage() {
                             </select>
                           </div>
                           <div className="min-w-[120px] flex-1">
-                            <label className="mb-1 block text-[10px] font-bold uppercase text-[#7A7164]">Visibilidad</label>
+                            <label className="mb-1 block text-[10px] font-bold uppercase text-[#7A7164]">
+                              {m("categoriesPage.visibilityLabel")}
+                            </label>
                             <select name="visibility" defaultValue={c.visibility} className={adminInputClass}>
                               <option value="public">public</option>
                               <option value="hidden">hidden</option>
                             </select>
                           </div>
                           <div className="w-28">
-                            <label className="mb-1 block text-[10px] font-bold uppercase text-[#7A7164]">Orden</label>
+                            <label className="mb-1 block text-[10px] font-bold uppercase text-[#7A7164]">
+                              {m("categoriesPage.sortOrderLabel")}
+                            </label>
                             <input
                               type="number"
                               name="sort_order"
@@ -267,26 +273,26 @@ export default async function AdminCategoriesPage() {
                           </div>
                           <label className="flex cursor-pointer items-center gap-2 rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2 text-xs font-semibold text-[#1E1810]">
                             <input type="checkbox" name="highlight" value="true" defaultChecked={Boolean(c.highlight)} />
-                            Destacar
+                            {m("categoriesPage.highlightLabel")}
                           </label>
                           <div className="min-w-[200px] flex-[2]">
                             <label className="mb-1 block text-[10px] font-bold uppercase text-[#7A7164]">
-                              Notas (opcional, Supabase)
+                              {m("categoriesPage.notesLabel")}
                             </label>
                             <input
                               type="text"
                               name="notes"
                               defaultValue={c.overlayNotes ?? ""}
-                              placeholder="Solo si quieres anotación persistida…"
+                              placeholder={m("categoriesPage.notesPlaceholder")}
                               className={adminInputClass}
                             />
                           </div>
                           <button
                             type="submit"
                             className={adminBtnDark}
-                            title="Guarda visibilidad, orden y estado en site_category_config; actualiza el hub /clasificados/publicar"
+                            title={m("categoriesPage.saveButtonTitle")}
                           >
-                            Guardar categoría (Supabase + publicar)
+                            {m("categoriesPage.saveButton")}
                           </button>
                         </form>
                       </td>
@@ -300,9 +306,10 @@ export default async function AdminCategoriesPage() {
       </div>
 
       <p className="mt-4 text-xs text-[#7A7164]">
-        El orden en esta tabla sigue <code className="rounded bg-[#FBF7EF] px-1">sort_order</code> efectivo (overlay o índice de
-        código). Añade slugs nuevos primero en <code className="rounded bg-[#FBF7EF] px-1">categoryConfig</code>; luego podrás
-        ajustar postura aquí.
+        {m("categoriesPage.footerPart1")}{" "}
+        <code className="rounded bg-[#FBF7EF] px-1">sort_order</code> {m("categoriesPage.footerPart2")}{" "}
+        <code className="rounded bg-[#FBF7EF] px-1">categoryConfig</code>
+        {m("categoriesPage.footerPart3")}
       </p>
     </div>
   );

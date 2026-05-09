@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { autosRowMatchesAdminQueueSearch } from "@/app/admin/_lib/adminAdSearch";
+import { getAdminLang, adminMessages } from "@/app/admin/_lib/adminI18n";
 import {
   autosClassifiedsRowToDashboardRow,
   listAllAutosClassifiedsRowsForAdmin,
@@ -9,11 +10,14 @@ import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/
 import type { AutosClassifiedsListingRow } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import {
   autosListingAdminVisibilityBucket,
+  autosListingStatusLabelEn,
   autosListingStatusLabelEs,
 } from "@/app/lib/clasificados/autos/autosClassifiedsVisibility";
 import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import { AdminPageHeader } from "../../../../_components/AdminPageHeader";
 import { adminBtnSecondary, adminCardBase, adminCtaChipSecondary } from "../../../../_components/adminTheme";
+import { AutosAdminRowActions } from "./AutosAdminRowActions";
+import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +37,31 @@ function autosStripeAdminHint(row: AutosClassifiedsListingRow): string {
   return "—";
 }
 
+function formatTs(iso: string | null, locale: string): string {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    return Number.isFinite(d.getTime()) ? d.toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" }) : "—";
+  } catch {
+    return "—";
+  }
+}
+
+function visLabel(bucket: string, m: ReturnType<typeof adminMessages>): string {
+  if (bucket === "public") return m("autosQueue.visibilityPublic");
+  if (bucket === "pre_publish") return m("autosQueue.visibilityPre");
+  return m("autosQueue.visibilityInactive");
+}
+
+function statusLabel(status: AutosClassifiedsListingRow["status"], lang: AdminLang): string {
+  return lang === "es" ? autosListingStatusLabelEs(status) : autosListingStatusLabelEn(status);
+}
+
 export default async function AdminAutosClassifiedsPage(props: AutosAdminPageProps) {
+  const lang = await getAdminLang();
+  const m = adminMessages(lang);
+  const locale = lang === "es" ? "es-MX" : "en-US";
+
   const sp = props.searchParams ? await props.searchParams : {};
   const qRaw = typeof sp.q === "string" ? sp.q.trim() : "";
   let rows = await listAllAutosClassifiedsRowsForAdmin(400);
@@ -80,73 +108,63 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
 
   return (
     <div className="mx-auto max-w-[110rem] px-4 py-8 sm:px-6">
-      <AdminPageHeader
-        title="Autos — anuncios de pago (autos_classifieds_listings)"
-        subtitle="Estado del flujo Leonix Autos (privado / negocios). «Publicado» = status active y visible en API pública y vitrina /clasificados/autos."
-      />
+      <AdminPageHeader title={m("autosQueue.pageTitle")} subtitle={m("autosQueue.pageSubtitle")} />
 
       <div className="mb-6 flex flex-wrap gap-2">
         <Link href="/admin/workspace/clasificados" className={adminCtaChipSecondary}>
-          ← Cola genérica listings
+          {m("autosQueue.backGeneric")}
         </Link>
         <Link href="/publicar/autos" className={adminCtaChipSecondary} target="_blank" rel="noreferrer">
-          Flujo publicar Autos (sitio) ↗
+          {m("autosQueue.openPublishFlow")}
         </Link>
       </div>
 
       <div className={`${adminCardBase} mb-6 space-y-3 p-4 text-sm text-[#5C5346]`}>
-        <p className="font-bold text-[#1E1810]">Buscar cola</p>
-        <p className="text-[10px] leading-snug text-[#7A7164]">
-          Leonix Ad ID (si existe columna), UUID de anuncio o de usuario, URL /clasificados/autos/vehiculo/…, texto del vehículo
-          (marca, modelo, VIN, etc.), título, ciudad, y coincidencia por nombre / correo / teléfono del perfil propietario.
-        </p>
+        <p className="font-bold text-[#1E1810]">{m("autosQueue.searchTitle")}</p>
+        <p className="text-[10px] leading-snug text-[#7A7164]">{m("autosQueue.searchHint")}</p>
         <form className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end" method="get" action="/admin/workspace/clasificados/autos">
           <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs">
-            <span className="font-semibold text-[#5C5346]">q</span>
+            <span className="font-semibold text-[#5C5346]">{m("autosQueue.labelQ")}</span>
             <input
               name="q"
               defaultValue={qRaw}
               className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs text-[#1E1810]"
-              placeholder="UUID, URL, título, email del owner…"
+              placeholder={m("autosQueue.placeholderQ")}
               autoComplete="off"
             />
           </label>
           <button type="submit" className="rounded-xl bg-[#2A2620] px-4 py-2 text-xs font-bold text-[#FAF7F2]">
-            Aplicar
+            {m("common.apply")}
           </button>
           <Link href="/admin/workspace/clasificados/autos" className={`${adminBtnSecondary} inline-flex items-center text-xs`}>
-            Limpiar
+            {m("common.clear")}
           </Link>
         </form>
       </div>
 
       {rows.length === 0 ? (
         <div className={`${adminCardBase} p-6 text-sm text-[#5C5346]`}>
-          No hay filas en <code className="rounded bg-[#FBF7EF] px-1 text-[11px]">autos_classifieds_listings</code> o la base no
-          está configurada con service role.
+          {m("autosQueue.emptyTable")}
         </div>
       ) : (
         <div className={`${adminCardBase} overflow-x-auto p-0`}>
           <table className="min-w-full border-collapse text-left text-xs text-[#2C2416]">
             <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2] text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
               <tr>
-                <th className="px-3 py-2">ID</th>
-                <th className="px-3 py-2">Leonix Ad ID</th>
-                <th className="px-3 py-2">Título</th>
-                <th className="px-3 py-2">Vía</th>
-                <th className="px-3 py-2">Dest.</th>
-                <th className="px-3 py-2">Estado</th>
-                <th className="px-3 py-2">Visibilidad</th>
-                <th className="px-3 py-2">Publicado</th>
+                <th className="px-3 py-2">{m("listings.col.id")}</th>
+                <th className="px-3 py-2">{m("listings.col.leonixId")}</th>
+                <th className="px-3 py-2">{m("listings.col.title")}</th>
+                <th className="px-3 py-2">{m("autosQueue.colVia")}</th>
+                <th className="px-3 py-2">{m("autosQueue.colDest")}</th>
+                <th className="px-3 py-2">{m("listings.col.status")}</th>
+                <th className="px-3 py-2">{m("autosQueue.colVis")}</th>
+                <th className="px-3 py-2">{m("autosQueue.colPub")}</th>
                 <th className="px-3 py-2">Stripe</th>
-                <th className="px-3 py-2">Actualizado</th>
-                <th className="px-3 py-2">Owner</th>
-                <th className="px-3 py-2">Img</th>
-                <th
-                  className="px-3 py-2"
-                  title="Cola operativa: enlace público cuando aplica. Sin edición de contenido staff aquí; gestión del anunciante en cuenta."
-                >
-                  Acciones
+                <th className="px-3 py-2">{m("listings.col.date")}</th>
+                <th className="px-3 py-2">{m("listings.col.owner")}</th>
+                <th className="px-3 py-2">{m("autosQueue.colImg")}</th>
+                <th className="px-3 py-2" title={m("autosQueue.actionsColTitle")}>
+                  {m("autosQueue.colActions")}
                 </th>
               </tr>
             </thead>
@@ -154,14 +172,9 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
               {rows.map((r) => {
                 const dash = autosClassifiedsRowToDashboardRow(r);
                 const bucket = autosListingAdminVisibilityBucket(r.status);
-                const vis =
-                  bucket === "public"
-                    ? "Público (autos)"
-                    : bucket === "pre_publish"
-                      ? "Pre-publicación"
-                      : "Inactivo / retirado";
-                const pub = r.published_at ? new Date(r.published_at).toLocaleString("es-MX") : "—";
-                const updated = r.updated_at ? new Date(r.updated_at).toLocaleString("es-MX") : "—";
+                const vis = visLabel(bucket, m);
+                const pub = formatTs(r.published_at, locale);
+                const updated = formatTs(r.updated_at, locale);
                 const stripeHint = autosStripeAdminHint(r);
                 const liveHref =
                   r.status === "active"
@@ -179,8 +192,8 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                       {dash.title}
                     </td>
                     <td className="px-3 py-2">{r.lane}</td>
-                    <td className="px-3 py-2">{r.featured ? "sí" : "no"}</td>
-                    <td className="px-3 py-2">{autosListingStatusLabelEs(r.status)}</td>
+                    <td className="px-3 py-2">{r.featured ? m("autosQueue.yes") : m("autosQueue.no")}</td>
+                    <td className="px-3 py-2">{statusLabel(r.status, lang)}</td>
                     <td className="px-3 py-2">{vis}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-[10px] text-[#5C5346]">{pub}</td>
                     <td
@@ -193,21 +206,24 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                     <td className="max-w-[6rem] truncate px-3 py-2 font-mono text-[10px]" title={r.owner_user_id}>
                       {r.owner_user_id.slice(0, 8)}…
                     </td>
-                    <td className="px-3 py-2">{dash.thumbUrl ? "sí" : "no"}</td>
+                    <td className="px-3 py-2">{dash.thumbUrl ? m("autosQueue.yes") : m("autosQueue.no")}</td>
                     <td className="px-3 py-2">
-                      {liveHref ? (
-                        <Link
-                          href={liveHref}
-                          className="font-bold text-[#6B5B2E] underline"
-                          target="_blank"
-                          rel="noreferrer"
-                          title="Listado público Autos. Moderación/edición de pago: flujo del anunciante."
-                        >
-                          Ver público
-                        </Link>
-                      ) : (
-                        <span className="text-[#7A7164]">—</span>
-                      )}
+                      <div className="flex flex-col gap-2">
+                        {liveHref ? (
+                          <Link
+                            href={liveHref}
+                            className="font-bold text-[#6B5B2E] underline"
+                            target="_blank"
+                            rel="noreferrer"
+                            title={m("autosQueue.viewPublicTitle")}
+                          >
+                            {m("autosQueue.viewPublic")}
+                          </Link>
+                        ) : (
+                          <span className="text-[#7A7164]">—</span>
+                        )}
+                        <AutosAdminRowActions listingId={r.id} status={r.status} />
+                      </div>
                     </td>
                   </tr>
                 );
