@@ -126,5 +126,17 @@ export async function countOwnerActiveListingsAcrossSources(sb: SupabaseClient, 
     /* ignore */
   }
 
+  /** Matches `fetchOwnerViajesListings`: owner’s public staged offers only. */
+  try {
+    const q = await sb
+      .from("viajes_staged_listings")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_user_id", ownerId)
+      .eq("is_public", true);
+    if (!q.error && typeof q.count === "number") total += q.count;
+  } catch {
+    /* ignore */
+  }
+
   return total;
 }

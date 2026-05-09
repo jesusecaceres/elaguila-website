@@ -7,7 +7,6 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { deleteMuxAssetsForListingRecordClient } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
 import { AutosClassifiedListingManageCard } from "@/app/clasificados/autos/dashboard/AutosClassifiedListingManageCard";
-import { AutosLeonixPaidListingsSection } from "@/app/clasificados/autos/dashboard/AutosLeonixPaidListingsSection";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
@@ -19,15 +18,20 @@ import { DashboardStatsCard } from "../components/DashboardStatsCard";
 import { aggregateListingAnalyticsEvents, type ListingAnalyticsBucket } from "../lib/listingAnalyticsAggregate";
 import { fetchOwnerListingsForDashboard, mapOwnerListingRow } from "../lib/ownerListingsQuery";
 import {
+  buildAutosClassifiedsInventoryItems,
   buildRestaurantInventoryItems,
   buildEmpleosInventoryItems,
+  buildServiciosInventoryItems,
   buildViajesInventoryItems,
   dedupeRestaurantInventoryWithListings,
+  fetchOwnerAutosClassifiedsListings,
   fetchOwnerRestaurantListings,
   fetchOwnerEmpleosListings,
+  fetchOwnerServiciosListings,
   fetchOwnerViajesListings,
   type DashboardInventoryItem,
 } from "../lib/dashboardInventory";
+import { countOwnerActiveListingsAcrossSources } from "@/app/lib/ownerEngagementListingKeys";
 import { isListingBoosted, listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
 import {
   resolveListingUiStatus,
@@ -181,6 +185,46 @@ function passesTab(row: ListingRow, tab: Tab): boolean {
   return true;
 }
 
+/** Category chips / filters — aligns inventory sections with one key per lane. */
+type MisAnunciosCategoryFilter =
+  | "all"
+  | "en-venta"
+  | "autos"
+  | "bienes-raices"
+  | "rentas"
+  | "restaurantes"
+  | "empleos"
+  | "viajes"
+  | "servicios";
+
+const MIS_ANUNCIOS_CATEGORY_FILTERS: MisAnunciosCategoryFilter[] = [
+  "all",
+  "en-venta",
+  "autos",
+  "bienes-raices",
+  "rentas",
+  "restaurantes",
+  "empleos",
+  "viajes",
+  "servicios",
+];
+
+function isMisAnunciosCategoryFilter(raw: string | null | undefined): raw is MisAnunciosCategoryFilter {
+  return Boolean(raw && (MIS_ANUNCIOS_CATEGORY_FILTERS as string[]).includes(raw));
+}
+
+function listingRowCategoryKey(row: ListingRow): MisAnunciosCategoryFilter | "other" {
+  const cat = (row.category ?? "").toLowerCase();
+  if (cat === "en-venta") return "en-venta";
+  if (cat === "autos") return "autos";
+  if (cat === "rentas") return "rentas";
+  const lx = parseLeonixListingContract(row.detail_pairs);
+  const br = lx.branch;
+  if (br === "bienes_raices_privado" || br === "bienes_raices_negocio") return "bienes-raices";
+  if (br === "rentas_privado" || br === "rentas_negocio") return "rentas";
+  return "other";
+}
+
 function listingPriceDropLabel(row: ListingRow, lang: Lang): string | null {
   const o = row.original_price;
   const c = row.current_price ?? row.price;
@@ -210,7 +254,7 @@ export default function MyListingsPage() {
       lang === "es"
         ? {
             title: "Mis anuncios",
-            subtitle: "Gestiona, mide y promociona tus publicaciones.",
+            subtitle: "Gestiona tus anuncios por categoría y revisa solo lo que te pertenece.",
             searchPh: "Buscar por título…",
             tabAll: "Todos",
             tabActive: "Activos",
@@ -227,12 +271,21 @@ export default function MyListingsPage() {
             restaurantSectionTitle: "Restaurantes",
             restaurantSectionHint: "Gestiona tus restaurantes publicados sin salir del dashboard.",
             cta: "Publicar anuncio",
+            yourListings: "Tus anuncios",
+            categoryMgmt: "Gestión de categorías",
+            categoryMgmtHint:
+              "Publica en categorías nuevas o abre la gestión cuando ya tengas anuncios.",
+            activeCountNote:
+              "Los activos usan el mismo conteo que el resumen (todas las fuentes Leonix conectadas a tu cuenta).",
+            chipAll: "Todos",
+            manage: "Gestionar",
+            publish: "Publicar",
             errorTitle: "No pudimos cargar tus anuncios",
             back: "Volver al resumen",
           }
         : {
             title: "My listings",
-            subtitle: "Manage, measure, and promote your posts.",
+            subtitle: "Manage your listings by category and review only what you own.",
             searchPh: "Search by title…",
             tabAll: "All",
             tabActive: "Active",
@@ -248,7 +301,15 @@ export default function MyListingsPage() {
             emptyAll: "You don't have any listings yet.",
             restaurantSectionTitle: "Restaurants",
             restaurantSectionHint: "Manage your published restaurants from dashboard.",
-            cta: "Post an ad",
+            cta: "Publish listing",
+            yourListings: "Your listings",
+            categoryMgmt: "Category Management",
+            categoryMgmtHint: "Publish into new categories or open manage when you already have listings.",
+            activeCountNote:
+              "Active count matches Overview (all Leonix channels tied to your account).",
+            chipAll: "All",
+            manage: "Manage",
+            publish: "Publish",
             errorTitle: "We couldn't load your listings",
             back: "Back to overview",
           },
@@ -266,6 +327,13 @@ export default function MyListingsPage() {
   const [restaurantInventory, setRestaurantInventory] = useState<DashboardInventoryItem[]>([]);
   const [empleosInventory, setEmpleosInventory] = useState<DashboardInventoryItem[]>([]);
   const [viajesInventory, setViajesInventory] = useState<DashboardInventoryItem[]>([]);
+  const [serviciosInventory, setServiciosInventory] = useState<DashboardInventoryItem[]>([]);
+  const [autosPaidInventory, setAutosPaidInventory] = useState<DashboardInventoryItem[]>([]);
+  const [unifiedActiveCount, setUnifiedActiveCount] = useState<number | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<MisAnunciosCategoryFilter>(() => {
+    const raw = searchParams?.get("cat");
+    return isMisAnunciosCategoryFilter(raw) ? raw : "all";
+  });
   const [error, setError] = useState<string | null>(null);
   const [boostExpiresAvailable, setBoostExpiresAvailable] = useState(true);
   const [analyticsByListing, setAnalyticsByListing] = useState<Record<string, ListingAnalyticsBucket>>({});
@@ -274,6 +342,20 @@ export default function MyListingsPage() {
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
   const [previewListingId, setPreviewListingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const raw = searchParams?.get("cat");
+    setCategoryFilter(isMisAnunciosCategoryFilter(raw) ? raw : "all");
+  }, [searchParams]);
+
+  function setCategoryFilterAndUrl(next: MisAnunciosCategoryFilter) {
+    setCategoryFilter(next);
+    const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    sp.set("lang", lang);
+    if (next === "all") sp.delete("cat");
+    else sp.set("cat", next);
+    router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
+  }
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -341,11 +423,24 @@ export default function MyListingsPage() {
       
       const viajesRows = await fetchOwnerViajesListings(supabase, u.id);
       const viajesItems = buildViajesInventoryItems(viajesRows, lang);
-      
+
+      const { data: sessData } = await supabase.auth.getSession();
+      const accessToken = sessData.session?.access_token ?? null;
+      const [activeAcross, autosPaidRows, serviciosRows] = await Promise.all([
+        countOwnerActiveListingsAcrossSources(supabase, u.id),
+        fetchOwnerAutosClassifiedsListings(supabase, u.id),
+        fetchOwnerServiciosListings(accessToken),
+      ]);
+      const autosPaidItems = buildAutosClassifiedsInventoryItems(autosPaidRows, lang);
+      const serviciosItems = buildServiciosInventoryItems(serviciosRows, lang);
+
       if (!mounted) return;
+      setUnifiedActiveCount(activeAcross);
       setRestaurantInventory(dedupeRestaurantInventoryWithListings(restaurantItems, list));
       setEmpleosInventory(empleosItems);
       setViajesInventory(viajesItems);
+      setAutosPaidInventory(autosPaidItems);
+      setServiciosInventory(serviciosItems);
       setListingsLoading(false);
 
       if (list.length > 0) {
@@ -475,27 +570,44 @@ export default function MyListingsPage() {
     () => listings.filter((x) => passesTab(x, tab)),
     [listings, tab]
   );
+
+  const categoryFilteredListings = useMemo(() => {
+    if (categoryFilter === "all") return filteredByTab;
+    return filteredByTab.filter((row) => {
+      const k = listingRowCategoryKey(row);
+      if (categoryFilter === "autos") return k === "autos";
+      if (categoryFilter === "en-venta") return k === "en-venta";
+      if (categoryFilter === "bienes-raices") return k === "bienes-raices";
+      if (categoryFilter === "rentas") return k === "rentas";
+      return false;
+    });
+  }, [filteredByTab, categoryFilter]);
+
   const visible = useMemo(() => {
-    if (!needle) return filteredByTab;
-    return filteredByTab.filter((x) => (x.title ?? "").toLowerCase().includes(needle));
-  }, [filteredByTab, needle]);
+    if (!needle) return categoryFilteredListings;
+    return categoryFilteredListings.filter((x) => (x.title ?? "").toLowerCase().includes(needle));
+  }, [categoryFilteredListings, needle]);
 
   useEffect(() => {
-    const fid = visible[0]?.id ?? null;
-    if (!fid) {
+    if (visible.length === 0) {
       setPreviewListingId(null);
       return;
     }
-    setPreviewListingId((prev) => (prev && visible.some((x) => x.id === prev) ? prev : fid));
+    if (visible.length === 1) {
+      setPreviewListingId(visible[0]!.id);
+      return;
+    }
+    setPreviewListingId((prev) => (prev && visible.some((x) => x.id === prev) ? prev : null));
   }, [visible]);
 
   const previewRow = useMemo(() => {
     if (visible.length === 0) return null;
+    if (visible.length > 1 && !previewListingId) return null;
     if (previewListingId) {
       const hit = visible.find((x) => x.id === previewListingId);
       if (hit) return hit;
     }
-    return visible[0];
+    return visible.length === 1 ? visible[0]! : null;
   }, [visible, previewListingId]);
 
   function resolveViews(x: ListingRow, stats?: ListingAnalyticsBucket) {
@@ -512,7 +624,7 @@ export default function MyListingsPage() {
     return m;
   }, [listings, analyticsByListing]);
 
-  const totalActive = listings.filter((x) => normalizeStatus(x.status) === "active").length;
+  const totalActive = unifiedActiveCount ?? listings.filter((x) => normalizeStatus(x.status) === "active").length;
   const totalViewsSum = useMemo(() => {
     let s = 0;
     for (const x of listings) {
@@ -548,7 +660,62 @@ export default function MyListingsPage() {
   const pm = previewStats?.messages ?? 0;
 
   const showLoading = authLoading || listingsLoading;
-  const hasAnyInventory = listings.length > 0 || restaurantInventory.length > 0 || empleosInventory.length > 0 || viajesInventory.length > 0;
+  const hasAnyInventory =
+    listings.length > 0 ||
+    restaurantInventory.length > 0 ||
+    empleosInventory.length > 0 ||
+    viajesInventory.length > 0 ||
+    serviciosInventory.length > 0 ||
+    autosPaidInventory.length > 0;
+
+  const categoryCounts = useMemo(() => {
+    let enVenta = 0;
+    let autosTbl = 0;
+    let br = 0;
+    let rentas = 0;
+    for (const row of listings) {
+      const k = listingRowCategoryKey(row);
+      if (k === "en-venta") enVenta += 1;
+      if (k === "autos") autosTbl += 1;
+      if (k === "bienes-raices") br += 1;
+      if (k === "rentas") rentas += 1;
+    }
+    return {
+      "en-venta": enVenta,
+      autos: autosTbl + autosPaidInventory.length,
+      "bienes-raices": br,
+      rentas,
+      restaurantes: restaurantInventory.length,
+      empleos: empleosInventory.length,
+      viajes: viajesInventory.length,
+      servicios: serviciosInventory.length,
+    } as Record<Exclude<MisAnunciosCategoryFilter, "all">, number>;
+  }, [listings, autosPaidInventory, restaurantInventory, empleosInventory, viajesInventory, serviciosInventory]);
+
+  const filterChips = useMemo(() => {
+    const owned = (MIS_ANUNCIOS_CATEGORY_FILTERS.filter((c) => c !== "all") as Exclude<MisAnunciosCategoryFilter, "all">[]).filter(
+      (c) => (categoryCounts[c] ?? 0) > 0
+    );
+    return owned;
+  }, [categoryCounts]);
+
+  const showRestSection =
+    restaurantInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "restaurantes");
+  const showEmpleosSection =
+    empleosInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "empleos");
+  const showViajesSection = viajesInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "viajes");
+  const showServiciosSection =
+    serviciosInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "servicios");
+  const showAutosPaidSection =
+    autosPaidInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "autos");
+
+  const showListingsTableSection =
+    listings.length > 0 &&
+    (categoryFilter === "all" ||
+      categoryFilter === "en-venta" ||
+      categoryFilter === "autos" ||
+      categoryFilter === "bienes-raices" ||
+      categoryFilter === "rentas");
 
   const accountRef = userId ? accountRefFromId(userId) : null;
 
@@ -585,7 +752,9 @@ export default function MyListingsPage() {
             saves={ps}
             messages={pm}
           />
-        ) : null
+        ) : (
+          <DashboardMobilePreview lang={lang} mode="placeholder" />
+        )
       }
     >
       {showLoading ? (
@@ -605,103 +774,107 @@ export default function MyListingsPage() {
             </Link>
           </header>
 
-          {/* Category clarity section */}
-          <div className="mt-4 rounded-2xl border border-blue-200/80 bg-blue-50/90 p-4 text-xs leading-relaxed text-[#1E3A8A]">
-            <p className="font-semibold text-[#1E1810]">Gestión por categorías</p>
-            <p className="mt-1">
-              {lang === "es" 
-                ? "Algunas categorías todavía se administran en su propia sección. Usa los enlaces para acceder a cada área."
-                : "Some categories are still managed in their own sections. Use the links to access each area."
-              }
-            </p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              <Link
-                href={`/dashboard/restaurantes?${q}`}
-                className="flex items-center gap-2 rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm font-medium text-[#2C2416] hover:bg-[#FAF7F2]"
-              >
-                <span className="text-[#C9A84A]" aria-hidden>🍽</span>
-                {lang === "es" ? "Restaurantes" : "Restaurants"}
-              </Link>
-              <Link
-                href={`/dashboard/servicios?${q}`}
-                className="flex items-center gap-2 rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm font-medium text-[#2C2416] hover:bg-[#FAF7F2]"
-              >
-                <span className="text-[#C9A84A]" aria-hidden>⚙️</span>
-                {lang === "es" ? "Servicios" : "Services"}
-              </Link>
-              <Link
-                href={`/dashboard/empleos?${q}`}
-                className="flex items-center gap-2 rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm font-medium text-[#2C2416] hover:bg-[#FAF7F2]"
-              >
-                <span className="text-[#C9A84A]" aria-hidden>💼</span>
-                {lang === "es" ? "Empleos" : "Jobs"}
-              </Link>
-              <Link
-                href={`/dashboard/viajes?${q}`}
-                className="flex items-center gap-2 rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm font-medium text-[#2C2416] hover:bg-[#FAF7F2]"
-              >
-                <span className="text-[#C9A84A]" aria-hidden>✈️</span>
-                {lang === "es" ? "Viajes" : "Travel"}
-              </Link>
-              <Link
-                href={`/dashboard/mis-anuncios?${q}`}
-                className="flex items-center gap-2 rounded-lg border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] px-3 py-2 text-sm font-medium text-[#1E1810] hover:brightness-[1.03]"
-              >
-                <span className="text-[#C9A84A]" aria-hidden>📦</span>
-                {lang === "es" ? "En Venta / Autos / BR / Rentas" : "For Sale / Autos / Real Estate / Rentals"}
-              </Link>
+          <div className="mt-6 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.08)]">
+            <h2 className="text-lg font-bold text-[#1E1810]">{t.categoryMgmt}</h2>
+            <p className="mt-2 text-sm text-[#5C5346]/95">{t.categoryMgmtHint}</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                {
+                  key: "restaurantes" as const,
+                  title: lang === "es" ? "Restaurantes" : "Restaurants",
+                  owned: categoryCounts.restaurantes,
+                  manage: `/dashboard/restaurantes?${q}`,
+                  publish: `/publicar/restaurantes?${q}`,
+                },
+                {
+                  key: "servicios" as const,
+                  title: lang === "es" ? "Servicios" : "Services",
+                  owned: categoryCounts.servicios,
+                  manage: `/dashboard/servicios?${q}`,
+                  publish: `/clasificados/publicar/servicios?${q}`,
+                },
+                {
+                  key: "en-venta" as const,
+                  title: lang === "es" ? "En venta" : "For sale",
+                  owned: categoryCounts["en-venta"],
+                  manage: `/dashboard/mis-anuncios?${q}&cat=en-venta`,
+                  publish: `/clasificados/publicar/en-venta?${q}`,
+                },
+                {
+                  key: "autos" as const,
+                  title: lang === "es" ? "Autos" : "Autos",
+                  owned: categoryCounts.autos,
+                  manage: `/dashboard/mis-anuncios?${q}&cat=autos`,
+                  publish: `/publicar/autos?${q}`,
+                },
+                {
+                  key: "empleos" as const,
+                  title: lang === "es" ? "Empleos" : "Jobs",
+                  owned: categoryCounts.empleos,
+                  manage: `/dashboard/empleos?${q}`,
+                  publish: `/clasificados/publicar/empleos?${q}`,
+                },
+                {
+                  key: "rentas" as const,
+                  title: lang === "es" ? "Rentas" : "Rentals",
+                  owned: categoryCounts.rentas,
+                  manage: `/dashboard/mis-anuncios?${q}&cat=rentas`,
+                  publish: `/publicar/rentas/privado?${q}`,
+                },
+                {
+                  key: "bienes-raices" as const,
+                  title: lang === "es" ? "Bienes raíces" : "Real estate",
+                  owned: categoryCounts["bienes-raices"],
+                  manage: `/dashboard/mis-anuncios?${q}&cat=bienes-raices`,
+                  publish: `/publicar/bienes-raices?${q}`,
+                },
+                {
+                  key: "viajes" as const,
+                  title: lang === "es" ? "Viajes" : "Travel",
+                  owned: categoryCounts.viajes,
+                  manage: `/dashboard/viajes?${q}`,
+                  publish: `/publicar/viajes?${q}`,
+                },
+              ].map((c) => {
+                const hasOwned = c.owned > 0;
+                return (
+                  <div
+                    key={c.key}
+                    className={`rounded-2xl border p-4 ${
+                      hasOwned ? "border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA]" : "border-[#E8DFD0]/80 bg-[#FAF7F2]/60"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-semibold text-[#1E1810]">{c.title}</h3>
+                      <span
+                        className={`text-xs font-bold tabular-nums ${hasOwned ? "text-[#1E1810]" : "text-[#7A7164]"}`}
+                        title={lang === "es" ? "Tuyos" : "Yours"}
+                      >
+                        {c.owned}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Link
+                        href={c.manage}
+                        className={`inline-flex rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                          hasOwned
+                            ? "bg-[#2A2620] text-[#FAF7F2] hover:bg-[#1a1814]"
+                            : "border border-[#E8DFD0] bg-white text-[#7A7164] hover:bg-[#FFFCF7]"
+                        }`}
+                      >
+                        {t.manage}
+                      </Link>
+                      <Link
+                        href={c.publish}
+                        className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+                      >
+                        {t.publish}
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
-
-          <AutosLeonixPaidListingsSection lang={lang} />
-
-          <div className="mt-4 rounded-2xl border border-amber-200/80 bg-amber-50/90 p-4 text-xs leading-relaxed text-[#5C5346]">
-            <p className="font-semibold text-[#1E1810]">Empleos — producción (Supabase)</p>
-            <p className="mt-1">
-              Las vacantes publicadas desde los flujos Empleos (rápido / premium / feria) se guardan en{" "}
-              <code className="rounded bg-white/80 px-1 text-[11px]">empleos_public_listings</code> (requiere sesión). Aparecen en
-              resultados mezclados con el catálogo de muestra. Gestión y enlaces:
-            </p>
-            <p className="mt-2">
-              <Link href={`/dashboard/empleos?${q}`} className="font-semibold text-[#8A6A1A] underline">
-                {lang === "es" ? "Mis vacantes Empleos →" : "My job listings (Empleos) →"}
-              </Link>
-              {" · "}
-              <Link href="/admin/workspace/clasificados/empleos" className="font-semibold text-[#8A6A1A] underline">
-                {lang === "es" ? "Moderación Empleos (admin) →" : "Empleos moderation (admin) →"}
-              </Link>
-            </p>
-          </div>
-
-          <div className="mt-4 rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-4 text-xs leading-relaxed text-[#5C5346]">
-            <p className="font-semibold text-[#1E1810]">BR / Rentas — gestión</p>
-            <p className="mt-1">
-              Modelo vivo: borrador (local / <code className="rounded bg-[#F9F6F1] px-1 text-[11px]">listing_drafts</code>) →
-              publicación → <code className="rounded bg-[#F9F6F1] px-1 text-[11px]">listings</code> con{" "}
-              <code className="rounded bg-[#F9F6F1] px-1 text-[11px]">detail_pairs</code> Leonix (rama, operación, categoría). Vista
-              previa no es listado público.
-            </p>
-            <p className="mt-2">
-              Publicación en borrador:{" "}
-              <Link href="/publicar/bienes-raices/privado" className="font-semibold text-[#B8954A] underline">
-                BR Privado
-              </Link>
-              ,{" "}
-              <Link href="/publicar/bienes-raices" className="font-semibold text-[#B8954A] underline">
-                BR Negocio (selector)
-              </Link>
-              ,{" "}
-              <Link href="/publicar/rentas/privado" className="font-semibold text-[#B8954A] underline">
-                Rentas Privado
-              </Link>
-              ,{" "}
-              <Link href="/publicar/rentas/negocio" className="font-semibold text-[#B8954A] underline">
-                Rentas Negocio
-              </Link>
-              . Los anuncios vivos siguen apareciendo abajo con enlace a{" "}
-              <code className="rounded bg-[#F9F6F1] px-1 text-[11px]">/clasificados/anuncio/…</code>; analíticas ampliadas
-              vendrán después.
-            </p>
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
@@ -715,6 +888,75 @@ export default function MyListingsPage() {
               <DashboardStatsCard key={c.label} label={c.label} value={c.value} icon={c.icon} />
             ))}
           </div>
+          <p className="mt-3 max-w-3xl text-xs leading-relaxed text-[#7A7164]/95">{t.activeCountNote}</p>
+
+          {filterChips.length > 0 ? (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
+                {lang === "es" ? "Categoría" : "Category"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCategoryFilterAndUrl("all")}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  categoryFilter === "all"
+                    ? "bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] text-[#1E1810] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9B46A]/35"
+                    : "text-[#5C5346] hover:bg-[#FFFCF7]/80"
+                }`}
+              >
+                {t.chipAll}
+              </button>
+              {filterChips.map((fk) => {
+                const label =
+                  fk === "en-venta"
+                    ? lang === "es"
+                      ? "En venta"
+                      : "For sale"
+                    : fk === "bienes-raices"
+                      ? lang === "es"
+                        ? "BR"
+                        : "Real estate"
+                      : fk === "restaurantes"
+                        ? lang === "es"
+                          ? "Restaurantes"
+                          : "Restaurants"
+                        : fk === "rentas"
+                          ? lang === "es"
+                            ? "Rentas"
+                            : "Rentals"
+                          : fk === "empleos"
+                            ? lang === "es"
+                              ? "Empleos"
+                              : "Jobs"
+                            : fk === "viajes"
+                              ? lang === "es"
+                                ? "Viajes"
+                                : "Travel"
+                              : fk === "servicios"
+                                ? lang === "es"
+                                  ? "Servicios"
+                                  : "Services"
+                                : fk === "autos"
+                                  ? "Autos"
+                                  : fk;
+                return (
+                  <button
+                    key={fk}
+                    type="button"
+                    onClick={() => setCategoryFilterAndUrl(fk)}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                      categoryFilter === fk
+                        ? "bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] text-[#1E1810] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9B46A]/35"
+                        : "text-[#5C5346] hover:bg-[#FFFCF7]/80"
+                    }`}
+                  >
+                    {label}{" "}
+                    <span className="tabular-nums opacity-80">({categoryCounts[fk]})</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
 
           <div className="mt-6 flex flex-col gap-4 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4 shadow-inner sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap gap-2">
@@ -734,15 +976,16 @@ export default function MyListingsPage() {
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#7A7164]">⌕</span>
               </div>
               {visible.length > 1 ? (
-                <div className="hidden min-w-[220px] 2xl:block">
+                <div className="min-w-[220px] w-full sm:w-auto">
                   <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
                     {lang === "es" ? "Vista previa móvil" : "Mobile preview"}
                   </label>
                   <select
-                    value={previewListingId ?? visible[0]?.id ?? ""}
-                    onChange={(e) => setPreviewListingId(e.target.value)}
+                    value={previewListingId ?? ""}
+                    onChange={(e) => setPreviewListingId(e.target.value ? e.target.value : null)}
                     className="mt-1 w-full rounded-2xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/60"
                   >
+                    <option value="">{lang === "es" ? "— Elegir anuncio —" : "— Choose listing —"}</option>
                     {visible.map((x) => (
                       <option key={x.id} value={x.id}>
                         {(x.title ?? "").trim() || shortListingRef(x.id)}
@@ -761,7 +1004,11 @@ export default function MyListingsPage() {
             </div>
           ) : null}
 
-          {restaurantInventory.length > 0 ? (
+          {hasAnyInventory ? (
+            <h2 className="mt-10 text-xl font-bold tracking-tight text-[#1E1810] sm:text-2xl">{t.yourListings}</h2>
+          ) : null}
+
+          {showRestSection ? (
             <section className="mt-8">
               <div className="mb-4">
                 <h2 className="text-xl font-bold text-[#1E1810]">
@@ -799,7 +1046,7 @@ export default function MyListingsPage() {
             </section>
           ) : null}
 
-          {empleosInventory.length > 0 ? (
+          {showEmpleosSection ? (
             <section className="mt-8">
               <div className="mb-4">
                 <h2 className="text-xl font-bold text-[#1E1810]">
@@ -852,7 +1099,7 @@ export default function MyListingsPage() {
             </section>
           ) : null}
 
-          {viajesInventory.length > 0 ? (
+          {showViajesSection ? (
             <section className="mt-8">
               <div className="mb-4">
                 <h2 className="text-xl font-bold text-[#1E1810]">
@@ -905,6 +1152,82 @@ export default function MyListingsPage() {
             </section>
           ) : null}
 
+          {showAutosPaidSection ? (
+            <section className="mt-8">
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-[#1E1810]">
+                  {lang === "es" ? "Autos (Leonix pago)" : "Autos (Leonix paid)"} ({autosPaidInventory.length})
+                </h2>
+                <p className="mt-1 text-sm text-[#5C5346]/90">
+                  {lang === "es"
+                    ? "Anuncios activos en la tabla de autos de pago."
+                    : "Active rows in the paid Autos inventory."}
+                </p>
+              </div>
+              <div className="grid gap-4">
+                {autosPaidInventory.map((item) => (
+                  <DashboardCategoryListingCard
+                    key={item.id}
+                    lang={lang}
+                    categoryLabel={lang === "es" ? "Auto" : "Vehicle"}
+                    title={item.title}
+                    status={item.status}
+                    subtitle={item.publicHref}
+                    metaItems={[
+                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
+                      { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
+                    ]}
+                    actions={[
+                      { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
+                      { href: item.editHref, label: lang === "es" ? "Gestionar" : "Manage" },
+                      { href: item.resultsHref ?? undefined, label: lang === "es" ? "Ver resultados" : "View results", tone: "subtle" as const },
+                    ].filter((action) => Boolean(action.href))}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {showServiciosSection ? (
+            <section className="mt-8">
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-[#1E1810]">
+                  {lang === "es" ? "Servicios" : "Services"} ({serviciosInventory.length})
+                </h2>
+                <p className="mt-1 text-sm text-[#5C5346]/90">
+                  {lang === "es"
+                    ? "Perfiles publicados en la nube (misma fuente que el hub de Servicios)."
+                    : "Cloud-published profiles (same source as the Services hub)."}
+                </p>
+              </div>
+              <div className="grid gap-4">
+                {serviciosInventory.map((item) => (
+                  <DashboardCategoryListingCard
+                    key={item.id}
+                    lang={lang}
+                    categoryLabel={lang === "es" ? "Servicio" : "Service"}
+                    title={item.title}
+                    status={item.status}
+                    subtitle={item.slug ?? undefined}
+                    badges={item.verified ? [lang === "es" ? "Verificado" : "Verified"] : []}
+                    metaItems={[
+                      { label: lang === "es" ? "Slug" : "Slug", value: item.slug ?? "—" },
+                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
+                    ]}
+                    actions={[
+                      { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
+                      { href: item.editHref, label: lang === "es" ? "Gestionar" : "Manage" },
+                      ...(item.previewHref
+                        ? [{ href: item.previewHref, label: lang === "es" ? "Vista previa" : "Preview", tone: "subtle" as const }]
+                        : []),
+                      { href: item.resultsHref ?? undefined, label: lang === "es" ? "Resultados" : "Results", tone: "subtle" as const },
+                    ].filter((action) => Boolean(action.href))}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           {!hasAnyInventory ? (
             <div className="mt-8 rounded-3xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-8 text-center">
               <p className="font-semibold text-[#1E1810]">{t.emptyAll}</p>
@@ -915,9 +1238,9 @@ export default function MyListingsPage() {
                 {t.cta}
               </Link>
             </div>
-          ) : listings.length > 0 && visible.length === 0 ? (
+          ) : showListingsTableSection && visible.length === 0 ? (
             <div className="mt-8 rounded-3xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-8 text-center text-[#5C5346]">{t.empty}</div>
-          ) : listings.length > 0 ? (
+          ) : showListingsTableSection && visible.length > 0 ? (
             <div className="mt-8 flex flex-col gap-5">
               {visible.map((x) => {
                 const status = normalizeStatus(x.status);

@@ -3,11 +3,12 @@
 type Lang = "es" | "en";
 
 /**
- * Compact preview of the first listing’s metrics — data comes from parent when listings exist.
+ * Compact preview of a listing’s metrics — data comes from the parent when a row is selected.
  * The shell only shows this panel from `2xl` breakpoints up so laptop/tablet layouts stay single-main-column.
  */
 export function DashboardMobilePreview({
   lang,
+  mode = "listing",
   title,
   priceLine,
   city,
@@ -16,12 +17,13 @@ export function DashboardMobilePreview({
   messages,
 }: {
   lang: Lang;
-  title: string;
-  priceLine: string;
-  city: string;
-  views: number;
-  saves: number;
-  messages: number;
+  mode?: "listing" | "placeholder";
+  title?: string;
+  priceLine?: string;
+  city?: string;
+  views?: number;
+  saves?: number;
+  messages?: number;
 }) {
   const L =
     lang === "es"
@@ -31,6 +33,7 @@ export function DashboardMobilePreview({
           saves: "Favoritos",
           msgs: "Mensajes",
           hint: "Así ven tus compradores el anuncio en el teléfono.",
+          placeholder: "Selecciona un anuncio para la vista previa.",
         }
       : {
           preview: "Mobile view",
@@ -38,7 +41,22 @@ export function DashboardMobilePreview({
           saves: "Favorites",
           msgs: "Messages",
           hint: "How buyers see your listing on mobile.",
+          placeholder: "Select a listing to preview.",
         };
+
+  if (mode === "placeholder") {
+    return (
+      <aside className="sticky top-24 rounded-[2rem] border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_16px_48px_-18px_rgba(42,36,22,0.18)]">
+        <p className="text-center text-[10px] font-bold uppercase tracking-[0.2em] text-[#7A7164]">{L.preview}</p>
+        <div
+          className="relative mx-auto mt-4 flex w-full max-w-[260px] items-center justify-center overflow-hidden rounded-[2rem] border-[10px] border-[#2A2620] bg-[#F3EBDD] shadow-xl"
+          style={{ aspectRatio: "9/18" }}
+        >
+          <p className="max-w-[200px] px-4 text-center text-sm font-semibold leading-snug text-[#5C5346]">{L.placeholder}</p>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className="sticky top-24 rounded-[2rem] border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4 shadow-[0_16px_48px_-18px_rgba(42,36,22,0.18)]">
@@ -50,21 +68,21 @@ export function DashboardMobilePreview({
         <div className="absolute inset-0 flex flex-col bg-[#F3EBDD]">
           <div className="h-[42%] bg-gradient-to-br from-[#FAF4EA] to-[#EDE4D4]" />
           <div className="flex flex-1 flex-col gap-2 p-3">
-            <p className="line-clamp-2 text-[13px] font-bold leading-tight text-[#1E1810]">{title}</p>
-            <p className="text-[15px] font-bold text-[#1E1810]">{priceLine}</p>
-            <p className="text-[11px] text-[#5C5346]">{city}</p>
+            <p className="line-clamp-2 text-[13px] font-bold leading-tight text-[#1E1810]">{title ?? "—"}</p>
+            <p className="text-[15px] font-bold text-[#1E1810]">{priceLine ?? "—"}</p>
+            <p className="text-[11px] text-[#5C5346]">{city ?? "—"}</p>
             <div className="mt-auto grid grid-cols-3 gap-1 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-2 text-center">
               <div>
                 <p className="text-[9px] font-semibold uppercase text-[#7A7164]">{L.views}</p>
-                <p className="text-sm font-bold text-[#1E1810]">{views}</p>
+                <p className="text-sm font-bold text-[#1E1810]">{views ?? 0}</p>
               </div>
               <div>
                 <p className="text-[9px] font-semibold uppercase text-[#7A7164]">{L.saves}</p>
-                <p className="text-sm font-bold text-[#1E1810]">{saves}</p>
+                <p className="text-sm font-bold text-[#1E1810]">{saves ?? 0}</p>
               </div>
               <div>
                 <p className="text-[9px] font-semibold uppercase text-[#7A7164]">{L.msgs}</p>
-                <p className="text-sm font-bold text-[#1E1810]">{messages}</p>
+                <p className="text-sm font-bold text-[#1E1810]">{messages ?? 0}</p>
               </div>
             </div>
           </div>

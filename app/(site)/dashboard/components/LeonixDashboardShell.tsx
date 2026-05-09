@@ -134,7 +134,7 @@ export function LeonixDashboardShell({
           pro: "LEONIX Pro",
           home: "Overview",
           profile: "Profile & account",
-          listings: "My ads",
+          listings: "My listings",
           restaurants: "My restaurants",
           messages: "Messages",
           drafts: "Drafts",
@@ -146,7 +146,7 @@ export function LeonixDashboardShell({
           servicios: "Servicios (test)",
           viajesStaged: "Viajes (review)",
           activity: "Activity",
-          publish: "Post an ad",
+          publish: "Publish listing",
           signOut: "Sign out",
           badgeInbox: "Inquiries in inbox",
           badgeDrafts: "Unpublished drafts",
@@ -260,9 +260,6 @@ export function LeonixDashboardShell({
             <nav className="mt-5 space-y-1">
               {navItem("home", `/dashboard?${q}`, L.home)}
               {navItem("listings", `/dashboard/mis-anuncios?${q}`, L.listings, navCounts.expiring, L.badgeExpiring)}
-              {navItem("restaurantes", `/dashboard/restaurantes?${q}`, L.restaurants)}
-              {navItem("servicios", `/dashboard/servicios?${q}`, L.servicios)}
-              {navItem("viajes", `/dashboard/viajes?${q}`, L.viajesStaged)}
               {navItem("messages", `/dashboard/mensajes?${q}`, L.messages, navCounts.messages, L.badgeInbox)}
               {navItem("drafts", `/dashboard/drafts?${q}`, L.drafts, navCounts.drafts, L.badgeDrafts)}
               {navItem("saved", `/dashboard/guardados?${q}`, L.saved)}

@@ -247,7 +247,7 @@ export default function DashboardViajesStagedPage() {
   return (
     <LeonixDashboardShell
       lang={lang}
-      activeNav="viajes"
+      activeNav="listings"
       plan={plan}
       userName={name}
       email={email}

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { EMPLEOS_PREVIEW_ROUTES } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
+import { buildVehicleTitle } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 
 export type DashboardInventoryItem = {
   id: string;
@@ -27,7 +28,13 @@ export type DashboardInventoryItem = {
   promoted?: boolean;
   verified?: boolean;
   draftListingId?: string | null;
-  source: "listings" | "restaurantes_public_listings" | "empleos_public_listings" | "viajes_staged_listings";
+  source:
+    | "listings"
+    | "restaurantes_public_listings"
+    | "empleos_public_listings"
+    | "viajes_staged_listings"
+    | "autos_classifieds_listings"
+    | "servicios_public_listings";
 };
 
 export type DashboardRestaurantRow = {
@@ -67,6 +74,26 @@ export type DashboardViajesRow = {
   hero_image_url: string | null;
   published_at: string | null;
   updated_at: string;
+};
+
+export type DashboardAutosClassifiedsRow = {
+  id: string;
+  status: string;
+  lane: string;
+  lang: string;
+  listing_payload: Record<string, unknown>;
+  published_at: string | null;
+  updated_at: string;
+};
+
+/** Row shape returned by `GET /api/clasificados/servicios/my-listings` (cloud owner inventory only). */
+export type ServiciosMyListingApiRow = {
+  slug: string;
+  business_name: string;
+  city: string | null;
+  published_at: string | null;
+  listing_status: string;
+  leonix_verified: boolean;
 };
 
 function extractDetailPairValue(detailPairs: unknown, key: string): string | null {
@@ -126,6 +153,123 @@ export async function fetchOwnerViajesListings(
     .order("updated_at", { ascending: false });
   if (error || !data) return [];
   return data as DashboardViajesRow[];
+}
+
+export async function fetchOwnerAutosClassifiedsListings(
+  sb: SupabaseClient,
+  ownerId: string,
+): Promise<DashboardAutosClassifiedsRow[]> {
+  const { data, error } = await sb
+    .from("autos_classifieds_listings")
+    .select("id, status, lane, lang, listing_payload, published_at, updated_at")
+    .eq("owner_user_id", ownerId)
+    .order("updated_at", { ascending: false });
+  if (error || !data) return [];
+  return data as DashboardAutosClassifiedsRow[];
+}
+
+function autosClassifiedsTitleFromPayload(payload: unknown, lang: "es" | "en"): string {
+  const p = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
+  const yearRaw = p.year;
+  const year = typeof yearRaw === "number" && Number.isFinite(yearRaw) ? yearRaw : parseInt(String(yearRaw ?? ""), 10);
+  const make = typeof p.make === "string" ? p.make : undefined;
+  const model = typeof p.model === "string" ? p.model : undefined;
+  const trim = typeof p.trim === "string" ? p.trim : undefined;
+  const t = buildVehicleTitle(Number.isFinite(year) ? year : undefined, make, model, trim);
+  if (t.trim()) return t;
+  return lang === "es" ? "Auto (Leonix)" : "Vehicle (Leonix)";
+}
+
+export function buildAutosClassifiedsInventoryItems(
+  rows: DashboardAutosClassifiedsRow[],
+  lang: "es" | "en",
+): DashboardInventoryItem[] {
+  const q = `lang=${lang}`;
+  return rows.map((row) => ({
+    id: row.id,
+    category: "autos_paid",
+    title: autosClassifiedsTitleFromPayload(row.listing_payload, lang),
+    status: row.status,
+    publicHref: `/clasificados/autos/vehiculo/${encodeURIComponent(row.id)}?${q}`,
+    editHref: `/clasificados/autos/vehiculo/${encodeURIComponent(row.id)}?${q}`,
+    previewHref: null,
+    resultsHref: `/clasificados/autos/resultados?${q}`,
+    analyticsHref: `/dashboard/analytics?${q}`,
+    messagesHref: `/dashboard/mensajes?${q}`,
+    publishedAt: row.published_at,
+    updatedAt: row.updated_at,
+    image: null,
+    leonixAdId: null,
+    slug: null,
+    packageTier: null,
+    promoted: false,
+    verified: false,
+    draftListingId: null,
+    source: "autos_classifieds_listings",
+  }));
+}
+
+export function buildServiciosInventoryItems(rows: ServiciosMyListingApiRow[], lang: "es" | "en"): DashboardInventoryItem[] {
+  const q = `lang=${lang}`;
+  const L = lang as Lang;
+  return rows.map((row) => ({
+    id: `servicios:${row.slug}`,
+    category: "servicios",
+    title: row.business_name?.trim() || row.slug,
+    status: row.listing_status,
+    publicHref: `/clasificados/servicios/${encodeURIComponent(row.slug)}?${q}`,
+    editHref: `/dashboard/servicios?${q}`,
+    previewHref: appendLangToPath("/clasificados/publicar/servicios/preview", L),
+    resultsHref: `/clasificados/servicios/resultados?${q}`,
+    analyticsHref: `/dashboard/analytics?${q}`,
+    messagesHref: `/dashboard/mensajes?${q}`,
+    publishedAt: row.published_at,
+    updatedAt: null,
+    image: null,
+    leonixAdId: null,
+    slug: row.slug,
+    packageTier: null,
+    promoted: false,
+    verified: row.leonix_verified,
+    draftListingId: null,
+    source: "servicios_public_listings",
+  }));
+}
+
+/**
+ * Loads owner Servicios rows from the authenticated API (same source as `/dashboard/servicios` cloud path).
+ * Call from client components only (uses `window.location.origin` + `fetch`).
+ */
+export async function fetchOwnerServiciosListings(accessToken: string | null): Promise<ServiciosMyListingApiRow[]> {
+  if (!accessToken?.trim()) return [];
+  if (typeof window === "undefined") return [];
+  try {
+    const res = await fetch(`${window.location.origin}/api/clasificados/servicios/my-listings`, {
+      headers: { Authorization: `Bearer ${accessToken.trim()}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { ok?: boolean; listings?: unknown };
+    if (!json?.ok || !Array.isArray(json.listings)) return [];
+    const out: ServiciosMyListingApiRow[] = [];
+    for (const raw of json.listings) {
+      if (!raw || typeof raw !== "object") continue;
+      const o = raw as Record<string, unknown>;
+      const slug = typeof o.slug === "string" ? o.slug.trim() : "";
+      if (!slug) continue;
+      out.push({
+        slug,
+        business_name: typeof o.business_name === "string" && o.business_name.trim() ? o.business_name.trim() : slug,
+        city: typeof o.city === "string" && o.city.trim() ? o.city.trim() : null,
+        published_at: typeof o.published_at === "string" ? o.published_at : null,
+        listing_status: typeof o.listing_status === "string" ? o.listing_status : "published",
+        leonix_verified: Boolean(o.leonix_verified),
+      });
+    }
+    return out;
+  } catch {
+    return [];
+  }
 }
 
 function empleosPreviewHrefForLane(lane: string, lang: Lang): string | null {

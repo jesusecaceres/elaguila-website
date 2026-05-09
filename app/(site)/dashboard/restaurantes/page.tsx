@@ -235,7 +235,7 @@ export default function DashboardRestaurantesPage() {
   return (
     <LeonixDashboardShell
       lang={lang}
-      activeNav="restaurantes"
+      activeNav="listings"
       plan={plan}
       userName={name}
       email={email}

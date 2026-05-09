@@ -94,6 +94,8 @@ export default function DashboardPage() {
               "Estas métricas vienen de interacciones reales guardadas en analíticas. Si acabas de publicar, pueden aparecer en cero hasta que alguien vea o interactúe con tu anuncio.",
             expiringFootnote:
               "“Por expirar” usa fechas de visibilidad/boost y expiración del anuncio en la tabla principal de Leonix. Otras categorías pueden no reflejarse aquí hasta que esos campos existan para ellas.",
+            activeListingsFootnote:
+              "Mismo criterio que Mis anuncios: cuenta anuncios activos o publicados en todas las fuentes conectadas a tu cuenta (incluye viajes públicos y autos de pago cuando aplican).",
             analyticsDegraded:
               "Las analíticas de Leonix aún no están disponibles en la base de datos (o el caché de esquema está desactualizado). Los totales de vistas, guardados y contactos mostrados aquí son cero hasta que se restaure la tabla `listing_analytics`.",
           }
@@ -156,6 +158,8 @@ export default function DashboardPage() {
               "These metrics come from real interactions stored in analytics. If you just published, numbers may stay at zero until someone views or engages with your listing.",
             expiringFootnote:
               "“Expiring soon” uses boost/visibility and listing expiry dates on Leonix’s primary listings table. Other categories may not appear here until the same fields exist for them.",
+            activeListingsFootnote:
+              "Same basis as My listings: counts active or published rows across every channel tied to your account (including public travel and paid Autos when applicable).",
             analyticsDegraded:
               "Leonix analytics are not available in the database yet (or the schema cache is stale). View, save, and contact totals shown here stay at zero until `listing_analytics` is restored.",
           },
@@ -401,6 +405,7 @@ export default function DashboardPage() {
                 </span>
               </div>
               <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{fmtNum(activeListings)}</p>
+              <p className="mt-2 text-[11px] leading-snug text-[#7A7164]/95">{t.activeListingsFootnote}</p>
             </Link>
             <Link href={`/dashboard/analytics?${q}`} className={summaryCardClass}>
               <div className="flex items-start justify-between gap-2">
@@ -492,16 +497,16 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Servicios - PARTIAL */}
-              <div className="rounded-2xl border border-amber-200/80 bg-amber-50/90 p-4">
+              {/* Servicios */}
+              <div className="rounded-2xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-4">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold text-[#1E1810]">Servicios</h3>
-                  <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">
-                    Parcial
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
+                    {lang === "es" ? "Listo" : "Ready"}
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-[#5C5346]/90">
-                  {lang === "es" ? "Gestión básica disponible" : "Basic management available"}
+                  {lang === "es" ? "Gestiona en Mis anuncios o en el hub dedicado." : "Manage from My listings or the dedicated hub."}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
@@ -546,16 +551,16 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Autos - PARTIAL */}
-              <div className="rounded-2xl border border-amber-200/80 bg-amber-50/90 p-4">
+              {/* Autos */}
+              <div className="rounded-2xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-4">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold text-[#1E1810]">Autos</h3>
-                  <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">
-                    Parcial
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
+                    {lang === "es" ? "Listo" : "Ready"}
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-[#5C5346]/90">
-                  {lang === "es" ? "Gestión básica disponible" : "Basic management available"}
+                  {lang === "es" ? "Incluye anuncios en tabla y autos de pago Leonix." : "Includes table listings and Leonix paid Autos."}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link

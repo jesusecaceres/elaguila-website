@@ -125,3 +125,16 @@ DASHBOARD_NO_FAKE_COUNTS_TRUE=TRUE
 DASHBOARD_MOBILE_CARDS_TRUE=TRUE  
 DASHBOARD_NAV_ACTIVE_STATES_TRUE=TRUE  
 DASHBOARD_BUILD_GREEN_TRUE=TRUE
+
+---
+
+## 2026-05-07 follow-up (My listings command center + sidebar)
+
+| Flag | Status | Notes |
+|------|--------|--------|
+| Sidebar simplified (no top-level My restaurants / Servicios test / Viajes review) | **TRUE** | `LeonixDashboardShell.tsx` — single **My listings** / **Mis anuncios** entry; `/dashboard/restaurantes`, `/dashboard/servicios`, `/dashboard/viajes` remain routable. |
+| My listings is category command center | **TRUE** | `/dashboard/mis-anuncios` — title/subtitle, **Category Management** grid (counts + Manage + Publish), then **Your listings** / **Tus anuncios** with owned sections only. |
+| Separate category nav moved into My listings | **TRUE** | Sidebar category shortcuts removed; deep links live in the grid and inventory cards. |
+| Servicios unified status | **TRUE** | `fetchOwnerServiciosListings` + `buildServiciosInventoryItems` in `dashboardInventory.ts` (Bearer `GET /api/clasificados/servicios/my-listings` — cloud rows only, no dev merge). |
+| No noisy empty category panels | **TRUE** | Removed helper/warning panels and `AutosLeonixPaidListingsSection` from default My listings; empty categories only as publish-style cards in the grid. |
+| Active listing count consistency | **TRUE** | Overview and My listings use `countOwnerActiveListingsAcrossSources` (now includes **public** `viajes_staged_listings`); paid **Autos** rows load from `autos_classifieds_listings` into My listings; footnote on Overview explains cross-channel basis. |
