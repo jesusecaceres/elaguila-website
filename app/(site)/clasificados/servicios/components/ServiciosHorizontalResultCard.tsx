@@ -278,37 +278,37 @@ export function ServiciosHorizontalResultCard({
       <div className={GRID}>
         <div className={MEDIA_CELL}>
           <div className={MEDIA_FRAME}>
-            {/* Logo-only media - centered with slogan underneath */}
+            {/* Logo-led hero canvas - large dominant logo with premium neutral background */}
             {logoUrl ? (
-              <div className="flex h-full w-full flex-col items-center justify-center p-4">
-                <div className="flex flex-col items-center gap-3 text-center">
-                  {/* Logo as main hero element */}
-                  <div className="relative h-20 w-20 md:h-24 md:w-24">
+              <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-[#FFFDF9] via-[#FFF9F0] to-[#FFFAF3]">
+                <div className="flex flex-col items-center gap-4 text-center px-6">
+                  {/* Large dominant logo as hero element */}
+                  <div className="relative h-32 w-32 md:h-40 md:w-40">
                     <Image
                       src={logoUrl}
                       alt={logoAlt}
                       fill
                       className="object-contain"
-                      sizes="96px"
+                      sizes="160px"
                       unoptimized={serviciosImageUnoptimized(logoUrl)}
                     />
                   </div>
-                  {/* Slogan directly underneath logo */}
+                  {/* Slogan inside media canvas under logo */}
                   {slogan ? (
-                    <p className="max-w-full text-center text-xs font-medium leading-tight text-[#6F6254] md:text-sm">
+                    <p className="max-w-full text-center text-sm font-medium leading-snug text-[#6F6254] md:text-base">
                       {slogan}
                     </p>
                   ) : null}
                 </div>
               </div>
             ) : (
-              /* No logo fallback */
-              <div className="flex h-full w-full items-center justify-center">
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/5">
-                    <FiMapPin className="h-6 w-6 text-[#8B7E70]" aria-hidden />
+              /* No logo fallback with premium background */
+              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#FFFDF9] via-[#FFF9F0] to-[#FFFAF3]">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/5">
+                    <FiMapPin className="h-8 w-8 text-[#8B7E70]" aria-hidden />
                   </div>
-                  <p className="text-xs font-semibold text-[#8B7E70]">{lang === "en" ? "No logo yet" : "Sin logo"}</p>
+                  <p className="text-sm font-semibold text-[#8B7E70]">{lang === "en" ? "No logo yet" : "Sin logo"}</p>
                 </div>
               </div>
             )}
@@ -339,6 +339,7 @@ export function ServiciosHorizontalResultCard({
             ) : null}
             <h2 className={TITLE}>{profile.identity.businessName}</h2>
             {categoryChip ? <p className={`${CATEGORY} line-clamp-2`}>{categoryChip}</p> : null}
+            {slogan ? <p className={`${BODY} line-clamp-2 text-[14px] font-semibold text-[#4a4036]`}>{slogan}</p> : null}
           </div>
 
           {serviceChipsVisible.length > 0 || serviceChipsMore > 0 ? (
