@@ -12,7 +12,13 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ lang?: string; justPublished?: string; persistence?: string; listingStatus?: string }>;
+  searchParams?: Promise<{
+    lang?: string;
+    justPublished?: string;
+    persistence?: string;
+    listingStatus?: string;
+    videoSkipped?: string;
+  }>;
 };
 
 /**
@@ -28,6 +34,11 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
   if (!row) notFound();
 
   const q = `lang=${lang}`;
+  const videoSkipped = sp.videoSkipped === "1";
+  const videoSkippedNotice =
+    lang === "en"
+      ? "Some videos were too large and were not published. The listing was published with compatible media."
+      : "Algunos videos eran demasiado grandes y no se publicaron. El anuncio se publicó con los medios compatibles.";
   if (row.listing_status === "pending_review") {
     const justPublished = sp.justPublished === "1";
     return (
@@ -42,6 +53,7 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
               ? "Leonix is reviewing this showcase before it appears in public search. You can track status from your dashboard."
               : "Leonix está revisando esta vitrina antes de mostrarla en la búsqueda pública. Puedes ver el estado en tu panel."}
         </p>
+        {videoSkipped ? <p className="text-sm text-amber-900">{videoSkippedNotice}</p> : null}
         <Link href={`/dashboard/servicios?${q}`} className="text-sm font-bold text-[#3B66AD] underline">
           {lang === "en" ? "Open dashboard" : "Abrir panel"}
         </Link>
@@ -95,6 +107,9 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
     } else {
       publishLines.push(lang === "en" ? "Your listing was published." : "Tu listado se publicó.");
     }
+  }
+  if (videoSkipped) {
+    publishLines.push(videoSkippedNotice);
   }
   const pausedMsg =
     paused

@@ -199,6 +199,7 @@ export function ClasificadosServiciosPreviewClient() {
       q.set("justPublished", "1");
       if (data.persistence) q.set("persistence", data.persistence);
       if (data.listingStatus) q.set("listingStatus", data.listingStatus);
+      if (data.skippedOversizedVideos) q.set("videoSkipped", "1");
       router.push(`/clasificados/servicios/${encodeURIComponent(data.slug)}?${q.toString()}`);
     } catch {
       setPublishErr(lang === "en" ? "Network error." : "Error de red.");

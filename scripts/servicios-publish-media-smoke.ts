@@ -14,6 +14,10 @@ import {
   isServiciosPublishableRemoteMediaUrl,
 } from "../app/(site)/clasificados/publicar/servicios/lib/serviciosMediaTransport";
 import { parseServiciosDraftMediaUploadResult } from "../app/(site)/clasificados/publicar/servicios/lib/serviciosDraftUploadParse";
+import {
+  SERVICIOS_DRAFT_MEDIA_MAX_BYTES,
+  shouldSkipServiciosOversizedDraftVideo,
+} from "../app/(site)/clasificados/publicar/servicios/lib/serviciosVideoDraftGate";
 
 const tinyData =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
@@ -117,6 +121,60 @@ function main() {
   );
   assert.equal(okJson.ok, true);
   assert.equal(okJson.publicUrl, "https://blob.example/x");
+
+  assert.equal(SERVICIOS_DRAFT_MEDIA_MAX_BYTES, 4 * 1024 * 1024);
+  assert.equal(shouldSkipServiciosOversizedDraftVideo({ mimeType: "video/mp4", byteLength: 5 * 1024 * 1024 }), true);
+  assert.equal(shouldSkipServiciosOversizedDraftVideo({ mimeType: "video/mp4", byteLength: 2 * 1024 * 1024 }), false);
+  assert.equal(shouldSkipServiciosOversizedDraftVideo({ mimeType: "image/jpeg", byteLength: 10 * 1024 * 1024 }), false);
+  assert.equal(
+    shouldSkipServiciosOversizedDraftVideo({
+      mimeType: "",
+      byteLength: 5 * 1024 * 1024,
+      urlHint: "data:video/mp4;base64,AAAA",
+    }),
+    true,
+    "empty blob.type but data:video URL must still be treated as video for skip",
+  );
+
+  const withDataVideo = normalizeClasificadosServiciosApplicationState({
+    ...baseState(),
+    businessName: "Smoke Video Strip",
+    city: "San José",
+    coverUrl: httpsCover,
+    aboutText: "About",
+    confirmListingAccurate: true,
+    confirmPhotosRepresentBusiness: true,
+    confirmCommunityRules: true,
+    selectedServiceIds: ["plom_fugas"],
+    enableCall: true,
+    phone: "4085551212",
+    videos: [{ id: "v1", url: "data:video/mp4;base64,AAAA", source: "file" as const }],
+  });
+  const cleanedVideo = buildServiciosPublishPayload(withDataVideo);
+  assert.equal(cleanedVideo.videos?.length ?? 0, 0, "data:video must not appear in publish payload (slot dropped when URL not HTTPS)");
+  const transportVideo = buildServiciosPublishTransportBody(cleanedVideo, "es");
+  const videoJson = JSON.stringify(transportVideo);
+  assert.ok(!videoJson.includes("data:video"), "final publish JSON must not contain data:video");
+  assert.ok(!videoJson.includes("blob:"), "final publish JSON must not contain blob:");
+  assert.ok(videoJson.length < 1024 * 1024, `payload with stripped video must stay under 1 MB (got ${videoJson.length})`);
+
+  const withHttpsVideo = normalizeClasificadosServiciosApplicationState({
+    ...baseState(),
+    businessName: "Smoke Https Video",
+    city: "San José",
+    coverUrl: httpsCover,
+    aboutText: "About",
+    confirmListingAccurate: true,
+    confirmPhotosRepresentBusiness: true,
+    confirmCommunityRules: true,
+    selectedServiceIds: ["plom_fugas"],
+    enableCall: true,
+    phone: "4085551212",
+    videos: [{ id: "v1", url: "https://example.com/clip.mp4", source: "url" as const }],
+  });
+  const pubV = buildServiciosPublishPayload(withHttpsVideo);
+  assert.equal(pubV.videos?.length, 1);
+  assert.ok(isServiciosPublishableRemoteMediaUrl(pubV.videos![0].url));
 
   console.log("servicios-publish-media-smoke: OK");
 }

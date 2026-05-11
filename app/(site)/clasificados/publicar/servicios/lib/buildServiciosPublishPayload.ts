@@ -36,10 +36,13 @@ export function buildServiciosPublishPayload(state: ClasificadosServiciosApplica
     url: cleanRemoteMediaField(g.url),
   }));
 
-  const videos: VideoItem[] = (n.videos ?? []).slice(0, 8).map((v) => ({
-    ...v,
-    url: cleanRemoteMediaField(v.url),
-  }));
+  const videos: VideoItem[] = (n.videos ?? [])
+    .slice(0, 8)
+    .map((v) => ({
+      ...v,
+      url: cleanRemoteMediaField(v.url),
+    }))
+    .filter((v) => v.url.trim().length > 0);
 
   const promotions: ClasificadosServiciosPromoRow[] = (n.promotions ?? []).slice(0, 4).map((row) => ({
     ...row,

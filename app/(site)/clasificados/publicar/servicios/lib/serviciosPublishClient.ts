@@ -10,6 +10,8 @@ export type ServiciosPublishPersistence = "database" | "dev_workspace" | "none";
 
 export type ServiciosPublishApiResponse = {
   ok?: boolean;
+  /** Client-only: set when oversized optional videos were omitted before publish (not returned by API). */
+  skippedOversizedVideos?: boolean;
   slug?: string;
   /** Directory row status after publish (e.g. `pending_review` when moderation mode is on). */
   listingStatus?: string;
@@ -59,8 +61,11 @@ export async function postServiciosPublishApi(args: {
     typeof window !== "undefined" ? sessionStorage.getItem(SESSION_SLUG_KEY) ?? undefined : undefined;
 
   let resolved: ClasificadosServiciosApplicationState;
+  let skippedOversizedVideos = false;
   try {
-    resolved = await resolveServiciosDraftMediaToRemoteUrls(args.state);
+    const r = await resolveServiciosDraftMediaToRemoteUrls(args.state);
+    resolved = r.state;
+    skippedOversizedVideos = r.skippedOversizedVideos;
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     let error: string = "media_upload_failed";
@@ -103,6 +108,10 @@ export async function postServiciosPublishApi(args: {
     body: raw,
   });
   const data = (await res.json()) as ServiciosPublishApiResponse;
+
+  if (data.ok && skippedOversizedVideos) {
+    data.skippedOversizedVideos = true;
+  }
 
   if (typeof window !== "undefined" && data.ok && data.slug) {
     sessionStorage.setItem(SESSION_SLUG_KEY, data.slug);

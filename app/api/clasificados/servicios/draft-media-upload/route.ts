@@ -1,5 +1,6 @@
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
+import { SERVICIOS_DRAFT_MEDIA_MAX_BYTES } from "@/app/(site)/clasificados/publicar/servicios/lib/serviciosVideoDraftGate";
 
 export const runtime = "nodejs";
 
@@ -48,7 +49,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "missing_file" }, { status: 400 });
   }
 
-  if (file.size > 4 * 1024 * 1024) {
+  if (file.size > SERVICIOS_DRAFT_MEDIA_MAX_BYTES) {
     return NextResponse.json(
       {
         ok: false,

@@ -7,11 +7,18 @@ import { inlineServiciosHeavyMediaFromIdb } from "./clasificadosServiciosDraftMe
 import { SERVICIOS_DRAFT_MEDIA_NAMESPACE } from "./clasificadosServiciosStorage";
 import { isServiciosPublishableRemoteMediaUrl, isServiciosLocalOrTransportBlockedRef } from "./serviciosMediaTransport";
 import { parseServiciosDraftMediaUploadResult } from "./serviciosDraftUploadParse";
+import { SERVICIOS_DRAFT_MEDIA_MAX_BYTES, shouldSkipServiciosOversizedDraftVideo } from "./serviciosVideoDraftGate";
 
 const PUBLISH_BLOB_NS_KEY = "leonix.servicios.publishDraftBlobNs";
 
 /** Align with route limit + small multipart overhead. */
-const ROUTE_MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+const ROUTE_MAX_UPLOAD_BYTES = SERVICIOS_DRAFT_MEDIA_MAX_BYTES;
+
+export type ServiciosDraftMediaResolveResult = {
+  state: ClasificadosServiciosApplicationState;
+  /** True when at least one optional video was omitted because it exceeded the draft upload cap. */
+  skippedOversizedVideos: boolean;
+};
 
 export function getServiciosPublishDraftListingId(): string {
   if (typeof window === "undefined") return "ssr";
@@ -133,11 +140,15 @@ async function uploadUrlIfNeeded(
 /**
  * Expand IDB placeholders to data URLs, then replace data:/blob: media with Vercel Blob HTTPS URLs
  * so `POST /api/clasificados/servicios/publish` stays under platform limits.
+ *
+ * Optional videos larger than {@link SERVICIOS_DRAFT_MEDIA_MAX_BYTES} are dropped (empty URL) and
+ * reported via `skippedOversizedVideos` so the UI can show a non-blocking notice after publish.
  */
 export async function resolveServiciosDraftMediaToRemoteUrls(
   state: ClasificadosServiciosApplicationState,
-): Promise<ClasificadosServiciosApplicationState> {
+): Promise<ServiciosDraftMediaResolveResult> {
   const draftListingId = getServiciosPublishDraftListingId();
+  let skippedOversizedVideos = false;
   let working = normalizeClasificadosServiciosApplicationState(state);
   try {
     working = await inlineServiciosHeavyMediaFromIdb(SERVICIOS_DRAFT_MEDIA_NAMESPACE, working);
@@ -168,8 +179,18 @@ export async function resolveServiciosDraftMediaToRemoteUrls(
   const videos = await Promise.all(
     (working.videos ?? []).map(async (v, i) => {
       const u = v.url;
-      if (!u.trim() || isServiciosPublishableRemoteMediaUrl(u)) return v;
-      const next = await uploadUrlIfNeeded(u, { draftListingId, slot: "video", index: i });
+      const t = u.trim();
+      if (!t || isServiciosPublishableRemoteMediaUrl(t)) return v;
+      if (!isServiciosLocalOrTransportBlockedRef(t)) return v;
+      const res = await fetch(t);
+      const blob = await res.blob();
+      if (!blob || blob.size < 1) throw new Error("empty_blob_after_fetch");
+      const mime = (blob.type || "").toLowerCase();
+      if (shouldSkipServiciosOversizedDraftVideo({ mimeType: mime, byteLength: blob.size, urlHint: t })) {
+        skippedOversizedVideos = true;
+        return { ...v, url: "", source: v.source };
+      }
+      const next = await uploadBlobForDraft(blob, { draftListingId, slot: "video", index: i });
       return { ...v, url: next, source: v.source };
     }),
   );
@@ -198,14 +219,17 @@ export async function resolveServiciosDraftMediaToRemoteUrls(
     insuranceDocumentUrl = await uploadUrlIfNeeded(insuranceDocumentUrl, { draftListingId, slot: "insuranceDoc" });
   }
 
-  return normalizeClasificadosServiciosApplicationState({
-    ...working,
-    logoUrl,
-    coverUrl,
-    gallery,
-    videos,
-    promotions,
-    licenseDocumentUrl,
-    insuranceDocumentUrl,
-  });
+  return {
+    skippedOversizedVideos,
+    state: normalizeClasificadosServiciosApplicationState({
+      ...working,
+      logoUrl,
+      coverUrl,
+      gallery,
+      videos,
+      promotions,
+      licenseDocumentUrl,
+      insuranceDocumentUrl,
+    }),
+  };
 }

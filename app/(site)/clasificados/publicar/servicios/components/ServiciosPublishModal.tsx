@@ -153,6 +153,7 @@ export function ServiciosPublishModal({
       q.set("justPublished", "1");
       if (data.persistence) q.set("persistence", data.persistence);
       if (data.listingStatus) q.set("listingStatus", data.listingStatus);
+      if (data.skippedOversizedVideos) q.set("videoSkipped", "1");
 
       router.push(`/clasificados/servicios/${encodeURIComponent(data.slug)}?${q.toString()}`);
     } catch {
