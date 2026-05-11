@@ -162,19 +162,16 @@ export default function RestauranteApplicationClient() {
     }
   }, [phonePresent, draft.allowMessageCTA, setDraftPatch]);
 
-  /** Matches `/publicar/restaurantes?plan=free|pro` from paquetes — carried into preview → publish POST. */
-  const publishPlanLane = searchParams?.get("plan") === "pro" ? "pro" : "free";
+  /** Matches `/publicar/restaurantes?plan=pro` from paquetes — carried into preview → publish POST.
+   * Internal mapping: missing plan defaults to base tier for API compatibility, but user-facing URLs omit plan parameter. */
+  const publishPlanLane = searchParams?.get("plan") === "pro" ? "pro" : undefined;
   const previewHrefWithPlan = useMemo(() => {
     if (publishPlanLane === "pro") return `${PREVIEW_HREF}?plan=pro`;
-    return `${PREVIEW_HREF}?plan=free`;
+    return PREVIEW_HREF; // No plan parameter for base tier
   }, [publishPlanLane]);
 
   const goPreview = useCallback(async () => {
-    if (!satisfiesRestauranteServiceModes(draftRef.current.serviceModes)) {
-      setServiceErr(true);
-      setActiveSectionId("restaurantes-section-b");
-      return;
-    }
+    // Service modes are no longer required for preview - default assumption is brick-and-mortar restaurant
     setServiceErr(false);
     await saveRestauranteDraftToStorageResolved(draftRef.current);
     window.location.href = previewHrefWithPlan;
@@ -382,13 +379,11 @@ export default function RestauranteApplicationClient() {
         onDeleteApplication={() => {
           void resetDraft();
         }}
-        disableValidatedPreview={!serviceOk}
+        disableValidatedPreview={!minPreviewOk}
       />
 
       <p className="mt-3 text-xs leading-relaxed text-[color:var(--lx-muted)]">
-        <strong className="text-[color:var(--lx-text-2)]">Vista previa</strong> valida modos de servicio (sección B) y te
-        lleva al resultado. <strong className="text-[color:var(--lx-text-2)]">Abrir vista previa</strong> abre la misma
-        URL con el borrador de esta sesión <strong>sin</strong> exigir B — útil para revisar fotos o texto.
+        <strong className="text-[color:var(--lx-text-2)]">Vista previa</strong> valida los campos mínimos requeridos y te lleva al resultado. <strong className="text-[color:var(--lx-text-2)]">Abrir vista previa</strong> abre la misma URL con el borrador de esta sesión <strong>sin</strong> exigir validación — útil para revisar fotos o texto.
       </p>
 
       {serviceErr ? (
@@ -399,9 +394,7 @@ export default function RestauranteApplicationClient() {
         >
           <p className="font-semibold">No se puede usar &quot;Vista previa&quot; todavía</p>
           <p className="mt-1">
-            Elige al menos un <strong>modo de servicio</strong> en la sección B (comer en local, para llevar, entrega,
-            etc.). Es obligatorio para el botón principal; puedes usar &quot;Ver borrador (sin validar B)&quot; si solo
-            quieres revisar el diseño.
+            Completa los campos mínimos requeridos para una vista previa publicable: nombre, tipo, cocina, resumen, ciudad, foto principal, al menos un contacto y señal de horario.
           </p>
         </div>
       ) : null}
@@ -708,8 +701,7 @@ export default function RestauranteApplicationClient() {
         <section id="restaurantes-section-b" className={stepPanel}>
           <SectionTitle>B · Modelo de operación</SectionTitle>
           <p className="mt-2 text-xs text-[color:var(--lx-text-2)]">
-            <span className="font-semibold text-red-600">*</span> Al menos un <strong>modo de servicio</strong> (lista
-            canónica más abajo) para el botón «Vista previa» con validación.
+            Los <strong>modos de servicio</strong> son opcionales. Por defecto se asume restaurante físico/local. Usa esta sección solo si el negocio también opera como food truck/móvil, desde casa, catering/eventos, delivery, takeout, reservas, etc. La selección mejora el listado pero no se requiere para vista previa.
           </p>
           <HelperText>
             Hay <strong className="text-[color:var(--lx-text)]">tres capas</strong> que conviven: (1) interruptores I / J /
@@ -2140,17 +2132,12 @@ export default function RestauranteApplicationClient() {
             onDeleteApplication={() => {
               void resetDraft();
             }}
-            disableValidatedPreview={!serviceOk}
+            disableValidatedPreview={!minPreviewOk}
           />
           <p className="text-xs text-[color:var(--lx-muted)] sm:max-w-xl">
-            {serviceOk ? (
-              <span className="font-medium text-emerald-800">Modos de servicio (B): listos — «Vista previa» puede abrir.</span>
-            ) : (
-              <span>
-                <span className="font-semibold text-amber-900">Modos de servicio (B): pendiente.</span> Elige al menos uno para
-                «Vista previa» con validación; «Abrir vista previa» sigue disponible sin validación.
-              </span>
-            )}
+            <span className="font-medium text-emerald-800">
+              Sección B completada. Los modos de servicio son opcionales para mejorar el listado, pero no se requieren para la vista previa.
+            </span>
           </p>
         </div>
         </div>

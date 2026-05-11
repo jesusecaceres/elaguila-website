@@ -58,7 +58,7 @@ export default function RestaurantePreviewClient() {
   const pristine = useMemo(() => isRestauranteDraftPristineEmpty(draft), [draft]);
   const shellData = useMemo(() => mapRestauranteDraftToShellData(draft), [draft]);
 
-  const publishPlan = searchParams?.get("plan") === "pro" ? "pro" : "free";
+  const publishPlan = searchParams?.get("plan") === "pro" ? "pro" : undefined;
   /** Same normalized shape as storage/API merge — matches what the preview shell maps from (not the POST sanitizer). */
   const normalizedDraft = useMemo(() => mergeRestauranteDraft(draft), [draft]);
   const readiness = useMemo(() => auditRestaurantePublishReadiness(normalizedDraft), [normalizedDraft]);
