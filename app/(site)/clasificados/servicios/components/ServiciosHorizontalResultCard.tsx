@@ -283,13 +283,13 @@ export function ServiciosHorizontalResultCard({
               <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-[#FFFDF9] via-[#FFF9F0] to-[#FFFAF3]">
                 <div className="flex flex-col items-center gap-4 text-center px-6">
                   {/* Large dominant logo as hero element */}
-                  <div className="relative h-32 w-32 md:h-40 md:w-40">
+                  <div className="relative h-48 w-48 md:h-60 md:w-60">
                     <Image
                       src={logoUrl}
                       alt={logoAlt}
                       fill
                       className="object-contain"
-                      sizes="160px"
+                      sizes="(max-width: 768px) 192px, 240px"
                       unoptimized={serviciosImageUnoptimized(logoUrl)}
                     />
                   </div>
