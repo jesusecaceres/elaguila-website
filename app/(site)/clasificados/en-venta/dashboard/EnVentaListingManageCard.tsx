@@ -71,6 +71,7 @@ export function EnVentaListingManageCard({
   canEdit,
   editHref,
   listingPlan,
+  listingAdPlanLabel,
   boosted,
   analytics,
   maxViews,
@@ -98,6 +99,8 @@ export function EnVentaListingManageCard({
   canEdit: boolean;
   editHref: string;
   listingPlan: ListingPlan;
+  /** Category-based listing plan label (not account membership). */
+  listingAdPlanLabel?: string | null;
   boosted: boolean;
   analytics: EnVentaManageAnalytics;
   maxViews: number;
@@ -169,6 +172,8 @@ export function EnVentaListingManageCard({
           visInactive: "Sin ventana de visibilidad activa.",
           visNext: "Próxima renovación disponible:",
           renew: "Renovar visibilidad",
+          adPlan: "Plan del anuncio",
+          adPlanHint: "El plan se calcula por categoría del anuncio, no por el plan de la cuenta.",
         }
       : {
           view: "View listing",
@@ -207,6 +212,8 @@ export function EnVentaListingManageCard({
           visInactive: "No active visibility window.",
           visNext: "Renewal available on:",
           renew: "Renew visibility",
+          adPlan: "Listing plan",
+          adPlanHint: "Plan is based on this listing’s category, not the account plan.",
         };
 
   const frame = isPro
@@ -272,6 +279,14 @@ export function EnVentaListingManageCard({
               {(row.city || "").trim()}
               {dateText ? ` · ${dateText}` : ""}
             </p>
+            {listingAdPlanLabel ? (
+              <>
+                <p className="mt-2 text-[11px] text-[#5C5346]">
+                  <span className="font-semibold text-[#3D3428]">{L.adPlan}:</span> {listingAdPlanLabel}
+                </p>
+                <p className="mt-0.5 text-[10px] leading-snug text-[#7A7164]/95">{L.adPlanHint}</p>
+              </>
+            ) : null}
             {updatedLine ? <p className="mt-1 text-[11px] text-[#7A7164]/95">{updatedLine}</p> : null}
             {expireLbl ? (
               <p className="mt-2 inline-flex rounded-full border border-[#C9B46A]/35 bg-[#FFFCF7] px-2.5 py-1 text-[11px] font-bold text-[#5C4E2E]">

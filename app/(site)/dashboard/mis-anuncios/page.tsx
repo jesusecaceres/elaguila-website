@@ -32,6 +32,13 @@ import {
   type DashboardInventoryItem,
 } from "../lib/dashboardInventory";
 import { countOwnerActiveListingsAcrossSources } from "@/app/lib/ownerEngagementListingKeys";
+import {
+  categoryAdPlanDisplayLabel,
+  listingPlanFieldLabel,
+  listingPlanFootnote,
+  resolveCategoryAdPlan,
+  resolveCategoryAdPlanFromDashboardInventoryItem,
+} from "@/app/lib/listingPlans/categoryAdPlans";
 import { isListingBoosted, listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
 import {
   resolveListingUiStatus,
@@ -1005,7 +1012,10 @@ export default function MyListingsPage() {
           ) : null}
 
           {hasAnyInventory ? (
-            <h2 className="mt-10 text-xl font-bold tracking-tight text-[#1E1810] sm:text-2xl">{t.yourListings}</h2>
+            <div className="mt-10">
+              <h2 className="text-xl font-bold tracking-tight text-[#1E1810] sm:text-2xl">{t.yourListings}</h2>
+              <p className="mt-2 max-w-3xl text-[10px] leading-snug text-[#7A7164]/95">{listingPlanFootnote(lang)}</p>
+            </div>
           ) : null}
 
           {showRestSection ? (
@@ -1030,6 +1040,7 @@ export default function MyListingsPage() {
                       item.verified ? (lang === "es" ? "Verificado" : "Verified") : "",
                     ].filter(Boolean)}
                     metaItems={[
+                      { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
                       { label: "Slug", value: item.slug ?? "—" },
                       { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
                       { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
@@ -1068,6 +1079,7 @@ export default function MyListingsPage() {
                     status={item.status}
                     subtitle={item.slug}
                     metaItems={[
+                      { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
                       { label: "Slug", value: item.slug ?? "—" },
                       { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
                       { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
@@ -1121,6 +1133,7 @@ export default function MyListingsPage() {
                     status={item.status}
                     subtitle={item.slug}
                     metaItems={[
+                      { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
                       { label: "Slug", value: item.slug ?? "—" },
                       { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
                       { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
@@ -1174,6 +1187,7 @@ export default function MyListingsPage() {
                     status={item.status}
                     subtitle={item.publicHref}
                     metaItems={[
+                      { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
                       { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
                       { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
                     ]}
@@ -1211,6 +1225,7 @@ export default function MyListingsPage() {
                     subtitle={item.slug ?? undefined}
                     badges={item.verified ? [lang === "es" ? "Verificado" : "Verified"] : []}
                     metaItems={[
+                      { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
                       { label: lang === "es" ? "Slug" : "Slug", value: item.slug ?? "—" },
                       { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
                     ]}
@@ -1284,6 +1299,16 @@ export default function MyListingsPage() {
                     : null;
 
                 if ((x.category ?? "").toLowerCase() === "autos") {
+                  const autosPlanLabel = categoryAdPlanDisplayLabel(
+                    resolveCategoryAdPlan({
+                      category: "autos",
+                      sourceTable: "listings",
+                      sellerType: x.seller_type,
+                      detailPairs: x.detail_pairs,
+                      price: x.price,
+                    }),
+                    lang,
+                  );
                   return (
                     <AutosClassifiedListingManageCard
                       key={x.id}
@@ -1313,6 +1338,7 @@ export default function MyListingsPage() {
                         appointmentClicks: 0,
                       }}
                       maxViews={maxViews}
+                      listingAdPlanLabel={autosPlanLabel}
                     />
                   );
                 }
@@ -1337,6 +1363,10 @@ export default function MyListingsPage() {
 
                 if (x.category === "en-venta") {
                   const uiSt = normalizeUiStatus(resolveListingUiStatus(x), x);
+                  const enVentaPlanLabel = categoryAdPlanDisplayLabel(
+                    resolveCategoryAdPlan({ category: "en-venta", detailPairs: x.detail_pairs }),
+                    lang,
+                  );
                   return (
                     <EnVentaListingManageCard
                       key={x.id}
@@ -1363,6 +1393,7 @@ export default function MyListingsPage() {
                       canEdit={canEdit}
                       editHref={`/dashboard/mis-anuncios/${x.id}/editar?${q}`}
                       listingPlan={listingPlan}
+                      listingAdPlanLabel={enVentaPlanLabel}
                       boosted={boosted}
                       analytics={{
                         views: stats?.views ?? 0,
@@ -1392,6 +1423,18 @@ export default function MyListingsPage() {
                   );
                 }
 
+                const genericAdPlan = categoryAdPlanDisplayLabel(
+                  resolveCategoryAdPlan({
+                    category: x.category,
+                    sourceTable: "listings",
+                    detailPairs: x.detail_pairs,
+                    sellerType: x.seller_type,
+                    price: x.price,
+                    raw: x as unknown as Record<string, unknown>,
+                  }),
+                  lang,
+                );
+
                 return (
                   <div
                     key={x.id}
@@ -1413,6 +1456,9 @@ export default function MyListingsPage() {
                         <p className="mt-1 text-sm text-[#5C5346]/90">
                           {(x.city || "").trim()}
                           {dateText ? ` · ${dateText}` : ""}
+                        </p>
+                        <p className="mt-2 text-[11px] leading-snug text-[#7A7164]">
+                          <span className="font-semibold text-[#5C5346]">{listingPlanFieldLabel(lang)}:</span> {genericAdPlan}
                         </p>
                         {stats ? (
                           <p className="mt-2 text-sm text-[#7A7164]">

@@ -10,6 +10,7 @@ import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { adminBtnDark, adminBtnSecondary, adminCardBase } from "../../../_components/adminTheme";
 import { fetchAdminUserAdsForUser } from "../../../_lib/adminUserAds";
 import { adminEditSupportStatusLabelEs, resolveAdminAdActions } from "../../../_lib/adminAdEditSupportMap";
+import { categoryAdPlanDisplayLabel, resolveCategoryAdPlanFromAdminAd } from "@/app/lib/listingPlans/categoryAdPlans";
 
 type ProfileRow = {
   id: string;
@@ -211,6 +212,9 @@ const labels = {
     manageAdmin: "Manage (admin)",
     editAsAdmin: "Edit as admin",
     advertiserPanel: "Advertiser panel",
+    listingAdPlan: "Listing plan",
+    listingAdPlanNote:
+      "Per-ad “listing plan” follows category rules below. It is not the account membership tier (see Summary).",
     tiendaOrders: "Tienda — Orders (customer_user_id)",
     tiendaOrdersInfo: "Count and preview from tienda_orders.",
     inboxFiltered: "Inbox filtered →",
@@ -281,6 +285,9 @@ const labels = {
     manageAdmin: "Gestionar (admin)",
     editAsAdmin: "Editar como admin",
     advertiserPanel: "Panel del anunciante",
+    listingAdPlan: "Plan del anuncio",
+    listingAdPlanNote:
+      "El plan de cada anuncio sigue las reglas de categoría abajo. No es la membresía de la cuenta (véase Resumen).",
     tiendaOrders: "Tienda — pedidos (customer_user_id)",
     tiendaOrdersInfo: "Conteo y vista previa desde tienda_orders.",
     inboxFiltered: "Inbox filtrado →",
@@ -702,6 +709,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
         <p className="mt-1 text-xs text-[#7A7164]">
           {t.allSourcesInfo}
         </p>
+        <p className="mt-2 text-[10px] leading-snug text-[#7A7164]">{t.listingAdPlanNote}</p>
         <p className="mt-2 text-[10px] leading-snug text-[#7A7164]">
           <span className="font-semibold text-[#5C5346]">{t.editOnBehalfInfo}</span>
         </p>
@@ -729,6 +737,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                 <ul className="mt-2 space-y-3">
                   {g.ads.map((ad) => {
                     const actions = resolveAdminAdActions(ad);
+                    const listingAdPlan = resolveCategoryAdPlanFromAdminAd(ad);
                     return (
                       <li key={`${ad.source}-${ad.internalId}`} className="rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/90 p-3 text-sm">
                         <p className="font-semibold text-[#1E1810]">{ad.title}</p>
@@ -750,6 +759,13 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                             (ad.city ? ` · ${ad.city}` : "") +
                             (ad.updatedAt ? ` · Updated ${formatDate(ad.updatedAt)}` : ad.createdAt ? ` · ${formatDate(ad.createdAt)}` : "")}
                         </p>
+                        <p className="mt-1 text-xs text-[#5C5346]">
+                          <span className="font-semibold text-[#1E1810]">{t.listingAdPlan}:</span>{" "}
+                          {categoryAdPlanDisplayLabel(listingAdPlan, langParam)}
+                        </p>
+                        {listingAdPlan.warning ? (
+                          <p className="mt-0.5 text-[10px] leading-snug text-amber-900/90">{listingAdPlan.warning}</p>
+                        ) : null}
                         <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold">
                           <Link
                             href={actions.publicUrl}

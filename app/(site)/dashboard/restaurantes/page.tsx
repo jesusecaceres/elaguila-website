@@ -13,6 +13,12 @@ import { LeonixListingMetricsSummary } from "@/app/components/clasificados/analy
 import { DashboardCategoryListingCard } from "../components/DashboardCategoryListingCard";
 import { DashboardStatsCard } from "../components/DashboardStatsCard";
 import type { DashboardRestaurantRow } from "../lib/dashboardInventory";
+import {
+  categoryAdPlanDisplayLabel,
+  listingPlanFieldLabel,
+  listingPlanFootnote,
+  resolveCategoryAdPlan,
+} from "@/app/lib/listingPlans/categoryAdPlans";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -67,7 +73,6 @@ export default function DashboardRestaurantesPage() {
             openMessages: "Mensajes",
             cardStatus: "Estado",
             cardSlug: "Slug",
-            cardPlan: "Plan",
             cardPublished: "Publicado",
             cardUpdated: "Actualizado",
             cardLeonixAdId: "Leonix Ad ID",
@@ -97,7 +102,6 @@ export default function DashboardRestaurantesPage() {
             openMessages: "Messages",
             cardStatus: "Status",
             cardSlug: "Slug",
-            cardPlan: "Plan",
             cardPublished: "Published",
             cardUpdated: "Updated",
             cardLeonixAdId: "Leonix Ad ID",
@@ -299,6 +303,14 @@ export default function DashboardRestaurantesPage() {
                 const resultsHref = `/clasificados/restaurantes/resultados?lang=${lang}&q=${encodeURIComponent(r.business_name)}`;
                 const statusLabel =
                   r.status === "published" ? (lang === "es" ? "Publicado" : "Published") : r.status;
+                const restaurantListingPlan = categoryAdPlanDisplayLabel(
+                  resolveCategoryAdPlan({
+                    category: "restaurantes",
+                    sourceTable: "restaurantes_public_listings",
+                    packageTier: r.package_tier,
+                  }),
+                  lang,
+                );
                 return (
                   <DashboardCategoryListingCard
                     key={r.id}
@@ -311,9 +323,10 @@ export default function DashboardRestaurantesPage() {
                       r.promoted ? (lang === "es" ? "Destacado" : "Promoted") : "",
                       r.leonix_verified ? (lang === "es" ? "Verificado" : "Verified") : "",
                     ].filter(Boolean)}
+                    footerHint={listingPlanFootnote(lang)}
                     metaItems={[
+                      { label: listingPlanFieldLabel(lang), value: restaurantListingPlan },
                       { label: t.cardSlug, value: r.slug },
-                      { label: t.cardPlan, value: r.package_tier ?? "—" },
                       { label: t.cardPublished, value: fmt(r.published_at, lang) },
                       { label: t.cardUpdated, value: fmt(r.updated_at, lang) },
                     ]}

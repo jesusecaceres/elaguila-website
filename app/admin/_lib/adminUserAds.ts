@@ -77,17 +77,22 @@ async function loadGenericListings(ownerUserId: string, hints: AdminAdOwnerHints
     // Check if leonix_ad_id column exists
     const hasLeonixAdId = await safeCheckColumnExists("listings", "leonix_ad_id");
     
-    // Build select query dynamically based on column existence
-    const selectFields = hasLeonixAdId 
-      ? "id,leonix_ad_id,title,price,city,zip,status,created_at,category,images,owner_id"
-      : "id,title,price,city,zip,status,created_at,category,images,owner_id";
-    
-    const { data, error } = await supabase
-      .from("listings")
-      .select(selectFields)
-      .eq("owner_id", ownerUserId)
-      .order("created_at", { ascending: false })
-      .limit(PER_SOURCE_LIMIT);
+    // Build query with a string literal `.select(...)` per branch — dynamic union breaks Supabase generics.
+    const { data, error } = hasLeonixAdId
+      ? await supabase
+          .from("listings")
+          .select(
+            "id,leonix_ad_id,title,price,city,zip,status,created_at,category,images,owner_id,seller_type,detail_pairs",
+          )
+          .eq("owner_id", ownerUserId)
+          .order("created_at", { ascending: false })
+          .limit(PER_SOURCE_LIMIT)
+      : await supabase
+          .from("listings")
+          .select("id,title,price,city,zip,status,created_at,category,images,owner_id,seller_type,detail_pairs")
+          .eq("owner_id", ownerUserId)
+          .order("created_at", { ascending: false })
+          .limit(PER_SOURCE_LIMIT);
 
     if (error) {
       return { source, labelEs: LABELS[source], ads: [], loadStatus: "error", errorMessage: error.message };
@@ -127,6 +132,7 @@ async function loadRestaurantes(ownerUserId: string, hints: AdminAdOwnerHints | 
             published_at: r.published_at,
             updated_at: r.updated_at,
             draft_listing_id: r.draft_listing_id,
+            package_tier: r.package_tier,
           },
           hints,
         ),

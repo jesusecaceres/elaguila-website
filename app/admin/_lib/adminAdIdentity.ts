@@ -44,7 +44,7 @@ export type AdminNormalizedAd = {
   adminUrl: string;
   editUrl: string | null;
   /** Non-sensitive hints for debugging (no tokens, no full listing_json). */
-  sourceMeta?: Record<string, string | number | boolean | null>;
+  sourceMeta?: Record<string, string | number | boolean | null | unknown>;
 };
 
 const RESTAURANT_PUBLIC_PATH = "/clasificados/restaurantes";
@@ -193,6 +193,9 @@ export function normalizeGenericListingForAdmin(
     sourceMeta: {
       table: "listings",
       hasPublishedIdColumn: publishedFromRow != null,
+      seller_type: nonEmptyString((row as Record<string, unknown>).seller_type),
+      price: (row as Record<string, unknown>).price as string | number | null | undefined,
+      detail_pairs: (row as Record<string, unknown>).detail_pairs ?? null,
     },
   };
 }
@@ -256,6 +259,7 @@ export function normalizeRestaurantePublicListingForAdmin(
       table: "restaurantes_public_listings",
       hasPublishedIdColumn: publishedFromRow != null,
       draftListingId: nonEmptyString((row as { draft_listing_id?: unknown }).draft_listing_id),
+      package_tier: nonEmptyString((row as Record<string, unknown>).package_tier),
     },
   };
 }
@@ -318,6 +322,7 @@ export function normalizeServiciosPublicListingForAdmin(
     sourceMeta: {
       table: "servicios_public_listings",
       hasPublishedIdColumn: publishedFromRow != null,
+      internal_group: nonEmptyString((row as Record<string, unknown>).internal_group),
     },
   };
 }

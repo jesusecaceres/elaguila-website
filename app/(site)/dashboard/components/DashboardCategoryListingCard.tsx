@@ -12,6 +12,8 @@ type DashboardCategoryListingCardProps = {
   subtitle?: string | null;
   badges?: string[];
   metaItems?: Array<{ label: string; value: string }>;
+  /** Tiny disclaimer under the meta grid (e.g. listing plan vs account plan). */
+  footerHint?: string | null;
   actions: Array<{ href?: string; label: string; tone?: "primary" | "secondary" | "subtle"; onClick?: () => void; disabled?: boolean }>;
 };
 
@@ -23,6 +25,7 @@ export function DashboardCategoryListingCard({
   subtitle,
   badges = [],
   metaItems = [],
+  footerHint,
   actions,
 }: DashboardCategoryListingCardProps) {
   return (
@@ -50,6 +53,7 @@ export function DashboardCategoryListingCard({
           ))}
         </dl>
       ) : null}
+      {footerHint ? <p className="mt-3 text-[10px] leading-snug text-[#7A7164]/95">{footerHint}</p> : null}
       <div className="mt-4">
         <DashboardListingActionBar actions={actions} />
       </div>

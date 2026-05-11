@@ -28,6 +28,14 @@ export type DashboardInventoryItem = {
   promoted?: boolean;
   verified?: boolean;
   draftListingId?: string | null;
+  /** Optional fields for `resolveCategoryAdPlanFromDashboardInventoryItem`. */
+  autosLane?: string | null;
+  viajesLane?: string | null;
+  sellerType?: string | null;
+  price?: number | string | null;
+  detailPairs?: unknown;
+  /** e.g. `{ listing_json, lane }` for Viajes affiliate detection */
+  planRaw?: Record<string, unknown> | null;
   source:
     | "listings"
     | "restaurantes_public_listings"
@@ -74,6 +82,7 @@ export type DashboardViajesRow = {
   hero_image_url: string | null;
   published_at: string | null;
   updated_at: string;
+  listing_json?: unknown;
 };
 
 export type DashboardAutosClassifiedsRow = {
@@ -146,7 +155,7 @@ export async function fetchOwnerViajesListings(
   const { data, error } = await sb
     .from("viajes_staged_listings")
     .select(
-      "id, slug, title, category, lane, owner_user_id, lifecycle_status, is_public, hero_image_url, published_at, updated_at",
+      "id, slug, title, category, lane, owner_user_id, lifecycle_status, is_public, hero_image_url, published_at, updated_at, listing_json",
     )
     .eq("owner_user_id", ownerId)
     .eq("is_public", true)
@@ -205,6 +214,7 @@ export function buildAutosClassifiedsInventoryItems(
     promoted: false,
     verified: false,
     draftListingId: null,
+    autosLane: row.lane,
     source: "autos_classifieds_listings",
   }));
 }
@@ -372,6 +382,12 @@ export function buildViajesInventoryItems(
     promoted: false,
     verified: false,
     draftListingId: null,
+    viajesLane: row.lane,
+    planRaw: {
+      listing_json: row.listing_json,
+      lane: row.lane,
+      category: row.category,
+    },
     source: "viajes_staged_listings",
   }));
 }

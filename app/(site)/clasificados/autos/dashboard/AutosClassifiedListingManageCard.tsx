@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { listingPlanFieldLabel } from "@/app/lib/listingPlans/categoryAdPlans";
 
 type Lang = "es" | "en";
 
@@ -44,6 +45,7 @@ export function AutosClassifiedListingManageCard({
   analytics,
   maxViews,
   thumbUrl,
+  listingAdPlanLabel,
 }: {
   row: {
     id: string;
@@ -61,6 +63,7 @@ export function AutosClassifiedListingManageCard({
   analytics: AutosClassifiedManageAnalytics;
   maxViews: number;
   thumbUrl: string | null;
+  listingAdPlanLabel?: string | null;
 }) {
   const L =
     lang === "es"
@@ -82,6 +85,7 @@ export function AutosClassifiedListingManageCard({
           wa: "WA",
           web: "Web",
           cita: "Cita",
+          adPlanHint: "El plan se calcula por categoría del anuncio, no por el plan de la cuenta.",
         }
       : {
           autos: "Autos",
@@ -101,6 +105,7 @@ export function AutosClassifiedListingManageCard({
           wa: "WA",
           web: "Web",
           cita: "Appt",
+          adPlanHint: "Plan is based on this listing’s category, not the account plan.",
         };
 
   const isSold = (row.status || "active").toLowerCase() === "sold";
@@ -138,6 +143,12 @@ export function AutosClassifiedListingManageCard({
               {(row.city || "").trim()}
               {dateText ? ` · ${dateText}` : ""}
             </p>
+            {listingAdPlanLabel ? (
+              <p className="mt-2 text-[11px] leading-snug text-[#7A7164]">
+                <span className="font-semibold text-[#5C5346]">{listingPlanFieldLabel(lang)}:</span> {listingAdPlanLabel}
+                <span className="mt-0.5 block text-[10px] text-[#7A7164]/90">{L.adPlanHint}</span>
+              </p>
+            ) : null}
             <p className="mt-3 text-xs leading-relaxed text-[#5C5346]/90">
               <span className="font-bold text-[#3D3428]">{L.perf}:</span> {L.insights}
             </p>

@@ -9,12 +9,17 @@ import {
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
+import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
+import {
+  categoryAdPlanDisplayLabel,
+  listingPlanFieldLabel,
+  listingPlanFootnote,
+  resolveCategoryAdPlan,
+} from "@/app/lib/listingPlans/categoryAdPlans";
 import {
   isListingBoosted,
   leonixPromotedFromDetailPairs,
-  listingPlanFromDetailPairs,
-} from "@/app/dashboard/lib/dashboardListingMeta";
-import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
+} from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 
 type Lang = "es" | "en";
 
@@ -97,7 +102,15 @@ export function LeonixRealEstateListingManageCard({
   const rentasRx =
     String(row.category ?? "").toLowerCase() === "rentas" ? parseRentasDetailMachineRead(row.detail_pairs) : null;
 
-  const plan = listingPlanFromDetailPairs(row.detail_pairs);
+  const planDisplay = resolveCategoryAdPlan({
+    category: isBr ? "bienes-raices" : "rentas",
+    sourceTable: "listings",
+    detailPairs: row.detail_pairs,
+    sellerType: row.seller_type,
+  });
+  const planLine = categoryAdPlanDisplayLabel(planDisplay, lang);
+  const planField = listingPlanFieldLabel(lang);
+  const planFoot = listingPlanFootnote(lang);
   const boosted = isListingBoosted(row.boost_expires);
   const promoted = leonixPromotedFromDetailPairs(row.detail_pairs);
   const st = String(row.status ?? "active").toLowerCase();
@@ -143,26 +156,32 @@ export function LeonixRealEstateListingManageCard({
             {dateText ? ` · ${dateText}` : ""}
           </p>
           {isBr ? (
-            <p className="mt-2 text-xs text-[#7A7164]">
-              {lang === "es"
-                ? "Bienes raíces: la parrilla principal ordena por frescura (publicación o republicación). El carril “spotlight” de negocios es limitado y editorial — no es subasta por pago en el grid."
-                : "Real estate: the main grid sorts by freshness (publish or republish). The business spotlight band is limited and editorial — not pay-to-win grid ranking."}
-              {boosted || promoted ? (
-                <span className="mt-1 block text-[11px] text-[#7A7164]/85">
-                  {lang === "es"
-                    ? "Nota: pueden existir marcas legacy de promo/boost en datos; no definen ranking BR en Leonix."
-                    : "Note: legacy promo/boost flags may exist in data; they do not define BR ranking on Leonix."}
-                </span>
-              ) : null}
-            </p>
+            <>
+              <p className="mt-2 text-xs text-[#7A7164]">
+                {lang === "es"
+                  ? "Bienes raíces: la parrilla principal ordena por frescura (publicación o republicación). El carril “spotlight” de negocios es limitado y editorial — no es subasta por pago en el grid."
+                  : "Real estate: the main grid sorts by freshness (publish or republish). The business spotlight band is limited and editorial — not pay-to-win grid ranking."}
+                {boosted || promoted ? (
+                  <span className="mt-1 block text-[11px] text-[#7A7164]/85">
+                    {lang === "es"
+                      ? "Nota: pueden existir marcas legacy de promo/boost en datos; no definen ranking BR en Leonix."
+                      : "Note: legacy promo/boost flags may exist in data; they do not define BR ranking on Leonix."}
+                  </span>
+                ) : null}
+              </p>
+              <p className="mt-2 text-xs text-[#7A7164]">
+                <span className="font-semibold text-[#3D3428]">{planField}:</span> {planLine}
+              </p>
+            </>
           ) : (
             <p className="mt-2 text-xs text-[#7A7164]">
-              {lang === "es" ? "Plan" : "Plan"}: {plan}
+              <span className="font-semibold text-[#3D3428]">{planField}:</span> {planLine}
               {boosted || promoted ? ` · ${lang === "es" ? "Visibilidad / promo" : "Visibility / promo"}` : ""}
               {boosted ? " (boost)" : ""}
               {promoted ? " (Leonix:promoted)" : ""}
             </p>
           )}
+          <p className="mt-1 text-[10px] leading-snug text-[#7A7164]/90">{planFoot}</p>
           <p className="mt-1 text-sm text-[#7A7164]">
             {lang === "es" ? "Vistas" : "Views"}: {viewsTotal} · {lang === "es" ? "Mensajes" : "Messages"}: {messagesTotal}
           </p>
