@@ -386,7 +386,7 @@ function galleryTopCells(vm: BienesRaicesNegocioPreviewVm): [GalleryTopSpec | nu
     : (() => {
         const u = nextPhoto();
         if (u) return { kind: "photo", url: u } as const;
-        return { kind: "more" } as const;
+        return null;
       })();
   return [topLeft, topRight, bottomLeft, bottomRight];
 }
@@ -662,6 +662,8 @@ export function BienesRaicesNegocioPreviewView({
     value: qf.value,
   }));
   const [gTopA, gTopB, gBottomA, gBottomB] = galleryTopCells(vm);
+  const sidebarGallerySpecsNegocio: Array<GalleryTopSpec | null> = [gTopA, gTopB, gBottomA, gBottomB];
+  const hasSidebarMediaNegocio = sidebarGallerySpecsNegocio.some((s) => s != null);
   const grouped = groupedRentasRows(vm.propertyDetailsRows);
 
   const dedupedPhotoSlides = leonixGalleryPhotoSlidesWithCaptions(vm.media?.allPhotoUrls, vm.media?.photoCaptionsFull);
@@ -689,7 +691,7 @@ export function BienesRaicesNegocioPreviewView({
             </p>
           </div>
           <div className="grid gap-3 lg:grid-cols-12 lg:gap-4">
-            <div className="lg:col-span-7">
+            <div className={hasSidebarMediaNegocio ? "lg:col-span-7" : "lg:col-span-12"}>
               <div className="relative">
                 <button
                   type="button"
@@ -747,18 +749,13 @@ export function BienesRaicesNegocioPreviewView({
                 </p>
               ) : null}
             </div>
+              {hasSidebarMediaNegocio ? (
               <div className="grid grid-cols-2 gap-3 lg:col-span-5">
-              {[gTopA, gTopB, gBottomA, gBottomB].map((spec, idx) => (
+              {sidebarGallerySpecsNegocio.map((spec, idx) => {
+                if (!spec || spec.kind === "more") return null;
+                return (
                 <div key={idx} className="relative min-h-0 overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
-                  {!spec || spec.kind === "more" ? (
-                    <div className="aspect-[4/3] w-full">
-                      <EmptyMedia
-                        title={idx === 3 ? "Ver imágenes" : idx === 0 ? "Medio 1" : idx === 1 ? "Medio 2" : "Medio 3"}
-                        subtitle={idx === 3 ? "Abrir galería completa." : "Sin contenido en este espacio."}
-                        icon={<IconHome className="h-6 w-6" />}
-                      />
-                    </div>
-                  ) : spec.kind === "photo" ? (
+                  {spec.kind === "photo" ? (
                     <button
                       type="button"
                       className="block w-full text-left"
@@ -781,13 +778,15 @@ export function BienesRaicesNegocioPreviewView({
                         style={{ borderColor: BORDER, background: "rgba(253,251,247,0.95)", color: CHARCOAL_DEEP }}
                         onClick={() => openGallery(leonixSlideIndexForVideoSlot(vm.media, spec.slot))}
                       >
-                        Ver imágenes
+                        Galería
                       </button>
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
+              ) : null}
           </div>
           {(vm.media?.floorPlanUrls?.length ?? 0) > 1 ? (
             <div className="mt-3 overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>

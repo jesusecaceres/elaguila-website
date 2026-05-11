@@ -243,7 +243,7 @@ function galleryTopCells(vm: BienesRaicesPrivadoPreviewVm): [GalleryTopSpec | nu
     : (() => {
         const u = nextPhoto();
         if (u) return { kind: "photo", url: u } as const;
-        return { kind: "more" } as const;
+        return null;
       })();
   return [topLeft, topRight, bottomLeft, bottomRight];
 }
@@ -436,24 +436,7 @@ export function BienesRaicesPrivadoPreviewView({
       );
     }
     if (spec.kind === "more") {
-      return (
-        <button
-          key="more"
-          type="button"
-          className="relative min-h-0 overflow-hidden rounded-2xl border bg-[#F7F2E9] text-left shadow-md"
-          style={{ borderColor: BORDER }}
-          onClick={() =>
-            openGallery(
-              leonixSlideIndexForCoverPhoto(vm.media?.allPhotoUrls, vm.media?.coverPhotoIndex ?? 0, vm.media?.photoCaptionsFull),
-            )
-          }
-        >
-          <div className="flex aspect-[4/3] flex-col items-center justify-center gap-1 p-4 text-center">
-            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: CHARCOAL_DEEP }}>Ver imágenes</span>
-            <span className="text-[11px]" style={{ color: MUTED }}>Abrir galería completa</span>
-          </div>
-        </button>
-      );
+      return null;
     }
     return (
       <div key={`vid-${spec.slot}`} className="relative min-h-0 overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
@@ -478,6 +461,8 @@ export function BienesRaicesPrivadoPreviewView({
   };
 
   const sidebarGallerySpecs: Array<GalleryTopSpec | null> = [gTopA, gTopB, gBottomA, gBottomB];
+  const hasSidebarMedia = sidebarGallerySpecs.some((s) => s != null);
+  const showDuplexGalleryRow = Boolean(hasPhotos || videoOnlyHero || hasSidebarMedia);
 
   return (
     <div className="w-full min-w-0 max-w-[100vw] overflow-x-hidden antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
@@ -499,9 +484,10 @@ export function BienesRaicesPrivadoPreviewView({
                 </p>
               ) : null}
             </div>
+            {showDuplexGalleryRow ? (
             <div className="grid min-w-0 gap-2.5 lg:grid-cols-12 lg:gap-3.5">
               {hasPhotos || videoOnlyHero ? (
-                <div className="min-w-0 lg:col-span-7">
+                <div className={`min-w-0 ${hasSidebarMedia ? "lg:col-span-7" : "lg:col-span-12"}`}>
                   <div className="relative">
                     {hasPhotos && media?.heroUrl ? (
                       <>
@@ -570,10 +556,13 @@ export function BienesRaicesPrivadoPreviewView({
                   ) : null}
                 </div>
               ) : null}
+              {hasSidebarMedia ? (
               <div className={`grid min-w-0 grid-cols-2 gap-2 sm:gap-2.5 ${hasPhotos || videoOnlyHero ? "lg:col-span-5" : "lg:col-span-12"}`}>
                 {sidebarGallerySpecs.map((spec, idx) => renderGallerySpec(spec, idx))}
               </div>
+              ) : null}
             </div>
+            ) : null}
           </section>
         ) : null}
 
