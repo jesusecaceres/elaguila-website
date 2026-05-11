@@ -17,6 +17,7 @@ import {
   clearRentasNegocioDraft,
   loadRentasNegocioDraft,
 } from "@/app/clasificados/publicar/rentas/negocio/application/utils/rentasNegocioDraft";
+import { resolveRentasNegocioDraftMediaToRemoteUrls } from "@/app/clasificados/rentas/shared/rentasDraftPublishPrepare";
 import {
   createEmptyRentasNegocioFormState,
   mergePartialRentasNegocioState,
@@ -54,7 +55,23 @@ export default function RentasNegocioPreviewClient() {
     if (!d) return;
     setPublishBusy(true);
     setPublishErr(null);
-    const r = await publishLeonixListingFromRentasNegocioDraft(d, lang);
+    let toPublish = d;
+    try {
+      const draftSessionId =
+        typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `rentas-${Date.now()}`;
+      toPublish = await resolveRentasNegocioDraftMediaToRemoteUrls(d, draftSessionId);
+    } catch (e) {
+      setPublishBusy(false);
+      setPublishErr(
+        e instanceof Error
+          ? e.message
+          : lang === "es"
+            ? "No se pudieron subir las fotos o el logo. Comprueba BLOB_READ_WRITE_TOKEN en el servidor y tu conexión."
+            : "Photos or logo could not be uploaded. Check BLOB_READ_WRITE_TOKEN on the server and your connection.",
+      );
+      return;
+    }
+    const r = await publishLeonixListingFromRentasNegocioDraft(toPublish, lang);
     setPublishBusy(false);
     if (r.ok) {
       clearRentasNegocioDraft();

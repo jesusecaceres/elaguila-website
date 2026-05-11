@@ -18,6 +18,7 @@ import {
   clearRentasPrivadoDraft,
   loadRentasPrivadoDraft,
 } from "@/app/clasificados/publicar/rentas/privado/application/utils/rentasPrivadoDraft";
+import { resolveRentasPrivadoDraftMediaToRemoteUrls } from "@/app/clasificados/rentas/shared/rentasDraftPublishPrepare";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import {
@@ -51,7 +52,23 @@ export default function RentasPrivadoPreviewClient() {
     if (!d) return;
     setPublishBusy(true);
     setPublishErr(null);
-    const r = await publishLeonixListingFromRentasPrivadoDraft(d, lang);
+    let toPublish = d;
+    try {
+      const draftSessionId =
+        typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `rentas-${Date.now()}`;
+      toPublish = await resolveRentasPrivadoDraftMediaToRemoteUrls(d, draftSessionId);
+    } catch (e) {
+      setPublishBusy(false);
+      setPublishErr(
+        e instanceof Error
+          ? e.message
+          : lang === "es"
+            ? "No se pudieron subir las fotos. Comprueba BLOB_READ_WRITE_TOKEN en el servidor y tu conexión."
+            : "Photos could not be uploaded. Check BLOB_READ_WRITE_TOKEN on the server and your connection.",
+      );
+      return;
+    }
+    const r = await publishLeonixListingFromRentasPrivadoDraft(toPublish, lang);
     setPublishBusy(false);
     if (r.ok) {
       clearRentasPrivadoDraft();
