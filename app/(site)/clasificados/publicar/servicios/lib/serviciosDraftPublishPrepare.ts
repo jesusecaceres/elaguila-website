@@ -2,11 +2,16 @@
 
 import type { ClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationTypes";
 import { normalizeClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationNormalize";
+import { compressServiciosImageBlobForUpload } from "./compressServiciosImage";
 import { inlineServiciosHeavyMediaFromIdb } from "./clasificadosServiciosDraftMedia";
 import { SERVICIOS_DRAFT_MEDIA_NAMESPACE } from "./clasificadosServiciosStorage";
 import { isServiciosPublishableRemoteMediaUrl, isServiciosLocalOrTransportBlockedRef } from "./serviciosMediaTransport";
+import { parseServiciosDraftMediaUploadResult } from "./serviciosDraftUploadParse";
 
 const PUBLISH_BLOB_NS_KEY = "leonix.servicios.publishDraftBlobNs";
+
+/** Align with route limit + small multipart overhead. */
+const ROUTE_MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 export function getServiciosPublishDraftListingId(): string {
   if (typeof window === "undefined") return "ssr";
@@ -33,29 +38,81 @@ const SLOTS = new Set([
   "insuranceDoc",
 ]);
 
+async function prepareBlobForServiciosDraftUpload(blob: Blob, ctx: { slot: string; index?: number }): Promise<Blob> {
+  const mime = (blob.type || "").toLowerCase();
+  const originalKb = blob.size / 1024;
+
+  if (mime.startsWith("image/")) {
+    let next: Blob;
+    try {
+      next = await compressServiciosImageBlobForUpload(blob);
+    } catch (e) {
+      if (e instanceof Error && e.message === "image_too_large_after_compression") {
+        throw e;
+      }
+      throw e;
+    }
+    const compressedKb = next.size / 1024;
+    if (process.env.NODE_ENV === "development") {
+      console.log("[servicios draft upload] image prepared", {
+        slot: ctx.slot,
+        originalKb: originalKb.toFixed(1),
+        compressedKb: compressedKb.toFixed(1),
+        mime: mime || "image/*",
+      });
+    }
+    if (next.size > ROUTE_MAX_UPLOAD_BYTES) {
+      throw new Error("image_too_large_after_compression");
+    }
+    return next;
+  }
+
+  if (mime.startsWith("video/") || mime === "application/pdf") {
+    if (blob.size > ROUTE_MAX_UPLOAD_BYTES) {
+      throw new Error("file_too_large_for_upload");
+    }
+    return blob;
+  }
+
+  if (blob.size > ROUTE_MAX_UPLOAD_BYTES) {
+    throw new Error("file_too_large_for_upload");
+  }
+  return blob;
+}
+
 async function uploadBlobForDraft(
   blob: Blob,
   ctx: { draftListingId: string; slot: string; index?: number },
 ): Promise<string> {
   if (!SLOTS.has(ctx.slot)) throw new Error(`bad_slot:${ctx.slot}`);
+
+  const prepared = await prepareBlobForServiciosDraftUpload(blob, ctx);
+
   const form = new FormData();
   form.set("draftListingId", ctx.draftListingId);
   form.set("slot", ctx.slot);
   if (ctx.index !== undefined) form.set("index", String(ctx.index));
-  const mime = blob.type || "image/jpeg";
+  const mime = prepared.type || "image/jpeg";
   const ext =
     mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : mime.includes("pdf") ? "pdf" : mime.includes("webm") ? "webm" : "jpg";
-  form.set("file", blob, `upload.${ext}`);
+  form.set("file", prepared, `upload.${ext}`);
+
   const res = await fetch("/api/clasificados/servicios/draft-media-upload", {
     method: "POST",
     body: form,
   });
-  const j = (await res.json()) as { ok?: boolean; publicUrl?: string; error?: string; detail?: string };
-  if (!res.ok || !j.ok || typeof j.publicUrl !== "string") {
-    const msg = [j.error, j.detail].filter(Boolean).join(": ") || `upload_http_${res.status}`;
+
+  const raw = await res.text();
+  const parsed = parseServiciosDraftMediaUploadResult(res.status, res.headers.get("content-type"), raw);
+
+  if (!parsed.ok || !parsed.publicUrl) {
+    if (parsed.error === "media_upload_payload_too_large") {
+      throw new Error("media_upload_payload_too_large");
+    }
+    const msg = [parsed.error, parsed.detail].filter(Boolean).join(": ") || `upload_http_${res.status}`;
     throw new Error(msg);
   }
-  return j.publicUrl;
+  return parsed.publicUrl;
 }
 
 async function uploadUrlIfNeeded(

@@ -48,8 +48,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "missing_file" }, { status: 400 });
   }
 
-  if (file.size > 12 * 1024 * 1024) {
-    return NextResponse.json({ ok: false, error: "file_too_large" }, { status: 413 });
+  if (file.size > 4 * 1024 * 1024) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "file_too_large",
+        detail: "Maximum upload size is 4 MB. Use a smaller image or compress before uploading.",
+      },
+      { status: 413 },
+    );
   }
 
   const safeId = draftListingId.replace(/[^a-zA-Z0-9_-]+/g, "").slice(0, 80) || "draft";

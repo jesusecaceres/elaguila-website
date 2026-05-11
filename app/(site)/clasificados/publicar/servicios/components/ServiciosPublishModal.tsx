@@ -81,12 +81,31 @@ export function ServiciosPublishModal({
         setBusy(false);
         return;
       }
-      if (res.status === 400 && (data.error === "heavy_media_detected" || data.error === "media_upload_failed")) {
+      if (
+        res.status === 400 &&
+        (data.error === "heavy_media_detected" ||
+          data.error === "media_upload_failed" ||
+          data.error === "image_too_large_after_compression" ||
+          data.error === "file_too_large_for_upload" ||
+          data.error === "media_upload_payload_too_large")
+      ) {
         setError(
-          (data.message as string | undefined)?.trim() ||
-            (lang === "en"
-              ? "Could not prepare images for publishing. Check your connection and try again."
-              : "No se pudieron preparar las imágenes para publicar. Revisa tu conexión e inténtalo de nuevo."),
+          data.error === "image_too_large_after_compression"
+            ? lang === "en"
+              ? "This image is still too large after compression. Try another photo or lower resolution."
+              : "La imagen sigue siendo muy grande después de comprimirla. Prueba otra foto o reduce la resolución."
+            : data.error === "file_too_large_for_upload"
+              ? lang === "en"
+                ? "This file is too large to upload (max 4 MB). Use a smaller PDF or video."
+                : "Este archivo es demasiado grande (máx. 4 MB). Usa un PDF o video más pequeño."
+              : data.error === "media_upload_payload_too_large"
+                ? lang === "en"
+                  ? "The upload exceeded the server limit. Try a smaller image or retake the photo."
+                  : "La subida superó el límite del servidor. Prueba con una imagen más pequeña."
+                : (data.message as string | undefined)?.trim() ||
+                  (lang === "en"
+                    ? "Could not prepare images for publishing. Check your connection and try again."
+                    : "No se pudieron preparar las imágenes para publicar. Revisa tu conexión e inténtalo de nuevo."),
         );
         setBusy(false);
         return;

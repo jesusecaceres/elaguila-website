@@ -62,12 +62,20 @@ export async function postServiciosPublishApi(args: {
   try {
     resolved = await resolveServiciosDraftMediaToRemoteUrls(args.state);
   } catch (e) {
-    const message = e instanceof Error ? e.message : "media_upload_failed";
-    const res = new Response(JSON.stringify({ ok: false, error: "media_upload_failed", message }), {
+    const message = e instanceof Error ? e.message : String(e);
+    let error: string = "media_upload_failed";
+    if (message === "image_too_large_after_compression" || message.startsWith("image_too_large_after_compression")) {
+      error = "image_too_large_after_compression";
+    } else if (message === "file_too_large_for_upload" || message.startsWith("file_too_large_for_upload")) {
+      error = "file_too_large_for_upload";
+    } else if (message === "media_upload_payload_too_large" || message.includes("media_upload_payload_too_large")) {
+      error = "media_upload_payload_too_large";
+    }
+    const res = new Response(JSON.stringify({ ok: false, error, message }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
-    return { res, data: { ok: false, error: "media_upload_failed", message } };
+    return { res, data: { ok: false, error, message } };
   }
 
   const body = buildServiciosPublishTransportBody(resolved, args.lang, existingPublicSlug);

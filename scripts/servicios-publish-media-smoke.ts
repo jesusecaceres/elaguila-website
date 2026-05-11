@@ -13,6 +13,7 @@ import {
   coerceServiciosMediaRefToString,
   isServiciosPublishableRemoteMediaUrl,
 } from "../app/(site)/clasificados/publicar/servicios/lib/serviciosMediaTransport";
+import { parseServiciosDraftMediaUploadResult } from "../app/(site)/clasificados/publicar/servicios/lib/serviciosDraftUploadParse";
 
 const tinyData =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
@@ -96,6 +97,26 @@ function main() {
     (po.customServiceDescription ?? "").includes("premium"),
     "custom service description must survive (never collapse to bare Otro label here)",
   );
+
+  const p413 = parseServiciosDraftMediaUploadResult(413, "text/plain; charset=utf-8", "Request Entity Too Large");
+  assert.equal(p413.ok, false);
+  assert.equal(p413.error, "media_upload_payload_too_large");
+
+  const p413json = parseServiciosDraftMediaUploadResult(
+    413,
+    "application/json",
+    JSON.stringify({ ok: false, error: "file_too_large", detail: "too big" }),
+  );
+  assert.equal(p413json.ok, false);
+  assert.equal(p413json.error, "file_too_large");
+
+  const okJson = parseServiciosDraftMediaUploadResult(
+    200,
+    "application/json",
+    JSON.stringify({ ok: true, publicUrl: "https://blob.example/x" }),
+  );
+  assert.equal(okJson.ok, true);
+  assert.equal(okJson.publicUrl, "https://blob.example/x");
 
   console.log("servicios-publish-media-smoke: OK");
 }
