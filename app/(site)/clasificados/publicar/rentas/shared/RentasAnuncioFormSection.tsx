@@ -19,6 +19,9 @@ import {
 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import type { RentasNegocioFormState } from "../negocio/schema/rentasNegocioFormState";
 import type { RentasPrivadoFormState } from "../privado/schema/rentasPrivadoFormState";
+import { RENTAS_TIPO_DE_RENTA_OPTIONS } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
+import { rentasFlowGroupActive } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
+import { RentasTipoFlowDetailFields } from "@/app/clasificados/publicar/rentas/shared/RentasTipoFlowDetailFields";
 import type { Dispatch, SetStateAction } from "react";
 
 function precioDigitsUnbounded(raw: string): string {
@@ -57,6 +60,8 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
   const servicioOtro = state.serviciosIncluidosKeys.includes("otro");
   const showLegacyUbicacionExtra =
     state.ubicacionLinea.trim() !== "" && state.ubicacionLinea.trim() !== state.direccionLinea1.trim();
+  const flowGroup = rentasFlowGroupActive(state);
+  const hideAmuebladoMascotas = flowGroup === "storage_parking";
 
   return (
     <section className={`${aiCardClass} min-w-0`}>
@@ -72,6 +77,53 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
             />
           </AiField>
         </div>
+        <div className="sm:col-span-2 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
+          <AiField label="Tipo de renta" hint="Describe con más detalle qué ofreces; ayuda a la vista previa y a los resultados.">
+            <select
+              className={fieldClass}
+              value={state.tipoDeRenta}
+              onChange={(e) =>
+                setState((s) => ({
+                  ...s,
+                  tipoDeRenta: e.target.value as typeof s.tipoDeRenta,
+                  tipoDeRentaOtro: e.target.value === "otro" ? s.tipoDeRentaOtro : "",
+                }))
+              }
+            >
+              <option value="">—</option>
+              {RENTAS_TIPO_DE_RENTA_OPTIONS.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </AiField>
+          {state.tipoDeRenta === "otro" ? (
+            <AiField label="Especifica el tipo de renta" hint="Se mostrará tal como lo escribas (no solo “Otro”).">
+              <input
+                className={fieldClass}
+                value={state.tipoDeRentaOtro}
+                onChange={(e) => setState((s) => ({ ...s, tipoDeRentaOtro: e.target.value }))}
+                autoComplete="off"
+              />
+            </AiField>
+          ) : null}
+        </div>
+        <div className="sm:col-span-2">
+          <AiField
+            label="Condiciones importantes del alquiler"
+            hint="Agrega reglas, condiciones o detalles importantes del espacio. Evita lenguaje discriminatorio; enfócate en reglas del hogar, ocupación, uso del espacio y requisitos claros."
+          >
+            <textarea
+              className={textareaFieldClass}
+              rows={3}
+              value={state.condicionesAlquiler}
+              onChange={(e) => setState((s) => ({ ...s, condicionesAlquiler: e.target.value }))}
+              placeholder="Ej. ambiente tranquilo, no fumar, máximo 1 persona, ideal para estudiante o trabajador, se requiere comprobante de ingresos…"
+            />
+          </AiField>
+        </div>
+        <RentasTipoFlowDetailFields state={state} setState={setState} fieldClass={fieldClass} />
         <AiField
           required
           label="Renta mensual (USD)"
@@ -176,30 +228,34 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
             </p>
           ) : null}
         </AiField>
-        <AiField label="Amueblado">
-          <select
-            className={fieldClass}
-            value={state.amueblado}
-            onChange={(e) =>
-              setState((s) => ({ ...s, amueblado: e.target.value as typeof s.amueblado }))
-            }
-          >
-            <option value="">—</option>
-            <option value="amueblado">Amueblado</option>
-            <option value="sin_amueblar">Sin amueblar</option>
-          </select>
-        </AiField>
-        <AiField label="Mascotas">
-          <select
-            className={fieldClass}
-            value={state.mascotas}
-            onChange={(e) => setState((s) => ({ ...s, mascotas: e.target.value as typeof s.mascotas }))}
-          >
-            <option value="">—</option>
-            <option value="permitidas">Permitidas</option>
-            <option value="no_permitidas">No permitidas</option>
-          </select>
-        </AiField>
+        {hideAmuebladoMascotas ? null : (
+          <>
+            <AiField label="Amueblado">
+              <select
+                className={fieldClass}
+                value={state.amueblado}
+                onChange={(e) =>
+                  setState((s) => ({ ...s, amueblado: e.target.value as typeof s.amueblado }))
+                }
+              >
+                <option value="">—</option>
+                <option value="amueblado">Amueblado</option>
+                <option value="sin_amueblar">Sin amueblar</option>
+              </select>
+            </AiField>
+            <AiField label="Mascotas">
+              <select
+                className={fieldClass}
+                value={state.mascotas}
+                onChange={(e) => setState((s) => ({ ...s, mascotas: e.target.value as typeof s.mascotas }))}
+              >
+                <option value="">—</option>
+                <option value="permitidas">Permitidas</option>
+                <option value="no_permitidas">No permitidas</option>
+              </select>
+            </AiField>
+          </>
+        )}
         <div className="sm:col-span-2">
           <span className={aiLabelClass}>Servicios incluidos</span>
           <p className={aiHintClass}>Marca lo que aplica. En el anuncio se listan en limpio, sin emojis.</p>

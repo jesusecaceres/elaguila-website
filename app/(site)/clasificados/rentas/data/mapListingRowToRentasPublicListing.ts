@@ -205,6 +205,33 @@ function petsFromRentasCodes(code: string | null, human: boolean | undefined, ma
   return undefined;
 }
 
+function roomBathPublicLabel(code: string | null | undefined): string | undefined {
+  const c = (code ?? "").trim();
+  const m: Record<string, string> = {
+    privado: "privado",
+    compartido: "compartido",
+    no_incluido: "no incluido",
+  };
+  return m[c] ?? (c || undefined);
+}
+
+function roomKitchenPublicLabel(code: string | null | undefined): string | undefined {
+  const c = (code ?? "").trim();
+  const m: Record<string, string> = {
+    privada: "privada",
+    compartida: "compartida",
+    no_incluida: "no incluida",
+  };
+  return m[c] ?? (c || undefined);
+}
+
+function triStateSiNo(raw: string | null | undefined): boolean | null {
+  const t = (raw ?? "").trim().toLowerCase();
+  if (t === "si" || t === "sí") return true;
+  if (t === "no") return false;
+  return null;
+}
+
 export type ListingRowLike = Record<string, unknown>;
 
 /**
@@ -354,6 +381,19 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const amueblado = furnishedFromRentasCodes(rx.furnishedCode, amuebladoHuman, mf.furnished);
   const mascotasPermitidas = petsFromRentasCodes(rx.petsCode, mascotasHuman, mf.petsAllowed);
 
+  const rentalTypeCode = (rx.rentalTypeCode ?? "").trim() || undefined;
+  const rentalTypeCustom = (rx.rentalTypeCustom ?? "").trim() || undefined;
+  const leaseConditionsRaw =
+    (rx.leaseConditions ?? "").trim() ||
+    (pairValue(row.detail_pairs, "Condiciones importantes") ?? "").trim() ||
+    "";
+  const leaseConditions = leaseConditionsRaw || undefined;
+  const rentasRoomBathLabel = roomBathPublicLabel(rx.roomBathKind) ?? undefined;
+  const rentasRoomKitchenLabel = roomKitchenPublicLabel(rx.roomKitchenKind) ?? undefined;
+  const rentasRoomMaxOccupants = (rx.roomMaxOccupants ?? "").trim() || undefined;
+  const rentasStorageAccess24h = triStateSiNo(rx.storageAccess24h);
+  const rentasStorageSecurity = triStateSiNo(rx.storageSecurity);
+
   return {
     id,
     slug: id,
@@ -396,6 +436,14 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     availabilityNote: rx.availabilityNote ?? undefined,
     servicesIncluded: rx.servicesIncluded ?? undefined,
     requirements: rx.requirements ?? undefined,
+    rentalTypeCode,
+    rentalTypeCustom,
+    leaseConditions,
+    rentasRoomBathLabel,
+    rentasRoomKitchenLabel,
+    rentasRoomMaxOccupants,
+    rentasStorageAccess24h,
+    rentasStorageSecurity,
     businessLicense: rx.businessLicense ?? undefined,
     businessWebsite: rx.businessWebsite ?? undefined,
     businessSocial,

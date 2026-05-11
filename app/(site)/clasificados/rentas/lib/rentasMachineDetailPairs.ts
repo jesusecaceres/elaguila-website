@@ -33,6 +33,14 @@ export const RENTAS_DP_MAP_URL = "Leonix:rent:map_url";
 /** External video URL only (never data: URLs). */
 export const RENTAS_DP_VIDEO_URL = "Leonix:rent:video_url";
 export const RENTAS_DP_HALF_BATHS_COUNT = "Leonix:rent:half_baths_count";
+export const RENTAS_DP_RENTAL_TYPE_CODE = "Leonix:rent:rental_type_code";
+export const RENTAS_DP_RENTAL_TYPE_CUSTOM = "Leonix:rent:rental_type_custom";
+export const RENTAS_DP_LEASE_CONDITIONS = "Leonix:rent:lease_conditions";
+export const RENTAS_DP_ROOM_BATH_KIND = "Leonix:rent:room:bath_kind";
+export const RENTAS_DP_ROOM_KITCHEN_KIND = "Leonix:rent:room:kitchen_kind";
+export const RENTAS_DP_ROOM_MAX_OCC = "Leonix:rent:room:max_occupants";
+export const RENTAS_DP_STORAGE_ACCESS_24H = "Leonix:rent:storage:access_24h";
+export const RENTAS_DP_STORAGE_SECURITY = "Leonix:rent:storage:security";
 /** Dígitos US (10) para SMS; distinto de `contact_phone` cuando el usuario separa SMS. */
 export const RENTAS_DP_CONTACT_SMS_DIGITS = "Leonix:rent:contact_sms_digits";
 /** Dígitos para `https://wa.me/...` cuando el anunciante publicó WhatsApp. */
@@ -50,6 +58,14 @@ type RentasPersistCommon = Pick<
   | "serviciosIncluidosOtro"
   | "serviciosIncluidosLegacy"
   | "requisitos"
+  | "tipoDeRenta"
+  | "tipoDeRentaOtro"
+  | "condicionesAlquiler"
+  | "rentasEspacioTipoBano"
+  | "rentasEspacioTipoCocina"
+  | "rentasEspacioMaxOcupantes"
+  | "rentasAlmacenAcceso24h"
+  | "rentasAlmacenSeguridad"
 >;
 
 type RentasMapQueryState = Pick<
@@ -92,6 +108,19 @@ function mergeRentasCommonMachinePairs(
   if (state.mascotas) push(out, RENTAS_DP_PETS_CODE, state.mascotas);
   push(out, RENTAS_DP_SERVICES_INCLUDED, formatRentasServiciosIncluidosOutput(state));
   push(out, RENTAS_DP_REQUIREMENTS, state.requisitos);
+  if (state.tipoDeRenta) push(out, RENTAS_DP_RENTAL_TYPE_CODE, state.tipoDeRenta);
+  if (state.tipoDeRenta === "otro") push(out, RENTAS_DP_RENTAL_TYPE_CUSTOM, state.tipoDeRentaOtro);
+  push(out, RENTAS_DP_LEASE_CONDITIONS, state.condicionesAlquiler);
+  if (state.rentasEspacioTipoBano) push(out, RENTAS_DP_ROOM_BATH_KIND, state.rentasEspacioTipoBano);
+  if (state.rentasEspacioTipoCocina) push(out, RENTAS_DP_ROOM_KITCHEN_KIND, state.rentasEspacioTipoCocina);
+  const occ = String(state.rentasEspacioMaxOcupantes ?? "").replace(/\D/g, "");
+  if (occ) push(out, RENTAS_DP_ROOM_MAX_OCC, occ);
+  if (state.rentasAlmacenAcceso24h === "si" || state.rentasAlmacenAcceso24h === "no") {
+    push(out, RENTAS_DP_STORAGE_ACCESS_24H, state.rentasAlmacenAcceso24h);
+  }
+  if (state.rentasAlmacenSeguridad === "si" || state.rentasAlmacenSeguridad === "no") {
+    push(out, RENTAS_DP_STORAGE_SECURITY, state.rentasAlmacenSeguridad);
+  }
   return out;
 }
 

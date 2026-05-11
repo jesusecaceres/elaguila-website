@@ -22,6 +22,8 @@ import {
   filterRentasPhotoUrlList,
   rentasPublishedVideoShouldAppearInGallery,
 } from "@/app/clasificados/rentas/lib/rentasListingPublishedMediaGuards";
+import { filterRentasLivePropertyRowsForFlow } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
+import { formatRentasTipoDeRentaDisplay, rentasRentalFlowGroupForTipo } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 
 function trim(s: unknown): string {
   if (s == null) return "";
@@ -185,24 +187,32 @@ function cityStateZipLine(listing: RentasPublicListing): string {
 function buildContractRows(listing: RentasPublicListing, lang: "es" | "en"): BienesRaicesPreviewFact[] {
   const rows: BienesRaicesPreviewFact[] = [];
   pushRow(rows, "Renta mensual", trim(listing.rentDisplay));
+  const tipo = formatRentasTipoDeRentaDisplay(listing.rentalTypeCode ?? "", listing.rentalTypeCustom ?? "");
+  if (tipo) pushRow(rows, "Tipo de renta", tipo);
   const dep = depositDisplay(listing, lang);
   if (dep) rows.push({ label: "Depósito", value: dep });
   const pl = formatLeaseCode(listing.leaseTermCode, lang);
   if (pl) rows.push({ label: "Plazo del contrato", value: pl });
   const disp = trim(listing.availabilityNote);
   if (disp) rows.push({ label: "Disponibilidad", value: disp });
-  const st = rentasAvailabilityLabel(listing.rentasListingAvailability, lang);
-  if (st) rows.push({ label: "Estado del anuncio", value: st });
-  if (listing.amueblado === true) rows.push({ label: "Amueblado", value: lang === "es" ? "Amueblado" : "Furnished" });
-  if (listing.amueblado === false) rows.push({ label: "Amueblado", value: lang === "es" ? "Sin amueblar" : "Unfurnished" });
-  if (listing.mascotasPermitidas === true) rows.push({ label: "Mascotas", value: lang === "es" ? "Permitidas" : "Allowed" });
-  if (listing.mascotasPermitidas === false) rows.push({ label: "Mascotas", value: lang === "es" ? "No permitidas" : "Not allowed" });
+  const g = rentasRentalFlowGroupForTipo(listing.rentalTypeCode ?? "");
+  const showFurnPets = g === "unset" || g === "full_housing" || g === "room_shared" || g === "commercial_space";
+  if (showFurnPets) {
+    if (listing.amueblado === true) rows.push({ label: "Amueblado", value: lang === "es" ? "Amueblado" : "Furnished" });
+    if (listing.amueblado === false) rows.push({ label: "Amueblado", value: lang === "es" ? "Sin amueblar" : "Unfurnished" });
+    if (listing.mascotasPermitidas === true) rows.push({ label: "Mascotas", value: lang === "es" ? "Permitidas" : "Allowed" });
+    if (listing.mascotasPermitidas === false) rows.push({ label: "Mascotas", value: lang === "es" ? "No permitidas" : "Not allowed" });
+  }
   const svc = trim(listing.servicesIncluded);
   if (svc) rows.push({ label: "Servicios incluidos", value: svc });
   const req = trim(listing.requirements);
   if (req) rows.push({ label: "Requisitos", value: req });
+  const lc = trim(listing.leaseConditions);
+  if (lc) rows.push({ label: "Condiciones importantes", value: lc });
   const zona = zonaFromListing(listing);
   if (zona) rows.push({ label: "Zona o vecindario", value: zona });
+  const st = rentasAvailabilityLabel(listing.rentasListingAvailability, lang);
+  if (st) rows.push({ label: "Estado del anuncio", value: st });
   return rows;
 }
 
@@ -250,9 +260,35 @@ function buildNonResidencialRows(listing: RentasPublicListing, lang: "es" | "en"
   return rows;
 }
 
+function buildLiveFlowExtensionRows(listing: RentasPublicListing, lang: "es" | "en"): BienesRaicesPreviewFact[] {
+  const g = rentasRentalFlowGroupForTipo(listing.rentalTypeCode ?? "");
+  const rows: BienesRaicesPreviewFact[] = [];
+  if (g === "room_shared") {
+    if (listing.rentasRoomBathLabel) pushRow(rows, lang === "es" ? "Tipo de baño" : "Bath type", listing.rentasRoomBathLabel);
+    if (listing.rentasRoomKitchenLabel) pushRow(rows, lang === "es" ? "Cocina" : "Kitchen", listing.rentasRoomKitchenLabel);
+    if (listing.rentasRoomMaxOccupants) {
+      pushRow(rows, lang === "es" ? "Máximo de ocupantes" : "Max occupants", listing.rentasRoomMaxOccupants);
+    }
+  }
+  if (g === "storage_parking") {
+    if (listing.rentasStorageAccess24h === true) {
+      rows.push({ label: lang === "es" ? "Acceso 24/7" : "24/7 access", value: "Sí" });
+    }
+    if (listing.rentasStorageSecurity === true) {
+      rows.push({
+        label: lang === "es" ? "Seguridad / acceso controlado" : "Security / controlled access",
+        value: "Sí",
+      });
+    }
+  }
+  return rows;
+}
+
 function buildPropertyRows(listing: RentasPublicListing, lang: "es" | "en"): BienesRaicesPreviewFact[] {
-  if (listing.categoriaPropiedad === "residencial") return buildResidencialPropertyRows(listing, lang);
-  return buildNonResidencialRows(listing, lang);
+  const base =
+    listing.categoriaPropiedad === "residencial" ? buildResidencialPropertyRows(listing, lang) : buildNonResidencialRows(listing, lang);
+  const filtered = filterRentasLivePropertyRowsForFlow(listing, base);
+  return [...filtered, ...buildLiveFlowExtensionRows(listing, lang)];
 }
 
 function highlightsRowsFromListing(listing: RentasPublicListing): BienesRaicesPreviewFact[] {
@@ -288,8 +324,12 @@ function contractQuickStrip(listing: RentasPublicListing, lang: "es" | "en"): Bi
   if (pl) out.push({ label: "Plazo", value: pl, icon: "calendar" });
   const disp = trim(listing.availabilityNote);
   if (disp) out.push({ label: "Disponibilidad", value: disp, icon: "calendar" });
-  if (listing.amueblado === true) out.push({ label: "Amueblado", value: lang === "es" ? "Sí" : "Yes", icon: "home" });
-  if (listing.amueblado === false) out.push({ label: "Amueblado", value: lang === "es" ? "No" : "No", icon: "home" });
+  const g = rentasRentalFlowGroupForTipo(listing.rentalTypeCode ?? "");
+  const showFurn = g === "unset" || g === "full_housing" || g === "room_shared" || g === "commercial_space";
+  if (showFurn) {
+    if (listing.amueblado === true) out.push({ label: "Amueblado", value: lang === "es" ? "Sí" : "Yes", icon: "home" });
+    if (listing.amueblado === false) out.push({ label: "Amueblado", value: lang === "es" ? "No" : "No", icon: "home" });
+  }
   return out;
 }
 
@@ -388,6 +428,12 @@ export function mapRentasListingToPrivadoPreviewVm(
 function stripQuickFromProperty(listing: RentasPublicListing, lang: "es" | "en"): BienesRaicesPreviewQuickFactVm[] {
   const out: BienesRaicesPreviewQuickFactVm[] = [];
   if (listing.categoriaPropiedad !== "residencial") return out;
+  const g = rentasRentalFlowGroupForTipo(listing.rentalTypeCode ?? "");
+  if (g === "storage_parking" || g === "room_shared") {
+    const sq = trim(listing.sqft);
+    if (sq && sq !== "—") out.push({ label: lang === "es" ? "Interior" : "Interior", value: sq, icon: "ruler" });
+    return out;
+  }
   const beds = trim(listing.beds);
   if (beds && beds !== "—") out.push({ label: lang === "es" ? "Recámaras" : "Beds", value: beds, icon: "bed" });
   const bt = trim(listing.fullBaths) || trim(listing.baths);

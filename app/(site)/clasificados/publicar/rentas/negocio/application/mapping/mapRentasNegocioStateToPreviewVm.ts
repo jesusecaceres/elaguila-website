@@ -16,10 +16,15 @@ import {
   buildRentasStreetLine,
   formatRentasDepositUsdPreview,
   formatRentasDisponibilidadDisplay,
-  formatRentasServiciosIncluidosOutputMultiline,
   rentasGoogleMapsUrlFromQuery,
 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
-import { buildRentasResidencialPropertyRows } from "@/app/clasificados/rentas/shared/rentasResidencialPreviewRows";
+import {
+  buildRentasFlowContractRows,
+  buildRentasFlowPropertyBodyRows,
+  buildRentasFlowTipoResumenRow,
+  buildRentasRentaMensualRow,
+  rentasFlowGroupActive,
+} from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
 import type { RentasNegocioFormState } from "../../schema/rentasNegocioFormState";
 import { rentasNegocioToBienesRaicesNegocioState } from "./rentasNegocioToBienesRaicesNegocioState";
 
@@ -77,25 +82,23 @@ function plazoDisplay(s: RentasNegocioFormState): string {
   return "";
 }
 
-function rentalContractRows(s: RentasNegocioFormState): BienesRaicesPreviewFact[] {
-  const rows: BienesRaicesPreviewFact[] = [];
+function rentalContractQuickStrip(s: RentasNegocioFormState): BienesRaicesPreviewQuickFactVm[] {
+  const out: BienesRaicesPreviewQuickFactVm[] = [];
+  const g = rentasFlowGroupActive(s);
+  const showFurn = g === "unset" || g === "full_housing" || g === "room_shared" || g === "commercial_space";
+  const rent = formatUsdMonthly(s.rentaMensual);
+  if (rent) out.push({ label: "Renta mensual", value: rent, icon: "calendar" });
   const dep = formatRentasDepositUsdPreview(s.deposito);
-  if (dep) rows.push({ label: "Depósito", value: dep });
+  if (dep) out.push({ label: "Depósito", value: dep, icon: "pin" });
   const pl = plazoDisplay(s);
-  if (pl) rows.push({ label: "Plazo del contrato", value: pl });
+  if (pl) out.push({ label: "Plazo", value: pl, icon: "calendar" });
   const disp = formatRentasDisponibilidadDisplay(s.disponibilidad);
-  if (disp) rows.push({ label: "Disponibilidad", value: disp });
-  if (s.amueblado === "amueblado") rows.push({ label: "Amueblado", value: "Amueblado" });
-  if (s.amueblado === "sin_amueblar") rows.push({ label: "Amueblado", value: "Sin amueblar" });
-  if (s.mascotas === "permitidas") rows.push({ label: "Mascotas", value: "Permitidas" });
-  if (s.mascotas === "no_permitidas") rows.push({ label: "Mascotas", value: "No permitidas" });
-  const svc = formatRentasServiciosIncluidosOutputMultiline(s);
-  if (svc) rows.push({ label: "Servicios incluidos", value: svc });
-  const req = trim(s.requisitos);
-  if (req) rows.push({ label: "Requisitos", value: req });
-  const zona = trim(s.zonaVecindario);
-  if (zona) rows.push({ label: "Zona o vecindario", value: zona });
-  return rows;
+  if (disp) out.push({ label: "Disponibilidad", value: disp, icon: "calendar" });
+  if (showFurn) {
+    if (s.amueblado === "amueblado") out.push({ label: "Amueblado", value: "Sí", icon: "home" });
+    if (s.amueblado === "sin_amueblar") out.push({ label: "Amueblado", value: "No", icon: "home" });
+  }
+  return out;
 }
 
 function dedupeQuickFactsByLabel(items: BienesRaicesPreviewQuickFactVm[]): BienesRaicesPreviewQuickFactVm[] {
@@ -126,7 +129,11 @@ function normalizeRentasNegocioHighlights(rows: BienesRaicesPreviewFact[]): Bien
 export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): BienesRaicesNegocioPreviewVm {
   const neg = rentasNegocioToBienesRaicesNegocioState(s);
   const vm = mapBienesRaicesNegocioStateToPreviewVm(neg);
-  const extra = rentalContractRows(s);
+  const lead: BienesRaicesPreviewFact[] = [];
+  const rm = buildRentasRentaMensualRow(s);
+  if (rm) lead.push(rm);
+  lead.push(...buildRentasFlowTipoResumenRow(s));
+  const extra = [...lead, ...buildRentasFlowContractRows(s)];
   const d = priceDigits(s.rentaMensual);
   let priceDisplay = vm.priceDisplay;
   if (d && priceDisplay !== "—") {
@@ -148,24 +155,11 @@ export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): Bie
   const zona = trim(s.zonaVecindario);
   const hasMeaningfulAddress = Boolean(line1 || trim(s.ciudad) || trim(s.direccionCodigoPostal) || mapsUrl);
 
-  const propertyDetailsRows: BienesRaicesPreviewFact[] =
-    s.categoriaPropiedad === "residencial"
-      ? [...extra, ...buildRentasResidencialPropertyRows(s.residencial)]
-      : extra.length
-        ? [...extra, ...vm.propertyDetailsRows]
-        : vm.propertyDetailsRows;
+  const propertyDetailsRows: BienesRaicesPreviewFact[] = [...extra, ...buildRentasFlowPropertyBodyRows(s)];
 
-  const contractQuickStrip: BienesRaicesPreviewQuickFactVm[] = [];
-  const rent = formatUsdMonthly(s.rentaMensual);
-  if (rent) contractQuickStrip.push({ label: "Renta mensual", value: rent, icon: "calendar" });
-  const dep = formatRentasDepositUsdPreview(s.deposito);
-  if (dep) contractQuickStrip.push({ label: "Depósito", value: dep, icon: "pin" });
-  const pl = plazoDisplay(s);
-  if (pl) contractQuickStrip.push({ label: "Plazo", value: pl, icon: "calendar" });
-  const disp = formatRentasDisponibilidadDisplay(s.disponibilidad);
-  if (disp) contractQuickStrip.push({ label: "Disponibilidad", value: disp, icon: "calendar" });
+  const quickStripMerged = rentalContractQuickStrip(s);
 
-  const quickFacts = dedupeQuickFactsByLabel([...contractQuickStrip, ...vm.quickFacts]);
+  const quickFacts = dedupeQuickFactsByLabel([...quickStripMerged, ...vm.quickFacts]);
 
   const highlightsRows = normalizeRentasNegocioHighlights(vm.highlightsRows ?? []);
 

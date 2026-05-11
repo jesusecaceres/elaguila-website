@@ -48,6 +48,10 @@ import {
 import { LeonixRealEstateSortablePhotoStrip } from "@/app/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
 import { RentasAnuncioFormSection } from "@/app/clasificados/publicar/rentas/shared/RentasAnuncioFormSection";
 import {
+  rentasFlowGroupActive,
+  rentasResidencialFormRowsMode,
+} from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
+import {
   COMERCIAL_DESTACADOS_DEFS,
   COMERCIAL_SUBTIPO_POR_TIPO,
   COMERCIAL_TIPO_OPCIONES,
@@ -349,6 +353,8 @@ export function RentasNegocioForm() {
   };
 
   const cat = state.categoriaPropiedad;
+  const rentasFlow = rentasFlowGroupActive(state);
+  const residencialRowsMode = rentasResidencialFormRowsMode(rentasFlow);
   const confirmAll =
     state.confirmListingAccurate && state.confirmPhotosRepresentItem && state.confirmCommunityRules;
 
@@ -802,6 +808,7 @@ export function RentasNegocioForm() {
         {cat === "residencial" ? (
           <section className={`${aiCardClass} min-w-0`}>
             <h2 className={aiTitleClass}>Detalle residencial</h2>
+            {residencialRowsMode === "full_legacy" ? (
             <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
               <AiField label="Tipo">
                 <select
@@ -908,6 +915,46 @@ export function RentasNegocioForm() {
                 </select>
               </AiField>
             </div>
+            ) : residencialRowsMode === "room_partial" ? (
+              <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
+                <AiField label="Baños completos">
+                  <input
+                    className={fieldClass}
+                    inputMode="decimal"
+                    value={state.residencial.banos}
+                    onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, banos: e.target.value } }))}
+                  />
+                </AiField>
+                <AiField label="Medios baños">
+                  <input
+                    className={fieldClass}
+                    inputMode="decimal"
+                    value={state.residencial.mediosBanos}
+                    onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, mediosBanos: e.target.value } }))}
+                  />
+                </AiField>
+                <AiField label="Interior (ft²)">
+                  <input
+                    className={fieldClass}
+                    inputMode="numeric"
+                    value={state.residencial.interiorSqft}
+                    onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, interiorSqft: e.target.value } }))}
+                  />
+                </AiField>
+                <AiField label="Estacionamiento">
+                  <input
+                    className={fieldClass}
+                    value={state.residencial.estacionamiento}
+                    onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, estacionamiento: e.target.value } }))}
+                  />
+                </AiField>
+              </div>
+            ) : (
+              <p className={`${aiSubClass} mt-3`}>
+                Para este tipo de renta, los detalles de habitación o espacio compartido van arriba en “Anuncio”; aquí solo
+                puedes marcar destacados si aplica.
+              </p>
+            )}
             <div className="mt-6">
               <span className={aiLabelClass}>Destacados</span>
               <p className={aiHintClass}>Opcional: qué destacar en la vista previa.</p>

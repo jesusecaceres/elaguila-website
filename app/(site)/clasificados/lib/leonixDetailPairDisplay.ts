@@ -14,6 +14,16 @@ import {
   LEONIX_DP_PROMOTED,
   LEONIX_DP_PROMOTED_UNTIL,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import {
+  RENTAS_DP_LEASE_CONDITIONS,
+  RENTAS_DP_RENTAL_TYPE_CODE,
+  RENTAS_DP_RENTAL_TYPE_CUSTOM,
+  RENTAS_DP_ROOM_BATH_KIND,
+  RENTAS_DP_ROOM_KITCHEN_KIND,
+  RENTAS_DP_ROOM_MAX_OCC,
+  RENTAS_DP_STORAGE_ACCESS_24H,
+  RENTAS_DP_STORAGE_SECURITY,
+} from "@/app/clasificados/rentas/lib/rentasMachineDetailPairs";
 
 /** Exact `detail_pairs[].label` values that must never appear as public “Details” rows. */
 export const LEONIX_INTERNAL_DETAIL_LABELS: ReadonlySet<string> = new Set([
@@ -38,6 +48,15 @@ export const LEONIX_INTERNAL_DETAIL_LABELS: ReadonlySet<string> = new Set([
   "Leonix:negotiable",
   /** How seller chose to be reached at publish time — drives detail CTAs, not public facets. */
   "Leonix:contactChannel",
+  /** Rentas machine keys mirrored as human rows in publish VMs. */
+  RENTAS_DP_RENTAL_TYPE_CODE,
+  RENTAS_DP_RENTAL_TYPE_CUSTOM,
+  RENTAS_DP_LEASE_CONDITIONS,
+  RENTAS_DP_ROOM_BATH_KIND,
+  RENTAS_DP_ROOM_KITCHEN_KIND,
+  RENTAS_DP_ROOM_MAX_OCC,
+  RENTAS_DP_STORAGE_ACCESS_24H,
+  RENTAS_DP_STORAGE_SECURITY,
 ]);
 
 export function isLeonixInternalDetailLabel(label: string): boolean {

@@ -12,7 +12,7 @@ import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPre
 import { BienesRaicesPrivadoPreviewView } from "@/app/clasificados/bienes-raices/preview/privado/BienesRaicesPrivadoPreviewView";
 import { buildRentasPrivadoTemplateVm } from "../model/buildRentasPrivadoTemplateVm";
 import { RentasPreviewResultCardSection } from "@/app/clasificados/rentas/preview/shared/RentasPreviewResultCardSection";
-import { buildRentasResultCardPreviewListingFromPrivadoVm } from "@/app/clasificados/rentas/preview/shared/rentasPreviewResultCardListing";
+import { buildRentasResultCardPreviewListingFromPrivadoVm, rentasPreviewResultCardFlowOverlay } from "@/app/clasificados/rentas/preview/shared/rentasPreviewResultCardListing";
 import { mapRentasPrivadoStateToPreviewVm } from "@/app/clasificados/publicar/rentas/privado/application/mapping/mapRentasPrivadoStateToPreviewVm";
 import {
   clearRentasPrivadoDraft,
@@ -151,7 +151,7 @@ export default function RentasPrivadoPreviewClient() {
       }
     >
       <RentasPreviewResultCardSection
-        listing={buildRentasResultCardPreviewListingFromPrivadoVm(vm)}
+        listing={rentasPreviewResultCardFlowOverlay(draft, buildRentasResultCardPreviewListingFromPrivadoVm(vm))}
         lang={lang}
       />
       <section className="mx-auto w-full max-w-[1240px] px-4 pt-6 sm:px-6 lg:px-8">

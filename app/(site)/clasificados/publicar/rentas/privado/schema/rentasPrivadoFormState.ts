@@ -13,10 +13,12 @@ import {
 } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import type { RentasServicioIncluidoId } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import { coerceRentasPostalDigits5 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+import type { RentasTipoDeRentaId } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
+import { coerceRentasTipoDeRentaId } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 
 export type { RentasServicioIncluidoId } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 
-export const RENTAS_PRIVADO_FORM_VERSION = 2 as const;
+export const RENTAS_PRIVADO_FORM_VERSION = 3 as const;
 
 export type RentasPlazoContratoCodigo =
   | ""
@@ -49,6 +51,36 @@ export type RentasPrivadoFormState = {
   /** Migrated from v1 `serviciosIncluidos` string when checklist empty */
   serviciosIncluidosLegacy: string;
   requisitos: string;
+  /** Inventario específico de renta (más fino que `categoriaPropiedad`). */
+  tipoDeRenta: RentasTipoDeRentaId | "";
+  /** Texto libre cuando `tipoDeRenta === "otro"`. */
+  tipoDeRentaOtro: string;
+  /** Condiciones / reglas del espacio (texto libre, neutral). */
+  condicionesAlquiler: string;
+  /** Espacio tipo cuarto / compartido */
+  rentasEspacioTipoBano: "" | "privado" | "compartido" | "no_incluido";
+  rentasEspacioTipoCocina: "" | "privada" | "compartida" | "no_incluida";
+  rentasEspacioEntradaPrivada: "" | "si" | "no";
+  rentasEspacioLavanderia: "" | "si" | "no";
+  rentasEspacioMaxOcupantes: string;
+  /** Garaje / bodega / estacionamiento */
+  rentasAlmacenTamanoAprox: string;
+  rentasAlmacenAcceso24h: "" | "si" | "no";
+  rentasAlmacenElectricidad: "" | "si" | "no";
+  rentasAlmacenSeguridad: "" | "si" | "no";
+  rentasAlmacenUsoPermitido: string;
+  rentasAlmacenDimensiones: string;
+  /** Oficina / local */
+  rentasComercialUsoPermitido: string;
+  rentasComercialTamanoFt2: string;
+  rentasComercialBanoDisponible: "" | "si" | "no";
+  rentasComercialHorarioAcceso: string;
+  rentasComercialContratoMinimo: string;
+  /** Terreno en renta */
+  rentasLoteUsoPermitido: string;
+  rentasLoteServiciosDisponibles: string;
+  rentasLoteAcceso: string;
+  rentasLoteZonificacion: string;
   /** Ciudad (NorCal combobox) — primary city for listing */
   ciudad: string;
   /** Optional neighborhood / zone (not the city field) */
@@ -157,6 +189,25 @@ function coerceMascotas(raw: unknown): RentasPrivadoFormState["mascotas"] {
   return "";
 }
 
+function coerceRentasSiNo(raw: unknown): "" | "si" | "no" {
+  const v = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  if (v === "si" || v === "sí" || v === "yes") return "si";
+  if (v === "no") return "no";
+  return "";
+}
+
+function coerceRentasEspacioBano(raw: unknown): RentasPrivadoFormState["rentasEspacioTipoBano"] {
+  const v = typeof raw === "string" ? raw : "";
+  if (v === "privado" || v === "compartido" || v === "no_incluido") return v;
+  return "";
+}
+
+function coerceRentasEspacioCocina(raw: unknown): RentasPrivadoFormState["rentasEspacioTipoCocina"] {
+  const v = typeof raw === "string" ? raw : "";
+  if (v === "privada" || v === "compartida" || v === "no_incluida") return v;
+  return "";
+}
+
 function coerceNumber(raw: unknown): number {
   const n = typeof raw === "number" ? raw : Number(raw);
   return Number.isFinite(n) && n > 0 ? n : 0;
@@ -179,6 +230,29 @@ export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
     serviciosIncluidosOtro: "",
     serviciosIncluidosLegacy: "",
     requisitos: "",
+    tipoDeRenta: "",
+    tipoDeRentaOtro: "",
+    condicionesAlquiler: "",
+    rentasEspacioTipoBano: "",
+    rentasEspacioTipoCocina: "",
+    rentasEspacioEntradaPrivada: "",
+    rentasEspacioLavanderia: "",
+    rentasEspacioMaxOcupantes: "",
+    rentasAlmacenTamanoAprox: "",
+    rentasAlmacenAcceso24h: "",
+    rentasAlmacenElectricidad: "",
+    rentasAlmacenSeguridad: "",
+    rentasAlmacenUsoPermitido: "",
+    rentasAlmacenDimensiones: "",
+    rentasComercialUsoPermitido: "",
+    rentasComercialTamanoFt2: "",
+    rentasComercialBanoDisponible: "",
+    rentasComercialHorarioAcceso: "",
+    rentasComercialContratoMinimo: "",
+    rentasLoteUsoPermitido: "",
+    rentasLoteServiciosDisponibles: "",
+    rentasLoteAcceso: "",
+    rentasLoteZonificacion: "",
     ciudad: "",
     zonaVecindario: "",
     direccionLinea1: "",
@@ -320,6 +394,41 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
       return explicit || oldV1 || "";
     })(),
     requisitos: typeof partial.requisitos === "string" ? partial.requisitos : base.requisitos,
+    tipoDeRenta: coerceRentasTipoDeRentaId(partial.tipoDeRenta),
+    tipoDeRentaOtro: typeof partial.tipoDeRentaOtro === "string" ? partial.tipoDeRentaOtro : base.tipoDeRentaOtro,
+    condicionesAlquiler: typeof partial.condicionesAlquiler === "string" ? partial.condicionesAlquiler : base.condicionesAlquiler,
+    rentasEspacioTipoBano: coerceRentasEspacioBano(partial.rentasEspacioTipoBano),
+    rentasEspacioTipoCocina: coerceRentasEspacioCocina(partial.rentasEspacioTipoCocina),
+    rentasEspacioEntradaPrivada: coerceRentasSiNo(partial.rentasEspacioEntradaPrivada),
+    rentasEspacioLavanderia: coerceRentasSiNo(partial.rentasEspacioLavanderia),
+    rentasEspacioMaxOcupantes:
+      typeof partial.rentasEspacioMaxOcupantes === "string"
+        ? String(partial.rentasEspacioMaxOcupantes).replace(/\D/g, "")
+        : base.rentasEspacioMaxOcupantes,
+    rentasAlmacenTamanoAprox: typeof partial.rentasAlmacenTamanoAprox === "string" ? partial.rentasAlmacenTamanoAprox : base.rentasAlmacenTamanoAprox,
+    rentasAlmacenAcceso24h: coerceRentasSiNo(partial.rentasAlmacenAcceso24h),
+    rentasAlmacenElectricidad: coerceRentasSiNo(partial.rentasAlmacenElectricidad),
+    rentasAlmacenSeguridad: coerceRentasSiNo(partial.rentasAlmacenSeguridad),
+    rentasAlmacenUsoPermitido:
+      typeof partial.rentasAlmacenUsoPermitido === "string" ? partial.rentasAlmacenUsoPermitido : base.rentasAlmacenUsoPermitido,
+    rentasAlmacenDimensiones:
+      typeof partial.rentasAlmacenDimensiones === "string" ? partial.rentasAlmacenDimensiones : base.rentasAlmacenDimensiones,
+    rentasComercialUsoPermitido:
+      typeof partial.rentasComercialUsoPermitido === "string" ? partial.rentasComercialUsoPermitido : base.rentasComercialUsoPermitido,
+    rentasComercialTamanoFt2:
+      typeof partial.rentasComercialTamanoFt2 === "string"
+        ? String(partial.rentasComercialTamanoFt2).replace(/\D/g, "")
+        : base.rentasComercialTamanoFt2,
+    rentasComercialBanoDisponible: coerceRentasSiNo(partial.rentasComercialBanoDisponible),
+    rentasComercialHorarioAcceso:
+      typeof partial.rentasComercialHorarioAcceso === "string" ? partial.rentasComercialHorarioAcceso : base.rentasComercialHorarioAcceso,
+    rentasComercialContratoMinimo:
+      typeof partial.rentasComercialContratoMinimo === "string" ? partial.rentasComercialContratoMinimo : base.rentasComercialContratoMinimo,
+    rentasLoteUsoPermitido: typeof partial.rentasLoteUsoPermitido === "string" ? partial.rentasLoteUsoPermitido : base.rentasLoteUsoPermitido,
+    rentasLoteServiciosDisponibles:
+      typeof partial.rentasLoteServiciosDisponibles === "string" ? partial.rentasLoteServiciosDisponibles : base.rentasLoteServiciosDisponibles,
+    rentasLoteAcceso: typeof partial.rentasLoteAcceso === "string" ? partial.rentasLoteAcceso : base.rentasLoteAcceso,
+    rentasLoteZonificacion: typeof partial.rentasLoteZonificacion === "string" ? partial.rentasLoteZonificacion : base.rentasLoteZonificacion,
     ciudad: br.ciudad,
     zonaVecindario: typeof partial.zonaVecindario === "string" ? partial.zonaVecindario : base.zonaVecindario,
     direccionLinea1,

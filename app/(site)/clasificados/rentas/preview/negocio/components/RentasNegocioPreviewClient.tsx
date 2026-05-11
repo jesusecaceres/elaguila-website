@@ -11,7 +11,7 @@ import {
 import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
 import { BienesRaicesNegocioPreviewView } from "@/app/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView";
 import { RentasPreviewResultCardSection } from "@/app/clasificados/rentas/preview/shared/RentasPreviewResultCardSection";
-import { buildRentasResultCardPreviewListingFromNegocioVm } from "@/app/clasificados/rentas/preview/shared/rentasPreviewResultCardListing";
+import { buildRentasResultCardPreviewListingFromNegocioVm, rentasPreviewResultCardFlowOverlay } from "@/app/clasificados/rentas/preview/shared/rentasPreviewResultCardListing";
 import { mapRentasNegocioStateToPreviewVm } from "@/app/clasificados/publicar/rentas/negocio/application/mapping/mapRentasNegocioStateToPreviewVm";
 import {
   clearRentasNegocioDraft,
@@ -120,7 +120,7 @@ export default function RentasNegocioPreviewClient() {
           </Link>
         </p>
         <RentasPreviewResultCardSection
-          listing={buildRentasResultCardPreviewListingFromNegocioVm(vm, shell.categoriaPropiedad)}
+          listing={rentasPreviewResultCardFlowOverlay(shell, buildRentasResultCardPreviewListingFromNegocioVm(vm, shell.categoriaPropiedad))}
           lang={lang}
         />
         <section className="mx-auto w-full max-w-[1240px] px-4 pt-6 sm:px-6 lg:px-8">
@@ -157,7 +157,7 @@ export default function RentasNegocioPreviewClient() {
       }
     >
       <RentasPreviewResultCardSection
-        listing={buildRentasResultCardPreviewListingFromNegocioVm(vm, draft.categoriaPropiedad)}
+        listing={rentasPreviewResultCardFlowOverlay(draft, buildRentasResultCardPreviewListingFromNegocioVm(vm, draft.categoriaPropiedad))}
         lang={lang}
       />
       <section className="mx-auto w-full max-w-[1240px] px-4 pt-6 sm:px-6 lg:px-8">

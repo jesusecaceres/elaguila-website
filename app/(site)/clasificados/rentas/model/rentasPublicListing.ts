@@ -51,6 +51,17 @@ export type RentasPublicListing = {
    * Public catalog typically includes `disponible` and `pendiente` only.
    */
   rentasListingAvailability?: "disponible" | "pendiente" | "bajo_contrato" | "rentado" | null;
+  /** From `Leonix:rent:rental_type_code` + optional custom when `otro`. */
+  rentalTypeCode?: string | null;
+  rentalTypeCustom?: string | null;
+  /** Long-form neutral lease rules (`Leonix:rent:lease_conditions` or human pair). */
+  leaseConditions?: string | null;
+  /** Room/shared card hints (machine `Leonix:rent:room:*`). */
+  rentasRoomBathLabel?: string | null;
+  rentasRoomKitchenLabel?: string | null;
+  rentasRoomMaxOccupants?: string | null;
+  rentasStorageAccess24h?: boolean | null;
+  rentasStorageSecurity?: boolean | null;
   beds: string;
   baths: string;
   /** Half-baths count when persisted (`Leonix:rent:half_baths_count`). */

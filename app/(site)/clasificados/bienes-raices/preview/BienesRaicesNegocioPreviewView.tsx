@@ -17,6 +17,7 @@ import { LeonixPreviewQuickFactsStrip } from "@/app/clasificados/lib/leonixPriva
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 import { RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL } from "@/app/clasificados/rentas/shared/rentasResidencialHighlightFormVisuals";
 import { RENTAS_SERVICIOS_INCLUIDOS_DEFS } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+import { groupedRentasPropertyRows } from "@/app/clasificados/rentas/shared/rentasPreviewGroupedRows";
 
 const IVORY = "#F9F6F1";
 const CREAM_CARD = "#FDFBF7";
@@ -391,16 +392,6 @@ function galleryTopCells(vm: BienesRaicesNegocioPreviewVm): [GalleryTopSpec | nu
   return [topLeft, topRight, bottomLeft, bottomRight];
 }
 
-function splitCsvAndBullets(value: string): string[] {
-  const raw = String(value ?? "").trim();
-  if (!raw) return [];
-  const normalized = raw.replace(/^•\s*/gm, "").replace(/\n/g, ",");
-  return normalized
-    .split(",")
-    .map((x) => x.trim())
-    .filter(Boolean);
-}
-
 const SERVICIOS_EMOJI_BY_LABEL = new Map(
   RENTAS_SERVICIOS_INCLUIDOS_DEFS.map((s) => [s.label.toLowerCase(), s.emoji] as const),
 );
@@ -410,42 +401,6 @@ function servicioChipText(label: string): string {
   if (!t) return "";
   const emoji = SERVICIOS_EMOJI_BY_LABEL.get(t.toLowerCase());
   return emoji ? `${emoji} ${t}` : `✨ ${t}`;
-}
-
-function groupedRentasRows(rows: Array<{ label: string; value: string }> | undefined) {
-  const list = Array.isArray(rows) ? rows : [];
-  const byLabel = new Map(list.map((r) => [r.label, r.value] as const));
-  const pick = (label: string) => {
-    const v = byLabel.get(label);
-    if (!v || !String(v).trim()) return null;
-    return { label, value: String(v).trim() };
-  };
-  return {
-    resumen: [
-      pick("Renta mensual"),
-      pick("Depósito"),
-      pick("Plazo del contrato"),
-      pick("Disponibilidad"),
-      pick("Estado del anuncio"),
-    ].filter((x): x is { label: string; value: string } => x != null),
-    caracteristicas: [
-      pick("Tipo"),
-      pick("Subtipo"),
-      pick("Recámaras"),
-      pick("Baños completos"),
-      pick("Medios baños"),
-      pick("Interior (ft²)"),
-      pick("Lote (ft²)"),
-      pick("Estacionamiento"),
-      pick("Año de construcción"),
-      pick("Condición"),
-      pick("Amueblado"),
-      pick("Mascotas"),
-      pick("Zona o vecindario"),
-    ].filter((x): x is { label: string; value: string } => x != null),
-    servicios: splitCsvAndBullets(String(byLabel.get("Servicios incluidos") ?? "")),
-    requisitos: String(byLabel.get("Requisitos") ?? "").trim(),
-  };
 }
 
 const HIGHLIGHT_LABEL_TO_EMOJI = new Map(
@@ -664,7 +619,7 @@ export function BienesRaicesNegocioPreviewView({
   const [gTopA, gTopB, gBottomA, gBottomB] = galleryTopCells(vm);
   const sidebarGallerySpecsNegocio: Array<GalleryTopSpec | null> = [gTopA, gTopB, gBottomA, gBottomB];
   const hasSidebarMediaNegocio = sidebarGallerySpecsNegocio.some((s) => s != null);
-  const grouped = groupedRentasRows(vm.propertyDetailsRows);
+  const grouped = groupedRentasPropertyRows(vm.propertyDetailsRows);
 
   const dedupedPhotoSlides = leonixGalleryPhotoSlidesWithCaptions(vm.media?.allPhotoUrls, vm.media?.photoCaptionsFull);
   const uniquePhotoCount = dedupedPhotoSlides.length;
@@ -874,6 +829,14 @@ export function BienesRaicesNegocioPreviewView({
                 <div className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]" style={{ borderColor: BORDER, background: CREAM_CARD }}>
                   <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>Requisitos</h3>
                   <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed" style={{ color: CHARCOAL }}>{grouped.requisitos}</p>
+                </div>
+              ) : null}
+              {grouped.condiciones ? (
+                <div className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]" style={{ borderColor: BORDER, background: CREAM_CARD }}>
+                  <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+                    Condiciones importantes del alquiler
+                  </h3>
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed" style={{ color: CHARCOAL }}>{grouped.condiciones}</p>
                 </div>
               ) : null}
               {grouped.caracteristicas.length > 0 ? <FactBlock title="Características" rows={grouped.caracteristicas} /> : null}

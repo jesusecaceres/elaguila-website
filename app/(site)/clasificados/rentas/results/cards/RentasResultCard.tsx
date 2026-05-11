@@ -6,6 +6,10 @@ import type { RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingL
 import { rentasListingResultsHandoff } from "@/app/clasificados/rentas/landing/rentasListingResultsHandoff";
 import { IconBath, IconBed, IconRuler } from "@/app/clasificados/bienes-raices/resultados/cards/cardIcons";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
+import {
+  buildRentasResultsCardSummaryEs,
+  type RentasPublicListingFlowSlice,
+} from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
 
 function browseLocationLine(listing: RentasPublicListing): string {
   const r = listing.resultBrowseLocation?.trim();
@@ -152,43 +156,50 @@ function CardContentBody({ listing, copy, lang }: BodyProps) {
         }).format(listing.depositUsd)
       : null;
 
+  const flowSummaryLine =
+    lang === "es" && String(listing.rentalTypeCode ?? "").trim()
+      ? buildRentasResultsCardSummaryEs(listing as RentasPublicListingFlowSlice)
+      : "";
+
   const factBits: { key: string; node: ReactNode }[] = [];
-  if (!isMissingFact(listing.beds)) {
-    factBits.push({
-      key: "beds",
-      node: (
-        <span className="inline-flex items-center gap-0.5">
-          <IconBed className="h-3.5 w-3.5 shrink-0 text-[#5B7C99]" aria-hidden />
-          <span className="font-medium">
-            {listing.beds} {lang === "es" ? "rec" : "beds"}
+  if (!flowSummaryLine) {
+    if (!isMissingFact(listing.beds)) {
+      factBits.push({
+        key: "beds",
+        node: (
+          <span className="inline-flex items-center gap-0.5">
+            <IconBed className="h-3.5 w-3.5 shrink-0 text-[#5B7C99]" aria-hidden />
+            <span className="font-medium">
+              {listing.beds} {lang === "es" ? "rec" : "beds"}
+            </span>
           </span>
-        </span>
-      ),
-    });
-  }
-  if (!isMissingFact(listing.baths)) {
-    factBits.push({
-      key: "baths",
-      node: (
-        <span className="inline-flex items-center gap-0.5">
-          <IconBath className="h-3.5 w-3.5 shrink-0 text-[#5B7C99]" aria-hidden />
-          <span className="font-medium">
-            {listing.baths} {lang === "es" ? "baños" : "baths"}
+        ),
+      });
+    }
+    if (!isMissingFact(listing.baths)) {
+      factBits.push({
+        key: "baths",
+        node: (
+          <span className="inline-flex items-center gap-0.5">
+            <IconBath className="h-3.5 w-3.5 shrink-0 text-[#5B7C99]" aria-hidden />
+            <span className="font-medium">
+              {listing.baths} {lang === "es" ? "baños" : "baths"}
+            </span>
           </span>
-        </span>
-      ),
-    });
-  }
-  if (!isMissingFact(listing.sqft)) {
-    factBits.push({
-      key: "sqft",
-      node: (
-        <span className="inline-flex items-center gap-0.5">
-          <IconRuler className="h-3.5 w-3.5 shrink-0 text-[#5B7C99]" aria-hidden />
-          <span className="font-medium">{listing.sqft}</span>
-        </span>
-      ),
-    });
+        ),
+      });
+    }
+    if (!isMissingFact(listing.sqft)) {
+      factBits.push({
+        key: "sqft",
+        node: (
+          <span className="inline-flex items-center gap-0.5">
+            <IconRuler className="h-3.5 w-3.5 shrink-0 text-[#5B7C99]" aria-hidden />
+            <span className="font-medium">{listing.sqft}</span>
+          </span>
+        ),
+      });
+    }
   }
 
   const chips: string[] = [];
@@ -212,7 +223,9 @@ function CardContentBody({ listing, copy, lang }: BodyProps) {
         </p>
       ) : null}
 
-      {factBits.length > 0 ? (
+      {flowSummaryLine ? (
+        <p className="mt-2.5 line-clamp-2 text-[13px] font-medium leading-snug text-[#5C5346]">{flowSummaryLine}</p>
+      ) : factBits.length > 0 ? (
         <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] leading-snug text-[#5C5346]">
           {factBits.map((b, i) => (
             <Fragment key={b.key}>

@@ -14,10 +14,15 @@ import {
   buildRentasStreetLine,
   formatRentasDepositUsdPreview,
   formatRentasDisponibilidadDisplay,
-  formatRentasServiciosIncluidosOutputMultiline,
   rentasGoogleMapsUrlFromQuery,
 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
-import { buildRentasResidencialPropertyRows } from "@/app/clasificados/rentas/shared/rentasResidencialPreviewRows";
+import {
+  buildRentasFlowContractRows,
+  buildRentasFlowPropertyBodyRows,
+  buildRentasFlowTipoResumenRow,
+  buildRentasRentaMensualRow,
+  rentasFlowGroupActive,
+} from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
 import type { RentasPrivadoFormState } from "../../schema/rentasPrivadoFormState";
 import type { BienesRaicesPreviewFact, BienesRaicesPreviewQuickFactVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 
@@ -116,29 +121,10 @@ function plazoDisplay(s: RentasPrivadoFormState): string {
   return "";
 }
 
-function rentalDetailRows(s: RentasPrivadoFormState): BienesRaicesPreviewFact[] {
-  const rows: BienesRaicesPreviewFact[] = [];
-  const dep = formatRentasDepositUsdPreview(s.deposito);
-  if (dep) rows.push({ label: "Depósito", value: dep });
-  const pl = plazoDisplay(s);
-  if (pl) rows.push({ label: "Plazo del contrato", value: pl });
-  const disp = formatRentasDisponibilidadDisplay(s.disponibilidad);
-  if (disp) rows.push({ label: "Disponibilidad", value: disp });
-  if (s.amueblado === "amueblado") rows.push({ label: "Amueblado", value: "Amueblado" });
-  if (s.amueblado === "sin_amueblar") rows.push({ label: "Amueblado", value: "Sin amueblar" });
-  if (s.mascotas === "permitidas") rows.push({ label: "Mascotas", value: "Permitidas" });
-  if (s.mascotas === "no_permitidas") rows.push({ label: "Mascotas", value: "No permitidas" });
-  const svc = formatRentasServiciosIncluidosOutputMultiline(s);
-  if (svc) rows.push({ label: "Servicios incluidos", value: svc });
-  const req = trim(s.requisitos);
-  if (req) rows.push({ label: "Requisitos", value: req });
-  const zona = trim(s.zonaVecindario);
-  if (zona) rows.push({ label: "Zona o vecindario", value: zona });
-  return rows;
-}
-
 function rentalQuickFacts(s: RentasPrivadoFormState): BienesRaicesPreviewQuickFactVm[] {
   const out: BienesRaicesPreviewQuickFactVm[] = [];
+  const g = rentasFlowGroupActive(s);
+  const showFurn = g === "unset" || g === "full_housing" || g === "room_shared" || g === "commercial_space";
   const rent = formatUsdMonthly(s.rentaMensual);
   if (rent) out.push({ label: "Renta mensual", value: rent, icon: "calendar" });
   const dep = formatRentasDepositUsdPreview(s.deposito);
@@ -147,8 +133,10 @@ function rentalQuickFacts(s: RentasPrivadoFormState): BienesRaicesPreviewQuickFa
   if (pl) out.push({ label: "Plazo", value: pl, icon: "calendar" });
   const disp = formatRentasDisponibilidadDisplay(s.disponibilidad);
   if (disp) out.push({ label: "Disponibilidad", value: disp, icon: "calendar" });
-  if (s.amueblado === "amueblado") out.push({ label: "Amueblado", value: "Sí", icon: "home" });
-  if (s.amueblado === "sin_amueblar") out.push({ label: "Amueblado", value: "No", icon: "home" });
+  if (showFurn) {
+    if (s.amueblado === "amueblado") out.push({ label: "Amueblado", value: "Sí", icon: "home" });
+    if (s.amueblado === "sin_amueblar") out.push({ label: "Amueblado", value: "No", icon: "home" });
+  }
   return out;
 }
 
@@ -182,12 +170,15 @@ export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): Bie
     ? buildRentasAssembledAddressLine(s)
     : [line1, trim(s.ciudad), trim(s.zonaVecindario)].filter(Boolean).join(", ");
 
-  const rentRows = rentalDetailRows(s);
+  const lead: BienesRaicesPreviewFact[] = [];
+  const rm = buildRentasRentaMensualRow(s);
+  if (rm) lead.push(rm);
+  lead.push(...buildRentasFlowTipoResumenRow(s));
+  const rentRows = [...lead, ...buildRentasFlowContractRows(s)];
   const rentFacts = rentalQuickFacts(s);
   const quickFacts = dedupeQuickFactsByLabel([...rentFacts, ...base.quickFacts]);
 
-  const propertyBody: BienesRaicesPreviewFact[] =
-    s.categoriaPropiedad === "residencial" ? buildRentasResidencialPropertyRows(s.residencial) : base.propertyDetailsRows;
+  const propertyBody: BienesRaicesPreviewFact[] = buildRentasFlowPropertyBodyRows(s);
 
   const telHref = telHrefFromPhoneDisplay(s.seller.telefono);
   const smsHref = smsHrefFromPhoneDisplay(s.seller.mensajesTexto);

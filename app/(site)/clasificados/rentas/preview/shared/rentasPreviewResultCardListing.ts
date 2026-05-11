@@ -2,6 +2,12 @@ import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raic
 import type { BienesRaicesPrivadoPreviewVm } from "@/app/clasificados/bienes-raices/preview/privado/model/bienesRaicesPrivadoPreviewVm";
 import type { BienesRaicesNegocioPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
+import type { RentasFlowFormSlice } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
+import { formatRentasServiciosIncluidosOutputMultiline } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+import {
+  coerceRentasTipoDeRentaId,
+  rentasRentalFlowGroupForTipo,
+} from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 
 function trim(s: unknown): string {
   if (s == null) return "";
@@ -41,6 +47,99 @@ function inferAvailability(label: string): RentasPublicListing["rentasListingAva
   return null;
 }
 
+function triSiNo(v: string): boolean | null {
+  const t = v.trim().toLowerCase();
+  if (t === "si" || t === "sí") return true;
+  if (t === "no") return false;
+  return null;
+}
+
+function roomBathPublic(code: string): string | undefined {
+  const c = code.trim();
+  const m: Record<string, string> = {
+    privado: "privado",
+    compartido: "compartido",
+    no_incluido: "no incluido",
+  };
+  return m[c] ?? (c || undefined);
+}
+
+function roomKitchenPublic(code: string): string | undefined {
+  const c = code.trim();
+  const m: Record<string, string> = {
+    privada: "privada",
+    compartida: "compartida",
+    no_incluida: "no incluida",
+  };
+  return m[c] ?? (c || undefined);
+}
+
+function prettifySqftFromDigits(raw: string): string {
+  const d = raw.replace(/\D/g, "");
+  if (!d) return "";
+  const n = Number(d);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(n)} ft²`;
+}
+
+/**
+ * Merge draft “tipo de renta” flow hints so the preview result card matches live `buildRentasResultsCardSummaryEs`.
+ */
+export function rentasPreviewResultCardFlowOverlay(state: RentasFlowFormSlice, base: RentasPublicListing): RentasPublicListing {
+  const code = coerceRentasTipoDeRentaId(state.tipoDeRenta);
+  if (!code) return base;
+  const g = rentasRentalFlowGroupForTipo(code);
+  const svc = formatRentasServiciosIncluidosOutputMultiline(state);
+
+  const overlay: Partial<RentasPublicListing> = {
+    rentalTypeCode: code,
+    rentalTypeCustom: code === "otro" ? trim(state.tipoDeRentaOtro) || undefined : undefined,
+    rentasRoomBathLabel: state.rentasEspacioTipoBano ? roomBathPublic(state.rentasEspacioTipoBano) : undefined,
+    rentasRoomKitchenLabel: state.rentasEspacioTipoCocina ? roomKitchenPublic(state.rentasEspacioTipoCocina) : undefined,
+    rentasRoomMaxOccupants: state.rentasEspacioMaxOcupantes.replace(/\D/g, "") || undefined,
+    rentasStorageAccess24h: triSiNo(state.rentasAlmacenAcceso24h),
+    rentasStorageSecurity: triSiNo(state.rentasAlmacenSeguridad),
+    leaseTermCode: trim(state.plazoContrato) || undefined,
+    servicesIncluded: trim(svc) || undefined,
+    mascotasPermitidas: state.mascotas === "permitidas" ? true : state.mascotas === "no_permitidas" ? false : base.mascotasPermitidas,
+    amueblado: state.amueblado === "amueblado" ? true : state.amueblado === "sin_amueblar" ? false : base.amueblado,
+  };
+
+  const sq = trim(base.sqft);
+  const sqWeak = !sq || sq === "—";
+
+  if (g === "storage_parking") {
+    const t = trim(state.rentasAlmacenTamanoAprox);
+    if (t && sqWeak) {
+      overlay.sqft = /ft²|ft2|sq|pies/i.test(t) ? t : prettifySqftFromDigits(t) || t;
+    }
+  }
+
+  if (g === "land_parcel" && state.categoriaPropiedad === "terreno_lote") {
+    const lot = trim(state.terreno.loteSqft);
+    const cur = trim(base.lotSqft);
+    if (lot && (!cur || cur === "—")) {
+      overlay.lotSqft = prettifySqftFromDigits(lot) || `${lot} ft²`;
+    }
+  }
+
+  if (g === "commercial_space") {
+    const tsq = state.rentasComercialTamanoFt2.replace(/\D/g, "");
+    if (tsq && sqWeak) {
+      overlay.sqft = prettifySqftFromDigits(tsq);
+    }
+    if (state.rentasComercialBanoDisponible === "si") {
+      const b = trim(base.baths);
+      if (!b || b === "—") {
+        overlay.baths = "Sí";
+        overlay.fullBaths = "Sí";
+      }
+    }
+  }
+
+  return { ...base, ...overlay };
+}
+
 export function buildRentasResultCardPreviewListingFromPrivadoVm(
   vm: BienesRaicesPrivadoPreviewVm,
 ): RentasPublicListing {
@@ -61,7 +160,7 @@ export function buildRentasResultCardPreviewListingFromPrivadoVm(
     resultBrowseLocation: browseLoc,
     beds: rowValue(rows, ["recámaras", "recamaras"]) || "—",
     baths: rowValue(rows, ["baños completos", "baños", "banos"]) || "—",
-    sqft: rowValue(rows, ["interior (ft²)", "interior (ft2)", "interior", "sqft"]) || "—",
+    sqft: rowValue(rows, ["interior (ft²)", "interior (ft2)", "interior", "sqft", "tamaño (ft²)", "tamaño (ft2)"]) || "—",
     categoriaPropiedad: vm.categoria,
     branch: "privado",
     badges: ["privado"],
@@ -93,7 +192,7 @@ export function buildRentasResultCardPreviewListingFromNegocioVm(
     resultBrowseLocation: browseLoc,
     beds: rowValue(rows, ["recámaras", "recamaras"]) || "—",
     baths: rowValue(rows, ["baños completos", "baños", "banos"]) || "—",
-    sqft: rowValue(rows, ["interior (ft²)", "interior (ft2)", "interior", "sqft"]) || "—",
+    sqft: rowValue(rows, ["interior (ft²)", "interior (ft2)", "interior", "sqft", "tamaño (ft²)", "tamaño (ft2)"]) || "—",
     categoriaPropiedad: categoria,
     branch: "negocio",
     badges: ["negocio"],

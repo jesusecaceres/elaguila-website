@@ -25,14 +25,25 @@ import {
   RENTAS_DP_DEPOSIT_USD,
   RENTAS_DP_FURNISHED_CODE,
   RENTAS_DP_HALF_BATHS_COUNT,
+  RENTAS_DP_LEASE_CONDITIONS,
   RENTAS_DP_LEASE_TERM,
   RENTAS_DP_LISTING_STATUS,
   RENTAS_DP_PETS_CODE,
+  RENTAS_DP_RENTAL_TYPE_CODE,
+  RENTAS_DP_RENTAL_TYPE_CUSTOM,
+  RENTAS_DP_ROOM_BATH_KIND,
+  RENTAS_DP_ROOM_KITCHEN_KIND,
+  RENTAS_DP_ROOM_MAX_OCC,
+  RENTAS_DP_STORAGE_ACCESS_24H,
+  RENTAS_DP_STORAGE_SECURITY,
   RENTAS_DP_VIDEO_URL,
 } from "../app/(site)/clasificados/rentas/lib/rentasMachineDetailPairs";
 import { parseRentasBrowseParams } from "../app/(site)/clasificados/rentas/shared/rentasBrowseContract";
 import { filterRentasPublicListings } from "../app/(site)/clasificados/rentas/shared/rentasBrowseFilters";
+import { buildRentasResultsCardSummaryEs } from "../app/(site)/clasificados/rentas/shared/rentasRentalTypeApply";
+import { formatRentasTipoDeRentaDisplay } from "../app/(site)/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 import { orderedRentasGallerySourcesForPublish } from "../app/(site)/clasificados/rentas/shared/rentasPublishFormHelpers";
+import { mergePartialRentasPrivadoState } from "../app/(site)/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
 
 function baseRow(overrides: Partial<Record<string, unknown>> = {}): Record<string, unknown> {
   const id = "00000000-0000-4000-8000-00000000ff01";
@@ -208,6 +219,66 @@ function main() {
   });
   const off = mapListingRowToRentasPublicListing(rentado, "es");
   assert.equal(off?.browseActive, false);
+
+  assert.equal(formatRentasTipoDeRentaDisplay("otro", "  Casita de invitados  "), "Casita de invitados");
+  assert.equal(formatRentasTipoDeRentaDisplay("otro", ""), "Otro");
+
+  const legacyMerge = mergePartialRentasPrivadoState({ titulo: "Borrador mínimo" });
+  assert.equal(legacyMerge.titulo, "Borrador mínimo");
+  assert.equal(typeof legacyMerge.tipoDeRenta, "string");
+
+  const pairsRoom = [
+    ...pairsBase,
+    { label: RENTAS_DP_RENTAL_TYPE_CODE, value: "cuarto_recamara" },
+    { label: RENTAS_DP_LEASE_CONDITIONS, value: "No fumar en áreas comunes." },
+    { label: RENTAS_DP_ROOM_BATH_KIND, value: "compartido" },
+    { label: RENTAS_DP_ROOM_KITCHEN_KIND, value: "compartida" },
+    { label: RENTAS_DP_ROOM_MAX_OCC, value: "1" },
+  ];
+  const roomRow = baseRow({
+    id: "00000000-0000-4000-8000-00000000ff20",
+    detail_pairs: pairsRoom,
+  });
+  const roomListing = mapListingRowToRentasPublicListing(roomRow, "es");
+  assert.ok(roomListing);
+  assert.equal(roomListing!.rentalTypeCode, "cuarto_recamara");
+  assert.equal(roomListing!.leaseConditions, "No fumar en áreas comunes.");
+  assert.equal(roomListing!.rentasRoomBathLabel, "compartido");
+  const roomCard = buildRentasResultsCardSummaryEs(roomListing!);
+  assert.ok(roomCard.includes("Baño compartido"), roomCard);
+  assert.ok(roomCard.includes("Cocina compartida"), roomCard);
+  assert.ok(roomCard.includes("Máx. 1 persona"), roomCard);
+
+  const pairsGarage = [
+    ...pairsBase.map((p) =>
+      (p as { label: string }).label === LEONIX_DP_BEDROOMS_COUNT ? { ...p, value: "0" } : p,
+    ),
+    { label: RENTAS_DP_RENTAL_TYPE_CODE, value: "garaje" },
+    { label: RENTAS_DP_STORAGE_ACCESS_24H, value: "si" },
+    { label: RENTAS_DP_STORAGE_SECURITY, value: "si" },
+  ];
+  const garageRow = baseRow({
+    id: "00000000-0000-4000-8000-00000000ff21",
+    detail_pairs: pairsGarage,
+  });
+  const garageListing = mapListingRowToRentasPublicListing(garageRow, "es");
+  assert.ok(garageListing);
+  const gCard = buildRentasResultsCardSummaryEs(garageListing!);
+  assert.ok(!gCard.includes("rec"), gCard);
+  assert.ok(gCard.includes("Acceso 24/7"), gCard);
+
+  const pairsOtro = [
+    ...pairsBase,
+    { label: RENTAS_DP_RENTAL_TYPE_CODE, value: "otro" },
+    { label: RENTAS_DP_RENTAL_TYPE_CUSTOM, value: "Vagoneta RV" },
+  ];
+  const otroListing = mapListingRowToRentasPublicListing(
+    baseRow({ id: "00000000-0000-4000-8000-00000000ff22", detail_pairs: pairsOtro }),
+    "es",
+  );
+  assert.ok(otroListing);
+  assert.equal(otroListing!.rentalTypeCode, "otro");
+  assert.equal(otroListing!.rentalTypeCustom, "Vagoneta RV");
 
   console.log("rentas-field-contract-selftest: OK");
 }

@@ -20,6 +20,14 @@ import {
   RENTAS_DP_REQUIREMENTS,
   RENTAS_DP_SERVICES_INCLUDED,
   RENTAS_DP_VIDEO_URL,
+  RENTAS_DP_RENTAL_TYPE_CODE,
+  RENTAS_DP_RENTAL_TYPE_CUSTOM,
+  RENTAS_DP_LEASE_CONDITIONS,
+  RENTAS_DP_ROOM_BATH_KIND,
+  RENTAS_DP_ROOM_KITCHEN_KIND,
+  RENTAS_DP_ROOM_MAX_OCC,
+  RENTAS_DP_STORAGE_ACCESS_24H,
+  RENTAS_DP_STORAGE_SECURITY,
 } from "@/app/clasificados/rentas/lib/rentasMachineDetailPairs";
 
 export type RentasDetailMachineRead = {
@@ -40,6 +48,14 @@ export type RentasDetailMachineRead = {
   halfBathsDigits: string | null;
   contactSmsDigits: string | null;
   contactWhatsappDigits: string | null;
+  rentalTypeCode: string | null;
+  rentalTypeCustom: string | null;
+  leaseConditions: string | null;
+  roomBathKind: string | null;
+  roomKitchenKind: string | null;
+  roomMaxOccupants: string | null;
+  storageAccess24h: string | null;
+  storageSecurity: string | null;
 };
 
 export function parseRentasDetailMachineRead(detailPairs: unknown): RentasDetailMachineRead {
@@ -60,5 +76,13 @@ export function parseRentasDetailMachineRead(detailPairs: unknown): RentasDetail
     halfBathsDigits: readLeonixDetailPairValue(detailPairs, RENTAS_DP_HALF_BATHS_COUNT),
     contactSmsDigits: readLeonixDetailPairValue(detailPairs, RENTAS_DP_CONTACT_SMS_DIGITS),
     contactWhatsappDigits: readLeonixDetailPairValue(detailPairs, RENTAS_DP_CONTACT_WHATSAPP_DIGITS),
+    rentalTypeCode: readLeonixDetailPairValue(detailPairs, RENTAS_DP_RENTAL_TYPE_CODE),
+    rentalTypeCustom: readLeonixDetailPairValue(detailPairs, RENTAS_DP_RENTAL_TYPE_CUSTOM),
+    leaseConditions: readLeonixDetailPairValue(detailPairs, RENTAS_DP_LEASE_CONDITIONS),
+    roomBathKind: readLeonixDetailPairValue(detailPairs, RENTAS_DP_ROOM_BATH_KIND),
+    roomKitchenKind: readLeonixDetailPairValue(detailPairs, RENTAS_DP_ROOM_KITCHEN_KIND),
+    roomMaxOccupants: readLeonixDetailPairValue(detailPairs, RENTAS_DP_ROOM_MAX_OCC),
+    storageAccess24h: readLeonixDetailPairValue(detailPairs, RENTAS_DP_STORAGE_ACCESS_24H),
+    storageSecurity: readLeonixDetailPairValue(detailPairs, RENTAS_DP_STORAGE_SECURITY),
   };
 }

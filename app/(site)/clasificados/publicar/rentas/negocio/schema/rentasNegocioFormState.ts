@@ -8,7 +8,11 @@ import type {
   BienesRaicesPrivadoTerrenoFields,
 } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import { mergePartialBienesRaicesPrivadoState } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
-import type { RentasPlazoContratoCodigo, RentasPrivadoListingStatus } from "../../privado/schema/rentasPrivadoFormState";
+import type {
+  RentasPlazoContratoCodigo,
+  RentasPrivadoListingStatus,
+  RentasPrivadoFormState,
+} from "../../privado/schema/rentasPrivadoFormState";
 import type { RentasServicioIncluidoId } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import {
   createEmptyRentasPrivadoFormState,
@@ -16,7 +20,7 @@ import {
   RENTAS_PRIVADO_FORM_VERSION,
 } from "../../privado/schema/rentasPrivadoFormState";
 
-export const RENTAS_NEGOCIO_FORM_VERSION = 3 as const;
+export const RENTAS_NEGOCIO_FORM_VERSION = 4 as const;
 
 function coerceRentasListingStatus(raw: unknown): RentasPrivadoListingStatus {
   const v = typeof raw === "string" ? raw : "";
@@ -40,6 +44,29 @@ export type RentasNegocioFormState = {
   serviciosIncluidosOtro: string;
   serviciosIncluidosLegacy: string;
   requisitos: string;
+  tipoDeRenta: RentasPrivadoFormState["tipoDeRenta"];
+  tipoDeRentaOtro: RentasPrivadoFormState["tipoDeRentaOtro"];
+  condicionesAlquiler: RentasPrivadoFormState["condicionesAlquiler"];
+  rentasEspacioTipoBano: RentasPrivadoFormState["rentasEspacioTipoBano"];
+  rentasEspacioTipoCocina: RentasPrivadoFormState["rentasEspacioTipoCocina"];
+  rentasEspacioEntradaPrivada: RentasPrivadoFormState["rentasEspacioEntradaPrivada"];
+  rentasEspacioLavanderia: RentasPrivadoFormState["rentasEspacioLavanderia"];
+  rentasEspacioMaxOcupantes: RentasPrivadoFormState["rentasEspacioMaxOcupantes"];
+  rentasAlmacenTamanoAprox: RentasPrivadoFormState["rentasAlmacenTamanoAprox"];
+  rentasAlmacenAcceso24h: RentasPrivadoFormState["rentasAlmacenAcceso24h"];
+  rentasAlmacenElectricidad: RentasPrivadoFormState["rentasAlmacenElectricidad"];
+  rentasAlmacenSeguridad: RentasPrivadoFormState["rentasAlmacenSeguridad"];
+  rentasAlmacenUsoPermitido: RentasPrivadoFormState["rentasAlmacenUsoPermitido"];
+  rentasAlmacenDimensiones: RentasPrivadoFormState["rentasAlmacenDimensiones"];
+  rentasComercialUsoPermitido: RentasPrivadoFormState["rentasComercialUsoPermitido"];
+  rentasComercialTamanoFt2: RentasPrivadoFormState["rentasComercialTamanoFt2"];
+  rentasComercialBanoDisponible: RentasPrivadoFormState["rentasComercialBanoDisponible"];
+  rentasComercialHorarioAcceso: RentasPrivadoFormState["rentasComercialHorarioAcceso"];
+  rentasComercialContratoMinimo: RentasPrivadoFormState["rentasComercialContratoMinimo"];
+  rentasLoteUsoPermitido: RentasPrivadoFormState["rentasLoteUsoPermitido"];
+  rentasLoteServiciosDisponibles: RentasPrivadoFormState["rentasLoteServiciosDisponibles"];
+  rentasLoteAcceso: RentasPrivadoFormState["rentasLoteAcceso"];
+  rentasLoteZonificacion: RentasPrivadoFormState["rentasLoteZonificacion"];
   ciudad: string;
   zonaVecindario: string;
   direccionLinea1: string;
@@ -105,6 +132,29 @@ export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
     serviciosIncluidosOtro: "",
     serviciosIncluidosLegacy: "",
     requisitos: "",
+    tipoDeRenta: p.tipoDeRenta,
+    tipoDeRentaOtro: "",
+    condicionesAlquiler: "",
+    rentasEspacioTipoBano: "",
+    rentasEspacioTipoCocina: "",
+    rentasEspacioEntradaPrivada: "",
+    rentasEspacioLavanderia: "",
+    rentasEspacioMaxOcupantes: "",
+    rentasAlmacenTamanoAprox: "",
+    rentasAlmacenAcceso24h: "",
+    rentasAlmacenElectricidad: "",
+    rentasAlmacenSeguridad: "",
+    rentasAlmacenUsoPermitido: "",
+    rentasAlmacenDimensiones: "",
+    rentasComercialUsoPermitido: "",
+    rentasComercialTamanoFt2: "",
+    rentasComercialBanoDisponible: "",
+    rentasComercialHorarioAcceso: "",
+    rentasComercialContratoMinimo: "",
+    rentasLoteUsoPermitido: "",
+    rentasLoteServiciosDisponibles: "",
+    rentasLoteAcceso: "",
+    rentasLoteZonificacion: "",
     ciudad: "",
     zonaVecindario: "",
     direccionLinea1: p.direccionLinea1,
@@ -197,6 +247,29 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
     serviciosIncluidosOtro: asPrivado.serviciosIncluidosOtro,
     serviciosIncluidosLegacy: asPrivado.serviciosIncluidosLegacy,
     requisitos: asPrivado.requisitos,
+    tipoDeRenta: asPrivado.tipoDeRenta,
+    tipoDeRentaOtro: asPrivado.tipoDeRentaOtro,
+    condicionesAlquiler: asPrivado.condicionesAlquiler,
+    rentasEspacioTipoBano: asPrivado.rentasEspacioTipoBano,
+    rentasEspacioTipoCocina: asPrivado.rentasEspacioTipoCocina,
+    rentasEspacioEntradaPrivada: asPrivado.rentasEspacioEntradaPrivada,
+    rentasEspacioLavanderia: asPrivado.rentasEspacioLavanderia,
+    rentasEspacioMaxOcupantes: asPrivado.rentasEspacioMaxOcupantes,
+    rentasAlmacenTamanoAprox: asPrivado.rentasAlmacenTamanoAprox,
+    rentasAlmacenAcceso24h: asPrivado.rentasAlmacenAcceso24h,
+    rentasAlmacenElectricidad: asPrivado.rentasAlmacenElectricidad,
+    rentasAlmacenSeguridad: asPrivado.rentasAlmacenSeguridad,
+    rentasAlmacenUsoPermitido: asPrivado.rentasAlmacenUsoPermitido,
+    rentasAlmacenDimensiones: asPrivado.rentasAlmacenDimensiones,
+    rentasComercialUsoPermitido: asPrivado.rentasComercialUsoPermitido,
+    rentasComercialTamanoFt2: asPrivado.rentasComercialTamanoFt2,
+    rentasComercialBanoDisponible: asPrivado.rentasComercialBanoDisponible,
+    rentasComercialHorarioAcceso: asPrivado.rentasComercialHorarioAcceso,
+    rentasComercialContratoMinimo: asPrivado.rentasComercialContratoMinimo,
+    rentasLoteUsoPermitido: asPrivado.rentasLoteUsoPermitido,
+    rentasLoteServiciosDisponibles: asPrivado.rentasLoteServiciosDisponibles,
+    rentasLoteAcceso: asPrivado.rentasLoteAcceso,
+    rentasLoteZonificacion: asPrivado.rentasLoteZonificacion,
     ciudad: asPrivado.ciudad,
     zonaVecindario: asPrivado.zonaVecindario,
     direccionLinea1: asPrivado.direccionLinea1,
