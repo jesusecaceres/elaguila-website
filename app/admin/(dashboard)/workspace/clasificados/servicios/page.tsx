@@ -13,6 +13,8 @@ import {
   updateServiciosPublicListingStatusAction,
 } from "./actions";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
+import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
+import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 
 export const dynamic = "force-dynamic";
 
@@ -123,9 +125,18 @@ export default async function AdminServiciosWorkspacePage(props: {
   const devAdminRows = filterDevServiciosRows(devFileRowsAsAdmin(), queueFilters.q);
   const pendingReviews = await listPendingServiciosReviews(80);
   const recentLeads = await fetchServiciosLeadsForAdmin();
+  const surface = clasificadosQueueSurfaceForSlug("servicios");
 
   return (
     <div className="space-y-8">
+      <ClasificadosQueueHeader
+        title="Servicios — cola pública (operación)"
+        sourceTable={surface.sourceTable}
+        subtitle="Directorio publicado vía Supabase; moderación y leads en tablas relacionadas."
+        publicHref={surface.publicHref}
+        publishHref={surface.publishHref}
+      />
+
       <div className={`${adminCardBase} border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>
         <p className="font-semibold text-[#1E1810]">Cola real (Supabase)</p>
         <p className="mt-1 text-xs text-[#14532d]">
@@ -318,6 +329,7 @@ export default async function AdminServiciosWorkspacePage(props: {
                           promoted={Boolean(r.promoted)}
                           verified={r.leonix_verified}
                           canArchive={(r.listing_status ?? "") !== "rejected"}
+                          staffEditBoardHref={`/servicios/perfil/${encodeURIComponent(r.slug)}`}
                         />
                       </td>
                       <td className="p-3">

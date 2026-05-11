@@ -18,7 +18,7 @@ import { buildEnVentaCategoryPatchFromForm } from "@/app/lib/clasificados/enVent
 const SECTION = "clasificados_category_content" as const;
 const EN_VENTA = "en-venta";
 
-/** Categories with a detail-fields + staff editor (`/admin/workspace/clasificados/category/editor/[slug]`). */
+/** Categories with a detail-fields + staff editor (`/admin/workspace/clasificados/category/[slug]#contenido`). */
 const DETAIL_EDITOR_SLUGS = new Set([
   "autos",
   "rentas",
@@ -28,6 +28,7 @@ const DETAIL_EDITOR_SLUGS = new Set([
   "clases",
   "comunidad",
   "travel",
+  "bienes-raices",
 ]);
 
 async function assertAdmin(): Promise<void> {
@@ -60,7 +61,7 @@ export async function saveEnVentaCategoryContentAction(formData: FormData) {
   revalidatePath("/clasificados/publicar/en-venta");
   revalidatePath("/admin/workspace/clasificados");
   revalidatePath("/admin/workspace/clasificados/category/en-venta");
-  redirect("/admin/workspace/clasificados/category/en-venta?saved=1");
+  redirect("/admin/workspace/clasificados/category/en-venta?saved=1#contenido");
 }
 
 export async function saveCategoryDetailFieldsContentAction(formData: FormData) {
@@ -89,6 +90,6 @@ export async function saveCategoryDetailFieldsContentAction(formData: FormData) 
 
   auditAdminWrite("site_section_saved", "site_section", SECTION, { category: slug, scope: "detail_fields" });
   revalidatePath("/admin/workspace/clasificados");
-  revalidatePath(`/admin/workspace/clasificados/category/editor/${slug}`);
-  redirect(`/admin/workspace/clasificados/category/editor/${encodeURIComponent(slug)}?saved=1`);
+  revalidatePath(`/admin/workspace/clasificados/category/${slug}`);
+  redirect(`/admin/workspace/clasificados/category/${encodeURIComponent(slug)}?saved=1#contenido`);
 }

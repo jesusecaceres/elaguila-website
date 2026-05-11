@@ -49,6 +49,8 @@ export const DETAIL_FIELDS: Record<string, DetailField[]> = {
   ],
   /** Rentas uses getCategoryFields("rentas", details) for dynamic field groups by subcategoría/tipo. */
   rentas: [],
+  /** Bienes raíces (venta): dynamic BR forms — overrides here apply when keys align with publish orchestrator. */
+  "bienes-raices": [],
   empleos: [
     { key: "company", label: { es: "Empresa", en: "Company" }, type: "text", placeholder: { es: "Nombre de la empresa", en: "Company name" } },
     {

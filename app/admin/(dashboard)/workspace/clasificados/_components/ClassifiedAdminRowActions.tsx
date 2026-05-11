@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useState } from "react";
 
 export type ClassifiedStaffOpsVariant =
@@ -19,6 +20,8 @@ type Props = {
   verified: boolean;
   /** When false, hide archive (e.g. row already archived). */
   canArchive?: boolean;
+  /** Staff / owner edit surface for this row (dashboard, perfil, etc.). */
+  staffEditBoardHref?: string;
 };
 
 function patchUrl(variant: ClassifiedStaffOpsVariant, rowId: string): string {
@@ -48,6 +51,7 @@ export function ClassifiedAdminRowActions({
   promoted,
   verified,
   canArchive = true,
+  staffEditBoardHref,
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -87,6 +91,14 @@ export function ClassifiedAdminRowActions({
 
   return (
     <div className="space-y-2">
+      {staffEditBoardHref ? (
+        <Link
+          href={staffEditBoardHref}
+          className="inline-flex rounded-lg border border-[#C9B46A]/60 bg-[#FFF7ED] px-2 py-1 text-[10px] font-bold text-[#92400E] underline-offset-2 hover:underline"
+        >
+          Editar
+        </Link>
+      ) : null}
       <div className="flex flex-wrap gap-1.5">
         {publicLive ? (
           <button

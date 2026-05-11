@@ -23,6 +23,8 @@ function listingsLeonixPrefixForCategory(categorySlug: string): string {
       return "SALE";
     case "rentas":
       return "RENT";
+    case "bienes-raices":
+      return "BR";
     case "clases":
       return "CLASS";
     case "comunidad":

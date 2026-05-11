@@ -22,6 +22,8 @@ export function adminCategoryWorkspaceQueueHref(slug: string): string {
       return "/admin/workspace/clasificados/autos";
     case "rentas":
       return "/admin/workspace/clasificados/rentas";
+    case "bienes-raices":
+      return "/admin/workspace/clasificados/bienes-raices";
     case "en-venta":
       return "/admin/workspace/clasificados/en-venta";
     case "comunidad":

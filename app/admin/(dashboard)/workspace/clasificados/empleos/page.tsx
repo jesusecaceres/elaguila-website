@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
-import { adminBtnSecondary, adminCardBase, adminInputClass } from "@/app/admin/_components/adminTheme";
+import { adminCardBase, adminInputClass } from "@/app/admin/_components/adminTheme";
 import { appendLangToPath, type Lang } from "@/app/clasificados/lib/hubUrl";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
+import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
+import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 
 type ApplicationHealth = {
   total: number;
@@ -85,17 +86,16 @@ export default function AdminEmpleosListingsPage() {
     if (json.ok) void load(needle);
   }
 
+  const empleosSurface = clasificadosQueueSurfaceForSlug("empleos");
+
   return (
     <div className="max-w-6xl space-y-6 pb-12">
-      <AdminPageHeader
-        eyebrow="Workspace · Clasificados"
+      <ClasificadosQueueHeader
         title="Empleos — listados (Supabase)"
-        subtitle="Fuente: tabla public.empleos_public_listings. Acciones usan rol de servicio en API; requiere cookie admin."
-        rightSlot={
-          <Link href="/admin/workspace/clasificados" className={adminBtnSecondary}>
-            ← Hub Clasificados
-          </Link>
-        }
+        sourceTable={empleosSurface.sourceTable}
+        subtitle="Acciones usan rol de servicio en API; requiere cookie admin."
+        publicHref={empleosSurface.publicHref}
+        publishHref={empleosSurface.publishHref}
       />
 
       {err ? (
@@ -199,6 +199,7 @@ export default function AdminEmpleosListingsPage() {
                     promoted={Boolean(r.admin_promoted)}
                     verified={Boolean(r.leonix_verified)}
                     canArchive={r.lifecycle_status !== "archived"}
+                    staffEditBoardHref={appendLangToPath(`/dashboard/empleos/${encodeURIComponent(r.id)}`, lang)}
                   />
                 </td>
                 <td className="px-4 py-3 text-xs font-semibold">

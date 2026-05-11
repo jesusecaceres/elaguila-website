@@ -156,8 +156,8 @@ export function ClasificadosCategoryHub({
                         <Link
                           href={
                             isEnVenta
-                              ? "/admin/workspace/clasificados/category/en-venta"
-                              : `/admin/workspace/clasificados/category/editor/${encodeURIComponent(entry.slug)}`
+                              ? "/admin/workspace/clasificados/category/en-venta#contenido"
+                              : `/admin/workspace/clasificados/category/${encodeURIComponent(entry.slug)}#contenido`
                           }
                           className={`inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl px-4 py-2.5 text-center text-sm font-bold text-[#1E1810] sm:min-h-0 ${
                             isEnVenta
@@ -168,7 +168,7 @@ export function ClasificadosCategoryHub({
                           {isEnVenta ? m("hub.editorEnVenta") : m("hub.editorOther")}
                         </Link>
                         <Link
-                          href={`/admin/workspace/clasificados/category/${encodeURIComponent(entry.slug)}`}
+                          href={`/admin/workspace/clasificados/category/${encodeURIComponent(entry.slug)}#operacion`}
                           className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-4 py-2.5 text-center text-sm font-semibold text-[#1E1810] hover:bg-[#F4EFE4] sm:min-h-0"
                         >
                           {m("hub.opsSpace")}

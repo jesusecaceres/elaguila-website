@@ -23,7 +23,7 @@ const REQUIRED_PATHS = [
   "app/admin/(dashboard)/workspace/clasificados/en-venta/page.tsx",
   "app/admin/(dashboard)/workspace/clasificados/comunidad/page.tsx",
   "app/admin/(dashboard)/workspace/clasificados/clases/page.tsx",
-  "app/admin/(dashboard)/workspace/clasificados/travel/page.tsx",
+  "app/admin/(dashboard)/workspace/clasificados/bienes-raices/page.tsx",
   "app/admin/(dashboard)/workspace/clasificados/listings/[id]/edit/page.tsx",
 ];
 

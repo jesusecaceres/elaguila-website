@@ -1,8 +1,9 @@
 import Link from "next/link";
 
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
-import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
-import { adminBtnSecondary, adminCardBase } from "@/app/admin/_components/adminTheme";
+import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
+import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
+import { adminCardBase } from "@/app/admin/_components/adminTheme";
 import { fetchAllViajesStagedForAdmin } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingsDbServer";
 import type { ViajesStagedListingRow } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
@@ -21,18 +22,16 @@ function fmt(ts: string | null | undefined) {
 export default async function AdminTravelViajesQueuePage() {
   const configured = isSupabaseAdminConfigured();
   const rows: ViajesStagedListingRow[] = configured ? await fetchAllViajesStagedForAdmin() : [];
+  const surface = clasificadosQueueSurfaceForSlug("travel");
 
   return (
     <div className="max-w-[1200px] space-y-6">
-      <AdminPageHeader
-        eyebrow="Workspace · Clasificados"
-        title="Viajes / Travel — ofertas (viajes_staged_listings)"
+      <ClasificadosQueueHeader
+        title="Viajes / Travel — ofertas (operación)"
+        sourceTable={surface.sourceTable}
         subtitle="Todas las filas del pipeline Viajes. Las acciones staff aplican a la tabla public.viajes_staged_listings."
-        rightSlot={
-          <Link href="/admin/workspace/clasificados" className={adminBtnSecondary}>
-            ← Hub Clasificados
-          </Link>
-        }
+        publicHref={surface.publicHref}
+        publishHref={surface.publishHref}
       />
 
       {!configured ? (
@@ -100,6 +99,7 @@ export default async function AdminTravelViajesQueuePage() {
                         promoted={promoted}
                         verified={verified}
                         canArchive={lifecycle !== "unpublished" && lifecycle !== "rejected"}
+                        staffEditBoardHref="/dashboard/viajes"
                       />
                     </td>
                   </tr>

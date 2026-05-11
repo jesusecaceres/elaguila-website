@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { adminBtnPrimary, adminBtnSecondary, adminCardBase, adminCtaChipSecondary, adminInputClass } from "@/app/admin/_components/adminTheme";
 import { saveEnVentaCategoryContentAction } from "@/app/admin/clasificadosCategoryContentActions";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
@@ -12,8 +11,6 @@ import {
 } from "@/app/lib/clasificados/mergeClasificadosCategoryContent";
 import { DETAIL_FIELDS } from "@/app/clasificados/config/publishDetailFields";
 
-export const dynamic = "force-dynamic";
-
 function Field({ label, name, defaultValue }: { label: string; name: string; defaultValue: string }) {
   return (
     <div>
@@ -23,7 +20,7 @@ function Field({ label, name, defaultValue }: { label: string; name: string; def
   );
 }
 
-export default async function AdminEnVentaCategoryContentPage(props: { searchParams?: Promise<{ saved?: string }> }) {
+export async function EnVentaCategoryContentBlock(props: { searchParams?: Promise<{ saved?: string }> }) {
   const sp = props.searchParams ? await props.searchParams : {};
   const [{ updatedAt }, patch] = await Promise.all([
     getSiteSectionPayload("clasificados_category_content"),
@@ -39,22 +36,10 @@ export default async function AdminEnVentaCategoryContentPage(props: { searchPar
   const staffEn = patch?.staffModerationNotes?.en ?? "";
 
   const schema = getCategorySchema("en-venta");
-  const queueHref = "/admin/workspace/clasificados?category=en-venta";
+  const queueHref = "/admin/workspace/clasificados/en-venta";
 
   return (
-    <div className="max-w-4xl space-y-6">
-      <AdminPageHeader
-        eyebrow="Workspace · Clasificados · En Venta"
-        title="Contenido — hub y publicar"
-        subtitle="Edita textos bilingües, CTA, emoji/imagen de cabecera y metadatos del selector de planes. Los valores vacíos en un par ES/EN quitan el override y vuelven al texto base del código."
-        helperText='Clave en BD: site_section_content.clasificados_category_content → categories["en-venta"]. La lógica de negocio y validación siguen en código.'
-        rightSlot={
-          <Link href="/admin/workspace/clasificados" className={adminBtnSecondary}>
-            ← Hub Clasificados
-          </Link>
-        }
-      />
-
+    <div className="space-y-6">
       {sp.saved === "1" ? (
         <div className={`${adminCardBase} border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>Guardado.</div>
       ) : null}
@@ -110,8 +95,8 @@ export default async function AdminEnVentaCategoryContentPage(props: { searchPar
         <section>
           <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Hub — branding / hero</h2>
           <p className="mt-1 text-xs text-[#7A7164]">
-            Emoji opcional delante del título; imagen opcional encima del logo. Rutas de imagen: <code className="rounded bg-[#FBF7EF] px-1">/</code> o{" "}
-            <code className="rounded bg-[#FBF7EF] px-1">https://</code>.
+            Emoji opcional delante del título; imagen opcional encima del logo. Rutas de imagen:{" "}
+            <code className="rounded bg-[#FBF7EF] px-1">/</code> o <code className="rounded bg-[#FBF7EF] px-1">https://</code>.
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <Field label="Hero — ES" name="hub_hero_es" defaultValue={hubEs.hero} />
@@ -204,8 +189,9 @@ export default async function AdminEnVentaCategoryContentPage(props: { searchPar
             Etiquetas / placeholders / ayuda por campo (grupo <code className="rounded bg-[#FBF7EF] px-1">en-venta</code> en código). En el sitio
             público, el asistente Gratis/Pro en{" "}
             <code className="rounded bg-[#FBF7EF] px-1">/clasificados/publicar/en-venta/free|pro</code> fusiona estos valores en servidor y los
-            aplica en los pasos (categoría, precio, entrega, contacto, etc.). <code className="rounded bg-[#FBF7EF] px-1">getPublishCategoryFields</code>{" "}
-            también acepta los mismos overrides para anexos / utilidades que los pasen.
+            aplica en los pasos (categoría, precio, entrega, contacto, etc.).{" "}
+            <code className="rounded bg-[#FBF7EF] px-1">getPublishCategoryFields</code> también acepta los mismos overrides para anexos /
+            utilidades que los pasen.
           </p>
           <div className="mt-4 space-y-6">
             {(DETAIL_FIELDS["en-venta"] ?? []).map((row) => {
@@ -232,7 +218,9 @@ export default async function AdminEnVentaCategoryContentPage(props: { searchPar
 
         <section>
           <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Notas internas (moderación)</h2>
-          <p className="mt-1 text-xs text-[#7A7164]">No se muestran en la web pública con la plantilla actual; sirven como referencia para el equipo.</p>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            No se muestran en la web pública con la plantilla actual; sirven como referencia para el equipo.
+          </p>
           <div className="mt-2 grid gap-3 sm:grid-cols-2">
             <div>
               <label className="text-xs font-semibold text-[#5C5346]">ES</label>

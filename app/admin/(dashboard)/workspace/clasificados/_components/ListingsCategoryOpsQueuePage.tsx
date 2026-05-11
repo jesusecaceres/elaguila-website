@@ -1,14 +1,15 @@
 import Link from "next/link";
 
-import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { adminBtnSecondary, adminCardBase } from "@/app/admin/_components/adminTheme";
 import {
   fetchListingsForAdminWorkspaceFiltered,
   isUuidString,
 } from "@/app/admin/_lib/listingsAdminSelect";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { clasificadosQueueSurfaceForSlug } from "@/app/admin/(dashboard)/workspace/clasificados/_lib/clasificadosQueueSurfaceMeta";
 
 import AdminListingsTable, { type AdminListingsTableRow } from "../AdminListingsTable";
+import { ClasificadosQueueHeader } from "./ClasificadosQueueHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,8 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, title, subtit
   const limitRaw = Number(firstParam(sp.limit) ?? "400");
   const queueLimit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 50), 500) : 400;
 
+  const surface = clasificadosQueueSurfaceForSlug(categorySlug);
+
   const supabase = getAdminSupabase();
   const fetchRes = configured
     ? await fetchListingsForAdminWorkspaceFiltered(supabase, {
@@ -52,18 +55,15 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, title, subtit
 
   return (
     <div className="max-w-[1200px] space-y-6">
-      <AdminPageHeader
-        eyebrow="Workspace · Clasificados"
+      <ClasificadosQueueHeader
         title={title}
+        sourceTable={surface.sourceTable}
         subtitle={
           subtitle ??
-          `Cola sobre public.listings filtrada por categoría “${categorySlug}”. Acciones staff (suspender, destacar, verificar, archivar) y enlaces de edición.`
+          `Cola filtrada por categoría “${categorySlug}”. Acciones staff y enlace Editar por fila.`
         }
-        rightSlot={
-          <Link href="/admin/workspace/clasificados" className={adminBtnSecondary}>
-            ← Hub Clasificados
-          </Link>
-        }
+        publicHref={surface.publicHref}
+        publishHref={surface.publishHref}
       />
 
       {configured ? (

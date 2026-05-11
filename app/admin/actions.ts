@@ -83,6 +83,7 @@ export async function updateListingCoreFieldsStaffAdminAction(formData: FormData
   const priceRaw = String(formData.get("price") ?? "").trim();
   const isFree = formData.get("is_free") === "on";
   const isPublished = formData.get("is_published") === "on";
+  const detailPairsRaw = String(formData.get("detail_pairs_json") ?? "").trim();
 
   const patch: Record<string, unknown> = {
     title: title.slice(0, 500) || "(sin título)",
@@ -93,6 +94,14 @@ export async function updateListingCoreFieldsStaffAdminAction(formData: FormData
     is_free: isFree,
     is_published: isPublished,
   };
+
+  if (detailPairsRaw !== "") {
+    try {
+      patch.detail_pairs = JSON.parse(detailPairsRaw) as unknown;
+    } catch {
+      throw new Error("invalid_detail_pairs_json");
+    }
+  }
 
   if (priceRaw === "" || priceRaw === "—") {
     patch.price = null;

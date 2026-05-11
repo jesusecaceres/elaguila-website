@@ -14,8 +14,9 @@ import {
   autosListingStatusLabelEs,
 } from "@/app/lib/clasificados/autos/autosClassifiedsVisibility";
 import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
-import { AdminPageHeader } from "../../../../_components/AdminPageHeader";
-import { adminBtnSecondary, adminCardBase, adminCtaChipSecondary } from "../../../../_components/adminTheme";
+import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
+import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
+import { adminCardBase, adminBtnSecondary, adminCtaChipSecondary } from "../../../../_components/adminTheme";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
 
@@ -106,9 +107,17 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
     });
   }
 
+  const surface = clasificadosQueueSurfaceForSlug("autos");
+
   return (
     <div className="mx-auto max-w-[110rem] px-4 py-8 sm:px-6">
-      <AdminPageHeader title={m("autosQueue.pageTitle")} subtitle={m("autosQueue.pageSubtitle")} />
+      <ClasificadosQueueHeader
+        title={m("autosQueue.pageTitle")}
+        sourceTable={surface.sourceTable}
+        subtitle={m("autosQueue.pageSubtitle")}
+        publicHref={surface.publicHref}
+        publishHref={surface.publishHref}
+      />
 
       <div className="mb-6 flex flex-wrap gap-2">
         <Link href="/admin/workspace/clasificados" className={adminCtaChipSecondary}>
@@ -229,6 +238,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                           promoted={r.featured}
                           verified={Boolean(r.leonix_verified)}
                           canArchive={r.status !== "cancelled" && r.status !== "draft" && r.status !== "pending_payment"}
+                          staffEditBoardHref={`/dashboard/mis-anuncios/${encodeURIComponent(r.id)}`}
                         />
                       </div>
                     </td>

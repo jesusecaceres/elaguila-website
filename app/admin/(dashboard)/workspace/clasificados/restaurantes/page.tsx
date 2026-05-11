@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { listRestaurantesPublicListingsAdminFromDb } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
-import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { adminBtnSecondary, adminCardBase } from "@/app/admin/_components/adminTheme";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
+import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
+import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 
 export const dynamic = "force-dynamic";
 
@@ -47,18 +48,16 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
       })
     : [];
 
+  const surface = clasificadosQueueSurfaceForSlug("restaurantes");
+
   return (
     <div className="max-w-[1200px] space-y-6">
-      <AdminPageHeader
-        eyebrow="Workspace · Clasificados"
+      <ClasificadosQueueHeader
         title="Restaurantes — listados públicos (operación)"
-        subtitle="Tabla viva sobre `restaurantes_public_listings` con acciones reales (suspender, destacar, verificar). Requiere cookie de admin y Supabase con rol de servicio."
-        helperText="Las acciones escriben en Postgres, invalidan rutas públicas vía revalidatePath y dejan rastro en `admin_audit_log` cuando la tabla existe."
-        rightSlot={
-          <Link href="/admin/workspace/clasificados" className={adminBtnSecondary}>
-            ← Hub Clasificados
-          </Link>
-        }
+        sourceTable={surface.sourceTable}
+        subtitle="Tabla viva con acciones reales (suspender, destacar, verificar). Requiere cookie de admin y Supabase con rol de servicio."
+        publicHref={surface.publicHref}
+        publishHref={surface.publishHref}
       />
 
       {configured ? (
@@ -206,6 +205,7 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
                         promoted={r.promoted}
                         verified={r.leonix_verified}
                         canArchive={r.status !== "archived"}
+                        staffEditBoardHref="/dashboard/restaurantes"
                       />
                     </td>
                   </tr>

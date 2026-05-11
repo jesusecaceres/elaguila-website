@@ -126,6 +126,15 @@ const CATEGORY_SCHEMAS: Record<Exclude<CategoryKey, "all">, CategorySchema> = {
     proPreviewEligible: true,
     stepOrder: PUBLISH_STEPS_RENTAS,
   }),
+  "bienes-raices": schema("bienes-raices", {
+    plans: ["pro", "business_standard", "business_plus"],
+    businessBranchEligible: true,
+    formFieldGroupKey: "bienes-raices",
+    validationRules: ["bienes_raices_meta"],
+    previewEligible: true,
+    proPreviewEligible: true,
+    stepOrder: PUBLISH_STEPS_RENTAS,
+  }),
   autos: schema("autos", {
     plans: ["free", "pro"],
     listingTypes: ["consumer", "dealership"],
