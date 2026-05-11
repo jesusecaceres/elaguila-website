@@ -8,6 +8,7 @@ import type {
   ClasesQuickDraft,
   ComunidadQuickDraft,
   CommunityCommonDraft,
+  CommunityPublishConfirmations,
 } from "../types/communityQuickDraft";
 import type {
   ClasesQuickPublishSnapshot,
@@ -55,6 +56,7 @@ function commonSnapshot(d: CommunityCommonDraft): {
   state: string;
   zip: string;
   discoveryRegion: "NorCal";
+  publishConfirmations: CommunityPublishConfirmations;
 } {
   const images = mapImagesForPublish(d.images);
   const cat = d.category.trim();
@@ -79,6 +81,7 @@ function commonSnapshot(d: CommunityCommonDraft): {
     state: d.state.trim(),
     zip: d.zip.trim(),
     discoveryRegion: COMMUNITY_DISCOVERY_REGION,
+    publishConfirmations: { ...d.publishConfirmations },
   };
 }
 
@@ -120,6 +123,8 @@ export function buildComunidadQuickPublishSnapshot(
     admissionNote: d.admissionNote.trim(),
     date: d.date.trim(),
     eventEndDate: d.eventEndDate.trim(),
+    eventSessionStart: d.eventSessionStart.trim(),
+    eventSessionEnd: d.eventSessionEnd.trim(),
     weeklySchedule: d.weeklySchedule.map((r) => ({
       day: r.day,
       closed: r.closed,

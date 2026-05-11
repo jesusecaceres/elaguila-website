@@ -7,11 +7,11 @@ import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { DayKey } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import { CommunityPublishConfirmationSection } from "./components/CommunityPublishConfirmationSection";
 import { EmpleosApplicationFinalStep } from "@/app/publicar/empleos/shared/components/EmpleosApplicationFinalStep";
 import { EmpleosCtaFieldGroup } from "@/app/publicar/empleos/shared/components/EmpleosCtaFieldGroup";
 import { EmpleosReadinessBanner } from "@/app/publicar/empleos/shared/components/EmpleosReadinessBanner";
 import { EmpleosImageGalleryEditor } from "@/app/publicar/empleos/shared/media/EmpleosImageGalleryEditor";
-import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publish/EmpleosPublishConfirmModal";
 import {
   EmpleosFieldLabel,
   EmpleosSectionCard,
@@ -149,13 +149,18 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
     (raw) => normalizeClasesQuickDraft(raw),
   );
 
-  const [publishOpen, setPublishOpen] = useState(false);
   const [stagedNotice, setStagedNotice] = useState(false);
   const [paidBlockNotice, setPaidBlockNotice] = useState(false);
 
   const gate = useMemo(() => gateClasesQuickPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;
   const previewIssues = gate.ok ? [] : gate.issues;
+
+  const approvalsOk =
+    state.publishConfirmations.infoTruthful &&
+    state.publishConfirmations.mediaAccurate &&
+    state.publishConfirmations.rulesAccepted;
+  const publishDisabled = previewDisabled || !approvalsOk;
 
   const goPreview = useCallback(() => {
     if (previewDisabled) return;
@@ -175,25 +180,23 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
     clearCommunityStagedPublish("clases");
   }, [reset]);
 
-  const onConfirmPublish = useCallback(() => {
-    if (previewDisabled) return;
+  const handlePublish = useCallback(() => {
+    if (publishDisabled) return;
     if (shouldBlockClasesPaidPublish(state)) {
       setPaidBlockNotice(true);
-      setPublishOpen(false);
       return;
     }
     const envelope = buildClasesQuickPublishEnvelope(state, lang);
     writeCommunityStagedPublish("clases", envelope);
     setStagedNotice(true);
     setPaidBlockNotice(false);
-  }, [previewDisabled, state, lang]);
+  }, [publishDisabled, state, lang]);
 
   const onSaveDraft = useCallback(() => {
-    if (previewDisabled) return;
     const envelope = buildClasesQuickPublishEnvelope(state, lang);
     writeCommunityStagedPublish("clases", envelope);
     setStagedNotice(true);
-  }, [previewDisabled, state, lang]);
+  }, [state, lang]);
 
   const ctaL = ctaLabels(lang);
   const ctaPrimaryHint = copy.primaryCtaHint;
@@ -475,17 +478,32 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
           />
         </div>
 
+        <CommunityPublishConfirmationSection
+          variant="clases"
+          lang={lang}
+          value={state.publishConfirmations}
+          onChange={(p) =>
+            patch({ publishConfirmations: { ...state.publishConfirmations, ...p } })
+          }
+        />
+
         <EmpleosApplicationFinalStep
           copy={sharedCopy.finalStep}
           previewDisabled={previewDisabled}
+          publishDisabled={publishDisabled}
           onVistaPrevia={goPreview}
-          onPublicar={() => {
-            if (previewDisabled) return;
-            setPublishOpen(true);
-          }}
+          onPublicar={handlePublish}
           onDelete={handleDelete}
           stagedSuccessText={stagedNotice ? sharedCopy.stagedSuccess : null}
           publishGateBlockedHint={previewDisabled ? sharedCopy.publishBlocked : null}
+          publishOnlyBlockedHint={
+            !previewDisabled && publishDisabled ? sharedCopy.approvalPublishBlocked : null
+          }
+          allowSaveDraftWhenBlocked
+          finalBlockingIssues={previewIssues}
+          finalBlockingIntro={
+            previewDisabled && previewIssues.length ? sharedCopy.stillNeededTitle : null
+          }
           saveDraftCta={sharedCopy.finalStep.saveDraftCta}
           onSaveDraft={onSaveDraft}
         />
@@ -499,19 +517,6 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
           </p>
         ) : null}
       </div>
-
-      <EmpleosPublishConfirmModal
-        open={publishOpen}
-        onClose={() => setPublishOpen(false)}
-        onConfirm={onConfirmPublish}
-        title={sharedCopy.publishModal.title}
-        intro={sharedCopy.publishModal.intro}
-        checks={sharedCopy.publishModal.checks}
-        confirmCta={sharedCopy.publishModal.confirmCta}
-        cancelCta={sharedCopy.publishModal.cancelCta}
-        blockedHint={sharedCopy.publishModal.blockedHint}
-        closeOverlayAria={sharedCopy.publishModal.closeOverlayAria}
-      />
     </main>
   );
 }
@@ -524,12 +529,17 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
     (raw) => normalizeComunidadQuickDraft(raw),
   );
 
-  const [publishOpen, setPublishOpen] = useState(false);
   const [stagedNotice, setStagedNotice] = useState(false);
 
   const gate = useMemo(() => gateComunidadQuickPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;
   const previewIssues = gate.ok ? [] : gate.issues;
+
+  const approvalsOk =
+    state.publishConfirmations.infoTruthful &&
+    state.publishConfirmations.mediaAccurate &&
+    state.publishConfirmations.rulesAccepted;
+  const publishDisabled = previewDisabled || !approvalsOk;
 
   const goPreview = useCallback(() => {
     if (previewDisabled) return;
@@ -548,19 +558,18 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
     clearCommunityStagedPublish("comunidad");
   }, [reset]);
 
-  const onConfirmPublish = useCallback(() => {
-    if (previewDisabled) return;
+  const handlePublish = useCallback(() => {
+    if (publishDisabled) return;
     const envelope = buildComunidadQuickPublishEnvelope(state, lang);
     writeCommunityStagedPublish("comunidad", envelope);
     setStagedNotice(true);
-  }, [previewDisabled, state, lang]);
+  }, [publishDisabled, state, lang]);
 
   const onSaveDraft = useCallback(() => {
-    if (previewDisabled) return;
     const envelope = buildComunidadQuickPublishEnvelope(state, lang);
     writeCommunityStagedPublish("comunidad", envelope);
     setStagedNotice(true);
-  }, [previewDisabled, state, lang]);
+  }, [state, lang]);
 
   const ctaL = ctaLabels(lang);
   const ctaPrimaryHint = copy.primaryCtaHint;
@@ -718,8 +727,32 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
                 />
               </label>
             </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} optional>
+                  {copy.fields.eventSessionStart}
+                </EmpleosFieldLabel>
+                <input
+                  type="time"
+                  className={INPUT}
+                  value={state.eventSessionStart}
+                  onChange={(e) => patch({ eventSessionStart: e.target.value })}
+                />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} optional>
+                  {copy.fields.eventSessionEnd}
+                </EmpleosFieldLabel>
+                <input
+                  type="time"
+                  className={INPUT}
+                  value={state.eventSessionEnd}
+                  onChange={(e) => patch({ eventSessionEnd: e.target.value })}
+                />
+              </label>
+            </div>
             <div className="mt-4">
-              <EmpleosFieldLabel lang={lang} required>
+              <EmpleosFieldLabel lang={lang} optional>
                 {copy.fields.weeklySchedule}
               </EmpleosFieldLabel>
               <WeeklyScheduleEditor
@@ -791,34 +824,36 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
           />
         </div>
 
+        <CommunityPublishConfirmationSection
+          variant="comunidad"
+          lang={lang}
+          value={state.publishConfirmations}
+          onChange={(p) =>
+            patch({ publishConfirmations: { ...state.publishConfirmations, ...p } })
+          }
+        />
+
         <EmpleosApplicationFinalStep
           copy={sharedCopy.finalStep}
           previewDisabled={previewDisabled}
+          publishDisabled={publishDisabled}
           onVistaPrevia={goPreview}
-          onPublicar={() => {
-            if (previewDisabled) return;
-            setPublishOpen(true);
-          }}
+          onPublicar={handlePublish}
           onDelete={handleDelete}
           stagedSuccessText={stagedNotice ? sharedCopy.stagedSuccess : null}
           publishGateBlockedHint={previewDisabled ? sharedCopy.publishBlocked : null}
+          publishOnlyBlockedHint={
+            !previewDisabled && publishDisabled ? sharedCopy.approvalPublishBlocked : null
+          }
+          allowSaveDraftWhenBlocked
+          finalBlockingIssues={previewIssues}
+          finalBlockingIntro={
+            previewDisabled && previewIssues.length ? sharedCopy.stillNeededTitle : null
+          }
           saveDraftCta={sharedCopy.finalStep.saveDraftCta}
           onSaveDraft={onSaveDraft}
         />
       </div>
-
-      <EmpleosPublishConfirmModal
-        open={publishOpen}
-        onClose={() => setPublishOpen(false)}
-        onConfirm={onConfirmPublish}
-        title={sharedCopy.publishModal.title}
-        intro={sharedCopy.publishModal.intro}
-        checks={sharedCopy.publishModal.checks}
-        confirmCta={sharedCopy.publishModal.confirmCta}
-        cancelCta={sharedCopy.publishModal.cancelCta}
-        blockedHint={sharedCopy.publishModal.blockedHint}
-        closeOverlayAria={sharedCopy.publishModal.closeOverlayAria}
-      />
     </main>
   );
 }

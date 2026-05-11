@@ -7,6 +7,7 @@ import type {
   ClasesPriceFrequency,
   ComunidadCostType,
   CommunityPrimaryCta,
+  CommunityPublishConfirmations,
 } from "../types/communityQuickDraft";
 
 export type CommunityPublishImageRef = {
@@ -45,6 +46,7 @@ export type ClasesQuickPublishSnapshot = {
   zip: string;
   /** Internal discovery region (always NorCal). */
   discoveryRegion: "NorCal";
+  publishConfirmations: CommunityPublishConfirmations;
 };
 
 export type ComunidadQuickPublishSnapshot = {
@@ -57,6 +59,9 @@ export type ComunidadQuickPublishSnapshot = {
   admissionNote: string;
   date: string;
   eventEndDate: string;
+  /** Optional single session window (HH:MM) when weekly rows are unused. */
+  eventSessionStart: string;
+  eventSessionEnd: string;
   weeklySchedule: DayHoursRow[];
   description: string;
   images: CommunityPublishImageRef[];
@@ -71,6 +76,7 @@ export type ComunidadQuickPublishSnapshot = {
   state: string;
   zip: string;
   discoveryRegion: "NorCal";
+  publishConfirmations: CommunityPublishConfirmations;
 };
 
 export type CommunityPublishLanePayload =

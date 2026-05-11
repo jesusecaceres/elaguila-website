@@ -46,6 +46,8 @@ export const COMMUNITY_PUBLISH_COPY = {
     },
     stagedSuccess:
       "Borrador guardado en esta sesión. La publicación final aún no está disponible para esta categoría.",
+    stillNeededTitle: "Falta completar:",
+    approvalPublishBlocked: "Marca las tres confirmaciones antes de publicar.",
   },
   en: {
     gateFail: "Complete required fields (*) before preview:",
@@ -84,6 +86,8 @@ export const COMMUNITY_PUBLISH_COPY = {
     },
     stagedSuccess:
       "Draft saved in this session. Final publishing is not yet available for this category.",
+    stillNeededTitle: "Still needed:",
+    approvalPublishBlocked: "Check all three confirmations before publishing.",
   },
 } as const;
 
@@ -201,9 +205,11 @@ export const COMUNIDAD_QUICK_COPY = {
       admissionNote: "Nota de admisión",
       date: "Fecha de inicio del evento",
       eventEndDate: "Fecha de fin (opcional)",
+      eventSessionStart: "Hora de inicio del evento (opcional)",
+      eventSessionEnd: "Hora de fin del evento (opcional)",
       weeklySchedule: "Días y horarios del evento",
       weeklyHelper:
-        "Activa los días en que se realiza el evento y asigna el horario.",
+        "Activa días con horario semanal, o define hora de inicio y fin en una sola sesión (se requiere al menos una opción).",
       weeklyClosed: "No aplica",
       description: "Descripción corta",
       image: "Flyer / medios",
@@ -244,8 +250,11 @@ export const COMUNIDAD_QUICK_COPY = {
       admissionNote: "Admission note",
       date: "Event start date",
       eventEndDate: "End date (optional)",
+      eventSessionStart: "Event start time (optional)",
+      eventSessionEnd: "Event end time (optional)",
       weeklySchedule: "Event days & times",
-      weeklyHelper: "Enable the days when the event takes place and assign the time.",
+      weeklyHelper:
+        "Enable weekdays with a weekly schedule, or set a single session start and end time (at least one option is required).",
       weeklyClosed: "Does not apply",
       description: "Short description",
       image: "Flyer / media",

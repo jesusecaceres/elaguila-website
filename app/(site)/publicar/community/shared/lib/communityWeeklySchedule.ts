@@ -21,9 +21,11 @@ export function emptyCommunityWeeklySchedule(): DayHoursRow[] {
 function coerceDayRow(raw: unknown, day: DayKey): DayHoursRow {
   if (!raw || typeof raw !== "object") return { day, closed: true, open: "", close: "" };
   const r = raw as Partial<DayHoursRow>;
-  const closed = Boolean(r.closed);
   const open = String(r.open ?? "").trim();
   const close = String(r.close ?? "").trim();
+  /** Missing `closed` in stored JSON must not become “active” with empty times (would block preview). */
+  const closed =
+    typeof r.closed === "boolean" ? r.closed : !(open || close);
   return { day, closed, open, close };
 }
 
@@ -129,8 +131,17 @@ export function isActiveDayValid(row: DayHoursRow): boolean {
   return a < b;
 }
 
-export function hasAtLeastOneActiveOpenDay(rows: DayHoursRow[]): boolean {
-  return rows.some((r) => !r.closed && r.open && r.close);
+export function isWeeklyScheduleSatisfied(rows: DayHoursRow[]): boolean {
+  let anyActive = false;
+  for (const r of rows) {
+    if (r.closed) continue;
+    anyActive = true;
+    const open = String(r.open ?? "").trim();
+    const close = String(r.close ?? "").trim();
+    if (!open || !close) return false;
+    if (!isActiveDayValid({ ...r, open, close })) return false;
+  }
+  return anyActive;
 }
 
 export function formatTimeForDisplay(time: string, lang: "es" | "en"): string {

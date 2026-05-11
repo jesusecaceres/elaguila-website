@@ -4,7 +4,7 @@ import type { DayHoursRow } from "@/app/clasificados/publicar/servicios/lib/clas
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { digitsOnly } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 
-import { isActiveDayValid } from "../lib/communityWeeklySchedule";
+import { isActiveDayValid, isWeeklyScheduleSatisfied } from "../lib/communityWeeklySchedule";
 import type {
   ClasesQuickDraft,
   ComunidadQuickDraft,
@@ -31,7 +31,7 @@ const GATE_CLASES = {
     image: "Medios (imagen o PDF del flyer, o URL)",
     cta: "Al menos un método de contacto (teléfono, WhatsApp o email)",
     publicCity: "Ciudad donde se ofrece la clase",
-    publicCityInvalid: "Ciudad: elige una ciudad válida de la lista NorCal",
+    publicCityInvalid: "Selecciona una ciudad válida de la lista de NorCal.",
     phoneDigits: "Teléfono: ingresa 10 dígitos o déjalo vacío",
     whatsappDigits: "WhatsApp: ingresa 10 dígitos o déjalo vacío",
   },
@@ -51,7 +51,7 @@ const GATE_CLASES = {
     image: "Media (image or flyer PDF, or URL)",
     cta: "At least one contact method (phone, WhatsApp, or email)",
     publicCity: "City where the class is offered",
-    publicCityInvalid: "City: pick a valid NorCal list city",
+    publicCityInvalid: "Select a valid city from the NorCal list.",
     phoneDigits: "Phone: enter 10 digits or leave blank",
     whatsappDigits: "WhatsApp: enter 10 digits or leave blank",
   },
@@ -74,7 +74,9 @@ const GATE_COMUNIDAD = {
     image: "Medios (imagen o PDF del flyer, o URL)",
     cta: "Al menos un método de contacto (teléfono, WhatsApp o email)",
     publicCity: "Ciudad donde se realiza el evento",
-    publicCityInvalid: "Ciudad: elige una ciudad válida de la lista NorCal",
+    publicCityInvalid: "Selecciona una ciudad válida de la lista de NorCal.",
+    scheduleNeedWeeklyOrSession:
+      "Cuándo ocurre el evento: activa días en el horario semanal o completa horario puntual (inicio y fin).",
     phoneDigits: "Teléfono: ingresa 10 dígitos o déjalo vacío",
     whatsappDigits: "WhatsApp: ingresa 10 dígitos o déjalo vacío",
   },
@@ -94,7 +96,9 @@ const GATE_COMUNIDAD = {
     image: "Media (image or flyer PDF, or URL)",
     cta: "At least one contact method (phone, WhatsApp, or email)",
     publicCity: "City where the event takes place",
-    publicCityInvalid: "City: pick a valid NorCal list city",
+    publicCityInvalid: "Select a valid city from the NorCal list.",
+    scheduleNeedWeeklyOrSession:
+      "When the event runs: enable days in the weekly schedule or fill one-time start and end times.",
     phoneDigits: "Phone: enter 10 digits or leave blank",
     whatsappDigits: "WhatsApp: enter 10 digits or leave blank",
   },
@@ -117,9 +121,11 @@ function pushWeeklyScheduleGateIssues(
     weeklyInvalidRange: string;
   }
 ): void {
-  let okActive = false;
+  if (isWeeklyScheduleSatisfied(rows)) return;
+  let anyActive = false;
   for (const r of rows) {
     if (r.closed) continue;
+    anyActive = true;
     if (!st(r.open) || !st(r.close)) {
       issues.push(L.weeklyIncomplete);
       return;
@@ -128,9 +134,17 @@ function pushWeeklyScheduleGateIssues(
       issues.push(L.weeklyInvalidRange);
       return;
     }
-    okActive = true;
   }
-  if (!okActive) issues.push(L.weeklyNeedOne);
+  if (!anyActive) issues.push(L.weeklyNeedOne);
+  else issues.push(L.weeklyIncomplete);
+}
+
+function comunidadScheduleOk(d: ComunidadQuickDraft): boolean {
+  if (isWeeklyScheduleSatisfied(d.weeklySchedule)) return true;
+  const start = st(d.eventSessionStart);
+  const end = st(d.eventSessionEnd);
+  if (!start || !end) return false;
+  return isActiveDayValid({ day: "mon", closed: false, open: start, close: end });
 }
 
 export function gateClasesQuickPreview(d: ClasesQuickDraft, lang: Lang = "es"): GateResult {
@@ -175,7 +189,7 @@ export function gateComunidadQuickPreview(d: ComunidadQuickDraft, lang: Lang = "
   if (st(d.eventEndDate) && st(d.date) && d.eventEndDate < d.date) {
     issues.push(L.eventEndInvalid);
   }
-  pushWeeklyScheduleGateIssues(issues, d.weeklySchedule, L);
+  if (!comunidadScheduleOk(d)) issues.push(L.scheduleNeedWeeklyOrSession);
   if (!st(d.description)) issues.push(L.description);
   if (!hasMainImage(d)) issues.push(L.image);
   if (!hasContact(d)) issues.push(L.cta);

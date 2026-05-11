@@ -11,7 +11,7 @@ import {
   clasesModeLabel,
   comunidadCostLabel,
 } from "../copy/communityPublishCopy";
-import { formatWeeklyScheduleLines } from "../lib/communityWeeklySchedule";
+import { formatWeeklyScheduleLines, formatTimeForDisplay } from "../lib/communityWeeklySchedule";
 import type {
   ClasesQuickDraft,
   ComunidadQuickDraft,
@@ -258,6 +258,14 @@ export function ComunidadQuickPreviewCard({
     [draft.publicCity.trim(), draft.state.trim()].filter(Boolean).join(", ") || "—";
 
   const weeklyLines = formatWeeklyScheduleLines(draft.weeklySchedule, lang);
+  const sessStart = draft.eventSessionStart.trim();
+  const sessEnd = draft.eventSessionEnd.trim();
+  const scheduleDisplay =
+    weeklyLines.length > 0
+      ? weeklyLines.join("\n")
+      : sessStart && sessEnd
+        ? `${formatTimeForDisplay(sessStart, lang)} – ${formatTimeForDisplay(sessEnd, lang)}`
+        : "—";
 
   return (
     <article className="mx-auto my-6 w-full max-w-3xl overflow-hidden rounded-2xl border border-black/10 bg-white text-[#2A2826] shadow-md">
@@ -330,7 +338,7 @@ export function ComunidadQuickPreviewCard({
               {t.eventWeekly}
             </dt>
             <dd className="mt-0.5 whitespace-pre-line">
-              {weeklyLines.length ? weeklyLines.join("\n") : "—"}
+              {scheduleDisplay}
             </dd>
           </div>
           {draft.venue.trim() || draft.addressLine1.trim() ? (

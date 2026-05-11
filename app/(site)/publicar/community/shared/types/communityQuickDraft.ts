@@ -11,6 +11,12 @@ import {
 
 export type CommunityPrimaryCta = "phone" | "whatsapp" | "email" | "website";
 
+export type CommunityPublishConfirmations = {
+  infoTruthful: boolean;
+  mediaAccurate: boolean;
+  rulesAccepted: boolean;
+};
+
 /** @deprecated Legacy Clases quick — migrated into `weeklySchedule`. */
 export type CommunityScheduleRow = CommunityScheduleRowLegacy;
 
@@ -47,6 +53,8 @@ export type CommunityCommonDraft = {
   email: string;
   website: string;
   primaryCta: CommunityPrimaryCta;
+  /** Inline attestations before publish (session draft); not required for preview. */
+  publishConfirmations: CommunityPublishConfirmations;
 };
 
 export type ClasesQuickDraft = CommunityCommonDraft & {
@@ -70,11 +78,18 @@ export type ComunidadQuickDraft = CommunityCommonDraft & {
   date: string;
   /** Optional event end date YYYY-MM-DD (multi-day). */
   eventEndDate: string;
+  /** Optional single session window (alternative to activating weekly rows). */
+  eventSessionStart: string;
+  eventSessionEnd: string;
   /** When the event runs during the date range (fixed weekdays). */
   weeklySchedule: DayHoursRow[];
 };
 
 export type CommunityQuickDraft = ClasesQuickDraft | ComunidadQuickDraft;
+
+function emptyPublishConfirmations(): CommunityPublishConfirmations {
+  return { infoTruthful: false, mediaAccurate: false, rulesAccepted: false };
+}
 
 function emptyCommon(): CommunityCommonDraft {
   return {
@@ -94,6 +109,7 @@ function emptyCommon(): CommunityCommonDraft {
     email: "",
     website: "",
     primaryCta: "phone",
+    publishConfirmations: emptyPublishConfirmations(),
   };
 }
 
@@ -118,6 +134,8 @@ export function emptyComunidadQuickDraft(): ComunidadQuickDraft {
     admissionNote: "",
     date: "",
     eventEndDate: "",
+    eventSessionStart: "",
+    eventSessionEnd: "",
     weeklySchedule: emptyCommunityWeeklySchedule(),
   };
 }
@@ -174,6 +192,17 @@ function pickPrimaryCta(raw: unknown, fallback: CommunityPrimaryCta): CommunityP
   return PRIMARY_CTA.has(raw as CommunityPrimaryCta) ? (raw as CommunityPrimaryCta) : fallback;
 }
 
+function normalizePublishConfirmations(raw: unknown): CommunityPublishConfirmations {
+  const e = emptyPublishConfirmations();
+  if (!raw || typeof raw !== "object") return e;
+  const r = raw as Partial<CommunityPublishConfirmations>;
+  return {
+    infoTruthful: Boolean(r.infoTruthful),
+    mediaAccurate: Boolean(r.mediaAccurate),
+    rulesAccepted: Boolean(r.rulesAccepted),
+  };
+}
+
 function normalizeCommon(p: Partial<CommunityCommonDraft>): CommunityCommonDraft {
   const e = emptyCommon();
   const rawCity = String(p.publicCity ?? e.publicCity).trim();
@@ -196,6 +225,7 @@ function normalizeCommon(p: Partial<CommunityCommonDraft>): CommunityCommonDraft
     email: String(p.email ?? e.email),
     website: String(p.website ?? e.website),
     primaryCta: pickPrimaryCta(p.primaryCta, e.primaryCta),
+    publishConfirmations: normalizePublishConfirmations(p.publishConfirmations),
   };
 }
 
@@ -247,6 +277,8 @@ export function normalizeComunidadQuickDraft(raw: unknown): ComunidadQuickDraft 
     admissionNote: String(p.admissionNote ?? e.admissionNote),
     date: String(p.date ?? e.date),
     eventEndDate,
+    eventSessionStart: String(p.eventSessionStart ?? e.eventSessionStart).trim(),
+    eventSessionEnd: String(p.eventSessionEnd ?? e.eventSessionEnd).trim(),
     weeklySchedule,
   };
 }

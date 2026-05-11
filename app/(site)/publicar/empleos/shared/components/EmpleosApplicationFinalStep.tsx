@@ -27,6 +27,20 @@ type Props = {
   publishGateBlockedHint: string | null;
   saveDraftCta?: string | null;
   onSaveDraft?: () => void;
+  /**
+   * When set, overrides previewDisabled for the Publish button only (e.g. require inline attestations).
+   * Defaults to previewDisabled when omitted (Empleos Quick behavior).
+   */
+  publishDisabled?: boolean;
+  /** When true, Save draft stays enabled even when preview requirements fail (community quick drafts). */
+  allowSaveDraftWhenBlocked?: boolean;
+  /** Issues listed near buttons when preview is disabled (scroll anchor). */
+  finalBlockingIssues?: string[];
+  finalBlockingIntro?: string | null;
+  /** When preview passes but publish stays disabled (e.g. unchecked confirmations). */
+  publishSecondaryHint?: string | null;
+  /** Publish-button title when blocked only by publish-specific rules (e.g. attestations), not preview gate. */
+  publishOnlyBlockedHint?: string | null;
 };
 
 export function EmpleosApplicationFinalStep({
@@ -39,7 +53,21 @@ export function EmpleosApplicationFinalStep({
   publishGateBlockedHint,
   saveDraftCta,
   onSaveDraft,
+  publishDisabled,
+  allowSaveDraftWhenBlocked,
+  finalBlockingIssues,
+  finalBlockingIntro,
+  publishSecondaryHint,
+  publishOnlyBlockedHint,
 }: Props) {
+  const publishBtnDisabled = publishDisabled ?? previewDisabled;
+  const saveBtnDisabled = allowSaveDraftWhenBlocked ? false : previewDisabled;
+  const publishTitleHint =
+    publishBtnDisabled && !previewDisabled
+      ? publishOnlyBlockedHint ?? publishGateBlockedHint ?? undefined
+      : publishBtnDisabled
+        ? publishGateBlockedHint ?? undefined
+        : undefined;
   return (
     <section
       className="mt-10 min-w-0 rounded-[16px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm sm:p-6"
@@ -60,15 +88,30 @@ export function EmpleosApplicationFinalStep({
       ) : null}
 
       <div className="mt-6 flex flex-col gap-3 border-t border-[color:var(--lx-nav-border)]/60 pt-5">
+        {previewDisabled && finalBlockingIssues && finalBlockingIssues.length > 0 ? (
+          <div
+            className="rounded-xl border border-amber-200/90 bg-amber-50/95 px-3 py-2.5 text-sm text-amber-950"
+            role="status"
+          >
+            {finalBlockingIntro ? (
+              <p className="font-semibold text-amber-950">{finalBlockingIntro}</p>
+            ) : null}
+            <ul className={`mt-2 list-disc space-y-1 pl-5 ${finalBlockingIntro ? "" : ""}`}>
+              {finalBlockingIssues.map((issue) => (
+                <li key={issue}>{issue}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
-          <button type="button" className={BTN_PREVIEW} disabled={previewDisabled} onClick={() => void onVistaPrevia()}>
+          <button type="button" className={BTN_PREVIEW} disabled={previewDisabled} title={previewDisabled ? publishGateBlockedHint ?? undefined : undefined} onClick={() => void onVistaPrevia()}>
             {copy.previewCta}
           </button>
           <button
             type="button"
             className={BTN_PUBLISH}
-            disabled={previewDisabled}
-            title={previewDisabled ? publishGateBlockedHint ?? undefined : undefined}
+            disabled={publishBtnDisabled}
+            title={publishTitleHint}
             onClick={() => void onPublicar()}
           >
             {copy.publishCta}
@@ -77,15 +120,22 @@ export function EmpleosApplicationFinalStep({
             <button
               type="button"
               className={BTN_PUBLISH}
-              disabled={previewDisabled}
-              title={previewDisabled ? publishGateBlockedHint ?? undefined : undefined}
+              disabled={saveBtnDisabled}
+              title={saveBtnDisabled ? publishGateBlockedHint ?? undefined : undefined}
               onClick={() => void onSaveDraft()}
             >
               {saveDraftCta}
             </button>
           ) : null}
         </div>
-        {previewDisabled && publishGateBlockedHint ? (
+        {publishSecondaryHint ? (
+          <p className="text-sm font-medium text-[color:var(--lx-text-2)]" role="status">
+            {publishSecondaryHint}
+          </p>
+        ) : null}
+        {previewDisabled &&
+        publishGateBlockedHint &&
+        !(finalBlockingIssues && finalBlockingIssues.length > 0) ? (
           <p className="text-sm font-medium text-amber-900" role="status">
             {publishGateBlockedHint}
           </p>
