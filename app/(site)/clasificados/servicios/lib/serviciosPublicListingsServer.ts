@@ -155,7 +155,7 @@ export async function getServiciosPublicListingBySlugForDiscovery(slug: string):
 }
 
 const SERVICIOS_ADMIN_QUEUE_SELECT =
-  "id, slug, business_name, city, published_at, updated_at, leonix_verified, listing_status, internal_group, owner_user_id, moderation_notes, profile_json, leonix_ad_id";
+  "id, slug, business_name, city, published_at, updated_at, leonix_verified, listing_status, internal_group, owner_user_id, moderation_notes, profile_json, leonix_ad_id, promoted";
 
 export type ServiciosPublicListingAdminDbRow = {
   id: string;
@@ -171,6 +171,7 @@ export type ServiciosPublicListingAdminDbRow = {
   moderation_notes: string | null;
   profile_json: unknown;
   leonix_ad_id?: string | null;
+  promoted?: boolean;
 };
 
 function mergeServiciosAdminRows(rows: ServiciosPublicListingAdminDbRow[], cap: number): ServiciosPublicListingAdminDbRow[] {

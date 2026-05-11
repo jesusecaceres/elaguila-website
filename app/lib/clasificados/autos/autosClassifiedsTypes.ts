@@ -21,6 +21,8 @@ export type AutosClassifiedsListingRow = {
   status: AutosClassifiedsListingStatus;
   lang: AutosClassifiedsLang;
   featured: boolean;
+  /** Staff Leonix verification (`20260508140000_classifieds_admin_ops_columns.sql`). */
+  leonix_verified?: boolean;
   listing_payload: AutoDealerListing;
   stripe_checkout_session_id: string | null;
   stripe_payment_intent_id: string | null;

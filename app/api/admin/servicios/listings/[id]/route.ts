@@ -3,9 +3,11 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
+import { insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
+import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "@/app/clasificados/servicios/lib/serviciosListingLifecycle";
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
 
-type AdminRestauranteAction =
+type ServiciosStaffAction =
   | "suspend"
   | "unsuspend"
   | "promote_on"
@@ -14,7 +16,7 @@ type AdminRestauranteAction =
   | "verify_off"
   | "archive";
 
-function isAction(x: unknown): x is AdminRestauranteAction {
+function isAction(x: unknown): x is ServiciosStaffAction {
   return (
     x === "suspend" ||
     x === "unsuspend" ||
@@ -26,10 +28,8 @@ function isAction(x: unknown): x is AdminRestauranteAction {
   );
 }
 
-/**
- * Admin-only mutations for `restaurantes_public_listings`.
- * Auth: HTTP-only `leonix_admin=1` cookie (same layer as workspace).
- */
+export const dynamic = "force-dynamic";
+
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const jar = await cookies();
   if (!requireAdminCookie(jar)) {
@@ -54,8 +54,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
 
   const supabase = getAdminSupabase();
   const { data: row, error: rErr } = await supabase
-    .from("restaurantes_public_listings")
-    .select("id, slug, status, promoted, leonix_verified")
+    .from("servicios_public_listings")
+    .select("id, slug, listing_status, promoted, leonix_verified")
     .eq("id", id)
     .maybeSingle();
 
@@ -68,10 +68,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
 
   switch (action) {
     case "suspend":
-      patch.status = "suspended";
+      patch.listing_status = "suspended";
       break;
     case "unsuspend":
-      patch.status = "published";
+      patch.listing_status = SERVICIOS_LISTING_STATUS_PUBLISHED;
       break;
     case "promote_on":
       patch.promoted = true;
@@ -86,34 +86,37 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       patch.leonix_verified = false;
       break;
     case "archive":
-      patch.status = "archived";
+      patch.listing_status = "rejected";
       break;
     default:
       return NextResponse.json({ ok: false, error: "invalid_action" }, { status: 400 });
   }
 
-  const { error } = await supabase.from("restaurantes_public_listings").update(patch).eq("id", id);
+  const { error } = await supabase.from("servicios_public_listings").update(patch).eq("id", id);
   if (error) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 
+  const slug = String((row as { slug?: string }).slug ?? "");
+  void insertServiciosAnalyticsEvent({
+    listingSlug: slug || null,
+    eventType: "admin_moderation",
+    meta: { action: `servicios_patch_${action}`, patch },
+  });
+
   void appendAdminAuditLog({
-    action: `restaurantes_admin_${action}`,
-    targetType: "restaurantes_public_listing",
+    action: `servicios_admin_${action}`,
+    targetType: "servicios_public_listing",
     targetId: id,
-    meta: { slug: row.slug, patch },
+    meta: { slug, patch },
   });
 
-  const slug = String(row.slug);
-  revalidatePath("/clasificados/restaurantes/resultados");
-  revalidatePath("/clasificados/restaurantes");
-  revalidatePath("/admin/workspace/clasificados/restaurantes");
-  revalidatePath(`/clasificados/restaurantes/${slug}`);
+  revalidatePath("/clasificados/servicios");
+  revalidatePath("/clasificados/servicios/resultados");
+  revalidatePath("/admin/workspace/clasificados/servicios");
+  if (slug) {
+    revalidatePath(`/clasificados/servicios/${slug}`);
+  }
 
-  return NextResponse.json({
-    ok: true,
-    id,
-    slug,
-    ...patch,
-  });
+  return NextResponse.json({ ok: true, id, slug, ...patch });
 }

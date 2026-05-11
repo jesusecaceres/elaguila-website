@@ -20,8 +20,16 @@ export function adminCategoryWorkspaceQueueHref(slug: string): string {
       return "/admin/workspace/clasificados/empleos";
     case "autos":
       return "/admin/workspace/clasificados/autos";
+    case "rentas":
+      return "/admin/workspace/clasificados/rentas";
+    case "en-venta":
+      return "/admin/workspace/clasificados/en-venta";
+    case "comunidad":
+      return "/admin/workspace/clasificados/comunidad";
+    case "clases":
+      return "/admin/workspace/clasificados/clases";
     case "travel":
-      return "/admin/clasificados/viajes/business-offers";
+      return "/admin/workspace/clasificados/travel";
     default:
       return `${GENERIC_QUEUE}?category=${encodeURIComponent(slug)}`;
   }

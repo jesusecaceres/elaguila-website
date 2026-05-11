@@ -23,6 +23,7 @@ function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
     status: r.status as AutosClassifiedsListingStatus,
     lang: (r.lang === "en" ? "en" : "es") as AutosClassifiedsLang,
     featured: Boolean(r.featured),
+    leonix_verified: Boolean(r.leonix_verified),
     listing_payload: r.listing_payload as AutoDealerListing,
     stripe_checkout_session_id: r.stripe_checkout_session_id ? String(r.stripe_checkout_session_id) : null,
     stripe_payment_intent_id: r.stripe_payment_intent_id ? String(r.stripe_payment_intent_id) : null,

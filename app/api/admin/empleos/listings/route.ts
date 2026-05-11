@@ -52,6 +52,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     lane: r.lane,
     owner_user_id: r.owner_user_id,
     moderation_reason: r.moderation_reason,
+    leonix_verified: Boolean((r as { leonix_verified?: boolean }).leonix_verified),
+    admin_promoted: Boolean((r as { admin_promoted?: boolean }).admin_promoted),
     apply_count: typeof (r as { apply_count?: number }).apply_count === "number" ? (r as { apply_count: number }).apply_count : 0,
     view_count: typeof (r as { view_count?: number }).view_count === "number" ? (r as { view_count: number }).view_count : 0,
     application_health: health.get(r.id) ?? {

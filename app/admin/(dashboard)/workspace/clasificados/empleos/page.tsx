@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { adminBtnSecondary, adminCardBase, adminInputClass } from "@/app/admin/_components/adminTheme";
 import { appendLangToPath, type Lang } from "@/app/clasificados/lib/hubUrl";
+import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 
 type ApplicationHealth = {
   total: number;
@@ -27,6 +28,8 @@ type Row = {
   lane: string;
   owner_user_id: string | null;
   moderation_reason: string | null;
+  leonix_verified?: boolean;
+  admin_promoted?: boolean;
   apply_count: number;
   view_count: number;
   application_health: ApplicationHealth;
@@ -134,6 +137,7 @@ export default function AdminEmpleosListingsPage() {
               <th className="px-4 py-3">Apps / salud</th>
               <th className="px-4 py-3">Métricas</th>
               <th className="px-4 py-3">Acciones</th>
+              <th className="px-4 py-3">Staff (Leonix)</th>
               <th className="px-4 py-3">Enlaces</th>
             </tr>
           </thead>
@@ -186,6 +190,16 @@ export default function AdminEmpleosListingsPage() {
                       Reject
                     </button>
                   </div>
+                </td>
+                <td className="px-4 py-3 align-top">
+                  <ClassifiedAdminRowActions
+                    variant="empleos"
+                    rowId={r.id}
+                    publicLive={r.lifecycle_status === "published"}
+                    promoted={Boolean(r.admin_promoted)}
+                    verified={Boolean(r.leonix_verified)}
+                    canArchive={r.lifecycle_status !== "archived"}
+                  />
                 </td>
                 <td className="px-4 py-3 text-xs font-semibold">
                   <Link

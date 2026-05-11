@@ -50,6 +50,9 @@ export type EmpleosPublicListingRow = {
   listing_snapshot: EmpleosListingSnapshotJson;
   apply_count?: number;
   view_count?: number;
+  /** Staff moderation (`20260508140000_classifieds_admin_ops_columns.sql`). */
+  leonix_verified?: boolean;
+  admin_promoted?: boolean;
 };
 
 export type EmpleosListingSnapshotJson = {

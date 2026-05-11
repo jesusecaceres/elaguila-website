@@ -16,7 +16,7 @@ import {
 import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import { AdminPageHeader } from "../../../../_components/AdminPageHeader";
 import { adminBtnSecondary, adminCardBase, adminCtaChipSecondary } from "../../../../_components/adminTheme";
-import { AutosAdminRowActions } from "./AutosAdminRowActions";
+import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
 
 export const dynamic = "force-dynamic";
@@ -222,7 +222,14 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                         ) : (
                           <span className="text-[#7A7164]">—</span>
                         )}
-                        <AutosAdminRowActions listingId={r.id} status={r.status} />
+                        <ClassifiedAdminRowActions
+                          variant="autos"
+                          rowId={r.id}
+                          publicLive={r.status === "active"}
+                          promoted={r.featured}
+                          verified={Boolean(r.leonix_verified)}
+                          canArchive={r.status !== "cancelled" && r.status !== "draft" && r.status !== "pending_payment"}
+                        />
                       </div>
                     </td>
                   </tr>

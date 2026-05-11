@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
 
-type AdminRestauranteAction =
+type ViajesStaffAction =
   | "suspend"
   | "unsuspend"
   | "promote_on"
@@ -14,7 +14,7 @@ type AdminRestauranteAction =
   | "verify_off"
   | "archive";
 
-function isAction(x: unknown): x is AdminRestauranteAction {
+function isAction(x: unknown): x is ViajesStaffAction {
   return (
     x === "suspend" ||
     x === "unsuspend" ||
@@ -26,10 +26,8 @@ function isAction(x: unknown): x is AdminRestauranteAction {
   );
 }
 
-/**
- * Admin-only mutations for `restaurantes_public_listings`.
- * Auth: HTTP-only `leonix_admin=1` cookie (same layer as workspace).
- */
+export const dynamic = "force-dynamic";
+
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const jar = await cookies();
   if (!requireAdminCookie(jar)) {
@@ -54,8 +52,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
 
   const supabase = getAdminSupabase();
   const { data: row, error: rErr } = await supabase
-    .from("restaurantes_public_listings")
-    .select("id, slug, status, promoted, leonix_verified")
+    .from("viajes_staged_listings")
+    .select("id, slug, lifecycle_status, is_public, admin_promoted, leonix_verified")
     .eq("id", id)
     .maybeSingle();
 
@@ -63,21 +61,30 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   }
 
+  const lifecycle = String((row as { lifecycle_status?: string }).lifecycle_status ?? "");
+  const isPublic = Boolean((row as { is_public?: boolean }).is_public);
   const now = new Date().toISOString();
   const patch: Record<string, unknown> = { updated_at: now };
 
   switch (action) {
     case "suspend":
-      patch.status = "suspended";
+      if (lifecycle !== "approved" || !isPublic) {
+        return NextResponse.json({ ok: false, error: "not_public_catalog" }, { status: 400 });
+      }
+      patch.is_public = false;
       break;
     case "unsuspend":
-      patch.status = "published";
+      if (lifecycle !== "approved" || isPublic) {
+        return NextResponse.json({ ok: false, error: "not_hidden_approved" }, { status: 400 });
+      }
+      patch.is_public = true;
+      patch.published_at = now;
       break;
     case "promote_on":
-      patch.promoted = true;
+      patch.admin_promoted = true;
       break;
     case "promote_off":
-      patch.promoted = false;
+      patch.admin_promoted = false;
       break;
     case "verify_on":
       patch.leonix_verified = true;
@@ -86,34 +93,33 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       patch.leonix_verified = false;
       break;
     case "archive":
-      patch.status = "archived";
+      patch.lifecycle_status = "unpublished";
+      patch.is_public = false;
       break;
     default:
       return NextResponse.json({ ok: false, error: "invalid_action" }, { status: 400 });
   }
 
-  const { error } = await supabase.from("restaurantes_public_listings").update(patch).eq("id", id);
+  const { error } = await supabase.from("viajes_staged_listings").update(patch).eq("id", id);
   if (error) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 
+  const slug = String((row as { slug?: string }).slug ?? "");
   void appendAdminAuditLog({
-    action: `restaurantes_admin_${action}`,
-    targetType: "restaurantes_public_listing",
+    action: `viajes_admin_${action}`,
+    targetType: "viajes_staged_listing",
     targetId: id,
-    meta: { slug: row.slug, patch },
+    meta: { slug, patch },
   });
 
-  const slug = String(row.slug);
-  revalidatePath("/clasificados/restaurantes/resultados");
-  revalidatePath("/clasificados/restaurantes");
-  revalidatePath("/admin/workspace/clasificados/restaurantes");
-  revalidatePath(`/clasificados/restaurantes/${slug}`);
+  revalidatePath("/clasificados/viajes");
+  revalidatePath("/clasificados/viajes/resultados");
+  revalidatePath("/admin/workspace/clasificados/travel");
+  revalidatePath("/admin/clasificados/viajes");
+  if (slug) {
+    revalidatePath(`/clasificados/viajes/oferta/${encodeURIComponent(slug)}`);
+  }
 
-  return NextResponse.json({
-    ok: true,
-    id,
-    slug,
-    ...patch,
-  });
+  return NextResponse.json({ ok: true, id, slug, ...patch });
 }

@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
 
-type AdminRestauranteAction =
+type ListingsStaffAction =
   | "suspend"
   | "unsuspend"
   | "promote_on"
@@ -14,7 +14,7 @@ type AdminRestauranteAction =
   | "verify_off"
   | "archive";
 
-function isAction(x: unknown): x is AdminRestauranteAction {
+function isAction(x: unknown): x is ListingsStaffAction {
   return (
     x === "suspend" ||
     x === "unsuspend" ||
@@ -26,9 +26,10 @@ function isAction(x: unknown): x is AdminRestauranteAction {
   );
 }
 
+export const dynamic = "force-dynamic";
+
 /**
- * Admin-only mutations for `restaurantes_public_listings`.
- * Auth: HTTP-only `leonix_admin=1` cookie (same layer as workspace).
+ * Staff mutations for `public.listings` (Rentas, En venta, Comunidad, Clases, …).
  */
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const jar = await cookies();
@@ -54,8 +55,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
 
   const supabase = getAdminSupabase();
   const { data: row, error: rErr } = await supabase
-    .from("restaurantes_public_listings")
-    .select("id, slug, status, promoted, leonix_verified")
+    .from("listings")
+    .select("id, category, leonix_ad_id")
     .eq("id", id)
     .maybeSingle();
 
@@ -63,21 +64,22 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   }
 
-  const now = new Date().toISOString();
-  const patch: Record<string, unknown> = { updated_at: now };
+  const patch: Record<string, unknown> = {};
 
   switch (action) {
     case "suspend":
-      patch.status = "suspended";
+      patch.is_published = false;
+      patch.status = "flagged";
       break;
     case "unsuspend":
-      patch.status = "published";
+      patch.is_published = true;
+      patch.status = "active";
       break;
     case "promote_on":
-      patch.promoted = true;
+      patch.admin_promoted = true;
       break;
     case "promote_off":
-      patch.promoted = false;
+      patch.admin_promoted = false;
       break;
     case "verify_on":
       patch.leonix_verified = true;
@@ -86,34 +88,47 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       patch.leonix_verified = false;
       break;
     case "archive":
-      patch.status = "archived";
+      patch.status = "removed";
+      patch.is_published = false;
       break;
     default:
       return NextResponse.json({ ok: false, error: "invalid_action" }, { status: 400 });
   }
 
-  const { error } = await supabase.from("restaurantes_public_listings").update(patch).eq("id", id);
+  const { error } = await supabase.from("listings").update(patch).eq("id", id);
   if (error) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 
   void appendAdminAuditLog({
-    action: `restaurantes_admin_${action}`,
-    targetType: "restaurantes_public_listing",
+    action: `listings_admin_${action}`,
+    targetType: "listings",
     targetId: id,
-    meta: { slug: row.slug, patch },
+    meta: { category: (row as { category?: string }).category, patch },
   });
 
-  const slug = String(row.slug);
-  revalidatePath("/clasificados/restaurantes/resultados");
-  revalidatePath("/clasificados/restaurantes");
-  revalidatePath("/admin/workspace/clasificados/restaurantes");
-  revalidatePath(`/clasificados/restaurantes/${slug}`);
+  revalidatePath("/admin/workspace/clasificados");
+  revalidatePath(`/clasificados/anuncio/${id}`);
+  const cat = String((row as { category?: string }).category ?? "").trim();
+  const catLower = cat.toLowerCase();
+  if (cat) {
+    revalidatePath(`/admin/workspace/clasificados/${encodeURIComponent(catLower)}`);
+  }
+  if (catLower === "rentas") {
+    revalidatePath("/clasificados/rentas");
+    revalidatePath("/clasificados/rentas/results");
+    revalidatePath(`/clasificados/rentas/anuncio/${id}`);
+    revalidatePath(`/clasificados/rentas/listing/${id}`);
+  } else if (catLower === "en-venta") {
+    revalidatePath("/clasificados/en-venta");
+    revalidatePath("/clasificados/en-venta/results");
+  } else if (catLower === "comunidad") {
+    revalidatePath("/clasificados/comunidad");
+  } else if (catLower === "clases") {
+    revalidatePath("/clasificados/clases");
+  } else if (catLower) {
+    revalidatePath(`/clasificados/${encodeURIComponent(catLower)}`);
+  }
 
-  return NextResponse.json({
-    ok: true,
-    id,
-    slug,
-    ...patch,
-  });
+  return NextResponse.json({ ok: true, id, ...patch });
 }

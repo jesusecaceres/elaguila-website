@@ -3,19 +3,35 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
-import { requireAdminCookie } from "@/app/lib/supabase/server";
-import {
-  getAutosClassifiedsListingById,
-  updateAutosListingStatus,
-} from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
+import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
+import { getAutosClassifiedsListingById } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import type { AutosClassifiedsListingStatus } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 
 export const dynamic = "force-dynamic";
 
-type StaffAutosAction = "remove_public" | "restore_active";
+type StaffAutosAction =
+  | "remove_public"
+  | "restore_active"
+  | "suspend"
+  | "unsuspend"
+  | "promote_on"
+  | "promote_off"
+  | "verify_on"
+  | "verify_off"
+  | "archive";
 
 function isAction(x: unknown): x is StaffAutosAction {
-  return x === "remove_public" || x === "restore_active";
+  return (
+    x === "remove_public" ||
+    x === "restore_active" ||
+    x === "suspend" ||
+    x === "unsuspend" ||
+    x === "promote_on" ||
+    x === "promote_off" ||
+    x === "verify_on" ||
+    x === "verify_off" ||
+    x === "archive"
+  );
 }
 
 /**
@@ -49,33 +65,53 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   }
 
-  let nextStatus: AutosClassifiedsListingStatus | null = null;
-  if (action === "remove_public") {
+  const supabase = getAdminSupabase();
+  const now = new Date().toISOString();
+  const patch: Record<string, unknown> = { updated_at: now };
+
+  if (action === "remove_public" || action === "suspend") {
     if (row.status !== "active") {
       return NextResponse.json({ ok: false, error: "not_active" }, { status: 400 });
     }
-    nextStatus = "removed";
-  } else {
-    if (row.status !== "removed") {
-      return NextResponse.json({ ok: false, error: "not_removed" }, { status: 400 });
+    patch.status = "removed" satisfies AutosClassifiedsListingStatus;
+  } else if (action === "restore_active" || action === "unsuspend") {
+    if (row.status !== "removed" && row.status !== "cancelled") {
+      return NextResponse.json({ ok: false, error: "not_removed_or_cancelled" }, { status: 400 });
     }
-    nextStatus = "active";
+    patch.status = "active" satisfies AutosClassifiedsListingStatus;
+    patch.published_at = row.published_at ?? now;
+  } else if (action === "promote_on") {
+    patch.featured = true;
+  } else if (action === "promote_off") {
+    patch.featured = false;
+  } else if (action === "verify_on") {
+    patch.leonix_verified = true;
+  } else if (action === "verify_off") {
+    patch.leonix_verified = false;
+  } else if (action === "archive") {
+    if (row.status === "draft" || row.status === "pending_payment") {
+      return NextResponse.json({ ok: false, error: "cannot_archive_pre_publish" }, { status: 400 });
+    }
+    patch.status = "cancelled" satisfies AutosClassifiedsListingStatus;
+  } else {
+    return NextResponse.json({ ok: false, error: "invalid_action" }, { status: 400 });
   }
 
-  const ok = await updateAutosListingStatus(id, nextStatus, nextStatus === "active" ? { published_at: row.published_at ?? new Date().toISOString() } : undefined);
-  if (!ok) {
-    return NextResponse.json({ ok: false, error: "update_failed" }, { status: 500 });
+  const { error } = await supabase.from("autos_classifieds_listings").update(patch).eq("id", id);
+  if (error) {
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 
   void appendAdminAuditLog({
     action: `autos_admin_${action}`,
     targetType: "autos_classifieds_listing",
     targetId: id,
-    meta: { from: row.status, to: nextStatus },
+    meta: { from: row.status, patch },
   });
 
   revalidatePath("/clasificados/autos");
+  revalidatePath(`/clasificados/autos/vehiculo/${id}`);
   revalidatePath("/admin/workspace/clasificados/autos");
 
-  return NextResponse.json({ ok: true, id, status: nextStatus });
+  return NextResponse.json({ ok: true, id, ...patch });
 }

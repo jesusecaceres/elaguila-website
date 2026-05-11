@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ClasificadosCategoryRegistryEntry } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
 import { getCategorySchema } from "@/app/clasificados/config/categorySchema";
 import { adminCategoryWorkspaceQueueHref } from "@/app/admin/_lib/adminCategoryWorkspaceQueueHref";
+import { getClassifiedsOpsContract } from "@/app/admin/_lib/classifiedsOpsContract";
 import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
 import { adminMessages } from "@/app/admin/_lib/adminStrings";
 import { adminCardBase } from "../../../_components/adminTheme";
@@ -113,41 +114,75 @@ export function ClasificadosCategoryHub({
                 </dl>
 
                 <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                  {entry.slug === "restaurantes" ? (
-                    <Link
-                      href="/admin/workspace/clasificados/restaurantes"
-                      className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-[#C9B46A]/55 bg-[#FFF7ED] px-4 py-2.5 text-center text-sm font-bold text-[#92400E] hover:bg-[#FFEDD5] sm:min-h-0"
-                    >
-                      {m("hub.restDbLink")}
-                    </Link>
-                  ) : null}
-                  <Link
-                    href={
-                      isEnVenta
-                        ? "/admin/workspace/clasificados/category/en-venta"
-                        : `/admin/workspace/clasificados/category/editor/${encodeURIComponent(entry.slug)}`
+                  {(() => {
+                    const ops = getClassifiedsOpsContract(entry.slug);
+                    if (ops) {
+                      return (
+                        <>
+                          <Link
+                            href={ops.publicListingsAdminPath}
+                            className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-[#C9B46A]/55 bg-[#FFF7ED] px-4 py-2.5 text-center text-sm font-bold text-[#92400E] hover:bg-[#FFEDD5] sm:min-h-0"
+                          >
+                            {m("hub.restDbLink")}
+                          </Link>
+                          <Link
+                            href={ops.fieldsNotesAdminPath}
+                            className={`inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl px-4 py-2.5 text-center text-sm font-bold text-[#1E1810] sm:min-h-0 ${
+                              isEnVenta
+                                ? "bg-emerald-700 text-white hover:bg-emerald-800"
+                                : "border border-[#7A9E6F]/45 bg-[#F4FAF2] hover:bg-[#E8F4E4]"
+                            }`}
+                          >
+                            {isEnVenta ? m("hub.editorEnVenta") : m("hub.editorOther")}
+                          </Link>
+                          <Link
+                            href={ops.operationalSpaceAdminPath}
+                            className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-4 py-2.5 text-center text-sm font-semibold text-[#1E1810] hover:bg-[#F4EFE4] sm:min-h-0"
+                          >
+                            {m("hub.opsSpace")}
+                          </Link>
+                          <Link
+                            href={ops.adQueueAdminPath}
+                            className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-dashed border-[#B8A990] bg-white/80 px-4 py-2.5 text-center text-xs font-semibold text-[#5C4E2E] hover:bg-[#FFFCF7] sm:min-h-0"
+                            title={m("hub.queueFilteredTitle")}
+                          >
+                            {m("hub.queueFiltered")}
+                          </Link>
+                        </>
+                      );
                     }
-                    className={`inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl px-4 py-2.5 text-center text-sm font-bold text-[#1E1810] sm:min-h-0 ${
-                      isEnVenta
-                        ? "bg-emerald-700 text-white hover:bg-emerald-800"
-                        : "border border-[#7A9E6F]/45 bg-[#F4FAF2] hover:bg-[#E8F4E4]"
-                    }`}
-                  >
-                    {isEnVenta ? m("hub.editorEnVenta") : m("hub.editorOther")}
-                  </Link>
-                  <Link
-                    href={`/admin/workspace/clasificados/category/${encodeURIComponent(entry.slug)}`}
-                    className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-4 py-2.5 text-center text-sm font-semibold text-[#1E1810] hover:bg-[#F4EFE4] sm:min-h-0"
-                  >
-                    {m("hub.opsSpace")}
-                  </Link>
-                  <Link
-                    href={adminCategoryWorkspaceQueueHref(entry.slug)}
-                    className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-dashed border-[#B8A990] bg-white/80 px-4 py-2.5 text-center text-xs font-semibold text-[#5C4E2E] hover:bg-[#FFFCF7] sm:min-h-0"
-                    title={m("hub.queueFilteredTitle")}
-                  >
-                    {m("hub.queueFiltered")}
-                  </Link>
+                    return (
+                      <>
+                        <Link
+                          href={
+                            isEnVenta
+                              ? "/admin/workspace/clasificados/category/en-venta"
+                              : `/admin/workspace/clasificados/category/editor/${encodeURIComponent(entry.slug)}`
+                          }
+                          className={`inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl px-4 py-2.5 text-center text-sm font-bold text-[#1E1810] sm:min-h-0 ${
+                            isEnVenta
+                              ? "bg-emerald-700 text-white hover:bg-emerald-800"
+                              : "border border-[#7A9E6F]/45 bg-[#F4FAF2] hover:bg-[#E8F4E4]"
+                          }`}
+                        >
+                          {isEnVenta ? m("hub.editorEnVenta") : m("hub.editorOther")}
+                        </Link>
+                        <Link
+                          href={`/admin/workspace/clasificados/category/${encodeURIComponent(entry.slug)}`}
+                          className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-4 py-2.5 text-center text-sm font-semibold text-[#1E1810] hover:bg-[#F4EFE4] sm:min-h-0"
+                        >
+                          {m("hub.opsSpace")}
+                        </Link>
+                        <Link
+                          href={adminCategoryWorkspaceQueueHref(entry.slug)}
+                          className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-dashed border-[#B8A990] bg-white/80 px-4 py-2.5 text-center text-xs font-semibold text-[#5C4E2E] hover:bg-[#FFFCF7] sm:min-h-0"
+                          title={m("hub.queueFilteredTitle")}
+                        >
+                          {m("hub.queueFiltered")}
+                        </Link>
+                      </>
+                    );
+                  })()}
                 </div>
               </article>
             </li>

@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { deleteMuxAssetsBestEffort } from "@/app/lib/mux/server";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
@@ -65,6 +67,51 @@ export async function deleteListingAction(listingId: string) {
   if (error) throw new Error(error.message);
   auditAdminWrite("listing_removed_by_admin", "listings", listingId, {});
   return { ok: true };
+}
+
+/** Staff edit: only columns that exist on `public.listings` (no invented fields). */
+export async function updateListingCoreFieldsStaffAdminAction(formData: FormData) {
+  await requireLeonixAdminPermission("can_manage_ads");
+  const listingId = String(formData.get("listing_id") ?? "").trim();
+  if (!listingId) throw new Error("missing_listing_id");
+
+  const title = String(formData.get("title") ?? "").trim();
+  const description = String(formData.get("description") ?? "");
+  const city = String(formData.get("city") ?? "").trim();
+  const category = String(formData.get("category") ?? "").trim();
+  const status = String(formData.get("status") ?? "").trim();
+  const priceRaw = String(formData.get("price") ?? "").trim();
+  const isFree = formData.get("is_free") === "on";
+  const isPublished = formData.get("is_published") === "on";
+
+  const patch: Record<string, unknown> = {
+    title: title.slice(0, 500) || "(sin título)",
+    description,
+    city: city.slice(0, 200),
+    category: category.slice(0, 120),
+    status: status.slice(0, 64) || "active",
+    is_free: isFree,
+    is_published: isPublished,
+  };
+
+  if (priceRaw === "" || priceRaw === "—") {
+    patch.price = null;
+  } else {
+    const n = Number(priceRaw);
+    patch.price = Number.isFinite(n) ? n : null;
+  }
+
+  const supabase = getAdminSupabase();
+  const { error } = await supabase.from("listings").update(patch).eq("id", listingId);
+  if (error) throw new Error(error.message);
+
+  auditAdminWrite("listing_staff_core_fields_updated", "listings", listingId, {
+    keys: Object.keys(patch),
+  });
+
+  revalidatePath("/admin/workspace/clasificados");
+  revalidatePath(`/admin/workspace/clasificados/listings/${listingId}/edit`);
+  revalidatePath(`/clasificados/anuncio/${listingId}`);
 }
 
 export async function setUserDisabledAction(userId: string, disabled: boolean) {

@@ -3,7 +3,7 @@ import { listRestaurantesPublicListingsAdminFromDb } from "@/app/clasificados/re
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { adminBtnSecondary, adminCardBase } from "@/app/admin/_components/adminTheme";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
-import { RestauranteAdminRowActions } from "./RestauranteAdminRowActions";
+import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 
 export const dynamic = "force-dynamic";
 
@@ -199,11 +199,13 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
                       </Link>
                     </td>
                     <td className="min-w-[200px] px-3 py-2 align-top">
-                      <RestauranteAdminRowActions
-                        listingId={r.id}
-                        status={r.status}
+                      <ClassifiedAdminRowActions
+                        variant="restaurante"
+                        rowId={r.id}
+                        publicLive={r.status === "published"}
                         promoted={r.promoted}
                         verified={r.leonix_verified}
+                        canArchive={r.status !== "archived"}
                       />
                     </td>
                   </tr>

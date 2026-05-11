@@ -33,6 +33,9 @@ export type ViajesStagedListingRow = {
   title: string;
   lifecycle_status: ViajesStagedLifecycleStatus;
   is_public: boolean;
+  /** Staff moderation columns (`20260508140000_classifieds_admin_ops_columns.sql`). */
+  leonix_verified?: boolean;
+  admin_promoted?: boolean;
   review_notes: string | null;
   moderation_reason: string | null;
   hero_image_url: string | null;

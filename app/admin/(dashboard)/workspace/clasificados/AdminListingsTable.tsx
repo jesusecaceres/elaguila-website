@@ -16,6 +16,7 @@ import { parseLeonixListingContract, parseLeonixMachineFacetRead } from "@/app/c
 import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { useAdminLang, useAdminT } from "@/app/admin/_components/AdminI18nProvider";
+import { ClassifiedAdminRowActions } from "./_components/ClassifiedAdminRowActions";
 
 type Row = {
   id: string;
@@ -33,7 +34,11 @@ type Row = {
   detail_pairs?: unknown;
   boost_expires?: unknown;
   is_published?: boolean | null;
+  leonix_verified?: boolean | null;
+  admin_promoted?: boolean | null;
 };
+
+export type AdminListingsTableRow = Row;
 
 function formatAdminDateTime(ms: number, locale: string): string {
   try {
@@ -149,6 +154,7 @@ export default function AdminListingsTable({
   detailPairsAvailable = true,
   boostExpiresAvailable = true,
   listingsCategorySlug,
+  staffQueueMode = false,
 }: {
   listings: Row[];
   /** When false, DB has no `listings.detail_pairs` — En Venta visibility column is degraded. */
@@ -157,6 +163,8 @@ export default function AdminListingsTable({
   boostExpiresAvailable?: boolean;
   /** Active `?category=` filter (registry slug), for empty-state copy. */
   listingsCategorySlug?: string;
+  /** Restaurante-style staff PATCH actions (Leonix ops). */
+  staffQueueMode?: boolean;
 }) {
   const router = useRouter();
   const t = useAdminT();
@@ -253,6 +261,12 @@ export default function AdminListingsTable({
               <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.city")}</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.price")}</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.status")}</th>
+              {staffQueueMode ? (
+                <>
+                  <th className="p-3 font-semibold text-[#5C4E2E]">Dest.</th>
+                  <th className="p-3 font-semibold text-[#5C4E2E]">Verif.</th>
+                </>
+              ) : null}
               <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.owner")}</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.date")}</th>
               <th
@@ -308,6 +322,12 @@ export default function AdminListingsTable({
                     {row.status ?? "active"}
                   </span>
                 </td>
+                {staffQueueMode ? (
+                  <>
+                    <td className="p-3">{row.admin_promoted ? t("autosQueue.yes") : t("autosQueue.no")}</td>
+                    <td className="p-3">{row.leonix_verified ? t("autosQueue.yes") : t("autosQueue.no")}</td>
+                  </>
+                ) : null}
                 <td className="p-3">
                   {row.owner_id ? (
                     <Link
@@ -377,39 +397,60 @@ export default function AdminListingsTable({
                         {t("listings.inspectorRentas")}
                       </Link>
                     ) : null}
-                    {row.status !== "removed" && row.is_published !== false ? (
-                      <button
-                        type="button"
-                        disabled={publishBusyId === row.id}
-                        onClick={() => void handleSetPublished(row.id, false)}
-                        className="min-h-[44px] text-left text-sm font-semibold text-amber-900 hover:underline disabled:opacity-50 sm:min-h-0"
-                        title={t("listings.hidePublicTitle")}
-                      >
-                        {publishBusyId === row.id ? "…" : t("listings.hidePublic")}
-                      </button>
-                    ) : null}
-                    {row.status !== "removed" && row.is_published === false ? (
-                      <button
-                        type="button"
-                        disabled={publishBusyId === row.id}
-                        onClick={() => void handleSetPublished(row.id, true)}
-                        className="min-h-[44px] text-left text-sm font-semibold text-emerald-900 hover:underline disabled:opacity-50 sm:min-h-0"
-                        title={t("listings.republishTitle")}
-                      >
-                        {publishBusyId === row.id ? "…" : t("listings.republish")}
-                      </button>
-                    ) : null}
-                    {row.status !== "removed" && (
-                      <button
-                        type="button"
-                        disabled={deletingId === row.id}
-                        onClick={() => handleDelete(row.id)}
-                        className="min-h-[44px] text-left text-sm font-semibold text-red-700 hover:underline disabled:opacity-50 sm:min-h-0"
-                        title={t("listings.deleteTitle")}
-                        aria-label={t("listings.deleteAria")}
-                      >
-                        {deletingId === row.id ? "…" : t("listings.deleteStaff")}
-                      </button>
+                    <Link
+                      href={`/admin/workspace/clasificados/listings/${encodeURIComponent(row.id)}/edit`}
+                      className="inline-flex min-h-[44px] items-center font-semibold text-[#1E1810] underline sm:min-h-0"
+                    >
+                      Editar
+                    </Link>
+                    {staffQueueMode ? (
+                      <ClassifiedAdminRowActions
+                        variant="listings"
+                        rowId={row.id}
+                        publicLive={
+                          row.is_published === true && (row.status ?? "active").toLowerCase() === "active"
+                        }
+                        promoted={Boolean(row.admin_promoted)}
+                        verified={Boolean(row.leonix_verified)}
+                        canArchive={(row.status ?? "").toLowerCase() !== "removed"}
+                      />
+                    ) : (
+                      <>
+                        {row.status !== "removed" && row.is_published !== false ? (
+                          <button
+                            type="button"
+                            disabled={publishBusyId === row.id}
+                            onClick={() => void handleSetPublished(row.id, false)}
+                            className="min-h-[44px] text-left text-sm font-semibold text-amber-900 hover:underline disabled:opacity-50 sm:min-h-0"
+                            title={t("listings.hidePublicTitle")}
+                          >
+                            {publishBusyId === row.id ? "…" : t("listings.hidePublic")}
+                          </button>
+                        ) : null}
+                        {row.status !== "removed" && row.is_published === false ? (
+                          <button
+                            type="button"
+                            disabled={publishBusyId === row.id}
+                            onClick={() => void handleSetPublished(row.id, true)}
+                            className="min-h-[44px] text-left text-sm font-semibold text-emerald-900 hover:underline disabled:opacity-50 sm:min-h-0"
+                            title={t("listings.republishTitle")}
+                          >
+                            {publishBusyId === row.id ? "…" : t("listings.republish")}
+                          </button>
+                        ) : null}
+                        {row.status !== "removed" && (
+                          <button
+                            type="button"
+                            disabled={deletingId === row.id}
+                            onClick={() => handleDelete(row.id)}
+                            className="min-h-[44px] text-left text-sm font-semibold text-red-700 hover:underline disabled:opacity-50 sm:min-h-0"
+                            title={t("listings.deleteTitle")}
+                            aria-label={t("listings.deleteAria")}
+                          >
+                            {deletingId === row.id ? "…" : t("listings.deleteStaff")}
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </td>

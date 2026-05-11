@@ -12,6 +12,7 @@ import {
   setServiciosReviewModerationStatusAction,
   updateServiciosPublicListingStatusAction,
 } from "./actions";
+import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,7 @@ export type ServiciosPublicAdminRow = {
   owner_user_id?: string | null;
   moderation_notes?: string | null;
   profile_json?: { opsMeta?: { leonixVerifiedInterest?: boolean } } | null;
+  promoted?: boolean;
 };
 
 type ServiciosLeadAdminRow = {
@@ -115,6 +117,7 @@ export default async function AdminServiciosWorkspacePage(props: {
     owner_user_id: r.owner_user_id,
     moderation_notes: (r.moderation_notes ?? null) as string | null,
     profile_json: r.profile_json as ServiciosPublicAdminRow["profile_json"],
+    promoted: Boolean((r as { promoted?: boolean }).promoted),
   }));
   const { unavailable, fullSchema } = queueRes;
   const devAdminRows = filterDevServiciosRows(devFileRowsAsAdmin(), queueFilters.q);
@@ -233,6 +236,7 @@ export default async function AdminServiciosWorkspacePage(props: {
                     <th className="p-3">Verif. Leonix</th>
                     <th className="p-3">Interés verif.</th>
                     <th className="p-3">Actualizado</th>
+                    <th className="p-3">Staff (Leonix)</th>
                     <th className="p-3" title="Vista pública. Estado y notas: moderación staff en esta fila (sin editor de perfil completo).">
                       &nbsp;
                     </th>
@@ -305,6 +309,16 @@ export default async function AdminServiciosWorkspacePage(props: {
                           : r.published_at
                             ? new Date(r.published_at).toLocaleString()
                             : "—"}
+                      </td>
+                      <td className="p-3 align-top">
+                        <ClassifiedAdminRowActions
+                          variant="servicios"
+                          rowId={r.id}
+                          publicLive={(r.listing_status ?? "") === "published"}
+                          promoted={Boolean(r.promoted)}
+                          verified={r.leonix_verified}
+                          canArchive={(r.listing_status ?? "") !== "rejected"}
+                        />
                       </td>
                       <td className="p-3">
                         <Link

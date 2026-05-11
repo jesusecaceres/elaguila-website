@@ -21,6 +21,17 @@ export const LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS =
 /** Neither column — minimal admin queue when both optional migrations are missing. */
 export const LISTINGS_ADMIN_SELECT_MINIMAL = `${LISTINGS_ADMIN_CORE}, is_published`;
 
+/** Staff moderation flags (`20260508140000_classifieds_admin_ops_columns.sql`). */
+const LISTINGS_OPS_COLS = ", leonix_verified, admin_promoted";
+
+export const LISTINGS_ADMIN_SELECT_WITH_DETAIL_PAIRS_OPS =
+  LISTINGS_ADMIN_SELECT_WITH_DETAIL_PAIRS + LISTINGS_OPS_COLS;
+export const LISTINGS_ADMIN_SELECT_WITH_DETAIL_NO_BOOST_OPS =
+  LISTINGS_ADMIN_SELECT_WITH_DETAIL_NO_BOOST + LISTINGS_OPS_COLS;
+export const LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS_OPS =
+  LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS + LISTINGS_OPS_COLS;
+export const LISTINGS_ADMIN_SELECT_MINIMAL_OPS = LISTINGS_ADMIN_SELECT_MINIMAL + LISTINGS_OPS_COLS;
+
 export type ListingsAdminFetchResult<T> = {
   data: T[] | null;
   error: { message: string; code?: string } | null;
@@ -35,6 +46,10 @@ const ADMIN_LISTING_SELECT_TIERS: Array<{
   detailPairsAvailable: boolean;
   boostExpiresAvailable: boolean;
 }> = [
+  { cols: LISTINGS_ADMIN_SELECT_WITH_DETAIL_PAIRS_OPS, detailPairsAvailable: true, boostExpiresAvailable: true },
+  { cols: LISTINGS_ADMIN_SELECT_WITH_DETAIL_NO_BOOST_OPS, detailPairsAvailable: true, boostExpiresAvailable: false },
+  { cols: LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS_OPS, detailPairsAvailable: false, boostExpiresAvailable: true },
+  { cols: LISTINGS_ADMIN_SELECT_MINIMAL_OPS, detailPairsAvailable: false, boostExpiresAvailable: false },
   { cols: LISTINGS_ADMIN_SELECT_WITH_DETAIL_PAIRS, detailPairsAvailable: true, boostExpiresAvailable: true },
   { cols: LISTINGS_ADMIN_SELECT_WITH_DETAIL_NO_BOOST, detailPairsAvailable: true, boostExpiresAvailable: false },
   { cols: LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS, detailPairsAvailable: false, boostExpiresAvailable: true },

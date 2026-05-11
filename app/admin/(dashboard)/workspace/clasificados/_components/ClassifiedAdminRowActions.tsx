@@ -2,14 +2,53 @@
 
 import { useCallback, useState } from "react";
 
+export type ClassifiedStaffOpsVariant =
+  | "restaurante"
+  | "listings"
+  | "servicios"
+  | "empleos"
+  | "autos"
+  | "viajes";
+
 type Props = {
-  listingId: string;
-  status: string;
+  variant: ClassifiedStaffOpsVariant;
+  rowId: string;
+  /** True when the listing is publicly live (published / active / approved+public, etc.). */
+  publicLive: boolean;
   promoted: boolean;
   verified: boolean;
+  /** When false, hide archive (e.g. row already archived). */
+  canArchive?: boolean;
 };
 
-export function RestauranteAdminRowActions({ listingId, status, promoted, verified }: Props) {
+function patchUrl(variant: ClassifiedStaffOpsVariant, rowId: string): string {
+  const id = encodeURIComponent(rowId);
+  switch (variant) {
+    case "restaurante":
+      return `/api/admin/restaurantes/listings/${id}`;
+    case "listings":
+      return `/api/admin/clasificados/listings/${id}`;
+    case "servicios":
+      return `/api/admin/servicios/listings/${id}`;
+    case "empleos":
+      return `/api/admin/empleos/listings/${id}`;
+    case "autos":
+      return `/api/admin/autos/listings/${id}`;
+    case "viajes":
+      return `/api/admin/viajes/listings/${id}`;
+    default:
+      return `/api/admin/clasificados/listings/${id}`;
+  }
+}
+
+export function ClassifiedAdminRowActions({
+  variant,
+  rowId,
+  publicLive,
+  promoted,
+  verified,
+  canArchive = true,
+}: Props) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -18,7 +57,7 @@ export function RestauranteAdminRowActions({ listingId, status, promoted, verifi
       setBusy(true);
       setMsg(null);
       try {
-        const res = await fetch(`/api/admin/restaurantes/listings/${encodeURIComponent(listingId)}`, {
+        const res = await fetch(patchUrl(variant, rowId), {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           credentials: "same-origin",
@@ -36,13 +75,20 @@ export function RestauranteAdminRowActions({ listingId, status, promoted, verifi
         setBusy(false);
       }
     },
-    [listingId],
+    [rowId, variant],
   );
+
+  const runArchive = useCallback(() => {
+    if (!canArchive) return;
+    const ok = window.confirm("¿Archivar este anuncio? Dejará de mostrarse al público.");
+    if (!ok) return;
+    void run("archive");
+  }, [canArchive, run]);
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-1.5">
-        {status === "published" ? (
+        {publicLive ? (
           <button
             type="button"
             disabled={busy}
@@ -58,7 +104,7 @@ export function RestauranteAdminRowActions({ listingId, status, promoted, verifi
             onClick={() => void run("unsuspend")}
             className="rounded-lg border border-emerald-300/90 bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-900 disabled:opacity-50"
           >
-            Republicar (activo)
+            Republicar
           </button>
         )}
         {promoted ? (
@@ -99,6 +145,16 @@ export function RestauranteAdminRowActions({ listingId, status, promoted, verifi
             Verificar Leonix
           </button>
         )}
+        {canArchive ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void runArchive()}
+            className="rounded-lg border border-stone-400/80 bg-stone-100 px-2 py-1 text-[10px] font-bold text-stone-900 disabled:opacity-50"
+          >
+            Archivar
+          </button>
+        ) : null}
       </div>
       {msg ? <p className="text-[10px] font-semibold text-red-700">{msg}</p> : null}
     </div>
