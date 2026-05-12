@@ -4,6 +4,11 @@ import { blueprintRowToLandingCard } from "@/app/clasificados/restaurantes/data/
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 import { mapRestaurantesPublicListingDbRowsToShellInventory } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import {
+  applyRestauranteLikeCountsToBlueprintRows,
+  restaurantesEngagementListingKey,
+} from "@/app/clasificados/restaurantes/lib/restaurantesListingEngagement";
+import { fetchRestaurantesNetLikeCountsByEngagementKeys } from "@/app/clasificados/restaurantes/lib/restaurantesListingEngagementServer";
+import {
   isSupabaseAdminConfigured,
   tryListRestaurantesPublicListingsFromDb,
 } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
@@ -61,7 +66,10 @@ export async function loadRestaurantesLandingInventoryForPage(): Promise<Restaur
     };
   }
 
-  const shellRows = mapRestaurantesPublicListingDbRowsToShellInventory(listed.rows);
+  const mapped = mapRestaurantesPublicListingDbRowsToShellInventory(listed.rows);
+  const keys = listed.rows.map(restaurantesEngagementListingKey);
+  const likeMap = await fetchRestaurantesNetLikeCountsByEngagementKeys(keys);
+  const shellRows = applyRestauranteLikeCountsToBlueprintRows(mapped, likeMap);
   const featured = selectLandingDestacadosCandidates(shellRows).map(blueprintRowToLandingCard);
   const recent = selectLandingRecientesCandidates(shellRows).map(blueprintRowToLandingCard);
   return {

@@ -94,6 +94,10 @@ interface RestaurantePreviewCardProps {
   data: RestaurantDetailShellData;
   className?: string;
   lang?: "es" | "en";
+  /** Results / landing published cards: clean hero, no star row, optional like badge. */
+  presentation?: "preview" | "public_discovery";
+  /** Net public likes (from `listing_analytics`); shown only when `presentation="public_discovery"` and value &gt; 0. */
+  likesCount?: number;
   /** Results grid: primary navigation to public detail. */
   publicDetailHref?: string;
   publicDetailLabel?: string;
@@ -107,10 +111,12 @@ interface RestaurantePreviewCardProps {
 const RESULT_PRIMARY_CTA =
   "flex min-h-[44px] w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#D4A574] to-[#b45309] text-xs font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(180,83,9,0.45)] transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 md:min-h-[48px] md:text-sm";
 
-export function RestaurantePreviewCard({ 
-  data, 
-  className = "", 
+export function RestaurantePreviewCard({
+  data,
+  className = "",
   lang = "es",
+  presentation = "preview",
+  likesCount,
   publicDetailHref,
   publicDetailLabel,
   discoveryRefineHref,
@@ -119,6 +125,11 @@ export function RestaurantePreviewCard({
   const heroImage = data.heroImageUrl?.trim() || "";
   const logoCandidate = (data.businessLogo ?? "").trim();
   const logoUrl = isRenderableLogoUrl(logoCandidate) ? logoCandidate : "";
+  const showLogoOnHero = presentation !== "public_discovery" && Boolean(heroImage && logoUrl);
+  const trustRating = data.trustRating;
+  const showTrustStars = presentation !== "public_discovery" && Boolean(trustRating);
+  const showLikeBadge =
+    presentation === "public_discovery" && typeof likesCount === "number" && likesCount > 0;
 
   const identityChips = useMemo(() => {
     const chips: string[] = [];
@@ -214,7 +225,7 @@ export function RestaurantePreviewCard({
                 </div>
               </div>
             )}
-            {heroImage && logoUrl ? (
+            {showLogoOnHero ? (
               <div className="pointer-events-none absolute right-3 top-12 z-[2] flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-white/40 bg-white/95 shadow-md ring-1 ring-black/5 md:h-14 md:w-14 md:top-14">
                 <Image
                   src={logoUrl}
@@ -258,14 +269,20 @@ export function RestaurantePreviewCard({
 
         <div className={CONTENT}>
           <div className="min-w-0 space-y-1.5 md:space-y-3">
-            {data.trustRating ? (
+            {showTrustStars && trustRating ? (
               <div className="flex items-center gap-2">
-                <StarRow rating={data.trustRating.average} />
-                <span className="text-xs font-semibold text-[#8B7E70]">({data.trustRating.count})</span>
+                <StarRow rating={trustRating.average} />
+                <span className="text-xs font-semibold text-[#8B7E70]">({trustRating.count})</span>
               </div>
             ) : null}
 
             <h2 className={TITLE}>{data.businessName}</h2>
+
+            {showLikeBadge ? (
+              <p className="text-sm font-semibold text-[#8B5E34]" aria-label={lang === "en" ? "Likes" : "Me gusta"}>
+                ❤️ {likesCount} {lang === "en" ? "likes" : "me gusta"}
+              </p>
+            ) : null}
 
             {identityChips.length ? (
               <>

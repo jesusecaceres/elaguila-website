@@ -90,6 +90,8 @@ export function RestaurantePublishedListingCard({
       <RestaurantePreviewCard
         data={shell}
         lang={lang}
+        presentation="public_discovery"
+        likesCount={row.likesCount}
         publicDetailHref={primaryHref || undefined}
         publicDetailLabel={cta}
         discoveryRefineHref={slug ? narrowHref : undefined}
