@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FaBookmark } from "react-icons/fa";
 import { FiBookmark } from "react-icons/fi";
 import { trackListingSave } from "@/app/lib/clasificadosAnalytics";
-import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { createSupabaseBrowserClient, getBrowserAuthUserForEngagement } from "@/app/lib/supabase/browser";
 
 type Props = {
   listingId: string | null | undefined;
@@ -26,7 +26,6 @@ const LABELS = {
     saving: "Guardando...",
     preview: "Vista previa",
     savedDashboard: "Guardado en tu dashboard",
-    saveError: "No se pudo guardar. Intenta iniciar sesión.",
   },
   en: {
     save: "Save",
@@ -34,9 +33,16 @@ const LABELS = {
     saving: "Saving...",
     preview: "Preview",
     savedDashboard: "Saved to your dashboard",
-    saveError: "Could not save. Try signing in.",
   },
 } as const;
+
+function engagementNeedAuthMsg(lang: "es" | "en") {
+  return lang === "en" ? "Sign in to save this listing." : "Inicia sesión para guardar este anuncio.";
+}
+
+function engagementWriteFailedMsg(lang: "es" | "en") {
+  return lang === "en" ? "Could not save. Please try again." : "No se pudo guardar. Inténtalo de nuevo.";
+}
 
 export function LeonixSaveButton({
   listingId,
@@ -92,9 +98,7 @@ export function LeonixSaveButton({
     let cancelled = false;
     (async () => {
       const sb = createSupabaseBrowserClient();
-      const {
-        data: { user },
-      } = await sb.auth.getUser();
+      const user = await getBrowserAuthUserForEngagement();
       if (cancelled) return;
       if (userToggledRef.current) {
         if (!cancelled) setHydrated(true);
@@ -126,12 +130,13 @@ export function LeonixSaveButton({
     const nextState = !prev;
 
     const sb = createSupabaseBrowserClient();
-    const {
-      data: { user },
-    } = await sb.auth.getUser();
+    const user = await getBrowserAuthUserForEngagement();
     if (!user) {
+      setEngageErr(engagementNeedAuthMsg(lang));
       const here = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search || ""}` : "/clasificados";
-      window.location.href = `/login?redirect=${encodeURIComponent(here)}`;
+      window.setTimeout(() => {
+        window.location.href = `/login?redirect=${encodeURIComponent(here)}`;
+      }, 1200);
       return;
     }
 
@@ -150,7 +155,7 @@ export function LeonixSaveButton({
         if (error) {
           setIsSaved(prev);
           userToggledRef.current = false;
-          setEngageErr(lang === "en" ? LABELS.en.saveError : LABELS.es.saveError);
+          setEngageErr(engagementWriteFailedMsg(lang));
           return;
         }
         setPostSaveDashboardHint(true);
@@ -160,7 +165,7 @@ export function LeonixSaveButton({
         if (error) {
           setIsSaved(prev);
           userToggledRef.current = false;
-          setEngageErr(lang === "en" ? LABELS.en.saveError : LABELS.es.saveError);
+          setEngageErr(engagementWriteFailedMsg(lang));
           return;
         }
       }

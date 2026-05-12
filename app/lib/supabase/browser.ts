@@ -1,5 +1,5 @@
 // lib/supabase/browser.ts
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 
 /** Single browser client to avoid multiple GoTrueClient instances (same storage key). */
 let browserSingleton: SupabaseClient | null = null;
@@ -50,4 +50,23 @@ export function createSupabaseBrowserClient(): SupabaseClient {
       detectSessionInUrl: false,
     },
   });
+}
+
+/**
+ * Resolved auth user for client engagement (likes/saves).
+ * Prefer `getSession()` (local session, same source the shell uses immediately); then
+ * `getUser()` with timeout like {@link ServiciosTopBar} so we do not treat slow validation as logged-out.
+ */
+export async function getBrowserAuthUserForEngagement(): Promise<User | null> {
+  if (typeof window === "undefined") return null;
+  const sb = createSupabaseBrowserClient();
+  const { data: sessionData } = await sb.auth.getSession();
+  const fromSession = sessionData.session?.user ?? null;
+  if (fromSession) return fromSession;
+  try {
+    const { data } = await withAuthTimeout(sb.auth.getUser(), AUTH_CHECK_TIMEOUT_MS);
+    return data.user ?? null;
+  } catch {
+    return null;
+  }
 }

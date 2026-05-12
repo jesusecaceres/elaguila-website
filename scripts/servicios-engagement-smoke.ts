@@ -53,7 +53,14 @@ function main() {
   assert.ok(ownerKeysSrc.includes("leonix_ad_id"));
   assert.ok(ownerKeysSrc.includes('"id, slug, leonix_ad_id"'), "dashboard key collection selects Servicios ids + leonix_ad_id");
 
+  const browserSrc = readFileSync(join(__dirname, "../app/lib/supabase/browser.ts"), "utf8");
+  assert.ok(browserSrc.includes("getBrowserAuthUserForEngagement"), "browser: shared engagement auth helper");
+  assert.ok(browserSrc.includes("getSession"), "browser: session-first auth for engagement");
+
   const likeBtn = readFileSync(join(__dirname, "../app/components/clasificados/analytics/LeonixLikeButton.tsx"), "utf8");
+  assert.ok(likeBtn.includes("getBrowserAuthUserForEngagement"), "like: uses shared engagement auth");
+  assert.ok(!likeBtn.includes("Intenta iniciar sesión"), "like: no misleading sign-in copy on DB failure");
+  assert.ok(likeBtn.includes("engagementWriteFailedMsg"), "like: write-failure vs auth messaging split");
   assert.ok(likeBtn.includes("userToggledRef"), "like: guard hydration overwrite after toggle");
   assert.ok(likeBtn.includes("setIsLiked(nextState)"), "like: optimistic UI");
   assert.ok(!likeBtn.includes("setIsLiked(initialLiked)"), "like: no initialLiked sync effect (Strict Mode reset bug)");
@@ -61,6 +68,9 @@ function main() {
   assert.ok(likeBtn.includes("data-leonix-like-error"), "like: error marker for QA");
 
   const saveBtn = readFileSync(join(__dirname, "../app/components/clasificados/analytics/LeonixSaveButton.tsx"), "utf8");
+  assert.ok(saveBtn.includes("getBrowserAuthUserForEngagement"), "save: uses shared engagement auth");
+  assert.ok(saveBtn.includes("engagementNeedAuthMsg"), "save: explicit need-auth copy before login redirect");
+  assert.ok(saveBtn.includes("engagementWriteFailedMsg"), "save: DB failure copy distinct from auth");
   assert.ok(!saveBtn.includes("setIsSaved(initialSaved)"), "save: do not reset from initialSaved effect");
   assert.ok(saveBtn.includes("data-leonix-save-error"), "save: error marker for QA");
   assert.ok(saveBtn.includes("savedDashboard"), "save: dashboard confirmation copy");

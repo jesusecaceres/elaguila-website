@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FaHeart } from "react-icons/fa";
 import { FiHeart } from "react-icons/fi";
 import { trackListingLike } from "@/app/lib/clasificadosAnalytics";
-import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { createSupabaseBrowserClient, getBrowserAuthUserForEngagement } from "@/app/lib/supabase/browser";
 
 type Props = {
   listingId: string | null | undefined;
@@ -28,16 +28,18 @@ const LABELS = {
     liked: "Te gusta",
     liking: "...",
     preview: "Vista previa",
-    likeError: "No se pudo guardar tu me gusta. Intenta iniciar sesión.",
   },
   en: {
     like: "Like",
     liked: "Liked",
     liking: "...",
     preview: "Preview",
-    likeError: "Could not save your like. Try signing in.",
   },
 } as const;
+
+function engagementWriteFailedMsg(lang: "es" | "en") {
+  return lang === "en" ? "Could not save. Please try again." : "No se pudo guardar. Inténtalo de nuevo.";
+}
 
 function sessionLikeKey(listingId: string) {
   return `lx_like_session_v1:${listingId}`;
@@ -94,9 +96,7 @@ export function LeonixLikeButton({
     let cancelled = false;
     (async () => {
       const sb = createSupabaseBrowserClient();
-      const {
-        data: { user },
-      } = await sb.auth.getUser();
+      const user = await getBrowserAuthUserForEngagement();
       if (cancelled) return;
       if (userToggledRef.current) {
         if (!cancelled) setHydrated(true);
@@ -143,9 +143,7 @@ export function LeonixLikeButton({
 
     try {
       const sb = createSupabaseBrowserClient();
-      const {
-        data: { user },
-      } = await sb.auth.getUser();
+      const user = await getBrowserAuthUserForEngagement();
 
       if (user) {
         if (nextState) {
@@ -155,7 +153,7 @@ export function LeonixLikeButton({
           if (error) {
             setIsLiked(prev);
             userToggledRef.current = false;
-            setEngageErr(lang === "en" ? LABELS.en.likeError : LABELS.es.likeError);
+            setEngageErr(engagementWriteFailedMsg(lang));
             return;
           }
         } else {
@@ -163,7 +161,7 @@ export function LeonixLikeButton({
           if (error) {
             setIsLiked(prev);
             userToggledRef.current = false;
-            setEngageErr(lang === "en" ? LABELS.en.likeError : LABELS.es.likeError);
+            setEngageErr(engagementWriteFailedMsg(lang));
             return;
           }
         }
