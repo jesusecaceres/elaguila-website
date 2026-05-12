@@ -93,6 +93,7 @@ export function buildServiciosPublicRowForPersistence(args: {
     business_name: args.businessName,
     city: args.city,
     published_at: now,
+    updated_at: now,
     profile_json: args.profileJson,
     leonix_verified: false,
     internal_group: args.internalGroup,

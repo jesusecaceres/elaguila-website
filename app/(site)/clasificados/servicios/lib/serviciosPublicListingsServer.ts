@@ -3,7 +3,6 @@ import "server-only";
 import {
   adminQueueExtractServiciosSlugFromUrl,
   adminQueueIsUuid,
-  adminQueueNormalizeLeonixAdId,
 } from "@/app/admin/_lib/adminAdSearch";
 import { fetchProfileIdsMatchingAdminQueueSearch } from "@/app/lib/supabase/adminQueueProfileSearch";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
@@ -14,21 +13,14 @@ import {
   listServiciosDevPublishRows,
 } from "./serviciosDevPublishPersistence";
 import { getServiciosReviewAggregatesForSlugs } from "./serviciosOpsTablesServer";
+import { compareServiciosPublicDiscoveryNewestFirst, SERVICIOS_PUBLIC_LISTING_SELECT } from "./serviciosPublicListingSort";
 import {
   SERVICIOS_LISTING_STATUS_PUBLISHED,
 } from "./serviciosListingLifecycle";
 
-/** Preferred select — includes `leonix_ad_id` when the column exists. */
-const LISTING_SELECT =
-  "slug, business_name, city, published_at, profile_json, leonix_verified, internal_group, listing_status, owner_user_id, leonix_ad_id, republished_at, republish_count, republish_override";
-
-/** Fallback when older DBs have not yet applied `leonix_ad_id` (PostgREST would otherwise fail the whole read). */
-const LISTING_SELECT_FALLBACK =
-  "slug, business_name, city, published_at, profile_json, leonix_verified, internal_group, listing_status, owner_user_id, republished_at, republish_count, republish_override";
-
-function isPostgrestMissingColumnOrSchemaError(error: { message?: string } | null | undefined): boolean {
-  return Boolean(error?.message && /column|does not exist|schema cache/i.test(error.message));
-}
+/** Admin workspace `select()` — production-safe columns only (no `leonix_ad_id` / republish extras). */
+const SERVICIOS_ADMIN_QUEUE_SELECT =
+  "id, slug, business_name, city, published_at, updated_at, profile_json, leonix_verified, listing_status, internal_group, owner_user_id, moderation_notes";
 
 function normalizeServiciosListingStatus(raw: unknown): string {
   if (typeof raw !== "string" || !raw.trim()) return SERVICIOS_LISTING_STATUS_PUBLISHED;
@@ -37,11 +29,17 @@ function normalizeServiciosListingStatus(raw: unknown): string {
 
 function mapDbRowToServiciosPublicListingRow(r: ServiciosPublicListingRow): ServiciosPublicListingRow {
   const listing_status = normalizeServiciosListingStatus(r.listing_status);
+  const published_at =
+    typeof r.published_at === "string" && r.published_at.trim() ? r.published_at : new Date(0).toISOString();
+  const updated_at =
+    typeof r.updated_at === "string" && r.updated_at.trim() ? r.updated_at.trim() : published_at;
   return {
     ...r,
+    published_at,
+    updated_at,
     listing_status,
     owner_user_id: r.owner_user_id ?? null,
-    leonix_ad_id: r.leonix_ad_id ?? null,
+    leonix_ad_id: null,
   };
 }
 
@@ -50,6 +48,10 @@ export type ServiciosPublicListingRow = {
   business_name: string;
   city: string;
   published_at: string;
+  /** Present on `servicios_public_listings` baseline; used for discovery ordering with `published_at`. */
+  updated_at?: string;
+  /** Optional when DB adds republish migrations — not selected in minimal public read. */
+  republished_at?: string | null;
   profile_json: ServiciosBusinessProfile;
   leonix_verified: boolean;
   /** Matches `BusinessTypePreset.internalGroup` — for future filters */
@@ -58,6 +60,7 @@ export type ServiciosPublicListingRow = {
   listing_status: string;
   /** Auth user id of provider (nullable legacy) */
   owner_user_id?: string | null;
+  /** Optional directory ad id — not selected in minimal schema; engagement falls back to slug. */
   leonix_ad_id?: string | null;
   /** Approved DB reviews aggregate (optional; discovery + ranking) */
   review_rating_avg?: number | null;
@@ -73,28 +76,19 @@ export async function listServiciosPublicListingsFromDb(limit = 48): Promise<Ser
   if (!isSupabaseAdminConfigured()) return [];
   try {
     const supabase = getAdminSupabase();
-    const first = await supabase
+    /** Fetch enough rows to sort by discovery timestamp in-process (avoids `republish_sort_at` / missing columns). */
+    const fetchCap = Math.min(800, Math.max(limit * 4, 120));
+    const { data, error } = await supabase
       .from("servicios_public_listings")
-      .select(LISTING_SELECT)
+      .select(SERVICIOS_PUBLIC_LISTING_SELECT)
       .ilike("listing_status", SERVICIOS_LISTING_STATUS_PUBLISHED)
-      .order("republish_sort_at", { ascending: false, nullsFirst: false })
-      .limit(limit);
-    let data = first.data;
-    let error = first.error;
-    if (error && isPostgrestMissingColumnOrSchemaError(error)) {
-      const second = await supabase
-        .from("servicios_public_listings")
-        .select(LISTING_SELECT_FALLBACK)
-        .ilike("listing_status", SERVICIOS_LISTING_STATUS_PUBLISHED)
-        .order("republish_sort_at", { ascending: false, nullsFirst: false })
-        .limit(limit);
-      data = second.data as typeof first.data;
-      error = second.error;
-    }
+      .limit(fetchCap);
     if (error || !data) return [];
-    return data
-      .map((r) => mapDbRowToServiciosPublicListingRow(r as ServiciosPublicListingRow))
-      .filter((r) => r.listing_status === SERVICIOS_LISTING_STATUS_PUBLISHED);
+    return (data as ServiciosPublicListingRow[])
+      .map((r) => mapDbRowToServiciosPublicListingRow(r))
+      .filter((r) => r.listing_status === SERVICIOS_LISTING_STATUS_PUBLISHED)
+      .sort(compareServiciosPublicDiscoveryNewestFirst)
+      .slice(0, limit);
   } catch {
     return [];
   }
@@ -109,16 +103,11 @@ export async function getServiciosPublicListingBySlugFromDb(
   try {
     const supabase = getAdminSupabase();
     /** Fetch by slug only; apply lifecycle filters in code (avoids PostgREST `.in()` edge cases on some projects). */
-    let { data, error } = await supabase.from("servicios_public_listings").select(LISTING_SELECT).eq("slug", slug).maybeSingle();
-    if (error && isPostgrestMissingColumnOrSchemaError(error)) {
-      const second = await supabase
-        .from("servicios_public_listings")
-        .select(LISTING_SELECT_FALLBACK)
-        .eq("slug", slug)
-        .maybeSingle();
-      data = second.data as typeof data;
-      error = second.error;
-    }
+    const { data, error } = await supabase
+      .from("servicios_public_listings")
+      .select(SERVICIOS_PUBLIC_LISTING_SELECT)
+      .eq("slug", slug)
+      .maybeSingle();
     if (error || !data) return null;
     const row = mapDbRowToServiciosPublicListingRow(data as ServiciosPublicListingRow);
     const listingStatus = row.listing_status;
@@ -137,26 +126,14 @@ export async function listServiciosPublicListingsForOwner(ownerUserId: string, l
   if (!isSupabaseAdminConfigured()) return [];
   try {
     const supabase = getAdminSupabase();
-    const first = await supabase
+    const { data, error } = await supabase
       .from("servicios_public_listings")
-      .select(LISTING_SELECT)
+      .select(SERVICIOS_PUBLIC_LISTING_SELECT)
       .eq("owner_user_id", ownerUserId)
       .order("updated_at", { ascending: false })
       .limit(limit);
-    let data = first.data;
-    let error = first.error;
-    if (error && isPostgrestMissingColumnOrSchemaError(error)) {
-      const second = await supabase
-        .from("servicios_public_listings")
-        .select(LISTING_SELECT_FALLBACK)
-        .eq("owner_user_id", ownerUserId)
-        .order("updated_at", { ascending: false })
-        .limit(limit);
-      data = second.data as typeof first.data;
-      error = second.error;
-    }
     if (error || !data) return [];
-    return data.map((r) => mapDbRowToServiciosPublicListingRow(r as ServiciosPublicListingRow));
+    return (data as ServiciosPublicListingRow[]).map((r) => mapDbRowToServiciosPublicListingRow(r));
   } catch {
     return [];
   }
@@ -182,11 +159,7 @@ export async function listServiciosPublicListingsForDiscovery(limit = 48): Promi
   for (const r of dev) {
     if (!dbSlugs.has(r.slug)) merged.push(r);
   }
-  merged.sort((a, b) => {
-    if (a.published_at < b.published_at) return 1;
-    if (a.published_at > b.published_at) return -1;
-    return a.slug.localeCompare(b.slug);
-  });
+  merged.sort(compareServiciosPublicDiscoveryNewestFirst);
   const slice = merged.slice(0, limit);
   const agg = await getServiciosReviewAggregatesForSlugs(slice.map((r) => r.slug));
   return slice.map((r) => {
@@ -201,9 +174,6 @@ export async function getServiciosPublicListingBySlugForDiscovery(slug: string):
   if (fromDb) return fromDb;
   return getServiciosDevPublishRowBySlug(slug);
 }
-
-const SERVICIOS_ADMIN_QUEUE_SELECT =
-  "id, slug, business_name, city, published_at, updated_at, leonix_verified, listing_status, internal_group, owner_user_id, moderation_notes, profile_json, leonix_ad_id, promoted, republished_at, republish_count, republish_override";
 
 export type ServiciosPublicListingAdminDbRow = {
   id: string;
@@ -262,6 +232,7 @@ export async function listServiciosPublicListingsAdminQueueFromDb(
   const id = opts.id?.trim();
   const owner = opts.owner_user_id?.trim();
   const leonixParam = opts.leonix_ad_id?.trim();
+  void leonixParam;
   const qRaw = opts.q?.trim() ?? "";
   const supabase = getAdminSupabase();
   const qb = () => supabase.from("servicios_public_listings").select(SERVICIOS_ADMIN_QUEUE_SELECT);
@@ -277,30 +248,8 @@ export async function listServiciosPublicListingsAdminQueueFromDb(
         if (/column|does not exist|schema cache/i.test(error.message)) return { rows: [], fullSchema: false, unavailable: true };
         return { rows: [], fullSchema: true, unavailable: true };
       }
-      let rows = (data ?? []) as ServiciosPublicListingAdminDbRow[];
-      if (leonixParam) {
-        const lx = adminQueueNormalizeLeonixAdId(leonixParam) ?? leonixParam.toUpperCase();
-        const lxRes = await supabase
-          .from("servicios_public_listings")
-          .select(SERVICIOS_ADMIN_QUEUE_SELECT)
-          .eq("leonix_ad_id", lx)
-          .limit(limit);
-        if (!lxRes.error && lxRes.data?.length) {
-          rows = mergeServiciosAdminRows([...rows, ...(lxRes.data as ServiciosPublicListingAdminDbRow[])], limit);
-        }
-      }
+      const rows = (data ?? []) as ServiciosPublicListingAdminDbRow[];
       return { rows, fullSchema: true, unavailable: false };
-    }
-
-    if (leonixParam) {
-      const lx = adminQueueNormalizeLeonixAdId(leonixParam) ?? leonixParam.toUpperCase();
-      const { data, error } = await supabase
-        .from("servicios_public_listings")
-        .select(SERVICIOS_ADMIN_QUEUE_SELECT)
-        .eq("leonix_ad_id", lx)
-        .order("updated_at", { ascending: false })
-        .limit(limit);
-      if (!error && data?.length) return { rows: data as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
     }
 
     if (qRaw) {
@@ -309,12 +258,6 @@ export async function listServiciosPublicListingsAdminQueueFromDb(
 
       if (adminQueueIsUuid(q)) {
         const { data, error } = await qb().or(`id.eq.${q},owner_user_id.eq.${q}`).limit(50);
-        if (!error && data?.length) return { rows: data as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
-      }
-
-      const normLx = adminQueueNormalizeLeonixAdId(q);
-      if (normLx) {
-        const { data, error } = await qb().eq("leonix_ad_id", normLx).limit(30);
         if (!error && data?.length) return { rows: data as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
       }
 
@@ -357,7 +300,7 @@ export async function listServiciosPublicListingsAdminQueueFromDb(
         const leg = await supabase
           .from("servicios_public_listings")
           .select("id, slug, business_name, city, published_at, leonix_verified")
-          .order("republish_sort_at", { ascending: false, nullsFirst: false })
+          .order("published_at", { ascending: false })
           .limit(limit);
         if (leg.error) return { rows: [], fullSchema: false, unavailable: true };
         return {

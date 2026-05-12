@@ -1,6 +1,7 @@
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import type { ServiciosBusinessProfile, ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ServiciosPublicListingRow } from "./serviciosPublicListingsServer";
+import { serviciosPublicListingDiscoverySortMs } from "./serviciosPublicListingSort";
 import { serviciosVerifiedRankingBias } from "./serviciosLeonixVerificationModel";
 import { inferServiciosSellerPresentation } from "./serviciosSellerKind";
 
@@ -327,8 +328,10 @@ function compareVerifiedThenPublishedThenSlug(
 ): number {
   const vb = serviciosVerifiedRankingBias(b) - serviciosVerifiedRankingBias(a);
   if (vb !== 0) return vb;
-  if (a.published_at < b.published_at) return 1;
-  if (a.published_at > b.published_at) return -1;
+  const ta = serviciosPublicListingDiscoverySortMs(a);
+  const tb = serviciosPublicListingDiscoverySortMs(b);
+  if (ta < tb) return 1;
+  if (ta > tb) return -1;
   return tieSlug(a, b);
 }
 
@@ -360,8 +363,10 @@ export function sortServiciosListingRows(
       if (ra == null && rb != null) return 1;
       const vb = serviciosVerifiedRankingBias(b) - serviciosVerifiedRankingBias(a);
       if (vb !== 0) return vb;
-      if (a.published_at < b.published_at) return 1;
-      if (a.published_at > b.published_at) return -1;
+      const ta = serviciosPublicListingDiscoverySortMs(a);
+      const tb = serviciosPublicListingDiscoverySortMs(b);
+      if (ta < tb) return 1;
+      if (ta > tb) return -1;
       return tieSlug(a, b);
     });
     return copy;

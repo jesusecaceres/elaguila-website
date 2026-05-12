@@ -1,4 +1,5 @@
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
+import { compareServiciosPublicDiscoveryNewestFirst } from "./serviciosPublicListingSort";
 import { isServiciosListingPromoted, sortServiciosListingRows } from "./serviciosResultsFilter";
 import type { ServiciosPublicListingRow } from "./serviciosPublicListingsServer";
 
@@ -6,16 +7,10 @@ const MAX_LANDING_DESTACADOS = 3;
 const MAX_LANDING_RECIENTES = 3;
 
 /**
- * Pure `published_at` ordering for landing “Recientes”.
- * Results/search may boost verified listings; landing “Recientes” is contractually **newest-first by time**
- * so a just-published row in the current `liveRows` window appears in the strip (Empleos-style finish line).
+ * Newest-first by discovery timestamp (`coalesce(republished_at, published_at, updated_at)` when fields exist).
  */
 function sortLandingRowsByPublishedAtDesc(rows: ServiciosPublicListingRow[]): ServiciosPublicListingRow[] {
-  return [...rows].sort((a, b) => {
-    if (a.published_at < b.published_at) return 1;
-    if (a.published_at > b.published_at) return -1;
-    return a.slug.localeCompare(b.slug, "en");
-  });
+  return [...rows].sort(compareServiciosPublicDiscoveryNewestFirst);
 }
 
 /**
