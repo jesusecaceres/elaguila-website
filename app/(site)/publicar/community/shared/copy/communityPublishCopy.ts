@@ -45,7 +45,7 @@ export const COMMUNITY_PUBLISH_COPY = {
       backLink: "Volver a editar",
     },
     stagedSuccess:
-      "Borrador guardado en esta sesión. La publicación final aún no está disponible para esta categoría.",
+      "Borrador guardado solo en esta sesión del navegador. No se creó anuncio en la base de datos, no hay URL pública ni redirección, y el anuncio no aparecerá en resultados ni en “Mis anuncios”. La publicación en Leonix Clasificados para esta categoría aún no está conectada.",
     stillNeededTitle: "Falta completar:",
     approvalPublishBlocked: "Marca las tres confirmaciones antes de publicar.",
   },
@@ -85,7 +85,7 @@ export const COMMUNITY_PUBLISH_COPY = {
       backLink: "Back to edit",
     },
     stagedSuccess:
-      "Draft saved in this session. Final publishing is not yet available for this category.",
+      "Draft saved only in this browser session. No database listing was created, there is no public URL or redirect, and the listing will not appear in results or “My listings”. Publishing to Leonix Clasificados for this category is not wired yet.",
     stillNeededTitle: "Still needed:",
     approvalPublishBlocked: "Check all three confirmations before publishing.",
   },
