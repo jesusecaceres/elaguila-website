@@ -34,13 +34,15 @@ import type { RestauranteDaySchedule } from "../app/(site)/clasificados/restaura
 import { draftToRestaurantePublicListingInsert } from "../app/(site)/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import { filterRestaurantesBlueprintRows, foldRestaurantesDiscoverySearchText, sortRestaurantesBlueprintRows } from "../app/(site)/clasificados/restaurantes/lib/filterRestaurantesBlueprintRows";
 import {
+  aggregateRestauranteLikeAnalyticsEvents,
   applyRestauranteLikeCountsToBlueprintRows,
+  normalizeRestaurantesListingAnalyticsKey,
+  normalizedRestauranteListingAnalyticsTargets,
   restaurantesEngagementListingKey,
 } from "../app/(site)/clasificados/restaurantes/lib/restaurantesListingEngagement";
 import { mapRestaurantesPublicListingDbRowToShellInventoryRow } from "../app/(site)/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import type { RestaurantesPublicListingDbRow } from "../app/(site)/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
 import { defaultRestaurantesDiscoveryState } from "../app/(site)/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
-import { serviciosNetLikeCountMapFromAnalyticsRows } from "../app/(site)/clasificados/servicios/lib/serviciosPublicListingSort";
 
 function openDay(): RestauranteDaySchedule {
   return {
@@ -199,12 +201,19 @@ function mainLogicOnly() {
   assert.equal(restaurantesEngagementListingKey({ id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", leonix_ad_id: "REST-2026-000001" }), "REST-2026-000001");
   assert.equal(restaurantesEngagementListingKey({ id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", leonix_ad_id: null }), "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
 
+  assert.equal(normalizeRestaurantesListingAnalyticsKey("rest-2099-000099"), "REST-2099-000099");
+  assert.equal(
+    normalizeRestaurantesListingAnalyticsKey("550E8400-E29B-41D4-A716-446655440000"),
+    "550e8400-e29b-41d4-a716-446655440000",
+  );
+
   const likeEvents = [
-    { listing_id: "REST-2099-000099", event_type: "listing_like" },
+    { listing_id: "rest-2099-000099", event_type: "listing_like" },
     { listing_id: "REST-2099-000099", event_type: "listing_like" },
     { listing_id: "REST-2099-000099", event_type: "listing_unlike" },
   ];
-  const netMap = serviciosNetLikeCountMapFromAnalyticsRows(likeEvents, ["REST-2099-000099"]);
+  const targets = normalizedRestauranteListingAnalyticsTargets([{ id: fakeRow.id, leonix_ad_id: "REST-2099-000099" }]);
+  const netMap = aggregateRestauranteLikeAnalyticsEvents(likeEvents, targets);
   assert.equal(netMap.get("REST-2099-000099"), 1);
   const withLikes = applyRestauranteLikeCountsToBlueprintRows([shell], netMap);
   assert.equal(withLikes[0]?.likesCount, 1);

@@ -3,9 +3,8 @@ import "server-only";
 import { mapRestaurantesPublicListingDbRowsToShellInventory } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import {
   applyRestauranteLikeCountsToBlueprintRows,
-  restaurantesEngagementListingKey,
 } from "@/app/clasificados/restaurantes/lib/restaurantesListingEngagement";
-import { fetchRestaurantesNetLikeCountsByEngagementKeys } from "@/app/clasificados/restaurantes/lib/restaurantesListingEngagementServer";
+import { fetchRestaurantesNetLikeCountsForDbRows } from "@/app/clasificados/restaurantes/lib/restaurantesListingEngagementServer";
 import {
   isSupabaseAdminConfigured,
   tryListRestaurantesPublicListingsFromDb,
@@ -57,8 +56,7 @@ export async function loadRestaurantesResultsInventoryForPage(): Promise<Restaur
   }
 
   const mapped = mapRestaurantesPublicListingDbRowsToShellInventory(listed.rows);
-  const keys = listed.rows.map(restaurantesEngagementListingKey);
-  const likeMap = await fetchRestaurantesNetLikeCountsByEngagementKeys(keys);
+  const likeMap = await fetchRestaurantesNetLikeCountsForDbRows(listed.rows);
   const rows = applyRestauranteLikeCountsToBlueprintRows(mapped, likeMap);
 
   return {

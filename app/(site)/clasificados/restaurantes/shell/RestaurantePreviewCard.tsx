@@ -280,7 +280,12 @@ export function RestaurantePreviewCard({
 
             {showLikeBadge ? (
               <p className="text-sm font-semibold text-[#8B5E34]" aria-label={lang === "en" ? "Likes" : "Me gusta"}>
-                ❤️ {likesCount} {lang === "en" ? "likes" : "me gusta"}
+                ❤️ {likesCount}{" "}
+                {lang === "en"
+                  ? likesCount === 1
+                    ? "like"
+                    : "likes"
+                  : "me gusta"}
               </p>
             ) : null}
 
