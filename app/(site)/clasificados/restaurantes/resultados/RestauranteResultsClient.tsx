@@ -482,9 +482,22 @@ function ResultCard({
     .join(" · ");
 
   const badges: string[] = [];
-  if (row.movingVendor) badges.push(lang === "es" ? "Móvil" : "Mobile");
-  if (row.homeBasedBusiness) badges.push(lang === "es" ? "Desde casa" : "Home");
-  if (row.foodTruck) badges.push("Food truck");
+  const operationalBadge: { text: string; priority: number } | null = (() => {
+    // Priority: 1. Mobile, 2. Home-based, 3. Catering-only, 4. Nothing for default storefront
+    if (row.movingVendor && row.currentLocationUrl) {
+      return { text: lang === "es" ? "Ubicación móvil" : "Mobile location", priority: 1 };
+    }
+    if (row.homeBasedBusiness && !row.movingVendor && !row.cateringAvailable) {
+      return { text: lang === "es" ? "Pedidos de casa" : "Home orders", priority: 2 };
+    }
+    if (row.cateringAvailable && !row.movingVendor && !row.homeBasedBusiness) {
+      return { text: lang === "es" ? "Solo catering/eventos" : "Catering/events only", priority: 3 };
+    }
+    return null;
+  })();
+
+  // Legacy badges for backward compatibility
+  if (row.foodTruck && !operationalBadge) badges.push("Food truck");
   if (row.popUp) badges.push("Pop-up");
 
   const meta = [row.cityCanonical, row.zipCode].filter(Boolean).join(" · ");
@@ -540,7 +553,12 @@ function ResultCard({
                   {row.priceLevel}
                 </span>
               ) : null}
-              {badges.slice(0, 3).map((b) => (
+              {operationalBadge && (
+              <span className="rounded-full border border-[color:var(--lx-gold-border)]/60 bg-[color:var(--lx-section)] px-2 py-0.5 text-[11px] font-medium text-[color:var(--lx-text-2)] ml-2">
+                {operationalBadge.text}
+              </span>
+            )}
+            {badges.slice(0, 3).map((b) => (
                 <span
                   key={b}
                   className="rounded-full border border-[color:var(--lx-nav-border)] px-2 py-0.5 text-[11px] text-[color:var(--lx-text-2)]"
@@ -576,6 +594,16 @@ function ResultCard({
         >
           {labels.open}
         </Link>
+        {operationalBadge && operationalBadge.priority === 1 && row.currentLocationUrl ? (
+          <Link
+            href={row.currentLocationUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 flex min-h-[44px] w-full items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)]/60 bg-[color:var(--lx-section)] px-4 py-2 text-sm font-medium text-[color:var(--lx-gold)] hover:bg-[color:var(--lx-gold)]/10 transition"
+          >
+            {lang === "es" ? "Ver dónde está hoy" : "See today's location"}
+          </Link>
+        ) : null}
       </div>
     </div>
   );

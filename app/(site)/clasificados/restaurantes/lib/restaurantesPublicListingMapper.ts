@@ -41,6 +41,8 @@ export type RestaurantePublicResultsRow = {
   externalRatingValue?: number;
   externalReviewCount?: number;
   listedAt: string;
+  currentLocationUrl?: string;
+  cateringAvailable?: boolean;
 };
 
 function parseServiceModes(raw: unknown): RestauranteServiceMode[] {
@@ -84,6 +86,7 @@ export function dbRowToPublicResultsRow(row: RestaurantesPublicListingDbRow): Re
     leonixVerified: row.leonix_verified === true,
     externalRatingValue: row.external_rating_value ?? undefined,
     externalReviewCount: row.external_review_count ?? undefined,
+    currentLocationUrl: undefined, // TODO: implement currentLocationUrl mapping from listing_json
     /** Recency for discovery sort: republish/renew bumps `updated_at` so listings resurface fairly. */
     listedAt: row.updated_at || row.published_at,
   };

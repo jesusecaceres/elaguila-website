@@ -89,6 +89,8 @@ export type RestaurantesPublicBlueprintRow = {
   whatsAppNumber?: string;
   orderUrl?: string;
   reservationUrl?: string;
+  /** Mobile location URL for today's location CTA */
+  currentLocationUrl?: string;
   /** Address fields */
   addressLine1?: string;
   addressLine2?: string;

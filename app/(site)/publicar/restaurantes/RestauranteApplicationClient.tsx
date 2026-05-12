@@ -744,7 +744,13 @@ export default function RestauranteApplicationClient() {
                   <div className="space-y-3">
                     <div>
                       <FieldLabel optional>Ubicación actual</FieldLabel>
-                      <HelperText>Texto corto de dónde estás hoy (barrio, esquina, evento).</HelperText>
+                      <HelperText>
+                        Enlace para saber dónde estás hoy. Si vendes desde food truck, puesto móvil, pop-up o cambias de ubicación durante la semana, pega aquí el enlace donde tus clientes ya revisan tu ubicación actual.
+
+                        Usa el enlace que mantienes más actualizado: Instagram, TikTok, Facebook, YouTube, Google Maps, Linktree, WhatsApp Channel, tu sitio web o una página de calendario.
+
+                        Este enlace alimenta el botón "Ver dónde está hoy" en tu anuncio. No uses un enlace viejo o una ubicación fija si no lo actualizas con frecuencia.
+                      </HelperText>
                       <input
                         className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                         value={draft.movingVendorStack?.currentLocationText ?? ""}
@@ -1817,8 +1823,14 @@ export default function RestauranteApplicationClient() {
             </HelperText>
             <div className="mt-4 grid gap-3">
               <div>
-                <FieldLabel optional>Ubicación actual</FieldLabel>
-                <HelperText>Texto corto de dónde estás hoy (barrio, esquina, evento).</HelperText>
+                <FieldLabel optional>Enlace para saber dónde estás hoy</FieldLabel>
+                <HelperText>
+                  Si vendes desde food truck, puesto móvil, pop-up o cambias de ubicación durante la semana, pega aquí el enlace donde tus clientes ya revisan tu ubicación actual.
+
+                  Usa el enlace que mantienes más actualizado: Instagram, TikTok, Facebook, YouTube, Google Maps, Linktree, WhatsApp Channel, tu sitio web o una página de calendario.
+
+                  Este enlace alimenta el botón "Ver dónde está hoy" en tu anuncio. No uses un enlace viejo o una ubicación fija si no lo actualizas con frecuencia.
+                </HelperText>
                 <input
                   className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                   value={draft.movingVendorStack?.currentLocationText ?? ""}

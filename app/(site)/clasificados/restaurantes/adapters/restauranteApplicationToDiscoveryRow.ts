@@ -101,6 +101,8 @@ export function applicationToRestauranteDiscoveryRow(
     addressLine1: app.addressLine1,
     addressLine2: app.addressLine2,
     state: app.state,
+    // Mobile location URL for today's location CTA
+    currentLocationUrl: app.movingVendorStack?.currentLocationUrl,
     // Business description
     description: app.shortSummary,
     // Business logo
