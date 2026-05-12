@@ -59,7 +59,8 @@ export function buildServiciosSecondaryContactMailto(
 
 /**
  * Quote / message CTA destination for the contact panel.
- * Priority: dedicated quote SMS number → WhatsApp (href without text; panel appends) → email → (no website in phase 1).
+ * Priority: `quoteMessagePhone` (SMS — not WhatsApp) → WhatsApp link only when provided → email.
+ * `quoteMessagePhone` is the dedicated “número para mensajes/cotizaciones”; never treat it as WhatsApp.
  */
 export function resolveServiciosQuoteDestination(
   profile: ServiciosProfileResolved,

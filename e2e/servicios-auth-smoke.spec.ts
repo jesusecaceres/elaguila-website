@@ -189,7 +189,7 @@ test.describe("Servicios authenticated smoke", () => {
     await inquiry.getByLabel("¿Qué necesitas?").fill("Necesito una cotización para una reparación pequeña, gracias.");
     await inquiry.getByRole("button", { name: "Enviar" }).click();
 
-    await expect(page.getByText("Enviado — el proveedor responderá por correo.", { exact: true })).toBeVisible({
+    await expect(page.getByText(/Enviado — el proveedor dará seguimiento/i)).toBeVisible({
       timeout: 25_000,
     });
 

@@ -44,6 +44,12 @@ export async function insertServiciosAnalyticsEvent(args: {
   }
 }
 
+import {
+  composeServiciosPublicLeadStoredMessage,
+  type ServiciosLeadPreferredContactMethod,
+} from "./serviciosLeadStoredMessage";
+
+export type { ServiciosLeadPreferredContactMethod };
 export async function insertServiciosPublicLead(args: {
   listingSlug: string;
   providerUserId: string | null;
@@ -52,10 +58,16 @@ export async function insertServiciosPublicLead(args: {
   message: string;
   requestKind: "quote" | "general";
   honeypot?: string | null;
+  senderPhone?: string | null;
+  preferredContactMethod?: ServiciosLeadPreferredContactMethod | null;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   if (!isSupabaseAdminConfigured()) return { ok: false, error: "supabase_not_configured" };
   try {
     const supabase = getAdminSupabase();
+    const storedMessage = composeServiciosPublicLeadStoredMessage(args.message, {
+      senderPhone: args.senderPhone,
+      preferredContactMethod: args.preferredContactMethod,
+    }).slice(0, 5000);
     const { data, error } = await supabase
       .from("servicios_public_leads")
       .insert({
@@ -63,7 +75,7 @@ export async function insertServiciosPublicLead(args: {
         provider_user_id: args.providerUserId,
         sender_name: args.senderName.slice(0, 200),
         sender_email: args.senderEmail.slice(0, 320),
-        message: args.message.slice(0, 4000),
+        message: storedMessage,
         request_kind: args.requestKind,
         honeypot: args.honeypot ?? null,
       })

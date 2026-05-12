@@ -166,7 +166,7 @@ export function ServiciosActionPanel({
             {lang === "en" ? "Contact" : "Contacto"}
           </p>
 
-          {quote && primaryMailto && primaryEmailAddr ? (
+          {quote && quote.kind === "mailto" && primaryMailto && primaryEmailAddr ? (
             <ContactEmailMenu
               email={primaryEmailAddr}
               mailtoHref={primaryMailto}
@@ -180,6 +180,28 @@ export function ServiciosActionPanel({
               <FiZap className="h-5 w-5 shrink-0" aria-hidden />
               {primaryCtaLabel}
             </ContactEmailMenu>
+          ) : quote && quote.kind === "mailto" && primaryMailto ? (
+            listingSlug ? (
+              <ServiciosTrackedLink
+                listingSlug={listingSlug}
+                eventType={analyticsForQuoteKind("mailto")}
+                href={primaryMailto}
+                className={`${primaryClass} mt-3`}
+                style={{ backgroundColor: LEONIX_DARK_CTA, boxShadow: "0 12px 32px rgba(44,24,16,0.28)" }}
+              >
+                <FiZap className="h-5 w-5 shrink-0" aria-hidden />
+                {primaryCtaLabel}
+              </ServiciosTrackedLink>
+            ) : (
+              <a
+                href={primaryMailto}
+                className={`${primaryClass} mt-3`}
+                style={{ backgroundColor: LEONIX_DARK_CTA, boxShadow: "0 12px 32px rgba(44,24,16,0.28)" }}
+              >
+                <FiZap className="h-5 w-5 shrink-0" aria-hidden />
+                {primaryCtaLabel}
+              </a>
+            )
           ) : quote && quoteHref ? (
             listingSlug ? (
               <ServiciosTrackedLink

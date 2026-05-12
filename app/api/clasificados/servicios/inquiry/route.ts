@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getServiciosPublicListingBySlugFromDb } from "@/app/clasificados/servicios/lib/serviciosPublicListingsServer";
 import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "@/app/clasificados/servicios/lib/serviciosListingLifecycle";
-import { insertServiciosPublicLead, insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
+import {
+  insertServiciosPublicLead,
+  insertServiciosAnalyticsEvent,
+  type ServiciosLeadPreferredContactMethod,
+} from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -28,6 +32,11 @@ export async function POST(req: Request) {
   const message = String(b.message ?? "").trim();
   const requestKind = b.requestKind === "general" ? "general" : "quote";
   const honeypot = String(b.website ?? "").trim();
+  const senderPhoneRaw = String(b.senderPhone ?? "").trim();
+  const senderPhone = senderPhoneRaw.length > 0 ? senderPhoneRaw.slice(0, 48) : "";
+  const prefRaw = String(b.preferredContactMethod ?? "email").trim().toLowerCase();
+  const preferredContactMethod: ServiciosLeadPreferredContactMethod =
+    prefRaw === "phone" ? "phone" : prefRaw === "whatsapp" ? "whatsapp" : "email";
 
   if (honeypot.length > 0) {
     return NextResponse.json({ ok: true, accepted: false }, { status: 200 });
@@ -44,6 +53,9 @@ export async function POST(req: Request) {
   if (message.length < 8 || message.length > 4000) {
     return NextResponse.json({ ok: false, error: "invalid_message" }, { status: 400 });
   }
+  if (senderPhone.length > 0 && senderPhone.replace(/[\s().+-]/g, "").length < 7) {
+    return NextResponse.json({ ok: false, error: "invalid_phone" }, { status: 400 });
+  }
 
   const row = await getServiciosPublicListingBySlugFromDb(listingSlug, { visibility: "published_only" });
   if (!row || row.listing_status !== SERVICIOS_LISTING_STATUS_PUBLISHED) {
@@ -58,6 +70,8 @@ export async function POST(req: Request) {
     message,
     requestKind,
     honeypot: null,
+    senderPhone: senderPhone || null,
+    preferredContactMethod,
   });
 
   if (!ins.ok) {
@@ -67,7 +81,12 @@ export async function POST(req: Request) {
   await insertServiciosAnalyticsEvent({
     listingSlug,
     eventType: "lead_created",
-    meta: { requestKind, leadId: ins.id },
+    meta: {
+      requestKind,
+      leadId: ins.id,
+      preferredContactMethod,
+      hasSenderPhone: Boolean(senderPhone),
+    },
   });
 
   return NextResponse.json({ ok: true, id: ins.id });

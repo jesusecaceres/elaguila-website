@@ -3,7 +3,7 @@
 import { useCallback, useId, useMemo, useState } from "react";
 import type { ServiciosLang, ServiciosProfileResolved, ServiciosServiceCard } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
-import { resolveServiciosQuoteDestination } from "../lib/serviciosContactActions";
+import { appendWhatsAppPrefill, resolveServiciosQuoteDestination } from "../lib/serviciosContactActions";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
 import { SV } from "./serviciosDesignTokens";
 
@@ -79,8 +79,8 @@ export function ServiciosOfferedSection({ services, lang, profileForQuote }: Ser
           : "Hola, vi tu perfil en Leonix y quiero pedir una cotización.";
       message += lang === "en" ? ` for ${serviceName}` : ` para ${serviceName}`;
       if (quoteDestination.kind === "whatsapp") {
-        const encodedMessage = encodeURIComponent(message);
-        window.open(`${quoteDestination.href}?text=${encodedMessage}`, "_blank", "noopener noreferrer");
+        const href = appendWhatsAppPrefill(quoteDestination.href, message);
+        window.open(href, "_blank", "noopener noreferrer");
       } else {
         window.open(quoteDestination.href, "_blank", "noopener noreferrer");
       }

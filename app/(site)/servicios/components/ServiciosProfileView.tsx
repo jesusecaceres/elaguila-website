@@ -29,7 +29,6 @@ import { ServiciosCredencialesCard } from "./ServiciosCredencialesCard";
 import { ServiciosActionPanel } from "./ServiciosActionPanel";
 import { ServiciosLeadInquiryForm } from "./ServiciosLeadInquiryForm";
 import { ServiciosProfileViewAnalytics } from "./ServiciosProfileViewAnalytics";
-import { ServiciosReviewSubmitForm } from "./ServiciosReviewSubmitForm";
 import { SV } from "./serviciosDesignTokens";
 
 export function ServiciosProfileView({
@@ -191,9 +190,6 @@ export function ServiciosProfileView({
             {/* Reviews (bottom) */}
             <div className="lg:order-10">
               <ServiciosReviews profile={profile} lang={lang} />
-              {analyticsListingSlug && showPublicConversionForms ? (
-                <ServiciosReviewSubmitForm listingSlug={analyticsListingSlug} lang={lang} />
-              ) : null}
             </div>
             
             {/* Smart trust summary (moved up, after reviews) */}

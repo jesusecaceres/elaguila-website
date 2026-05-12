@@ -3,9 +3,13 @@
 import { useState } from "react";
 import type { ServiciosLang } from "../types/serviciosBusinessProfile";
 
+type PreferredContact = "email" | "phone" | "whatsapp";
+
 export function ServiciosLeadInquiryForm({ listingSlug, lang }: { listingSlug: string; lang: ServiciosLang }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [senderPhone, setSenderPhone] = useState("");
+  const [preferredContactMethod, setPreferredContactMethod] = useState<PreferredContact>("email");
   const [message, setMessage] = useState("");
   const [hp, setHp] = useState("");
   const [busy, setBusy] = useState(false);
@@ -17,19 +21,31 @@ export function ServiciosLeadInquiryForm({ listingSlug, lang }: { listingSlug: s
           title: "Request a quote",
           name: "Your name",
           email: "Email",
+          phone: "Phone / WhatsApp",
+          phoneHint: "Optional — helps if you prefer a call or WhatsApp.",
+          prefLabel: "How should they contact you?",
+          prefEmail: "Email",
+          prefPhone: "Phone",
+          prefWhatsapp: "WhatsApp",
           message: "What do you need?",
           submit: "Send",
-          ok: "Sent — the provider will follow up by email.",
-          err: "Could not send. Try again or use phone/WhatsApp.",
+          ok: "Sent — the provider will follow up using your preferred method when possible.",
+          err: "Could not send. Try again or use the contact buttons above.",
         }
       : {
           title: "Solicitar cotización",
           name: "Tu nombre",
           email: "Correo",
+          phone: "Teléfono / WhatsApp",
+          phoneHint: "Opcional — útil si prefieres llamada o WhatsApp.",
+          prefLabel: "¿Cómo prefieres que te contacten?",
+          prefEmail: "Correo",
+          prefPhone: "Teléfono",
+          prefWhatsapp: "WhatsApp",
           message: "¿Qué necesitas?",
           submit: "Enviar",
-          ok: "Enviado — el proveedor responderá por correo.",
-          err: "No se pudo enviar. Intenta de nuevo o usa teléfono/WhatsApp.",
+          ok: "Enviado — el proveedor dará seguimiento según tu preferencia cuando sea posible.",
+          err: "No se pudo enviar. Intenta de nuevo o usa los botones de contacto arriba.",
         };
 
   async function onSubmit(e: React.FormEvent) {
@@ -44,6 +60,8 @@ export function ServiciosLeadInquiryForm({ listingSlug, lang }: { listingSlug: s
           listingSlug,
           senderName: name,
           senderEmail: email,
+          senderPhone: senderPhone.trim() || undefined,
+          preferredContactMethod,
           message,
           requestKind: "quote",
           website: hp,
@@ -54,6 +72,8 @@ export function ServiciosLeadInquiryForm({ listingSlug, lang }: { listingSlug: s
       if (j.ok) {
         setName("");
         setEmail("");
+        setSenderPhone("");
+        setPreferredContactMethod("email");
         setMessage("");
       }
     } catch {
@@ -101,6 +121,49 @@ export function ServiciosLeadInquiryForm({ listingSlug, lang }: { listingSlug: s
             className="mt-1 min-h-[44px] w-full rounded-lg border border-black/[0.08] px-3 py-2 text-sm"
           />
         </label>
+        <label className="block text-xs font-semibold text-[color:var(--lx-text-2)]">
+          {t.phone}
+          <input
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            maxLength={48}
+            value={senderPhone}
+            onChange={(e) => setSenderPhone(e.target.value)}
+            placeholder={lang === "en" ? "+1 …" : "+52 …"}
+            className="mt-1 min-h-[44px] w-full rounded-lg border border-black/[0.08] px-3 py-2 text-sm"
+          />
+          <span className="mt-1 block text-[0.65rem] font-normal leading-snug text-[color:var(--lx-muted)]">
+            {t.phoneHint}
+          </span>
+        </label>
+        <fieldset>
+          <legend className="text-xs font-semibold text-[color:var(--lx-text-2)]">{t.prefLabel}</legend>
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            {(
+              [
+                ["email", t.prefEmail],
+                ["phone", t.prefPhone],
+                ["whatsapp", t.prefWhatsapp],
+              ] as const
+            ).map(([value, label]) => (
+              <label
+                key={value}
+                className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-black/[0.08] bg-white px-3 py-2 text-sm"
+              >
+                <input
+                  type="radio"
+                  name="preferredContactMethod"
+                  value={value}
+                  checked={preferredContactMethod === value}
+                  onChange={() => setPreferredContactMethod(value)}
+                  className="h-4 w-4 accent-[#3B66AD]"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <label className="block text-xs font-semibold text-[color:var(--lx-text-2)]">
           {t.message}
           <textarea

@@ -3,7 +3,7 @@ import type { ServiciosGalleryVideo, ServiciosProfileResolved, ServiciosLang } f
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
 import { parseYouTubeVideoId, youTubeEmbedSrc } from "../lib/serviciosVideoEmbed";
-import { resolveServiciosQuoteDestination } from "../lib/serviciosContactActions";
+import { resolveServiciosQuoteDestination, appendWhatsAppPrefill } from "../lib/serviciosContactActions";
 import { SV } from "./serviciosDesignTokens";
 
 function VideoTile({ v, lang }: { v: ServiciosGalleryVideo; lang: ServiciosLang }) {
@@ -76,8 +76,8 @@ export function ServiciosGallery({ profile, lang }: { profile: ServiciosProfileR
       : "Hola, vi tu perfil en Leonix y quiero algo como esto.";
 
     if (quoteDestination.kind === "whatsapp") {
-      const encodedMessage = encodeURIComponent(message);
-      window.open(`${quoteDestination.href}?text=${encodedMessage}`, "_blank", "noopener noreferrer");
+      const href = appendWhatsAppPrefill(quoteDestination.href, message);
+      window.open(href, "_blank", "noopener noreferrer");
     } else {
       window.open(quoteDestination.href, "_blank", "noopener noreferrer");
     }
