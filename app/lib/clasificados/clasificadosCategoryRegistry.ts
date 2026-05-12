@@ -34,17 +34,24 @@ export type ClasificadosCategoryRegistryEntry = {
 
 const EXCLUDE: CategoryKey[] = ["all"];
 
-/** Repo-informed defaults: en-venta fully wired first; servicios is NOT special — treat as staged unless marked live elsewhere. */
+/**
+ * Code defaults before `site_category_config` overlay.
+ * LIVE = public/client-ready; STAGED = admin pipeline / partial public readiness; COMING SOON = not client-ready by rule.
+ */
 function defaultOperationalStatus(slug: string): ClasificadosCategoryOperationalStatus {
-  if (slug === "en-venta") return "live";
-  if (slug === "restaurantes") return "live";
-  if (slug === "servicios") return "staged";
+  if (slug === "en-venta" || slug === "restaurantes" || slug === "rentas" || slug === "bienes-raices" || slug === "empleos") {
+    return "live";
+  }
+  if (slug === "servicios" || slug === "autos" || slug === "travel") return "staged";
+  if (slug === "comunidad" || slug === "clases") return "coming_soon";
   return "coming_soon";
 }
 
 function defaultReadiness(slug: string): "full" | "partial" | "scaffold" {
-  if (slug === "en-venta") return "full";
-  if (slug === "restaurantes") return "full";
+  if (slug === "en-venta" || slug === "restaurantes" || slug === "rentas" || slug === "bienes-raices" || slug === "empleos") {
+    return "full";
+  }
+  if (slug === "servicios" || slug === "autos" || slug === "travel") return "partial";
   return "scaffold";
 }
 

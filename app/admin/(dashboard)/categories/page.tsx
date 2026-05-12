@@ -14,8 +14,10 @@ import { fetchListingStatsForCategorySlugs } from "../../_lib/adminCategoryListi
 import { saveSiteCategoryConfigRowAction } from "../../siteCategoryConfigActions";
 import {
   adminCategoryOpenQueueCtaCopy,
+  adminCategoryOperationalStatusLabel,
   adminCategoryWorkspaceQueueHref,
 } from "../../_lib/adminCategoryWorkspaceQueueHref";
+import { getClassifiedsOpsContract } from "../../_lib/classifiedsOpsContract";
 import { adminMessages, getAdminLang } from "../../_lib/adminI18n";
 
 export const dynamic = "force-dynamic";
@@ -56,7 +58,7 @@ function sourceBadge(layer: "code" | "database" | undefined, codeLabel: string) 
   );
 }
 
-const COL_COUNT = 12;
+const COL_COUNT = 13;
 
 export default async function AdminCategoriesPage() {
   const lang = await getAdminLang();
@@ -135,7 +137,7 @@ export default async function AdminCategoriesPage() {
           {m("categoriesPage.tableHintTop")}
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-[920px] w-full border-collapse text-sm">
+          <table className="min-w-[1100px] w-full border-collapse text-sm">
             <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase tracking-wide text-[#7A7164]">
               <tr>
                 <th className="p-3"> </th>
@@ -146,16 +148,18 @@ export default async function AdminCategoriesPage() {
                 <th className="p-3">Readiness</th>
                 <th className="p-3 whitespace-nowrap">Listings (DB)</th>
                 <th className="p-3 whitespace-nowrap">Pending / flagged</th>
-                <th className="p-3">{m("categoriesPage.thAdsQueue")}</th>
-                <th className="p-3">Moderation</th>
-                <th className="p-3">Landing</th>
+                <th className="p-3">{m("categoriesPage.thViewQueue")}</th>
+                <th className="p-3">{m("categoriesPage.thFieldsNotes")}</th>
+                <th className="p-3">{m("categoriesPage.thOperationalSpace")}</th>
+                <th className="p-3">{m("categoriesPage.thPublicLanding")}</th>
                 <th className="p-3">Notes</th>
               </tr>
             </thead>
             <tbody>
               {registry.map((c) => {
                 const st = statsBySlug[c.slug];
-                const openCta = adminCategoryOpenQueueCtaCopy(c.operationalStatus, lang);
+                const openCta = adminCategoryOpenQueueCtaCopy(lang);
+                const ops = getClassifiedsOpsContract(c.slug);
                 return (
                   <Fragment key={c.slug}>
                     <tr className="border-t border-[#E8DFD0]/80 align-top">
@@ -173,7 +177,7 @@ export default async function AdminCategoriesPage() {
                         <span
                           className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${statusStyle(c.operationalStatus)}`}
                         >
-                          {c.operationalStatus.replace("_", " ")}
+                          {adminCategoryOperationalStatusLabel(c.operationalStatus)}
                         </span>
                         <div className="mt-1 text-[10px] font-semibold uppercase text-[#9A9084]">
                           vis: {c.visibility}
@@ -202,9 +206,7 @@ export default async function AdminCategoriesPage() {
                         >
                           {openCta.label} →
                         </Link>
-                      </td>
-                      <td className="p-3 text-xs font-bold">
-                        <div className="flex flex-col gap-1">
+                        <div className="mt-1.5 flex flex-col gap-0.5 text-[10px] font-semibold">
                           <Link
                             href={`/admin/workspace/clasificados?category=${encodeURIComponent(c.slug)}&status=pending`}
                             className="text-[#6B5B2E] underline"
@@ -221,14 +223,45 @@ export default async function AdminCategoriesPage() {
                           </Link>
                         </div>
                       </td>
+                      <td className="p-3 text-xs font-bold">
+                        {ops ? (
+                          <Link
+                            href={ops.fieldsNotesAdminPath}
+                            className={`${adminCtaChipCompact} inline-flex w-full justify-center text-center`}
+                            title={m("categoriesPage.thFieldsNotes")}
+                          >
+                            {m("categoriesPage.thFieldsNotes")} →
+                          </Link>
+                        ) : (
+                          <span className="text-[#9A9084]">—</span>
+                        )}
+                      </td>
+                      <td className="p-3 text-xs font-bold">
+                        {ops ? (
+                          <Link
+                            href={ops.operationalSpaceAdminPath}
+                            className={`${adminCtaChipCompact} inline-flex w-full justify-center text-center`}
+                            title={m("categoriesPage.thOperationalSpace")}
+                          >
+                            {m("categoriesPage.thOperationalSpace")} →
+                          </Link>
+                        ) : (
+                          <span className="text-[#9A9084]">—</span>
+                        )}
+                      </td>
                       <td className="p-3">
                         <Link
                           href={c.landingTarget}
-                          className="text-xs font-bold text-[#6B5B2E] underline"
+                          className={`${adminCtaChipCompact} inline-flex w-full justify-center text-center text-xs font-bold`}
                           target="_blank"
+                          rel="noreferrer"
+                          title={m("categoriesPage.openPublicLandingTitle")}
                         >
-                          {c.landingTarget}
+                          {m("categoriesPage.thPublicLanding")} →
                         </Link>
+                        <p className="mt-1 break-all text-[10px] font-normal text-[#7A7164]" title={c.landingTarget}>
+                          {c.landingTarget}
+                        </p>
                       </td>
                       <td className="max-w-xs p-3 text-xs text-[#5C5346]/95">{c.notes}</td>
                     </tr>

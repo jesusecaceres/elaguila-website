@@ -7,6 +7,7 @@ import { adminCardBase, adminCtaChip, adminCtaChipSecondary } from "../_componen
 import { getAdminDashboardSnapshot } from "../_lib/adminDashboardData";
 import {
   adminCategoryOpenQueueCtaCopy,
+  adminCategoryOperationalStatusLabel,
   adminCategoryWorkspaceQueueHref,
 } from "../_lib/adminCategoryWorkspaceQueueHref";
 import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
@@ -381,7 +382,7 @@ export default async function AdminHomePage() {
             <div className="grid gap-3 sm:grid-cols-2">
               {registry.map((c) => {
                 const queueHref = adminCategoryWorkspaceQueueHref(c.slug);
-                const cta = adminCategoryOpenQueueCtaCopy(c.operationalStatus, lang);
+                const cta = adminCategoryOpenQueueCtaCopy(lang);
                 return (
                   <Link
                     key={c.slug}
@@ -396,7 +397,7 @@ export default async function AdminHomePage() {
                       </span>
                       <div className="flex flex-col items-end gap-1">
                         <span className="rounded-full bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C4E2E]">
-                          {c.operationalStatus}
+                          {adminCategoryOperationalStatusLabel(c.operationalStatus)}
                         </span>
                         {c.configLayer === "database" ? (
                           <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-bold uppercase text-emerald-900">

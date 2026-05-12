@@ -1,6 +1,6 @@
 /**
- * Canonical admin workspace URLs for “open ads / moderation queue” per Clasificados category slug.
- * Used by dashboard category cards and /admin/categories CTAs. Dedicated verticals use their routes;
+ * Canonical admin workspace URLs for Clasificados category queues.
+ * Used by admin home category cards and /admin/categories. Dedicated verticals use their routes;
  * generic `listings` queue uses `?category=` on the main clasificados workspace.
  */
 import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
@@ -37,20 +37,27 @@ export function adminCategoryWorkspaceQueueHref(slug: string): string {
   }
 }
 
-/** Primary CTA copy: avoid implying public “live” product for non-live registry rows. */
-export function adminCategoryOpenQueueCtaCopy(
-  operationalStatus: AdminCategoryOperationalStatus,
-  lang: AdminLang,
-): {
+/** Human-readable operational status (admin categories / hub badges). */
+export function adminCategoryOperationalStatusLabel(status: AdminCategoryOperationalStatus): string {
+  switch (status) {
+    case "live":
+      return "LIVE";
+    case "staged":
+      return "STAGED";
+    case "coming_soon":
+      return "COMING SOON";
+    case "hidden":
+      return "HIDDEN";
+    default:
+      return String(status).replace(/_/g, " ").toUpperCase();
+  }
+}
+
+/** Primary queue CTA — same label for every category (queue exists regardless of client readiness). */
+export function adminCategoryOpenQueueCtaCopy(lang: AdminLang): {
   label: string;
   title: string;
 } {
-  if (operationalStatus === "live") {
-    return {
-      label: adminTr(lang, "cta.viewAds"),
-      title: adminTr(lang, "cta.viewAdsTitle"),
-    };
-  }
   return {
     label: adminTr(lang, "cta.viewQueue"),
     title: adminTr(lang, "cta.viewQueueTitle"),
