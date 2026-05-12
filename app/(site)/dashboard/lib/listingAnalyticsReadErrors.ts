@@ -11,3 +11,11 @@ export function isListingAnalyticsTableUnavailableError(message: string | undefi
   if (m.includes("does not exist")) return true;
   return false;
 }
+
+/** True when a client read of `listing_analytics` should degrade to zeros + a single friendly notice (no raw errors in UI). */
+export function listingAnalyticsReadIsDegraded(error: { message?: string; code?: string } | null | undefined): boolean {
+  if (!error) return false;
+  const code = typeof error.code === "string" ? error.code : "";
+  if (code === "PGRST205") return true;
+  return isListingAnalyticsTableUnavailableError(error.message);
+}

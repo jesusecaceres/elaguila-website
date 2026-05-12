@@ -30,7 +30,7 @@ This document maps **displayed metrics → `listing_analytics.event_type` → tr
 | Vistas totales | Total views | `fetchOwnerAnalyticsTotals().totals.listingViews` | `listing_analytics` | Yes | `listing_view` only. | Apply migrations; ensure public pages call `trackListingView` / `trackEvent`. |
 | Mensajes totales | Contact signals | `totals.messages + totals.leads` | `listing_analytics` | Yes | **`message_sent` + `lead_created`** (not inbox unread). Card links to `/dashboard/analytics`. | Wire `trackLeadCreated` on any contact surface still missing it. |
 | Guardados | Net saves | `fetchOwnerAnalyticsTotals().totals.saves` | `listing_analytics` | Yes | `listing_save` − `listing_unsave`, floored at 0. | Ensure Leonix save buttons pass `owner_user_id` where possible. |
-| Por expirar (7 días) | Soon expiring | `fetchDashboardNavCounts().expiringSoon` | `listings.boost_expires`, `listings.expires_at` | Partial | **Listings table only** today. UI shows **“Aún no registrado” / “Not tracked yet”** when the count is `null` (could not compute). | Add parallel expiry fields + counts for Servicios/Empleos/Autos/Restaurantes when product defines them. |
+| Por expirar (7 días) | Soon expiring | `fetchDashboardNavCounts().expiringSoon` | `listings.republished_at` (post-republish visibility window end), `listings.expires_at` | Partial | **Listings table only** today. Uses `republished_at` + En Venta visibility window (Admin **Republish** contract), not `boost_expires`. UI shows **“Aún no registrado” / “Not tracked yet”** when the count is `null` (could not compute). | Add parallel expiry / republish fields for other verticals when product defines them. |
 
 **Helper copy** (under cards): real interactions + zero-until-engagement explanation (see `app/(site)/dashboard/page.tsx`).
 
@@ -150,5 +150,14 @@ Expect: `LISTING_ANALYTICS_OK`. If it prints `LISTING_ANALYTICS_FAIL` with schem
 ## Known gaps (honest)
 
 - **Unique viewers:** underestimated when viewers are anonymous (no `user_id`); distinct logged-in users only.
-- **Por expirar:** only `listings` boost/expiry windows unless extended per category table.
+- **Por expirar:** only `listings` republish visibility window (`republished_at` + contract window) and `expires_at` unless extended per category table.
 - **Legacy `trackEvent`:** minimal payload (no `owner_user_id` / `category`); prefer `clasificadosAnalytics` on new surfaces.
+
+## User dashboard — Admin Republish contract (audit)
+
+- **Republish capability:** En Venta Pro uses `republished_at`, `republish_count`, and `detail_pairs` (`Leonix:visibility_last_renewed_at`) for cooldown — **no runtime dashboard reads of `boost_expires`** for visibility.
+- **Promoted / Featured** (`Leonix:promoted` in `detail_pairs`) is **separate** from republish in UI copy and chips.
+- **`listing_analytics`:** When the table is absent or unreadable, dashboard surfaces show **one** friendly degraded notice and **honest zeros** (no fabricated totals, no raw PostgREST errors in UI). Code paths stay compatible for when the table ships.
+- **`saved_listings`:** Guardados reads **`saved_listings`** (not `user_saved_listings`); resolver lives in `app/lib/savedListingsDashboardResolve.ts`.
+- **Clases / Comunidad:** Not client-ready — overview cards stay **Coming soon / Próximamente** with no owner inventory wiring.
+- **Rentas / Bienes Raíces:** Owner rows remain in **`public.listings`** with Leonix `detail_pairs` branches; same as Admin Clasificados listings contract.

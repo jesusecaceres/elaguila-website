@@ -105,11 +105,17 @@ export default function GuardadosPage() {
       /* ignore */
     }
 
-    const { data: savedRows } = await supabase
-      .from("user_saved_listings")
+    const { data: savedRows, error: savedErr } = await supabase
+      .from("saved_listings")
       .select("listing_id")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
+    if (savedErr) {
+      console.warn("[guardados] saved_listings read failed:", savedErr.message ?? savedErr);
+      setSaved([]);
+      setLoading(false);
+      return;
+    }
     const ids = (savedRows ?? []).map((r: { listing_id: string }) => r.listing_id);
     if (ids.length === 0) {
       setSaved([]);

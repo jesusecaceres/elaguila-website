@@ -165,14 +165,14 @@ export async function fetchDerivedDashboardFeed(
     .map((r) => r.id);
 
   if (activeIds.length > 0 && activeIds.length <= 40) {
-    try {
-      const { data: evs } = await sb
-        .from("listing_analytics")
-        .select("listing_id")
-        .in("listing_id", activeIds)
-        .eq("event_type", "listing_view");
+    const res = await sb
+      .from("listing_analytics")
+      .select("listing_id")
+      .in("listing_id", activeIds)
+      .eq("event_type", "listing_view");
+    if (!res.error) {
       const viewCount = new Map<string, number>();
-      for (const row of evs ?? []) {
+      for (const row of res.data ?? []) {
         const id = (row as { listing_id?: string }).listing_id;
         if (!id) continue;
         viewCount.set(id, (viewCount.get(id) ?? 0) + 1);
@@ -192,8 +192,6 @@ export async function fetchDerivedDashboardFeed(
           });
         }
       }
-    } catch {
-      /* ignore */
     }
   }
 

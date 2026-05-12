@@ -3,7 +3,7 @@
 import {
   EN_VENTA_VISIBILITY_WINDOW_MS,
   parseDetailPairValue,
-} from "@/app/clasificados/en-venta/boosts/enVentaVisibilityRenewal";
+} from "@/app/clasificados/en-venta/republish/enVentaRepublishVisibility";
 import { LEONIX_DP_PROMOTED } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 
 export function listingPlanFromDetailPairs(detailPairs: unknown): "free" | "pro" {

@@ -10,6 +10,7 @@ import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
 import { DashboardMobilePreview } from "../../components/DashboardMobilePreview";
 import { rollupListingAnalyticsEvents } from "../../lib/listingAnalyticsAggregate";
+import { listingAnalyticsReadIsDegraded } from "../../lib/listingAnalyticsReadErrors";
 import {
   isListingRepublishWindowActive,
   listingPlanFromDetailPairs,
@@ -151,9 +152,9 @@ export default function ListingWorkspacePage() {
             openMessages: "Abrir bandeja completa",
             editCta: "Ir a editar",
             editHint: "Título, precio, fotos y descripción según ventana de edición.",
-            promoHint: "Mejora visibilidad con Leonix Pro y renovaciones de visibilidad.",
+            promoHint: "Aumenta alcance con Leonix Pro y republica cuando corresponda (ventana de visibilidad).",
             upgrade: "Mejorar a Pro",
-            renew: "Renovar en gestión de anuncios",
+            renew: "Republicar en Mis anuncios",
             markSold: "Marcar vendido",
             reactivate: "Reactivar",
             archive: "Archivar (despublicar)",
@@ -161,6 +162,8 @@ export default function ListingWorkspacePage() {
             modNote: "Notas de moderación",
             modPlaceholder: "Sin notas visibles todavía.",
             loadingWorkspace: "Cargando espacio de trabajo…",
+            analyticsDegraded:
+              "La tabla de analíticas aún no está en la base. Los números de esta pestaña son cero; cuando exista `listing_analytics`, se llenarán solos.",
           }
         : {
             loading: "Loading…",
@@ -201,9 +204,9 @@ export default function ListingWorkspacePage() {
             openMessages: "Open full inbox",
             editCta: "Go to edit",
             editHint: "Title, price, photos, and description within the edit window.",
-            promoHint: "Increase visibility with Leonix Pro and visibility renewals.",
+            promoHint: "Reach more buyers with Leonix Pro and republish when eligible (visibility window).",
             upgrade: "Upgrade to Pro",
-            renew: "Renew from My ads",
+            renew: "Republish from My ads",
             markSold: "Mark sold",
             reactivate: "Reactivate",
             archive: "Archive (unpublish)",
@@ -211,6 +214,8 @@ export default function ListingWorkspacePage() {
             modNote: "Moderation notes",
             modPlaceholder: "No notes visible yet.",
             loadingWorkspace: "Loading workspace…",
+            analyticsDegraded:
+              "The analytics events table is not in the database yet. Numbers on this tab stay at zero until `listing_analytics` exists and records events.",
           },
     [lang]
   );
@@ -237,6 +242,7 @@ export default function ListingWorkspacePage() {
     applications: number;
     lastEngagement?: string;
   } | null>(null);
+  const [listingAnalyticsDegraded, setListingAnalyticsDegraded] = useState(false);
   const [access, setAccess] = useState<"loading" | "ok" | "missing" | "forbidden">("loading");
   const [listingMessages, setListingMessages] = useState<ListingMsgRow[]>([]);
 
@@ -306,26 +312,44 @@ export default function ListingWorkspacePage() {
     setAccess("ok");
 
     const listingKeys = [listing.id, (listing.leonix_ad_id ?? "").trim()].filter(Boolean) as string[];
-    const { data: events } = await sb
+    const { data: events, error: evErr } = await sb
       .from("listing_analytics")
       .select("listing_id, event_type, user_id, created_at")
       .in("listing_id", listingKeys);
 
-    const rolled = rollupListingAnalyticsEvents(events ?? [], listingKeys);
-    setStats({
-      views: rolled.views,
-      uniqueViews: rolled.uniqueViews,
-      messages: rolled.messages,
-      saves: rolled.saves,
-      shares: rolled.shares,
-      profileClicks: rolled.profileClicks,
-      listingOpens: rolled.listingOpens,
-      likes: rolled.likes,
-      ctaClicks: rolled.ctaClicks,
-      leads: rolled.leads,
-      applications: rolled.applications,
-      lastEngagement: rolled.lastEngagement,
-    });
+    if (evErr) {
+      setListingAnalyticsDegraded(listingAnalyticsReadIsDegraded(evErr));
+      setStats({
+        views: 0,
+        uniqueViews: 0,
+        messages: 0,
+        saves: 0,
+        shares: 0,
+        profileClicks: 0,
+        listingOpens: 0,
+        likes: 0,
+        ctaClicks: 0,
+        leads: 0,
+        applications: 0,
+      });
+    } else {
+      setListingAnalyticsDegraded(false);
+      const rolled = rollupListingAnalyticsEvents(events ?? [], listingKeys);
+      setStats({
+        views: rolled.views,
+        uniqueViews: rolled.uniqueViews,
+        messages: rolled.messages,
+        saves: rolled.saves,
+        shares: rolled.shares,
+        profileClicks: rolled.profileClicks,
+        listingOpens: rolled.listingOpens,
+        likes: rolled.likes,
+        ctaClicks: rolled.ctaClicks,
+        leads: rolled.leads,
+        applications: rolled.applications,
+        lastEngagement: rolled.lastEngagement,
+      });
+    }
 
     const selMsg = "id, sender_id, receiver_id, listing_id, message, created_at, read_at";
     const selMsgLegacy = "id, sender_id, receiver_id, listing_id, message, created_at";
@@ -573,6 +597,14 @@ export default function ListingWorkspacePage() {
                     ? "Cada métrica cuenta eventos reales guardados en analíticas para este anuncio (incluye el ID del anuncio y tu Leonix ad ID si aplica)."
                     : "Each metric counts real persisted analytics events for this listing (listing id and Leonix ad id when applicable)."}
                 </p>
+                {listingAnalyticsDegraded ? (
+                  <p
+                    className="mt-3 rounded-xl border border-sky-200/90 bg-sky-50/90 p-3 text-sm leading-relaxed text-sky-950"
+                    role="status"
+                  >
+                    {t.analyticsDegraded}
+                  </p>
+                ) : null}
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {[
                     { k: t.views, v: stats?.views ?? 0 },
@@ -617,8 +649,8 @@ export default function ListingWorkspacePage() {
                         ? "Hay vistas pero pocos mensajes: responde rápido en la bandeja y mejora la descripción de contacto."
                         : "You have views but few messages: reply quickly in the inbox and improve contact details."
                       : lang === "es"
-                        ? "Buen tráfico: revisa mensajes sin leer y renueva visibilidad si aplica."
-                        : "Solid traffic: check unread messages and renew visibility when applicable."}
+                        ? "Buen tráfico: revisa mensajes sin leer y republica (subir de nuevo) cuando aplique."
+                        : "Solid traffic: check unread messages and republish (move to top) when eligible."}
                 </p>
               </div>
             </div>

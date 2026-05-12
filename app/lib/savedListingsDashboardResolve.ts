@@ -1,5 +1,5 @@
 /**
- * Resolve `user_saved_listings.listing_id` values to dashboard rows with correct detail links.
+ * Resolve `saved_listings.listing_id` values (live Supabase) to dashboard rows with correct detail links.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 

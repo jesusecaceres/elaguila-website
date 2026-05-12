@@ -2,7 +2,7 @@
  * Per-listing view counts from `listing_analytics` — no invented metrics.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isListingAnalyticsTableUnavailableError } from "./listingAnalyticsReadErrors";
+import { listingAnalyticsReadIsDegraded } from "./listingAnalyticsReadErrors";
 
 export type ListingViewRow = { id: string; title: string | null; views: number };
 
@@ -39,7 +39,7 @@ export async function fetchOwnerListingViewLeaders(
     const technical = e2.message ?? String(e2);
     const code = typeof (e2 as { code?: string }).code === "string" ? (e2 as { code?: string }).code : "";
     console.warn("[fetchOwnerListingViewLeaders] listing_analytics read failed:", technical, code);
-    const unavailable = isListingAnalyticsTableUnavailableError(technical) || code === "PGRST205";
+    const unavailable = listingAnalyticsReadIsDegraded({ message: technical, code });
     return { leaders: [], laggards: [], listingAnalyticsUnavailable: unavailable, listingsQueryFailed: false };
   }
 

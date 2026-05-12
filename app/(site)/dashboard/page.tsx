@@ -686,29 +686,29 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Clases - MISSING */}
+              {/* Clases — not client-ready (no owner dashboard inventory). */}
               <div className="rounded-2xl border border-gray-200/60 bg-gray-50/80 p-4 opacity-75">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold text-[#5C5346]">Clases</h3>
                   <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
-                    Próximamente
+                    {lang === "es" ? "Próximamente" : "Coming soon"}
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-[#7A7164]/90">
-                  {lang === "es" ? "Flujo de publicación no disponible" : "Publish flow not available"}
+                  {lang === "es" ? "Sin inventario gestionable en el panel aún." : "No manageable inventory in the dashboard yet."}
                 </p>
               </div>
 
-              {/* Comunidad - MISSING */}
+              {/* Comunidad — not client-ready (no owner dashboard inventory). */}
               <div className="rounded-2xl border border-gray-200/60 bg-gray-50/80 p-4 opacity-75">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold text-[#5C5346]">Comunidad</h3>
                   <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
-                    Próximamente
+                    {lang === "es" ? "Próximamente" : "Coming soon"}
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-[#7A7164]/90">
-                  {lang === "es" ? "Flujo de publicación no disponible" : "Publish flow not available"}
+                  {lang === "es" ? "Sin inventario gestionable en el panel aún." : "No manageable inventory in the dashboard yet."}
                 </p>
               </div>
             </div>

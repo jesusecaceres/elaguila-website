@@ -77,6 +77,7 @@ export function EnVentaListingManageCard({
   priceDropLabel,
   showDraftBadge,
   visibilityRenewal,
+  leonixPromoted = false,
   uiStatus,
   listingRefShort,
   expiresIso,
@@ -106,13 +107,15 @@ export function EnVentaListingManageCard({
   priceDropLabel?: string | null;
   /** True when listing exists but is not published to browse yet. */
   showDraftBadge?: boolean;
-  /** Pro-only manual visibility renewal (dashboard); omitted for Free. */
+  /** Pro-only republish / visibility window (dashboard); omitted for Free. */
   visibilityRenewal?: EnVentaVisibilityRenewalUi | null;
+  /** Leonix Promoted / Featured in `detail_pairs` — separate from post-republish visibility window. */
+  leonixPromoted?: boolean;
   /** Richer lifecycle chip when provided (dashboard command center). */
   uiStatus?: ListingUiStatus;
   /** Short public reference (e.g. first 8 hex). */
   listingRefShort?: string | null;
-  /** Boost / visibility end (ISO) — shows “expires in X days” when parseable. */
+  /** End of post-republish visibility window (ISO) — shows “expires in X days” when parseable. */
   expiresIso?: string | null;
   /** e.g. “Updated …” from price_last_updated or created_at. */
   updatedLine?: string | null;
@@ -160,16 +163,17 @@ export function EnVentaListingManageCard({
           updated: "Actualizado",
           msgs: "Mensajes",
           analytics: "Analíticas",
-          proUpgradeCta: "Pro / visibilidad",
+          proUpgradeCta: "Pro / republicar",
           archive: "Archivar",
           dup: "Duplicar",
           perf: "Rendimiento",
           insights: "Revisa vistas y mensajes para afinar precio o fotos.",
-          visH: "Visibilidad Pro",
-          visActive: "Visible hasta",
+          visH: "Republicar (Pro)",
+          visActive: "Ventana de visibilidad hasta",
           visInactive: "Sin ventana de visibilidad activa.",
-          visNext: "Próxima renovación disponible:",
-          renew: "Renovar visibilidad",
+          visNext: "Podrás republicar de nuevo:",
+          renew: "Republicar",
+          repubTop: "Arriba en listas",
           adPlan: "Plan del anuncio",
           adPlanHint: "El plan se calcula por categoría del anuncio, no por el plan de la cuenta.",
         }
@@ -200,16 +204,17 @@ export function EnVentaListingManageCard({
           updated: "Updated",
           msgs: "Messages",
           analytics: "Analytics",
-          proUpgradeCta: "Pro / visibility",
+          proUpgradeCta: "Pro / republish",
           archive: "Archive",
           dup: "Duplicate",
           perf: "Performance",
           insights: "Compare views and messages to tune price or photos.",
-          visH: "Pro visibility",
-          visActive: "Visible until",
+          visH: "Republish (Pro)",
+          visActive: "Visibility window until",
           visInactive: "No active visibility window.",
-          visNext: "Renewal available on:",
-          renew: "Renew visibility",
+          visNext: "You can republish again on:",
+          renew: "Republish",
+          repubTop: "Move to top",
           adPlan: "Listing plan",
           adPlanHint: "Plan is based on this listing’s category, not the account plan.",
         };
@@ -241,9 +246,14 @@ export function EnVentaListingManageCard({
                 {L.pro}
               </span>
             ) : null}
-            {visibilityRenewal?.republishWindowActive ? (
-              <span className="absolute bottom-1 right-1 rounded-full bg-gradient-to-r from-[#E8D48A] to-[#C9A84A] px-1.5 py-0.5 text-[9px] font-bold uppercase text-[#1E1810]">
+            {leonixPromoted ? (
+              <span className="absolute left-1 bottom-1 rounded-full bg-gradient-to-r from-[#E8D48A] to-[#C9A84A] px-1.5 py-0.5 text-[9px] font-bold uppercase text-[#1E1810]">
                 {L.feat}
+              </span>
+            ) : null}
+            {visibilityRenewal?.republishWindowActive ? (
+              <span className="absolute right-1 bottom-1 rounded-full bg-[#FBF7EF] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-[#5C4E2E] ring-1 ring-[#C9B46A]/40">
+                {L.repubTop}
               </span>
             ) : null}
           </div>

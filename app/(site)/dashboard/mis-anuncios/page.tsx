@@ -39,7 +39,7 @@ import {
   resolveCategoryAdPlan,
   resolveCategoryAdPlanFromDashboardInventoryItem,
 } from "@/app/lib/listingPlans/categoryAdPlans";
-import { listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
+import { listingPlanFromDetailPairs, leonixPromotedFromDetailPairs } from "../lib/dashboardListingMeta";
 import {
   resolveListingUiStatus,
   shortListingRef,
@@ -50,7 +50,8 @@ import {
   EN_VENTA_VISIBILITY_LAST_RENEWAL_LABEL,
   EN_VENTA_VISIBILITY_WINDOW_MS,
   mergeDetailPairValue,
-} from "@/app/clasificados/en-venta/boosts/enVentaVisibilityRenewal";
+} from "@/app/clasificados/en-venta/republish/enVentaRepublishVisibility";
+import { listingAnalyticsReadIsDegraded } from "../lib/listingAnalyticsReadErrors";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -284,6 +285,8 @@ export default function MyListingsPage() {
             publish: "Publicar",
             errorTitle: "No pudimos cargar tus anuncios",
             back: "Volver al resumen",
+            analyticsDegraded:
+              "Las analíticas por anuncio no están disponibles en la base aún (tabla de eventos). Los conteos aquí aparecen en cero; no indica un problema con tu cuenta.",
           }
         : {
             title: "My listings",
@@ -314,6 +317,8 @@ export default function MyListingsPage() {
             publish: "Publish",
             errorTitle: "We couldn't load your listings",
             back: "Back to overview",
+            analyticsDegraded:
+              "Per-listing analytics are not available in the database yet (events table). Counts here show as zero; that does not mean your account is broken.",
           },
     [lang]
   );
@@ -339,6 +344,7 @@ export default function MyListingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [republishColsAvailable, setRepublishColsAvailable] = useState(true);
   const [analyticsByListing, setAnalyticsByListing] = useState<Record<string, ListingAnalyticsBucket>>({});
+  const [listingAnalyticsDegraded, setListingAnalyticsDegraded] = useState(false);
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
@@ -447,13 +453,23 @@ export default function MyListingsPage() {
 
       if (list.length > 0) {
         const ids = list.map((x) => x.id);
-        const { data: events } = await supabase
+        const { data: events, error: analyticsErr } = await supabase
           .from("listing_analytics")
           .select("listing_id, event_type, user_id")
           .in("listing_id", ids);
 
         if (!mounted) return;
-        setAnalyticsByListing(aggregateListingAnalyticsEvents(events ?? [], ids));
+        if (analyticsErr) {
+          setListingAnalyticsDegraded(listingAnalyticsReadIsDegraded(analyticsErr));
+          setAnalyticsByListing(aggregateListingAnalyticsEvents([], ids));
+        } else {
+          setListingAnalyticsDegraded(false);
+          setAnalyticsByListing(aggregateListingAnalyticsEvents(events ?? [], ids));
+        }
+      } else {
+        if (!mounted) return;
+        setListingAnalyticsDegraded(false);
+        setAnalyticsByListing({});
       }
     }
 
@@ -500,7 +516,7 @@ export default function MyListingsPage() {
     setBusyId(null);
   }
 
-  async function renewEnVentaVisibility(row: ListingRow) {
+  async function renewEnVentaRepublish(row: ListingRow) {
     if ((row.category ?? "").toLowerCase() !== "en-venta") return;
     const plan = listingPlanFromDetailPairs(row.detail_pairs);
     if (plan !== "pro") return;
@@ -767,6 +783,14 @@ export default function MyListingsPage() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{t.title}</h1>
               <p className="mt-2 text-sm text-[#5C5346]/95">{t.subtitle}</p>
+              {listingAnalyticsDegraded ? (
+                <p
+                  className="mt-3 max-w-3xl rounded-xl border border-sky-200/90 bg-sky-50/90 p-3 text-sm leading-relaxed text-sky-950"
+                  role="status"
+                >
+                  {t.analyticsDegraded}
+                </p>
+              ) : null}
             </div>
             <Link
               href={`/clasificados/publicar?${q}`}
@@ -1287,7 +1311,7 @@ export default function MyListingsPage() {
                         nextEligibleLabel: renewalVm.canRenewNow
                           ? null
                           : formatDateTimeMs(renewalVm.nextRenewEligibleAt, lang),
-                        onRenew: () => void renewEnVentaVisibility(x),
+                        onRenew: () => void renewEnVentaRepublish(x),
                         busy,
                       }
                     : null;
@@ -1401,6 +1425,7 @@ export default function MyListingsPage() {
                       priceDropLabel={listingPriceDropLabel(x, lang)}
                       showDraftBadge={x.is_published === false}
                       visibilityRenewal={visibilityRenewal}
+                      leonixPromoted={leonixPromotedFromDetailPairs(x.detail_pairs)}
                       uiStatus={uiSt}
                       listingRefShort={shortListingRef(x.id)}
                       expiresIso={

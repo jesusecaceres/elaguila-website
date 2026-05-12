@@ -3,7 +3,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { collectOwnerListingKeysForAnalytics, countOwnerInventoryListings } from "@/app/lib/ownerEngagementListingKeys";
-import { isListingAnalyticsTableUnavailableError } from "./listingAnalyticsReadErrors";
+import { listingAnalyticsReadIsDegraded } from "./listingAnalyticsReadErrors";
 
 export type OwnerAnalyticsTotals = {
   listingViews: number;
@@ -64,7 +64,7 @@ export async function fetchOwnerAnalyticsTotals(
     const technical = e2.message ?? String(e2);
     const code = typeof (e2 as { code?: string }).code === "string" ? (e2 as { code?: string }).code : "";
     console.warn("[fetchOwnerAnalyticsTotals] listing_analytics read failed:", technical, code);
-    const unavailable = isListingAnalyticsTableUnavailableError(technical) || code === "PGRST205";
+    const unavailable = listingAnalyticsReadIsDegraded({ message: technical, code });
     return {
       totals: { ...ZERO_TOTALS },
       listingCount: inventoryCount,
