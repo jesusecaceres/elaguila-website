@@ -26,6 +26,7 @@ const LABELS = {
     saving: "Guardando...",
     preview: "Vista previa",
     savedDashboard: "Guardado en tu dashboard",
+    saveError: "No se pudo guardar. Intenta iniciar sesión.",
   },
   en: {
     save: "Save",
@@ -33,6 +34,7 @@ const LABELS = {
     saving: "Saving...",
     preview: "Preview",
     savedDashboard: "Saved to your dashboard",
+    saveError: "Could not save. Try signing in.",
   },
 } as const;
 
@@ -53,6 +55,7 @@ export function LeonixSaveButton({
   const [isSaving, setIsSaving] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [postSaveDashboardHint, setPostSaveDashboardHint] = useState(false);
+  const [engageErr, setEngageErr] = useState<string | null>(null);
   const labels = LABELS[lang];
   const userToggledRef = useRef(false);
   const hintClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -70,8 +73,10 @@ export function LeonixSaveButton({
   };
 
   useEffect(() => {
-    setIsSaved(initialSaved);
-  }, [initialSaved]);
+    if (!engageErr) return;
+    const t = setTimeout(() => setEngageErr(null), 8000);
+    return () => clearTimeout(t);
+  }, [engageErr]);
 
   useEffect(() => {
     return () => {
@@ -132,6 +137,7 @@ export function LeonixSaveButton({
 
     userToggledRef.current = true;
     setIsSaving(true);
+    setEngageErr(null);
     setIsSaved(nextState);
     if (hintClearRef.current) clearTimeout(hintClearRef.current);
     setPostSaveDashboardHint(false);
@@ -144,6 +150,7 @@ export function LeonixSaveButton({
         if (error) {
           setIsSaved(prev);
           userToggledRef.current = false;
+          setEngageErr(lang === "en" ? LABELS.en.saveError : LABELS.es.saveError);
           return;
         }
         setPostSaveDashboardHint(true);
@@ -153,6 +160,7 @@ export function LeonixSaveButton({
         if (error) {
           setIsSaved(prev);
           userToggledRef.current = false;
+          setEngageErr(lang === "en" ? LABELS.en.saveError : LABELS.es.saveError);
           return;
         }
       }
@@ -168,7 +176,7 @@ export function LeonixSaveButton({
     } finally {
       setIsSaving(false);
     }
-  }, [allowEngage, effectiveId, isSaved, isSaving, onToggle, category, ownerUserId]);
+  }, [allowEngage, effectiveId, isSaved, isSaving, onToggle, category, ownerUserId, lang]);
 
   const inert = !allowEngage || !effectiveId;
 
@@ -212,6 +220,11 @@ export function LeonixSaveButton({
           data-leonix-save-dashboard-hint="1"
         >
           {labels.savedDashboard}
+        </p>
+      ) : null}
+      {engageErr ? (
+        <p className="text-center text-[10px] font-semibold leading-snug text-red-800 sm:text-[11px]" role="alert" data-leonix-save-error="1">
+          {engageErr}
         </p>
       ) : null}
     </div>

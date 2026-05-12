@@ -15,7 +15,8 @@ import {
 import { getServiciosReviewAggregatesForSlugs } from "./serviciosOpsTablesServer";
 import {
   compareServiciosPublicDiscoveryNewestFirst,
-  serviciosEngagementListingKey,
+  serviciosLikeCountAliasKeys,
+  serviciosNetLikeCountForPublicRow,
   serviciosNetLikeCountMapFromAnalyticsRows,
   SERVICIOS_PUBLIC_LISTING_SELECT,
 } from "./serviciosPublicListingSort";
@@ -76,7 +77,7 @@ export type ServiciosPublicListingRow = {
   /** Approved DB reviews aggregate (optional; discovery + ranking) */
   review_rating_avg?: number | null;
   review_rating_count?: number | null;
-  /** Net likes from `listing_analytics` (listing_like − listing_unlike) for `serviciosEngagementListingKey(row)`. */
+  /** Net likes from `listing_analytics` (alias rollup: leonix_ad_id + id + slug keys for legacy event ids). */
   public_like_net_count?: number;
 };
 
@@ -85,22 +86,25 @@ export type ServiciosListingSlugDbVisibility = "published_only" | "slug_page" | 
 
 const SLUG_PAGE_STATUSES = ["published", "paused_unpublished", "pending_review", "rejected", "suspended"] as const;
 
-/** Batch net like counts for discovery cards (same keys as hero Like button). */
+/** Batch net like counts for discovery cards (hero writes {@link serviciosEngagementListingKey}; analytics may use legacy ids). */
 export async function fetchServiciosNetLikeCountsByEngagementKeys(listingKeys: string[]): Promise<Map<string, number>> {
   const keys = [...new Set(listingKeys.map((k) => k.trim()).filter(Boolean))];
   if (keys.length === 0 || !isSupabaseAdminConfigured()) return new Map();
+  const chunkSize = 120;
+  const allRows: { listing_id: string | null; event_type: string | null }[] = [];
   try {
     const supabase = getAdminSupabase();
-    const { data, error } = await supabase
-      .from("listing_analytics")
-      .select("listing_id, event_type")
-      .in("listing_id", keys)
-      .in("event_type", ["listing_like", "listing_unlike"]);
-    if (error || !data) return new Map();
-    return serviciosNetLikeCountMapFromAnalyticsRows(
-      data as { listing_id: string | null; event_type: string | null }[],
-      keys,
-    );
+    for (let i = 0; i < keys.length; i += chunkSize) {
+      const chunk = keys.slice(i, i + chunkSize);
+      const { data, error } = await supabase
+        .from("listing_analytics")
+        .select("listing_id, event_type")
+        .in("listing_id", chunk)
+        .in("event_type", ["listing_like", "listing_unlike"]);
+      if (error) return new Map();
+      if (data?.length) allRows.push(...(data as { listing_id: string | null; event_type: string | null }[]));
+    }
+    return serviciosNetLikeCountMapFromAnalyticsRows(allRows, keys);
   } catch {
     return new Map();
   }
@@ -195,15 +199,17 @@ export async function listServiciosPublicListingsForDiscovery(limit = 48): Promi
   }
   merged.sort(compareServiciosPublicDiscoveryNewestFirst);
   const slice = merged.slice(0, limit);
-  const engagementKeys = slice.map((r) => serviciosEngagementListingKey(r));
+  const likeQueryKeys = new Set<string>();
+  for (const r of slice) {
+    for (const k of serviciosLikeCountAliasKeys(r)) likeQueryKeys.add(k);
+  }
   const [agg, likeMap] = await Promise.all([
     getServiciosReviewAggregatesForSlugs(slice.map((r) => r.slug)),
-    fetchServiciosNetLikeCountsByEngagementKeys(engagementKeys),
+    fetchServiciosNetLikeCountsByEngagementKeys([...likeQueryKeys]),
   ]);
   return slice.map((r) => {
     const a = agg.get(r.slug);
-    const key = serviciosEngagementListingKey(r);
-    const likes = likeMap.get(key) ?? 0;
+    const likes = serviciosNetLikeCountForPublicRow(r, likeMap);
     const base: ServiciosPublicListingRow =
       a != null
         ? { ...r, review_rating_avg: a.avg, review_rating_count: a.count }

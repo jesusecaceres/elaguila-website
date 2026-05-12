@@ -82,7 +82,7 @@ export function ServiciosHero({
           <div className="pointer-events-auto flex flex-col gap-1.5 sm:gap-2">
             {persistEngagement ? (
               <>
-                <div className="rounded-full bg-white/92 p-1 shadow-lg backdrop-blur-sm">
+                <div className="rounded-xl bg-white/92 p-1.5 shadow-lg backdrop-blur-sm">
                   <LeonixLikeButton
                     listingId={lxListingId}
                     ownerUserId={lxOwner}

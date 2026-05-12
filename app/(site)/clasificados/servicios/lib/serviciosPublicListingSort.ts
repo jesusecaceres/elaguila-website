@@ -31,6 +31,36 @@ export function serviciosEngagementListingKey(row: {
 }
 
 /**
+ * All `listing_id` values that may appear in `listing_analytics` for this listing (writes use
+ * {@link serviciosEngagementListingKey}; older rows may have used `id` or `slug` only).
+ */
+export function serviciosLikeCountAliasKeys(row: {
+  leonix_ad_id?: string | null;
+  id?: string | null;
+  slug: string;
+}): string[] {
+  return [
+    ...new Set(
+      [(row.leonix_ad_id ?? "").trim(), (row.id ?? "").trim(), (row.slug ?? "").trim()].filter(
+        (s): s is string => Boolean(s),
+      ),
+    ),
+  ];
+}
+
+/** Net likes for a discovery row: sum of per-key nets across aliases (floor 0). */
+export function serviciosNetLikeCountForPublicRow(
+  row: { leonix_ad_id?: string | null; id?: string | null; slug: string },
+  netByListingId: Map<string, number>,
+): number {
+  let sum = 0;
+  for (const k of serviciosLikeCountAliasKeys(row)) {
+    sum += netByListingId.get(k) ?? 0;
+  }
+  return Math.max(0, sum);
+}
+
+/**
  * Footnote display value only — never UUID-shaped values (those are row ids, not public ad numbers).
  * Shows trimmed `leonix_ad_id` when it looks like a classifieds ad code (e.g. SERV-2026-000001).
  */
