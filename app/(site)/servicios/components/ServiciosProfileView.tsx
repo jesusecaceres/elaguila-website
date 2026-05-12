@@ -42,6 +42,7 @@ export function ServiciosProfileView({
   analyticsListingSlug,
   engagementListingId = null,
   engagementOwnerUserId = null,
+  listingShareUrl,
   showPublicConversionForms = false,
 }: {
   profile: ServiciosProfileResolved;
@@ -60,6 +61,8 @@ export function ServiciosProfileView({
   engagementListingId?: string | null;
   /** Listing owner auth id for analytics rollup. */
   engagementOwnerUserId?: string | null;
+  /** Absolute URL for hero share (SSR from request host when available). */
+  listingShareUrl?: string;
   /** When true with `analyticsListingSlug`, shows moderated lead + review forms on the public listing. */
   showPublicConversionForms?: boolean;
 }) {
@@ -90,6 +93,7 @@ export function ServiciosProfileView({
             lang={lang}
             engagementListingId={engagementListingId}
             engagementOwnerUserId={engagementOwnerUserId}
+            listingShareUrl={listingShareUrl}
           />
         ) : null}
 

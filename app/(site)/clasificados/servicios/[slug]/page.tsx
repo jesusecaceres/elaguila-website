@@ -7,6 +7,7 @@ import { mergeServiciosProfileWithApprovedDbReviews } from "../lib/serviciosDbRe
 import { listApprovedServiciosReviewsForSlug } from "../lib/serviciosOpsTablesServer";
 import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "../lib/serviciosListingLifecycle";
 import { getServiciosPublicListingBySlugForDiscovery } from "../lib/serviciosPublicListingsServer";
+import { buildServiciosClasificadosListingShareUrl } from "../lib/buildServiciosListingShareUrl";
 
 export const dynamic = "force-dynamic";
 
@@ -118,6 +119,7 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
         : "Este anuncio está en pausa y puede no aparecer en los resultados públicos."
       : "";
   const noticeBanner = [pausedMsg, publishLines.join(" ")].filter(Boolean).join("\n\n") || undefined;
+  const listingShareUrl = await buildServiciosClasificadosListingShareUrl(slug, lang);
 
   return (
     <>
@@ -136,11 +138,12 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
       <ServiciosProfileView
         profile={profile}
         lang={lang}
-        editBackHref={`/clasificados/publicar/servicios?lang=${lang}`}
+        editBackHref={justPublished ? `/clasificados/publicar/servicios?lang=${lang}` : undefined}
         noticeBanner={noticeBanner}
         analyticsListingSlug={slug}
         engagementListingId={row.leonix_ad_id?.trim() ? row.leonix_ad_id.trim() : null}
         engagementOwnerUserId={row.owner_user_id ?? null}
+        listingShareUrl={listingShareUrl}
         showPublicConversionForms={isPublishedLive}
       />
     </>
