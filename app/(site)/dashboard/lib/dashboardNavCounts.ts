@@ -2,12 +2,13 @@
  * Sidebar badge counts — uses real columns only; degrades per dashboardDataContract.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { listingRepublishVisibilityWindowEndIso } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 
 export type DashboardNavCounts = {
   /** Unread inbox when `messages.read_at` exists; else total received; null if unknown */
   messageInbox: number | null;
   drafts: number | null;
-  /** Active listings with boost/visibility ending within 7d OR expires_at in window when present */
+  /** Active listings with visibility window end (republish) within 7d OR expires_at in window when present */
   expiringSoon: number | null;
 };
 
@@ -75,10 +76,11 @@ export async function fetchDashboardNavCounts(sb: SupabaseClient, userId: string
     }
   }
 
-  const countExpiring = (rows: Array<{ boost_expires?: string | null; expires_at?: string | null }>) => {
+  const countExpiring = (rows: Array<{ republished_at?: string | null; expires_at?: string | null }>) => {
     let n = 0;
     for (const row of rows) {
-      if (inSoonWindow(row.boost_expires ?? null, now, soon)) n++;
+      const visEnd = listingRepublishVisibilityWindowEndIso(row.republished_at);
+      if (inSoonWindow(visEnd, now, soon)) n++;
       else if (inSoonWindow(row.expires_at ?? null, now, soon)) n++;
     }
     return n;
@@ -87,20 +89,20 @@ export async function fetchDashboardNavCounts(sb: SupabaseClient, userId: string
   try {
     const withExp = await sb
       .from("listings")
-      .select("id, status, boost_expires, expires_at")
+      .select("id, status, republished_at, expires_at")
       .eq("owner_id", userId)
       .eq("status", "active");
     if (!withExp.error && Array.isArray(withExp.data)) {
-      out.expiringSoon = countExpiring(withExp.data as Array<{ boost_expires?: string | null; expires_at?: string | null }>);
+      out.expiringSoon = countExpiring(withExp.data as Array<{ republished_at?: string | null; expires_at?: string | null }>);
     } else {
-      const boostOnly = await sb
+      const repOnly = await sb
         .from("listings")
-        .select("id, status, boost_expires")
+        .select("id, status, republished_at")
         .eq("owner_id", userId)
         .eq("status", "active");
-      if (!boostOnly.error && Array.isArray(boostOnly.data)) {
-        out.expiringSoon = countExpiring(boostOnly.data as Array<{ boost_expires?: string | null; expires_at?: string | null }>);
-      } else if (!withExp.error && !boostOnly.error) {
+      if (!repOnly.error && Array.isArray(repOnly.data)) {
+        out.expiringSoon = countExpiring(repOnly.data as Array<{ republished_at?: string | null; expires_at?: string | null }>);
+      } else if (!withExp.error && !repOnly.error) {
         out.expiringSoon = 0;
       }
     }

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useCallback, useState } from "react";
 
+import { republishActionLabel } from "@/app/admin/_lib/classifiedsRepublishCapability";
+
 export type ClassifiedStaffOpsVariant =
   | "restaurante"
   | "listings"
@@ -22,6 +24,9 @@ type Props = {
   canArchive?: boolean;
   /** Staff / owner edit surface for this row (dashboard, perfil, etc.). */
   staffEditBoardHref?: string;
+  /** When set with `republishRow`, shows Move to top / Republish / No republish (listings + verticals). */
+  republishCategory?: string;
+  republishRow?: Record<string, unknown>;
 };
 
 function patchUrl(variant: ClassifiedStaffOpsVariant, rowId: string): string {
@@ -52,6 +57,8 @@ export function ClassifiedAdminRowActions({
   verified,
   canArchive = true,
   staffEditBoardHref,
+  republishCategory,
+  republishRow,
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -89,6 +96,11 @@ export function ClassifiedAdminRowActions({
     void run("archive");
   }, [canArchive, run]);
 
+  const republish =
+    republishCategory && republishRow
+      ? republishActionLabel(republishRow, republishCategory)
+      : null;
+
   return (
     <div className="space-y-2">
       {staffEditBoardHref ? (
@@ -100,6 +112,20 @@ export function ClassifiedAdminRowActions({
         </Link>
       ) : null}
       <div className="flex flex-wrap gap-1.5">
+        {republish ? (
+          <button
+            type="button"
+            disabled={busy || republish.disabled}
+            title={republish.disabled ? republish.reason : undefined}
+            onClick={() => {
+              if (republish.disabled) return;
+              void run("republish");
+            }}
+            className="rounded-lg border border-slate-300/90 bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-900 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {busy ? "…" : republish.label}
+          </button>
+        ) : null}
         {publicLive ? (
           <button
             type="button"

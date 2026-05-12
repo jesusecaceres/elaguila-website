@@ -5,13 +5,14 @@
  * - pendingReports: listing_reports.status = 'pending'
  * - pendingListingsReview: listings.status IN ('pending','flagged') when column supports it; else 0 + fallback note
  * - categoryCounts: grouped count by listings.category for active-ish rows
- * - expiringQueueItems: rows with real `boost_expires` / optional `expires_at` (listings) or `viajes_staged_listings.expires_at`
+ * - expiringQueueItems: rows with En Venta visibility window end (`republished_at` + window) / optional `expires_at` (listings) or `viajes_staged_listings.expires_at`
  * - pendingReviewItems: pending/flagged listings, else recent listings fallback (not used as expiring)
  * - disabledUsersCount: profiles.is_disabled = true
  *
  * FUTURE / TODO:
  * - usersNeedingHelp: no support tickets table — proxy uses disabled users count only
  */
+import { EN_VENTA_VISIBILITY_WINDOW_MS } from "@/app/clasificados/en-venta/boosts/enVentaVisibilityRenewal";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { resolvePublicMagazineManifest } from "@/app/lib/magazine/magazineManifestServer";
 import { normalizeGenericListingForAdmin, type GenericListingAdminInput } from "@/app/admin/_lib/adminAdIdentity";
@@ -29,7 +30,7 @@ export type AdminDashboardExpiringQueueRow = {
   internalId: string;
   ownerUserId: string | null;
   status: string | null;
-  /** ISO 8601 — the deadline used for sorting and badges (soonest of boost vs listing expiry when both exist). */
+  /** ISO 8601 — the deadline used for sorting and badges (soonest of visibility window end vs listing expiry when both exist). */
   expiresAtIso: string;
   /** Which DB field supplied the chosen deadline (or both, soonest). */
   expirationFieldLabel: string;
@@ -113,16 +114,21 @@ type ListingExpiringDbRow = {
   status: string | null;
   owner_id: string | null;
   is_published?: boolean | null;
-  boost_expires?: string | null;
+  republished_at?: string | null;
   expires_at?: string | null;
   leonix_ad_id?: string | null;
 };
 
-function mapListingToExpiringRow(row: ListingExpiringDbRow, listingsHasExpiresAt: boolean): AdminDashboardExpiringQueueRow | null {
-  const boostMs = parseDeadlineMs(row.boost_expires);
+function mapListingToExpiringRow(
+  row: ListingExpiringDbRow,
+  listingsHasExpiresAt: boolean,
+  listingsHasRepublishedAt: boolean,
+): AdminDashboardExpiringQueueRow | null {
+  const repMs = listingsHasRepublishedAt ? parseDeadlineMs(row.republished_at) : null;
+  const visibilityEndMs = repMs != null ? repMs + EN_VENTA_VISIBILITY_WINDOW_MS : null;
   const expMs = listingsHasExpiresAt ? parseDeadlineMs(row.expires_at) : null;
   const parts: Array<{ ms: number; label: string }> = [];
-  if (boostMs != null) parts.push({ ms: boostMs, label: "boost_expires" });
+  if (visibilityEndMs != null) parts.push({ ms: visibilityEndMs, label: "visibility_window_end" });
   if (expMs != null) parts.push({ ms: expMs, label: "expires_at" });
   if (!parts.length) return null;
   parts.sort((a, b) => a.ms - b.ms);
@@ -158,17 +164,23 @@ async function fetchGenericListingsExpiring(
   supabase: ReturnType<typeof getAdminSupabase>,
 ): Promise<AdminDashboardExpiringQueueRow[]> {
   const hasExpiresAt = await listingsTableHasColumn(supabase, "expires_at");
+  const hasRepublishedAt = await listingsTableHasColumn(supabase, "republished_at");
   const hasLeonix = await listingsTableHasColumn(supabase, "leonix_ad_id");
-  const baseCols = ["id", "title", "category", "status", "owner_id", "is_published", "boost_expires"];
+  const baseCols = ["id", "title", "category", "status", "owner_id", "is_published"];
+  if (hasRepublishedAt) baseCols.push("republished_at");
   if (hasExpiresAt) baseCols.push("expires_at");
   if (hasLeonix) baseCols.push("leonix_ad_id");
   const selectCols = baseCols.join(",");
 
   let q = supabase.from("listings").select(selectCols).limit(80);
-  if (hasExpiresAt) {
-    q = q.or("boost_expires.not.is.null,expires_at.not.is.null");
+  if (hasRepublishedAt && hasExpiresAt) {
+    q = q.or("republished_at.not.is.null,expires_at.not.is.null");
+  } else if (hasRepublishedAt) {
+    q = q.not("republished_at", "is", null);
+  } else if (hasExpiresAt) {
+    q = q.not("expires_at", "is", null);
   } else {
-    q = q.not("boost_expires", "is", null);
+    return [];
   }
   const { data, error } = await q;
   if (error) {
@@ -176,18 +188,23 @@ async function fetchGenericListingsExpiring(
     if (hasLeonix && /leonix_ad_id|column/i.test(m)) {
       const colsNoLx = baseCols.filter((c) => c !== "leonix_ad_id").join(",");
       let q2 = supabase.from("listings").select(colsNoLx).limit(80);
-      if (hasExpiresAt) q2 = q2.or("boost_expires.not.is.null,expires_at.not.is.null");
-      else q2 = q2.not("boost_expires", "is", null);
+      if (hasRepublishedAt && hasExpiresAt) {
+        q2 = q2.or("republished_at.not.is.null,expires_at.not.is.null");
+      } else if (hasRepublishedAt) {
+        q2 = q2.not("republished_at", "is", null);
+      } else if (hasExpiresAt) {
+        q2 = q2.not("expires_at", "is", null);
+      }
       const { data: d2, error: e2 } = await q2;
       if (e2 || !d2) return [];
       return ((d2 as unknown) as ListingExpiringDbRow[])
-        .map((r) => mapListingToExpiringRow(r, hasExpiresAt))
+        .map((r) => mapListingToExpiringRow(r, hasExpiresAt, hasRepublishedAt))
         .filter((x): x is AdminDashboardExpiringQueueRow => x != null);
     }
     return [];
   }
   return (((data as unknown) as ListingExpiringDbRow[]) ?? [])
-    .map((r) => mapListingToExpiringRow(r, hasExpiresAt))
+    .map((r) => mapListingToExpiringRow(r, hasExpiresAt, hasRepublishedAt))
     .filter((x): x is AdminDashboardExpiringQueueRow => x != null);
 }
 

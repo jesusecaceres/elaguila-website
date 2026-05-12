@@ -3,6 +3,10 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
+import {
+  canRepublishListing,
+  viajesRowIsPublicLive,
+} from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
 
 type ViajesStaffAction =
@@ -12,7 +16,8 @@ type ViajesStaffAction =
   | "promote_off"
   | "verify_on"
   | "verify_off"
-  | "archive";
+  | "archive"
+  | "republish";
 
 function isAction(x: unknown): x is ViajesStaffAction {
   return (
@@ -22,7 +27,8 @@ function isAction(x: unknown): x is ViajesStaffAction {
     x === "promote_off" ||
     x === "verify_on" ||
     x === "verify_off" ||
-    x === "archive"
+    x === "archive" ||
+    x === "republish"
   );
 }
 
@@ -53,7 +59,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const supabase = getAdminSupabase();
   const { data: row, error: rErr } = await supabase
     .from("viajes_staged_listings")
-    .select("id, slug, lifecycle_status, is_public, admin_promoted, leonix_verified")
+    .select("id, slug, lifecycle_status, is_public, admin_promoted, leonix_verified, republish_count, republish_override")
     .eq("id", id)
     .maybeSingle();
 
@@ -65,6 +71,42 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const isPublic = Boolean((row as { is_public?: boolean }).is_public);
   const now = new Date().toISOString();
   const patch: Record<string, unknown> = { updated_at: now };
+  const rowRec = row as Record<string, unknown>;
+
+  if (action === "republish") {
+    if (!canRepublishListing(rowRec, "viajes")) {
+      return NextResponse.json({ ok: false, error: "republish_not_eligible" }, { status: 400 });
+    }
+    const nextCount = Number(rowRec.republish_count ?? 0) + 1;
+    Object.assign(patch, {
+      republished_at: now,
+      republish_count: nextCount,
+      last_republished_source: "admin",
+      last_republished_by: null,
+    });
+    if (!viajesRowIsPublicLive(rowRec)) {
+      patch.lifecycle_status = "approved";
+      patch.is_public = true;
+      patch.published_at = now;
+    }
+    const { error } = await supabase.from("viajes_staged_listings").update(patch).eq("id", id);
+    if (error) {
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    }
+    const slug = String((row as { slug?: string }).slug ?? "");
+    void appendAdminAuditLog({
+      action: "republish",
+      targetType: "viajes_staged_listing",
+      targetId: id,
+      meta: { slug, patch },
+    });
+    revalidatePath("/clasificados/viajes");
+    revalidatePath("/clasificados/viajes/resultados");
+    revalidatePath("/admin/workspace/clasificados/travel");
+    revalidatePath("/admin/clasificados/viajes");
+    if (slug) revalidatePath(`/clasificados/viajes/oferta/${encodeURIComponent(slug)}`);
+    return NextResponse.json({ ok: true, id, slug, ...patch });
+  }
 
   switch (action) {
     case "suspend":

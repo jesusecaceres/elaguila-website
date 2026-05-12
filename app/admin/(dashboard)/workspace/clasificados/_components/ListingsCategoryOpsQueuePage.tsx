@@ -46,7 +46,7 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, title, subtit
         ownerFrag: ownerFrag && isUuidString(ownerFrag) ? ownerFrag : undefined,
         limit: queueLimit,
       })
-    : { data: [], error: null, detailPairsAvailable: true, boostExpiresAvailable: true };
+    : { data: [], error: null, detailPairsAvailable: true, republishColsAvailable: true };
 
   let rows = (fetchRes.data ?? []) as AdminListingsTableRow[];
   if (ownerFrag && !isUuidString(ownerFrag)) {
@@ -125,7 +125,7 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, title, subtit
         <AdminListingsTable
           listings={rows}
           detailPairsAvailable={fetchRes.detailPairsAvailable}
-          boostExpiresAvailable={fetchRes.boostExpiresAvailable}
+          republishColsAvailable={fetchRes.republishColsAvailable}
           listingsCategorySlug={categorySlug}
           staffQueueMode
         />

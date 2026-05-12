@@ -29,7 +29,7 @@ export const EV_RESULTS_PARAM = {
   sort: "sort",
   view: "view",
   page: "page",
-  /** Boosted / Pro-featured placements only (matches active `boost_expires`). */
+  /** Pro-featured placements only (active post-republish visibility window from `republished_at`). */
   featured: "featured",
 } as const;
 

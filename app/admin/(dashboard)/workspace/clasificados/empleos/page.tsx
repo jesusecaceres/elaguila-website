@@ -200,6 +200,11 @@ export default function AdminEmpleosListingsPage() {
                     verified={Boolean(r.leonix_verified)}
                     canArchive={r.lifecycle_status !== "archived"}
                     staffEditBoardHref={appendLangToPath(`/dashboard/empleos/${encodeURIComponent(r.id)}`, lang)}
+                    republishCategory="empleos"
+                    republishRow={{
+                      lifecycle_status: r.lifecycle_status,
+                      republish_override: (r as { republish_override?: boolean | null }).republish_override,
+                    }}
                   />
                 </td>
                 <td className="px-4 py-3 text-xs font-semibold">

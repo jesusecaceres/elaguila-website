@@ -100,6 +100,12 @@ export default async function AdminTravelViajesQueuePage() {
                         verified={verified}
                         canArchive={lifecycle !== "unpublished" && lifecycle !== "rejected"}
                         staffEditBoardHref="/dashboard/viajes"
+                        republishCategory="viajes"
+                        republishRow={{
+                          lifecycle_status: r.lifecycle_status,
+                          is_public: r.is_public,
+                          republish_override: (r as { republish_override?: boolean | null }).republish_override,
+                        }}
                       />
                     </td>
                   </tr>

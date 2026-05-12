@@ -93,7 +93,7 @@ export default function DashboardPage() {
             metricsFootnote:
               "Estas métricas vienen de interacciones reales guardadas en analíticas. Si acabas de publicar, pueden aparecer en cero hasta que alguien vea o interactúe con tu anuncio.",
             expiringFootnote:
-              "“Por expirar” usa fechas de visibilidad/boost y expiración del anuncio en la tabla principal de Leonix. Otras categorías pueden no reflejarse aquí hasta que esos campos existan para ellas.",
+              "“Por expirar” usa el fin de la ventana de visibilidad tras republicar (`republished_at`) y la expiración del anuncio cuando exista. Otras categorías pueden no reflejarse aquí hasta que esos campos existan para ellas.",
             activeListingsFootnote:
               "Mismo criterio que Mis anuncios: cuenta anuncios activos o publicados en todas las fuentes conectadas a tu cuenta (incluye viajes públicos y autos de pago cuando aplican).",
             analyticsDegraded:
@@ -157,7 +157,7 @@ export default function DashboardPage() {
             metricsFootnote:
               "These metrics come from real interactions stored in analytics. If you just published, numbers may stay at zero until someone views or engages with your listing.",
             expiringFootnote:
-              "“Expiring soon” uses boost/visibility and listing expiry dates on Leonix’s primary listings table. Other categories may not appear here until the same fields exist for them.",
+              "“Expiring soon” uses the end of the post-republish visibility window (`republished_at`) and listing expiry when present on Leonix’s primary listings table. Other categories may not appear here until the same fields exist for them.",
             activeListingsFootnote:
               "Same basis as My listings: counts active or published rows across every channel tied to your account (including public travel and paid Autos when applicable).",
             analyticsDegraded:

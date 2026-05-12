@@ -84,9 +84,9 @@ const EN: Record<string, string> = {
   "clasificados.detailPairsMissingTitle": "Database missing listings.detail_pairs column.",
   "clasificados.detailPairsMissingBody":
     "Queue loads in reduced mode: the “En venta · vis.” column cannot show plan / renewal until you migrate. Apply migration",
-  "clasificados.boostMissingTitle": "Database missing listings.boost_expires column.",
+  "clasificados.boostMissingTitle": "Database missing listings.republished_at column.",
   "clasificados.boostMissingBody":
-    "Queue loads without boost dates; “En venta · vis.” shows plan and lastRenew but not exact boost/renew until you migrate. Apply",
+    "Queue loads without republish timestamps; “En venta · vis.” shows plan and lastRenew but not last move-to-top until you migrate. Apply",
   "clasificados.homeChipsTitle": "Featured on `/home`:",
   "clasificados.homeChipsBody":
     "They are not auto-generated from this queue. In Home → content you can manually link categories or public routes (chips). Here you moderate ads in Supabase.",
@@ -184,10 +184,10 @@ const EN: Record<string, string> = {
   "listings.emptyRentasExtra":
     ", plus merged rows with category «bienes-raices» and Leonix:operation=rent in detail_pairs when there is no text search (q).",
   "listings.col.leonixTitle": "Leonix BR/Rentas: branch, operation, category, published",
-  "listings.col.envVisTitleOk": "En Venta plan and visibility (detail_pairs + boost_expires)",
+  "listings.col.envVisTitleOk": "En Venta plan and visibility (detail_pairs + republished_at)",
   "listings.col.envVisTitleNoDetailPairs":
     "detail_pairs column not available in this database — apply listings.detail_pairs migration",
-  "listings.col.envVisTitleNoBoost": "boost_expires column not available — apply listings_engagement_boost migration",
+  "listings.col.envVisTitleNoBoost": "republished_at column not available — apply classifieds_republish_capability migration",
   "listings.rowActionsTitle":
     "Staff actions on this row (publish/hide/delete). Text and image editing: advertiser panel with owner_id validation.",
   "listings.publicRentasTitle": "Public Rentas detail (canonical path)",
@@ -202,8 +202,8 @@ const EN: Record<string, string> = {
   "listings.confirmShow": "Show this listing on the site again (is_published=true)?",
   "listings.errPublish": "Could not update publication",
   "listings.envLine.missingDetailPairs": "N/A · listings.detail_pairs column missing in DB",
-  "listings.envLine.boostNoCol": "boost N/A (no boost_expires column)",
-  "listings.envLine.boostOff": "boost off",
+  "listings.envLine.boostNoCol": "republish N/A (no republished_at column)",
+  "listings.envLine.boostOff": "no active visibility window",
   "listings.envLine.lastRenew": "lastRenew",
   "listings.envLine.renewNd": "renew N/A",
   "listings.envLine.renewOk": "renew OK",
@@ -298,7 +298,7 @@ const EN: Record<string, string> = {
   "dashboard.viewReportsTitle": "Listing reports queue (listing_reports)",
   "dashboard.expiringTitle": "Expiring queue (real expiration only)",
   "dashboard.expiringSub":
-    "Only ads with a persisted expiration date (e.g. listings.boost_expires, listings.expires_at when present, or viajes_staged_listings.expires_at). Recent listings are not used as a proxy.",
+    "Only ads with a persisted deadline: En Venta visibility window end from listings.republished_at (plus fixed window), listings.expires_at when present, or viajes_staged_listings.expires_at. Recent listings are not used as a proxy.",
   "dashboard.expiringEmpty": "No ads with real expiration data found.",
   "dashboard.expiresLabel": "Expires:",
   "dashboard.adminQueue": "Admin / queue",
@@ -663,9 +663,9 @@ const ES: Record<string, string> = {
   "clasificados.detailPairsMissingTitle": "Base sin columna listings.detail_pairs.",
   "clasificados.detailPairsMissingBody":
     "La cola carga en modo reducido: la columna “En venta · vis.” no puede mostrar plan / renovación hasta migrar. Aplica en Supabase la migración",
-  "clasificados.boostMissingTitle": "Base sin columna listings.boost_expires.",
+  "clasificados.boostMissingTitle": "Base sin columna listings.republished_at.",
   "clasificados.boostMissingBody":
-    "La cola carga sin fechas de boost; la columna “En venta · vis.” muestra plan y lastRenew pero no el estado exacto de boost/renew hasta migrar. Aplica",
+    "La cola carga sin marcas de tiempo de republicación; la columna “En venta · vis.” muestra plan y lastRenew pero no el último “subir al tope” hasta migrar. Aplica",
   "clasificados.homeChipsTitle": "Destacados en la portada `/home`:",
   "clasificados.homeChipsBody":
     "No se generan solos desde esta cola. En Home → contenido puedes enlazar manualmente a categorías o rutas públicas (chips). Aquí moderas anuncios en Supabase.",
@@ -760,10 +760,10 @@ const ES: Record<string, string> = {
   "listings.emptyRentasExtra":
     ", más filas con categoría «bienes-raices» y Leonix:operation=rent en detail_pairs cuando no hay búsqueda de texto (q).",
   "listings.col.leonixTitle": "Leonix BR/Rentas: rama, operación, categoría, publicado",
-  "listings.col.envVisTitleOk": "Plan En Venta y visibilidad (detail_pairs + boost_expires)",
+  "listings.col.envVisTitleOk": "Plan En Venta y visibilidad (detail_pairs + republished_at)",
   "listings.col.envVisTitleNoDetailPairs":
     "Columna detail_pairs no disponible en esta base — aplica la migración listings.detail_pairs",
-  "listings.col.envVisTitleNoBoost": "Columna boost_expires no disponible — aplica la migración listings_engagement_boost",
+  "listings.col.envVisTitleNoBoost": "Columna republished_at no disponible — aplica la migración classifieds_republish_capability",
   "listings.rowActionsTitle":
     "Acciones de staff en la misma fila (publicar/ocultar/eliminar). Edición de texto e imágenes: panel del anunciante con validación owner_id.",
   "listings.publicRentasTitle": "Detalle público Rentas (ruta canónica)",
@@ -778,8 +778,8 @@ const ES: Record<string, string> = {
   "listings.confirmShow": "¿Volver a mostrar este anuncio en el sitio (is_published=true)?",
   "listings.errPublish": "Error al actualizar publicación",
   "listings.envLine.missingDetailPairs": "N/D · falta columna detail_pairs en BD",
-  "listings.envLine.boostNoCol": "boost N/D (sin columna boost_expires)",
-  "listings.envLine.boostOff": "boost off",
+  "listings.envLine.boostNoCol": "republish N/D (sin columna republished_at)",
+  "listings.envLine.boostOff": "sin ventana de visibilidad activa",
   "listings.envLine.lastRenew": "lastRenew",
   "listings.envLine.renewNd": "renew N/D",
   "listings.envLine.renewOk": "renew OK",
@@ -875,7 +875,7 @@ const ES: Record<string, string> = {
   "dashboard.viewReportsTitle": "Cola de reportes de anuncios (listing_reports)",
   "dashboard.expiringTitle": "Cola por expiración (solo fechas reales)",
   "dashboard.expiringSub":
-    "Solo anuncios con fecha de expiración persistida (p. ej. listings.boost_expires, listings.expires_at si existe, o viajes_staged_listings.expires_at). No se usan anuncios recientes como sustituto.",
+    "Solo anuncios con fecha límite persistida: fin de ventana de visibilidad desde listings.republished_at (más ventana fija), listings.expires_at si existe, o viajes_staged_listings.expires_at. No se usan anuncios recientes como sustituto.",
   "dashboard.expiringEmpty": "No hay anuncios con datos de expiración reales.",
   "dashboard.expiresLabel": "Expira:",
   "dashboard.adminQueue": "Admin / cola",

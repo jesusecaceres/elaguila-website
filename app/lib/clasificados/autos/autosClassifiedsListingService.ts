@@ -178,8 +178,7 @@ export async function listActiveAutosClassifiedsRows(): Promise<AutosClassifieds
     .from("autos_classifieds_listings")
     .select("*")
     .eq("status", "active")
-    .order("published_at", { ascending: false })
-    .order("created_at", { ascending: false });
+    .order("republish_sort_at", { ascending: false, nullsFirst: true })
   if (error || !data?.length) return [];
   return data.map((r) => rowFromDb(r as Record<string, unknown>));
 }

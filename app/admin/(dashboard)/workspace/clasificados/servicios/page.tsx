@@ -33,6 +33,7 @@ export type ServiciosPublicAdminRow = {
   moderation_notes?: string | null;
   profile_json?: { opsMeta?: { leonixVerifiedInterest?: boolean } } | null;
   promoted?: boolean;
+  republish_override?: boolean | null;
 };
 
 type ServiciosLeadAdminRow = {
@@ -330,6 +331,11 @@ export default async function AdminServiciosWorkspacePage(props: {
                           verified={r.leonix_verified}
                           canArchive={(r.listing_status ?? "") !== "rejected"}
                           staffEditBoardHref={`/servicios/perfil/${encodeURIComponent(r.slug)}`}
+                          republishCategory="servicios"
+                          republishRow={{
+                            listing_status: r.listing_status,
+                            republish_override: r.republish_override,
+                          }}
                         />
                       </td>
                       <td className="p-3">
@@ -500,7 +506,7 @@ export default async function AdminServiciosWorkspacePage(props: {
       <div className={`${adminCardBase} border-[#E8DFD0] bg-[#FFFCF7]/90 p-4 text-sm text-[#5C5346]`}>
         <p className="font-semibold text-[#1E1810]">Sandbox de tiers (localStorage)</p>
         <p className="mt-1 text-xs">
-          Herramienta de diseño histórica — no escribe en Supabase. Para pruebas de boosts/tiers usa la pantalla aislada.
+          Herramienta de diseño histórica — no escribe en Supabase. Para pruebas de visibilidad/tiers usa la pantalla aislada.
         </p>
         <Link
           href="/admin/workspace/clasificados/servicios/sandbox"

@@ -38,10 +38,13 @@ export type RestaurantesPublicListingDbRow = {
   external_rating_value: number | null;
   external_review_count: number | null;
   listing_json: unknown;
+  republished_at?: string | null;
+  republish_count?: number | null;
+  republish_override?: boolean | null;
 };
 
 const LIST_SELECT =
-  "id, slug, leonix_ad_id, owner_user_id, draft_listing_id, status, package_tier, leonix_verified, promoted, published_at, updated_at, business_name, city_canonical, zip_code, neighborhood, primary_cuisine, secondary_cuisine, business_type, price_level, service_modes, moving_vendor, home_based_business, food_truck, pop_up, highlights, summary_short, hero_image_url, external_rating_value, external_review_count, listing_json";
+  "id, slug, leonix_ad_id, owner_user_id, draft_listing_id, status, package_tier, leonix_verified, promoted, published_at, updated_at, republished_at, republish_count, republish_override, business_name, city_canonical, zip_code, neighborhood, primary_cuisine, secondary_cuisine, business_type, price_level, service_modes, moving_vendor, home_based_business, food_truck, pop_up, highlights, summary_short, hero_image_url, external_rating_value, external_review_count, listing_json";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -83,7 +86,7 @@ export async function listRestaurantesPublicListingsFromDb(limit = 200): Promise
       .from("restaurantes_public_listings")
       .select(LIST_SELECT)
       .eq("status", "published")
-      .order("updated_at", { ascending: false })
+      .order("republish_sort_at", { ascending: false, nullsFirst: false })
       .limit(limit);
     if (error || !data) return [];
     return data as RestaurantesPublicListingDbRow[];
@@ -101,7 +104,7 @@ export async function listPromotedRestaurantesPublicListingsFromDb(limit = 8): P
       .select(LIST_SELECT)
       .eq("status", "published")
       .eq("promoted", true)
-      .order("updated_at", { ascending: false })
+      .order("republish_sort_at", { ascending: false, nullsFirst: false })
       .limit(limit);
     if (error || !data) return [];
     return data as RestaurantesPublicListingDbRow[];
@@ -212,7 +215,7 @@ export async function listRestaurantesPublicListingsAdminFromDb(
       if (profileIds.length > 0) {
         const { data: byProf, error: pErr } = await qb()
           .in("owner_user_id", profileIds)
-          .order("updated_at", { ascending: false })
+          .order("republish_sort_at", { ascending: false, nullsFirst: false })
           .limit(limit);
         if (!pErr && byProf?.length) return byProf as RestaurantesPublicListingDbRow[];
       }
@@ -242,7 +245,7 @@ export async function listRestaurantesPublicListingsByOwnerIdFromDb(
       .from("restaurantes_public_listings")
       .select(LIST_SELECT)
       .eq("owner_user_id", id)
-      .order("updated_at", { ascending: false })
+      .order("republish_sort_at", { ascending: false, nullsFirst: false })
       .limit(limit);
     if (error || !data) return [];
     return data as RestaurantesPublicListingDbRow[];

@@ -27,7 +27,7 @@ export async function fetchApprovedViajesStagedRows(): Promise<ViajesStagedListi
     .select("*")
     .eq("lifecycle_status", "approved")
     .eq("is_public", true)
-    .order("published_at", { ascending: false, nullsFirst: false });
+    .order("republish_sort_at", { ascending: false, nullsFirst: true });
   if (error || !data) return [];
   return data as ViajesStagedListingRow[];
 }
@@ -49,7 +49,7 @@ export async function fetchViajesStagedRowBySlugPublic(slug: string): Promise<Vi
 export async function fetchAllViajesStagedForAdmin(): Promise<ViajesStagedListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
-  const { data, error } = await supabase.from("viajes_staged_listings").select("*").order("submitted_at", { ascending: false, nullsFirst: false });
+  const { data, error } = await supabase.from("viajes_staged_listings").select("*").order("republish_sort_at", { ascending: false, nullsFirst: true });
   if (error || !data) return [];
   return data as ViajesStagedListingRow[];
 }

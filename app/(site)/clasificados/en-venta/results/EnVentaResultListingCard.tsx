@@ -120,13 +120,13 @@ export function EnVentaResultListingCard({
     <div
       className={cx(
         "absolute left-2 right-2 top-2 z-10 flex items-start gap-2",
-        model.boosted ? "justify-between" : "justify-start"
+        model.featuredHighlight ? "justify-between" : "justify-start"
       )}
     >
       <span className="inline-flex items-center rounded-full border border-[#C9B46A]/55 bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#5C4E2E] shadow-sm">
         {L.pro}
       </span>
-      {model.boosted ? (
+      {model.featuredHighlight ? (
         <span className="rounded-full border border-[#C9B46A]/60 bg-gradient-to-r from-[#E8D48A]/90 via-[#D4BC6A]/90 to-[#C9A84A]/90 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-[#1E1810] shadow">
           {L.dest}
         </span>
@@ -214,7 +214,7 @@ export function EnVentaResultListingCard({
         {isPro ? (
           <span className="text-[11px] font-medium tabular-nums text-[#5C5346]/90">{model.postedAgo}</span>
         ) : null}
-        {model.boosted && !isPro ? (
+        {model.featuredHighlight && !isPro ? (
           <span className="rounded-full border border-[#C9B46A]/50 bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#6B5B2E]">
             {L.dest}
           </span>

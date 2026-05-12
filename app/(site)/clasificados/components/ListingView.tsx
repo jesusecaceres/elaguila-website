@@ -96,6 +96,8 @@ export type ListingData = {
   listingSummaryShort?: string | null;
   highlightChips?: string[];
   listingStatusLabel?: string | null;
+  /** When set, En Venta Pro visibility window can show a “recent republish” chip in cards. */
+  republishedAt?: string;
 };
 
 type MediaSlot =
@@ -121,7 +123,7 @@ export type ListingViewProps = {
   listing: ListingData;
   /** Seller preview (toasts, no real actions). */
   previewMode?: boolean;
-  /** When true, render this same listing as if upgraded to Pro (badge, boost, benefits block). Preview-only; does not change data. */
+  /** When true, render this same listing as if upgraded to Pro (badge, visibility callouts, benefits block). Preview-only; does not change data. */
   previewProUpgrade?: boolean;
   /** Pro comparison: which benefit to highlight in the preview (clickable list). */
   proHighlight?: ProHighlightId | string | null;

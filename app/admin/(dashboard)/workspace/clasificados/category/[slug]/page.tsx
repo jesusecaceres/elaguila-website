@@ -131,7 +131,7 @@ export default async function ClasificadosCategoryWorkspacePage(props: PageProps
             {isEnVenta ? (
               <li>
                 Copy y taxonomía En Venta:{" "}
-                <code className="rounded bg-[#FBF7EF] px-1 text-[11px]">app/clasificados/en-venta/</code> (wizards, boosts, contrato
+                <code className="rounded bg-[#FBF7EF] px-1 text-[11px]">app/clasificados/en-venta/</code> (wizards, visibilidad, contrato
                 Leonix).
               </li>
             ) : (

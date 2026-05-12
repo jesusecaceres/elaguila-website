@@ -4,14 +4,14 @@ import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import { adminLocalSimBadgeClass } from "@/app/admin/_components/adminTheme";
 
-const STORAGE_KEY = "leonix_admin_servicios_listings_v1";
+const STORAGE_KEY = "leonix_admin_servicios_listings_v2";
 
 function getCurrentCycleKey(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function getBoostCreditsForTier(tier: "premium" | "plus" | "standard"): number {
+function getSpotRefreshesForTier(tier: "premium" | "plus" | "standard"): number {
   if (tier === "premium") return 2;
   if (tier === "plus") return 1;
   return 0;
@@ -38,10 +38,10 @@ export type AdminServiciosListing = {
   shop?: boolean;
   urgent247?: boolean;
   servicesOffered?: string[];
-  boostCreditsPerCycle?: number;
-  boostUsedThisCycle?: number;
-  boostUntil?: string;
-  boostCycleKey?: string;
+  spotRefreshesPerCycle?: number;
+  spotRefreshesUsed?: number;
+  spotWindowUntilIso?: string;
+  spotCycleKey?: string;
   stypeLabelEs?: string;
 };
 
@@ -164,18 +164,18 @@ function backfillAndCycle(listings: AdminServiciosListing[]): AdminServiciosList
       businessId = "SV-" + String(nextNum++).padStart(6, "0");
     }
     const listingId = l.listingId ?? l.id;
-    const boostCycleKey = l.boostCycleKey ?? currentKey;
-    const cycleChanged = boostCycleKey !== currentKey;
-    const boostUsedThisCycle = cycleChanged ? 0 : (l.boostUsedThisCycle ?? 0);
-    const credits = l.boostCreditsPerCycle ?? getBoostCreditsForTier(l.tier);
+    const spotCycleKey = l.spotCycleKey ?? currentKey;
+    const cycleChanged = spotCycleKey !== currentKey;
+    const spotRefreshesUsed = cycleChanged ? 0 : (l.spotRefreshesUsed ?? 0);
+    const credits = l.spotRefreshesPerCycle ?? getSpotRefreshesForTier(l.tier);
     return {
       ...l,
       businessId,
       listingId,
-      boostCreditsPerCycle: credits,
-      boostUsedThisCycle,
-      boostCycleKey: currentKey,
-      boostUntil: l.boostUntil,
+      spotRefreshesPerCycle: credits,
+      spotRefreshesUsed,
+      spotCycleKey: currentKey,
+      spotWindowUntilIso: l.spotWindowUntilIso,
     };
   });
 }
@@ -250,7 +250,7 @@ export default function ServiciosAdminClient() {
     const id = "admin-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
     const nextNum = nextBusinessIdNumber(listings);
     const businessId = "SV-" + String(nextNum).padStart(6, "0");
-    const credits = getBoostCreditsForTier(tier);
+    const credits = getSpotRefreshesForTier(tier);
     const newListing: AdminServiciosListing = {
       id,
       listingId: id,
@@ -272,9 +272,9 @@ export default function ServiciosAdminClient() {
       mobile: mobile || undefined,
       shop: shop || undefined,
       urgent247: urgent247 || undefined,
-      boostCreditsPerCycle: credits,
-      boostUsedThisCycle: 0,
-      boostCycleKey: currentCycleKey,
+      spotRefreshesPerCycle: credits,
+      spotRefreshesUsed: 0,
+      spotCycleKey: currentCycleKey,
     };
     const next = backfillAndCycle([...listings, newListing]);
     setListings(next);
@@ -304,18 +304,18 @@ export default function ServiciosAdminClient() {
     saveListings(next);
   };
 
-  const activateBoost = (id: string) => {
+  const simulateSpotRefresh = (id: string) => {
     const l = listings.find((x) => x.id === id);
     if (!l) return;
-    const credits = l.boostCreditsPerCycle ?? getBoostCreditsForTier(l.tier);
-    const used = l.boostUsedThisCycle ?? 0;
+    const credits = l.spotRefreshesPerCycle ?? getSpotRefreshesForTier(l.tier);
+    const used = l.spotRefreshesUsed ?? 0;
     const now = Date.now();
-    const until = l.boostUntil ? new Date(l.boostUntil).getTime() : 0;
-    const hasActiveBoost = until > now;
-    if (hasActiveBoost || used >= credits) return;
-    const boostUntil = new Date(now + 5 * 24 * 60 * 60 * 1000).toISOString();
+    const until = l.spotWindowUntilIso ? new Date(l.spotWindowUntilIso).getTime() : 0;
+    const hasActiveSpotWindow = until > now;
+    if (hasActiveSpotWindow || used >= credits) return;
+    const spotWindowUntilIso = new Date(now + 5 * 24 * 60 * 60 * 1000).toISOString();
     const next = listings.map((x) =>
-      x.id === id ? { ...x, boostUntil, boostUsedThisCycle: (x.boostUsedThisCycle ?? 0) + 1 } : x
+      x.id === id ? { ...x, spotWindowUntilIso, spotRefreshesUsed: (x.spotRefreshesUsed ?? 0) + 1 } : x
     );
     setListings(next);
     saveListings(next);
@@ -323,7 +323,7 @@ export default function ServiciosAdminClient() {
 
   const resetCycle = (id: string) => {
     const next = listings.map((l) =>
-      l.id === id ? { ...l, boostCycleKey: currentCycleKey, boostUsedThisCycle: 0 } : l
+      l.id === id ? { ...l, spotCycleKey: currentCycleKey, spotRefreshesUsed: 0 } : l
     );
     setListings(next);
     saveListings(next);
@@ -528,13 +528,13 @@ export default function ServiciosAdminClient() {
                 </tr>
               ) : (
                 filteredListings.map((l) => {
-                  const credits = l.boostCreditsPerCycle ?? getBoostCreditsForTier(l.tier);
-                  const used = l.boostUsedThisCycle ?? 0;
+                  const credits = l.spotRefreshesPerCycle ?? getSpotRefreshesForTier(l.tier);
+                  const used = l.spotRefreshesUsed ?? 0;
                   const now = Date.now();
-                  const until = l.boostUntil ? new Date(l.boostUntil).getTime() : 0;
-                  const hasActiveBoost = until > now;
-                  const canBoost = !hasActiveBoost && used < credits;
-                  const untilStr = l.boostUntil ? new Date(l.boostUntil).toLocaleDateString() : "";
+                  const until = l.spotWindowUntilIso ? new Date(l.spotWindowUntilIso).getTime() : 0;
+                  const hasActiveSpotWindow = until > now;
+                  const canApplySpotRefresh = !hasActiveSpotWindow && used < credits;
+                  const untilStr = l.spotWindowUntilIso ? new Date(l.spotWindowUntilIso).toLocaleDateString() : "";
                   return (
                     <tr key={l.id} className="border-b border-black/5">
                       <td className="p-3 text-[#111111] font-mono text-xs">{l.businessId}</td>
@@ -544,7 +544,7 @@ export default function ServiciosAdminClient() {
                       <td className="p-3 text-[#111111]">{l.tier}</td>
                       <td className="p-3">
                         <span className="text-[#111111]">Refreshes: {used}/{credits}</span>
-                        {hasActiveBoost && (
+                        {hasActiveSpotWindow && (
                           <div className="text-xs text-[#1F7A3A] mt-0.5">
                             Visibilidad renovada hasta {untilStr}
                           </div>
@@ -564,11 +564,11 @@ export default function ServiciosAdminClient() {
                       <td className="p-3 flex flex-wrap gap-1">
                         <button
                           type="button"
-                          onClick={() => activateBoost(l.id)}
-                          disabled={!canBoost}
+                          onClick={() => simulateSpotRefresh(l.id)}
+                          disabled={!canApplySpotRefresh}
                           title={
-                            !canBoost
-                              ? hasActiveBoost
+                            !canApplySpotRefresh
+                              ? hasActiveSpotWindow
                                 ? `Visibilidad activa hasta ${untilStr}`
                                 : "Sin renovaciones disponibles en este ciclo"
                               : "Renovar visibilidad 5 días (sandbox)"

@@ -39,7 +39,7 @@ import {
   resolveCategoryAdPlan,
   resolveCategoryAdPlanFromDashboardInventoryItem,
 } from "@/app/lib/listingPlans/categoryAdPlans";
-import { isListingBoosted, listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
+import { listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
 import {
   resolveListingUiStatus,
   shortListingRef,
@@ -72,7 +72,8 @@ type ListingRow = {
   business_name?: string | null;
   images?: unknown;
   detail_pairs?: unknown;
-  boost_expires?: unknown;
+  republished_at?: string | null;
+  republish_count?: number | null;
   views?: number | null;
   /** When set and lower than original, UI may show “price reduced” (contract-ready). */
   original_price?: number | string | null;
@@ -142,12 +143,6 @@ function formatUpdatedLine(row: ListingRow, lang: Lang): string | null {
     day: "numeric",
   });
   return lang === "es" ? `Actualizado: ${lbl}` : `Updated: ${lbl}`;
-}
-
-function boostExpiresIso(row: ListingRow): string | null {
-  const b = row.boost_expires;
-  if (b == null) return null;
-  return typeof b === "string" ? b : String(b);
 }
 
 function normalizeUiStatus(st: ListingUiStatus, row: ListingRow): ListingUiStatus {
@@ -342,7 +337,7 @@ export default function MyListingsPage() {
     return isMisAnunciosCategoryFilter(raw) ? raw : "all";
   });
   const [error, setError] = useState<string | null>(null);
-  const [boostExpiresAvailable, setBoostExpiresAvailable] = useState(true);
+  const [republishColsAvailable, setRepublishColsAvailable] = useState(true);
   const [analyticsByListing, setAnalyticsByListing] = useState<Record<string, ListingAnalyticsBucket>>({});
 
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -419,7 +414,7 @@ export default function MyListingsPage() {
         return;
       }
 
-      setBoostExpiresAvailable(meta?.boostExpiresAvailable !== false);
+      setRepublishColsAvailable(meta?.republishColsAvailable !== false);
       const list = ((rows ?? []) as Record<string, unknown>[]).map((r) => mapOwnerListingRow(r)) as ListingRow[];
       setListings(list);
       const restaurantRows = await fetchOwnerRestaurantListings(supabase, u.id);
@@ -513,7 +508,7 @@ export default function MyListingsPage() {
     const nowMs = Date.now();
     const vm = computeEnVentaVisibilityRenewalVm({
       plan: "pro",
-      boostExpires: row.boost_expires,
+      republishedAt: row.republished_at,
       detailPairs: row.detail_pairs,
       nowMs,
     });
@@ -524,12 +519,12 @@ export default function MyListingsPage() {
     setError(null);
 
     const renewedAtIso = new Date(nowMs).toISOString();
-    const newExpiresIso = new Date(nowMs + EN_VENTA_VISIBILITY_WINDOW_MS).toISOString();
     const newPairs = mergeDetailPairValue(row.detail_pairs, EN_VENTA_VISIBILITY_LAST_RENEWAL_LABEL, renewedAtIso);
 
+    const nextCount = Number(row.republish_count ?? 0) + 1;
     const { error: uErr } = await supabase
       .from("listings")
-      .update({ boost_expires: newExpiresIso, detail_pairs: newPairs })
+      .update({ republished_at: renewedAtIso, republish_count: nextCount, detail_pairs: newPairs })
       .eq("id", row.id);
 
     if (uErr) {
@@ -540,8 +535,8 @@ export default function MyListingsPage() {
 
     setListings((prev) =>
       prev.map((x) =>
-        x.id === row.id ? { ...x, boost_expires: newExpiresIso, detail_pairs: newPairs } : x
-      )
+        x.id === row.id ? { ...x, republished_at: renewedAtIso, republish_count: nextCount, detail_pairs: newPairs } : x,
+      ),
     );
     setBusyId(null);
   }
@@ -1268,14 +1263,13 @@ export default function MyListingsPage() {
                 const stats = analyticsByListing[x.id];
                 const thumbUrl = getFirstListingImageUrl(x.images);
                 const listingPlan = listingPlanFromDetailPairs(x.detail_pairs);
-                const boosted = isListingBoosted(x.boost_expires);
                 const viewsTotal = resolveViews(x, stats);
 
                 const renewalVm =
-                  listingPlan === "pro" && boostExpiresAvailable
+                  listingPlan === "pro" && republishColsAvailable
                     ? computeEnVentaVisibilityRenewalVm({
                         plan: "pro",
-                        boostExpires: x.boost_expires,
+                        republishedAt: x.republished_at,
                         detailPairs: x.detail_pairs,
                         nowMs: Date.now(),
                       })
@@ -1284,10 +1278,10 @@ export default function MyListingsPage() {
                   x.category === "en-venta" && listingPlan === "pro" && renewalVm
                     ? {
                         lang,
-                        boostActive: renewalVm.boostActive,
-                        boostEndsLabel:
-                          renewalVm.boostActive && renewalVm.boostExpiresAt != null
-                            ? formatDateTimeMs(renewalVm.boostExpiresAt, lang)
+                        republishWindowActive: renewalVm.republishWindowActive,
+                        republishWindowEndsLabel:
+                          renewalVm.republishWindowActive && renewalVm.republishWindowEndsAt != null
+                            ? formatDateTimeMs(renewalVm.republishWindowEndsAt, lang)
                             : null,
                         canRenew: renewalVm.canRenewNow,
                         nextEligibleLabel: renewalVm.canRenewNow
@@ -1394,7 +1388,6 @@ export default function MyListingsPage() {
                       editHref={`/dashboard/mis-anuncios/${x.id}/editar?${q}`}
                       listingPlan={listingPlan}
                       listingAdPlanLabel={enVentaPlanLabel}
-                      boosted={boosted}
                       analytics={{
                         views: stats?.views ?? 0,
                         uniqueViews: stats?.uniqueViews ?? 0,
@@ -1410,7 +1403,13 @@ export default function MyListingsPage() {
                       visibilityRenewal={visibilityRenewal}
                       uiStatus={uiSt}
                       listingRefShort={shortListingRef(x.id)}
-                      expiresIso={boostExpiresIso(x)}
+                      expiresIso={
+                        renewalVm?.republishWindowEndsAt != null
+                          ? new Date(renewalVm.republishWindowEndsAt).toISOString()
+                          : x.expires_at
+                            ? String(x.expires_at)
+                            : null
+                      }
                       updatedLine={formatUpdatedLine(x, lang)}
                       workspaceHref={`/dashboard/mis-anuncios/${x.id}?${q}`}
                       messagesHref={`/dashboard/mensajes?${q}`}

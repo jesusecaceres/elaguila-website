@@ -206,6 +206,11 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
                         verified={r.leonix_verified}
                         canArchive={r.status !== "archived"}
                         staffEditBoardHref="/dashboard/restaurantes"
+                        republishCategory="restaurantes"
+                        republishRow={{
+                          status: r.status,
+                          republish_override: r.republish_override,
+                        }}
                       />
                     </td>
                   </tr>

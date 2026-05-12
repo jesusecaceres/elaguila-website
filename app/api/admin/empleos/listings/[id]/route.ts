@@ -3,6 +3,10 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
+import {
+  canRepublishListing,
+  empleosRowIsPublicLive,
+} from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
 
 type EmpleosStaffAction =
@@ -12,7 +16,8 @@ type EmpleosStaffAction =
   | "promote_off"
   | "verify_on"
   | "verify_off"
-  | "archive";
+  | "archive"
+  | "republish";
 
 function isAction(x: unknown): x is EmpleosStaffAction {
   return (
@@ -22,7 +27,8 @@ function isAction(x: unknown): x is EmpleosStaffAction {
     x === "promote_off" ||
     x === "verify_on" ||
     x === "verify_off" ||
-    x === "archive"
+    x === "archive" ||
+    x === "republish"
   );
 }
 
@@ -53,7 +59,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const supabase = getAdminSupabase();
   const { data: row, error: rErr } = await supabase
     .from("empleos_public_listings")
-    .select("id, slug, lifecycle_status, admin_promoted, leonix_verified")
+    .select("id, slug, lifecycle_status, admin_promoted, leonix_verified, republish_count, republish_override")
     .eq("id", id)
     .maybeSingle();
 
@@ -61,8 +67,44 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   }
 
+  const rowRec = row as Record<string, unknown>;
   const now = new Date().toISOString();
   const patch: Record<string, unknown> = { updated_at: now };
+
+  if (action === "republish") {
+    if (String(rowRec.lifecycle_status ?? "").toLowerCase() === "archived") {
+      return NextResponse.json({ ok: false, error: "cannot_republish_archived" }, { status: 400 });
+    }
+    if (!canRepublishListing(rowRec, "empleos")) {
+      return NextResponse.json({ ok: false, error: "republish_not_eligible" }, { status: 400 });
+    }
+    const nextCount = Number(rowRec.republish_count ?? 0) + 1;
+    Object.assign(patch, {
+      republished_at: now,
+      republish_count: nextCount,
+      last_republished_source: "admin",
+      last_republished_by: null,
+    });
+    if (!empleosRowIsPublicLive(rowRec)) {
+      patch.lifecycle_status = "published";
+    }
+    const { error } = await supabase.from("empleos_public_listings").update(patch).eq("id", id);
+    if (error) {
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    }
+    const slug = String(rowRec.slug ?? "");
+    void appendAdminAuditLog({
+      action: "republish",
+      targetType: "empleos_public_listing",
+      targetId: id,
+      meta: { slug, patch },
+    });
+    revalidatePath("/clasificados/empleos");
+    revalidatePath("/clasificados/empleos/resultados");
+    revalidatePath("/admin/workspace/clasificados/empleos");
+    if (slug) revalidatePath(`/clasificados/empleos/${slug}`);
+    return NextResponse.json({ ok: true, id, slug, ...patch });
+  }
 
   switch (action) {
     case "suspend":

@@ -35,6 +35,7 @@ import type { RentasAnuncioListingLike } from "../../rentas/listing/types/rentas
 import { EnVentaAnuncioLayout } from "../../en-venta/listing/EnVentaAnuncioLayout";
 import { EV_LISTING_PARAM } from "../../en-venta/results/contracts/enVentaResultsUrlParams";
 import { parseEnVentaResultsReturnUrl } from "../../en-venta/results/utils/enVentaListingLinks";
+import { EN_VENTA_VISIBILITY_WINDOW_MS } from "../../en-venta/boosts/enVentaVisibilityRenewal";
 import { missingListingsColumnName, stripSelectColumn } from "../../lib/listingsSelectShrink";
 import { resolveLeonixLiveListingContact } from "../../lib/leonixListingContactResolve";
 import { useAutosAnuncioDerived } from "../../autos/listing/hooks/useAutosAnuncioDerived";
@@ -45,7 +46,7 @@ import type { AutosAnuncioListingLike } from "../../autos/listing/types/autosAnu
 type Lang = "es" | "en";
 
 const ANUNCIO_LISTING_SELECT_BASE =
-  "id, leonix_ad_id, owner_id, title, description, city, category, price, is_free, detail_pairs, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, original_price, current_price, price_last_updated, images, boost_expires";
+  "id, leonix_ad_id, owner_id, title, description, city, category, price, is_free, detail_pairs, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, original_price, current_price, price_last_updated, images, republished_at";
 
 type CategoryKey =
   | "en-venta"
@@ -82,7 +83,7 @@ type Listing = {
   sellerJoinYear?: number | null;
   sellerActiveListings?: number | null;
   images?: string[] | null;
-  boostUntil?: string | null;
+  republishedAt?: string | null;
   owner_id?: string | null;
   businessName?: string | null;
   business_name?: string | null;
@@ -196,9 +197,9 @@ function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
   /** Only `active` | `sold` reach here — guarded before map (same public contract as lista/hub for browse; sold kept for direct links). */
   const status: ListingStatus = statusRaw === "sold" ? "sold" : "active";
 
-  const boostRaw = row.boost_expires;
-  const boostUntil =
-    typeof boostRaw === "string" && boostRaw.trim() ? boostRaw : typeof boostRaw === "number" ? String(boostRaw) : null;
+  const repRaw = row.republished_at;
+  const republishedAt =
+    typeof repRaw === "string" && repRaw.trim() ? repRaw : typeof repRaw === "number" ? String(repRaw) : null;
 
   const detailPairs = row.detail_pairs;
   const base: Listing = {
@@ -218,7 +219,7 @@ function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
     price_last_updated: typeof row.price_last_updated === "string" ? row.price_last_updated : null,
     created_at: typeof row.created_at === "string" ? row.created_at : null,
     images,
-    boostUntil,
+    republishedAt,
     owner_id: row.owner_id != null ? String(row.owner_id) : null,
     businessName: row.business_name != null ? String(row.business_name) : null,
     business_name: row.business_name != null ? String(row.business_name) : null,
@@ -820,9 +821,12 @@ export default function AnuncioDetallePage() {
     return listing.postedAgo[lang];
   }, [listing, lang]);
 
-  const isBoosted = useMemo(() => {
-    const until = (listing as any)?.boostUntil;
-    return until && new Date(until).getTime() > Date.now();
+  const isRepublishWindowActive = useMemo(() => {
+    const iso = listing?.republishedAt;
+    if (!iso) return false;
+    const t = new Date(iso).getTime();
+    if (!Number.isFinite(t)) return false;
+    return Date.now() < t + EN_VENTA_VISIBILITY_WINDOW_MS;
   }, [listing]);
 
   const [viewerCityInput, setViewerCityInput] = useState("");
@@ -1184,9 +1188,9 @@ export default function AnuncioDetallePage() {
                     </div>
 
                     <div className="shrink-0 flex flex-col items-end gap-2">
-                      {isBoosted && (
+                      {isRepublishWindowActive && (
                         <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold border border-yellow-400/40 bg-yellow-400/15 text-yellow-200">
-                          🚀 {lang === "es" ? "Impulso de visibilidad" : "Visibility boost"}
+                          🚀 {lang === "es" ? "Ventana de visibilidad activa" : "Active visibility window"}
                         </span>
                       )}
                       <span

@@ -229,7 +229,7 @@ export async function fetchEmpleosPublishedJobRecords(): Promise<EmpleosJobRecor
     .from("empleos_public_listings")
     .select("*")
     .eq("lifecycle_status", "published")
-    .order("published_at", { ascending: false });
+    .order("republish_sort_at", { ascending: false, nullsFirst: true });
   if (error || !data) return [];
   return (data as EmpleosPublicListingRow[]).map((r) => rowToJobRecord(r));
 }
@@ -305,7 +305,7 @@ export async function fetchEmpleosListingsForOwner(ownerUserId: string): Promise
     .from("empleos_public_listings")
     .select("*")
     .eq("owner_user_id", ownerUserId)
-    .order("updated_at", { ascending: false });
+    .order("republish_sort_at", { ascending: false, nullsFirst: true });
   if (error || !data) return [];
   return data as EmpleosPublicListingRow[];
 }
@@ -313,7 +313,7 @@ export async function fetchEmpleosListingsForOwner(ownerUserId: string): Promise
 export async function fetchAllEmpleosListingsForAdmin(): Promise<EmpleosPublicListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
-  const { data, error } = await supabase.from("empleos_public_listings").select("*").order("updated_at", { ascending: false });
+  const { data, error } = await supabase.from("empleos_public_listings").select("*").order("republish_sort_at", { ascending: false, nullsFirst: true });
   if (error || !data) return [];
   return data as EmpleosPublicListingRow[];
 }

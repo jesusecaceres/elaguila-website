@@ -25,7 +25,7 @@ export type ListingRow = Record<string, unknown> & {
   category?: string | null;
   status?: string | null;
   membership_snapshot?: unknown;
-  boost_until?: string | null;
+  republished_at?: string | null;
   expires_at?: string | null;
   posted_at?: string | null;
   created_at?: string | null;
@@ -190,6 +190,14 @@ export function mapListingToViewModel(row: ListingRow | null, lang: "es" | "en")
   const ownerId =
     typeof ownerIdRaw === "string" && ownerIdRaw.trim() ? ownerIdRaw.trim() : undefined;
 
+  const republishedAtRaw = row.republished_at;
+  const republishedAt =
+    republishedAtRaw == null
+      ? undefined
+      : typeof republishedAtRaw === "string" && republishedAtRaw.trim()
+        ? republishedAtRaw.trim()
+        : undefined;
+
   return {
     title,
     priceLabel,
@@ -212,5 +220,6 @@ export function mapListingToViewModel(row: ListingRow | null, lang: "es" | "en")
     ...(businessRail ? { businessRail } : {}),
     ...(businessRailTier ? { businessRailTier } : {}),
     ...(ownerId ? { ownerId } : {}),
+    ...(republishedAt ? { republishedAt } : {}),
   };
 }

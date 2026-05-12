@@ -59,7 +59,8 @@ function fulfillmentChip(dto: EnVentaAnuncioDTO, lang: "es" | "en"): string | nu
 export type EnVentaResultsCardModel = {
   id: string;
   plan: "free" | "pro";
-  boosted: boolean;
+  /** Staff spotlight / `Leonix:promoted` — not the same as republish ordering. */
+  featuredHighlight: boolean;
   title: string;
   priceText: string;
   locationText: string;
@@ -83,9 +84,9 @@ export type EnVentaResultsCardModel = {
  */
 export function buildEnVentaResultsCardModel(
   dto: EnVentaAnuncioDTO,
-  opts: { lang: "es" | "en"; effectiveDeptKey: string | null; boosted: boolean }
+  opts: { lang: "es" | "en"; effectiveDeptKey: string | null; featuredHighlight: boolean }
 ): EnVentaResultsCardModel {
-  const { lang, effectiveDeptKey, boosted } = opts;
+  const { lang, effectiveDeptKey, featuredHighlight } = opts;
   const plan = dto.planTier;
   const images = Array.isArray(dto.images) ? dto.images.filter((u) => typeof u === "string" && u.trim()) : [];
   const heroImage = images[0] ?? null;
@@ -110,7 +111,7 @@ export function buildEnVentaResultsCardModel(
   return {
     id: dto.id,
     plan,
-    boosted,
+    featuredHighlight,
     title: dto.title[lang].trim() || (lang === "es" ? "Sin título" : "Untitled"),
     priceText: dto.priceLabel[lang],
     locationText,

@@ -10,7 +10,11 @@ import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
 import { DashboardMobilePreview } from "../../components/DashboardMobilePreview";
 import { rollupListingAnalyticsEvents } from "../../lib/listingAnalyticsAggregate";
-import { isListingBoosted, listingPlanFromDetailPairs } from "../../lib/dashboardListingMeta";
+import {
+  isListingRepublishWindowActive,
+  listingPlanFromDetailPairs,
+  listingRepublishVisibilityWindowEndIso,
+} from "../../lib/dashboardListingMeta";
 import {
   expiresInDaysLabel,
   listingUiStatusChipClass,
@@ -38,7 +42,7 @@ type ListingRow = {
   category?: string | null;
   images?: unknown;
   detail_pairs?: unknown;
-  boost_expires?: unknown;
+  republished_at?: unknown;
   is_published?: boolean | null;
   original_price?: number | string | null;
   current_price?: number | string | null;
@@ -127,9 +131,9 @@ export default function ListingWorkspacePage() {
             updated: "Última actualización",
             published: "Publicado",
             listingExpires: "Expiración del anuncio",
-            expires: "Visibilidad / boost hasta",
+            expires: "Fin de ventana de visibilidad",
             plan: "Plan del anuncio",
-            boost: "Estado de promoción",
+            visibilityState: "Estado de visibilidad",
             views: "Vistas",
             uniq: "Vistas únicas",
             saves: "Guardados",
@@ -177,9 +181,9 @@ export default function ListingWorkspacePage() {
             updated: "Last updated",
             published: "Published",
             listingExpires: "Listing expiry",
-            expires: "Boost / visibility until",
+            expires: "Visibility window ends",
             plan: "Listing plan",
-            boost: "Promotion state",
+            visibilityState: "Visibility state",
             views: "Views",
             uniq: "Unique views",
             saves: "Saves",
@@ -271,9 +275,9 @@ export default function ListingWorkspacePage() {
     }
 
     const selFull =
-      "id,leonix_ad_id,owner_id,title,price,city,status,created_at,updated_at,published_at,expires_at,category,images,detail_pairs,boost_expires,is_published,original_price,current_price,price_last_updated";
+      "id,leonix_ad_id,owner_id,title,price,city,status,created_at,updated_at,published_at,expires_at,category,images,detail_pairs,republished_at,is_published,original_price,current_price,price_last_updated";
     const selBase =
-      "id,leonix_ad_id,owner_id,title,price,city,status,created_at,category,images,detail_pairs,boost_expires,is_published,original_price,current_price,price_last_updated";
+      "id,leonix_ad_id,owner_id,title,price,city,status,created_at,category,images,detail_pairs,republished_at,is_published,original_price,current_price,price_last_updated";
 
     let listing: ListingRow | null = null;
     let q = await sb.from("listings").select(selFull).eq("id", id).maybeSingle();
@@ -349,18 +353,13 @@ export default function ListingWorkspacePage() {
 
   const accountRef = userId ? accountRefFromId(userId) : null;
   const listingPlan = row ? listingPlanFromDetailPairs(row.detail_pairs) : "free";
-  const boosted = row ? isListingBoosted(row.boost_expires) : false;
+  const visibilityWindowActive = row ? isListingRepublishWindowActive(row.republished_at) : false;
   const uiStatus = row ? resolveListingUiStatus(row) : "unknown";
   const priceLine = row ? formatPrice(row.price, lang) : "—";
   const cityLine = (row?.city ?? "").trim() || "—";
   const thumbUrl = row ? getFirstListingImageUrl(row.images) : null;
-  const boostIso =
-    row?.boost_expires != null
-      ? typeof row.boost_expires === "string"
-        ? row.boost_expires
-        : String(row.boost_expires)
-      : null;
-  const expireChip = expiresInDaysLabel(boostIso, lang);
+  const visibilityWindowEndIso = row ? listingRepublishVisibilityWindowEndIso(row.republished_at) : null;
+  const expireChip = expiresInDaysLabel(visibilityWindowEndIso, lang);
   const listingExpireIso =
     row?.expires_at != null ? (typeof row.expires_at === "string" ? row.expires_at : String(row.expires_at)) : null;
   const listingExpireChip = expiresInDaysLabel(listingExpireIso, lang);
@@ -536,7 +535,7 @@ export default function ListingWorkspacePage() {
                   <div className="flex justify-between gap-4">
                     <dt className="text-[#5C5346]">{t.expires}</dt>
                     <dd className="text-right text-[#1E1810]">
-                      {boostIso ? new Date(boostIso).toLocaleString() : "—"}
+                      {visibilityWindowEndIso ? new Date(visibilityWindowEndIso).toLocaleString() : "—"}
                       {expireChip ? (
                         <span className="ml-2 inline-block rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-900">
                           {expireChip}
@@ -549,8 +548,10 @@ export default function ListingWorkspacePage() {
                     <dd className="font-semibold uppercase text-[#1E1810]">{listingPlan}</dd>
                   </div>
                   <div className="flex justify-between gap-4">
-                    <dt className="text-[#5C5346]">{t.boost}</dt>
-                    <dd className="text-[#1E1810]">{boosted ? (lang === "es" ? "Activo" : "Active") : lang === "es" ? "Sin ventana activa" : "No active window"}</dd>
+                    <dt className="text-[#5C5346]">{t.visibilityState}</dt>
+                    <dd className="text-[#1E1810]">
+                      {visibilityWindowActive ? (lang === "es" ? "Activo" : "Active") : lang === "es" ? "Sin ventana activa" : "No active window"}
+                    </dd>
                   </div>
                 </dl>
               </div>

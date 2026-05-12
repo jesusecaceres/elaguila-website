@@ -3,6 +3,10 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
+import {
+  autosRowIsPublicLive,
+  canRepublishListing,
+} from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
 import { getAutosClassifiedsListingById } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import type { AutosClassifiedsListingStatus } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
@@ -18,7 +22,8 @@ type StaffAutosAction =
   | "promote_off"
   | "verify_on"
   | "verify_off"
-  | "archive";
+  | "archive"
+  | "republish";
 
 function isAction(x: unknown): x is StaffAutosAction {
   return (
@@ -30,7 +35,8 @@ function isAction(x: unknown): x is StaffAutosAction {
     x === "promote_off" ||
     x === "verify_on" ||
     x === "verify_off" ||
-    x === "archive"
+    x === "archive" ||
+    x === "republish"
   );
 }
 
@@ -67,6 +73,50 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
 
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
+
+  if (action === "republish") {
+    const { data: meta, error: mErr } = await supabase
+      .from("autos_classifieds_listings")
+      .select("republish_count, republish_override, lane, status, leonix_ad_id, owner_user_id")
+      .eq("id", id)
+      .maybeSingle();
+    if (mErr || !meta) {
+      return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+    }
+    const rec = { ...(meta as Record<string, unknown>) };
+    if (!canRepublishListing(rec, "autos")) {
+      return NextResponse.json({ ok: false, error: "republish_not_eligible" }, { status: 400 });
+    }
+    const nextCount = Number(rec.republish_count ?? 0) + 1;
+    const patch: Record<string, unknown> = {
+      updated_at: now,
+      republished_at: now,
+      republish_count: nextCount,
+      last_republished_source: "admin",
+      last_republished_by: null,
+    };
+    if (!autosRowIsPublicLive(rec)) {
+      if (rec.status === "removed" || rec.status === "cancelled") {
+        patch.status = "active" satisfies AutosClassifiedsListingStatus;
+        patch.published_at = row.published_at ?? now;
+      }
+    }
+    const { error } = await supabase.from("autos_classifieds_listings").update(patch).eq("id", id);
+    if (error) {
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    }
+    void appendAdminAuditLog({
+      action: "republish",
+      targetType: "autos_classifieds_listing",
+      targetId: id,
+      meta: { leonix_ad_id: rec.leonix_ad_id, patch },
+    });
+    revalidatePath("/clasificados/autos");
+    revalidatePath(`/clasificados/autos/vehiculo/${id}`);
+    revalidatePath("/admin/workspace/clasificados/autos");
+    return NextResponse.json({ ok: true, id, ...patch });
+  }
+
   const patch: Record<string, unknown> = { updated_at: now };
 
   if (action === "remove_public" || action === "suspend") {

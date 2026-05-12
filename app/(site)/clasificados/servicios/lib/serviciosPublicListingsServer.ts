@@ -20,11 +20,11 @@ import {
 
 /** Preferred select — includes `leonix_ad_id` when the column exists. */
 const LISTING_SELECT =
-  "slug, business_name, city, published_at, profile_json, leonix_verified, internal_group, listing_status, owner_user_id, leonix_ad_id";
+  "slug, business_name, city, published_at, profile_json, leonix_verified, internal_group, listing_status, owner_user_id, leonix_ad_id, republished_at, republish_count, republish_override";
 
 /** Fallback when older DBs have not yet applied `leonix_ad_id` (PostgREST would otherwise fail the whole read). */
 const LISTING_SELECT_FALLBACK =
-  "slug, business_name, city, published_at, profile_json, leonix_verified, internal_group, listing_status, owner_user_id";
+  "slug, business_name, city, published_at, profile_json, leonix_verified, internal_group, listing_status, owner_user_id, republished_at, republish_count, republish_override";
 
 function isPostgrestMissingColumnOrSchemaError(error: { message?: string } | null | undefined): boolean {
   return Boolean(error?.message && /column|does not exist|schema cache/i.test(error.message));
@@ -77,7 +77,7 @@ export async function listServiciosPublicListingsFromDb(limit = 48): Promise<Ser
       .from("servicios_public_listings")
       .select(LISTING_SELECT)
       .ilike("listing_status", SERVICIOS_LISTING_STATUS_PUBLISHED)
-      .order("published_at", { ascending: false })
+      .order("republish_sort_at", { ascending: false, nullsFirst: false })
       .limit(limit);
     let data = first.data;
     let error = first.error;
@@ -86,7 +86,7 @@ export async function listServiciosPublicListingsFromDb(limit = 48): Promise<Ser
         .from("servicios_public_listings")
         .select(LISTING_SELECT_FALLBACK)
         .ilike("listing_status", SERVICIOS_LISTING_STATUS_PUBLISHED)
-        .order("published_at", { ascending: false })
+        .order("republish_sort_at", { ascending: false, nullsFirst: false })
         .limit(limit);
       data = second.data as typeof first.data;
       error = second.error;
@@ -203,7 +203,7 @@ export async function getServiciosPublicListingBySlugForDiscovery(slug: string):
 }
 
 const SERVICIOS_ADMIN_QUEUE_SELECT =
-  "id, slug, business_name, city, published_at, updated_at, leonix_verified, listing_status, internal_group, owner_user_id, moderation_notes, profile_json, leonix_ad_id, promoted";
+  "id, slug, business_name, city, published_at, updated_at, leonix_verified, listing_status, internal_group, owner_user_id, moderation_notes, profile_json, leonix_ad_id, promoted, republished_at, republish_count, republish_override";
 
 export type ServiciosPublicListingAdminDbRow = {
   id: string;
@@ -220,6 +220,9 @@ export type ServiciosPublicListingAdminDbRow = {
   profile_json: unknown;
   leonix_ad_id?: string | null;
   promoted?: boolean;
+  republished_at?: string | null;
+  republish_count?: number | null;
+  republish_override?: boolean | null;
 };
 
 function mergeServiciosAdminRows(rows: ServiciosPublicListingAdminDbRow[], cap: number): ServiciosPublicListingAdminDbRow[] {
@@ -354,7 +357,7 @@ export async function listServiciosPublicListingsAdminQueueFromDb(
         const leg = await supabase
           .from("servicios_public_listings")
           .select("id, slug, business_name, city, published_at, leonix_verified")
-          .order("published_at", { ascending: false })
+          .order("republish_sort_at", { ascending: false, nullsFirst: false })
           .limit(limit);
         if (leg.error) return { rows: [], fullSchema: false, unavailable: true };
         return {

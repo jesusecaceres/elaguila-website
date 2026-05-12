@@ -4,15 +4,16 @@
  * En Venta results — browse contract (defaults):
  * - Data: Supabase `listings` rows with `category=en-venta`, `status=active`, `is_published!==false`,
  *   filtered client-side by `isEnVentaListingPubliclyVisible` (same rule as public detail).
- * - Default sort (`sort=newest` or absent): **newest `created_at` first** among matches — free and Pro
- *   share the same chronological ordering; Pro “renewed visibility” only affects the small promoted rail
- *   (up to `PROMO_CAP` boosted rows), which are excluded from the paginated catalog to avoid duplicates.
+ * - Default sort (`sort=newest` or absent): **newest recency first** using
+ *   `coalesce(republished_at, published_at, created_at)` (via `republish_sort_at` when selected).
+ *   Pro “featured” rail (up to `PROMO_CAP` rows) uses staff/`Leonix:promoted` placement, not republish ordering.
  */
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { leonixPromotedFromDetailPairs } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 import { isListingSaved, onSavedListingsChange, toggleListingSaved } from "@/app/clasificados/components/savedListings";
 import { EN_VENTA_DEPARTMENTS } from "../taxonomy/categories";
 import { EN_VENTA_SUBCATEGORY_ROWS } from "../taxonomy/subcategories";
@@ -53,13 +54,14 @@ const VIEW_PREF_KEY = "en-venta-results-view";
 
 /** Widen/shrink at runtime when optional `listings` columns are missing (see `listingsSelectShrink.ts`). */
 const EN_VENTA_RESULTS_SELECT_BASE =
-  "id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, status, is_published, created_at, images, boost_expires, views, rentas_tier";
+  "id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, status, is_published, created_at, images, views, rentas_tier, published_at, republished_at, republish_sort_at, admin_promoted";
 
 type RowPack = {
   row: Record<string, unknown>;
   dto: EnVentaAnuncioDTO;
   priceNum: number;
-  boosted: boolean;
+  /** Staff / Leonix promoted spotlight — not republish ordering. */
+  featuredHighlight: boolean;
   effectiveDept: string | null;
 };
 
@@ -70,13 +72,14 @@ function priceNumFromRow(row: Record<string, unknown>): number {
   return Number(String(raw ?? "").replace(/[^0-9.]/g, "")) || 0;
 }
 
-function isRowBoosted(row: Record<string, unknown>): boolean {
-  const b = row.boost_expires;
-  if (b == null) return false;
-  const t = new Date(typeof b === "string" ? b : String(b)).getTime();
-  return Number.isFinite(t) && t > Date.now();
+function isFeaturedPlacement(row: Record<string, unknown>): boolean {
+  return Boolean(row.admin_promoted) || leonixPromotedFromDetailPairs(row.detail_pairs);
 }
 
+function listingRecencyMs(row: Record<string, unknown>): number {
+  const raw = row.republish_sort_at ?? row.republished_at ?? row.published_at ?? row.created_at;
+  return new Date(String(raw ?? 0)).getTime();
+}
 function resolveEffectiveDept(dto: EnVentaAnuncioDTO): string | null {
   const dk = (dto.departmentKey ?? "").trim();
   if (dk) {
@@ -174,7 +177,7 @@ export function EnVentaResultsClient() {
             .select(cols)
             .eq("category", "en-venta")
             .eq("status", "active")
-            .order("created_at", { ascending: false })
+            .order("republish_sort_at", { ascending: false, nullsFirst: true })
             .limit(800);
           data = (res.data as unknown[] | null) ?? null;
           error = res.error ? { message: res.error.message } : null;
@@ -206,7 +209,7 @@ export function EnVentaResultsClient() {
               row,
               dto,
               priceNum: priceNumFromRow(row),
-              boosted: isRowBoosted(row),
+              featuredHighlight: isFeaturedPlacement(row),
               effectiveDept,
             });
           } catch {
@@ -253,14 +256,14 @@ export function EnVentaResultsClient() {
     });
 
     if (featuredOnly) {
-      list = list.filter((p) => p.boosted);
+      list = list.filter((p) => p.featuredHighlight);
     }
 
     list = [...list].sort((a, b) => {
       if (sort === "price-asc") return a.priceNum - b.priceNum;
       if (sort === "price-desc") return b.priceNum - a.priceNum;
-      const ta = new Date(String(a.row.created_at ?? 0)).getTime();
-      const tb = new Date(String(b.row.created_at ?? 0)).getTime();
+      const ta = listingRecencyMs(a.row);
+      const tb = listingRecencyMs(b.row);
       return tb - ta;
     });
 
@@ -288,7 +291,7 @@ export function EnVentaResultsClient() {
 
   const promotedPool = useMemo(() => {
     if (featuredOnly) return [];
-    return filtered.filter((p) => p.boosted).slice(0, PROMO_CAP);
+    return filtered.filter((p) => p.featuredHighlight).slice(0, PROMO_CAP);
   }, [filtered, featuredOnly]);
 
   const promotedIds = useMemo(() => new Set(promotedPool.map((p) => p.dto.id)), [promotedPool]);

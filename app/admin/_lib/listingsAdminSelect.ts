@@ -7,18 +7,21 @@ import { fetchProfileIdsMatchingAdminQueueSearch } from "@/app/lib/supabase/admi
 const LISTINGS_ADMIN_CORE =
   "id, leonix_ad_id, title, description, city, category, price, is_free, status, owner_id, created_at, images";
 
+const LISTINGS_REPUBLISH = ", republished_at, republish_count, republish_override";
+
 /** Columns for Clasificados admin queue — includes JSON used by En Venta visibility helpers. */
 export const LISTINGS_ADMIN_SELECT_WITH_DETAIL_PAIRS =
-  `${LISTINGS_ADMIN_CORE}, detail_pairs, boost_expires, is_published`;
+  `${LISTINGS_ADMIN_CORE}, detail_pairs, is_published${LISTINGS_REPUBLISH}`;
 
-/** `detail_pairs` without `boost_expires` — when `20250312000000_listings_engagement_boost.sql` is not applied. */
-export const LISTINGS_ADMIN_SELECT_WITH_DETAIL_NO_BOOST = `${LISTINGS_ADMIN_CORE}, detail_pairs, is_published`;
+/** `detail_pairs` when republish columns are not yet migrated. */
+export const LISTINGS_ADMIN_SELECT_WITH_DETAIL_NO_REPUBLISH = `${LISTINGS_ADMIN_CORE}, detail_pairs, is_published`;
 
 /** Same row shape minus `detail_pairs` when the live DB predates that migration. */
-export const LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS =
-  `${LISTINGS_ADMIN_CORE}, boost_expires, is_published`;
+export const LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS = `${LISTINGS_ADMIN_CORE}, is_published${LISTINGS_REPUBLISH}`;
 
-/** Neither column — minimal admin queue when both optional migrations are missing. */
+export const LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_NO_REPUBLISH = `${LISTINGS_ADMIN_CORE}, is_published`;
+
+/** Neither optional column group — minimal admin queue. */
 export const LISTINGS_ADMIN_SELECT_MINIMAL = `${LISTINGS_ADMIN_CORE}, is_published`;
 
 /** Staff moderation flags (`20260508140000_classifieds_admin_ops_columns.sql`). */
@@ -26,10 +29,12 @@ const LISTINGS_OPS_COLS = ", leonix_verified, admin_promoted";
 
 export const LISTINGS_ADMIN_SELECT_WITH_DETAIL_PAIRS_OPS =
   LISTINGS_ADMIN_SELECT_WITH_DETAIL_PAIRS + LISTINGS_OPS_COLS;
-export const LISTINGS_ADMIN_SELECT_WITH_DETAIL_NO_BOOST_OPS =
-  LISTINGS_ADMIN_SELECT_WITH_DETAIL_NO_BOOST + LISTINGS_OPS_COLS;
+export const LISTINGS_ADMIN_SELECT_WITH_DETAIL_NO_REPUBLISH_OPS =
+  LISTINGS_ADMIN_SELECT_WITH_DETAIL_NO_REPUBLISH + LISTINGS_OPS_COLS;
 export const LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS_OPS =
   LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS + LISTINGS_OPS_COLS;
+export const LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_NO_REPUBLISH_OPS =
+  LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_NO_REPUBLISH + LISTINGS_OPS_COLS;
 export const LISTINGS_ADMIN_SELECT_MINIMAL_OPS = LISTINGS_ADMIN_SELECT_MINIMAL + LISTINGS_OPS_COLS;
 
 export type ListingsAdminFetchResult<T> = {
@@ -37,30 +42,32 @@ export type ListingsAdminFetchResult<T> = {
   error: { message: string; code?: string } | null;
   /** False when we fell back to a select without `detail_pairs`. Apply `supabase/migrations/20250316200000_listings_detail_pairs.sql` (or later ensure migration) on production. */
   detailPairsAvailable: boolean;
-  /** False when we fell back to a select without `boost_expires`. Apply `supabase/migrations/20250312000000_listings_engagement_boost.sql`. */
-  boostExpiresAvailable: boolean;
+  /** False when we fell back to a select without republish columns. Apply `20260509120000_classifieds_republish_capability.sql`. */
+  republishColsAvailable: boolean;
 };
 
 const ADMIN_LISTING_SELECT_TIERS: Array<{
   cols: string;
   detailPairsAvailable: boolean;
-  boostExpiresAvailable: boolean;
+  republishColsAvailable: boolean;
 }> = [
-  { cols: LISTINGS_ADMIN_SELECT_WITH_DETAIL_PAIRS_OPS, detailPairsAvailable: true, boostExpiresAvailable: true },
-  { cols: LISTINGS_ADMIN_SELECT_WITH_DETAIL_NO_BOOST_OPS, detailPairsAvailable: true, boostExpiresAvailable: false },
-  { cols: LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS_OPS, detailPairsAvailable: false, boostExpiresAvailable: true },
-  { cols: LISTINGS_ADMIN_SELECT_MINIMAL_OPS, detailPairsAvailable: false, boostExpiresAvailable: false },
-  { cols: LISTINGS_ADMIN_SELECT_WITH_DETAIL_PAIRS, detailPairsAvailable: true, boostExpiresAvailable: true },
-  { cols: LISTINGS_ADMIN_SELECT_WITH_DETAIL_NO_BOOST, detailPairsAvailable: true, boostExpiresAvailable: false },
-  { cols: LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS, detailPairsAvailable: false, boostExpiresAvailable: true },
-  { cols: LISTINGS_ADMIN_SELECT_MINIMAL, detailPairsAvailable: false, boostExpiresAvailable: false },
+  { cols: LISTINGS_ADMIN_SELECT_WITH_DETAIL_PAIRS_OPS, detailPairsAvailable: true, republishColsAvailable: true },
+  { cols: LISTINGS_ADMIN_SELECT_WITH_DETAIL_NO_REPUBLISH_OPS, detailPairsAvailable: true, republishColsAvailable: false },
+  { cols: LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS_OPS, detailPairsAvailable: false, republishColsAvailable: true },
+  { cols: LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_NO_REPUBLISH_OPS, detailPairsAvailable: false, republishColsAvailable: false },
+  { cols: LISTINGS_ADMIN_SELECT_MINIMAL_OPS, detailPairsAvailable: false, republishColsAvailable: false },
+  { cols: LISTINGS_ADMIN_SELECT_WITH_DETAIL_PAIRS, detailPairsAvailable: true, republishColsAvailable: true },
+  { cols: LISTINGS_ADMIN_SELECT_WITH_DETAIL_NO_REPUBLISH, detailPairsAvailable: true, republishColsAvailable: false },
+  { cols: LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_PAIRS, detailPairsAvailable: false, republishColsAvailable: true },
+  { cols: LISTINGS_ADMIN_SELECT_WITHOUT_DETAIL_NO_REPUBLISH, detailPairsAvailable: false, republishColsAvailable: false },
+  { cols: LISTINGS_ADMIN_SELECT_MINIMAL, detailPairsAvailable: false, republishColsAvailable: false },
 ];
 
 /**
- * Load listings for admin moderation. Retries with fewer optional columns if `detail_pairs` and/or `boost_expires` are missing.
+ * Load listings for admin moderation. Retries with fewer optional columns if `detail_pairs` and/or republish columns are missing.
  */
 export async function fetchListingsForAdminWorkspace(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
 ): Promise<ListingsAdminFetchResult<Record<string, unknown>>> {
   let lastErr: { message: string; code?: string } | null = null;
 
@@ -76,7 +83,7 @@ export async function fetchListingsForAdminWorkspace(
         data: (res.data as unknown as Record<string, unknown>[]) ?? [],
         error: null,
         detailPairsAvailable: tier.detailPairsAvailable,
-        boostExpiresAvailable: tier.boostExpiresAvailable,
+        republishColsAvailable: tier.republishColsAvailable,
       };
     }
     lastErr = { message: res.error.message, code: res.error.code };
@@ -86,7 +93,7 @@ export async function fetchListingsForAdminWorkspace(
     data: null,
     error: lastErr,
     detailPairsAvailable: true,
-    boostExpiresAvailable: true,
+    republishColsAvailable: true,
   };
 }
 
@@ -134,7 +141,7 @@ function mergeById(rows: Record<string, unknown>[], cap: number): Record<string,
  */
 export async function fetchListingsForAdminWorkspaceFiltered(
   supabase: SupabaseClient,
-  filters: ListingsAdminWorkspaceFilters
+  filters: ListingsAdminWorkspaceFilters,
 ): Promise<ListingsAdminFetchResult<Record<string, unknown>>> {
   const limit = Math.min(Math.max(filters.limit ?? 300, 1), 500);
   const cat = (filters.category ?? "").trim();
@@ -201,10 +208,7 @@ export async function fetchListingsForAdminWorkspaceFiltered(
       if (res.error) return { data: null, error: { message: res.error.message } };
       merged = (res.data as unknown as Record<string, unknown>[]) ?? [];
     } else {
-      const [a, b] = await Promise.all([
-        buildQuery(cols, "text_uuid"),
-        buildQuery(cols, "owner_like"),
-      ]);
+      const [a, b] = await Promise.all([buildQuery(cols, "text_uuid"), buildQuery(cols, "owner_like")]);
       if (a.error && b.error) {
         return { data: null, error: { message: a.error.message } };
       }
@@ -220,7 +224,12 @@ export async function fetchListingsForAdminWorkspaceFiltered(
     const normLeonix = adminQueueNormalizeLeonixAdId(qInput);
     if (normLeonix) {
       const lxb = applyListingFilters(
-        supabase.from("listings").select(cols).eq("leonix_ad_id", normLeonix).order("created_at", { ascending: false }).limit(limit),
+        supabase
+          .from("listings")
+          .select(cols)
+          .eq("leonix_ad_id", normLeonix)
+          .order("created_at", { ascending: false })
+          .limit(limit),
       );
       const lx = await lxb;
       if (!lx.error && lx.data?.length) {
@@ -231,8 +240,13 @@ export async function fetchListingsForAdminWorkspaceFiltered(
     if (qInput.length >= 2) {
       const profileIds = await fetchProfileIdsMatchingAdminQueueSearch(supabase, qInput);
       if (profileIds.length > 0) {
-        let pb = applyListingFilters(
-          supabase.from("listings").select(cols).in("owner_id", profileIds).order("created_at", { ascending: false }).limit(limit),
+        const pb = applyListingFilters(
+          supabase
+            .from("listings")
+            .select(cols)
+            .in("owner_id", profileIds)
+            .order("created_at", { ascending: false })
+            .limit(limit),
         );
         const pr = await pb;
         if (!pr.error && pr.data?.length) {
@@ -280,7 +294,7 @@ export async function fetchListingsForAdminWorkspaceFiltered(
         data: result.data ?? [],
         error: null,
         detailPairsAvailable: tier.detailPairsAvailable,
-        boostExpiresAvailable: tier.boostExpiresAvailable,
+        republishColsAvailable: tier.republishColsAvailable,
       };
     }
     lastErr = result.error;
@@ -290,7 +304,7 @@ export async function fetchListingsForAdminWorkspaceFiltered(
     data: null,
     error: lastErr,
     detailPairsAvailable: true,
-    boostExpiresAvailable: true,
+    republishColsAvailable: true,
   };
 }
 
@@ -303,7 +317,7 @@ export function listingRowMatchesAdminQuery(
     owner_id?: string | null;
     description?: string | null;
   },
-  qLower: string
+  qLower: string,
 ): boolean {
   if (!qLower) return true;
   const id = row.id.toLowerCase();

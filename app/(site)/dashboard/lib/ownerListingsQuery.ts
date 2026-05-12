@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { missingListingsColumnName, stripSelectColumn } from "@/app/clasificados/lib/listingsSelectShrink";
 
 const CORE =
-  "id,title,price,city,zip,status,created_at,category,seller_type,images,detail_pairs,boost_expires,views,original_price,current_price,price_last_updated,is_published";
+  "id,title,price,city,zip,status,created_at,category,seller_type,images,detail_pairs,republished_at,republish_count,views,original_price,current_price,price_last_updated,is_published";
 
 /** Extra columns when present (tiered fallback on unknown columns). */
 const WITH_OPTIONAL_META = `${CORE}, updated_at, published_at, business_name, expires_at`;
@@ -13,13 +13,13 @@ const WITH_TIMESTAMPS = `${CORE}, updated_at, published_at`;
 
 export type OwnerListingFetchMeta = {
   optionalMetaAvailable: boolean;
-  /** False when `boost_expires` is missing in the connected `listings` schema. */
-  boostExpiresAvailable: boolean;
+  /** False when republish columns are missing in the connected `listings` schema. */
+  republishColsAvailable: boolean;
 };
 
 export async function fetchOwnerListingsForDashboard(
   sb: SupabaseClient,
-  ownerId: string
+  ownerId: string,
 ): Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null; meta: OwnerListingFetchMeta }> {
   const tiers: Array<{ cols: string; rich: boolean }> = [
     { cols: WITH_OPTIONAL_META, rich: true },
@@ -30,14 +30,14 @@ export async function fetchOwnerListingsForDashboard(
   let lastErr: { message: string } | null = null;
   for (const tier of tiers) {
     let cols = tier.cols;
-    let boostExpiresAvailable = cols.split(",").map((s) => s.trim()).includes("boost_expires");
+    let republishColsAvailable = cols.split(",").some((s) => s.trim() === "republished_at");
     for (let attempt = 0; attempt < 32; attempt++) {
       const res = await sb.from("listings").select(cols).eq("owner_id", ownerId).order("created_at", { ascending: false });
       if (!res.error) {
         return {
           data: (res.data as unknown as Record<string, unknown>[]) ?? [],
           error: null,
-          meta: { optionalMetaAvailable: tier.rich, boostExpiresAvailable },
+          meta: { optionalMetaAvailable: tier.rich, republishColsAvailable },
         };
       }
       lastErr = { message: res.error.message };
@@ -46,14 +46,14 @@ export async function fetchOwnerListingsForDashboard(
       const next = stripSelectColumn(cols, bad);
       if (next === cols) break;
       cols = next;
-      if (bad === "boost_expires") boostExpiresAvailable = false;
+      if (bad === "republished_at" || bad === "republish_count") republishColsAvailable = false;
     }
   }
 
   return {
     data: null,
     error: lastErr,
-    meta: { optionalMetaAvailable: false, boostExpiresAvailable: true },
+    meta: { optionalMetaAvailable: false, republishColsAvailable: true },
   };
 }
 
@@ -75,7 +75,8 @@ export function mapOwnerListingRow(r: Record<string, unknown>) {
     business_name: (r.business_name as string | null | undefined) ?? null,
     images: r.images ?? null,
     detail_pairs: r.detail_pairs ?? null,
-    boost_expires: r.boost_expires ?? null,
+    republished_at: (r.republished_at as string | null | undefined) ?? null,
+    republish_count: typeof r.republish_count === "number" ? r.republish_count : null,
     views: typeof r.views === "number" ? r.views : null,
     original_price: r.original_price ?? null,
     current_price: r.current_price ?? null,

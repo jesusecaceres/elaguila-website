@@ -3,9 +3,10 @@
  * Safe to extend when a persisted notifications feed exists.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { listingRepublishVisibilityWindowEndIso } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 
 export type DerivedFeedKind =
-  | "expire_boost"
+  | "expire_visibility"
   | "expire_listing"
   | "draft"
   | "profile_city"
@@ -41,7 +42,7 @@ type ListingFeedRow = {
   title?: string | null;
   status?: string | null;
   is_published?: boolean | null;
-  boost_expires?: string | null;
+  republished_at?: string | null;
   expires_at?: string | null;
 };
 
@@ -78,7 +79,7 @@ export async function fetchDerivedDashboardFeed(
   try {
     const res = await sb
       .from("listings")
-      .select("id, title, status, is_published, boost_expires, expires_at")
+      .select("id, title, status, is_published, republished_at, expires_at")
       .eq("owner_id", userId);
     if (!res.error && res.data) listings = res.data as ListingFeedRow[];
   } catch {
@@ -134,10 +135,11 @@ export async function fetchDerivedDashboardFeed(
         priority: 75,
       });
     }
-    if (inSoonWindow(L.boost_expires ?? null, now, soon) && st === "active") {
+    const visEnd = listingRepublishVisibilityWindowEndIso(L.republished_at);
+    if (inSoonWindow(visEnd, now, soon) && st === "active") {
       items.push({
-        id: `exp-boost-${L.id}`,
-        kind: "expire_boost",
+        id: `exp-vis-${L.id}`,
+        kind: "expire_visibility",
         title: isEs
           ? `Visibilidad próxima a vencer: ${(L.title ?? "").trim() || "Anuncio"}`
           : `Visibility ending soon: ${(L.title ?? "").trim() || "Listing"}`,

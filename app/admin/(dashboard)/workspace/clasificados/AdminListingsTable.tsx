@@ -5,14 +5,13 @@ import { useRouter } from "next/navigation";
 import { deleteListingAction, setListingPublishedAction } from "../../../actions";
 import { useState } from "react";
 import { adminTableWrap } from "../../../_components/adminTheme";
-import { listingPlanFromDetailPairs } from "@/app/dashboard/lib/dashboardListingMeta";
+import { listingPlanFromDetailPairs } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 import {
   computeEnVentaVisibilityRenewalVm,
   EN_VENTA_VISIBILITY_LAST_RENEWAL_LABEL,
-  parseBoostExpiresMs,
   parseDetailPairValue,
 } from "@/app/clasificados/en-venta/boosts/enVentaVisibilityRenewal";
-import { parseLeonixListingContract, parseLeonixMachineFacetRead } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { parseLeonixListingContract, parseLeonixMachineFacetRead } from "@/app/(site)/clasificados/lib/leonixRealEstateListingContract";
 import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { useAdminLang, useAdminT } from "@/app/admin/_components/AdminI18nProvider";
@@ -32,7 +31,9 @@ type Row = {
   created_at: string | null;
   images?: unknown;
   detail_pairs?: unknown;
-  boost_expires?: unknown;
+  republished_at?: string | null;
+  republish_count?: number | null;
+  republish_override?: boolean | null;
   is_published?: boolean | null;
   leonix_verified?: boolean | null;
   admin_promoted?: boolean | null;
@@ -107,60 +108,54 @@ function clasificadosLeonixAdminLine(row: Row, detailPairsAvailable: boolean): s
 function enVentaVisibilityAdminLine(
   row: Row,
   detailPairsAvailable: boolean,
-  boostExpiresAvailable: boolean,
+  republishColsAvailable: boolean,
   t: (key: string, vars?: Record<string, string | number>) => string,
   locale: string,
 ): string {
   if ((row.category ?? "").toLowerCase() !== "en-venta") return "—";
   if (!detailPairsAvailable) return t("listings.envLine.missingDetailPairs");
   const plan = listingPlanFromDetailPairs(row.detail_pairs);
-  const now = Date.now();
-  const boostPart = !boostExpiresAvailable
-    ? t("listings.envLine.boostNoCol")
-    : (() => {
-        const boostEnd = parseBoostExpiresMs(row.boost_expires);
-        return boostEnd != null && boostEnd > now
-          ? `boost ${formatAdminDateTime(boostEnd, locale)}`
-          : t("listings.envLine.boostOff");
-      })();
   const lastIso = parseDetailPairValue(row.detail_pairs, EN_VENTA_VISIBILITY_LAST_RENEWAL_LABEL);
   const lastPart = lastIso
     ? `${t("listings.envLine.lastRenew")} ${formatAdminDateTime(new Date(lastIso).getTime(), locale)}`
     : `${t("listings.envLine.lastRenew")} —`;
+  const repPart = !republishColsAvailable
+    ? "republish N/A"
+    : row.republished_at
+      ? `last move to top ${formatAdminDateTime(new Date(String(row.republished_at)).getTime(), locale)}`
+      : "never moved to top";
+  const cnt = republishColsAvailable && row.republish_count != null ? ` · count ${row.republish_count}` : "";
+  if (plan === "free") return `free · ${lastPart} · ${repPart}${cnt}`;
 
-  if (plan === "free") return `free · ${boostPart} · ${lastPart}`;
+  const vm = computeEnVentaVisibilityRenewalVm({
+    plan: "pro",
+    republishedAt: row.republished_at,
+    detailPairs: row.detail_pairs,
+    nowMs: Date.now(),
+  });
+  const renewPart = !republishColsAvailable
+    ? "renew N/A"
+    : vm?.canRenewNow
+      ? t("listings.envLine.renewOk")
+      : vm
+        ? `renew≥ ${formatAdminDateTime(vm.nextRenewEligibleAt, locale)}`
+        : t("listings.envLine.renewDash");
 
-  const renewPart = !boostExpiresAvailable
-    ? t("listings.envLine.renewNd")
-    : (() => {
-        const vm = computeEnVentaVisibilityRenewalVm({
-          plan: "pro",
-          boostExpires: row.boost_expires,
-          detailPairs: row.detail_pairs,
-          nowMs: now,
-        });
-        return vm?.canRenewNow
-          ? t("listings.envLine.renewOk")
-          : vm
-            ? `renew≥ ${formatAdminDateTime(vm.nextRenewEligibleAt, locale)}`
-            : t("listings.envLine.renewDash");
-      })();
-
-  return `pro · ${boostPart} · ${lastPart} · ${renewPart}`;
+  return `pro · ${lastPart} · ${repPart}${cnt} · ${renewPart}`;
 }
 
 export default function AdminListingsTable({
   listings,
   detailPairsAvailable = true,
-  boostExpiresAvailable = true,
+  republishColsAvailable = true,
   listingsCategorySlug,
   staffQueueMode = false,
 }: {
   listings: Row[];
   /** When false, DB has no `listings.detail_pairs` — En Venta visibility column is degraded. */
   detailPairsAvailable?: boolean;
-  /** When false, select omitted `listings.boost_expires` — boost/renew lines are degraded. */
-  boostExpiresAvailable?: boolean;
+  /** When false, select omitted republish columns — En Venta visibility column is degraded. */
+  republishColsAvailable?: boolean;
   /** Active `?category=` filter (registry slug), for empty-state copy. */
   listingsCategorySlug?: string;
   /** Restaurante-style staff PATCH actions (Leonix ops). */
@@ -240,11 +235,11 @@ export default function AdminListingsTable({
     );
   }
 
-  const enVentaColumnDegraded = !detailPairsAvailable || !boostExpiresAvailable;
+  const enVentaColumnDegraded = !detailPairsAvailable || !republishColsAvailable;
   const envVisTitle = !detailPairsAvailable
     ? t("listings.col.envVisTitleNoDetailPairs")
-    : !boostExpiresAvailable
-      ? t("listings.col.envVisTitleNoBoost")
+    : !republishColsAvailable
+      ? "Republish columns not available — apply classifieds_republish_capability migration"
       : t("listings.col.envVisTitleOk");
 
   return (
@@ -358,9 +353,9 @@ export default function AdminListingsTable({
                       ? "max-w-[280px] bg-amber-50/40 p-3 align-top text-[11px] leading-snug text-amber-950"
                       : "max-w-[280px] p-3 align-top text-[11px] leading-snug text-[#5C5346]"
                   }
-                  title={enVentaVisibilityAdminLine(row, detailPairsAvailable, boostExpiresAvailable, t, locale)}
+                  title={enVentaVisibilityAdminLine(row, detailPairsAvailable, republishColsAvailable, t, locale)}
                 >
-                  {enVentaVisibilityAdminLine(row, detailPairsAvailable, boostExpiresAvailable, t, locale)}
+                  {enVentaVisibilityAdminLine(row, detailPairsAvailable, republishColsAvailable, t, locale)}
                 </td>
                 <td className="p-3">
                   <div
@@ -413,6 +408,16 @@ export default function AdminListingsTable({
                         promoted={Boolean(row.admin_promoted)}
                         verified={Boolean(row.leonix_verified)}
                         canArchive={(row.status ?? "").toLowerCase() !== "removed"}
+                        republishCategory={String(row.category ?? "").trim() || "listings"}
+                        republishRow={{
+                          category: row.category,
+                          is_free: row.is_free,
+                          detail_pairs: row.detail_pairs,
+                          is_published: row.is_published,
+                          status: row.status,
+                          republish_override: row.republish_override,
+                          republish_count: row.republish_count,
+                        }}
                       />
                     ) : (
                       <>

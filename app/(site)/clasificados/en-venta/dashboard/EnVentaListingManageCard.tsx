@@ -13,8 +13,8 @@ type ListingPlan = "free" | "pro";
 
 export type EnVentaVisibilityRenewalUi = {
   lang: Lang;
-  boostActive: boolean;
-  boostEndsLabel: string | null;
+  republishWindowActive: boolean;
+  republishWindowEndsLabel: string | null;
   canRenew: boolean;
   nextEligibleLabel: string | null;
   onRenew: () => void;
@@ -72,7 +72,6 @@ export function EnVentaListingManageCard({
   editHref,
   listingPlan,
   listingAdPlanLabel,
-  boosted,
   analytics,
   maxViews,
   priceDropLabel,
@@ -101,7 +100,6 @@ export function EnVentaListingManageCard({
   listingPlan: ListingPlan;
   /** Category-based listing plan label (not account membership). */
   listingAdPlanLabel?: string | null;
-  boosted: boolean;
   analytics: EnVentaManageAnalytics;
   maxViews: number;
   /** When original/current prices support a reduced-price signal. */
@@ -162,13 +160,13 @@ export function EnVentaListingManageCard({
           updated: "Actualizado",
           msgs: "Mensajes",
           analytics: "Analíticas",
-          boost: "Promoción",
+          proUpgradeCta: "Pro / visibilidad",
           archive: "Archivar",
           dup: "Duplicar",
           perf: "Rendimiento",
           insights: "Revisa vistas y mensajes para afinar precio o fotos.",
           visH: "Visibilidad Pro",
-          visActive: "Destacado hasta",
+          visActive: "Visible hasta",
           visInactive: "Sin ventana de visibilidad activa.",
           visNext: "Próxima renovación disponible:",
           renew: "Renovar visibilidad",
@@ -202,13 +200,13 @@ export function EnVentaListingManageCard({
           updated: "Updated",
           msgs: "Messages",
           analytics: "Analytics",
-          boost: "Boost",
+          proUpgradeCta: "Pro / visibility",
           archive: "Archive",
           dup: "Duplicate",
           perf: "Performance",
           insights: "Compare views and messages to tune price or photos.",
           visH: "Pro visibility",
-          visActive: "Boosted until",
+          visActive: "Visible until",
           visInactive: "No active visibility window.",
           visNext: "Renewal available on:",
           renew: "Renew visibility",
@@ -243,7 +241,7 @@ export function EnVentaListingManageCard({
                 {L.pro}
               </span>
             ) : null}
-            {boosted ? (
+            {visibilityRenewal?.republishWindowActive ? (
               <span className="absolute bottom-1 right-1 rounded-full bg-gradient-to-r from-[#E8D48A] to-[#C9A84A] px-1.5 py-0.5 text-[9px] font-bold uppercase text-[#1E1810]">
                 {L.feat}
               </span>
@@ -321,8 +319,8 @@ export function EnVentaListingManageCard({
                   <div className="mt-3 rounded-2xl border border-[#C9B46A]/40 bg-[#FFFCF7]/95 p-3">
                     <p className="text-[11px] font-bold uppercase tracking-wide text-[#6B5B2E]">{L.visH}</p>
                     <p className="mt-1 text-xs text-[#3D3428]">
-                      {visibilityRenewal.boostActive
-                        ? `${L.visActive} ${visibilityRenewal.boostEndsLabel ?? "—"}`
+                      {visibilityRenewal.republishWindowActive
+                        ? `${L.visActive} ${visibilityRenewal.republishWindowEndsLabel ?? "—"}`
                         : L.visInactive}
                     </p>
                     {visibilityRenewal.canRenew ? null : visibilityRenewal.nextEligibleLabel ? (
@@ -414,7 +412,7 @@ export function EnVentaListingManageCard({
               href={`/clasificados/publicar/en-venta/pro?lang=${lang}`}
               className="inline-flex rounded-xl border border-[#C9B46A]/30 bg-[#FFFCF7] px-4 py-2 text-xs font-bold text-[#6B5B2E]"
             >
-              {L.boost}
+              {L.proUpgradeCta}
             </Link>
             {isSold ? (
               <button

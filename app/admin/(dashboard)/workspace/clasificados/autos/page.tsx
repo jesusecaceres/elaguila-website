@@ -239,6 +239,12 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                           verified={Boolean(r.leonix_verified)}
                           canArchive={r.status !== "cancelled" && r.status !== "draft" && r.status !== "pending_payment"}
                           staffEditBoardHref={`/dashboard/mis-anuncios/${encodeURIComponent(r.id)}`}
+                          republishCategory="autos"
+                          republishRow={{
+                            lane: r.lane,
+                            status: r.status,
+                            republish_override: (r as { republish_override?: boolean | null }).republish_override,
+                          }}
                         />
                       </div>
                     </td>

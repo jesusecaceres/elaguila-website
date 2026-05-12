@@ -71,7 +71,7 @@ function main() {
 
   const boostedRow = {
     ...row,
-    boost_expires: new Date(Date.now() + 86400000).toISOString(),
+    admin_promoted: true,
   };
   const boostedMap = mapListingRowToRentasPublicListing(boostedRow as never, "es");
   assert.ok(boostedMap?.promoted);
@@ -107,10 +107,10 @@ function main() {
   assert.equal(rec[0]?.id, "rec-neg");
   assert.equal(rec[1]?.id, "rec-priv");
 
-  assert.equal(rentasListingPromotedFromRow({ boost_expires: null, detail_pairs: [] }), false);
+  assert.equal(rentasListingPromotedFromRow({ admin_promoted: false, detail_pairs: [] }), false);
   assert.equal(
     rentasListingPromotedFromRow({
-      boost_expires: new Date(Date.now() + 3600000).toISOString(),
+      admin_promoted: true,
       detail_pairs: [],
     }),
     true,

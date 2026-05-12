@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { ClassifiedItem } from "../../../data/classifieds";
+import { isListingRepublishWindowActive } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 import { isVerifiedSeller } from "./verifiedSeller";
 import ProBadge from "./ProBadge";
 import { isProListing } from "./planHelpers";
@@ -71,12 +72,11 @@ export default function ListingCard({
         {isPro ? <ProBadge /> : null}
 
         {(() => {
-          const boostUntil = (item as any)?.boostUntil as string | undefined;
-          const isBoosted = boostUntil && new Date(boostUntil).getTime() > Date.now();
-          if (!isBoosted) return null;
+          const republishedAt = (item as { republished_at?: unknown }).republished_at;
+          if (!isListingRepublishWindowActive(republishedAt)) return null;
           return (
             <span className="inline-flex items-center rounded-full border border-[#A98C2A]/40 bg-[#F8F6F0] px-2.5 py-1 text-[11px] font-medium text-[#111111]">
-              {lang === "es" ? "Impulso de visibilidad" : "Visibility boost"}
+              {lang === "es" ? "Visibilidad reciente" : "Recent visibility"}
             </span>
           );
         })()}

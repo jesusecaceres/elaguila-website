@@ -47,8 +47,12 @@ type Row = {
   created_at: string | null;
   images?: unknown;
   detail_pairs?: unknown;
-  boost_expires?: unknown;
+  republished_at?: string | null;
+  republish_count?: number | null;
+  republish_override?: boolean | null;
   is_published?: boolean | null;
+  leonix_verified?: boolean | null;
+  admin_promoted?: boolean | null;
 };
 
 type PageProps = {
@@ -81,7 +85,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   const limitRaw = Number(sp.limit ?? "300");
   const queueLimit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 50), 500) : 300;
 
-  const [{ data: listings, error, detailPairsAvailable, boostExpiresAvailable }, cats, registry] = await Promise.all([
+  const [{ data: listings, error, detailPairsAvailable, republishColsAvailable }, cats, registry] = await Promise.all([
     fetchListingsForAdminWorkspaceFiltered(supabase, {
       q: qInput || undefined,
       category: catFilter,
@@ -132,13 +136,13 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         </div>
       ) : null}
 
-      {detailPairsAvailable && !boostExpiresAvailable ? (
+      {detailPairsAvailable && !republishColsAvailable ? (
         <div
           className={`${adminCardBase} mb-4 max-w-3xl border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}
           role="status"
         >
-          <strong className="font-bold">{m("clasificados.boostMissingTitle")}</strong> {m("clasificados.boostMissingBody")}{" "}
-          <code className="rounded bg-white/80 px-1 text-[11px]">20250312000000_listings_engagement_boost.sql</code> in Supabase and
+          <strong className="font-bold">Republish columns missing</strong> Apply{" "}
+          <code className="rounded bg-white/80 px-1 text-[11px]">20260509120000_classifieds_republish_capability.sql</code> in Supabase and
           reload.
         </div>
       ) : null}
@@ -299,7 +303,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         <AdminListingsTable
           listings={rows}
           detailPairsAvailable={detailPairsAvailable}
-          boostExpiresAvailable={boostExpiresAvailable}
+          republishColsAvailable={republishColsAvailable}
           listingsCategorySlug={catFilter}
         />
       )}

@@ -207,7 +207,6 @@ export async function publishEnVentaFromDraft(
     is_published: false,
     seller_type: sellerType,
     detail_pairs: pairs.length ? pairs : null,
-    boost_expires: null, // Explicitly set to null for free listings
     ...muxCols,
   };
 

@@ -9,7 +9,7 @@ type RowPack = {
   row: Record<string, unknown>;
   dto: EnVentaAnuncioDTO;
   priceNum: number;
-  boosted: boolean;
+  featuredHighlight: boolean;
   effectiveDept: string | null;
 };
 
@@ -78,7 +78,7 @@ export function EnVentaResultsListingSections({
                 model={buildEnVentaResultsCardModel(p.dto, {
                   lang,
                   effectiveDeptKey: p.effectiveDept,
-                  boosted: p.boosted,
+                  featuredHighlight: p.featuredHighlight,
                 })}
                 lang={lang}
                 isFav={isFav(p.dto.id)}
@@ -145,7 +145,7 @@ export function EnVentaResultsListingSections({
               model={buildEnVentaResultsCardModel(p.dto, {
                 lang,
                 effectiveDeptKey: p.effectiveDept,
-                boosted: featuredOnly ? p.boosted : false,
+                featuredHighlight: featuredOnly ? p.featuredHighlight : false,
               })}
               lang={lang}
               isFav={isFav(p.dto.id)}

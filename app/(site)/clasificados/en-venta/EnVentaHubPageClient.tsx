@@ -112,8 +112,8 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
   const hrefBrowseNear = buildEnVentaResultsUrl(lang, { city: DEFAULT_CITY });
   const hrefBrowseShip = buildEnVentaResultsUrl(lang, { ship: "1" });
   const hrefBrowsePickup = buildEnVentaResultsUrl(lang, { pickup: "1" });
-  /** Featured-only browse: `featured=1` matches active `boost_expires` (Pro visibility). */
-  /** `featured=1` = listings whose `boost_expires` is in the future (Pro renewed visibility), not mock inventory. */
+  /** Featured-only browse: `featured=1` matches Pro listings inside an active post-republish visibility window (`republished_at`). */
+  /** `featured=1` = listings whose visibility window from `republished_at` is still open (Pro renewed visibility), not mock inventory. */
   const hrefBrowseFeatured = buildEnVentaResultsUrl(lang, { featured: "1" });
   const hrefSellerIndividual = buildEnVentaResultsUrl(lang, { seller: "individual" });
   const hrefSellerBusiness = buildEnVentaResultsUrl(lang, { seller: "business" });

@@ -1,6 +1,6 @@
 /**
  * Leonix Clasificados — BR + Rentas: structural contract for live listings (not publish preview).
- * Persist via `listings.detail_pairs` + `listings.status` + `is_published` + `boost_expires`.
+ * Persist via `listings.detail_pairs` + `listings.status` + `is_published` + visibility timestamps.
  */
 
 import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
