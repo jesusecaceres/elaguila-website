@@ -1132,13 +1132,14 @@ export function RestaurantesResultsShell({
         <div className="mx-auto max-w-[1280px] min-w-0 px-4 pt-4 sm:px-5 md:px-5 lg:px-6">
           <p
             className={`rounded-[14px] border px-4 py-3 text-xs leading-relaxed shadow-sm sm:text-sm ${
-              inventorySource === "inventory_unavailable"
-                ? "border-red-300/90 bg-red-50/95 text-red-950"
-                : "border-amber-200/90 bg-amber-50/90 text-amber-950"
+              inventorySource === "published"
+                ? "border-amber-200/90 bg-amber-50/90 text-amber-950"
+                : "border-red-300/90 bg-red-50/95 text-red-950"
             }`}
             role="status"
           >
             {inventorySource === "inventory_unavailable" ? <span className="font-semibold">Inventario no disponible: </span> : null}
+            {inventorySource === "inventory_query_failed" ? <span className="font-semibold">Error al cargar listados: </span> : null}
             {inventoryBannerNote}
           </p>
         </div>

@@ -19,6 +19,8 @@ export type RestaurantesPublicBlueprintRow = {
   id: string;
   name: string;
   slug: string;
+  /** `restaurantes_public_listings.leonix_ad_id` — discovery `q` and admin deep links. */
+  leonixAdId?: string | null;
   primaryCuisineKey: string;
   secondaryCuisineKey?: string;
   cuisineLine: string;

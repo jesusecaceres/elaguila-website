@@ -32,7 +32,7 @@ import { mergeRestauranteDraft } from "../app/(site)/clasificados/restaurantes/a
 import { satisfiesRestauranteMinimumValidPreview, satisfiesRestauranteServiceModes } from "../app/(site)/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import type { RestauranteDaySchedule } from "../app/(site)/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import { draftToRestaurantePublicListingInsert } from "../app/(site)/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
-import { filterRestaurantesBlueprintRows, sortRestaurantesBlueprintRows } from "../app/(site)/clasificados/restaurantes/lib/filterRestaurantesBlueprintRows";
+import { filterRestaurantesBlueprintRows, foldRestaurantesDiscoverySearchText, sortRestaurantesBlueprintRows } from "../app/(site)/clasificados/restaurantes/lib/filterRestaurantesBlueprintRows";
 import { mapRestaurantesPublicListingDbRowToShellInventoryRow } from "../app/(site)/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import type { RestaurantesPublicListingDbRow } from "../app/(site)/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
 import { defaultRestaurantesDiscoveryState } from "../app/(site)/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
@@ -152,6 +152,44 @@ function mainLogicOnly() {
 
   const sorted = sortRestaurantesBlueprintRows([shell], "newest");
   assert.equal(sorted[0]?.id, shell.id);
+
+  const defaultFiltered = filterRestaurantesBlueprintRows([shell], defaultRestaurantesDiscoveryState("es"));
+  assert.equal(defaultFiltered.length, 1, "default discovery state must not hide rows without URL filters");
+
+  assert.equal(foldRestaurantesDiscoverySearchText("San José"), foldRestaurantesDiscoverySearchText("San Jose"));
+  const shellChuy = {
+    ...shell,
+    id: "00000000-0000-4000-8000-000000000002",
+    name: "Chuy's Tacos",
+    slug: "chuys-tacos",
+    leonixAdId: "REST-2026-000001",
+  };
+  assert.ok(
+    filterRestaurantesBlueprintRows([shellChuy], { ...defaultRestaurantesDiscoveryState("es"), q: "Chuys" }).length === 1,
+    "q should match business name across apostrophe normalization",
+  );
+  assert.ok(
+    filterRestaurantesBlueprintRows([shellChuy], { ...defaultRestaurantesDiscoveryState("es"), q: "REST-2026-000001" }).length === 1,
+    "q should match leonix ad id",
+  );
+
+  const sparseRow: RestaurantesPublicListingDbRow = {
+    ...fakeRow,
+    id: "00000000-0000-4000-8000-000000000003",
+    slug: "sparse-shell-map",
+    listing_json: {},
+    business_name: "Sparse Taqueria",
+    city_canonical: "San Jose",
+    primary_cuisine: "",
+    secondary_cuisine: null,
+    summary_short: null,
+    hero_image_url: null,
+    service_modes: [],
+    highlights: [],
+  };
+  const sparseShell = mapRestaurantesPublicListingDbRowToShellInventoryRow(sparseRow);
+  assert.equal(sparseShell.name, "Sparse Taqueria");
+  assert.ok(filterRestaurantesBlueprintRows([sparseShell], defaultRestaurantesDiscoveryState("es")).length === 1);
 }
 
 async function mainDb() {

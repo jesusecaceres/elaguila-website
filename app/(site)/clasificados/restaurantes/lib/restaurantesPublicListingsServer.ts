@@ -78,21 +78,40 @@ export type RestaurantesAdminQueueFilters = {
   owner_user_id?: string;
 };
 
-export async function listRestaurantesPublicListingsFromDb(limit = 200): Promise<RestaurantesPublicListingDbRow[]> {
-  if (!isSupabaseAdminConfigured()) return [];
+export type ListRestaurantesPublicListingsOutcome =
+  | { ok: true; rows: RestaurantesPublicListingDbRow[] }
+  | { ok: false; rows: []; error: string };
+
+/**
+ * Published rows for discovery surfaces. Orders by `updated_at` (baseline column) so reads succeed even when
+ * optional migrations (e.g. generated `republish_sort_at`) are not present — admin queue uses the same fallback.
+ */
+export async function tryListRestaurantesPublicListingsFromDb(limit = 200): Promise<ListRestaurantesPublicListingsOutcome> {
+  if (!isSupabaseAdminConfigured()) {
+    return { ok: false, rows: [], error: "Supabase admin client is not configured (missing URL or service role key)." };
+  }
   try {
     const supabase = getAdminSupabase();
     const { data, error } = await supabase
       .from("restaurantes_public_listings")
       .select(LIST_SELECT)
       .eq("status", "published")
-      .order("republish_sort_at", { ascending: false, nullsFirst: false })
+      .order("updated_at", { ascending: false })
       .limit(limit);
-    if (error || !data) return [];
-    return data as RestaurantesPublicListingDbRow[];
-  } catch {
-    return [];
+    if (error) {
+      return { ok: false, rows: [], error: error.message || String(error) };
+    }
+    if (!data) return { ok: true, rows: [] };
+    return { ok: true, rows: data as RestaurantesPublicListingDbRow[] };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, rows: [], error: msg };
   }
+}
+
+export async function listRestaurantesPublicListingsFromDb(limit = 200): Promise<RestaurantesPublicListingDbRow[]> {
+  const out = await tryListRestaurantesPublicListingsFromDb(limit);
+  return out.ok ? out.rows : [];
 }
 
 export async function listPromotedRestaurantesPublicListingsFromDb(limit = 8): Promise<RestaurantesPublicListingDbRow[]> {
@@ -104,7 +123,7 @@ export async function listPromotedRestaurantesPublicListingsFromDb(limit = 8): P
       .select(LIST_SELECT)
       .eq("status", "published")
       .eq("promoted", true)
-      .order("republish_sort_at", { ascending: false, nullsFirst: false })
+      .order("updated_at", { ascending: false })
       .limit(limit);
     if (error || !data) return [];
     return data as RestaurantesPublicListingDbRow[];
@@ -201,12 +220,25 @@ export async function listRestaurantesPublicListingsAdminFromDb(
       if (!slugErr && bySlug?.length) return bySlug as RestaurantesPublicListingDbRow[];
 
       const term = `%${escapeIlike(qLower)}%`;
-      const [nameRes, slugRes] = await Promise.all([
+      const [nameRes, slugRes, summaryRes, cityRes, primCuisineRes, secCuisineRes, leonixRes] = await Promise.all([
         qb().ilike("business_name", term).order("updated_at", { ascending: false }).limit(80),
         qb().ilike("slug", term).order("updated_at", { ascending: false }).limit(80),
+        qb().ilike("summary_short", term).order("updated_at", { ascending: false }).limit(80),
+        qb().ilike("city_canonical", term).order("updated_at", { ascending: false }).limit(80),
+        qb().ilike("primary_cuisine", term).order("updated_at", { ascending: false }).limit(80),
+        qb().ilike("secondary_cuisine", term).order("updated_at", { ascending: false }).limit(80),
+        qb().ilike("leonix_ad_id", term).order("updated_at", { ascending: false }).limit(80),
       ]);
       const merged = mergeRestaurantRowsById(
-        [...((nameRes.data ?? []) as RestaurantesPublicListingDbRow[]), ...((slugRes.data ?? []) as RestaurantesPublicListingDbRow[])],
+        [
+          ...((nameRes.data ?? []) as RestaurantesPublicListingDbRow[]),
+          ...((slugRes.data ?? []) as RestaurantesPublicListingDbRow[]),
+          ...((summaryRes.data ?? []) as RestaurantesPublicListingDbRow[]),
+          ...((cityRes.data ?? []) as RestaurantesPublicListingDbRow[]),
+          ...((primCuisineRes.data ?? []) as RestaurantesPublicListingDbRow[]),
+          ...((secCuisineRes.data ?? []) as RestaurantesPublicListingDbRow[]),
+          ...((leonixRes.data ?? []) as RestaurantesPublicListingDbRow[]),
+        ],
         100,
       );
       if (merged.length) return merged;
@@ -215,7 +247,7 @@ export async function listRestaurantesPublicListingsAdminFromDb(
       if (profileIds.length > 0) {
         const { data: byProf, error: pErr } = await qb()
           .in("owner_user_id", profileIds)
-          .order("republish_sort_at", { ascending: false, nullsFirst: false })
+          .order("updated_at", { ascending: false })
           .limit(limit);
         if (!pErr && byProf?.length) return byProf as RestaurantesPublicListingDbRow[];
       }
@@ -245,7 +277,7 @@ export async function listRestaurantesPublicListingsByOwnerIdFromDb(
       .from("restaurantes_public_listings")
       .select(LIST_SELECT)
       .eq("owner_user_id", id)
-      .order("republish_sort_at", { ascending: false, nullsFirst: false })
+      .order("updated_at", { ascending: false })
       .limit(limit);
     if (error || !data) return [];
     return data as RestaurantesPublicListingDbRow[];

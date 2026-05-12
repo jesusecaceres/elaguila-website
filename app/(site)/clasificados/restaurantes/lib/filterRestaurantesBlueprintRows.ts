@@ -5,6 +5,17 @@ import {
   type RestaurantesDiscoveryState,
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
 
+/** Fold case, strip combining marks (accents), and drop apostrophe-like chars so `San Jose` matches `San José` and `Chuys` matches `Chuy's`. */
+export function foldRestaurantesDiscoverySearchText(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}+/gu, "")
+    .replace(/[''`´]/g, "")
+    .replace(/\s+/g, " ");
+}
+
 /** Service modes allowed as `svc=` URL filter values (matches publish taxonomy). */
 const DISCOVERY_SVC_PARAM_WHITELIST = new Set<string>([
   "dine_in",
@@ -31,10 +42,14 @@ function intersectsAny(a: string[] | undefined, b: string[]): boolean {
  * `serviceAreaText`, and `additionalCuisineKeys` from published `listing_json` when present on the row.
  */
 function rowMatchesQuery(q: string, row: RestaurantesPublicBlueprintRow): boolean {
-  const needle = q.trim().toLowerCase();
-  if (!needle) return true;
+  const needleRaw = q.trim();
+  if (!needleRaw) return true;
+  const needleFold = foldRestaurantesDiscoverySearchText(needleRaw);
+  const needleLower = needleRaw.toLowerCase();
   const blob = [
     row.name,
+    row.slug,
+    row.leonixAdId ?? "",
     row.cuisineLine,
     row.primaryCuisineKey,
     row.secondaryCuisineKey ?? "",
@@ -43,10 +58,14 @@ function rowMatchesQuery(q: string, row: RestaurantesPublicBlueprintRow): boolea
     row.zip ?? "",
     row.neighborhood ?? "",
     row.serviceAreaText ?? "",
+    row.description ?? "",
   ]
     .join(" ")
     .toLowerCase();
-  return blob.includes(needle);
+  const blobFold = foldRestaurantesDiscoverySearchText(blob);
+  if (blob.includes(needleLower)) return true;
+  if (needleFold.length > 0 && blobFold.includes(needleFold)) return true;
+  return false;
 }
 
 /** Matches `cuisine=` to primary/secondary/additional keys on the row. */
@@ -74,8 +93,9 @@ export function filterRestaurantesBlueprintRows(
   return rows.filter((row) => {
     if (s.q.trim() && !rowMatchesQuery(s.q, row)) return false;
     if (s.city) {
-      const needle = normalizeDiscoveryLocationText(s.city).toLowerCase();
-      if (needle && !row.city.toLowerCase().includes(needle)) return false;
+      const needle = foldRestaurantesDiscoverySearchText(normalizeDiscoveryLocationText(s.city));
+      const hay = foldRestaurantesDiscoverySearchText(row.city);
+      if (needle && !hay.includes(needle)) return false;
     }
     if (s.zip && (row.zip ?? "").trim() !== s.zip.trim()) return false;
     if (s.neighborhoodQuery.trim()) {

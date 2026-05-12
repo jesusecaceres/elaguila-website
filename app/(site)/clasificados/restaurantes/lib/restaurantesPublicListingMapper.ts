@@ -65,12 +65,12 @@ export function dbRowToPublicResultsRow(row: RestaurantesPublicListingDbRow): Re
   const secondary = (row.secondary_cuisine ?? "").trim();
   return {
     id: row.id,
-    slug: row.slug,
-    businessName: row.business_name.trim(),
+    slug: (row.slug ?? "").trim(),
+    businessName: (row.business_name ?? "").trim(),
     businessTypeKey: (row.business_type ?? "").trim(),
     primaryCuisineKey: primary,
     secondaryCuisineKey: secondary || undefined,
-    cityCanonical: row.city_canonical.trim(),
+    cityCanonical: (row.city_canonical ?? "").trim(),
     zipCode: row.zip_code?.trim() || undefined,
     neighborhood: row.neighborhood?.trim() || undefined,
     priceLevel: parsePriceLevel(row.price_level),
@@ -129,6 +129,7 @@ export function mapRestaurantesPublicListingDbRowToShellInventoryRow(row: Restau
   const rating =
     typeof pr.externalRatingValue === "number" && Number.isFinite(pr.externalRatingValue) ? pr.externalRatingValue : 0;
   const summaryLine = (draft.shortSummary ?? "").trim() || pr.summaryShort?.trim() || pr.businessName;
+  const longDescription = (draft.longDescription ?? "").trim() || undefined;
   const addCuisines = Array.isArray(draft.additionalCuisines)
     ? draft.additionalCuisines.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
     : undefined;
@@ -150,7 +151,12 @@ export function mapRestaurantesPublicListingDbRowToShellInventoryRow(row: Restau
   const hasSocial =
     nonEmpty(draft.instagramUrl) || nonEmpty(draft.facebookUrl) || nonEmpty(draft.tiktokUrl) || nonEmpty(draft.youtubeUrl);
 
-  const shellBase = mapRestauranteDraftToShellData(draft);
+  let shellBase: ReturnType<typeof mapRestauranteDraftToShellData>;
+  try {
+    shellBase = mapRestauranteDraftToShellData(draft);
+  } catch {
+    shellBase = mapRestauranteDraftToShellData(mergeRestauranteDraft({}));
+  }
   const previewShellData = { ...shellBase, id: pr.id };
   const cardImage =
     previewShellData.heroImageUrl?.trim() ||
@@ -161,6 +167,7 @@ export function mapRestaurantesPublicListingDbRowToShellInventoryRow(row: Restau
     id: pr.id,
     name: pr.businessName,
     slug: pr.slug,
+    leonixAdId: row.leonix_ad_id?.trim() || null,
     primaryCuisineKey: pr.primaryCuisineKey || "other",
     secondaryCuisineKey: pr.secondaryCuisineKey,
     cuisineLine: summaryLine,
@@ -204,6 +211,7 @@ export function mapRestaurantesPublicListingDbRowToShellInventoryRow(row: Restau
     hasWebsite,
     hasWhatsApp,
     ownerUserId: row.owner_user_id ?? null,
+    description: longDescription,
     previewShellData,
   };
 }

@@ -3,15 +3,16 @@ import "server-only";
 import { mapRestaurantesPublicListingDbRowsToShellInventory } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import {
   isSupabaseAdminConfigured,
-  listRestaurantesPublicListingsFromDb,
+  tryListRestaurantesPublicListingsFromDb,
 } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 
 /**
  * `published` — real DB inventory (may be empty array).
  * `inventory_unavailable` — missing server-side Supabase admin config. **No** sample/blueprint rows (launch path).
+ * `inventory_query_failed` — Supabase returned an error (distinct from “no published rows”).
  */
-export type RestaurantesResultsInventorySource = "published" | "inventory_unavailable";
+export type RestaurantesResultsInventorySource = "published" | "inventory_unavailable" | "inventory_query_failed";
 
 export type RestaurantesResultsInventoryPayload = {
   rows: RestaurantesPublicBlueprintRow[];
@@ -33,8 +34,15 @@ export async function loadRestaurantesResultsInventoryForPage(): Promise<Restaur
     };
   }
 
-  const dbRows = await listRestaurantesPublicListingsFromDb(2000);
-  if (dbRows.length === 0) {
+  const listed = await tryListRestaurantesPublicListingsFromDb(2000);
+  if (!listed.ok) {
+    return {
+      rows: [],
+      source: "inventory_query_failed",
+      bannerNote: listed.error,
+    };
+  }
+  if (listed.rows.length === 0) {
     return {
       rows: [],
       source: "published",
@@ -44,7 +52,7 @@ export async function loadRestaurantesResultsInventoryForPage(): Promise<Restaur
   }
 
   return {
-    rows: mapRestaurantesPublicListingDbRowsToShellInventory(dbRows),
+    rows: mapRestaurantesPublicListingDbRowsToShellInventory(listed.rows),
     source: "published",
   };
 }

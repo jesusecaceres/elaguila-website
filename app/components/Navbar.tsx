@@ -18,7 +18,7 @@ function normalizeMembershipTier(raw: unknown): MembershipBadge {
 
 function planLabel(badge: MembershipBadge, lang: Lang) {
   if (badge === "pro") return lang === "es" ? "Pro" : "Pro";
-  return lang === "es" ? "Gratis" : "Free";
+  return lang === "es" ? "Cuenta" : "Account";
 }
 
 function cx(...classes: Array<string | false | null | undefined>) {

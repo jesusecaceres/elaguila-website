@@ -5,7 +5,7 @@ import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaura
 import { mapRestaurantesPublicListingDbRowsToShellInventory } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import {
   isSupabaseAdminConfigured,
-  listRestaurantesPublicListingsFromDb,
+  tryListRestaurantesPublicListingsFromDb,
 } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
 import {
   selectLandingDestacadosCandidates,
@@ -40,8 +40,17 @@ export async function loadRestaurantesLandingInventoryForPage(): Promise<Restaur
   }
 
   /** Large enough pool so “recientes” can reflect true newest rows in busy catalogs (still bounded). */
-  const dbRows = await listRestaurantesPublicListingsFromDb(2000);
-  if (dbRows.length === 0) {
+  const listed = await tryListRestaurantesPublicListingsFromDb(2000);
+  if (!listed.ok) {
+    return {
+      featuredCards: [],
+      recentCards: [],
+      mode: "inventory_unavailable",
+      landingNote: `No se pudo leer la tabla de listados: ${listed.error}`,
+      discoveryLookupRows: [],
+    };
+  }
+  if (listed.rows.length === 0) {
     return {
       featuredCards: [],
       recentCards: [],
@@ -52,7 +61,7 @@ export async function loadRestaurantesLandingInventoryForPage(): Promise<Restaur
     };
   }
 
-  const shellRows = mapRestaurantesPublicListingDbRowsToShellInventory(dbRows);
+  const shellRows = mapRestaurantesPublicListingDbRowsToShellInventory(listed.rows);
   const featured = selectLandingDestacadosCandidates(shellRows).map(blueprintRowToLandingCard);
   const recent = selectLandingRecientesCandidates(shellRows).map(blueprintRowToLandingCard);
   return {
