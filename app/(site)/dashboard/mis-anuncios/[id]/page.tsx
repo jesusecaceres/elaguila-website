@@ -491,6 +491,11 @@ export default function ListingWorkspacePage() {
               <p className="mt-2 font-mono text-[11px] text-[#7A7164]">
                 {t.listingRef}: {shortListingRef(row.id)}
               </p>
+              {(row.leonix_ad_id ?? "").trim() ? (
+                <p className="mt-1 font-mono text-[11px] text-[#7A7164]">
+                  {lang === "es" ? "ID Leonix" : "Leonix Ad ID"}: {(row.leonix_ad_id ?? "").trim()}
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
               <Link href={publicListingHref} className="inline-flex rounded-2xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E]">

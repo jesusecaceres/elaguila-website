@@ -46,6 +46,7 @@ export function AutosClassifiedListingManageCard({
   maxViews,
   thumbUrl,
   listingAdPlanLabel,
+  leonixAdId = null,
 }: {
   row: {
     id: string;
@@ -64,6 +65,8 @@ export function AutosClassifiedListingManageCard({
   maxViews: number;
   thumbUrl: string | null;
   listingAdPlanLabel?: string | null;
+  /** `listings` legacy row or paid table id — display only when present. */
+  leonixAdId?: string | null;
 }) {
   const L =
     lang === "es"
@@ -86,6 +89,7 @@ export function AutosClassifiedListingManageCard({
           web: "Web",
           cita: "Cita",
           adPlanHint: "El plan se calcula por categoría del anuncio, no por el plan de la cuenta.",
+          leonixAd: "ID Leonix",
         }
       : {
           autos: "Autos",
@@ -106,6 +110,7 @@ export function AutosClassifiedListingManageCard({
           web: "Web",
           cita: "Appt",
           adPlanHint: "Plan is based on this listing’s category, not the account plan.",
+          leonixAd: "Leonix Ad ID",
         };
 
   const isSold = (row.status || "active").toLowerCase() === "sold";
@@ -143,6 +148,11 @@ export function AutosClassifiedListingManageCard({
               {(row.city || "").trim()}
               {dateText ? ` · ${dateText}` : ""}
             </p>
+            {(leonixAdId ?? "").trim() ? (
+              <p className="mt-1 font-mono text-[11px] text-[#7A7164]">
+                {L.leonixAd}: {(leonixAdId ?? "").trim()}
+              </p>
+            ) : null}
             {listingAdPlanLabel ? (
               <p className="mt-2 text-[11px] leading-snug text-[#7A7164]">
                 <span className="font-semibold text-[#5C5346]">{listingPlanFieldLabel(lang)}:</span> {listingAdPlanLabel}

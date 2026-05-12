@@ -155,9 +155,12 @@ Expect: `LISTING_ANALYTICS_OK`. If it prints `LISTING_ANALYTICS_FAIL` with schem
 
 ## User dashboard — Admin Republish contract (audit)
 
-- **Republish capability:** En Venta Pro uses `republished_at`, `republish_count`, and `detail_pairs` (`Leonix:visibility_last_renewed_at`) for cooldown — **no runtime dashboard reads of `boost_expires`** for visibility.
-- **Promoted / Featured** (`Leonix:promoted` in `detail_pairs`) is **separate** from republish in UI copy and chips.
+- **Republish capability:** Eligibility and primary CTA labels mirror `app/admin/_lib/classifiedsRepublishCapability.ts` via `app/(site)/dashboard/lib/dashboardRepublishUi.ts` — **Move to top** when the row is public/live, **Republish** when eligible but not live; **no runtime `boost_expires`**.
+- **En Venta Pro:** Cooldown / visibility window still uses `detail_pairs` (`Leonix:visibility_last_renewed_at`) + `republished_at`; unpublished/suspended Pro rows also get `is_published` / `status` on republish (aligned with Admin `listings` PATCH).
+- **Rentas / Bienes raíces (`listings`):** Same republish fields + live vs not-live behavior as Admin generic listings republish when columns exist.
+- **Leonix Ad ID:** Shown on cards and detail when the column/value exists — **never generated or mutated** from the dashboard; owner `listings` select includes `leonix_ad_id` when the DB exposes it.
+- **Promoted / Featured** (`Leonix:promoted` in `detail_pairs`) and **Verify Leonix** remain **separate** product signals from republish / move to top.
 - **`listing_analytics`:** When the table is absent or unreadable, dashboard surfaces show **one** friendly degraded notice and **honest zeros** (no fabricated totals, no raw PostgREST errors in UI). Code paths stay compatible for when the table ships.
-- **`saved_listings`:** Guardados reads **`saved_listings`** (not `user_saved_listings`); resolver lives in `app/lib/savedListingsDashboardResolve.ts`.
-- **Clases / Comunidad:** Not client-ready — overview cards stay **Coming soon / Próximamente** with no owner inventory wiring.
-- **Rentas / Bienes Raíces:** Owner rows remain in **`public.listings`** with Leonix `detail_pairs` branches; same as Admin Clasificados listings contract.
+- **`saved_listings`:** Guardados reads **`saved_listings`**; resolver lives in `app/lib/savedListingsDashboardResolve.ts`.
+- **Clases / Comunidad:** Not client-ready — overview cards stay **Coming soon / Próximamente** with no owner inventory wiring; **no** republish CTAs for those categories.
+- **Inventory sources:** `public.listings` (en-venta, rentas, bienes-raices), `servicios` owner API + `servicios_public_listings`, `autos_classifieds_listings`, `empleos_public_listings`, `restaurantes_public_listings`, `viajes_staged_listings`.

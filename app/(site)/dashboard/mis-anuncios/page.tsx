@@ -52,6 +52,12 @@ import {
   mergeDetailPairValue,
 } from "@/app/clasificados/en-venta/republish/enVentaRepublishVisibility";
 import { listingAnalyticsReadIsDegraded } from "../lib/listingAnalyticsReadErrors";
+import { listingsRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
+import {
+  dashboardCanRepublishListingsRow,
+  dashboardRepublishPrimaryKind,
+  dashboardRepublishPrimaryLabel,
+} from "../lib/dashboardRepublishUi";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -81,6 +87,8 @@ type ListingRow = {
   current_price?: number | string | null;
   price_last_updated?: string | null;
   is_published?: boolean | null;
+  /** Permanent directory id when column exists — display only. */
+  leonix_ad_id?: string | null;
 };
 
 const EDIT_WINDOW_MINUTES = 30;
@@ -516,10 +524,61 @@ export default function MyListingsPage() {
     setBusyId(null);
   }
 
+  async function renewListingsTableRepublish(row: ListingRow) {
+    const cat = String(row.category ?? "").toLowerCase();
+    if (cat !== "rentas" && cat !== "bienes-raices") return;
+    const rec = row as unknown as Record<string, unknown>;
+    if (!republishColsAvailable) return;
+    if (!dashboardCanRepublishListingsRow(rec, cat)) return;
+
+    const live = listingsRowIsPublicLive(rec);
+    const supabase = createSupabaseBrowserClient();
+    setBusyId(row.id);
+    setError(null);
+
+    const renewedAtIso = new Date().toISOString();
+    const nextCount = Number(row.republish_count ?? 0) + 1;
+    const patch: Record<string, unknown> = {
+      republished_at: renewedAtIso,
+      republish_count: nextCount,
+      last_republished_source: "dashboard",
+      ...(userId ? { last_republished_by: userId } : {}),
+    };
+    if (!live) {
+      patch.is_published = true;
+      patch.status = "active";
+    }
+
+    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", row.id);
+
+    if (uErr) {
+      setError(uErr.message);
+      setBusyId(null);
+      return;
+    }
+
+    setListings((prev) =>
+      prev.map((x) =>
+        x.id === row.id
+          ? {
+              ...x,
+              republished_at: renewedAtIso,
+              republish_count: nextCount,
+              ...(live ? {} : { is_published: true, status: "active" }),
+            }
+          : x,
+      ),
+    );
+    setBusyId(null);
+  }
+
   async function renewEnVentaRepublish(row: ListingRow) {
     if ((row.category ?? "").toLowerCase() !== "en-venta") return;
     const plan = listingPlanFromDetailPairs(row.detail_pairs);
     if (plan !== "pro") return;
+
+    const rec = row as unknown as Record<string, unknown>;
+    if (!dashboardCanRepublishListingsRow(rec, "en-venta")) return;
 
     const nowMs = Date.now();
     const vm = computeEnVentaVisibilityRenewalVm({
@@ -538,10 +597,20 @@ export default function MyListingsPage() {
     const newPairs = mergeDetailPairValue(row.detail_pairs, EN_VENTA_VISIBILITY_LAST_RENEWAL_LABEL, renewedAtIso);
 
     const nextCount = Number(row.republish_count ?? 0) + 1;
-    const { error: uErr } = await supabase
-      .from("listings")
-      .update({ republished_at: renewedAtIso, republish_count: nextCount, detail_pairs: newPairs })
-      .eq("id", row.id);
+    const live = listingsRowIsPublicLive(rec);
+    const patch: Record<string, unknown> = {
+      republished_at: renewedAtIso,
+      republish_count: nextCount,
+      detail_pairs: newPairs,
+      last_republished_source: "dashboard",
+      ...(userId ? { last_republished_by: userId } : {}),
+    };
+    if (!live) {
+      patch.is_published = true;
+      patch.status = "active";
+    }
+
+    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", row.id);
 
     if (uErr) {
       setError(uErr.message);
@@ -551,7 +620,15 @@ export default function MyListingsPage() {
 
     setListings((prev) =>
       prev.map((x) =>
-        x.id === row.id ? { ...x, republished_at: renewedAtIso, republish_count: nextCount, detail_pairs: newPairs } : x,
+        x.id === row.id
+          ? {
+              ...x,
+              republished_at: renewedAtIso,
+              republish_count: nextCount,
+              detail_pairs: newPairs,
+              ...(live ? {} : { is_published: true, status: "active" }),
+            }
+          : x,
       ),
     );
     setBusyId(null);
@@ -1053,7 +1130,7 @@ export default function MyListingsPage() {
                     categoryLabel={lang === "es" ? "Restaurante" : "Restaurant"}
                     title={item.title}
                     status={item.status}
-                    subtitle={`${lang === "es" ? "Leonix Ad ID" : "Leonix Ad ID"}: ${item.leonixAdId ?? "—"}`}
+                    subtitle={item.slug ?? undefined}
                     badges={[
                       item.promoted ? (lang === "es" ? "Destacado" : "Promoted") : "",
                       item.verified ? (lang === "es" ? "Verificado" : "Verified") : "",
@@ -1063,6 +1140,9 @@ export default function MyListingsPage() {
                       { label: "Slug", value: item.slug ?? "—" },
                       { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
                       { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
+                      ...(item.leonixAdId?.trim()
+                        ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
+                        : []),
                     ]}
                     actions={[
                       { href: item.publicHref, label: lang === "es" ? "Ver publico" : "View public", tone: "primary" as const },
@@ -1102,6 +1182,9 @@ export default function MyListingsPage() {
                       { label: "Slug", value: item.slug ?? "—" },
                       { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
                       { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
+                      ...(item.leonixAdId?.trim()
+                        ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
+                        : []),
                     ]}
                     actions={[
                       { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
@@ -1156,6 +1239,9 @@ export default function MyListingsPage() {
                       { label: "Slug", value: item.slug ?? "—" },
                       { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
                       { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
+                      ...(item.leonixAdId?.trim()
+                        ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
+                        : []),
                     ]}
                     actions={[
                       { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
@@ -1209,6 +1295,9 @@ export default function MyListingsPage() {
                       { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
                       { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
                       { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
+                      ...(item.leonixAdId?.trim()
+                        ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
+                        : []),
                     ]}
                     actions={[
                       { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
@@ -1247,6 +1336,9 @@ export default function MyListingsPage() {
                       { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
                       { label: lang === "es" ? "Slug" : "Slug", value: item.slug ?? "—" },
                       { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
+                      ...(item.leonixAdId?.trim()
+                        ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
+                        : []),
                     ]}
                     actions={[
                       { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
@@ -1357,12 +1449,20 @@ export default function MyListingsPage() {
                       }}
                       maxViews={maxViews}
                       listingAdPlanLabel={autosPlanLabel}
+                      leonixAdId={x.leonix_ad_id ?? null}
                     />
                   );
                 }
 
                 const lx = parseLeonixListingContract(x.detail_pairs);
                 if (lx.branch) {
+                  const catKey = String(x.category ?? "").toLowerCase();
+                  const rowRec = x as unknown as Record<string, unknown>;
+                  const repKind =
+                    republishColsAvailable && dashboardCanRepublishListingsRow(rowRec, catKey)
+                      ? dashboardRepublishPrimaryKind(rowRec, catKey)
+                      : null;
+                  const repLabel = repKind ? dashboardRepublishPrimaryLabel(lang, repKind) : null;
                   return (
                     <LeonixRealEstateListingManageCard
                       key={x.id}
@@ -1375,6 +1475,9 @@ export default function MyListingsPage() {
                       messagesTotal={stats?.messages ?? 0}
                       onUnpublish={() => void markUnpublish(x.id)}
                       onDelete={() => deleteListing(x.id)}
+                      republishPrimaryLabel={repLabel}
+                      onRepublish={repLabel ? () => void renewListingsTableRepublish(x) : undefined}
+                      republishBusy={busy}
                     />
                   );
                 }
@@ -1385,6 +1488,13 @@ export default function MyListingsPage() {
                     resolveCategoryAdPlan({ category: "en-venta", detailPairs: x.detail_pairs }),
                     lang,
                   );
+                  const rowRecEv = x as unknown as Record<string, unknown>;
+                  const repKindEv =
+                    listingPlan === "pro" && republishColsAvailable && dashboardCanRepublishListingsRow(rowRecEv, "en-venta")
+                      ? dashboardRepublishPrimaryKind(rowRecEv, "en-venta")
+                      : null;
+                  const republishButtonLabel =
+                    repKindEv && renewalVm?.canRenewNow ? dashboardRepublishPrimaryLabel(lang, repKindEv) : null;
                   return (
                     <EnVentaListingManageCard
                       key={x.id}
@@ -1425,6 +1535,8 @@ export default function MyListingsPage() {
                       priceDropLabel={listingPriceDropLabel(x, lang)}
                       showDraftBadge={x.is_published === false}
                       visibilityRenewal={visibilityRenewal}
+                      republishButtonLabel={republishButtonLabel}
+                      leonixAdId={x.leonix_ad_id ?? null}
                       leonixPromoted={leonixPromotedFromDetailPairs(x.detail_pairs)}
                       uiStatus={uiSt}
                       listingRefShort={shortListingRef(x.id)}

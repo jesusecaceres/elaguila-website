@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
       published_at: r.published_at,
       listing_status: r.listing_status,
       leonix_verified: r.leonix_verified,
+      leonix_ad_id: r.leonix_ad_id ?? null,
     })),
   });
 }

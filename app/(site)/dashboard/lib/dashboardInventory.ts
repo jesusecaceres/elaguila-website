@@ -68,6 +68,7 @@ export type DashboardEmpleosRow = {
   lifecycle_status: string;
   lane: string;
   updated_at: string;
+  leonix_ad_id?: string | null;
 };
 
 export type DashboardViajesRow = {
@@ -83,6 +84,7 @@ export type DashboardViajesRow = {
   published_at: string | null;
   updated_at: string;
   listing_json?: unknown;
+  leonix_ad_id?: string | null;
 };
 
 export type DashboardAutosClassifiedsRow = {
@@ -93,6 +95,7 @@ export type DashboardAutosClassifiedsRow = {
   listing_payload: Record<string, unknown>;
   published_at: string | null;
   updated_at: string;
+  leonix_ad_id?: string | null;
 };
 
 /** Row shape returned by `GET /api/clasificados/servicios/my-listings` (cloud owner inventory only). */
@@ -103,6 +106,7 @@ export type ServiciosMyListingApiRow = {
   published_at: string | null;
   listing_status: string;
   leonix_verified: boolean;
+  leonix_ad_id?: string | null;
 };
 
 function extractDetailPairValue(detailPairs: unknown, key: string): string | null {
@@ -140,7 +144,7 @@ export async function fetchOwnerEmpleosListings(
   const { data, error } = await sb
     .from("empleos_public_listings")
     .select(
-      "id, slug, title, company_name, lifecycle_status, lane, updated_at",
+      "id, slug, title, company_name, lifecycle_status, lane, updated_at, leonix_ad_id",
     )
     .eq("owner_user_id", ownerId)
     .order("updated_at", { ascending: false });
@@ -155,7 +159,7 @@ export async function fetchOwnerViajesListings(
   const { data, error } = await sb
     .from("viajes_staged_listings")
     .select(
-      "id, slug, title, category, lane, owner_user_id, lifecycle_status, is_public, hero_image_url, published_at, updated_at, listing_json",
+      "id, slug, title, category, lane, owner_user_id, lifecycle_status, is_public, hero_image_url, published_at, updated_at, listing_json, leonix_ad_id",
     )
     .eq("owner_user_id", ownerId)
     .eq("is_public", true)
@@ -170,7 +174,7 @@ export async function fetchOwnerAutosClassifiedsListings(
 ): Promise<DashboardAutosClassifiedsRow[]> {
   const { data, error } = await sb
     .from("autos_classifieds_listings")
-    .select("id, status, lane, lang, listing_payload, published_at, updated_at")
+    .select("id, status, lane, lang, listing_payload, published_at, updated_at, leonix_ad_id")
     .eq("owner_user_id", ownerId)
     .order("updated_at", { ascending: false });
   if (error || !data) return [];
@@ -208,7 +212,7 @@ export function buildAutosClassifiedsInventoryItems(
     publishedAt: row.published_at,
     updatedAt: row.updated_at,
     image: null,
-    leonixAdId: null,
+    leonixAdId: typeof row.leonix_ad_id === "string" && row.leonix_ad_id.trim() ? row.leonix_ad_id.trim() : null,
     slug: null,
     packageTier: null,
     promoted: false,
@@ -236,7 +240,7 @@ export function buildServiciosInventoryItems(rows: ServiciosMyListingApiRow[], l
     publishedAt: row.published_at,
     updatedAt: null,
     image: null,
-    leonixAdId: null,
+    leonixAdId: typeof row.leonix_ad_id === "string" && row.leonix_ad_id.trim() ? row.leonix_ad_id.trim() : null,
     slug: row.slug,
     packageTier: null,
     promoted: false,
@@ -274,6 +278,7 @@ export async function fetchOwnerServiciosListings(accessToken: string | null): P
         published_at: typeof o.published_at === "string" ? o.published_at : null,
         listing_status: typeof o.listing_status === "string" ? o.listing_status : "published",
         leonix_verified: Boolean(o.leonix_verified),
+        leonix_ad_id: typeof o.leonix_ad_id === "string" && o.leonix_ad_id.trim() ? o.leonix_ad_id.trim() : null,
       });
     }
     return out;
@@ -346,7 +351,7 @@ export function buildEmpleosInventoryItems(
     publishedAt: null,
     updatedAt: row.updated_at,
     image: null,
-    leonixAdId: null,
+    leonixAdId: typeof row.leonix_ad_id === "string" && row.leonix_ad_id.trim() ? row.leonix_ad_id.trim() : null,
     slug: row.slug,
     packageTier: null,
     promoted: false,
@@ -376,7 +381,7 @@ export function buildViajesInventoryItems(
     publishedAt: row.published_at,
     updatedAt: row.updated_at,
     image: row.hero_image_url,
-    leonixAdId: null,
+    leonixAdId: typeof row.leonix_ad_id === "string" && row.leonix_ad_id.trim() ? row.leonix_ad_id.trim() : null,
     slug: row.slug,
     packageTier: null,
     promoted: false,

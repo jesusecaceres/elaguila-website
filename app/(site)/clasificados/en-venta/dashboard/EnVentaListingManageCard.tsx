@@ -77,6 +77,8 @@ export function EnVentaListingManageCard({
   priceDropLabel,
   showDraftBadge,
   visibilityRenewal,
+  republishButtonLabel = null,
+  leonixAdId = null,
   leonixPromoted = false,
   uiStatus,
   listingRefShort,
@@ -109,6 +111,10 @@ export function EnVentaListingManageCard({
   showDraftBadge?: boolean;
   /** Pro-only republish / visibility window (dashboard); omitted for Free. */
   visibilityRenewal?: EnVentaVisibilityRenewalUi | null;
+  /** When republish is allowed, primary CTA: Move to top (live) or Republish (unpublished/suspended). */
+  republishButtonLabel?: string | null;
+  /** Directory / permanent ad id when present on the row — display only; never generated here. */
+  leonixAdId?: string | null;
   /** Leonix Promoted / Featured in `detail_pairs` — separate from post-republish visibility window. */
   leonixPromoted?: boolean;
   /** Richer lifecycle chip when provided (dashboard command center). */
@@ -168,10 +174,11 @@ export function EnVentaListingManageCard({
           dup: "Duplicar",
           perf: "Rendimiento",
           insights: "Revisa vistas y mensajes para afinar precio o fotos.",
-          visH: "Republicar (Pro)",
+          visH: "Ventana de visibilidad (Pro)",
+          leonixAd: "ID Leonix",
           visActive: "Ventana de visibilidad hasta",
           visInactive: "Sin ventana de visibilidad activa.",
-          visNext: "Podrás republicar de nuevo:",
+          visNext: "Podrás volver a subir al inicio o republicar:",
           renew: "Republicar",
           repubTop: "Arriba en listas",
           adPlan: "Plan del anuncio",
@@ -209,10 +216,11 @@ export function EnVentaListingManageCard({
           dup: "Duplicate",
           perf: "Performance",
           insights: "Compare views and messages to tune price or photos.",
-          visH: "Republish (Pro)",
+          visH: "Visibility window (Pro)",
+          leonixAd: "Leonix Ad ID",
           visActive: "Visibility window until",
           visInactive: "No active visibility window.",
-          visNext: "You can republish again on:",
+          visNext: "You can move to top or republish again on:",
           renew: "Republish",
           repubTop: "Move to top",
           adPlan: "Listing plan",
@@ -275,6 +283,11 @@ export function EnVentaListingManageCard({
             {listingRefShort ? (
               <p className="mt-1 font-mono text-[11px] text-[#7A7164]">
                 {L.ref} {listingRefShort}
+              </p>
+            ) : null}
+            {(leonixAdId ?? "").trim() ? (
+              <p className="mt-1 font-mono text-[11px] text-[#7A7164]">
+                {L.leonixAd}: {(leonixAdId ?? "").trim()}
               </p>
             ) : null}
             <p className="mt-1 text-lg font-bold text-[#1E1810]">{priceText}</p>
@@ -345,7 +358,7 @@ export function EnVentaListingManageCard({
                         onClick={visibilityRenewal.onRenew}
                         className="mt-2 inline-flex w-full min-h-[40px] items-center justify-center rounded-xl bg-gradient-to-r from-[#E8D48A] to-[#C9A84A] px-3 py-2 text-xs font-bold text-[#1E1810] shadow-sm disabled:opacity-50"
                       >
-                        {L.renew}
+                        {republishButtonLabel ?? L.renew}
                       </button>
                     ) : null}
                   </div>

@@ -30,6 +30,8 @@ type Row = {
   city?: string | null;
   status?: string | null;
   created_at?: string | null;
+  /** Permanent directory id when present — display only. */
+  leonix_ad_id?: string | null;
   /** Used for Rentas-specific dashboard lines (e.g. availability from detail_pairs). */
   category?: string | null;
   /** Fallback when `Leonix:branch` is missing on older rows but `category` is rentas. */
@@ -76,6 +78,9 @@ export function LeonixRealEstateListingManageCard({
   messagesTotal,
   onUnpublish,
   onDelete,
+  republishPrimaryLabel = null,
+  onRepublish,
+  republishBusy = false,
 }: {
   row: Row;
   lang: Lang;
@@ -86,6 +91,10 @@ export function LeonixRealEstateListingManageCard({
   messagesTotal: number;
   onUnpublish: () => void;
   onDelete: () => void;
+  /** Move to top / Republish — null hides republish CTA (ineligible or unknown). */
+  republishPrimaryLabel?: string | null;
+  onRepublish?: () => void;
+  republishBusy?: boolean;
 }) {
   const lx = parseLeonixListingContract(row.detail_pairs);
   const inferredRentasBranch: LeonixClasificadosBranch | null =
@@ -155,6 +164,11 @@ export function LeonixRealEstateListingManageCard({
             {(row.city || "").trim() ? ` · ${(row.city ?? "").trim()}` : ""}
             {dateText ? ` · ${dateText}` : ""}
           </p>
+          {(row.leonix_ad_id ?? "").trim() ? (
+            <p className="mt-1 font-mono text-[11px] text-[#7A7164]">
+              {lang === "es" ? "ID Leonix" : "Leonix Ad ID"}: {(row.leonix_ad_id ?? "").trim()}
+            </p>
+          ) : null}
           {isBr ? (
             <>
               <p className="mt-2 text-xs text-[#7A7164]">
@@ -197,6 +211,21 @@ export function LeonixRealEstateListingManageCard({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {republishPrimaryLabel && onRepublish ? (
+            <button
+              type="button"
+              disabled={busy || republishBusy}
+              onClick={onRepublish}
+              title={
+                lang === "es"
+                  ? "Actualiza republicación y la ventana de visibilidad en listados (no sustituye Promocionar ni Verificar Leonix)."
+                  : "Updates republish timestamp and the visibility window in listings (separate from Promoted/Featured or Verify Leonix)."
+              }
+              className="rounded-xl bg-gradient-to-r from-[#E8D48A] to-[#C9A84A] px-4 py-2 text-sm font-bold text-[#1E1810] shadow-sm disabled:opacity-50"
+            >
+              {republishPrimaryLabel}
+            </button>
+          ) : null}
           <Link
             href={publicViewHref}
             className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
