@@ -40,6 +40,7 @@ import {
   buildClasesQuickPublishEnvelope,
   buildComunidadQuickPublishEnvelope,
 } from "./publish/buildCommunityPublishEnvelope";
+import { publishCommunityQuickToListings } from "./publish/publishCommunityQuickToListings";
 import {
   clearCommunityStagedPublish,
   writeCommunityStagedPublish,
@@ -150,7 +151,9 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
     (raw) => normalizeClasesQuickDraft(raw),
   );
 
-  const [stagedNotice, setStagedNotice] = useState(false);
+  const [sessionSaveNotice, setSessionSaveNotice] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
   const [paidBlockNotice, setPaidBlockNotice] = useState(false);
 
   const gate = useMemo(() => gateClasesQuickPreview(state, lang), [state, lang]);
@@ -165,6 +168,7 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
 
   const goPreview = useCallback(() => {
     if (previewDisabled) return;
+    setPublishError(null);
     flushCommunityDraftToSession(
       COMMUNITY_SESSION_KEYS.clases,
       state,
@@ -176,27 +180,40 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
 
   const handleDelete = useCallback(() => {
     reset();
-    setStagedNotice(false);
+    setSessionSaveNotice(false);
     setPaidBlockNotice(false);
+    setPublishError(null);
     clearCommunityStagedPublish("clases");
   }, [reset]);
 
-  const handlePublish = useCallback(() => {
-    if (publishDisabled) return;
+  const handlePublish = useCallback(async () => {
+    if (publishDisabled || publishing) return;
     if (shouldBlockClasesPaidPublish(state)) {
       setPaidBlockNotice(true);
       return;
     }
-    const envelope = buildClasesQuickPublishEnvelope(state, lang);
-    writeCommunityStagedPublish("clases", envelope);
-    setStagedNotice(true);
     setPaidBlockNotice(false);
-  }, [publishDisabled, state, lang]);
+    setPublishError(null);
+    setSessionSaveNotice(false);
+    setPublishing(true);
+    try {
+      const r = await publishCommunityQuickToListings({ kind: "clases", draft: state, lang });
+      if (!r.ok) {
+        setPublishError(r.error);
+        return;
+      }
+      clearCommunityStagedPublish("clases");
+      router.push(`/clasificados/anuncio/${r.listingId}?lang=${lang}`);
+    } finally {
+      setPublishing(false);
+    }
+  }, [publishDisabled, publishing, state, lang, router]);
 
   const onSaveDraft = useCallback(() => {
     const envelope = buildClasesQuickPublishEnvelope(state, lang);
     writeCommunityStagedPublish("clases", envelope);
-    setStagedNotice(true);
+    setSessionSaveNotice(true);
+    setPublishError(null);
   }, [state, lang]);
 
   const ctaL = ctaLabels(lang);
@@ -206,6 +223,8 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
   if (!hydrated) {
     return <div className="min-h-[50vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
   }
+
+  const publishBtnDisabled = publishDisabled || publishing;
 
   const isPaid = state.classCostType === "pagada";
 
@@ -503,14 +522,18 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
         <EmpleosApplicationFinalStep
           copy={sharedCopy.finalStep}
           previewDisabled={previewDisabled}
-          publishDisabled={publishDisabled}
+          publishDisabled={publishBtnDisabled}
           onVistaPrevia={goPreview}
           onPublicar={handlePublish}
           onDelete={handleDelete}
-          stagedSuccessText={stagedNotice ? sharedCopy.stagedSuccess : null}
+          stagedSuccessText={sessionSaveNotice ? sharedCopy.saveDraftSessionNotice : null}
+          publishErrorText={publishError}
           publishGateBlockedHint={previewDisabled ? sharedCopy.publishBlocked : null}
           publishOnlyBlockedHint={
             !previewDisabled && publishDisabled ? sharedCopy.approvalPublishBlocked : null
+          }
+          publishSecondaryHint={
+            publishing ? (lang === "es" ? "Publicando…" : "Publishing…") : null
           }
           allowSaveDraftWhenBlocked
           finalBlockingIssues={previewIssues}
@@ -542,7 +565,9 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
     (raw) => normalizeComunidadQuickDraft(raw),
   );
 
-  const [stagedNotice, setStagedNotice] = useState(false);
+  const [sessionSaveNotice, setSessionSaveNotice] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
 
   const gate = useMemo(() => gateComunidadQuickPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;
@@ -556,6 +581,7 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
 
   const goPreview = useCallback(() => {
     if (previewDisabled) return;
+    setPublishError(null);
     flushCommunityDraftToSession(
       COMMUNITY_SESSION_KEYS.comunidad,
       state,
@@ -567,21 +593,34 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
 
   const handleDelete = useCallback(() => {
     reset();
-    setStagedNotice(false);
+    setSessionSaveNotice(false);
+    setPublishError(null);
     clearCommunityStagedPublish("comunidad");
   }, [reset]);
 
-  const handlePublish = useCallback(() => {
-    if (publishDisabled) return;
-    const envelope = buildComunidadQuickPublishEnvelope(state, lang);
-    writeCommunityStagedPublish("comunidad", envelope);
-    setStagedNotice(true);
-  }, [publishDisabled, state, lang]);
+  const handlePublish = useCallback(async () => {
+    if (publishDisabled || publishing) return;
+    setPublishError(null);
+    setSessionSaveNotice(false);
+    setPublishing(true);
+    try {
+      const r = await publishCommunityQuickToListings({ kind: "comunidad", draft: state, lang });
+      if (!r.ok) {
+        setPublishError(r.error);
+        return;
+      }
+      clearCommunityStagedPublish("comunidad");
+      router.push(`/clasificados/anuncio/${r.listingId}?lang=${lang}`);
+    } finally {
+      setPublishing(false);
+    }
+  }, [publishDisabled, publishing, state, lang, router]);
 
   const onSaveDraft = useCallback(() => {
     const envelope = buildComunidadQuickPublishEnvelope(state, lang);
     writeCommunityStagedPublish("comunidad", envelope);
-    setStagedNotice(true);
+    setSessionSaveNotice(true);
+    setPublishError(null);
   }, [state, lang]);
 
   const ctaL = ctaLabels(lang);
@@ -591,6 +630,8 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
   if (!hydrated) {
     return <div className="min-h-[50vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
   }
+
+  const publishBtnDisabled = publishDisabled || publishing;
 
   const requiresAdmissionNote = state.eventCost === "pagado" || state.eventCost === "donacion";
 
@@ -861,14 +902,18 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
         <EmpleosApplicationFinalStep
           copy={sharedCopy.finalStep}
           previewDisabled={previewDisabled}
-          publishDisabled={publishDisabled}
+          publishDisabled={publishBtnDisabled}
           onVistaPrevia={goPreview}
           onPublicar={handlePublish}
           onDelete={handleDelete}
-          stagedSuccessText={stagedNotice ? sharedCopy.stagedSuccess : null}
+          stagedSuccessText={sessionSaveNotice ? sharedCopy.saveDraftSessionNotice : null}
+          publishErrorText={publishError}
           publishGateBlockedHint={previewDisabled ? sharedCopy.publishBlocked : null}
           publishOnlyBlockedHint={
             !previewDisabled && publishDisabled ? sharedCopy.approvalPublishBlocked : null
+          }
+          publishSecondaryHint={
+            publishing ? (lang === "es" ? "Publicando…" : "Publishing…") : null
           }
           allowSaveDraftWhenBlocked
           finalBlockingIssues={previewIssues}

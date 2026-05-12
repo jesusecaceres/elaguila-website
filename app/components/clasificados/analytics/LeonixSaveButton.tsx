@@ -147,22 +147,30 @@ export function LeonixSaveButton({
       onClick={() => void handleToggle()}
       disabled={isSaving || !hydrated || inert}
       title={inert ? labels.preview : undefined}
+      data-leonix-save-active={isSaved && !inert ? "1" : "0"}
+      aria-pressed={inert ? undefined : isSaved}
       className={`
         inline-flex items-center gap-2 rounded-full font-medium
         transition-all duration-200
         ${
           isSaved
-            ? "bg-[#D4A574] text-white border border-[#D4A574] hover:bg-[#C19A6B]"
-            : "bg-white text-[#1A1A1A] border border-[#D4A574] hover:bg-[#FFFAF0]"
+            ? "bg-amber-50/95 text-amber-950 ring-2 ring-amber-400/85 shadow-sm hover:bg-amber-100/95"
+            : "bg-white/95 text-[#1A1A1A] ring-1 ring-black/10 hover:bg-[#FFFAF0]"
         }
         ${inert ? "opacity-60 cursor-not-allowed" : ""}
+        ${isSaved && !inert ? "font-semibold" : ""}
         ${sizeClasses[variant]}
         ${className}
       `}
       aria-label={inert ? labels.preview : isSaved ? labels.saved : labels.save}
       aria-disabled={inert || !hydrated}
     >
-      <FiBookmark className={`${iconSizes[variant]} ${isSaved ? "fill-current" : ""}`} />
+      <FiBookmark
+        className={`${iconSizes[variant]} shrink-0 ${
+          isSaved ? "fill-amber-600 stroke-amber-800 text-amber-600" : "fill-transparent stroke-current text-current"
+        }`}
+        aria-hidden
+      />
       <span>{isSaving ? labels.saving : inert ? labels.preview : isSaved ? labels.saved : labels.save}</span>
     </button>
   );

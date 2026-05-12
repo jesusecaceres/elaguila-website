@@ -168,22 +168,30 @@ export function LeonixLikeButton({
       onClick={() => void handleToggle()}
       disabled={isLiking || !hydrated || inert}
       title={inert ? labels.preview : undefined}
+      data-leonix-like-active={isLiked && !inert ? "1" : "0"}
+      aria-pressed={inert ? undefined : isLiked}
       className={`
         inline-flex items-center gap-2 rounded-full font-medium
         transition-all duration-200
         ${
           isLiked
-            ? "bg-[#D4A574] text-white border border-[#D4A574] hover:bg-[#C19A6B]"
-            : "bg-white text-[#1A1A1A] border border-[#D4A574] hover:bg-[#FFFAF0]"
+            ? "bg-rose-50/95 text-rose-950 ring-2 ring-rose-400/90 shadow-sm hover:bg-rose-100/95"
+            : "bg-white/95 text-[#1A1A1A] ring-1 ring-black/10 hover:bg-[#FFFAF0]"
         }
         ${inert ? "opacity-60 cursor-not-allowed" : ""}
+        ${isLiked && !inert ? "font-semibold" : ""}
         ${sizeClasses[variant]}
         ${className}
       `}
       aria-label={inert ? labels.preview : isLiked ? labels.liked : labels.like}
       aria-disabled={inert || !hydrated}
     >
-      <FiHeart className={`${iconSizes[variant]} ${isLiked ? "fill-current" : ""}`} />
+      <FiHeart
+        className={`${iconSizes[variant]} shrink-0 ${
+          isLiked ? "fill-rose-600 stroke-rose-700 text-rose-600" : "fill-transparent stroke-current text-current"
+        }`}
+        aria-hidden
+      />
       <span>{isLiking ? labels.liking : inert ? labels.preview : isLiked ? labels.liked : labels.like}</span>
     </button>
   );

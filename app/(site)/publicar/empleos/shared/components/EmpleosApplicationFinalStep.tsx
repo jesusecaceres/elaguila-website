@@ -41,6 +41,8 @@ type Props = {
   publishSecondaryHint?: string | null;
   /** Publish-button title when blocked only by publish-specific rules (e.g. attestations), not preview gate. */
   publishOnlyBlockedHint?: string | null;
+  /** Last publish attempt failed (e.g. Supabase / storage). */
+  publishErrorText?: string | null;
 };
 
 export function EmpleosApplicationFinalStep({
@@ -59,6 +61,7 @@ export function EmpleosApplicationFinalStep({
   finalBlockingIntro,
   publishSecondaryHint,
   publishOnlyBlockedHint,
+  publishErrorText,
 }: Props) {
   const publishBtnDisabled = publishDisabled ?? previewDisabled;
   const saveBtnDisabled = allowSaveDraftWhenBlocked ? false : previewDisabled;
@@ -84,6 +87,12 @@ export function EmpleosApplicationFinalStep({
       {stagedSuccessText ? (
         <p className="mt-3 rounded-xl border border-emerald-200/80 bg-emerald-50/95 px-3 py-2 text-sm text-emerald-950" role="status">
           {stagedSuccessText}
+        </p>
+      ) : null}
+
+      {publishErrorText ? (
+        <p className="mt-3 rounded-xl border border-red-200/90 bg-red-50/95 px-3 py-2 text-sm text-red-950" role="alert">
+          {publishErrorText}
         </p>
       ) : null}
 

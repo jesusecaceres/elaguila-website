@@ -15,7 +15,7 @@ export const COMMUNITY_PUBLISH_COPY = {
     finalStep: {
       title: "Revisión final",
       intro:
-        "Cuando hayas revisado el contenido, usa los botones de abajo para abrir la vista previa real o iniciar la publicación.",
+        "Con sesión iniciada, Publicar crea el anuncio en Leonix Clasificados (tabla listings), sube fotos al bucket listing-images en la ruta de tu usuario y te lleva al detalle público. Los PDF no se publican aún: quítalos del volante antes de publicar.",
       sessionDraftLine: "Tu borrador se guarda automáticamente en esta sesión del navegador.",
       previewCta: "Vista previa",
       publishCta: "Publicar",
@@ -29,7 +29,7 @@ export const COMMUNITY_PUBLISH_COPY = {
     publishModal: {
       title: "Confirmar publicación",
       intro:
-        "La publicación final llegará en una fase posterior. Por ahora confirma que revisaste tu anuncio.",
+        "Al continuar confirmas que revisaste el anuncio. Publicar guarda en Supabase y abre el detalle público cuando las fotos suben correctamente.",
       checks: [
         "Confirmo que la información es verídica y la puedo respaldar.",
         "Confirmo que las fotos representan la clase o evento anunciado.",
@@ -44,8 +44,8 @@ export const COMMUNITY_PUBLISH_COPY = {
       message: "No hay borrador de sesión para mostrar.",
       backLink: "Volver a editar",
     },
-    stagedSuccess:
-      "Borrador guardado solo en esta sesión del navegador. No se creó anuncio en la base de datos, no hay URL pública ni redirección, y el anuncio no aparecerá en resultados ni en “Mis anuncios”. La publicación en Leonix Clasificados para esta categoría aún no está conectada.",
+    saveDraftSessionNotice:
+      "Borrador guardado en esta sesión (solo el navegador). Usa Publicar para crear el anuncio en Leonix.",
     stillNeededTitle: "Falta completar:",
     approvalPublishBlocked: "Marca las tres confirmaciones antes de publicar.",
   },
@@ -56,7 +56,7 @@ export const COMMUNITY_PUBLISH_COPY = {
     finalStep: {
       title: "Final review",
       intro:
-        "When the content is ready, use the buttons below to open the real preview or start publishing.",
+        "When signed in, Publish creates the listing in Leonix Clasificados (listings table), uploads photos to the listing-images bucket under your user path, then opens the public detail page. PDFs are not published yet — remove PDF flyers before publishing.",
       sessionDraftLine: "Your draft is auto-saved in this browser session.",
       previewCta: "Preview",
       publishCta: "Publish",
@@ -69,7 +69,7 @@ export const COMMUNITY_PUBLISH_COPY = {
       "Choose a city from the list so the listing works with NorCal filters.",
     publishModal: {
       title: "Confirm publish",
-      intro: "Final publishing arrives in a later phase. For now confirm you reviewed the listing.",
+      intro: "By continuing you confirm you reviewed the listing. Publish saves to Supabase and opens the public detail when photo uploads succeed.",
       checks: [
         "I confirm the information is truthful and I can stand behind it.",
         "I confirm photos represent the class or event.",
@@ -84,8 +84,8 @@ export const COMMUNITY_PUBLISH_COPY = {
       message: "No session draft to display.",
       backLink: "Back to edit",
     },
-    stagedSuccess:
-      "Draft saved only in this browser session. No database listing was created, there is no public URL or redirect, and the listing will not appear in results or “My listings”. Publishing to Leonix Clasificados for this category is not wired yet.",
+    saveDraftSessionNotice:
+      "Draft saved in this session (browser only). Use Publish to create the listing on Leonix.",
     stillNeededTitle: "Still needed:",
     approvalPublishBlocked: "Check all three confirmations before publishing.",
   },
@@ -125,7 +125,8 @@ export const CLASES_QUICK_COPY = {
       weeklyClosed: "Sin clase",
       description: "Descripción corta",
       image: "Flyer / medios",
-      imageHint: "Sube imagen, PDF o archivo del volante, o pega una URL (imagen o PDF).",
+      imageHint:
+        "Puedes subir imagen o PDF para la vista previa. La publicación en Leonix solo acepta imágenes (JPG/PNG/WebP); si hay PDF, quítalo antes de publicar.",
       publicCity: "Ciudad donde se ofrece la clase",
       stateLabel: "Estado",
       zipLabel: "Código postal",
@@ -169,7 +170,8 @@ export const CLASES_QUICK_COPY = {
       weeklyClosed: "No class",
       description: "Short description",
       image: "Flyer / media",
-      imageHint: "Upload an image, PDF, or flyer file, or paste a URL (image or PDF).",
+      imageHint:
+        "You can upload an image or PDF for preview. Leonix publish accepts images (JPG/PNG/WebP) only — remove PDFs before publishing.",
       publicCity: "City where the class is offered",
       stateLabel: "State",
       zipLabel: "ZIP",
@@ -217,7 +219,8 @@ export const COMUNIDAD_QUICK_COPY = {
       weeklyClosed: "No aplica",
       description: "Descripción corta",
       image: "Flyer / medios",
-      imageHint: "Sube imagen, PDF o archivo del volante, o pega una URL (imagen o PDF).",
+      imageHint:
+        "Puedes subir imagen o PDF para la vista previa. La publicación en Leonix solo acepta imágenes (JPG/PNG/WebP); si hay PDF, quítalo antes de publicar.",
       publicCity: "Ciudad donde se realiza el evento",
       stateLabel: "Estado",
       zipLabel: "Código postal",
@@ -264,7 +267,8 @@ export const COMUNIDAD_QUICK_COPY = {
       weeklyClosed: "Does not apply",
       description: "Short description",
       image: "Flyer / media",
-      imageHint: "Upload an image, PDF, or flyer file, or paste a URL (image or PDF).",
+      imageHint:
+        "You can upload an image or PDF for preview. Leonix publish accepts images (JPG/PNG/WebP) only — remove PDFs before publishing.",
       publicCity: "City where the event takes place",
       stateLabel: "State",
       zipLabel: "ZIP",

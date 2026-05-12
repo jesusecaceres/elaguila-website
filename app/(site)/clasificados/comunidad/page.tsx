@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 import { CategoryHeroFrame } from "@/app/(site)/clasificados/components/categoryLanding/CategoryHeroFrame";
 import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
+import { CategoryRecentListings } from "@/app/(site)/clasificados/components/categoryLanding/CategoryRecentListings";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { COMUNIDAD_LANDING_CATEGORY_PILLS, COMUNIDAD_QUICK_CHIPS } from "./shared/fields/comunidadTaxonomy";
 import { buildComunidadListaUrl } from "./shared/utils/comunidadListaUrl";
@@ -156,6 +157,18 @@ export default function Page() {
           </div>
           <p className="mt-2 text-[11px] leading-snug text-[#111111]/68">{t.hint}</p>
         </section>
+
+        <CategoryRecentListings
+          category="comunidad"
+          lang={lang}
+          title={lang === "es" ? "Anuncios recientes" : "Recent listings"}
+          emptyNote={
+            lang === "es"
+              ? "Aún no hay eventos de comunidad publicados en Leonix Clasificados."
+              : "No community events published on Leonix Clasificados yet."
+          }
+          errorPrefix={lang === "es" ? "No se pudo cargar la lista:" : "Could not load listings:"}
+        />
 
         <div className="flex min-w-0 flex-col gap-3 pt-1 sm:flex-row sm:flex-wrap sm:gap-3">
           <Link

@@ -13,7 +13,12 @@ import {
   listServiciosDevPublishRows,
 } from "./serviciosDevPublishPersistence";
 import { getServiciosReviewAggregatesForSlugs } from "./serviciosOpsTablesServer";
-import { compareServiciosPublicDiscoveryNewestFirst, SERVICIOS_PUBLIC_LISTING_SELECT } from "./serviciosPublicListingSort";
+import {
+  compareServiciosPublicDiscoveryNewestFirst,
+  serviciosEngagementListingKey,
+  serviciosNetLikeCountMapFromAnalyticsRows,
+  SERVICIOS_PUBLIC_LISTING_SELECT,
+} from "./serviciosPublicListingSort";
 import {
   SERVICIOS_LISTING_STATUS_PUBLISHED,
 } from "./serviciosListingLifecycle";
@@ -71,12 +76,35 @@ export type ServiciosPublicListingRow = {
   /** Approved DB reviews aggregate (optional; discovery + ranking) */
   review_rating_avg?: number | null;
   review_rating_count?: number | null;
+  /** Net likes from `listing_analytics` (listing_like − listing_unlike) for `serviciosEngagementListingKey(row)`. */
+  public_like_net_count?: number;
 };
 
 /** DB reads for publish/admin — any lifecycle row by slug. */
 export type ServiciosListingSlugDbVisibility = "published_only" | "slug_page" | "all";
 
 const SLUG_PAGE_STATUSES = ["published", "paused_unpublished", "pending_review", "rejected", "suspended"] as const;
+
+/** Batch net like counts for discovery cards (same keys as hero Like button). */
+export async function fetchServiciosNetLikeCountsByEngagementKeys(listingKeys: string[]): Promise<Map<string, number>> {
+  const keys = [...new Set(listingKeys.map((k) => k.trim()).filter(Boolean))];
+  if (keys.length === 0 || !isSupabaseAdminConfigured()) return new Map();
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("listing_analytics")
+      .select("listing_id, event_type")
+      .in("listing_id", keys)
+      .in("event_type", ["listing_like", "listing_unlike"]);
+    if (error || !data) return new Map();
+    return serviciosNetLikeCountMapFromAnalyticsRows(
+      data as { listing_id: string | null; event_type: string | null }[],
+      keys,
+    );
+  } catch {
+    return new Map();
+  }
+}
 
 export async function listServiciosPublicListingsFromDb(limit = 48): Promise<ServiciosPublicListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
@@ -167,11 +195,20 @@ export async function listServiciosPublicListingsForDiscovery(limit = 48): Promi
   }
   merged.sort(compareServiciosPublicDiscoveryNewestFirst);
   const slice = merged.slice(0, limit);
-  const agg = await getServiciosReviewAggregatesForSlugs(slice.map((r) => r.slug));
+  const engagementKeys = slice.map((r) => serviciosEngagementListingKey(r));
+  const [agg, likeMap] = await Promise.all([
+    getServiciosReviewAggregatesForSlugs(slice.map((r) => r.slug)),
+    fetchServiciosNetLikeCountsByEngagementKeys(engagementKeys),
+  ]);
   return slice.map((r) => {
     const a = agg.get(r.slug);
-    if (!a) return { ...r, review_rating_avg: null, review_rating_count: null };
-    return { ...r, review_rating_avg: a.avg, review_rating_count: a.count };
+    const key = serviciosEngagementListingKey(r);
+    const likes = likeMap.get(key) ?? 0;
+    const base: ServiciosPublicListingRow =
+      a != null
+        ? { ...r, review_rating_avg: a.avg, review_rating_count: a.count }
+        : { ...r, review_rating_avg: null, review_rating_count: null };
+    return likes > 0 ? { ...base, public_like_net_count: likes } : base;
   });
 }
 

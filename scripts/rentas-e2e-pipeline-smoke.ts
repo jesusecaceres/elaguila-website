@@ -214,6 +214,7 @@ async function main(): Promise<void> {
   const ownerId = crypto.randomUUID();
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 
+  const clock = new Date().toISOString();
   const cityPriv = `MonterreyE2E-${idPriv.slice(0, 8)}`;
   const cityNeg = `GuadalajaraE2ENeg-${idNeg.slice(0, 8)}`;
 
@@ -239,7 +240,7 @@ async function main(): Promise<void> {
   const insertPriv = {
     id: idPriv,
     owner_id: ownerId,
-    title: "E2E Rentas privado",
+    title: "[NO_PHOTOS] E2E Rentas privado",
     description: "Leonix rentas pipeline smoke (privado).",
     city: cityPriv,
     zip: "64000",
@@ -253,12 +254,14 @@ async function main(): Promise<void> {
     seller_type: "personal",
     detail_pairs: pairsPriv,
     images: [],
+    published_at: clock,
+    updated_at: clock,
   };
 
   const insertNeg = {
     id: idNeg,
     owner_id: ownerId,
-    title: "E2E Rentas negocio",
+    title: "[NO_PHOTOS] E2E Rentas negocio",
     description: "Leonix rentas pipeline smoke (negocio).",
     city: cityNeg,
     zip: "44100",
@@ -274,6 +277,8 @@ async function main(): Promise<void> {
     business_meta: JSON.stringify({ negocioDescripcion: "Correduría de prueba e2e." }),
     detail_pairs: pairsNeg,
     images: [],
+    published_at: clock,
+    updated_at: clock,
   };
 
   let { error: insErr } = await insertListingRowResilient(admin, insertPriv as Record<string, unknown>);
@@ -298,6 +303,37 @@ async function main(): Promise<void> {
       printSupabaseKeyDiagnostics(url, anonKey, serviceKey);
     }
     process.exit(1);
+  }
+
+  const { data: verifyPriv, error: vPrivErr } = await admin
+    .from("listings")
+    .select("published_at, updated_at, images")
+    .eq("id", idPriv)
+    .single();
+  if (vPrivErr) {
+    console.warn("[rentas-e2e] post-insert verify (priv) skipped:", vPrivErr.message);
+  } else {
+    assert.ok(verifyPriv?.published_at, "[NO_PHOTOS] privado row must persist published_at when column exists");
+    const imgsP = verifyPriv?.images;
+    assert.ok(imgsP == null || (Array.isArray(imgsP) && imgsP.length === 0), "[NO_PHOTOS] images null or empty");
+    if (verifyPriv && "updated_at" in verifyPriv && verifyPriv.updated_at != null) {
+      assert.ok(String(verifyPriv.updated_at).length > 0, "[NO_PHOTOS] updated_at when column exists");
+    }
+  }
+  const { data: verifyNeg, error: vNegErr } = await admin
+    .from("listings")
+    .select("published_at, updated_at, images")
+    .eq("id", idNeg)
+    .single();
+  if (vNegErr) {
+    console.warn("[rentas-e2e] post-insert verify (neg) skipped:", vNegErr.message);
+  } else {
+    assert.ok(verifyNeg?.published_at, "[NO_PHOTOS] negocio row must persist published_at when column exists");
+    const imgsN = verifyNeg?.images;
+    assert.ok(imgsN == null || (Array.isArray(imgsN) && imgsN.length === 0), "[NO_PHOTOS] images null or empty");
+    if (verifyNeg && "updated_at" in verifyNeg && verifyNeg.updated_at != null) {
+      assert.ok(String(verifyNeg.updated_at).length > 0, "[NO_PHOTOS] updated_at when column exists");
+    }
   }
 
   try {
@@ -368,7 +404,11 @@ async function main(): Promise<void> {
       assert.ok(!browseAfter.some((l) => l.id === idPriv), "rentado machine status should drop listing from public browse");
     }
 
-    console.log("[rentas-e2e] PASS", { idPriv, idNeg, cityPriv, cityNeg, skipLifecycleMutations });
+    console.log(
+      "[rentas-e2e] PASS",
+      { idPriv, idNeg, cityPriv, cityNeg, skipLifecycleMutations },
+      "| summary: [NO_PHOTOS] rows verified (published_at); [WITH_PHOTOS] not in this script; old null-image rows ignored",
+    );
   } finally {
     await admin.from("listings").delete().in("id", [idPriv, idNeg]);
   }

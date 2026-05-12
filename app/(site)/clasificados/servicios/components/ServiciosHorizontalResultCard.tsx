@@ -264,6 +264,11 @@ export function ServiciosHorizontalResultCard({
   const reviewCount =
     typeof profile.hero.reviewCount === "number" && profile.hero.reviewCount > 0 ? profile.hero.reviewCount : undefined;
 
+  const likeBadgeCount =
+    row && typeof row.public_like_net_count === "number" && row.public_like_net_count > 0
+      ? row.public_like_net_count
+      : null;
+
   const hoursLine = profile.contact?.hours?.todayHoursLine?.trim() || "";
   const openLbl = profile.contact?.hours?.openNowLabel?.trim() || "";
   const hoursClosed =
@@ -339,6 +344,11 @@ export function ServiciosHorizontalResultCard({
             ) : null}
             <h2 className={TITLE}>{profile.identity.businessName}</h2>
             {categoryChip ? <p className={`${CATEGORY} line-clamp-2`}>{categoryChip}</p> : null}
+            {likeBadgeCount != null ? (
+              <p className="text-[12px] font-semibold leading-snug text-[#9B2E3E]" data-servicios-like-badge="1">
+                <span aria-hidden>❤️</span> {likeBadgeCount} {lang === "en" ? "likes" : "me gusta"}
+              </p>
+            ) : null}
             {slogan ? <p className={`${BODY} line-clamp-2 text-[14px] font-semibold text-[#4a4036]`}>{slogan}</p> : null}
           </div>
 

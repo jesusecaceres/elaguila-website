@@ -5,7 +5,7 @@
  * `?category=bienes-raices` + optional `leonix_branch` filters.
  */
 
-import { insertListingsRowResilient } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
+import { insertListingsRowResilient, updateListingsRowResilient } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 const DEV = process.env.NODE_ENV === "development";
@@ -90,6 +90,9 @@ export function buildListingsInsertRowForLeonixPublish(
   if (businessMetaJson?.trim()) {
     insertPayload.business_meta = businessMetaJson.trim();
   }
+  const clock = new Date().toISOString();
+  insertPayload.published_at = clock;
+  insertPayload.updated_at = clock;
   return insertPayload;
 }
 
@@ -278,10 +281,13 @@ export async function publishLeonixRealEstateListingCore(
     if (photoUrls.length) {
       const appendix = leonixGalleryAppendixForDescription(lang, photoUrls);
       const descriptionForUpdate = `${description.trim()}${appendix}`.trim();
-      const { error: updErr } = await supabase
-        .from("listings")
-        .update({ description: descriptionForUpdate, images: photoUrls })
-        .eq("id", listingId);
+      const touch = new Date().toISOString();
+      const { error: updErr } = await updateListingsRowResilient(supabase, listingId, {
+        description: descriptionForUpdate,
+        images: photoUrls,
+        published_at: touch,
+        updated_at: touch,
+      });
       if (updErr) {
         devLog("description/images update failed", updErr);
         await supabase.from("listings").delete().eq("id", listingId);

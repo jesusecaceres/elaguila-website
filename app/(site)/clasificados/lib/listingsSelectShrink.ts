@@ -70,3 +70,25 @@ export async function insertListingsRowResilient(
   }
   return { data: null, error: { message: "insertListingsRowResilient: max retries" } };
 }
+
+/** Browser/service update: omit unknown columns when DB is behind migrations (Leonix publish gallery patch). */
+export async function updateListingsRowResilient(
+  supabase: SupabaseClient,
+  id: string,
+  patch: Record<string, unknown>,
+): Promise<{ error: { message: string; code?: string } | null }> {
+  let payload: Record<string, unknown> = { ...patch };
+  for (let i = 0; i < 24; i++) {
+    const { error } = await supabase.from("listings").update(payload as never).eq("id", id);
+    if (!error) return { error: null };
+    const col = missingListingsColumnName(error);
+    if (col && Object.prototype.hasOwnProperty.call(payload, col)) {
+      const next = { ...payload };
+      delete next[col];
+      payload = next;
+      continue;
+    }
+    return { error: { message: error.message, code: error.code } };
+  }
+  return { error: { message: "updateListingsRowResilient: max retries" } };
+}

@@ -41,6 +41,27 @@ export function serviciosPublicFooterLeonixAdId(leonixAdId: string | null | unde
   return s;
 }
 
+/**
+ * Net public like counts from `listing_analytics` rows (`listing_like` adds, `listing_unlike` subtracts, floor 0).
+ * Only keys present in `listingKeys` are counted (same engagement keys as Like button).
+ */
+export function serviciosNetLikeCountMapFromAnalyticsRows(
+  events: { listing_id: string | null | undefined; event_type: string | null | undefined }[],
+  listingKeys: string[],
+): Map<string, number> {
+  const uniq = [...new Set(listingKeys.map((k) => k.trim()).filter(Boolean))];
+  const net = new Map<string, number>();
+  for (const k of uniq) net.set(k, 0);
+  for (const raw of events) {
+    const lid = (raw.listing_id ?? "").trim();
+    if (!lid || !net.has(lid)) continue;
+    const t = raw.event_type;
+    if (t === "listing_like") net.set(lid, (net.get(lid) ?? 0) + 1);
+    else if (t === "listing_unlike") net.set(lid, Math.max(0, (net.get(lid) ?? 0) - 1));
+  }
+  return net;
+}
+
 export function serviciosPublicListingDiscoverySortMs(r: ServiciosPublicListingSortInput): number {
   const rep = r.republished_at?.trim();
   const pub = r.published_at?.trim();

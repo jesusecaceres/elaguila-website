@@ -269,7 +269,7 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
       {
         branch: "privado",
         cat: "residencial",
-        title: `[SMOKE][RENTAS][PRIVADO][RESIDENCIAL] Casa alberca ${tag}`,
+        title: `[SMOKE][WITH_PHOTOS][RENTAS][PRIVADO][RESIDENCIAL] Casa alberca ${tag}`,
         city: mkCity("MTY-Priv-Casa"),
         filterPath: `/clasificados/rentas/results?lang=es&city=${encodeURIComponent(mkCity("MTY-Priv-Casa"))}&pool=1`,
         subtypeSummary: "residencial · casa · dos_pisos · highlights piscina+patio",
@@ -288,7 +288,7 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
         draft: {
           v: 1,
           categoriaPropiedad: "residencial",
-          titulo: `[SMOKE][RENTAS][PRIVADO][RESIDENCIAL] Casa alberca ${tag}`,
+          titulo: `[SMOKE][WITH_PHOTOS][RENTAS][PRIVADO][RESIDENCIAL] Casa alberca ${tag}`,
           rentaMensual: "16200",
           deposito: "850",
           plazoContrato: "12-meses",
@@ -326,7 +326,7 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
       {
         branch: "privado",
         cat: "residencial",
-        title: `[SMOKE][RENTAS][PRIVADO][RESIDENCIAL] Depto vista ${tag}`,
+        title: `[SMOKE][WITH_PHOTOS][RENTAS][PRIVADO][RESIDENCIAL] Depto vista ${tag}`,
         city: mkCity("GDL-Priv-Apto"),
         filterPath: `/clasificados/rentas/results?lang=es&city=${encodeURIComponent(mkCity("GDL-Priv-Apto"))}&highlights=balcon,vista`,
         subtypeSummary: "residencial · apartamento · subtipo vista",
@@ -344,7 +344,7 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
         draft: {
           v: 1,
           categoriaPropiedad: "residencial",
-          titulo: `[SMOKE][RENTAS][PRIVADO][RESIDENCIAL] Depto vista ${tag}`,
+          titulo: `[SMOKE][WITH_PHOTOS][RENTAS][PRIVADO][RESIDENCIAL] Depto vista ${tag}`,
           rentaMensual: "12800",
           deposito: "600",
           plazoContrato: "6-meses",
@@ -382,7 +382,7 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
       {
         branch: "privado",
         cat: "comercial",
-        title: `[SMOKE][RENTAS][PRIVADO][COMERCIAL] Oficina suite ${tag}`,
+        title: `[SMOKE][WITH_PHOTOS][RENTAS][PRIVADO][COMERCIAL] Oficina suite ${tag}`,
         city: mkCity("QRO-Priv-Off"),
         filterPath: `/clasificados/rentas/results?lang=es&city=${encodeURIComponent(mkCity("QRO-Priv-Off"))}&propiedad=comercial`,
         subtypeSummary: "comercial · oficina · suite · destacados recepción + sala juntas",
@@ -391,7 +391,7 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
         draft: {
           v: 1,
           categoriaPropiedad: "comercial",
-          titulo: `[SMOKE][RENTAS][PRIVADO][COMERCIAL] Oficina suite ${tag}`,
+          titulo: `[SMOKE][WITH_PHOTOS][RENTAS][PRIVADO][COMERCIAL] Oficina suite ${tag}`,
           rentaMensual: "22500",
           deposito: "1200",
           plazoContrato: "mes-a-mes",
@@ -430,7 +430,7 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
       {
         branch: "privado",
         cat: "terreno_lote",
-        title: `[SMOKE][RENTAS][PRIVADO][TERRENO] Lote comercial ${tag}`,
+        title: `[SMOKE][WITH_PHOTOS][RENTAS][PRIVADO][TERRENO] Lote comercial ${tag}`,
         city: mkCity("SLP-Priv-Lote"),
         filterPath: `/clasificados/rentas/results?lang=es&city=${encodeURIComponent(mkCity("SLP-Priv-Lote"))}&propiedad=terreno_lote`,
         subtypeSummary: "terreno_lote · lote_comercial · esquina · destacados vista + acceso pavimentado",
@@ -439,7 +439,7 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
         draft: {
           v: 1,
           categoriaPropiedad: "terreno_lote",
-          titulo: `[SMOKE][RENTAS][PRIVADO][TERRENO] Lote comercial ${tag}`,
+          titulo: `[SMOKE][WITH_PHOTOS][RENTAS][PRIVADO][TERRENO] Lote comercial ${tag}`,
           rentaMensual: "8900",
           deposito: "2000",
           plazoContrato: "1-ano",
@@ -476,7 +476,7 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
       {
         branch: "negocio",
         cat: "residencial",
-        title: `[SMOKE][RENTAS][NEGOCIO][RESIDENCIAL] Townhome ${tag}`,
+        title: `[SMOKE][WITH_PHOTOS][RENTAS][NEGOCIO][RESIDENCIAL] Townhome ${tag}`,
         city: mkCity("MTY-Neg-Town"),
         filterPath: `/clasificados/rentas/results?lang=es&city=${encodeURIComponent(mkCity("MTY-Neg-Town"))}&branch=negocio`,
         subtypeSummary: "negocio · residencial · townhome · adosado",
@@ -485,7 +485,7 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
         draft: {
           v: 2,
           categoriaPropiedad: "residencial",
-          titulo: `[SMOKE][RENTAS][NEGOCIO][RESIDENCIAL] Townhome ${tag}`,
+          titulo: `[SMOKE][WITH_PHOTOS][RENTAS][NEGOCIO][RESIDENCIAL] Townhome ${tag}`,
           rentaMensual: "19800",
           deposito: "1500",
           plazoContrato: "12-meses",
@@ -524,7 +524,7 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
       {
         branch: "negocio",
         cat: "residencial",
-        title: `[SMOKE][RENTAS][NEGOCIO][RESIDENCIAL] Multifamiliar ${tag}`,
+        title: `[SMOKE][WITH_PHOTOS][RENTAS][NEGOCIO][RESIDENCIAL] Multifamiliar ${tag}`,
         city: mkCity("PUE-Neg-Multi"),
         filterPath: `/clasificados/rentas/results?lang=es&city=${encodeURIComponent(mkCity("PUE-Neg-Multi"))}&branch=negocio&rent_min=17500`,
         subtypeSummary: "negocio · residencial · multifamiliar · varias_unidades",
@@ -533,7 +533,7 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
         draft: {
           v: 2,
           categoriaPropiedad: "residencial",
-          titulo: `[SMOKE][RENTAS][NEGOCIO][RESIDENCIAL] Multifamiliar ${tag}`,
+          titulo: `[SMOKE][WITH_PHOTOS][RENTAS][NEGOCIO][RESIDENCIAL] Multifamiliar ${tag}`,
           rentaMensual: "18500",
           deposito: "900",
           plazoContrato: "2-anos",
@@ -571,7 +571,7 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
       {
         branch: "negocio",
         cat: "comercial",
-        title: `[SMOKE][RENTAS][NEGOCIO][COMERCIAL] Local frente ${tag}`,
+        title: `[SMOKE][WITH_PHOTOS][RENTAS][NEGOCIO][COMERCIAL] Local frente ${tag}`,
         city: mkCity("CDMX-Neg-Local"),
         filterPath: `/clasificados/rentas/results?lang=es&city=${encodeURIComponent(mkCity("CDMX-Neg-Local"))}&branch=negocio&propiedad=comercial`,
         subtypeSummary: "negocio · comercial · local · frente_calle",
@@ -580,7 +580,7 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
         draft: {
           v: 2,
           categoriaPropiedad: "comercial",
-          titulo: `[SMOKE][RENTAS][NEGOCIO][COMERCIAL] Local frente ${tag}`,
+          titulo: `[SMOKE][WITH_PHOTOS][RENTAS][NEGOCIO][COMERCIAL] Local frente ${tag}`,
           rentaMensual: "31000",
           deposito: "3100",
           plazoContrato: "12-meses",
@@ -620,7 +620,7 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
       {
         branch: "negocio",
         cat: "terreno_lote",
-        title: `[SMOKE][RENTAS][NEGOCIO][TERRENO] Terreno agrícola ${tag}`,
+        title: `[SMOKE][WITH_PHOTOS][RENTAS][NEGOCIO][TERRENO] Terreno agrícola ${tag}`,
         city: mkCity("AGS-Neg-Ter"),
         filterPath: `/clasificados/rentas/results?lang=es&city=${encodeURIComponent(mkCity("AGS-Neg-Ter"))}&branch=negocio&propiedad=terreno_lote`,
         subtypeSummary: "negocio · terreno_lote · agricola · riegos",
@@ -629,7 +629,7 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
         draft: {
           v: 2,
           categoriaPropiedad: "terreno_lote",
-          titulo: `[SMOKE][RENTAS][NEGOCIO][TERRENO] Terreno agrícola ${tag}`,
+          titulo: `[SMOKE][WITH_PHOTOS][RENTAS][NEGOCIO][TERRENO] Terreno agrícola ${tag}`,
           rentaMensual: "4500",
           deposito: "4500",
           plazoContrato: "1-ano",
@@ -734,6 +734,24 @@ test.describe("Rentas sample content — multi-variant publish + browse QA", () 
         expect(rentOk, `public detail should show monthly rent (${rentDigits})`).toBe(true);
         rep.previewMatchedDetail = true;
         flow.publicDetailParity = "PASS";
+
+        const { data: dbRow, error: pubRowErr } = await adminClient
+          .from("listings")
+          .select("published_at, updated_at, images, status, is_published")
+          .eq("id", id!)
+          .single();
+        expect(pubRowErr, pubRowErr?.message ?? "").toBeNull();
+        expect(dbRow?.status, def.title).toBe("active");
+        expect(dbRow?.is_published, def.title).not.toBe(false);
+        expect(dbRow?.published_at, `[WITH_PHOTOS] published_at required after publish — ${def.title}`).toBeTruthy();
+        const rowImages = dbRow?.images;
+        expect(
+          Array.isArray(rowImages) && rowImages.length > 0,
+          `[WITH_PHOTOS] images must be non-empty when draft had photos — ${def.title}`,
+        ).toBe(true);
+        if (dbRow && dbRow.updated_at != null) {
+          expect(String(dbRow.updated_at).length, `[WITH_PHOTOS] updated_at — ${def.title}`).toBeGreaterThan(0);
+        }
 
         await page.goto("/clasificados/rentas?lang=es");
         const onLanding = await page.getByText(def.title, { exact: false }).count();

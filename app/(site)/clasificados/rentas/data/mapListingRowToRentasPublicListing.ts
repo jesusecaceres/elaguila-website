@@ -348,8 +348,9 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const businessDescription = bizMeta.description;
 
   const publishedAt =
-    trim(row.published_at) ||
+    trim(row.republish_sort_at) ||
     trim(row.republished_at) ||
+    trim(row.published_at) ||
     trim(row.created_at) ||
     trim(row.updated_at) ||
     undefined;

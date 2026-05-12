@@ -10,7 +10,7 @@ export const RENTAS_LISTING_PUBLIC_ROW_BASE =
   "id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, business_meta, status, is_published, created_at, images, contact_phone, contact_email";
 
 /** Rich row for browse + detail (republish ordering + timestamps). */
-export const RENTAS_LISTING_PUBLIC_ROW_RICH = `${RENTAS_LISTING_PUBLIC_ROW_BASE}, published_at, republished_at, republish_sort_at`;
+export const RENTAS_LISTING_PUBLIC_ROW_RICH = `${RENTAS_LISTING_PUBLIC_ROW_BASE}, published_at, republished_at, republish_sort_at, updated_at`;
 
 /** @deprecated Use `RENTAS_LISTING_PUBLIC_ROW_RICH` — kept for external imports during transition. */
 export const RENTAS_LISTING_PUBLIC_ROW_WITH_BOOST = RENTAS_LISTING_PUBLIC_ROW_RICH;
@@ -23,7 +23,9 @@ type BrowseOrder =
 
 const BROWSE_ORDER_ATTEMPTS: BrowseOrder[] = [
   { kind: "column", column: "republish_sort_at", ascending: false, nullsFirst: true },
+  { kind: "column", column: "republished_at", ascending: false, nullsFirst: true },
   { kind: "column", column: "published_at", ascending: false, nullsFirst: true },
+  { kind: "column", column: "updated_at", ascending: false, nullsFirst: true },
   { kind: "column", column: "created_at", ascending: false, nullsFirst: true },
   { kind: "column", column: "id", ascending: false },
   { kind: "none" },

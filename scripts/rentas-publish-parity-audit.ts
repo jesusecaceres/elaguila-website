@@ -34,13 +34,16 @@ where lower(coalesce(category, '')) = 'rentas'
 group by 1
 order by total desc;
 
--- 3) Recent rentas rows — add timestamp columns only after (1) shows they exist
+-- 3) Recent rentas rows (add published_at/updated_at to select after schema (1) shows they exist)
 select
   id,
   title,
   category,
   status,
   is_published,
+  published_at,
+  updated_at,
+  images,
   price,
   city
 from public.listings
@@ -76,6 +79,8 @@ function main() {
     .filter(Boolean);
   assert.ok(cols.includes("id"), "select includes id");
   assert.ok(cols.includes("detail_pairs"), "select includes detail_pairs");
+  assert.ok(cols.includes("images"), "Rentas public select must include images (browse/detail parity vs publish write)");
+  assert.ok(cols.includes("updated_at"), "Rentas public select must include updated_at for browse ordering fallback");
   assert.ok(!cols.includes("leonix_ad_id"), "Rentas public select must not require leonix_ad_id (Servicios-lesson)");
 
   const insert = buildListingsInsertRowForLeonixPublish("00000000-0000-4000-8000-000000000001", {
@@ -96,6 +101,8 @@ function main() {
   assert.ok(keys.includes("owner_id"));
   assert.ok(keys.includes("category"));
   assert.equal(insert.category, "rentas");
+  assert.ok(keys.includes("published_at"), "Leonix publish insert sets published_at");
+  assert.ok(keys.includes("updated_at"), "Leonix publish insert sets updated_at");
   assert.ok(!keys.includes("leonix_ad_id"), "publish insert must not send leonix_ad_id on core listings");
 
   assert.ok(RENTAS_LISTING_PUBLIC_ROW_RICH.startsWith(RENTAS_LISTING_PUBLIC_ROW_BASE.split(",")[0]!));
