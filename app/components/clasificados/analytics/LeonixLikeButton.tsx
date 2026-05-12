@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { FaHeart } from "react-icons/fa";
 import { FiHeart } from "react-icons/fi";
 import { trackListingLike } from "@/app/lib/clasificadosAnalytics";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
@@ -61,6 +62,8 @@ export function LeonixLikeButton({
   const [isLiking, setIsLiking] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const labels = LABELS[lang];
+  /** After a user toggle, do not let async hydration overwrite UI (Strict Mode / slow network races). */
+  const userToggledRef = useRef(false);
 
   const sizeClasses = {
     small: "px-3 py-1.5 text-sm",
@@ -90,6 +93,10 @@ export function LeonixLikeButton({
         data: { user },
       } = await sb.auth.getUser();
       if (cancelled) return;
+      if (userToggledRef.current) {
+        if (!cancelled) setHydrated(true);
+        return;
+      }
       if (user) {
         const { data } = await sb
           .from("user_liked_listings")
@@ -97,10 +104,14 @@ export function LeonixLikeButton({
           .eq("user_id", user.id)
           .eq("listing_id", effectiveId)
           .maybeSingle();
-        if (!cancelled) setIsLiked(!!data);
+        if (!cancelled && !userToggledRef.current) setIsLiked(!!data);
       } else {
         try {
-          if (typeof sessionStorage !== "undefined" && sessionStorage.getItem(sessionLikeKey(effectiveId)) === "1") {
+          if (
+            !userToggledRef.current &&
+            typeof sessionStorage !== "undefined" &&
+            sessionStorage.getItem(sessionLikeKey(effectiveId)) === "1"
+          ) {
             setIsLiked(true);
           }
         } catch {
@@ -118,8 +129,11 @@ export function LeonixLikeButton({
     if (isLiking) return;
     if (!allowEngage || !effectiveId) return;
 
+    const prev = isLiked;
+    const nextState = !prev;
+    userToggledRef.current = true;
     setIsLiking(true);
-    const nextState = !isLiked;
+    setIsLiked(nextState);
 
     try {
       const sb = createSupabaseBrowserClient();
@@ -132,10 +146,18 @@ export function LeonixLikeButton({
           const { error } = await sb
             .from("user_liked_listings")
             .upsert({ user_id: user.id, listing_id: effectiveId }, { onConflict: "user_id,listing_id" });
-          if (error) return;
+          if (error) {
+            setIsLiked(prev);
+            userToggledRef.current = false;
+            return;
+          }
         } else {
           const { error } = await sb.from("user_liked_listings").delete().eq("user_id", user.id).eq("listing_id", effectiveId);
-          if (error) return;
+          if (error) {
+            setIsLiked(prev);
+            userToggledRef.current = false;
+            return;
+          }
         }
       } else {
         try {
@@ -153,7 +175,6 @@ export function LeonixLikeButton({
         metadata: { authenticated: Boolean(user) },
       });
 
-      setIsLiked(nextState);
       onToggle?.(nextState);
     } finally {
       setIsLiking(false);
@@ -170,29 +191,28 @@ export function LeonixLikeButton({
       title={inert ? labels.preview : undefined}
       data-leonix-like-active={isLiked && !inert ? "1" : "0"}
       aria-pressed={inert ? undefined : isLiked}
-      className={`
-        inline-flex items-center gap-2 rounded-full font-medium
-        transition-all duration-200
-        ${
-          isLiked
-            ? "bg-rose-50/95 text-rose-950 ring-2 ring-rose-400/90 shadow-sm hover:bg-rose-100/95"
-            : "bg-white/95 text-[#1A1A1A] ring-1 ring-black/10 hover:bg-[#FFFAF0]"
-        }
-        ${inert ? "opacity-60 cursor-not-allowed" : ""}
-        ${isLiked && !inert ? "font-semibold" : ""}
-        ${sizeClasses[variant]}
-        ${className}
-      `}
+      className={[
+        "inline-flex items-center gap-2 rounded-full font-medium transition-all duration-200",
+        sizeClasses[variant],
+        className,
+        inert ? "opacity-60 cursor-not-allowed" : "",
+        isLiked && !inert
+          ? "!bg-rose-100 !text-rose-900 !shadow-md !ring-2 !ring-rose-500 !ring-offset-1 !ring-offset-white font-bold"
+          : "!bg-white !text-neutral-900 !shadow-sm !ring-1 !ring-neutral-300 hover:!bg-rose-50/90",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       aria-label={inert ? labels.preview : isLiked ? labels.liked : labels.like}
       aria-disabled={inert || !hydrated}
     >
-      <FiHeart
-        className={`${iconSizes[variant]} shrink-0 ${
-          isLiked ? "fill-rose-600 stroke-rose-700 text-rose-600" : "fill-transparent stroke-current text-current"
-        }`}
-        aria-hidden
-      />
-      <span>{isLiking ? labels.liking : inert ? labels.preview : isLiked ? labels.liked : labels.like}</span>
+      {isLiked ? (
+        <FaHeart className={`${iconSizes[variant]} shrink-0 text-red-600`} aria-hidden />
+      ) : (
+        <FiHeart className={`${iconSizes[variant]} shrink-0 stroke-neutral-700 text-neutral-700`} aria-hidden />
+      )}
+      <span className={isLiked && !inert ? "text-rose-950" : ""}>
+        {isLiking ? labels.liking : inert ? labels.preview : isLiked ? labels.liked : labels.like}
+      </span>
     </button>
   );
 }

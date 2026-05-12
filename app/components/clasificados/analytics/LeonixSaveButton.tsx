@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { FaBookmark } from "react-icons/fa";
 import { FiBookmark } from "react-icons/fi";
 import { trackListingSave } from "@/app/lib/clasificadosAnalytics";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
@@ -24,12 +25,14 @@ const LABELS = {
     saved: "Guardado",
     saving: "Guardando...",
     preview: "Vista previa",
+    savedDashboard: "Guardado en tu dashboard",
   },
   en: {
     save: "Save",
     saved: "Saved",
     saving: "Saving...",
     preview: "Preview",
+    savedDashboard: "Saved to your dashboard",
   },
 } as const;
 
@@ -49,7 +52,10 @@ export function LeonixSaveButton({
   const [isSaved, setIsSaved] = useState(initialSaved);
   const [isSaving, setIsSaving] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [postSaveDashboardHint, setPostSaveDashboardHint] = useState(false);
   const labels = LABELS[lang];
+  const userToggledRef = useRef(false);
+  const hintClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sizeClasses = {
     small: "px-3 py-1.5 text-sm",
@@ -68,6 +74,12 @@ export function LeonixSaveButton({
   }, [initialSaved]);
 
   useEffect(() => {
+    return () => {
+      if (hintClearRef.current) clearTimeout(hintClearRef.current);
+    };
+  }, [effectiveId]);
+
+  useEffect(() => {
     if (!allowEngage || !effectiveId) {
       setHydrated(true);
       return;
@@ -79,6 +91,10 @@ export function LeonixSaveButton({
         data: { user },
       } = await sb.auth.getUser();
       if (cancelled) return;
+      if (userToggledRef.current) {
+        if (!cancelled) setHydrated(true);
+        return;
+      }
       if (user) {
         const { data } = await sb
           .from("user_saved_listings")
@@ -86,8 +102,8 @@ export function LeonixSaveButton({
           .eq("user_id", user.id)
           .eq("listing_id", effectiveId)
           .maybeSingle();
-        if (!cancelled) setIsSaved(!!data);
-      } else if (!cancelled) {
+        if (!cancelled && !userToggledRef.current) setIsSaved(!!data);
+      } else if (!cancelled && !userToggledRef.current) {
         setIsSaved(false);
       }
       if (!cancelled) setHydrated(true);
@@ -101,28 +117,44 @@ export function LeonixSaveButton({
     if (isSaving) return;
     if (!allowEngage || !effectiveId) return;
 
+    const prev = isSaved;
+    const nextState = !prev;
+
+    const sb = createSupabaseBrowserClient();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
+    if (!user) {
+      const here = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search || ""}` : "/clasificados";
+      window.location.href = `/login?redirect=${encodeURIComponent(here)}`;
+      return;
+    }
+
+    userToggledRef.current = true;
     setIsSaving(true);
-    const nextState = !isSaved;
+    setIsSaved(nextState);
+    if (hintClearRef.current) clearTimeout(hintClearRef.current);
+    setPostSaveDashboardHint(false);
 
     try {
-      const sb = createSupabaseBrowserClient();
-      const {
-        data: { user },
-      } = await sb.auth.getUser();
-      if (!user) {
-        const here = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search || ""}` : "/clasificados";
-        window.location.href = `/login?redirect=${encodeURIComponent(here)}`;
-        return;
-      }
-
       if (nextState) {
         const { error } = await sb
           .from("user_saved_listings")
           .upsert({ user_id: user.id, listing_id: effectiveId }, { onConflict: "user_id,listing_id" });
-        if (error) return;
+        if (error) {
+          setIsSaved(prev);
+          userToggledRef.current = false;
+          return;
+        }
+        setPostSaveDashboardHint(true);
+        hintClearRef.current = setTimeout(() => setPostSaveDashboardHint(false), 8000);
       } else {
         const { error } = await sb.from("user_saved_listings").delete().eq("user_id", user.id).eq("listing_id", effectiveId);
-        if (error) return;
+        if (error) {
+          setIsSaved(prev);
+          userToggledRef.current = false;
+          return;
+        }
       }
 
       await trackListingSave(effectiveId, nextState, {
@@ -132,7 +164,6 @@ export function LeonixSaveButton({
         metadata: {},
       });
 
-      setIsSaved(nextState);
       onToggle?.(nextState);
     } finally {
       setIsSaving(false);
@@ -142,36 +173,47 @@ export function LeonixSaveButton({
   const inert = !allowEngage || !effectiveId;
 
   return (
-    <button
-      type="button"
-      onClick={() => void handleToggle()}
-      disabled={isSaving || !hydrated || inert}
-      title={inert ? labels.preview : undefined}
-      data-leonix-save-active={isSaved && !inert ? "1" : "0"}
-      aria-pressed={inert ? undefined : isSaved}
-      className={`
-        inline-flex items-center gap-2 rounded-full font-medium
-        transition-all duration-200
-        ${
-          isSaved
-            ? "bg-amber-50/95 text-amber-950 ring-2 ring-amber-400/85 shadow-sm hover:bg-amber-100/95"
-            : "bg-white/95 text-[#1A1A1A] ring-1 ring-black/10 hover:bg-[#FFFAF0]"
-        }
-        ${inert ? "opacity-60 cursor-not-allowed" : ""}
-        ${isSaved && !inert ? "font-semibold" : ""}
-        ${sizeClasses[variant]}
-        ${className}
-      `}
-      aria-label={inert ? labels.preview : isSaved ? labels.saved : labels.save}
-      aria-disabled={inert || !hydrated}
-    >
-      <FiBookmark
-        className={`${iconSizes[variant]} shrink-0 ${
-          isSaved ? "fill-amber-600 stroke-amber-800 text-amber-600" : "fill-transparent stroke-current text-current"
-        }`}
-        aria-hidden
-      />
-      <span>{isSaving ? labels.saving : inert ? labels.preview : isSaved ? labels.saved : labels.save}</span>
-    </button>
+    <div className="flex w-full max-w-[13.5rem] flex-col items-stretch gap-1">
+      <button
+        type="button"
+        onClick={() => void handleToggle()}
+        disabled={isSaving || !hydrated || inert}
+        title={inert ? labels.preview : undefined}
+        data-leonix-save-active={isSaved && !inert ? "1" : "0"}
+        aria-pressed={inert ? undefined : isSaved}
+        className={[
+          "inline-flex items-center justify-center gap-2 rounded-full font-medium transition-all duration-200",
+          sizeClasses[variant],
+          className,
+          inert ? "opacity-60 cursor-not-allowed" : "",
+          isSaved && !inert
+            ? "!bg-amber-100 !text-amber-950 !shadow-md !ring-2 !ring-amber-500 !ring-offset-1 !ring-offset-white font-bold"
+            : "!bg-white !text-neutral-900 !shadow-sm !ring-1 !ring-neutral-300 hover:!bg-amber-50/90",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        aria-label={inert ? labels.preview : isSaved ? labels.saved : labels.save}
+        aria-disabled={inert || !hydrated}
+      >
+        {isSaved ? (
+          <FaBookmark className={`${iconSizes[variant]} shrink-0 text-amber-600`} aria-hidden />
+        ) : (
+          <FiBookmark className={`${iconSizes[variant]} shrink-0 stroke-neutral-700 text-neutral-700`} aria-hidden />
+        )}
+        <span className={isSaved && !inert ? "text-amber-950" : ""}>
+          {isSaving ? labels.saving : inert ? labels.preview : isSaved ? labels.saved : labels.save}
+        </span>
+      </button>
+      {postSaveDashboardHint && isSaved && !inert ? (
+        <p
+          className="text-center text-[10px] font-semibold leading-snug text-amber-900 sm:text-[11px]"
+          role="status"
+          aria-live="polite"
+          data-leonix-save-dashboard-hint="1"
+        >
+          {labels.savedDashboard}
+        </p>
+      ) : null}
+    </div>
   );
 }

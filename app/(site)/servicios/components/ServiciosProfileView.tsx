@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import {
   hasAboutSectionResolved,
@@ -45,6 +46,8 @@ export function ServiciosProfileView({
   listingShareUrl,
   showPublicConversionForms = false,
   leonixAdIdFooter,
+  /** Public Clasificados vitrina — link back to discovery results (not browser history). */
+  serviciosDiscoveryResultsHref,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
@@ -68,6 +71,7 @@ export function ServiciosProfileView({
   /** When true with `analyticsListingSlug`, shows moderated lead + review forms on the public listing. */
   showPublicConversionForms?: boolean;
   leonixAdIdFooter?: string | null;
+  serviciosDiscoveryResultsHref?: string | null;
 }) {
   const stickyAsideTop = showTopBar ? "lg:top-[4.5rem]" : "lg:top-4";
 
@@ -89,6 +93,17 @@ export function ServiciosProfileView({
           >
             {noticeBanner}
           </p>
+        ) : null}
+        {serviciosDiscoveryResultsHref?.trim() ? (
+          <div className="mb-3 flex justify-end sm:mb-4">
+            <Link
+              href={serviciosDiscoveryResultsHref.trim()}
+              className="text-sm font-bold text-[#3B66AD] underline-offset-4 hover:underline"
+              data-servicios-results-cta="1"
+            >
+              {lang === "en" ? "View service results" : "Ver resultados de Servicios"}
+            </Link>
+          </div>
         ) : null}
         {hasHeroIdentityResolved(profile) ? (
           <ServiciosHero

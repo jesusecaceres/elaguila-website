@@ -89,18 +89,16 @@ export function ServiciosHero({
                     variant="small"
                     lang={lang}
                     category="servicios"
-                    className="border-0"
                     persistEngagement
                   />
                 </div>
-                <div className="rounded-full bg-white/92 p-1 shadow-lg backdrop-blur-sm">
+                <div className="rounded-xl bg-white/92 p-1.5 shadow-lg backdrop-blur-sm">
                   <LeonixSaveButton
                     listingId={lxListingId}
                     ownerUserId={lxOwner}
                     variant="small"
                     lang={lang}
                     category="servicios"
-                    className="border-0"
                     persistEngagement
                   />
                 </div>

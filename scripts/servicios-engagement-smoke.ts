@@ -42,6 +42,27 @@ function main() {
   assert.ok(ownerKeysSrc.includes("leonix_ad_id"));
   assert.ok(ownerKeysSrc.includes('"id, slug, leonix_ad_id"'), "dashboard key collection selects Servicios ids + leonix_ad_id");
 
+  const likeBtn = readFileSync(join(__dirname, "../app/components/clasificados/analytics/LeonixLikeButton.tsx"), "utf8");
+  assert.ok(likeBtn.includes("userToggledRef"), "like: guard hydration overwrite after toggle");
+  assert.ok(likeBtn.includes("setIsLiked(nextState)"), "like: optimistic UI");
+  assert.ok(likeBtn.includes("FaHeart"), "like: solid heart when active");
+
+  const saveBtn = readFileSync(join(__dirname, "../app/components/clasificados/analytics/LeonixSaveButton.tsx"), "utf8");
+  assert.ok(saveBtn.includes("savedDashboard"), "save: dashboard confirmation copy");
+  assert.ok(saveBtn.includes("data-leonix-save-dashboard-hint"), "save: hint marker for QA");
+  assert.ok(saveBtn.includes("FaBookmark"), "save: solid bookmark when active");
+
+  const profileView = readFileSync(join(__dirname, "../app/(site)/servicios/components/ServiciosProfileView.tsx"), "utf8");
+  assert.ok(profileView.includes("data-servicios-results-cta"), "profile: results CTA marker");
+  assert.ok(profileView.includes("Ver resultados de Servicios"));
+
+  const resultCard = readFileSync(
+    join(__dirname, "../app/(site)/clasificados/servicios/components/ServiciosHorizontalResultCard.tsx"),
+    "utf8",
+  );
+  assert.ok(resultCard.includes("data-servicios-like-badge"), "card: like badge marker");
+  assert.ok(resultCard.includes("public_like_net_count"));
+
   console.log("servicios-engagement-smoke: OK");
 }
 

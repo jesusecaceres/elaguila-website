@@ -343,12 +343,18 @@ export function ServiciosHorizontalResultCard({
               </div>
             ) : null}
             <h2 className={TITLE}>{profile.identity.businessName}</h2>
-            {categoryChip ? <p className={`${CATEGORY} line-clamp-2`}>{categoryChip}</p> : null}
             {likeBadgeCount != null ? (
-              <p className="text-[12px] font-semibold leading-snug text-[#9B2E3E]" data-servicios-like-badge="1">
-                <span aria-hidden>❤️</span> {likeBadgeCount} {lang === "en" ? "likes" : "me gusta"}
-              </p>
+              <div
+                className="inline-flex w-fit max-w-full items-center gap-1.5 rounded-full border border-rose-200/90 bg-rose-50 px-2.5 py-1 text-[13px] font-bold leading-none text-rose-900 shadow-sm"
+                data-servicios-like-badge="1"
+              >
+                <span aria-hidden>❤️</span>
+                <span className="tabular-nums">
+                  {likeBadgeCount} {lang === "en" ? (likeBadgeCount === 1 ? "like" : "likes") : "me gusta"}
+                </span>
+              </div>
             ) : null}
+            {categoryChip ? <p className={`${CATEGORY} line-clamp-2`}>{categoryChip}</p> : null}
             {slogan ? <p className={`${BODY} line-clamp-2 text-[14px] font-semibold text-[#4a4036]`}>{slogan}</p> : null}
           </div>
 

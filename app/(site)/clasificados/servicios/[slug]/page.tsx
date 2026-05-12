@@ -149,6 +149,9 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
         listingShareUrl={listingShareUrl}
         leonixAdIdFooter={leonixAdIdFooter}
         showPublicConversionForms={isPublishedLive}
+        serviciosDiscoveryResultsHref={
+          isPublishedLive ? `/clasificados/servicios/resultados?lang=${lang}` : undefined
+        }
       />
     </>
   );
