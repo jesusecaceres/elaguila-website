@@ -18,9 +18,9 @@ import {
   SERVICIOS_LISTING_STATUS_PUBLISHED,
 } from "./serviciosListingLifecycle";
 
-/** Admin workspace `select()` — production-safe columns only (no `leonix_ad_id` / republish extras). */
+/** Admin workspace `select()` — includes `leonix_ad_id` for ops search + display. */
 const SERVICIOS_ADMIN_QUEUE_SELECT =
-  "id, slug, business_name, city, published_at, updated_at, profile_json, leonix_verified, listing_status, internal_group, owner_user_id, moderation_notes";
+  "id, slug, leonix_ad_id, business_name, city, published_at, updated_at, profile_json, leonix_verified, listing_status, internal_group, owner_user_id, moderation_notes";
 
 function normalizeServiciosListingStatus(raw: unknown): string {
   if (typeof raw !== "string" || !raw.trim()) return SERVICIOS_LISTING_STATUS_PUBLISHED;
@@ -33,17 +33,23 @@ function mapDbRowToServiciosPublicListingRow(r: ServiciosPublicListingRow): Serv
     typeof r.published_at === "string" && r.published_at.trim() ? r.published_at : new Date(0).toISOString();
   const updated_at =
     typeof r.updated_at === "string" && r.updated_at.trim() ? r.updated_at.trim() : published_at;
+  const leonix_ad_id =
+    typeof r.leonix_ad_id === "string" && r.leonix_ad_id.trim() ? r.leonix_ad_id.trim() : null;
+  const id = typeof r.id === "string" && r.id.trim() ? r.id.trim() : undefined;
   return {
     ...r,
     published_at,
     updated_at,
     listing_status,
     owner_user_id: r.owner_user_id ?? null,
-    leonix_ad_id: null,
+    leonix_ad_id,
+    id,
   };
 }
 
 export type ServiciosPublicListingRow = {
+  /** Row UUID — engagement fallback when `leonix_ad_id` unavailable in edge cases. */
+  id?: string | null;
   slug: string;
   business_name: string;
   city: string;
@@ -60,7 +66,7 @@ export type ServiciosPublicListingRow = {
   listing_status: string;
   /** Auth user id of provider (nullable legacy) */
   owner_user_id?: string | null;
-  /** Optional directory ad id — not selected in minimal schema; engagement falls back to slug. */
+  /** Directory ad id (`SERV-YYYY-NNNNNN`) when migration applied; engagement primary key. */
   leonix_ad_id?: string | null;
   /** Approved DB reviews aggregate (optional; discovery + ranking) */
   review_rating_avg?: number | null;
@@ -232,17 +238,17 @@ export async function listServiciosPublicListingsAdminQueueFromDb(
   const id = opts.id?.trim();
   const owner = opts.owner_user_id?.trim();
   const leonixParam = opts.leonix_ad_id?.trim();
-  void leonixParam;
   const qRaw = opts.q?.trim() ?? "";
   const supabase = getAdminSupabase();
   const qb = () => supabase.from("servicios_public_listings").select(SERVICIOS_ADMIN_QUEUE_SELECT);
 
   try {
-    if (slug || id || owner) {
+    if (slug || id || owner || leonixParam) {
       let rowQuery = qb();
       if (slug) rowQuery = rowQuery.eq("slug", slug);
       if (id) rowQuery = rowQuery.eq("id", id);
       if (owner) rowQuery = rowQuery.eq("owner_user_id", owner);
+      if (leonixParam) rowQuery = rowQuery.eq("leonix_ad_id", leonixParam);
       const { data, error } = await rowQuery.order("updated_at", { ascending: false }).limit(limit);
       if (error) {
         if (/column|does not exist|schema cache/i.test(error.message)) return { rows: [], fullSchema: false, unavailable: true };

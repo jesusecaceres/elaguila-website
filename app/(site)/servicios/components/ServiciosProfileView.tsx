@@ -41,8 +41,10 @@ export function ServiciosProfileView({
   analyticsListingSlug,
   engagementListingId = null,
   engagementOwnerUserId = null,
+  persistListingEngagement = false,
   listingShareUrl,
   showPublicConversionForms = false,
+  leonixAdIdFooter,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
@@ -56,14 +58,16 @@ export function ServiciosProfileView({
   showTopBar?: boolean;
   /** Public Clasificados slug — enables analytics + tracked outbound CTAs on the action panel. */
   analyticsListingSlug?: string;
-  /** Stable Leonix ad id (`servicios_public_listings.leonix_ad_id`) for saves/likes/shares. */
+  /** Stable key for Like/Save/Share: `leonix_ad_id`, else listing row `id`, else slug (dev). */
   engagementListingId?: string | null;
   /** Listing owner auth id for analytics rollup. */
   engagementOwnerUserId?: string | null;
+  persistListingEngagement?: boolean;
   /** Absolute URL for hero share (SSR from request host when available). */
   listingShareUrl?: string;
   /** When true with `analyticsListingSlug`, shows moderated lead + review forms on the public listing. */
   showPublicConversionForms?: boolean;
+  leonixAdIdFooter?: string | null;
 }) {
   const stickyAsideTop = showTopBar ? "lg:top-[4.5rem]" : "lg:top-4";
 
@@ -93,6 +97,7 @@ export function ServiciosProfileView({
             engagementListingId={engagementListingId}
             engagementOwnerUserId={engagementOwnerUserId}
             listingShareUrl={listingShareUrl}
+            persistListingEngagement={persistListingEngagement}
           />
         ) : null}
 
@@ -205,6 +210,12 @@ export function ServiciosProfileView({
             ) : null}
           </div>
         </div>
+
+        {leonixAdIdFooter ? (
+          <p className="mx-auto mt-8 max-w-3xl border-t border-black/[0.06] pt-4 text-center text-[11px] leading-relaxed text-[#7A7164]">
+            {lang === "en" ? "Leonix Ad ID" : "Leonix Ad ID"} # {leonixAdIdFooter}
+          </p>
+        ) : null}
       </main>
     </div>
   );

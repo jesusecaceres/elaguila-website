@@ -130,7 +130,7 @@ export function ServiciosLeadInquiryForm({ listingSlug, lang }: { listingSlug: s
             maxLength={48}
             value={senderPhone}
             onChange={(e) => setSenderPhone(e.target.value)}
-            placeholder={lang === "en" ? "+1 …" : "+52 …"}
+            placeholder="(555) 555-5555"
             className="mt-1 min-h-[44px] w-full rounded-lg border border-black/[0.08] px-3 py-2 text-sm"
           />
           <span className="mt-1 block text-[0.65rem] font-normal leading-snug text-[color:var(--lx-muted)]">

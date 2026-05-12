@@ -28,6 +28,7 @@ export function ServiciosHero({
   engagementListingId = null,
   engagementOwnerUserId = null,
   listingShareUrl,
+  persistListingEngagement = false,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
@@ -35,6 +36,8 @@ export function ServiciosHero({
   engagementOwnerUserId?: string | null;
   /** Absolute listing URL for share copy / native share (SSR when available). */
   listingShareUrl?: string;
+  /** When true, Like/Save/Share write to engagement + analytics (DB `leonix_ad_id` or row `id`). */
+  persistListingEngagement?: boolean;
 }) {
   const { identity, hero } = profile;
   const about = profile.about;
@@ -43,9 +46,8 @@ export function ServiciosHero({
   const featuredServices = profile.services.slice(0, 3);
 
   const lxListingId = (engagementListingId ?? "").trim() || identity.slug;
-  const persistEngagement = Boolean((engagementListingId ?? "").trim());
+  const persistEngagement = persistListingEngagement;
   const lxOwner = (engagementOwnerUserId ?? "").trim() || undefined;
-  const showPersistedEngagement = persistEngagement;
 
   return (
     <section className="relative w-full rounded-xl shadow-[0_20px_60px_rgba(30,24,16,0.12)] sm:rounded-2xl md:rounded-3xl">
@@ -78,7 +80,7 @@ export function ServiciosHero({
 
         <div className="pointer-events-none absolute right-2 top-2 z-20 sm:right-4 sm:top-4">
           <div className="pointer-events-auto flex flex-col gap-1.5 sm:gap-2">
-            {showPersistedEngagement ? (
+            {persistEngagement ? (
               <>
                 <div className="rounded-full bg-white/92 p-1 shadow-lg backdrop-blur-sm">
                   <LeonixLikeButton
@@ -122,7 +124,7 @@ export function ServiciosHero({
 
         <div
           className={`relative z-10 flex w-full flex-col items-center px-3 pb-7 pl-3 pt-8 text-center text-white sm:px-8 sm:pb-9 sm:pl-8 sm:pt-10 md:px-10 md:pb-10 md:pt-11 ${
-            showPersistedEngagement ? "pr-14 sm:pr-[4.75rem] md:pr-[5.25rem]" : "pr-12 sm:pr-14 md:pr-16"
+            persistEngagement ? "pr-14 sm:pr-[4.75rem] md:pr-[5.25rem]" : "pr-12 sm:pr-14 md:pr-16"
           }`}
         >
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-2.5 sm:gap-3 md:gap-4">

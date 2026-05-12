@@ -2,6 +2,7 @@ import "server-only";
 
 import fs from "fs";
 import path from "path";
+import { randomUUID } from "node:crypto";
 import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
 import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "./serviciosListingLifecycle";
 import type { ServiciosPublicListingRow } from "./serviciosPublicListingsServer";
@@ -89,6 +90,7 @@ export function buildServiciosPublicRowForPersistence(args: {
 }): ServiciosPublicListingRow {
   const now = args.publishedAt ?? new Date().toISOString();
   return {
+    id: randomUUID(),
     slug: args.slug,
     business_name: args.businessName,
     city: args.city,

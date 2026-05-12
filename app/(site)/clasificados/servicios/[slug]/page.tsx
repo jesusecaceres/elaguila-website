@@ -8,6 +8,10 @@ import { listApprovedServiciosReviewsForSlug } from "../lib/serviciosOpsTablesSe
 import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "../lib/serviciosListingLifecycle";
 import { getServiciosPublicListingBySlugForDiscovery } from "../lib/serviciosPublicListingsServer";
 import { buildServiciosClasificadosListingShareUrl } from "../lib/buildServiciosListingShareUrl";
+import {
+  serviciosEngagementListingKey,
+  serviciosPublicFooterLeonixAdId,
+} from "../lib/serviciosPublicListingSort";
 
 export const dynamic = "force-dynamic";
 
@@ -120,6 +124,9 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
       : "";
   const noticeBanner = [pausedMsg, publishLines.join(" ")].filter(Boolean).join("\n\n") || undefined;
   const listingShareUrl = await buildServiciosClasificadosListingShareUrl(slug, lang);
+  const engagementKey = serviciosEngagementListingKey(row);
+  const persistListingEngagement = Boolean((row.leonix_ad_id ?? "").trim() || (row.id ?? "").trim());
+  const leonixAdIdFooter = serviciosPublicFooterLeonixAdId(row.leonix_ad_id);
 
   return (
     <>
@@ -130,20 +137,17 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
       <div className="hidden" aria-hidden data-servicios-ssr-anchor="1">
         {slug} · {profile.identity.businessName}
       </div>
-      {row.leonix_ad_id?.trim() ? (
-        <p className="mx-auto max-w-3xl px-4 pt-3 text-center text-xs text-[#5C5346]">
-          {lang === "en" ? "Leonix Ad ID" : "Leonix Ad ID"} # {row.leonix_ad_id.trim()}
-        </p>
-      ) : null}
       <ServiciosProfileView
         profile={profile}
         lang={lang}
         editBackHref={justPublished ? `/clasificados/publicar/servicios?lang=${lang}` : undefined}
         noticeBanner={noticeBanner}
         analyticsListingSlug={slug}
-        engagementListingId={row.leonix_ad_id?.trim() ? row.leonix_ad_id.trim() : null}
+        engagementListingId={engagementKey}
         engagementOwnerUserId={row.owner_user_id ?? null}
+        persistListingEngagement={persistListingEngagement}
         listingShareUrl={listingShareUrl}
+        leonixAdIdFooter={leonixAdIdFooter}
         showPublicConversionForms={isPublishedLive}
       />
     </>
