@@ -14,11 +14,36 @@ import {
   listServiciosDevPublishRows,
 } from "./serviciosDevPublishPersistence";
 import { getServiciosReviewAggregatesForSlugs } from "./serviciosOpsTablesServer";
-import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "./serviciosListingLifecycle";
+import {
+  SERVICIOS_LISTING_STATUS_PUBLISHED,
+} from "./serviciosListingLifecycle";
 
-/** Keep aligned with migrations present on all envs; omit columns not yet applied on older DBs (breaks PostgREST `.select()`). */
+/** Preferred select — includes `leonix_ad_id` when the column exists. */
 const LISTING_SELECT =
   "slug, business_name, city, published_at, profile_json, leonix_verified, internal_group, listing_status, owner_user_id, leonix_ad_id";
+
+/** Fallback when older DBs have not yet applied `leonix_ad_id` (PostgREST would otherwise fail the whole read). */
+const LISTING_SELECT_FALLBACK =
+  "slug, business_name, city, published_at, profile_json, leonix_verified, internal_group, listing_status, owner_user_id";
+
+function isPostgrestMissingColumnOrSchemaError(error: { message?: string } | null | undefined): boolean {
+  return Boolean(error?.message && /column|does not exist|schema cache/i.test(error.message));
+}
+
+function normalizeServiciosListingStatus(raw: unknown): string {
+  if (typeof raw !== "string" || !raw.trim()) return SERVICIOS_LISTING_STATUS_PUBLISHED;
+  return raw.trim().toLowerCase();
+}
+
+function mapDbRowToServiciosPublicListingRow(r: ServiciosPublicListingRow): ServiciosPublicListingRow {
+  const listing_status = normalizeServiciosListingStatus(r.listing_status);
+  return {
+    ...r,
+    listing_status,
+    owner_user_id: r.owner_user_id ?? null,
+    leonix_ad_id: r.leonix_ad_id ?? null,
+  };
+}
 
 export type ServiciosPublicListingRow = {
   slug: string;
@@ -48,18 +73,28 @@ export async function listServiciosPublicListingsFromDb(limit = 48): Promise<Ser
   if (!isSupabaseAdminConfigured()) return [];
   try {
     const supabase = getAdminSupabase();
-    const { data, error } = await supabase
+    const first = await supabase
       .from("servicios_public_listings")
       .select(LISTING_SELECT)
-      .eq("listing_status", SERVICIOS_LISTING_STATUS_PUBLISHED)
+      .ilike("listing_status", SERVICIOS_LISTING_STATUS_PUBLISHED)
       .order("published_at", { ascending: false })
       .limit(limit);
+    let data = first.data;
+    let error = first.error;
+    if (error && isPostgrestMissingColumnOrSchemaError(error)) {
+      const second = await supabase
+        .from("servicios_public_listings")
+        .select(LISTING_SELECT_FALLBACK)
+        .ilike("listing_status", SERVICIOS_LISTING_STATUS_PUBLISHED)
+        .order("published_at", { ascending: false })
+        .limit(limit);
+      data = second.data as typeof first.data;
+      error = second.error;
+    }
     if (error || !data) return [];
-    return data.map((r) => ({
-      ...r,
-      listing_status: typeof (r as ServiciosPublicListingRow).listing_status === "string" ? (r as ServiciosPublicListingRow).listing_status : "published",
-      owner_user_id: (r as ServiciosPublicListingRow).owner_user_id ?? null,
-    })) as ServiciosPublicListingRow[];
+    return data
+      .map((r) => mapDbRowToServiciosPublicListingRow(r as ServiciosPublicListingRow))
+      .filter((r) => r.listing_status === SERVICIOS_LISTING_STATUS_PUBLISHED);
   } catch {
     return [];
   }
@@ -74,20 +109,25 @@ export async function getServiciosPublicListingBySlugFromDb(
   try {
     const supabase = getAdminSupabase();
     /** Fetch by slug only; apply lifecycle filters in code (avoids PostgREST `.in()` edge cases on some projects). */
-    const { data, error } = await supabase.from("servicios_public_listings").select(LISTING_SELECT).eq("slug", slug).maybeSingle();
+    let { data, error } = await supabase.from("servicios_public_listings").select(LISTING_SELECT).eq("slug", slug).maybeSingle();
+    if (error && isPostgrestMissingColumnOrSchemaError(error)) {
+      const second = await supabase
+        .from("servicios_public_listings")
+        .select(LISTING_SELECT_FALLBACK)
+        .eq("slug", slug)
+        .maybeSingle();
+      data = second.data as typeof data;
+      error = second.error;
+    }
     if (error || !data) return null;
-    const row = data as ServiciosPublicListingRow;
-    const listingStatus = typeof row.listing_status === "string" ? row.listing_status : "published";
+    const row = mapDbRowToServiciosPublicListingRow(data as ServiciosPublicListingRow);
+    const listingStatus = row.listing_status;
     if (visibility === "published_only") {
       if (listingStatus !== SERVICIOS_LISTING_STATUS_PUBLISHED) return null;
     } else if (visibility === "slug_page") {
       if (!(SLUG_PAGE_STATUSES as readonly string[]).includes(listingStatus)) return null;
     }
-    return {
-      ...row,
-      listing_status: listingStatus,
-      owner_user_id: row.owner_user_id ?? null,
-    };
+    return row;
   } catch {
     return null;
   }
@@ -97,18 +137,26 @@ export async function listServiciosPublicListingsForOwner(ownerUserId: string, l
   if (!isSupabaseAdminConfigured()) return [];
   try {
     const supabase = getAdminSupabase();
-    const { data, error } = await supabase
+    const first = await supabase
       .from("servicios_public_listings")
       .select(LISTING_SELECT)
       .eq("owner_user_id", ownerUserId)
       .order("updated_at", { ascending: false })
       .limit(limit);
+    let data = first.data;
+    let error = first.error;
+    if (error && isPostgrestMissingColumnOrSchemaError(error)) {
+      const second = await supabase
+        .from("servicios_public_listings")
+        .select(LISTING_SELECT_FALLBACK)
+        .eq("owner_user_id", ownerUserId)
+        .order("updated_at", { ascending: false })
+        .limit(limit);
+      data = second.data as typeof first.data;
+      error = second.error;
+    }
     if (error || !data) return [];
-    return data.map((r) => ({
-      ...r,
-      listing_status: typeof (r as ServiciosPublicListingRow).listing_status === "string" ? (r as ServiciosPublicListingRow).listing_status : "published",
-      owner_user_id: (r as ServiciosPublicListingRow).owner_user_id ?? null,
-    })) as ServiciosPublicListingRow[];
+    return data.map((r) => mapDbRowToServiciosPublicListingRow(r as ServiciosPublicListingRow));
   } catch {
     return [];
   }
