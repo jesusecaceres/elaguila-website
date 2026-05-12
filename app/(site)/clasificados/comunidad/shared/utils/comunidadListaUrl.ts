@@ -1,11 +1,13 @@
 /**
- * Comunidad landing: category-owned browse URL.
+ * Comunidad landing → published listings browse (`/clasificados/comunidad/resultados`).
  */
-
-import { buildCategoryBrowseUrl } from "@/app/clasificados/lib/hubUrl";
 
 type Lang = "es" | "en";
 
-export function buildComunidadListaUrl(cat: string, lang: Lang, q?: string, city?: string): string {
-  return buildCategoryBrowseUrl(cat, lang, { q, city });
+export function buildComunidadListaUrl(_cat: string, lang: Lang, q?: string, city?: string): string {
+  const sp = new URLSearchParams();
+  sp.set("lang", lang);
+  if (q?.trim()) sp.set("q", q.trim());
+  if (city?.trim()) sp.set("city", city.trim());
+  return `/clasificados/comunidad/resultados?${sp.toString()}`;
 }

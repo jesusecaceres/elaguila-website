@@ -13,6 +13,8 @@ import ProBadge from "../../components/ProBadge";
 import { isProListing } from "../../components/planHelpers";
 import { isVerifiedSeller } from "../../components/verifiedSeller";
 import ContactActions from "../../components/ContactActions";
+import { CommunityQuickAnuncioDetail } from "../../community/CommunityQuickAnuncioDetail";
+import { detailPairsToMap, isCommunityQuickListing } from "../../community/shared/communityListingDetailPairs";
 import AiInsightsPanel from "../../components/AiInsightsPanel";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { trackEvent } from "@/app/lib/listingAnalytics";
@@ -92,6 +94,9 @@ type Listing = {
   servicesTier?: string | null;
   business_meta?: string | null;
   leonix_ad_id?: string | null;
+  /** DB `is_free` — used for Clases/Comunidad quick detail chips. */
+  isFree?: boolean;
+  detailPairs?: unknown;
 };
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -230,6 +235,7 @@ function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
   };
 
   const out = base as Listing & { detailPairs?: unknown; contact_phone?: unknown; contact_email?: unknown; seller_type?: string };
+  out.isFree = isFree;
   if (Array.isArray(detailPairs)) {
     out.detailPairs = detailPairs;
   }
@@ -466,6 +472,12 @@ export default function AnuncioDetallePage() {
     () => (listing ? resolveLeonixLiveListingContact(listing as Listing & { business_meta?: string | null }) : null),
     [listing]
   );
+
+  const communityQuickPairMap = useMemo(() => {
+    if (!listing || (listing.category !== "clases" && listing.category !== "comunidad")) return null;
+    const m = detailPairsToMap(listing.detailPairs);
+    return isCommunityQuickListing(m) ? m : null;
+  }, [listing]);
 
   /** True when the visible listing was loaded from Supabase, not from SAMPLE_LISTINGS. */
   const isLiveDbListing = Boolean(listing && !sampleListing);
@@ -1388,6 +1400,17 @@ export default function AnuncioDetallePage() {
                     {rentasMeta?.facts && <RentasAnuncioMetaGridCards facts={rentasMeta.facts} />}
                   </div>
                 </div>
+
+                {(listing.category === "clases" || listing.category === "comunidad") && (
+                  <CommunityQuickAnuncioDetail
+                    lang={lang}
+                    category={listing.category}
+                    detailPairs={listing.detailPairs}
+                    city={listing.city}
+                    isFree={listing.isFree ?? false}
+                    priceLabel={listing.priceLabel[lang]}
+                  />
+                )}
             </div>
 
             {/* Safety note */}
@@ -1819,9 +1842,14 @@ export default function AnuncioDetallePage() {
                 <ContactActions
                   lang={lang}
                   phone={leonixLiveContact?.phoneForTel ?? rentasNegocioDisplay?.officePhone ?? (listing as any)?.contact_phone ?? (listing as any)?.phone}
-                  text={(listing as any)?.text}
+                  text={communityQuickPairMap?.["Leonix:smsPhone"]?.trim() || (listing as any)?.text}
                   email={leonixLiveContact?.emailForMailto ?? (listing as any)?.contact_email ?? (listing as any)?.email}
-                  website={leonixLiveContact?.website ?? rentasNegocioDisplay?.website ?? (listing as any)?.website}
+                  website={
+                    communityQuickPairMap?.["Leonix:website"]?.trim() ||
+                    leonixLiveContact?.website ||
+                    rentasNegocioDisplay?.website ||
+                    (listing as any)?.website
+                  }
                   mapsUrl={(listing as any)?.mapsUrl}
                   onContact={
                     listing

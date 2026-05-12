@@ -71,6 +71,11 @@ export function CategoryRecentListings({ category, lang, title, emptyNote, error
     );
   }
 
+  const resultsHref = appendLangToPath(
+    category === "clases" ? "/clasificados/clases/resultados" : "/clasificados/comunidad/resultados",
+    lang,
+  );
+
   return (
     <section className="rounded-2xl border border-[#C9B46A]/22 bg-[#FFFCF7]/98 px-4 py-4 shadow-[0_6px_28px_-18px_rgba(42,36,22,0.14)] ring-1 ring-[#C9B46A]/10 sm:px-5">
       <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-[#3d5a73]/85">{title}</h2>
@@ -87,6 +92,11 @@ export function CategoryRecentListings({ category, lang, title, emptyNote, error
           </li>
         ))}
       </ul>
+      <p className="mt-3 text-center sm:text-left">
+        <Link href={resultsHref} className="text-sm font-semibold text-[#2563EB] underline underline-offset-2">
+          {lang === "es" ? "Ver todos los anuncios" : "View all listings"}
+        </Link>
+      </p>
     </section>
   );
 }

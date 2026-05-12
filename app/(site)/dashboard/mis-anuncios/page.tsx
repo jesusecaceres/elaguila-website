@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { deleteMuxAssetsForListingRecordClient } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
@@ -206,7 +207,9 @@ type MisAnunciosCategoryFilter =
   | "restaurantes"
   | "empleos"
   | "viajes"
-  | "servicios";
+  | "servicios"
+  | "clases"
+  | "comunidad";
 
 const MIS_ANUNCIOS_CATEGORY_FILTERS: MisAnunciosCategoryFilter[] = [
   "all",
@@ -218,6 +221,8 @@ const MIS_ANUNCIOS_CATEGORY_FILTERS: MisAnunciosCategoryFilter[] = [
   "empleos",
   "viajes",
   "servicios",
+  "clases",
+  "comunidad",
 ];
 
 function isMisAnunciosCategoryFilter(raw: string | null | undefined): raw is MisAnunciosCategoryFilter {
@@ -229,6 +234,8 @@ function listingRowCategoryKey(row: ListingRow): MisAnunciosCategoryFilter | "ot
   if (cat === "en-venta") return "en-venta";
   if (cat === "autos") return "autos";
   if (cat === "rentas") return "rentas";
+  if (cat === "clases") return "clases";
+  if (cat === "comunidad") return "comunidad";
   const lx = parseLeonixListingContract(row.detail_pairs);
   const br = lx.branch;
   if (br === "bienes_raices_privado" || br === "bienes_raices_negocio") return "bienes-raices";
@@ -668,14 +675,7 @@ export default function MyListingsPage() {
 
   const categoryFilteredListings = useMemo(() => {
     if (categoryFilter === "all") return filteredByTab;
-    return filteredByTab.filter((row) => {
-      const k = listingRowCategoryKey(row);
-      if (categoryFilter === "autos") return k === "autos";
-      if (categoryFilter === "en-venta") return k === "en-venta";
-      if (categoryFilter === "bienes-raices") return k === "bienes-raices";
-      if (categoryFilter === "rentas") return k === "rentas";
-      return false;
-    });
+    return filteredByTab.filter((row) => listingRowCategoryKey(row) === categoryFilter);
   }, [filteredByTab, categoryFilter]);
 
   const visible = useMemo(() => {
@@ -768,18 +768,24 @@ export default function MyListingsPage() {
     let autosTbl = 0;
     let br = 0;
     let rentas = 0;
+    let clases = 0;
+    let comunidad = 0;
     for (const row of listings) {
       const k = listingRowCategoryKey(row);
       if (k === "en-venta") enVenta += 1;
       if (k === "autos") autosTbl += 1;
       if (k === "bienes-raices") br += 1;
       if (k === "rentas") rentas += 1;
+      if (k === "clases") clases += 1;
+      if (k === "comunidad") comunidad += 1;
     }
     return {
       "en-venta": enVenta,
       autos: autosTbl + autosPaidInventory.length,
       "bienes-raices": br,
       rentas,
+      clases,
+      comunidad,
       restaurantes: restaurantInventory.length,
       empleos: empleosInventory.length,
       viajes: viajesInventory.length,
@@ -810,7 +816,9 @@ export default function MyListingsPage() {
       categoryFilter === "en-venta" ||
       categoryFilter === "autos" ||
       categoryFilter === "bienes-raices" ||
-      categoryFilter === "rentas");
+      categoryFilter === "rentas" ||
+      categoryFilter === "clases" ||
+      categoryFilter === "comunidad");
 
   const accountRef = userId ? accountRefFromId(userId) : null;
 
@@ -1041,7 +1049,15 @@ export default function MyListingsPage() {
                                   : "Services"
                                 : fk === "autos"
                                   ? "Autos"
-                                  : fk;
+                                  : fk === "clases"
+                                    ? lang === "es"
+                                      ? "Clases"
+                                      : "Classes"
+                                    : fk === "comunidad"
+                                      ? lang === "es"
+                                        ? "Comunidad"
+                                        : "Community"
+                                      : fk;
                 return (
                   <button
                     key={fk}
@@ -1571,6 +1587,19 @@ export default function MyListingsPage() {
                   lang,
                 );
 
+                const catLower = (x.category ?? "").toLowerCase();
+                const categoryChip =
+                  catLower === "clases"
+                    ? lang === "es"
+                      ? "Clases"
+                      : "Classes"
+                    : catLower === "comunidad"
+                      ? lang === "es"
+                        ? "Comunidad"
+                        : "Community"
+                      : null;
+                const isDraftRow = x.is_published === false || normalizeStatus(x.status) === "draft";
+
                 return (
                   <div
                     key={x.id}
@@ -1580,12 +1609,31 @@ export default function MyListingsPage() {
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-lg font-bold text-[#1E1810]">{x.title || "—"}</span>
+                          {categoryChip ? (
+                            <span className="rounded-full bg-[#E8F0FA] px-2.5 py-0.5 text-[11px] font-bold text-[#1E3A5F]">
+                              {categoryChip}
+                            </span>
+                          ) : null}
                           <span
                             className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                              isSold ? "bg-[#E8DFD0] text-[#5C5346]" : "bg-emerald-100 text-emerald-900"
+                              isDraftRow
+                                ? "bg-amber-100 text-amber-950"
+                                : isSold
+                                  ? "bg-[#E8DFD0] text-[#5C5346]"
+                                  : "bg-emerald-100 text-emerald-900"
                             }`}
                           >
-                            {isSold ? (lang === "es" ? "Vendido" : "Sold") : lang === "es" ? "Activo" : "Active"}
+                            {isDraftRow
+                              ? lang === "es"
+                                ? "Borrador"
+                                : "Draft"
+                              : isSold
+                                ? lang === "es"
+                                  ? "Vendido"
+                                  : "Sold"
+                                : lang === "es"
+                                  ? "Activo"
+                                  : "Active"}
                           </span>
                           <span className="text-sm font-semibold text-[#1E1810]">{priceText}</span>
                         </div>
@@ -1614,6 +1662,22 @@ export default function MyListingsPage() {
                         >
                           {lang === "es" ? "Ver" : "View"}
                         </Link>
+                        {catLower === "clases" ? (
+                          <Link
+                            href={appendLangToPath("/clasificados/clases/resultados", lang)}
+                            className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
+                          >
+                            {lang === "es" ? "Lista pública" : "Public list"}
+                          </Link>
+                        ) : null}
+                        {catLower === "comunidad" ? (
+                          <Link
+                            href={appendLangToPath("/clasificados/comunidad/resultados", lang)}
+                            className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
+                          >
+                            {lang === "es" ? "Lista pública" : "Public list"}
+                          </Link>
+                        ) : null}
                         <button
                           type="button"
                           disabled={busy}

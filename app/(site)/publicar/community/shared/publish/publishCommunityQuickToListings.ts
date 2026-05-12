@@ -206,9 +206,30 @@ function buildDetailPairs(
   pairs.push({ label: "Leonix:primaryCta", value: d.primaryCta });
   pairs.push({ label: "Leonix:zip", value: d.zip.trim() });
   pairs.push({ label: "Leonix:state", value: d.state.trim() });
+  if (d.venue.trim()) pairs.push({ label: "Leonix:venue", value: d.venue.trim() });
+  if (d.addressLine1.trim()) pairs.push({ label: "Leonix:addressLine1", value: d.addressLine1.trim() });
+  const web = normalizeWebsiteForOpen(d.website);
+  if (web) pairs.push({ label: "Leonix:website", value: web });
+  const sl = d.socialLinks;
+  const sf = normalizeSocialUrlForOpen(sl.facebook);
+  if (sf) pairs.push({ label: "Leonix:socialFacebook", value: sf });
+  const si = normalizeSocialUrlForOpen(sl.instagram);
+  if (si) pairs.push({ label: "Leonix:socialInstagram", value: si });
+  const st = normalizeSocialUrlForOpen(sl.tiktok);
+  if (st) pairs.push({ label: "Leonix:socialTiktok", value: st });
+  const sy = normalizeSocialUrlForOpen(sl.youtube);
+  if (sy) pairs.push({ label: "Leonix:socialYoutube", value: sy });
+  const sx = normalizeSocialUrlForOpen(sl.xTwitter);
+  if (sx) pairs.push({ label: "Leonix:socialXTwitter", value: sx });
+  const sln = normalizeSocialUrlForOpen(sl.linkedin);
+  if (sln) pairs.push({ label: "Leonix:socialLinkedin", value: sln });
   if (d.smsPhone.trim()) pairs.push({ label: "Leonix:smsPhone", value: digitsOnly(d.smsPhone) });
   if (kind === "clases") {
     const c = d as ClasesQuickDraft;
+    pairs.push({ label: "Leonix:classCategory", value: c.category.trim() });
+    if (c.category === "otro" && c.categoryCustom.trim()) {
+      pairs.push({ label: "Leonix:classCategoryCustom", value: c.categoryCustom.trim() });
+    }
     pairs.push({ label: "Leonix:classCostType", value: c.classCostType });
     pairs.push({ label: "Leonix:mode", value: c.mode });
     if (c.classCostType === "pagada") {
@@ -222,6 +243,10 @@ function buildDetailPairs(
     });
   } else {
     const c = d as ComunidadQuickDraft;
+    pairs.push({ label: "Leonix:eventCategory", value: c.category.trim() });
+    if (c.category === "otro" && c.categoryCustom.trim()) {
+      pairs.push({ label: "Leonix:eventCategoryCustom", value: c.categoryCustom.trim() });
+    }
     pairs.push({ label: "Leonix:eventCost", value: c.eventCost });
     pairs.push({ label: "Leonix:eventDate", value: c.date.trim() });
     if (c.eventEndDate.trim()) pairs.push({ label: "Leonix:eventEndDate", value: c.eventEndDate.trim() });
