@@ -347,8 +347,12 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const businessAgentName = bizMeta.agentName;
   const businessDescription = bizMeta.description;
 
-  const created = trim(row.created_at);
-  const publishedAt = created || undefined;
+  const publishedAt =
+    trim(row.published_at) ||
+    trim(row.republished_at) ||
+    trim(row.created_at) ||
+    trim(row.updated_at) ||
+    undefined;
 
   const biz = trim(row.business_name);
   const sellerDisplay =

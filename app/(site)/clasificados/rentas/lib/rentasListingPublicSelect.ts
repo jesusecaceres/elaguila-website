@@ -17,21 +17,50 @@ export const RENTAS_LISTING_PUBLIC_ROW_WITH_BOOST = RENTAS_LISTING_PUBLIC_ROW_RI
 
 const BROWSE_LIMIT = 5000;
 
+type BrowseOrder =
+  | { kind: "column"; column: string; ascending: boolean; nullsFirst?: boolean }
+  | { kind: "none" };
+
+const BROWSE_ORDER_ATTEMPTS: BrowseOrder[] = [
+  { kind: "column", column: "republish_sort_at", ascending: false, nullsFirst: true },
+  { kind: "column", column: "published_at", ascending: false, nullsFirst: true },
+  { kind: "column", column: "created_at", ascending: false, nullsFirst: true },
+  { kind: "column", column: "id", ascending: false },
+  { kind: "none" },
+];
+
+async function runRentasBrowseSelect(
+  supabase: SupabaseClient,
+  cols: string,
+  order: BrowseOrder,
+): Promise<{ data: unknown[] | null; error: { message: string } | null }> {
+  let q = supabase.from("listings").select(cols).eq("category", "rentas").limit(BROWSE_LIMIT);
+  if (order.kind === "column") {
+    q = q.order(order.column, {
+      ascending: order.ascending,
+      nullsFirst: order.nullsFirst ?? false,
+    });
+  }
+  const { data, error } = await q;
+  return { data, error: error ? { message: error.message } : null };
+}
+
 export async function queryRentasBrowseListings(supabase: SupabaseClient): Promise<{
   data: unknown[] | null;
   error: { message: string } | null;
 }> {
   /** RLS enforces visibility for anon; avoid `.eq(status)` / `is_published` filters when those columns are absent. */
-  const res = await listingsQueryWithSelectShrink(RENTAS_LISTING_PUBLIC_ROW_RICH, async (cols) => {
-    const { data, error } = await supabase
-      .from("listings")
-      .select(cols)
-      .eq("category", "rentas")
-      .order("republish_sort_at", { ascending: false, nullsFirst: true })
-      .limit(BROWSE_LIMIT);
-    return { data, error: error ? { message: error.message } : null };
-  });
-  return { data: (res.data as unknown[] | null) ?? null, error: res.error };
+  let lastErr: { message: string } | null = null;
+  for (const ord of BROWSE_ORDER_ATTEMPTS) {
+    const res = await listingsQueryWithSelectShrink(RENTAS_LISTING_PUBLIC_ROW_RICH, async (cols) =>
+      runRentasBrowseSelect(supabase, cols, ord),
+    );
+    if (!res.error) {
+      return { data: (res.data as unknown[] | null) ?? null, error: null };
+    }
+    lastErr = res.error;
+  }
+  return { data: null, error: lastErr };
 }
 
 export async function queryRentasListingById(
