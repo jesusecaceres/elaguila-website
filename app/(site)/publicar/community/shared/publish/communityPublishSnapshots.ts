@@ -8,6 +8,7 @@ import type {
   ComunidadCostType,
   CommunityPrimaryCta,
   CommunityPublishConfirmations,
+  CommunitySocialLinks,
 } from "../types/communityQuickDraft";
 
 export type CommunityPublishImageRef = {
@@ -35,8 +36,10 @@ export type ClasesQuickPublishSnapshot = {
   images: CommunityPublishImageRef[];
   phone: string;
   whatsapp: string;
+  smsPhone: string;
   email: string;
   website: string;
+  socialLinks: CommunitySocialLinks;
   primaryCta: CommunityPrimaryCta;
   venue: string;
   addressLine1: string;
@@ -67,8 +70,10 @@ export type ComunidadQuickPublishSnapshot = {
   images: CommunityPublishImageRef[];
   phone: string;
   whatsapp: string;
+  smsPhone: string;
   email: string;
   website: string;
+  socialLinks: CommunitySocialLinks;
   primaryCta: CommunityPrimaryCta;
   venue: string;
   addressLine1: string;

@@ -3,6 +3,7 @@
 import Image from "next/image";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 
 import { COMMUNITY_DISCOVERY_REGION } from "../constants/communityRegion";
 import {
@@ -16,6 +17,16 @@ import type {
   ClasesQuickDraft,
   ComunidadQuickDraft,
 } from "../types/communityQuickDraft";
+
+import { CommunityContactCanvas } from "./CommunityContactCanvas";
+
+function cityStateZipLine(d: { publicCity: string; state: string; zip: string }): string {
+  const city = getCanonicalCityName(d.publicCity.trim()) || d.publicCity.trim();
+  if (!city) return "";
+  const st = d.state.trim() || "CA";
+  const z = d.zip.trim();
+  return z ? `${city}, ${st} ${z}` : `${city}, ${st}`;
+}
 
 const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1200&q=70";
@@ -134,8 +145,7 @@ export function ClasesQuickPreviewCard({ draft, lang }: { draft: ClasesQuickDraf
 
   const scheduleLines = formatWeeklyScheduleLines(draft.weeklySchedule, lang);
 
-  const cityLine =
-    [draft.publicCity.trim(), draft.state.trim()].filter(Boolean).join(", ") || "—";
+  const cityZipLine = cityStateZipLine(draft);
 
   return (
     <article className="mx-auto my-6 w-full max-w-3xl overflow-hidden rounded-2xl border border-black/10 bg-white text-[#2A2826] shadow-md">
@@ -188,7 +198,7 @@ export function ClasesQuickPreviewCard({ draft, lang }: { draft: ClasesQuickDraf
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
               {t.publicCity}
             </dt>
-            <dd className="mt-0.5 font-semibold">{cityLine}</dd>
+            <dd className="mt-0.5 font-semibold">{cityZipLine || "—"}</dd>
             <p className="text-[11px] text-[#9A948C]">
               {t.discoveryRegion}: {COMMUNITY_DISCOVERY_REGION}
             </p>
@@ -212,17 +222,6 @@ export function ClasesQuickPreviewCard({ draft, lang }: { draft: ClasesQuickDraf
               {scheduleLines.length ? scheduleLines.join("\n") : "—"}
             </dd>
           </div>
-          {draft.venue.trim() || draft.addressLine1.trim() ? (
-            <div className="sm:col-span-2">
-              <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
-                {t.venue}
-              </dt>
-              <dd className="mt-0.5">
-                {[draft.venue.trim(), draft.addressLine1.trim()].filter(Boolean).join(" · ") ||
-                  "—"}
-              </dd>
-            </div>
-          ) : null}
           <div className="sm:col-span-2">
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
               {t.description}
@@ -231,7 +230,7 @@ export function ClasesQuickPreviewCard({ draft, lang }: { draft: ClasesQuickDraf
           </div>
         </dl>
 
-        <ContactBlock draft={draft} lang={lang} />
+        <CommunityContactCanvas draft={draft} lang={lang} />
 
         {isPaid ? (
           <p className="rounded-xl border border-amber-300/70 bg-amber-50/85 px-3 py-2 text-xs font-medium text-amber-950">
@@ -254,8 +253,7 @@ export function ComunidadQuickPreviewCard({
   const main = pickMain(draft.images);
   const flyerDoc = main.heroIsFlyerDoc;
 
-  const cityLine =
-    [draft.publicCity.trim(), draft.state.trim()].filter(Boolean).join(", ") || "—";
+  const cityZipLine = cityStateZipLine(draft);
 
   const weeklyLines = formatWeeklyScheduleLines(draft.weeklySchedule, lang);
   const sessStart = draft.eventSessionStart.trim();
@@ -311,7 +309,7 @@ export function ComunidadQuickPreviewCard({
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
               {t.publicCity}
             </dt>
-            <dd className="mt-0.5 font-semibold">{cityLine}</dd>
+            <dd className="mt-0.5 font-semibold">{cityZipLine || "—"}</dd>
             <p className="text-[11px] text-[#9A948C]">
               {t.discoveryRegion}: {COMMUNITY_DISCOVERY_REGION}
             </p>
@@ -341,17 +339,6 @@ export function ComunidadQuickPreviewCard({
               {scheduleDisplay}
             </dd>
           </div>
-          {draft.venue.trim() || draft.addressLine1.trim() ? (
-            <div className="sm:col-span-2">
-              <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
-                {t.venue}
-              </dt>
-              <dd className="mt-0.5">
-                {[draft.venue.trim(), draft.addressLine1.trim()].filter(Boolean).join(" · ") ||
-                  "—"}
-              </dd>
-            </div>
-          ) : null}
           <div className="sm:col-span-2">
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
               {t.description}
@@ -360,38 +347,8 @@ export function ComunidadQuickPreviewCard({
           </div>
         </dl>
 
-        <ContactBlock draft={draft} lang={lang} />
+        <CommunityContactCanvas draft={draft} lang={lang} />
       </div>
     </article>
-  );
-}
-
-function ContactBlock({
-  draft,
-  lang,
-}: {
-  draft: { phone: string; whatsapp: string; email: string; website: string };
-  lang: Lang;
-}) {
-  const t = COPY[lang];
-  const items: { label: string; value: string }[] = [
-    { label: lang === "es" ? "Teléfono" : "Phone", value: draft.phone.trim() },
-    { label: "WhatsApp", value: draft.whatsapp.trim() },
-    { label: lang === "es" ? "Correo" : "Email", value: draft.email.trim() },
-    { label: t.websiteCta, value: draft.website.trim() },
-  ].filter((x) => x.value);
-  if (!items.length) return null;
-  return (
-    <div className="rounded-xl border border-black/10 bg-[#FAF7F2] p-3 text-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">{t.contact}</p>
-      <ul className="mt-1 space-y-0.5">
-        {items.map((it) => (
-          <li key={it.label} className="flex flex-wrap gap-2">
-            <span className="font-semibold text-[#5C564E]">{it.label}:</span>
-            <span>{it.value}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }

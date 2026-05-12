@@ -11,6 +11,15 @@ import {
 
 export type CommunityPrimaryCta = "phone" | "whatsapp" | "email" | "website";
 
+export type CommunitySocialLinks = {
+  facebook: string;
+  instagram: string;
+  tiktok: string;
+  youtube: string;
+  xTwitter: string;
+  linkedin: string;
+};
+
 export type CommunityPublishConfirmations = {
   infoTruthful: boolean;
   mediaAccurate: boolean;
@@ -50,8 +59,11 @@ export type CommunityCommonDraft = {
   addressLine1: string;
   phone: string;
   whatsapp: string;
+  /** Optional SMS number; preview/output falls back to `phone` when blank. */
+  smsPhone: string;
   email: string;
   website: string;
+  socialLinks: CommunitySocialLinks;
   primaryCta: CommunityPrimaryCta;
   /** Inline attestations before publish (session draft); not required for preview. */
   publishConfirmations: CommunityPublishConfirmations;
@@ -87,6 +99,17 @@ export type ComunidadQuickDraft = CommunityCommonDraft & {
 
 export type CommunityQuickDraft = ClasesQuickDraft | ComunidadQuickDraft;
 
+function emptySocialLinks(): CommunitySocialLinks {
+  return {
+    facebook: "",
+    instagram: "",
+    tiktok: "",
+    youtube: "",
+    xTwitter: "",
+    linkedin: "",
+  };
+}
+
 function emptyPublishConfirmations(): CommunityPublishConfirmations {
   return { infoTruthful: false, mediaAccurate: false, rulesAccepted: false };
 }
@@ -106,8 +129,10 @@ function emptyCommon(): CommunityCommonDraft {
     addressLine1: "",
     phone: "",
     whatsapp: "",
+    smsPhone: "",
     email: "",
     website: "",
+    socialLinks: emptySocialLinks(),
     primaryCta: "phone",
     publishConfirmations: emptyPublishConfirmations(),
   };
@@ -192,6 +217,20 @@ function pickPrimaryCta(raw: unknown, fallback: CommunityPrimaryCta): CommunityP
   return PRIMARY_CTA.has(raw as CommunityPrimaryCta) ? (raw as CommunityPrimaryCta) : fallback;
 }
 
+function normalizeSocialLinks(raw: unknown): CommunitySocialLinks {
+  const e = emptySocialLinks();
+  if (!raw || typeof raw !== "object") return e;
+  const r = raw as Partial<CommunitySocialLinks>;
+  return {
+    facebook: String(r.facebook ?? e.facebook).trim(),
+    instagram: String(r.instagram ?? e.instagram).trim(),
+    tiktok: String(r.tiktok ?? e.tiktok).trim(),
+    youtube: String(r.youtube ?? e.youtube).trim(),
+    xTwitter: String(r.xTwitter ?? e.xTwitter).trim(),
+    linkedin: String(r.linkedin ?? e.linkedin).trim(),
+  };
+}
+
 function normalizePublishConfirmations(raw: unknown): CommunityPublishConfirmations {
   const e = emptyPublishConfirmations();
   if (!raw || typeof raw !== "object") return e;
@@ -222,8 +261,10 @@ function normalizeCommon(p: Partial<CommunityCommonDraft>): CommunityCommonDraft
     addressLine1: String(p.addressLine1 ?? e.addressLine1),
     phone: String(p.phone ?? e.phone),
     whatsapp: String(p.whatsapp ?? e.whatsapp),
+    smsPhone: String(p.smsPhone ?? e.smsPhone),
     email: String(p.email ?? e.email),
     website: String(p.website ?? e.website),
+    socialLinks: normalizeSocialLinks(p.socialLinks),
     primaryCta: pickPrimaryCta(p.primaryCta, e.primaryCta),
     publishConfirmations: normalizePublishConfirmations(p.publishConfirmations),
   };

@@ -9,7 +9,9 @@ import type {
   ComunidadQuickDraft,
   CommunityCommonDraft,
   CommunityPublishConfirmations,
+  CommunitySocialLinks,
 } from "../types/communityQuickDraft";
+import { normalizeSocialUrlForOpen, normalizeWebsiteForOpen } from "../lib/communityWebsiteAndSocial";
 import type {
   ClasesQuickPublishSnapshot,
   ComunidadQuickPublishSnapshot,
@@ -38,6 +40,17 @@ function mapImagesForPublish(
   return refs;
 }
 
+function snapshotSocialLinks(sl: CommunitySocialLinks): CommunitySocialLinks {
+  return {
+    facebook: normalizeSocialUrlForOpen(sl.facebook) ?? "",
+    instagram: normalizeSocialUrlForOpen(sl.instagram) ?? "",
+    tiktok: normalizeSocialUrlForOpen(sl.tiktok) ?? "",
+    youtube: normalizeSocialUrlForOpen(sl.youtube) ?? "",
+    xTwitter: normalizeSocialUrlForOpen(sl.xTwitter) ?? "",
+    linkedin: normalizeSocialUrlForOpen(sl.linkedin) ?? "",
+  };
+}
+
 function commonSnapshot(d: CommunityCommonDraft): {
   title: string;
   organizer: string;
@@ -47,8 +60,10 @@ function commonSnapshot(d: CommunityCommonDraft): {
   images: CommunityPublishImageRef[];
   phone: string;
   whatsapp: string;
+  smsPhone: string;
   email: string;
   website: string;
+  socialLinks: CommunitySocialLinks;
   primaryCta: CommunityCommonDraft["primaryCta"];
   venue: string;
   addressLine1: string;
@@ -69,8 +84,10 @@ function commonSnapshot(d: CommunityCommonDraft): {
     images,
     phone: d.phone.trim(),
     whatsapp: d.whatsapp.trim(),
+    smsPhone: d.smsPhone.trim(),
     email: d.email.trim(),
-    website: d.website.trim(),
+    website: normalizeWebsiteForOpen(d.website) ?? d.website.trim(),
+    socialLinks: snapshotSocialLinks(d.socialLinks),
     primaryCta: d.primaryCta,
     venue: d.venue.trim(),
     addressLine1: d.addressLine1.trim(),

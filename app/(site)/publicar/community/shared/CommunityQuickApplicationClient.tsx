@@ -7,6 +7,7 @@ import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { DayKey } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import { CommunityExtendedContactFields } from "./components/CommunityExtendedContactFields";
 import { CommunityPublishConfirmationSection } from "./components/CommunityPublishConfirmationSection";
 import { EmpleosApplicationFinalStep } from "@/app/publicar/empleos/shared/components/EmpleosApplicationFinalStep";
 import { EmpleosCtaFieldGroup } from "@/app/publicar/empleos/shared/components/EmpleosCtaFieldGroup";
@@ -457,6 +458,16 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
               labels={ctaL}
               primaryHint={ctaPrimaryHint}
               formatUsPhone
+              websiteInputType="text"
+            />
+          </EmpleosSectionCard>
+
+          <EmpleosSectionCard title={lang === "es" ? "Más contacto" : "More contact"}>
+            <CommunityExtendedContactFields
+              lang={lang}
+              smsPhone={state.smsPhone}
+              socialLinks={state.socialLinks}
+              onChange={(p) => patch(p)}
             />
           </EmpleosSectionCard>
 
@@ -469,6 +480,8 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
             zipLabel={copy.fields.zipLabel}
             venueLabel={copy.fields.venue}
             addressLabel={copy.fields.addressLine1}
+            addressHelperText={copy.fields.addressLine1Helper}
+            addressPlaceholder={copy.fields.addressLine1Placeholder}
             publicCityLabel={copy.fields.publicCity}
             zipValue={state.zip}
             venueValue={state.venue}
@@ -803,6 +816,16 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
               labels={ctaL}
               primaryHint={ctaPrimaryHint}
               formatUsPhone
+              websiteInputType="text"
+            />
+          </EmpleosSectionCard>
+
+          <EmpleosSectionCard title={lang === "es" ? "Más contacto" : "More contact"}>
+            <CommunityExtendedContactFields
+              lang={lang}
+              smsPhone={state.smsPhone}
+              socialLinks={state.socialLinks}
+              onChange={(p) => patch(p)}
             />
           </EmpleosSectionCard>
 
@@ -816,6 +839,8 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
             zipLabel={copy.fields.zipLabel}
             venueLabel={copy.fields.venue}
             addressLabel={copy.fields.addressLine1}
+            addressHelperText={copy.fields.addressLine1Helper}
+            addressPlaceholder={copy.fields.addressLine1Placeholder}
             zipValue={state.zip}
             venueValue={state.venue}
             addressValue={state.addressLine1}
@@ -868,6 +893,8 @@ type LocationProps = {
   zipLabel: string;
   venueLabel: string;
   addressLabel: string;
+  addressHelperText: string;
+  addressPlaceholder: string;
   zipValue: string;
   venueValue: string;
   addressValue: string;
@@ -885,6 +912,8 @@ function LocationSection({
   zipLabel,
   venueLabel,
   addressLabel,
+  addressHelperText,
+  addressPlaceholder,
   zipValue,
   venueValue,
   addressValue,
@@ -950,7 +979,9 @@ function LocationSection({
           className={INPUT}
           value={addressValue}
           onChange={(e) => onChange({ addressLine1: e.target.value })}
+          placeholder={addressPlaceholder}
         />
+        <p className="mt-1.5 text-xs leading-relaxed text-[color:var(--lx-text-2)]">{addressHelperText}</p>
       </label>
     </EmpleosSectionCard>
   );

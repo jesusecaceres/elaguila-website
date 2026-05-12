@@ -5,6 +5,7 @@ import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHel
 import { digitsOnly } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 
 import { isActiveDayValid, isWeeklyScheduleSatisfied } from "../lib/communityWeeklySchedule";
+import { normalizeSocialUrlForOpen, normalizeWebsiteForOpen } from "../lib/communityWebsiteAndSocial";
 import type {
   ClasesQuickDraft,
   ComunidadQuickDraft,
@@ -34,6 +35,14 @@ const GATE_CLASES = {
     publicCityInvalid: "Selecciona una ciudad válida de la lista de NorCal.",
     phoneDigits: "Teléfono: ingresa 10 dígitos o déjalo vacío",
     whatsappDigits: "WhatsApp: ingresa 10 dígitos o déjalo vacío",
+    smsDigits: "Mensajes de texto: ingresa 10 dígitos o déjalo vacío",
+    websiteInvalid: "Sitio web: ingresa una URL válida (ej. https://… o www.…)",
+    socialFacebook: "Facebook: URL no válida",
+    socialInstagram: "Instagram: URL no válida",
+    socialTiktok: "TikTok: URL no válida",
+    socialYoutube: "YouTube: URL no válida",
+    socialX: "X (Twitter): URL no válida",
+    socialLinkedin: "LinkedIn: URL no válida",
   },
   en: {
     title: "Class title",
@@ -54,6 +63,14 @@ const GATE_CLASES = {
     publicCityInvalid: "Select a valid city from the NorCal list.",
     phoneDigits: "Phone: enter 10 digits or leave blank",
     whatsappDigits: "WhatsApp: enter 10 digits or leave blank",
+    smsDigits: "Text number: enter 10 digits or leave blank",
+    websiteInvalid: "Website: enter a valid URL (e.g. https://… or www.…)",
+    socialFacebook: "Facebook: invalid URL",
+    socialInstagram: "Instagram: invalid URL",
+    socialTiktok: "TikTok: invalid URL",
+    socialYoutube: "YouTube: invalid URL",
+    socialX: "X (Twitter): invalid URL",
+    socialLinkedin: "LinkedIn: invalid URL",
   },
 } as const;
 
@@ -79,6 +96,14 @@ const GATE_COMUNIDAD = {
       "Cuándo ocurre el evento: activa días en el horario semanal o completa horario puntual (inicio y fin).",
     phoneDigits: "Teléfono: ingresa 10 dígitos o déjalo vacío",
     whatsappDigits: "WhatsApp: ingresa 10 dígitos o déjalo vacío",
+    smsDigits: "Mensajes de texto: ingresa 10 dígitos o déjalo vacío",
+    websiteInvalid: "Sitio web: ingresa una URL válida (ej. https://… o www.…)",
+    socialFacebook: "Facebook: URL no válida",
+    socialInstagram: "Instagram: URL no válida",
+    socialTiktok: "TikTok: URL no válida",
+    socialYoutube: "YouTube: URL no válida",
+    socialX: "X (Twitter): URL no válida",
+    socialLinkedin: "LinkedIn: URL no válida",
   },
   en: {
     title: "Event title",
@@ -101,8 +126,36 @@ const GATE_COMUNIDAD = {
       "When the event runs: enable days in the weekly schedule or fill one-time start and end times.",
     phoneDigits: "Phone: enter 10 digits or leave blank",
     whatsappDigits: "WhatsApp: enter 10 digits or leave blank",
+    smsDigits: "Text number: enter 10 digits or leave blank",
+    websiteInvalid: "Website: enter a valid URL (e.g. https://… or www.…)",
+    socialFacebook: "Facebook: invalid URL",
+    socialInstagram: "Instagram: invalid URL",
+    socialTiktok: "TikTok: invalid URL",
+    socialYoutube: "YouTube: invalid URL",
+    socialX: "X (Twitter): invalid URL",
+    socialLinkedin: "LinkedIn: invalid URL",
   },
 } as const;
+
+function pushSocialGateIssues(
+  issues: string[],
+  sl: ClasesQuickDraft["socialLinks"],
+  L: {
+    socialFacebook: string;
+    socialInstagram: string;
+    socialTiktok: string;
+    socialYoutube: string;
+    socialX: string;
+    socialLinkedin: string;
+  }
+): void {
+  if (st(sl.facebook) && !normalizeSocialUrlForOpen(sl.facebook)) issues.push(L.socialFacebook);
+  if (st(sl.instagram) && !normalizeSocialUrlForOpen(sl.instagram)) issues.push(L.socialInstagram);
+  if (st(sl.tiktok) && !normalizeSocialUrlForOpen(sl.tiktok)) issues.push(L.socialTiktok);
+  if (st(sl.youtube) && !normalizeSocialUrlForOpen(sl.youtube)) issues.push(L.socialYoutube);
+  if (st(sl.xTwitter) && !normalizeSocialUrlForOpen(sl.xTwitter)) issues.push(L.socialX);
+  if (st(sl.linkedin) && !normalizeSocialUrlForOpen(sl.linkedin)) issues.push(L.socialLinkedin);
+}
 
 function hasContact(d: { phone: string; whatsapp: string; email: string }): boolean {
   return Boolean(st(d.phone) || st(d.whatsapp) || st(d.email));
@@ -171,6 +224,9 @@ export function gateClasesQuickPreview(d: ClasesQuickDraft, lang: Lang = "es"): 
   else if (!getCanonicalCityName(cityRaw)) issues.push(L.publicCityInvalid);
   if (st(d.phone) && digitsOnly(d.phone).length !== 10) issues.push(L.phoneDigits);
   if (st(d.whatsapp) && digitsOnly(d.whatsapp).length !== 10) issues.push(L.whatsappDigits);
+  if (st(d.smsPhone) && digitsOnly(d.smsPhone).length !== 10) issues.push(L.smsDigits);
+  if (st(d.website) && !normalizeWebsiteForOpen(d.website)) issues.push(L.websiteInvalid);
+  pushSocialGateIssues(issues, d.socialLinks, L);
   return issues.length ? { ok: false, issues } : { ok: true };
 }
 
@@ -198,6 +254,9 @@ export function gateComunidadQuickPreview(d: ComunidadQuickDraft, lang: Lang = "
   else if (!getCanonicalCityName(cityRawC)) issues.push(L.publicCityInvalid);
   if (st(d.phone) && digitsOnly(d.phone).length !== 10) issues.push(L.phoneDigits);
   if (st(d.whatsapp) && digitsOnly(d.whatsapp).length !== 10) issues.push(L.whatsappDigits);
+  if (st(d.smsPhone) && digitsOnly(d.smsPhone).length !== 10) issues.push(L.smsDigits);
+  if (st(d.website) && !normalizeWebsiteForOpen(d.website)) issues.push(L.websiteInvalid);
+  pushSocialGateIssues(issues, d.socialLinks, L);
   return issues.length ? { ok: false, issues } : { ok: true };
 }
 
