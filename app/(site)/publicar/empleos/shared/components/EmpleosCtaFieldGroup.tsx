@@ -25,6 +25,7 @@ type Props = {
    * Empleos Quick omits this prop — unchanged free-form behavior.
    */
   formatUsPhone?: boolean;
+  websiteInputType?: "url" | "text";
 };
 
 const US_PHONE_PLACEHOLDER = "(555) 123-4567";
@@ -39,6 +40,7 @@ export function EmpleosCtaFieldGroup({
   labels,
   primaryHint,
   formatUsPhone = false,
+  websiteInputType = "url",
 }: Props) {
   return (
     <div className="space-y-4">
@@ -92,8 +94,8 @@ export function EmpleosCtaFieldGroup({
             value={website}
             onChange={(e) => onChange({ website: e.target.value })}
             className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
-            type="url"
-            placeholder="https://"
+            type={websiteInputType}
+            placeholder={websiteInputType === "text" ? "www.example.com" : "https://"}
           />
         </label>
       </div>
