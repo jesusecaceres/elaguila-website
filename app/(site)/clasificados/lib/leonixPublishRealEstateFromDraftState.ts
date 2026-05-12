@@ -215,6 +215,16 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
   state: RentasPrivadoFormState,
   lang: "es" | "en"
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
+  const orderedGallery = orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex);
+  if (!orderedGallery.length) {
+    return {
+      ok: false,
+      error:
+        lang === "es"
+          ? "No hay fotos listas para publicar. Vuelve al formulario, sube al menos una foto y abre la vista previa otra vez."
+          : "No photos are ready to publish. Return to the form, add at least one photo, and open preview again.",
+    };
+  }
   const vm = mapRentasPrivadoStateToPreviewVm(state);
   let human = buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm);
   const note = trim(state.seller.notaContacto);
@@ -239,7 +249,7 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
     detailPairs: pairs,
     contactPhoneDigits: contact.phone,
     contactEmail: contact.email,
-    imageSources: orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex),
+    imageSources: orderedGallery,
     lang,
   });
 }
@@ -298,6 +308,16 @@ export async function publishLeonixListingFromRentasNegocioDraft(
   state: RentasNegocioFormState,
   lang: "es" | "en"
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
+  const orderedGallery = orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex);
+  if (!orderedGallery.length) {
+    return {
+      ok: false,
+      error:
+        lang === "es"
+          ? "No hay fotos listas para publicar. Vuelve al formulario, sube al menos una foto y abre la vista previa otra vez."
+          : "No photos are ready to publish. Return to the form, add at least one photo, and open preview again.",
+    };
+  }
   const vm = mapRentasNegocioStateToPreviewVm(state);
   let human = buildDetailPairsFromBienesRaicesNegocioPreviewVm(vm);
   const noteN = trim(state.negocioBio);
@@ -330,7 +350,7 @@ export async function publishLeonixListingFromRentasNegocioDraft(
     detailPairs: pairs,
     contactPhoneDigits: phone.length >= 10 ? phone.slice(0, 15) : null,
     contactEmail: trim(state.negocioEmail) || null,
-    imageSources: orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex),
+    imageSources: orderedGallery,
     lang,
   });
 }

@@ -101,6 +101,26 @@ export function leonixGalleryAppendixForDescription(lang: "es" | "en", photoUrls
     : `\n\n— Photos —\n${photoUrls.join("\n")}\n${marker}\n`;
 }
 
+/**
+ * Public HTTPS URLs we may persist into `listings.images` without re-fetching + re-uploading to
+ * `listing-images` (avoids browser CORS failures on third-party CDNs; Rentas draft-media uses Vercel Blob).
+ * Exported for smoke tests.
+ */
+export function leonixHttpsGalleryUrlEligibleForDirectPersist(src: string): boolean {
+  const t = src.trim();
+  if (!/^https:\/\//i.test(t) || t.length > 2048) return false;
+  try {
+    const u = new URL(t);
+    if (u.protocol !== "https:") return false;
+    const h = u.hostname.toLowerCase();
+    if (h.endsWith(".public.blob.vercel-storage.com") || h === "public.blob.vercel-storage.com") return true;
+    if (h.endsWith(".supabase.co") && u.pathname.includes("/object/public/listing-images/")) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export type PublishLeonixRealEstateListingCoreParams = {
   title: string;
   description: string;
@@ -205,11 +225,17 @@ export async function publishLeonixRealEstateListingCore(
   const photoUrls: string[] = [];
   const basePath = `${userId}/${listingId}/photos`;
   let uploadFailures = 0;
+  /** True only after `listings.images` + description appendix update succeeds (when there are photos). */
+  let listingImagesPersisted = false;
 
   try {
     for (let i = 0; i < ordered.length; i++) {
       const src = ordered[i]!;
       try {
+        if (leonixHttpsGalleryUrlEligibleForDirectPersist(src)) {
+          photoUrls.push(src.trim());
+          continue;
+        }
         const blob = await fetchAsBlob(src);
         const ext = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
         const path = `${basePath}/${String(i + 1).padStart(2, "0")}.${ext}`;
@@ -267,11 +293,12 @@ export async function publishLeonixRealEstateListingCore(
               : `Photos uploaded but the listing could not be updated with the gallery: ${updErr.message}`,
         };
       }
+      listingImagesPersisted = true;
     }
   } catch (e: unknown) {
     console.warn("[leonix publish] media upload error", e);
     devLog("media block error", e);
-    if (ordered.length > 0 && photoUrls.length === 0) {
+    if (ordered.length > 0 && !listingImagesPersisted) {
       await supabase.from("listings").delete().eq("id", listingId);
       return {
         ok: false,
@@ -281,16 +308,9 @@ export async function publishLeonixRealEstateListingCore(
             : "Error while processing photos; the listing was not published.",
       };
     }
-    if (ordered.length) {
-      warnings.push(
-        lang === "es"
-          ? "Error al procesar fotos; el anuncio existe sin galería actualizada."
-          : "Error while processing photos; the listing exists without an updated gallery."
-      );
-    }
   }
 
-  if (ordered.length > 0 && photoUrls.length === 0) {
+  if (ordered.length > 0 && !listingImagesPersisted) {
     await supabase.from("listings").delete().eq("id", listingId);
     return {
       ok: false,

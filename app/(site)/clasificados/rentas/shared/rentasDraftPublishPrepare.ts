@@ -67,9 +67,16 @@ async function mapGalleryUrls(urls: readonly string[], draftId: string): Promise
 }
 
 function assertGalleryTransportClean(urls: readonly string[], label: string): void {
-  for (let i = 0; i < urls.length; i++) {
-    const u = urls[i];
-    if (typeof u !== "string" || !u.trim()) continue;
+  const nonEmptyIdx = urls
+    .map((u, i) => (typeof u === "string" && u.trim() ? i : -1))
+    .filter((i) => i >= 0);
+  if (!nonEmptyIdx.length) return;
+  for (const i of nonEmptyIdx) {
+    const u = urls[i] as string;
+    const t = u.trim();
+    if (!/^https:\/\//i.test(t)) {
+      throw new Error(`${label}: gallery[${i}] must be HTTPS before publish (http, data:, and blob: are not allowed).`);
+    }
     if (!isRentasPublishableRemoteImageRef(u)) {
       throw new Error(`${label}: gallery[${i}] is not a publishable HTTPS URL after prepare`);
     }

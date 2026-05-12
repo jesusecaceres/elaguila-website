@@ -8,6 +8,7 @@ import {
   rentasDraftImageRequiresBlobUpload,
 } from "../app/(site)/clasificados/rentas/shared/rentasPublishMediaTransport";
 import { orderedRentasGallerySourcesForPublish } from "../app/(site)/clasificados/rentas/shared/rentasPublishFormHelpers";
+import { leonixHttpsGalleryUrlEligibleForDirectPersist } from "../app/(site)/clasificados/lib/leonixPublishRealEstateListingCore";
 
 const tinyData =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
@@ -23,6 +24,16 @@ function main() {
 
   const ordered = orderedRentasGallerySourcesForPublish(["a", "b", "c", "d"], 1);
   assert.deepEqual(ordered, ["b", "c", "d", "a"], "cover-first publish order");
+
+  assert.equal(leonixHttpsGalleryUrlEligibleForDirectPersist("https://x.public.blob.vercel-storage.com/foo.jpg"), true);
+  assert.equal(
+    leonixHttpsGalleryUrlEligibleForDirectPersist(
+      "https://abcdefgh.supabase.co/storage/v1/object/public/listing-images/u/l/01.jpg",
+    ),
+    true,
+  );
+  assert.equal(leonixHttpsGalleryUrlEligibleForDirectPersist("https://evil.example.com/a.jpg"), false);
+  assert.equal(leonixHttpsGalleryUrlEligibleForDirectPersist("http://x.public.blob.vercel-storage.com/a.jpg"), false);
 
   // Transport: draft may hold data URLs; they must not count as publishable until Blob upload step.
   assert.equal(isRentasPublishableRemoteImageRef(tinyData), false, "data:image blocked from transport");
