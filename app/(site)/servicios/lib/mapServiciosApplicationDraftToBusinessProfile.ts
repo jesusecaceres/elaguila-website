@@ -337,11 +337,20 @@ function mapGalleryVideos(raw: ServiciosApplicationDraft["galleryVideos"]): Serv
     if (!v || typeof v.id !== "string") continue;
     const url = trim(v.url);
     if (!url) continue;
-    out.push({
+    const row: ServiciosGalleryVideo = {
       id: trim(v.id) || v.id,
       url,
       isPrimary: v.isPrimary === true,
-    });
+    };
+    const mp = trim((v as { muxPlaybackId?: string }).muxPlaybackId);
+    if (mp) row.muxPlaybackId = mp;
+    const ma = trim((v as { muxAssetId?: string }).muxAssetId);
+    if (ma) row.muxAssetId = ma;
+    const th = trim((v as { muxThumbnailUrl?: string }).muxThumbnailUrl);
+    if (th) row.posterUrl = th;
+    const skip = trim((v as { muxPublishSkipReason?: string }).muxPublishSkipReason);
+    if (skip) row.muxPublishSkipReason = skip.slice(0, 480);
+    out.push(row);
     if (out.length >= 2) break;
   }
   return out;

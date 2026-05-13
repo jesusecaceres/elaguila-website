@@ -333,11 +333,30 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   const featuredGalleryIds = state.featuredGalleryIds.filter((id) => galleryIdSet.has(id)).slice(0, 4);
 
   const galleryVideosRaw = state.videos
-    .map((v) => ({
-      id: v.id,
-      url: v.url.trim(),
-      isPrimary: v.isPrimary === true,
-    }))
+    .map((v) => {
+      const row: {
+        id: string;
+        url: string;
+        isPrimary: boolean;
+        muxPlaybackId?: string;
+        muxAssetId?: string;
+        muxThumbnailUrl?: string;
+        muxPublishSkipReason?: string;
+      } = {
+        id: v.id,
+        url: v.url.trim(),
+        isPrimary: v.isPrimary === true,
+      };
+      const mp = v.muxPlaybackId?.trim();
+      if (mp) row.muxPlaybackId = mp;
+      const ma = v.muxAssetId?.trim();
+      if (ma) row.muxAssetId = ma;
+      const th = v.muxThumbnailUrl?.trim();
+      if (th) row.muxThumbnailUrl = th;
+      const sk = v.muxSkipReason?.trim();
+      if (sk) row.muxPublishSkipReason = sk.slice(0, 480);
+      return row;
+    })
     .filter((v) => v.url.length > 0)
     .slice(0, 2);
   galleryVideosRaw.sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));

@@ -186,6 +186,7 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
   if (videos.length > 0 && !videos.some((v) => v.isPrimary === true)) {
     videos = videos.map((v, i) => ({ ...v, isPrimary: i === 0 }));
   }
+  videos = videos.filter((v) => v.url.trim().length > 0);
 
   const galleryIdSet = new Set(gallery.map((g) => g.id));
   featuredGalleryIds = featuredGalleryIds.filter((id) => galleryIdSet.has(id)).slice(0, 4);

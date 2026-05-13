@@ -65,6 +65,12 @@ export type VideoItem = {
   url: string;
   source: "file" | "url";
   isPrimary?: boolean;
+  /** After Mux direct upload (publish prep or future inline upload). */
+  muxPlaybackId?: string;
+  muxAssetId?: string;
+  muxThumbnailUrl?: string;
+  /** When publish prep could not persist a playable video (Mux/blob failure). */
+  muxSkipReason?: string;
 };
 
 export type TestimonialRow = {

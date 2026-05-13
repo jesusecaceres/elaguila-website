@@ -60,11 +60,16 @@ export type ServiciosGalleryImage = {
   alt: string;
 };
 
-/** Optional tour / promo videos (draft-safe https or data: URLs) */
+/** Optional tour / promo videos — HTTPS (Mux HLS, Blob CDN, YouTube, etc.) */
 export type ServiciosGalleryVideo = {
   id: string;
   url: string;
   isPrimary?: boolean;
+  muxPlaybackId?: string;
+  muxAssetId?: string;
+  /** Poster / Mux thumbnail */
+  posterUrl?: string;
+  muxPublishSkipReason?: string;
 };
 
 export type ServiciosTrustItem = {
@@ -243,6 +248,8 @@ export type ServiciosBusinessProfile = {
   opsMeta?: {
     leonixVerifiedInterest?: boolean;
     discovery?: ServiciosDiscoveryFacet;
+    /** Admin/dev: optional gallery video publish diagnostics (never shown on public shell). */
+    serviciosVideoPublishNotes?: { videoId: string; reason: string }[];
   };
   quickFacts?: ServiciosQuickFact[];
   about?: ServiciosAboutBlock;

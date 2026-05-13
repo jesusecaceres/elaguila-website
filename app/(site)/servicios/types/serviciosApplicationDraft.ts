@@ -119,6 +119,11 @@ export type ServiciosApplicationGalleryVideoDraft = {
   id: string;
   url: string;
   isPrimary?: boolean;
+  muxPlaybackId?: string;
+  muxAssetId?: string;
+  muxThumbnailUrl?: string;
+  /** Non-user-facing publish diagnostics (Mux/blob failure). */
+  muxPublishSkipReason?: string;
 };
 
 export type ServiciosApplicationTrustRowDraft = {

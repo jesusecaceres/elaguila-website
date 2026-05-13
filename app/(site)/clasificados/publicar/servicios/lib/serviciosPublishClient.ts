@@ -62,10 +62,12 @@ export async function postServiciosPublishApi(args: {
 
   let resolved: ClasificadosServiciosApplicationState;
   let skippedOversizedVideos = false;
+  let videoPublishDiagnostics: { videoId: string; reason: string }[] | undefined;
   try {
-    const r = await resolveServiciosDraftMediaToRemoteUrls(args.state);
+    const r = await resolveServiciosDraftMediaToRemoteUrls(args.state, args.lang);
     resolved = r.state;
     skippedOversizedVideos = r.skippedOversizedVideos;
+    videoPublishDiagnostics = r.videoPublishDiagnostics;
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     let error: string = "media_upload_failed";
@@ -83,7 +85,7 @@ export async function postServiciosPublishApi(args: {
     return { res, data: { ok: false, error, message } };
   }
 
-  const body = buildServiciosPublishTransportBody(resolved, args.lang, existingPublicSlug);
+  const body = buildServiciosPublishTransportBody(resolved, args.lang, existingPublicSlug, videoPublishDiagnostics);
   const raw = JSON.stringify(body);
   const byteSize = new Blob([raw]).size;
   devLogTransport(body as unknown as Record<string, unknown>, byteSize);

@@ -1,32 +1,12 @@
+"use client";
+
 import Image from "next/image";
-import type { ServiciosGalleryVideo, ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
+import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
-import { parseYouTubeVideoId, youTubeEmbedSrc } from "../lib/serviciosVideoEmbed";
 import { resolveServiciosQuoteDestination, appendWhatsAppPrefill } from "../lib/serviciosContactActions";
 import { SV } from "./serviciosDesignTokens";
-
-function VideoTile({ v, lang }: { v: ServiciosGalleryVideo; lang: ServiciosLang }) {
-  const yt = parseYouTubeVideoId(v.url);
-  if (yt) {
-    return (
-      <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-black/[0.06] bg-black shadow-sm">
-        <iframe
-          title={lang === "en" ? "Video" : "Video"}
-          src={youTubeEmbedSrc(yt)}
-          className="absolute inset-0 h-full w-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      </div>
-    );
-  }
-  return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-black/[0.06] bg-black/[0.04] shadow-sm">
-      <video src={v.url} className="h-full w-full object-cover" controls playsInline preload="metadata" />
-    </div>
-  );
-}
+import { ServiciosGalleryVideoTile } from "./ServiciosGalleryVideoTile";
 
 function FeaturedImage({ g, aspectClass, onQuoteClick }: { g: { id: string; url: string; alt: string }; aspectClass: string; onQuoteClick?: () => void }) {
   return (
@@ -128,7 +108,7 @@ export function ServiciosGallery({ profile, lang }: { profile: ServiciosProfileR
                 {videos.length > 1 && v.isPrimary ? (
                   <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#3B66AD]/90">{L.videoTour}</p>
                 ) : null}
-                <VideoTile v={v} lang={lang} />
+                <ServiciosGalleryVideoTile v={v} lang={lang} />
               </div>
             ))}
           </div>

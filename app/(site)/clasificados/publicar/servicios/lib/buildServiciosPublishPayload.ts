@@ -24,6 +24,19 @@ function cleanPlainText(s: string): string {
   return t.length > MAX_FREE_TEXT ? t.slice(0, MAX_FREE_TEXT) : t;
 }
 
+function cleanMuxToken(s: string | undefined): string | undefined {
+  const t = (s ?? "").trim();
+  if (!/^[a-zA-Z0-9_-]{6,200}$/.test(t)) return undefined;
+  return t;
+}
+
+function cleanOptionalHttps(s: string | undefined): string | undefined {
+  const t = (s ?? "").trim();
+  if (!t) return undefined;
+  if (!isServiciosPublishableRemoteMediaUrl(t)) return undefined;
+  return t.slice(0, MAX_REMOTE_MEDIA_URL_LEN);
+}
+
 /**
  * Transport-safe Servicios publish body: normalized state with only HTTPS media refs
  * and heavy `data:` / `blob:` / IDB placeholders stripped (defense in depth after Blob upload).
@@ -41,6 +54,10 @@ export function buildServiciosPublishPayload(state: ClasificadosServiciosApplica
     .map((v) => ({
       ...v,
       url: cleanRemoteMediaField(v.url),
+      muxPlaybackId: cleanMuxToken(v.muxPlaybackId),
+      muxAssetId: cleanMuxToken(v.muxAssetId),
+      muxThumbnailUrl: cleanOptionalHttps(v.muxThumbnailUrl),
+      muxSkipReason: cleanPlainText(v.muxSkipReason ?? "").slice(0, 400) || undefined,
     }))
     .filter((v) => v.url.trim().length > 0);
 
@@ -118,17 +135,28 @@ export type ServiciosPublishTransportBody = {
   state: ClasificadosServiciosApplicationState;
   lang: "es" | "en";
   existingPublicSlug?: string;
+  videoPublishDiagnostics?: { videoId: string; reason: string }[];
 };
 
 export function buildServiciosPublishTransportBody(
   state: ClasificadosServiciosApplicationState,
   lang: "es" | "en",
   existingPublicSlug?: string,
+  videoPublishDiagnostics?: { videoId: string; reason: string }[],
 ): ServiciosPublishTransportBody {
   const payload: ServiciosPublishTransportBody = {
     state: buildServiciosPublishPayload(state),
     lang,
   };
   if (existingPublicSlug?.trim()) payload.existingPublicSlug = existingPublicSlug.trim();
+  if (videoPublishDiagnostics?.length) {
+    payload.videoPublishDiagnostics = videoPublishDiagnostics
+      .map((d) => ({
+        videoId: cleanPlainText(d.videoId).slice(0, 80),
+        reason: cleanPlainText(d.reason).slice(0, 400),
+      }))
+      .filter((d) => d.videoId.trim().length > 0 && d.reason.trim().length > 0)
+      .slice(0, 6);
+  }
   return payload;
 }

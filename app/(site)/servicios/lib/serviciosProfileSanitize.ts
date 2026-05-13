@@ -264,13 +264,23 @@ export function filterGalleryVideos(videos: ServiciosGalleryVideo[] | undefined)
   const tmp: ServiciosGalleryVideo[] = [];
   for (const v of videos) {
     if (!v || typeof v.id !== "string") continue;
-    const url = trimText(v.url);
+    let url = trimText(v.url);
+    const muxPid = trimText(v.muxPlaybackId);
+    if (!url && muxPid && /^[a-zA-Z0-9_-]{8,200}$/.test(muxPid)) {
+      url = `https://stream.mux.com/${muxPid}.m3u8`;
+    }
     if (!url || !isAllowedServiciosVideoUrl(url)) continue;
-    tmp.push({
+    const row: ServiciosGalleryVideo = {
       id: trimText(v.id) || v.id,
       url,
       isPrimary: v.isPrimary === true,
-    });
+    };
+    if (muxPid && /^[a-zA-Z0-9_-]{8,200}$/.test(muxPid)) row.muxPlaybackId = muxPid;
+    const ma = trimText(v.muxAssetId);
+    if (ma && /^[a-zA-Z0-9_-]{6,200}$/.test(ma)) row.muxAssetId = ma;
+    const poster = trimText(v.posterUrl);
+    if (poster && isAllowedServiciosImageUrl(poster)) row.posterUrl = poster;
+    tmp.push(row);
     if (tmp.length >= 2) break;
   }
   const primary = tmp.filter((x) => x.isPrimary);

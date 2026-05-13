@@ -189,6 +189,18 @@ export async function POST(req: NextRequest) {
     opsMeta.leonixVerifiedInterest = true;
   }
   opsMeta.discovery = buildServiciosDiscoveryFacet(state, wire);
+  const diagRaw = b.videoPublishDiagnostics;
+  if (Array.isArray(diagRaw) && diagRaw.length) {
+    const notes: { videoId: string; reason: string }[] = [];
+    for (const row of diagRaw.slice(0, 6)) {
+      if (!row || typeof row !== "object") continue;
+      const o = row as Record<string, unknown>;
+      const videoId = typeof o.videoId === "string" ? o.videoId.trim().slice(0, 80) : "";
+      const reason = typeof o.reason === "string" ? o.reason.trim().slice(0, 400) : "";
+      if (videoId && reason) notes.push({ videoId, reason });
+    }
+    if (notes.length) opsMeta.serviciosVideoPublishNotes = notes;
+  }
   wire = { ...wire, opsMeta };
 
   let previousWire: ServiciosBusinessProfile | null = null;
