@@ -9,6 +9,7 @@ import {
 } from "@/app/(site)/clasificados/servicios/lib/serviciosOpsTablesServer";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { sendLeonixResendEmail } from "@/app/lib/email/sendLeonixResendEmail";
+import { resolveServiciosLeadBusinessNotifyEmail } from "@/app/(site)/clasificados/servicios/lib/serviciosLeadNotifyRecipientServer";
 
 export const runtime = "nodejs";
 
@@ -16,10 +17,15 @@ function isEmail(s: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 }
 
-function extractServiciosBusinessNotifyEmail(profile: ServiciosBusinessProfile): string | null {
-  const raw = profile.contact?.email?.trim();
-  if (!raw || !isEmail(raw)) return null;
-  return raw.slice(0, 320);
+function buildServiciosListingPublicPageUrl(req: Request, listingSlug: string, lang: "en" | "es"): string {
+  try {
+    const u = new URL(req.url);
+    return `${u.origin}/clasificados/servicios/${encodeURIComponent(listingSlug)}?lang=${lang}`;
+  } catch {
+    const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+    if (base) return `${base}/clasificados/servicios/${encodeURIComponent(listingSlug)}?lang=${lang}`;
+    return `/clasificados/servicios/${encodeURIComponent(listingSlug)}?lang=${lang}`;
+  }
 }
 
 function escapeHtml(s: string): string {
@@ -53,6 +59,7 @@ export async function POST(req: Request) {
   const prefRaw = String(b.preferredContactMethod ?? "email").trim().toLowerCase();
   const preferredContactMethod: ServiciosLeadPreferredContactMethod =
     prefRaw === "phone" ? "phone" : prefRaw === "whatsapp" ? "whatsapp" : "email";
+  const pageLang: "en" | "es" = b.lang === "en" ? "en" : "es";
 
   if (honeypot.length > 0) {
     return NextResponse.json({ ok: true, accepted: false }, { status: 200 });
@@ -108,35 +115,70 @@ export async function POST(req: Request) {
     },
   });
 
-  const notifyTo = extractServiciosBusinessNotifyEmail(row.profile_json);
+  const profile = row.profile_json as ServiciosBusinessProfile;
+  const businessName = (profile.identity?.businessName ?? "").trim() || listingSlug;
+  const listingUrl = buildServiciosListingPublicPageUrl(req, listingSlug, pageLang);
+  const notifyTo = await resolveServiciosLeadBusinessNotifyEmail(profile, row.owner_user_id ?? null);
+
+  let emailNotified = false;
   if (notifyTo) {
-    const subject = `Leonix Servicios — nueva solicitud (${listingSlug})`;
-    const text = [
-      `Anuncio: ${listingSlug}`,
-      `Nombre: ${senderName}`,
-      `Correo: ${senderEmail}`,
-      senderPhone ? `Teléfono / meta: ${senderPhone}` : null,
-      `Preferencia de contacto: ${preferredContactMethod}`,
-      "",
-      "Mensaje:",
-      message,
-    ]
-      .filter(Boolean)
-      .join("\n");
-    const html = `<p><strong>Nueva solicitud de cotización</strong> — <code>${escapeHtml(listingSlug)}</code></p>
+    const subject =
+      pageLang === "en"
+        ? `Leonix Servicios — new quote request (${listingSlug})`
+        : `Leonix Servicios — nueva solicitud (${listingSlug})`;
+    const text =
+      pageLang === "en"
+        ? [
+            `Listing: ${businessName}`,
+            `URL: ${listingUrl}`,
+            `Slug: ${listingSlug}`,
+            `Name: ${senderName}`,
+            `Email: ${senderEmail}`,
+            senderPhone ? `Phone (meta): ${senderPhone}` : null,
+            `Preferred contact: ${preferredContactMethod}`,
+            "",
+            "Message:",
+            message,
+          ]
+            .filter(Boolean)
+            .join("\n")
+        : [
+            `Anuncio: ${businessName}`,
+            `URL: ${listingUrl}`,
+            `Slug: ${listingSlug}`,
+            `Nombre: ${senderName}`,
+            `Correo: ${senderEmail}`,
+            senderPhone ? `Teléfono / meta: ${senderPhone}` : null,
+            `Preferencia de contacto: ${preferredContactMethod}`,
+            "",
+            "Mensaje:",
+            message,
+          ]
+            .filter(Boolean)
+            .join("\n");
+    const html =
+      pageLang === "en"
+        ? `<p><strong>New quote request</strong> — ${escapeHtml(businessName)}<br/><a href="${escapeHtml(listingUrl)}">${escapeHtml(listingUrl)}</a></p>
+<p><strong>Name:</strong> ${escapeHtml(senderName)}<br/>
+<strong>Email:</strong> ${escapeHtml(senderEmail)}<br/>
+${senderPhone ? `<strong>Phone (meta):</strong> ${escapeHtml(senderPhone)}<br/>` : ""}
+<strong>Preferred contact:</strong> ${escapeHtml(preferredContactMethod)}</p>
+<p><strong>Message</strong></p><pre style="white-space:pre-wrap;font-family:inherit">${escapeHtml(message)}</pre>`
+        : `<p><strong>Nueva solicitud de cotización</strong> — ${escapeHtml(businessName)}<br/><a href="${escapeHtml(listingUrl)}">${escapeHtml(listingUrl)}</a></p>
 <p><strong>Nombre:</strong> ${escapeHtml(senderName)}<br/>
 <strong>Correo:</strong> ${escapeHtml(senderEmail)}<br/>
 ${senderPhone ? `<strong>Teléfono (meta):</strong> ${escapeHtml(senderPhone)}<br/>` : ""}
 <strong>Preferencia:</strong> ${escapeHtml(preferredContactMethod)}</p>
 <p><strong>Mensaje</strong></p><pre style="white-space:pre-wrap;font-family:inherit">${escapeHtml(message)}</pre>`;
-    await sendLeonixResendEmail({
+    const sent = await sendLeonixResendEmail({
       to: notifyTo,
       subject,
       text,
       html,
       replyTo: senderEmail,
     });
+    emailNotified = sent.ok;
   }
 
-  return NextResponse.json({ ok: true, id: ins.id });
+  return NextResponse.json({ ok: true, id: ins.id, emailNotified });
 }

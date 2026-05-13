@@ -41,7 +41,8 @@ export function ServiciosProfileView({
   engagementOwnerUserId = null,
   persistListingEngagement = false,
   listingShareUrl,
-  showPublicConversionForms = false,
+  showPublicLeadInquiryForm = false,
+  directContactFasterResponseHint = false,
   leonixAdIdFooter,
   /** Public Clasificados vitrina — link back to discovery results (not browser history). */
   serviciosDiscoveryResultsHref,
@@ -65,8 +66,10 @@ export function ServiciosProfileView({
   persistListingEngagement?: boolean;
   /** Absolute URL for hero share (SSR from request host when available). */
   listingShareUrl?: string;
-  /** When true with `analyticsListingSlug`, shows moderated lead + review forms on the public listing. */
-  showPublicConversionForms?: boolean;
+  /** Public Clasificados: show quote form only when lead can be emailed to the business (Resend + recipient). */
+  showPublicLeadInquiryForm?: boolean;
+  /** When the quote form is hidden, nudge visitors toward direct contact CTAs. */
+  directContactFasterResponseHint?: boolean;
   leonixAdIdFooter?: string | null;
   serviciosDiscoveryResultsHref?: string | null;
 }) {
@@ -137,7 +140,12 @@ export function ServiciosProfileView({
             ) : null}
 
             <div className="space-y-5 lg:hidden">
-              <ServiciosActionPanel profile={profile} lang={lang} listingSlug={analyticsListingSlug} />
+              <ServiciosActionPanel
+                profile={profile}
+                lang={lang}
+                listingSlug={analyticsListingSlug}
+                directContactFasterResponseHint={directContactFasterResponseHint}
+              />
               <ServiciosPromocionesCard profile={profile} lang={lang} />
             </div>
 
@@ -173,7 +181,7 @@ export function ServiciosProfileView({
               </div>
             ) : null}
 
-            {analyticsListingSlug && showPublicConversionForms ? (
+            {analyticsListingSlug && showPublicLeadInquiryForm ? (
               <div className="lg:order-9">
                 <ServiciosLeadInquiryForm listingSlug={analyticsListingSlug} lang={lang} />
               </div>
@@ -198,7 +206,12 @@ export function ServiciosProfileView({
           <aside
             className={`order-2 hidden min-w-0 lg:sticky lg:block lg:self-start ${stickyAsideTop} lg:z-10 lg:order-2`}
           >
-            <ServiciosActionPanel profile={profile} lang={lang} listingSlug={analyticsListingSlug} />
+            <ServiciosActionPanel
+              profile={profile}
+              lang={lang}
+              listingSlug={analyticsListingSlug}
+              directContactFasterResponseHint={directContactFasterResponseHint}
+            />
             <div className="mt-5 lg:mt-6">
               <ServiciosPromocionesCard profile={profile} lang={lang} />
             </div>

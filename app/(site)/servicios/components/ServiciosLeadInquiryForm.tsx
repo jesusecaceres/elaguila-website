@@ -18,7 +18,7 @@ export function ServiciosLeadInquiryForm({ listingSlug, lang }: { listingSlug: s
   const [message, setMessage] = useState("");
   const [hp, setHp] = useState("");
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<"idle" | "ok" | "err">("idle");
+  const [done, setDone] = useState<"idle" | "ok" | "partial" | "err">("idle");
 
   const t =
     lang === "en"
@@ -34,7 +34,9 @@ export function ServiciosLeadInquiryForm({ listingSlug, lang }: { listingSlug: s
           prefWhatsapp: "WhatsApp",
           message: "What do you need?",
           submit: "Send",
-          ok: "Request sent. The business will be able to review your message.",
+          ok: "Request sent. The business will receive your message by email.",
+          partial:
+            "Request saved, but we could not email the business. Use the contact buttons above for a faster response.",
           err: "Could not send. Try again or use the contact buttons above.",
         }
       : {
@@ -49,7 +51,9 @@ export function ServiciosLeadInquiryForm({ listingSlug, lang }: { listingSlug: s
           prefWhatsapp: "WhatsApp",
           message: "¿Qué necesitas?",
           submit: "Enviar",
-          ok: "Solicitud enviada. El negocio podrá revisar tu mensaje.",
+          ok: "Solicitud enviada. El negocio recibirá tu mensaje por correo.",
+          partial:
+            "Solicitud guardada, pero no pudimos enviar un correo al negocio. Usa los botones de contacto arriba para una respuesta más rápida.",
           err: "No se pudo enviar. Intenta de nuevo o usa los botones de contacto arriba.",
         };
 
@@ -70,16 +74,27 @@ export function ServiciosLeadInquiryForm({ listingSlug, lang }: { listingSlug: s
           message,
           requestKind: "quote",
           website: hp,
+          lang,
         }),
       });
-      const j = (await res.json()) as { ok?: boolean };
-      setDone(j.ok ? "ok" : "err");
-      if (j.ok) {
+      const j = (await res.json()) as { ok?: boolean; accepted?: boolean; emailNotified?: boolean };
+      if (j.accepted === false) {
+        setDone("idle");
+        return;
+      }
+      if (!res.ok || !j.ok) {
+        setDone("err");
+        return;
+      }
+      if (j.emailNotified) {
+        setDone("ok");
         setName("");
         setEmail("");
         setSenderPhone("");
         setPreferredContactMethod("email");
         setMessage("");
+      } else {
+        setDone("partial");
       }
     } catch {
       setDone("err");
@@ -193,6 +208,7 @@ export function ServiciosLeadInquiryForm({ listingSlug, lang }: { listingSlug: s
           {busy ? "…" : t.submit}
         </button>
         {done === "ok" ? <p className="text-sm font-medium text-emerald-800">{t.ok}</p> : null}
+        {done === "partial" ? <p className="text-sm font-medium text-amber-900">{t.partial}</p> : null}
         {done === "err" ? <p className="text-sm font-medium text-rose-800">{t.err}</p> : null}
       </form>
     </section>

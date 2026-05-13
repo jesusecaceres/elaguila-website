@@ -1,11 +1,19 @@
 /**
- * Phase 10E smoke: quote destination priority + lead message meta composition.
+ * Phase 10E smoke: quote destination priority + lead message meta + public lead notify gating.
  * Run: npx tsx scripts/servicios-quote-lead-smoke.ts
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { ServiciosProfileResolved } from "../app/(site)/servicios/types/serviciosBusinessProfile";
+import type { ServiciosBusinessProfile } from "../app/(site)/servicios/types/serviciosBusinessProfile";
 import { resolveServiciosQuoteDestination } from "../app/(site)/servicios/lib/serviciosContactActions";
 import { composeServiciosPublicLeadStoredMessage } from "../app/(site)/clasificados/servicios/lib/serviciosLeadStoredMessage";
+import {
+  parseEmailFromMailtoHref,
+  resolveServiciosLeadBusinessNotifyEmail,
+  shouldShowServiciosPublicLeadInquiryForm,
+} from "../app/(site)/clasificados/servicios/lib/serviciosLeadNotifyRecipientServer";
 
 function minimalProfile(contact: Partial<ServiciosProfileResolved["contact"]>): ServiciosProfileResolved {
   return {
@@ -92,4 +100,64 @@ const mail = "mailto:hi@example.com";
   assert.equal(m, "Only message");
 }
 
-console.log("servicios-quote-lead-smoke: OK");
+// 5) mailto parsing for notify recipient helpers
+{
+  assert.equal(parseEmailFromMailtoHref("mailto:Biz%40Example.com?subject=Hi"), "Biz@Example.com");
+  assert.equal(parseEmailFromMailtoHref("not-mailto"), null);
+}
+
+async function runAsyncLeadNotifyChecks() {
+  const wire: ServiciosBusinessProfile = {
+    identity: { slug: "x", businessName: "B" },
+    contact: { email: "  owner@listing.test  " },
+    hero: {},
+  };
+  assert.equal(await resolveServiciosLeadBusinessNotifyEmail(wire, null), "owner@listing.test");
+
+  const savedKey = process.env.RESEND_API_KEY;
+  const savedFrom = process.env.LEONIX_RESEND_FROM;
+  const savedTiendaFrom = process.env.TIENDA_ORDER_EMAIL_FROM;
+  delete process.env.RESEND_API_KEY;
+  delete process.env.LEONIX_RESEND_FROM;
+  delete process.env.TIENDA_ORDER_EMAIL_FROM;
+  try {
+    const wire2: ServiciosBusinessProfile = {
+      identity: { slug: "x", businessName: "B" },
+      contact: { email: "a@b.co" },
+      hero: {},
+    };
+    assert.equal(await shouldShowServiciosPublicLeadInquiryForm(wire2, null), false);
+  } finally {
+    if (savedKey !== undefined) process.env.RESEND_API_KEY = savedKey;
+    else delete process.env.RESEND_API_KEY;
+    if (savedFrom !== undefined) process.env.LEONIX_RESEND_FROM = savedFrom;
+    else delete process.env.LEONIX_RESEND_FROM;
+    if (savedTiendaFrom !== undefined) process.env.TIENDA_ORDER_EMAIL_FROM = savedTiendaFrom;
+    else delete process.env.TIENDA_ORDER_EMAIL_FROM;
+  }
+}
+
+async function main() {
+  const inquiry = readFileSync(join(__dirname, "../app/api/clasificados/servicios/inquiry/route.ts"), "utf8");
+  assert.ok(inquiry.includes("emailNotified"), "inquiry: exposes emailNotified in JSON");
+  assert.ok(inquiry.includes("resolveServiciosLeadBusinessNotifyEmail"), "inquiry: uses shared notify resolver");
+
+  const form = readFileSync(join(__dirname, "../app/(site)/servicios/components/ServiciosLeadInquiryForm.tsx"), "utf8");
+  assert.ok(form.includes("emailNotified"), "form: reads emailNotified from API");
+  assert.ok(form.includes("j.accepted === false"), "form: honeypot does not show fake success");
+
+  const panel = readFileSync(join(__dirname, "../app/(site)/servicios/components/ServiciosActionPanel.tsx"), "utf8");
+  assert.ok(panel.includes("data-servicios-direct-contact-hint"), "panel: direct-contact hint marker");
+
+  const slugPage = readFileSync(join(__dirname, "../app/(site)/clasificados/servicios/[slug]/page.tsx"), "utf8");
+  assert.ok(slugPage.includes("shouldShowServiciosPublicLeadInquiryForm"), "slug page: gates lead form SSR");
+
+  await runAsyncLeadNotifyChecks();
+
+  console.log("servicios-quote-lead-smoke: OK");
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

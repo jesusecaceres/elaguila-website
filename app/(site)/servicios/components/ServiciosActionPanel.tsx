@@ -89,11 +89,14 @@ export function ServiciosActionPanel({
   profile,
   lang,
   listingSlug,
+  directContactFasterResponseHint = false,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
   /** When set, outbound CTAs emit lightweight analytics events. */
   listingSlug?: string;
+  /** Public listing: quote form hidden — suggest direct contact for faster response. */
+  directContactFasterResponseHint?: boolean;
 }) {
   const L = getServiciosProfileLabels(lang);
   const rating = profile.hero.rating;
@@ -165,6 +168,17 @@ export function ServiciosActionPanel({
           <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-text-2)]">
             {lang === "en" ? "Contact" : "Contacto"}
           </p>
+          {directContactFasterResponseHint ? (
+            <p
+              className="mt-2 text-xs leading-snug"
+              style={{ color: LEONIX_MUTED_TEXT }}
+              data-servicios-direct-contact-hint="1"
+            >
+              {lang === "en"
+                ? "Contact the business directly for a faster response."
+                : "Contacta directamente al negocio para una respuesta más rápida."}
+            </p>
+          ) : null}
 
           {quote && quote.kind === "mailto" && primaryMailto && primaryEmailAddr ? (
             <ContactEmailMenu

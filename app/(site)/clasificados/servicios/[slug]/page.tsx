@@ -12,6 +12,8 @@ import {
   serviciosEngagementListingKey,
   serviciosPublicFooterLeonixAdId,
 } from "../lib/serviciosPublicListingSort";
+import type { ServiciosBusinessProfile } from "@/app/(site)/servicios/types/serviciosBusinessProfile";
+import { shouldShowServiciosPublicLeadInquiryForm } from "../lib/serviciosLeadNotifyRecipientServer";
 
 export const dynamic = "force-dynamic";
 
@@ -127,6 +129,10 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
   const engagementKey = serviciosEngagementListingKey(row);
   const persistListingEngagement = Boolean((row.leonix_ad_id ?? "").trim() || (row.id ?? "").trim());
   const leonixAdIdFooter = serviciosPublicFooterLeonixAdId(row.leonix_ad_id);
+  const showPublicLeadInquiryForm =
+    isPublishedLive &&
+    (await shouldShowServiciosPublicLeadInquiryForm(row.profile_json as ServiciosBusinessProfile, row.owner_user_id ?? null));
+  const directContactFasterResponseHint = isPublishedLive && !showPublicLeadInquiryForm;
 
   return (
     <>
@@ -148,7 +154,8 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
         persistListingEngagement={persistListingEngagement}
         listingShareUrl={listingShareUrl}
         leonixAdIdFooter={leonixAdIdFooter}
-        showPublicConversionForms={isPublishedLive}
+        showPublicLeadInquiryForm={showPublicLeadInquiryForm}
+        directContactFasterResponseHint={directContactFasterResponseHint}
         serviciosDiscoveryResultsHref={
           isPublishedLive ? `/clasificados/servicios/resultados?lang=${lang}` : undefined
         }
