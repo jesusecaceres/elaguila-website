@@ -14,6 +14,7 @@ import {
   comunidadEventCostLabel,
   detailPairsToMap,
   isCommunityQuickListing,
+  parseAccessibilityKeysCsv,
   parseWeeklyScheduleJson,
   summarizeWeeklySchedule,
 } from "@/app/(site)/clasificados/community/shared/communityListingDetailPairs";
@@ -21,7 +22,19 @@ import {
   fetchPublishedCommunityCategoryListings,
   type CommunityListingBrowseRow,
 } from "@/app/(site)/clasificados/community/shared/communityListingsBrowseClient";
+import {
+  CLASES_SKILL_LEVEL_OPTIONS,
+  COMUNIDAD_ACCESSIBILITY_OPTIONS,
+  COMMUNITY_AUDIENCE_OPTIONS,
+  COMMUNITY_REGISTRATION_OPTIONS,
+  labelClasesSkillLevel,
+  labelCommunityAudience,
+  resolveClasesCategoryPublicLabel,
+  resolveComunidadEventTypePublicLabel,
+} from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
 import Navbar from "@/app/components/Navbar";
+
+import { CommunityResultCardEngagement } from "./CommunityResultCardEngagement";
 
 function firstImageUrl(images: unknown): string | null {
   if (images == null) return null;
@@ -73,6 +86,10 @@ export function CommunityListingsResultsClient({
   const eventType = (sp?.get("eventType") ?? "").trim();
   const dateFrom = (sp?.get("dateFrom") ?? "").trim();
   const dateTo = (sp?.get("dateTo") ?? "").trim();
+  const audienceF = (sp?.get("audience") ?? "all").trim().toLowerCase();
+  const levelF = (sp?.get("level") ?? "all").trim().toLowerCase();
+  const registrationF = (sp?.get("registration") ?? "all").trim().toLowerCase();
+  const accessibilityF = (sp?.get("accessibility") ?? "all").trim().toLowerCase();
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -90,12 +107,28 @@ export function CommunityListingsResultsClient({
   const filtered = useMemo(() => {
     return rows.filter((row) => {
       const pairs = detailPairsToMap(row.detail_pairs);
-      if (!isCommunityQuickListing(pairs)) return true;
       const title = String(row.title ?? "");
       const desc = String(row.description ?? "");
-      const blob = `${title} ${desc} ${pairs["Leonix:organizer"] ?? ""}`.toLowerCase();
+      const quick = isCommunityQuickListing(pairs);
+      const classTypeLine = quick
+        ? resolveClasesCategoryPublicLabel(
+            pairs["Leonix:classCategory"] ?? "",
+            pairs["Leonix:classCategoryCustom"] ?? "",
+            lang,
+          )
+        : "";
+      const eventTypeLine = quick
+        ? resolveComunidadEventTypePublicLabel(
+            pairs["Leonix:eventCategory"] ?? "",
+            pairs["Leonix:eventCategoryCustom"] ?? "",
+            lang,
+          )
+        : "";
+      const blob = `${title} ${desc} ${pairs["Leonix:organizer"] ?? ""} ${pairs["Leonix:bringNote"] ?? ""} ${classTypeLine} ${eventTypeLine}`.toLowerCase();
       if (!textMatch(blob, q)) return false;
       if (city && !(String(row.city ?? "").toLowerCase().includes(city.toLowerCase()))) return false;
+
+      if (!quick) return true;
 
       if (category === "clases") {
         if (cost !== "all") {
@@ -112,7 +145,20 @@ export function CommunityListingsResultsClient({
             pairs["Leonix:classCategory"] === "otro"
               ? pairs["Leonix:classCategoryCustom"] || pairs["Leonix:classCategory"]
               : pairs["Leonix:classCategory"];
-          if (!textMatch(String(catRaw ?? ""), classType)) return false;
+          const hay = `${String(catRaw ?? "")} ${classTypeLine}`.toLowerCase();
+          if (!textMatch(hay, classType)) return false;
+        }
+        if (audienceF !== "all") {
+          const a = (pairs["Leonix:audience"] ?? "").trim().toLowerCase();
+          if (a !== audienceF) return false;
+        }
+        if (levelF !== "all") {
+          const lv = (pairs["Leonix:skillLevel"] ?? "").trim().toLowerCase();
+          if (lv !== levelF) return false;
+        }
+        if (registrationF !== "all") {
+          const r = (pairs["Leonix:registrationRequired"] ?? "").trim().toLowerCase();
+          if (r !== registrationF) return false;
         }
       } else {
         if (eventCost !== "all") {
@@ -124,17 +170,47 @@ export function CommunityListingsResultsClient({
             pairs["Leonix:eventCategory"] === "otro"
               ? pairs["Leonix:eventCategoryCustom"] || pairs["Leonix:eventCategory"]
               : pairs["Leonix:eventCategory"];
-          if (!textMatch(String(catRaw ?? ""), eventType)) return false;
+          const hay = `${String(catRaw ?? "")} ${eventTypeLine}`.toLowerCase();
+          if (!textMatch(hay, eventType)) return false;
         }
         const isoLike = /^\d{4}-\d{2}-\d{2}/;
         const start = (pairs["Leonix:eventDate"] ?? "").trim();
         const startKey = isoLike.test(start) ? start.slice(0, 10) : "";
         if (dateFrom.trim() && startKey && startKey < dateFrom.trim()) return false;
         if (dateTo.trim() && startKey && startKey > dateTo.trim()) return false;
+        if (audienceF !== "all") {
+          const a = (pairs["Leonix:audience"] ?? "").trim().toLowerCase();
+          if (a !== audienceF) return false;
+        }
+        if (registrationF !== "all") {
+          const r = (pairs["Leonix:registrationRequired"] ?? "").trim().toLowerCase();
+          if (r !== registrationF) return false;
+        }
+        if (accessibilityF !== "all") {
+          const keys = parseAccessibilityKeysCsv(pairs["Leonix:accessibility"]);
+          if (!keys.includes(accessibilityF)) return false;
+        }
       }
       return true;
     });
-  }, [rows, q, city, cost, mode, eventCost, category, classType, eventType, dateFrom, dateTo]);
+  }, [
+    rows,
+    q,
+    city,
+    cost,
+    mode,
+    eventCost,
+    category,
+    classType,
+    eventType,
+    dateFrom,
+    dateTo,
+    lang,
+    audienceF,
+    levelF,
+    registrationF,
+    accessibilityF,
+  ]);
 
   const L = lang === "es";
   const pageTitle = L ? pageTitleEs : pageTitleEn;
@@ -220,7 +296,7 @@ export function CommunityListingsResultsClient({
                     className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
                     name="classType"
                     defaultValue={classType}
-                    placeholder={L ? "ej. música, idiomas" : "e.g. music, languages"}
+                    placeholder={L ? "ej. música, boxeo" : "e.g. music, boxing"}
                   />
                 </label>
               ) : (
@@ -253,6 +329,63 @@ export function CommunityListingsResultsClient({
                     />
                   </label>
                 </>
+              )}
+            </div>
+            <div className="grid gap-3 border-t border-black/5 pt-3 sm:grid-cols-2 lg:grid-cols-4">
+              <label className="block text-xs font-semibold text-[#5C564E]">
+                {L ? "Para quién" : "Audience"}
+                <select className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" name="audience" defaultValue={audienceF}>
+                  <option value="all">{L ? "Todos" : "All"}</option>
+                  {COMMUNITY_AUDIENCE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {lang === "en" ? o.labelEn : o.labelEs}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-xs font-semibold text-[#5C564E]">
+                {L ? "¿Requiere registro?" : "Registration?"}
+                <select
+                  className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                  name="registration"
+                  defaultValue={registrationF}
+                >
+                  <option value="all">{L ? "Todos" : "All"}</option>
+                  {COMMUNITY_REGISTRATION_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {lang === "en" ? o.labelEn : o.labelEs}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {category === "clases" ? (
+                <label className="block text-xs font-semibold text-[#5C564E]">
+                  {L ? "Nivel" : "Level"}
+                  <select className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" name="level" defaultValue={levelF}>
+                    <option value="all">{L ? "Todos" : "All"}</option>
+                    {CLASES_SKILL_LEVEL_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {lang === "en" ? o.labelEn : o.labelEs}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <label className="block text-xs font-semibold text-[#5C564E]">
+                  {L ? "Acceso" : "Access"}
+                  <select
+                    className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                    name="accessibility"
+                    defaultValue={accessibilityF}
+                  >
+                    <option value="all">{L ? "Todos" : "All"}</option>
+                    {COMUNIDAD_ACCESSIBILITY_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {lang === "en" ? o.labelEn : o.labelEs}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               )}
             </div>
             <div className="flex flex-wrap gap-2">
@@ -295,12 +428,16 @@ export function CommunityListingsResultsClient({
               const schedJson = pairs["Leonix:weeklyScheduleJson"] ?? "";
               const sched = summarizeWeeklySchedule(parseWeeklyScheduleJson(schedJson), lang);
               const href = appendLangToPath(`/clasificados/anuncio/${row.id}`, lang);
+              const quick = isCommunityQuickListing(pairs);
               let sub: string;
               if (category === "clases") {
-                const cat =
-                  pairs["Leonix:classCategory"] === "otro"
-                    ? pairs["Leonix:classCategoryCustom"] || pairs["Leonix:classCategory"]
-                    : pairs["Leonix:classCategory"];
+                const catLabel = quick
+                  ? resolveClasesCategoryPublicLabel(
+                      pairs["Leonix:classCategory"] ?? "",
+                      pairs["Leonix:classCategoryCustom"] ?? "",
+                      lang,
+                    )
+                  : "";
                 const costL = clasesCostTypeLabel(pairs["Leonix:classCostType"] ?? "", lang);
                 const modeL = clasesModeLabel(pairs["Leonix:mode"] ?? "", lang);
                 let priceLine = costL;
@@ -310,41 +447,54 @@ export function CommunityListingsResultsClient({
                   const fqL = fq ? clasesPriceFrequencyLabel(fq, lang) : "";
                   priceLine = amt ? `${amt} ${fqL}`.trim() : costL;
                 }
-                sub = [String(cat ?? ""), modeL, priceLine, row.city ?? ""].filter(Boolean).join(" · ");
+                const aud = pairs["Leonix:audience"] ? labelCommunityAudience(pairs["Leonix:audience"], lang) : "";
+                const lvl = pairs["Leonix:skillLevel"] ? labelClasesSkillLevel(pairs["Leonix:skillLevel"], lang) : "";
+                sub = [catLabel, modeL, priceLine, aud, lvl, row.city ?? ""].filter(Boolean).join(" · ");
               } else {
-                const cat =
-                  pairs["Leonix:eventCategory"] === "otro"
-                    ? pairs["Leonix:eventCategoryCustom"] || pairs["Leonix:eventCategory"]
-                    : pairs["Leonix:eventCategory"];
+                const catLabel = quick
+                  ? resolveComunidadEventTypePublicLabel(
+                      pairs["Leonix:eventCategory"] ?? "",
+                      pairs["Leonix:eventCategoryCustom"] ?? "",
+                      lang,
+                    )
+                  : "";
                 const ec = comunidadEventCostLabel(pairs["Leonix:eventCost"] ?? "", lang);
                 const dr = [pairs["Leonix:eventDate"], pairs["Leonix:eventEndDate"]].filter(Boolean).join(" → ");
-                sub = [String(cat ?? ""), ec, dr || null, row.city ?? ""].filter(Boolean).join(" · ");
+                const aud = pairs["Leonix:audience"] ? labelCommunityAudience(pairs["Leonix:audience"], lang) : "";
+                sub = [catLabel, ec, dr || null, aud, row.city ?? ""].filter(Boolean).join(" · ");
               }
               return (
                 <li key={row.id} className="min-w-0">
-                  <Link
-                    href={href}
-                    className="flex h-full flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm transition hover:border-[#C9B46A]/50"
-                  >
-                    <div className="relative aspect-[16/10] w-full bg-neutral-100">
-                      {thumb ? (
-                        <Image src={thumb} alt="" fill className="object-cover" sizes="(max-width:768px) 100vw, 50vw" unoptimized />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-xs text-[#7A7164]">{L ? "Sin foto" : "No photo"}</div>
-                      )}
-                    </div>
-                    <div className="flex flex-1 flex-col gap-1 p-3">
-                      <p className="line-clamp-2 text-sm font-bold text-[#111111]">{row.title ?? "—"}</p>
-                      {org ? <p className="text-xs text-[#5C564E]">{org}</p> : null}
-                      <p className="line-clamp-2 text-xs text-[#5C564E]">{sub}</p>
-                      {sched ? (
-                        <p className="line-clamp-2 text-[11px] text-[#3d5a73]">
-                          {L ? "Horario: " : "Schedule: "}
-                          {sched}
-                        </p>
-                      ) : null}
-                    </div>
-                  </Link>
+                  <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm transition hover:border-[#C9B46A]/50">
+                    <Link href={href} className="block min-w-0 flex-1">
+                      <div className="relative aspect-[16/10] w-full bg-neutral-100">
+                        {thumb ? (
+                          <Image src={thumb} alt="" fill className="object-cover" sizes="(max-width:768px) 100vw, 50vw" unoptimized />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-xs text-[#7A7164]">{L ? "Sin foto" : "No photo"}</div>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1 p-3">
+                        <p className="line-clamp-2 text-sm font-bold text-[#111111]">{row.title ?? "—"}</p>
+                        {org ? <p className="text-xs text-[#5C564E]">{org}</p> : null}
+                        <p className="line-clamp-3 text-xs text-[#5C564E]">{sub}</p>
+                        {sched ? (
+                          <p className="line-clamp-2 text-[11px] text-[#3d5a73]">
+                            {L ? "Horario: " : "Schedule: "}
+                            {sched}
+                          </p>
+                        ) : null}
+                      </div>
+                    </Link>
+                    {quick ? (
+                      <CommunityResultCardEngagement
+                        listingId={row.id}
+                        lang={lang}
+                        category={category}
+                        ownerUserId={row.owner_id}
+                      />
+                    ) : null}
+                  </div>
                 </li>
               );
             })}

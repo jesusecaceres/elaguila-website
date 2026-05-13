@@ -12,6 +12,14 @@ import type { CommunityKind } from "../constants/communitySessionKeys";
 import { normalizeSocialUrlForOpen, normalizeWebsiteForOpen } from "../lib/communityWebsiteAndSocial";
 import { shouldBlockClasesPaidPublish } from "../required/communityRequiredForPreview";
 import type { ClasesQuickDraft, ComunidadQuickDraft } from "../types/communityQuickDraft";
+import {
+  labelClasesSkillLevel,
+  labelComunidadAccessibilityKey,
+  labelCommunityAudience,
+  labelCommunityRegistration,
+  resolveClasesCategoryPublicLabel,
+  resolveComunidadEventTypePublicLabel,
+} from "../taxonomy/communityTaxonomy";
 
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 
@@ -100,11 +108,9 @@ function buildDescriptionClases(d: ClasesQuickDraft, lang: Lang): string {
   const parts: string[] = [];
   if (d.description.trim()) parts.push(d.description.trim());
   parts.push(lang === "es" ? `Organizador: ${d.organizer.trim()}` : `Organizer: ${d.organizer.trim()}`);
-  const catLine =
-    d.category === "otro" && d.categoryCustom.trim()
-      ? `${lang === "es" ? "Tipo" : "Type"}: ${d.categoryCustom.trim()}`
-      : `${lang === "es" ? "Tipo" : "Type"}: ${d.category.trim()}`;
-  parts.push(catLine);
+  parts.push(
+    `${lang === "es" ? "Tipo" : "Type"}: ${resolveClasesCategoryPublicLabel(d.category, d.categoryCustom, lang)}`,
+  );
   const modeLabel =
     d.mode === "presencial"
       ? lang === "es"
@@ -118,6 +124,18 @@ function buildDescriptionClases(d: ClasesQuickDraft, lang: Lang): string {
           ? "Híbrida"
           : "Hybrid";
   parts.push(`${lang === "es" ? "Modalidad" : "Mode"}: ${modeLabel}`);
+  parts.push(
+    `${lang === "es" ? "¿Para quién es la clase?" : "Who is this class for?"}: ${labelCommunityAudience(d.audience, lang)}`,
+  );
+  parts.push(`${lang === "es" ? "Nivel" : "Level"}: ${labelClasesSkillLevel(d.skillLevel, lang)}`);
+  parts.push(
+    `${lang === "es" ? "¿Requiere registro?" : "Registration required?"}: ${labelCommunityRegistration(d.registrationRequired, lang)}`,
+  );
+  if (d.bringNote.trim()) {
+    parts.push(
+      `${lang === "es" ? "Qué deben llevar o saber" : "What to bring or know"}: ${d.bringNote.trim()}`,
+    );
+  }
   const cost =
     d.classCostType === "gratis"
       ? lang === "es"
@@ -149,11 +167,9 @@ function buildDescriptionComunidad(d: ComunidadQuickDraft, lang: Lang): string {
   const parts: string[] = [];
   if (d.description.trim()) parts.push(d.description.trim());
   parts.push(lang === "es" ? `Organizador: ${d.organizer.trim()}` : `Organizer: ${d.organizer.trim()}`);
-  const catLine =
-    d.category === "otro" && d.categoryCustom.trim()
-      ? `${lang === "es" ? "Tipo de evento" : "Event type"}: ${d.categoryCustom.trim()}`
-      : `${lang === "es" ? "Tipo de evento" : "Event type"}: ${d.category.trim()}`;
-  parts.push(catLine);
+  parts.push(
+    `${lang === "es" ? "Tipo de evento" : "Event type"}: ${resolveComunidadEventTypePublicLabel(d.category, d.categoryCustom, lang)}`,
+  );
   const costMap: Record<string, { es: string; en: string }> = {
     gratis: { es: "Gratis", en: "Free" },
     pagado: { es: "Pagado", en: "Paid" },
@@ -162,6 +178,21 @@ function buildDescriptionComunidad(d: ComunidadQuickDraft, lang: Lang): string {
   };
   const cm = costMap[d.eventCost] ?? { es: d.eventCost, en: d.eventCost };
   parts.push(`${lang === "es" ? "Costo del evento" : "Event cost"}: ${lang === "es" ? cm.es : cm.en}`);
+  parts.push(
+    `${lang === "es" ? "¿Para quién es?" : "Who is it for?"}: ${labelCommunityAudience(d.audience, lang)}`,
+  );
+  parts.push(
+    `${lang === "es" ? "¿Requiere registro?" : "Registration required?"}: ${labelCommunityRegistration(d.registrationRequired, lang)}`,
+  );
+  if (d.accessibilityKeys.length) {
+    const acc = d.accessibilityKeys.map((k) => labelComunidadAccessibilityKey(k, lang)).join(", ");
+    parts.push(`${lang === "es" ? "Acceso" : "Access"}: ${acc}`);
+  }
+  if (d.bringNote.trim()) {
+    parts.push(
+      `${lang === "es" ? "Qué deben llevar o saber" : "What to bring or know"}: ${d.bringNote.trim()}`,
+    );
+  }
   if ((d.eventCost === "pagado" || d.eventCost === "donacion") && d.admissionNote.trim()) {
     parts.push(`${lang === "es" ? "Nota de admisión" : "Admission"}: ${d.admissionNote.trim()}`);
   }
@@ -223,7 +254,14 @@ function buildDetailPairs(
   if (sx) pairs.push({ label: "Leonix:socialXTwitter", value: sx });
   const sln = normalizeSocialUrlForOpen(sl.linkedin);
   if (sln) pairs.push({ label: "Leonix:socialLinkedin", value: sln });
+  const pDig = digitsOnly(d.phone);
+  if (pDig.length >= 10) pairs.push({ label: "Leonix:phoneDigits", value: pDig.slice(0, 10) });
+  const wDig = digitsOnly(d.whatsapp);
+  if (wDig.length >= 10) pairs.push({ label: "Leonix:whatsappDigits", value: wDig.slice(0, 10) });
   if (d.smsPhone.trim()) pairs.push({ label: "Leonix:smsPhone", value: digitsOnly(d.smsPhone) });
+  if (d.audience.trim()) pairs.push({ label: "Leonix:audience", value: d.audience.trim() });
+  if (d.registrationRequired.trim()) pairs.push({ label: "Leonix:registrationRequired", value: d.registrationRequired.trim() });
+  if (d.bringNote.trim()) pairs.push({ label: "Leonix:bringNote", value: d.bringNote.trim() });
   if (kind === "clases") {
     const c = d as ClasesQuickDraft;
     pairs.push({ label: "Leonix:classCategory", value: c.category.trim() });
@@ -241,6 +279,7 @@ function buildDetailPairs(
       label: "Leonix:weeklyScheduleJson",
       value: JSON.stringify(c.weeklySchedule),
     });
+    pairs.push({ label: "Leonix:skillLevel", value: c.skillLevel.trim() });
   } else {
     const c = d as ComunidadQuickDraft;
     pairs.push({ label: "Leonix:eventCategory", value: c.category.trim() });
@@ -257,6 +296,9 @@ function buildDetailPairs(
       label: "Leonix:weeklyScheduleJson",
       value: JSON.stringify(c.weeklySchedule),
     });
+    if (c.accessibilityKeys.length) {
+      pairs.push({ label: "Leonix:accessibility", value: c.accessibilityKeys.join(",") });
+    }
   }
   return pairs;
 }

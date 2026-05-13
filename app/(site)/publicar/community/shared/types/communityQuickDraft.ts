@@ -8,6 +8,13 @@ import {
   normalizeWeeklyScheduleArray,
   type CommunityScheduleRowLegacy,
 } from "../lib/communityWeeklySchedule";
+import {
+  CLASES_CATEGORY_LEGACY_MAP,
+  COMMUNITY_AUDIENCE_OPTIONS,
+  COMMUNITY_REGISTRATION_OPTIONS,
+  CLASES_SKILL_LEVEL_OPTIONS,
+  COMUNIDAD_ACCESSIBILITY_OPTIONS,
+} from "../taxonomy/communityTaxonomy";
 
 export type CommunityPrimaryCta = "phone" | "whatsapp" | "email" | "website";
 
@@ -67,6 +74,12 @@ export type CommunityCommonDraft = {
   primaryCta: CommunityPrimaryCta;
   /** Inline attestations before publish (session draft); not required for preview. */
   publishConfirmations: CommunityPublishConfirmations;
+  /** Audience slug: ninos | jovenes | adultos | familias | todos */
+  audience: string;
+  /** si | no | noSeguro */
+  registrationRequired: string;
+  /** Optional free text */
+  bringNote: string;
 };
 
 export type ClasesQuickDraft = CommunityCommonDraft & {
@@ -79,6 +92,8 @@ export type ClasesQuickDraft = CommunityCommonDraft & {
   mode: ClasesMode;
   /** Fixed Mon–Sun rows (Servicios-style). */
   weeklySchedule: DayHoursRow[];
+  /** principiante | intermedio | avanzado | todos */
+  skillLevel: string;
 };
 
 export type ComunidadQuickDraft = CommunityCommonDraft & {
@@ -95,6 +110,8 @@ export type ComunidadQuickDraft = CommunityCommonDraft & {
   eventSessionEnd: string;
   /** When the event runs during the date range (fixed weekdays). */
   weeklySchedule: DayHoursRow[];
+  /** Subset of accessibility option values (multi). */
+  accessibilityKeys: string[];
 };
 
 export type CommunityQuickDraft = ClasesQuickDraft | ComunidadQuickDraft;
@@ -135,6 +152,9 @@ function emptyCommon(): CommunityCommonDraft {
     socialLinks: emptySocialLinks(),
     primaryCta: "phone",
     publishConfirmations: emptyPublishConfirmations(),
+    audience: "",
+    registrationRequired: "",
+    bringNote: "",
   };
 }
 
@@ -148,6 +168,7 @@ export function emptyClasesQuickDraft(): ClasesQuickDraft {
     priceNote: "",
     mode: "presencial",
     weeklySchedule: emptyCommunityWeeklySchedule(),
+    skillLevel: "",
   };
 }
 
@@ -162,6 +183,7 @@ export function emptyComunidadQuickDraft(): ComunidadQuickDraft {
     eventSessionStart: "",
     eventSessionEnd: "",
     weeklySchedule: emptyCommunityWeeklySchedule(),
+    accessibilityKeys: [],
   };
 }
 
@@ -183,6 +205,26 @@ const COMUNIDAD_COST = new Set<ComunidadCostType>([
 ]);
 
 const PRIMARY_CTA = new Set<CommunityPrimaryCta>(["phone", "whatsapp", "email", "website"]);
+
+const ALLOWED_AUDIENCE = new Set(COMMUNITY_AUDIENCE_OPTIONS.map((o) => o.value));
+const ALLOWED_REGISTRATION = new Set(COMMUNITY_REGISTRATION_OPTIONS.map((o) => o.value));
+const ALLOWED_CLASES_SKILL = new Set(CLASES_SKILL_LEVEL_OPTIONS.map((o) => o.value));
+const ALLOWED_ACCESSIBILITY = new Set(COMUNIDAD_ACCESSIBILITY_OPTIONS.map((o) => o.value));
+
+function normalizeAccessibilityKeys(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    const out: string[] = [];
+    for (const x of raw) {
+      const k = String(x ?? "").trim();
+      if (ALLOWED_ACCESSIBILITY.has(k)) out.push(k);
+    }
+    return Array.from(new Set(out));
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    return normalizeAccessibilityKeys(raw.split(","));
+  }
+  return [];
+}
 
 function inferAttachmentMime(url: string, existing: unknown): string | undefined {
   const fromObj = typeof existing === "string" ? existing.trim() : "";
@@ -250,7 +292,7 @@ function normalizeCommon(p: Partial<CommunityCommonDraft>): CommunityCommonDraft
   return {
     title: String(p.title ?? e.title),
     organizer: String(p.organizer ?? e.organizer),
-    category: String(p.category ?? e.category),
+    category: String(p.category ?? e.category).trim(),
     categoryCustom: String(p.categoryCustom ?? e.categoryCustom),
     description: String(p.description ?? e.description),
     images: normalizeImages(p.images),
@@ -267,6 +309,15 @@ function normalizeCommon(p: Partial<CommunityCommonDraft>): CommunityCommonDraft
     socialLinks: normalizeSocialLinks(p.socialLinks),
     primaryCta: pickPrimaryCta(p.primaryCta, e.primaryCta),
     publishConfirmations: normalizePublishConfirmations(p.publishConfirmations),
+    audience: (() => {
+      const a = String((p as Partial<CommunityCommonDraft>).audience ?? e.audience).trim();
+      return ALLOWED_AUDIENCE.has(a) ? a : "";
+    })(),
+    registrationRequired: (() => {
+      const r = String((p as Partial<CommunityCommonDraft>).registrationRequired ?? e.registrationRequired).trim();
+      return ALLOWED_REGISTRATION.has(r) ? r : "";
+    })(),
+    bringNote: String((p as Partial<CommunityCommonDraft>).bringNote ?? e.bringNote),
   };
 }
 
@@ -289,8 +340,13 @@ export function normalizeClasesQuickDraft(raw: unknown): ClasesQuickDraft {
       }))
     : [];
   const weeklySchedule = normalizeWeeklyScheduleArray(p.weeklySchedule, legacyRows);
+  let category = common.category;
+  if (CLASES_CATEGORY_LEGACY_MAP[category]) category = CLASES_CATEGORY_LEGACY_MAP[category]!;
+  const skillRaw = String((p as Partial<ClasesQuickDraft>).skillLevel ?? e.skillLevel).trim();
+  const skillLevel = ALLOWED_CLASES_SKILL.has(skillRaw) ? skillRaw : "";
   return {
     ...common,
+    category,
     kind: "clases",
     classCostType,
     priceAmount: String(p.priceAmount ?? e.priceAmount),
@@ -298,6 +354,7 @@ export function normalizeClasesQuickDraft(raw: unknown): ClasesQuickDraft {
     priceNote: String(p.priceNote ?? e.priceNote),
     mode,
     weeklySchedule,
+    skillLevel,
   };
 }
 
@@ -311,6 +368,7 @@ export function normalizeComunidadQuickDraft(raw: unknown): ComunidadQuickDraft 
     : e.eventCost;
   const weeklySchedule = normalizeWeeklyScheduleArray(p.weeklySchedule);
   const eventEndDate = String(p.eventEndDate ?? e.eventEndDate).trim();
+  const accessibilityKeys = normalizeAccessibilityKeys((p as Partial<ComunidadQuickDraft>).accessibilityKeys);
   return {
     ...common,
     kind: "comunidad",
@@ -321,5 +379,6 @@ export function normalizeComunidadQuickDraft(raw: unknown): ComunidadQuickDraft 
     eventSessionStart: String(p.eventSessionStart ?? e.eventSessionStart).trim(),
     eventSessionEnd: String(p.eventSessionEnd ?? e.eventSessionEnd).trim(),
     weeklySchedule,
+    accessibilityKeys,
   };
 }

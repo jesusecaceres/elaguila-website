@@ -1,8 +1,10 @@
 "use client";
 
 import type { ComponentType } from "react";
+import { useState } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { EmailContactOptionsSheet } from "@/app/components/clasificados/EmailContactOptionsSheet";
 import {
   digitsOnly,
   formatPhoneInputDisplay,
@@ -94,6 +96,7 @@ function btnPrimaryClass(disabled?: boolean): string {
 export function CommunityContactCanvas({ draft, lang }: { draft: Draft; lang: Lang }) {
   const t = UI[lang];
   const k = kindOf(draft);
+  const [emailOpen, setEmailOpen] = useState(false);
   const phone10 = usPhoneDigits10(draft.phone);
   const wa10 = usPhoneDigits10(draft.whatsapp);
   const smsRaw = draft.smsPhone.trim() ? draft.smsPhone : draft.phone;
@@ -116,6 +119,7 @@ export function CommunityContactCanvas({ draft, lang }: { draft: Draft; lang: La
 
   const smsBody = SMS_BODY[k][lang];
   const mailSub = MAIL_SUBJECT[k][lang];
+  const mailHref = email ? mailtoCommunity({ to: email, subject: mailSub }) : "";
 
   const socialItems: {
     key: string;
@@ -216,14 +220,15 @@ export function CommunityContactCanvas({ draft, lang }: { draft: Draft; lang: La
               </a>
             ) : null}
             {email ? (
-              <a
-                href={mailtoCommunity({ to: email, subject: mailSub })}
+              <button
+                type="button"
                 className={btnPrimaryClass()}
                 style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `2px solid ${GH.amber}` }}
+                onClick={() => setEmailOpen(true)}
               >
                 <FiMail className="h-4 w-4 shrink-0" aria-hidden />
                 {t.email}
-              </a>
+              </button>
             ) : null}
             {web ? (
               <a
@@ -286,6 +291,16 @@ export function CommunityContactCanvas({ draft, lang }: { draft: Draft; lang: La
             ))}
           </div>
         </div>
+      ) : null}
+      {email ? (
+        <EmailContactOptionsSheet
+          open={emailOpen}
+          onClose={() => setEmailOpen(false)}
+          email={email}
+          lang={lang}
+          mailtoHref={mailHref}
+          mailtoSubject={mailSub}
+        />
       ) : null}
     </section>
   );

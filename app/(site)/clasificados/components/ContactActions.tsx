@@ -1,6 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+
+import { EmailContactOptionsSheet } from "@/app/components/clasificados/EmailContactOptionsSheet";
 
 type Lang = "es" | "en";
 
@@ -44,6 +46,11 @@ type Props = {
   /** Called when user initiates contact (call, text, email, etc.) for analytics */
   onContact?: () => void;
 
+  /** When set with `email`, opens the email options sheet instead of only mailto: */
+  listingId?: string | null;
+  listingCategory?: string | null;
+  ownerUserId?: string | null;
+
   className?: string;
 };
 
@@ -69,6 +76,7 @@ function safeHttpUrl(raw: string) {
 export default function ContactActions(props: Props) {
   const lang: Lang = props.lang === "en" ? "en" : "es";
   const onContact = props.onContact;
+  const [emailSheetOpen, setEmailSheetOpen] = useState(false);
 
   const phoneTel = props.phone ? normalizePhoneForTel(props.phone) : "";
   const textTel = props.text ? normalizePhoneForTel(props.text) : "";
@@ -140,6 +148,21 @@ export default function ContactActions(props: Props) {
 
   if (!hasAny) return null;
 
+  const emailSheet =
+    email && mailtoHref ? (
+      <EmailContactOptionsSheet
+        open={emailSheetOpen}
+        onClose={() => setEmailSheetOpen(false)}
+        email={email}
+        lang={lang}
+        mailtoHref={mailtoHref}
+        mailtoSubject={mailSub}
+        listingId={props.listingId}
+        listingCategory={props.listingCategory}
+        ownerUserId={props.ownerUserId}
+      />
+    ) : null;
+
   return (
     <div className={cx("flex flex-wrap gap-2", props.className)}>
       {phoneTel ? (
@@ -161,9 +184,9 @@ export default function ContactActions(props: Props) {
       ) : null}
 
       {mailtoHref ? (
-        <a href={mailtoHref} className={cx(BtnBase, secondary)} onClick={handleContact}>
+        <button type="button" className={cx(BtnBase, secondary)} onClick={() => setEmailSheetOpen(true)}>
           {labels.email}
-        </a>
+        </button>
       ) : null}
 
       {mapsUrl ? (
@@ -177,6 +200,7 @@ export default function ContactActions(props: Props) {
           {labels.website}
         </a>
       ) : null}
+      {emailSheet}
     </div>
   );
 }

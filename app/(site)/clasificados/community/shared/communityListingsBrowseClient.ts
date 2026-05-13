@@ -13,9 +13,10 @@ export type CommunityListingBrowseRow = {
   detail_pairs: unknown;
   images: unknown;
   created_at: string | null;
+  owner_id: string | null;
 };
 
-const SELECT = "id,title,description,city,price,is_free,category,detail_pairs,images,created_at";
+const SELECT = "id,title,description,city,price,is_free,category,detail_pairs,images,created_at,owner_id";
 
 export async function fetchPublishedCommunityCategoryListings(
   category: "clases" | "comunidad",

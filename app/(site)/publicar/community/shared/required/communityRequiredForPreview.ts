@@ -20,7 +20,7 @@ const GATE_CLASES = {
     title: "Título de la clase",
     organizer: "Organizador / instructor / negocio",
     category: "Tipo / categoría de la clase",
-    categoryOther: "Describe la categoría (Otra)",
+    categoryOther: "Escribe el tipo de clase",
     cost: "Tipo de cobro (gratis o pagada)",
     priceAmount: "Precio (clase pagada)",
     priceFrequency: "Precio por (clase pagada)",
@@ -43,12 +43,15 @@ const GATE_CLASES = {
     socialYoutube: "YouTube: URL no válida",
     socialX: "X (Twitter): URL no válida",
     socialLinkedin: "LinkedIn: URL no válida",
+    audience: "¿Para quién es la clase?",
+    skillLevel: "Nivel",
+    registrationRequired: "¿Requiere registro?",
   },
   en: {
     title: "Class title",
     organizer: "Organizer / instructor / business",
     category: "Class type / category",
-    categoryOther: "Describe the category (Other)",
+    categoryOther: "Enter the class type",
     cost: "Cost type (free or paid)",
     priceAmount: "Price (paid class)",
     priceFrequency: "Price per (paid class)",
@@ -71,6 +74,9 @@ const GATE_CLASES = {
     socialYoutube: "YouTube: invalid URL",
     socialX: "X (Twitter): invalid URL",
     socialLinkedin: "LinkedIn: invalid URL",
+    audience: "Who is this class for?",
+    skillLevel: "Level",
+    registrationRequired: "Registration required?",
   },
 } as const;
 
@@ -79,7 +85,7 @@ const GATE_COMUNIDAD = {
     title: "Título del evento",
     organizer: "Organizador",
     category: "Tipo / categoría del evento",
-    categoryOther: "Describe la categoría (Otra)",
+    categoryOther: "Describe el tipo de evento",
     eventCost: "Costo del evento",
     admissionNote: "Nota de admisión (cuando es pagado o donación)",
     date: "Fecha del evento",
@@ -104,12 +110,14 @@ const GATE_COMUNIDAD = {
     socialYoutube: "YouTube: URL no válida",
     socialX: "X (Twitter): URL no válida",
     socialLinkedin: "LinkedIn: URL no válida",
+    audience: "¿Para quién es el evento?",
+    registrationRequired: "¿Requiere registro?",
   },
   en: {
     title: "Event title",
     organizer: "Organizer",
     category: "Event type / category",
-    categoryOther: "Describe the category (Other)",
+    categoryOther: "Enter the event type",
     eventCost: "Event cost",
     admissionNote: "Admission note (when paid or donation)",
     date: "Event date",
@@ -134,6 +142,8 @@ const GATE_COMUNIDAD = {
     socialYoutube: "YouTube: invalid URL",
     socialX: "X (Twitter): invalid URL",
     socialLinkedin: "LinkedIn: invalid URL",
+    audience: "Who is this event for?",
+    registrationRequired: "Registration required?",
   },
 } as const;
 
@@ -215,6 +225,9 @@ export function gateClasesQuickPreview(d: ClasesQuickDraft, lang: Lang = "es"): 
     if (!st(d.priceFrequency)) issues.push(L.priceFrequency);
   }
   if (!d.mode) issues.push(L.mode);
+  if (!st(d.audience)) issues.push(L.audience);
+  if (!st(d.skillLevel)) issues.push(L.skillLevel);
+  if (!st(d.registrationRequired)) issues.push(L.registrationRequired);
   pushWeeklyScheduleGateIssues(issues, d.weeklySchedule, L);
   if (!st(d.description)) issues.push(L.description);
   if (!hasMainImage(d)) issues.push(L.image);
@@ -237,6 +250,8 @@ export function gateComunidadQuickPreview(d: ComunidadQuickDraft, lang: Lang = "
   if (!st(d.organizer)) issues.push(L.organizer);
   if (!st(d.category)) issues.push(L.category);
   if (d.category === "otro" && !st(d.categoryCustom)) issues.push(L.categoryOther);
+  if (!st(d.audience)) issues.push(L.audience);
+  if (!st(d.registrationRequired)) issues.push(L.registrationRequired);
   if (!d.eventCost) issues.push(L.eventCost);
   if ((d.eventCost === "pagado" || d.eventCost === "donacion") && !st(d.admissionNote)) {
     issues.push(L.admissionNote);

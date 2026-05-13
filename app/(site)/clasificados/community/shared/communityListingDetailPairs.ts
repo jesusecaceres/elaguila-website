@@ -32,6 +32,14 @@ export function parseWeeklyScheduleJson(raw: string | undefined): DayHoursRow[] 
   }
 }
 
+export function parseAccessibilityKeysCsv(raw: string | undefined): string[] {
+  if (!raw?.trim()) return [];
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 const DAY_ES: Record<string, string> = {
   mon: "Lun",
   tue: "Mar",

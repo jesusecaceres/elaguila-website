@@ -9,6 +9,9 @@ import { communityGalleryContainsPdf } from "../app/(site)/publicar/community/sh
 import { shouldBlockClasesPaidPublish } from "../app/(site)/publicar/community/shared/required/communityRequiredForPreview";
 import type { EmpleosImageItem } from "../app/(site)/publicar/empleos/shared/media/empleosMediaTypes";
 import type { ClasesQuickDraft } from "../app/(site)/publicar/community/shared/types/communityQuickDraft";
+import { CLASES_QUICK_COPY, COMUNIDAD_QUICK_COPY } from "../app/(site)/publicar/community/shared/copy/communityPublishCopy";
+import { CLASES_CATEGORY_OPTIONS, resolveClasesCategoryPublicLabel } from "../app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
+import { normalizeClasesQuickDraft } from "../app/(site)/publicar/community/shared/types/communityQuickDraft";
 
 function main() {
   const pdf: EmpleosImageItem = {
@@ -39,6 +42,19 @@ function main() {
   assert.equal(shouldBlockClasesPaidPublish(paidClases), true);
   assert.equal(shouldBlockClasesPaidPublish(freeClases), false);
 
+  const optSlugs = CLASES_CATEGORY_OPTIONS.map((o) => o.value).filter(Boolean);
+  assert.ok(optSlugs.includes("zumba"));
+  assert.ok(optSlugs.includes("fitness"));
+  assert.ok(optSlugs.includes("boxeo"));
+
+  const copyBlob = JSON.stringify(CLASES_QUICK_COPY) + JSON.stringify(COMUNIDAD_QUICK_COPY);
+  assert.ok(!copyBlob.includes("87 N King Rd"));
+
+  assert.equal(resolveClasesCategoryPublicLabel("otro", "Boxeo Profesional", "es"), "Boxeo Profesional");
+
+  const migrated = normalizeClasesQuickDraft({ kind: "clases", category: "zumba_fitness" } as unknown);
+  assert.equal(migrated.category, "zumba");
+
   const samplePairs = [
     { label: "Leonix:communityLane", value: "quick" },
     { label: "Leonix:communityKind", value: "clases" },
@@ -47,6 +63,9 @@ function main() {
     { label: "Leonix:classCostType", value: "gratis" },
     { label: "Leonix:mode", value: "enLinea" },
     { label: "Leonix:weeklyScheduleJson", value: "[]" },
+    { label: "Leonix:audience", value: "adultos" },
+    { label: "Leonix:registrationRequired", value: "no" },
+    { label: "Leonix:skillLevel", value: "principiante" },
   ];
   const m = detailPairsToMap(samplePairs);
   assert.equal(isCommunityQuickListing(m), true);

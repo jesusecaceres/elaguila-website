@@ -50,6 +50,10 @@ export type ClasesQuickPublishSnapshot = {
   /** Internal discovery region (always NorCal). */
   discoveryRegion: "NorCal";
   publishConfirmations: CommunityPublishConfirmations;
+  audience: string;
+  registrationRequired: string;
+  bringNote: string;
+  skillLevel: string;
 };
 
 export type ComunidadQuickPublishSnapshot = {
@@ -82,6 +86,10 @@ export type ComunidadQuickPublishSnapshot = {
   zip: string;
   discoveryRegion: "NorCal";
   publishConfirmations: CommunityPublishConfirmations;
+  audience: string;
+  registrationRequired: string;
+  bringNote: string;
+  accessibilityKeys: string[];
 };
 
 export type CommunityPublishLanePayload =

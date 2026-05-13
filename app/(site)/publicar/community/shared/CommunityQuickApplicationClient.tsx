@@ -52,7 +52,11 @@ import {
 } from "./required/communityRequiredForPreview";
 import {
   CLASES_CATEGORY_OPTIONS,
+  CLASES_SKILL_LEVEL_OPTIONS,
+  COMUNIDAD_ACCESSIBILITY_OPTIONS,
   COMUNIDAD_CATEGORY_OPTIONS,
+  COMMUNITY_AUDIENCE_OPTIONS,
+  COMMUNITY_REGISTRATION_OPTIONS,
 } from "./taxonomy/communityTaxonomy";
 import {
   emptyClasesQuickDraft,
@@ -293,7 +297,7 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
                   value={state.categoryCustom}
                   onChange={(e) => patch({ categoryCustom: e.target.value })}
                   placeholder={
-                    lang === "es" ? "Ej. Yoga prenatal" : "e.g. Prenatal yoga"
+                    lang === "es" ? "Ej. Boxeo profesional" : "e.g. Professional boxing"
                   }
                 />
               </label>
@@ -306,6 +310,60 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
                 className={`${INPUT} min-h-[100px]`}
                 value={state.description}
                 onChange={(e) => patch({ description: e.target.value })}
+              />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} required>
+                {copy.fields.audience}
+              </EmpleosFieldLabel>
+              <select className={INPUT} value={state.audience} onChange={(e) => patch({ audience: e.target.value })}>
+                <option value="">{lang === "es" ? "— Selecciona —" : "— Select —"}</option>
+                {COMMUNITY_AUDIENCE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {lang === "en" ? o.labelEn : o.labelEs}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} required>
+                {copy.fields.skillLevel}
+              </EmpleosFieldLabel>
+              <select className={INPUT} value={state.skillLevel} onChange={(e) => patch({ skillLevel: e.target.value })}>
+                <option value="">{lang === "es" ? "— Selecciona —" : "— Select —"}</option>
+                {CLASES_SKILL_LEVEL_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {lang === "en" ? o.labelEn : o.labelEs}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} required>
+                {copy.fields.registrationRequired}
+              </EmpleosFieldLabel>
+              <select
+                className={INPUT}
+                value={state.registrationRequired}
+                onChange={(e) => patch({ registrationRequired: e.target.value })}
+              >
+                <option value="">{lang === "es" ? "— Selecciona —" : "— Select —"}</option>
+                {COMMUNITY_REGISTRATION_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {lang === "en" ? o.labelEn : o.labelEs}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.bringNote}
+              </EmpleosFieldLabel>
+              <textarea
+                className={`${INPUT} min-h-[72px]`}
+                value={state.bringNote}
+                onChange={(e) => patch({ bringNote: e.target.value })}
+                placeholder={lang === "es" ? "Opcional" : "Optional"}
               />
             </label>
           </EmpleosSectionCard>
@@ -716,6 +774,70 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
                 className={`${INPUT} min-h-[100px]`}
                 value={state.description}
                 onChange={(e) => patch({ description: e.target.value })}
+              />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} required>
+                {copy.fields.audience}
+              </EmpleosFieldLabel>
+              <select className={INPUT} value={state.audience} onChange={(e) => patch({ audience: e.target.value })}>
+                <option value="">{lang === "es" ? "— Selecciona —" : "— Select —"}</option>
+                {COMMUNITY_AUDIENCE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {lang === "en" ? o.labelEn : o.labelEs}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} required>
+                {copy.fields.registrationRequired}
+              </EmpleosFieldLabel>
+              <select
+                className={INPUT}
+                value={state.registrationRequired}
+                onChange={(e) => patch({ registrationRequired: e.target.value })}
+              >
+                <option value="">{lang === "es" ? "— Selecciona —" : "— Select —"}</option>
+                {COMMUNITY_REGISTRATION_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {lang === "en" ? o.labelEn : o.labelEs}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <fieldset className="block text-sm">
+              <legend className="text-sm font-semibold text-[color:var(--lx-text)]">{copy.fields.accessibility}</legend>
+              <div className="mt-2 flex flex-wrap gap-3">
+                {COMUNIDAD_ACCESSIBILITY_OPTIONS.map((o) => {
+                  const checked = state.accessibilityKeys.includes(o.value);
+                  return (
+                    <label key={o.value} className="inline-flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          const next = checked
+                            ? state.accessibilityKeys.filter((k) => k !== o.value)
+                            : [...state.accessibilityKeys, o.value];
+                          patch({ accessibilityKeys: next });
+                        }}
+                      />
+                      {lang === "en" ? o.labelEn : o.labelEs}
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.bringNote}
+              </EmpleosFieldLabel>
+              <textarea
+                className={`${INPUT} min-h-[72px]`}
+                value={state.bringNote}
+                onChange={(e) => patch({ bringNote: e.target.value })}
+                placeholder={lang === "es" ? "Opcional" : "Optional"}
               />
             </label>
           </EmpleosSectionCard>

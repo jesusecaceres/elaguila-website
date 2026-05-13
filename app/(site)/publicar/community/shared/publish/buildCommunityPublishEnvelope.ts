@@ -72,6 +72,9 @@ function commonSnapshot(d: CommunityCommonDraft): {
   zip: string;
   discoveryRegion: "NorCal";
   publishConfirmations: CommunityPublishConfirmations;
+  audience: string;
+  registrationRequired: string;
+  bringNote: string;
 } {
   const images = mapImagesForPublish(d.images);
   const cat = d.category.trim();
@@ -99,6 +102,9 @@ function commonSnapshot(d: CommunityCommonDraft): {
     zip: d.zip.trim(),
     discoveryRegion: COMMUNITY_DISCOVERY_REGION,
     publishConfirmations: { ...d.publishConfirmations },
+    audience: d.audience.trim(),
+    registrationRequired: d.registrationRequired.trim(),
+    bringNote: d.bringNote.trim(),
   };
 }
 
@@ -126,6 +132,7 @@ export function buildClasesQuickPublishSnapshot(d: ClasesQuickDraft): ClasesQuic
       open: r.open.trim(),
       close: r.close.trim(),
     })),
+    skillLevel: d.skillLevel.trim(),
   };
 }
 
@@ -148,6 +155,7 @@ export function buildComunidadQuickPublishSnapshot(
       open: r.open.trim(),
       close: r.close.trim(),
     })),
+    accessibilityKeys: [...d.accessibilityKeys],
   };
 }
 

@@ -12,6 +12,14 @@ import {
   clasesModeLabel,
   comunidadCostLabel,
 } from "../copy/communityPublishCopy";
+import {
+  labelClasesSkillLevel,
+  labelComunidadAccessibilityKey,
+  labelCommunityAudience,
+  labelCommunityRegistration,
+  resolveClasesCategoryPublicLabel,
+  resolveComunidadEventTypePublicLabel,
+} from "../taxonomy/communityTaxonomy";
 import { formatWeeklyScheduleLines, formatTimeForDisplay } from "../lib/communityWeeklySchedule";
 import type {
   ClasesQuickDraft,
@@ -76,6 +84,11 @@ const COPY = {
     websiteCta: "Sitio web / registro",
     paidNotice:
       "Esta clase es de pago. La activación de publicación pagada está en preparación.",
+    audience: "Para quién",
+    level: "Nivel",
+    registration: "Registro",
+    bring: "Qué llevar o saber",
+    accessibility: "Acceso",
   },
   en: {
     organizer: "Organized by",
@@ -100,6 +113,11 @@ const COPY = {
     address: "Address",
     websiteCta: "Website / registration",
     paidNotice: "This is a paid class. Paid publishing activation is in preparation.",
+    audience: "Audience",
+    level: "Level",
+    registration: "Registration",
+    bring: "What to bring or know",
+    accessibility: "Access",
   },
 } as const;
 
@@ -148,14 +166,14 @@ export function ClasesQuickPreviewCard({ draft, lang }: { draft: ClasesQuickDraf
   const cityZipLine = cityStateZipLine(draft);
 
   return (
-    <article className="mx-auto my-6 w-full max-w-3xl overflow-hidden rounded-2xl border border-black/10 bg-white text-[#2A2826] shadow-md">
-      <div className="relative aspect-[16/9] w-full bg-neutral-100">
+    <article className="mx-auto my-6 w-full max-w-4xl overflow-hidden rounded-2xl border border-[#C9B46A]/45 bg-[#FCF9F2] text-[#2A2826] shadow-md">
+      <div className="relative h-[min(52vh,420px)] w-full bg-[#f4f0e6]">
         <Image
           src={main.url}
           alt={main.alt}
           fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, 720px"
+          className="object-contain object-top"
+          sizes="(max-width: 768px) 100vw, 900px"
           unoptimized
         />
         <div className="absolute left-3 top-3 flex flex-wrap gap-2">
@@ -176,24 +194,42 @@ export function ClasesQuickPreviewCard({ draft, lang }: { draft: ClasesQuickDraf
           </div>
         ) : null}
       </div>
-      <div className="space-y-4 p-5 sm:p-6">
+      <div className="space-y-4 p-5 sm:p-7">
         <header>
-          <h1 className="text-2xl font-extrabold leading-tight sm:text-3xl">
+          <h1 className="text-2xl font-extrabold leading-tight sm:text-3xl lg:text-4xl">
             {draft.title.trim() || "—"}
           </h1>
-          <p className="mt-1 text-sm font-semibold text-[#5C564E]">
+          <p className="mt-2 text-base font-semibold text-[#5C564E]">
             {t.organizer}: {draft.organizer.trim() || "—"}
           </p>
-          {draft.category ? (
-            <p className="mt-0.5 text-xs uppercase tracking-wide text-[#9A948C]">
-              {draft.category === "otro" && draft.categoryCustom.trim()
-                ? draft.categoryCustom.trim()
-                : draft.category}
-            </p>
-          ) : null}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {draft.category ? (
+              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
+                {resolveClasesCategoryPublicLabel(draft.category, draft.categoryCustom, lang)}
+              </span>
+            ) : null}
+            <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
+              {clasesModeLabel(draft.mode, lang)}
+            </span>
+            {draft.audience ? (
+              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
+                {labelCommunityAudience(draft.audience, lang)}
+              </span>
+            ) : null}
+            {draft.skillLevel ? (
+              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
+                {labelClasesSkillLevel(draft.skillLevel, lang)}
+              </span>
+            ) : null}
+            {cityZipLine ? (
+              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
+                {cityZipLine}
+              </span>
+            ) : null}
+          </div>
         </header>
 
-        <dl className="grid gap-3 text-sm sm:grid-cols-2">
+        <dl className="grid gap-4 text-[15px] sm:grid-cols-2">
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
               {t.publicCity}
@@ -216,12 +252,26 @@ export function ClasesQuickPreviewCard({ draft, lang }: { draft: ClasesQuickDraf
           </div>
           <div className="sm:col-span-2">
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
+              {t.registration}
+            </dt>
+            <dd className="mt-0.5 font-semibold">
+              {draft.registrationRequired ? labelCommunityRegistration(draft.registrationRequired, lang) : "—"}
+            </dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
               {t.schedule}
             </dt>
             <dd className="mt-0.5 whitespace-pre-line">
               {scheduleLines.length ? scheduleLines.join("\n") : "—"}
             </dd>
           </div>
+          {draft.bringNote.trim() ? (
+            <div className="sm:col-span-2">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">{t.bring}</dt>
+              <dd className="mt-0.5 whitespace-pre-line">{draft.bringNote.trim()}</dd>
+            </div>
+          ) : null}
           <div className="sm:col-span-2">
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
               {t.description}
@@ -266,14 +316,14 @@ export function ComunidadQuickPreviewCard({
         : "—";
 
   return (
-    <article className="mx-auto my-6 w-full max-w-3xl overflow-hidden rounded-2xl border border-black/10 bg-white text-[#2A2826] shadow-md">
-      <div className="relative aspect-[16/9] w-full bg-neutral-100">
+    <article className="mx-auto my-6 w-full max-w-4xl overflow-hidden rounded-2xl border border-[#C9B46A]/45 bg-[#FCF9F2] text-[#2A2826] shadow-md">
+      <div className="relative h-[min(52vh,420px)] w-full bg-[#f4f0e6]">
         <Image
           src={main.url}
           alt={main.alt}
           fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, 720px"
+          className="object-contain object-top"
+          sizes="(max-width: 768px) 100vw, 900px"
           unoptimized
         />
         <div className="absolute left-3 top-3 flex flex-wrap gap-2">
@@ -287,24 +337,39 @@ export function ComunidadQuickPreviewCard({
           </div>
         ) : null}
       </div>
-      <div className="space-y-4 p-5 sm:p-6">
+      <div className="space-y-4 p-5 sm:p-7">
         <header>
-          <h1 className="text-2xl font-extrabold leading-tight sm:text-3xl">
+          <h1 className="text-2xl font-extrabold leading-tight sm:text-3xl lg:text-4xl">
             {draft.title.trim() || "—"}
           </h1>
-          <p className="mt-1 text-sm font-semibold text-[#5C564E]">
+          <p className="mt-2 text-base font-semibold text-[#5C564E]">
             {t.organizer}: {draft.organizer.trim() || "—"}
           </p>
-          {draft.category ? (
-            <p className="mt-0.5 text-xs uppercase tracking-wide text-[#9A948C]">
-              {draft.category === "otro" && draft.categoryCustom.trim()
-                ? draft.categoryCustom.trim()
-                : draft.category}
-            </p>
-          ) : null}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {draft.category ? (
+              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
+                {resolveComunidadEventTypePublicLabel(draft.category, draft.categoryCustom, lang)}
+              </span>
+            ) : null}
+            {draft.audience ? (
+              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
+                {labelCommunityAudience(draft.audience, lang)}
+              </span>
+            ) : null}
+            {draft.accessibilityKeys.length ? (
+              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
+                {draft.accessibilityKeys.map((k) => labelComunidadAccessibilityKey(k, lang)).join(" · ")}
+              </span>
+            ) : null}
+            {cityZipLine ? (
+              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
+                {cityZipLine}
+              </span>
+            ) : null}
+          </div>
         </header>
 
-        <dl className="grid gap-3 text-sm sm:grid-cols-2">
+        <dl className="grid gap-4 text-[15px] sm:grid-cols-2">
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
               {t.publicCity}
@@ -327,6 +392,14 @@ export function ComunidadQuickPreviewCard({
           </div>
           <div className="sm:col-span-2">
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
+              {t.registration}
+            </dt>
+            <dd className="mt-0.5 font-semibold">
+              {draft.registrationRequired ? labelCommunityRegistration(draft.registrationRequired, lang) : "—"}
+            </dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
               {t.eventDates}
             </dt>
             <dd className="mt-0.5 font-semibold">{formatComunidadEventDateRange(draft, lang)}</dd>
@@ -339,6 +412,12 @@ export function ComunidadQuickPreviewCard({
               {scheduleDisplay}
             </dd>
           </div>
+          {draft.bringNote.trim() ? (
+            <div className="sm:col-span-2">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">{t.bring}</dt>
+              <dd className="mt-0.5 whitespace-pre-line">{draft.bringNote.trim()}</dd>
+            </div>
+          ) : null}
           <div className="sm:col-span-2">
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
               {t.description}

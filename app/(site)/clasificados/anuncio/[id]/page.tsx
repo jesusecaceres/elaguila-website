@@ -15,6 +15,7 @@ import { isVerifiedSeller } from "../../components/verifiedSeller";
 import ContactActions from "../../components/ContactActions";
 import { CommunityQuickAnuncioDetail } from "../../community/CommunityQuickAnuncioDetail";
 import { detailPairsToMap, isCommunityQuickListing } from "../../community/shared/communityListingDetailPairs";
+import { buildCommunityMapQuery, googleMapsSearchUrl } from "@/app/(site)/publicar/community/shared/lib/communityContactCtas";
 import AiInsightsPanel from "../../components/AiInsightsPanel";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { trackEvent } from "@/app/lib/listingAnalytics";
@@ -499,6 +500,40 @@ export default function AnuncioDetallePage() {
     const m = detailPairsToMap(listing.detailPairs);
     return isCommunityQuickListing(m) ? m : null;
   }, [listing]);
+
+  const communityQuickContactExtras = useMemo(() => {
+    if (!listing || !communityQuickPairMap) return null;
+    const p = communityQuickPairMap;
+    const rowPhoneDigits = String((listing as { contact_phone?: string | null }).contact_phone ?? "").replace(/\D/g, "").slice(0, 10);
+    const phoneDigits = (p["Leonix:phoneDigits"] ?? "").replace(/\D/g, "").slice(0, 10) || rowPhoneDigits;
+    const waDigits = (p["Leonix:whatsappDigits"] ?? "").replace(/\D/g, "").slice(0, 10) || "";
+    const smsDigits = (p["Leonix:smsPhone"] ?? "").replace(/\D/g, "").slice(0, 10) || phoneDigits;
+    const isClases = listing.category === "clases";
+    const smsBody =
+      lang === "es"
+        ? isClases
+          ? "Vi tu clase en Leonix Media y quisiera más información."
+          : "Vi tu evento en Leonix Media y quisiera más información."
+        : isClases
+          ? "I saw your class on Leonix Media and would like more information."
+          : "I saw your event on Leonix Media and would like more information.";
+    const mailtoSubject =
+      lang === "es"
+        ? isClases
+          ? "Información sobre tu clase en Leonix Media"
+          : "Información sobre tu evento en Leonix Media"
+        : isClases
+          ? "About your class on Leonix Media"
+          : "About your event on Leonix Media";
+    const mapQ = buildCommunityMapQuery({
+      addressLine1: p["Leonix:addressLine1"] ?? "",
+      publicCity: listing.city ?? "",
+      state: p["Leonix:state"] ?? "",
+      zip: p["Leonix:zip"] ?? "",
+    });
+    const mapsUrl = mapQ ? googleMapsSearchUrl(mapQ) : undefined;
+    return { phoneDigits, waDigits, smsDigits, smsBody, mailtoSubject, mapsUrl };
+  }, [listing, communityQuickPairMap, lang]);
 
   /** True when the visible listing was loaded from Supabase, not from SAMPLE_LISTINGS. */
   const isLiveDbListing = Boolean(listing && !sampleListing);
@@ -1430,6 +1465,8 @@ export default function AnuncioDetallePage() {
                     city={listing.city}
                     isFree={listing.isFree ?? false}
                     priceLabel={listing.priceLabel[lang]}
+                    listingId={listing.id}
+                    ownerUserId={(listing as { owner_id?: string | null }).owner_id ?? null}
                   />
                 )}
             </div>
@@ -1862,22 +1899,47 @@ export default function AnuncioDetallePage() {
                 )}
                 <ContactActions
                   lang={lang}
-                  phone={leonixLiveContact?.phoneForTel ?? rentasNegocioDisplay?.officePhone ?? (listing as any)?.contact_phone ?? (listing as any)?.phone}
+                  phone={
+                    communityQuickContactExtras?.phoneDigits?.length === 10
+                      ? `+1${communityQuickContactExtras.phoneDigits}`
+                      : leonixLiveContact?.phoneForTel ??
+                        rentasNegocioDisplay?.officePhone ??
+                        (listing as any)?.contact_phone ??
+                        (listing as any)?.phone
+                  }
                   text={
                     listing?.category === "rentas"
                       ? rentasLiveContactExtras?.smsNumber || (listing as any)?.text
-                      : communityQuickPairMap?.["Leonix:smsPhone"]?.trim() || (listing as any)?.text
+                      : communityQuickContactExtras?.smsDigits?.length === 10
+                        ? `+1${communityQuickContactExtras.smsDigits}`
+                        : (listing as any)?.text
                   }
-                  smsBody={listing?.category === "rentas" ? rentasLiveContactExtras?.leadBody : undefined}
-                  whatsappPhone={listing?.category === "rentas" ? rentasLiveContactExtras?.waDigits : undefined}
-                  whatsappMessage={listing?.category === "rentas" ? rentasLiveContactExtras?.leadBody : undefined}
+                  smsBody={
+                    listing?.category === "rentas"
+                      ? rentasLiveContactExtras?.leadBody
+                      : communityQuickContactExtras?.smsBody
+                  }
+                  whatsappPhone={
+                    listing?.category === "rentas"
+                      ? rentasLiveContactExtras?.waDigits
+                      : communityQuickContactExtras?.waDigits?.length === 10
+                        ? communityQuickContactExtras.waDigits
+                        : communityQuickContactExtras?.phoneDigits?.length === 10
+                          ? communityQuickContactExtras.phoneDigits
+                          : undefined
+                  }
+                  whatsappMessage={
+                    listing?.category === "rentas"
+                      ? rentasLiveContactExtras?.leadBody
+                      : communityQuickContactExtras?.smsBody
+                  }
                   email={leonixLiveContact?.emailForMailto ?? (listing as any)?.contact_email ?? (listing as any)?.email}
                   mailtoSubject={
                     listing?.category === "rentas"
                       ? lang === "es"
                         ? "Pregunta sobre tu anuncio de renta (Leonix)"
                         : "Question about your rental listing (Leonix)"
-                      : undefined
+                      : communityQuickContactExtras?.mailtoSubject
                   }
                   mailtoBody={listing?.category === "rentas" ? rentasLiveContactExtras?.leadBody : undefined}
                   website={
@@ -1889,8 +1951,11 @@ export default function AnuncioDetallePage() {
                   mapsUrl={
                     listing?.category === "rentas"
                       ? rentasLiveContactExtras?.mapsUrl || (listing as any)?.mapsUrl
-                      : (listing as any)?.mapsUrl
+                      : communityQuickContactExtras?.mapsUrl || (listing as any)?.mapsUrl
                   }
+                  listingId={listing?.id}
+                  listingCategory={listing?.category}
+                  ownerUserId={(listing as any)?.owner_id ?? null}
                   onContact={
                     listing
                       ? () => {
