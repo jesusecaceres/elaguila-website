@@ -7,10 +7,12 @@
 
 import { insertListingsRowResilient, updateListingsRowResilient } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
 import {
-  clipLeonixListingDescriptionForSql,
   leonixPublishDescriptionDevDiagnostics,
   mapLeonixListingsDescriptionConstraintToUserMessage,
   prepareLeonixListingDescriptionForPublish,
+  prepareLeonixListingTitleForPublish,
+  toLeonixListingsDescriptionForDb,
+  toLeonixListingsTitleForDb,
 } from "@/app/(site)/clasificados/lib/leonixPublishPublicDescription";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
@@ -72,8 +74,8 @@ export function buildListingsInsertRowForLeonixPublish(
   const zipTrim = (zipRaw ?? "").trim();
   const insertPayload: Record<string, unknown> = {
     owner_id: ownerId,
-    title: title.trim(),
-    description: clipLeonixListingDescriptionForSql(description),
+    title: toLeonixListingsTitleForDb(title),
+    description: toLeonixListingsDescriptionForDb(description),
     city: city.trim(),
     category,
     price: isFree ? 0 : Number.isFinite(price) && price >= 0 ? Math.round(price) : 0,
@@ -185,6 +187,10 @@ export async function publishLeonixRealEstateListingCore(
   if (!title.trim()) {
     return { ok: false, error: lang === "es" ? "Falta el título." : "Title is required." };
   }
+  const titlePrep = prepareLeonixListingTitleForPublish(title, lang);
+  if (!titlePrep.ok) {
+    return { ok: false, error: titlePrep.error };
+  }
   if (!city.trim()) {
     return { ok: false, error: lang === "es" ? "Falta la ciudad." : "City is required." };
   }
@@ -194,7 +200,12 @@ export async function publishLeonixRealEstateListingCore(
     return { ok: false, error: descriptionPrep.error };
   }
   const safeDescription = descriptionPrep.sanitized;
-  const paramsForRow: PublishLeonixRealEstateListingCoreParams = { ...params, description: safeDescription };
+  const descriptionForDb = toLeonixListingsDescriptionForDb(safeDescription);
+  const paramsForRow: PublishLeonixRealEstateListingCoreParams = {
+    ...params,
+    title: titlePrep.titleForDb,
+    description: safeDescription,
+  };
 
   let supabase: ReturnType<typeof createSupabaseBrowserClient>;
   try {
@@ -223,17 +234,17 @@ export async function publishLeonixRealEstateListingCore(
   const insertPayload = buildListingsInsertRowForLeonixPublish(userId, paramsForRow);
 
   if (DEV) {
-    const descCol = String(insertPayload.description ?? "");
+    const descCol = insertPayload.description;
     devLog("description diag (pre-insert)", {
       rawIncomingLen: String(description ?? "").length,
-      preparedSanitizedLen: safeDescription.length,
-      insertRowDescriptionLen: descCol.length,
-      ...leonixPublishDescriptionDevDiagnostics(safeDescription),
+      ...leonixPublishDescriptionDevDiagnostics(safeDescription, descriptionForDb),
+      insertRowDescriptionIsNull: descCol == null,
+      titleLen: titlePrep.titleForDb.length,
       insertKeys: Object.keys(insertPayload),
     });
   }
 
-  devLog("insert listings row", { category, sellerType, titleLen: title.trim().length });
+  devLog("insert listings row", { category, sellerType, titleLen: titlePrep.titleForDb.length });
 
   const { data: inserted, error: insErr } = await insertListingsRowResilient(supabase, insertPayload);
   if (insErr || !inserted?.id) {
@@ -334,7 +345,7 @@ export async function publishLeonixRealEstateListingCore(
       const touch = new Date().toISOString();
       const muxPid = String(params.muxPlaybackId ?? "").trim();
       const galleryPatch: Record<string, unknown> = {
-        description: clipLeonixListingDescriptionForSql(safeDescription),
+        description: toLeonixListingsDescriptionForDb(safeDescription),
         images: photoUrls,
         published_at: touch,
         updated_at: touch,

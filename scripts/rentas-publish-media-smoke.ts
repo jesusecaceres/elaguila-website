@@ -70,6 +70,7 @@ function main() {
     title: "[NO_PHOTOS] media-smoke",
     imageSources: [],
   });
+  assert.equal(noPhotoInsert.description, null, "short description must be NULL for listings.description_len_check");
   assertIsoClockFields(noPhotoInsert, "[NO_PHOTOS] insert payload");
   const withPhotoInsert = buildListingsInsertRowForLeonixPublish("00000000-0000-4000-8000-000000000088", {
     ...baseInsertArgs,

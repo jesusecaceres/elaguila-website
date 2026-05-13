@@ -1,19 +1,20 @@
 /**
- * Leonix `public.listings.description` publish contract:
- * user-authored prose only — no gallery markers, blob/data URLs, or internal API/debug text.
+ * Leonix `public.listings` text columns — aligned with Supabase checks:
+ *
+ * - `description_len_check`: NULL OR (char_length(description) >= 20 AND char_length(description) <= 4000)
+ * - `title_len_check`: NULL OR (char_length(title) >= 5 AND char_length(title) <= 120)
  *
  * Gallery URLs belong in `listings.images`; video in `mux_*`; facts in `detail_pairs`.
- *
- * Max length: production DB uses `description_len_check` (not defined in this repo). A typical
- * cap is **char_length(description) <= 2000**. We enforce **1900** characters (JS string length)
- * so inserts succeed without migrations. After you run `scripts/sql/inspect-listings-description-constraints.sql`,
- * lower this constant if your constraint is tighter (e.g. 1000 → use 950).
  */
 
 import { stripLeonixPublishedDescriptionBody } from "@/app/clasificados/lib/leonixListingGalleryMarker";
 
-/** Hard cap for `listings.description` on Leonix publish (stay below DB `description_len_check`). */
-export const LEONIX_LISTINGS_PUBLISH_DESCRIPTION_MAX_CHARS = 1900;
+/** Postgres allows up to 4000; stay under for safety margin. */
+export const LEONIX_LISTINGS_DESCRIPTION_DB_MIN_CHARS = 20;
+export const LEONIX_LISTINGS_DESCRIPTION_DB_MAX_CHARS = 3900;
+
+export const LEONIX_LISTINGS_TITLE_DB_MIN_CHARS = 5;
+export const LEONIX_LISTINGS_TITLE_DB_MAX_CHARS = 120;
 
 /**
  * Removes internal / transport noise that must never be persisted as public listing copy.
@@ -57,17 +58,34 @@ export function sanitizeLeonixListingPublishDescriptionBody(raw: string): string
   return stripLeonixListingPublishDescriptionNoise(strippedLegacy);
 }
 
-/** Same cleaning as publish; optional clip for display-only surfaces. */
+/** Preview / UI: same cleaning; optional soft cap for display ellipsis. */
 export function sanitizeLeonixListingPreviewDescriptionBody(raw: string, maxChars?: number): string {
   const s = sanitizeLeonixListingPublishDescriptionBody(raw);
-  const cap = typeof maxChars === "number" && maxChars > 0 ? Math.min(maxChars, LEONIX_LISTINGS_PUBLISH_DESCRIPTION_MAX_CHARS) : s.length;
+  const cap =
+    typeof maxChars === "number" && maxChars > 0
+      ? Math.min(maxChars, LEONIX_LISTINGS_DESCRIPTION_DB_MAX_CHARS)
+      : s.length;
   return s.length > cap ? `${s.slice(0, cap).trimEnd()}…` : s;
 }
 
-/** Last-line defense before PostgREST: sanitize + hard clip (never rely on callers alone). */
-export function clipLeonixListingDescriptionForSql(raw: string): string {
+/**
+ * Value for `public.listings.description` only.
+ * - NULL when empty, whitespace-only, or sanitized length 1..19 (invalid per DB check).
+ * - Clipped to DB max when longer (defense; publish path should block earlier).
+ */
+export function toLeonixListingsDescriptionForDb(raw: string): string | null {
   const s = sanitizeLeonixListingPublishDescriptionBody(String(raw ?? ""));
-  return s.slice(0, LEONIX_LISTINGS_PUBLISH_DESCRIPTION_MAX_CHARS).trimEnd();
+  if (s.length === 0) return null;
+  if (s.length < LEONIX_LISTINGS_DESCRIPTION_DB_MIN_CHARS) return null;
+  if (s.length > LEONIX_LISTINGS_DESCRIPTION_DB_MAX_CHARS) {
+    return s.slice(0, LEONIX_LISTINGS_DESCRIPTION_DB_MAX_CHARS).trimEnd();
+  }
+  return s;
+}
+
+/** @deprecated Use `toLeonixListingsDescriptionForDb` (returns string | null). */
+export function clipLeonixListingDescriptionForSql(raw: string): string | null {
+  return toLeonixListingsDescriptionForDb(raw);
 }
 
 export type LeonixListingDescriptionPrepareResult =
@@ -75,15 +93,15 @@ export type LeonixListingDescriptionPrepareResult =
   | { ok: false; error: string };
 
 /**
- * Validates length after sanitation so pasted transport URLs / legacy appendix cannot bypass the cap.
+ * Blocks publish when sanitized body exceeds DB max (before any insert).
+ * Short / empty descriptions are allowed here; `toLeonixListingsDescriptionForDb` turns them into NULL for SQL.
  */
 export function prepareLeonixListingDescriptionForPublish(
   raw: string,
   lang: "es" | "en",
 ): LeonixListingDescriptionPrepareResult {
   const sanitized = sanitizeLeonixListingPublishDescriptionBody(raw);
-  const max = LEONIX_LISTINGS_PUBLISH_DESCRIPTION_MAX_CHARS;
-  if (sanitized.length > max) {
+  if (sanitized.length > LEONIX_LISTINGS_DESCRIPTION_DB_MAX_CHARS) {
     return {
       ok: false,
       error:
@@ -95,29 +113,65 @@ export function prepareLeonixListingDescriptionForPublish(
   return { ok: true, sanitized };
 }
 
+export function toLeonixListingsTitleForDb(raw: string): string {
+  let t = String(raw ?? "").trim();
+  if (t.length > LEONIX_LISTINGS_TITLE_DB_MAX_CHARS) {
+    t = t.slice(0, LEONIX_LISTINGS_TITLE_DB_MAX_CHARS).trimEnd();
+  }
+  return t;
+}
+
+export type LeonixListingTitlePrepareResult = { ok: true; titleForDb: string } | { ok: false; error: string };
+
+export function prepareLeonixListingTitleForPublish(raw: string, lang: "es" | "en"): LeonixListingTitlePrepareResult {
+  const titleForDb = toLeonixListingsTitleForDb(raw);
+  if (titleForDb.length < LEONIX_LISTINGS_TITLE_DB_MIN_CHARS) {
+    return {
+      ok: false,
+      error:
+        lang === "es"
+          ? "El título debe tener al menos 5 caracteres."
+          : "The title must be at least 5 characters.",
+    };
+  }
+  return { ok: true, titleForDb };
+}
+
 export function mapLeonixListingsDescriptionConstraintToUserMessage(
   err: { message?: string; code?: string } | null | undefined,
   lang: "es" | "en",
 ): string | null {
   const msg = String(err?.message ?? "");
   const code = String(err?.code ?? "");
-  if (code === "23514" || /description_len_check/i.test(msg)) {
+  if (code === "23514" && /description_len_check/i.test(msg)) {
     return lang === "es"
-      ? "La descripción es demasiado larga. Acórtala antes de publicar."
-      : "The description is too long. Shorten it before publishing.";
+      ? "La descripción no es válida: debe tener entre 20 y 4000 caracteres, o puedes publicar sin descripción."
+      : "Description must be between 20 and 4000 characters, or you can publish without one.";
+  }
+  if (code === "23514" && /title_len_check/i.test(msg)) {
+    return lang === "es"
+      ? "El título no cumple la longitud permitida (5–120 caracteres). Ajústalo antes de publicar."
+      : "The title must be between 5 and 120 characters. Adjust it before publishing.";
   }
   return null;
 }
 
 /** Dev-only: diagnostics for publish pipeline (never show to end users). */
-export function leonixPublishDescriptionDevDiagnostics(description: string): {
-  length: number;
+export function leonixPublishDescriptionDevDiagnostics(
+  sanitized: string,
+  descriptionForDb: string | null,
+): {
+  sanitizedLen: number;
+  dbDescriptionLen: number | null;
+  dbDescriptionIsNull: boolean;
   head300: string;
   flags: Record<string, boolean>;
 } {
-  const d = description;
+  const d = sanitized;
   return {
-    length: d.length,
+    sanitizedLen: d.length,
+    dbDescriptionLen: descriptionForDb == null ? null : descriptionForDb.length,
+    dbDescriptionIsNull: descriptionForDb == null,
     head300: d.slice(0, 300),
     flags: {
       http: /https?:\/\//i.test(d),

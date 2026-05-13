@@ -24,7 +24,7 @@ import { parseBrResultsUrl } from "../app/(site)/clasificados/bienes-raices/resu
 import {
   buildListingsInsertRowForLeonixPublish,
 } from "../app/(site)/clasificados/lib/leonixPublishRealEstateListingCore";
-import { clipLeonixListingDescriptionForSql } from "../app/(site)/clasificados/lib/leonixPublishPublicDescription";
+import { toLeonixListingsDescriptionForDb } from "../app/(site)/clasificados/lib/leonixPublishPublicDescription";
 import { insertListingsRowResilient } from "../app/(site)/clasificados/lib/listingsSelectShrink";
 import {
   buildPublishParamsFromBienesRaicesNegocioDraft,
@@ -805,7 +805,7 @@ async function ensureListing(userClient: SupabaseClient, ownerId: string, built:
   const { data, error } = await insertListingsRowResilient(sb, row);
   if (error || !data?.id) throw new Error(error?.message ?? "insert failed");
   const id = data.id;
-  const desc = clipLeonixListingDescriptionForSql(built.params.description.trim());
+  const desc = toLeonixListingsDescriptionForDb(built.params.description.trim());
   const gallery = [...QA_PHOTOS] as string[];
   const { error: uErr } = await userClient.from("listings").update({ description: desc, images: gallery }).eq("id", id);
   if (uErr) throw new Error(uErr.message);
