@@ -32,6 +32,14 @@ export function openSms(phone: string, body: string): void {
   window.location.href = href;
 }
 
+/** SMS/Messages with prefilled body only (no recipient). Common on mobile (`sms:?body=`). */
+export function openSmsShareComposer(body: string): void {
+  if (typeof window === "undefined") return;
+  const b = trim(body);
+  if (!b) return;
+  window.location.href = `sms:?body=${encodeURIComponent(b)}`;
+}
+
 export function openWhatsApp(phone: string, body: string): void {
   if (typeof window === "undefined") return;
   const digits = getCleanPhone(phone);

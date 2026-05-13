@@ -56,6 +56,7 @@ export type CtaEmailBuildInput = CtaAdLabelInput & {
 /** Discriminated intent passed to `CtaActionSheet`. */
 export type CtaSheetIntent =
   | {
+      /** Share hub: native share, copy rows, SMS/WhatsApp/Facebook/X/email/Instagram-safe copy. */
       kind: "share_ad";
       publicUrl: string;
       shareTitle: string;

@@ -38,6 +38,7 @@ export {
   openMailto,
   openMaps,
   openSms,
+  openSmsShareComposer,
   openTel,
   openTwitterShareLink,
   openWhatsApp,

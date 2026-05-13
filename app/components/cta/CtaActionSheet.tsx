@@ -17,6 +17,7 @@ import {
   openMailto,
   openMaps,
   openSms,
+  openSmsShareComposer,
   openTel,
   openTwitterShareLink,
   openWhatsApp,
@@ -29,6 +30,22 @@ const COPY = {
     close: "Cerrar",
     cancel: "Cancelar",
     shareDevice: "Compartir con el dispositivo",
+    sharePhone: "Compartir con el teléfono",
+    sectionNative: "Este dispositivo",
+    sectionCopy: "Copiar",
+    sectionShareTo: "Compartir en",
+    shareSms: "SMS / Mensajes",
+    shareFacebook: "Facebook",
+    shareEmail: "Correo",
+    shareInstagram: "Instagram",
+    shareXTwitter: "X (Twitter)",
+    copyFullShareMessage: "Copiar mensaje completo",
+    instagramCopiedHint: "Listo. Pega el texto en Instagram.",
+    nativeShareFallback: "No hay menú nativo; enlace copiado.",
+    messengerNote:
+      "Facebook Messenger no tiene un enlace web fiable sin un id de app de Meta — usa “Compartir con el teléfono” para Messenger y otras apps.",
+    ogHint:
+      "Las vistas previas en redes usan este enlace; la calidad depende del título, la descripción y la imagen Open Graph de la página pública.",
     copyAdLink: "Copiar enlace del anuncio",
     copyAdText: "Copiar texto del anuncio",
     linkCopied: "Enlace del anuncio copiado.",
@@ -68,7 +85,7 @@ const COPY = {
     leadFormHint: "Usa el formulario en esta página para enviar tu información.",
     contactFormHint: "Usa el formulario de contacto en esta página.",
     shareTextLabel: "Texto para compartir",
-    openWhatsAppShare: "Abrir WhatsApp",
+    openWhatsAppShare: "WhatsApp",
     openFacebookShare: "Abrir Facebook para compartir",
     openTwitterShare: "Abrir X para compartir",
     copyShareText: "Copiar texto para compartir",
@@ -77,6 +94,22 @@ const COPY = {
     close: "Close",
     cancel: "Cancel",
     shareDevice: "Share using device",
+    sharePhone: "Share with phone",
+    sectionNative: "This device",
+    sectionCopy: "Copy",
+    sectionShareTo: "Share to",
+    shareSms: "SMS / Messages",
+    shareFacebook: "Facebook",
+    shareEmail: "Email",
+    shareInstagram: "Instagram",
+    shareXTwitter: "X (Twitter)",
+    copyFullShareMessage: "Copy full message",
+    instagramCopiedHint: "Copied. Paste into Instagram.",
+    nativeShareFallback: "Native share unavailable — link copied.",
+    messengerNote:
+      "Facebook Messenger has no reliable web share URL without a Meta app id — use “Share with phone” for Messenger and other apps.",
+    ogHint:
+      "Social previews use this link; quality depends on the public page’s Open Graph title, description, and image.",
     copyAdLink: "Copy ad link",
     copyAdText: "Copy ad text",
     linkCopied: "Ad link copied.",
@@ -116,7 +149,7 @@ const COPY = {
     leadFormHint: "Use the form on this page to send your details.",
     contactFormHint: "Use the contact form on this page.",
     shareTextLabel: "Share text",
-    openWhatsAppShare: "Open WhatsApp",
+    openWhatsAppShare: "WhatsApp",
     openFacebookShare: "Open Facebook to share",
     openTwitterShare: "Open X to share",
     copyShareText: "Copy share text",
@@ -200,6 +233,7 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
   if (intent.kind === "share_ad") {
     const url = getSafePublicAdUrl({ publicUrl: intent.publicUrl });
     const hasUrl = Boolean(url);
+    const titleLine = trim(intent.shareTitle);
     const text =
       trim(intent.shareText) ||
       buildShareText({
@@ -207,14 +241,45 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
         publicUrl: url,
         adTitle: intent.shareTitle,
       });
+    const waComposeBody =
+      trim(intent.shareText) || (hasUrl ? (titleLine ? `${titleLine}\n${url}`.trim() : url) : titleLine);
+    const smsBody = text || url;
+    const subjectLine = titleLine || (lang === "en" ? "Leonix listing" : "Anuncio Leonix");
+    const fullShareMessage = text ? `${text}\n\n— Leonix Media` : hasUrl ? `${url}\n\n— Leonix Media` : "";
+    const canMailto = Boolean(text || url);
+    const instagramBlock = (text || (titleLine && hasUrl ? `${titleLine}\n${url}`.trim() : url || "")).trim();
+
     heading = lang === "en" ? "Share ad" : "Compartir anuncio";
     body = (
-      <div className="mt-3 flex flex-col gap-2">
-        {btnRow(t.shareDevice, "share_device", BTN_PRIMARY, async (emit) => {
+      <div className="mt-3 flex max-h-[min(70vh,520px)] flex-col gap-2 overflow-y-auto pr-0.5">
+        {/* OG cards: public listing page metadata. TODO: optional navigator.canShare({ files }) when product supplies share images. */}
+        <p className="text-xs leading-snug text-[#5C564E]">{t.ogHint}</p>
+
+        {titleLine ? (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{lang === "en" ? "Title" : "Título"}</p>
+            <p className="text-sm font-semibold text-[#111111]">{titleLine}</p>
+          </div>
+        ) : null}
+        {hasUrl ? (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.destination}</p>
+            <p className={MONO}>{url}</p>
+          </div>
+        ) : null}
+        {text ? (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.shareTextLabel}</p>
+            <p className="max-h-28 overflow-y-auto whitespace-pre-wrap text-sm text-[#111111]">{text}</p>
+          </div>
+        ) : null}
+
+        <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.sectionNative}</p>
+        {btnRow(t.sharePhone, "hub_native_share", BTN_PRIMARY, async (emit) => {
           if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
             try {
-              await navigator.share(hasUrl ? { title: intent.shareTitle, text, url } : { title: intent.shareTitle, text });
-              emit();
+              await navigator.share(hasUrl ? { title: titleLine || subjectLine, text, url } : { title: titleLine || subjectLine, text });
+              emit({ outcome: "native" });
               onClose();
               return;
             } catch (err: unknown) {
@@ -224,20 +289,19 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
           }
           if (hasUrl) {
             const ok = await copyToClipboard(url);
-            flash(ok ? t.linkCopied : t.copyFailed, ok ? "ok" : "err");
-            if (ok) emit();
-          } else {
-            const ok = await copyToClipboard(text);
-            flash(
-              ok ? (lang === "en" ? "Text copied." : "Texto copiado.") : t.copyFailed,
-              ok ? "ok" : "err",
-            );
-            if (ok) emit();
+            flash(ok ? t.nativeShareFallback : t.copyFailed, ok ? "ok" : "err");
+            if (ok) emit({ outcome: "fallback_copy" });
+            return;
           }
+          const ok = await copyToClipboard(text);
+          flash(ok ? (lang === "en" ? "Text copied." : "Texto copiado.") : t.copyFailed, ok ? "ok" : "err");
+          if (ok) emit({ outcome: "fallback_copy" });
         })}
+
+        <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.sectionCopy}</p>
         {btnRow(
-          t.copyAdLink,
-          "copy_ad_link",
+          t.copyLink,
+          "hub_copy_link",
           BTN_SECONDARY,
           async (emit) => {
             if (!hasUrl) return;
@@ -247,11 +311,89 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
           },
           !hasUrl,
         )}
-        {btnRow(t.copyAdText, "copy_ad_text", BTN_SECONDARY, async (emit) => {
+        {btnRow(t.copyShareText, "hub_copy_share_text", BTN_SECONDARY, async (emit) => {
+          if (!text) return;
           const ok = await copyToClipboard(text);
           flash(ok ? (lang === "en" ? "Text copied." : "Texto copiado.") : t.copyFailed, ok ? "ok" : "err");
           if (ok) emit();
-        })}
+        }, !text)}
+        {btnRow(t.copyFullShareMessage, "hub_copy_full_share", BTN_SECONDARY, async (emit) => {
+          if (!fullShareMessage) return;
+          const ok = await copyToClipboard(fullShareMessage);
+          flash(ok ? (lang === "en" ? "Message copied." : "Mensaje copiado.") : t.copyFailed, ok ? "ok" : "err");
+          if (ok) emit();
+        }, !fullShareMessage)}
+
+        <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.sectionShareTo}</p>
+        <p className="text-[11px] leading-snug text-[#7A7268]">{t.messengerNote}</p>
+        {btnRow(
+          t.openWhatsAppShare,
+          "hub_whatsapp",
+          BTN_SECONDARY,
+          (emit) => {
+            if (!waComposeBody) return;
+            emit();
+            openWhatsAppWebShare(waComposeBody);
+          },
+          !waComposeBody,
+        )}
+        {btnRow(
+          t.shareSms,
+          "hub_sms",
+          BTN_SECONDARY,
+          (emit) => {
+            if (!smsBody) return;
+            emit();
+            openSmsShareComposer(smsBody);
+          },
+          !smsBody,
+        )}
+        {btnRow(
+          t.shareFacebook,
+          "hub_facebook",
+          BTN_SECONDARY,
+          (emit) => {
+            if (!hasUrl) return;
+            emit();
+            openFacebookShareLink(url);
+          },
+          !hasUrl,
+        )}
+        {btnRow(
+          t.shareXTwitter,
+          "hub_twitter",
+          BTN_SECONDARY,
+          (emit) => {
+            if (!hasUrl && !titleLine) return;
+            emit();
+            openTwitterShareLink(titleLine || (lang === "en" ? "Leonix" : "Leonix"), url);
+          },
+          !hasUrl && !titleLine,
+        )}
+        {btnRow(
+          t.shareEmail,
+          "hub_email",
+          BTN_SECONDARY,
+          (emit) => {
+            if (!canMailto) return;
+            const body = text || url || "";
+            emit();
+            openMailto("", subjectLine, body);
+          },
+          !canMailto,
+        )}
+        {btnRow(
+          t.shareInstagram,
+          "hub_instagram",
+          BTN_SECONDARY,
+          async (emit) => {
+            if (!instagramBlock) return;
+            const ok = await copyToClipboard(instagramBlock);
+            flash(ok ? t.instagramCopiedHint : t.copyFailed, ok ? "ok" : "err");
+            if (ok) emit();
+          },
+          !instagramBlock,
+        )}
       </div>
     );
   } else if (intent.kind === "share_social") {
