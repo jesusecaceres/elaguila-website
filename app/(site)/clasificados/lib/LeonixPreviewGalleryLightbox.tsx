@@ -139,7 +139,7 @@ export function LeonixPreviewGalleryLightbox({
       setTab("fotos");
       setPhotoIdx(n ? Math.min(Math.max(0, initialIndex), n - 1) : 0);
     }
-  }, [open, initialIndex, photoSlides.length, hasVideoTab]);
+  }, [open, initialIndex, photoSlides.length, hasVideoTab, hasV2]);
 
   useEffect(() => {
     if (!open) return;

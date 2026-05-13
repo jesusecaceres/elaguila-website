@@ -320,19 +320,16 @@ export function RentasPreviewCard({
             <div className="flex items-center gap-3 mb-4">
               <LeonixLikeButton
                 listingId={listingId}
-                ownerUserId={listingId}
                 variant="small"
                 lang={lang}
               />
               <LeonixSaveButton
                 listingId={listingId}
-                ownerUserId={listingId}
                 variant="small"
                 lang={lang}
               />
               <LeonixShareButton
                 listingId={listingId}
-                ownerUserId={listingId}
                 listingTitle={data.heroTitle}
                 listingUrl={typeof window !== "undefined" ? window.location.href : ""}
                 variant="small"

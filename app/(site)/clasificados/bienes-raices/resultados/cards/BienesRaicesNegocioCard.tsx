@@ -186,19 +186,16 @@ export function BienesRaicesNegocioCard({
         <div className="flex items-center gap-3 mb-4">
           <LeonixLikeButton
             listingId={listing.id}
-            ownerUserId={listing.id}
             variant="small"
             lang={lang === "en" ? "en" : "es"}
           />
           <LeonixSaveButton
             listingId={listing.id}
-            ownerUserId={listing.id}
             variant="small"
             lang={lang === "en" ? "en" : "es"}
           />
           <LeonixShareButton
             listingId={listing.id}
-            ownerUserId={listing.id}
             listingTitle={listing.title}
             listingUrl={typeof window !== "undefined" ? window.location.origin + href : ""}
             variant="small"
