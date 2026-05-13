@@ -43,6 +43,9 @@ type Props = {
   publishOnlyBlockedHint?: string | null;
   /** Last publish attempt failed (e.g. Supabase / storage). */
   publishErrorText?: string | null;
+  /** When true, publish button shows `publishWorkingLabel` instead of `copy.publishCta`. */
+  publishWorking?: boolean;
+  publishWorkingLabel?: string | null;
 };
 
 export function EmpleosApplicationFinalStep({
@@ -62,6 +65,8 @@ export function EmpleosApplicationFinalStep({
   publishSecondaryHint,
   publishOnlyBlockedHint,
   publishErrorText,
+  publishWorking,
+  publishWorkingLabel,
 }: Props) {
   const publishBtnDisabled = publishDisabled ?? previewDisabled;
   const saveBtnDisabled = allowSaveDraftWhenBlocked ? false : previewDisabled;
@@ -87,12 +92,6 @@ export function EmpleosApplicationFinalStep({
       {stagedSuccessText ? (
         <p className="mt-3 rounded-xl border border-emerald-200/80 bg-emerald-50/95 px-3 py-2 text-sm text-emerald-950" role="status">
           {stagedSuccessText}
-        </p>
-      ) : null}
-
-      {publishErrorText ? (
-        <p className="mt-3 rounded-xl border border-red-200/90 bg-red-50/95 px-3 py-2 text-sm text-red-950" role="alert">
-          {publishErrorText}
         </p>
       ) : null}
 
@@ -123,7 +122,7 @@ export function EmpleosApplicationFinalStep({
             title={publishTitleHint}
             onClick={() => void onPublicar()}
           >
-            {copy.publishCta}
+            {publishWorking && publishWorkingLabel ? publishWorkingLabel : copy.publishCta}
           </button>
           {saveDraftCta && onSaveDraft ? (
             <button
@@ -137,6 +136,11 @@ export function EmpleosApplicationFinalStep({
             </button>
           ) : null}
         </div>
+        {publishErrorText ? (
+          <p className="rounded-xl border border-red-200/90 bg-red-50/95 px-3 py-2 text-sm text-red-950" role="alert">
+            {publishErrorText}
+          </p>
+        ) : null}
         {publishSecondaryHint ? (
           <p className="text-sm font-medium text-[color:var(--lx-text-2)]" role="status">
             {publishSecondaryHint}

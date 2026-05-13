@@ -586,12 +586,11 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
           onDelete={handleDelete}
           stagedSuccessText={sessionSaveNotice ? sharedCopy.saveDraftSessionNotice : null}
           publishErrorText={publishError}
+          publishWorking={publishing}
+          publishWorkingLabel={lang === "es" ? "Publicando..." : "Publishing..."}
           publishGateBlockedHint={previewDisabled ? sharedCopy.publishBlocked : null}
           publishOnlyBlockedHint={
             !previewDisabled && publishDisabled ? sharedCopy.approvalPublishBlocked : null
-          }
-          publishSecondaryHint={
-            publishing ? (lang === "es" ? "Publicando…" : "Publishing…") : null
           }
           allowSaveDraftWhenBlocked
           finalBlockingIssues={previewIssues}
@@ -1030,12 +1029,11 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
           onDelete={handleDelete}
           stagedSuccessText={sessionSaveNotice ? sharedCopy.saveDraftSessionNotice : null}
           publishErrorText={publishError}
+          publishWorking={publishing}
+          publishWorkingLabel={lang === "es" ? "Publicando..." : "Publishing..."}
           publishGateBlockedHint={previewDisabled ? sharedCopy.publishBlocked : null}
           publishOnlyBlockedHint={
             !previewDisabled && publishDisabled ? sharedCopy.approvalPublishBlocked : null
-          }
-          publishSecondaryHint={
-            publishing ? (lang === "es" ? "Publicando…" : "Publishing…") : null
           }
           allowSaveDraftWhenBlocked
           finalBlockingIssues={previewIssues}

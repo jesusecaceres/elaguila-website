@@ -9,7 +9,7 @@ import { communityGalleryContainsPdf } from "../app/(site)/publicar/community/sh
 import { shouldBlockClasesPaidPublish } from "../app/(site)/publicar/community/shared/required/communityRequiredForPreview";
 import type { EmpleosImageItem } from "../app/(site)/publicar/empleos/shared/media/empleosMediaTypes";
 import type { ClasesQuickDraft } from "../app/(site)/publicar/community/shared/types/communityQuickDraft";
-import { CLASES_QUICK_COPY, COMUNIDAD_QUICK_COPY } from "../app/(site)/publicar/community/shared/copy/communityPublishCopy";
+import { CLASES_QUICK_COPY, COMUNIDAD_QUICK_COPY, COMMUNITY_PUBLISH_COPY } from "../app/(site)/publicar/community/shared/copy/communityPublishCopy";
 import { CLASES_CATEGORY_OPTIONS, resolveClasesCategoryPublicLabel } from "../app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
 import { normalizeClasesQuickDraft } from "../app/(site)/publicar/community/shared/types/communityQuickDraft";
 
@@ -73,8 +73,11 @@ function main() {
 
   const userId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
   const listingId = "11111111-2222-3333-4444-555555555555";
-  const path = `${userId}/${listingId}/photos/01.jpg`;
-  assert.match(path, /^[0-9a-f-]{36}\/[0-9a-f-]{36}\/photos\//i);
+  const path = `${userId}/${listingId}/photos/photo-01.jpg`;
+  assert.match(path, /^[0-9a-f-]{36}\/[0-9a-f-]{36}\/photos\/photo-\d{2}\.jpg$/);
+
+  assert.equal(COMMUNITY_PUBLISH_COPY.es.finalStep.publishCta, "Publicar anuncio");
+  assert.equal(COMMUNITY_PUBLISH_COPY.en.finalStep.publishCta, "Publish listing");
 
   console.log("community-quick-publish-contract-smoke: PASS");
 }

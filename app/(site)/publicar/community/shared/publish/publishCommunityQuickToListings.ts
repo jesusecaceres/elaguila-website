@@ -429,7 +429,8 @@ export async function publishCommunityQuickToListings(input: {
         };
       }
       const ext = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
-      const path = `${basePath}/${String(i + 1).padStart(2, "0")}.${ext}`;
+      const fileName = `photo-${String(i + 1).padStart(2, "0")}.${ext}`;
+      const path = `${basePath}/${fileName}`;
       const up = await supabase.storage
         .from("listing-images")
         .upload(path, blob, { upsert: true, contentType: blob.type || "image/jpeg" });
