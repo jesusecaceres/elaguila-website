@@ -6,6 +6,7 @@ import { useCallback, useMemo, useState } from "react";
 import { FiGlobe, FiMapPin, FiPhone, FiMail } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import type { ServiciosPublicListingRow } from "../lib/serviciosPublicListingsServer";
+import { serviciosEngagementListingKey } from "../lib/serviciosPublicListingSort";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import { getServiciosProfileLabels } from "@/app/servicios/copy/serviciosProfileCopy";
 import { serviciosImageUnoptimized } from "@/app/servicios/lib/serviciosMediaUrl";
@@ -176,6 +177,12 @@ export function ServiciosHorizontalResultCard({
     return (row?.slug || "").trim() || profile.identity.slug;
   }, [row, profile]);
 
+  /** Same key order as Like/Save (`leonix_ad_id` → row `id` → `slug`) so CTA analytics lines up with engagement rows. */
+  const ctaAnalyticsListingKey = useMemo(() => {
+    if (row) return serviciosEngagementListingKey(row);
+    return listingSlug;
+  }, [row, listingSlug]);
+
   const [ctaOpen, setCtaOpen] = useState(false);
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
 
@@ -186,11 +193,11 @@ export function ServiciosHorizontalResultCard({
 
   const openOutbound = useCallback(
     (intent: CtaSheetIntent, eventType: string) => {
-      trackServiciosListingCta(listingSlug, eventType, { source: "servicios_horizontal_card" });
+      trackServiciosListingCta(ctaAnalyticsListingKey, eventType, { source: "servicios_horizontal_card" });
       setCtaIntent(intent);
       setCtaOpen(true);
     },
-    [listingSlug],
+    [ctaAnalyticsListingKey],
   );
 
   const contactExtras = useMemo(() => {

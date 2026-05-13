@@ -11,7 +11,7 @@ export type ServiciosResultsFilterQuery = {
   whatsapp?: "1" | "0";
   promo?: "1" | "0";
   call?: "1" | "0";
-  /** Keyword — matched against name, city, category line, about, location strings, services, trust, reviews */
+  /** Keyword — matched against name, city, category line, about, locations, services, trust, reviews, promos/offers, highlights */
   q?: string;
   sort?: "newest" | "name" | "rating";
   /** Derived from profile contact fields when not `all` */
@@ -169,6 +169,25 @@ function resolvedProfile(row: ServiciosPublicListingRow, lang: ServiciosLang) {
   return resolveServiciosProfile(wire, lang);
 }
 
+/** Collects free-text promo/offer fields from wire JSON (supports legacy keys like title/details). */
+function wirePromotionalTextFields(pj: ServiciosBusinessProfile): string[] {
+  const out: string[] = [];
+  const push = (s: unknown) => {
+    if (typeof s === "string" && s.trim()) out.push(s);
+  };
+  push(pj.promo?.headline);
+  push(pj.promo?.footnote);
+  for (const p of pj.promotions ?? []) {
+    const o = p as Record<string, unknown>;
+    push(o.headline);
+    push(o.footnote);
+    push(o.title);
+    push(o.details);
+    push(o.description);
+  }
+  return out;
+}
+
 /** Leonix “destacado” / partner emphasis from published profile wire. */
 export function isServiciosListingPromoted(row: ServiciosPublicListingRow): boolean {
   return row.profile_json.contact?.isFeatured === true;
@@ -296,6 +315,16 @@ export function filterServiciosRowsByKeyword(
     }
     for (const f of profile.quickFacts ?? []) {
       if (normalize(f.label).includes(kw)) return true;
+    }
+    for (const h of profile.highlights ?? []) {
+      if (normalize(h.label).includes(kw)) return true;
+    }
+    for (const p of profile.promotions ?? []) {
+      if (normalize(p.headline).includes(kw)) return true;
+      if (normalize(p.footnote ?? "").includes(kw)) return true;
+    }
+    for (const raw of wirePromotionalTextFields(pj)) {
+      if (normalize(raw).includes(kw)) return true;
     }
     return false;
   });

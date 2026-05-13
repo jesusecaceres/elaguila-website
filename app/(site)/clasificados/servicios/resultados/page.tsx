@@ -102,7 +102,9 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
     wknd: sp.wknd === "1" ? "1" : undefined,
   };
 
-  const allRows = await listServiciosPublicListingsForDiscovery(120);
+  // Prefetch window for in-memory filters. Raised from 120→500 so keyword/filters are less likely to
+  // drop valid rows before pagination / load-more exists (see marketplace audit Phase A).
+  const allRows = await listServiciosPublicListingsForDiscovery(500);
 
   let rows = filterServiciosPublicListingRows(allRows, lang, filterQuery);
   rows = filterServiciosRowsByKeyword(rows, lang, filterQuery.q);
