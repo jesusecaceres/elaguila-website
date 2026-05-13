@@ -34,6 +34,7 @@ import type {
   BienesRaicesPreviewLocationVm,
   BienesRaicesPreviewQuickFactVm,
 } from "./bienesRaicesNegocioPreviewVm";
+import { sanitizeLeonixListingPublishDescriptionBody } from "@/app/clasificados/lib/leonixPublishPublicDescription";
 
 const LISTING_STATUS_LABEL: Record<BienesRaicesListingStatus, string> = {
   en_venta: "En venta",
@@ -921,8 +922,8 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
 
   const descLong = trim(s.descripcionLarga);
   const descShort = trim(s.descripcionCorta);
-  const desc = descLong || descShort || "";
-  const hasDescription = Boolean(descLong || descShort);
+  const desc = sanitizeLeonixListingPublishDescriptionBody(descLong || descShort || "");
+  const hasDescription = Boolean(desc);
 
   const highlightRows = buildHighlights(s);
   const hasHighlights =

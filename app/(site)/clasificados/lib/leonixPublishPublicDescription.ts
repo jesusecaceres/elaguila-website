@@ -3,19 +3,17 @@
  * user-authored prose only — no gallery markers, blob/data URLs, or internal API/debug text.
  *
  * Gallery URLs belong in `listings.images`; video in `mux_*`; facts in `detail_pairs`.
+ *
+ * Max length: production DB uses `description_len_check` (not defined in this repo). A typical
+ * cap is **char_length(description) <= 2000**. We enforce **1900** characters (JS string length)
+ * so inserts succeed without migrations. After you run `scripts/sql/inspect-listings-description-constraints.sql`,
+ * lower this constant if your constraint is tighter (e.g. 1000 → use 950).
  */
 
 import { stripLeonixPublishedDescriptionBody } from "@/app/clasificados/lib/leonixListingGalleryMarker";
 
-/** Default cap stays under common `description_len_check` limits (often 8000) without changing DB. */
-export const LEONIX_LISTINGS_PUBLISH_DESCRIPTION_DEFAULT_MAX = 7800;
-
-function listingDescriptionMaxChars(): number {
-  const raw = String(process.env.NEXT_PUBLIC_LEONIX_LISTING_DESCRIPTION_MAX_CHARS ?? "").trim();
-  const n = Number(raw);
-  if (Number.isFinite(n) && n >= 1000 && n <= 500_000) return Math.floor(n);
-  return LEONIX_LISTINGS_PUBLISH_DESCRIPTION_DEFAULT_MAX;
-}
+/** Hard cap for `listings.description` on Leonix publish (stay below DB `description_len_check`). */
+export const LEONIX_LISTINGS_PUBLISH_DESCRIPTION_MAX_CHARS = 1900;
 
 /**
  * Removes internal / transport noise that must never be persisted as public listing copy.
@@ -59,6 +57,19 @@ export function sanitizeLeonixListingPublishDescriptionBody(raw: string): string
   return stripLeonixListingPublishDescriptionNoise(strippedLegacy);
 }
 
+/** Same cleaning as publish; optional clip for display-only surfaces. */
+export function sanitizeLeonixListingPreviewDescriptionBody(raw: string, maxChars?: number): string {
+  const s = sanitizeLeonixListingPublishDescriptionBody(raw);
+  const cap = typeof maxChars === "number" && maxChars > 0 ? Math.min(maxChars, LEONIX_LISTINGS_PUBLISH_DESCRIPTION_MAX_CHARS) : s.length;
+  return s.length > cap ? `${s.slice(0, cap).trimEnd()}…` : s;
+}
+
+/** Last-line defense before PostgREST: sanitize + hard clip (never rely on callers alone). */
+export function clipLeonixListingDescriptionForSql(raw: string): string {
+  const s = sanitizeLeonixListingPublishDescriptionBody(String(raw ?? ""));
+  return s.slice(0, LEONIX_LISTINGS_PUBLISH_DESCRIPTION_MAX_CHARS).trimEnd();
+}
+
 export type LeonixListingDescriptionPrepareResult =
   | { ok: true; sanitized: string }
   | { ok: false; error: string };
@@ -71,14 +82,14 @@ export function prepareLeonixListingDescriptionForPublish(
   lang: "es" | "en",
 ): LeonixListingDescriptionPrepareResult {
   const sanitized = sanitizeLeonixListingPublishDescriptionBody(raw);
-  const max = listingDescriptionMaxChars();
+  const max = LEONIX_LISTINGS_PUBLISH_DESCRIPTION_MAX_CHARS;
   if (sanitized.length > max) {
     return {
       ok: false,
       error:
         lang === "es"
           ? "La descripción es demasiado larga. Acórtala antes de publicar."
-          : "Your description is too long. Shorten it before publishing.",
+          : "The description is too long. Shorten it before publishing.",
     };
   }
   return { ok: true, sanitized };
@@ -93,7 +104,31 @@ export function mapLeonixListingsDescriptionConstraintToUserMessage(
   if (code === "23514" || /description_len_check/i.test(msg)) {
     return lang === "es"
       ? "La descripción es demasiado larga. Acórtala antes de publicar."
-      : "Your description is too long. Shorten it before publishing.";
+      : "The description is too long. Shorten it before publishing.";
   }
   return null;
+}
+
+/** Dev-only: diagnostics for publish pipeline (never show to end users). */
+export function leonixPublishDescriptionDevDiagnostics(description: string): {
+  length: number;
+  head300: string;
+  flags: Record<string, boolean>;
+} {
+  const d = description;
+  return {
+    length: d.length,
+    head300: d.slice(0, 300),
+    flags: {
+      http: /https?:\/\//i.test(d),
+      blob: /blob:/i.test(d),
+      dataUrl: /\bdata:(?:image|video|application)\//i.test(d),
+      leonixImages: /\[LEONIX_IMAGES\]/i.test(d),
+      draftMediaUpload: /draft-media-upload/i.test(d),
+      uploadStatus: /upload-status/i.test(d),
+      mux: /\bmux[_./]/i.test(d) || /stream\.mux\.com/i.test(d),
+      supabase: /supabase\.co/i.test(d),
+      migration: /\bmigration\b/i.test(d),
+    },
+  };
 }

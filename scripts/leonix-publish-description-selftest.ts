@@ -3,7 +3,8 @@
  */
 import assert from "node:assert/strict";
 import {
-  LEONIX_LISTINGS_PUBLISH_DESCRIPTION_DEFAULT_MAX,
+  LEONIX_LISTINGS_PUBLISH_DESCRIPTION_MAX_CHARS,
+  clipLeonixListingDescriptionForSql,
   mapLeonixListingsDescriptionConstraintToUserMessage,
   prepareLeonixListingDescriptionForPublish,
   sanitizeLeonixListingPublishDescriptionBody,
@@ -25,9 +26,12 @@ function main() {
   assert.equal(prepOk.ok, true);
   if (prepOk.ok) assert.equal(prepOk.sanitized.includes("Casa"), true);
 
-  const tooLong = "x".repeat(LEONIX_LISTINGS_PUBLISH_DESCRIPTION_DEFAULT_MAX + 50);
+  const tooLong = "x".repeat(LEONIX_LISTINGS_PUBLISH_DESCRIPTION_MAX_CHARS + 50);
   const prepBad = prepareLeonixListingDescriptionForPublish(tooLong, "es");
   assert.equal(prepBad.ok, false);
+
+  const clipped = clipLeonixListingDescriptionForSql(tooLong);
+  assert.equal(clipped.length, LEONIX_LISTINGS_PUBLISH_DESCRIPTION_MAX_CHARS);
 
   const friendly = mapLeonixListingsDescriptionConstraintToUserMessage(
     { code: "23514", message: 'new row for relation "listings" violates check constraint "description_len_check"' },

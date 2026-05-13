@@ -16,6 +16,7 @@ import { labelForSubtipo, TIPO_PROPIEDAD_OPCIONES } from "@/app/clasificados/pub
 import { previewWhatsappClickHref } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/lib/agenteResidencialPreviewFormat";
 import type { BienesRaicesPrivadoFormState } from "../../schema/bienesRaicesPrivadoFormState";
 import type { BienesRaicesPreviewFact, BienesRaicesPreviewMediaVm, BienesRaicesPreviewQuickFactVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
+import { sanitizeLeonixListingPublishDescriptionBody } from "@/app/clasificados/lib/leonixPublishPublicDescription";
 
 function trim(s: string): string {
   return String(s ?? "").trim();
@@ -364,7 +365,7 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
   const line = trim(s.ubicacionLinea);
   const addressLine = [line, city].filter(Boolean).join(line && city ? " · " : "") || "";
 
-  const desc = trim(s.descripcion);
+  const desc = sanitizeLeonixListingPublishDescriptionBody(trim(s.descripcion));
   const phoneDisp = trim(s.seller.telefono) ? formatUsPhoneDisplay(digitsOnly(s.seller.telefono)) : "";
   const emailDisp = trim(s.seller.correo);
   const waDisp = trim(s.seller.whatsapp) ? formatUsPhoneDisplay(digitsOnly(s.seller.whatsapp)) : "";

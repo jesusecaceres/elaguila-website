@@ -7,6 +7,8 @@
 
 import { insertListingsRowResilient, updateListingsRowResilient } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
 import {
+  clipLeonixListingDescriptionForSql,
+  leonixPublishDescriptionDevDiagnostics,
   mapLeonixListingsDescriptionConstraintToUserMessage,
   prepareLeonixListingDescriptionForPublish,
 } from "@/app/(site)/clasificados/lib/leonixPublishPublicDescription";
@@ -71,7 +73,7 @@ export function buildListingsInsertRowForLeonixPublish(
   const insertPayload: Record<string, unknown> = {
     owner_id: ownerId,
     title: title.trim(),
-    description: description.trim(),
+    description: clipLeonixListingDescriptionForSql(description),
     city: city.trim(),
     category,
     price: isFree ? 0 : Number.isFinite(price) && price >= 0 ? Math.round(price) : 0,
@@ -220,6 +222,17 @@ export async function publishLeonixRealEstateListingCore(
 
   const insertPayload = buildListingsInsertRowForLeonixPublish(userId, paramsForRow);
 
+  if (DEV) {
+    const descCol = String(insertPayload.description ?? "");
+    devLog("description diag (pre-insert)", {
+      rawIncomingLen: String(description ?? "").length,
+      preparedSanitizedLen: safeDescription.length,
+      insertRowDescriptionLen: descCol.length,
+      ...leonixPublishDescriptionDevDiagnostics(safeDescription),
+      insertKeys: Object.keys(insertPayload),
+    });
+  }
+
   devLog("insert listings row", { category, sellerType, titleLen: title.trim().length });
 
   const { data: inserted, error: insErr } = await insertListingsRowResilient(supabase, insertPayload);
@@ -321,7 +334,7 @@ export async function publishLeonixRealEstateListingCore(
       const touch = new Date().toISOString();
       const muxPid = String(params.muxPlaybackId ?? "").trim();
       const galleryPatch: Record<string, unknown> = {
-        description: safeDescription,
+        description: clipLeonixListingDescriptionForSql(safeDescription),
         images: photoUrls,
         published_at: touch,
         updated_at: touch,
