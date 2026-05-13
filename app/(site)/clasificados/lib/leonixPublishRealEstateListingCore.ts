@@ -6,6 +6,10 @@
  */
 
 import { insertListingsRowResilient, updateListingsRowResilient } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
+import {
+  mapLeonixListingsDescriptionConstraintToUserMessage,
+  prepareLeonixListingDescriptionForPublish,
+} from "@/app/(site)/clasificados/lib/leonixPublishPublicDescription";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 const DEV = process.env.NODE_ENV === "development";
@@ -108,6 +112,12 @@ export function buildListingsInsertRowForLeonixPublish(
   return insertPayload;
 }
 
+/**
+ * @deprecated Legacy gallery tail embedded in `listings.description`.
+ * New publishes persist gallery only in `listings.images` and keep `description` as user prose
+ * (`prepareLeonixListingDescriptionForPublish`). Kept for one-off scripts / QA seeds that still
+ * mimic historical rows.
+ */
 export function leonixGalleryAppendixForDescription(lang: "es" | "en", photoUrls: string[]): string {
   if (!photoUrls.length) return "";
   const marker = `[LEONIX_IMAGES]\n` + photoUrls.map((u) => `url=${u}`).join("\n") + `\n[/LEONIX_IMAGES]`;
@@ -177,6 +187,13 @@ export async function publishLeonixRealEstateListingCore(
     return { ok: false, error: lang === "es" ? "Falta la ciudad." : "City is required." };
   }
 
+  const descriptionPrep = prepareLeonixListingDescriptionForPublish(description, lang);
+  if (!descriptionPrep.ok) {
+    return { ok: false, error: descriptionPrep.error };
+  }
+  const safeDescription = descriptionPrep.sanitized;
+  const paramsForRow: PublishLeonixRealEstateListingCoreParams = { ...params, description: safeDescription };
+
   let supabase: ReturnType<typeof createSupabaseBrowserClient>;
   try {
     supabase = createSupabaseBrowserClient();
@@ -201,7 +218,7 @@ export async function publishLeonixRealEstateListingCore(
   }
   const userId = auth.user.id;
 
-  const insertPayload = buildListingsInsertRowForLeonixPublish(userId, params);
+  const insertPayload = buildListingsInsertRowForLeonixPublish(userId, paramsForRow);
 
   devLog("insert listings row", { category, sellerType, titleLen: title.trim().length });
 
@@ -211,6 +228,10 @@ export async function publishLeonixRealEstateListingCore(
     devLog("insert error", err);
     const code = typeof err.code === "string" ? err.code : "";
     const msg = String(err.message ?? "");
+    const descConstraint = mapLeonixListingsDescriptionConstraintToUserMessage(err, lang);
+    if (descConstraint) {
+      return { ok: false, error: descConstraint };
+    }
     const rls = code === "42501" || /row-level security|RLS|permission denied|violates row-level security/i.test(msg);
     const missingCol = /column\s+["']?(\w+)["']?\s+of\s+relation\s+["']?listings["']?\s+does not exist/i.test(msg);
     const hint =
@@ -229,12 +250,13 @@ export async function publishLeonixRealEstateListingCore(
             : code
               ? ` (PostgREST/Postgres code: ${code})`
               : "";
+    const generic =
+      lang === "es"
+        ? "No se pudo guardar el anuncio. Inténtalo de nuevo."
+        : "Could not save the listing. Please try again.";
     return {
       ok: false,
-      error:
-        lang === "es"
-          ? `No se pudo guardar el anuncio: ${msg}${hint}`
-          : `Could not save listing: ${msg}${hint}`,
+      error: DEV ? `${generic} (${msg}${hint})` : rls || missingCol ? `${generic}${hint}` : generic,
     };
   }
 
@@ -245,7 +267,7 @@ export async function publishLeonixRealEstateListingCore(
   const photoUrls: string[] = [];
   const basePath = `${userId}/${listingId}/photos`;
   let uploadFailures = 0;
-  /** True only after `listings.images` + description appendix update succeeds (when there are photos). */
+  /** True only after `listings.images` + clean `description` update succeeds (when there are photos). */
   let listingImagesPersisted = false;
 
   try {
@@ -296,12 +318,10 @@ export async function publishLeonixRealEstateListingCore(
     }
 
     if (photoUrls.length) {
-      const appendix = leonixGalleryAppendixForDescription(lang, photoUrls);
-      const descriptionForUpdate = `${description.trim()}${appendix}`.trim();
       const touch = new Date().toISOString();
       const muxPid = String(params.muxPlaybackId ?? "").trim();
       const galleryPatch: Record<string, unknown> = {
-        description: descriptionForUpdate,
+        description: safeDescription,
         images: photoUrls,
         published_at: touch,
         updated_at: touch,
@@ -319,12 +339,18 @@ export async function publishLeonixRealEstateListingCore(
       if (updErr) {
         devLog("description/images update failed", updErr);
         await supabase.from("listings").delete().eq("id", listingId);
+        const updFriendly = mapLeonixListingsDescriptionConstraintToUserMessage(updErr, lang);
         return {
           ok: false,
-          error:
-            lang === "es"
-              ? `Las fotos se subieron pero no se pudo guardar la galería en el anuncio: ${updErr.message}`
-              : `Photos uploaded but the listing could not be updated with the gallery: ${updErr.message}`,
+          error: updFriendly
+            ? updFriendly
+            : lang === "es"
+              ? DEV
+                ? `Las fotos se subieron pero no se pudo guardar la galería en el anuncio: ${updErr.message}`
+                : "Las fotos se subieron pero no se pudo guardar la galería en el anuncio. Inténtalo de nuevo."
+              : DEV
+                ? `Photos uploaded but the listing could not be updated with the gallery: ${updErr.message}`
+                : "Photos uploaded but the listing could not be updated with the gallery. Please try again.",
         };
       }
       listingImagesPersisted = true;

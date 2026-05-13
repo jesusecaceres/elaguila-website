@@ -1,7 +1,7 @@
 /**
- * Persisted gallery URLs are appended to `listings.description` during Leonix publish
- * (`leonixPublishRealEstateListingCore`). Public read can fall back to this block when
- * `listings.images` is empty (e.g. legacy rows or failed DB update).
+ * Persisted gallery URLs historically lived in `listings.description` during Leonix publish.
+ * New publishes keep `description` as user prose only; gallery lives in `listings.images`.
+ * `stripLeonixPublishedDescriptionBody` still removes legacy appendix for public display.
  */
 
 const MARK_OPEN = "[LEONIX_IMAGES]";

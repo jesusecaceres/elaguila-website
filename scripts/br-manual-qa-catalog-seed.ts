@@ -23,8 +23,8 @@ import { mapBrListingRowToNegocioCard, type BrListingDbRow } from "../app/(site)
 import { parseBrResultsUrl } from "../app/(site)/clasificados/bienes-raices/resultados/lib/brResultsUrlState";
 import {
   buildListingsInsertRowForLeonixPublish,
-  leonixGalleryAppendixForDescription,
 } from "../app/(site)/clasificados/lib/leonixPublishRealEstateListingCore";
+import { sanitizeLeonixListingPublishDescriptionBody } from "../app/(site)/clasificados/lib/leonixPublishPublicDescription";
 import { insertListingsRowResilient } from "../app/(site)/clasificados/lib/listingsSelectShrink";
 import {
   buildPublishParamsFromBienesRaicesNegocioDraft,
@@ -805,8 +805,7 @@ async function ensureListing(userClient: SupabaseClient, ownerId: string, built:
   const { data, error } = await insertListingsRowResilient(sb, row);
   if (error || !data?.id) throw new Error(error?.message ?? "insert failed");
   const id = data.id;
-  const appendix = leonixGalleryAppendixForDescription("es", [...QA_PHOTOS]);
-  const desc = `${built.params.description.trim()}${appendix}`.trim();
+  const desc = sanitizeLeonixListingPublishDescriptionBody(built.params.description.trim());
   const gallery = [...QA_PHOTOS] as string[];
   const { error: uErr } = await userClient.from("listings").update({ description: desc, images: gallery }).eq("id", id);
   if (uErr) throw new Error(uErr.message);
