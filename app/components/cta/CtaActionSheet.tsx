@@ -34,6 +34,9 @@ const COPY = {
     subject: "Asunto",
     body: "Mensaje",
     noEmail: "No hay correo disponible.",
+    emailDraftMissing: "No hay asunto ni mensaje para enviar.",
+    recipientOptional: "Sin destinatario fijo: se abrirá tu app de correo con este borrador.",
+    openGmail: "Abrir en Gmail",
     prefilledMessage: "Mensaje",
     sendWhatsApp: "Enviar por WhatsApp",
     sendSms: "Enviar por SMS",
@@ -74,6 +77,9 @@ const COPY = {
     subject: "Subject",
     body: "Message",
     noEmail: "No email available.",
+    emailDraftMissing: "No subject or message to send.",
+    recipientOptional: "No fixed recipient — your mail app opens with this draft.",
+    openGmail: "Open in Gmail",
     prefilledMessage: "Message",
     sendWhatsApp: "Send via WhatsApp",
     sendSms: "Send via SMS",
@@ -246,17 +252,22 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
     const em = trim(intent.email);
     const sub = trim(intent.subject);
     const bod = trim(intent.body);
-    const has = Boolean(em);
+    const gmailHref = trim(intent.gmailComposeHref ?? "");
+    const canCompose = Boolean(em || sub || bod);
+    const hasAddr = Boolean(em);
     heading = t.email;
     body = (
       <div className="mt-3 flex flex-col gap-3">
-        {!has ? <p className="text-sm text-red-900">{t.noEmail}</p> : null}
-        {has ? (
+        {!canCompose ? <p className="text-sm text-red-900">{t.emailDraftMissing}</p> : null}
+        {canCompose && !hasAddr ? <p className="text-xs leading-snug text-[#5C564E]">{t.recipientOptional}</p> : null}
+        {hasAddr ? (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.email}</p>
+            <p className={MONO}>{em}</p>
+          </div>
+        ) : null}
+        {canCompose ? (
           <>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.email}</p>
-              <p className={MONO}>{em}</p>
-            </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.subject}</p>
               <p className="whitespace-pre-wrap text-sm text-[#111111]">{sub || "—"}</p>
@@ -267,22 +278,71 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
             </div>
           </>
         ) : null}
-        {btnRow(t.openEmailApp, "open_email", BTN_PRIMARY, () => openMailto(em, sub, bod), !has)}
-        {btnRow(t.copyEmail, "copy_email", BTN_SECONDARY, async () => {
-          const ok = await copyToClipboard(em);
-          flash(ok ? (lang === "en" ? "Email copied." : "Correo copiado.") : t.copyFailed);
-        }, !has)}
-        {btnRow(t.copyFullMessage, "copy_full_email", BTN_SECONDARY, async () => {
-          const full = [`To: ${em}`, sub ? `Subject: ${sub}` : "", "", bod].filter(Boolean).join("\n");
-          const ok = await copyToClipboard(full);
-          flash(ok ? (lang === "en" ? "Message copied." : "Mensaje copiado.") : t.copyFailed);
-        }, !has)}
-        {btnRow(t.shareContact, "share_contact_email", BTN_SECONDARY, async () => {
-          const block = buildContactShareText(intent.contactShareExtras, { lang, formattedPhone: undefined, phone: null });
-          const lines = [block, em ? `Email: ${em}` : "", sub ? `${lang === "en" ? "Subject" : "Asunto"}: ${sub}` : "", bod].filter(Boolean).join("\n\n");
-          const ok = await copyToClipboard(lines);
-          flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed);
-        }, !has)}
+        <button
+          type="button"
+          disabled={!canCompose}
+          className={BTN_PRIMARY + (!canCompose ? " cursor-not-allowed opacity-45" : "")}
+          onClick={() => {
+            fireAction(onAction, "send_email", "open_email");
+            openMailto(em, sub, bod);
+          }}
+        >
+          {t.openEmailApp}
+        </button>
+        <button
+          type="button"
+          disabled={!hasAddr}
+          className={BTN_SECONDARY + (!hasAddr ? " cursor-not-allowed opacity-45" : "")}
+          onClick={async () => {
+            const ok = await copyToClipboard(em);
+            flash(ok ? (lang === "en" ? "Email copied." : "Correo copiado.") : t.copyFailed);
+            if (ok) fireAction(onAction, "send_email", "copy_email");
+          }}
+        >
+          {t.copyEmail}
+        </button>
+        <button
+          type="button"
+          disabled={!canCompose}
+          className={BTN_SECONDARY + (!canCompose ? " cursor-not-allowed opacity-45" : "")}
+          onClick={async () => {
+            const fullText = hasAddr
+              ? [`To: ${em}`, sub ? `Subject: ${sub}` : "", "", bod].filter(Boolean).join("\n")
+              : [sub ? `${lang === "en" ? "Subject" : "Asunto"}: ${sub}` : "", "", bod].filter(Boolean).join("\n");
+            const ok = await copyToClipboard(fullText);
+            flash(ok ? (lang === "en" ? "Message copied." : "Mensaje copiado.") : t.copyFailed);
+            if (ok) fireAction(onAction, "send_email", "copy_full_email");
+          }}
+        >
+          {t.copyFullMessage}
+        </button>
+        {gmailHref ? (
+          <a
+            href={gmailHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${BTN_SECONDARY} min-h-[44px]`}
+            onClick={() => {
+              fireAction(onAction, "send_email", "gmail_open");
+            }}
+          >
+            {t.openGmail}
+          </a>
+        ) : null}
+        <button
+          type="button"
+          disabled={!canCompose}
+          className={BTN_SECONDARY + (!canCompose ? " cursor-not-allowed opacity-45" : "")}
+          onClick={async () => {
+            const block = buildContactShareText(intent.contactShareExtras, { lang, formattedPhone: undefined, phone: null });
+            const lines = [block, hasAddr ? `Email: ${em}` : "", sub ? `${lang === "en" ? "Subject" : "Asunto"}: ${sub}` : "", bod].filter(Boolean).join("\n\n");
+            const ok = await copyToClipboard(lines);
+            flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed);
+            if (ok) fireAction(onAction, "send_email", "share_contact_email");
+          }}
+        >
+          {t.shareContact}
+        </button>
       </div>
     );
   } else if (intent.kind === "send_message") {
@@ -294,15 +354,18 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
     heading = lang === "en" ? "Message" : "Mensaje";
     body = (
       <div className="mt-3 flex flex-col gap-3">
-        {!hasMsg ? <p className="text-sm text-red-900">{t.noMessage}</p> : null}
+        {!hasMsg && !hasPhone ? <p className="text-sm text-red-900">{t.noMessage}</p> : null}
+        {!hasMsg && hasPhone ? (
+          <p className="text-xs leading-snug text-[#5C564E]">{lang === "en" ? "No preset message (optional)." : "Sin mensaje previo (opcional)."}</p>
+        ) : null}
         {hasMsg ? (
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.prefilledMessage}</p>
             <p className="max-h-36 overflow-y-auto whitespace-pre-wrap text-sm text-[#111111]">{msg}</p>
           </div>
         ) : null}
-        {btnRow(t.sendWhatsApp, "msg_whatsapp", BTN_PRIMARY, () => openWhatsApp(waDigits, msg), !hasMsg || !hasPhone)}
-        {btnRow(t.sendSms, "msg_sms", BTN_SECONDARY, () => openSms(phone || waDigits, msg), !hasMsg || !hasPhone)}
+        {btnRow(t.sendWhatsApp, "msg_whatsapp", BTN_PRIMARY, () => openWhatsApp(waDigits, msg), !hasPhone)}
+        {btnRow(t.sendSms, "msg_sms", BTN_SECONDARY, () => openSms(phone || waDigits, msg), !hasPhone)}
         {btnRow(t.copyMessage, "msg_copy", BTN_SECONDARY, async () => {
           const ok = await copyToClipboard(msg);
           flash(ok ? (lang === "en" ? "Message copied." : "Mensaje copiado.") : t.copyFailed);

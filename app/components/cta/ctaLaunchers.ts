@@ -46,15 +46,17 @@ export function openWhatsApp(phone: string, body: string): void {
 export function openMailto(email: string, subject: string, body: string): void {
   if (typeof window === "undefined") return;
   const em = trim(email);
-  if (!em) return;
   const sub = trim(subject);
   const bod = trim(body);
   const q = new URLSearchParams();
   if (sub) q.set("subject", sub);
   if (bod) q.set("body", bod);
   const qs = q.toString();
-  const href = qs ? `mailto:${em}?${qs}` : `mailto:${em}`;
-  window.location.href = href;
+  if (em) {
+    window.location.href = qs ? `mailto:${em}?${qs}` : `mailto:${em}`;
+  } else {
+    window.location.href = qs ? `mailto:?${qs}` : "mailto:";
+  }
 }
 
 export function openExternalUrl(url: string): void {

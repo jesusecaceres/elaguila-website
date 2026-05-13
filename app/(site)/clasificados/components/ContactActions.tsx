@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import { useCallback, useState } from "react";
 
-import { EmailContactOptionsSheet } from "@/app/components/clasificados/EmailContactOptionsSheet";
+import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
+import type { CtaActionCallback, CtaSheetIntent } from "@/app/components/cta/types";
+import { trackClasificadosEvent } from "@/app/lib/clasificadosAnalytics";
 
 type Lang = "es" | "en";
 
@@ -73,10 +75,24 @@ function safeHttpUrl(raw: string) {
   return "";
 }
 
+function isProbablySafeEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+function gmailComposeUrl(to: string, subject: string): string {
+  const q = new URLSearchParams();
+  q.set("view", "cm");
+  q.set("fs", "1");
+  q.set("to", to.trim());
+  if (subject.trim()) q.set("su", subject.trim());
+  return `https://mail.google.com/mail/?${q.toString()}`;
+}
+
 export default function ContactActions(props: Props) {
   const lang: Lang = props.lang === "en" ? "en" : "es";
   const onContact = props.onContact;
-  const [emailSheetOpen, setEmailSheetOpen] = useState(false);
+  const [ctaOpen, setCtaOpen] = useState(false);
+  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
 
   const phoneTel = props.phone ? normalizePhoneForTel(props.phone) : "";
   const textTel = props.text ? normalizePhoneForTel(props.text) : "";
@@ -117,9 +133,39 @@ export default function ContactActions(props: Props) {
     }
   }
 
-  const handleContact = () => {
-    onContact?.();
+  const extras = {
+    email: email || undefined,
+    websiteUrl: website || undefined,
   };
+
+  const openSheet = (intent: CtaSheetIntent) => {
+    onContact?.();
+    setCtaIntent(intent);
+    setCtaOpen(true);
+  };
+
+  const handleCtaSheetAction = useCallback<CtaActionCallback>(
+    (info) => {
+      const id = (props.listingId ?? "").trim();
+      if (!id || info.kind !== "send_email") return;
+      const map: Record<string, "email_open_app" | "email_copy" | "email_gmail_open"> = {
+        open_email: "email_open_app",
+        copy_email: "email_copy",
+        gmail_open: "email_gmail_open",
+      };
+      const action = map[info.actionId];
+      if (!action) return;
+      void trackClasificadosEvent({
+        listing_id: id,
+        category: props.listingCategory ?? undefined,
+        event_type: "cta_click",
+        event_source: "detail",
+        owner_user_id: props.ownerUserId ?? null,
+        metadata: { action },
+      });
+    },
+    [props.listingCategory, props.listingId, props.ownerUserId],
+  );
 
   const labels =
     lang === "es"
@@ -148,59 +194,124 @@ export default function ContactActions(props: Props) {
 
   if (!hasAny) return null;
 
-  const emailSheet =
-    email && mailtoHref ? (
-      <EmailContactOptionsSheet
-        open={emailSheetOpen}
-        onClose={() => setEmailSheetOpen(false)}
-        email={email}
-        lang={lang}
-        mailtoHref={mailtoHref}
-        mailtoSubject={mailSub}
-        listingId={props.listingId}
-        listingCategory={props.listingCategory}
-        ownerUserId={props.ownerUserId}
-      />
-    ) : null;
+  const phoneForCall = (props.phone ?? phoneTel).trim() || phoneTel;
+  const gmailHref = email && isProbablySafeEmail(email) ? gmailComposeUrl(email, mailSub) : null;
 
   return (
     <div className={cx("flex flex-wrap gap-2", props.className)}>
       {phoneTel ? (
-        <a href={`tel:${phoneTel}`} className={cx(BtnBase, primary)} onClick={handleContact}>
+        <button
+          type="button"
+          className={cx(BtnBase, primary)}
+          onClick={() =>
+            openSheet({
+              kind: "call",
+              phone: phoneForCall,
+              contactShareExtras: extras,
+            })
+          }
+        >
           {labels.call}
-        </a>
+        </button>
       ) : null}
 
       {smsHref ? (
-        <a href={smsHref} className={cx(BtnBase, secondary)} onClick={handleContact}>
+        <button
+          type="button"
+          className={cx(BtnBase, secondary)}
+          onClick={() =>
+            openSheet({
+              kind: "send_message",
+              message: smsBody,
+              phone: smsHrefBase,
+              whatsappDigits: undefined,
+              contactShareExtras: extras,
+            })
+          }
+        >
           {labels.text}
-        </a>
+        </button>
       ) : null}
 
       {whatsappHref ? (
-        <a href={whatsappHref} target="_blank" rel="noreferrer" className={cx(BtnBase, secondary)} onClick={handleContact}>
+        <button
+          type="button"
+          className={cx(BtnBase, secondary)}
+          onClick={() =>
+            openSheet({
+              kind: "send_message",
+              message: waMsg,
+              phone: waDigits,
+              whatsappDigits: waDigits,
+              contactShareExtras: extras,
+            })
+          }
+        >
           {labels.whatsapp}
-        </a>
+        </button>
       ) : null}
 
       {mailtoHref ? (
-        <button type="button" className={cx(BtnBase, secondary)} onClick={() => setEmailSheetOpen(true)}>
+        <button
+          type="button"
+          className={cx(BtnBase, secondary)}
+          onClick={() =>
+            openSheet({
+              kind: "send_email",
+              email,
+              subject: mailSub,
+              body: mailBody,
+              contactShareExtras: extras,
+              gmailComposeHref: gmailHref,
+            })
+          }
+        >
           {labels.email}
         </button>
       ) : null}
 
       {mapsUrl ? (
-        <a href={mapsUrl} target="_blank" rel="noreferrer" className={cx(BtnBase, secondary)} onClick={handleContact}>
+        <button
+          type="button"
+          className={cx(BtnBase, secondary)}
+          onClick={() =>
+            openSheet({
+              kind: "directions",
+              addressOrUrl: mapsUrl,
+              isMapsUrl: true,
+              contactShareExtras: extras,
+            })
+          }
+        >
           {labels.directions}
-        </a>
+        </button>
       ) : null}
 
       {website ? (
-        <a href={website} target="_blank" rel="noreferrer" className={cx(BtnBase, secondary)} onClick={handleContact}>
+        <button
+          type="button"
+          className={cx(BtnBase, secondary)}
+          onClick={() =>
+            openSheet({
+              kind: "website",
+              url: website,
+            })
+          }
+        >
           {labels.website}
-        </a>
+        </button>
       ) : null}
-      {emailSheet}
+
+      <CtaActionSheet
+        open={ctaOpen}
+        onClose={() => {
+          setCtaOpen(false);
+          setCtaIntent(null);
+        }}
+        intent={ctaIntent}
+        lang={lang}
+        onAction={handleCtaSheetAction}
+      />
     </div>
   );
 }

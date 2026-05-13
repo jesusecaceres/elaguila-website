@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { FiShare2, FiLink, FiMessageCircle, FiMail } from "react-icons/fi";
+import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
+import { getPublicAdUrl } from "@/app/components/cta/ctaDataHelpers";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
 import { trackListingShare } from "@/app/lib/clasificadosAnalytics";
 
 type Props = {
@@ -73,7 +76,11 @@ export function LeonixShareButton({
   const [copySuccess, setCopySuccess] = useState(false);
   /** Shown only after narrow-viewport clipboard fallback (not dropdown copy). */
   const [mobileInlineCopyAck, setMobileInlineCopyAck] = useState(false);
+  const [shareEmailIntent, setShareEmailIntent] = useState<CtaSheetIntent | null>(null);
   const labels = LABELS[lang];
+
+  const resolvedListingUrl = (listingUrl ?? "").trim();
+  const publicUrl = getPublicAdUrl({ publicUrl: resolvedListingUrl }).trim() || resolvedListingUrl;
   
   const sizeClasses = {
     small: "px-3 py-1.5 text-sm",
@@ -88,14 +95,14 @@ export function LeonixShareButton({
   };
   
   const handleCopyLink = async () => {
-    if (!listingUrl) return;
-    
+    if (!publicUrl) return;
+
     try {
-      await navigator.clipboard.writeText(listingUrl);
+      await navigator.clipboard.writeText(publicUrl);
       setCopySuccess(true);
-      
+
       await trackShare("copy_link");
-      
+
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (error) {
       console.warn("Copy to clipboard failed:", error);
@@ -109,7 +116,7 @@ export function LeonixShareButton({
       window.matchMedia("(max-width: 767px)").matches;
 
     if (narrow) {
-      const url = (listingUrl ?? "").trim();
+      const url = publicUrl;
       const title = (listingTitle ?? "").trim() || (typeof document !== "undefined" ? document.title : "");
       if (!url) {
         setShowDropdown((v) => !v);
@@ -154,26 +161,37 @@ export function LeonixShareButton({
       await trackShare(method);
       
       // Handle different share methods
-      const safeUrl = listingUrl || "";
+      const safeUrl = publicUrl;
       const safeTitle = listingTitle || "";
-      
+
       switch (method) {
-        case "whatsapp":
+        case "whatsapp": {
           const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${safeTitle} ${safeUrl}`)}`;
           window.open(whatsappUrl, "_blank");
           break;
-        case "facebook":
+        }
+        case "facebook": {
           const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(safeUrl)}`;
           window.open(facebookUrl, "_blank");
           break;
-        case "twitter":
+        }
+        case "twitter": {
           const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(safeTitle)}&url=${encodeURIComponent(safeUrl)}`;
           window.open(twitterUrl, "_blank");
           break;
-        case "email":
-          const emailUrl = `mailto:?subject=${encodeURIComponent(safeTitle)}&body=${encodeURIComponent(safeUrl)}`;
-          window.location.href = emailUrl;
+        }
+        case "email": {
+          if (!safeUrl) break;
+          setShareEmailIntent({
+            kind: "send_email",
+            email: "",
+            subject: safeTitle.trim() || (lang === "en" ? "Leonix listing" : "Anuncio Leonix"),
+            body: safeUrl,
+            contactShareExtras: { publicUrl: safeUrl },
+            gmailComposeHref: null,
+          });
           break;
+        }
       }
       
       setShowDropdown(false);
@@ -266,11 +284,18 @@ export function LeonixShareButton({
       
       {/* Backdrop */}
       {showDropdown && (
-        <div 
-          className="fixed inset-0 z-40" 
+        <div
+          className="fixed inset-0 z-40"
           onClick={() => setShowDropdown(false)}
         />
       )}
+
+      <CtaActionSheet
+        open={shareEmailIntent != null}
+        onClose={() => setShareEmailIntent(null)}
+        intent={shareEmailIntent}
+        lang={lang}
+      />
     </div>
   );
 }

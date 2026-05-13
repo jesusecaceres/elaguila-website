@@ -80,10 +80,13 @@ export type CtaSheetIntent =
     }
   | {
       kind: "send_email";
-      email: string;
+      /** When empty, mailto opens with subject/body only (share-by-email style). */
+      email?: string | null;
       subject: string;
       body: string;
       contactShareExtras?: CtaContactShareExtras | null;
+      /** When set, show “Open in Gmail” (Leonix share / contact parity). */
+      gmailComposeHref?: string | null;
     }
   | {
       kind: "website" | "booking" | "menu" | "order" | "social_link" | "other";
