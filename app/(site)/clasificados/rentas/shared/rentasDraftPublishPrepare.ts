@@ -1,7 +1,9 @@
 /**
- * Browser-only: convert Rentas draft `data:image/*` and `blob:` refs to HTTPS Blob URLs
+ * Browser-only: convert Rentas draft `data:image/*` and `blob:` photo refs to HTTPS Blob URLs
  * before `publishLeonixListingFromRentas*Draft` (same bridge pattern as Restaurantes
  * `resolveRestauranteDraftMediaToRemoteUrls`).
+ *
+ * Video stays local until publish; Mux upload runs inside `publishLeonixListingFromRentas*Draft`.
  */
 
 import type { RentasNegocioFormState } from "@/app/clasificados/publicar/rentas/negocio/schema/rentasNegocioFormState";
@@ -10,20 +12,18 @@ import {
   isRentasPublishableRemoteImageRef,
   rentasDraftImageRequiresBlobUpload,
 } from "@/app/clasificados/rentas/shared/rentasPublishMediaTransport";
-import { readRentasDraftVideo } from "@/app/clasificados/rentas/shared/rentasDraftVideoStore";
 
 const UPLOAD_PATH = "/api/clasificados/rentas/draft-media-upload";
 
 async function uploadBlobForRentasDraft(
   blob: Blob,
-  ctx: { draftId: string; slot: "gallery" | "logo" | "video"; index?: number },
+  ctx: { draftId: string; slot: "gallery" | "logo"; index?: number },
 ): Promise<string> {
   const form = new FormData();
   form.set("draftId", ctx.draftId);
   form.set("slot", ctx.slot);
   if (ctx.index !== undefined) form.set("index", String(ctx.index));
-  const filename = ctx.slot === "video" ? "upload.mp4" : "image.jpg";
-  form.set("file", blob, filename);
+  form.set("file", blob, "image.jpg");
   const res = await fetch(UPLOAD_PATH, { method: "POST", body: form });
   const j = (await res.json()) as { ok?: boolean; publicUrl?: string; error?: string; detail?: string };
   if (!res.ok || !j.ok || typeof j.publicUrl !== "string") {
@@ -53,45 +53,6 @@ async function resolveImageRefToPublicUrl(
   throw new Error(
     `rentas_publish_media: unsupported image ref (use data:image, blob:, or https). Got: ${t.slice(0, 48)}…`,
   );
-}
-
-type RentasMediaSlice = RentasPrivadoFormState["media"];
-
-async function resolveDraftVideoToHttpsUrl(media: RentasMediaSlice, draftId: string): Promise<string> {
-  const url = String(media.videoUrl ?? "").trim();
-  if (url && /^https:\/\//i.test(url)) return url;
-  if (url && /^http:\/\//i.test(url)) return url;
-
-  const localData = String(media.videoLocalDataUrl ?? "").trim();
-  if (/^data:video\//i.test(localData)) {
-    const res = await fetch(localData);
-    const blob = await res.blob();
-    return uploadBlobForRentasDraft(blob, { draftId, slot: "video" });
-  }
-  if (localData.startsWith("blob:")) {
-    const res = await fetch(localData);
-    const blob = await res.blob();
-    return uploadBlobForRentasDraft(blob, { draftId, slot: "video" });
-  }
-
-  const draftVid = String(media.videoLocalDraftId ?? "").trim();
-  if (draftVid) {
-    const rec = await readRentasDraftVideo(draftVid);
-    if (!rec?.blob || rec.blob.size < 1) {
-      throw new Error(
-        "rentas_publish_media: no se encontró el video local. Vuelve a seleccionar el archivo de video en el formulario.",
-      );
-    }
-    return uploadBlobForRentasDraft(rec.blob, { draftId, slot: "video" });
-  }
-
-  if (url && (url.startsWith("blob:") || /^data:video\//i.test(url))) {
-    const res = await fetch(url);
-    const blob = await res.blob();
-    return uploadBlobForRentasDraft(blob, { draftId, slot: "video" });
-  }
-
-  return "";
 }
 
 async function mapGalleryUrls(urls: readonly string[], draftId: string): Promise<string[]> {
@@ -124,20 +85,6 @@ function assertGalleryTransportClean(urls: readonly string[], label: string): vo
   }
 }
 
-function clearedLocalVideoFields(): Pick<
-  RentasMediaSlice,
-  "videoLocalDataUrl" | "videoLocalDraftId" | "videoLocalFileName" | "videoLocalMimeType" | "videoLocalSizeBytes" | "videoLocalUpdatedAt"
-> {
-  return {
-    videoLocalDataUrl: "",
-    videoLocalDraftId: "",
-    videoLocalFileName: "",
-    videoLocalMimeType: "",
-    videoLocalSizeBytes: 0,
-    videoLocalUpdatedAt: 0,
-  };
-}
-
 export async function resolveRentasPrivadoDraftMediaToRemoteUrls(
   state: RentasPrivadoFormState,
   draftId: string,
@@ -145,33 +92,11 @@ export async function resolveRentasPrivadoDraftMediaToRemoteUrls(
   const photoDataUrls = await mapGalleryUrls(state.media.photoDataUrls, draftId);
   assertGalleryTransportClean(photoDataUrls, "Rentas privado");
 
-  const m = state.media;
-  const hasVideoIntent = Boolean(
-    String(m.videoUrl ?? "").trim() ||
-      String(m.videoLocalDataUrl ?? "").trim() ||
-      String(m.videoLocalDraftId ?? "").trim(),
-  );
-  let videoUrl = String(m.videoUrl ?? "").trim();
-  if (hasVideoIntent || (videoUrl && !/^https:\/\//i.test(videoUrl))) {
-    const resolved = await resolveDraftVideoToHttpsUrl(m, draftId);
-    if (hasVideoIntent && !resolved) {
-      throw new Error(
-        "rentas_publish_media: hay un video seleccionado pero no se pudo subir. Revisa tu conexión o elige otro archivo.",
-      );
-    }
-    if (resolved && !/^https:\/\//i.test(resolved)) {
-      throw new Error("rentas_publish_media: el video debe quedar en HTTPS antes de publicar.");
-    }
-    videoUrl = resolved || videoUrl;
-  }
-
   return {
     ...state,
     media: {
       ...state.media,
       photoDataUrls,
-      videoUrl: videoUrl && /^https:\/\//i.test(videoUrl) ? videoUrl : "",
-      ...clearedLocalVideoFields(),
     },
   };
 }
@@ -192,33 +117,11 @@ export async function resolveRentasNegocioDraftMediaToRemoteUrls(
     }
   }
 
-  const m = state.media;
-  const hasVideoIntent = Boolean(
-    String(m.videoUrl ?? "").trim() ||
-      String(m.videoLocalDataUrl ?? "").trim() ||
-      String(m.videoLocalDraftId ?? "").trim(),
-  );
-  let videoUrl = String(m.videoUrl ?? "").trim();
-  if (hasVideoIntent || (videoUrl && !/^https:\/\//i.test(videoUrl))) {
-    const resolved = await resolveDraftVideoToHttpsUrl(m, draftId);
-    if (hasVideoIntent && !resolved) {
-      throw new Error(
-        "rentas_publish_media: hay un video seleccionado pero no se pudo subir. Revisa tu conexión o elige otro archivo.",
-      );
-    }
-    if (resolved && !/^https:\/\//i.test(resolved)) {
-      throw new Error("rentas_publish_media: el video debe quedar en HTTPS antes de publicar.");
-    }
-    videoUrl = resolved || videoUrl;
-  }
-
   return {
     ...state,
     media: {
       ...state.media,
       photoDataUrls,
-      videoUrl: videoUrl && /^https:\/\//i.test(videoUrl) ? videoUrl : "",
-      ...clearedLocalVideoFields(),
     },
     negocioLogoDataUrl,
   };

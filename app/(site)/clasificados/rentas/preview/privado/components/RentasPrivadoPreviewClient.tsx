@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { publishLeonixListingFromRentasPrivadoDraft } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
 import {
@@ -19,6 +19,7 @@ import {
   loadRentasPrivadoDraft,
 } from "@/app/clasificados/publicar/rentas/privado/application/utils/rentasPrivadoDraft";
 import { resolveRentasPrivadoDraftMediaToRemoteUrls } from "@/app/clasificados/rentas/shared/rentasDraftPublishPrepare";
+import { hydrateRentasPrivadoDraftVideoFromIdb } from "@/app/clasificados/rentas/shared/rentasDraftVideoHydrate";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import {
@@ -44,6 +45,7 @@ export default function RentasPrivadoPreviewClient() {
   const [draft, setDraft] = useState<RentasPrivadoFormState | null>(null);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
+  const blobRevokeRef = useRef<string | null>(null);
 
   const lang = searchParams?.get("lang") === "en" ? "en" : "es";
 
@@ -79,9 +81,38 @@ export default function RentasPrivadoPreviewClient() {
   }, [lang, router]);
 
   useEffect(() => {
-    const d = loadRentasPrivadoDraft();
-    setDraft(d);
-    setPhase(d ? "ready" : "recovery");
+    let cancelled = false;
+    (async () => {
+      const d = loadRentasPrivadoDraft();
+      if (!d) {
+        if (!cancelled) {
+          setDraft(null);
+          setPhase("recovery");
+        }
+        return;
+      }
+      const prev = blobRevokeRef.current;
+      if (prev) {
+        URL.revokeObjectURL(prev);
+        blobRevokeRef.current = null;
+      }
+      const { state: next, revokeObjectUrl } = await hydrateRentasPrivadoDraftVideoFromIdb(d);
+      if (cancelled) {
+        if (revokeObjectUrl) URL.revokeObjectURL(revokeObjectUrl);
+        return;
+      }
+      if (revokeObjectUrl) blobRevokeRef.current = revokeObjectUrl;
+      setDraft(next);
+      setPhase("ready");
+    })();
+    return () => {
+      cancelled = true;
+      const u = blobRevokeRef.current;
+      if (u) {
+        URL.revokeObjectURL(u);
+        blobRevokeRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {

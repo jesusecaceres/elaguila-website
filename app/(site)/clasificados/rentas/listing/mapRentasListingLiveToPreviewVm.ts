@@ -42,6 +42,11 @@ function parseYoutubeId(u: string): string | null {
   return m?.[1] ?? null;
 }
 
+function muxPlaybackIdFromStreamUrl(u: string): string | null {
+  const m = /^https:\/\/stream\.mux\.com\/([^/.?]+)\.m3u8/i.exec(String(u ?? "").trim());
+  return m?.[1] ?? null;
+}
+
 function digitsOnly15(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "").slice(0, 15);
 }
@@ -138,8 +143,9 @@ function buildLiveMediaVm(gallery: string[], videoUrl: string | null | undefined
   const v = trim(videoUrl ?? "");
   const exposeVideo = rentasPublishedVideoShouldAppearInGallery(v);
   const yt = exposeVideo ? parseYoutubeId(v) : null;
+  const muxPid = exposeVideo && !yt ? muxPlaybackIdFromStreamUrl(v) : null;
   const hasVid = exposeVideo;
-  const thumb0 = yt ? `https://img.youtube.com/vi/${yt}/hqdefault.jpg` : null;
+  const thumb0 = yt ? `https://img.youtube.com/vi/${yt}/hqdefault.jpg` : muxPid ? `https://image.mux.com/${muxPid}/thumbnail.jpg` : null;
   const playback0 = exposeVideo ? v : null;
   const metaLine = n > 0 ? `${n} foto${n === 1 ? "" : "s"} en la galería` : hasVid ? "Video en el anuncio" : "";
 

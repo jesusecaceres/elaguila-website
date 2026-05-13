@@ -93,6 +93,17 @@ export function buildListingsInsertRowForLeonixPublish(
   const clock = new Date().toISOString();
   insertPayload.published_at = clock;
   insertPayload.updated_at = clock;
+
+  const mux = params.muxVideo;
+  if (mux) {
+    if (mux.mux_asset_id) insertPayload.mux_asset_id = mux.mux_asset_id;
+    if (mux.mux_playback_id) insertPayload.mux_playback_id = mux.mux_playback_id;
+    if (mux.mux_thumbnail_url) insertPayload.mux_thumbnail_url = mux.mux_thumbnail_url;
+    if (mux.mux_status) insertPayload.mux_status = mux.mux_status;
+    if (typeof mux.mux_duration_seconds === "number") insertPayload.mux_duration_seconds = mux.mux_duration_seconds;
+    if (mux.video_layout_type) insertPayload.video_layout_type = mux.video_layout_type;
+  }
+
   return insertPayload;
 }
 
@@ -124,6 +135,16 @@ export function leonixHttpsGalleryUrlEligibleForDirectPersist(src: string): bool
   }
 }
 
+/** Optional Mux columns for Rentas (and future Leonix) publish — omitted when absent. */
+export type PublishLeonixMuxVideoCols = {
+  mux_asset_id: string | null;
+  mux_playback_id: string | null;
+  mux_thumbnail_url: string | null;
+  mux_status: string | null;
+  mux_duration_seconds: number | null;
+  video_layout_type: string | null;
+};
+
 export type PublishLeonixRealEstateListingCoreParams = {
   title: string;
   description: string;
@@ -142,6 +163,8 @@ export type PublishLeonixRealEstateListingCoreParams = {
   /** Ordered gallery: data URLs or http(s) URLs (cover first). */
   imageSources: string[];
   lang: "es" | "en";
+  /** When set, merged into the insert row (resilient insert strips unknown columns). */
+  muxVideo?: PublishLeonixMuxVideoCols | null;
 };
 
 export type PublishLeonixRealEstateListingCoreResult =

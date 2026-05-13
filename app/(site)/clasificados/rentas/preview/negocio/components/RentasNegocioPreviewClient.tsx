@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { publishLeonixListingFromRentasNegocioDraft } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
 import {
@@ -18,6 +18,7 @@ import {
   loadRentasNegocioDraft,
 } from "@/app/clasificados/publicar/rentas/negocio/application/utils/rentasNegocioDraft";
 import { resolveRentasNegocioDraftMediaToRemoteUrls } from "@/app/clasificados/rentas/shared/rentasDraftPublishPrepare";
+import { hydrateRentasNegocioDraftVideoFromIdb } from "@/app/clasificados/rentas/shared/rentasDraftVideoHydrate";
 import {
   createEmptyRentasNegocioFormState,
   mergePartialRentasNegocioState,
@@ -47,6 +48,7 @@ export default function RentasNegocioPreviewClient() {
   const [draft, setDraft] = useState<RentasNegocioFormState | null>(null);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
+  const blobRevokeRef = useRef<string | null>(null);
 
   const lang = searchParams?.get("lang") === "en" ? "en" : "es";
 
@@ -82,9 +84,38 @@ export default function RentasNegocioPreviewClient() {
   }, [lang, router]);
 
   useEffect(() => {
-    const d = loadRentasNegocioDraft();
-    setDraft(d);
-    setPhase(d ? "ready" : "recovery");
+    let cancelled = false;
+    (async () => {
+      const d = loadRentasNegocioDraft();
+      if (!d) {
+        if (!cancelled) {
+          setDraft(null);
+          setPhase("recovery");
+        }
+        return;
+      }
+      const prev = blobRevokeRef.current;
+      if (prev) {
+        URL.revokeObjectURL(prev);
+        blobRevokeRef.current = null;
+      }
+      const { state: next, revokeObjectUrl } = await hydrateRentasNegocioDraftVideoFromIdb(d);
+      if (cancelled) {
+        if (revokeObjectUrl) URL.revokeObjectURL(revokeObjectUrl);
+        return;
+      }
+      if (revokeObjectUrl) blobRevokeRef.current = revokeObjectUrl;
+      setDraft(next);
+      setPhase("ready");
+    })();
+    return () => {
+      cancelled = true;
+      const u = blobRevokeRef.current;
+      if (u) {
+        URL.revokeObjectURL(u);
+        blobRevokeRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {
