@@ -5,6 +5,7 @@ import { FaBookmark } from "react-icons/fa";
 import { FiBookmark } from "react-icons/fi";
 import { trackListingSave } from "@/app/lib/clasificadosAnalytics";
 import { createSupabaseBrowserClient, getBrowserAuthUserForEngagement } from "@/app/lib/supabase/browser";
+import { formatEngagementWriteErrorForDev, logEngagementWriteFailure } from "@/app/lib/leonixEngagementClientDiagnostics";
 
 type Props = {
   listingId: string | null | undefined;
@@ -179,7 +180,14 @@ export function LeonixSaveButton({
         if (error) {
           setIsSaved(prev);
           userToggledRef.current = false;
-          setEngageErr(engagementWriteFailedMsg(lang));
+          logEngagementWriteFailure({
+            table: "user_saved_listings",
+            op: "upsert",
+            listingKeyLen: effectiveId.length,
+            hasUser: true,
+            err: error,
+          });
+          setEngageErr(formatEngagementWriteErrorForDev(engagementWriteFailedMsg(lang), error));
           return;
         }
         setPostSaveDashboardHint(true);
@@ -189,17 +197,27 @@ export function LeonixSaveButton({
         if (error) {
           setIsSaved(prev);
           userToggledRef.current = false;
-          setEngageErr(engagementWriteFailedMsg(lang));
+          logEngagementWriteFailure({
+            table: "user_saved_listings",
+            op: "delete",
+            listingKeyLen: effectiveId.length,
+            hasUser: true,
+            err: error,
+          });
+          setEngageErr(formatEngagementWriteErrorForDev(engagementWriteFailedMsg(lang), error));
           return;
         }
       }
 
-      await trackListingSave(effectiveId, nextState, {
+      const ar = await trackListingSave(effectiveId, nextState, {
         category,
         ownerUserId: ownerUserId ?? undefined,
         eventSource: "cta_card",
         metadata: {},
       });
+      if (!ar.ok && process.env.NODE_ENV === "development") {
+        console.warn("[lx-engagement] listing_analytics after save toggle failed", ar);
+      }
 
       onToggle?.(nextState);
     } finally {

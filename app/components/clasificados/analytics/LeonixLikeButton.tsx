@@ -5,6 +5,7 @@ import { FaHeart } from "react-icons/fa";
 import { FiHeart } from "react-icons/fi";
 import { trackListingLike } from "@/app/lib/clasificadosAnalytics";
 import { createSupabaseBrowserClient, getBrowserAuthUserForEngagement } from "@/app/lib/supabase/browser";
+import { formatEngagementWriteErrorForDev, logEngagementWriteFailure } from "@/app/lib/leonixEngagementClientDiagnostics";
 
 type Props = {
   listingId: string | null | undefined;
@@ -189,7 +190,14 @@ export function LeonixLikeButton({
           if (error) {
             setIsLiked(prev);
             userToggledRef.current = false;
-            setEngageErr(engagementWriteFailedMsg(lang));
+            logEngagementWriteFailure({
+              table: "user_liked_listings",
+              op: "upsert",
+              listingKeyLen: effectiveId.length,
+              hasUser: true,
+              err: error,
+            });
+            setEngageErr(formatEngagementWriteErrorForDev(engagementWriteFailedMsg(lang), error));
             return;
           }
         } else {
@@ -197,7 +205,14 @@ export function LeonixLikeButton({
           if (error) {
             setIsLiked(prev);
             userToggledRef.current = false;
-            setEngageErr(engagementWriteFailedMsg(lang));
+            logEngagementWriteFailure({
+              table: "user_liked_listings",
+              op: "delete",
+              listingKeyLen: effectiveId.length,
+              hasUser: true,
+              err: error,
+            });
+            setEngageErr(formatEngagementWriteErrorForDev(engagementWriteFailedMsg(lang), error));
             return;
           }
         }
@@ -210,12 +225,15 @@ export function LeonixLikeButton({
         }
       }
 
-      await trackListingLike(effectiveId, nextState, {
+      const ar = await trackListingLike(effectiveId, nextState, {
         category,
         ownerUserId: ownerUserId ?? undefined,
         eventSource: "cta_card",
         metadata: { authenticated: Boolean(user) },
       });
+      if (!ar.ok && process.env.NODE_ENV === "development") {
+        console.warn("[lx-engagement] listing_analytics after like toggle failed", ar);
+      }
 
       onToggle?.(nextState);
     } finally {

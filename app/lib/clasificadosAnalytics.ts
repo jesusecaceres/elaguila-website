@@ -129,10 +129,13 @@ class DuplicateEventProtection {
 // Core Tracking Functions
 // ---------------------------------------------------------------------------
 
+export type ListingAnalyticsInsertResult = { ok: true } | { ok: false; errorMessage: string; errorCode?: string };
+
 /**
- * Track an analytics event with double-count protection
+ * Track an analytics event with double-count protection.
+ * Returns insert outcome so engagement UI can keep durable likes/saves even when analytics fails.
  */
-export async function trackClasificadosEvent(event: AnalyticsEvent): Promise<void> {
+export async function trackClasificadosEvent(event: AnalyticsEvent): Promise<ListingAnalyticsInsertResult> {
   try {
     const supabase = createSupabaseBrowserClient();
     let userId = event.actor_user_id ?? getCurrentUserId();
@@ -141,24 +144,23 @@ export async function trackClasificadosEvent(event: AnalyticsEvent): Promise<voi
       userId = authData?.user?.id ?? null;
     }
     const sessionId = getAnonymousSessionId();
-    
+
     // Apply double-count protection for certain event types
     const protection = DuplicateEventProtection.getInstance();
-    
+
     if (event.listing_id) {
       const shouldAllow = protection.shouldAllowEvent(
         event.event_type,
         event.listing_id,
         userId,
-        getCooldownForEventType(event.event_type)
+        getCooldownForEventType(event.event_type),
       );
-      
+
       if (!shouldAllow) {
-        return; // Silently block duplicate
+        return { ok: true };
       }
     }
-    
-    // Prepare event payload
+
     const payload = {
       listing_id: event.listing_id || null,
       event_type: event.event_type,
@@ -169,12 +171,19 @@ export async function trackClasificadosEvent(event: AnalyticsEvent): Promise<voi
       metadata: event.metadata || {},
       category: event.category ?? null,
     };
-    
-    await supabase.from("listing_analytics").insert(payload);
-    
+
+    const { error } = await supabase.from("listing_analytics").insert(payload);
+    if (error) {
+      return {
+        ok: false,
+        errorMessage: error.message || "insert_failed",
+        errorCode: error.code,
+      };
+    }
+    return { ok: true };
   } catch (error) {
-    // Fire-and-forget: do not block UI or throw
-    console.warn("Analytics tracking failed:", error);
+    const msg = error instanceof Error ? error.message : String(error);
+    return { ok: false, errorMessage: msg };
   }
 }
 
@@ -217,9 +226,9 @@ export async function trackListingView(
     ownerUserId?: string;
     eventSource?: EventSource;
     metadata?: Record<string, any>;
-  } = {}
-): Promise<void> {
-  await trackClasificadosEvent({
+  } = {},
+): Promise<ListingAnalyticsInsertResult> {
+  return trackClasificadosEvent({
     listing_id: listingId,
     category: options.category,
     event_type: "listing_view",
@@ -240,9 +249,9 @@ export async function trackListingLike(
     ownerUserId?: string;
     eventSource?: EventSource;
     metadata?: Record<string, any>;
-  } = {}
-): Promise<void> {
-  await trackClasificadosEvent({
+  } = {},
+): Promise<ListingAnalyticsInsertResult> {
+  return trackClasificadosEvent({
     listing_id: listingId,
     category: options.category,
     event_type: isLike ? "listing_like" : "listing_unlike",
@@ -263,9 +272,9 @@ export async function trackListingSave(
     ownerUserId?: string;
     eventSource?: EventSource;
     metadata?: Record<string, any>;
-  } = {}
-): Promise<void> {
-  await trackClasificadosEvent({
+  } = {},
+): Promise<ListingAnalyticsInsertResult> {
+  return trackClasificadosEvent({
     listing_id: listingId,
     category: options.category,
     event_type: isSave ? "listing_save" : "listing_unsave",
@@ -286,17 +295,17 @@ export async function trackListingShare(
     eventSource?: EventSource;
     shareMethod?: string;
     metadata?: Record<string, any>;
-  } = {}
-): Promise<void> {
-  await trackClasificadosEvent({
+  } = {},
+): Promise<ListingAnalyticsInsertResult> {
+  return trackClasificadosEvent({
     listing_id: listingId,
     category: options.category,
     event_type: "listing_share",
     event_source: options.eventSource || "share_modal",
     owner_user_id: options.ownerUserId || null,
-    metadata: { 
+    metadata: {
       shareMethod: options.shareMethod || "unknown",
-      ...options.metadata 
+      ...options.metadata,
     },
   });
 }
@@ -312,17 +321,17 @@ export async function trackCtaClick(
     ownerUserId?: string;
     eventSource?: EventSource;
     metadata?: Record<string, any>;
-  } = {}
-): Promise<void> {
+  } = {},
+): Promise<ListingAnalyticsInsertResult> {
   const eventTypeMap: Record<string, ClasificadosEventType> = {
     phone: "phone_click",
-    whatsapp: "whatsapp_click", 
+    whatsapp: "whatsapp_click",
     website: "website_click",
     directions: "directions_click",
-    general: "cta_click"
+    general: "cta_click",
   };
-  
-  await trackClasificadosEvent({
+
+  return trackClasificadosEvent({
     listing_id: listingId,
     category: options.category,
     event_type: eventTypeMap[ctaType],
@@ -343,9 +352,9 @@ export async function trackLeadCreated(
     eventSource?: EventSource;
     leadType?: string;
     metadata?: Record<string, any>;
-  } = {}
-): Promise<void> {
-  await trackClasificadosEvent({
+  } = {},
+): Promise<ListingAnalyticsInsertResult> {
+  return trackClasificadosEvent({
     listing_id: listingId,
     category: options.category,
     event_type: "lead_created",
@@ -366,9 +375,9 @@ export async function trackApplicationEvent(
     ownerUserId?: string;
     eventSource?: EventSource;
     metadata?: Record<string, any>;
-  } = {}
-): Promise<void> {
-  await trackClasificadosEvent({
+  } = {},
+): Promise<ListingAnalyticsInsertResult> {
+  return trackClasificadosEvent({
     listing_id: listingId,
     category: options.category,
     event_type: stage === "started" ? "apply_started" : "apply_submitted",

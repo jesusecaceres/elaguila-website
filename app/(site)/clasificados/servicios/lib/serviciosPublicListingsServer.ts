@@ -86,6 +86,30 @@ export type ServiciosListingSlugDbVisibility = "published_only" | "slug_page" | 
 
 const SLUG_PAGE_STATUSES = ["published", "paused_unpublished", "pending_review", "rejected", "suspended"] as const;
 
+/** Count rows in `user_liked_listings` per `listing_id` (authoritative public like count when analytics lags). */
+export async function fetchServiciosUserLikedCountsByKeys(listingKeys: string[]): Promise<Map<string, number>> {
+  const keys = [...new Set(listingKeys.map((k) => k.trim()).filter(Boolean))];
+  const out = new Map<string, number>();
+  for (const k of keys) out.set(k, 0);
+  if (keys.length === 0 || !isSupabaseAdminConfigured()) return out;
+  try {
+    const supabase = getAdminSupabase();
+    const chunkSize = 120;
+    for (let i = 0; i < keys.length; i += chunkSize) {
+      const chunk = keys.slice(i, i + chunkSize);
+      const { data, error } = await supabase.from("user_liked_listings").select("listing_id").in("listing_id", chunk);
+      if (error) continue;
+      for (const row of data ?? []) {
+        const lid = String((row as { listing_id?: string }).listing_id ?? "").trim();
+        if (lid && out.has(lid)) out.set(lid, (out.get(lid) ?? 0) + 1);
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return out;
+}
+
 /** Batch net like counts for discovery cards (hero writes {@link serviciosEngagementListingKey}; analytics may use legacy ids). */
 export async function fetchServiciosNetLikeCountsByEngagementKeys(listingKeys: string[]): Promise<Map<string, number>> {
   const keys = [...new Set(listingKeys.map((k) => k.trim()).filter(Boolean))];
@@ -101,10 +125,18 @@ export async function fetchServiciosNetLikeCountsByEngagementKeys(listingKeys: s
         .select("listing_id, event_type")
         .in("listing_id", chunk)
         .in("event_type", ["listing_like", "listing_unlike"]);
-      if (error) return new Map();
+      if (error) continue;
       if (data?.length) allRows.push(...(data as { listing_id: string | null; event_type: string | null }[]));
     }
-    return serviciosNetLikeCountMapFromAnalyticsRows(allRows, keys);
+    const fromAnalytics = serviciosNetLikeCountMapFromAnalyticsRows(allRows, keys);
+    const fromUserLiked = await fetchServiciosUserLikedCountsByKeys(keys);
+    const merged = new Map<string, number>();
+    for (const k of keys) {
+      const a = fromAnalytics.get(k) ?? 0;
+      const u = fromUserLiked.get(k) ?? 0;
+      merged.set(k, Math.max(a, u));
+    }
+    return merged;
   } catch {
     return new Map();
   }

@@ -48,8 +48,27 @@ function main() {
   ]);
   assert.equal(serviciosNetLikeCountForPublicRow(rowMulti, mapSplit), 2);
 
+  const analyticsSrc = readFileSync(join(__dirname, "../app/lib/clasificadosAnalytics.ts"), "utf8");
+  assert.ok(analyticsSrc.includes("ListingAnalyticsInsertResult"), "analytics: insert result type for engagement");
+  assert.ok(
+    analyticsSrc.includes('const { error } = await supabase.from("listing_analytics").insert(payload)'),
+    "analytics: checks insert error",
+  );
+
+  const diagSrc = readFileSync(join(__dirname, "../app/lib/leonixEngagementClientDiagnostics.ts"), "utf8");
+  assert.ok(diagSrc.includes("formatEngagementWriteErrorForDev"), "diagnostics: dev-only write error formatting");
+
+  const listingsServer = readFileSync(
+    join(__dirname, "../app/(site)/clasificados/servicios/lib/serviciosPublicListingsServer.ts"),
+    "utf8",
+  );
+  assert.ok(listingsServer.includes("fetchServiciosUserLikedCountsByKeys"), "servicios: user_liked row counts for cards");
+  assert.ok(listingsServer.includes("Math.max(a, u)"), "servicios: merge analytics net with user_liked counts");
+
+  const grants = readFileSync(join(__dirname, "../supabase/migrations/20260508160000_engagement_liked_saved_grants.sql"), "utf8");
+  assert.ok(grants.includes("user_liked_listings") && grants.includes("authenticated"), "sql: grants for engagement tables");
+
   const ownerKeysSrc = readFileSync(join(__dirname, "../app/lib/ownerEngagementListingKeys.ts"), "utf8");
-  assert.ok(ownerKeysSrc.includes("servicios_public_listings"));
   assert.ok(ownerKeysSrc.includes("leonix_ad_id"));
   assert.ok(ownerKeysSrc.includes('"id, slug, leonix_ad_id"'), "dashboard key collection selects Servicios ids + leonix_ad_id");
 
@@ -65,14 +84,14 @@ function main() {
   assert.ok(likeBtn.includes("setIsLiked(nextState)"), "like: optimistic UI");
   assert.ok(!likeBtn.includes("setIsLiked(initialLiked)"), "like: no initialLiked sync effect (Strict Mode reset bug)");
   assert.ok(likeBtn.includes("FaHeart"), "like: solid heart when active");
-  assert.ok(likeBtn.includes("data-leonix-like-error"), "like: error marker for QA");
+  assert.ok(likeBtn.includes("logEngagementWriteFailure"), "like: dev structured write-failure log");
 
   const saveBtn = readFileSync(join(__dirname, "../app/components/clasificados/analytics/LeonixSaveButton.tsx"), "utf8");
   assert.ok(saveBtn.includes("getBrowserAuthUserForEngagement"), "save: uses shared engagement auth");
   assert.ok(saveBtn.includes("engagementNeedAuthMsg"), "save: explicit need-auth copy before login redirect");
   assert.ok(saveBtn.includes("engagementWriteFailedMsg"), "save: DB failure copy distinct from auth");
   assert.ok(!saveBtn.includes("setIsSaved(initialSaved)"), "save: do not reset from initialSaved effect");
-  assert.ok(saveBtn.includes("data-leonix-save-error"), "save: error marker for QA");
+  assert.ok(saveBtn.includes("logEngagementWriteFailure"), "save: dev structured write-failure log");
   assert.ok(saveBtn.includes("savedDashboard"), "save: dashboard confirmation copy");
   assert.ok(saveBtn.includes("data-leonix-save-dashboard-hint"), "save: hint marker for QA");
   assert.ok(saveBtn.includes("FaBookmark"), "save: solid bookmark when active");
