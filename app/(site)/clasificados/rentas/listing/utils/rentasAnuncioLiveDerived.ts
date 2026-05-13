@@ -84,6 +84,12 @@ export function buildRentasRentalFacts(
     "renta mensual",
     "monthly rent",
     "renta",
+    "requisitos",
+    "requirements",
+    "preferencias del espacio compartido",
+    "shared-space preferences",
+    "condiciones importantes",
+    "important conditions",
   ]);
   const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
   const out: RentasAnuncioFactPair[] = [];
@@ -91,7 +97,12 @@ export function buildRentasRentalFacts(
   if (Array.isArray(pairs)) {
     for (const p of pairs) {
       const n = normalize(p.label);
-      if (rentalFactLabels.has(n) || /dep[oó]sito|plazo|disponible|amueblado|mascota|estacionamiento|servicio|lavander[ií]a|fumar|renta/i.test(n)) {
+      if (
+        rentalFactLabels.has(n) ||
+        /dep[oó]sito|plazo|disponible|amueblado|mascota|estacionamiento|servicio|lavander[ií]a|fumar|renta|requisito|preferencias|condiciones importantes/i.test(
+          n,
+        )
+      ) {
         if (!out.some((o) => normalize(o.label) === n)) out.push(p);
       }
     }
@@ -128,6 +139,11 @@ export function buildRentasAmenities(listing: RentasAnuncioListingLike): RentasA
     "smoking",
     "renta mensual",
     "monthly rent",
+    "requisitos",
+    "requirements",
+    "preferencias del espacio compartido",
+    "shared-space preferences",
+    "condiciones importantes",
   ]);
   const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
   return pairs.filter((p) => !rentalFactLabels.has(normalize(p.label)));

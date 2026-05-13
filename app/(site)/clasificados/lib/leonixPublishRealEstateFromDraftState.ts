@@ -229,6 +229,8 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
   let human = buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm);
   const note = trim(state.seller.notaContacto);
   if (note) human = [...human, { label: "Mensaje del contacto", value: note }];
+  const prefs = trim(state.rentasPreferenciasEspacioCompartido);
+  if (prefs) human = [...human, { label: "Preferencias del espacio compartido", value: prefs }];
   const withMachine = mergeRentasPrivadoMachinePairs(state, human);
   const pairs = mergeLeonixListingContractDetailPairs(withMachine, {
     branch: "rentas_privado",
@@ -322,6 +324,8 @@ export async function publishLeonixListingFromRentasNegocioDraft(
   let human = buildDetailPairsFromBienesRaicesNegocioPreviewVm(vm);
   const noteN = trim(state.negocioBio);
   if (noteN) human = [...human, { label: "Mensaje del contacto", value: noteN }];
+  const prefsN = trim(state.rentasPreferenciasEspacioCompartido);
+  if (prefsN) human = [...human, { label: "Preferencias del espacio compartido", value: prefsN }];
   const withMachine = mergeRentasNegocioMachinePairs(state, human);
   const br = rentasNegocioToBienesRaicesNegocioState(state);
   const pairs = mergeLeonixListingContractDetailPairs(withMachine, {

@@ -1,4 +1,5 @@
 import { resolveRentasPublicListingById } from "@/app/clasificados/rentas/data/rentasPublicLoader";
+import { stripLeonixPublishedDescriptionBody } from "@/app/clasificados/lib/leonixListingGalleryMarker";
 import { filterRentasPhotoUrlList } from "@/app/clasificados/rentas/lib/rentasListingPublishedMediaGuards";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 
@@ -48,9 +49,11 @@ export function getRentasListingDetailExtra(listing: RentasPublicListing): Renta
     ? listing.contactWhatsappDigits.replace(/\D/g, "").slice(0, 15)
     : undefined;
   if (listing.description && listing.sellerDisplay) {
+    const es = stripLeonixPublishedDescriptionBody(listing.description.es) || listing.description.es;
+    const en = stripLeonixPublishedDescriptionBody(listing.description.en) || listing.description.en;
     return {
-      descriptionEs: listing.description.es,
-      descriptionEn: listing.description.en,
+      descriptionEs: es,
+      descriptionEn: en,
       sellerDisplayEs: listing.sellerDisplay.es,
       sellerDisplayEn: listing.sellerDisplay.en,
       gallery: galleryStringsForDetail(listing),

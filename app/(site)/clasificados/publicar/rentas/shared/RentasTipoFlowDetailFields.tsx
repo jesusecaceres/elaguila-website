@@ -113,6 +113,26 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
             />
           </AiField>
         </div>
+        <div className="sm:col-span-2">
+          <AiField
+            label="Preferencias del espacio compartido"
+            hint="Opcional. Agrega detalles importantes para convivencia, reglas del hogar o preferencias razonables para el espacio."
+          >
+            <textarea
+              className={fieldClass}
+              rows={4}
+              value={state.rentasPreferenciasEspacioCompartido}
+              onChange={(e) =>
+                setState((s) => ({
+                  ...s,
+                  rentasPreferenciasEspacioCompartido: e.target.value,
+                }))
+              }
+              placeholder="Ej. ambiente tranquilo, no fumar, horario de descanso, preferencia para una persona, etc."
+              autoComplete="off"
+            />
+          </AiField>
+        </div>
       </div>
     );
   }

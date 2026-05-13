@@ -63,6 +63,8 @@ export type RentasPrivadoFormState = {
   rentasEspacioEntradaPrivada: "" | "si" | "no";
   rentasEspacioLavanderia: "" | "si" | "no";
   rentasEspacioMaxOcupantes: string;
+  /** Preferencias razonables para convivencia en espacio compartido (opcional). */
+  rentasPreferenciasEspacioCompartido: string;
   /** Garaje / bodega / estacionamiento */
   rentasAlmacenTamanoAprox: string;
   rentasAlmacenAcceso24h: "" | "si" | "no";
@@ -238,6 +240,7 @@ export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
     rentasEspacioEntradaPrivada: "",
     rentasEspacioLavanderia: "",
     rentasEspacioMaxOcupantes: "",
+    rentasPreferenciasEspacioCompartido: "",
     rentasAlmacenTamanoAprox: "",
     rentasAlmacenAcceso24h: "",
     rentasAlmacenElectricidad: "",
@@ -405,6 +408,10 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
       typeof partial.rentasEspacioMaxOcupantes === "string"
         ? String(partial.rentasEspacioMaxOcupantes).replace(/\D/g, "")
         : base.rentasEspacioMaxOcupantes,
+    rentasPreferenciasEspacioCompartido:
+      typeof partial.rentasPreferenciasEspacioCompartido === "string"
+        ? partial.rentasPreferenciasEspacioCompartido
+        : base.rentasPreferenciasEspacioCompartido,
     rentasAlmacenTamanoAprox: typeof partial.rentasAlmacenTamanoAprox === "string" ? partial.rentasAlmacenTamanoAprox : base.rentasAlmacenTamanoAprox,
     rentasAlmacenAcceso24h: coerceRentasSiNo(partial.rentasAlmacenAcceso24h),
     rentasAlmacenElectricidad: coerceRentasSiNo(partial.rentasAlmacenElectricidad),

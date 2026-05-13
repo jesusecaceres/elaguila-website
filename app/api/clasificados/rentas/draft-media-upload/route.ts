@@ -3,7 +3,10 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const SLOTS = new Set(["gallery", "logo"]);
+const SLOTS = new Set(["gallery", "logo", "video"]);
+
+const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 90 * 1024 * 1024;
 
 /**
  * Upload one browser-held image (data URL → Blob or file) to public Blob storage.
@@ -39,19 +42,36 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "missing_file" }, { status: 400 });
   }
 
-  if (file.size > 12 * 1024 * 1024) {
+  const maxBytes = slot === "video" ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+  if (file.size > maxBytes) {
     return NextResponse.json({ ok: false, error: "file_too_large" }, { status: 413 });
+  }
+
+  if (slot === "video") {
+    const ct = (file.type || "").toLowerCase();
+    const okType =
+      ct.startsWith("video/") ||
+      ct === "application/octet-stream" ||
+      ct === "binary/octet-stream" ||
+      ct === "";
+    if (!okType) {
+      return NextResponse.json({ ok: false, error: "unsupported_video_type", detail: ct || "empty" }, { status: 400 });
+    }
   }
 
   const safeId = draftId.replace(/[^a-zA-Z0-9_-]+/g, "").slice(0, 80) || "draft";
   const ix = Number.isFinite(index) ? Math.max(0, Math.floor(index)) : 0;
   const pathname = `clasificados/rentas/drafts/${safeId}/${slot}-${ix}-${Date.now()}`;
 
+  const contentType =
+    file.type ||
+    (slot === "video" ? "video/mp4" : "image/jpeg");
+
   const uploaded = await put(pathname, file, {
     access: "public",
     token,
     addRandomSuffix: true,
-    contentType: file.type || "image/jpeg",
+    contentType,
   });
 
   return NextResponse.json({ ok: true, publicUrl: uploaded.url });

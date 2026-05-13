@@ -40,6 +40,14 @@ import { parseEnVentaResultsReturnUrl } from "../../en-venta/results/utils/enVen
 import { EN_VENTA_VISIBILITY_WINDOW_MS } from "../../en-venta/boosts/enVentaVisibilityRenewal";
 import { missingListingsColumnName, stripSelectColumn } from "../../lib/listingsSelectShrink";
 import { resolveLeonixLiveListingContact } from "../../lib/leonixListingContactResolve";
+import { readLeonixDetailPairValue } from "../../lib/leonixRealEstateListingContract";
+import { stripLeonixPublishedDescriptionBody } from "../../lib/leonixListingGalleryMarker";
+import {
+  RENTAS_DP_CONTACT_SMS_DIGITS,
+  RENTAS_DP_CONTACT_WHATSAPP_DIGITS,
+  RENTAS_DP_MAP_URL,
+} from "../../rentas/lib/rentasMachineDetailPairs";
+import { rentasLeadSmsBody } from "../../rentas/shared/rentasLeadContactCopy";
 import { useAutosAnuncioDerived } from "../../autos/listing/hooks/useAutosAnuncioDerived";
 import { AutosAnuncioMetaFactCards } from "../../autos/listing/components/AutosAnuncioMetaFactCards";
 import { AutosAnuncioLaneContextStrip } from "../../autos/listing/components/AutosAnuncioLaneContextStrip";
@@ -177,13 +185,9 @@ function extractLeonixImageUrlsFromDescription(description: string | null | unde
   return urls;
 }
 
-function stripLeonixImagesBlock(desc: string): string {
-  return desc.replace(/\s*\[LEONIX_IMAGES\][\s\S]*?\[\/LEONIX_IMAGES\]\s*/g, "\n").trim();
-}
-
 function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
   const rawDesc = String(row.description ?? "");
-  const blurbText = stripLeonixImagesBlock(rawDesc).trim() || rawDesc.trim();
+  const blurbText = stripLeonixPublishedDescriptionBody(rawDesc) || rawDesc.trim();
   const fromJson = imageUrlsFromJsonb(row.images);
   const fromMarker = extractLeonixImageUrlsFromDescription(rawDesc);
   const merged = [...new Set([...fromJson, ...fromMarker])];
@@ -472,6 +476,23 @@ export default function AnuncioDetallePage() {
     () => (listing ? resolveLeonixLiveListingContact(listing as Listing & { business_meta?: string | null }) : null),
     [listing]
   );
+
+  const rentasLiveContactExtras = useMemo(() => {
+    if (!listing || listing.category !== "rentas") return null;
+    const phoneRaw = leonixLiveContact?.phoneForTel ?? "";
+    const phoneDigits = String(phoneRaw).replace(/\D/g, "").slice(0, 15);
+    const pairs = (listing as Listing & { detail_pairs?: unknown }).detailPairs ?? (listing as { detail_pairs?: unknown }).detail_pairs;
+    const smsM = (readLeonixDetailPairValue(pairs, RENTAS_DP_CONTACT_SMS_DIGITS) ?? "").replace(/\D/g, "").slice(0, 15);
+    const waM = (readLeonixDetailPairValue(pairs, RENTAS_DP_CONTACT_WHATSAPP_DIGITS) ?? "").replace(/\D/g, "").slice(0, 15);
+    const mapUrl = (readLeonixDetailPairValue(pairs, RENTAS_DP_MAP_URL) ?? "").trim();
+    const fallbackMap = String((listing as { mapsUrl?: string }).mapsUrl ?? "").trim();
+    return {
+      smsNumber: smsM || phoneDigits,
+      waDigits: waM || phoneDigits,
+      mapsUrl: mapUrl || fallbackMap || undefined,
+      leadBody: rentasLeadSmsBody(lang),
+    };
+  }, [listing, leonixLiveContact, lang]);
 
   const communityQuickPairMap = useMemo(() => {
     if (!listing || (listing.category !== "clases" && listing.category !== "comunidad")) return null;
@@ -1842,15 +1863,34 @@ export default function AnuncioDetallePage() {
                 <ContactActions
                   lang={lang}
                   phone={leonixLiveContact?.phoneForTel ?? rentasNegocioDisplay?.officePhone ?? (listing as any)?.contact_phone ?? (listing as any)?.phone}
-                  text={communityQuickPairMap?.["Leonix:smsPhone"]?.trim() || (listing as any)?.text}
+                  text={
+                    listing?.category === "rentas"
+                      ? rentasLiveContactExtras?.smsNumber || (listing as any)?.text
+                      : communityQuickPairMap?.["Leonix:smsPhone"]?.trim() || (listing as any)?.text
+                  }
+                  smsBody={listing?.category === "rentas" ? rentasLiveContactExtras?.leadBody : undefined}
+                  whatsappPhone={listing?.category === "rentas" ? rentasLiveContactExtras?.waDigits : undefined}
+                  whatsappMessage={listing?.category === "rentas" ? rentasLiveContactExtras?.leadBody : undefined}
                   email={leonixLiveContact?.emailForMailto ?? (listing as any)?.contact_email ?? (listing as any)?.email}
+                  mailtoSubject={
+                    listing?.category === "rentas"
+                      ? lang === "es"
+                        ? "Pregunta sobre tu anuncio de renta (Leonix)"
+                        : "Question about your rental listing (Leonix)"
+                      : undefined
+                  }
+                  mailtoBody={listing?.category === "rentas" ? rentasLiveContactExtras?.leadBody : undefined}
                   website={
                     communityQuickPairMap?.["Leonix:website"]?.trim() ||
                     leonixLiveContact?.website ||
                     rentasNegocioDisplay?.website ||
                     (listing as any)?.website
                   }
-                  mapsUrl={(listing as any)?.mapsUrl}
+                  mapsUrl={
+                    listing?.category === "rentas"
+                      ? rentasLiveContactExtras?.mapsUrl || (listing as any)?.mapsUrl
+                      : (listing as any)?.mapsUrl
+                  }
                   onContact={
                     listing
                       ? () => {

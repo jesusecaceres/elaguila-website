@@ -52,6 +52,7 @@ export type RentasNegocioFormState = {
   rentasEspacioEntradaPrivada: RentasPrivadoFormState["rentasEspacioEntradaPrivada"];
   rentasEspacioLavanderia: RentasPrivadoFormState["rentasEspacioLavanderia"];
   rentasEspacioMaxOcupantes: RentasPrivadoFormState["rentasEspacioMaxOcupantes"];
+  rentasPreferenciasEspacioCompartido: RentasPrivadoFormState["rentasPreferenciasEspacioCompartido"];
   rentasAlmacenTamanoAprox: RentasPrivadoFormState["rentasAlmacenTamanoAprox"];
   rentasAlmacenAcceso24h: RentasPrivadoFormState["rentasAlmacenAcceso24h"];
   rentasAlmacenElectricidad: RentasPrivadoFormState["rentasAlmacenElectricidad"];
@@ -140,6 +141,7 @@ export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
     rentasEspacioEntradaPrivada: "",
     rentasEspacioLavanderia: "",
     rentasEspacioMaxOcupantes: "",
+    rentasPreferenciasEspacioCompartido: "",
     rentasAlmacenTamanoAprox: "",
     rentasAlmacenAcceso24h: "",
     rentasAlmacenElectricidad: "",
@@ -255,6 +257,7 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
     rentasEspacioEntradaPrivada: asPrivado.rentasEspacioEntradaPrivada,
     rentasEspacioLavanderia: asPrivado.rentasEspacioLavanderia,
     rentasEspacioMaxOcupantes: asPrivado.rentasEspacioMaxOcupantes,
+    rentasPreferenciasEspacioCompartido: asPrivado.rentasPreferenciasEspacioCompartido,
     rentasAlmacenTamanoAprox: asPrivado.rentasAlmacenTamanoAprox,
     rentasAlmacenAcceso24h: asPrivado.rentasAlmacenAcceso24h,
     rentasAlmacenElectricidad: asPrivado.rentasAlmacenElectricidad,

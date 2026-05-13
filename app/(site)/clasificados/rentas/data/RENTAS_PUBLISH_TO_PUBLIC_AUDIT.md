@@ -22,3 +22,13 @@ Single reference for which **Privado** / **Negocio** publish fields feed public 
 **ZIP / state:** Not required in raw publish JSON today; `RentasPublicListing.postalCode` / `stateRegion` are adapter-filled when geocoding or structured address exists.
 
 **Wired vs missing:** Demo data sets `city` / `postalCode` / `publishedAt` / `browseActive`. Live DB must populate the same public fields.
+
+## 2026-05 — media + convivencia + contact parity
+
+| Publish field | Public / UX |
+|---------------|-------------|
+| `media.videoUrl` + local video (`videoLocalDataUrl` / `videoLocalDraftId`) | `resolveRentas*DraftMediaToRemoteUrls` uploads to Blob (`draft-media-upload` `slot=video`) → HTTPS `videoUrl` → `Leonix:rent:video_url` → gallery VM + lightbox **Video** tab |
+| `rentasPreferenciasEspacioCompartido` | Human pair **Preferencias del espacio compartido** → `RentasPublicListing.sharedSpacePreferences` → live preview contract rows + anuncio rental-facts path (not amenities) |
+| Lead CTAs | Shared copy `rentasLeadContactCopy.ts`: SMS + WhatsApp (`wa.me?text=`) + mailto body; live anuncio reads SMS/WhatsApp digits from `detail_pairs` when present |
+| `descripcion` | `stripLeonixPublishedDescriptionBody` on public mapper + live listing blurb + `getRentasListingDetailExtra` so gallery appendix never shows as body text |
+

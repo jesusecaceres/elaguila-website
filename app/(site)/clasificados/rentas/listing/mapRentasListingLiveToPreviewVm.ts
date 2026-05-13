@@ -22,6 +22,7 @@ import {
   filterRentasPhotoUrlList,
   rentasPublishedVideoShouldAppearInGallery,
 } from "@/app/clasificados/rentas/lib/rentasListingPublishedMediaGuards";
+import { rentasLeadSmsBody } from "@/app/clasificados/rentas/shared/rentasLeadContactCopy";
 import { filterRentasLivePropertyRowsForFlow } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
 import { formatRentasTipoDeRentaDisplay, rentasRentalFlowGroupForTipo } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 
@@ -51,18 +52,16 @@ function telHrefFromDigits(d: string): string | null {
   return `tel:${x}`;
 }
 
-function smsHrefFromDigits(d: string): string | null {
+function smsHrefFromDigits(d: string, lang: "es" | "en"): string | null {
   const x = digitsOnly15(d);
   if (x.length < 10) return null;
-  const msg =
-    "Vi tu anuncio de renta en Leonix Media. Quiero saber si todavia esta disponible y si podemos hablar.";
-  return `sms:${x}?&body=${encodeURIComponent(msg)}`;
+  return `sms:${x}?&body=${encodeURIComponent(rentasLeadSmsBody(lang))}`;
 }
 
-function waHrefFromDigits(d: string): string | null {
+function waHrefFromDigits(d: string, lang: "es" | "en"): string | null {
   const x = digitsOnly15(d);
   if (x.length < 10) return null;
-  return `https://wa.me/${x}`;
+  return `https://wa.me/${x}?text=${encodeURIComponent(rentasLeadSmsBody(lang))}`;
 }
 
 function phoneDisplay(raw: string): string {
@@ -207,6 +206,13 @@ function buildContractRows(listing: RentasPublicListing, lang: "es" | "en"): Bie
   if (svc) rows.push({ label: "Servicios incluidos", value: svc });
   const req = trim(listing.requirements);
   if (req) rows.push({ label: "Requisitos", value: req });
+  const sprefs = trim(listing.sharedSpacePreferences);
+  if (sprefs) {
+    rows.push({
+      label: lang === "es" ? "Preferencias del espacio compartido" : "Shared-space preferences",
+      value: sprefs,
+    });
+  }
   const lc = trim(listing.leaseConditions);
   if (lc) rows.push({ label: "Condiciones importantes", value: lc });
   const zona = zonaFromListing(listing);
@@ -333,9 +339,13 @@ function contractQuickStrip(listing: RentasPublicListing, lang: "es" | "en"): Bi
   return out;
 }
 
-function buildMailto(to: string, subject: string): string | null {
+function buildMailto(to: string, subject: string, body?: string): string | null {
   const e = trim(to);
   if (!e || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return null;
+  const b = trim(body ?? "");
+  if (b) {
+    return `mailto:${e}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(b)}`;
+  }
   return `mailto:${e}?subject=${encodeURIComponent(subject)}`;
 }
 
@@ -365,9 +375,13 @@ export function mapRentasListingToPrivadoPreviewVm(
   const waDigits = trim(extra.contactWhatsappDigits ?? listing.contactWhatsappDigits ?? "");
   const waSource = waDigits || digitsOnly(phoneRaw);
   const telHref = phoneRaw ? telHrefFromDigits(phoneRaw) : null;
-  const smsHref = smsDigits ? smsHrefFromDigits(smsDigits) : smsHrefFromDigits(phoneRaw);
-  const waHref = waSource ? waHrefFromDigits(waSource) : null;
-  const mailto = buildMailto(trim(extra.contactEmail ?? listing.contactEmail ?? ""), "Pregunta sobre tu renta (Leonix)");
+  const smsHref = smsDigits ? smsHrefFromDigits(smsDigits, lang) : smsHrefFromDigits(phoneRaw, lang);
+  const waHref = waSource ? waHrefFromDigits(waSource, lang) : null;
+  const mailto = buildMailto(
+    trim(extra.contactEmail ?? listing.contactEmail ?? ""),
+    lang === "es" ? "Pregunta sobre tu renta (Leonix)" : "Question about your rental (Leonix)",
+    rentasLeadSmsBody(lang),
+  );
 
   const sellerName = lang === "en" ? extra.sellerDisplayEn : extra.sellerDisplayEs;
   const desc = lang === "en" ? extra.descriptionEn : extra.descriptionEs;
@@ -461,9 +475,13 @@ export function mapRentasListingToNegocioPreviewVm(
   const waSource = waDigits || digitsOnly(phoneRaw);
   const email = trim(extra.contactEmail ?? listing.contactEmail ?? "");
   const telHref = phoneRaw ? telHrefFromDigits(phoneRaw) : null;
-  const smsHref = smsDigits ? smsHrefFromDigits(smsDigits) : smsHrefFromDigits(phoneRaw);
-  const waHref = waSource ? waHrefFromDigits(waSource) : null;
-  const mailto = buildMailto(email, "Consulta sobre renta publicada (Leonix)");
+  const smsHref = smsDigits ? smsHrefFromDigits(smsDigits, lang) : smsHrefFromDigits(phoneRaw, lang);
+  const waHref = waSource ? waHrefFromDigits(waSource, lang) : null;
+  const mailto = buildMailto(
+    email,
+    lang === "es" ? "Consulta sobre renta publicada (Leonix)" : "Inquiry about published rental (Leonix)",
+    rentasLeadSmsBody(lang),
+  );
 
   const sellerLine = lang === "en" ? extra.sellerDisplayEn : extra.sellerDisplayEs;
   const agent = trim(listing.businessAgentName ?? "");

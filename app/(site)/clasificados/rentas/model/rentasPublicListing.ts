@@ -104,6 +104,8 @@ export type RentasPublicListing = {
   availabilityNote?: string | null;
   servicesIncluded?: string | null;
   requirements?: string | null;
+  /** Convivencia / reglas del hogar (cuarto o espacio compartido), human detail pair. */
+  sharedSpacePreferences?: string | null;
   /** Negocio-only machine fields (public on detail). */
   businessLicense?: string | null;
   businessWebsite?: string | null;

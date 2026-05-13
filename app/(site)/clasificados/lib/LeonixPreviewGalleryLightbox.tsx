@@ -4,10 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { BienesRaicesPreviewMediaVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { BrNegocioStreamableVideo } from "@/app/clasificados/bienes-raices/preview/negocio/components/BrNegocioStreamableVideo";
 import { isHostedStreamOrBlobUrl, isHttpsDirectVideoUrl, isInlineVideoDataUrl } from "@/app/clasificados/lib/leonixPreviewVideoUrl";
-import {
-  buildLeonixGallerySlidesFromMediaVm,
-  type LeonixGallerySlide,
-} from "./leonixGallerySlides";
+import { leonixGalleryPhotoSlidesWithCaptions } from "./leonixGallerySlides";
 
 type Vm = { media: BienesRaicesPreviewMediaVm };
 
@@ -29,14 +26,13 @@ function ZoomablePhoto({ url, caption }: { url: string; caption: string }) {
 
   return (
     <div
-      className="relative flex max-h-[min(72vh,780px)] w-full flex-1 touch-pan-y items-center justify-center overflow-auto"
+      className="relative flex h-full min-h-0 w-full flex-1 touch-pan-y items-center justify-center overflow-hidden px-1 sm:px-2"
       onWheel={onWheel}
     >
-      { }
       <img
         src={url}
         alt=""
-        className="max-h-none max-w-full object-contain transition-transform duration-150 ease-out"
+        className="max-h-[min(78vh,820px)] max-w-full object-contain transition-transform duration-150 ease-out"
         style={{ transform: `scale(${scale})`, transformOrigin: "center center" }}
         draggable={false}
       />
@@ -69,7 +65,7 @@ function VideoSlide({ vm, slot }: { vm: Vm; slot: 0 | 1 }) {
     return (
       <iframe
         title="Video del anuncio"
-        className="h-full min-h-[200px] w-full max-h-[min(72vh,720px)]"
+        className="h-full min-h-[220px] w-full max-h-[min(78vh,820px)]"
         src={`https://www.youtube-nocookie.com/embed/${yt}`}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
@@ -77,17 +73,17 @@ function VideoSlide({ vm, slot }: { vm: Vm; slot: 0 | 1 }) {
     );
   }
   if (playback && isInlineVideoDataUrl(playback)) {
-    return <video controls playsInline className="h-full max-h-[min(72vh,720px)] w-full object-contain" src={playback} />;
+    return <video controls playsInline className="h-full max-h-[min(78vh,820px)] w-full object-contain" src={playback} />;
   }
   if (playback && isHostedStreamOrBlobUrl(playback)) {
     return playback.includes(".m3u8") || playback.startsWith("blob:") ? (
-      <BrNegocioStreamableVideo url={playback} className="h-full min-h-[200px] max-h-[min(72vh,720px)] w-full object-contain" />
+      <BrNegocioStreamableVideo url={playback} className="h-full min-h-[220px] max-h-[min(78vh,820px)] w-full object-contain" />
     ) : (
-      <video poster={thumb ?? undefined} controls playsInline className="h-full max-h-[min(72vh,720px)] w-full object-contain" src={playback} />
+      <video poster={thumb ?? undefined} controls playsInline className="h-full max-h-[min(78vh,820px)] w-full object-contain" src={playback} />
     );
   }
   if (playback && isHttpsDirectVideoUrl(playback)) {
-    return <video controls playsInline className="h-full max-h-[min(72vh,720px)] w-full object-contain" src={playback} />;
+    return <video controls playsInline className="h-full max-h-[min(78vh,820px)] w-full object-contain" src={playback} />;
   }
   if (watchUrl) {
     return (
@@ -107,13 +103,8 @@ function VideoSlide({ vm, slot }: { vm: Vm; slot: 0 | 1 }) {
   return <p className="p-8 text-center text-sm text-white/70">Video no disponible.</p>;
 }
 
-function slideKey(s: LeonixGallerySlide, idx: number): string {
-  if (s.kind === "photo") return `p-${s.sourceIndex}-${idx}`;
-  return `v-${s.slot}`;
-}
-
 /**
- * Shared Leonix real-estate preview lightbox: deduped photo slides + video slots, quiet zoom, sticky close bar.
+ * Shared Leonix real-estate preview lightbox: Fotos / Video tabs, zoom on photos, sticky header + close.
  */
 export function LeonixPreviewGalleryLightbox({
   vm,
@@ -126,29 +117,50 @@ export function LeonixPreviewGalleryLightbox({
   initialIndex: number;
   onClose: () => void;
 }) {
-  const slides = useMemo(() => buildLeonixGallerySlidesFromMediaVm(vm.media), [vm.media]);
-  const [active, setActive] = useState(0);
+  const photoSlides = useMemo(
+    () => leonixGalleryPhotoSlidesWithCaptions(vm.media?.allPhotoUrls, vm.media?.photoCaptionsFull),
+    [vm.media],
+  );
+  const hasV1 = Boolean(vm.media?.hasVideo1);
+  const hasV2 = Boolean(vm.media?.hasVideo2);
+  const hasVideoTab = hasV1 || hasV2;
+  const [tab, setTab] = useState<"fotos" | "video">("fotos");
+  const [photoIdx, setPhotoIdx] = useState(0);
+  const [videoSlot, setVideoSlot] = useState<0 | 1>(0);
 
   useEffect(() => {
-    if (open) {
-      const max = Math.max(0, slides.length - 1);
-      setActive(Math.min(Math.max(0, initialIndex), max));
+    if (!open) return;
+    const n = photoSlides.length;
+    if (initialIndex >= n && hasVideoTab) {
+      setTab("video");
+      const slot: 0 | 1 = initialIndex > n && hasV2 ? 1 : 0;
+      setVideoSlot(slot);
+    } else {
+      setTab("fotos");
+      setPhotoIdx(n ? Math.min(Math.max(0, initialIndex), n - 1) : 0);
     }
-  }, [open, initialIndex, slides.length]);
+  }, [open, initialIndex, photoSlides.length, hasVideoTab]);
 
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
-      else if (e.key === "ArrowLeft") setActive((i) => (i <= 0 ? slides.length - 1 : i - 1));
-      else if (e.key === "ArrowRight") setActive((i) => (i >= slides.length - 1 ? 0 : i + 1));
+      if (tab !== "fotos" || photoSlides.length <= 1) return;
+      if (e.key === "ArrowLeft") setPhotoIdx((i) => (i <= 0 ? photoSlides.length - 1 : i - 1));
+      if (e.key === "ArrowRight") setPhotoIdx((i) => (i >= photoSlides.length - 1 ? 0 : i + 1));
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose, slides.length]);
+  }, [open, onClose, tab, photoSlides.length]);
 
-  const current = slides[Math.min(active, Math.max(0, slides.length - 1))] ?? null;
-  const show = open && slides.length > 0;
+  const show = open && (photoSlides.length > 0 || hasVideoTab);
+  const currentPhoto = photoSlides[photoIdx] ?? null;
+  const headerCount =
+    tab === "fotos" && photoSlides.length > 0
+      ? `Fotos · ${photoIdx + 1} / ${photoSlides.length}`
+      : tab === "video"
+        ? "Video"
+        : "Galería";
 
   return !show ? null : (
     <div
@@ -159,12 +171,34 @@ export function LeonixPreviewGalleryLightbox({
     >
       <div className="flex h-[min(96vh,100dvh)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0f0d09] shadow-2xl">
         <div
-          className="sticky top-0 z-[92] flex shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#0f0d09]/98 px-3 py-2.5 backdrop-blur-md sm:px-4"
+          className="sticky top-0 z-[92] flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-[#0f0d09]/98 px-3 py-2.5 backdrop-blur-md sm:gap-3 sm:px-4"
           style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top, 0px))" }}
         >
-          <p className="min-w-0 truncate text-xs font-semibold text-white/90">
-            Galería · {active + 1} / {slides.length}
-          </p>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            {photoSlides.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setTab("fotos")}
+                className={`rounded-lg px-2.5 py-1.5 text-[11px] font-bold sm:text-xs ${
+                  tab === "fotos" ? "bg-white/20 text-white" : "text-white/70 hover:bg-white/10"
+                }`}
+              >
+                Fotos
+              </button>
+            ) : null}
+            {hasVideoTab ? (
+              <button
+                type="button"
+                onClick={() => setTab("video")}
+                className={`rounded-lg px-2.5 py-1.5 text-[11px] font-bold sm:text-xs ${
+                  tab === "video" ? "bg-white/20 text-white" : "text-white/70 hover:bg-white/10"
+                }`}
+              >
+                Video
+              </button>
+            ) : null}
+            <p className="min-w-0 truncate text-xs font-semibold text-white/90">{headerCount}</p>
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -176,20 +210,21 @@ export function LeonixPreviewGalleryLightbox({
         </div>
 
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
-          <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-            {current?.kind === "photo" ? (
-              <ZoomablePhoto url={current.url} caption={current.caption} />
-            ) : current?.kind === "video" ? (
-              <div className="flex h-full min-h-0 w-full max-w-5xl items-center justify-center p-2 sm:p-4">
-                <VideoSlide vm={vm} slot={current.slot} />
+          <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
+            {tab === "fotos" && currentPhoto ? (
+              <ZoomablePhoto url={currentPhoto.url} caption={currentPhoto.caption} />
+            ) : null}
+            {tab === "video" && hasVideoTab ? (
+              <div className="flex h-full min-h-0 w-full max-w-5xl flex-1 items-center justify-center p-2 sm:p-4">
+                <VideoSlide vm={vm} slot={videoSlot === 1 && hasV2 ? 1 : 0} />
               </div>
             ) : null}
 
-            {slides.length > 1 ? (
+            {tab === "fotos" && photoSlides.length > 1 ? (
               <>
                 <button
                   type="button"
-                  onClick={() => setActive((i) => (i <= 0 ? slides.length - 1 : i - 1))}
+                  onClick={() => setPhotoIdx((i) => (i <= 0 ? photoSlides.length - 1 : i - 1))}
                   className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/15 bg-black/50 px-3 py-2 text-lg font-bold text-white hover:bg-black/70 sm:left-4"
                   aria-label="Anterior"
                 >
@@ -197,7 +232,7 @@ export function LeonixPreviewGalleryLightbox({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActive((i) => (i >= slides.length - 1 ? 0 : i + 1))}
+                  onClick={() => setPhotoIdx((i) => (i >= photoSlides.length - 1 ? 0 : i + 1))}
                   className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/15 bg-black/50 px-3 py-2 text-lg font-bold text-white hover:bg-black/70 sm:right-4"
                   aria-label="Siguiente"
                 >
@@ -207,26 +242,18 @@ export function LeonixPreviewGalleryLightbox({
             ) : null}
           </div>
 
-          {slides.length > 1 ? (
-            <div className="flex max-h-[min(28vh,240px)] shrink-0 gap-2 overflow-x-auto border-t border-white/10 bg-black/40 px-2 py-2 sm:px-3">
-              {slides.map((s, idx) => (
+          {tab === "fotos" && photoSlides.length > 1 ? (
+            <div className="flex max-h-[min(24vh,200px)] shrink-0 gap-2 overflow-x-auto border-t border-white/10 bg-black/40 px-2 py-2 sm:px-3">
+              {photoSlides.map((s, idx) => (
                 <button
-                  key={slideKey(s, idx)}
+                  key={`ph-${s.sourceIndex}-${idx}`}
                   type="button"
-                  onClick={() => setActive(idx)}
+                  onClick={() => setPhotoIdx(idx)}
                   className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border sm:h-[72px] sm:w-[72px] ${
-                    active === idx ? "border-[#C5A059] ring-2 ring-[#C5A059]/40" : "border-white/10 opacity-80 hover:opacity-100"
+                    photoIdx === idx ? "border-[#C5A059] ring-2 ring-[#C5A059]/40" : "border-white/10 opacity-80 hover:opacity-100"
                   }`}
                 >
-                  {s.kind === "photo" ? (
-                     
-                    <img src={s.url} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full w-full flex-col items-center justify-center bg-[#2A2620] text-[10px] font-bold text-[#F5F0E8]">
-                      ▶
-                      <span className="mt-0.5">V{s.slot + 1}</span>
-                    </div>
-                  )}
+                  <img src={s.url} alt="" className="h-full w-full object-cover" />
                 </button>
               ))}
             </div>

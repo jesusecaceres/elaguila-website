@@ -4,7 +4,7 @@
  */
 
 import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
-import { parseLeonixImageUrlsFromDescription } from "@/app/clasificados/lib/leonixListingGalleryMarker";
+import { parseLeonixImageUrlsFromDescription, stripLeonixPublishedDescriptionBody } from "@/app/clasificados/lib/leonixListingGalleryMarker";
 import {
   parseLeonixListingContract,
   parseLeonixMachineFacetRead,
@@ -398,6 +398,8 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const rentasRoomMaxOccupants = (rx.roomMaxOccupants ?? "").trim() || undefined;
   const rentasStorageAccess24h = triStateSiNo(rx.storageAccess24h);
   const rentasStorageSecurity = triStateSiNo(rx.storageSecurity);
+  const sharedSpacePreferences =
+    (pairValue(row.detail_pairs, "Preferencias del espacio compartido") ?? "").trim() || undefined;
 
   return {
     id,
@@ -441,6 +443,7 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     availabilityNote: rx.availabilityNote ?? undefined,
     servicesIncluded: rx.servicesIncluded ?? undefined,
     requirements: rx.requirements ?? undefined,
+    sharedSpacePreferences,
     rentalTypeCode,
     rentalTypeCustom,
     leaseConditions,
@@ -464,10 +467,12 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     recencyRank: publishedAt ? Math.min(100, Math.floor(Date.parse(publishedAt) / 86400000) % 100) : 50,
     amueblado,
     mascotasPermitidas,
-    description: {
-      es: trim(row.description) || "Anuncio publicado en Leonix Rentas.",
-      en: trim(row.description) || "Listing published on Leonix Rentals.",
-    },
+    description: (() => {
+      const cleaned = stripLeonixPublishedDescriptionBody(row.description);
+      const es = cleaned || "Anuncio publicado en Leonix Rentas.";
+      const en = cleaned || "Listing published on Leonix Rentals.";
+      return { es, en };
+    })(),
     sellerDisplay,
   };
 }

@@ -26,6 +26,7 @@ import {
   rentasFlowGroupActive,
 } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
 import type { RentasNegocioFormState } from "../../schema/rentasNegocioFormState";
+import { rentasLeadSmsBody, RENTAS_LEAD_MESSAGE_ES } from "@/app/clasificados/rentas/shared/rentasLeadContactCopy";
 import { rentasNegocioToBienesRaicesNegocioState } from "./rentasNegocioToBienesRaicesNegocioState";
 
 function trim(s: string): string {
@@ -65,15 +66,13 @@ function telHrefFromPhoneDisplay(raw: string): string | null {
 function waHrefFromPhoneDisplay(raw: string): string | null {
   const d = digitsOnly15(raw);
   if (d.length < 10) return null;
-  return `https://wa.me/${d}`;
+  return `https://wa.me/${d}?text=${encodeURIComponent(RENTAS_LEAD_MESSAGE_ES)}`;
 }
 
 function smsHrefFromState(raw: string): string | null {
   const d = digitsOnly15(raw);
   if (d.length < 10) return null;
-  const msg =
-    "Vi tu anuncio de renta en Leonix Media. Quiero saber si todavia esta disponible y si podemos hablar.";
-  return `sms:${d}?&body=${encodeURIComponent(msg)}`;
+  return `sms:${d}?&body=${encodeURIComponent(rentasLeadSmsBody("es"))}`;
 }
 
 function plazoDisplay(s: RentasNegocioFormState): string {

@@ -58,6 +58,7 @@ export type RentasFlowFormSlice = Pick<
   | "rentasEspacioEntradaPrivada"
   | "rentasEspacioLavanderia"
   | "rentasEspacioMaxOcupantes"
+  | "rentasPreferenciasEspacioCompartido"
   | "rentasAlmacenTamanoAprox"
   | "rentasAlmacenAcceso24h"
   | "rentasAlmacenElectricidad"
@@ -218,6 +219,8 @@ function extensionRows(s: RentasFlowFormSlice, g: RentasRentalFlowGroup): Bienes
     if (lav) out.push({ label: "Lavandería disponible", value: lav });
     const mx = trim(s.rentasEspacioMaxOcupantes).replace(/\D/g, "");
     if (mx) out.push({ label: "Máximo de ocupantes", value: mx });
+    const prefs = trim(s.rentasPreferenciasEspacioCompartido);
+    if (prefs) out.push({ label: "Preferencias del espacio compartido", value: prefs });
   }
   if (g === "storage_parking") {
     const r1 = row("Tamaño aproximado", s.rentasAlmacenTamanoAprox);
@@ -261,7 +264,18 @@ function extensionRows(s: RentasFlowFormSlice, g: RentasRentalFlowGroup): Bienes
 const RES_LABELS_DROP: Record<RentasRentalFlowGroup, Set<string> | null> = {
   unset: null,
   full_housing: null,
-  room_shared: new Set(["Recámaras", "Lote (ft²)", "Año de construcción", "Condición", "Tipo", "Subtipo"]),
+  room_shared: new Set([
+    "Recámaras",
+    "Lote (ft²)",
+    "Tamaño del lote",
+    "Interior (ft²)",
+    "Medios baños",
+    "Año de construcción",
+    "Condición",
+    "Estacionamiento",
+    "Tipo",
+    "Subtipo",
+  ]),
   storage_parking: new Set([
     "Tipo",
     "Subtipo",
