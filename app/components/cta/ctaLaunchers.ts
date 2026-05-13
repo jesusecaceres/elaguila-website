@@ -77,3 +77,29 @@ export function openMaps(addressOrUrl: string): void {
   const q = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(raw)}`;
   window.open(q, "_blank", "noopener,noreferrer");
 }
+
+/** `wa.me/?text=` composer — use only after explicit confirmation (e.g. CtaActionSheet). */
+export function openWhatsAppWebShare(text: string): void {
+  if (typeof window === "undefined") return;
+  const b = trim(text);
+  if (!b) return;
+  const url = `https://wa.me/?text=${encodeURIComponent(b)}`;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+export function openFacebookShareLink(canonicalUrl: string): void {
+  if (typeof window === "undefined") return;
+  const u = trim(canonicalUrl);
+  if (!u) return;
+  const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(u)}`;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+export function openTwitterShareLink(text: string, listingUrl: string): void {
+  if (typeof window === "undefined") return;
+  const te = trim(text);
+  const u = trim(listingUrl);
+  if (!u && !te) return;
+  const href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(te)}&url=${encodeURIComponent(u)}`;
+  window.open(href, "_blank", "noopener,noreferrer");
+}

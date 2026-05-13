@@ -2,6 +2,7 @@
 
 export type CtaActionKind =
   | "share_ad"
+  | "share_social"
   | "copy_link"
   | "call"
   | "send_message"
@@ -58,6 +59,15 @@ export type CtaSheetIntent =
       kind: "share_ad";
       publicUrl: string;
       shareTitle: string;
+      shareText?: string | null;
+    }
+  | {
+      /** Confirmed share to WhatsApp / Facebook / X — no `window.open` until the user taps a launch row. */
+      kind: "share_social";
+      platform: "whatsapp" | "facebook" | "twitter";
+      publicUrl: string;
+      shareTitle?: string | null;
+      /** Full suggested message (e.g. title + URL) for WhatsApp / X; omitted for Facebook-only flows. */
       shareText?: string | null;
     }
   | { kind: "copy_link"; publicUrl: string }

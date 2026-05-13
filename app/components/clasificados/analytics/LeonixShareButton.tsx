@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { FiShare2, FiLink, FiMessageCircle, FiMail } from "react-icons/fi";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
-import { getPublicAdUrl } from "@/app/components/cta/ctaDataHelpers";
-import type { CtaSheetIntent } from "@/app/components/cta/types";
+import { getSafePublicAdUrl } from "@/app/components/cta/ctaDataHelpers";
+import type { CtaActionCallback, CtaSheetIntent } from "@/app/components/cta/types";
 import { trackListingShare } from "@/app/lib/clasificadosAnalytics";
 
 type Props = {
@@ -31,22 +31,22 @@ const LABELS = {
     sharing: "Compartiendo...",
     copyLink: "Copiar enlace",
     copied: "¡Copiado!",
-    shareVia: "Compartir vía"
+    shareVia: "Compartir vía",
   },
   en: {
     share: "Share",
     sharing: "Sharing...",
     copyLink: "Copy link",
     copied: "Copied!",
-    shareVia: "Share via"
-  }
+    shareVia: "Share via",
+  },
 } as const;
 
 /**
  * Interactive share button following Leonix design system
  * Handles share actions with analytics tracking
  */
-export function LeonixShareButton({ 
+export function LeonixShareButton({
   listingId,
   listingUrl,
   listingTitle,
@@ -61,39 +61,65 @@ export function LeonixShareButton({
   const effectiveId = (listingId ?? "").trim();
   const allowTrack = persistEngagement !== false && Boolean(effectiveId);
 
-  const trackShare = async (shareMethod: string, extraMeta?: Record<string, unknown>) => {
-    if (!allowTrack || !effectiveId) return;
-    await trackListingShare(effectiveId, {
-      category,
-      ownerUserId: ownerUserId ?? undefined,
-      eventSource: "cta_card",
-      shareMethod,
-      metadata: { listingTitle: listingTitle || "", ...extraMeta },
-    });
-  };
+  const trackShare = useCallback(
+    async (shareMethod: string, extraMeta?: Record<string, unknown>) => {
+      if (!allowTrack || !effectiveId) return;
+      await trackListingShare(effectiveId, {
+        category,
+        ownerUserId: ownerUserId ?? undefined,
+        eventSource: "cta_card",
+        shareMethod,
+        metadata: { listingTitle: listingTitle || "", ...extraMeta },
+      });
+    },
+    [allowTrack, effectiveId, category, ownerUserId, listingTitle],
+  );
+
+  const handleSheetAction = useCallback<CtaActionCallback>(
+    (info) => {
+      if (!allowTrack || !effectiveId) return;
+      if (info.kind !== "share_social") return;
+      const platform = String(info.meta?.platform ?? "");
+      if (info.actionId.startsWith("social_open_")) {
+        const m =
+          platform === "facebook" ? "facebook" : platform === "twitter" ? "twitter" : platform === "whatsapp" ? "whatsapp" : "";
+        if (m) void trackShare(m);
+        return;
+      }
+      if (info.actionId === "social_copy_link") {
+        void trackShare("copy_link");
+        return;
+      }
+      if (info.actionId === "social_copy_share_text") {
+        void trackShare("copy_link", { sheetCopy: "share_text", platform });
+      }
+    },
+    [allowTrack, effectiveId, trackShare],
+  );
+
   const [isSharing, setIsSharing] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   /** Shown only after narrow-viewport clipboard fallback (not dropdown copy). */
   const [mobileInlineCopyAck, setMobileInlineCopyAck] = useState(false);
-  const [shareEmailIntent, setShareEmailIntent] = useState<CtaSheetIntent | null>(null);
+  const [sheetIntent, setSheetIntent] = useState<CtaSheetIntent | null>(null);
   const labels = LABELS[lang];
 
   const resolvedListingUrl = (listingUrl ?? "").trim();
-  const publicUrl = getPublicAdUrl({ publicUrl: resolvedListingUrl }).trim() || resolvedListingUrl;
-  
+  const publicUrl = getSafePublicAdUrl({ publicUrl: resolvedListingUrl }).trim() || resolvedListingUrl;
+
   const sizeClasses = {
     small: "px-3 py-1.5 text-sm",
     default: "px-4 py-2 text-sm",
-    large: "px-5 py-3 text-base"
+    large: "px-5 py-3 text-base",
   };
-  
+
   const iconSizes = {
     small: "h-4 w-4",
     default: "h-4 w-4",
-    large: "h-5 w-5"
+    large: "h-5 w-5",
   };
-  
+
   const handleCopyLink = async () => {
     if (!publicUrl) return;
 
@@ -108,7 +134,7 @@ export function LeonixShareButton({
       console.warn("Copy to clipboard failed:", error);
     }
   };
-  
+
   const handleShareButtonClick = async () => {
     const narrow =
       preferNativeShareOnNarrowViewports &&
@@ -156,33 +182,44 @@ export function LeonixShareButton({
 
   const handleShareMethod = async (method: string) => {
     setIsSharing(true);
-    
+
     try {
-      await trackShare(method);
-      
-      // Handle different share methods
-      const safeUrl = publicUrl;
-      const safeTitle = listingTitle || "";
+      const safeTitle = (listingTitle ?? "").trim();
+      const rawUrl = resolvedListingUrl;
 
       switch (method) {
-        case "whatsapp": {
-          const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${safeTitle} ${safeUrl}`)}`;
-          window.open(whatsappUrl, "_blank");
+        case "whatsapp":
+          setSheetIntent({
+            kind: "share_social",
+            platform: "whatsapp",
+            publicUrl: rawUrl,
+            shareTitle: safeTitle,
+          });
+          setShowDropdown(false);
           break;
-        }
-        case "facebook": {
-          const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(safeUrl)}`;
-          window.open(facebookUrl, "_blank");
+        case "facebook":
+          setSheetIntent({
+            kind: "share_social",
+            platform: "facebook",
+            publicUrl: rawUrl,
+            shareTitle: safeTitle,
+          });
+          setShowDropdown(false);
           break;
-        }
-        case "twitter": {
-          const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(safeTitle)}&url=${encodeURIComponent(safeUrl)}`;
-          window.open(twitterUrl, "_blank");
+        case "twitter":
+          setSheetIntent({
+            kind: "share_social",
+            platform: "twitter",
+            publicUrl: rawUrl,
+            shareTitle: safeTitle,
+          });
+          setShowDropdown(false);
           break;
-        }
         case "email": {
+          const safeUrl = getSafePublicAdUrl({ publicUrl: rawUrl }).trim() || rawUrl;
           if (!safeUrl) break;
-          setShareEmailIntent({
+          await trackShare("email");
+          setSheetIntent({
             kind: "send_email",
             email: "",
             subject: safeTitle.trim() || (lang === "en" ? "Leonix listing" : "Anuncio Leonix"),
@@ -190,18 +227,17 @@ export function LeonixShareButton({
             contactShareExtras: { publicUrl: safeUrl },
             gmailComposeHref: null,
           });
+          setShowDropdown(false);
           break;
         }
       }
-      
-      setShowDropdown(false);
     } catch (error) {
       console.warn("Share failed:", error);
     } finally {
       setIsSharing(false);
     }
   };
-  
+
   return (
     <div className={`relative ${className}`}>
       <button
@@ -225,7 +261,7 @@ export function LeonixShareButton({
           {labels.copied}
         </p>
       ) : null}
-      
+
       {showDropdown && (
         <div className="absolute top-full left-0 mt-2 w-56 rounded-2xl bg-white border border-[#E5E5E5] shadow-lg z-50">
           <div className="p-2">
@@ -235,43 +271,39 @@ export function LeonixShareButton({
               className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-[#FFFAF0] transition-colors"
             >
               <FiLink className="h-4 w-4 text-[#D4A574]" />
-              <span className="text-sm text-[#1A1A1A]">
-                {copySuccess ? labels.copied : labels.copyLink}
-              </span>
+              <span className="text-sm text-[#1A1A1A]">{copySuccess ? labels.copied : labels.copyLink}</span>
             </button>
-            
+
             {/* Share Methods */}
             <div className="pt-2 mt-2 border-t border-[#E5E5E5]">
-              <p className="px-3 py-1 text-xs font-medium text-[#7A7A7A]">
-                {labels.shareVia}
-              </p>
-              
+              <p className="px-3 py-1 text-xs font-medium text-[#7A7A7A]">{labels.shareVia}</p>
+
               <button
-                onClick={() => handleShareMethod("whatsapp")}
+                onClick={() => void handleShareMethod("whatsapp")}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-[#FFFAF0] transition-colors"
               >
                 <FiMessageCircle className="h-4 w-4 text-[#25D366]" />
                 <span className="text-sm text-[#1A1A1A]">WhatsApp</span>
               </button>
-              
+
               <button
-                onClick={() => handleShareMethod("facebook")}
+                onClick={() => void handleShareMethod("facebook")}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-[#FFFAF0] transition-colors"
               >
                 <FiShare2 className="h-4 w-4 text-[#1877F2]" />
                 <span className="text-sm text-[#1A1A1A]">Facebook</span>
               </button>
-              
+
               <button
-                onClick={() => handleShareMethod("twitter")}
+                onClick={() => void handleShareMethod("twitter")}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-[#FFFAF0] transition-colors"
               >
                 <FiShare2 className="h-4 w-4 text-[#1DA1F2]" />
                 <span className="text-sm text-[#1A1A1A]">Twitter</span>
               </button>
-              
+
               <button
-                onClick={() => handleShareMethod("email")}
+                onClick={() => void handleShareMethod("email")}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-[#FFFAF0] transition-colors"
               >
                 <FiMail className="h-4 w-4 text-[#D4A574]" />
@@ -281,20 +313,18 @@ export function LeonixShareButton({
           </div>
         </div>
       )}
-      
+
       {/* Backdrop */}
       {showDropdown && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setShowDropdown(false)}
-        />
+        <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)} />
       )}
 
       <CtaActionSheet
-        open={shareEmailIntent != null}
-        onClose={() => setShareEmailIntent(null)}
-        intent={shareEmailIntent}
+        open={sheetIntent != null}
+        onClose={() => setSheetIntent(null)}
+        intent={sheetIntent}
         lang={lang}
+        onAction={handleSheetAction}
       />
     </div>
   );

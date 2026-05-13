@@ -67,6 +67,63 @@ export function getPublicAdUrl(input: { publicUrl?: string | null; fallbackUrl?:
   return trim(input.fallbackUrl);
 }
 
+const INTERNAL_PATH_SNIPPETS = [
+  "/admin",
+  "/dashboard",
+  "/publicar",
+  "/preview",
+  "/edit",
+  "/builder",
+  "/draft",
+] as const;
+
+/**
+ * Heuristic: URLs that are usually not canonical public listing URLs for share flows
+ * (admin, publish wizard, preview, drafts, tokenized previews).
+ */
+export function isLikelyInternalOrPreviewUrl(url: string | null | undefined): boolean {
+  const raw = trim(url);
+  if (!raw) return false;
+  let haystack = raw.toLowerCase();
+  try {
+    if (/^https?:\/\//i.test(raw)) {
+      const u = new URL(raw);
+      haystack = `${u.pathname}${u.search}`.toLowerCase();
+    }
+  } catch {
+    /* keep haystack as raw */
+  }
+  for (const seg of INTERNAL_PATH_SNIPPETS) {
+    if (haystack.includes(seg)) return true;
+  }
+  const q = haystack.includes("?") ? haystack.slice(haystack.indexOf("?")) : haystack;
+  if (q.includes("token=")) return true;
+  if (q.includes("preview=")) return true;
+  if (q.includes("mode=preview")) return true;
+  return false;
+}
+
+export function isLikelyPublicAdUrl(url: string | null | undefined): boolean {
+  return Boolean(trim(url)) && !isLikelyInternalOrPreviewUrl(url);
+}
+
+/**
+ * Prefer a safe canonical listing URL for share UIs. Falls back to `fallbackUrl` when `publicUrl`
+ * looks like admin/preview. If only “suspicious” URLs exist, returns them as a last resort so
+ * preview/dev flows still get a string (callers can still gate on empty).
+ */
+export function getSafePublicAdUrl(input: { publicUrl?: string | null; fallbackUrl?: string | null }): string {
+  const p = trim(input.publicUrl);
+  const f = trim(input.fallbackUrl);
+  if (p && !isLikelyInternalOrPreviewUrl(p)) return p;
+  if (f && !isLikelyInternalOrPreviewUrl(f)) return f;
+  if (p && isLikelyInternalOrPreviewUrl(p) && f && !isLikelyInternalOrPreviewUrl(f)) return f;
+  if (!p && f && !isLikelyInternalOrPreviewUrl(f)) return f;
+  if (f) return f;
+  if (p) return p;
+  return "";
+}
+
 /** Digits only for tel:/sms:/wa.me machine segments (keeps leading country digits). */
 export function getCleanPhone(input: string | null | undefined): string {
   return String(input ?? "").replace(/\D/g, "");

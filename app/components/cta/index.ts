@@ -25,10 +25,23 @@ export {
   getEmail,
   getFormattedPhone,
   getPublicAdUrl,
+  getSafePublicAdUrl,
   isBareOtroOrOtherLabel,
+  isLikelyInternalOrPreviewUrl,
+  isLikelyPublicAdUrl,
   normalizeExternalUrl,
 } from "./ctaDataHelpers";
 
-export { openExternalUrl, openMailto, openMaps, openSms, openTel, openWhatsApp } from "./ctaLaunchers";
+export {
+  openExternalUrl,
+  openFacebookShareLink,
+  openMailto,
+  openMaps,
+  openSms,
+  openTel,
+  openTwitterShareLink,
+  openWhatsApp,
+  openWhatsAppWebShare,
+} from "./ctaLaunchers";
 
 export { CtaActionSheet, type CtaActionSheetProps } from "./CtaActionSheet";

@@ -8,10 +8,20 @@ import {
   copyToClipboard,
   getCleanPhone,
   getFormattedPhone,
-  getPublicAdUrl,
+  getSafePublicAdUrl,
   normalizeExternalUrl,
 } from "./ctaDataHelpers";
-import { openExternalUrl, openMailto, openMaps, openSms, openTel, openWhatsApp } from "./ctaLaunchers";
+import {
+  openExternalUrl,
+  openFacebookShareLink,
+  openMailto,
+  openMaps,
+  openSms,
+  openTel,
+  openTwitterShareLink,
+  openWhatsApp,
+  openWhatsAppWebShare,
+} from "./ctaLaunchers";
 import type { CtaActionCallback, CtaActionKind, CtaLang, CtaSheetIntent } from "./types";
 
 const COPY = {
@@ -57,6 +67,11 @@ const COPY = {
     unavailable: "No disponible",
     leadFormHint: "Usa el formulario en esta página para enviar tu información.",
     contactFormHint: "Usa el formulario de contacto en esta página.",
+    shareTextLabel: "Texto para compartir",
+    openWhatsAppShare: "Abrir WhatsApp",
+    openFacebookShare: "Abrir Facebook para compartir",
+    openTwitterShare: "Abrir X para compartir",
+    copyShareText: "Copiar texto para compartir",
   },
   en: {
     close: "Close",
@@ -100,6 +115,11 @@ const COPY = {
     unavailable: "Unavailable",
     leadFormHint: "Use the form on this page to send your details.",
     contactFormHint: "Use the contact form on this page.",
+    shareTextLabel: "Share text",
+    openWhatsAppShare: "Open WhatsApp",
+    openFacebookShare: "Open Facebook to share",
+    openTwitterShare: "Open X to share",
+    copyShareText: "Copy share text",
   },
 } as const;
 
@@ -124,14 +144,14 @@ function fireAction(onAction: CtaActionCallback | undefined, kind: CtaActionKind
 export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }: CtaActionSheetProps) {
   const t = COPY[lang];
   const titleId = useId();
-  const [status, setStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState<{ text: string; tone: "ok" | "err" } | null>(null);
 
   useEffect(() => {
     if (!open) setStatus(null);
   }, [open, intent]);
 
-  const flash = useCallback((msg: string) => {
-    setStatus(msg);
+  const flash = useCallback((msg: string, tone: "ok" | "err" = "ok") => {
+    setStatus({ text: msg, tone });
     window.setTimeout(() => setStatus(null), 2400);
   }, []);
 
@@ -146,15 +166,28 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
 
   const kind = intent.kind;
 
-  const btnRow = (label: string, actionId: string, className: string, onClick: () => void, disabled?: boolean) => (
+  /** `emit()` records analytics only when the handler calls it (e.g. after successful copy/share, or when launching an external app). */
+  const btnRow = (
+    label: string,
+    actionId: string,
+    className: string,
+    run: (emit: (meta?: Record<string, unknown>) => void) => void | Promise<void>,
+    disabled?: boolean,
+  ) => (
     <button
       key={actionId}
       type="button"
       disabled={disabled}
       className={className + (disabled ? " cursor-not-allowed opacity-45" : "")}
       onClick={() => {
-        onClick();
-        fireAction(onAction, kind, actionId);
+        const emit = (meta?: Record<string, unknown>) => fireAction(onAction, kind, actionId, meta);
+        void (async () => {
+          try {
+            await run(emit);
+          } catch {
+            flash(t.copyFailed, "err");
+          }
+        })();
       }}
     >
       {label}
@@ -165,7 +198,7 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
   let body: ReactNode = null;
 
   if (intent.kind === "share_ad") {
-    const url = getPublicAdUrl({ publicUrl: intent.publicUrl });
+    const url = getSafePublicAdUrl({ publicUrl: intent.publicUrl });
     const hasUrl = Boolean(url);
     const text =
       trim(intent.shareText) ||
@@ -177,37 +210,193 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
     heading = lang === "en" ? "Share ad" : "Compartir anuncio";
     body = (
       <div className="mt-3 flex flex-col gap-2">
-        {btnRow(t.shareDevice, "share_device", BTN_PRIMARY, async () => {
+        {btnRow(t.shareDevice, "share_device", BTN_PRIMARY, async (emit) => {
           if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
             try {
               await navigator.share(hasUrl ? { title: intent.shareTitle, text, url } : { title: intent.shareTitle, text });
+              emit();
               onClose();
               return;
-            } catch {
-              /* fall through */
+            } catch (err: unknown) {
+              const n = err && typeof err === "object" && "name" in err ? (err as { name: string }).name : "";
+              if (n === "AbortError") return;
             }
           }
           if (hasUrl) {
             const ok = await copyToClipboard(url);
-            flash(ok ? t.linkCopied : t.copyFailed);
+            flash(ok ? t.linkCopied : t.copyFailed, ok ? "ok" : "err");
+            if (ok) emit();
           } else {
             const ok = await copyToClipboard(text);
-            flash(ok ? (lang === "en" ? "Text copied." : "Texto copiado.") : t.copyFailed);
+            flash(
+              ok ? (lang === "en" ? "Text copied." : "Texto copiado.") : t.copyFailed,
+              ok ? "ok" : "err",
+            );
+            if (ok) emit();
           }
         })}
-        {btnRow(t.copyAdLink, "copy_ad_link", BTN_SECONDARY, async () => {
-          if (!hasUrl) return;
-          const ok = await copyToClipboard(url);
-          flash(ok ? t.linkCopied : t.copyFailed);
-        }, !hasUrl)}
-        {btnRow(t.copyAdText, "copy_ad_text", BTN_SECONDARY, async () => {
+        {btnRow(
+          t.copyAdLink,
+          "copy_ad_link",
+          BTN_SECONDARY,
+          async (emit) => {
+            if (!hasUrl) return;
+            const ok = await copyToClipboard(url);
+            flash(ok ? t.linkCopied : t.copyFailed, ok ? "ok" : "err");
+            if (ok) emit();
+          },
+          !hasUrl,
+        )}
+        {btnRow(t.copyAdText, "copy_ad_text", BTN_SECONDARY, async (emit) => {
           const ok = await copyToClipboard(text);
-          flash(ok ? (lang === "en" ? "Text copied." : "Texto copiado.") : t.copyFailed);
+          flash(ok ? (lang === "en" ? "Text copied." : "Texto copiado.") : t.copyFailed, ok ? "ok" : "err");
+          if (ok) emit();
         })}
       </div>
     );
+  } else if (intent.kind === "share_social") {
+    const url = getSafePublicAdUrl({ publicUrl: intent.publicUrl });
+    const hasUrl = Boolean(url);
+    const titleLine = trim(intent.shareTitle);
+    const shareLine =
+      trim(intent.shareText) || (hasUrl && titleLine ? `${titleLine}\n${url}`.trim() : titleLine || url);
+    const waBody = trim(intent.shareText) || (hasUrl ? `${titleLine} ${url}`.trim() : titleLine);
+    const plat = intent.platform;
+    const metaBase = { platform: plat };
+    heading =
+      plat === "whatsapp"
+        ? lang === "en"
+          ? "Share via WhatsApp"
+          : "Compartir por WhatsApp"
+        : plat === "facebook"
+          ? lang === "en"
+            ? "Share on Facebook"
+            : "Compartir en Facebook"
+          : lang === "en"
+            ? "Share on X"
+            : "Compartir en X";
+    body = (
+      <div className="mt-3 flex flex-col gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.destination}</p>
+          <p className={MONO}>{hasUrl ? url : "—"}</p>
+        </div>
+        {(plat === "whatsapp" || plat === "twitter") && shareLine ? (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.shareTextLabel}</p>
+            <p className="max-h-36 overflow-y-auto whitespace-pre-wrap text-sm text-[#111111]">{shareLine}</p>
+          </div>
+        ) : null}
+        {plat === "whatsapp" ? (
+          <>
+            {btnRow(
+              t.openWhatsAppShare,
+              "social_open_whatsapp",
+              BTN_PRIMARY,
+              (emit) => {
+                if (!waBody) return;
+                emit(metaBase);
+                openWhatsAppWebShare(waBody);
+              },
+              !waBody,
+            )}
+            {btnRow(
+              t.copyAdLink,
+              "social_copy_link",
+              BTN_SECONDARY,
+              async (emit) => {
+                if (!hasUrl) return;
+                const ok = await copyToClipboard(url);
+                flash(ok ? t.linkCopied : t.copyFailed, ok ? "ok" : "err");
+                if (ok) emit(metaBase);
+              },
+              !hasUrl,
+            )}
+            {btnRow(
+              t.copyShareText,
+              "social_copy_share_text",
+              BTN_SECONDARY,
+              async (emit) => {
+                if (!waBody) return;
+                const ok = await copyToClipboard(waBody);
+                flash(ok ? (lang === "en" ? "Text copied." : "Texto copiado.") : t.copyFailed, ok ? "ok" : "err");
+                if (ok) emit(metaBase);
+              },
+              !waBody,
+            )}
+          </>
+        ) : null}
+        {plat === "facebook" ? (
+          <>
+            {btnRow(
+              t.openFacebookShare,
+              "social_open_facebook",
+              BTN_PRIMARY,
+              (emit) => {
+                if (!hasUrl) return;
+                emit(metaBase);
+                openFacebookShareLink(url);
+              },
+              !hasUrl,
+            )}
+            {btnRow(
+              t.copyAdLink,
+              "social_copy_link",
+              BTN_SECONDARY,
+              async (emit) => {
+                if (!hasUrl) return;
+                const ok = await copyToClipboard(url);
+                flash(ok ? t.linkCopied : t.copyFailed, ok ? "ok" : "err");
+                if (ok) emit(metaBase);
+              },
+              !hasUrl,
+            )}
+          </>
+        ) : null}
+        {plat === "twitter" ? (
+          <>
+            {btnRow(
+              t.openTwitterShare,
+              "social_open_twitter",
+              BTN_PRIMARY,
+              (emit) => {
+                if (!hasUrl && !titleLine) return;
+                emit(metaBase);
+                openTwitterShareLink(titleLine, url);
+              },
+              !hasUrl && !titleLine,
+            )}
+            {btnRow(
+              t.copyAdLink,
+              "social_copy_link",
+              BTN_SECONDARY,
+              async (emit) => {
+                if (!hasUrl) return;
+                const ok = await copyToClipboard(url);
+                flash(ok ? t.linkCopied : t.copyFailed, ok ? "ok" : "err");
+                if (ok) emit(metaBase);
+              },
+              !hasUrl,
+            )}
+            {btnRow(
+              t.copyShareText,
+              "social_copy_share_text",
+              BTN_SECONDARY,
+              async (emit) => {
+                const line = shareLine || `${titleLine}\n${url}`.trim();
+                if (!line) return;
+                const ok = await copyToClipboard(line);
+                flash(ok ? (lang === "en" ? "Text copied." : "Texto copiado.") : t.copyFailed, ok ? "ok" : "err");
+                if (ok) emit(metaBase);
+              },
+              !(shareLine || (titleLine && hasUrl)),
+            )}
+          </>
+        ) : null}
+      </div>
+    );
   } else if (intent.kind === "copy_link") {
-    const url = getPublicAdUrl({ publicUrl: intent.publicUrl });
+    const url = getSafePublicAdUrl({ publicUrl: intent.publicUrl });
     heading = lang === "en" ? "Copy link" : "Copiar enlace";
     body = (
       <div className="mt-3 flex flex-col gap-2">
@@ -216,10 +405,11 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
           t.copyAdLink,
           "copy_link",
           BTN_PRIMARY,
-          async () => {
+          async (emit) => {
             if (!url) return;
             const ok = await copyToClipboard(url);
-            flash(ok ? t.linkCopied : t.copyFailed);
+            flash(ok ? t.linkCopied : t.copyFailed, ok ? "ok" : "err");
+            if (ok) emit();
           },
           !url,
         )}
@@ -232,19 +422,24 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
     body = (
       <div className="mt-3 flex flex-col gap-2">
         {!has ? <p className="text-sm text-red-900">{t.noPhone}</p> : <p className={MONO}>{formatted}</p>}
-        {btnRow(t.callNow, "call_now", BTN_PRIMARY, () => openTel(intent.phone), !has)}
-        {btnRow(t.copyNumber, "copy_number", BTN_SECONDARY, async () => {
-          const ok = await copyToClipboard(formatted || intent.phone);
-          flash(ok ? (lang === "en" ? "Number copied." : "Número copiado.") : t.copyFailed);
+        {btnRow(t.callNow, "call_now", BTN_PRIMARY, (emit) => {
+          emit();
+          openTel(intent.phone);
         }, !has)}
-        {btnRow(t.shareContact, "share_contact", BTN_SECONDARY, async () => {
+        {btnRow(t.copyNumber, "copy_number", BTN_SECONDARY, async (emit) => {
+          const ok = await copyToClipboard(formatted || intent.phone);
+          flash(ok ? (lang === "en" ? "Number copied." : "Número copiado.") : t.copyFailed, ok ? "ok" : "err");
+          if (ok) emit();
+        }, !has)}
+        {btnRow(t.shareContact, "share_contact", BTN_SECONDARY, async (emit) => {
           const block = buildContactShareText(intent.contactShareExtras, {
             lang,
             phone: intent.phone,
             formattedPhone: formatted,
           });
           const ok = await copyToClipboard(block);
-          flash(ok ? (lang === "en" ? "Contact info copied." : "Datos copiados.") : t.copyFailed);
+          flash(ok ? (lang === "en" ? "Contact info copied." : "Datos copiados.") : t.copyFailed, ok ? "ok" : "err");
+          if (ok) emit();
         }, !buildContactShareText(intent.contactShareExtras, { lang, phone: intent.phone, formattedPhone: formatted }).trim())}
       </div>
     );
@@ -295,7 +490,7 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
           className={BTN_SECONDARY + (!hasAddr ? " cursor-not-allowed opacity-45" : "")}
           onClick={async () => {
             const ok = await copyToClipboard(em);
-            flash(ok ? (lang === "en" ? "Email copied." : "Correo copiado.") : t.copyFailed);
+            flash(ok ? (lang === "en" ? "Email copied." : "Correo copiado.") : t.copyFailed, ok ? "ok" : "err");
             if (ok) fireAction(onAction, "send_email", "copy_email");
           }}
         >
@@ -310,7 +505,7 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
               ? [`To: ${em}`, sub ? `Subject: ${sub}` : "", "", bod].filter(Boolean).join("\n")
               : [sub ? `${lang === "en" ? "Subject" : "Asunto"}: ${sub}` : "", "", bod].filter(Boolean).join("\n");
             const ok = await copyToClipboard(fullText);
-            flash(ok ? (lang === "en" ? "Message copied." : "Mensaje copiado.") : t.copyFailed);
+            flash(ok ? (lang === "en" ? "Message copied." : "Mensaje copiado.") : t.copyFailed, ok ? "ok" : "err");
             if (ok) fireAction(onAction, "send_email", "copy_full_email");
           }}
         >
@@ -337,7 +532,7 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
             const block = buildContactShareText(intent.contactShareExtras, { lang, formattedPhone: undefined, phone: null });
             const lines = [block, hasAddr ? `Email: ${em}` : "", sub ? `${lang === "en" ? "Subject" : "Asunto"}: ${sub}` : "", bod].filter(Boolean).join("\n\n");
             const ok = await copyToClipboard(lines);
-            flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed);
+            flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed, ok ? "ok" : "err");
             if (ok) fireAction(onAction, "send_email", "share_contact_email");
           }}
         >
@@ -364,17 +559,25 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
             <p className="max-h-36 overflow-y-auto whitespace-pre-wrap text-sm text-[#111111]">{msg}</p>
           </div>
         ) : null}
-        {btnRow(t.sendWhatsApp, "msg_whatsapp", BTN_PRIMARY, () => openWhatsApp(waDigits, msg), !hasPhone)}
-        {btnRow(t.sendSms, "msg_sms", BTN_SECONDARY, () => openSms(phone || waDigits, msg), !hasPhone)}
-        {btnRow(t.copyMessage, "msg_copy", BTN_SECONDARY, async () => {
-          const ok = await copyToClipboard(msg);
-          flash(ok ? (lang === "en" ? "Message copied." : "Mensaje copiado.") : t.copyFailed);
-        }, !hasMsg)}
-        {btnRow(t.copyNumber, "msg_copy_phone", BTN_SECONDARY, async () => {
-          const ok = await copyToClipboard(getFormattedPhone(phone || waDigits));
-          flash(ok ? (lang === "en" ? "Number copied." : "Número copiado.") : t.copyFailed);
+        {btnRow(t.sendWhatsApp, "msg_whatsapp", BTN_PRIMARY, (emit) => {
+          emit();
+          openWhatsApp(waDigits, msg);
         }, !hasPhone)}
-        {btnRow(t.shareContact, "msg_share_contact", BTN_SECONDARY, async () => {
+        {btnRow(t.sendSms, "msg_sms", BTN_SECONDARY, (emit) => {
+          emit();
+          openSms(phone || waDigits, msg);
+        }, !hasPhone)}
+        {btnRow(t.copyMessage, "msg_copy", BTN_SECONDARY, async (emit) => {
+          const ok = await copyToClipboard(msg);
+          flash(ok ? (lang === "en" ? "Message copied." : "Mensaje copiado.") : t.copyFailed, ok ? "ok" : "err");
+          if (ok) emit();
+        }, !hasMsg)}
+        {btnRow(t.copyNumber, "msg_copy_phone", BTN_SECONDARY, async (emit) => {
+          const ok = await copyToClipboard(getFormattedPhone(phone || waDigits));
+          flash(ok ? (lang === "en" ? "Number copied." : "Número copiado.") : t.copyFailed, ok ? "ok" : "err");
+          if (ok) emit();
+        }, !hasPhone)}
+        {btnRow(t.shareContact, "msg_share_contact", BTN_SECONDARY, async (emit) => {
           const block = buildContactShareText(intent.contactShareExtras, {
             lang,
             phone: phone || waDigits,
@@ -382,7 +585,8 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
           });
           const merged = [block, msg].filter(Boolean).join("\n\n");
           const ok = await copyToClipboard(merged);
-          flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed);
+          flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed, ok ? "ok" : "err");
+          if (ok) emit();
         }, !buildContactShareText(intent.contactShareExtras, {
           lang,
           phone: phone || waDigits,
@@ -408,14 +612,24 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
             <p className="max-h-36 overflow-y-auto whitespace-pre-wrap text-sm text-[#111111]">{qm}</p>
           </div>
         ) : null}
-        {btnRow(t.sendWhatsApp, "quote_whatsapp", BTN_PRIMARY, () => openWhatsApp(waDigits, qm), !hasMsg || !hasPhone)}
-        {btnRow(t.sendSms, "quote_sms", BTN_SECONDARY, () => openSms(phone || waDigits, qm), !hasMsg || !hasPhone)}
-        {btnRow(t.sendEmail, "quote_email", BTN_SECONDARY, () => openMailto(email, lang === "en" ? "Quote request" : "Solicitud de cotización", qm), !hasMsg || !hasEmail)}
-        {btnRow(t.copyQuote, "quote_copy", BTN_SECONDARY, async () => {
+        {btnRow(t.sendWhatsApp, "quote_whatsapp", BTN_PRIMARY, (emit) => {
+          emit();
+          openWhatsApp(waDigits, qm);
+        }, !hasMsg || !hasPhone)}
+        {btnRow(t.sendSms, "quote_sms", BTN_SECONDARY, (emit) => {
+          emit();
+          openSms(phone || waDigits, qm);
+        }, !hasMsg || !hasPhone)}
+        {btnRow(t.sendEmail, "quote_email", BTN_SECONDARY, (emit) => {
+          emit();
+          openMailto(email, lang === "en" ? "Quote request" : "Solicitud de cotización", qm);
+        }, !hasMsg || !hasEmail)}
+        {btnRow(t.copyQuote, "quote_copy", BTN_SECONDARY, async (emit) => {
           const ok = await copyToClipboard(qm);
-          flash(ok ? (lang === "en" ? "Quote copied." : "Cotización copiada.") : t.copyFailed);
+          flash(ok ? (lang === "en" ? "Quote copied." : "Cotización copiada.") : t.copyFailed, ok ? "ok" : "err");
+          if (ok) emit();
         }, !hasMsg)}
-        {btnRow(t.shareContact, "quote_share_contact", BTN_SECONDARY, async () => {
+        {btnRow(t.shareContact, "quote_share_contact", BTN_SECONDARY, async (emit) => {
           const block = buildContactShareText(intent.contactShareExtras, {
             lang,
             phone: phone || waDigits,
@@ -423,7 +637,8 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
           });
           const merged = [block, qm].filter(Boolean).join("\n\n");
           const ok = await copyToClipboard(merged);
-          flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed);
+          flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed, ok ? "ok" : "err");
+          if (ok) emit();
         }, !buildContactShareText(intent.contactShareExtras, {
           lang,
           phone: phone || waDigits,
@@ -446,14 +661,19 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
     body = (
       <div className="mt-3 flex flex-col gap-2">
         {!has ? <p className="text-sm text-red-900">{t.noLink}</p> : <p className={MONO}>{normalized}</p>}
-        {btnRow(t.openLink, "ext_open", BTN_PRIMARY, () => openExternalUrl(normalized!), !has)}
-        {btnRow(t.copyLink, "ext_copy", BTN_SECONDARY, async () => {
-          const ok = await copyToClipboard(normalized!);
-          flash(ok ? t.linkCopied : t.copyFailed);
+        {btnRow(t.openLink, "ext_open", BTN_PRIMARY, (emit) => {
+          emit();
+          openExternalUrl(normalized!);
         }, !has)}
-        {btnRow(t.shareLink, "ext_share", BTN_SECONDARY, async () => {
+        {btnRow(t.copyLink, "ext_copy", BTN_SECONDARY, async (emit) => {
           const ok = await copyToClipboard(normalized!);
-          flash(ok ? t.linkCopied : t.copyFailed);
+          flash(ok ? t.linkCopied : t.copyFailed, ok ? "ok" : "err");
+          if (ok) emit();
+        }, !has)}
+        {btnRow(t.shareLink, "ext_share", BTN_SECONDARY, async (emit) => {
+          const ok = await copyToClipboard(normalized!);
+          flash(ok ? t.linkCopied : t.copyFailed, ok ? "ok" : "err");
+          if (ok) emit();
         }, !has)}
       </div>
     );
@@ -464,14 +684,19 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
     body = (
       <div className="mt-3 flex flex-col gap-2">
         {!has ? <p className="text-sm text-red-900">{t.noAddress}</p> : <p className={MONO}>{raw}</p>}
-        {btnRow(t.mapsOpen, "maps_open", BTN_PRIMARY, () => openMaps(raw), !has)}
-        {btnRow(t.copyAddress, "maps_copy", BTN_SECONDARY, async () => {
-          const ok = await copyToClipboard(raw);
-          flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed);
+        {btnRow(t.mapsOpen, "maps_open", BTN_PRIMARY, (emit) => {
+          emit();
+          openMaps(raw);
         }, !has)}
-        {btnRow(t.shareAddress, "maps_share", BTN_SECONDARY, async () => {
+        {btnRow(t.copyAddress, "maps_copy", BTN_SECONDARY, async (emit) => {
           const ok = await copyToClipboard(raw);
-          flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed);
+          flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed, ok ? "ok" : "err");
+          if (ok) emit();
+        }, !has)}
+        {btnRow(t.shareAddress, "maps_share", BTN_SECONDARY, async (emit) => {
+          const ok = await copyToClipboard(raw);
+          flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed, ok ? "ok" : "err");
+          if (ok) emit();
         }, !has)}
       </div>
     );
@@ -500,8 +725,11 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
         </div>
         {body}
         {status ? (
-          <p className="mt-3 text-sm font-semibold text-emerald-900" role="status">
-            {status}
+          <p
+            className={`mt-3 text-sm font-semibold ${status.tone === "err" ? "text-red-800" : "text-emerald-900"}`}
+            role="status"
+          >
+            {status.text}
           </p>
         ) : null}
         <div className="mt-4">
