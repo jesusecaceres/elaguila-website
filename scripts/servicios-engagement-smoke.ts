@@ -63,10 +63,21 @@ function main() {
     "utf8",
   );
   assert.ok(listingsServer.includes("fetchServiciosUserLikedCountsByKeys"), "servicios: user_liked row counts for cards");
-  assert.ok(listingsServer.includes("Math.max(a, u)"), "servicios: merge analytics net with user_liked counts");
+  assert.ok(
+    listingsServer.includes("return fetchServiciosUserLikedCountsByKeys(listingKeys)"),
+    "servicios: public like counts use user_liked_listings only",
+  );
+  assert.ok(listingsServer.includes("fetchServiciosUserSavedCountsByKeys"), "servicios: user_saved row counts (admin)");
+
+  const slugPage = readFileSync(join(__dirname, "../app/(site)/clasificados/servicios/[slug]/page.tsx"), "utf8");
+  assert.ok(slugPage.includes("fetchServiciosNetLikeCountsByEngagementKeys"), "slug page: SSR like count fetch");
+  assert.ok(slugPage.includes("publicLikeCount={publicLikeCount}"), "slug page: passes count to profile view");
 
   const grants = readFileSync(join(__dirname, "../supabase/migrations/20260508160000_engagement_liked_saved_grants.sql"), "utf8");
-  assert.ok(grants.includes("user_liked_listings") && grants.includes("authenticated"), "sql: grants for engagement tables");
+  assert.ok(
+    grants.includes("user_liked_listings") && grants.includes("user_saved_listings") && grants.includes("authenticated"),
+    "sql: grants for engagement tables",
+  );
 
   const ownerKeysSrc = readFileSync(join(__dirname, "../app/lib/ownerEngagementListingKeys.ts"), "utf8");
   assert.ok(ownerKeysSrc.includes("leonix_ad_id"));
@@ -96,9 +107,25 @@ function main() {
   assert.ok(saveBtn.includes("data-leonix-save-dashboard-hint"), "save: hint marker for QA");
   assert.ok(saveBtn.includes("FaBookmark"), "save: solid bookmark when active");
 
+  const heroSrc = readFileSync(join(__dirname, "../app/(site)/servicios/components/ServiciosHero.tsx"), "utf8");
+  assert.ok(heroSrc.includes("data-servicios-hero-like-cue"), "hero: like social-proof marker");
+  assert.ok(heroSrc.includes("♡ Me gusta") && heroSrc.includes("♡ Like"), "hero: zero-state copy ES/EN");
+
+  const guardados = readFileSync(join(__dirname, "../app/(site)/dashboard/guardados/page.tsx"), "utf8");
+  assert.ok(guardados.includes("user_saved_listings"), "guardados: reads user_saved_listings");
+  assert.ok(guardados.includes("saved_listings"), "guardados: merges legacy saved_listings");
+
+  const adminServicios = readFileSync(
+    join(__dirname, "../app/admin/(dashboard)/workspace/clasificados/servicios/page.tsx"),
+    "utf8",
+  );
+  assert.ok(adminServicios.includes("fetchServiciosUserSavedCountsByKeys"), "admin: save counts from user_saved_listings");
+  assert.ok(adminServicios.includes("serviciosAdminEngagementByRowId"), "admin: per-row engagement rollup");
+
   const profileView = readFileSync(join(__dirname, "../app/(site)/servicios/components/ServiciosProfileView.tsx"), "utf8");
   assert.ok(profileView.includes("data-servicios-results-cta"), "profile: results CTA marker");
   assert.ok(profileView.includes("Ver resultados de Servicios"));
+  assert.ok(profileView.includes("publicLikeCount"), "profile: forwards SSR like count to hero");
 
   const resultCard = readFileSync(
     join(__dirname, "../app/(site)/clasificados/servicios/components/ServiciosHorizontalResultCard.tsx"),
@@ -106,6 +133,7 @@ function main() {
   );
   assert.ok(resultCard.includes("data-servicios-like-badge"), "card: like badge marker");
   assert.ok(resultCard.includes("public_like_net_count"));
+  assert.ok(resultCard.includes("♡ Me gusta") && resultCard.includes("♡ Like"), "card: zero-state copy ES/EN");
 
   console.log("servicios-engagement-smoke: OK");
 }

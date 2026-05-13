@@ -6,10 +6,15 @@ import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfi
 import { mergeServiciosProfileWithApprovedDbReviews } from "../lib/serviciosDbReviewsMerge";
 import { listApprovedServiciosReviewsForSlug } from "../lib/serviciosOpsTablesServer";
 import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "../lib/serviciosListingLifecycle";
-import { getServiciosPublicListingBySlugForDiscovery } from "../lib/serviciosPublicListingsServer";
+import {
+  fetchServiciosNetLikeCountsByEngagementKeys,
+  getServiciosPublicListingBySlugForDiscovery,
+} from "../lib/serviciosPublicListingsServer";
 import { buildServiciosClasificadosListingShareUrl } from "../lib/buildServiciosListingShareUrl";
 import {
   serviciosEngagementListingKey,
+  serviciosLikeCountAliasKeys,
+  serviciosNetLikeCountForPublicRow,
   serviciosPublicFooterLeonixAdId,
 } from "../lib/serviciosPublicListingSort";
 import type { ServiciosBusinessProfile } from "@/app/(site)/servicios/types/serviciosBusinessProfile";
@@ -127,7 +132,10 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
   const noticeBanner = [pausedMsg, publishLines.join(" ")].filter(Boolean).join("\n\n") || undefined;
   const listingShareUrl = await buildServiciosClasificadosListingShareUrl(slug, lang);
   const engagementKey = serviciosEngagementListingKey(row);
-  const persistListingEngagement = Boolean((row.leonix_ad_id ?? "").trim() || (row.id ?? "").trim());
+  const persistListingEngagement = Boolean(engagementKey.trim());
+  const likeKeys = serviciosLikeCountAliasKeys(row);
+  const likeCountMap = await fetchServiciosNetLikeCountsByEngagementKeys(likeKeys);
+  const publicLikeCount = serviciosNetLikeCountForPublicRow(row, likeCountMap);
   const leonixAdIdFooter = serviciosPublicFooterLeonixAdId(row.leonix_ad_id);
   const showPublicLeadInquiryForm =
     isPublishedLive &&
@@ -152,6 +160,7 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
         engagementListingId={engagementKey}
         engagementOwnerUserId={row.owner_user_id ?? null}
         persistListingEngagement={persistListingEngagement}
+        publicLikeCount={publicLikeCount}
         listingShareUrl={listingShareUrl}
         leonixAdIdFooter={leonixAdIdFooter}
         showPublicLeadInquiryForm={showPublicLeadInquiryForm}

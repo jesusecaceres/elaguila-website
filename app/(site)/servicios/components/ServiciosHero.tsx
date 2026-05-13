@@ -29,6 +29,7 @@ export function ServiciosHero({
   engagementOwnerUserId = null,
   listingShareUrl,
   persistListingEngagement = false,
+  publicLikeCount,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
@@ -36,8 +37,10 @@ export function ServiciosHero({
   engagementOwnerUserId?: string | null;
   /** Absolute listing URL for share copy / native share (SSR when available). */
   listingShareUrl?: string;
-  /** When true, Like/Save/Share write to engagement + analytics (DB `leonix_ad_id` or row `id`). */
+  /** When true, Like/Save/Share write to engagement + analytics (stable listing key from vitrina). */
   persistListingEngagement?: boolean;
+  /** SSR count from `user_liked_listings` (same key as Like); optional so previews omit. */
+  publicLikeCount?: number;
 }) {
   const { identity, hero } = profile;
   const about = profile.about;
@@ -48,6 +51,8 @@ export function ServiciosHero({
   const lxListingId = (engagementListingId ?? "").trim() || identity.slug;
   const persistEngagement = persistListingEngagement;
   const lxOwner = (engagementOwnerUserId ?? "").trim() || undefined;
+  const likeCueN =
+    typeof publicLikeCount === "number" && Number.isFinite(publicLikeCount) ? Math.max(0, Math.floor(publicLikeCount)) : 0;
 
   return (
     <section className="relative w-full rounded-xl shadow-[0_20px_60px_rgba(30,24,16,0.12)] sm:rounded-2xl md:rounded-3xl">
@@ -101,6 +106,30 @@ export function ServiciosHero({
                     category="servicios"
                     persistEngagement
                   />
+                </div>
+                <div
+                  className="rounded-xl bg-white/92 px-2 py-1.5 text-center shadow-lg backdrop-blur-sm"
+                  data-servicios-hero-like-cue="1"
+                >
+                  <p className="text-[10px] font-semibold leading-tight text-rose-900/95 sm:text-[11px]">
+                    {likeCueN > 0 ? (
+                      lang === "en" ? (
+                        <>
+                          <span aria-hidden>❤️</span>{" "}
+                          <span className="tabular-nums">{likeCueN}</span> {likeCueN === 1 ? "like" : "likes"}
+                        </>
+                      ) : (
+                        <>
+                          <span aria-hidden>❤️</span>{" "}
+                          <span className="tabular-nums">{likeCueN}</span> me gusta
+                        </>
+                      )
+                    ) : lang === "en" ? (
+                      "♡ Like"
+                    ) : (
+                      "♡ Me gusta"
+                    )}
+                  </p>
                 </div>
               </>
             ) : null}

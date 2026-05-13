@@ -296,8 +296,9 @@ export function ServiciosHorizontalResultCard({
 
   const likeBadgeCount =
     row && typeof row.public_like_net_count === "number" && row.public_like_net_count > 0
-      ? row.public_like_net_count
-      : null;
+      ? Math.floor(row.public_like_net_count)
+      : 0;
+  const likeCueHasCount = likeBadgeCount > 0;
 
   const hoursLine = profile.contact?.hours?.todayHoursLine?.trim() || "";
   const openLbl = profile.contact?.hours?.openNowLabel?.trim() || "";
@@ -373,17 +374,23 @@ export function ServiciosHorizontalResultCard({
               </div>
             ) : null}
             <h2 className={TITLE}>{profile.identity.businessName}</h2>
-            {likeBadgeCount != null ? (
-              <div
-                className="inline-flex w-fit max-w-full items-center gap-1.5 rounded-full border border-rose-200/90 bg-rose-50 px-2.5 py-1 text-[13px] font-bold leading-none text-rose-900 shadow-sm"
-                data-servicios-like-badge="1"
-              >
-                <span aria-hidden>❤️</span>
-                <span className="tabular-nums">
-                  {likeBadgeCount} {lang === "en" ? (likeBadgeCount === 1 ? "like" : "likes") : "me gusta"}
-                </span>
-              </div>
-            ) : null}
+            <div
+              className="inline-flex w-fit max-w-full items-center gap-1.5 rounded-full border border-rose-200/90 bg-rose-50 px-2.5 py-1 text-[13px] font-bold leading-none text-rose-900 shadow-sm"
+              data-servicios-like-badge="1"
+            >
+              {likeCueHasCount ? (
+                <>
+                  <span aria-hidden>❤️</span>
+                  <span className="tabular-nums">
+                    {lang === "en"
+                      ? `${likeBadgeCount} ${likeBadgeCount === 1 ? "like" : "likes"}`
+                      : `${likeBadgeCount} me gusta`}
+                  </span>
+                </>
+              ) : (
+                <span>{lang === "en" ? "♡ Like" : "♡ Me gusta"}</span>
+              )}
+            </div>
             {categoryChip ? <p className={`${CATEGORY} line-clamp-2`}>{categoryChip}</p> : null}
             {slogan ? <p className={`${BODY} line-clamp-2 text-[14px] font-semibold text-[#4a4036]`}>{slogan}</p> : null}
           </div>

@@ -105,18 +105,37 @@ export default function GuardadosPage() {
       /* ignore */
     }
 
-    const { data: savedRows, error: savedErr } = await supabase
-      .from("saved_listings")
-      .select("listing_id")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-    if (savedErr) {
-      console.warn("[guardados] saved_listings read failed:", savedErr.message ?? savedErr);
-      setSaved([]);
-      setLoading(false);
-      return;
+    type SavedRow = { listing_id: string; created_at?: string | null };
+
+    const mergeSavedIds = (a: SavedRow[] | null, b: SavedRow[] | null): string[] => {
+      const newest = new Map<string, number>();
+      const bump = (rows: SavedRow[] | null) => {
+        for (const raw of rows ?? []) {
+          const id = String((raw as SavedRow).listing_id ?? "").trim();
+          if (!id) continue;
+          const ms = Date.parse(String((raw as SavedRow).created_at ?? "")) || 0;
+          newest.set(id, Math.max(newest.get(id) ?? 0, ms));
+        }
+      };
+      bump(a);
+      bump(b);
+      return [...newest.keys()].sort((x, y) => (newest.get(y) ?? 0) - (newest.get(x) ?? 0));
+    };
+
+    const [{ data: userSavedRows, error: userSavedErr }, { data: legacySavedRows, error: legacyErr }] = await Promise.all([
+      supabase.from("user_saved_listings").select("listing_id, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("saved_listings").select("listing_id, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
+    ]);
+    if (userSavedErr) {
+      console.warn("[guardados] user_saved_listings read failed:", userSavedErr.message ?? userSavedErr);
     }
-    const ids = (savedRows ?? []).map((r: { listing_id: string }) => r.listing_id);
+    if (legacyErr) {
+      console.warn("[guardados] saved_listings read failed:", legacyErr.message ?? legacyErr);
+    }
+    const ids = mergeSavedIds(
+      !userSavedErr ? ((userSavedRows ?? []) as SavedRow[]) : [],
+      !legacyErr ? ((legacySavedRows ?? []) as SavedRow[]) : [],
+    );
     if (ids.length === 0) {
       setSaved([]);
       setLoading(false);

@@ -40,6 +40,7 @@ export function ServiciosProfileView({
   engagementListingId = null,
   engagementOwnerUserId = null,
   persistListingEngagement = false,
+  publicLikeCount,
   listingShareUrl,
   showPublicLeadInquiryForm = false,
   directContactFasterResponseHint = false,
@@ -64,6 +65,8 @@ export function ServiciosProfileView({
   /** Listing owner auth id for analytics rollup. */
   engagementOwnerUserId?: string | null;
   persistListingEngagement?: boolean;
+  /** SSR like count from `user_liked_listings` (same keys as Like button); omit on previews. */
+  publicLikeCount?: number;
   /** Absolute URL for hero share (SSR from request host when available). */
   listingShareUrl?: string;
   /** Public Clasificados: show quote form only when lead can be emailed to the business (Resend + recipient). */
@@ -113,6 +116,7 @@ export function ServiciosProfileView({
             engagementOwnerUserId={engagementOwnerUserId}
             listingShareUrl={listingShareUrl}
             persistListingEngagement={persistListingEngagement}
+            publicLikeCount={publicLikeCount}
           />
         ) : null}
 

@@ -5,7 +5,11 @@ import {
   isServiciosDevPublishPersistenceEnabled,
   listServiciosDevPublishRows,
 } from "@/app/clasificados/servicios/lib/serviciosDevPublishPersistence";
-import { listServiciosPublicListingsAdminQueueFromDb } from "@/app/clasificados/servicios/lib/serviciosPublicListingsServer";
+import {
+  fetchServiciosUserLikedCountsByKeys,
+  fetchServiciosUserSavedCountsByKeys,
+  listServiciosPublicListingsAdminQueueFromDb,
+} from "@/app/clasificados/servicios/lib/serviciosPublicListingsServer";
 import { listPendingServiciosReviews } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
 import {
   setServiciosListingLeonixVerifiedAction,
@@ -15,6 +19,10 @@ import {
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
+import {
+  serviciosLikeCountAliasKeys,
+  serviciosNetLikeCountForPublicRow,
+} from "@/app/clasificados/servicios/lib/serviciosPublicListingSort";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +131,26 @@ export default async function AdminServiciosWorkspacePage(props: {
     promoted: Boolean((r as { promoted?: boolean }).promoted),
   }));
   const { unavailable, fullSchema } = queueRes;
+  const allEngagementKeys = new Set<string>();
+  for (const r of rows) {
+    for (const k of serviciosLikeCountAliasKeys({ slug: r.slug, leonix_ad_id: r.leonix_ad_id ?? null, id: r.id })) {
+      allEngagementKeys.add(k);
+    }
+  }
+  const [serviciosAdminLikeMap, serviciosAdminSaveMap] = unavailable
+    ? [new Map<string, number>(), new Map<string, number>()]
+    : await Promise.all([
+        fetchServiciosUserLikedCountsByKeys([...allEngagementKeys]),
+        fetchServiciosUserSavedCountsByKeys([...allEngagementKeys]),
+      ]);
+  const serviciosAdminEngagementByRowId = new Map<string, { likes: number; saves: number }>();
+  for (const r of rows) {
+    const rowLike = { slug: r.slug, leonix_ad_id: r.leonix_ad_id ?? null, id: r.id };
+    serviciosAdminEngagementByRowId.set(r.id, {
+      likes: serviciosNetLikeCountForPublicRow(rowLike, serviciosAdminLikeMap),
+      saves: serviciosNetLikeCountForPublicRow(rowLike, serviciosAdminSaveMap),
+    });
+  }
   const devAdminRows = filterDevServiciosRows(devFileRowsAsAdmin(), queueFilters.q);
   const pendingReviews = await listPendingServiciosReviews(80);
   const recentLeads = await fetchServiciosLeadsForAdmin();
@@ -243,6 +271,12 @@ export default async function AdminServiciosWorkspacePage(props: {
                     <th className="p-3">Ciudad</th>
                     <th className="p-3">Slug</th>
                     <th className="p-3">Leonix Ad ID</th>
+                    <th className="p-3 text-right tabular-nums" title="Filas en user_liked_listings (clave listing_id, rollup alias)">
+                      MG
+                    </th>
+                    <th className="p-3 text-right tabular-nums" title="Filas en user_saved_listings">
+                      Guard.
+                    </th>
                     <th className="p-3">Propietario</th>
                     <th className="p-3">Estado</th>
                     <th className="p-3">Verif. Leonix</th>
@@ -261,6 +295,12 @@ export default async function AdminServiciosWorkspacePage(props: {
                       <td className="p-3 text-xs text-[#5C5346]">{r.city}</td>
                       <td className="p-3 font-mono text-xs text-[#3D3428]">{r.slug}</td>
                       <td className="p-3 font-mono text-[10px] text-[#3D3428]">{r.leonix_ad_id ?? "—"}</td>
+                      <td className="p-3 text-right text-xs tabular-nums text-[#5C5346]">
+                        {serviciosAdminEngagementByRowId.get(r.id)?.likes ?? 0}
+                      </td>
+                      <td className="p-3 text-right text-xs tabular-nums text-[#5C5346]">
+                        {serviciosAdminEngagementByRowId.get(r.id)?.saves ?? 0}
+                      </td>
                       <td className="p-3 font-mono text-[10px] text-[#7A7164]">{r.owner_user_id?.slice(0, 8) ?? "—"}…</td>
                       <td className="p-3 text-xs">
                         <form action={updateServiciosPublicListingStatusAction} className="flex max-w-[14rem] flex-col gap-1">
