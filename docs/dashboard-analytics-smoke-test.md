@@ -153,7 +153,35 @@ Expect: `LISTING_ANALYTICS_OK`. If it prints `LISTING_ANALYTICS_FAIL` with schem
 - **Por expirar:** only `listings` republish visibility window (`republished_at` + contract window) and `expires_at` unless extended per category table.
 - **Legacy `trackEvent`:** minimal payload (no `owner_user_id` / `category`); prefer `clasificadosAnalytics` on new surfaces.
 
-## User dashboard — Admin Republish contract (audit)
+### Saved listings backfill (optional ops)
+
+Runtime reads/writes use **`saved_listings`** only. Rows that exist only in **`user_saved_listings`** will not appear in Guardados until copied.
+
+**Audit (read-only):**
+
+```sql
+SELECT COUNT(*) AS legacy_rows_not_in_canonical
+FROM user_saved_listings u
+WHERE NOT EXISTS (
+  SELECT 1 FROM saved_listings s
+  WHERE s.user_id = u.user_id AND s.listing_id = u.listing_id
+);
+```
+
+**Backfill (run only after confirming schema/policies; prefer a maintenance window):**
+
+```sql
+INSERT INTO saved_listings (user_id, listing_id, created_at)
+SELECT u.user_id, u.listing_id, u.created_at
+FROM user_saved_listings u
+WHERE NOT EXISTS (
+  SELECT 1 FROM saved_listings s
+  WHERE s.user_id = u.user_id AND s.listing_id = u.listing_id
+)
+ON CONFLICT (user_id, listing_id) DO NOTHING;
+```
+
+Future **save-count** style analytics should aggregate from **`saved_listings`**, not `user_saved_listings`.
 
 - **Republish capability:** Eligibility and primary CTA labels mirror `app/admin/_lib/classifiedsRepublishCapability.ts` via `app/(site)/dashboard/lib/dashboardRepublishUi.ts` — **Move to top** when the row is public/live, **Republish** when eligible but not live; **no runtime `boost_expires`**.
 - **En Venta Pro:** Cooldown / visibility window still uses `detail_pairs` (`Leonix:visibility_last_renewed_at`) + `republished_at`; unpublished/suspended Pro rows also get `is_published` / `status` on republish (aligned with Admin `listings` PATCH).
@@ -161,6 +189,7 @@ Expect: `LISTING_ANALYTICS_OK`. If it prints `LISTING_ANALYTICS_FAIL` with schem
 - **Leonix Ad ID:** Shown on cards and detail when the column/value exists — **never generated or mutated** from the dashboard; owner `listings` select includes `leonix_ad_id` when the DB exposes it.
 - **Promoted / Featured** (`Leonix:promoted` in `detail_pairs`) and **Verify Leonix** remain **separate** product signals from republish / move to top.
 - **`listing_analytics`:** When the table is absent or unreadable, dashboard surfaces show **one** friendly degraded notice and **honest zeros** (no fabricated totals, no raw PostgREST errors in UI). Code paths stay compatible for when the table ships.
-- **`saved_listings`:** Guardados reads **`saved_listings`**; resolver lives in `app/lib/savedListingsDashboardResolve.ts`.
+- **`saved_listings` (canonical):** Runtime saves and **Guardados** read/write **`saved_listings` only**; resolver lives in `app/lib/savedListingsDashboardResolve.ts`. The public save button (`LeonixSaveButton`), listing detail save sync, En Venta layout, and Servicios admin save-count aggregation use the same table so dashboard and public agree.
+- **`user_saved_listings` (legacy):** Historical table only in migrations/docs — **not** used by `app/` runtime. If production still has user saves only in `user_saved_listings`, run a one-time audit/backfill in Supabase before expecting old rows in Guardados (see **Saved listings backfill** below).
 - **Clases / Comunidad:** Not client-ready — overview cards stay **Coming soon / Próximamente** with no owner inventory wiring; **no** republish CTAs for those categories.
 - **Inventory sources:** `public.listings` (en-venta, rentas, bienes-raices), `servicios` owner API + `servicios_public_listings`, `autos_classifieds_listings`, `empleos_public_listings`, `restaurantes_public_listings`, `viajes_staged_listings`.

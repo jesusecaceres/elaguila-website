@@ -665,7 +665,7 @@ export default function AnuncioDetallePage() {
       if (!mounted) return;
       if (user) {
         const { data } = await supabase
-          .from("user_saved_listings")
+          .from("saved_listings")
           .select("listing_id")
           .eq("user_id", user.id)
           .eq("listing_id", listing.id)
@@ -763,11 +763,11 @@ export default function AnuncioDetallePage() {
       return;
     }
     if (saved) {
-      await supabase.from("user_saved_listings").delete().eq("user_id", user.id).eq("listing_id", listing.id);
+      await supabase.from("saved_listings").delete().eq("user_id", user.id).eq("listing_id", listing.id);
       setSaved(false);
       void trackListingSave(listing.id, false, { ownerUserId: (listing as { owner_id?: string | null }).owner_id ?? undefined });
     } else {
-      await supabase.from("user_saved_listings").upsert({ user_id: user.id, listing_id: listing.id }, { onConflict: "user_id,listing_id" });
+      await supabase.from("saved_listings").upsert({ user_id: user.id, listing_id: listing.id }, { onConflict: "user_id,listing_id" });
       setSaved(true);
       void trackListingSave(listing.id, true, { ownerUserId: (listing as { owner_id?: string | null }).owner_id ?? undefined });
     }

@@ -180,7 +180,7 @@ export function EnVentaAnuncioLayout({
       trackEnVentaListingOpen(listing.id, uid);
       if (uid) {
         const { data } = await supabase
-          .from("user_saved_listings")
+          .from("saved_listings")
           .select("listing_id")
           .eq("user_id", uid)
           .eq("listing_id", listing.id)
@@ -209,12 +209,12 @@ export function EnVentaAnuncioLayout({
       return;
     }
     if (saved) {
-      await supabase.from("user_saved_listings").delete().eq("user_id", user.id).eq("listing_id", listing.id);
+      await supabase.from("saved_listings").delete().eq("user_id", user.id).eq("listing_id", listing.id);
       setSaved(false);
       void trackListingSave(listing.id, false, { ownerUserId: ownerId ?? undefined, category: surface === "en-venta" ? "en-venta" : "bienes-raices" });
     } else {
       await supabase
-        .from("user_saved_listings")
+        .from("saved_listings")
         .upsert({ user_id: user.id, listing_id: listing.id }, { onConflict: "user_id,listing_id" });
       setSaved(true);
       void trackListingSave(listing.id, true, { ownerUserId: ownerId ?? undefined, category: surface === "en-venta" ? "en-venta" : "bienes-raices" });

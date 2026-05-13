@@ -114,7 +114,7 @@ export async function fetchServiciosNetLikeCountsByEngagementKeys(listingKeys: s
   return fetchServiciosUserLikedCountsByKeys(listingKeys);
 }
 
-/** Row counts in `user_saved_listings` per `listing_id` (same key model as likes). */
+/** Row counts in `saved_listings` per `listing_id` (same key model as likes). */
 export async function fetchServiciosUserSavedCountsByKeys(listingKeys: string[]): Promise<Map<string, number>> {
   const keys = [...new Set(listingKeys.map((k) => k.trim()).filter(Boolean))];
   const out = new Map<string, number>();
@@ -125,7 +125,7 @@ export async function fetchServiciosUserSavedCountsByKeys(listingKeys: string[])
     const chunkSize = 120;
     for (let i = 0; i < keys.length; i += chunkSize) {
       const chunk = keys.slice(i, i + chunkSize);
-      const { data, error } = await supabase.from("user_saved_listings").select("listing_id").in("listing_id", chunk);
+      const { data, error } = await supabase.from("saved_listings").select("listing_id").in("listing_id", chunk);
       if (error) continue;
       for (const row of data ?? []) {
         const lid = String((row as { listing_id?: string }).listing_id ?? "").trim();

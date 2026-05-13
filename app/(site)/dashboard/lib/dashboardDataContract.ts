@@ -7,7 +7,7 @@
  * - `listings`: core clasificados rows per owner_id; optional columns tier-loaded in ownerListingsQuery.
  * - `listing_analytics` (optional in live Supabase): event_type ∈ listing_view | listing_save | listing_share | message_sent | profile_view | listing_open — dashboard shows zeros + one degraded notice when missing
  * - `messages`: sender_id, receiver_id, listing_id, message, created_at; optional read_at (migration) for unread
- * - `user_saved_listings` + optional legacy `saved_listings`: per-user saved listing keys for Guardados
+ * - `saved_listings`: per-user saved listing keys for Guardados (canonical runtime). Older duplicate engagement table exists only in historical migrations — not referenced by `app/` code; optional backfill notes live in `docs/dashboard-analytics-smoke-test.md`.
  * - Recently viewed: separate surface / local where applicable
  *
  * Not present in schema (placeholders / localStorage only):

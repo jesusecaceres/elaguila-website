@@ -67,7 +67,8 @@ function main() {
     listingsServer.includes("return fetchServiciosUserLikedCountsByKeys(listingKeys)"),
     "servicios: public like counts use user_liked_listings only",
   );
-  assert.ok(listingsServer.includes("fetchServiciosUserSavedCountsByKeys"), "servicios: user_saved row counts (admin)");
+  assert.ok(listingsServer.includes("fetchServiciosUserSavedCountsByKeys"), "servicios: saved_listings row counts (admin)");
+  assert.ok(listingsServer.includes('.from("saved_listings")'), "servicios: aggregate saves from saved_listings");
 
   const slugPage = readFileSync(join(__dirname, "../app/(site)/clasificados/servicios/[slug]/page.tsx"), "utf8");
   assert.ok(slugPage.includes("fetchServiciosNetLikeCountsByEngagementKeys"), "slug page: SSR like count fetch");
@@ -106,20 +107,21 @@ function main() {
   assert.ok(saveBtn.includes("savedDashboard"), "save: dashboard confirmation copy");
   assert.ok(saveBtn.includes("data-leonix-save-dashboard-hint"), "save: hint marker for QA");
   assert.ok(saveBtn.includes("FaBookmark"), "save: solid bookmark when active");
+  assert.ok(saveBtn.includes('.from("saved_listings")'), "save: reads/writes saved_listings");
 
   const heroSrc = readFileSync(join(__dirname, "../app/(site)/servicios/components/ServiciosHero.tsx"), "utf8");
   assert.ok(heroSrc.includes("data-servicios-hero-like-cue"), "hero: like social-proof marker");
   assert.ok(heroSrc.includes("♡ Me gusta") && heroSrc.includes("♡ Like"), "hero: zero-state copy ES/EN");
 
   const guardados = readFileSync(join(__dirname, "../app/(site)/dashboard/guardados/page.tsx"), "utf8");
-  assert.ok(guardados.includes("user_saved_listings"), "guardados: reads user_saved_listings");
-  assert.ok(guardados.includes("saved_listings"), "guardados: merges legacy saved_listings");
+  assert.ok(guardados.includes("saved_listings"), "guardados: reads saved_listings only");
+  assert.ok(!guardados.includes("user_saved_listings"), "guardados: no legacy user_saved_listings merge");
 
   const adminServicios = readFileSync(
     join(__dirname, "../app/admin/(dashboard)/workspace/clasificados/servicios/page.tsx"),
     "utf8",
   );
-  assert.ok(adminServicios.includes("fetchServiciosUserSavedCountsByKeys"), "admin: save counts from user_saved_listings");
+  assert.ok(adminServicios.includes("fetchServiciosUserSavedCountsByKeys"), "admin: save counts from saved_listings");
   assert.ok(adminServicios.includes("serviciosAdminEngagementByRowId"), "admin: per-row engagement rollup");
 
   const profileView = readFileSync(join(__dirname, "../app/(site)/servicios/components/ServiciosProfileView.tsx"), "utf8");

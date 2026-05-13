@@ -16,7 +16,7 @@ type Props = {
   lang?: "es" | "en";
   category?: string;
   ownerUserId?: string | null;
-  /** When false, no analytics or `user_saved_listings` writes. */
+  /** When false, no analytics or `saved_listings` writes. */
   persistEngagement?: boolean;
 };
 
@@ -107,7 +107,7 @@ export function LeonixSaveButton({
       }
       if (user) {
         const { data } = await sb
-          .from("user_saved_listings")
+          .from("saved_listings")
           .select("listing_id")
           .eq("user_id", user.id)
           .eq("listing_id", effectiveId)
@@ -133,7 +133,7 @@ export function LeonixSaveButton({
         if (userToggledRef.current) return;
         if (user) {
           const { data: row } = await sb
-            .from("user_saved_listings")
+            .from("saved_listings")
             .select("listing_id")
             .eq("user_id", user.id)
             .eq("listing_id", effectiveId)
@@ -175,13 +175,13 @@ export function LeonixSaveButton({
     try {
       if (nextState) {
         const { error } = await sb
-          .from("user_saved_listings")
+          .from("saved_listings")
           .upsert({ user_id: user.id, listing_id: effectiveId }, { onConflict: "user_id,listing_id" });
         if (error) {
           setIsSaved(prev);
           userToggledRef.current = false;
           logEngagementWriteFailure({
-            table: "user_saved_listings",
+            table: "saved_listings",
             op: "upsert",
             listingKeyLen: effectiveId.length,
             hasUser: true,
@@ -193,12 +193,12 @@ export function LeonixSaveButton({
         setPostSaveDashboardHint(true);
         hintClearRef.current = setTimeout(() => setPostSaveDashboardHint(false), 8000);
       } else {
-        const { error } = await sb.from("user_saved_listings").delete().eq("user_id", user.id).eq("listing_id", effectiveId);
+        const { error } = await sb.from("saved_listings").delete().eq("user_id", user.id).eq("listing_id", effectiveId);
         if (error) {
           setIsSaved(prev);
           userToggledRef.current = false;
           logEngagementWriteFailure({
-            table: "user_saved_listings",
+            table: "saved_listings",
             op: "delete",
             listingKeyLen: effectiveId.length,
             hasUser: true,

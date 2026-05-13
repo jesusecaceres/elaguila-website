@@ -1,6 +1,5 @@
 /**
- * Resolve saved listing keys from `user_saved_listings` and legacy `saved_listings` (dashboard Guardados)
- * to dashboard rows with correct detail links.
+ * Resolve saved listing keys from `saved_listings` (dashboard Guardados) to dashboard rows with correct detail links.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 

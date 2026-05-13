@@ -274,7 +274,7 @@ export default async function AdminServiciosWorkspacePage(props: {
                     <th className="p-3 text-right tabular-nums" title="Filas en user_liked_listings (clave listing_id, rollup alias)">
                       MG
                     </th>
-                    <th className="p-3 text-right tabular-nums" title="Filas en user_saved_listings">
+                    <th className="p-3 text-right tabular-nums" title="Filas en saved_listings">
                       Guard.
                     </th>
                     <th className="p-3">Propietario</th>
