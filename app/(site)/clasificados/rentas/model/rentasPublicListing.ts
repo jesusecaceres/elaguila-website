@@ -119,8 +119,10 @@ export type RentasPublicListing = {
   businessDescription?: string | null;
   /** Public map link when publisher provided one (`Leonix:rent:map_url`). */
   mapUrl?: string | null;
-  /** External video URL (`Leonix:rent:video_url`). */
+  /** External video URL (`Leonix:rent:video_url`) or Mux HLS `.m3u8` when served from Mux. */
   videoUrl?: string | null;
+  /** Poster image for Mux-backed gallery video (optional). */
+  videoPosterUrl?: string | null;
   /** Localized short copy for detail; sample-only until CMS/DB. */
   description?: { es: string; en: string };
   /** Display line for seller (localized). */

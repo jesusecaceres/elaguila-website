@@ -94,14 +94,15 @@ export function buildListingsInsertRowForLeonixPublish(
   insertPayload.published_at = clock;
   insertPayload.updated_at = clock;
 
-  const mux = params.muxVideo;
-  if (mux) {
-    if (mux.mux_asset_id) insertPayload.mux_asset_id = mux.mux_asset_id;
-    if (mux.mux_playback_id) insertPayload.mux_playback_id = mux.mux_playback_id;
-    if (mux.mux_thumbnail_url) insertPayload.mux_thumbnail_url = mux.mux_thumbnail_url;
-    if (mux.mux_status) insertPayload.mux_status = mux.mux_status;
-    if (typeof mux.mux_duration_seconds === "number") insertPayload.mux_duration_seconds = mux.mux_duration_seconds;
-    if (mux.video_layout_type) insertPayload.video_layout_type = mux.video_layout_type;
+  const muxPid = String(params.muxPlaybackId ?? "").trim();
+  if (muxPid) {
+    insertPayload.mux_playback_id = muxPid;
+    const aid = String(params.muxAssetId ?? "").trim();
+    if (aid) insertPayload.mux_asset_id = aid;
+    const th = String(params.muxThumbnailUrl ?? "").trim();
+    if (th) insertPayload.mux_thumbnail_url = th;
+    const st = String(params.muxStatus ?? "ready").trim();
+    insertPayload.mux_status = st || "ready";
   }
 
   return insertPayload;
@@ -135,16 +136,6 @@ export function leonixHttpsGalleryUrlEligibleForDirectPersist(src: string): bool
   }
 }
 
-/** Optional Mux columns for Rentas (and future Leonix) publish — omitted when absent. */
-export type PublishLeonixMuxVideoCols = {
-  mux_asset_id: string | null;
-  mux_playback_id: string | null;
-  mux_thumbnail_url: string | null;
-  mux_status: string | null;
-  mux_duration_seconds: number | null;
-  video_layout_type: string | null;
-};
-
 export type PublishLeonixRealEstateListingCoreParams = {
   title: string;
   description: string;
@@ -163,8 +154,11 @@ export type PublishLeonixRealEstateListingCoreParams = {
   /** Ordered gallery: data URLs or http(s) URLs (cover first). */
   imageSources: string[];
   lang: "es" | "en";
-  /** When set, merged into the insert row (resilient insert strips unknown columns). */
-  muxVideo?: PublishLeonixMuxVideoCols | null;
+  /** Rentas publish-time Mux (optional; omitted when listing has link-only video or no video). */
+  muxAssetId?: string | null;
+  muxPlaybackId?: string | null;
+  muxThumbnailUrl?: string | null;
+  muxStatus?: string | null;
 };
 
 export type PublishLeonixRealEstateListingCoreResult =
@@ -305,12 +299,23 @@ export async function publishLeonixRealEstateListingCore(
       const appendix = leonixGalleryAppendixForDescription(lang, photoUrls);
       const descriptionForUpdate = `${description.trim()}${appendix}`.trim();
       const touch = new Date().toISOString();
-      const { error: updErr } = await updateListingsRowResilient(supabase, listingId, {
+      const muxPid = String(params.muxPlaybackId ?? "").trim();
+      const galleryPatch: Record<string, unknown> = {
         description: descriptionForUpdate,
         images: photoUrls,
         published_at: touch,
         updated_at: touch,
-      });
+      };
+      if (muxPid) {
+        galleryPatch.mux_playback_id = muxPid;
+        const aid = String(params.muxAssetId ?? "").trim();
+        if (aid) galleryPatch.mux_asset_id = aid;
+        const th = String(params.muxThumbnailUrl ?? "").trim();
+        if (th) galleryPatch.mux_thumbnail_url = th;
+        const st = String(params.muxStatus ?? "ready").trim();
+        galleryPatch.mux_status = st || "ready";
+      }
+      const { error: updErr } = await updateListingsRowResilient(supabase, listingId, galleryPatch);
       if (updErr) {
         devLog("description/images update failed", updErr);
         await supabase.from("listings").delete().eq("id", listingId);

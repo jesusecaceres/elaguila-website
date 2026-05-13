@@ -1,9 +1,10 @@
 /**
- * Browser-only: convert Rentas draft `data:image/*` and `blob:` photo refs to HTTPS Blob URLs
+ * Browser-only: convert Rentas draft `data:image/*` and `blob:` refs to HTTPS Blob URLs
  * before `publishLeonixListingFromRentas*Draft` (same bridge pattern as Restaurantes
  * `resolveRestauranteDraftMediaToRemoteUrls`).
  *
- * Video stays local until publish; Mux upload runs inside `publishLeonixListingFromRentas*Draft`.
+ * Video files stay in local draft / IndexedDB until publish-time Mux upload; this module
+ * does not promote video to Vercel Blob or public HTTPS.
  */
 
 import type { RentasNegocioFormState } from "@/app/clasificados/publicar/rentas/negocio/schema/rentasNegocioFormState";
@@ -23,7 +24,8 @@ async function uploadBlobForRentasDraft(
   form.set("draftId", ctx.draftId);
   form.set("slot", ctx.slot);
   if (ctx.index !== undefined) form.set("index", String(ctx.index));
-  form.set("file", blob, "image.jpg");
+  const filename = "image.jpg";
+  form.set("file", blob, filename);
   const res = await fetch(UPLOAD_PATH, { method: "POST", body: form });
   const j = (await res.json()) as { ok?: boolean; publicUrl?: string; error?: string; detail?: string };
   if (!res.ok || !j.ok || typeof j.publicUrl !== "string") {

@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { publishLeonixListingFromRentasPrivadoDraft } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
+import {
+  publishLeonixListingFromRentasPrivadoDraft,
+  type RentasListingPublishMuxFields,
+} from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
 import {
   BR_NEGOCIO_Q_PROPIEDAD,
   coerceBrNegocioCategoriaPropiedad,
@@ -20,6 +23,12 @@ import {
 } from "@/app/clasificados/publicar/rentas/privado/application/utils/rentasPrivadoDraft";
 import { resolveRentasPrivadoDraftMediaToRemoteUrls } from "@/app/clasificados/rentas/shared/rentasDraftPublishPrepare";
 import { hydrateRentasPrivadoDraftVideoFromIdb } from "@/app/clasificados/rentas/shared/rentasDraftVideoHydrate";
+import { rentasDraftVideoFileForMuxUpload, rentasMediaHasLocalMuxableVideo } from "@/app/clasificados/rentas/shared/rentasDraftVideoMuxSource";
+import {
+  RENTAS_MUX_UPLOAD_FAIL_EN,
+  RENTAS_MUX_UPLOAD_FAIL_ES,
+  uploadRentasDraftVideoFileToMux,
+} from "@/app/clasificados/rentas/shared/rentasMuxVideoClient";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import {
@@ -45,7 +54,6 @@ export default function RentasPrivadoPreviewClient() {
   const [draft, setDraft] = useState<RentasPrivadoFormState | null>(null);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
-  const blobRevokeRef = useRef<string | null>(null);
 
   const lang = searchParams?.get("lang") === "en" ? "en" : "es";
 
@@ -70,7 +78,29 @@ export default function RentasPrivadoPreviewClient() {
       );
       return;
     }
-    const r = await publishLeonixListingFromRentasPrivadoDraft(toPublish, lang);
+
+    let muxFields: RentasListingPublishMuxFields | undefined;
+    if (rentasMediaHasLocalMuxableVideo(toPublish.media)) {
+      const file = await rentasDraftVideoFileForMuxUpload(toPublish.media);
+      if (!file) {
+        setPublishBusy(false);
+        setPublishErr(lang === "es" ? RENTAS_MUX_UPLOAD_FAIL_ES : RENTAS_MUX_UPLOAD_FAIL_EN);
+        return;
+      }
+      const muxRes = await uploadRentasDraftVideoFileToMux(file, lang);
+      if (!muxRes.ok) {
+        setPublishBusy(false);
+        setPublishErr(muxRes.error);
+        return;
+      }
+      muxFields = {
+        muxAssetId: muxRes.assetId,
+        muxPlaybackId: muxRes.playbackId,
+        muxThumbnailUrl: muxRes.thumbnailUrl,
+      };
+    }
+
+    const r = await publishLeonixListingFromRentasPrivadoDraft(toPublish, lang, muxFields);
     setPublishBusy(false);
     if (r.ok) {
       clearRentasPrivadoDraft();
@@ -82,36 +112,28 @@ export default function RentasPrivadoPreviewClient() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      const d = loadRentasPrivadoDraft();
-      if (!d) {
+    let revokeUrl: string | null = null;
+    void (async () => {
+      const raw = loadRentasPrivadoDraft();
+      if (!raw) {
         if (!cancelled) {
           setDraft(null);
           setPhase("recovery");
         }
         return;
       }
-      const prev = blobRevokeRef.current;
-      if (prev) {
-        URL.revokeObjectURL(prev);
-        blobRevokeRef.current = null;
-      }
-      const { state: next, revokeObjectUrl } = await hydrateRentasPrivadoDraftVideoFromIdb(d);
+      const { state, revokeObjectUrl } = await hydrateRentasPrivadoDraftVideoFromIdb(raw);
       if (cancelled) {
         if (revokeObjectUrl) URL.revokeObjectURL(revokeObjectUrl);
         return;
       }
-      if (revokeObjectUrl) blobRevokeRef.current = revokeObjectUrl;
-      setDraft(next);
+      revokeUrl = revokeObjectUrl;
+      setDraft(state);
       setPhase("ready");
     })();
     return () => {
       cancelled = true;
-      const u = blobRevokeRef.current;
-      if (u) {
-        URL.revokeObjectURL(u);
-        blobRevokeRef.current = null;
-      }
+      if (revokeUrl) URL.revokeObjectURL(revokeUrl);
     };
   }, []);
 

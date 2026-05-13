@@ -338,15 +338,18 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const halfBathsCount = halfParsed > 0 ? halfParsed : null;
 
   const mapUrl = sanitizeHttpUrl(rx.mapUrl);
-  const muxPlaybackId = trim(row.mux_playback_id as string | null | undefined);
-  const muxHls = muxPlaybackId ? `https://stream.mux.com/${muxPlaybackId}.m3u8` : "";
-  const videoUrlSanPair = sanitizeHttpUrl(rx.videoUrl);
-  const videoUrl =
-    muxHls && rentasPublishedVideoShouldAppearInGallery(muxHls)
-      ? muxHls
-      : videoUrlSanPair && rentasPublishedVideoShouldAppearInGallery(videoUrlSanPair)
-        ? videoUrlSanPair
-        : undefined;
+  const muxPid = trim(row.mux_playback_id as string | undefined);
+  const muxThumbRow = trim(row.mux_thumbnail_url as string | undefined);
+  const muxHls = muxPid ? `https://stream.mux.com/${muxPid}.m3u8` : "";
+  const muxPoster =
+    muxThumbRow ||
+    (muxPid ? `https://image.mux.com/${muxPid}/thumbnail.jpg` : "");
+  const videoUrlSan = sanitizeHttpUrl(rx.videoUrl);
+  const pairVideo =
+    videoUrlSan && rentasPublishedVideoShouldAppearInGallery(videoUrlSan) ? videoUrlSan : undefined;
+  const muxVideo = muxHls && rentasPublishedVideoShouldAppearInGallery(muxHls) ? muxHls : undefined;
+  const videoUrl = muxVideo ?? pairVideo;
+  const videoPosterUrl = muxVideo && muxPoster && /^https:\/\//i.test(muxPoster) ? muxPoster : undefined;
   const bizMeta = businessMetaFromRow(row);
   const businessSocial = (rx.businessSocial ?? "").trim() || bizMeta.redesFromMeta || undefined;
   const businessMarca = bizMeta.marca;
@@ -466,6 +469,7 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     businessDescription,
     mapUrl,
     videoUrl,
+    videoPosterUrl,
     categoriaPropiedad: categoria,
     branch: branchSeller,
     badges,

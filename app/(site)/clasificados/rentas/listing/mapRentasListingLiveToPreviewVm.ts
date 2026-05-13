@@ -42,11 +42,6 @@ function parseYoutubeId(u: string): string | null {
   return m?.[1] ?? null;
 }
 
-function muxPlaybackIdFromStreamUrl(u: string): string | null {
-  const m = /^https:\/\/stream\.mux\.com\/([^/.?]+)\.m3u8/i.exec(String(u ?? "").trim());
-  return m?.[1] ?? null;
-}
-
 function digitsOnly15(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "").slice(0, 15);
 }
@@ -135,7 +130,11 @@ function depositDisplay(listing: RentasPublicListing, lang: "es" | "en"): string
   }).format(listing.depositUsd);
 }
 
-function buildLiveMediaVm(gallery: string[], videoUrl: string | null | undefined): BienesRaicesPreviewMediaVm {
+function buildLiveMediaVm(
+  gallery: string[],
+  videoUrl: string | null | undefined,
+  videoPosterUrl?: string | null | undefined,
+): BienesRaicesPreviewMediaVm {
   const urls = filterRentasPhotoUrlList(gallery.map((u) => trim(u)).filter(Boolean));
   const n = urls.length;
   const pi = n === 0 ? 0 : 0;
@@ -143,9 +142,10 @@ function buildLiveMediaVm(gallery: string[], videoUrl: string | null | undefined
   const v = trim(videoUrl ?? "");
   const exposeVideo = rentasPublishedVideoShouldAppearInGallery(v);
   const yt = exposeVideo ? parseYoutubeId(v) : null;
-  const muxPid = exposeVideo && !yt ? muxPlaybackIdFromStreamUrl(v) : null;
+  const isMuxHls = exposeVideo && /\.m3u8(\?|$)/i.test(v);
+  const poster = trim(videoPosterUrl ?? "");
   const hasVid = exposeVideo;
-  const thumb0 = yt ? `https://img.youtube.com/vi/${yt}/hqdefault.jpg` : muxPid ? `https://image.mux.com/${muxPid}/thumbnail.jpg` : null;
+  const thumb0 = yt ? `https://img.youtube.com/vi/${yt}/hqdefault.jpg` : isMuxHls && poster ? poster : null;
   const playback0 = exposeVideo ? v : null;
   const metaLine = n > 0 ? `${n} foto${n === 1 ? "" : "s"} en la galería` : hasVid ? "Video en el anuncio" : "";
 
@@ -370,7 +370,7 @@ export function mapRentasListingToPrivadoPreviewVm(
   lang: "es" | "en",
 ): BienesRaicesPrivadoPreviewVm {
   const gallery = extra.gallery.length ? extra.gallery : [listing.imageUrl].filter(Boolean);
-  const media = buildLiveMediaVm(gallery, listing.videoUrl);
+  const media = buildLiveMediaVm(gallery, listing.videoUrl, listing.videoPosterUrl);
   const contract = buildContractRows(listing, lang);
   const property = buildPropertyRows(listing, lang);
   const highlightsRows = highlightsRowsFromListing(listing).map((r) => ({ ...r, value: trim(r.value) === "✓" ? "Sí" : r.value }));
@@ -469,7 +469,7 @@ export function mapRentasListingToNegocioPreviewVm(
   lang: "es" | "en",
 ): BienesRaicesNegocioPreviewVm {
   const gallery = extra.gallery.length ? extra.gallery : [listing.imageUrl].filter(Boolean);
-  const media = buildLiveMediaVm(gallery, listing.videoUrl);
+  const media = buildLiveMediaVm(gallery, listing.videoUrl, listing.videoPosterUrl);
   const contract = buildContractRows(listing, lang);
   const property = buildPropertyRows(listing, lang);
   const highlightsRows = highlightsRowsFromListing(listing).map((r) => ({ ...r, value: "Sí" }));
