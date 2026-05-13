@@ -14,7 +14,6 @@ import { FaFacebook, FaInstagram, FaLinkedin, FaTiktok, FaWhatsapp, FaYoutube } 
 import { FaXTwitter } from "react-icons/fa6";
 import { FiGlobe, FiMail, FiMapPin, FiMessageSquare, FiPhone } from "react-icons/fi";
 
-import { COMMUNITY_DISCOVERY_REGION } from "../constants/communityRegion";
 import {
   buildCommunityMapQuery,
   googleMapsSearchUrl,
@@ -66,7 +65,6 @@ const UI = {
     email: "Escribir correo",
     website: "Sitio web",
     map: "Cómo llegar",
-    discovery: "Región de descubrimiento",
   },
   en: {
     contactTitle: "Contact",
@@ -76,7 +74,6 @@ const UI = {
     email: "Email",
     website: "Website",
     map: "Get directions",
-    discovery: "Discovery region",
   },
 } as const;
 
@@ -252,9 +249,6 @@ export function CommunityContactCanvas({ draft, lang }: { draft: Draft; lang: La
           {draft.venue.trim() ? <p className="text-sm font-semibold">{draft.venue.trim()}</p> : null}
           {draft.addressLine1.trim() ? <p className="text-sm">{draft.addressLine1.trim()}</p> : null}
           {cityDisplay ? <p className="text-sm font-semibold">{cityStateZip}</p> : null}
-          <p className="text-[11px] opacity-70">
-            {t.discovery}: {COMMUNITY_DISCOVERY_REGION}
-          </p>
           {mapsUrl ? (
             <a
               href={mapsUrl}

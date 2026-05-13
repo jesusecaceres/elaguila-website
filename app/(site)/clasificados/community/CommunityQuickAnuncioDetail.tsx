@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { FiUser } from "react-icons/fi";
 import {
   labelClasesSkillLevel,
   labelComunidadAccessibilityKey,
@@ -13,6 +14,8 @@ import {
   resolveClasesCategoryPublicLabel,
   resolveComunidadEventTypePublicLabel,
 } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
+import { formatTimeForDisplay, getActiveWeeklyScheduleGridItems } from "@/app/publicar/community/shared/lib/communityWeeklySchedule";
+import { CommunityWeeklyScheduleAligned } from "@/app/publicar/community/shared/preview/CommunityWeeklyScheduleAligned";
 import { trackListingShare } from "@/app/lib/clasificadosAnalytics";
 import {
   clasesCostTypeLabel,
@@ -23,7 +26,6 @@ import {
   isCommunityQuickListing,
   parseAccessibilityKeysCsv,
   parseWeeklyScheduleJson,
-  summarizeWeeklySchedule,
 } from "@/app/(site)/clasificados/community/shared/communityListingDetailPairs";
 
 type Props = {
@@ -41,7 +43,7 @@ type Props = {
 function chip(text: string) {
   if (!text.trim()) return null;
   return (
-    <span className="inline-flex items-center rounded-full border border-[#C9B46A]/40 bg-[#FFFCF7] px-3 py-1 text-xs font-semibold text-[#2A2826]">
+    <span className="inline-flex items-center rounded-full border border-[#A98C2A]/45 bg-[#F4EBD8] px-3 py-1 text-xs font-semibold text-[#3D3428] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
       {text}
     </span>
   );
@@ -67,7 +69,14 @@ export function CommunityQuickAnuncioDetail({
   const venue = pairs["Leonix:venue"] ?? "";
   const addr = pairs["Leonix:addressLine1"] ?? "";
   const web = pairs["Leonix:website"] ?? "";
-  const sched = summarizeWeeklySchedule(parseWeeklyScheduleJson(pairs["Leonix:weeklyScheduleJson"] ?? ""), lang);
+  const schedRows = parseWeeklyScheduleJson(pairs["Leonix:weeklyScheduleJson"] ?? "");
+  const lg = lang === "en" ? "en" : "es";
+  const weeklyActive = getActiveWeeklyScheduleGridItems(schedRows, lg).length > 0;
+  const sessionStart = pairs["Leonix:eventSessionStart"] ?? "";
+  const sessionEnd = pairs["Leonix:eventSessionEnd"] ?? "";
+  const showOneTimeSession =
+    category === "comunidad" && sessionStart.trim() && sessionEnd.trim() && !weeklyActive;
+  const showScheduleBlock = weeklyActive || showOneTimeSession;
   const audience = pairs["Leonix:audience"] ?? "";
   const regReq = pairs["Leonix:registrationRequired"] ?? "";
   const bring = pairs["Leonix:bringNote"] ?? "";
@@ -118,14 +127,6 @@ export function CommunityQuickAnuncioDetail({
         value: d1 && d1 !== d0 ? `${d0} → ${d1}` : d0 || d1,
       });
     }
-    const s0 = pairs["Leonix:eventSessionStart"] ?? "";
-    const s1 = pairs["Leonix:eventSessionEnd"] ?? "";
-    if (s0 && s1) {
-      rows.push({
-        label: L ? "Horario puntual" : "One-time hours",
-        value: `${s0}–${s1}`,
-      });
-    }
     const adm = pairs["Leonix:admissionNote"] ?? "";
     if (adm.trim()) rows.push({ label: L ? "Admisión" : "Admission", value: adm });
     const accRaw = pairs["Leonix:accessibility"] ?? "";
@@ -154,7 +155,6 @@ export function CommunityQuickAnuncioDetail({
     });
   }
 
-  if (sched) rows.push({ label: L ? "Horario" : "Schedule", value: sched });
   rows.push({ label: L ? "Ciudad" : "City", value: city || "—" });
   if (state || zip) {
     rows.push({
@@ -164,7 +164,6 @@ export function CommunityQuickAnuncioDetail({
   }
   if (venue.trim()) rows.push({ label: L ? "Lugar" : "Venue", value: venue });
   if (addr.trim()) rows.push({ label: L ? "Dirección" : "Address", value: addr });
-  if (org.trim()) rows.push({ label: L ? "Organizador" : "Organizer", value: org });
 
   const socials: { label: string; href: string }[] = [];
   const fb = pairs["Leonix:socialFacebook"];
@@ -213,6 +212,15 @@ export function CommunityQuickAnuncioDetail({
       <h3 className="text-sm font-semibold uppercase tracking-wide text-[#5C564E]">
         {category === "clases" ? (L ? "Detalle de la clase" : "Class details") : L ? "Detalle del evento" : "Event details"}
       </h3>
+      {org.trim() ? (
+        <div className="mt-3 flex items-start gap-3 rounded-xl border border-[#C9B46A]/50 bg-[#F4EBD8]/65 px-3.5 py-3 sm:px-4">
+          <FiUser className="mt-0.5 h-5 w-5 shrink-0 text-[#8B7355]" aria-hidden />
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#6B5E4E]">{L ? "Organizado por" : "Organized by"}</p>
+            <p className="mt-0.5 text-lg font-bold leading-snug tracking-tight text-[#2A2826]">{org.trim()}</p>
+          </div>
+        </div>
+      ) : null}
       <div className="mt-3 flex flex-wrap gap-2">
         {chip(category === "clases" ? (L ? "Clases" : "Classes") : L ? "Comunidad" : "Community")}
         {!isFree && priceLabel ? chip(priceLabel) : isFree ? chip(L ? "Gratis" : "Free") : null}
@@ -222,7 +230,7 @@ export function CommunityQuickAnuncioDetail({
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
-            className="rounded-full border border-[#C9B46A]/60 bg-white px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#F5F5F5]"
+            className="rounded-full border border-[#C9B46A]/60 bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[#2A2826] hover:bg-[#F0E6D2]"
             onClick={() => void onShare()}
           >
             {L ? "Compartir" : "Share"}
@@ -243,6 +251,24 @@ export function CommunityQuickAnuncioDetail({
             variant="small"
             persistEngagement
           />
+        </div>
+      ) : null}
+
+      {showScheduleBlock ? (
+        <div className="mt-5 min-w-0">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#5C564E]">{L ? "Horario" : "Schedule"}</p>
+          <div className="mt-2 min-w-0">
+            {weeklyActive ? (
+              <CommunityWeeklyScheduleAligned rows={schedRows} lang={lang} />
+            ) : (
+              <dl className="grid grid-cols-[minmax(0,11.5rem)_minmax(0,1fr)] gap-x-4 gap-y-2 text-[15px] sm:grid-cols-[minmax(0,12.5rem)_1fr]">
+                <dt className="min-w-0 font-medium leading-snug text-[#5C564E]">{L ? "Hora" : "Time"}</dt>
+                <dd className="min-w-0 font-semibold leading-snug tabular-nums text-[#2A2826]">
+                  {formatTimeForDisplay(sessionStart.trim(), lg)} – {formatTimeForDisplay(sessionEnd.trim(), lg)}
+                </dd>
+              </dl>
+            )}
+          </div>
         </div>
       ) : null}
 

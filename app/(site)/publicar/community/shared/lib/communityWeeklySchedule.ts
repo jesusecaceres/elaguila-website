@@ -171,3 +171,27 @@ export function formatWeeklyScheduleLines(rows: DayHoursRow[], lang: "es" | "en"
   }
   return lines;
 }
+
+export type WeeklyScheduleGridItem = {
+  dayKey: DayKey;
+  dayLabel: string;
+  timeRange: string;
+};
+
+/** Active weekdays only, for aligned two-column schedule UI. */
+export function getActiveWeeklyScheduleGridItems(rows: DayHoursRow[], lang: "es" | "en"): WeeklyScheduleGridItem[] {
+  const out: WeeklyScheduleGridItem[] = [];
+  for (const day of COMMUNITY_WEEK_ORDER) {
+    const row = rows.find((r) => r.day === day);
+    if (!row || row.closed) continue;
+    const open = row.open.trim();
+    const close = row.close.trim();
+    if (!open || !close) continue;
+    out.push({
+      dayKey: day,
+      dayLabel: WEEK_DAY_LABELS[day][lang],
+      timeRange: `${formatTimeForDisplay(open, lang)} – ${formatTimeForDisplay(close, lang)}`,
+    });
+  }
+  return out;
+}

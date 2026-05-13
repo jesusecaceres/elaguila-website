@@ -4,8 +4,8 @@ import Image from "next/image";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
+import { FiUser } from "react-icons/fi";
 
-import { COMMUNITY_DISCOVERY_REGION } from "../constants/communityRegion";
 import {
   clasesCostLabel,
   clasesFrequencyLabel,
@@ -20,13 +20,29 @@ import {
   resolveClasesCategoryPublicLabel,
   resolveComunidadEventTypePublicLabel,
 } from "../taxonomy/communityTaxonomy";
-import { formatWeeklyScheduleLines, formatTimeForDisplay } from "../lib/communityWeeklySchedule";
+import { formatTimeForDisplay, getActiveWeeklyScheduleGridItems } from "../lib/communityWeeklySchedule";
 import type {
   ClasesQuickDraft,
   ComunidadQuickDraft,
 } from "../types/communityQuickDraft";
 
 import { CommunityContactCanvas } from "./CommunityContactCanvas";
+import { CommunityWeeklyScheduleAligned } from "./CommunityWeeklyScheduleAligned";
+
+const WARM_CHIP =
+  "inline-flex max-w-full items-center rounded-full border border-[#A98C2A]/45 bg-[#F4EBD8] px-3 py-1 text-xs font-semibold text-[#3D3428] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]";
+
+function OrganizerByline({ label, name }: { label: string; name: string }) {
+  return (
+    <div className="mt-3 flex items-start gap-3 rounded-xl border border-[#C9B46A]/50 bg-[#F4EBD8]/65 px-3.5 py-3 sm:px-4">
+      <FiUser className="mt-0.5 h-5 w-5 shrink-0 text-[#8B7355]" aria-hidden />
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-[#6B5E4E]">{label}</p>
+        <p className="mt-0.5 text-lg font-bold leading-snug tracking-tight text-[#2A2826]">{name}</p>
+      </div>
+    </div>
+  );
+}
 
 function cityStateZipLine(d: { publicCity: string; state: string; zip: string }): string {
   const city = getCanonicalCityName(d.publicCity.trim()) || d.publicCity.trim();
@@ -63,7 +79,6 @@ const COPY = {
   es: {
     organizer: "Organizado por",
     publicCity: "Ciudad",
-    discoveryRegion: "Región de descubrimiento",
     schedule: "Horario",
     mode: "Modalidad",
     cost: "Costo",
@@ -93,7 +108,6 @@ const COPY = {
   en: {
     organizer: "Organized by",
     publicCity: "City",
-    discoveryRegion: "Discovery region",
     schedule: "Schedule",
     mode: "Mode",
     cost: "Cost",
@@ -161,8 +175,6 @@ export function ClasesQuickPreviewCard({ draft, lang }: { draft: ClasesQuickDraf
         .join(" ")
     : t.free;
 
-  const scheduleLines = formatWeeklyScheduleLines(draft.weeklySchedule, lang);
-
   const cityZipLine = cityStateZipLine(draft);
 
   return (
@@ -178,13 +190,15 @@ export function ClasesQuickPreviewCard({ draft, lang }: { draft: ClasesQuickDraf
         />
         <div className="absolute left-3 top-3 flex flex-wrap gap-2">
           <span
-            className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
-              isPaid ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900"
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${
+              isPaid
+                ? "border-amber-800/35 bg-[#FFF3E0] text-[#5D4037]"
+                : "border-emerald-800/30 bg-[#E8F3EA] text-[#1B4332]"
             }`}
           >
             {clasesCostLabel(draft.classCostType, lang)}
           </span>
-          <span className="rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
+          <span className="rounded-full border border-[#5C4A2A]/45 bg-[#3D3428]/92 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[#FFFCF7]">
             {clasesModeLabel(draft.mode, lang)}
           </span>
         </div>
@@ -199,33 +213,15 @@ export function ClasesQuickPreviewCard({ draft, lang }: { draft: ClasesQuickDraf
           <h1 className="text-2xl font-extrabold leading-tight sm:text-3xl lg:text-4xl">
             {draft.title.trim() || "—"}
           </h1>
-          <p className="mt-2 text-base font-semibold text-[#5C564E]">
-            {t.organizer}: {draft.organizer.trim() || "—"}
-          </p>
+          <OrganizerByline label={t.organizer} name={draft.organizer.trim() || "—"} />
           <div className="mt-3 flex flex-wrap gap-2">
             {draft.category ? (
-              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
-                {resolveClasesCategoryPublicLabel(draft.category, draft.categoryCustom, lang)}
-              </span>
+              <span className={WARM_CHIP}>{resolveClasesCategoryPublicLabel(draft.category, draft.categoryCustom, lang)}</span>
             ) : null}
-            <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
-              {clasesModeLabel(draft.mode, lang)}
-            </span>
-            {draft.audience ? (
-              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
-                {labelCommunityAudience(draft.audience, lang)}
-              </span>
-            ) : null}
-            {draft.skillLevel ? (
-              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
-                {labelClasesSkillLevel(draft.skillLevel, lang)}
-              </span>
-            ) : null}
-            {cityZipLine ? (
-              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
-                {cityZipLine}
-              </span>
-            ) : null}
+            <span className={WARM_CHIP}>{clasesModeLabel(draft.mode, lang)}</span>
+            {draft.audience ? <span className={WARM_CHIP}>{labelCommunityAudience(draft.audience, lang)}</span> : null}
+            {draft.skillLevel ? <span className={WARM_CHIP}>{labelClasesSkillLevel(draft.skillLevel, lang)}</span> : null}
+            {cityZipLine ? <span className={WARM_CHIP}>{cityZipLine}</span> : null}
           </div>
         </header>
 
@@ -235,9 +231,6 @@ export function ClasesQuickPreviewCard({ draft, lang }: { draft: ClasesQuickDraf
               {t.publicCity}
             </dt>
             <dd className="mt-0.5 font-semibold">{cityZipLine || "—"}</dd>
-            <p className="text-[11px] text-[#9A948C]">
-              {t.discoveryRegion}: {COMMUNITY_DISCOVERY_REGION}
-            </p>
           </div>
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
@@ -262,8 +255,8 @@ export function ClasesQuickPreviewCard({ draft, lang }: { draft: ClasesQuickDraf
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
               {t.schedule}
             </dt>
-            <dd className="mt-0.5 whitespace-pre-line">
-              {scheduleLines.length ? scheduleLines.join("\n") : "—"}
+            <dd className="mt-0.5 min-w-0">
+              <CommunityWeeklyScheduleAligned rows={draft.weeklySchedule} lang={lang} />
             </dd>
           </div>
           {draft.bringNote.trim() ? (
@@ -305,15 +298,12 @@ export function ComunidadQuickPreviewCard({
 
   const cityZipLine = cityStateZipLine(draft);
 
-  const weeklyLines = formatWeeklyScheduleLines(draft.weeklySchedule, lang);
   const sessStart = draft.eventSessionStart.trim();
   const sessEnd = draft.eventSessionEnd.trim();
-  const scheduleDisplay =
-    weeklyLines.length > 0
-      ? weeklyLines.join("\n")
-      : sessStart && sessEnd
-        ? `${formatTimeForDisplay(sessStart, lang)} – ${formatTimeForDisplay(sessEnd, lang)}`
-        : "—";
+  const schedLang = lang === "en" ? "en" : "es";
+  const hasWeeklySchedule = getActiveWeeklyScheduleGridItems(draft.weeklySchedule, schedLang).length > 0;
+  const dateChip = formatComunidadEventDateRange(draft, lang);
+  const comunidadCostIsFree = draft.eventCost === "gratis";
 
   return (
     <article className="mx-auto my-6 w-full max-w-4xl overflow-hidden rounded-2xl border border-[#C9B46A]/45 bg-[#FCF9F2] text-[#2A2826] shadow-md">
@@ -327,7 +317,13 @@ export function ComunidadQuickPreviewCard({
           unoptimized
         />
         <div className="absolute left-3 top-3 flex flex-wrap gap-2">
-          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-900">
+          <span
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${
+              comunidadCostIsFree
+                ? "border-emerald-800/30 bg-[#E8F3EA] text-[#1B4332]"
+                : "border-amber-800/35 bg-[#FFF3E0] text-[#5D4037]"
+            }`}
+          >
             {comunidadCostLabel(draft.eventCost, lang)}
           </span>
         </div>
@@ -342,30 +338,17 @@ export function ComunidadQuickPreviewCard({
           <h1 className="text-2xl font-extrabold leading-tight sm:text-3xl lg:text-4xl">
             {draft.title.trim() || "—"}
           </h1>
-          <p className="mt-2 text-base font-semibold text-[#5C564E]">
-            {t.organizer}: {draft.organizer.trim() || "—"}
-          </p>
+          <OrganizerByline label={t.organizer} name={draft.organizer.trim() || "—"} />
           <div className="mt-3 flex flex-wrap gap-2">
             {draft.category ? (
-              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
-                {resolveComunidadEventTypePublicLabel(draft.category, draft.categoryCustom, lang)}
-              </span>
+              <span className={WARM_CHIP}>{resolveComunidadEventTypePublicLabel(draft.category, draft.categoryCustom, lang)}</span>
             ) : null}
-            {draft.audience ? (
-              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
-                {labelCommunityAudience(draft.audience, lang)}
-              </span>
-            ) : null}
+            {draft.audience ? <span className={WARM_CHIP}>{labelCommunityAudience(draft.audience, lang)}</span> : null}
+            {dateChip !== "—" ? <span className={WARM_CHIP}>{dateChip}</span> : null}
             {draft.accessibilityKeys.length ? (
-              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
-                {draft.accessibilityKeys.map((k) => labelComunidadAccessibilityKey(k, lang)).join(" · ")}
-              </span>
+              <span className={WARM_CHIP}>{draft.accessibilityKeys.map((k) => labelComunidadAccessibilityKey(k, lang)).join(" · ")}</span>
             ) : null}
-            {cityZipLine ? (
-              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#2A2826] ring-1 ring-[#C9B46A]/40">
-                {cityZipLine}
-              </span>
-            ) : null}
+            {cityZipLine ? <span className={WARM_CHIP}>{cityZipLine}</span> : null}
           </div>
         </header>
 
@@ -375,9 +358,6 @@ export function ComunidadQuickPreviewCard({
               {t.publicCity}
             </dt>
             <dd className="mt-0.5 font-semibold">{cityZipLine || "—"}</dd>
-            <p className="text-[11px] text-[#9A948C]">
-              {t.discoveryRegion}: {COMMUNITY_DISCOVERY_REGION}
-            </p>
           </div>
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
@@ -408,8 +388,19 @@ export function ComunidadQuickPreviewCard({
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">
               {t.eventWeekly}
             </dt>
-            <dd className="mt-0.5 whitespace-pre-line">
-              {scheduleDisplay}
+            <dd className="mt-0.5 min-w-0">
+              {hasWeeklySchedule ? (
+                <CommunityWeeklyScheduleAligned rows={draft.weeklySchedule} lang={lang} />
+              ) : sessStart && sessEnd ? (
+                <dl className="grid grid-cols-[minmax(0,11.5rem)_minmax(0,1fr)] gap-x-4 gap-y-2 text-[15px] sm:grid-cols-[minmax(0,12.5rem)_1fr]">
+                  <dt className="min-w-0 font-medium leading-snug text-[#5C564E]">{t.time}</dt>
+                  <dd className="min-w-0 font-semibold leading-snug tabular-nums text-[#2A2826]">
+                    {formatTimeForDisplay(sessStart, schedLang)} – {formatTimeForDisplay(sessEnd, schedLang)}
+                  </dd>
+                </dl>
+              ) : (
+                <span className="text-sm text-[#5C564E]">—</span>
+              )}
             </dd>
           </div>
           {draft.bringNote.trim() ? (
