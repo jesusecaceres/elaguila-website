@@ -156,17 +156,15 @@ export function ServiciosHero({
         >
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-2.5 sm:gap-3 md:gap-4">
             {hero.logoUrl ? (
-              <div className="flex justify-center">
-                <div className="rounded-2xl border border-white/35 bg-black/20 p-2 shadow-lg shadow-black/20 backdrop-blur-[2px] sm:p-2.5 md:p-3">
-                  <Image
-                    src={hero.logoUrl}
-                    alt={hero.logoAlt || identity.businessName}
-                    width={192}
-                    height={192}
-                    className="h-[6.75rem] w-[6.75rem] object-contain sm:h-40 sm:w-40 md:h-44 md:w-44"
-                    unoptimized={serviciosImageUnoptimized(hero.logoUrl)}
-                  />
-                </div>
+              <div className="flex w-full justify-center">
+                <Image
+                  src={hero.logoUrl}
+                  alt={hero.logoAlt || identity.businessName}
+                  width={384}
+                  height={384}
+                  className="mx-auto h-[13.5rem] w-[13.5rem] max-h-[min(13.5rem,calc(100vw-7rem))] max-w-[min(13.5rem,calc(100vw-7rem))] object-contain sm:h-80 sm:w-80 sm:max-h-[min(20rem,calc(100vw-8rem))] sm:max-w-[min(20rem,calc(100vw-8rem))] md:h-[22rem] md:w-[22rem] md:max-h-[min(22rem,calc(100vw-10rem))] md:max-w-[min(22rem,calc(100vw-10rem))]"
+                  unoptimized={serviciosImageUnoptimized(hero.logoUrl)}
+                />
               </div>
             ) : (
               <div className="flex justify-center">
