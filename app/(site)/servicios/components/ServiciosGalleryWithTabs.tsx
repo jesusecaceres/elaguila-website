@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
-import { resolveServiciosQuoteDestination, appendWhatsAppPrefill } from "../lib/serviciosContactActions";
+import { buildServiciosGetQuoteIntent, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
 import { SV } from "./serviciosDesignTokens";
 import { ServiciosGalleryVideoTile } from "./ServiciosGalleryVideoTile";
+import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
 
 function GalleryImage({ g, onQuoteClick, onOpen }: { 
   g: { id: string; url: string; alt: string }; 
@@ -144,7 +146,17 @@ function GalleryModal({
   );
 }
 
-export function ServiciosGalleryWithTabs({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
+export function ServiciosGalleryWithTabs({
+  profile,
+  lang,
+  listingSlug,
+  listingShareUrl,
+}: {
+  profile: ServiciosProfileResolved;
+  lang: ServiciosLang;
+  listingSlug?: string;
+  listingShareUrl?: string;
+}) {
   const L = getServiciosProfileLabels(lang);
   const mains = profile.gallery;
   const more = profile.galleryMore;
@@ -165,21 +177,28 @@ export function ServiciosGalleryWithTabs({ profile, lang }: { profile: Servicios
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  const quoteDestination = resolveServiciosQuoteDestination(profile, lang);
+  const [ctaOpen, setCtaOpen] = useState(false);
+  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
+  const closeCta = useCallback(() => {
+    setCtaOpen(false);
+    setCtaIntent(null);
+  }, []);
 
-  const handleGalleryQuoteClick = () => {
-    if (!quoteDestination) return;
-
-    const message = lang === "en"
+  const galleryQuoteMessage =
+    lang === "en"
       ? "Hi, I saw your profile on Leonix and would like something like this."
       : "Hola, vi tu perfil en Leonix y quiero algo como esto.";
 
-    if (quoteDestination.kind === "whatsapp") {
-      const href = appendWhatsAppPrefill(quoteDestination.href, message);
-      window.open(href, "_blank", "noopener noreferrer");
-    } else {
-      window.open(quoteDestination.href, "_blank", "noopener noreferrer");
-    }
+  const handleGalleryQuoteClick = () => {
+    const intent = buildServiciosGetQuoteIntent(profile, lang, {
+      listingSlug,
+      listingShareUrl,
+      quoteMessage: galleryQuoteMessage,
+    });
+    if (!intent) return;
+    trackServiciosListingCta(listingSlug, "cta_quote_sms_click", { source: "gallery_tabs", href: "sheet" });
+    setCtaIntent(intent);
+    setCtaOpen(true);
   };
 
   const openModal = (index: number) => {
@@ -322,6 +341,7 @@ export function ServiciosGalleryWithTabs({ profile, lang }: { profile: Servicios
         setCurrentIndex={setCurrentModalIndex}
         lang={lang}
       />
+      <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />
     </>
   );
 }

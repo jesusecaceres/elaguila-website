@@ -148,13 +148,19 @@ export function ServiciosProfileView({
                 profile={profile}
                 lang={lang}
                 listingSlug={analyticsListingSlug}
+                listingShareUrl={listingShareUrl}
                 directContactFasterResponseHint={directContactFasterResponseHint}
               />
               <ServiciosPromocionesCard profile={profile} lang={lang} />
             </div>
 
             <div className="lg:order-3">
-              <ServiciosGalleryWithTabs profile={profile} lang={lang} />
+              <ServiciosGalleryWithTabs
+                profile={profile}
+                lang={lang}
+                listingSlug={analyticsListingSlug}
+                listingShareUrl={listingShareUrl}
+              />
             </div>
 
             {hasCredentialsResolved(profile) ? (
@@ -164,7 +170,13 @@ export function ServiciosProfileView({
             ) : null}
 
             <div className="lg:order-5">
-              <ServiciosOfferedSection services={profile.services} lang={lang} profileForQuote={profile} />
+              <ServiciosOfferedSection
+                services={profile.services}
+                lang={lang}
+                profileForQuote={profile}
+                listingSlug={analyticsListingSlug}
+                listingShareUrl={listingShareUrl}
+              />
             </div>
 
             <div className="lg:order-6">
@@ -214,6 +226,7 @@ export function ServiciosProfileView({
               profile={profile}
               lang={lang}
               listingSlug={analyticsListingSlug}
+              listingShareUrl={listingShareUrl}
               directContactFasterResponseHint={directContactFasterResponseHint}
             />
             <div className="mt-5 lg:mt-6">

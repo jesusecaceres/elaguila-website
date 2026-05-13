@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { FiGlobe, FiMapPin, FiPhone, FiMail } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import type { ServiciosPublicListingRow } from "../lib/serviciosPublicListingsServer";
@@ -11,6 +11,14 @@ import { getServiciosProfileLabels } from "@/app/servicios/copy/serviciosProfile
 import { serviciosImageUnoptimized } from "@/app/servicios/lib/serviciosMediaUrl";
 import { isServiciosListingPromoted } from "../lib/serviciosResultsFilter";
 import type { ServiciosProfileResolved } from "@/app/(site)/servicios/types/serviciosBusinessProfile";
+import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
+import {
+  buildServiciosSendEmailIntentFromMailto,
+  extractWaMeDigitsFromHref,
+  serviciosContactShareExtras,
+  trackServiciosListingCta,
+} from "@/app/(site)/servicios/lib/serviciosCtaIntents";
 
 /** Marketplace result row — low profile, warm Phase 9D palette (not tall preview canvas). */
 const CARD =
@@ -127,6 +135,8 @@ export interface ServiciosHorizontalResultCardProps {
   publicDetailLabel?: string;
   discoveryRefineHref?: string;
   discoveryRefineLabel?: string;
+  /** Absolute vitrina URL for CTA sheet extras (optional). */
+  listingShareUrl?: string;
 }
 
 /**
@@ -142,6 +152,7 @@ export function ServiciosHorizontalResultCard({
   publicDetailLabel,
   discoveryRefineHref,
   discoveryRefineLabel,
+  listingShareUrl,
 }: ServiciosHorizontalResultCardProps) {
   const L = getServiciosProfileLabels(lang);
 
@@ -160,13 +171,90 @@ export function ServiciosHorizontalResultCard({
     return resolveServiciosProfile(wire, lang);
   }, [previewProfile, row, lang]);
 
+  const listingSlug = useMemo(() => {
+    if (!profile) return (row?.slug || "").trim();
+    return (row?.slug || "").trim() || profile.identity.slug;
+  }, [row, profile]);
+
+  const [ctaOpen, setCtaOpen] = useState(false);
+  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
+
+  const closeCta = useCallback(() => {
+    setCtaOpen(false);
+    setCtaIntent(null);
+  }, []);
+
+  const openOutbound = useCallback(
+    (intent: CtaSheetIntent, eventType: string) => {
+      trackServiciosListingCta(listingSlug, eventType, { source: "servicios_horizontal_card" });
+      setCtaIntent(intent);
+      setCtaOpen(true);
+    },
+    [listingSlug],
+  );
+
+  const contactExtras = useMemo(() => {
+    if (!profile) return { email: undefined, websiteUrl: undefined, publicUrl: undefined };
+    return serviciosContactShareExtras(profile, listingSlug, listingShareUrl);
+  }, [profile, listingSlug, listingShareUrl]);
+
+  const openContactKey = useCallback(
+    (key: string, href: string) => {
+      if (!profile) return;
+      if (key === "maps") {
+        openOutbound(
+          { kind: "directions", addressOrUrl: href, isMapsUrl: /^https?:\/\//i.test(href), contactShareExtras: contactExtras },
+          "cta_maps_click",
+        );
+        return;
+      }
+      if (key === "website") {
+        openOutbound({ kind: "website", url: href }, "cta_website_click");
+        return;
+      }
+      if (key === "whatsapp") {
+        const d = extractWaMeDigitsFromHref(href);
+        if (d.replace(/\D/g, "").length < 8) return;
+        let message = "";
+        try {
+          const abs = /^https?:\/\//i.test(href) ? href : `https://${href.replace(/^\/\//, "")}`;
+          const u = new URL(abs);
+          const rawText = u.searchParams.get("text");
+          if (rawText) {
+            try {
+              message = decodeURIComponent(rawText.replace(/\+/g, "%20"));
+            } catch {
+              message = rawText.replace(/\+/g, " ");
+            }
+          }
+        } catch {
+          message = "";
+        }
+        openOutbound(
+          { kind: "send_message", message, phone: d, whatsappDigits: d, contactShareExtras: contactExtras },
+          "cta_whatsapp_click",
+        );
+        return;
+      }
+      if (key === "email") {
+        const intent = buildServiciosSendEmailIntentFromMailto(href, lang, listingSlug, listingShareUrl);
+        if (!intent) return;
+        openOutbound(intent, "cta_email_click");
+        return;
+      }
+      if (key === "call" || key === "callOffice") {
+        const raw = href.replace(/^tel:/i, "").trim();
+        openOutbound({ kind: "call", phone: raw, contactShareExtras: contactExtras }, "cta_call_click");
+      }
+    },
+    [contactExtras, lang, listingShareUrl, listingSlug, openOutbound, profile],
+  );
+
   if (!profile) {
     return null;
   }
 
-  const listingSlug = (row?.slug || "").trim() || profile.identity.slug;
   const cityFallback = (row?.city || "").trim();
-
   const logoUrl = (profile.hero.logoUrl || "").trim();
   const logoAlt = (profile.hero.logoAlt || "").trim() || profile.identity.businessName;
 
@@ -310,7 +398,8 @@ export function ServiciosHorizontalResultCard({
   const showLocationServiceRow = Boolean(locationLine) && !addressQuery;
 
   return (
-    <article className={`${CARD} w-full min-w-0 ${className}`.trim()}>
+    <>
+      <article className={`${CARD} w-full min-w-0 ${className}`.trim()}>
       <div className={GRID}>
         <div className={MEDIA_CELL}>
           <div className={MEDIA_FRAME}>
@@ -423,17 +512,16 @@ export function ServiciosHorizontalResultCard({
           ) : null}
 
           {addressQuery && mapsHref ? (
-            <a
-              href={mapsHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={ADDRESS_LINK}
+            <button
+              type="button"
+              className={`${ADDRESS_LINK} group w-full border-0 bg-transparent p-0 text-left`}
               aria-label={lang === "en" ? "Open address in maps" : "Abrir dirección en mapas"}
+              onClick={() => openContactKey("maps", mapsHref)}
             >
               <FiMapPin className="h-4 w-4 shrink-0 text-[#6F7A3A]" aria-hidden />
               <span className="min-w-0 flex-1 leading-snug">{addressQuery}</span>
               <span className="ml-auto text-[12px] font-bold text-[#8A7E6E] group-hover:text-[#9A7329]">›</span>
-            </a>
+            </button>
           ) : null}
 
           {summary ? <p className={`${BODY} line-clamp-2`}>{summary}</p> : null}
@@ -468,17 +556,16 @@ export function ServiciosHorizontalResultCard({
                         : key === "email"
                           ? FiMail
                           : FiMapPin;
-                const external = href.startsWith("http");
                 return (
-                  <a
+                  <button
                     key={key}
-                    href={href}
+                    type="button"
                     className={`${CTA_SECONDARY} !max-w-[min(42vw,11rem)] shrink-0 snap-start !flex-none`}
-                    {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    onClick={() => openContactKey(key, href)}
                   >
                     <Icon className="h-4 w-4 shrink-0" aria-hidden />
                     <span className="min-w-0 truncate">{label}</span>
-                  </a>
+                  </button>
                 );
               })}
             </div>
@@ -497,17 +584,16 @@ export function ServiciosHorizontalResultCard({
                         : key === "email"
                           ? FiMail
                           : FiMapPin;
-                const external = href.startsWith("http");
                 return (
-                  <a
+                  <button
                     key={key}
-                    href={href}
+                    type="button"
                     className={CTA_SECONDARY}
-                    {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    onClick={() => openContactKey(key, href)}
                   >
                     <Icon className="h-4 w-4 shrink-0" aria-hidden />
                     <span className="min-w-0 truncate">{label}</span>
-                  </a>
+                  </button>
                 );
               })}
             </div>
@@ -515,5 +601,7 @@ export function ServiciosHorizontalResultCard({
         </div>
       </div>
     </article>
+    <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />
+    </>
   );
 }

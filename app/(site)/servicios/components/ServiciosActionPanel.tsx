@@ -1,10 +1,12 @@
+"use client";
+
+import { useCallback, useState } from "react";
 import { FiClock, FiGlobe, FiMail, FiMapPin, FiPhone, FiZap } from "react-icons/fi";
 import { FaFacebook, FaInstagram, FaLinkedin, FaStar, FaTiktok, FaWhatsapp, FaYoutube } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { nonEmpty } from "../lib/serviciosProfilePrimitives";
 import {
-  appendWhatsAppPrefill,
   buildServiciosSecondaryActions,
   buildServiciosSecondaryContactMailto,
   resolveServiciosQuoteDestination,
@@ -12,11 +14,19 @@ import {
   type ServiciosQuoteDestinationKind,
   type ServiciosSecondaryAction,
 } from "../lib/serviciosContactActions";
+import {
+  buildServiciosGetQuoteIntent,
+  buildServiciosSendEmailIntentFromMailto,
+  extractWaMeDigitsFromHref,
+  serviciosContactShareExtras,
+  trackServiciosListingCta,
+} from "../lib/serviciosCtaIntents";
 import { ServiciosStarRating } from "./ServiciosStarRating";
 import { ServiciosActionPanelAreasMap } from "./ServiciosActionPanelAreasMap";
 import { ServiciosOfferCard } from "./ServiciosOfferCard";
-import { ServiciosTrackedLink } from "./ServiciosTrackedLink";
 import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
+import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
 
 // Leonix premium visual tokens matching Restaurantes
 const LEONIX_CARD_SURFACE = "#FFFAF3";
@@ -89,16 +99,35 @@ export function ServiciosActionPanel({
   profile,
   lang,
   listingSlug,
+  listingShareUrl,
   directContactFasterResponseHint = false,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
   /** When set, outbound CTAs emit lightweight analytics events. */
   listingSlug?: string;
+  /** Canonical public profile URL (SSR) for share extras in sheets. */
+  listingShareUrl?: string;
   /** Public listing: quote form hidden — suggest direct contact for faster response. */
   directContactFasterResponseHint?: boolean;
 }) {
   const L = getServiciosProfileLabels(lang);
+  const [ctaOpen, setCtaOpen] = useState(false);
+  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
+
+  const openCtaSheet = useCallback(
+    (intent: CtaSheetIntent, trackEvent?: string) => {
+      if (trackEvent) trackServiciosListingCta(listingSlug, trackEvent, { source: "action_panel" });
+      setCtaIntent(intent);
+      setCtaOpen(true);
+    },
+    [listingSlug],
+  );
+
+  const closeCtaSheet = useCallback(() => {
+    setCtaOpen(false);
+    setCtaIntent(null);
+  }, []);
   const rating = profile.hero.rating;
   const reviewCount = profile.hero.reviewCount;
   const hours = profile.contact.hours;
@@ -110,12 +139,6 @@ export function ServiciosActionPanel({
 
   const quote = resolveServiciosQuoteDestination(profile, lang);
   const quoteMsgText = serviciosUniversalQuoteMessage(lang);
-  const quoteHref =
-    quote?.kind === "whatsapp"
-      ? appendWhatsAppPrefill(quote.href, quoteMsgText)
-      : quote?.kind === "sms"
-        ? quote.href
-        : null;
   const primaryMailto = quote?.kind === "mailto" ? quote.href : null;
   const primaryEmailAddr =
     profile.contact.email?.trim() ||
@@ -124,6 +147,56 @@ export function ServiciosActionPanel({
   const secondary = buildServiciosSecondaryActions(profile, quote);
   const whatsappInConversionRail =
     quote?.kind === "whatsapp" || secondary.some((s) => s.id === "whatsapp");
+
+  const contactExtras = serviciosContactShareExtras(profile, listingSlug, listingShareUrl);
+
+  const openPrimaryQuoteSheet = () => {
+    const intent = buildServiciosGetQuoteIntent(profile, lang, { listingSlug, listingShareUrl });
+    if (!intent || !quote) return;
+    openCtaSheet(intent, analyticsForQuoteKind(quote.kind));
+  };
+
+  const openPrimaryMailtoSheet = () => {
+    if (!primaryMailto) return;
+    const intent = buildServiciosSendEmailIntentFromMailto(primaryMailto, lang, listingSlug, listingShareUrl);
+    if (!intent) return;
+    openCtaSheet(intent, analyticsForQuoteKind("mailto"));
+  };
+
+  const openSecondarySheet = (a: ServiciosSecondaryAction) => {
+    const ev = analyticsForSecondaryId(a.id);
+    if (a.id === "whatsapp") {
+      const digits = extractWaMeDigitsFromHref(a.href);
+      if (digits.replace(/\D/g, "").length < 8) return;
+      openCtaSheet(
+        {
+          kind: "send_message",
+          message: "",
+          phone: digits,
+          whatsappDigits: digits,
+          contactShareExtras: contactExtras,
+        },
+        ev,
+      );
+      return;
+    }
+    if (a.id === "call" || a.id === "callOffice") {
+      const raw = a.href.replace(/^tel:/i, "").trim();
+      openCtaSheet({ kind: "call", phone: raw, contactShareExtras: contactExtras }, ev);
+      return;
+    }
+    if (a.id === "website") {
+      openCtaSheet({ kind: "website", url: a.href }, ev);
+    }
+  };
+
+  const openDirectionsSheet = (addressOrUrl: string, isMapsUrl: boolean) => {
+    openCtaSheet({ kind: "directions", addressOrUrl, isMapsUrl, contactShareExtras: contactExtras }, "cta_maps_click");
+  };
+
+  const openSocialOutbound = (url: string, headline: string) => {
+    openCtaSheet({ kind: "social_link", url, headline }, "cta_website_click");
+  };
 
   const linkBase =
     "flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full border border-[#E8D7B8] bg-[#FCF9F2] px-3 py-3 text-sm font-semibold text-[#2F2A23] shadow-sm transition hover:shadow-md";
@@ -195,55 +268,25 @@ export function ServiciosActionPanel({
               {primaryCtaLabel}
             </ContactEmailMenu>
           ) : quote && quote.kind === "mailto" && primaryMailto ? (
-            listingSlug ? (
-              <ServiciosTrackedLink
-                listingSlug={listingSlug}
-                eventType={analyticsForQuoteKind("mailto")}
-                href={primaryMailto}
-                className={`${primaryClass} mt-3`}
-                style={{ backgroundColor: LEONIX_DARK_CTA, boxShadow: "0 12px 32px rgba(44,24,16,0.28)" }}
-              >
-                <FiZap className="h-5 w-5 shrink-0" aria-hidden />
-                {primaryCtaLabel}
-              </ServiciosTrackedLink>
-            ) : (
-              <a
-                href={primaryMailto}
-                className={`${primaryClass} mt-3`}
-                style={{ backgroundColor: LEONIX_DARK_CTA, boxShadow: "0 12px 32px rgba(44,24,16,0.28)" }}
-              >
-                <FiZap className="h-5 w-5 shrink-0" aria-hidden />
-                {primaryCtaLabel}
-              </a>
-            )
-          ) : quote && quoteHref ? (
-            listingSlug ? (
-              <ServiciosTrackedLink
-                listingSlug={listingSlug}
-                eventType={analyticsForQuoteKind(quote.kind)}
-                href={quoteHref}
-                {...(quote.kind === "website" || quote.kind === "whatsapp"
-                  ? { target: "_blank", rel: "noopener noreferrer" }
-                  : {})}
-                className={`${primaryClass} mt-3`}
-                style={{ backgroundColor: LEONIX_DARK_CTA, boxShadow: "0 12px 32px rgba(44,24,16,0.28)" }}
-              >
-                <FiZap className="h-5 w-5 shrink-0" aria-hidden />
-                {primaryCtaLabel}
-              </ServiciosTrackedLink>
-            ) : (
-              <a
-                href={quoteHref}
-                {...(quote.kind === "website" || quote.kind === "whatsapp"
-                  ? { target: "_blank", rel: "noopener noreferrer" }
-                  : {})}
-                className={`${primaryClass} mt-3`}
-                style={{ backgroundColor: LEONIX_DARK_CTA, boxShadow: "0 12px 32px rgba(44,24,16,0.28)" }}
-              >
-                <FiZap className="h-5 w-5 shrink-0" aria-hidden />
-                {primaryCtaLabel}
-              </a>
-            )
+            <button
+              type="button"
+              className={`${primaryClass} mt-3 w-full border-0`}
+              style={{ backgroundColor: LEONIX_DARK_CTA, boxShadow: "0 12px 32px rgba(44,24,16,0.28)" }}
+              onClick={openPrimaryMailtoSheet}
+            >
+              <FiZap className="h-5 w-5 shrink-0" aria-hidden />
+              {primaryCtaLabel}
+            </button>
+          ) : quote && (quote.kind === "sms" || quote.kind === "whatsapp") ? (
+            <button
+              type="button"
+              className={`${primaryClass} mt-3 w-full border-0`}
+              style={{ backgroundColor: LEONIX_DARK_CTA, boxShadow: "0 12px 32px rgba(44,24,16,0.28)" }}
+              onClick={openPrimaryQuoteSheet}
+            >
+              <FiZap className="h-5 w-5 shrink-0" aria-hidden />
+              {primaryCtaLabel}
+            </button>
           ) : null}
 
           {secondary.length > 0 ? (
@@ -279,38 +322,21 @@ export function ServiciosActionPanel({
                     );
                   }
                 }
-                return listingSlug ? (
-                  <ServiciosTrackedLink
+                return (
+                  <button
                     key={`${a.id}-${a.href}`}
-                    listingSlug={listingSlug}
-                    eventType={analyticsForSecondaryId(a.id)}
-                    href={a.href}
-                    {...(a.id === "website" || a.id === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                    className={`${linkBase}`}
+                    type="button"
+                    className={`${linkBase} w-full border-0 text-center`}
                     style={{
                       backgroundColor: "white",
                       borderColor: LEONIX_BORDER,
                       color: LEONIX_PRIMARY_TEXT,
                     }}
+                    onClick={() => openSecondarySheet(a)}
                   >
                     <SecondaryIcon id={a.id} />
                     {secondaryLabel(L, a)}
-                  </ServiciosTrackedLink>
-                ) : (
-                  <a
-                    key={`${a.id}-${a.href}`}
-                    href={a.href}
-                    {...(a.id === "website" || a.id === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                    className={`${linkBase}`}
-                    style={{
-                      backgroundColor: "white",
-                      borderColor: LEONIX_BORDER,
-                      color: LEONIX_PRIMARY_TEXT,
-                    }}
-                  >
-                    <SecondaryIcon id={a.id} />
-                    {secondaryLabel(L, a)}
-                  </a>
+                  </button>
                 );
               })}
             </div>
@@ -327,100 +353,94 @@ export function ServiciosActionPanel({
               className={`flex flex-wrap gap-2 sm:gap-2.5 ${quote || secondary.length > 0 ? "mt-5 border-t border-black/[0.06] pt-4" : "mt-4"}`}
             >
               {social.instagram ? (
-                <a
-                  href={social.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => openSocialOutbound(social.instagram!, "Instagram")}
                   className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border shadow-sm transition hover:shadow-md sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
-                  style={{ 
-                    backgroundColor: LEONIX_ELEVATED_CHIP, 
-                    borderColor: LEONIX_BORDER, 
-                    color: LEONIX_PRIMARY_TEXT 
+                  style={{
+                    backgroundColor: LEONIX_ELEVATED_CHIP,
+                    borderColor: LEONIX_BORDER,
+                    color: LEONIX_PRIMARY_TEXT,
                   }}
                   aria-label="Instagram"
                 >
                   <FaInstagram className="h-4 w-4" aria-hidden />
-                </a>
+                </button>
               ) : null}
               {social.facebook ? (
-                <a
-                  href={social.facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => openSocialOutbound(social.facebook!, "Facebook")}
                   className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border shadow-sm transition hover:shadow-md sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
-                  style={{ 
-                    backgroundColor: LEONIX_ELEVATED_CHIP, 
-                    borderColor: LEONIX_BORDER, 
-                    color: LEONIX_PRIMARY_TEXT 
+                  style={{
+                    backgroundColor: LEONIX_ELEVATED_CHIP,
+                    borderColor: LEONIX_BORDER,
+                    color: LEONIX_PRIMARY_TEXT,
                   }}
                   aria-label="Facebook"
                 >
                   <FaFacebook className="h-4 w-4" aria-hidden />
-                </a>
+                </button>
               ) : null}
               {social.youtube ? (
-                <a
-                  href={social.youtube}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => openSocialOutbound(social.youtube!, "YouTube")}
                   className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border shadow-sm transition hover:shadow-md sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
-                  style={{ 
-                    backgroundColor: LEONIX_ELEVATED_CHIP, 
-                    borderColor: LEONIX_BORDER, 
-                    color: LEONIX_PRIMARY_TEXT 
+                  style={{
+                    backgroundColor: LEONIX_ELEVATED_CHIP,
+                    borderColor: LEONIX_BORDER,
+                    color: LEONIX_PRIMARY_TEXT,
                   }}
                   aria-label="YouTube"
                 >
                   <FaYoutube className="h-4 w-4" aria-hidden />
-                </a>
+                </button>
               ) : null}
               {social.tiktok ? (
-                <a
-                  href={social.tiktok}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => openSocialOutbound(social.tiktok!, "TikTok")}
                   className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border shadow-sm transition hover:shadow-md sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
-                  style={{ 
-                    backgroundColor: LEONIX_ELEVATED_CHIP, 
-                    borderColor: LEONIX_BORDER, 
-                    color: LEONIX_PRIMARY_TEXT 
+                  style={{
+                    backgroundColor: LEONIX_ELEVATED_CHIP,
+                    borderColor: LEONIX_BORDER,
+                    color: LEONIX_PRIMARY_TEXT,
                   }}
                   aria-label="TikTok"
                 >
                   <FaTiktok className="h-4 w-4" aria-hidden />
-                </a>
+                </button>
               ) : null}
               {social.linkedin ? (
-                <a
-                  href={social.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => openSocialOutbound(social.linkedin!, "LinkedIn")}
                   className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border shadow-sm transition hover:shadow-md sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
-                  style={{ 
-                    backgroundColor: LEONIX_ELEVATED_CHIP, 
-                    borderColor: LEONIX_BORDER, 
-                    color: LEONIX_PRIMARY_TEXT 
+                  style={{
+                    backgroundColor: LEONIX_ELEVATED_CHIP,
+                    borderColor: LEONIX_BORDER,
+                    color: LEONIX_PRIMARY_TEXT,
                   }}
                   aria-label="LinkedIn"
                 >
                   <FaLinkedin className="h-4 w-4" aria-hidden />
-                </a>
+                </button>
               ) : null}
               {!whatsappInConversionRail && social.whatsapp ? (
-                <a
-                  href={social.whatsapp}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => openSocialOutbound(social.whatsapp!, "WhatsApp")}
                   className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border shadow-sm transition hover:shadow-md sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
-                  style={{ 
-                    backgroundColor: LEONIX_ELEVATED_CHIP, 
-                    borderColor: LEONIX_BORDER, 
-                    color: "#25D366" 
+                  style={{
+                    backgroundColor: LEONIX_ELEVATED_CHIP,
+                    borderColor: LEONIX_BORDER,
+                    color: "#25D366",
                   }}
                   aria-label="WhatsApp"
                 >
                   <FaWhatsapp className="h-5 w-5" aria-hidden />
-                </a>
+                </button>
               ) : null}
             </div>
           ) : null}
@@ -467,62 +487,46 @@ export function ServiciosActionPanel({
                 {profile.contact.physicalAddressDisplay}
               </p>
               {profile.contact.mapsSearchHref ? (
-                listingSlug ? (
-                  <ServiciosTrackedLink
-                    listingSlug={listingSlug}
-                    eventType="cta_maps_click"
-                    href={profile.contact.mapsSearchHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-3 inline-flex min-h-[40px] items-center gap-2 rounded-lg text-sm font-semibold text-[#3B66AD] hover:underline"
-                  >
-                    <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
-                    {L.openInMaps}
-                  </ServiciosTrackedLink>
-                ) : (
-                  <a
-                    href={profile.contact.mapsSearchHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-3 inline-flex min-h-[40px] items-center gap-2 rounded-lg text-sm font-semibold text-[#3B66AD] hover:underline"
-                  >
-                    <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
-                    {L.openInMaps}
-                  </a>
-                )
+                <button
+                  type="button"
+                  className="mt-3 inline-flex min-h-[40px] items-center gap-2 rounded-lg border-0 bg-transparent p-0 text-sm font-semibold text-[#3B66AD] hover:underline"
+                  onClick={() => openDirectionsSheet(profile.contact.mapsSearchHref!, true)}
+                >
+                  <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
+                  {L.openInMaps}
+                </button>
               ) : null}
             </div>
           ) : profile.contact.mapsSearchHref ? (
-            listingSlug ? (
-              <ServiciosTrackedLink
-                listingSlug={listingSlug}
-                eventType="cta_maps_click"
-                href={profile.contact.mapsSearchHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 inline-flex min-h-[40px] items-center gap-2 text-sm font-semibold text-[#3B66AD] hover:underline"
-              >
-                <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
-                {L.openInMaps}
-              </ServiciosTrackedLink>
-            ) : (
-              <a
-                href={profile.contact.mapsSearchHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 inline-flex min-h-[40px] items-center gap-2 text-sm font-semibold text-[#3B66AD] hover:underline"
-              >
-                <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
-                {L.openInMaps}
-              </a>
-            )
+            <button
+              type="button"
+              className="mt-3 inline-flex min-h-[40px] items-center gap-2 rounded-lg border-0 bg-transparent p-0 text-sm font-semibold text-[#3B66AD] hover:underline"
+              onClick={() => openDirectionsSheet(profile.contact.mapsSearchHref!, true)}
+            >
+              <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
+              {L.openInMaps}
+            </button>
           ) : null}
         </div>
       </div>
 
-      <ServiciosActionPanelAreasMap profile={profile} lang={lang} />
+      <ServiciosActionPanelAreasMap
+        profile={profile}
+        lang={lang}
+        onOpenServiceAreaMap={() => {
+          const href = profile.contact.mapsSearchHref?.trim();
+          const areaText = profile.serviceAreas.items.map((x) => x.label).filter(Boolean).join(", ");
+          const fallback =
+            href ||
+            (areaText ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(areaText)}` : "");
+          if (!fallback) return;
+          openDirectionsSheet(fallback, /^https?:\/\//i.test(fallback));
+        }}
+      />
 
       <ServiciosOfferCard profile={profile} lang={lang} />
+
+      <CtaActionSheet open={ctaOpen} onClose={closeCtaSheet} intent={ctaIntent} lang={lang} />
     </div>
   );
 }

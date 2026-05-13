@@ -11,14 +11,30 @@ import { SV } from "./serviciosDesignTokens";
 export function ServiciosActionPanelAreasMap({
   profile,
   lang,
+  onOpenServiceAreaMap,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
+  /** When set, tapping the map opens shared directions flow (sheet first) instead of navigating immediately. */
+  onOpenServiceAreaMap?: () => void;
 }) {
   const L = getServiciosProfileLabels(lang);
   const areas = profile.serviceAreas.items;
   const mapUrl = profile.serviceAreas.mapImageUrl;
   if (!hasSidebarServiceAreasMapResolved(profile)) return null;
+
+  const mapBody = (
+    <div className="relative mt-4 aspect-[16/10] w-full overflow-hidden rounded-xl border border-black/[0.06]">
+      <Image
+        src={mapUrl!}
+        alt=""
+        fill
+        className="object-cover"
+        sizes="360px"
+        unoptimized={serviciosImageUnoptimized(mapUrl!)}
+      />
+    </div>
+  );
 
   return (
     <div
@@ -41,16 +57,13 @@ export function ServiciosActionPanelAreasMap({
           ) : null}
         </ul>
       ) : null}
-      <div className="relative mt-4 aspect-[16/10] w-full overflow-hidden rounded-xl border border-black/[0.06]">
-        <Image
-          src={mapUrl!}
-          alt=""
-          fill
-          className="object-cover"
-          sizes="360px"
-          unoptimized={serviciosImageUnoptimized(mapUrl!)}
-        />
-      </div>
+      {onOpenServiceAreaMap ? (
+        <button type="button" className="w-full border-0 bg-transparent p-0 text-left" onClick={onOpenServiceAreaMap}>
+          {mapBody}
+        </button>
+      ) : (
+        mapBody
+      )}
     </div>
   );
 }

@@ -3,9 +3,12 @@
 import { useCallback, useId, useMemo, useState } from "react";
 import type { ServiciosLang, ServiciosProfileResolved, ServiciosServiceCard } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
-import { appendWhatsAppPrefill, resolveServiciosQuoteDestination } from "../lib/serviciosContactActions";
+import { resolveServiciosQuoteDestination } from "../lib/serviciosContactActions";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
 import { SV } from "./serviciosDesignTokens";
+import { buildServiciosGetQuoteIntent, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
+import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
 
 /** When count ≥ this, show expand/collapse (initially show {@link SERVICES_SECTION_INITIAL_VISIBLE}). */
 const SERVICES_SECTION_COLLAPSE_THRESHOLD = 19;
@@ -50,16 +53,31 @@ export type ServiciosOfferedSectionProps = {
   lang: ServiciosLang;
   /** Used only for quote destination resolution — does not read hero/contact UI. */
   profileForQuote: ServiciosProfileResolved;
+  listingSlug?: string;
+  listingShareUrl?: string;
 };
 
 /**
  * Standalone “Nuestros servicios” block: title, subtitle, responsive grid, optional expand for long lists.
  * Safe to relocate in the page layout without changing publish/mapping logic.
  */
-export function ServiciosOfferedSection({ services, lang, profileForQuote }: ServiciosOfferedSectionProps) {
+export function ServiciosOfferedSection({
+  services,
+  lang,
+  profileForQuote,
+  listingSlug,
+  listingShareUrl,
+}: ServiciosOfferedSectionProps) {
   const L = getServiciosProfileLabels(lang);
   const headingId = useId();
   const [expanded, setExpanded] = useState(false);
+  const [ctaOpen, setCtaOpen] = useState(false);
+  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
+
+  const closeCta = useCallback(() => {
+    setCtaOpen(false);
+    setCtaIntent(null);
+  }, []);
 
   const quoteDestination = useMemo(
     () => resolveServiciosQuoteDestination(profileForQuote, lang),
@@ -75,19 +93,22 @@ export function ServiciosOfferedSection({ services, lang, profileForQuote }: Ser
   const handleServiceQuoteClick = useCallback(
     (serviceName: string) => {
       if (!quoteDestination) return;
-      let message =
+      const base =
         lang === "en"
           ? "Hi, I saw your profile on Leonix and would like to request a quote."
           : "Hola, vi tu perfil en Leonix y quiero pedir una cotización.";
-      message += lang === "en" ? ` for ${serviceName}` : ` para ${serviceName}`;
-      if (quoteDestination.kind === "whatsapp") {
-        const href = appendWhatsAppPrefill(quoteDestination.href, message);
-        window.open(href, "_blank", "noopener noreferrer");
-      } else {
-        window.open(quoteDestination.href, "_blank", "noopener noreferrer");
-      }
+      const message = `${base}${lang === "en" ? ` for ${serviceName}` : ` para ${serviceName}`}`;
+      const intent = buildServiciosGetQuoteIntent(profileForQuote, lang, {
+        listingSlug,
+        listingShareUrl,
+        quoteMessage: message,
+      });
+      if (!intent) return;
+      trackServiciosListingCta(listingSlug, "cta_quote_sms_click", { source: "services_grid", href: "sheet" });
+      setCtaIntent(intent);
+      setCtaOpen(true);
     },
-    [quoteDestination, lang],
+    [quoteDestination, lang, profileForQuote, listingSlug, listingShareUrl],
   );
 
   if (!services.length) return null;
@@ -169,11 +190,31 @@ export function ServiciosOfferedSection({ services, lang, profileForQuote }: Ser
           {L.showLessServices}
         </button>
       ) : null}
+
+      <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />
     </section>
   );
 }
 
 /** @deprecated Prefer {@link ServiciosOfferedSection} when wiring layout; kept for existing call sites. */
-export function ServiciosServicesGrid({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
-  return <ServiciosOfferedSection services={profile.services} lang={lang} profileForQuote={profile} />;
+export function ServiciosServicesGrid({
+  profile,
+  lang,
+  listingSlug,
+  listingShareUrl,
+}: {
+  profile: ServiciosProfileResolved;
+  lang: ServiciosLang;
+  listingSlug?: string;
+  listingShareUrl?: string;
+}) {
+  return (
+    <ServiciosOfferedSection
+      services={profile.services}
+      lang={lang}
+      profileForQuote={profile}
+      listingSlug={listingSlug}
+      listingShareUrl={listingShareUrl}
+    />
+  );
 }
