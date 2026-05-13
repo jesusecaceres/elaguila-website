@@ -18,12 +18,12 @@ export function ServiciosPagosCard({ profile, lang }: { profile: ServiciosProfil
         <FaMoneyBillWave className="h-5 w-5 shrink-0 text-[#3B66AD]" aria-hidden />
         <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">{L.paymentsTitle}</h2>
       </div>
-      <div className="mt-5 flex flex-wrap gap-2">
+      <div className="mt-5 flex flex-nowrap gap-2 overflow-x-auto pb-1 [scrollbar-width:thin] md:flex-wrap md:overflow-visible">
         {profile.paymentMethodIds.map((id) =>
           isServiciosPaymentMethodId(id) ? (
             <div
               key={id}
-              className="rounded-xl border border-black/[0.06] bg-white/95 px-3 py-2 shadow-sm"
+              className="shrink-0 rounded-xl border border-black/[0.06] bg-white/95 px-3 py-2 shadow-sm"
               style={{ borderColor: SV.goldBorder }}
             >
               <ServiciosPaymentMethodBadge lang={lang} standardId={id} />
@@ -33,7 +33,7 @@ export function ServiciosPagosCard({ profile, lang }: { profile: ServiciosProfil
         {profile.customPaymentMethods.map((label, i) => (
           <div
             key={`pm-custom-${i}-${label.slice(0, 24)}`}
-            className="rounded-xl border border-black/[0.06] bg-white/95 px-3 py-2 shadow-sm"
+            className="shrink-0 rounded-xl border border-black/[0.06] bg-white/95 px-3 py-2 shadow-sm"
             style={{ borderColor: SV.goldBorder }}
           >
             <ServiciosPaymentMethodBadge lang={lang} customLabel={label} />

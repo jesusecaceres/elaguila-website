@@ -184,7 +184,10 @@ export function ServiciosPromocionesCard({ profile, lang }: { profile: Servicios
   if (!hasOfferSectionResolved(profile)) return null;
 
   const n = profile.promotions.length;
-  const listClass = "mt-4 flex flex-col gap-3 sm:mt-5 sm:gap-3.5";
+  const listClass =
+    n > 1
+      ? "mt-4 flex flex-row flex-nowrap gap-3 overflow-x-auto pb-2 pt-0.5 [scrollbar-width:thin] snap-x snap-mandatory sm:mt-5 md:flex-col md:gap-3.5 md:overflow-visible md:pb-0 md:snap-none"
+      : "mt-4 flex flex-col gap-3 sm:mt-5 sm:gap-3.5";
 
   return (
     <>
@@ -207,7 +210,9 @@ export function ServiciosPromocionesCard({ profile, lang }: { profile: Servicios
         </h2>
         <div className={listClass}>
           {profile.promotions.map((p) => (
-            <PromoInnerCard key={p.id} promo={p} lang={lang} compact={true} onImageOpen={openLightbox} />
+            <div key={p.id} className={n > 1 ? "w-[min(100%,340px)] shrink-0 snap-start md:w-auto md:shrink" : ""}>
+              <PromoInnerCard promo={p} lang={lang} compact={true} onImageOpen={openLightbox} />
+            </div>
           ))}
         </div>
       </section>

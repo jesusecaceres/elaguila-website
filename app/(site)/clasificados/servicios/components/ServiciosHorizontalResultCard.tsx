@@ -252,6 +252,36 @@ export function ServiciosHorizontalResultCard({
     return out;
   }, [L, profile.contact, mapsHref, addressQuery]);
 
+  /** Móvil: máximo 4 CTAs fuertes en riel horizontal (sin apilar correo salvo único contacto). */
+  const mobileContactRail = useMemo((): ContactAction[] => {
+    const rail: ContactAction[] = [];
+    const officeTel = (profile.contact.phoneOfficeTelHref || "").trim();
+    const officeDisplay = (profile.contact.phoneOfficeDisplay || "").trim();
+    const tel = (profile.contact.phoneTelHref || "").trim();
+    const phoneDisplay = (profile.contact.phoneDisplay || "").trim();
+    if (officeTel && officeDisplay) {
+      rail.push({ key: "callOffice", href: officeTel, label: L.callOffice });
+    } else if (tel && phoneDisplay) {
+      rail.push({ key: "call", href: tel, label: L.call });
+    }
+    if (addressQuery && mapsHref) {
+      rail.push({
+        key: "maps",
+        href: mapsHref,
+        label: lang === "en" ? "Directions" : "Cómo llegar",
+      });
+    }
+    const web = (profile.contact.websiteHref || "").trim();
+    if (web) rail.push({ key: "website", href: web, label: L.visitWebsite });
+    const wa = (profile.contact.socialLinks?.whatsapp || "").trim();
+    if (wa) rail.push({ key: "whatsapp", href: wa, label: L.whatsapp });
+    const mail = (profile.contact.emailMailtoHref || "").trim();
+    if (rail.length === 0 && mail) {
+      rail.push({ key: "email", href: mail, label: L.email });
+    }
+    return rail.slice(0, 4);
+  }, [L, profile.contact, mapsHref, addressQuery, lang]);
+
   const vitrinaHref =
     (publicDetailHref || "").trim() || `/clasificados/servicios/${encodeURIComponent(listingSlug)}?lang=${lang}`;
   const vitrinaLabel = (publicDetailLabel || "").trim() || (lang === "en" ? "View showcase" : "Ver vitrina");
@@ -415,8 +445,40 @@ export function ServiciosHorizontalResultCard({
             ) : null}
           </div>
 
+          {mobileContactRail.length > 0 ? (
+            <div
+              className="-mx-0.5 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 pt-0.5 [scrollbar-width:thin] md:hidden"
+              aria-label={lang === "en" ? "Contact" : "Contacto"}
+            >
+              {mobileContactRail.map(({ key, href, label }) => {
+                const Icon =
+                  key === "call" || key === "callOffice"
+                    ? FiPhone
+                    : key === "website"
+                      ? FiGlobe
+                      : key === "whatsapp"
+                        ? FaWhatsapp
+                        : key === "email"
+                          ? FiMail
+                          : FiMapPin;
+                const external = href.startsWith("http");
+                return (
+                  <a
+                    key={key}
+                    href={href}
+                    className={`${CTA_SECONDARY} !max-w-[min(42vw,11rem)] shrink-0 snap-start !flex-none`}
+                    {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" aria-hidden />
+                    <span className="min-w-0 truncate">{label}</span>
+                  </a>
+                );
+              })}
+            </div>
+          ) : null}
+
           {contactActions.length ? (
-            <div className={CTA_ROW} aria-label={lang === "en" ? "Contact" : "Contacto"}>
+            <div className={`${CTA_ROW} hidden md:flex`} aria-label={lang === "en" ? "Contact" : "Contacto"}>
               {contactActions.map(({ key, href, label }) => {
                 const Icon =
                   key === "call" || key === "callOffice"

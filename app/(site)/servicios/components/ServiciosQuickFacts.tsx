@@ -41,13 +41,16 @@ export function ServiciosQuickFacts({
   if (compact) {
     // Compact chip strip mode for Sobre Nosotros section
     return (
-      <div className="flex flex-wrap gap-2" aria-label={lang === "en" ? "Trust signals" : "Señales de confianza"}>
+      <div
+        className="flex flex-nowrap gap-2 overflow-x-auto pb-1 [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible"
+        aria-label={lang === "en" ? "Trust signals" : "Señales de confianza"}
+      >
         {facts.map((f) => {
           const Icon = iconFor(f.kind);
           return (
             <span
               key={`${f.kind}-${f.label}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#E8D7B8] bg-[#FCF9F2] px-3 py-1 text-[11px] font-medium text-[#2F2A23]"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#E8D7B8] bg-[#FCF9F2] px-3 py-1 text-[11px] font-medium text-[#2F2A23]"
             >
               <Icon className="h-3 w-3 text-[#6F7A3A]" aria-hidden />
               {f.label}
@@ -68,13 +71,13 @@ export function ServiciosQuickFacts({
       <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#2F2A23]">
         {lang === "en" ? "What sets us apart" : "Lo que nos distingue"}
       </p>
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [scrollbar-width:thin] md:grid md:snap-none md:grid-cols-2 md:gap-3 md:overflow-visible lg:grid-cols-3">
         {facts.map((f) => {
           const Icon = iconFor(f.kind);
           return (
             <div
               key={`${f.kind}-${f.label}`}
-              className="flex min-w-0 items-start gap-3 rounded-xl border border-[#E8D7B8] bg-white/90 px-3.5 py-3 shadow-sm sm:items-center sm:gap-3.5 sm:px-4 sm:py-3.5"
+              className="flex min-w-[min(17rem,88vw)] shrink-0 snap-start items-start gap-3 rounded-xl border border-[#E8D7B8] bg-white/90 px-3.5 py-3 shadow-sm sm:items-center sm:gap-3.5 sm:px-4 sm:py-3.5 md:min-w-0"
             >
               <span
                 className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#FCF9F2] text-sm text-[#6F7A3A]"

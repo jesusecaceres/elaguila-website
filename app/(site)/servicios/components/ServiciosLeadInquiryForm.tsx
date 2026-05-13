@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import type { ServiciosLang } from "../types/serviciosBusinessProfile";
+import {
+  formatServiciosUsPhoneDisplay,
+  normalizeServiciosLeadPhoneForSubmit,
+  serviciosPhoneDigitsOnly,
+} from "../lib/serviciosUsPhoneMask";
 
 type PreferredContact = "email" | "phone" | "whatsapp";
 
@@ -29,7 +34,7 @@ export function ServiciosLeadInquiryForm({ listingSlug, lang }: { listingSlug: s
           prefWhatsapp: "WhatsApp",
           message: "What do you need?",
           submit: "Send",
-          ok: "Sent — the provider will follow up using your preferred method when possible.",
+          ok: "Request sent. The business will be able to review your message.",
           err: "Could not send. Try again or use the contact buttons above.",
         }
       : {
@@ -44,7 +49,7 @@ export function ServiciosLeadInquiryForm({ listingSlug, lang }: { listingSlug: s
           prefWhatsapp: "WhatsApp",
           message: "¿Qué necesitas?",
           submit: "Enviar",
-          ok: "Enviado — el proveedor dará seguimiento según tu preferencia cuando sea posible.",
+          ok: "Solicitud enviada. El negocio podrá revisar tu mensaje.",
           err: "No se pudo enviar. Intenta de nuevo o usa los botones de contacto arriba.",
         };
 
@@ -60,7 +65,7 @@ export function ServiciosLeadInquiryForm({ listingSlug, lang }: { listingSlug: s
           listingSlug,
           senderName: name,
           senderEmail: email,
-          senderPhone: senderPhone.trim() || undefined,
+          senderPhone: normalizeServiciosLeadPhoneForSubmit(senderPhone) || undefined,
           preferredContactMethod,
           message,
           requestKind: "quote",
@@ -125,11 +130,15 @@ export function ServiciosLeadInquiryForm({ listingSlug, lang }: { listingSlug: s
           {t.phone}
           <input
             type="tel"
-            inputMode="tel"
+            inputMode="numeric"
             autoComplete="tel"
-            maxLength={48}
+            maxLength={20}
             value={senderPhone}
-            onChange={(e) => setSenderPhone(e.target.value)}
+            onChange={(e) => {
+              let d = serviciosPhoneDigitsOnly(e.target.value);
+              if (d.length === 11 && d.startsWith("1")) d = d.slice(1);
+              setSenderPhone(formatServiciosUsPhoneDisplay(d.slice(0, 10)));
+            }}
             placeholder="(555) 555-5555"
             className="mt-1 min-h-[44px] w-full rounded-lg border border-black/[0.08] px-3 py-2 text-sm"
           />

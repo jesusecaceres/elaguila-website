@@ -1,17 +1,33 @@
 import { NextResponse } from "next/server";
-import { getServiciosPublicListingBySlugFromDb } from "@/app/clasificados/servicios/lib/serviciosPublicListingsServer";
-import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "@/app/clasificados/servicios/lib/serviciosListingLifecycle";
+import type { ServiciosBusinessProfile } from "@/app/(site)/servicios/types/serviciosBusinessProfile";
+import { getServiciosPublicListingBySlugFromDb } from "@/app/(site)/clasificados/servicios/lib/serviciosPublicListingsServer";
+import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "@/app/(site)/clasificados/servicios/lib/serviciosListingLifecycle";
 import {
   insertServiciosPublicLead,
   insertServiciosAnalyticsEvent,
   type ServiciosLeadPreferredContactMethod,
-} from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
+} from "@/app/(site)/clasificados/servicios/lib/serviciosOpsTablesServer";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { sendLeonixResendEmail } from "@/app/lib/email/sendLeonixResendEmail";
 
 export const runtime = "nodejs";
 
 function isEmail(s: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+}
+
+function extractServiciosBusinessNotifyEmail(profile: ServiciosBusinessProfile): string | null {
+  const raw = profile.contact?.email?.trim();
+  if (!raw || !isEmail(raw)) return null;
+  return raw.slice(0, 320);
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 export async function POST(req: Request) {
@@ -53,8 +69,11 @@ export async function POST(req: Request) {
   if (message.length < 8 || message.length > 4000) {
     return NextResponse.json({ ok: false, error: "invalid_message" }, { status: 400 });
   }
-  if (senderPhone.length > 0 && senderPhone.replace(/[\s().+-]/g, "").length < 7) {
-    return NextResponse.json({ ok: false, error: "invalid_phone" }, { status: 400 });
+  if (senderPhone.length > 0) {
+    const digits = senderPhone.replace(/\D/g, "");
+    if (digits.length < 7) {
+      return NextResponse.json({ ok: false, error: "invalid_phone" }, { status: 400 });
+    }
   }
 
   const row = await getServiciosPublicListingBySlugFromDb(listingSlug, { visibility: "published_only" });
@@ -88,6 +107,36 @@ export async function POST(req: Request) {
       hasSenderPhone: Boolean(senderPhone),
     },
   });
+
+  const notifyTo = extractServiciosBusinessNotifyEmail(row.profile_json);
+  if (notifyTo) {
+    const subject = `Leonix Servicios — nueva solicitud (${listingSlug})`;
+    const text = [
+      `Anuncio: ${listingSlug}`,
+      `Nombre: ${senderName}`,
+      `Correo: ${senderEmail}`,
+      senderPhone ? `Teléfono / meta: ${senderPhone}` : null,
+      `Preferencia de contacto: ${preferredContactMethod}`,
+      "",
+      "Mensaje:",
+      message,
+    ]
+      .filter(Boolean)
+      .join("\n");
+    const html = `<p><strong>Nueva solicitud de cotización</strong> — <code>${escapeHtml(listingSlug)}</code></p>
+<p><strong>Nombre:</strong> ${escapeHtml(senderName)}<br/>
+<strong>Correo:</strong> ${escapeHtml(senderEmail)}<br/>
+${senderPhone ? `<strong>Teléfono (meta):</strong> ${escapeHtml(senderPhone)}<br/>` : ""}
+<strong>Preferencia:</strong> ${escapeHtml(preferredContactMethod)}</p>
+<p><strong>Mensaje</strong></p><pre style="white-space:pre-wrap;font-family:inherit">${escapeHtml(message)}</pre>`;
+    await sendLeonixResendEmail({
+      to: notifyTo,
+      subject,
+      text,
+      html,
+      replyTo: senderEmail,
+    });
+  }
 
   return NextResponse.json({ ok: true, id: ins.id });
 }

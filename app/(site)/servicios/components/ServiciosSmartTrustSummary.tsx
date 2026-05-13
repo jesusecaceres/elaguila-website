@@ -36,11 +36,14 @@ export function ServiciosSmartTrustSummary({
           </p>
           <p className="mt-3 text-sm leading-relaxed text-[#3D2C12]/95">{model.paragraph}</p>
           {model.chips.length > 0 ? (
-            <ul className="mt-3 flex flex-wrap gap-2" aria-label={copy.subtitle}>
+            <ul
+              className="mt-3 flex flex-nowrap gap-2 overflow-x-auto pb-1 [scrollbar-width:thin] md:flex-wrap md:overflow-visible"
+              aria-label={copy.subtitle}
+            >
               {model.chips.map((c) => (
                 <li
                   key={c}
-                  className="rounded-full border border-[#C9A84A]/40 bg-[#FFFAF0]/95 px-2.5 py-1 text-[11px] font-semibold text-[#4A3A22]"
+                  className="shrink-0 rounded-full border border-[#C9A84A]/40 bg-[#FFFAF0]/95 px-2.5 py-1 text-[11px] font-semibold text-[#4A3A22]"
                 >
                   {c}
                 </li>

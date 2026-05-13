@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import type { ServiciosGalleryVideo, ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
@@ -173,9 +173,19 @@ export function ServiciosGalleryWithTabs({ profile, lang }: { profile: Servicios
   const videos = profile.galleryVideos;
   const allPhotos = [...mains, ...more];
 
-  const [activeTab, setActiveTab] = useState<'photos' | 'videos'>('photos');
+  const [activeTab, setActiveTab] = useState<"photos" | "videos">("photos");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentModalIndex, setCurrentModalIndex] = useState(0);
+  const [narrowViewport, setNarrowViewport] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => setNarrowViewport(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   const quoteDestination = resolveServiciosQuoteDestination(profile, lang);
 
@@ -203,8 +213,9 @@ export function ServiciosGalleryWithTabs({ profile, lang }: { profile: Servicios
     setIsModalOpen(false);
   };
 
-  const visibleImages = allPhotos.slice(0, 6);
-  const hasMoreImages = allPhotos.length > 6;
+  const photoCap = narrowViewport ? 4 : 6;
+  const visibleImages = allPhotos.slice(0, photoCap);
+  const hasMoreImages = allPhotos.length > photoCap;
 
   if (allPhotos.length === 0 && videos.length === 0) return null;
 
@@ -251,7 +262,13 @@ export function ServiciosGalleryWithTabs({ profile, lang }: { profile: Servicios
             <div>
               {visibleImages.length > 0 ? (
                 <>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div
+                    className={
+                      narrowViewport
+                        ? "grid grid-cols-2 gap-2"
+                        : "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                    }
+                  >
                     {visibleImages.map((g, index) => (
                       <GalleryImage 
                         key={g.id} 
@@ -266,7 +283,7 @@ export function ServiciosGalleryWithTabs({ profile, lang }: { profile: Servicios
                   {hasMoreImages && (
                     <div className="mt-6 text-center">
                       <button
-                        onClick={() => openModal(6)}
+                        onClick={() => openModal(photoCap)}
                         className="inline-flex items-center gap-2 rounded-xl border border-[#E8D7B8] bg-[#FCF9F2] px-4 py-2.5 text-sm font-medium text-[#2F2A23] transition hover:border-[#D4AF37] hover:bg-[#D4AF37]/[0.08]"
                       >
                         <svg className="h-4 w-4 text-[#6F7A3A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -286,16 +303,25 @@ export function ServiciosGalleryWithTabs({ profile, lang }: { profile: Servicios
             </div>
           )}
 
-          {activeTab === 'videos' && videos.length > 0 && (
-            <div className={`${
-              videos.length === 1
-                ? "grid grid-cols-1 gap-3 md:gap-4 max-w-3xl mx-auto"
-                : videos.length >= 2
-                  ? "grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4"
-                  : ""
-            }`}>
+          {activeTab === "videos" && videos.length > 0 && (
+            <div
+              className={
+                videos.length === 1
+                  ? "mx-auto grid max-w-3xl grid-cols-1 gap-3 md:gap-4"
+                  : narrowViewport
+                    ? "flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]"
+                    : "grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4"
+              }
+            >
               {videos.map((v) => (
-                <div key={v.id} className="flex flex-col">
+                <div
+                  key={v.id}
+                  className={
+                    videos.length > 1 && narrowViewport
+                      ? "w-[min(100%,min(92vw,28rem))] shrink-0 snap-start md:w-auto md:shrink"
+                      : "flex flex-col"
+                  }
+                >
                   {videos.length > 1 && v.isPrimary && (
                     <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#3B66AD]/90">{L.videoTour}</p>
                   )}

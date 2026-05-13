@@ -9,11 +9,12 @@ import { SV } from "./serviciosDesignTokens";
 const HIGHLIGHTS_SECTION_COLLAPSE_THRESHOLD = 19;
 const HIGHLIGHTS_SECTION_INITIAL_VISIBLE = 18;
 
-function gridClassForVisibleCount(n: number): string {
-  if (n <= 6) {
-    return "grid grid-cols-1 gap-3 sm:grid-cols-2";
-  }
-  return "grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3";
+function highlightsListClass(visibleCount: number): string {
+  const mdGrid =
+    visibleCount <= 6
+      ? "md:grid md:grid-cols-2 md:gap-3 lg:grid-cols-3"
+      : "md:grid md:grid-cols-2 md:gap-2.5 lg:grid-cols-3 lg:gap-2.5";
+  return `-mx-1 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-1 pb-1 [scrollbar-width:thin] md:mx-0 md:px-0 md:pb-0 md:overflow-visible md:snap-none ${mdGrid}`;
 }
 
 export type ServiciosHighlightsSectionProps = {
@@ -37,7 +38,7 @@ export function ServiciosHighlightsSection({ highlights, lang }: ServiciosHighli
 
   if (!highlights.length) return null;
 
-  const gridClass = gridClassForVisibleCount(visible.length);
+  const listClass = highlightsListClass(visible.length);
 
   return (
     <section
@@ -59,13 +60,13 @@ export function ServiciosHighlightsSection({ highlights, lang }: ServiciosHighli
         ) : null}
       </div>
 
-      <div className={gridClass}>
+      <div className={listClass}>
         {visible.map((h) => {
           const { emoji } = resolveServiciosBusinessHighlightVisual({ id: h.id, label: h.label });
           return (
             <div
               key={h.id}
-              className="flex min-h-[44px] min-w-0 items-start gap-2 rounded-xl border px-3 py-2.5 shadow-sm"
+              className="flex min-h-[44px] min-w-[min(17.5rem,88vw)] shrink-0 snap-start items-start gap-2 rounded-xl border px-3 py-2.5 shadow-sm md:min-w-0"
               style={{
                 borderColor: SV.border,
                 backgroundColor: SV.card,

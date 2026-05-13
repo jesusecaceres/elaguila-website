@@ -54,11 +54,11 @@ export function ServiciosOpcionesFacilidadesCard({
           return (
             <div key={g.id}>
               <p className="text-sm font-semibold text-[color:var(--lx-text)]">{g.label[lang]}</p>
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto pb-1 [scrollbar-width:thin] md:flex-wrap md:overflow-visible">
                 {ids.map((id) => (
                   <div
                     key={id}
-                    className="rounded-xl border border-black/[0.06] bg-white/95 px-3 py-2 shadow-sm"
+                    className="shrink-0 rounded-xl border border-black/[0.06] bg-white/95 px-3 py-2 shadow-sm"
                     style={{ borderColor: SV.goldBorder }}
                   >
                     <ServiciosAmenityBadge lang={lang} standardId={id} />
@@ -74,11 +74,11 @@ export function ServiciosOpcionesFacilidadesCard({
             <p className="text-sm font-semibold text-[color:var(--lx-text)]">
               {lang === "en" ? "Other options" : "Otras opciones"}
             </p>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto pb-1 [scrollbar-width:thin] md:flex-wrap md:overflow-visible">
               {custom.map((label, i) => (
                 <div
                   key={`amenity-custom-${i}-${label.slice(0, 24)}`}
-                  className="rounded-xl border border-black/[0.06] bg-white/95 px-3 py-2 shadow-sm"
+                  className="shrink-0 rounded-xl border border-black/[0.06] bg-white/95 px-3 py-2 shadow-sm"
                   style={{ borderColor: SV.goldBorder }}
                 >
                   <ServiciosAmenityBadge lang={lang} customLabel={label} />

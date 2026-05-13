@@ -130,6 +130,42 @@ export function LeonixLikeButton({
     };
   }, [allowEngage, effectiveId]);
 
+  useEffect(() => {
+    if (!allowEngage || !effectiveId) return;
+    const sb = createSupabaseBrowserClient();
+    const { data } = sb.auth.onAuthStateChange(() => {
+      if (userToggledRef.current) return;
+      void (async () => {
+        const user = await getBrowserAuthUserForEngagement();
+        if (userToggledRef.current) return;
+        if (user) {
+          const { data: row } = await sb
+            .from("user_liked_listings")
+            .select("listing_id")
+            .eq("user_id", user.id)
+            .eq("listing_id", effectiveId)
+            .maybeSingle();
+          if (!userToggledRef.current) setIsLiked(!!row);
+        } else {
+          try {
+            if (
+              !userToggledRef.current &&
+              typeof sessionStorage !== "undefined" &&
+              sessionStorage.getItem(sessionLikeKey(effectiveId)) === "1"
+            ) {
+              setIsLiked(true);
+            } else if (!userToggledRef.current) {
+              setIsLiked(false);
+            }
+          } catch {
+            if (!userToggledRef.current) setIsLiked(false);
+          }
+        }
+      })();
+    });
+    return () => data.subscription.unsubscribe();
+  }, [allowEngage, effectiveId]);
+
   const handleToggle = useCallback(async () => {
     if (isLiking) return;
     if (!allowEngage || !effectiveId) return;

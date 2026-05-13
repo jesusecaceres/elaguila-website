@@ -122,6 +122,30 @@ export function LeonixSaveButton({
     };
   }, [allowEngage, effectiveId]);
 
+  useEffect(() => {
+    if (!allowEngage || !effectiveId) return;
+    const sb = createSupabaseBrowserClient();
+    const { data } = sb.auth.onAuthStateChange(() => {
+      if (userToggledRef.current) return;
+      void (async () => {
+        const user = await getBrowserAuthUserForEngagement();
+        if (userToggledRef.current) return;
+        if (user) {
+          const { data: row } = await sb
+            .from("user_saved_listings")
+            .select("listing_id")
+            .eq("user_id", user.id)
+            .eq("listing_id", effectiveId)
+            .maybeSingle();
+          if (!userToggledRef.current) setIsSaved(!!row);
+        } else if (!userToggledRef.current) {
+          setIsSaved(false);
+        }
+      })();
+    });
+    return () => data.subscription.unsubscribe();
+  }, [allowEngage, effectiveId]);
+
   const handleToggle = useCallback(async () => {
     if (isSaving) return;
     if (!allowEngage || !effectiveId) return;

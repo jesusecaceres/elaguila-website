@@ -35,11 +35,13 @@ const getServiceTypeIcon = (serviceType: "mobile" | "onsite" | "both") => {
   }
 };
 
-function gridClassForVisibleCount(n: number): string {
-  if (n <= 6) {
-    return "grid grid-cols-1 gap-3 sm:grid-cols-2";
-  }
-  return "grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3";
+/** Móvil: riel horizontal; desde md: rejilla como antes. */
+function servicesListClass(visibleCount: number): string {
+  const mdGrid =
+    visibleCount <= 6
+      ? "md:grid md:grid-cols-2 md:gap-3 lg:grid-cols-3"
+      : "md:grid md:grid-cols-2 md:gap-2.5 lg:grid-cols-3 lg:gap-2.5";
+  return `-mx-1 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-1 pb-1 [scrollbar-width:thin] md:mx-0 md:px-0 md:pb-0 md:overflow-visible md:snap-none ${mdGrid}`;
 }
 
 export type ServiciosOfferedSectionProps = {
@@ -90,7 +92,7 @@ export function ServiciosOfferedSection({ services, lang, profileForQuote }: Ser
 
   if (!services.length) return null;
 
-  const gridClass = gridClassForVisibleCount(visible.length);
+  const listClass = servicesListClass(visible.length);
   const interactive = Boolean(quoteDestination);
 
   return (
@@ -113,7 +115,7 @@ export function ServiciosOfferedSection({ services, lang, profileForQuote }: Ser
         ) : null}
       </div>
 
-      <div className={gridClass}>
+      <div className={listClass}>
         {visible.map((s) => {
           const serviceType = getServiceType(s.title);
           const { emoji } = resolveServiciosServiceVisual({ id: s.id, label: s.title });
@@ -123,7 +125,7 @@ export function ServiciosOfferedSection({ services, lang, profileForQuote }: Ser
               type="button"
               onClick={() => interactive && handleServiceQuoteClick(s.title)}
               disabled={!interactive}
-              className={`group flex min-h-[44px] min-w-0 touch-manipulation items-start gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-medium shadow-sm transition ${
+              className={`group flex min-h-[44px] min-w-[min(17.5rem,88vw)] shrink-0 snap-start touch-manipulation items-start gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-medium shadow-sm transition md:min-w-0 ${
                 interactive
                   ? "cursor-pointer hover:border-[#3B66AD]/40 hover:shadow-md"
                   : "cursor-default opacity-95"
