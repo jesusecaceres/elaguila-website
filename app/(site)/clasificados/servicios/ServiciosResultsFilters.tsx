@@ -166,10 +166,25 @@ export function ServiciosResultsFilters({
             <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Order" : "Orden"}</span>
             <select
               name="sort"
-              defaultValue={current.sort === "name" ? "name" : current.sort === "rating" ? "rating" : "newest"}
+              defaultValue={
+                current.sort === "name"
+                  ? "name"
+                  : current.sort === "rating"
+                    ? "rating"
+                    : current.sort === "most_liked"
+                      ? "most_liked"
+                      : current.sort === "most_saved"
+                        ? "most_saved"
+                        : current.sort === "open_now"
+                          ? "open_now"
+                          : "newest"
+              }
               className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
             >
-              <option value="newest">{lang === "en" ? "Newest first" : "Más recientes primero"}</option>
+              <option value="newest">{lang === "en" ? "Newest" : "Más recientes"}</option>
+              <option value="most_liked">{lang === "en" ? "Most liked" : "Más gustados"}</option>
+              <option value="most_saved">{lang === "en" ? "Most saved" : "Más guardados"}</option>
+              <option value="open_now">{lang === "en" ? "Open now" : "Abiertos ahora"}</option>
               <option value="name">{lang === "en" ? "Name (A–Z)" : "Nombre (A–Z)"}</option>
               <option value="rating">{lang === "en" ? "Highest rated" : "Mejor calificados"}</option>
             </select>

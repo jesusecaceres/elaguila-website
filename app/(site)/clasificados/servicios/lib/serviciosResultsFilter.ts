@@ -3,7 +3,7 @@ import { isAllowedServiciosImageUrl } from "@/app/servicios/lib/serviciosMediaUr
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import type { ServiciosBusinessProfile, ServiciosLang, ServiciosProfileResolved } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ServiciosPublicListingRow } from "./serviciosPublicListingsServer";
-import { serviciosPublicListingDiscoverySortMs } from "./serviciosPublicListingSort";
+import { serviciosPublicListingDiscoverySortMs, compareServiciosPublicResultsNewestFirst } from "./serviciosPublicListingSort";
 import { serviciosVerifiedRankingBias } from "./serviciosLeonixVerificationModel";
 import { inferServiciosSellerPresentation } from "./serviciosSellerKind";
 
@@ -15,7 +15,7 @@ export type ServiciosResultsFilterQuery = {
   call?: "1" | "0";
   /** Keyword — matched against name, city, category line, about, locations, services, trust, reviews, promos/offers, highlights */
   q?: string;
-  sort?: "newest" | "name" | "rating";
+  sort?: "newest" | "name" | "rating" | "most_liked" | "most_saved" | "open_now";
   /** Derived from profile contact fields when not `all` */
   seller?: "all" | "business" | "independent";
   /** Leonix-verified listing (`leonix_verified` on row) */
@@ -587,14 +587,24 @@ function compareVerifiedThenPublishedThenSlug(
   return tieSlug(a, b);
 }
 
+export type SortServiciosListingRowsOpts = {
+  /**
+   * When true (Servicios **results** page only), `sort=newest` uses {@link compareServiciosPublicResultsNewestFirst}.
+   * Landing and other callers omit this so order stays republish-aware via discovery timestamps.
+   */
+  resultsNewest?: boolean;
+};
+
 export function sortServiciosListingRows(
   rows: ServiciosPublicListingRow[],
   lang: ServiciosLang,
   sort: ServiciosResultsFilterQuery["sort"],
+  opts?: SortServiciosListingRowsOpts,
 ): ServiciosPublicListingRow[] {
   const s = sort ?? "newest";
   const copy = [...rows];
   const tieSlug = (a: ServiciosPublicListingRow, b: ServiciosPublicListingRow) => a.slug.localeCompare(b.slug, "en");
+  const useResultsNewest = opts?.resultsNewest === true && s === "newest";
 
   if (s === "name") {
     copy.sort((a, b) => {
@@ -623,7 +633,57 @@ export function sortServiciosListingRows(
     });
     return copy;
   }
-  copy.sort((a, b) => compareVerifiedThenPublishedThenSlug(a, b, tieSlug));
+  if (s === "most_liked") {
+    copy.sort((a, b) => {
+      const la = Math.max(0, Math.floor(Number(a.public_like_net_count ?? 0)));
+      const lb = Math.max(0, Math.floor(Number(b.public_like_net_count ?? 0)));
+      if (lb !== la) return lb - la;
+      const vb = serviciosVerifiedRankingBias(b) - serviciosVerifiedRankingBias(a);
+      if (vb !== 0) return vb;
+      return compareServiciosPublicResultsNewestFirst(a, b);
+    });
+    return copy;
+  }
+  if (s === "most_saved") {
+    copy.sort((a, b) => {
+      const sa = Math.max(0, Math.floor(Number(a.public_save_count ?? 0)));
+      const sb = Math.max(0, Math.floor(Number(b.public_save_count ?? 0)));
+      if (sb !== sa) return sb - sa;
+      const vb = serviciosVerifiedRankingBias(b) - serviciosVerifiedRankingBias(a);
+      if (vb !== 0) return vb;
+      return compareServiciosPublicResultsNewestFirst(a, b);
+    });
+    return copy;
+  }
+  if (s === "open_now") {
+    const openMap = new Map<string, boolean>();
+    for (const row of copy) {
+      try {
+        const p = resolvedProfile(row, lang);
+        openMap.set(row.slug, serviciosHoursSummaryIsOpenNow(p.contact.hours, lang));
+      } catch {
+        openMap.set(row.slug, false);
+      }
+    }
+    copy.sort((a, b) => {
+      const oa = openMap.get(a.slug) ? 1 : 0;
+      const ob = openMap.get(b.slug) ? 1 : 0;
+      if (ob !== oa) return ob - oa;
+      const vb = serviciosVerifiedRankingBias(b) - serviciosVerifiedRankingBias(a);
+      if (vb !== 0) return vb;
+      return compareServiciosPublicResultsNewestFirst(a, b);
+    });
+    return copy;
+  }
+
+  copy.sort((a, b) => {
+    if (useResultsNewest) {
+      const vb = serviciosVerifiedRankingBias(b) - serviciosVerifiedRankingBias(a);
+      if (vb !== 0) return vb;
+      return compareServiciosPublicResultsNewestFirst(a, b);
+    }
+    return compareVerifiedThenPublishedThenSlug(a, b, tieSlug);
+  });
   return copy;
 }
 
@@ -637,5 +697,8 @@ export function sortServiciosResultsForDisplay(
 ): ServiciosPublicListingRow[] {
   const promoted = rows.filter(isServiciosListingPromoted);
   const rest = rows.filter((r) => !isServiciosListingPromoted(r));
-  return [...sortServiciosListingRows(promoted, lang, sort), ...sortServiciosListingRows(rest, lang, sort)];
+  return [
+    ...sortServiciosListingRows(promoted, lang, sort, { resultsNewest: true }),
+    ...sortServiciosListingRows(rest, lang, sort, { resultsNewest: true }),
+  ];
 }

@@ -76,6 +76,9 @@ function parseSeller(raw: string | undefined): ServiciosResultsFilterQuery["sell
 function parseSort(raw: string | undefined): ServiciosResultsFilterQuery["sort"] {
   if (raw === "name") return "name";
   if (raw === "rating") return "rating";
+  if (raw === "most_liked") return "most_liked";
+  if (raw === "most_saved") return "most_saved";
+  if (raw === "open_now") return "open_now";
   return "newest";
 }
 

@@ -59,6 +59,24 @@ export function ServiciosResultsActiveSummary({
       label: lang === "en" ? "Sort: Highest rated" : "Orden: Mejor calificados",
     });
   }
+  if (query.sort === "most_liked") {
+    items.push({
+      key: "sort",
+      label: lang === "en" ? "Sort: Most liked" : "Orden: Más gustados",
+    });
+  }
+  if (query.sort === "most_saved") {
+    items.push({
+      key: "sort",
+      label: lang === "en" ? "Sort: Most saved" : "Orden: Más guardados",
+    });
+  }
+  if (query.sort === "open_now") {
+    items.push({
+      key: "sort",
+      label: lang === "en" ? "Sort: Open now" : "Orden: Abiertos ahora",
+    });
+  }
   if (query.whatsapp === "1") {
     items.push({
       key: "wa",

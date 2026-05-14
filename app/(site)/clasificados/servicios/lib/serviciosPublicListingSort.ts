@@ -15,6 +15,8 @@ export type ServiciosPublicListingSortInput = {
   published_at: string;
   updated_at?: string | null;
   republished_at?: string | null;
+  /** When present on `servicios_public_listings` (not all deployments); results newest coalesce only. */
+  created_at?: string | null;
 };
 
 /** Stable key for Like/Save/Share: Leonix ad id, else row UUID, else slug (dev-only fallback). */
@@ -56,6 +58,18 @@ export function serviciosNetLikeCountForPublicRow(
   let sum = 0;
   for (const k of serviciosLikeCountAliasKeys(row)) {
     sum += netByListingId.get(k) ?? 0;
+  }
+  return Math.max(0, sum);
+}
+
+/** Save rows in `saved_listings` — same `listing_id` alias keys as likes. */
+export function serviciosSavedCountForPublicRow(
+  row: { leonix_ad_id?: string | null; id?: string | null; slug: string },
+  countByListingId: Map<string, number>,
+): number {
+  let sum = 0;
+  for (const k of serviciosLikeCountAliasKeys(row)) {
+    sum += countByListingId.get(k) ?? 0;
   }
   return Math.max(0, sum);
 }
@@ -107,5 +121,36 @@ export function compareServiciosPublicDiscoveryNewestFirst(a: ServiciosPublicLis
   const da = serviciosPublicListingDiscoverySortMs(a);
   const db = serviciosPublicListingDiscoverySortMs(b);
   if (db !== da) return db - da;
+  return a.slug.localeCompare(b.slug, "en");
+}
+
+function parseIsoMs(iso: string | null | undefined): number {
+  const t = (iso ?? "").trim();
+  if (!t) return 0;
+  const ms = Date.parse(t);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function compareIsoDesc(a: string | null | undefined, b: string | null | undefined): number {
+  const da = parseIsoMs(a);
+  const db = parseIsoMs(b);
+  if (da !== db) return da > db ? -1 : 1;
+  return 0;
+}
+
+/**
+ * Results `sort=newest`: `published_at` descending, then `updated_at`, then optional `created_at`, then slug.
+ * Differs from {@link compareServiciosPublicDiscoveryNewestFirst} (republish-first single coalesce).
+ */
+export function compareServiciosPublicResultsNewestFirst(
+  a: ServiciosPublicListingSortInput,
+  b: ServiciosPublicListingSortInput,
+): number {
+  let c = compareIsoDesc(a.published_at, b.published_at);
+  if (c !== 0) return c;
+  c = compareIsoDesc(a.updated_at, b.updated_at);
+  if (c !== 0) return c;
+  c = compareIsoDesc(a.created_at, b.created_at);
+  if (c !== 0) return c;
   return a.slug.localeCompare(b.slug, "en");
 }

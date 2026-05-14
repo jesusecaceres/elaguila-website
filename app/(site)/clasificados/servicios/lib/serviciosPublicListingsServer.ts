@@ -17,6 +17,7 @@ import {
   compareServiciosPublicDiscoveryNewestFirst,
   serviciosLikeCountAliasKeys,
   serviciosNetLikeCountForPublicRow,
+  serviciosSavedCountForPublicRow,
   SERVICIOS_PUBLIC_LISTING_SELECT,
 } from "./serviciosPublicListingSort";
 import {
@@ -78,6 +79,8 @@ export type ServiciosPublicListingRow = {
   review_rating_count?: number | null;
   /** Row counts in `user_liked_listings` (alias rollup across leonix_ad_id + id + slug keys). */
   public_like_net_count?: number;
+  /** Row counts in `saved_listings` (same `listing_id` alias rollup as likes). */
+  public_save_count?: number;
 };
 
 /** DB reads for publish/admin — any lifecycle row by slug. */
@@ -231,18 +234,22 @@ export async function listServiciosPublicListingsForDiscovery(limit = 48): Promi
   for (const r of slice) {
     for (const k of serviciosLikeCountAliasKeys(r)) likeQueryKeys.add(k);
   }
-  const [agg, likeMap] = await Promise.all([
+  const [agg, likeMap, saveMap] = await Promise.all([
     getServiciosReviewAggregatesForSlugs(slice.map((r) => r.slug)),
     fetchServiciosNetLikeCountsByEngagementKeys([...likeQueryKeys]),
+    fetchServiciosUserSavedCountsByKeys([...likeQueryKeys]),
   ]);
   return slice.map((r) => {
     const a = agg.get(r.slug);
     const likes = serviciosNetLikeCountForPublicRow(r, likeMap);
+    const saves = serviciosSavedCountForPublicRow(r, saveMap);
     const base: ServiciosPublicListingRow =
       a != null
         ? { ...r, review_rating_avg: a.avg, review_rating_count: a.count }
         : { ...r, review_rating_avg: null, review_rating_count: null };
-    return likes > 0 ? { ...base, public_like_net_count: likes } : base;
+    let out = likes > 0 ? { ...base, public_like_net_count: likes } : base;
+    out = saves > 0 ? { ...out, public_save_count: saves } : out;
+    return out;
   });
 }
 
