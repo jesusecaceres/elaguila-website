@@ -37,14 +37,14 @@ export function LeonixPreviewPageShell({
           paddingTop: "max(0.75rem, env(safe-area-inset-top, 0px))",
         }}
       >
-        <div className="mx-auto flex w-full max-w-[1240px] min-w-0 flex-wrap items-center justify-stretch gap-2 sm:justify-end">
+        <div className="mx-auto flex w-full max-w-[1240px] min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           {publishSlot}
           {editHref ? (
             <Link
               href={editHref}
               prefetch={false}
               onClick={() => onBeforeNavigateToEdit?.()}
-              className="inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-full border px-4 py-2.5 text-center text-[11px] font-bold uppercase leading-snug tracking-wide sm:min-h-[40px] sm:w-auto sm:py-2"
+              className="inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-full border px-4 py-2.5 text-center text-[11px] font-bold uppercase leading-snug tracking-wide sm:min-h-[40px] sm:w-auto sm:shrink-0 sm:py-2"
               style={{ borderColor: BORDER, color: BRONZE_SOFT }}
             >
               {backLabel}

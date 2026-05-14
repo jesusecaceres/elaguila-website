@@ -3,15 +3,30 @@
  * Run: npx tsx scripts/community-quick-publish-contract-smoke.ts
  */
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 
 import { detailPairsToMap, isCommunityQuickListing } from "../app/(site)/clasificados/community/shared/communityListingDetailPairs";
 import { communityGalleryContainsPdf } from "../app/(site)/publicar/community/shared/publish/publishCommunityQuickToListings";
-import { shouldBlockClasesPaidPublish } from "../app/(site)/publicar/community/shared/required/communityRequiredForPreview";
+import {
+  gateClasesQuickPreview,
+  gateComunidadQuickPreview,
+  shouldBlockClasesPaidPublish,
+} from "../app/(site)/publicar/community/shared/required/communityRequiredForPreview";
 import type { EmpleosImageItem } from "../app/(site)/publicar/empleos/shared/media/empleosMediaTypes";
 import type { ClasesQuickDraft } from "../app/(site)/publicar/community/shared/types/communityQuickDraft";
 import { CLASES_QUICK_COPY, COMUNIDAD_QUICK_COPY, COMMUNITY_PUBLISH_COPY } from "../app/(site)/publicar/community/shared/copy/communityPublishCopy";
 import { CLASES_CATEGORY_OPTIONS, resolveClasesCategoryPublicLabel } from "../app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
 import { normalizeClasesQuickDraft } from "../app/(site)/publicar/community/shared/types/communityQuickDraft";
+import {
+  buildMinimalClasesQuickDraftForPreviewContract,
+  buildMinimalComunidadQuickDraftForPreviewContract,
+  buildPaidClasesQuickDraftForPreviewContract,
+} from "./community-quick-preview-minimal-drafts";
+
+function readSourceRel(...segments: string[]) {
+  return fs.readFileSync(path.join(process.cwd(), ...segments), "utf8");
+}
 
 function main() {
   const pdf: EmpleosImageItem = {
@@ -78,6 +93,49 @@ function main() {
 
   assert.equal(COMMUNITY_PUBLISH_COPY.es.finalStep.publishCta, "Publicar anuncio");
   assert.equal(COMMUNITY_PUBLISH_COPY.en.finalStep.publishCta, "Publish listing");
+
+  const previewClient = readSourceRel(
+    "app/(site)/publicar/community/shared/preview/CommunityQuickPreviewClient.tsx",
+  );
+  assert.ok(previewClient.includes("CommunityQuickPreviewPublishBar"));
+  assert.ok(previewClient.includes("publishSlot={publishSlot}"));
+  assert.ok(previewClient.includes("LeonixPreviewPageShell"));
+  assert.ok(previewClient.includes('kind === "clases" && clasesDraft'));
+  assert.ok(previewClient.includes('kind === "comunidad" && comunidadDraft'));
+
+  const previewShell = readSourceRel("app/(site)/clasificados/lib/preview/LeonixPreviewPageShell.tsx");
+  assert.ok(previewShell.includes("publishSlot"));
+
+  const previewBar = readSourceRel(
+    "app/(site)/publicar/community/shared/preview/CommunityQuickPreviewPublishBar.tsx",
+  );
+  assert.ok(previewBar.includes("publishCommunityQuickToListings"));
+  assert.ok(/publishCommunityQuickToListings\s*\(\s*\{[\s\S]*?\bkind\b/.test(previewBar));
+
+  const clasesPreviewRoute = readSourceRel(
+    "app/(site)/publicar/clases/quick/preview/ClasesQuickPreviewPageClient.tsx",
+  );
+  assert.ok(clasesPreviewRoute.includes('kind="clases"'));
+  const comunidadPreviewRoute = readSourceRel(
+    "app/(site)/publicar/comunidad/quick/preview/ComunidadQuickPreviewPageClient.tsx",
+  );
+  assert.ok(comunidadPreviewRoute.includes('kind="comunidad"'));
+
+  const publishToListingsSrc = readSourceRel(
+    "app/(site)/publicar/community/shared/publish/publishCommunityQuickToListings.ts",
+  );
+  assert.ok(
+    publishToListingsSrc.includes('kind === "clases" && shouldBlockClasesPaidPublish'),
+    "paid publish guard must be clases-only (comunidad must not enter paid-class block)",
+  );
+
+  const clasesFree = buildMinimalClasesQuickDraftForPreviewContract();
+  assert.equal(gateClasesQuickPreview(clasesFree, "es").ok, true);
+  const comunidadFree = buildMinimalComunidadQuickDraftForPreviewContract();
+  assert.equal(gateComunidadQuickPreview(comunidadFree, "es").ok, true);
+  const clasesPaid = buildPaidClasesQuickDraftForPreviewContract();
+  assert.equal(gateClasesQuickPreview(clasesPaid, "es").ok, true);
+  assert.equal(shouldBlockClasesPaidPublish(clasesPaid), true);
 
   console.log("community-quick-publish-contract-smoke: PASS");
 }

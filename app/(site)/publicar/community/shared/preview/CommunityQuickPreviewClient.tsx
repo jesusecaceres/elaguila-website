@@ -21,6 +21,7 @@ import {
   ClasesQuickPreviewCard,
   ComunidadQuickPreviewCard,
 } from "./CommunityQuickPreviewCard";
+import { CommunityQuickPreviewPublishBar } from "./CommunityQuickPreviewPublishBar";
 import {
   normalizeClasesQuickDraft,
   normalizeComunidadQuickDraft,
@@ -87,18 +88,28 @@ export function CommunityQuickPreviewClient({ kind }: { kind: CommunityKind }) {
 
   void fromPublicar;
 
+  const publishSlot =
+    kind === "clases" && clasesDraft ? (
+      <CommunityQuickPreviewPublishBar kind="clases" draft={clasesDraft} lang={lang} />
+    ) : kind === "comunidad" && comunidadDraft ? (
+      <CommunityQuickPreviewPublishBar kind="comunidad" draft={comunidadDraft} lang={lang} />
+    ) : null;
+
   return (
     <LeonixPreviewPageShell
       editHref={editHref}
       backLabel={backLabel}
       onBeforeNavigateToEdit={markPublishFlowReturningToEdit}
+      publishSlot={publishSlot}
     >
-      {kind === "clases" && clasesDraft ? (
-        <ClasesQuickPreviewCard draft={clasesDraft} lang={lang} />
-      ) : null}
-      {kind === "comunidad" && comunidadDraft ? (
-        <ComunidadQuickPreviewCard draft={comunidadDraft} lang={lang} />
-      ) : null}
+      <div className="mx-auto w-full max-w-[min(100%,1240px)] px-3 pb-28 pt-2 sm:px-5">
+        {kind === "clases" && clasesDraft ? (
+          <ClasesQuickPreviewCard draft={clasesDraft} lang={lang} />
+        ) : null}
+        {kind === "comunidad" && comunidadDraft ? (
+          <ComunidadQuickPreviewCard draft={comunidadDraft} lang={lang} />
+        ) : null}
+      </div>
     </LeonixPreviewPageShell>
   );
 }
