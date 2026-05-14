@@ -14,6 +14,7 @@ import {
   isStripeAutosConfigured,
 } from "@/app/lib/clasificados/autos/stripeAutosConfig";
 import { isAutosInternalPublishPaymentBypassEnabled } from "@/app/lib/clasificados/autos/autosInternalPublishConfig";
+import { isAutosAllowTestPublishBypassEnabled } from "@/app/lib/clasificados/autos/autosTestPublishBypass";
 import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import type { AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 
@@ -26,7 +27,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "db_not_configured" }, { status: 503 });
   }
   const internalBypass = isAutosInternalPublishPaymentBypassEnabled();
-  if (!internalBypass && !isStripeAutosConfigured()) {
+  const testPublishBypass = isAutosAllowTestPublishBypassEnabled();
+  if (!internalBypass && !testPublishBypass && !isStripeAutosConfigured()) {
     return NextResponse.json({ ok: false, error: "stripe_not_configured" }, { status: 503 });
   }
   const userId = await getAutosPublishUserIdFromRequest(request);
@@ -65,6 +67,25 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       internalBypass: true as const,
+      liveUrl: `${origin}${livePath}`,
+      successUrl,
+    });
+  }
+
+  /** Autos Phase 2: dev/staging test publish without Stripe (gated env; never production). */
+  if (testPublishBypass) {
+    const okAct = await activateAutosClassifiedsListing(listingId);
+    if (!okAct) {
+      return NextResponse.json({ ok: false, error: "activate_failed" }, { status: 500 });
+    }
+    const origin = getAutosSiteOrigin();
+    const qLang = lang === "en" ? "lang=en" : "lang=es";
+    const laneQ = `lane=${encodeURIComponent(row.lane)}`;
+    const livePath = `${autosLiveVehiclePath(listingId)}?${qLang}`;
+    const successUrl = `${origin}/clasificados/autos/pago/exito?internal=1&test_publish=1&listing_id=${encodeURIComponent(listingId)}&${qLang}&${laneQ}`;
+    return NextResponse.json({
+      ok: true,
+      testPublishBypass: true as const,
       liveUrl: `${origin}${livePath}`,
       successUrl,
     });

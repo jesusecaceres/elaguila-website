@@ -32,12 +32,14 @@ const ES: AutosBranchCopy = {
   backToPublicar: "Volver a categorías",
   privado: {
     title: "Privado",
-    body: "Vendedor individual: anuncio directo, flujo más simple para un solo vehículo.",
+    body:
+      "Particular / vendedor individual: un solo vehículo por publicación, contacto directo y flujo simple (sin perfil de concesionario).",
     cta: "Continuar como particular",
   },
   negocios: {
     title: "Negocios",
-    body: "Concesionario o lote: inventario con bloque de negocio, medios y herramientas avanzadas.",
+    body:
+      "Concesionario o negocio: identidad comercial, datos de contacto del lote y mentalidad de inventario (varios anuncios en el tiempo). Hoy agrupamos inventario en resultados filtrados; una página dedicada por dealer puede añadirse después.",
     cta: "Continuar como negocio",
   },
   privadoPlaceholder: {
@@ -56,12 +58,14 @@ const EN: AutosBranchCopy = {
   backToPublicar: "Back to categories",
   privado: {
     title: "Private seller",
-    body: "Individual seller: a straightforward flow for a single-vehicle listing.",
+    body:
+      "Private / individual seller: one vehicle per publish flow, direct buyer contact, and a simple path (no dealership profile chrome).",
     cta: "Continue as private seller",
   },
   negocios: {
     title: "Dealership",
-    body: "Dealership or lot: inventory listings with a business block, media, and advanced tools.",
+    body:
+      "Dealership or business seller: business identity, commercial contact stack, and an inventory mindset (multiple listings over time). Today we group inventory via filtered results; a dedicated per-dealer page may ship later.",
     cta: "Continue as business",
   },
   privadoPlaceholder: {

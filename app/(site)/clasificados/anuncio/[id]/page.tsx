@@ -14,7 +14,13 @@ import { isProListing } from "../../components/planHelpers";
 import { isVerifiedSeller } from "../../components/verifiedSeller";
 import ContactActions from "../../components/ContactActions";
 import { CommunityQuickAnuncioDetail } from "../../community/CommunityQuickAnuncioDetail";
-import { detailPairsToMap, isCommunityQuickListing } from "../../community/shared/communityListingDetailPairs";
+import { COMMUNITY_ANUNCIO_HERO_FRAME } from "../../community/shared/communityAnuncioHeroClasses";
+import {
+  clasesModeLabel,
+  comunidadEventCostLabel,
+  detailPairsToMap,
+  isCommunityQuickListing,
+} from "../../community/shared/communityListingDetailPairs";
 import { buildCommunityMapQuery, googleMapsSearchUrl } from "@/app/(site)/publicar/community/shared/lib/communityContactCtas";
 import AiInsightsPanel from "../../components/AiInsightsPanel";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
@@ -943,9 +949,25 @@ export default function AnuncioDetallePage() {
   }, [mediaSlots.length]);
 
   const [expandedVideoIndex, setExpandedVideoIndex] = useState<number | null>(null);
+  const [viewerUserId, setViewerUserId] = useState<string | null>(null);
+  const [communityFlyerZoomUrl, setCommunityFlyerZoomUrl] = useState<string | null>(null);
 
   // v2 placeholder: wired later to real auth
   const [isAuthed] = useState<boolean>(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (mounted) setViewerUserId(user?.id ?? null);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const conditionText = (c: Listing["condition"]) => {
     if (lang === "es") {
@@ -1091,6 +1113,22 @@ export default function AnuncioDetallePage() {
     );
   }
 
+  const isCommunityCategory = listing.category === "clases" || listing.category === "comunidad";
+  const isCommunityOwner =
+    Boolean(viewerUserId && listing.owner_id && String(listing.owner_id) === String(viewerUserId)) &&
+    isCommunityCategory;
+  const communityMetaHighlight =
+    isCommunityCategory && communityQuickPairMap
+      ? listing.category === "clases"
+        ? clasesModeLabel(communityQuickPairMap["Leonix:mode"] ?? "", lang)
+        : (() => {
+            const cost = comunidadEventCostLabel(communityQuickPairMap["Leonix:eventCost"] ?? "", lang);
+            const d0 = (communityQuickPairMap["Leonix:eventDate"] ?? "").trim();
+            return d0 ? `${cost} · ${d0}` : cost;
+          })()
+      : null;
+  const communityOrgName = communityQuickPairMap?.["Leonix:organizer"]?.trim() ?? "";
+
   return (
     <div className="bg-[#D9D9D9] min-h-screen text-[#111111] pb-28">
       <Navbar />
@@ -1147,24 +1185,32 @@ export default function AnuncioDetallePage() {
           <div className="lg:col-span-8">
             <div
               className={cx(
-                "rounded-2xl border bg-[#D9D9D9]/35 backdrop-blur p-8",
-                rentasPlanTier === "business_plus" && "border-yellow-300/60 ring-1 ring-yellow-300/25 shadow-[0_0_0_1px_rgba(250,204,21,0.2)]",
-                rentasPlanTier === "business_standard" && "border-yellow-400/45",
-                rentasPlanTier === "privado_pro" && "border-stone-300/50 bg-white/95 shadow-sm",
-                !rentasPlanTier && isBusiness && listing?.category === "rentas" && "border-yellow-400/45",
-                !rentasPlanTier && listing?.category !== "rentas" && "border-black/10"
+                "rounded-2xl border p-8",
+                isCommunityCategory
+                  ? "border-[#C9B46A]/50 bg-[#FCF9F2] text-[#2A2626] shadow-sm ring-1 ring-[#C9B46A]/20"
+                  : "bg-[#D9D9D9]/35 backdrop-blur",
+                !isCommunityCategory && rentasPlanTier === "business_plus" && "border-yellow-300/60 ring-1 ring-yellow-300/25 shadow-[0_0_0_1px_rgba(250,204,21,0.2)]",
+                !isCommunityCategory && rentasPlanTier === "business_standard" && "border-yellow-400/45",
+                !isCommunityCategory && rentasPlanTier === "privado_pro" && "border-stone-300/50 bg-white/95 shadow-sm",
+                !isCommunityCategory && !rentasPlanTier && isBusiness && listing?.category === "rentas" && "border-yellow-400/45",
+                !isCommunityCategory && !rentasPlanTier && listing?.category !== "rentas" && "border-black/10"
               )}
             >
                 <>
                   {mediaSlots.length > 0 && (
                     <div
+                      data-testid={isCommunityCategory ? "community-anuncio-hero" : undefined}
                       className={cx(
-                        "relative rounded-xl overflow-hidden bg-[#E8E8E8] flex items-center justify-center mb-6",
-                        rentasPlanTier === "privado_pro"
-                          ? "aspect-[4/3] max-h-[420px] min-h-[240px] border border-stone-200/80"
-                          : rentasPlanTier === "business_plus" || rentasPlanTier === "business_standard"
-                            ? "aspect-[4/3] max-h-[480px] min-h-[280px] border border-black/10"
-                            : "border border-black/10 max-h-[360px] min-h-[200px]"
+                        isCommunityCategory
+                          ? COMMUNITY_ANUNCIO_HERO_FRAME
+                          : cx(
+                              "relative mb-6 flex items-center justify-center overflow-hidden rounded-xl bg-[#E8E8E8]",
+                              rentasPlanTier === "privado_pro"
+                                ? "aspect-[4/3] max-h-[420px] min-h-[240px] border border-stone-200/80"
+                                : rentasPlanTier === "business_plus" || rentasPlanTier === "business_standard"
+                                  ? "aspect-[4/3] max-h-[480px] min-h-[280px] border border-black/10"
+                                  : "border border-black/10 max-h-[360px] min-h-[200px]",
+                            ),
                       )}
                       onTouchStart={(e) => {
                         galleryTouchStartX.current = e.touches[0]?.clientX ?? 0;
@@ -1177,11 +1223,30 @@ export default function AnuncioDetallePage() {
                       }}
                     >
                       {mediaSlots[safeMediaIndex]?.type === "image" ? (
-                        <img
-                          src={mediaSlots[safeMediaIndex].url}
-                          alt=""
-                          className="max-h-full max-w-full w-full object-contain"
-                        />
+                        isCommunityCategory ? (
+                          <button
+                            type="button"
+                            className="relative max-h-full max-w-full cursor-zoom-in"
+                            aria-label={lang === "es" ? "Ampliar volante" : "Enlarge flyer"}
+                            onClick={() => {
+                              const slot = mediaSlots[safeMediaIndex];
+                              const u = slot?.type === "image" ? slot.url : undefined;
+                              if (u) setCommunityFlyerZoomUrl(u);
+                            }}
+                          >
+                            <img
+                              src={mediaSlots[safeMediaIndex].url}
+                              alt=""
+                              className="max-h-full max-w-full w-full object-contain"
+                            />
+                          </button>
+                        ) : (
+                          <img
+                            src={mediaSlots[safeMediaIndex].url}
+                            alt=""
+                            className="max-h-full max-w-full w-full object-contain"
+                          />
+                        )
                       ) : (
                         (() => {
                           const slot = mediaSlots[safeMediaIndex];
@@ -1240,7 +1305,12 @@ export default function AnuncioDetallePage() {
                           rentasPlanTier={rentasPlanTier}
                         />
                       ) : (
-                        <div className="mt-3 text-2xl font-extrabold text-yellow-200">
+                        <div
+                          className={cx(
+                            "mt-3 text-2xl font-extrabold",
+                            isCommunityCategory ? "text-[#5C4030]" : "text-yellow-200",
+                          )}
+                        >
                           {formatListingPrice(listing.priceLabel[lang], { lang })}
                         </div>
                       )}
@@ -1331,10 +1401,19 @@ export default function AnuncioDetallePage() {
                       "mt-8 rounded-2xl p-6 scroll-mt-24",
                       listing.category === "rentas" && rentasPlanTier === "privado_pro"
                         ? "border border-stone-200/80 bg-[#FAFAF9]"
-                        : "border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
+                        : isCommunityCategory
+                          ? "border border-[#CFBC88]/55 bg-[#FFFCF7] ring-1 ring-[#CFBC88]/20 shadow-sm"
+                          : "border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]",
                     )}
                   >
-                    <div className="text-sm text-[#111111] leading-relaxed">{listing.blurb[lang]}</div>
+                    <div
+                      className={cx(
+                        "text-sm leading-relaxed",
+                        isCommunityCategory ? "text-[#2A2626]" : "text-[#111111]",
+                      )}
+                    >
+                      {listing.blurb[lang]}
+                    </div>
                   </div>
               </>
 
@@ -1425,29 +1504,59 @@ export default function AnuncioDetallePage() {
   </div>
 )}
 
-              <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
-                    <div className="text-xs text-[#111111]">{t.metaCategory}</div>
-                    <div className="mt-1 text-[#111111] font-semibold">
+              <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div
+                    className={cx(
+                      "rounded-2xl border p-5",
+                      isCommunityCategory
+                        ? "border-[#CFBC88]/60 bg-[#FFFDF8] shadow-sm ring-1 ring-[#CFBC88]/25"
+                        : "border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]",
+                    )}
+                  >
+                    <div className={cx("text-xs", isCommunityCategory ? "text-[#5C564E]" : "text-[#111111]")}>{t.metaCategory}</div>
+                    <div className={cx("mt-1 font-semibold", isCommunityCategory ? "text-[#2A2626]" : "text-[#111111]")}>
                       {categoryLabel[listing.category][lang]}
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
-                    <div className="text-xs text-[#111111]">{t.metaCondition}</div>
-                    <div className="mt-1 text-[#111111] font-semibold">
-                      {conditionText(listing.condition)}
+                  <div
+                    className={cx(
+                      "rounded-2xl border p-5",
+                      isCommunityCategory
+                        ? "border-[#CFBC88]/60 bg-[#FFFDF8] shadow-sm ring-1 ring-[#CFBC88]/25"
+                        : "border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]",
+                    )}
+                  >
+                    <div className={cx("text-xs", isCommunityCategory ? "text-[#5C564E]" : "text-[#111111]")}>
+                      {isCommunityCategory ? (lang === "es" ? "Resumen" : "Summary") : t.metaCondition}
+                    </div>
+                    <div className={cx("mt-1 font-semibold", isCommunityCategory ? "text-[#2A2626]" : "text-[#111111]")}>
+                      {isCommunityCategory ? communityMetaHighlight ?? "—" : conditionText(listing.condition)}
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
-                    <div className="text-xs text-[#111111]">{t.metaCity}</div>
-                    <div className="mt-1 text-[#111111] font-semibold">{listing.city}</div>
+                  <div
+                    className={cx(
+                      "rounded-2xl border p-5",
+                      isCommunityCategory
+                        ? "border-[#CFBC88]/60 bg-[#FFFDF8] shadow-sm ring-1 ring-[#CFBC88]/25"
+                        : "border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]",
+                    )}
+                  >
+                    <div className={cx("text-xs", isCommunityCategory ? "text-[#5C564E]" : "text-[#111111]")}>{t.metaCity}</div>
+                    <div className={cx("mt-1 font-semibold", isCommunityCategory ? "text-[#2A2626]" : "text-[#111111]")}>{listing.city}</div>
                   </div>
 
-                  <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
-                    <div className="text-xs text-[#111111]">{t.metaPosted}</div>
-                    <div className="mt-1 text-[#111111] font-semibold">{postedAgoDisplay}</div>
+                  <div
+                    className={cx(
+                      "rounded-2xl border p-5",
+                      isCommunityCategory
+                        ? "border-[#CFBC88]/60 bg-[#FFFDF8] shadow-sm ring-1 ring-[#CFBC88]/25"
+                        : "border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]",
+                    )}
+                  >
+                    <div className={cx("text-xs", isCommunityCategory ? "text-[#5C564E]" : "text-[#111111]")}>{t.metaPosted}</div>
+                    <div className={cx("mt-1 font-semibold", isCommunityCategory ? "text-[#2A2626]" : "text-[#111111]")}>{postedAgoDisplay}</div>
 
                     {listing.category === "autos" && autosLiveFacts?.facts && (
                       <AutosAnuncioMetaFactCards facts={autosLiveFacts.facts} />
@@ -1695,46 +1804,57 @@ export default function AnuncioDetallePage() {
                   {lang === "es" ? "Copiar info" : "Copy info"}
                 </button>
 
-                <button
-                  disabled={!isAuthed}
-                  title={!isAuthed ? t.locked : ""}
-                  className={cx(
-                    "w-full px-5 py-3 rounded-full font-semibold transition",
-                    !isAuthed
-                      ? "bg-[#F5F5F5] text-[#111111] border border-black/10 cursor-not-allowed"
-                      : "bg-[#111111] text-[#F5F5F5] hover:opacity-95"
-                  )}
-                >
-                  {t.markSold}
-                </button>
+                {!isCommunityCategory ? (
+                  <>
+                    <button
+                      disabled={!isAuthed}
+                      title={!isAuthed ? t.locked : ""}
+                      className={cx(
+                        "w-full px-5 py-3 rounded-full font-semibold transition",
+                        !isAuthed
+                          ? "bg-[#F5F5F5] text-[#111111] border border-black/10 cursor-not-allowed"
+                          : "bg-[#111111] text-[#F5F5F5] hover:opacity-95",
+                      )}
+                    >
+                      {t.markSold}
+                    </button>
 
-                <button
-                  disabled={!isAuthed}
-                  title={!isAuthed ? t.locked : ""}
-                  className={cx(
-                    "w-full px-5 py-3 rounded-full font-semibold transition border",
-                    !isAuthed
-                      ? "bg-[#F5F5F5] text-[#111111] border-black/10 cursor-not-allowed"
-                      : "bg-[#D9D9D9]/30 text-[#111111] border-black/10 hover:bg-[#D9D9D9]/45"
-                  )}
-                >
-                  {t.edit}
-                </button>
+                    <button
+                      disabled={!isAuthed}
+                      title={!isAuthed ? t.locked : ""}
+                      className={cx(
+                        "w-full px-5 py-3 rounded-full font-semibold transition border",
+                        !isAuthed
+                          ? "bg-[#F5F5F5] text-[#111111] border-black/10 cursor-not-allowed"
+                          : "bg-[#D9D9D9]/30 text-[#111111] border-black/10 hover:bg-[#D9D9D9]/45",
+                      )}
+                    >
+                      {t.edit}
+                    </button>
 
-                <button
-                  disabled={!isAuthed}
-                  title={!isAuthed ? t.locked : ""}
-                  className={cx(
-                    "w-full px-5 py-3 rounded-full font-semibold transition border",
-                    !isAuthed
-                      ? "bg-[#F5F5F5] text-[#111111] border-black/10 cursor-not-allowed"
-                      : "bg-red-500/15 text-red-200 border-red-400/25 hover:bg-red-500/20"
-                  )}
-                >
-                  {t.delete}
-                </button>
+                    <button
+                      disabled={!isAuthed}
+                      title={!isAuthed ? t.locked : ""}
+                      className={cx(
+                        "w-full px-5 py-3 rounded-full font-semibold transition border",
+                        !isAuthed
+                          ? "bg-[#F5F5F5] text-[#111111] border-black/10 cursor-not-allowed"
+                          : "bg-red-500/15 text-red-200 border-red-400/25 hover:bg-red-500/20",
+                      )}
+                    >
+                      {t.delete}
+                    </button>
+                  </>
+                ) : isCommunityOwner ? (
+                  <Link
+                    href={`/dashboard/mis-anuncios?lang=${lang}`}
+                    className="flex w-full items-center justify-center rounded-full border border-[#A98C2A]/55 bg-[#FFFCF7] px-5 py-3 text-center text-sm font-semibold text-[#2A2626] transition hover:bg-[#F4EBD8]"
+                  >
+                    {lang === "es" ? "Gestionar anuncio" : "Manage listing"}
+                  </Link>
+                ) : null}
 
-                {!isAuthed && (
+                {!isCommunityCategory && !isAuthed && (
                   <div className="text-xs text-[#111111] pt-2">
                     {lang === "es"
                       ? "Nota: en v2 estas acciones se habilitan cuando conectemos autenticación real."
@@ -1753,11 +1873,21 @@ export default function AnuncioDetallePage() {
             )}>
               <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
                 {listing.category === "rentas"
-                  ? (lang === "es" ? "Anunciante" : "Advertiser")
-                  : (lang === "es" ? "Publicado por" : "Posted by")}
+                  ? lang === "es"
+                    ? "Anunciante"
+                    : "Advertiser"
+                  : isCommunityCategory && communityOrgName
+                    ? lang === "es"
+                      ? "Organizado por"
+                      : "Organized by"
+                    : lang === "es"
+                      ? "Publicado por"
+                      : "Posted by"}
               </h4>
               {listing.category === "rentas" && (listing.sellerType === "business" || (listing as any).seller_type === "business") && ((listing as any).businessName ?? (listing as any).business_name) ? (
                 <p className="text-sm font-semibold text-[#111111]">{(listing as any).businessName ?? (listing as any).business_name}</p>
+              ) : isCommunityCategory && communityOrgName ? (
+                <p className="text-base font-bold text-[#111111]">{communityOrgName}</p>
               ) : (listing as any)?.sellerUsername ? (
                 <p className="text-sm font-medium text-[#111111]">
                   {listing?.sellerName ?? (listing as any).sellerUsername ?? (lang === "es" ? "Vendedor" : "Seller")}
@@ -1772,23 +1902,34 @@ export default function AnuncioDetallePage() {
                   {lang === "es" ? "Negocio" : "Business"}
                 </p>
               )}
-              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#111111]/70">
-                {sellerStats?.avgRating != null ? (
-                  <span>⭐ {sellerStats.avgRating.toFixed(1)} {lang === "es" ? "vendedor" : "seller"}</span>
-                ) : (
-                  <span>⭐ {lang === "es" ? "Nuevo vendedor" : "New seller"}</span>
-                )}
-                <span>{sellerStats?.totalRatings ?? 0} {lang === "es" ? "ventas completadas" : "completed sales"}</span>
-                <span>📅 {lang === "es" ? "Miembro desde" : "Member since"} {listing?.sellerJoinYear ?? new Date().getFullYear()}</span>
-                <span>📦 {(listing?.sellerActiveListings ?? 0)} {lang === "es" ? "anuncios activos" : "active listings"}</span>
-              </div>
+              {!isCommunityCategory ? (
+                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#111111]/70">
+                  {sellerStats?.avgRating != null ? (
+                    <span>⭐ {sellerStats.avgRating.toFixed(1)} {lang === "es" ? "vendedor" : "seller"}</span>
+                  ) : (
+                    <span>⭐ {lang === "es" ? "Nuevo vendedor" : "New seller"}</span>
+                  )}
+                  <span>{sellerStats?.totalRatings ?? 0} {lang === "es" ? "ventas completadas" : "completed sales"}</span>
+                  <span>📅 {lang === "es" ? "Miembro desde" : "Member since"} {listing?.sellerJoinYear ?? new Date().getFullYear()}</span>
+                  <span>📦 {(listing?.sellerActiveListings ?? 0)} {lang === "es" ? "anuncios activos" : "active listings"}</span>
+                </div>
+              ) : null}
               <div className="mt-3">
                 <button
                   type="button"
                   className="px-4 py-2 rounded-xl font-semibold bg-[#C9B46A] text-[#111111] hover:opacity-90 transition"
-                  onClick={() => setShowChatModal(true)}
+                  onClick={() => {
+                    const el = document.getElementById("contact-actions");
+                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
                 >
-                  {lang === "es" ? "Contactar vendedor" : "Contact seller"}
+                  {isCommunityCategory
+                    ? lang === "es"
+                      ? "Ver contacto"
+                      : "View contact"
+                    : lang === "es"
+                      ? "Contactar vendedor"
+                      : "Contact seller"}
                 </button>
               </div>
             </div>
@@ -1806,7 +1947,14 @@ export default function AnuncioDetallePage() {
                 {lang === "es" ? "Ubicación" : "Location"}
               </h3>
               <p className="text-sm text-[#111111] mb-2">
-                {lang === "es" ? "Ubicación del vendedor:" : "Seller location:"} {listing?.city ?? ""}
+                {isCommunityCategory
+                  ? lang === "es"
+                    ? "Ciudad del anuncio:"
+                    : "Listing city:"
+                  : lang === "es"
+                    ? "Ubicación del vendedor:"
+                    : "Seller location:"}{" "}
+                {listing?.city ?? ""}
               </p>
               <label className="block text-sm text-[#111111]/80 mb-1">
                 {lang === "es" ? "Calcula la distancia desde tu ciudad" : "Calculate distance from your city"}
@@ -1899,6 +2047,7 @@ export default function AnuncioDetallePage() {
                 )}
                 <ContactActions
                   lang={lang}
+                  tone={isCommunityCategory ? "warmCream" : "default"}
                   phone={
                     communityQuickContactExtras?.phoneDigits?.length === 10
                       ? `+1${communityQuickContactExtras.phoneDigits}`
@@ -1972,24 +2121,42 @@ export default function AnuncioDetallePage() {
                 />
               </div>
 
-              <div className="mt-6">
-                <AiInsightsPanel
-                  lang={lang}
-                  listing={listing as any}
-                  allListings={(isLiveDbListing ? [] : SAMPLE_LISTINGS) as any}
-                />
-              </div>
+              {!isCommunityCategory ? (
+                <div className="mt-6">
+                  <AiInsightsPanel
+                    lang={lang}
+                    listing={listing as any}
+                    allListings={(isLiveDbListing ? [] : SAMPLE_LISTINGS) as any}
+                  />
+                </div>
+              ) : null}
 
-
+              {!isCommunityCategory ? (
               <div className="mt-4 text-xs text-[#111111]">
                 {lang === "es"
                   ? "Estas herramientas se activan con LEONIX Pro (leads por anuncio)."
                   : "These tools activate with LEONIX Pro (per-listing leads)."}
               </div>
+              ) : null}
             </div>
           </div>
         </div>
       </section>
+
+      {communityFlyerZoomUrl ? (
+        <div
+          role="presentation"
+          className="fixed inset-0 z-[220] flex items-center justify-center bg-black/85 p-4"
+          onClick={() => setCommunityFlyerZoomUrl(null)}
+        >
+          <img
+            src={communityFlyerZoomUrl}
+            alt=""
+            className="max-h-[92vh] max-w-[96vw] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -2,12 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FiMapPin, FiCalendar, FiEye, FiHeart, FiBookmark, FiShare2 } from "react-icons/fi";
+import { FiMapPin } from "react-icons/fi";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { trackClasificadosEvent } from "@/app/lib/clasificadosAnalytics";
+import { AUTOS_PUBLIC_BLUEPRINT_COPY } from "../lib/autosPublicBlueprintCopy";
 import type { AutosPublicListing } from "../data/autosPublicSampleTypes";
+import { autosLiveVehiclePath } from "../filters/autosBrowseFilterContract";
 
 const RESULT_CARD =
   "rounded-3xl border border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] overflow-hidden transition-all duration-200 hover:border-[#D4A574]/50 hover:shadow-[0_16px_56px_-24px_rgba(212,165,116,0.20)]";
@@ -112,11 +114,11 @@ export function AutosResultCard({
     }).format(price);
   };
 
-  // Build href for detail page
-  const detailHref = `/clasificados/autos/${listing.id}?lang=${lang}`;
+  const copy = AUTOS_PUBLIC_BLUEPRINT_COPY[lang === "en" ? "en" : "es"];
+  const detailHref = `${autosLiveVehiclePath(listing.id)}?lang=${lang}`;
 
   const sellerName = isDealer ? listing.dealerName : listing.privateSellerLabel;
-  const sellerLabel = isDealer ? "Concesionario" : "Vendedor privado";
+  const sellerLabel = isDealer ? copy.sellerLaneBadgeDealer : copy.sellerLaneBadgePrivate;
 
   return (
     <Link 
@@ -135,7 +137,7 @@ export function AutosResultCard({
         />
         {listing.featured && (
           <span className="absolute left-2.5 top-2.5 rounded-full border border-[#D4A574]/50 bg-[#FFFAF0] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#D4A574] shadow-sm">
-            Destacado
+            {copy.featuredBadge}
           </span>
         )}
       </div>
@@ -198,7 +200,7 @@ export function AutosResultCard({
         {/* CTA Button */}
         <div className="flex justify-center">
           <span className={CTA_BUTTON}>
-            Ver detalles
+            {copy.cardViewDetails}
           </span>
         </div>
 

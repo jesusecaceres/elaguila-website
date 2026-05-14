@@ -206,11 +206,12 @@ export function AutosPublishConfirmCore({
       ok?: boolean;
       url?: string;
       internalBypass?: boolean;
+      testPublishBypass?: boolean;
       successUrl?: string;
       error?: string;
     };
     setPayBusy(false);
-    if (res.ok && j.internalBypass && typeof j.successUrl === "string" && j.successUrl) {
+    if (res.ok && (j.internalBypass || j.testPublishBypass) && typeof j.successUrl === "string" && j.successUrl) {
       window.location.href = j.successUrl;
       return;
     }

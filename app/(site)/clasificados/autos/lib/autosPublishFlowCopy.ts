@@ -65,8 +65,8 @@ export function getAutosPublishFlowCopy(lang: AutosPublishFlowLang, lane: AutosC
     continueToPublish: isEs ? "Publicar anuncio" : "Publish listing",
     checkoutErrorGeneric: isEs ? "No pudimos iniciar el pago. Revisa la consola de red o inténtalo de nuevo." : "We could not start checkout. Check the network response or try again.",
     checkoutErrorStripe: isEs
-      ? "Stripe no está configurado en este entorno. Para pruebas internas sin pago, define AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS=1 (solo fuera de producción)."
-      : "Stripe is not configured in this environment. For internal testing without payment, set AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS=1 (non-production only).",
+      ? "Stripe está en pausa para Autos en esta fase. Para publicar de prueba sin Stripe (solo dev/staging), define AUTOS_ALLOW_TEST_PUBLISH_BYPASS=true fuera de producción. Para el bypass interno histórico, usa AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS=1."
+      : "Stripe is paused for Autos in this phase. To test-publish without Stripe (dev/staging only), set AUTOS_ALLOW_TEST_PUBLISH_BYPASS=true outside production. For the legacy internal bypass, use AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS=1.",
     checkoutErrorPrice: isEs
       ? "Falta el precio de Stripe para esta vía (STRIPE_PRICE_AUTOS_PRIVADO o STRIPE_PRICE_AUTOS_NEGOCIOS)."
       : "Missing Stripe price for this lane (STRIPE_PRICE_AUTOS_PRIVADO or STRIPE_PRICE_AUTOS_NEGOCIOS).",
@@ -74,5 +74,9 @@ export function getAutosPublishFlowCopy(lang: AutosPublishFlowLang, lane: AutosC
     successBodyInternal: isEs
       ? "Modo interno: publicación sin pago. Tu anuncio ya está activo en Clasificados Autos."
       : "Internal mode: published without payment. Your listing is now live on Autos classifieds.",
+    successTitleTest: isEs ? "¡Anuncio activado (prueba)!" : "Listing activated (test)",
+    successBodyTest: isEs
+      ? "Modo de prueba Autos: publicación sin Stripe. El anuncio quedó activo como cualquier listado en vivo para revisar vitrina y detalle."
+      : "Autos test mode: published without Stripe. The listing is active like any live row so you can verify browse surfaces.",
   };
 }

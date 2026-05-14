@@ -2,9 +2,8 @@
 
 import React, { useEffect } from "react";
 import Image from "next/image";
-import { FiExternalLink, FiMail, FiMapPin, FiPhone, FiCalendar, FiGlobe, FiTrendingUp, FiEye, FiHeart, FiBookmark, FiShare2 } from "react-icons/fi";
+import { FiMapPin, FiPhone, FiCalendar, FiGlobe, FiTrendingUp } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
-import { LeonixEngagementBar } from "@/app/components/clasificados/analytics/LeonixEngagementBar";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";

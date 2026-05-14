@@ -7,16 +7,18 @@ import {
   isAutosClassifiedsDbConfigured,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import { isAutosInternalPublishPaymentBypassEnabled } from "@/app/lib/clasificados/autos/autosInternalPublishConfig";
+import { isAutosAllowTestPublishBypassEnabled } from "@/app/lib/clasificados/autos/autosTestPublishBypass";
 import type { AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Confirms an internally activated listing for the success page (no Stripe session).
- * Only available when internal payment bypass is enabled; requires owner Bearer auth.
+ * Confirms an internally or test-bypass-activated listing for the success page (no Stripe session).
+ * Only when `AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS` or `AUTOS_ALLOW_TEST_PUBLISH_BYPASS` is enabled
+ * (non-production); requires owner Bearer auth.
  */
 export async function GET(request: Request) {
-  if (!isAutosInternalPublishPaymentBypassEnabled()) {
+  if (!isAutosInternalPublishPaymentBypassEnabled() && !isAutosAllowTestPublishBypassEnabled()) {
     return NextResponse.json({ ok: false, error: "disabled" }, { status: 404 });
   }
   if (!isAutosClassifiedsDbConfigured()) {
