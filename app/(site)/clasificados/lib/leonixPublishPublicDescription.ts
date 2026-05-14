@@ -16,6 +16,13 @@ export const LEONIX_LISTINGS_DESCRIPTION_DB_MAX_CHARS = 3900;
 export const LEONIX_LISTINGS_TITLE_DB_MIN_CHARS = 5;
 export const LEONIX_LISTINGS_TITLE_DB_MAX_CHARS = 120;
 
+/** Clip by Unicode scalar (not UTF-16 index) so Postgres `char_length` stays aligned and we never split astral pairs. */
+function clipLeonixDescriptionToMaxScalars(s: string, maxScalars: number): string {
+  const chars = Array.from(s);
+  if (chars.length <= maxScalars) return s;
+  return chars.slice(0, maxScalars).join("");
+}
+
 /**
  * Removes internal / transport noise that must never be persisted as public listing copy.
  * Runs after `stripLeonixPublishedDescriptionBody` (legacy appendix / marker blocks).
@@ -77,10 +84,18 @@ export function toLeonixListingsDescriptionForDb(raw: string): string | null {
   const s = sanitizeLeonixListingPublishDescriptionBody(String(raw ?? ""));
   if (s.length === 0) return null;
   if (s.length < LEONIX_LISTINGS_DESCRIPTION_DB_MIN_CHARS) return null;
+  let out: string;
   if (s.length > LEONIX_LISTINGS_DESCRIPTION_DB_MAX_CHARS) {
-    return s.slice(0, LEONIX_LISTINGS_DESCRIPTION_DB_MAX_CHARS).trimEnd();
+    out = clipLeonixDescriptionToMaxScalars(s, LEONIX_LISTINGS_DESCRIPTION_DB_MAX_CHARS).trimEnd();
+  } else {
+    out = s;
   }
-  return s;
+  if (out.length === 0 || out.length < LEONIX_LISTINGS_DESCRIPTION_DB_MIN_CHARS) return null;
+  if (out.length > LEONIX_LISTINGS_DESCRIPTION_DB_MAX_CHARS) {
+    out = clipLeonixDescriptionToMaxScalars(out, LEONIX_LISTINGS_DESCRIPTION_DB_MAX_CHARS).trimEnd();
+    if (out.length < LEONIX_LISTINGS_DESCRIPTION_DB_MIN_CHARS) return null;
+  }
+  return out;
 }
 
 /** @deprecated Use `toLeonixListingsDescriptionForDb` (returns string | null). */
@@ -164,19 +179,25 @@ export function leonixPublishDescriptionDevDiagnostics(
   sanitizedLen: number;
   dbDescriptionLen: number | null;
   dbDescriptionIsNull: boolean;
+  typeofDescription: string;
   head300: string;
+  tail300: string;
   flags: Record<string, boolean>;
 } {
   const d = sanitized;
+  const db = descriptionForDb;
   return {
     sanitizedLen: d.length,
-    dbDescriptionLen: descriptionForDb == null ? null : descriptionForDb.length,
-    dbDescriptionIsNull: descriptionForDb == null,
+    dbDescriptionLen: db == null ? null : db.length,
+    dbDescriptionIsNull: db == null,
+    typeofDescription: db == null ? "null" : typeof db,
     head300: d.slice(0, 300),
+    tail300: d.length > 300 ? d.slice(-300) : d,
     flags: {
       http: /https?:\/\//i.test(d),
       blob: /blob:/i.test(d),
       dataUrl: /\bdata:(?:image|video|application)\//i.test(d),
+      base64Heavy: /;base64,/i.test(d) && d.length > 2000,
       leonixImages: /\[LEONIX_IMAGES\]/i.test(d),
       draftMediaUpload: /draft-media-upload/i.test(d),
       uploadStatus: /upload-status/i.test(d),

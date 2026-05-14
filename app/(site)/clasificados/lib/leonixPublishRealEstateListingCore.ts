@@ -18,8 +18,19 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 const DEV = process.env.NODE_ENV === "development";
 
+/** Dev console, or prod browser when `localStorage.LEONIX_PUBLISH_DIAG === "1"` (internal QA only). */
+const PUBLISH_DIAG =
+  DEV ||
+  (typeof window !== "undefined" &&
+    typeof localStorage !== "undefined" &&
+    localStorage.getItem("LEONIX_PUBLISH_DIAG") === "1");
+
 function devLog(...args: unknown[]) {
   if (DEV) console.info("[leonix publish]", ...args);
+}
+
+function publishDiagLog(...args: unknown[]) {
+  if (PUBLISH_DIAG) console.info("[leonix publish][diag]", ...args);
 }
 
 async function fetchAsBlob(src: string): Promise<Blob> {
@@ -50,6 +61,7 @@ function digitsOnly(raw: string): string {
 export function buildListingsInsertRowForLeonixPublish(
   ownerId: string,
   params: PublishLeonixRealEstateListingCoreParams,
+  opts?: { listingDescriptionForDb?: string | null },
 ): Record<string, unknown> {
   const {
     title,
@@ -72,10 +84,16 @@ export function buildListingsInsertRowForLeonixPublish(
   const email = (contactEmail ?? "").trim() || null;
 
   const zipTrim = (zipRaw ?? "").trim();
+  const descriptionCol =
+    opts && Object.prototype.hasOwnProperty.call(opts, "listingDescriptionForDb")
+      ? opts.listingDescriptionForDb == null || opts.listingDescriptionForDb === ""
+        ? null
+        : opts.listingDescriptionForDb
+      : toLeonixListingsDescriptionForDb(description);
   const insertPayload: Record<string, unknown> = {
     owner_id: ownerId,
     title: toLeonixListingsTitleForDb(title),
-    description: toLeonixListingsDescriptionForDb(description),
+    description: descriptionCol,
     city: city.trim(),
     category,
     price: isFree ? 0 : Number.isFinite(price) && price >= 0 ? Math.round(price) : 0,
@@ -200,6 +218,7 @@ export async function publishLeonixRealEstateListingCore(
     return { ok: false, error: descriptionPrep.error };
   }
   const safeDescription = descriptionPrep.sanitized;
+  /** Single SQL-safe value for `public.listings.description` (insert + gallery update). */
   const descriptionForDb = toLeonixListingsDescriptionForDb(safeDescription);
   const paramsForRow: PublishLeonixRealEstateListingCoreParams = {
     ...params,
@@ -231,16 +250,27 @@ export async function publishLeonixRealEstateListingCore(
   }
   const userId = auth.user.id;
 
-  const insertPayload = buildListingsInsertRowForLeonixPublish(userId, paramsForRow);
+  const insertPayload = buildListingsInsertRowForLeonixPublish(userId, paramsForRow, {
+    listingDescriptionForDb: descriptionForDb,
+  });
 
-  if (DEV) {
+  if (PUBLISH_DIAG) {
     const descCol = insertPayload.description;
-    devLog("description diag (pre-insert)", {
+    const orderedPreview = imageSources.filter((u) => typeof u === "string" && u.trim()).slice(0, 4);
+    publishDiagLog("description diag (pre-insert)", {
       rawIncomingLen: String(description ?? "").length,
       ...leonixPublishDescriptionDevDiagnostics(safeDescription, descriptionForDb),
       insertRowDescriptionIsNull: descCol == null,
       titleLen: titlePrep.titleForDb.length,
       insertKeys: Object.keys(insertPayload),
+      imageCount: imageSources.filter((u) => typeof u === "string" && u.trim()).length,
+      imageSample: orderedPreview.map((u) => ({
+        len: u.length,
+        isDataImage: /^data:image\//i.test(u),
+        isBlob: /^blob:/i.test(u),
+        head: u.slice(0, 96),
+      })),
+      muxPlaybackIdPresent: Boolean(String(params.muxPlaybackId ?? "").trim()),
     });
   }
 
@@ -345,7 +375,7 @@ export async function publishLeonixRealEstateListingCore(
       const touch = new Date().toISOString();
       const muxPid = String(params.muxPlaybackId ?? "").trim();
       const galleryPatch: Record<string, unknown> = {
-        description: toLeonixListingsDescriptionForDb(safeDescription),
+        description: descriptionForDb,
         images: photoUrls,
         published_at: touch,
         updated_at: touch,

@@ -51,6 +51,9 @@ function main() {
   const clippedViaDb = toLeonixListingsDescriptionForDb(tooLong.slice(0, 5000));
   assert.equal(clippedViaDb?.length, LEONIX_LISTINGS_DESCRIPTION_DB_MAX_CHARS);
 
+  const skinnyClip = `${"a".repeat(18)}${" ".repeat(5000)}`;
+  assert.equal(toLeonixListingsDescriptionForDb(skinnyClip), null);
+
   const friendly = mapLeonixListingsDescriptionConstraintToUserMessage(
     { code: "23514", message: 'new row for relation "listings" violates check constraint "description_len_check"' },
     "es",
