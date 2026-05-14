@@ -6,6 +6,7 @@ import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { normalizeZipInput } from "@/app/data/locations/californiaLocationHelpers";
 import type { BrNegocioListing } from "../cards/listingTypes";
 import { extractBrFacetsFromDetailPairs } from "./brFacetFromDetailPairs";
+import { privacySafeLocation } from "@/app/clasificados/rentas/preview/shared/rentasPreviewResultCardListing";
 
 function imageUrlsFromJsonb(images: unknown): string[] {
   if (images == null) return [];
@@ -23,6 +24,47 @@ function imageUrlsFromJsonb(images: unknown): string[] {
       .filter((u): u is string => u != null);
   }
   return [];
+}
+
+function pairRows(detailPairs: unknown): Array<{ label: string; value: string }> {
+  if (!Array.isArray(detailPairs)) return [];
+  const out: Array<{ label: string; value: string }> = [];
+  for (const p of detailPairs) {
+    if (!p || typeof p !== "object") continue;
+    const o = p as { label?: string; value?: string };
+    const l = String(o.label ?? "").trim();
+    const v = String(o.value ?? "").trim();
+    if (l && v) out.push({ label: l, value: v });
+  }
+  return out;
+}
+
+function firstRowValue(rows: Array<{ label: string; value: string }>, labelRes: RegExp): string {
+  for (const r of rows) {
+    if (labelRes.test(r.label.trim())) return r.value.trim();
+  }
+  return "";
+}
+
+/** Result card line: city + optional zone/CP; reuse Rentas-style privacy helper (no `Estado` alone — conflicts with BR negocio listing status). */
+function brBrowseAddressLineFromRow(row: BrListingDbRow, facets: ReturnType<typeof extractBrFacetsFromDetailPairs>): string {
+  const city = String(row.city ?? "").trim();
+  const rows = pairRows(row.detail_pairs);
+  const ubicacion = firstRowValue(rows, /^ubicaci[oó]n$/i);
+  const direccion = firstRowValue(rows, /^direcci[oó]n$/i);
+  const zona =
+    firstRowValue(rows, /zona\s+o\s+vecindario/i) ||
+    firstRowValue(rows, /^colonia$/i) ||
+    firstRowValue(rows, /^zona$/i) ||
+    firstRowValue(rows, /vecindario/i);
+  const postal = facets.machine?.postalCode?.replace(/\D/g, "").slice(0, 10) ?? "";
+  const cityStateZip = [city, postal].filter(Boolean).join(postal && city ? " · " : "");
+
+  return privacySafeLocation({
+    cityStateZip: cityStateZip || city,
+    colonia: zona,
+    fallback: ubicacion || direccion || city || "—",
+  });
 }
 
 function extractLeonixImageUrlsFromDescription(description: string | null | undefined): string[] {
@@ -92,7 +134,7 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
 
   const cat = facets.categoriaPropiedad ?? "residencial";
   const title = String(row.title ?? "").trim() || (lang === "es" ? "Anuncio" : "Listing");
-  const city = String(row.city ?? "").trim() || "—";
+  const addressLine = brBrowseAddressLineFromRow(row, facets);
 
   const recencyMs = brListingRecencySortMs(row);
 
@@ -109,7 +151,7 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
     imageUrl: cover,
     price: priceStr,
     title,
-    addressLine: city,
+    addressLine,
     beds: facets.beds,
     baths: facets.baths,
     sqft: "—",

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import {
   brLuxuryBodyMutedClass,
   brLuxuryBtnPrimaryClass,
@@ -105,7 +106,7 @@ function IdentityRow({
 }
 
 function listingDetailHref(id: string, lang?: Lang) {
-  const base = `/clasificados/bienes-raices/anuncio/${id}`;
+  const base = leonixLiveAnuncioPath(id);
   return lang ? appendLangToPath(base, lang) : base;
 }
 

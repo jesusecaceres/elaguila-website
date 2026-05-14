@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import {
   brLuxuryBodyMutedClass,
   brLuxuryBtnPrimaryClass,
@@ -46,9 +47,7 @@ export function BienesRaicesNegocioFeaturedCard({
   const lane = sellerKindUi(listing);
   const op = operationKind(listing);
   const [fav, setFav] = useState(false);
-  const detailHref = lang
-    ? appendLangToPath(`/clasificados/bienes-raices/anuncio/${listing.id}`, lang)
-    : `/clasificados/bienes-raices/anuncio/${listing.id}`;
+  const detailHref = lang ? appendLangToPath(leonixLiveAnuncioPath(listing.id), lang) : leonixLiveAnuncioPath(listing.id);
 
   const surface = `group relative overflow-hidden rounded-[24px] border border-[#D4C4A8]/45 ${brLuxuryHeroPanelClass} ${brLuxuryCardHoverClass}`;
   return (

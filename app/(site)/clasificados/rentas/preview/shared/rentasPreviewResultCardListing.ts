@@ -27,7 +27,8 @@ function rowValue(rows: Array<{ label: string; value: string }> | undefined, lab
   return "";
 }
 
-function privacySafeLocation(parts: { cityStateZip?: string; colonia?: string; fallback: string }): string {
+/** Browse cards: prefer city/state + zone; avoid using a street-first fallback as the only line when possible. */
+export function privacySafeLocation(parts: { cityStateZip?: string; colonia?: string; fallback: string }): string {
   const cityStateZip = trim(parts.cityStateZip);
   const zona = trim(parts.colonia);
   if (cityStateZip && zona) return `${cityStateZip} · ${zona}`;

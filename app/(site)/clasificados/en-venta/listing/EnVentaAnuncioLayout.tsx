@@ -29,6 +29,10 @@ import { BrLiveFactsStrip } from "@/app/clasificados/bienes-raices/listing/BrLiv
 import { LeonixInlineListingReport } from "@/app/clasificados/components/LeonixInlineListingReport";
 import { buildLeonixBusinessLiveDisplay, parseLeonixBusinessMetaForLive } from "@/app/clasificados/lib/leonixBusinessLiveDisplay";
 import { resolveLeonixLiveListingContact } from "@/app/clasificados/lib/leonixListingContactResolve";
+import { parseLeonixMachineFacetRead, readLeonixDetailPairValue } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { RENTAS_DP_MAP_URL } from "@/app/clasificados/rentas/lib/rentasMachineDetailPairs";
+import { googleMapsSearchUrl } from "@/app/(site)/publicar/community/shared/lib/communityContactCtas";
+import { privacySafeLocation } from "@/app/clasificados/rentas/preview/shared/rentasPreviewResultCardListing";
 import { trackEnVentaListingOpen, trackEnVentaListingView } from "../analytics/enVentaAnalytics";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { trackListingSave, trackListingShare } from "@/app/lib/clasificadosAnalytics";
@@ -126,6 +130,45 @@ export function EnVentaAnuncioLayout({
 }) {
   const images = listing.images ?? [];
   const rows = useMemo(() => pairsFromListing(listing), [listing]);
+  const premiumBr = surface === "bienes-raices";
+
+  const brLocationBlock = useMemo(() => {
+    if (!premiumBr) return null;
+    const dps = listing.detailPairs;
+    const mapPair = (readLeonixDetailPairValue(dps, RENTAS_DP_MAP_URL) ?? "").trim();
+    const findRow = (re: RegExp) => {
+      for (const r of rows) {
+        if (re.test(r.label.trim())) return r.value.trim();
+      }
+      return "";
+    };
+    const ubicacion = findRow(/^Ubicación$/i) || findRow(/^Ubicacion$/i);
+    const direccion = findRow(/^Dirección$/i) || findRow(/^Direccion$/i);
+    const zona =
+      findRow(/zona\s+o\s+vecindario/i) ||
+      findRow(/^Colonia$/i) ||
+      findRow(/^Zona$/i);
+    const city = String(listing.city ?? "").trim();
+    const mf = parseLeonixMachineFacetRead(dps);
+    const postal = String(mf.postalCode ?? "")
+      .replace(/\D/g, "")
+      .slice(0, 10);
+    const cityStateZip = [city, postal].filter(Boolean).join(postal && city ? " · " : "");
+    const display = privacySafeLocation({
+      cityStateZip: cityStateZip || city,
+      colonia: zona,
+      fallback: ubicacion || direccion || city,
+    });
+    const safeHttp = (u: string) => /^https:\/\//i.test(u) && !/blob:|data:/i.test(u);
+    let mapsHref: string | null = null;
+    if (mapPair && safeHttp(mapPair)) mapsHref = mapPair;
+    else {
+      const q = (ubicacion || direccion || [zona, city].filter(Boolean).join(" · ") || city).trim();
+      if (q && !/^blob:|^data:/i.test(q)) mapsHref = googleMapsSearchUrl(q);
+    }
+    return { display, mapsHref };
+  }, [premiumBr, listing.detailPairs, listing.city, rows]);
+
   const contactChannel = useMemo(() => contactChannelFromPairs(rows), [rows]);
   const condition = conditionFromPairs(rows, lang);
   const sellerKind = listing.sellerType === "business" ? "business" : "personal";
@@ -280,8 +323,6 @@ export function EnVentaAnuncioLayout({
     el?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
-  const premiumBr = surface === "bienes-raices";
-
   const BtnBase = "px-4 py-2 rounded-xl font-semibold transition";
   const secondary = premiumBr
     ? `${brLuxuryBtnSecondaryClass} min-h-[42px] px-4 py-2 text-sm`
@@ -399,7 +440,7 @@ export function EnVentaAnuncioLayout({
                 {listing.title[lang]}
               </h1>
               <div className={premiumBr ? `mt-3 ${brLuxuryBodyMutedClass}` : "mt-2 text-sm text-[#111111]/75"}>
-                {listing.city}
+                <span className="break-words [overflow-wrap:anywhere]">{brLocationBlock?.display ?? listing.city}</span>
                 {posted ? (
                   <>
                     <span className={premiumBr ? "text-[#C9B46A]/60" : "text-[#111111]/40"}> · </span>
@@ -571,6 +612,25 @@ export function EnVentaAnuncioLayout({
         <div className="mt-10 grid gap-6 lg:grid-cols-12 lg:gap-10">
           <div className="space-y-6 lg:col-span-8">
             {surface === "bienes-raices" ? <BrLiveFactsStrip detailPairs={listing.detailPairs} lang={lang} /> : null}
+            {surface === "bienes-raices" && brLocationBlock ? (
+              <section
+                className={`${brLuxuryCardClass} p-6 sm:p-7`}
+                aria-label={lang === "es" ? "Ubicación" : "Location"}
+              >
+                <h2 className={brLuxuryOverlineClass}>{lang === "es" ? "Ubicación" : "Location"}</h2>
+                <p className={`mt-3 whitespace-pre-wrap ${brLuxuryBodyMutedClass} sm:text-[15px]`}>{brLocationBlock.display}</p>
+                {brLocationBlock.mapsHref ? (
+                  <a
+                    href={brLocationBlock.mapsHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl ${brLuxuryBtnSecondaryClass} px-4 text-sm font-semibold`}
+                  >
+                    {lang === "es" ? "Abrir en Google Maps" : "Open in Google Maps"}
+                  </a>
+                ) : null}
+              </section>
+            ) : null}
             <section
               id={premiumBr ? "leonix-listing-description" : undefined}
               className={
