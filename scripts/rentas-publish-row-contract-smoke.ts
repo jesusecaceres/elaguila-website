@@ -1,7 +1,9 @@
 /**
- * Run: npx tsx scripts/rentas-publish-listing-row-contract-selftest.ts
+ * Gate 08 — Rentas publish row contract (canonical `public.listings` insert shape from preview path).
  *
- * Simulates `buildListingsInsertRowForLeonixPublish` description/title columns for Rentas/BR Leonix publish.
+ * Run: npx tsx scripts/rentas-publish-row-contract-smoke.ts
+ *
+ * Asserts the same row builder used by `publishLeonixRealEstateListingCore` for `category: "rentas"`.
  */
 import assert from "node:assert/strict";
 import {
@@ -28,7 +30,7 @@ function assertTitleColumn(row: Record<string, unknown>): void {
   assert.ok(title.length <= 120, `title len ${title.length}`);
 }
 
-function main() {
+export function runRentasPublishRowContractSmoke(): void {
   const owner = "00000000-0000-4000-8000-000000000001";
   const baseParams = {
     title: "Casa en renta zona centro",
@@ -48,6 +50,7 @@ function main() {
   const row1 = buildListingsInsertRowForLeonixPublish(owner, baseParams);
   assertDescriptionColumn(row1);
   assertTitleColumn(row1);
+  assert.equal(row1.category, "rentas");
 
   const rowShortDesc = buildListingsInsertRowForLeonixPublish(owner, {
     ...baseParams,
@@ -74,7 +77,10 @@ function main() {
   });
   assert.equal(explicit.description, "Descripción mínima válida otra vez.");
 
-  console.log("rentas-publish-listing-row-contract-selftest: OK");
+  assert.ok(Array.isArray(row1.detail_pairs) || row1.detail_pairs === null);
+  assert.equal(row1.is_published, true);
+  assert.equal(row1.status, "active");
 }
 
-main();
+runRentasPublishRowContractSmoke();
+console.log("rentas-publish-row-contract-smoke: OK");
