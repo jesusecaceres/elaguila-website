@@ -29,10 +29,14 @@ type RowLike = {
  */
 export function resolveListingUiStatus(row: RowLike): ListingUiStatus {
   const st = String(row.status ?? "active").toLowerCase().trim() || "active";
-  
-  // Handle is_published flag (legacy)
-  if (row.is_published === false) return "draft";
-  
+
+  // Terminal / paused / moderation statuses first — `is_published` alone must not mask these.
+  if (st === "removed" || st === "unpublished" || st === "archived") return "archived";
+  if (st === "sold") return "sold";
+  if (st === "expired") return "expired";
+  if (st === "paused" || st === "flagged") return "paused";
+  if (st === "pending") return "pending";
+
   // Try canonical status mapping first
   if (isValidLifecycleStatus(st)) {
     const canonical = st as ListingLifecycleStatus;
@@ -51,15 +55,12 @@ export function resolveListingUiStatus(row: RowLike): ListingUiStatus {
         return "archived";
     }
   }
-  
+
+  if (row.is_published === false) return "draft";
+
   // Legacy fallback mapping
-  if (st === "sold") return "sold";
-  if (st === "expired") return "expired";
-  if (st === "paused") return "paused";
-  if (st === "pending" || st === "flagged") return "pending";
-  if (st === "unpublished" || st === "removed" || st === "archived") return "archived";
   if (st === "active") return "active";
-  
+
   return "unknown";
 }
 

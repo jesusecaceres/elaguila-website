@@ -76,8 +76,9 @@ export function LeonixRealEstateListingManageCard({
   dateText,
   viewsTotal,
   messagesTotal,
-  onUnpublish,
-  onDelete,
+  onPause,
+  onResume,
+  onArchive,
   republishPrimaryLabel = null,
   onRepublish,
   republishBusy = false,
@@ -89,8 +90,9 @@ export function LeonixRealEstateListingManageCard({
   dateText: string;
   viewsTotal: number;
   messagesTotal: number;
-  onUnpublish: () => void;
-  onDelete: () => void;
+  onPause: () => void;
+  onResume: () => void;
+  onArchive: () => void;
   /** Move to top / Republish — null hides republish CTA (ineligible or unknown). */
   republishPrimaryLabel?: string | null;
   onRepublish?: () => void;
@@ -123,7 +125,8 @@ export function LeonixRealEstateListingManageCard({
   const republishWindowActive = isListingRepublishWindowActive(row.republished_at);
   const promoted = leonixPromotedFromDetailPairs(row.detail_pairs);
   const st = String(row.status ?? "active").toLowerCase();
-  const isUnpublished = st === "unpublished" || row.is_published === false;
+  const canPause = st === "active" && row.is_published !== false;
+  const canResume = st === "paused" || st === "unpublished";
 
   const publicViewHref =
     (row.category ?? "").toLowerCase() === "rentas"
@@ -147,13 +150,17 @@ export function LeonixRealEstateListingManageCard({
             {lx.categoriaPropiedad ? (
               <span className="text-[11px] font-medium uppercase tracking-wide text-[#7A7164]">{lx.categoriaPropiedad}</span>
             ) : null}
-            {isUnpublished ? (
-              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-950">
-                {lang === "es" ? "Despublicado / borrador" : "Unpublished"}
-              </span>
-            ) : st === "active" ? (
+            {canPause ? (
               <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-900">
                 {lang === "es" ? "Activo" : "Active"}
+              </span>
+            ) : canResume ? (
+              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-950">
+                {lang === "es" ? "Pausado / no público" : "Paused / hidden"}
+              </span>
+            ) : st === "removed" ? (
+              <span className="rounded-full bg-[#E8DFD0] px-2.5 py-0.5 text-[11px] font-bold text-[#5C5346]">
+                {lang === "es" ? "Archivado" : "Archived"}
               </span>
             ) : (
               <span className="rounded-full bg-[#E8DFD0] px-2.5 py-0.5 text-[11px] font-bold text-[#5C5346]">{st}</span>
@@ -240,19 +247,42 @@ export function LeonixRealEstateListingManageCard({
           </Link>
           <button
             type="button"
-            disabled={busy || isUnpublished}
-            onClick={onUnpublish}
+            disabled={busy || !canPause}
+            onClick={onPause}
+            title={
+              lang === "es"
+                ? "Pausar: oculta el anuncio del público. No es archivar ni republicar."
+                : "Pause: hides the listing from the public. Not archive or republish."
+            }
             className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-950 disabled:opacity-50"
           >
-            {lang === "es" ? "Despublicar" : "Unpublish"}
+            {lang === "es" ? "Pausar anuncio" : "Pause ad"}
           </button>
           <button
             type="button"
-            disabled={busy}
-            onClick={onDelete}
-            className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-900 disabled:opacity-50"
+            disabled={busy || !canResume}
+            onClick={onResume}
+            title={
+              lang === "es"
+                ? "Restaurar / Reactivar: vuelve a publicar tras una pausa. No es Republicar ni Subir al inicio."
+                : "Restore: publish again after a pause. Not the same as Republish or Move to top."
+            }
+            className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-950 disabled:opacity-50"
           >
-            {lang === "es" ? "Eliminar" : "Delete"}
+            {lang === "es" ? "Restaurar" : "Restore"}
+          </button>
+          <button
+            type="button"
+            disabled={busy || st === "removed"}
+            onClick={onArchive}
+            title={
+              lang === "es"
+                ? "Archivar: retira el anuncio del flujo activo (no borra datos ni el ID Leonix)."
+                : "Archive: removes the listing from active flow (does not delete data or Leonix Ad ID)."
+            }
+            className="rounded-xl border border-stone-300 bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-900 disabled:opacity-50"
+          >
+            {lang === "es" ? "Archivar anuncio" : "Archive ad"}
           </button>
         </div>
       </div>

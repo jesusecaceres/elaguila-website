@@ -67,7 +67,8 @@ export function EnVentaListingManageCard({
   busy,
   onMarkSold,
   onMarkActive,
-  onDelete,
+  onPause,
+  onResume,
   canEdit,
   editHref,
   listingPlan,
@@ -97,7 +98,8 @@ export function EnVentaListingManageCard({
   busy: boolean;
   onMarkSold: () => void;
   onMarkActive: () => void;
-  onDelete: () => void;
+  onPause: () => void;
+  onResume: () => void;
   canEdit: boolean;
   editHref: string;
   listingPlan: ListingPlan;
@@ -133,6 +135,9 @@ export function EnVentaListingManageCard({
 }) {
   const isPro = listingPlan === "pro";
   const isSold = (row.status || "active").toLowerCase() === "sold";
+  const rowSt = String(row.status || "active").toLowerCase();
+  const canOwnerPause = !isSold && rowSt === "active" && row.is_published !== false;
+  const canOwnerResume = rowSt === "paused" || rowSt === "unpublished";
   const resolvedUi: ListingUiStatus | null =
     uiStatus ??
     (showDraftBadge
@@ -148,7 +153,8 @@ export function EnVentaListingManageCard({
           editLocked: "Editar (ventana corta)",
           sold: "Finalizar / vendido",
           active: "Reactivar",
-          delete: "Eliminar",
+          pauseAd: "Pausar anuncio",
+          resumeAd: "Restaurar",
           upgradeTitle: "Mejorar este anuncio a Pro",
           upgradeBullets: ["Más fotos y video", "Mayor visibilidad", "Analíticas e insights"],
           pro: "PRO",
@@ -190,7 +196,8 @@ export function EnVentaListingManageCard({
           editLocked: "Edit (short window)",
           sold: "Mark sold",
           active: "Reactivate",
-          delete: "Delete",
+          pauseAd: "Pause ad",
+          resumeAd: "Restore",
           upgradeTitle: "Upgrade this listing to Pro",
           upgradeBullets: ["More photos & video", "More visibility", "Analytics & insights"],
           pro: "PRO",
@@ -456,6 +463,26 @@ export function EnVentaListingManageCard({
                 {L.sold}
               </button>
             )}
+            {canOwnerPause ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={onPause}
+                className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-950 disabled:opacity-50"
+              >
+                {L.pauseAd}
+              </button>
+            ) : null}
+            {canOwnerResume ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={onResume}
+                className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-950 disabled:opacity-50"
+              >
+                {L.resumeAd}
+              </button>
+            ) : null}
             {onArchive ? (
               <button
                 type="button"
@@ -476,14 +503,6 @@ export function EnVentaListingManageCard({
                 {L.dup}
               </button>
             ) : null}
-            <button
-              type="button"
-              disabled={busy}
-              onClick={onDelete}
-              className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-900 disabled:opacity-50"
-            >
-              {L.delete}
-            </button>
           </div>
         </div>
       </div>

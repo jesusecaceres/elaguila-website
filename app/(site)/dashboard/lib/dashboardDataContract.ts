@@ -5,6 +5,7 @@
  * - `profiles`: display_name, email, phone, home_city, membership_tier, account_type,
  *   owned_city_slug, newsletter_opt_in, is_disabled, created_at (see admin ADMIN_PROFILE_LIST_SELECT).
  * - `listings`: core clasificados rows per owner_id; optional columns tier-loaded in ownerListingsQuery.
+ *   Owner dashboard (Gate 2): **Pausar** = `status=paused` + `is_published=false`; **Archivar** = soft archive aligned with Admin (`status=removed`, `is_published=false`) — no owner `DELETE` on ads. **Restaurar** (owner) resumes from pause; Admin **Restaurar** on row actions = `unsuspend` (not Republish / Move to top).
  * - `listing_analytics` (optional in live Supabase): event_type ∈ listing_view | listing_save | listing_share | message_sent | profile_view | listing_open — dashboard shows zeros + one degraded notice when missing
  * - `messages`: sender_id, receiver_id, listing_id, message, created_at; optional read_at (migration) for unread
  * - `saved_listings`: per-user saved listing keys for Guardados (canonical runtime). Older duplicate engagement table exists only in historical migrations — not referenced by `app/` code; optional backfill notes live in `docs/dashboard-analytics-smoke-test.md`.

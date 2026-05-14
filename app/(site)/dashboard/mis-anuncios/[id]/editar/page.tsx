@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
 import Navbar from "../../../../../components/Navbar";
-import { deleteMuxAssetsForListingRecordClient } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { createSupabaseBrowserClient } from "../../../../../lib/supabase/browser";
+import {
+  OWNER_LISTING_SOFT_ARCHIVE_PATCH,
+} from "../../../lib/ownerListingsLifecycleClient";
 
 type Lang = "es" | "en";
 
@@ -79,9 +81,9 @@ export default function EditListingPage() {
         view: "Ver anuncio",
         markSold: "Marcar como vendido",
         markActive: "Marcar como activo",
-        delete: "Eliminar",
-        deleting: "Eliminando…",
-        confirmDelete: "¿Eliminar este anuncio? Esta acción no se puede deshacer.",
+        archive: "Archivar anuncio",
+        archiving: "Archivando…",
+        confirmArchive: "¿Archivar este anuncio? Dejará de mostrarse al público; puedes verlo en Mis anuncios.",
         errorTitle: "Ocurrió un error",
       },
       en: {
@@ -107,9 +109,9 @@ export default function EditListingPage() {
         view: "View listing",
         markSold: "Mark sold",
         markActive: "Mark active",
-        delete: "Delete",
-        deleting: "Deleting…",
-        confirmDelete: "Delete this listing? This can’t be undone.",
+        archive: "Archive ad",
+        archiving: "Archiving…",
+        confirmArchive: "Archive this listing? It will stop showing publicly; you can still see it under My ads.",
         errorTitle: "Something went wrong",
       },
     }),
@@ -120,7 +122,7 @@ export default function EditListingPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [busyAction, setBusyAction] = useState<null | "delete" | "status" >(null);
+  const [busyAction, setBusyAction] = useState<null | "archive" | "status" >(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -344,22 +346,22 @@ async function uploadImages() {
     setBusyAction(null);
   }
 
-  async function deleteListing() {
+  async function archiveListing() {
     if (!id || !isValidUuid(id)) {
       router.replace("/dashboard/mis-anuncios");
       return;
     }
-    if (!confirm(L.confirmDelete)) return;
+    if (!confirm(L.confirmArchive)) return;
 
     const supabase = createSupabaseBrowserClient();
 
-    setBusyAction("delete");
+    setBusyAction("archive");
     setError(null);
 
-    const row = listing as { mux_asset_id?: string | null; mux_asset_id_2?: string | null } | null;
-    await deleteMuxAssetsForListingRecordClient([row?.mux_asset_id, row?.mux_asset_id_2]);
+    const now = new Date().toISOString();
+    const patch = { ...OWNER_LISTING_SOFT_ARCHIVE_PATCH, updated_at: now };
 
-    const { error: dErr } = await supabase.from("listings").delete().eq("id", id);
+    const { error: dErr } = await supabase.from("listings").update(patch).eq("id", id);
 
     if (dErr) {
       setError(dErr.message);
@@ -544,11 +546,11 @@ async function uploadImages() {
                   )}
 
                   <button
-                    onClick={deleteListing}
+                    onClick={archiveListing}
                     disabled={busyAction !== null}
-                    className="inline-flex items-center rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/15 transition disabled:opacity-50"
+                    className="inline-flex items-center rounded-full border border-stone-400/50 bg-stone-500/15 px-4 py-2 text-sm font-semibold text-stone-100 hover:bg-stone-500/25 transition disabled:opacity-50"
                   >
-                    {busyAction === "delete" ? L.deleting : L.delete}
+                    {busyAction === "archive" ? L.archiving : L.archive}
                   </button>
                 </div>
 

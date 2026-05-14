@@ -41,7 +41,7 @@ export function AutosClassifiedListingManageCard({
   priceText,
   dateText,
   busy,
-  onDelete,
+  onArchive,
   analytics,
   maxViews,
   thumbUrl,
@@ -60,7 +60,7 @@ export function AutosClassifiedListingManageCard({
   priceText: string;
   dateText: string;
   busy: boolean;
-  onDelete: () => void;
+  onArchive: () => void;
   analytics: AutosClassifiedManageAnalytics;
   maxViews: number;
   thumbUrl: string | null;
@@ -75,7 +75,7 @@ export function AutosClassifiedListingManageCard({
           active: "Activo",
           sold: "Vendido",
           view: "Ver anuncio",
-          delete: "Eliminar",
+          archive: "Archivar anuncio",
           views: "Vistas",
           uniq: "Únicas",
           msg: "Contactos",
@@ -96,7 +96,7 @@ export function AutosClassifiedListingManageCard({
           active: "Active",
           sold: "Sold",
           view: "View listing",
-          delete: "Delete",
+          archive: "Archive ad",
           views: "Views",
           uniq: "Unique",
           msg: "Contacts",
@@ -213,10 +213,10 @@ export function AutosClassifiedListingManageCard({
             <button
               type="button"
               disabled={busy}
-              onClick={onDelete}
-              className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-900 disabled:opacity-50"
+              onClick={onArchive}
+              className="rounded-xl border border-stone-300 bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-900 disabled:opacity-50"
             >
-              {L.delete}
+              {L.archive}
             </button>
           </div>
         </div>

@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { OWNER_LISTING_SOFT_ARCHIVE_PATCH } from "../lib/ownerListingsLifecycleClient";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { DashboardAutosPaidDraftsBand } from "../components/DashboardAutosPaidDraftsBand";
 import { resolveListingUiStatus, listingUiStatusLabel, listingUiStatusChipClass, shortListingRef } from "../lib/listingDisplayStatus";
@@ -66,7 +67,7 @@ export default function DraftsPage() {
             open: "Abrir espacio",
             edit: "Seguir editando",
             copyId: "Copiar ID",
-            del: "Eliminar",
+            del: "Archivar",
             pub: "Publicar",
             error: "No pudimos cargar los borradores.",
           }
@@ -83,7 +84,7 @@ export default function DraftsPage() {
             open: "Open workspace",
             edit: "Continue editing",
             copyId: "Copy ID",
-            del: "Delete",
+            del: "Archive",
             pub: "Publish",
             error: "We couldn’t load drafts.",
           },
@@ -168,12 +169,14 @@ export default function DraftsPage() {
     setBusy(null);
   }
 
-  async function deleteDraft(id: string) {
-    if (!confirm(lang === "es" ? "¿Eliminar este borrador?" : "Delete this draft?")) return;
+  async function archiveDraft(id: string) {
+    if (!confirm(lang === "es" ? "¿Archivar este borrador?" : "Archive this draft?")) return;
     const sb = createSupabaseBrowserClient();
     setBusy(id);
     setErr(null);
-    const { error } = await sb.from("listings").delete().eq("id", id);
+    const now = new Date().toISOString();
+    const patch = { ...OWNER_LISTING_SOFT_ARCHIVE_PATCH, updated_at: now };
+    const { error } = await sb.from("listings").update(patch).eq("id", id);
     if (error) setErr(error.message);
     else setRows((prev) => prev.filter((x) => x.id !== id));
     setBusy(null);
@@ -288,8 +291,8 @@ export default function DraftsPage() {
                         <button
                           type="button"
                           disabled={b}
-                          onClick={() => void deleteDraft(row.id)}
-                          className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-900 disabled:opacity-50"
+                          onClick={() => void archiveDraft(row.id)}
+                          className="rounded-xl border border-stone-300 bg-stone-100 px-3 py-2 text-xs font-semibold text-stone-900 disabled:opacity-50"
                         >
                           {t.del}
                         </button>

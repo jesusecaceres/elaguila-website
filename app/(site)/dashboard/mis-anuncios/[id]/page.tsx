@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-import { deleteMuxAssetsForListingRecordClient } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import {
+  OWNER_LISTING_PAUSE_PATCH,
+  OWNER_LISTING_SOFT_ARCHIVE_PATCH,
+  ownerListingResumeFromPausePatch,
+} from "../../lib/ownerListingsLifecycleClient";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
@@ -157,8 +161,9 @@ export default function ListingWorkspacePage() {
             renew: "Republicar en Mis anuncios",
             markSold: "Marcar vendido",
             reactivate: "Reactivar",
-            archive: "Archivar (despublicar)",
-            delete: "Eliminar",
+            pauseAd: "Pausar anuncio",
+            resumeAd: "Restaurar",
+            archive: "Archivar anuncio",
             modNote: "Notas de moderación",
             modPlaceholder: "Sin notas visibles todavía.",
             loadingWorkspace: "Cargando espacio de trabajo…",
@@ -209,8 +214,9 @@ export default function ListingWorkspacePage() {
             renew: "Republish from My ads",
             markSold: "Mark sold",
             reactivate: "Reactivate",
-            archive: "Archive (unpublish)",
-            delete: "Delete",
+            pauseAd: "Pause ad",
+            resumeAd: "Restore",
+            archive: "Archive ad",
             modNote: "Moderation notes",
             modPlaceholder: "No notes visible yet.",
             loadingWorkspace: "Loading workspace…",
@@ -392,30 +398,45 @@ export default function ListingWorkspacePage() {
     if (!row) return;
     const sb = createSupabaseBrowserClient();
     setBusy(true);
-    const { error } = await sb.from("listings").update({ status }).eq("id", row.id);
-    if (!error) setRow((r) => (r ? { ...r, status } : r));
+    const patch: Record<string, unknown> = { status };
+    if (status === "active") patch.is_published = true;
+    const { error } = await sb.from("listings").update(patch).eq("id", row.id);
+    if (!error) setRow((r) => (r ? { ...r, status, ...(status === "active" ? { is_published: true } : {}) } : r));
     setBusy(false);
   }
 
   async function archiveListing() {
     if (!row) return;
+    if (!confirm(lang === "es" ? "¿Archivar este anuncio? Dejará de mostrarse al público." : "Archive this listing? It will stop showing publicly.")) return;
     const sb = createSupabaseBrowserClient();
     setBusy(true);
-    const { error } = await sb.from("listings").update({ status: "unpublished", is_published: false }).eq("id", row.id);
-    if (!error) setRow((r) => (r ? { ...r, status: "unpublished", is_published: false } : r));
+    const now = new Date().toISOString();
+    const patch = { ...OWNER_LISTING_SOFT_ARCHIVE_PATCH, updated_at: now };
+    const { error } = await sb.from("listings").update(patch).eq("id", row.id);
+    if (!error) setRow((r) => (r ? { ...r, status: "removed", is_published: false, updated_at: now } : r));
     setBusy(false);
   }
 
-  async function deleteListing() {
+  async function pauseListing() {
     if (!row) return;
-    if (!confirm(lang === "es" ? "¿Eliminar permanentemente?" : "Delete permanently?")) return;
     const sb = createSupabaseBrowserClient();
     setBusy(true);
-    const { data: muxRow } = await sb.from("listings").select("mux_asset_id, mux_asset_id_2").eq("id", row.id).maybeSingle();
-    await deleteMuxAssetsForListingRecordClient([muxRow?.mux_asset_id, muxRow?.mux_asset_id_2]);
-    const { error } = await sb.from("listings").delete().eq("id", row.id);
+    const now = new Date().toISOString();
+    const patch = { ...OWNER_LISTING_PAUSE_PATCH, updated_at: now };
+    const { error } = await sb.from("listings").update(patch).eq("id", row.id);
+    if (!error) setRow((r) => (r ? { ...r, status: "paused", is_published: false, updated_at: now } : r));
     setBusy(false);
-    if (!error) router.replace(`/dashboard/mis-anuncios?${q}`);
+  }
+
+  async function resumeListing() {
+    if (!row) return;
+    const sb = createSupabaseBrowserClient();
+    setBusy(true);
+    const now = new Date().toISOString();
+    const patch = { ...ownerListingResumeFromPausePatch(), updated_at: now };
+    const { error } = await sb.from("listings").update(patch).eq("id", row.id);
+    if (!error) setRow((r) => (r ? { ...r, status: "active", is_published: true, updated_at: now } : r));
+    setBusy(false);
   }
 
   const tabBtn = (k: Tab, label: string) => (
@@ -764,20 +785,32 @@ export default function ListingWorkspacePage() {
                 </button>
                 <button
                   type="button"
-                  disabled={busy}
+                  disabled={busy || String(row?.status ?? "").toLowerCase() === "removed"}
                   onClick={() => void archiveListing()}
                   className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-sm font-semibold disabled:opacity-50"
                 >
                   {t.archive}
                 </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void deleteListing()}
-                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-900 disabled:opacity-50"
-                >
-                  {t.delete}
-                </button>
+                {String(row?.status ?? "").toLowerCase() === "active" && row.is_published !== false ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void pauseListing()}
+                    className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-950 disabled:opacity-50"
+                  >
+                    {t.pauseAd}
+                  </button>
+                ) : null}
+                {String(row?.status ?? "").toLowerCase() === "paused" || String(row?.status ?? "").toLowerCase() === "unpublished" ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void resumeListing()}
+                    className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-950 disabled:opacity-50"
+                  >
+                    {t.resumeAd}
+                  </button>
+                ) : null}
               </div>
             </div>
           ) : null}

@@ -140,9 +140,10 @@ export function ClassifiedAdminRowActions({
             type="button"
             disabled={busy}
             onClick={() => void run("unsuspend")}
+            title="Restaurar / Reactivar: quita la suspensión de staff. No es Republicar ni Subir al inicio. / Restore (unsuspend). Not Republish or Move to top."
             className="rounded-lg border border-emerald-300/90 bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-900 disabled:opacity-50"
           >
-            Republicar
+            Restaurar
           </button>
         )}
         {promoted ? (

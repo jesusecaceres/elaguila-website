@@ -183,6 +183,16 @@ ON CONFLICT (user_id, listing_id) DO NOTHING;
 
 Future **save-count** style analytics should aggregate from **`saved_listings`**, not `user_saved_listings`.
 
+## User dashboard — Admin Republish contract (audit)
+
+### Gate 2 — Owner vs Admin lifecycle (owner `listings` rows)
+
+- Owner **Pausar anuncio** / **Pause ad**: `status = paused`, `is_published = false` (temporary hide; Leonix Ad ID unchanged).
+- Owner **Archivar anuncio** / **Archive ad**: soft archive aligned with Admin staff archive on `listings` — `status = removed`, `is_published = false` — **no** owner `DELETE` on listing rows from Mis anuncios / detail / editar / borradores.
+- Owner **Restaurar** (from pause): `status = active`, `is_published = true` — **not** the same as **Republicar** / **Move to top** (those use `republishActionLabel` + republish columns when eligible).
+- **Admin row actions** (`ClassifiedAdminRowActions`): **Restaurar** on a non-live row triggers **`unsuspend`** only; **Republicar** / **Move to top** is the separate republish button from `republishActionLabel`. **Destacar** = promote; **Verificar Leonix** = verify; **Suspender** / **Archivar** remain distinct.
+- **Promote/Featured** and **Verify Leonix** stay separate from republish; analytics stay **degraded/honest** until `listing_analytics` exists; **Clases / Comunidad** stay not client-ready.
+
 - **Republish capability:** Eligibility and primary CTA labels mirror `app/admin/_lib/classifiedsRepublishCapability.ts` via `app/(site)/dashboard/lib/dashboardRepublishUi.ts` — **Move to top** when the row is public/live, **Republish** when eligible but not live; **no runtime `boost_expires`**.
 - **En Venta Pro:** Cooldown / visibility window still uses `detail_pairs` (`Leonix:visibility_last_renewed_at`) + `republished_at`; unpublished/suspended Pro rows also get `is_published` / `status` on republish (aligned with Admin `listings` PATCH).
 - **Rentas / Bienes raíces (`listings`):** Same republish fields + live vs not-live behavior as Admin generic listings republish when columns exist.

@@ -5,7 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-import { deleteMuxAssetsForListingRecordClient } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import {
+  OWNER_LISTING_PAUSE_PATCH,
+  OWNER_LISTING_SOFT_ARCHIVE_PATCH,
+  ownerListingResumeFromPausePatch,
+} from "../lib/ownerListingsLifecycleClient";
 import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
 import { AutosClassifiedListingManageCard } from "@/app/clasificados/autos/dashboard/AutosClassifiedListingManageCard";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
@@ -42,6 +46,8 @@ import {
 } from "@/app/lib/listingPlans/categoryAdPlans";
 import { listingPlanFromDetailPairs, leonixPromotedFromDetailPairs } from "../lib/dashboardListingMeta";
 import {
+  listingUiStatusChipClass,
+  listingUiStatusLabel,
   resolveListingUiStatus,
   shortListingRef,
   type ListingUiStatus,
@@ -193,7 +199,7 @@ function passesTab(row: ListingRow, tab: Tab): boolean {
   if (tab === "all") return true;
   if (tab === "active") return st === "active" && !isDraft;
   if (tab === "expired") return st === "sold" || st === "expired";
-  if (tab === "moderation") return st === "pending" || st === "flagged";
+  if (tab === "moderation") return st === "pending" || st === "flagged" || st === "paused";
   return true;
 }
 
@@ -494,15 +500,13 @@ export default function MyListingsPage() {
     };
   }, [router, pathname, lang]);
 
-  async function markUnpublish(id: string) {
+  async function markPauseListing(id: string) {
     const supabase = createSupabaseBrowserClient();
     setBusyId(id);
     setError(null);
-
-    const { error: uErr } = await supabase
-      .from("listings")
-      .update({ status: "unpublished", is_published: false })
-      .eq("id", id);
+    const now = new Date().toISOString();
+    const patch = { ...OWNER_LISTING_PAUSE_PATCH, updated_at: now };
+    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", id);
 
     if (uErr) {
       setError(uErr.message);
@@ -510,7 +514,29 @@ export default function MyListingsPage() {
       return;
     }
 
-    setListings((prev) => prev.map((x) => (x.id === id ? { ...x, status: "unpublished", is_published: false } : x)));
+    setListings((prev) =>
+      prev.map((x) => (x.id === id ? { ...x, status: "paused", is_published: false, updated_at: now } : x)),
+    );
+    setBusyId(null);
+  }
+
+  async function markResumeListing(id: string) {
+    const supabase = createSupabaseBrowserClient();
+    setBusyId(id);
+    setError(null);
+    const now = new Date().toISOString();
+    const patch = { ...ownerListingResumeFromPausePatch(), updated_at: now };
+    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", id);
+
+    if (uErr) {
+      setError(uErr.message);
+      setBusyId(null);
+      return;
+    }
+
+    setListings((prev) =>
+      prev.map((x) => (x.id === id ? { ...x, status: "active", is_published: true, updated_at: now } : x)),
+    );
     setBusyId(null);
   }
 
@@ -519,7 +545,10 @@ export default function MyListingsPage() {
     setBusyId(id);
     setError(null);
 
-    const { error: uErr } = await supabase.from("listings").update({ status }).eq("id", id);
+    const patch: Record<string, unknown> = { status };
+    if (status === "active") patch.is_published = true;
+
+    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", id);
 
     if (uErr) {
       setError(uErr.message);
@@ -527,7 +556,9 @@ export default function MyListingsPage() {
       return;
     }
 
-    setListings((prev) => prev.map((x) => (x.id === id ? { ...x, status } : x)));
+    setListings((prev) =>
+      prev.map((x) => (x.id === id ? { ...x, status, ...(status === "active" ? { is_published: true } : {}) } : x)),
+    );
     setBusyId(null);
   }
 
@@ -641,29 +672,27 @@ export default function MyListingsPage() {
     setBusyId(null);
   }
 
-  async function deleteListing(id: string) {
-    if (!confirm(lang === "es" ? "¿Eliminar este anuncio?" : "Delete this listing?")) return;
+  /** Soft archive (Admin-aligned): row stays in DB; Leonix Ad ID and history preserved. */
+  async function softArchiveListing(id: string) {
+    if (!confirm(lang === "es" ? "¿Archivar este anuncio? Dejará de mostrarse al público." : "Archive this listing? It will stop showing publicly.")) return;
 
     const supabase = createSupabaseBrowserClient();
     setBusyId(id);
     setError(null);
+    const now = new Date().toISOString();
+    const patch = { ...OWNER_LISTING_SOFT_ARCHIVE_PATCH, updated_at: now };
 
-    const { data: muxRow } = await supabase
-      .from("listings")
-      .select("mux_asset_id, mux_asset_id_2")
-      .eq("id", id)
-      .maybeSingle();
-    await deleteMuxAssetsForListingRecordClient([muxRow?.mux_asset_id, muxRow?.mux_asset_id_2]);
+    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", id);
 
-    const { error: dErr } = await supabase.from("listings").delete().eq("id", id);
-
-    if (dErr) {
-      setError(dErr.message);
+    if (uErr) {
+      setError(uErr.message);
       setBusyId(null);
       return;
     }
 
-    setListings((prev) => prev.filter((x) => x.id !== id));
+    setListings((prev) =>
+      prev.map((x) => (x.id === id ? { ...x, status: "removed", is_published: false, updated_at: now } : x)),
+    );
     setBusyId(null);
   }
 
@@ -1450,7 +1479,7 @@ export default function MyListingsPage() {
                       priceText={priceText}
                       dateText={dateText}
                       busy={busy}
-                      onDelete={() => deleteListing(x.id)}
+                      onArchive={() => void softArchiveListing(x.id)}
                       thumbUrl={thumbUrl}
                       analytics={{
                         views: stats?.views ?? 0,
@@ -1489,8 +1518,9 @@ export default function MyListingsPage() {
                       dateText={dateText}
                       viewsTotal={viewsTotal}
                       messagesTotal={stats?.messages ?? 0}
-                      onUnpublish={() => void markUnpublish(x.id)}
-                      onDelete={() => deleteListing(x.id)}
+                      onPause={() => void markPauseListing(x.id)}
+                      onResume={() => void markResumeListing(x.id)}
+                      onArchive={() => void softArchiveListing(x.id)}
                       republishPrimaryLabel={repLabel}
                       onRepublish={repLabel ? () => void renewListingsTableRepublish(x) : undefined}
                       republishBusy={busy}
@@ -1533,7 +1563,8 @@ export default function MyListingsPage() {
                       busy={busy}
                       onMarkSold={() => markStatus(x.id, "sold")}
                       onMarkActive={() => markStatus(x.id, "active")}
-                      onDelete={() => deleteListing(x.id)}
+                      onPause={() => void markPauseListing(x.id)}
+                      onResume={() => void markResumeListing(x.id)}
                       canEdit={canEdit}
                       editHref={`/dashboard/mis-anuncios/${x.id}/editar?${q}`}
                       listingPlan={listingPlan}
@@ -1567,7 +1598,7 @@ export default function MyListingsPage() {
                       workspaceHref={`/dashboard/mis-anuncios/${x.id}?${q}`}
                       messagesHref={`/dashboard/mensajes?${q}`}
                       analyticsHref={`/dashboard/mis-anuncios/${x.id}?${q}`}
-                      onArchive={() => void markUnpublish(x.id)}
+                      onArchive={() => void softArchiveListing(x.id)}
                       onDuplicate={() => {
                         void navigator.clipboard.writeText(x.id);
                       }}
@@ -1598,8 +1629,7 @@ export default function MyListingsPage() {
                         ? "Comunidad"
                         : "Community"
                       : null;
-                const isDraftRow = x.is_published === false || normalizeStatus(x.status) === "draft";
-
+                const uiStGeneric = normalizeUiStatus(resolveListingUiStatus(x), x);
                 return (
                   <div
                     key={x.id}
@@ -1615,25 +1645,9 @@ export default function MyListingsPage() {
                             </span>
                           ) : null}
                           <span
-                            className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                              isDraftRow
-                                ? "bg-amber-100 text-amber-950"
-                                : isSold
-                                  ? "bg-[#E8DFD0] text-[#5C5346]"
-                                  : "bg-emerald-100 text-emerald-900"
-                            }`}
+                            className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${listingUiStatusChipClass(uiStGeneric)}`}
                           >
-                            {isDraftRow
-                              ? lang === "es"
-                                ? "Borrador"
-                                : "Draft"
-                              : isSold
-                                ? lang === "es"
-                                  ? "Vendido"
-                                  : "Sold"
-                                : lang === "es"
-                                  ? "Activo"
-                                  : "Active"}
+                            {listingUiStatusLabel(uiStGeneric, lang)}
                           </span>
                           <span className="text-sm font-semibold text-[#1E1810]">{priceText}</span>
                         </div>
@@ -1681,10 +1695,10 @@ export default function MyListingsPage() {
                         <button
                           type="button"
                           disabled={busy}
-                          onClick={() => deleteListing(x.id)}
-                          className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-900 disabled:opacity-50"
+                          onClick={() => softArchiveListing(x.id)}
+                          className="rounded-xl border border-stone-300 bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-900 disabled:opacity-50"
                         >
-                          {lang === "es" ? "Eliminar" : "Delete"}
+                          {lang === "es" ? "Archivar anuncio" : "Archive ad"}
                         </button>
                       </div>
                     </div>
