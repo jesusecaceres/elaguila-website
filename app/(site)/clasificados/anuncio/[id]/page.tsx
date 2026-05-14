@@ -14,7 +14,7 @@ import { isProListing } from "../../components/planHelpers";
 import { isVerifiedSeller } from "../../components/verifiedSeller";
 import ContactActions from "../../components/ContactActions";
 import { CommunityQuickAnuncioDetail } from "../../community/CommunityQuickAnuncioDetail";
-import { COMMUNITY_ANUNCIO_HERO_FRAME } from "../../community/shared/communityAnuncioHeroClasses";
+import { COMMUNITY_ANUNCIO_HERO_FRAME } from "@/app/(site)/clasificados/community/shared/communityAnuncioHeroClasses";
 import {
   clasesModeLabel,
   comunidadEventCostLabel,
@@ -2047,7 +2047,6 @@ export default function AnuncioDetallePage() {
                 )}
                 <ContactActions
                   lang={lang}
-                  tone={isCommunityCategory ? "warmCream" : "default"}
                   phone={
                     communityQuickContactExtras?.phoneDigits?.length === 10
                       ? `+1${communityQuickContactExtras.phoneDigits}`
