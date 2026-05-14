@@ -8,6 +8,7 @@ import { RecentServicesSection } from "./RecentServicesSection";
 import { ServiceCategoriesGrid } from "./ServiceCategoriesGrid";
 import { ServiciosLandingBrowseRow } from "./ServiciosLandingBrowseRow";
 import { ServiciosHeroSearch } from "./ServiciosHeroSearch";
+import { ServiciosLandingQuickFilterLinks } from "./ServiciosLandingQuickFilterLinks";
 import { ServiciosQuickChips } from "./ServiciosQuickChips";
 import { TrustValueStrip } from "./TrustValueStrip";
 import { SERVICIOS_LANDING_EXPLORE_CATEGORIES, SERVICIOS_LANDING_QUICK_CHIPS } from "./serviciosLandingSampleData";
@@ -70,6 +71,9 @@ export function ServiciosLandingPage({
               aria-hidden
             />
             <ServiciosQuickChips lang={lang} chips={SERVICIOS_LANDING_QUICK_CHIPS} />
+            <div className="mt-6 border-t border-[#e8e0d4]/80 pt-6">
+              <ServiciosLandingQuickFilterLinks lang={lang} />
+            </div>
           </div>
         </section>
 

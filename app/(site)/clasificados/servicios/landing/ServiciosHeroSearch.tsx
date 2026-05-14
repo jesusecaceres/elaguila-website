@@ -24,20 +24,20 @@ const copy: Record<
   }
 > = {
   es: {
-    sub: "Busca profesionales de confianza para cualquier necesidad.",
-    phService: "¿Qué servicio buscas?",
-    phLocation: "Ciudad o Código Postal",
-    search: "Buscar",
+    sub: "Busca plomería, diseño web, limpieza, mecánica y más.",
+    phService: "Tipo de servicio, negocio o palabras clave",
+    phLocation: "Ciudad o código postal",
+    search: "Buscar servicios",
     continuity:
-      "Lo que escribas aquí llega a Resultados con los mismos campos: podrás afinar giro, tipo de anunciante y contacto.",
+      "Puedes buscar por tipo de servicio, nombre del negocio o ciudad. Lo que escribas se abre en Resultados con los mismos campos.",
   },
   en: {
-    sub: "Trusted professionals for home, family, and business — clear profiles and direct contact.",
-    phService: "What service are you looking for?",
+    sub: "Search plumbing, web design, cleaning, mechanics, and more.",
+    phService: "Service type, business name, or keywords",
     phLocation: "City or ZIP",
-    search: "Search",
+    search: "Search services",
     continuity:
-      "Your keywords and area carry into Results unchanged — then you can refine trade, seller type, and contact options.",
+      "Search by service type, business name, or city. What you enter opens in Results with the same fields.",
   },
 };
 
@@ -92,11 +92,11 @@ export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
           <h1 className="mt-2 text-balance font-serif text-[clamp(1.7rem,3.8vw+0.85rem,3.75rem)] font-bold leading-[1.08] tracking-tight text-[#142a42] sm:mt-2.5">
             {lang === "en" ? (
               <>
-                Find local services <span className="text-[#C2410C]">near you</span>
+                Find trusted services <span className="text-[#C2410C]">near you</span>
               </>
             ) : (
               <>
-                Encuentra servicios locales <span className="text-[#C2410C]">cerca de ti</span>
+                Encuentra servicios confiables <span className="text-[#C2410C]">cerca de ti</span>
               </>
             )}
           </h1>

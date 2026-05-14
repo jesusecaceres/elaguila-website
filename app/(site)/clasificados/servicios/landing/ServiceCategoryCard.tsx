@@ -23,7 +23,7 @@ export function ServiceCategoryCard({
         </span>
       </div>
       <span className="mt-3.5 max-w-[9rem] text-[13px] font-bold leading-snug text-[#142a42] sm:text-[14px]">
-        {cat.labelEs}
+        {lang === "en" ? cat.labelEn : cat.labelEs}
       </span>
     </Link>
   );

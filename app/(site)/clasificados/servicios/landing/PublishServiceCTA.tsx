@@ -35,7 +35,7 @@ export function PublishServiceCTA({ lang }: { lang: "es" | "en" }) {
           </div>
           <div>
             <h2 id="servicios-publish-cta-heading" className="text-[1.35rem] font-bold leading-tight text-[#142a42] sm:text-2xl">
-              {lang === "en" ? "Do you offer a service?" : "¿Ofreces un servicio?"}
+              {lang === "en" ? "Offer a service?" : "¿Ofreces un servicio?"}
             </h2>
             <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[#4a5d6e] sm:text-[16px]">
               {lang === "en"
@@ -57,7 +57,7 @@ export function PublishServiceCTA({ lang }: { lang: "es" | "en" }) {
             href={publishHref}
             className="inline-flex min-h-[54px] w-full min-w-[240px] items-center justify-center gap-2 rounded-full bg-gradient-to-br from-[#EA580C] to-[#C2410C] px-9 text-[16px] font-bold tracking-wide text-white shadow-[0_16px_40px_-14px_rgba(194,65,12,0.55)] transition hover:brightness-[1.04] active:scale-[0.99] lg:w-auto"
           >
-            {lang === "en" ? "Publish your service" : "Publica tu Servicio"}
+            {lang === "en" ? "Publish your service" : "Publica tu servicio"}
             <span aria-hidden>→</span>
           </Link>
           <Link

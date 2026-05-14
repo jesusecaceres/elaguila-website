@@ -21,11 +21,15 @@ export function ServiciosQuickChips({
       >
         {chips.map((c) => {
           const isMore = c.id === "more";
+          const label = lang === "en" ? c.labelEn : c.labelEs;
+          const qRaw = (lang === "en" ? c.resultsQueryEn : c.resultsQueryEs).trim();
           const href = isMore
             ? `${base}?lang=${lang}`
             : c.resultsGroup
               ? `${base}?lang=${lang}&group=${encodeURIComponent(c.resultsGroup)}`
-              : `${base}?lang=${lang}`;
+              : qRaw
+                ? `${base}?lang=${lang}&q=${encodeURIComponent(qRaw)}`
+                : `${base}?lang=${lang}`;
 
           return (
             <Link
@@ -42,10 +46,10 @@ export function ServiciosQuickChips({
                   <span aria-hidden className="grid h-5 w-5 place-items-center rounded-md border border-[#1e3a5f]/22 bg-white/90 text-[11px] text-[#1e3a5f]">
                     ⧉
                   </span>
-                  {c.labelEs}
+                  {label}
                 </>
               ) : (
-                c.labelEs
+                label
               )}
             </Link>
           );
