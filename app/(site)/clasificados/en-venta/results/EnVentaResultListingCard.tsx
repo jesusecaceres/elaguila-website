@@ -221,6 +221,16 @@ export function EnVentaResultListingCard({
         ) : null}
       </div>
 
+      <div
+        className="mt-1.5 rounded-md border border-[#E8DFD0]/90 bg-[#FAF7F2]/85 px-2 py-1"
+        role="status"
+        aria-label={lang === "es" ? "Confianza Leonix" : "Leonix trust"}
+      >
+        <p className="text-[10px] font-semibold leading-snug text-[#5C5346]">
+          {lang === "es" ? "Anuncio moderado por Leonix" : "Leonix moderated listing"}
+        </p>
+      </div>
+
       {!isPro ? <p className="mt-1.5 text-xs font-medium tabular-nums text-[#7A7164]">{model.postedAgo}</p> : null}
 
       {isPro && (model.showViews || model.fulfillmentChip) ? (
