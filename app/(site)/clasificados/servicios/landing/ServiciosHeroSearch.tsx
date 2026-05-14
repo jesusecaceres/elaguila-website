@@ -25,16 +25,16 @@ const copy: Record<
 > = {
   es: {
     sub: "Busca plomería, diseño web, limpieza, mecánica y más.",
-    phService: "Tipo de servicio, negocio o palabras clave",
-    phLocation: "Ciudad o código postal",
+    phService: "¿Qué servicio necesitas?",
+    phLocation: "Ciudad o área",
     search: "Buscar servicios",
     continuity:
       "Puedes buscar por tipo de servicio, nombre del negocio o ciudad. Lo que escribas se abre en Resultados con los mismos campos.",
   },
   en: {
     sub: "Search plumbing, web design, cleaning, mechanics, and more.",
-    phService: "Service type, business name, or keywords",
-    phLocation: "City or ZIP",
+    phService: "What service do you need?",
+    phLocation: "City or area",
     search: "Search services",
     continuity:
       "Search by service type, business name, or city. What you enter opens in Results with the same fields.",

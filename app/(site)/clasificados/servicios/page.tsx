@@ -8,14 +8,14 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Servicios · Leonix Clasificados",
   description:
-    "Encuentra servicios locales cerca de ti — profesionales de confianza, vitrinas claras y contacto directo en Leonix.",
+    "Encuentra servicios confiables cerca de ti — vitrinas claras y contacto directo en Leonix.",
   alternates: {
     canonical: "/clasificados/servicios",
   },
   openGraph: {
     title: "Servicios · Leonix Clasificados",
     description:
-      "Encuentra servicios locales cerca de ti — profesionales de confianza en el Área de la Bahía.",
+      "Encuentra servicios confiables cerca de ti — vitrinas claras y contacto directo en Leonix.",
     url: "/clasificados/servicios",
     siteName: "LEONIX",
     type: "website",

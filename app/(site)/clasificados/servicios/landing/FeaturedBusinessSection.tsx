@@ -14,23 +14,31 @@ export function FeaturedBusinessSection({
 
   return (
     <section className="relative" aria-labelledby="servicios-destacados-heading">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4 md:mb-10">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between md:mb-10">
         <div className="min-w-0 max-w-2xl">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#3d5a73]/85">
-            {lang === "en" ? "Spotlight" : "Destacados"}
+            {lang === "en" ? "Featured" : "Destacados"}
           </p>
           <h2
             id="servicios-destacados-heading"
             className="mt-2 text-[1.65rem] font-bold leading-tight tracking-tight text-[#142a42] sm:text-[1.85rem] md:text-[2rem]"
           >
-            {lang === "en" ? "Featured on the marketplace" : "Servicios destacados"}
+            {lang === "en" ? "Featured services" : "Destacados en servicios"}
           </h2>
           <p className="mt-3 text-[15px] leading-relaxed text-[#4a5d6e] sm:text-[16px]">
             {lang === "en"
               ? "Real published profiles with featured placement — the same listings you see in results, never sample data."
-              : "Perfiles reales con destacado activo: los mismos anuncios que en resultados, sin datos de muestra."}
+              : "Perfiles reales con destacado: los mismos anuncios que ves en resultados, sin datos de muestra."}
           </p>
         </div>
+        {rows.length > 0 ? (
+          <Link
+            href={resultsHref}
+            className="shrink-0 self-start text-[13px] font-bold text-[#3B66AD] underline-offset-4 transition hover:underline sm:self-auto sm:text-[14px]"
+          >
+            {lang === "en" ? "View all services" : "Ver todos los servicios"}
+          </Link>
+        ) : null}
       </div>
       {rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[#c9b8a4] bg-gradient-to-b from-[#FFFCF7] to-[#faf6f0] px-5 py-12 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
@@ -49,7 +57,7 @@ export function FeaturedBusinessSection({
               href={resultsHref}
               className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#3B66AD] px-5 text-sm font-bold text-white shadow-md transition hover:bg-[#2f5699]"
             >
-              {lang === "en" ? "Browse results" : "Ver resultados"}
+              {lang === "en" ? "View all services" : "Ver todos los servicios"}
             </Link>
             <Link
               href={publishHref}

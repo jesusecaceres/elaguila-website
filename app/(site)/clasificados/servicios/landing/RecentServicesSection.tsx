@@ -14,21 +14,31 @@ export function RecentServicesSection({
 
   return (
     <section className="relative" aria-labelledby="servicios-recientes-heading">
-      <div className="mb-8 md:mb-10">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#3d5a73]/85">
-          {lang === "en" ? "Fresh listings" : "Recién publicados"}
-        </p>
-        <h2
-          id="servicios-recientes-heading"
-          className="mt-2 text-[1.65rem] font-bold leading-tight tracking-tight text-[#142a42] sm:text-[1.85rem] md:text-[2rem]"
-        >
-          {lang === "en" ? "Recently added services" : "Servicios recientes"}
-        </h2>
-        <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[#4a5d6e] sm:text-[16px]">
-          {lang === "en"
-            ? "The newest public service profiles on the marketplace — live data from published listings."
-            : "Los perfiles de servicio públicos más nuevos en el marketplace: datos reales de anuncios publicados."}
-        </p>
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between md:mb-10">
+        <div className="min-w-0 max-w-2xl">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#3d5a73]/85">
+            {lang === "en" ? "New on Leonix" : "Novedades"}
+          </p>
+          <h2
+            id="servicios-recientes-heading"
+            className="mt-2 text-[1.65rem] font-bold leading-tight tracking-tight text-[#142a42] sm:text-[1.85rem] md:text-[2rem]"
+          >
+            {lang === "en" ? "Recent services" : "Servicios recientes"}
+          </h2>
+          <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[#4a5d6e] sm:text-[16px]">
+            {lang === "en"
+              ? "The newest public service profiles — live data from published listings only."
+              : "Los perfiles públicos más recientes: solo datos reales de anuncios publicados."}
+          </p>
+        </div>
+        {rows.length > 0 ? (
+          <Link
+            href={resultsHref}
+            className="shrink-0 self-start text-[13px] font-bold text-[#3B66AD] underline-offset-4 transition hover:underline sm:self-auto sm:text-[14px]"
+          >
+            {lang === "en" ? "View all services" : "Ver todos los servicios"}
+          </Link>
+        ) : null}
       </div>
       {rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[#c9b8a4] bg-gradient-to-b from-[#FFFCF7] to-[#faf6f0] px-5 py-12 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
@@ -47,7 +57,7 @@ export function RecentServicesSection({
               href={resultsHref}
               className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#3B66AD] px-5 text-sm font-bold text-white shadow-md transition hover:bg-[#2f5699]"
             >
-              {lang === "en" ? "Browse results" : "Ver resultados"}
+              {lang === "en" ? "View all services" : "Ver todos los servicios"}
             </Link>
             <Link
               href={publishHref}
