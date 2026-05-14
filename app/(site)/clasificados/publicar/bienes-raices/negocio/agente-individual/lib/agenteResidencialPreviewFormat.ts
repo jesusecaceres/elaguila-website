@@ -188,10 +188,14 @@ export function formatTipoPropiedadLine(s: AgenteIndividualResidencialFormState,
 
 export function buildLocationLine(s: AgenteIndividualResidencialFormState): string {
   const cityLine = [trim(s.ciudad), trim(s.areaCiudad)].filter(Boolean).join(" · ");
+  if (!s.mostrarDireccionExacta) return cityLine || "—";
   return [cityLine, trim(s.direccion)].filter(Boolean).join(" · ");
 }
 
 export function buildMapQuery(s: AgenteIndividualResidencialFormState): string {
+  if (!s.mostrarDireccionExacta) {
+    return [trim(s.ciudad), trim(s.areaCiudad)].filter(Boolean).join(", ");
+  }
   return [trim(s.direccion), trim(s.ciudad), trim(s.areaCiudad)].filter(Boolean).join(", ");
 }
 

@@ -97,6 +97,7 @@ export function buildRentasPrivadoTemplateVm(categoria: BrNegocioCategoriaPropie
       cityStateZip: "Ciudad, CA · plantilla",
       hasMeaningfulAddress: true,
     },
+    mostrarDireccionExacta: true,
     footerNote: `Plantilla de salida Rentas Privado · categoría: ${categoria}. Misma estructura que el listado publicado; sin persistencia ni datos reales en esta fase.`,
   };
 

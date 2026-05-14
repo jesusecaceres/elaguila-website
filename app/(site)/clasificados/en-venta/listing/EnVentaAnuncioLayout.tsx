@@ -29,7 +29,7 @@ import { BrLiveFactsStrip } from "@/app/clasificados/bienes-raices/listing/BrLiv
 import { LeonixInlineListingReport } from "@/app/clasificados/components/LeonixInlineListingReport";
 import { buildLeonixBusinessLiveDisplay, parseLeonixBusinessMetaForLive } from "@/app/clasificados/lib/leonixBusinessLiveDisplay";
 import { resolveLeonixLiveListingContact } from "@/app/clasificados/lib/leonixListingContactResolve";
-import { parseLeonixMachineFacetRead, readLeonixDetailPairValue } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { parseLeonixMachineFacetRead, readLeonixDetailPairValue, brShowExactAddressFromDetailPairs } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { RENTAS_DP_MAP_URL } from "@/app/clasificados/rentas/lib/rentasMachineDetailPairs";
 import { googleMapsSearchUrl } from "@/app/(site)/publicar/community/shared/lib/communityContactCtas";
 import { privacySafeLocation } from "@/app/clasificados/rentas/preview/shared/rentasPreviewResultCardListing";
@@ -149,21 +149,28 @@ export function EnVentaAnuncioLayout({
       findRow(/^Colonia$/i) ||
       findRow(/^Zona$/i);
     const city = String(listing.city ?? "").trim();
+    const showExact = brShowExactAddressFromDetailPairs(dps);
     const mf = parseLeonixMachineFacetRead(dps);
     const postal = String(mf.postalCode ?? "")
       .replace(/\D/g, "")
       .slice(0, 10);
     const cityStateZip = [city, postal].filter(Boolean).join(postal && city ? " · " : "");
+    const approxFallback = city;
+    const fullFallback = ubicacion || direccion || city;
     const display = privacySafeLocation({
       cityStateZip: cityStateZip || city,
       colonia: zona,
-      fallback: ubicacion || direccion || city,
+      fallback: showExact ? fullFallback : approxFallback,
     });
     const safeHttp = (u: string) => /^https:\/\//i.test(u) && !/blob:|data:/i.test(u);
     let mapsHref: string | null = null;
     if (mapPair && safeHttp(mapPair)) mapsHref = mapPair;
     else {
-      const q = (ubicacion || direccion || [zona, city].filter(Boolean).join(" · ") || city).trim();
+      const q = (
+        showExact
+          ? ubicacion || direccion || [zona, city].filter(Boolean).join(" · ") || city
+          : [zona, city].filter(Boolean).join(" · ") || city
+      ).trim();
       if (q && !/^blob:|^data:/i.test(q)) mapsHref = googleMapsSearchUrl(q);
     }
     return { display, mapsHref };

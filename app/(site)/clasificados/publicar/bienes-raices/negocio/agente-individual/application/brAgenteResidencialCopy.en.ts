@@ -66,6 +66,9 @@ export const BR_COPY_EN = {
     areaHint: "The general area where the property is located.",
     direccion: "Address",
     direccionHint: "Street and number; you may omit unit in the public ad.",
+    mostrarDireccionExacta: "Show full street address in preview and map",
+    mostrarDireccionExactaHint:
+      "Off by default: only city/area feed the public map. Turn on only if you want the street line in preview.",
     listado: "Listing link or file",
     listadoHint: "Lets buyers see more on your original listing without overfilling this ad.",
     pegarUrl: "Paste URL",

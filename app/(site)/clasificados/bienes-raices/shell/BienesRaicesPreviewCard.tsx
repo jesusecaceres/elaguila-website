@@ -41,6 +41,17 @@ const CTA_SECONDARY = "bg-white text-[#1A1A1A] border-[#E5E5E5] hover:bg-[#FFFAF
 
 const ENGAGEMENT_SECTION = "mt-6 pt-6 border-t border-[#E5E5E5]/50";
 
+const ENGAGEMENT_LABELS = {
+  es: {
+    title: "Interacción",
+    metricsNote: "Las métricas de engagement se mostrarán cuando estén disponibles",
+  },
+  en: {
+    title: "Engagement",
+    metricsNote: "Engagement metrics will appear when available.",
+  },
+} as const;
+
 function StarRow({ rating }: { rating: number }) {
   return (
     <div className="flex items-center gap-0.5" role="img" aria-label={`${rating.toFixed(1)} de 5 estrellas`}>
@@ -78,6 +89,7 @@ export function BienesRaicesPreviewCard({
   showEngagementMetrics = true,
   listingId
 }: BienesRaicesPreviewCardProps) {
+  const eg = ENGAGEMENT_LABELS[lang === "en" ? "en" : "es"];
   const hasHeroImage = data.media.heroUrl;
   const hasLocation = data.addressLine || data.operationSummary;
   const hasPrice = data.priceDisplay;
@@ -228,7 +240,7 @@ export function BienesRaicesPreviewCard({
           <div className={ENGAGEMENT_SECTION}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-[#1A1A1A] uppercase tracking-wide">
-                Interacción
+                {eg.title}
               </h3>
             </div>
             
@@ -236,16 +248,19 @@ export function BienesRaicesPreviewCard({
             <div className="flex items-center gap-3 mb-4">
               <LeonixLikeButton
                 listingId={listingId}
+                category="bienes-raices"
                 variant="small"
                 lang={lang}
               />
               <LeonixSaveButton
                 listingId={listingId}
+                category="bienes-raices"
                 variant="small"
                 lang={lang}
               />
               <LeonixShareButton
                 listingId={listingId}
+                category="bienes-raices"
                 listingTitle={data.heroTitle}
                 listingUrl={typeof window !== "undefined" ? window.location.href : ""}
                 variant="small"
@@ -255,7 +270,7 @@ export function BienesRaicesPreviewCard({
 
             {/* Note about real metrics */}
             <div className="text-xs text-[#7A7A7A] italic">
-              Las métricas de engagement se mostrarán cuando estén disponibles
+              {eg.metricsNote}
             </div>
           </div>
         )}

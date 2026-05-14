@@ -30,6 +30,11 @@ export const LEONIX_DP_HIGHLIGHT_SLUGS = "Leonix:highlight_slugs";
 export const LEONIX_DP_PROPERTY_SUBTYPE = "Leonix:property_subtype";
 /** Canonical resultados `propertyType` slug: `casa` | `departamento` | `terreno` | `comercial`. */
 export const LEONIX_DP_RESULTS_PROPERTY_KIND = "Leonix:results_property_kind";
+/**
+ * When `"true"`, public BR surfaces may show full street-level copy from human `Ubicación` / `Dirección` rows.
+ * Omitted or any other value: treat as false (city / zona / CP only for browse + map fallbacks).
+ */
+export const LEONIX_DP_BR_SHOW_EXACT_ADDRESS = "Leonix:br:show_exact_address";
 
 export const LEONIX_MACHINE_FACET_LABELS: readonly string[] = [
   LEONIX_DP_BEDROOMS_COUNT,
@@ -89,6 +94,12 @@ export function readLeonixDetailPairValue(detailPairs: unknown, label: string): 
     }
   }
   return null;
+}
+
+/** Public BR: only when this is true may cards/detail use street-level `Ubicación` / `Dirección` text. */
+export function brShowExactAddressFromDetailPairs(detailPairs: unknown): boolean {
+  const v = (readLeonixDetailPairValue(detailPairs, LEONIX_DP_BR_SHOW_EXACT_ADDRESS) ?? "").trim().toLowerCase();
+  return v === "true" || v === "1" || v === "yes";
 }
 
 function readPair(detailPairs: unknown, label: string): string | null {

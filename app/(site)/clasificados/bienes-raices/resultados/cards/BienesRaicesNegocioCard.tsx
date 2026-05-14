@@ -112,6 +112,17 @@ function listingDetailHref(id: string, lang?: Lang) {
 
 const cardShell = `group relative flex h-full flex-col overflow-hidden rounded-3xl border border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] transition hover:border-[#D4A574]/45 hover:shadow-[0_16px_56px_-18px_rgba(212,165,116,0.2)]`;
 
+const ENGAGEMENT_LABELS = {
+  es: {
+    title: "Interacción",
+    metricsNote: "Las métricas de engagement se mostrarán cuando estén disponibles",
+  },
+  en: {
+    title: "Engagement",
+    metricsNote: "Engagement metrics will appear when available.",
+  },
+} as const;
+
 export function BienesRaicesNegocioCard({
   listing,
   className,
@@ -123,6 +134,7 @@ export function BienesRaicesNegocioCard({
   sellerKindLabels?: { privado: string; negocio: string };
   lang?: Lang;
 }) {
+  const eg = ENGAGEMENT_LABELS[lang === "en" ? "en" : "es"];
   const horizontal = listing.layout === "horizontal";
   const href = listingDetailHref(listing.id, lang);
   const [fav, setFav] = useState(false);
@@ -179,7 +191,7 @@ export function BienesRaicesNegocioCard({
       <div className="mt-6 pt-6 border-t border-[#E5E5E5]/50">
         <div className="flex items-center justify-between mb-4">
           <h4 className="text-sm font-semibold text-[#1A1A1A] uppercase tracking-wide">
-            Interacción
+            {eg.title}
           </h4>
         </div>
         
@@ -187,16 +199,19 @@ export function BienesRaicesNegocioCard({
         <div className="flex items-center gap-3 mb-4">
           <LeonixLikeButton
             listingId={listing.id}
+            category="bienes-raices"
             variant="small"
             lang={lang === "en" ? "en" : "es"}
           />
           <LeonixSaveButton
             listingId={listing.id}
+            category="bienes-raices"
             variant="small"
             lang={lang === "en" ? "en" : "es"}
           />
           <LeonixShareButton
             listingId={listing.id}
+            category="bienes-raices"
             listingTitle={listing.title}
             listingUrl={typeof window !== "undefined" ? window.location.origin + href : ""}
             variant="small"
@@ -206,7 +221,7 @@ export function BienesRaicesNegocioCard({
 
         {/* Note about real metrics */}
         <div className="text-xs text-[#7A7A7A] italic">
-          Las métricas de engagement se mostrarán cuando estén disponibles
+          {eg.metricsNote}
         </div>
       </div>
     </>

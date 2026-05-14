@@ -363,7 +363,10 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
 
   const city = trim(s.ciudad);
   const line = trim(s.ubicacionLinea);
-  const addressLine = [line, city].filter(Boolean).join(line && city ? " · " : "") || "";
+  const showExact = s.mostrarDireccionExacta;
+  const addressLine = showExact
+    ? [line, city].filter(Boolean).join(line && city ? " · " : "") || ""
+    : city || "";
 
   const desc = sanitizeLeonixListingPublishDescriptionBody(trim(s.descripcion));
   const phoneDisp = trim(s.seller.telefono) ? formatUsPhoneDisplay(digitsOnly(s.seller.telefono)) : "";
@@ -376,6 +379,7 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
     platformLogoUrl: resolvePlatformLogoUrl(),
     heroTitle: trim(s.titulo),
     addressLine,
+    mostrarDireccionExacta: showExact,
     priceDisplay: formatUsdWhole(s.precio),
     listingStatusLabel: ESTADO_LABEL[s.estadoAnuncio],
     operationSummary: operationSummaryFor(cat),
@@ -411,9 +415,9 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
     },
     location: {
       mapsUrl,
-      line1: line,
+      line1: showExact ? line : "",
       cityStateZip: city,
-      hasMeaningfulAddress: Boolean(line || city || mapsUrl),
+      hasMeaningfulAddress: Boolean((showExact && line) || city || mapsUrl),
     },
     footerNote: "",
   };

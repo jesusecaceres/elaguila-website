@@ -147,7 +147,7 @@ export default function RentasPrivadoPreviewClient() {
   if (phase === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center overflow-x-hidden bg-[#F9F6F1] px-4 text-sm text-[#5C5346]">
-        Cargando vista previa…
+        {lang === "en" ? "Loading preview…" : "Cargando vista previa…"}
       </div>
     );
   }
@@ -158,19 +158,34 @@ export default function RentasPrivadoPreviewClient() {
     return (
       <LeonixPreviewPageShell editHref={editHrefRecovery}>
         <p className="mx-auto max-w-[1240px] px-4 py-3 text-center text-xs text-[#5C5346] sm:px-6 lg:px-8">
-          <span className="font-semibold text-[#2C2416]">Sin borrador en esta sesión</span>
-          <span className="mx-2 opacity-40">·</span>
-          Plantilla por categoría.{" "}
-          <Link href={RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY} className="font-semibold underline" prefetch={false}>
-            Ir a publicar — Privado
-          </Link>
+          {lang === "en" ? (
+            <>
+              <span className="font-semibold text-[#2C2416]">No draft in this session</span>
+              <span className="mx-2 opacity-40">·</span>
+              Category template.{" "}
+              <Link href={RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY} className="font-semibold underline" prefetch={false}>
+                Go to publish — Private
+              </Link>
+            </>
+          ) : (
+            <>
+              <span className="font-semibold text-[#2C2416]">Sin borrador en esta sesión</span>
+              <span className="mx-2 opacity-40">·</span>
+              Plantilla por categoría.{" "}
+              <Link href={RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY} className="font-semibold underline" prefetch={false}>
+                Ir a publicar — Privado
+              </Link>
+            </>
+          )}
         </p>
         <RentasPreviewResultCardSection
           listing={buildRentasResultCardPreviewListingFromPrivadoVm(templateVm)}
           lang={lang}
         />
         <section className="mx-auto w-full max-w-[1240px] px-4 pt-6 sm:px-6 lg:px-8">
-          <h2 className="text-lg font-semibold text-[#1A1A1A]">Vista previa completa</h2>
+          <h2 className="text-lg font-semibold text-[#1A1A1A]">
+            {lang === "en" ? "Full listing preview" : "Vista previa completa"}
+          </h2>
         </section>
         <BienesRaicesPrivadoPreviewView vm={templateVm} />
       </LeonixPreviewPageShell>
@@ -208,7 +223,9 @@ export default function RentasPrivadoPreviewClient() {
         lang={lang}
       />
       <section className="mx-auto w-full max-w-[1240px] px-4 pt-6 sm:px-6 lg:px-8">
-        <h2 className="text-lg font-semibold text-[#1A1A1A]">Vista previa completa</h2>
+        <h2 className="text-lg font-semibold text-[#1A1A1A]">
+          {lang === "en" ? "Full listing preview" : "Vista previa completa"}
+        </h2>
       </section>
       <BienesRaicesPrivadoPreviewView vm={vm} />
     </LeonixPreviewPageShell>

@@ -98,6 +98,8 @@ export type BienesRaicesNegocioFormState = {
   estado: string;
   codigoPostal: string;
   colonia: string;
+  /** When false (default), public rows omit street-level `direccion` from persisted `Dirección` / map query. */
+  mostrarDireccionExacta: boolean;
   descripcionCorta: string;
   listingStatus: BienesRaicesListingStatus;
 
@@ -448,6 +450,7 @@ export function createEmptyBienesRaicesNegocioFormState(): BienesRaicesNegocioFo
     estado: "",
     codigoPostal: "",
     colonia: "",
+    mostrarDireccionExacta: false,
     descripcionCorta: "",
     listingStatus: "en_venta",
     tipoPropiedad: "",

@@ -440,6 +440,7 @@ export function mapRentasListingToPrivadoPreviewVm(
       cityStateZip: cityZip,
       hasMeaningfulAddress: Boolean(line1 || cityZip || mapsUrl),
     },
+    mostrarDireccionExacta: false,
     footerNote: "",
   };
 }
@@ -568,6 +569,7 @@ export function mapRentasListingToNegocioPreviewVm(
     schools: { rows: [], showModule: false },
     community: { rows: [], showModule: false },
     hoaDevelopment: { rows: [], showModule: false, sitePlanCallout: false },
+    mostrarDireccionExacta: false,
     footerNote: "",
   };
 }

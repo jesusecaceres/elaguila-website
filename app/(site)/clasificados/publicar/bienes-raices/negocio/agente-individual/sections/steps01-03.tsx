@@ -372,6 +372,19 @@ export function Step02InformacionBasica({
             />
           </AiField>
         </div>
+        <div className="sm:col-span-2 flex items-start gap-3 rounded-lg border border-black/10 bg-white/80 px-3 py-2.5">
+          <input
+            id="agente-mostrar-direccion-exacta"
+            type="checkbox"
+            className="mt-1 h-4 w-4 shrink-0"
+            checked={state.mostrarDireccionExacta}
+            onChange={(ev) => setState((s) => ({ ...s, mostrarDireccionExacta: ev.target.checked }))}
+          />
+          <label htmlFor="agente-mostrar-direccion-exacta" className="text-sm leading-snug text-[#1E1810]">
+            <span className="font-semibold">{t.step02.mostrarDireccionExacta}</span>
+            <span className="mt-1 block text-xs text-[#5C5346]/90">{t.step02.mostrarDireccionExactaHint}</span>
+          </label>
+        </div>
         <div className="sm:col-span-2">
           <UrlOrFileRow
             label={t.step02.listado}

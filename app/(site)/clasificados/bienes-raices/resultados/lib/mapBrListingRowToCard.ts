@@ -7,6 +7,7 @@ import { normalizeZipInput } from "@/app/data/locations/californiaLocationHelper
 import type { BrNegocioListing } from "../cards/listingTypes";
 import { extractBrFacetsFromDetailPairs } from "./brFacetFromDetailPairs";
 import { privacySafeLocation } from "@/app/clasificados/rentas/preview/shared/rentasPreviewResultCardListing";
+import { brShowExactAddressFromDetailPairs } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 
 function imageUrlsFromJsonb(images: unknown): string[] {
   if (images == null) return [];
@@ -50,6 +51,7 @@ function firstRowValue(rows: Array<{ label: string; value: string }>, labelRes: 
 function brBrowseAddressLineFromRow(row: BrListingDbRow, facets: ReturnType<typeof extractBrFacetsFromDetailPairs>): string {
   const city = String(row.city ?? "").trim();
   const rows = pairRows(row.detail_pairs);
+  const showExact = brShowExactAddressFromDetailPairs(row.detail_pairs);
   const ubicacion = firstRowValue(rows, /^ubicaci[oó]n$/i);
   const direccion = firstRowValue(rows, /^direcci[oó]n$/i);
   const zona =
@@ -60,10 +62,13 @@ function brBrowseAddressLineFromRow(row: BrListingDbRow, facets: ReturnType<type
   const postal = facets.machine?.postalCode?.replace(/\D/g, "").slice(0, 10) ?? "";
   const cityStateZip = [city, postal].filter(Boolean).join(postal && city ? " · " : "");
 
+  const fallbackApprox = city || "—";
+  const fallbackFull = ubicacion || direccion || fallbackApprox;
+
   return privacySafeLocation({
     cityStateZip: cityStateZip || city,
     colonia: zona,
-    fallback: ubicacion || direccion || city || "—",
+    fallback: showExact ? fallbackFull : fallbackApprox,
   });
 }
 

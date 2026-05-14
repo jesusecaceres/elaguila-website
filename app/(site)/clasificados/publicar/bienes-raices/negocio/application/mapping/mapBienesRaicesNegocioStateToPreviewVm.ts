@@ -185,6 +185,11 @@ function buildAddress(s: BienesRaicesNegocioFormState): string {
   return parts.length ? parts.join(", ") : "—";
 }
 
+function buildNegocioApproxAddressLine(s: BienesRaicesNegocioFormState): string {
+  const parts = [trim(s.colonia), trim(s.ciudad), trim(s.estado), trim(s.codigoPostal)].filter(Boolean);
+  return parts.length ? parts.join(", ") : "—";
+}
+
 function publicationOperationSummary(s: BienesRaicesNegocioFormState): string {
   const pub = s.publicationType;
   const map: Record<string, string> = {
@@ -485,12 +490,15 @@ function buildLocationVm(s: BienesRaicesNegocioFormState): BienesRaicesPreviewLo
   const st = trim(s.estado);
   const zip = trim(s.codigoPostal);
   const cityPart = [city, [st, zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-  const fullAddress = buildAddress(s);
-  const mapsQuery = [line1, colonia, city, st, zip].filter(Boolean).join(", ");
+  const showExact = s.mostrarDireccionExacta;
+  const fullAddress = showExact ? buildAddress(s) : buildNegocioApproxAddressLine(s);
+  const mapsQuery = showExact
+    ? [line1, colonia, city, st, zip].filter(Boolean).join(", ")
+    : [colonia, city, st, zip].filter(Boolean).join(", ");
   const mapsUrl = mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}` : null;
-  const hasMeaningfulAddress = Boolean(line1 || colonia || (city && st) || zip);
+  const hasMeaningfulAddress = Boolean((showExact && line1) || colonia || (city && st) || zip);
   return {
-    line1,
+    line1: showExact ? line1 : "",
     colonia,
     cityStateZip: cityPart,
     fullAddress,
@@ -946,7 +954,7 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
     publicationType: s.publicationType,
     platformLogoUrl: resolvePlatformLogoUrl(),
     heroTitle: trim(s.titulo) || "Título del anuncio",
-    addressLine: buildAddress(s),
+    addressLine: s.mostrarDireccionExacta ? buildAddress(s) : buildNegocioApproxAddressLine(s),
     priceDisplay: formatPrice(s.precio),
     listingStatusLabel: LISTING_STATUS_LABEL[normalizeListingStatus(s.listingStatus)] ?? "En venta",
     operationSummary: publicationOperationSummary(s),
@@ -997,6 +1005,7 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
       showModule: showHoaDev,
       sitePlanCallout,
     },
+    mostrarDireccionExacta: s.mostrarDireccionExacta,
     footerNote: "",
   };
 }

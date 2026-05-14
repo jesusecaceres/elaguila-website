@@ -114,6 +114,11 @@ export type BienesRaicesPrivadoFormState = {
   precio: string;
   ciudad: string;
   ubicacionLinea: string;
+  /**
+   * When false (default), public listing copy uses ciudad / CP / zona only — not full `ubicacionLinea` in `detail_pairs` or browse.
+   * When true, full reference line may appear on cards/detail/map (opt-in).
+   */
+  mostrarDireccionExacta: boolean;
   enlaceMapa: string;
   descripcion: string;
   estadoAnuncio: BrPrivadoListingStatus;
@@ -161,6 +166,7 @@ export function createEmptyBienesRaicesPrivadoFormState(): BienesRaicesPrivadoFo
     precio: "",
     ciudad: "",
     ubicacionLinea: "",
+    mostrarDireccionExacta: false,
     enlaceMapa: "",
     descripcion: "",
     estadoAnuncio: "disponible",
@@ -252,6 +258,8 @@ export function mergePartialBienesRaicesPrivadoState(
     precio: typeof partial.precio === "string" ? String(partial.precio).replace(/\D/g, "") : base.precio,
     ciudad: typeof partial.ciudad === "string" ? partial.ciudad : base.ciudad,
     ubicacionLinea: typeof partial.ubicacionLinea === "string" ? partial.ubicacionLinea : base.ubicacionLinea,
+    mostrarDireccionExacta:
+      typeof partial.mostrarDireccionExacta === "boolean" ? partial.mostrarDireccionExacta : base.mostrarDireccionExacta,
     enlaceMapa: typeof partial.enlaceMapa === "string" ? partial.enlaceMapa : base.enlaceMapa,
     descripcion: typeof partial.descripcion === "string" ? partial.descripcion : base.descripcion,
     estadoAnuncio: coerceListingStatus(partial.estadoAnuncio),

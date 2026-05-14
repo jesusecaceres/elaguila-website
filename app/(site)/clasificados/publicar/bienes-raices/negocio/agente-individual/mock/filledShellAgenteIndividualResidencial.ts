@@ -33,6 +33,7 @@ export const FILLED_SHELL_AGENTE_INDIVIDUAL_RESIDENCIAL: AgenteIndividualResiden
   ciudad: "San Jose",
   areaCiudad: "East Side",
   direccion: "87 N King Rd",
+  mostrarDireccionExacta: true,
   estadoAnuncio: "disponible",
   tipoPropiedadCodigo: "casa",
   subtipoPropiedad: "Unifamiliar",

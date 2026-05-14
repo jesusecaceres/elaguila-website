@@ -67,5 +67,7 @@ export type BienesRaicesPrivadoPreviewVm = {
   contactRailTitle: string;
   contact: BienesRaicesPrivadoContactRailVm;
   location: BienesRaicesPrivadoLocationVm;
+  /** When true, full `ubicacionLinea` may appear in public `detail_pairs` / browse. */
+  mostrarDireccionExacta: boolean;
   footerNote: string;
 };

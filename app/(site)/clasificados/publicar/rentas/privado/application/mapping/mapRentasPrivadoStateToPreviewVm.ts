@@ -111,6 +111,7 @@ function toBienesRaicesPrivadoShape(s: RentasPrivadoFormState): BienesRaicesPriv
     comercial: s.comercial,
     terreno: s.terreno,
     petsAllowed: s.mascotas === "permitidas" ? "yes" : s.mascotas === "no_permitidas" ? "no" : "",
+    mostrarDireccionExacta: s.mostrarDireccionExacta !== false,
   });
 }
 
@@ -231,5 +232,6 @@ export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): Bie
       mapsUrl,
       hasMeaningfulAddress,
     },
+    mostrarDireccionExacta: exact,
   };
 }

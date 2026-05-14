@@ -25,6 +25,7 @@ import {
   LEONIX_DP_POSTAL_CODE,
   LEONIX_DP_PROPERTY_SUBTYPE,
   LEONIX_DP_RESULTS_PROPERTY_KIND,
+  LEONIX_DP_BR_SHOW_EXACT_ADDRESS,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 
 function push(out: Array<{ label: string; value: string }>, label: string, value: string | number | boolean | null | undefined) {
@@ -110,6 +111,7 @@ export function buildLeonixMachineFacetPairsFromRentasPrivadoFormState(
     precio: state.rentaMensual,
     ciudad: state.ciudad,
     ubicacionLinea: buildRentasStreetLine(state),
+    mostrarDireccionExacta: state.mostrarDireccionExacta !== false,
     enlaceMapa: "",
     descripcion: state.descripcion,
     estadoAnuncio: ((): BrPrivadoListingStatus | undefined => {
@@ -171,6 +173,7 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(
   if (zipGuess.length >= 5) push(out, LEONIX_DP_POSTAL_CODE, zipGuess);
 
   pushHighlightSlugsForPrivado(state, out);
+  if (state.mostrarDireccionExacta) push(out, LEONIX_DP_BR_SHOW_EXACT_ADDRESS, true);
   return out;
 }
 
@@ -212,5 +215,6 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesNegocioState(
   const uniqHp = [...new Set(hpSlugs)].sort();
   if (uniqHp.length) push(out, LEONIX_DP_HIGHLIGHT_SLUGS, uniqHp.join(","));
 
+  if (state.mostrarDireccionExacta) push(out, LEONIX_DP_BR_SHOW_EXACT_ADDRESS, true);
   return out;
 }

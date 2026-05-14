@@ -98,6 +98,8 @@ export type AgenteIndividualResidencialFormState = {
   ciudad: string;
   areaCiudad: string;
   direccion: string;
+  /** When false (default), preview map query and location line avoid street-level `direccion`. */
+  mostrarDireccionExacta: boolean;
   estadoAnuncio: AgenteResidencialEstadoAnuncio;
 
   tipoPropiedadCodigo: TipoPropiedadCodigo;
@@ -511,6 +513,7 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     ciudad: "",
     areaCiudad: "",
     direccion: "",
+    mostrarDireccionExacta: false,
     estadoAnuncio: "disponible",
 
     tipoPropiedadCodigo: "casa",
@@ -972,6 +975,12 @@ export function mergePartialAgenteIndividualResidencial(
     ciudad,
     mostrarMarcaEnTarjeta,
     estadoAnuncio: coerceEstado(flat.estadoAnuncio ?? nested.estadoAnuncio ?? base.estadoAnuncio),
+    mostrarDireccionExacta:
+      typeof flat.mostrarDireccionExacta === "boolean"
+        ? flat.mostrarDireccionExacta
+        : typeof nested.mostrarDireccionExacta === "boolean"
+          ? nested.mostrarDireccionExacta
+          : base.mostrarDireccionExacta,
     condicionPropiedad: coerceCondicion(flat.condicionPropiedad ?? nested.condicionPropiedad ?? base.condicionPropiedad),
     listadoUrl,
     listadoArchivoDataUrl,

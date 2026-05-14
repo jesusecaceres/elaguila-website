@@ -101,6 +101,22 @@ export function InformacionPrincipalSection({
           />
         </BrField>
         <div className="sm:col-span-2">
+          <BrField
+            label="Mostrar dirección exacta"
+            hint="Si está desactivado, en cards y mapa solo se usa ciudad/zona aproximada (no calle y número)."
+          >
+            <label className="flex min-h-[44px] items-center gap-3 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-3 py-2 text-sm text-[#1E1810]">
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                checked={Boolean(state.mostrarDireccionExacta)}
+                onChange={(e) => setState((s) => ({ ...s, mostrarDireccionExacta: e.target.checked }))}
+              />
+              <span className="min-w-0">Permitir mostrar calle y número en preview, resultados y mapa.</span>
+            </label>
+          </BrField>
+        </div>
+        <div className="sm:col-span-2">
           <BrField label="Descripción corta (opcional)" hint="Resumen rápido; la descripción larga va en su paso.">
             <input
               className={brInputClass}

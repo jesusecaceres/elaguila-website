@@ -156,5 +156,7 @@ export type BienesRaicesNegocioPreviewVm = {
   schools: { rows: BienesRaicesPreviewFact[]; showModule: boolean };
   community: { rows: BienesRaicesPreviewFact[]; showModule: boolean };
   hoaDevelopment: { rows: BienesRaicesPreviewFact[]; showModule: boolean; sitePlanCallout: boolean };
+  /** When true, street `direccion` is persisted in public `Dirección` / map query. */
+  mostrarDireccionExacta: boolean;
   footerNote: string;
 };

@@ -195,5 +195,6 @@ export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): Bie
       mapsUrl,
       hasMeaningfulAddress,
     },
+    mostrarDireccionExacta: exact,
   };
 }

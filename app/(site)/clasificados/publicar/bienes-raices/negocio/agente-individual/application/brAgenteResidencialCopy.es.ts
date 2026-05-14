@@ -66,6 +66,9 @@ export const BR_COPY_ES = {
     areaHint: "La zona general donde se ubica la propiedad.",
     direccion: "Dirección",
     direccionHint: "Calle y número; puedes omitir número interior en el anuncio público.",
+    mostrarDireccionExacta: "Mostrar dirección completa en vista previa y mapa",
+    mostrarDireccionExactaHint:
+      "Desactivado por defecto: solo ciudad/área alimentan el mapa público. Actívalo solo si quieres que la calle aparezca en la vista previa.",
     listado: "Enlace o archivo del listado",
     listadoHint:
       "Así el comprador puede ver más detalles en tu publicación original sin llenar demasiado este anuncio.",

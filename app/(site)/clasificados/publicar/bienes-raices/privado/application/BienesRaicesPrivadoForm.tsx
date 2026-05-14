@@ -385,6 +385,20 @@ export function BienesRaicesPrivadoForm() {
                 autoComplete="off"
               />
             </AiField>
+            <AiField label="Mostrar dirección exacta cuando aplique">
+              <label className="flex min-h-[44px] items-center gap-3 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-3 py-2 text-sm text-[#2C2416]">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={Boolean(state.mostrarDireccionExacta)}
+                  onChange={(e) => setState((s) => ({ ...s, mostrarDireccionExacta: e.target.checked }))}
+                />
+                <span className="min-w-0">
+                  Permitir mostrar la línea de ubicación completa en vista previa, resultados y mapa (si no, solo ciudad o
+                  zona aproximada).
+                </span>
+              </label>
+            </AiField>
             <p className="sm:col-span-2 text-xs text-[#5C5346]">
               Para vista previa: ciudad o línea de ubicación (al menos uno)
               <span className="text-[#B8954A]" aria-hidden>

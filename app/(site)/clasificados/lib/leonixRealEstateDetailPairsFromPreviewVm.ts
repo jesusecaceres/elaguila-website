@@ -18,11 +18,17 @@ export function buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm: BienesRaice
   const out: Array<{ label: string; value: string }> = [];
   pushFact(out, "Operación", vm.operationSummary);
   pushFact(out, "Estado del anuncio", vm.listingStatusLabel);
-  if (vm.location?.hasMeaningfulAddress) {
-    const locLine = [vm.location.line1, vm.location.cityStateZip].filter((x) => String(x ?? "").trim()).join(" · ");
-    pushFact(out, "Ubicación", locLine || vm.addressLine);
+  const exact = Boolean(vm.mostrarDireccionExacta);
+  if (exact) {
+    if (vm.location?.hasMeaningfulAddress) {
+      const locLine = [vm.location.line1, vm.location.cityStateZip].filter((x) => String(x ?? "").trim()).join(" · ");
+      pushFact(out, "Ubicación", locLine || vm.addressLine);
+    } else {
+      pushFact(out, "Ubicación", vm.addressLine);
+    }
   } else {
-    pushFact(out, "Ubicación", vm.addressLine);
+    const cityOnly = String(vm.location?.cityStateZip ?? "").trim() || String(vm.addressLine ?? "").trim() || "—";
+    pushFact(out, "Ubicación", cityOnly);
   }
   for (const q of vm.quickFacts ?? []) {
     pushFact(out, q.label, q.value);
@@ -41,7 +47,16 @@ export function buildDetailPairsFromBienesRaicesNegocioPreviewVm(vm: BienesRaice
   const out: Array<{ label: string; value: string }> = [];
   pushFact(out, "Operación", vm.operationSummary);
   pushFact(out, "Estado", vm.listingStatusLabel);
-  pushFact(out, "Dirección", vm.location?.fullAddress?.trim() || vm.addressLine);
+  const exact = Boolean(vm.mostrarDireccionExacta);
+  if (exact) {
+    pushFact(out, "Dirección", vm.location?.fullAddress?.trim() || vm.addressLine);
+  } else {
+    const approx =
+      [vm.location?.colonia, vm.location?.cityStateZip].map((x) => String(x ?? "").trim()).filter(Boolean).join(" · ") ||
+      String(vm.addressLine ?? "").trim() ||
+      "—";
+    pushFact(out, "Ubicación", approx);
+  }
   for (const q of vm.quickFacts ?? []) {
     pushFact(out, q.label, q.value);
   }
