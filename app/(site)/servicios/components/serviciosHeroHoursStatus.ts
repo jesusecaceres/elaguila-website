@@ -185,6 +185,19 @@ function closedRelativePhrase(
 }
 
 /**
+ * Whether published hours currently read as “open” using the same rules as the vitrina hero pill
+ * (`buildServiciosHeroHoursPill`). Used by Servicios discovery filters (e.g. open_now).
+ */
+export function serviciosHoursSummaryIsOpenNow(
+  hours: ServiciosHoursSummary | undefined,
+  lang: ServiciosLang,
+  at: Date = new Date(),
+): boolean {
+  const pill = buildServiciosHeroHoursPill(hours, lang, at);
+  return pill?.variant === "open";
+}
+
+/**
  * Builds the premium hero status line (12h times, no bare "Hoy").
  * Uses today's hours + weekly rows + current local time when parseable.
  */

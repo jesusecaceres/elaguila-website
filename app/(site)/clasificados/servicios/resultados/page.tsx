@@ -57,6 +57,7 @@ type PageProps = {
     langOt?: string;
     vint?: string;
     wknd?: string;
+    open_now?: string;
   }>;
 };
 
@@ -69,6 +70,12 @@ function parseSort(raw: string | undefined): ServiciosResultsFilterQuery["sort"]
   if (raw === "name") return "name";
   if (raw === "rating") return "rating";
   return "newest";
+}
+
+function parseOpenNowFlag(raw: string | undefined): ServiciosResultsFilterQuery["openNow"] {
+  const t = (raw ?? "").trim().toLowerCase();
+  if (t === "1" || t === "true") return "1";
+  return undefined;
 }
 
 export default async function ClasificadosServiciosResultadosPage(props: PageProps) {
@@ -100,6 +107,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
     langOt: sp.langOt === "1" ? "1" : undefined,
     vint: sp.vint === "1" ? "1" : undefined,
     wknd: sp.wknd === "1" ? "1" : undefined,
+    openNow: parseOpenNowFlag(sp.open_now),
   };
 
   // Prefetch window for in-memory filters. Raised from 120→500 so keyword/filters are less likely to

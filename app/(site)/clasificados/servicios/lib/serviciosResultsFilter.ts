@@ -1,3 +1,4 @@
+import { serviciosHoursSummaryIsOpenNow } from "@/app/servicios/components/serviciosHeroHoursStatus";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import type { ServiciosBusinessProfile, ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ServiciosPublicListingRow } from "./serviciosPublicListingsServer";
@@ -48,6 +49,8 @@ export type ServiciosResultsFilterQuery = {
   vint?: "1";
   /** Saturday or Sunday has non-closed hours line in weekly schedule */
   wknd?: "1";
+  /** URL: open_now=1 — listing must be “open” per vitrina hero hours logic at filter time */
+  openNow?: "1";
 };
 
 function normalize(s: string | undefined): string {
@@ -78,6 +81,7 @@ export function serviciosResultsHasActiveFilters(q: ServiciosResultsFilterQuery)
       q.langOt === "1" ||
       q.vint === "1" ||
       q.wknd === "1" ||
+      q.openNow === "1" ||
       (q.sort && q.sort !== "newest") ||
       (q.seller && q.seller !== "all"),
   );
@@ -222,6 +226,7 @@ export function filterServiciosPublicListingRows(
   const wantLangOt = q.langOt === "1";
   const wantVint = q.vint === "1";
   const wantWknd = q.wknd === "1";
+  const wantOpenNow = q.openNow === "1";
 
   if (
     !cityQ &&
@@ -229,6 +234,7 @@ export function filterServiciosPublicListingRows(
     !wantWa &&
     !wantPromo &&
     !wantCall &&
+    !wantOpenNow &&
     !wantVerified &&
     !wantWeb &&
     !wantBilingual &&
@@ -270,8 +276,9 @@ export function filterServiciosPublicListingRows(
     if (wantVint && pj.opsMeta?.leonixVerifiedInterest !== true) return false;
     if (wantWknd && !wireWeekendOpen(pj)) return false;
 
-    if (wantWa || wantPromo || wantCall) {
+    if (wantWa || wantPromo || wantCall || wantOpenNow) {
       const profile = resolvedProfile(row, lang);
+      if (wantOpenNow && !serviciosHoursSummaryIsOpenNow(profile.contact.hours, lang)) return false;
       if (wantWa && !profile.contact.socialLinks?.whatsapp) return false;
       if (wantPromo && !profile.promotions.some((p) => p.headline?.trim())) return false;
       if (wantCall && !(profile.contact.phoneDisplay && profile.contact.phoneTelHref)) return false;

@@ -152,6 +152,12 @@ export function ServiciosResultsActiveSummary({
       label: lang === "en" ? "Weekend hours (Sat/Sun)" : "Horario fin de semana (sáb/dom)",
     });
   }
+  if (query.openNow === "1") {
+    items.push({
+      key: "openNow",
+      label: lang === "en" ? "Open now" : "Abierto ahora",
+    });
+  }
 
   if (items.length === 0) return null;
 

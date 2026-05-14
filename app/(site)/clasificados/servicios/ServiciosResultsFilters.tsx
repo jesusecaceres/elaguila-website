@@ -215,6 +215,19 @@ export function ServiciosResultsFilters({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <label className="flex min-w-0 flex-col gap-1">
               <span className="text-xs font-semibold text-neutral-700">
+                {lang === "en" ? "Open now" : "Abierto ahora"}
+              </span>
+              <select
+                name="open_now"
+                defaultValue={current.openNow === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Open now (by hours)" : "Abierto ahora (por horario)"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">
                 {lang === "en" ? "Leonix verified" : "Verificado Leonix"}
               </span>
               <select
