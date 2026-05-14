@@ -15,6 +15,11 @@ import {
   toLeonixListingsTitleForDb,
 } from "@/app/(site)/clasificados/lib/leonixPublishPublicDescription";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import {
+  buildRentasPublishFinalPayloadDebug,
+  rentasPublishFinalBoundaryPreflight,
+  rentasPublishGalleryUrlsPreflight,
+} from "@/app/(site)/clasificados/rentas/lib/rentasPublishFinalPayloadDebug";
 
 const DEV = process.env.NODE_ENV === "development";
 
@@ -254,6 +259,31 @@ export async function publishLeonixRealEstateListingCore(
     listingDescriptionForDb: descriptionForDb,
   });
 
+  if (category === "rentas") {
+    const RentasPublishFinalPayloadDebug = buildRentasPublishFinalPayloadDebug({
+      insertPayload,
+      imageSources,
+      muxAssetId: params.muxAssetId,
+      muxPlaybackId: params.muxPlaybackId,
+      muxThumbnailUrl: params.muxThumbnailUrl,
+      sellerType,
+      titleForDb: titlePrep.titleForDb,
+      descriptionForDb,
+    });
+    if (PUBLISH_DIAG) {
+      publishDiagLog({ RentasPublishFinalPayloadDebug });
+    }
+    const rentasBlock = rentasPublishFinalBoundaryPreflight(
+      RentasPublishFinalPayloadDebug,
+      insertPayload,
+      imageSources,
+      lang,
+    );
+    if (rentasBlock) {
+      return { ok: false, error: rentasBlock };
+    }
+  }
+
   if (PUBLISH_DIAG) {
     const descCol = insertPayload.description;
     const orderedPreview = imageSources.filter((u) => typeof u === "string" && u.trim()).slice(0, 4);
@@ -372,6 +402,13 @@ export async function publishLeonixRealEstateListingCore(
     }
 
     if (photoUrls.length) {
+      if (category === "rentas") {
+        const galBlock = rentasPublishGalleryUrlsPreflight(photoUrls, lang);
+        if (galBlock) {
+          await supabase.from("listings").delete().eq("id", listingId);
+          return { ok: false, error: galBlock };
+        }
+      }
       const touch = new Date().toISOString();
       const muxPid = String(params.muxPlaybackId ?? "").trim();
       const galleryPatch: Record<string, unknown> = {
