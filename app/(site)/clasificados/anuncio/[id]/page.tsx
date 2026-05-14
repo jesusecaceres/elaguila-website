@@ -14,6 +14,8 @@ import { isProListing } from "../../components/planHelpers";
 import { isVerifiedSeller } from "../../components/verifiedSeller";
 import ContactActions from "../../components/ContactActions";
 import { CommunityQuickAnuncioDetail } from "../../community/CommunityQuickAnuncioDetail";
+import { ClasesPublishedQuickAd } from "@/app/(site)/publicar/clases/components/ClasesPublishedQuickAd";
+import { ComunidadPublishedQuickAd } from "@/app/(site)/publicar/comunidad/components/ComunidadPublishedQuickAd";
 import { COMMUNITY_ANUNCIO_HERO_FRAME } from "@/app/(site)/clasificados/community/shared/communityAnuncioHeroClasses";
 import {
   clasesModeLabel,
@@ -506,6 +508,14 @@ export default function AnuncioDetallePage() {
     const m = detailPairsToMap(listing.detailPairs);
     return isCommunityQuickListing(m) ? m : null;
   }, [listing]);
+
+  /** Clases/Comunidad quick: single canvas for preview parity (WYSIWYG). */
+  const useCommunityQuickWysiwyg = Boolean(
+    listing &&
+      communityQuickPairMap &&
+      ((listing.category === "clases" && communityQuickPairMap["Leonix:communityKind"] === "clases") ||
+        (listing.category === "comunidad" && communityQuickPairMap["Leonix:communityKind"] === "comunidad")),
+  );
 
   const communityQuickContactExtras = useMemo(() => {
     if (!listing || !communityQuickPairMap) return null;
@@ -1196,6 +1206,13 @@ export default function AnuncioDetallePage() {
                 !isCommunityCategory && !rentasPlanTier && listing?.category !== "rentas" && "border-black/10"
               )}
             >
+                {useCommunityQuickWysiwyg ? (
+                  listing.category === "clases" ? (
+                    <ClasesPublishedQuickAd listing={listing} lang={lang} />
+                  ) : (
+                    <ComunidadPublishedQuickAd listing={listing} lang={lang} />
+                  )
+                ) : (
                 <>
                   {mediaSlots.length > 0 && (
                     <div
@@ -1385,8 +1402,6 @@ export default function AnuncioDetallePage() {
                 <RentasAnuncioMetaFactChips facts={rentasMeta.facts} />
               )}
 
-                </>
-
               {listing.category === "rentas" && (
                 <RentasAnuncioRentalFactsSection
                   lang={lang}
@@ -1566,7 +1581,7 @@ export default function AnuncioDetallePage() {
                   </div>
                 </div>
 
-                {(listing.category === "clases" || listing.category === "comunidad") && (
+                {!useCommunityQuickWysiwyg && (listing.category === "clases" || listing.category === "comunidad") && (
                   <CommunityQuickAnuncioDetail
                     lang={lang}
                     category={listing.category}
@@ -1577,6 +1592,8 @@ export default function AnuncioDetallePage() {
                     listingId={listing.id}
                     ownerUserId={(listing as { owner_id?: string | null }).owner_id ?? null}
                   />
+                )}
+                </>
                 )}
             </div>
 
@@ -1976,6 +1993,7 @@ export default function AnuncioDetallePage() {
               )}
             </div>
 
+            {!useCommunityQuickWysiwyg && (
             <div className={cx(
               "rounded-2xl border p-6",
               rentasPlanTier === "privado_pro" ? "border-stone-200/80 bg-[#FAFAF9]" : "border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
@@ -2138,6 +2156,7 @@ export default function AnuncioDetallePage() {
               </div>
               ) : null}
             </div>
+            )}
           </div>
         </div>
       </section>

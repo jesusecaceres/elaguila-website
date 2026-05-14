@@ -90,7 +90,16 @@ function btnPrimaryClass(disabled?: boolean): string {
   ].join(" ");
 }
 
-export function CommunityContactCanvas({ draft, lang }: { draft: Draft; lang: Lang }) {
+export function CommunityContactCanvas({
+  draft,
+  lang,
+  sectionHtmlId,
+}: {
+  draft: Draft;
+  lang: Lang;
+  /** Optional DOM id for scroll targets (e.g. published anuncio “Ver contacto”). */
+  sectionHtmlId?: string;
+}) {
   const t = UI[lang];
   const k = kindOf(draft);
   const [emailOpen, setEmailOpen] = useState(false);
@@ -164,6 +173,7 @@ export function CommunityContactCanvas({ draft, lang }: { draft: Draft; lang: La
 
   return (
     <section
+      id={sectionHtmlId}
       className="mt-4 min-w-0 overflow-hidden rounded-2xl border border-black/10 shadow-sm"
       style={{ backgroundColor: GH.cream, color: GH.charcoal }}
     >
