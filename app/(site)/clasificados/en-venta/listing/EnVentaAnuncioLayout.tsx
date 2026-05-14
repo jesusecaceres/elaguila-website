@@ -208,7 +208,22 @@ export function EnVentaAnuncioLayout({
       ? biz || (lang === "es" ? "Negocio" : "Business")
       : lang === "es"
         ? "Particular"
-        : "Private seller";
+        : "Individual";
+
+  const sellerTypeBadge =
+    lang === "es"
+      ? sellerKind === "business"
+        ? "Negocio"
+        : "Particular"
+      : sellerKind === "business"
+        ? "Business"
+        : "Individual";
+
+  const trustModeratedLine = lang === "es" ? "Anuncio moderado por Leonix" : "Leonix moderated listing";
+  const trustSafetyLine =
+    lang === "es"
+      ? "Reúnete en un lugar público y verifica el artículo antes de pagar."
+      : "Meet in a public place and verify the item before paying.";
 
   const fulfillmentLine = useMemo(() => {
     for (const r of rows) {
@@ -319,6 +334,16 @@ export function EnVentaAnuncioLayout({
   const showWhatsAppCta =
     Boolean(waDigits) && (contactChannel === "whatsapp" || contactChannel === "both");
   const email = String(resolvedContact.emailForMailto || "").trim();
+
+  /** En Venta detail: one clear primary CTA (WhatsApp when offered, else message, else call). */
+  const evPrimaryContactKind: "wa" | "email" | "tel" | null =
+    !premiumBr && showWhatsAppCta && waDigits
+      ? "wa"
+      : !premiumBr && email
+        ? "email"
+        : !premiumBr && phoneTel
+          ? "tel"
+          : null;
 
   const scrollToContact = useCallback(() => {
     const el = document.getElementById("leonix-contact-actions");
@@ -500,6 +525,22 @@ export function EnVentaAnuncioLayout({
               ) : null}
             </div>
 
+            {surface === "en-venta" ? (
+              <div
+                className="rounded-xl border border-black/10 bg-[#FAFAFA] px-3 py-2.5"
+                role="note"
+                aria-label={lang === "es" ? "Confianza y seguridad del comprador" : "Buyer trust and safety"}
+              >
+                <div className="mb-1.5">
+                  <span className="inline-flex rounded-full border border-black/10 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#111111]/80">
+                    {sellerTypeBadge}
+                  </span>
+                </div>
+                <p className="text-xs font-semibold leading-snug text-[#111111]">{trustModeratedLine}</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-[#111111]/75">{trustSafetyLine}</p>
+              </div>
+            ) : null}
+
             {!(sellerKind === "business" && negocioDisplay) ? (
               <div>
                 <EnVentaSellerCard lang={lang} sellerKind={sellerKind} businessName={biz} />
@@ -535,8 +576,8 @@ export function EnVentaAnuncioLayout({
                     ? "Contactar con el anunciante"
                     : "Contact the seller"
                   : lang === "es"
-                    ? "Contacto"
-                    : "Contact"}
+                    ? "Contactar al vendedor"
+                    : "Contact the seller"}
               </div>
               <p
                 className={
@@ -545,9 +586,13 @@ export function EnVentaAnuncioLayout({
                     : "mt-2 text-[11px] leading-relaxed text-[#111111]/60"
                 }
               >
-                {lang === "es"
-                  ? "Leonix conecta comprador y vendedor; no procesamos el pago del artículo. Prefiere lugares públicos para entregas o encuentros. Si ves algo ilegal o peligroso, usa «Reportar anuncio» abajo — el equipo revisa en /admin/reportes."
-                  : "Leonix connects buyers and sellers; we do not process item payment. Prefer public meetups for exchanges. If you see something illegal or unsafe, use “Report listing” below—staff reviews the queue at /admin/reportes."}
+                {premiumBr
+                  ? lang === "es"
+                    ? "Leonix conecta comprador y vendedor; no procesamos el pago del artículo. Prefiere lugares públicos para entregas o encuentros. Si ves algo ilegal o peligroso, usa «Reportar anuncio» abajo — el equipo revisa en /admin/reportes."
+                    : "Leonix connects buyers and sellers; we do not process item payment. Prefer public meetups for exchanges. If you see something illegal or unsafe, use “Report listing” below—staff reviews the queue at /admin/reportes."
+                  : lang === "es"
+                    ? "Leonix no procesa el pago entre comprador y vendedor. Si algo se ve ilegal o inseguro, puedes usar «Reportar anuncio» abajo."
+                    : "Leonix does not process payment between buyer and seller. If something looks illegal or unsafe, you can use “Report listing” below."}
               </p>
               {premiumBr ? (
                 <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -561,43 +606,106 @@ export function EnVentaAnuncioLayout({
               ) : null}
               <div className="mt-3">
                 {listing.contact_phone || listing.contact_email ? (
-                  <div className="flex flex-wrap gap-2">
-                    {phoneTel ? (
-                      <a href={`tel:${phoneTel}`} className={`${BtnBase} ${primary}`}>
-                        {lang === "es" ? "Llamar" : "Call"}
-                      </a>
-                    ) : null}
-                    {phoneTel ? (
-                      <a href={`sms:${phoneTel}`} className={`${BtnBase} ${secondary}`}>
-                        {lang === "es" ? "Texto" : "Text"}
-                      </a>
-                    ) : null}
-                    {showWhatsAppCta && waDigits ? (
-                      <a
-                        href={`https://wa.me/${waDigits}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`${BtnBase} ${secondary}`}
-                      >
-                        WhatsApp
-                      </a>
-                    ) : null}
-                    {email ? (
-                      <button
-                        type="button"
-                        className={`${BtnBase} ${secondary}`}
-                        onClick={() => setCorreoOpen(true)}
-                      >
-                        {premiumBr
-                          ? lang === "es"
-                            ? "Enviar mensaje"
-                            : "Send message"
-                          : lang === "es"
-                            ? "Correo (Leonix)"
-                            : "Email (Leonix)"}
-                      </button>
-                    ) : null}
-                  </div>
+                  premiumBr ? (
+                    <div className="flex flex-wrap gap-2">
+                      {phoneTel ? (
+                        <a href={`tel:${phoneTel}`} className={`${BtnBase} ${primary}`}>
+                          {lang === "es" ? "Llamar" : "Call"}
+                        </a>
+                      ) : null}
+                      {phoneTel ? (
+                        <a href={`sms:${phoneTel}`} className={`${BtnBase} ${secondary}`}>
+                          {lang === "es" ? "Texto" : "Text"}
+                        </a>
+                      ) : null}
+                      {showWhatsAppCta && waDigits ? (
+                        <a
+                          href={`https://wa.me/${waDigits}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`${BtnBase} ${secondary}`}
+                        >
+                          WhatsApp
+                        </a>
+                      ) : null}
+                      {email ? (
+                        <button
+                          type="button"
+                          className={`${BtnBase} ${secondary}`}
+                          onClick={() => setCorreoOpen(true)}
+                        >
+                          {lang === "es" ? "Enviar mensaje" : "Send message"}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {evPrimaryContactKind === "wa" && waDigits ? (
+                        <a
+                          href={`https://wa.me/${waDigits}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[#25D366] px-4 py-3 text-[15px] font-bold text-white shadow-sm transition hover:bg-[#20bd5a]"
+                        >
+                          WhatsApp
+                        </a>
+                      ) : null}
+                      {evPrimaryContactKind === "email" && email ? (
+                        <button
+                          type="button"
+                          onClick={() => setCorreoOpen(true)}
+                          className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-yellow-500 px-4 py-3 text-[15px] font-bold text-black shadow-sm transition hover:bg-yellow-400"
+                        >
+                          {lang === "es" ? "Enviar mensaje" : "Send message"}
+                        </button>
+                      ) : null}
+                      {evPrimaryContactKind === "tel" && phoneTel ? (
+                        <a
+                          href={`tel:${phoneTel}`}
+                          className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-yellow-500 px-4 py-3 text-[15px] font-bold text-black shadow-sm transition hover:bg-yellow-400"
+                        >
+                          {lang === "es" ? "Llamar" : "Call"}
+                        </a>
+                      ) : null}
+                      <div className="flex flex-wrap gap-2">
+                        {phoneTel && evPrimaryContactKind !== "tel" ? (
+                          <a
+                            href={`tel:${phoneTel}`}
+                            className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF]"
+                          >
+                            {lang === "es" ? "Llamar" : "Call"}
+                          </a>
+                        ) : null}
+                        {phoneTel ? (
+                          <a
+                            href={`sms:${phoneTel}`}
+                            className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF]"
+                          >
+                            {lang === "es" ? "Texto" : "Text"}
+                          </a>
+                        ) : null}
+                        {showWhatsAppCta && waDigits && evPrimaryContactKind !== "wa" ? (
+                          <a
+                            href={`https://wa.me/${waDigits}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF]"
+                          >
+                            WhatsApp
+                          </a>
+                        ) : null}
+                        {email && evPrimaryContactKind !== "email" ? (
+                          <button
+                            type="button"
+                            onClick={() => setCorreoOpen(true)}
+                            className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF]"
+                          >
+                            {lang === "es" ? "Enviar mensaje" : "Send message"}
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  )
                 ) : (
                   <p className="text-sm text-[#111111]/65">
                     {lang === "es" ? "El vendedor no mostró contacto público." : "The seller did not expose public contact."}
@@ -605,9 +713,13 @@ export function EnVentaAnuncioLayout({
                 )}
                 {email ? (
                   <p className="mt-2 text-[11px] text-[#111111]/55">
-                    {lang === "es"
-                      ? "«Correo (Leonix)» guarda la consulta en tu cuenta. Desde el mismo modal puedes abrir Gmail, Yahoo o tu correo."
-                      : "“Email (Leonix)” saves the inquiry to your account. From the same modal you can open Gmail, Yahoo, or your default mail app."}
+                    {premiumBr
+                      ? lang === "es"
+                        ? "«Enviar mensaje» guarda la consulta en tu cuenta. Desde el mismo modal puedes abrir Gmail, Yahoo o tu correo."
+                        : "“Send message” saves the inquiry to your account. From the same modal you can open Gmail, Yahoo, or your default mail app."
+                      : lang === "es"
+                        ? "«Enviar mensaje» guarda la consulta en tu cuenta Leonix. Desde el mismo modal puedes abrir Gmail, Yahoo o tu correo."
+                        : "“Send message” saves the inquiry to your Leonix account. From the same modal you can open Gmail, Yahoo, or your default mail app."}
                   </p>
                 ) : null}
                 {showListingReport ? <LeonixInlineListingReport listingId={listing.id} lang={lang} /> : null}
