@@ -93,12 +93,13 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
         ) : null}
 
         {listing.branch === "privado" ? (
-          <BienesRaicesPrivadoPreviewView vm={vmPrivado} onContactLinkClick={onContactLinkClick} />
+          <BienesRaicesPrivadoPreviewView vm={vmPrivado} onContactLinkClick={onContactLinkClick} lang={lang} />
         ) : (
           <BienesRaicesNegocioPreviewView
             vm={vmNegocio}
             rentasPolishedDuplexLayout
             onContactLinkClick={onContactLinkClick}
+            lang={lang}
           />
         )}
 

@@ -131,7 +131,7 @@ export default function BienesRaicesNegocioPreviewClient() {
             </div>
           }
         >
-          <BienesRaicesNegocioPreviewView vm={vm} />
+          <BienesRaicesNegocioPreviewView vm={vm} lang={lang} />
         </LeonixPreviewPageShell>
       ) : (
         <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#F9F6F1] px-4 text-[#2C2416]">

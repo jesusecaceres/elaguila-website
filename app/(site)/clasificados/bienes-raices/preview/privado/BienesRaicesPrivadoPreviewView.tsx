@@ -15,6 +15,13 @@ import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-rai
 import { RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL } from "@/app/clasificados/rentas/shared/rentasResidencialHighlightFormVisuals";
 import { RENTAS_SERVICIOS_INCLUIDOS_DEFS } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import { groupedRentasPropertyRows } from "@/app/clasificados/rentas/shared/rentasPreviewGroupedRows";
+import type { RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
+import {
+  privadoGalleryMetaLine,
+  privadoPhotosChipLabel,
+  privadoPreviewUi,
+  resolveBrPreviewLang,
+} from "@/app/clasificados/bienes-raices/preview/bienesRaicesPreviewViewI18n";
 import type { BienesRaicesPrivadoPreviewVm } from "./model/bienesRaicesPrivadoPreviewVm";
 
 const IVORY = "#F9F6F1";
@@ -289,10 +296,15 @@ function highlightChipText(label: string): string {
 export function BienesRaicesPrivadoPreviewView({
   vm,
   onContactLinkClick,
+  lang,
 }: {
   vm: BienesRaicesPrivadoPreviewVm;
   onContactLinkClick?: () => void;
+  /** Preview chrome language; defaults to Spanish when omitted. */
+  lang?: RentasLandingLang;
 }) {
+  const locale = resolveBrPreviewLang(lang);
+  const ui = privadoPreviewUi(locale);
   const trackContact = () => onContactLinkClick?.();
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
@@ -317,12 +329,7 @@ export function BienesRaicesPrivadoPreviewView({
   const dedupedPhotoSlides = leonixGalleryPhotoSlidesWithCaptions(media?.allPhotoUrls, media?.photoCaptionsFull);
   const uniquePhotoCount = dedupedPhotoSlides.length;
   const hasVidMeta = Boolean(media?.hasVideo1 || media?.hasVideo2);
-  const galleryMetaLineDisplay =
-    uniquePhotoCount > 0
-      ? `${uniquePhotoCount} foto${uniquePhotoCount === 1 ? "" : "s"} en la galería`
-      : hasVidMeta
-        ? "Video en el anuncio"
-        : String(media?.metaLine ?? "").trim();
+  const galleryMetaLineDisplay = privadoGalleryMetaLine(locale, uniquePhotoCount, hasVidMeta, String(media?.metaLine ?? ""));
   const showGallerySection =
     hasPhotos ||
     hasPrimaryVideo ||
@@ -369,7 +376,7 @@ export function BienesRaicesPrivadoPreviewView({
           }
         >
           <div className="flex aspect-[4/3] items-center justify-center p-4 text-center text-xs font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
-            Ver más fotos
+            {ui.verMasFotos}
           </div>
         </button>
       );
@@ -383,7 +390,7 @@ export function BienesRaicesPrivadoPreviewView({
             onClick={() =>
               openGallery(leonixSlideIndexForPhotoUrl(vm.media?.allPhotoUrls, vm.media?.photoCaptionsFull, spec.url))
             }
-            aria-label="Abrir foto en galería"
+            aria-label={ui.ariaAbrirFotoGaleria}
           >
             { }
             <img src={spec.url} alt="" className="aspect-[4/3] w-full object-cover" />
@@ -409,7 +416,7 @@ export function BienesRaicesPrivadoPreviewView({
             style={{ borderColor: BORDER, background: "rgba(253,251,247,0.95)", color: CHARCOAL_DEEP }}
             onClick={() => openGallery(leonixSlideIndexForVideoSlot(vm.media, spec.slot))}
           >
-            Galería
+            {ui.galeria}
           </button>
         </div>
       </div>
@@ -431,7 +438,7 @@ export function BienesRaicesPrivadoPreviewView({
                   <IconHome className="h-4 w-4" />
                 </SectionIcon>
                 <h2 className="text-base font-bold sm:text-lg" style={{ color: CHARCOAL_DEEP }}>
-                  Galería multimedia
+                  {ui.galeriaMultimedia}
                 </h2>
               </div>
               {galleryMetaLineDisplay ? (
@@ -460,7 +467,7 @@ export function BienesRaicesPrivadoPreviewView({
                               ),
                             )
                           }
-                          aria-label="Abrir galería de fotos"
+                          aria-label={ui.ariaAbrirGaleriaFotos}
                         >
                           { }
                           <img src={media.heroUrl} alt="" className="aspect-[16/10] w-full object-cover" />
@@ -480,9 +487,9 @@ export function BienesRaicesPrivadoPreviewView({
                                 ),
                               )
                             }
-                            aria-label="Abrir galería completa"
+                            aria-label={ui.ariaAbrirGaleriaCompleta}
                           >
-                            {uniquePhotoCount} fotos
+                            {privadoPhotosChipLabel(locale, uniquePhotoCount)}
                           </button>
                         ) : null}
                       </>
@@ -497,9 +504,9 @@ export function BienesRaicesPrivadoPreviewView({
                             className="absolute bottom-3 right-3 z-10 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wide shadow-md transition hover:brightness-95"
                             style={{ borderColor: BORDER, background: "rgba(253,251,247,0.94)", color: CHARCOAL_DEEP }}
                             onClick={() => openGallery(leonixSlideIndexForVideoSlot(media, 0))}
-                            aria-label="Abrir video en galería"
+                            aria-label={ui.ariaAbrirVideoGaleria}
                           >
-                            Galería
+                            {ui.galeria}
                           </button>
                         </div>
                       </div>
@@ -529,7 +536,7 @@ export function BienesRaicesPrivadoPreviewView({
               style={{ borderColor: BORDER, background: CREAM_CARD }}
             >
               <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-                Descripción
+                {ui.descripcion}
               </h2>
               <p
                 className="mt-3.5 whitespace-pre-wrap text-[15px] leading-[1.72] [overflow-wrap:anywhere] sm:mt-4 sm:text-sm sm:leading-[1.78]"
@@ -556,7 +563,7 @@ export function BienesRaicesPrivadoPreviewView({
                 {heroTitleShown}
               </h1>
             ) : (
-              <h1 className="sr-only">Vista previa del anuncio</h1>
+              <h1 className="sr-only">{ui.vistaPreviaSr}</h1>
             )}
             {addressLineShown ? (
               <p className="mt-2.5 flex items-start gap-2 text-sm font-medium leading-snug" style={{ color: MUTED }}>
@@ -643,7 +650,7 @@ export function BienesRaicesPrivadoPreviewView({
                 ) : null}
                 {vm.seller.whatsappDisplay ? (
                   <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
-                    WhatsApp
+                    {ui.whatsapp}
                   </p>
                 ) : null}
                 {vm.seller.whatsappDisplay ? (
@@ -653,7 +660,7 @@ export function BienesRaicesPrivadoPreviewView({
                 ) : null}
                 {vm.seller.smsDisplay ? (
                   <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
-                    Mensajes de texto
+                    {ui.mensajesTexto}
                   </p>
                 ) : null}
                 {vm.seller.smsDisplay ? (
@@ -673,25 +680,25 @@ export function BienesRaicesPrivadoPreviewView({
 
         <section className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:mt-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:gap-4">
           <div className="space-y-3">
-            {grouped.resumen.length > 0 ? <FactBlock title="Resumen de renta" rows={grouped.resumen} /> : null}
+            {grouped.resumen.length > 0 ? <FactBlock title={ui.resumenRenta} rows={grouped.resumen} /> : null}
             {grouped.requisitos ? (
               <div className="rounded-xl border p-3.5 sm:p-4" style={{ borderColor: BORDER, background: CREAM_CARD }}>
-                <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>Requisitos</h3>
+                <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>{ui.requisitos}</h3>
                 <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed" style={{ color: CHARCOAL }}>{grouped.requisitos}</p>
               </div>
             ) : null}
             {grouped.condiciones ? (
               <div className="rounded-xl border p-3.5 sm:p-4" style={{ borderColor: BORDER, background: CREAM_CARD }}>
                 <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-                  Condiciones importantes del alquiler
+                  {ui.condicionesAlquiler}
                 </h3>
                 <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed" style={{ color: CHARCOAL }}>{grouped.condiciones}</p>
               </div>
             ) : null}
-            {grouped.caracteristicas.length > 0 ? <FactBlock title="Características" rows={grouped.caracteristicas} /> : null}
+            {grouped.caracteristicas.length > 0 ? <FactBlock title={ui.caracteristicas} rows={grouped.caracteristicas} /> : null}
             {grouped.servicios.length > 0 ? (
               <div className="rounded-xl border p-3.5 sm:p-4" style={{ borderColor: BORDER, background: CREAM_CARD }}>
-                <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>Servicios incluidos</h3>
+                <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>{ui.serviciosIncluidos}</h3>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {grouped.servicios.map((svc) => (
                     <span key={svc} className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: BORDER, background: "#fff", color: CHARCOAL }}>
@@ -704,7 +711,7 @@ export function BienesRaicesPrivadoPreviewView({
             {vm.hasHighlights && (vm.highlightsRows?.length ?? 0) > 0 ? (
               <div className="rounded-xl border p-3.5 sm:p-4" style={{ borderColor: BORDER, background: CREAM_CARD }}>
                 <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-                  {String(vm.highlightsSectionTitle ?? "").trim() || "Destacados"}
+                  {String(vm.highlightsSectionTitle ?? "").trim() || ui.destacadosFallback}
                 </h3>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {(vm.highlightsRows ?? []).map((row) => (
@@ -744,7 +751,7 @@ export function BienesRaicesPrivadoPreviewView({
                     className="flex min-h-[48px] w-full items-center justify-center rounded-xl px-3 py-3.5 text-center text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-105"
                     style={{ background: `linear-gradient(180deg, ${BRONZE} 0%, ${BRONZE_SOFT} 100%)` }}
                   >
-                    Escribir correo
+                    {ui.escribirCorreo}
                   </a>
                 ) : null}
                 {vm.contact.showLlamar && vm.contact.llamarHref ? (
@@ -754,7 +761,7 @@ export function BienesRaicesPrivadoPreviewView({
                     className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(245,240,232,0.25)" }}
                   >
-                    Llamar
+                    {ui.llamar}
                   </a>
                 ) : null}
                 {vm.contact.showWhatsapp && vm.contact.whatsappHref ? (
@@ -766,7 +773,7 @@ export function BienesRaicesPrivadoPreviewView({
                     className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E8F5E9] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(37,211,102,0.35)" }}
                   >
-                    WhatsApp
+                    {ui.whatsapp}
                   </a>
                 ) : null}
                 {vm.contact.showSms && vm.contact.smsHref ? (
@@ -776,12 +783,12 @@ export function BienesRaicesPrivadoPreviewView({
                     className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E3F2FD] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(100,181,246,0.45)" }}
                   >
-                    Enviar texto
+                    {ui.enviarTexto}
                   </a>
                 ) : null}
                 {(vm.location.line1 || vm.location.cityStateZip || vm.location.mapsUrl) ? (
                   <div className="mt-1 rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.15)" }}>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#E8DFD4]">Ubicación</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#E8DFD4]">{ui.ubicacion}</p>
                     {vm.location.line1 ? <p className="mt-1 text-xs text-[#F5F0E8]">{vm.location.line1}</p> : null}
                     {vm.location.cityStateZip ? <p className="mt-1 text-xs text-[#D8CFC3]">{vm.location.cityStateZip}</p> : null}
                     {vm.location.mapsUrl ? (
@@ -793,7 +800,7 @@ export function BienesRaicesPrivadoPreviewView({
                         className="mt-3 inline-flex rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold text-[#F5F0E8]"
                         style={{ borderColor: "rgba(255,255,255,0.35)" }}
                       >
-                        Ver en mapa
+                        {ui.verEnMapa}
                       </a>
                     ) : null}
                   </div>
@@ -810,7 +817,13 @@ export function BienesRaicesPrivadoPreviewView({
         ) : null}
       </main>
 
-      <LeonixPreviewGalleryLightbox vm={vm} open={galleryOpen} initialIndex={galleryIndex} onClose={() => setGalleryOpen(false)} />
+      <LeonixPreviewGalleryLightbox
+        vm={vm}
+        open={galleryOpen}
+        initialIndex={galleryIndex}
+        onClose={() => setGalleryOpen(false)}
+        lang={locale}
+      />
     </div>
   );
 }

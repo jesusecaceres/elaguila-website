@@ -1,6 +1,7 @@
 "use client";
 
 import { LeonixPreviewGalleryLightbox } from "@/app/clasificados/lib/LeonixPreviewGalleryLightbox";
+import type { RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import type { BienesRaicesNegocioPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 
 /** @deprecated Use `LeonixPreviewGalleryLightbox` — kept for existing imports. */
@@ -9,11 +10,13 @@ export function BrNegocioGalleryLightbox({
   open,
   initialIndex,
   onClose,
+  lang,
 }: {
   vm: BienesRaicesNegocioPreviewVm;
   open: boolean;
   initialIndex: number;
   onClose: () => void;
+  lang?: RentasLandingLang;
 }) {
-  return <LeonixPreviewGalleryLightbox vm={vm} open={open} initialIndex={initialIndex} onClose={onClose} />;
+  return <LeonixPreviewGalleryLightbox vm={vm} open={open} initialIndex={initialIndex} onClose={onClose} lang={lang} />;
 }

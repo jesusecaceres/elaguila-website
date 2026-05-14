@@ -18,6 +18,14 @@ import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-rai
 import { RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL } from "@/app/clasificados/rentas/shared/rentasResidencialHighlightFormVisuals";
 import { RENTAS_SERVICIOS_INCLUIDOS_DEFS } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import { groupedRentasPropertyRows } from "@/app/clasificados/rentas/shared/rentasPreviewGroupedRows";
+import type { RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
+import {
+  negocioGalleryMetaLine,
+  negocioPhotosChipLabel,
+  negocioPreviewUi,
+  resolveBrPreviewLang,
+  type NegocioPreviewUi,
+} from "@/app/clasificados/bienes-raices/preview/bienesRaicesPreviewViewI18n";
 
 const IVORY = "#F9F6F1";
 const CREAM_CARD = "#FDFBF7";
@@ -250,49 +258,17 @@ function FactRowsList({ rows }: { rows: Array<{ label: string; value: string }> 
   );
 }
 
-function LowerModuleCard({
-  eyebrow,
-  title,
-  subtitle,
-  children,
+function DeepSection({
+  icon,
+  heading,
+  items,
+  emptyMessage,
 }: {
-  eyebrow?: string;
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
+  icon: React.ReactNode;
+  heading: string;
+  items: string[] | undefined;
+  emptyMessage: string;
 }) {
-  return (
-    <div
-      className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]"
-      style={{ borderColor: BORDER, background: CREAM_CARD }}
-    >
-      {eyebrow ? (
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-          {eyebrow}
-        </p>
-      ) : null}
-      <h3 className={`font-bold tracking-tight ${eyebrow ? "mt-2 text-base" : "text-base"}`} style={{ color: CHARCOAL_DEEP }}>
-        {title}
-      </h3>
-      {subtitle ? (
-        <p className="mt-2 text-sm leading-relaxed" style={{ color: MUTED }}>
-          {subtitle}
-        </p>
-      ) : null}
-      <div className={subtitle || eyebrow ? "mt-5" : "mt-4"}>{children}</div>
-    </div>
-  );
-}
-
-function communityModuleTitle(pub: BienesRaicesNegocioPreviewVm["publicationType"]): string {
-  if (pub === "proyecto_nuevo") return "Comunidad y proyecto";
-  if (pub === "comercial") return "Entorno comercial";
-  if (pub === "terreno") return "Contexto del terreno";
-  if (pub === "multifamiliar_inversion") return "Vecindario y comunidad";
-  return "Vecindario y movilidad";
-}
-
-function DeepSection({ icon, heading, items }: { icon: React.ReactNode; heading: string; items: string[] | undefined }) {
   const lines = Array.isArray(items) ? items : [];
   return (
     <div
@@ -316,7 +292,7 @@ function DeepSection({ icon, heading, items }: { icon: React.ReactNode; heading:
             </ul>
           ) : (
             <p className="mt-4 text-sm leading-relaxed" style={{ color: MUTED }}>
-              Sin datos en este bloque.
+              {emptyMessage}
             </p>
           )}
         </div>
@@ -418,9 +394,11 @@ function highlightChipText(label: string): string {
 function BienesRaicesNegocioDarkContactAside({
   vm,
   onContactLinkClick,
+  ui,
 }: {
   vm: BienesRaicesNegocioPreviewVm;
   onContactLinkClick?: () => void;
+  ui: NegocioPreviewUi;
 }) {
   const track = () => onContactLinkClick?.();
   return (
@@ -447,13 +425,13 @@ function BienesRaicesNegocioDarkContactAside({
           >
             {vm.contact.horarioPreferidoLine ? (
               <p>
-                <span className="font-semibold text-[#F5F0E8]">Horario preferido</span>
+                <span className="font-semibold text-[#F5F0E8]">{ui.horarioPreferido}</span>
                 <span className="mt-1 block text-[#d8cfc3]">{vm.contact.horarioPreferidoLine}</span>
               </p>
             ) : null}
             {vm.contact.openHouseSummary ? (
               <p className={vm.contact.horarioPreferidoLine ? "mt-3" : ""}>
-                <span className="font-semibold text-[#F5F0E8]">Open house</span>
+                <span className="font-semibold text-[#F5F0E8]">{ui.openHouse}</span>
                 <span className="mt-1 block whitespace-pre-line text-[#d8cfc3]">{vm.contact.openHouseSummary}</span>
               </p>
             ) : null}
@@ -469,7 +447,7 @@ function BienesRaicesNegocioDarkContactAside({
               className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl px-3 py-3.5 text-center text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-105"
               style={{ background: `linear-gradient(180deg, ${BRONZE} 0%, ${BRONZE_SOFT} 100%)` }}
             >
-              Solicitar información
+              {ui.solicitarInfo}
             </a>
           ) : null}
           {vm.contact.showProgramarVisita && vm.contact.programarVisitaHref ? (
@@ -479,7 +457,7 @@ function BienesRaicesNegocioDarkContactAside({
               className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
               style={{ borderColor: "rgba(245,240,232,0.25)" }}
             >
-              Programar visita
+              {ui.programarVisita}
             </a>
           ) : null}
           {vm.contact.showLlamar && vm.contact.llamarHref ? (
@@ -489,7 +467,7 @@ function BienesRaicesNegocioDarkContactAside({
               className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
               style={{ borderColor: "rgba(245,240,232,0.25)" }}
             >
-              Llamar ahora
+              {ui.llamarAhora}
             </a>
           ) : null}
           {vm.contact.showWhatsapp && vm.contact.whatsappHref ? (
@@ -501,7 +479,7 @@ function BienesRaicesNegocioDarkContactAside({
               className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E8F5E9] transition hover:bg-white/5"
               style={{ borderColor: "rgba(37,211,102,0.35)" }}
             >
-              Enviar por WhatsApp
+              {ui.enviarWhatsapp}
             </a>
           ) : null}
           {vm.contact.showSms && vm.contact.smsHref ? (
@@ -511,12 +489,12 @@ function BienesRaicesNegocioDarkContactAside({
               className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E3F2FD] transition hover:bg-white/5"
               style={{ borderColor: "rgba(100,181,246,0.45)" }}
             >
-              Enviar texto
+              {ui.enviarTexto}
             </a>
           ) : null}
           {(vm.location.line1 || vm.location.colonia || vm.location.cityStateZip || vm.location.mapsUrl) ? (
             <div className="rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.15)" }}>
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[#E8DFD4]">Ubicación</p>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[#E8DFD4]">{ui.ubicacion}</p>
               {vm.location.line1 ? <p className="mt-1 text-xs text-[#F5F0E8]">{vm.location.line1}</p> : null}
               {vm.location.colonia ? <p className="mt-1 text-xs text-[#D8CFC3]">{vm.location.colonia}</p> : null}
               {vm.location.cityStateZip ? <p className="mt-1 text-xs text-[#D8CFC3]">{vm.location.cityStateZip}</p> : null}
@@ -529,7 +507,7 @@ function BienesRaicesNegocioDarkContactAside({
                   className="mt-3 inline-flex rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold text-[#F5F0E8]"
                   style={{ borderColor: "rgba(255,255,255,0.35)" }}
                 >
-                  Ver en mapa
+                  {ui.verEnMapa}
                 </a>
               ) : null}
             </div>
@@ -597,12 +575,17 @@ export function BienesRaicesNegocioPreviewView({
   vm,
   rentasPolishedDuplexLayout = false,
   onContactLinkClick,
+  lang,
 }: {
   vm: BienesRaicesNegocioPreviewVm;
   /** When true, places the dark contact card beside the hero stack (Rentas) and omits legacy duplicate detail grids. */
   rentasPolishedDuplexLayout?: boolean;
   onContactLinkClick?: () => void;
+  /** Preview chrome language; defaults to Spanish when omitted. */
+  lang?: RentasLandingLang;
 }) {
+  const locale = resolveBrPreviewLang(lang);
+  const ui = negocioPreviewUi(locale);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
@@ -623,10 +606,7 @@ export function BienesRaicesNegocioPreviewView({
 
   const dedupedPhotoSlides = leonixGalleryPhotoSlidesWithCaptions(vm.media?.allPhotoUrls, vm.media?.photoCaptionsFull);
   const uniquePhotoCount = dedupedPhotoSlides.length;
-  const galleryMetaLine =
-    uniquePhotoCount > 0
-      ? `${uniquePhotoCount} foto${uniquePhotoCount === 1 ? "" : "s"} en la galería`
-      : String(vm.media?.metaLine ?? "").trim();
+  const galleryMetaLine = negocioGalleryMetaLine(locale, uniquePhotoCount, String(vm.media?.metaLine ?? ""));
 
   return (
     <div className="w-full min-w-0 max-w-[100vw] overflow-x-hidden antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
@@ -638,7 +618,7 @@ export function BienesRaicesNegocioPreviewView({
                 <IconHome className="h-4 w-4" />
               </SectionIcon>
               <h2 className="text-base font-bold sm:text-lg" style={{ color: CHARCOAL_DEEP }}>
-                Galería multimedia
+                {ui.galeriaMultimedia}
               </h2>
             </div>
             <p className="text-[11px] font-medium sm:text-xs" style={{ color: MUTED }}>
@@ -663,14 +643,14 @@ export function BienesRaicesNegocioPreviewView({
                     );
                   }}
                   disabled={!vm.media?.hasPhotos || !vm.media?.heroUrl}
-                  aria-label="Abrir galería de fotos"
+                  aria-label={ui.ariaAbrirGaleriaFotos}
                 >
                   {vm.media?.hasPhotos && vm.media?.heroUrl ? (
                      
                     <img src={vm.media.heroUrl} alt="" className="aspect-[16/10] w-full object-cover" />
                   ) : (
                     <div className="aspect-[16/10] w-full">
-                      <EmptyMedia title="Galería" subtitle="Sin fotografías en este anuncio." icon={<IconHome className="h-7 w-7" />} />
+                      <EmptyMedia title={ui.galeria} subtitle={ui.sinFotosEnAnuncio} icon={<IconHome className="h-7 w-7" />} />
                     </div>
                   )}
                   {vm.media?.hasPhotos && vm.media?.heroUrl ? (
@@ -692,9 +672,9 @@ export function BienesRaicesNegocioPreviewView({
                         ),
                       );
                     }}
-                    aria-label="Abrir galería completa"
+                    aria-label={ui.ariaAbrirGaleriaCompleta}
                   >
-                    {uniquePhotoCount} fotos
+                    {negocioPhotosChipLabel(locale, uniquePhotoCount)}
                   </button>
                 ) : null}
               </div>
@@ -719,7 +699,7 @@ export function BienesRaicesNegocioPreviewView({
                           leonixSlideIndexForPhotoUrl(vm.media?.allPhotoUrls, vm.media?.photoCaptionsFull, spec.url),
                         )
                       }
-                      aria-label="Abrir foto en galería"
+                      aria-label={ui.ariaAbrirFotoGaleria}
                     >
                       { }
                       <img src={spec.url} alt="" className="aspect-[4/3] w-full object-cover" />
@@ -733,7 +713,7 @@ export function BienesRaicesNegocioPreviewView({
                         style={{ borderColor: BORDER, background: "rgba(253,251,247,0.95)", color: CHARCOAL_DEEP }}
                         onClick={() => openGallery(leonixSlideIndexForVideoSlot(vm.media, spec.slot))}
                       >
-                        Galería
+                        {ui.galeria}
                       </button>
                     </div>
                   )}
@@ -746,7 +726,7 @@ export function BienesRaicesNegocioPreviewView({
           {(vm.media?.floorPlanUrls?.length ?? 0) > 1 ? (
             <div className="mt-3 overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
               <p className="px-3 py-2 text-xs font-bold uppercase tracking-wide" style={{ color: MUTED }}>
-                Planos adicionales ({(vm.media?.floorPlanUrls?.length ?? 0) - 1})
+                {ui.planosAdicionales} ({(vm.media?.floorPlanUrls?.length ?? 0) - 1})
               </p>
               <div className="grid gap-2 p-3 sm:grid-cols-2">
                 {(vm.media?.floorPlanUrls ?? []).slice(1).map((u) => (
@@ -759,7 +739,7 @@ export function BienesRaicesNegocioPreviewView({
           {vm.media?.hasSitePlan && vm.media?.sitePlanUrl && (Boolean(vm.location?.mapsUrl) || Boolean(vm.media?.floorPlanUrls?.[0])) ? (
             <div className="mt-3 overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
               <p className="px-3 py-2 text-xs font-bold uppercase tracking-wide" style={{ color: MUTED }}>
-                Plano de sitio / comunidad
+                {ui.planoSitioComunidad}
               </p>
               { }
               <img src={vm.media.sitePlanUrl} alt="" className="max-h-64 w-full object-contain bg-white" />
@@ -774,7 +754,7 @@ export function BienesRaicesNegocioPreviewView({
               style={{ borderColor: BORDER, background: CREAM_CARD }}
             >
               <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-                Descripción
+                {ui.descripcion}
               </h2>
               <p className="mt-5 whitespace-pre-wrap text-sm leading-[1.75]" style={{ color: CHARCOAL }}>
                 {vm.description}
@@ -824,25 +804,25 @@ export function BienesRaicesNegocioPreviewView({
             <LeonixPreviewQuickFactsStrip quickFacts={quickFacts} />
 
             <div className="mt-6 space-y-4">
-              {grouped.resumen.length > 0 ? <FactBlock title="Resumen de renta" rows={grouped.resumen} /> : null}
+              {grouped.resumen.length > 0 ? <FactBlock title={ui.resumenRenta} rows={grouped.resumen} /> : null}
               {grouped.requisitos ? (
                 <div className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]" style={{ borderColor: BORDER, background: CREAM_CARD }}>
-                  <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>Requisitos</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>{ui.requisitos}</h3>
                   <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed" style={{ color: CHARCOAL }}>{grouped.requisitos}</p>
                 </div>
               ) : null}
               {grouped.condiciones ? (
                 <div className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]" style={{ borderColor: BORDER, background: CREAM_CARD }}>
                   <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-                    Condiciones importantes del alquiler
+                    {ui.condicionesAlquiler}
                   </h3>
                   <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed" style={{ color: CHARCOAL }}>{grouped.condiciones}</p>
                 </div>
               ) : null}
-              {grouped.caracteristicas.length > 0 ? <FactBlock title="Características" rows={grouped.caracteristicas} /> : null}
+              {grouped.caracteristicas.length > 0 ? <FactBlock title={ui.caracteristicas} rows={grouped.caracteristicas} /> : null}
               {grouped.servicios.length > 0 ? (
                 <div className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]" style={{ borderColor: BORDER, background: CREAM_CARD }}>
-                  <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>Servicios incluidos</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>{ui.serviciosIncluidos}</h3>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {grouped.servicios.map((svc) => (
                       <span key={svc} className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: BORDER, background: "#fff", color: CHARCOAL }}>
@@ -855,7 +835,7 @@ export function BienesRaicesNegocioPreviewView({
               {vm.hasHighlights && (vm.highlightsRows?.length ?? 0) > 0 ? (
                 <div className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]" style={{ borderColor: BORDER, background: CREAM_CARD }}>
                   <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-                    {String(vm.highlightsSectionTitle ?? "").trim() || "Destacados"}
+                    {String(vm.highlightsSectionTitle ?? "").trim() || ui.destacadosFallback}
                   </h3>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {(vm.highlightsRows ?? []).map((row) => (
@@ -870,7 +850,7 @@ export function BienesRaicesNegocioPreviewView({
           </div>
 
           {rentasPolishedDuplexLayout ? (
-            <BienesRaicesNegocioDarkContactAside vm={vm} onContactLinkClick={onContactLinkClick} />
+            <BienesRaicesNegocioDarkContactAside vm={vm} onContactLinkClick={onContactLinkClick} ui={ui} />
           ) : (
             <aside
               className="rounded-2xl border p-5 shadow-[0_16px_44px_-12px_rgba(42,36,22,0.15)] lg:sticky lg:top-6 lg:self-start"
@@ -887,8 +867,8 @@ export function BienesRaicesNegocioPreviewView({
                 ) : (
                   <div className="aspect-[4/5] w-full max-h-[min(260px,36vh)]">
                     <EmptyMedia
-                      title="Identidad del anuncio"
-                      subtitle="Sin imagen principal cargada."
+                      title={ui.identidadAnuncio}
+                      subtitle={ui.sinImagenPrincipal}
                       icon={<IconEye className="h-6 w-6" />}
                     />
                   </div>
@@ -920,7 +900,7 @@ export function BienesRaicesNegocioPreviewView({
                   ) : null}
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: MUTED }}>
-                      Inmobiliaria / marca
+                      {ui.inmobiliariaMarca}
                     </p>
                     <p className="mt-1 text-sm font-bold leading-snug" style={{ color: CHARCOAL }}>
                       {vm.identity.brokerageName}
@@ -977,7 +957,7 @@ export function BienesRaicesNegocioPreviewView({
                 </a>
               ) : (
                 <p className="mt-5 text-center text-[11px] leading-snug" style={{ color: MUTED }}>
-                  Añade un sitio web o red social en la ficha para activar el enlace público de perfil.
+                  {ui.profileCtaHint}
                 </p>
               )}
             </aside>
@@ -986,10 +966,10 @@ export function BienesRaicesNegocioPreviewView({
 
         {!rentasPolishedDuplexLayout ? (
         <section className="mt-10 grid gap-5 lg:grid-cols-[1fr_1fr_minmax(280px,340px)] lg:items-stretch lg:gap-5">
-          <FactBlock title="Detalles de la propiedad" rows={vm.propertyDetailsRows} />
+          <FactBlock title={ui.detallesPropiedad} rows={vm.propertyDetailsRows} />
           {vm.hasHighlights ? (
             <FactBlock
-              title={String(vm.highlightsSectionTitle ?? "").trim() || "Características destacadas"}
+              title={String(vm.highlightsSectionTitle ?? "").trim() || ui.caracteristicasDestacadas}
               rows={vm.highlightsRows ?? []}
             />
           ) : (
@@ -998,14 +978,14 @@ export function BienesRaicesNegocioPreviewView({
               style={{ borderColor: BORDER, background: CREAM_CARD }}
             >
               <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-                {String(vm.highlightsSectionTitle ?? "").trim() || "Características destacadas"}
+                {String(vm.highlightsSectionTitle ?? "").trim() || ui.caracteristicasDestacadas}
               </h3>
               <p className="mt-4 text-sm leading-relaxed" style={{ color: MUTED }}>
-                Sin elementos destacados en este anuncio.
+                {ui.sinElementosDestacados}
               </p>
             </div>
           )}
-          <BienesRaicesNegocioDarkContactAside vm={vm} onContactLinkClick={onContactLinkClick} />
+          <BienesRaicesNegocioDarkContactAside vm={vm} onContactLinkClick={onContactLinkClick} ui={ui} />
         </section>
         ) : null}
 
@@ -1016,16 +996,16 @@ export function BienesRaicesNegocioPreviewView({
               className="text-xl font-bold uppercase tracking-[0.12em] sm:text-2xl"
               style={{ color: CHARCOAL_DEEP, fontFamily: "Georgia, serif" }}
             >
-              Detalles completos del inmueble
+              {ui.detallesCompletosTitulo}
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm" style={{ color: MUTED }}>
-              Ficha técnica por bloques según los datos de este anuncio.
+              {ui.detallesCompletosSub}
             </p>
           </div>
 
           {(vm.detailClusters ?? []).length === 0 ? (
             <p className="mx-auto max-w-xl text-center text-sm leading-relaxed" style={{ color: MUTED }}>
-              Sin bloques de detalle técnico en este anuncio.
+              {ui.sinBloquesDetalle}
             </p>
           ) : (
             <div className="space-y-12">
@@ -1039,7 +1019,7 @@ export function BienesRaicesNegocioPreviewView({
                   </h3>
                   <div className="grid gap-5 md:grid-cols-2">
                     {(cluster.blocks ?? []).map((b) => (
-                      <DeepSection key={b.id} icon={deepIcon(b.id)} heading={b.heading} items={b.bullets} />
+                      <DeepSection key={b.id} icon={deepIcon(b.id)} heading={b.heading} items={b.bullets} emptyMessage={ui.deepSectionEmpty} />
                     ))}
                   </div>
                 </div>
@@ -1058,7 +1038,13 @@ export function BienesRaicesNegocioPreviewView({
         )}
       </main>
 
-      <LeonixPreviewGalleryLightbox vm={vm} open={galleryOpen} initialIndex={galleryIndex} onClose={() => setGalleryOpen(false)} />
+      <LeonixPreviewGalleryLightbox
+        vm={vm}
+        open={galleryOpen}
+        initialIndex={galleryIndex}
+        onClose={() => setGalleryOpen(false)}
+        lang={locale}
+      />
     </div>
   );
 }

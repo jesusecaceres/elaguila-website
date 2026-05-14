@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import type { BienesRaicesPreviewMediaVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { BrNegocioStreamableVideo } from "@/app/clasificados/bienes-raices/preview/negocio/components/BrNegocioStreamableVideo";
 import { isHostedStreamOrBlobUrl, isHttpsDirectVideoUrl, isInlineVideoDataUrl } from "@/app/clasificados/lib/leonixPreviewVideoUrl";
@@ -8,7 +9,64 @@ import { leonixGalleryPhotoSlidesWithCaptions } from "./leonixGallerySlides";
 
 type Vm = { media: BienesRaicesPreviewMediaVm };
 
-function ZoomablePhoto({ url, caption }: { url: string; caption: string }) {
+type GalleryLightboxUi = {
+  resetZoom: string;
+  listingVideoTitle: string;
+  openVideoNewTab: string;
+  watchVideo: string;
+  videoUnavailable: string;
+  dialogAria: string;
+  photosTab: string;
+  videoTab: string;
+  photosCountLabel: (idx: number, total: number) => string;
+  videoHeader: string;
+  galleryHeader: string;
+  closeAria: string;
+  close: string;
+  prevAria: string;
+  nextAria: string;
+};
+
+function galleryLightboxUi(lang: RentasLandingLang | undefined): GalleryLightboxUi {
+  if (lang === "en") {
+    return {
+      resetZoom: "Reset",
+      listingVideoTitle: "Listing video",
+      openVideoNewTab: "Open the video in a new tab.",
+      watchVideo: "Watch video",
+      videoUnavailable: "Video unavailable.",
+      dialogAria: "Photo and video gallery",
+      photosTab: "Photos",
+      videoTab: "Video",
+      photosCountLabel: (idx, total) => `Photos · ${idx + 1} / ${total}`,
+      videoHeader: "Video",
+      galleryHeader: "Gallery",
+      closeAria: "Close gallery",
+      close: "Close",
+      prevAria: "Previous",
+      nextAria: "Next",
+    };
+  }
+  return {
+    resetZoom: "Restablecer",
+    listingVideoTitle: "Video del anuncio",
+    openVideoNewTab: "Abre el video en una nueva pestaña.",
+    watchVideo: "Ver video",
+    videoUnavailable: "Video no disponible.",
+    dialogAria: "Galería de fotos y videos",
+    photosTab: "Fotos",
+    videoTab: "Video",
+    photosCountLabel: (idx, total) => `Fotos · ${idx + 1} / ${total}`,
+    videoHeader: "Video",
+    galleryHeader: "Galería",
+    closeAria: "Cerrar galería",
+    close: "Cerrar",
+    prevAria: "Anterior",
+    nextAria: "Siguiente",
+  };
+}
+
+function ZoomablePhoto({ url, caption, resetLabel }: { url: string; caption: string; resetLabel: string }) {
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
@@ -43,7 +101,7 @@ function ZoomablePhoto({ url, caption }: { url: string; caption: string }) {
             className="pointer-events-auto rounded-full border border-white/25 bg-black/55 px-3 py-1.5 text-[11px] font-bold text-white backdrop-blur-sm hover:bg-black/70"
             onClick={() => setScale(1)}
           >
-            Restablecer
+            {resetLabel}
           </button>
         </div>
       ) : null}
@@ -54,7 +112,7 @@ function ZoomablePhoto({ url, caption }: { url: string; caption: string }) {
   );
 }
 
-function VideoSlide({ vm, slot }: { vm: Vm; slot: 0 | 1 }) {
+function VideoSlide({ vm, slot, ui }: { vm: Vm; slot: 0 | 1; ui: GalleryLightboxUi }) {
   const m = vm.media;
   const yt = m?.youtubeIds?.[slot] ?? null;
   const playback = m?.videoPlaybackUrls?.[slot] ?? null;
@@ -64,7 +122,7 @@ function VideoSlide({ vm, slot }: { vm: Vm; slot: 0 | 1 }) {
   if (yt) {
     return (
       <iframe
-        title="Video del anuncio"
+        title={ui.listingVideoTitle}
         className="h-full min-h-[220px] w-full max-h-[min(78vh,820px)]"
         src={`https://www.youtube-nocookie.com/embed/${yt}`}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -88,19 +146,19 @@ function VideoSlide({ vm, slot }: { vm: Vm; slot: 0 | 1 }) {
   if (watchUrl) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 p-8 text-center">
-        <p className="text-sm text-white/85">Abre el video en una nueva pestaña.</p>
+        <p className="text-sm text-white/85">{ui.openVideoNewTab}</p>
         <a
           href={watchUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-xl border border-white/25 bg-white/10 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/15"
         >
-          Ver video
+          {ui.watchVideo}
         </a>
       </div>
     );
   }
-  return <p className="p-8 text-center text-sm text-white/70">Video no disponible.</p>;
+  return <p className="p-8 text-center text-sm text-white/70">{ui.videoUnavailable}</p>;
 }
 
 /**
@@ -111,12 +169,16 @@ export function LeonixPreviewGalleryLightbox({
   open,
   initialIndex,
   onClose,
+  lang,
 }: {
   vm: Vm;
   open: boolean;
   initialIndex: number;
   onClose: () => void;
+  /** Defaults to Spanish when omitted. */
+  lang?: RentasLandingLang;
 }) {
+  const lb = galleryLightboxUi(lang);
   const photoSlides = useMemo(
     () => leonixGalleryPhotoSlidesWithCaptions(vm.media?.allPhotoUrls, vm.media?.photoCaptionsFull),
     [vm.media],
@@ -157,17 +219,17 @@ export function LeonixPreviewGalleryLightbox({
   const currentPhoto = photoSlides[photoIdx] ?? null;
   const headerCount =
     tab === "fotos" && photoSlides.length > 0
-      ? `Fotos · ${photoIdx + 1} / ${photoSlides.length}`
+      ? lb.photosCountLabel(photoIdx, photoSlides.length)
       : tab === "video"
-        ? "Video"
-        : "Galería";
+        ? lb.videoHeader
+        : lb.galleryHeader;
 
   return !show ? null : (
     <div
       className="fixed inset-0 z-[130] flex items-center justify-center bg-black/80 p-3 pt-[max(4.25rem,env(safe-area-inset-top,0px))] backdrop-blur-sm sm:p-6 sm:pt-[max(5rem,env(safe-area-inset-top,0px))]"
       role="dialog"
       aria-modal="true"
-      aria-label="Galería de fotos y videos"
+      aria-label={lb.dialogAria}
     >
       <div className="flex h-[min(96vh,100dvh)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0f0d09] shadow-2xl">
         <div
@@ -183,7 +245,7 @@ export function LeonixPreviewGalleryLightbox({
                   tab === "fotos" ? "bg-white/20 text-white" : "text-white/70 hover:bg-white/10"
                 }`}
               >
-                Fotos
+                {lb.photosTab}
               </button>
             ) : null}
             {hasVideoTab ? (
@@ -194,7 +256,7 @@ export function LeonixPreviewGalleryLightbox({
                   tab === "video" ? "bg-white/20 text-white" : "text-white/70 hover:bg-white/10"
                 }`}
               >
-                Video
+                {lb.videoTab}
               </button>
             ) : null}
             <p className="min-w-0 truncate text-xs font-semibold text-white/90">{headerCount}</p>
@@ -203,20 +265,20 @@ export function LeonixPreviewGalleryLightbox({
             type="button"
             onClick={onClose}
             className="shrink-0 rounded-xl border border-white/25 bg-white/15 px-3 py-2 text-xs font-bold text-white shadow-md hover:bg-white/25"
-            aria-label="Cerrar galería"
+            aria-label={lb.closeAria}
           >
-            Cerrar
+            {lb.close}
           </button>
         </div>
 
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
           <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
             {tab === "fotos" && currentPhoto ? (
-              <ZoomablePhoto url={currentPhoto.url} caption={currentPhoto.caption} />
+              <ZoomablePhoto url={currentPhoto.url} caption={currentPhoto.caption} resetLabel={lb.resetZoom} />
             ) : null}
             {tab === "video" && hasVideoTab ? (
               <div className="flex h-full min-h-0 w-full max-w-5xl flex-1 items-center justify-center p-2 sm:p-4">
-                <VideoSlide vm={vm} slot={videoSlot === 1 && hasV2 ? 1 : 0} />
+                <VideoSlide vm={vm} slot={videoSlot === 1 && hasV2 ? 1 : 0} ui={lb} />
               </div>
             ) : null}
 
@@ -226,7 +288,7 @@ export function LeonixPreviewGalleryLightbox({
                   type="button"
                   onClick={() => setPhotoIdx((i) => (i <= 0 ? photoSlides.length - 1 : i - 1))}
                   className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/15 bg-black/50 px-3 py-2 text-lg font-bold text-white hover:bg-black/70 sm:left-4"
-                  aria-label="Anterior"
+                  aria-label={lb.prevAria}
                 >
                   ‹
                 </button>
@@ -234,7 +296,7 @@ export function LeonixPreviewGalleryLightbox({
                   type="button"
                   onClick={() => setPhotoIdx((i) => (i >= photoSlides.length - 1 ? 0 : i + 1))}
                   className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/15 bg-black/50 px-3 py-2 text-lg font-bold text-white hover:bg-black/70 sm:right-4"
-                  aria-label="Siguiente"
+                  aria-label={lb.nextAria}
                 >
                   ›
                 </button>

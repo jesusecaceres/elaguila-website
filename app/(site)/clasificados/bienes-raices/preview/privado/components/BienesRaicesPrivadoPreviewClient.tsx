@@ -148,7 +148,7 @@ export default function BienesRaicesPrivadoPreviewClient() {
         </div>
       }
     >
-      <BienesRaicesPrivadoPreviewView vm={vm} />
+      <BienesRaicesPrivadoPreviewView vm={vm} lang={lang} />
     </LeonixPreviewPageShell>
   );
 }

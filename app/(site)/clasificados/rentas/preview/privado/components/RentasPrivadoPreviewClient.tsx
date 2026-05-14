@@ -187,7 +187,7 @@ export default function RentasPrivadoPreviewClient() {
             {lang === "en" ? "Full listing preview" : "Vista previa completa"}
           </h2>
         </section>
-        <BienesRaicesPrivadoPreviewView vm={templateVm} />
+        <BienesRaicesPrivadoPreviewView vm={templateVm} lang={lang} />
       </LeonixPreviewPageShell>
     );
   }
@@ -227,7 +227,7 @@ export default function RentasPrivadoPreviewClient() {
           {lang === "en" ? "Full listing preview" : "Vista previa completa"}
         </h2>
       </section>
-      <BienesRaicesPrivadoPreviewView vm={vm} />
+      <BienesRaicesPrivadoPreviewView vm={vm} lang={lang} />
     </LeonixPreviewPageShell>
   );
 }

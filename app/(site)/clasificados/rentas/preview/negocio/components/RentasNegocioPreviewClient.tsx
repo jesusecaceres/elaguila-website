@@ -194,7 +194,7 @@ export default function RentasNegocioPreviewClient() {
             {lang === "en" ? "Full listing preview" : "Vista previa completa"}
           </h2>
         </section>
-        <BienesRaicesNegocioPreviewView vm={vm} rentasPolishedDuplexLayout />
+        <BienesRaicesNegocioPreviewView vm={vm} rentasPolishedDuplexLayout lang={lang} />
       </LeonixPreviewPageShell>
     );
   }
@@ -233,7 +233,7 @@ export default function RentasNegocioPreviewClient() {
           {lang === "en" ? "Full listing preview" : "Vista previa completa"}
         </h2>
       </section>
-      <BienesRaicesNegocioPreviewView vm={vm} rentasPolishedDuplexLayout />
+      <BienesRaicesNegocioPreviewView vm={vm} rentasPolishedDuplexLayout lang={lang} />
     </LeonixPreviewPageShell>
   );
 }
