@@ -1,5 +1,7 @@
 # Dashboard analytics — internal audit & smoke test
 
+**See also:** [`docs/dashboard-admin-smoke-test.md`](./dashboard-admin-smoke-test.md) — Playwright **read-only** dashboard / admin / public clasificados smoke (`npm run smoke:all`), env vars, and high-level product audit matrix.
+
 This document maps **displayed metrics → `listing_analytics.event_type` → tracking entry points**, notes **DB columns**, and lists a **manual smoke checklist** for QA.
 
 ## Schema & RLS

@@ -57,7 +57,14 @@
     "verify:rentas:e2e": "npx tsx scripts/rentas-e2e-pipeline-smoke.ts",
     "verify:rentas:sample-browser-qa": "npx kill-port 3018 3019 && npx playwright test e2e/rentas/rentas-sample-content-full-qa.spec.ts --config playwright.rentas-start.config.mjs",
     "verify:community-quick:contract": "npx tsx scripts/community-quick-publish-contract-smoke.ts",
-    "verify:community-preview:e2e": "npm run build && npx playwright test -c playwright.community-preview.config.mjs"
+    "verify:community-preview:e2e": "npm run build && npx playwright test -c playwright.community-preview.config.mjs",
+    "smoke:auth": "npx playwright test -c playwright.leonix-smoke.config.mjs --grep @smoke-auth",
+    "smoke:guardados": "npx playwright test -c playwright.leonix-smoke.config.mjs --grep @smoke-guardados",
+    "smoke:owner": "npx playwright test -c playwright.leonix-smoke.config.mjs --grep @smoke-owner",
+    "smoke:dashboard": "npx playwright test -c playwright.leonix-smoke.config.mjs --grep @smoke-health",
+    "smoke:admin": "npx playwright test -c playwright.leonix-smoke.config.mjs --grep @smoke-admin",
+    "smoke:clasificados": "npx playwright test -c playwright.leonix-smoke.config.mjs --grep @smoke-public",
+    "smoke:all": "npx playwright test -c playwright.leonix-smoke.config.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
