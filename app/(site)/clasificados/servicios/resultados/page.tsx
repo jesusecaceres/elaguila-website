@@ -58,6 +58,13 @@ type PageProps = {
     vint?: string;
     wknd?: string;
     open_now?: string;
+    licensed?: string;
+    insured?: string;
+    free_estimate?: string;
+    free_consultation?: string;
+    has_photos?: string;
+    has_videos?: string;
+    has_offers?: string;
   }>;
 };
 
@@ -72,7 +79,7 @@ function parseSort(raw: string | undefined): ServiciosResultsFilterQuery["sort"]
   return "newest";
 }
 
-function parseOpenNowFlag(raw: string | undefined): ServiciosResultsFilterQuery["openNow"] {
+function parseTruthyResultsFlag(raw: string | undefined): "1" | undefined {
   const t = (raw ?? "").trim().toLowerCase();
   if (t === "1" || t === "true") return "1";
   return undefined;
@@ -107,7 +114,14 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
     langOt: sp.langOt === "1" ? "1" : undefined,
     vint: sp.vint === "1" ? "1" : undefined,
     wknd: sp.wknd === "1" ? "1" : undefined,
-    openNow: parseOpenNowFlag(sp.open_now),
+    openNow: parseTruthyResultsFlag(sp.open_now),
+    licensed: parseTruthyResultsFlag(sp.licensed),
+    insured: parseTruthyResultsFlag(sp.insured),
+    freeEstimate: parseTruthyResultsFlag(sp.free_estimate),
+    freeConsultation: parseTruthyResultsFlag(sp.free_consultation),
+    hasPhotos: parseTruthyResultsFlag(sp.has_photos),
+    hasVideos: parseTruthyResultsFlag(sp.has_videos),
+    hasOffers: parseTruthyResultsFlag(sp.has_offers),
   };
 
   // Prefetch window for in-memory filters. Raised from 120→500 so keyword/filters are less likely to

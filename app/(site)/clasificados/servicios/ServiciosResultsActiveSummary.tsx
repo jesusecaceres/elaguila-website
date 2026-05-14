@@ -83,6 +83,48 @@ export function ServiciosResultsActiveSummary({
       label: lang === "en" ? "Leonix verified only" : "Solo verificados Leonix",
     });
   }
+  if (query.licensed === "1") {
+    items.push({
+      key: "licensed",
+      label: lang === "en" ? "Licensed" : "Licenciado",
+    });
+  }
+  if (query.insured === "1") {
+    items.push({
+      key: "insured",
+      label: lang === "en" ? "Insured" : "Asegurado",
+    });
+  }
+  if (query.freeEstimate === "1") {
+    items.push({
+      key: "freeEstimate",
+      label: lang === "en" ? "Free estimate" : "Cotización gratis",
+    });
+  }
+  if (query.freeConsultation === "1") {
+    items.push({
+      key: "freeConsultation",
+      label: lang === "en" ? "Free consultation" : "Consulta gratis",
+    });
+  }
+  if (query.hasPhotos === "1") {
+    items.push({
+      key: "hasPhotos",
+      label: lang === "en" ? "Has photos" : "Tiene fotos",
+    });
+  }
+  if (query.hasVideos === "1") {
+    items.push({
+      key: "hasVideos",
+      label: lang === "en" ? "Has videos" : "Tiene videos",
+    });
+  }
+  if (query.hasOffers === "1") {
+    items.push({
+      key: "hasOffers",
+      label: lang === "en" ? "Has offers" : "Tiene ofertas",
+    });
+  }
   if (query.web === "1") {
     items.push({
       key: "web",

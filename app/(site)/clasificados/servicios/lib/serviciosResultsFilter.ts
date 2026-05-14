@@ -1,6 +1,7 @@
 import { serviciosHoursSummaryIsOpenNow } from "@/app/servicios/components/serviciosHeroHoursStatus";
+import { isAllowedServiciosImageUrl } from "@/app/servicios/lib/serviciosMediaUrl";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
-import type { ServiciosBusinessProfile, ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
+import type { ServiciosBusinessProfile, ServiciosLang, ServiciosProfileResolved } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ServiciosPublicListingRow } from "./serviciosPublicListingsServer";
 import { serviciosPublicListingDiscoverySortMs } from "./serviciosPublicListingSort";
 import { serviciosVerifiedRankingBias } from "./serviciosLeonixVerificationModel";
@@ -51,6 +52,20 @@ export type ServiciosResultsFilterQuery = {
   wknd?: "1";
   /** URL: open_now=1 — listing must be “open” per vitrina hero hours logic at filter time */
   openNow?: "1";
+  /** URL: licensed=1 — license credentials, licensed+insured quick fact, or hero “licensed” badge */
+  licensed?: "1";
+  /** URL: insured=1 — insurance credentials, licensed+insured quick fact, or hero “insured” badge */
+  insured?: "1";
+  /** URL: free_estimate=1 — quick fact, amenity, or trusted marketing copy */
+  freeEstimate?: "1";
+  /** URL: free_consultation=1 — amenity or trusted marketing copy */
+  freeConsultation?: "1";
+  /** URL: has_photos=1 — resolved gallery/cover/logo/service images (sanitized URLs; excludes empty/blob) */
+  hasPhotos?: "1";
+  /** URL: has_videos=1 — resolved gallery videos with public playback URL (Mux HLS / https, post-sanitize) */
+  hasVideos?: "1";
+  /** URL: has_offers=1 — resolved promotions/offers (same gate as public shell, not blank-only) */
+  hasOffers?: "1";
 };
 
 function normalize(s: string | undefined): string {
@@ -82,6 +97,13 @@ export function serviciosResultsHasActiveFilters(q: ServiciosResultsFilterQuery)
       q.vint === "1" ||
       q.wknd === "1" ||
       q.openNow === "1" ||
+      q.licensed === "1" ||
+      q.insured === "1" ||
+      q.freeEstimate === "1" ||
+      q.freeConsultation === "1" ||
+      q.hasPhotos === "1" ||
+      q.hasVideos === "1" ||
+      q.hasOffers === "1" ||
       (q.sort && q.sort !== "newest") ||
       (q.seller && q.seller !== "all"),
   );
@@ -96,7 +118,134 @@ function wireHasBilingualQuickFact(p: ServiciosBusinessProfile): boolean {
 }
 
 function wireHasQuickFactKind(p: ServiciosBusinessProfile, kind: string): boolean {
-  return (p.quickFacts ?? []).some((f) => f.kind === kind);
+  const qf = p.quickFacts;
+  if (!Array.isArray(qf)) return false;
+  return qf.some((f) => f && f.kind === kind);
+}
+
+function wireHeroBadgeKinds(pj: ServiciosBusinessProfile): Set<string> {
+  const badges = pj.hero?.badges;
+  if (!Array.isArray(badges)) return new Set();
+  const out = new Set<string>();
+  for (const b of badges) {
+    if (b && typeof b.kind === "string") out.add(b.kind);
+  }
+  return out;
+}
+
+function wireHasAmenityOptionId(pj: ServiciosBusinessProfile, id: string): boolean {
+  const ids = pj.amenityOptionIds;
+  if (!Array.isArray(ids)) return false;
+  return ids.includes(id);
+}
+
+/** Substrings on normalized (lowercased) marketing text — multi-word / specific only. */
+const FREE_ESTIMATE_PHRASES = [
+  "free estimate",
+  "free estimates",
+  "cotización gratis",
+  "cotizacion gratis",
+  "presupuesto gratis",
+  "estimado gratis",
+  "estimados gratis",
+];
+
+const FREE_CONSULTATION_PHRASES = [
+  "free consultation",
+  "free initial consultation",
+  "consulta gratis",
+  "consultas gratis",
+  "consulta inicial gratis",
+];
+
+function wireTrustMarketingHaystackNormalized(pj: ServiciosBusinessProfile): string {
+  try {
+    const parts: string[] = [];
+    const push = (s: unknown) => {
+      if (typeof s === "string" && s.trim()) parts.push(s);
+    };
+    const qf = Array.isArray(pj.quickFacts) ? pj.quickFacts : [];
+    for (const f of qf) {
+      if (f && typeof f.label === "string") push(f.label);
+    }
+    const trust = Array.isArray(pj.trust) ? pj.trust : [];
+    for (const t of trust) {
+      if (t && typeof t.label === "string") push(t.label);
+    }
+    const services = Array.isArray(pj.services) ? pj.services : [];
+    for (const s of services) {
+      if (s && typeof s.title === "string") push(s.title);
+      if (s && typeof s.secondaryLine === "string") push(s.secondaryLine);
+    }
+    const highlights = Array.isArray(pj.businessHighlights) ? pj.businessHighlights : [];
+    for (const h of highlights) {
+      if (h && typeof h.label === "string") push(h.label);
+    }
+    const badges = Array.isArray(pj.hero?.badges) ? pj.hero!.badges! : [];
+    for (const b of badges) {
+      if (b && typeof b.label === "string") push(b.label);
+    }
+    for (const raw of wirePromotionalTextFields(pj)) {
+      push(raw);
+    }
+    const customAmenities = pj.customAmenityOptions;
+    if (Array.isArray(customAmenities)) {
+      for (const c of customAmenities) push(c);
+    }
+    return normalize(parts.join("\n"));
+  } catch {
+    return "";
+  }
+}
+
+function haystackContainsAnyPhrase(hay: string, phrases: readonly string[]): boolean {
+  if (!hay) return false;
+  for (const p of phrases) {
+    const n = normalize(p);
+    if (n && hay.includes(n)) return true;
+  }
+  return false;
+}
+
+function rowMatchesLicensed(pj: ServiciosBusinessProfile): boolean {
+  try {
+    if (pj.credentials?.hasLicense === true) return true;
+    if (wireHasQuickFactKind(pj, "licensed_insured")) return true;
+    return wireHeroBadgeKinds(pj).has("licensed");
+  } catch {
+    return false;
+  }
+}
+
+function rowMatchesInsured(pj: ServiciosBusinessProfile): boolean {
+  try {
+    if (pj.credentials?.isInsured === true) return true;
+    if (wireHasQuickFactKind(pj, "licensed_insured")) return true;
+    return wireHeroBadgeKinds(pj).has("insured");
+  } catch {
+    return false;
+  }
+}
+
+function rowMatchesFreeEstimate(pj: ServiciosBusinessProfile): boolean {
+  try {
+    if (wireHasQuickFactKind(pj, "free_estimate")) return true;
+    if (wireHasAmenityOptionId(pj, "service_free_estimates")) return true;
+    const hay = wireTrustMarketingHaystackNormalized(pj);
+    return haystackContainsAnyPhrase(hay, FREE_ESTIMATE_PHRASES);
+  } catch {
+    return false;
+  }
+}
+
+function rowMatchesFreeConsultation(pj: ServiciosBusinessProfile): boolean {
+  try {
+    if (wireHasAmenityOptionId(pj, "service_free_initial_consultation")) return true;
+    const hay = wireTrustMarketingHaystackNormalized(pj);
+    return haystackContainsAnyPhrase(hay, FREE_CONSULTATION_PHRASES);
+  } catch {
+    return false;
+  }
 }
 
 function wireHasPublicEmail(p: ServiciosBusinessProfile): boolean {
@@ -173,6 +322,51 @@ function resolvedProfile(row: ServiciosPublicListingRow, lang: ServiciosLang) {
   return resolveServiciosProfile(wire, lang);
 }
 
+/** Hero image counts as a public photo when URL passes the same allowlist as gallery (excludes blob: drafts). */
+function resolvedHeroPhotoUrl(url: string | undefined): boolean {
+  const t = (url ?? "").trim();
+  if (!t || t.startsWith("blob:")) return false;
+  return isAllowedServiciosImageUrl(t);
+}
+
+function resolvedHasPublicPhotos(profile: ServiciosProfileResolved): boolean {
+  try {
+    const nMain = profile.gallery?.length ?? 0;
+    const nMore = profile.galleryMore?.length ?? 0;
+    if (nMain + nMore > 0) return true;
+    if (resolvedHeroPhotoUrl(profile.hero.coverImageUrl)) return true;
+    if (resolvedHeroPhotoUrl(profile.hero.logoUrl)) return true;
+    const services = profile.services;
+    if (!Array.isArray(services)) return false;
+    return services.some((s) => Boolean(s?.imageUrl?.trim()));
+  } catch {
+    return false;
+  }
+}
+
+function resolvedHasPlayableGalleryVideos(profile: ServiciosProfileResolved): boolean {
+  try {
+    const vids = profile.galleryVideos;
+    if (!Array.isArray(vids) || vids.length === 0) return false;
+    return vids.some((v) => {
+      if (!v || typeof v.url !== "string") return false;
+      const u = v.url.trim();
+      if (!u || u.startsWith("blob:")) return false;
+      return Boolean(v.muxPlaybackId?.trim()) || u.startsWith("http://") || u.startsWith("https://");
+    });
+  } catch {
+    return false;
+  }
+}
+
+function resolvedHasOffers(profile: ServiciosProfileResolved): boolean {
+  try {
+    return Array.isArray(profile.promotions) && profile.promotions.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 /** Collects free-text promo/offer fields from wire JSON (supports legacy keys like title/details). */
 function wirePromotionalTextFields(pj: ServiciosBusinessProfile): string[] {
   const out: string[] = [];
@@ -227,6 +421,13 @@ export function filterServiciosPublicListingRows(
   const wantVint = q.vint === "1";
   const wantWknd = q.wknd === "1";
   const wantOpenNow = q.openNow === "1";
+  const wantLicensed = q.licensed === "1";
+  const wantInsured = q.insured === "1";
+  const wantFreeEstimate = q.freeEstimate === "1";
+  const wantFreeConsultation = q.freeConsultation === "1";
+  const wantHasPhotos = q.hasPhotos === "1";
+  const wantHasVideos = q.hasVideos === "1";
+  const wantHasOffers = q.hasOffers === "1";
 
   if (
     !cityQ &&
@@ -250,7 +451,14 @@ export function filterServiciosPublicListingRows(
     !wantLangEn &&
     !wantLangOt &&
     !wantVint &&
-    !wantWknd
+    !wantWknd &&
+    !wantLicensed &&
+    !wantInsured &&
+    !wantFreeEstimate &&
+    !wantFreeConsultation &&
+    !wantHasPhotos &&
+    !wantHasVideos &&
+    !wantHasOffers
   ) {
     return rows;
   }
@@ -276,12 +484,20 @@ export function filterServiciosPublicListingRows(
     if (wantVint && pj.opsMeta?.leonixVerifiedInterest !== true) return false;
     if (wantWknd && !wireWeekendOpen(pj)) return false;
 
-    if (wantWa || wantPromo || wantCall || wantOpenNow) {
+    if (wantLicensed && !rowMatchesLicensed(pj)) return false;
+    if (wantInsured && !rowMatchesInsured(pj)) return false;
+    if (wantFreeEstimate && !rowMatchesFreeEstimate(pj)) return false;
+    if (wantFreeConsultation && !rowMatchesFreeConsultation(pj)) return false;
+
+    if (wantWa || wantPromo || wantCall || wantOpenNow || wantHasPhotos || wantHasVideos || wantHasOffers) {
       const profile = resolvedProfile(row, lang);
       if (wantOpenNow && !serviciosHoursSummaryIsOpenNow(profile.contact.hours, lang)) return false;
       if (wantWa && !profile.contact.socialLinks?.whatsapp) return false;
       if (wantPromo && !profile.promotions.some((p) => p.headline?.trim())) return false;
       if (wantCall && !(profile.contact.phoneDisplay && profile.contact.phoneTelHref)) return false;
+      if (wantHasPhotos && !resolvedHasPublicPhotos(profile)) return false;
+      if (wantHasVideos && !resolvedHasPlayableGalleryVideos(profile)) return false;
+      if (wantHasOffers && !resolvedHasOffers(profile)) return false;
     }
 
     return true;

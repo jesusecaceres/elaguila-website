@@ -241,6 +241,97 @@ export function ServiciosResultsFilters({
             </label>
             <label className="flex min-w-0 flex-col gap-1">
               <span className="text-xs font-semibold text-neutral-700">
+                {lang === "en" ? "Licensed" : "Licenciado"}
+              </span>
+              <select
+                name="licensed"
+                defaultValue={current.licensed === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Licensed only" : "Solo licenciados"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">
+                {lang === "en" ? "Insured" : "Asegurado"}
+              </span>
+              <select
+                name="insured"
+                defaultValue={current.insured === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Insured only" : "Solo asegurados"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">
+                {lang === "en" ? "Free estimate" : "Cotización gratis"}
+              </span>
+              <select
+                name="free_estimate"
+                defaultValue={current.freeEstimate === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Free estimate offered" : "Con cotización gratis"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">
+                {lang === "en" ? "Free consultation" : "Consulta gratis"}
+              </span>
+              <select
+                name="free_consultation"
+                defaultValue={current.freeConsultation === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Free consultation offered" : "Con consulta gratis"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">
+                {lang === "en" ? "Has photos" : "Tiene fotos"}
+              </span>
+              <select
+                name="has_photos"
+                defaultValue={current.hasPhotos === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Public photos on profile" : "Con fotos en vitrina"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">
+                {lang === "en" ? "Has videos" : "Tiene videos"}
+              </span>
+              <select
+                name="has_videos"
+                defaultValue={current.hasVideos === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Playable gallery video" : "Con video reproducible"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">
+                {lang === "en" ? "Has offers" : "Tiene ofertas"}
+              </span>
+              <select
+                name="has_offers"
+                defaultValue={current.hasOffers === "1" ? "1" : ""}
+                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              >
+                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
+                <option value="1">{lang === "en" ? "Offers / promotions" : "Con ofertas o promociones"}</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold text-neutral-700">
                 {lang === "en" ? "Website on profile" : "Sitio web en vitrina"}
               </span>
               <select
