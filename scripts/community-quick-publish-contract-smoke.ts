@@ -170,6 +170,24 @@ function main() {
   assert.equal(gateClasesQuickPreview(clasesPaid, "es").ok, true);
   assert.equal(shouldBlockClasesPaidPublish(clasesPaid), true);
 
+  const discoveryCard = readSourceRel("app/(site)/clasificados/community/CommunityDiscoveryListingCard.tsx");
+  assert.ok(discoveryCard.includes('data-testid="community-discovery-listing-card"'));
+  assert.ok(discoveryCard.includes("Ver clase") && discoveryCard.includes("Ver evento"));
+
+  const discoveryModel = readSourceRel(
+    "app/(site)/clasificados/community/shared/communityDiscoveryListingCardModel.ts",
+  );
+  assert.ok(discoveryModel.includes("pickListingCardImageUrl"));
+  assert.ok(discoveryModel.includes("buildCommunityDiscoverySearchBlob"));
+
+  const recentListings = readSourceRel("app/(site)/clasificados/components/categoryLanding/CategoryRecentListings.tsx");
+  assert.ok(recentListings.includes("CommunityDiscoveryListingCard"));
+  assert.ok(recentListings.includes('data-testid="community-discovery-landing-recent"'));
+
+  const resultsClient = readSourceRel("app/(site)/clasificados/community/CommunityListingsResultsClient.tsx");
+  assert.ok(resultsClient.includes("CommunityDiscoveryListingCard"));
+  assert.ok(resultsClient.includes('data-testid="community-discovery-results-grid"'));
+
   console.log("community-quick-publish-contract-smoke: PASS");
 }
 

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -8,16 +7,14 @@ import { useSearchParams } from "next/navigation";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import {
-  clasesCostTypeLabel,
-  clasesModeLabel,
-  clasesPriceFrequencyLabel,
-  comunidadEventCostLabel,
   detailPairsToMap,
   isCommunityQuickListing,
   parseAccessibilityKeysCsv,
-  parseWeeklyScheduleJson,
-  summarizeWeeklySchedule,
 } from "@/app/(site)/clasificados/community/shared/communityListingDetailPairs";
+import {
+  buildCommunityDiscoveryCardModel,
+  buildCommunityDiscoverySearchBlob,
+} from "@/app/(site)/clasificados/community/shared/communityDiscoveryListingCardModel";
 import {
   fetchPublishedCommunityCategoryListings,
   type CommunityListingBrowseRow,
@@ -34,20 +31,7 @@ import {
 } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
 import Navbar from "@/app/components/Navbar";
 
-import { CommunityResultCardEngagement } from "./CommunityResultCardEngagement";
-
-function firstImageUrl(images: unknown): string | null {
-  if (images == null) return null;
-  if (Array.isArray(images) && images.length) {
-    const x = images[0];
-    if (typeof x === "string" && x.trim()) return x.trim();
-    if (x && typeof x === "object") {
-      const u = (x as { url?: string }).url;
-      if (typeof u === "string" && u.trim()) return u.trim();
-    }
-  }
-  return null;
-}
+import { CommunityDiscoveryListingCard } from "./CommunityDiscoveryListingCard";
 
 function textMatch(hay: string, needle: string): boolean {
   if (!needle.trim()) return true;
@@ -107,28 +91,21 @@ export function CommunityListingsResultsClient({
   const filtered = useMemo(() => {
     return rows.filter((row) => {
       const pairs = detailPairsToMap(row.detail_pairs);
-      const title = String(row.title ?? "");
-      const desc = String(row.description ?? "");
       const quick = isCommunityQuickListing(pairs);
-      const classTypeLine = quick
-        ? resolveClasesCategoryPublicLabel(
-            pairs["Leonix:classCategory"] ?? "",
-            pairs["Leonix:classCategoryCustom"] ?? "",
-            lang,
-          )
-        : "";
-      const eventTypeLine = quick
-        ? resolveComunidadEventTypePublicLabel(
-            pairs["Leonix:eventCategory"] ?? "",
-            pairs["Leonix:eventCategoryCustom"] ?? "",
-            lang,
-          )
-        : "";
-      const blob = `${title} ${desc} ${pairs["Leonix:organizer"] ?? ""} ${pairs["Leonix:bringNote"] ?? ""} ${classTypeLine} ${eventTypeLine}`.toLowerCase();
+      const blob = buildCommunityDiscoverySearchBlob(row, category, pairs, lang);
       if (!textMatch(blob, q)) return false;
       if (city && !(String(row.city ?? "").toLowerCase().includes(city.toLowerCase()))) return false;
 
       if (!quick) return true;
+
+      const classTypeLine =
+        category === "clases" && quick
+          ? resolveClasesCategoryPublicLabel(
+              pairs["Leonix:classCategory"] ?? "",
+              pairs["Leonix:classCategoryCustom"] ?? "",
+              lang,
+            )
+          : "";
 
       if (category === "clases") {
         if (cost !== "all") {
@@ -166,10 +143,15 @@ export function CommunityListingsResultsClient({
           if (ec !== eventCost) return false;
         }
         if (eventType.trim()) {
-          const catRaw =
-            pairs["Leonix:eventCategory"] === "otro"
-              ? pairs["Leonix:eventCategoryCustom"] || pairs["Leonix:eventCategory"]
-              : pairs["Leonix:eventCategory"];
+          const slug = (pairs["Leonix:eventCategory"] ?? pairs["Leonix:eventType"] ?? "").trim();
+          const catRaw = slug === "otro" ? pairs["Leonix:eventCategoryCustom"] || slug : slug;
+          const eventTypeLine = isCommunityQuickListing(pairs)
+            ? resolveComunidadEventTypePublicLabel(
+                pairs["Leonix:eventCategory"] ?? pairs["Leonix:eventType"] ?? "",
+                pairs["Leonix:eventCategoryCustom"] ?? "",
+                lang,
+              )
+            : "";
           const hay = `${String(catRaw ?? "")} ${eventTypeLine}`.toLowerCase();
           if (!textMatch(hay, eventType)) return false;
         }
@@ -420,81 +402,13 @@ export function CommunityListingsResultsClient({
             {L ? "No hay anuncios con estos filtros." : "No listings match these filters."}
           </p>
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2">
+          <ul className="grid gap-5 sm:grid-cols-1 lg:grid-cols-2" data-testid="community-discovery-results-grid">
             {filtered.map((row) => {
-              const pairs = detailPairsToMap(row.detail_pairs);
-              const thumb = firstImageUrl(row.images);
-              const org = pairs["Leonix:organizer"] ?? "";
-              const schedJson = pairs["Leonix:weeklyScheduleJson"] ?? "";
-              const sched = summarizeWeeklySchedule(parseWeeklyScheduleJson(schedJson), lang);
               const href = appendLangToPath(`/clasificados/anuncio/${row.id}`, lang);
-              const quick = isCommunityQuickListing(pairs);
-              let sub: string;
-              if (category === "clases") {
-                const catLabel = quick
-                  ? resolveClasesCategoryPublicLabel(
-                      pairs["Leonix:classCategory"] ?? "",
-                      pairs["Leonix:classCategoryCustom"] ?? "",
-                      lang,
-                    )
-                  : "";
-                const costL = clasesCostTypeLabel(pairs["Leonix:classCostType"] ?? "", lang);
-                const modeL = clasesModeLabel(pairs["Leonix:mode"] ?? "", lang);
-                let priceLine = costL;
-                if (pairs["Leonix:classCostType"] === "pagada") {
-                  const amt = pairs["Leonix:priceAmount"] ?? "";
-                  const fq = pairs["Leonix:priceFrequency"] ?? "";
-                  const fqL = fq ? clasesPriceFrequencyLabel(fq, lang) : "";
-                  priceLine = amt ? `${amt} ${fqL}`.trim() : costL;
-                }
-                const aud = pairs["Leonix:audience"] ? labelCommunityAudience(pairs["Leonix:audience"], lang) : "";
-                const lvl = pairs["Leonix:skillLevel"] ? labelClasesSkillLevel(pairs["Leonix:skillLevel"], lang) : "";
-                sub = [catLabel, modeL, priceLine, aud, lvl, row.city ?? ""].filter(Boolean).join(" · ");
-              } else {
-                const catLabel = quick
-                  ? resolveComunidadEventTypePublicLabel(
-                      pairs["Leonix:eventCategory"] ?? "",
-                      pairs["Leonix:eventCategoryCustom"] ?? "",
-                      lang,
-                    )
-                  : "";
-                const ec = comunidadEventCostLabel(pairs["Leonix:eventCost"] ?? "", lang);
-                const dr = [pairs["Leonix:eventDate"], pairs["Leonix:eventEndDate"]].filter(Boolean).join(" → ");
-                const aud = pairs["Leonix:audience"] ? labelCommunityAudience(pairs["Leonix:audience"], lang) : "";
-                sub = [catLabel, ec, dr || null, aud, row.city ?? ""].filter(Boolean).join(" · ");
-              }
+              const model = buildCommunityDiscoveryCardModel(row, category, lang, href);
               return (
                 <li key={row.id} className="min-w-0">
-                  <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm transition hover:border-[#C9B46A]/50">
-                    <Link href={href} className="block min-w-0 flex-1">
-                      <div className="relative aspect-[16/10] w-full bg-neutral-100">
-                        {thumb ? (
-                          <Image src={thumb} alt="" fill className="object-cover" sizes="(max-width:768px) 100vw, 50vw" unoptimized />
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-xs text-[#7A7164]">{L ? "Sin foto" : "No photo"}</div>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-1 p-3">
-                        <p className="line-clamp-2 text-sm font-bold text-[#111111]">{row.title ?? "—"}</p>
-                        {org ? <p className="text-xs text-[#5C564E]">{org}</p> : null}
-                        <p className="line-clamp-3 text-xs text-[#5C564E]">{sub}</p>
-                        {sched ? (
-                          <p className="line-clamp-2 text-[11px] text-[#3d5a73]">
-                            {L ? "Horario: " : "Schedule: "}
-                            {sched}
-                          </p>
-                        ) : null}
-                      </div>
-                    </Link>
-                    {quick ? (
-                      <CommunityResultCardEngagement
-                        listingId={row.id}
-                        lang={lang}
-                        category={category}
-                        ownerUserId={row.owner_id}
-                      />
-                    ) : null}
-                  </div>
+                  <CommunityDiscoveryListingCard model={model} lang={lang} variant={category} />
                 </li>
               );
             })}

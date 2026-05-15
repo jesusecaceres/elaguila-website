@@ -15,9 +15,8 @@ type Lang = "es" | "en";
 
 const CATEGORY = "comunidad";
 
-/** Local gathering / community — warm, inviting */
-const COMUNIDAD_HERO_IMAGE =
-  "https://images.unsplash.com/photo-1511632765483-eabc875e1d96?auto=format&fit=crop&w=2400&q=82";
+/** Local hero asset (reliable in CI; remote Unsplash URLs can 404 upstream). */
+const COMUNIDAD_HERO_IMAGE = "/logo.png";
 
 const COPY = {
   es: {

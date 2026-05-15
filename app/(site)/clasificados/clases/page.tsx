@@ -15,9 +15,8 @@ type Lang = "es" | "en";
 
 const CATEGORY = "clases";
 
-/** Editorial learning / workshop atmosphere */
-const CLASES_HERO_IMAGE =
-  "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=2400&q=82";
+/** Local hero asset (reliable in CI; remote Unsplash URLs can 404 upstream). */
+const CLASES_HERO_IMAGE = "/logo.png";
 
 const COPY = {
   es: {

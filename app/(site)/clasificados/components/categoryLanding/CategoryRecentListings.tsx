@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
-import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-
-type Lang = "es" | "en";
+import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { CommunityDiscoveryListingCard } from "@/app/(site)/clasificados/community/CommunityDiscoveryListingCard";
+import { buildCommunityDiscoveryCardModel } from "@/app/(site)/clasificados/community/shared/communityDiscoveryListingCardModel";
+import {
+  fetchPublishedCommunityCategoryListings,
+  type CommunityListingBrowseRow,
+} from "@/app/(site)/clasificados/community/shared/communityListingsBrowseClient";
 
 type Props = {
   category: "clases" | "comunidad";
@@ -17,41 +21,26 @@ type Props = {
 };
 
 export function CategoryRecentListings({ category, lang, title, emptyNote, errorPrefix }: Props) {
-  const [rows, setRows] = useState<{ id: string; title: string; city: string | null }[]>([]);
+  const [rows, setRows] = useState<CommunityListingBrowseRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { rows: data, error } = await fetchPublishedCommunityCategoryListings(category, 8);
+    if (error) {
+      setErr(error);
+      setRows([]);
+    } else {
+      setErr(null);
+      setRows(data.filter((r) => r.id));
+    }
+    setLoading(false);
+  }, [category]);
 
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const sb = createSupabaseBrowserClient();
-        const { data, error } = await sb
-          .from("listings")
-          .select("id, title, city")
-          .eq("category", category)
-          .eq("is_published", true)
-          .in("status", ["active", "sold"])
-          .order("created_at", { ascending: false })
-          .limit(8);
-        if (cancelled) return;
-        if (error) {
-          setErr(error.message);
-          setRows([]);
-          return;
-        }
-        const list = (data ?? []) as { id: string; title: string; city: string | null }[];
-        setRows(list.filter((r) => r.id && r.title));
-        setErr(null);
-      } catch (e: unknown) {
-        if (cancelled) return;
-        setErr(e instanceof Error ? e.message : "error");
-        setRows([]);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [category]);
+    void load();
+  }, [load]);
 
   if (err) {
     return (
@@ -62,9 +51,25 @@ export function CategoryRecentListings({ category, lang, title, emptyNote, error
     );
   }
 
+  if (loading) {
+    return (
+      <section
+        className="rounded-2xl border border-[#C9B46A]/22 bg-[#FFFCF7]/98 px-4 py-4 shadow-[0_6px_28px_-18px_rgba(42,36,22,0.14)] ring-1 ring-[#C9B46A]/10 sm:px-5"
+        aria-busy="true"
+        data-testid="community-discovery-landing-recent"
+      >
+        <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-[#3d5a73]/85">{title}</h2>
+        <p className="mt-3 text-sm text-[#5C564E]">{lang === "es" ? "Cargando…" : "Loading…"}</p>
+      </section>
+    );
+  }
+
   if (!rows.length) {
     return (
-      <section className="rounded-2xl border border-black/10 bg-white/80 px-4 py-4 text-sm text-[#111111]/75">
+      <section
+        className="rounded-2xl border border-black/10 bg-white/80 px-4 py-4 text-sm text-[#111111]/75"
+        data-testid="community-discovery-landing-recent"
+      >
         <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-[#3d5a73]/85">{title}</h2>
         <p className="mt-2">{emptyNote}</p>
       </section>
@@ -77,23 +82,24 @@ export function CategoryRecentListings({ category, lang, title, emptyNote, error
   );
 
   return (
-    <section className="rounded-2xl border border-[#C9B46A]/22 bg-[#FFFCF7]/98 px-4 py-4 shadow-[0_6px_28px_-18px_rgba(42,36,22,0.14)] ring-1 ring-[#C9B46A]/10 sm:px-5">
+    <section
+      className="rounded-2xl border border-[#C9B46A]/22 bg-[#FFFCF7]/98 px-4 py-4 shadow-[0_6px_28px_-18px_rgba(42,36,22,0.14)] ring-1 ring-[#C9B46A]/10 sm:px-5"
+      data-testid="community-discovery-landing-recent"
+    >
       <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-[#3d5a73]/85">{title}</h2>
-      <ul className="mt-3 space-y-2">
-        {rows.map((r) => (
-          <li key={r.id} className="min-w-0">
-            <Link
-              href={appendLangToPath(`/clasificados/anuncio/${r.id}`, lang)}
-              className="block truncate rounded-lg border border-black/8 bg-white/90 px-3 py-2 text-sm font-medium text-[#111111] transition hover:bg-[#F5F5F5]"
-            >
-              <span className="text-[#2563EB] underline-offset-2 hover:underline">{r.title}</span>
-              {r.city ? <span className="ml-2 text-xs font-normal text-[#5C564E]">· {r.city}</span> : null}
-            </Link>
-          </li>
-        ))}
+      <ul className="mt-4 grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
+        {rows.map((r) => {
+          const href = appendLangToPath(`/clasificados/anuncio/${r.id}`, lang);
+          const model = buildCommunityDiscoveryCardModel(r, category, lang, href);
+          return (
+            <li key={r.id} className="min-w-0">
+              <CommunityDiscoveryListingCard model={model} lang={lang} variant={category} />
+            </li>
+          );
+        })}
       </ul>
-      <p className="mt-3 text-center sm:text-left">
-        <Link href={resultsHref} className="text-sm font-semibold text-[#2563EB] underline underline-offset-2">
+      <p className="mt-4 text-center sm:text-left">
+        <Link href={resultsHref} className="text-sm font-semibold text-[#A67C00] underline underline-offset-2 hover:text-[#8a6810]">
           {lang === "es" ? "Ver todos los anuncios" : "View all listings"}
         </Link>
       </p>
