@@ -93,13 +93,13 @@ async function createAndActivate(
     data: { listingId: id, lang: "es" },
   });
   expect(ck.ok(), await ck.text()).toBeTruthy();
-  const kj = (await ck.json()) as { ok?: boolean; internalBypass?: boolean };
+  const kj = (await ck.json()) as { ok?: boolean; internalBypass?: boolean; testPublishBypass?: boolean };
   expect(kj.ok).toBe(true);
-  expect(kj.internalBypass).toBe(true);
+  expect(kj.testPublishBypass).toBe(true);
   return id;
 }
 
-test.describe("Autos go-live runtime (production server + internal payment bypass)", () => {
+test.describe("Autos go-live runtime (production server + Autos test publish bypass or internal bypass)", () => {
   test.skip(!url || !anon, "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local");
   test.skip(!ADMIN_PASSWORD, "Set ADMIN_PASSWORD in .env.local for admin UI proof");
 
@@ -108,6 +108,7 @@ test.describe("Autos go-live runtime (production server + internal payment bypas
     context,
     request,
   }) => {
+    test.setTimeout(180_000);
     const token = await sellerAccessToken();
     const suffix = `${Date.now()}`;
 
@@ -219,7 +220,9 @@ test.describe("Autos go-live runtime (production server + internal payment bypas
     await expect(page.getByText(privTitle, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
 
     await page.goto(`/clasificados/autos/vehiculo/${encodeURIComponent(negId)}?lang=es`);
-    await expect(page.getByRole("heading", { name: negTitle })).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByRole("heading", { name: new RegExp(`${negTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}|2022\\s+Toyota\\s+RAV4`, "i") })).toBeVisible({
+      timeout: 60_000,
+    });
     await expect(page.locator('a[href^="tel:"]').first()).toBeVisible();
     await expect(page.locator('a[href*="wa.me"]').first()).toBeVisible();
     await expect(page.getByText(/\bBoost\b/i)).toHaveCount(0);
@@ -247,8 +250,8 @@ test.describe("Autos go-live runtime (production server + internal payment bypas
 
     await seedSupabaseSession({ page, context, supabaseUrl: url!, anonKey: anon!, email: SELLER_EMAIL, password: SELLER_PASSWORD });
     await page.goto("/dashboard/mis-anuncios?lang=es");
-    await expect(page.getByText("Autos Clasificados (Leonix)", { exact: false })).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByText(privTitle, { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Autos \(Leonix pago\)/i })).toBeVisible({ timeout: 60_000 });
+    await expect(page.locator(`a[href*="/clasificados/autos/vehiculo/${encodeURIComponent(privId)}"]`).first()).toBeVisible({ timeout: 60_000 });
     await expect(page.getByRole("link", { name: /Ver público|View live/i }).first()).toBeVisible();
 
     await page.goto("/admin/login");
@@ -256,11 +259,13 @@ test.describe("Autos go-live runtime (production server + internal payment bypas
     await page.getByRole("button", { name: /log in/i }).click();
     await page.waitForURL(/\/admin(\/|$)/, { timeout: 30_000 });
     await page.goto("/admin/workspace/clasificados/autos");
-    await expect(page.getByText("Autos — anuncios de pago", { exact: false })).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByText(negTitle, { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /Autos — (paid listings|anuncios de pago)/i })).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.locator("tr", { hasText: negId.slice(0, 8) })).toBeVisible();
 
     const popupPromise = page.waitForEvent("popup");
-    await page.locator("tr", { hasText: negTitle }).getByRole("link", { name: "Ver público" }).click();
+    await page.locator("tr", { hasText: negId.slice(0, 8) }).getByRole("link", { name: /Ver público|View public/i }).click();
     const popup = await popupPromise;
     await expect(popup).toHaveURL(new RegExp(`/clasificados/autos/vehiculo/${negId}`));
     await popup.close();

@@ -28,6 +28,15 @@ function loadDotEnvLocal() {
 }
 loadDotEnvLocal();
 
+/**
+ * Autos Playwright uses `next start` (NODE_ENV=production). Ensure non-production Vercel tier so
+ * payment bypass gates match local/staging expectations even when the parent shell sets
+ * `VERCEL_ENV=production`.
+ */
+process.env.VERCEL_ENV = "preview";
+process.env.AUTOS_ALLOW_TEST_PUBLISH_BYPASS = "true";
+process.env.AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS = "0";
+
 const port = Number(process.env.AUTOS_E2E_PORT ?? "3022");
 const baseURL = process.env.AUTOS_E2E_BASE ?? `http://127.0.0.1:${port}`;
 
@@ -48,7 +57,7 @@ export default defineConfig({
     command: `node node_modules/next/dist/bin/next start -p ${port}`,
     cwd: root,
     url: `${baseURL}/clasificados/autos?lang=es`,
-    /** Always start a fresh server so `AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS` is never stale-reused. */
+    /** Always start a fresh server so Autos runtime env (e.g. test publish bypass) is never stale-reused. */
     reuseExistingServer: false,
     timeout: 120_000,
     env: {
@@ -60,8 +69,9 @@ export default defineConfig({
        * parent shell inherited `VERCEL_ENV=production` from tooling/CI.
        */
       VERCEL_ENV: "preview",
-      /** QA-only: activate Autos listings without Stripe (blocked when VERCEL_ENV === "production"). */
-      AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS: "1",
+      /** Phase 3: prove Autos-only test publish bypass (Stripe-free) on `next start`. */
+      AUTOS_ALLOW_TEST_PUBLISH_BYPASS: "true",
+      AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS: "0",
     },
   },
 });

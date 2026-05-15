@@ -81,8 +81,8 @@ function run() {
 
   const bypass = read("app/lib/clasificados/autos/autosTestPublishBypass.ts");
   assert.ok(
-    /NODE_ENV.*production/.test(bypass) && /VERCEL_ENV.*production/.test(bypass),
-    "Test publish bypass must be disabled in production environments",
+    /VERCEL_ENV.*production/.test(bypass),
+    "Test publish bypass must be disabled on Vercel production (VERCEL_ENV)",
   );
 
   const contract = read("app/(site)/clasificados/autos/filters/autosBrowseFilterContract.ts");

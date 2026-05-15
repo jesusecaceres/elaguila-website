@@ -174,11 +174,21 @@ export async function markAutosClassifiedsListingRemovedIfOwner(listingId: strin
 export async function listActiveAutosClassifiedsRows(): Promise<AutosClassifiedsListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("autos_classifieds_listings")
     .select("*")
     .eq("status", "active")
-    .order("republish_sort_at", { ascending: false, nullsFirst: true })
+    .order("republish_sort_at", { ascending: false, nullsFirst: true });
+  /** Older DBs without republish migration: fall back so public browse does not return an empty feed. */
+  if (error) {
+    const fb = await supabase
+      .from("autos_classifieds_listings")
+      .select("*")
+      .eq("status", "active")
+      .order("published_at", { ascending: false, nullsFirst: true });
+    data = fb.data;
+    error = fb.error;
+  }
   if (error || !data?.length) return [];
   return data.map((r) => rowFromDb(r as Record<string, unknown>));
 }
