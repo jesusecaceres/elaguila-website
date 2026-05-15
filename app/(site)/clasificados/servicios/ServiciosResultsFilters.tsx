@@ -50,6 +50,41 @@ const sortSelectDefault = (current: ServiciosResultsFilterQuery) =>
             ? "open_now"
             : "newest";
 
+/** Drawer-only refinements (excludes q, city, sort) — badge when advanced filters URL params are active. */
+function serviciosResultsHasAdvancedDrawerFilters(current: ServiciosResultsFilterQuery): boolean {
+  return Boolean(
+    current.group?.trim() ||
+      (current.seller && current.seller !== "all") ||
+      current.whatsapp === "1" ||
+      current.promo === "1" ||
+      current.call === "1" ||
+      current.verified === "1" ||
+      current.web === "1" ||
+      current.bilingual === "1" ||
+      current.email === "1" ||
+      current.emergency === "1" ||
+      current.mobileSvc === "1" ||
+      current.msg === "1" ||
+      current.phys === "1" ||
+      current.svcMulti === "1" ||
+      current.offer === "1" ||
+      current.legal === "1" ||
+      current.langEs === "1" ||
+      current.langEn === "1" ||
+      current.langOt === "1" ||
+      current.vint === "1" ||
+      current.wknd === "1" ||
+      current.openNow === "1" ||
+      current.licensed === "1" ||
+      current.insured === "1" ||
+      current.freeEstimate === "1" ||
+      current.freeConsultation === "1" ||
+      current.hasPhotos === "1" ||
+      current.hasVideos === "1" ||
+      current.hasOffers === "1",
+  );
+}
+
 function createServiciosResultsFormSubmitCapture(): FormEventHandler<HTMLFormElement> {
   return (e) => {
     const form = e.currentTarget;
@@ -92,6 +127,7 @@ function ServiciosResultsFiltersMobile({
   const sheetRef = useRef<HTMLDivElement>(null);
   const resetHref = `/clasificados/servicios/resultados?lang=${lang}`;
   const hasFilters = serviciosResultsHasActiveFilters(current);
+  const hasAdvancedFilters = serviciosResultsHasAdvancedDrawerFilters(current);
   const onSubmitCapture = createServiciosResultsFormSubmitCapture();
 
   useEffect(() => {
@@ -115,101 +151,95 @@ function ServiciosResultsFiltersMobile({
     };
   }, [drawerOpen]);
 
+  const inputClass =
+    "min-h-[44px] w-full rounded-xl border border-[#e5ddd2] bg-white px-3 py-2 text-sm text-[#142a42] outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]";
+
   return (
-    <div className="rounded-[22px] border border-[#e5ddd2]/90 bg-[#FFFCF7] p-4 shadow-[0_26px_64px_-40px_rgba(20,38,58,0.42)] ring-1 ring-[#1e3a5f]/[0.06] sm:rounded-[24px] sm:p-5">
+    <div className="mb-4 border-b border-[#dcd3c7]/80 pb-4">
       <form
         id={RESULTS_FORM_ID_MOBILE}
         method="get"
         action="/clasificados/servicios/resultados"
         aria-label={lang === "en" ? "Search and filter Servicios results" : "Buscar y filtrar resultados de Servicios"}
-        className="space-y-4"
+        className="space-y-3"
         onSubmitCapture={onSubmitCapture}
       >
         <input type="hidden" name="lang" value={lang} />
 
-        <div className="sticky top-0 z-20 space-y-4 rounded-2xl border border-[#e5ddd2]/80 bg-[#FFFCF7]/96 p-3 shadow-sm backdrop-blur-md sm:p-4">
-          <GroupShell titleEs="Buscar" titleEn="Search" lang={lang}>
-            <label className="block min-w-0">
-              <span className="text-xs font-semibold text-[#3d4f62]">
-                {lang === "en" ? "Keywords" : "Palabras clave"}
-              </span>
-              <input
-                name="q"
-                type="search"
-                defaultValue={current.q ?? ""}
-                autoComplete="off"
-                placeholder={lang === "en" ? "Service, trade, business name…" : "Servicio, giro, nombre del negocio…"}
-                className="mt-1 min-h-[48px] w-full rounded-xl border border-[#e5ddd2] bg-white px-3 py-2 text-sm text-[#142a42] outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              />
-            </label>
-          </GroupShell>
-
-          <GroupShell titleEs="Ubicación" titleEn="Location" lang={lang}>
-            <label className="block min-w-0">
-              <span className="text-xs font-semibold text-[#3d4f62]">
-                {lang === "en" ? "City, ZIP, or service area" : "Ciudad, código postal o zona"}
-              </span>
-              <input
-                name="city"
-                type="text"
-                defaultValue={current.city ?? ""}
-                placeholder={lang === "en" ? "e.g. San José, 95112" : "ej. San José, 95112"}
-                aria-describedby="servicios-city-filter-hint-mobile"
-                className="mt-1 min-h-[48px] w-full rounded-xl border border-[#e5ddd2] bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              />
-            </label>
-            <span id="servicios-city-filter-hint-mobile" className="mt-2 block text-[11px] leading-snug text-[#64748b]">
-              {lang === "en"
-                ? "Matches listing city and, when published, postal code, service-area lines, and location summary on the profile."
-                : "Coincide con la ciudad del anuncio y, si está en la vitrina, CP, zonas de servicio y resumen de ubicación."}
+        <div className="space-y-2">
+          <label className="block min-w-0">
+            <span className="text-xs font-semibold text-[#3d4f62]">
+              {lang === "en" ? "Keywords" : "Palabras clave"}
             </span>
-            <div className="mt-3">
-              <ServiciosUseMyLocationButton lang={lang} formId={RESULTS_FORM_ID_MOBILE} />
-            </div>
-            <button
-              type="submit"
-              className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-gradient-to-br from-[#EA580C] to-[#C2410C] px-6 text-sm font-bold text-white shadow-md transition hover:brightness-[1.03]"
-            >
-              {lang === "en" ? "Search with these terms" : "Buscar con estos términos"}
-            </button>
-          </GroupShell>
+            <input
+              name="q"
+              type="search"
+              defaultValue={current.q ?? ""}
+              autoComplete="off"
+              placeholder={lang === "en" ? "Service, trade, business name…" : "Servicio, giro, nombre del negocio…"}
+              className={`mt-1 ${inputClass}`}
+            />
+          </label>
+          <label className="block min-w-0">
+            <span className="text-xs font-semibold text-[#3d4f62]">
+              {lang === "en" ? "City, ZIP, or service area" : "Ciudad, código postal o zona"}
+            </span>
+            <input
+              name="city"
+              type="text"
+              defaultValue={current.city ?? ""}
+              placeholder={lang === "en" ? "e.g. San José, 95112" : "ej. San José, 95112"}
+              aria-describedby="servicios-city-filter-hint-mobile"
+              className={`mt-1 ${inputClass}`}
+            />
+          </label>
+          <p id="servicios-city-filter-hint-mobile" className="text-[11px] leading-snug text-[#64748b]">
+            {lang === "en"
+              ? "Matches city, ZIP, service areas, and location summary when published."
+              : "Coincide con ciudad, CP, zonas de servicio y resumen de ubicación publicados."}
+          </p>
+          <ServiciosUseMyLocationButton lang={lang} formId={RESULTS_FORM_ID_MOBILE} />
+          <button
+            type="submit"
+            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-gradient-to-br from-[#EA580C] to-[#C2410C] px-4 text-sm font-bold text-white shadow-md transition hover:brightness-[1.03]"
+          >
+            {lang === "en" ? "Search" : "Buscar"}
+          </button>
+        </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="min-w-0 flex-1">
-              <GroupShell titleEs="Ordenar" titleEn="Sort" lang={lang}>
-                <label className="flex min-w-0 flex-col gap-1">
-                  <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Order" : "Orden"}</span>
-                  <select
-                    name="sort"
-                    defaultValue={sortSelectDefault(current)}
-                    className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-                  >
-                    <option value="newest">{lang === "en" ? "Newest" : "Más recientes"}</option>
-                    <option value="most_liked">{lang === "en" ? "Most liked" : "Más gustados"}</option>
-                    <option value="most_saved">{lang === "en" ? "Most saved" : "Más guardados"}</option>
-                    <option value="open_now">{lang === "en" ? "Open now" : "Abiertos ahora"}</option>
-                    <option value="name">{lang === "en" ? "Name (A–Z)" : "Nombre (A–Z)"}</option>
-                    <option value="rating">{lang === "en" ? "Highest rated" : "Mejor calificados"}</option>
-                  </select>
-                </label>
-              </GroupShell>
-            </div>
-            <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:min-w-[200px]">
-              <button
-                type="submit"
-                className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-bold text-white shadow-[0_12px_32px_-14px_rgba(30,58,95,0.45)] transition hover:bg-[#2f5699]"
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="min-w-0 flex-1 basis-[140px]">
+            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Sort" : "Ordenar"}</span>
+            <select name="sort" defaultValue={sortSelectDefault(current)} className={`mt-1 ${inputClass}`}>
+              <option value="newest">{lang === "en" ? "Newest" : "Más recientes"}</option>
+              <option value="most_liked">{lang === "en" ? "Most liked" : "Más gustados"}</option>
+              <option value="most_saved">{lang === "en" ? "Most saved" : "Más guardados"}</option>
+              <option value="open_now">{lang === "en" ? "Open now" : "Abiertos ahora"}</option>
+              <option value="name">{lang === "en" ? "Name (A–Z)" : "Nombre (A–Z)"}</option>
+              <option value="rating">{lang === "en" ? "Highest rated" : "Mejor calificados"}</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            className="relative inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl border border-[#1a3352]/20 bg-white px-4 text-sm font-bold text-[#142a42] shadow-sm transition hover:bg-[#fafcff]"
+          >
+            {lang === "en" ? "Filters" : "Filtros"}
+            {hasAdvancedFilters ? (
+              <span
+                className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#3B66AD] px-1 text-[10px] font-bold leading-none text-white"
+                aria-hidden
               >
-                {lang === "en" ? "Apply & view results" : "Aplicar y ver resultados"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setDrawerOpen(true)}
-                className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#1a3352]/20 bg-white px-4 text-sm font-bold text-[#142a42] shadow-sm transition hover:bg-[#fafcff]"
-              >
-                {lang === "en" ? "Filters" : "Filtros"}
-              </button>
-            </div>
-          </div>
+                •
+              </span>
+            ) : null}
+          </button>
+          <button
+            type="submit"
+            className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-bold text-white shadow-[0_12px_32px_-14px_rgba(30,58,95,0.45)] transition hover:bg-[#2f5699]"
+          >
+            {lang === "en" ? "Apply" : "Aplicar"}
+          </button>
         </div>
 
         <div

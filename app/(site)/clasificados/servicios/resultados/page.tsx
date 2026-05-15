@@ -203,11 +203,11 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
           </aside>
 
           <div className="min-w-0">
-            <div className="mb-4 lg:hidden">
+            <div className={`mt-0 min-w-0 p-4 sm:p-6 lg:mt-0 ${contentShell}`}>
+            <div className="lg:hidden">
               <ServiciosResultsFilters lang={lang} current={filterQuery} variant="mobile" />
             </div>
 
-            <div className={`mt-0 min-w-0 p-4 sm:p-6 lg:mt-0 ${contentShell}`}>
             <ServiciosResultsActiveSummary lang={lang} query={filterQuery} />
 
             <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2 border-b border-[#dcd3c7]/80 pb-3">

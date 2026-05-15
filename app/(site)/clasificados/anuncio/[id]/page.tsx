@@ -115,6 +115,8 @@ type Listing = {
   /** DB `is_free` — used for Clases/Comunidad quick detail chips. */
   isFree?: boolean;
   detailPairs?: unknown;
+  contact_phone?: string | null;
+  contact_email?: string | null;
 };
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -221,6 +223,15 @@ function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
     typeof repRaw === "string" && repRaw.trim() ? repRaw : typeof repRaw === "number" ? String(repRaw) : null;
 
   const detailPairs = row.detail_pairs;
+
+  const rawPhone = row.contact_phone;
+  const normalizedContactPhone =
+    typeof rawPhone === "string" && rawPhone.trim() ? rawPhone.trim() : null;
+
+  const rawEmail = row.contact_email;
+  const normalizedContactEmail =
+    typeof rawEmail === "string" && rawEmail.trim() ? rawEmail.trim() : null;
+
   const base: Listing = {
     id: String(row.id ?? ""),
     category: coerceCategoryKey(row.category),
@@ -248,13 +259,13 @@ function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
     leonix_ad_id: row.leonix_ad_id != null && String(row.leonix_ad_id).trim() ? String(row.leonix_ad_id).trim() : null,
   };
 
-  const out = base as Listing & { detailPairs?: unknown; contact_phone?: unknown; contact_email?: unknown; seller_type?: string };
+  const out = base as Listing & { detailPairs?: unknown; seller_type?: string };
   out.isFree = isFree;
   if (Array.isArray(detailPairs)) {
     out.detailPairs = detailPairs;
   }
-  out.contact_phone = row.contact_phone ?? null;
-  out.contact_email = row.contact_email ?? null;
+  out.contact_phone = normalizedContactPhone;
+  out.contact_email = normalizedContactEmail;
   out.seller_type = sellerType;
   return out;
 }
@@ -1074,6 +1085,9 @@ export default function AnuncioDetallePage() {
           priceLabel: listing.priceLabel,
           city: listing.city,
           blurb: listing.blurb,
+          images: listing.images ?? null,
+          contact_phone: listing.contact_phone ?? null,
+          contact_email: listing.contact_email ?? null,
           detailPairs: listing.detailPairs,
           owner_id: listing.owner_id ?? null,
         }}
