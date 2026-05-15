@@ -111,3 +111,28 @@ export function openTwitterShareLink(text: string, listingUrl: string): void {
   const href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(te)}&url=${encodeURIComponent(u)}`;
   window.open(href, "_blank", "noopener,noreferrer");
 }
+
+export type WebSharePayload = { title?: string; text?: string; url?: string };
+
+/**
+ * `navigator.share` wrapper for CTA sheets. Abort/cancel is not an error.
+ * @returns whether the user completed a share, cancelled, or the capability is missing/failed.
+ */
+export async function tryWebShare(payload: WebSharePayload): Promise<"shared" | "aborted" | "unsupported"> {
+  if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
+    return "unsupported";
+  }
+  const data: ShareData = {};
+  if (trim(payload.title)) data.title = trim(payload.title);
+  if (trim(payload.text)) data.text = trim(payload.text);
+  if (trim(payload.url)) data.url = trim(payload.url);
+  if (!data.title && !data.text && !data.url) return "unsupported";
+  try {
+    await navigator.share(data);
+    return "shared";
+  } catch (err: unknown) {
+    const n = err && typeof err === "object" && "name" in err ? (err as { name: string }).name : "";
+    if (n === "AbortError") return "aborted";
+    return "unsupported";
+  }
+}

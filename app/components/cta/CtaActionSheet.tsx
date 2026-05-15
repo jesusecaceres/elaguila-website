@@ -22,6 +22,7 @@ import {
   openTwitterShareLink,
   openWhatsApp,
   openWhatsAppWebShare,
+  tryWebShare,
 } from "./ctaLaunchers";
 import type { CtaActionCallback, CtaActionKind, CtaLang, CtaSheetIntent } from "./types";
 
@@ -31,6 +32,9 @@ const COPY = {
     cancel: "Cancelar",
     shareDevice: "Compartir con el dispositivo",
     sharePhone: "Compartir con el teléfono",
+    /** Primary action in share_ad hub — device / native share sheet */
+    shareWithApps: "Compartir con otras apps",
+    shareWithAppsHint: "Abre las opciones de tu teléfono o computadora.",
     sectionNative: "Este dispositivo",
     sectionCopy: "Copiar",
     sectionShareTo: "Compartir en",
@@ -95,6 +99,8 @@ const COPY = {
     cancel: "Cancel",
     shareDevice: "Share using device",
     sharePhone: "Share with phone",
+    shareWithApps: "Share with other apps",
+    shareWithAppsHint: "Open your phone or computer share options.",
     sectionNative: "This device",
     sectionCopy: "Copy",
     sectionShareTo: "Share to",
@@ -275,18 +281,18 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
         ) : null}
 
         <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.sectionNative}</p>
-        {btnRow(t.sharePhone, "hub_native_share", BTN_PRIMARY, async (emit) => {
-          if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-            try {
-              await navigator.share(hasUrl ? { title: titleLine || subjectLine, text, url } : { title: titleLine || subjectLine, text });
-              emit({ outcome: "native" });
-              onClose();
-              return;
-            } catch (err: unknown) {
-              const n = err && typeof err === "object" && "name" in err ? (err as { name: string }).name : "";
-              if (n === "AbortError") return;
-            }
+        <p className="text-xs leading-snug text-[#7A7268]">{t.shareWithAppsHint}</p>
+        {btnRow(t.shareWithApps, "hub_native_share", BTN_PRIMARY, async (emit) => {
+          const sharePayload = hasUrl
+            ? { title: titleLine || subjectLine, text: text || undefined, url }
+            : { title: titleLine || subjectLine, text: text || undefined };
+          const outcome = await tryWebShare(sharePayload);
+          if (outcome === "shared") {
+            emit({ outcome: "native" });
+            onClose();
+            return;
           }
+          if (outcome === "aborted") return;
           if (hasUrl) {
             const ok = await copyToClipboard(url);
             flash(ok ? t.nativeShareFallback : t.copyFailed, ok ? "ok" : "err");
@@ -560,14 +566,42 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
   } else if (intent.kind === "call") {
     const formatted = getFormattedPhone(intent.phone);
     const has = Boolean(trim(intent.phone));
+    const contactBlock = buildContactShareText(intent.contactShareExtras, {
+      lang,
+      phone: intent.phone,
+      formattedPhone: formatted,
+    });
     heading = lang === "en" ? "Call" : "Llamar";
     body = (
       <div className="mt-3 flex flex-col gap-2">
         {!has ? <p className="text-sm text-red-900">{t.noPhone}</p> : <p className={MONO}>{formatted}</p>}
-        {btnRow(t.callNow, "call_now", BTN_PRIMARY, (emit) => {
-          emit();
-          openTel(intent.phone);
-        }, !has)}
+        <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.sectionNative}</p>
+        <p className="text-xs leading-snug text-[#7A7268]">{t.shareWithAppsHint}</p>
+        {btnRow(
+          t.shareWithApps,
+          "call_native_share",
+          BTN_PRIMARY,
+          async (emit) => {
+            if (!has) return;
+            const title = lang === "en" ? "Contact" : "Contacto";
+            const pub = trim(intent.contactShareExtras?.publicUrl);
+            const outcome = await tryWebShare({
+              title,
+              text: contactBlock.trim() || formatted,
+              url: pub || undefined,
+            });
+            if (outcome === "shared") {
+              emit();
+              return;
+            }
+            if (outcome === "aborted") return;
+            const fallback = contactBlock.trim() || formatted;
+            const ok = await copyToClipboard(fallback);
+            flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed, ok ? "ok" : "err");
+            if (ok) emit({ outcome: "fallback_copy" });
+          },
+          !has,
+        )}
         {btnRow(t.copyNumber, "copy_number", BTN_SECONDARY, async (emit) => {
           const ok = await copyToClipboard(formatted || intent.phone);
           flash(ok ? (lang === "en" ? "Number copied." : "Número copiado.") : t.copyFailed, ok ? "ok" : "err");
@@ -583,6 +617,10 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
           flash(ok ? (lang === "en" ? "Contact info copied." : "Datos copiados.") : t.copyFailed, ok ? "ok" : "err");
           if (ok) emit();
         }, !buildContactShareText(intent.contactShareExtras, { lang, phone: intent.phone, formattedPhone: formatted }).trim())}
+        {btnRow(t.callNow, "call_now", BTN_SECONDARY, (emit) => {
+          emit();
+          openTel(intent.phone);
+        }, !has)}
       </div>
     );
   } else if (intent.kind === "send_email") {
@@ -592,6 +630,14 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
     const gmailHref = trim(intent.gmailComposeHref ?? "");
     const canCompose = Boolean(em || sub || bod);
     const hasAddr = Boolean(em);
+    const pub = trim(intent.contactShareExtras?.publicUrl);
+    const draftShareText = [
+      hasAddr ? (lang === "en" ? `To: ${em}` : `Para: ${em}`) : "",
+      sub ? `${lang === "en" ? "Subject" : "Asunto"}: ${sub}` : "",
+      bod,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
     heading = t.email;
     body = (
       <div className="mt-3 flex flex-col gap-3">
@@ -615,44 +661,83 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
             </div>
           </>
         ) : null}
-        <button
-          type="button"
-          disabled={!canCompose}
-          className={BTN_PRIMARY + (!canCompose ? " cursor-not-allowed opacity-45" : "")}
-          onClick={() => {
-            fireAction(onAction, "send_email", "open_email");
-            openMailto(em, sub, bod);
-          }}
-        >
-          {t.openEmailApp}
-        </button>
-        <button
-          type="button"
-          disabled={!hasAddr}
-          className={BTN_SECONDARY + (!hasAddr ? " cursor-not-allowed opacity-45" : "")}
-          onClick={async () => {
+        <p className="text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.sectionNative}</p>
+        <p className="text-xs leading-snug text-[#7A7268]">{t.shareWithAppsHint}</p>
+        {btnRow(
+          t.shareWithApps,
+          "email_native_share",
+          BTN_PRIMARY,
+          async (emit) => {
+            if (!canCompose || !draftShareText.trim()) return;
+            const shareTitle = sub || (lang === "en" ? "Leonix" : "Leonix");
+            const outcome = await tryWebShare({
+              title: shareTitle,
+              text: draftShareText,
+              url: pub || undefined,
+            });
+            if (outcome === "shared") {
+              emit();
+              return;
+            }
+            if (outcome === "aborted") return;
+            const ok = await copyToClipboard(draftShareText);
+            flash(ok ? (lang === "en" ? "Message copied." : "Mensaje copiado.") : t.copyFailed, ok ? "ok" : "err");
+            if (ok) emit({ outcome: "fallback_copy" });
+          },
+          !canCompose,
+        )}
+        {btnRow(
+          t.copyEmail,
+          "copy_email",
+          BTN_SECONDARY,
+          async (emit) => {
+            if (!hasAddr) return;
             const ok = await copyToClipboard(em);
             flash(ok ? (lang === "en" ? "Email copied." : "Correo copiado.") : t.copyFailed, ok ? "ok" : "err");
-            if (ok) fireAction(onAction, "send_email", "copy_email");
-          }}
-        >
-          {t.copyEmail}
-        </button>
-        <button
-          type="button"
-          disabled={!canCompose}
-          className={BTN_SECONDARY + (!canCompose ? " cursor-not-allowed opacity-45" : "")}
-          onClick={async () => {
+            if (ok) emit();
+          },
+          !hasAddr,
+        )}
+        {btnRow(
+          t.copyFullMessage,
+          "copy_full_email",
+          BTN_SECONDARY,
+          async (emit) => {
+            if (!canCompose) return;
             const fullText = hasAddr
               ? [`To: ${em}`, sub ? `Subject: ${sub}` : "", "", bod].filter(Boolean).join("\n")
               : [sub ? `${lang === "en" ? "Subject" : "Asunto"}: ${sub}` : "", "", bod].filter(Boolean).join("\n");
             const ok = await copyToClipboard(fullText);
             flash(ok ? (lang === "en" ? "Message copied." : "Mensaje copiado.") : t.copyFailed, ok ? "ok" : "err");
-            if (ok) fireAction(onAction, "send_email", "copy_full_email");
-          }}
-        >
-          {t.copyFullMessage}
-        </button>
+            if (ok) emit();
+          },
+          !canCompose,
+        )}
+        {btnRow(
+          t.shareContact,
+          "share_contact_email",
+          BTN_SECONDARY,
+          async (emit) => {
+            if (!canCompose) return;
+            const block = buildContactShareText(intent.contactShareExtras, { lang, formattedPhone: undefined, phone: null });
+            const lines = [block, hasAddr ? `Email: ${em}` : "", sub ? `${lang === "en" ? "Subject" : "Asunto"}: ${sub}` : "", bod].filter(Boolean).join("\n\n");
+            const ok = await copyToClipboard(lines);
+            flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed, ok ? "ok" : "err");
+            if (ok) emit();
+          },
+          !canCompose,
+        )}
+        {btnRow(
+          t.openEmailApp,
+          "open_email",
+          BTN_SECONDARY,
+          (emit) => {
+            if (!canCompose) return;
+            emit();
+            openMailto(em, sub, bod);
+          },
+          !canCompose,
+        )}
         {gmailHref ? (
           <a
             href={gmailHref}
@@ -666,20 +751,6 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
             {t.openGmail}
           </a>
         ) : null}
-        <button
-          type="button"
-          disabled={!canCompose}
-          className={BTN_SECONDARY + (!canCompose ? " cursor-not-allowed opacity-45" : "")}
-          onClick={async () => {
-            const block = buildContactShareText(intent.contactShareExtras, { lang, formattedPhone: undefined, phone: null });
-            const lines = [block, hasAddr ? `Email: ${em}` : "", sub ? `${lang === "en" ? "Subject" : "Asunto"}: ${sub}` : "", bod].filter(Boolean).join("\n\n");
-            const ok = await copyToClipboard(lines);
-            flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed, ok ? "ok" : "err");
-            if (ok) fireAction(onAction, "send_email", "share_contact_email");
-          }}
-        >
-          {t.shareContact}
-        </button>
       </div>
     );
   } else if (intent.kind === "send_message") {
@@ -688,6 +759,12 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
     const waDigits = trim(intent.whatsappDigits) || getCleanPhone(phone);
     const hasMsg = Boolean(msg);
     const hasPhone = waDigits.length >= 8;
+    const contactBlock = buildContactShareText(intent.contactShareExtras, {
+      lang,
+      phone: phone || waDigits,
+      formattedPhone: getFormattedPhone(phone || waDigits),
+    });
+    const shareTextBody = [msg, contactBlock.trim()].filter(Boolean).join("\n\n");
     heading = lang === "en" ? "Message" : "Mensaje";
     body = (
       <div className="mt-3 flex flex-col gap-3">
@@ -701,14 +778,28 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
             <p className="max-h-36 overflow-y-auto whitespace-pre-wrap text-sm text-[#111111]">{msg}</p>
           </div>
         ) : null}
-        {btnRow(t.sendWhatsApp, "msg_whatsapp", BTN_PRIMARY, (emit) => {
-          emit();
-          openWhatsApp(waDigits, msg);
-        }, !hasPhone)}
-        {btnRow(t.sendSms, "msg_sms", BTN_SECONDARY, (emit) => {
-          emit();
-          openSms(phone || waDigits, msg);
-        }, !hasPhone)}
+        <p className="text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.sectionNative}</p>
+        <p className="text-xs leading-snug text-[#7A7268]">{t.shareWithAppsHint}</p>
+        {btnRow(
+          t.shareWithApps,
+          "msg_native_share",
+          BTN_PRIMARY,
+          async (emit) => {
+            if (!shareTextBody.trim()) return;
+            const title = lang === "en" ? "Message" : "Mensaje";
+            const pub = trim(intent.contactShareExtras?.publicUrl);
+            const outcome = await tryWebShare({ title, text: shareTextBody, url: pub || undefined });
+            if (outcome === "shared") {
+              emit();
+              return;
+            }
+            if (outcome === "aborted") return;
+            const ok = await copyToClipboard(shareTextBody);
+            flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed, ok ? "ok" : "err");
+            if (ok) emit({ outcome: "fallback_copy" });
+          },
+          !shareTextBody.trim(),
+        )}
         {btnRow(t.copyMessage, "msg_copy", BTN_SECONDARY, async (emit) => {
           const ok = await copyToClipboard(msg);
           flash(ok ? (lang === "en" ? "Message copied." : "Mensaje copiado.") : t.copyFailed, ok ? "ok" : "err");
@@ -734,6 +825,14 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
           phone: phone || waDigits,
           formattedPhone: getFormattedPhone(phone || waDigits),
         }).trim() && !msg)}
+        {btnRow(t.sendWhatsApp, "msg_whatsapp", BTN_SECONDARY, (emit) => {
+          emit();
+          openWhatsApp(waDigits, msg);
+        }, !hasPhone)}
+        {btnRow(t.sendSms, "msg_sms", BTN_SECONDARY, (emit) => {
+          emit();
+          openSms(phone || waDigits, msg);
+        }, !hasPhone)}
       </div>
     );
   } else if (intent.kind === "get_quote") {
@@ -744,6 +843,12 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
     const hasMsg = Boolean(qm);
     const hasPhone = waDigits.replace(/\D/g, "").length >= 8;
     const hasEmail = Boolean(email);
+    const contactBlock = buildContactShareText(intent.contactShareExtras, {
+      lang,
+      phone: phone || waDigits,
+      formattedPhone: getFormattedPhone(phone || waDigits),
+    });
+    const shareTextBody = [qm, contactBlock.trim()].filter(Boolean).join("\n\n");
     heading = lang === "en" ? "Request quote" : "Cotización";
     body = (
       <div className="mt-3 flex flex-col gap-3">
@@ -754,18 +859,28 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
             <p className="max-h-36 overflow-y-auto whitespace-pre-wrap text-sm text-[#111111]">{qm}</p>
           </div>
         ) : null}
-        {btnRow(t.sendWhatsApp, "quote_whatsapp", BTN_PRIMARY, (emit) => {
-          emit();
-          openWhatsApp(waDigits, qm);
-        }, !hasMsg || !hasPhone)}
-        {btnRow(t.sendSms, "quote_sms", BTN_SECONDARY, (emit) => {
-          emit();
-          openSms(phone || waDigits, qm);
-        }, !hasMsg || !hasPhone)}
-        {btnRow(t.sendEmail, "quote_email", BTN_SECONDARY, (emit) => {
-          emit();
-          openMailto(email, lang === "en" ? "Quote request" : "Solicitud de cotización", qm);
-        }, !hasMsg || !hasEmail)}
+        <p className="text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.sectionNative}</p>
+        <p className="text-xs leading-snug text-[#7A7268]">{t.shareWithAppsHint}</p>
+        {btnRow(
+          t.shareWithApps,
+          "quote_native_share",
+          BTN_PRIMARY,
+          async (emit) => {
+            if (!hasMsg || !shareTextBody.trim()) return;
+            const title = lang === "en" ? "Quote request" : "Solicitud de cotización";
+            const pub = trim(intent.contactShareExtras?.publicUrl);
+            const outcome = await tryWebShare({ title, text: shareTextBody, url: pub || undefined });
+            if (outcome === "shared") {
+              emit();
+              return;
+            }
+            if (outcome === "aborted") return;
+            const ok = await copyToClipboard(shareTextBody);
+            flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed, ok ? "ok" : "err");
+            if (ok) emit({ outcome: "fallback_copy" });
+          },
+          !hasMsg,
+        )}
         {btnRow(t.copyQuote, "quote_copy", BTN_SECONDARY, async (emit) => {
           const ok = await copyToClipboard(qm);
           flash(ok ? (lang === "en" ? "Quote copied." : "Cotización copiada.") : t.copyFailed, ok ? "ok" : "err");
@@ -786,6 +901,18 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
           phone: phone || waDigits,
           formattedPhone: getFormattedPhone(phone || waDigits),
         }).trim() && !qm)}
+        {btnRow(t.sendWhatsApp, "quote_whatsapp", BTN_SECONDARY, (emit) => {
+          emit();
+          openWhatsApp(waDigits, qm);
+        }, !hasMsg || !hasPhone)}
+        {btnRow(t.sendSms, "quote_sms", BTN_SECONDARY, (emit) => {
+          emit();
+          openSms(phone || waDigits, qm);
+        }, !hasMsg || !hasPhone)}
+        {btnRow(t.sendEmail, "quote_email", BTN_SECONDARY, (emit) => {
+          emit();
+          openMailto(email, lang === "en" ? "Quote request" : "Solicitud de cotización", qm);
+        }, !hasMsg || !hasEmail)}
       </div>
     );
   } else if (
@@ -803,42 +930,85 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
     body = (
       <div className="mt-3 flex flex-col gap-2">
         {!has ? <p className="text-sm text-red-900">{t.noLink}</p> : <p className={MONO}>{normalized}</p>}
-        {btnRow(t.openLink, "ext_open", BTN_PRIMARY, (emit) => {
-          emit();
-          openExternalUrl(normalized!);
-        }, !has)}
+        <p className="text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.sectionNative}</p>
+        <p className="text-xs leading-snug text-[#7A7268]">{t.shareWithAppsHint}</p>
+        {btnRow(
+          t.shareWithApps,
+          "ext_native_share",
+          BTN_PRIMARY,
+          async (emit) => {
+            if (!has || !normalized) return;
+            const title = heading;
+            const outcome = await tryWebShare({ title, text: normalized, url: normalized });
+            if (outcome === "shared") {
+              emit();
+              return;
+            }
+            if (outcome === "aborted") return;
+            const ok = await copyToClipboard(normalized);
+            flash(ok ? t.linkCopied : t.copyFailed, ok ? "ok" : "err");
+            if (ok) emit({ outcome: "fallback_copy" });
+          },
+          !has,
+        )}
         {btnRow(t.copyLink, "ext_copy", BTN_SECONDARY, async (emit) => {
           const ok = await copyToClipboard(normalized!);
           flash(ok ? t.linkCopied : t.copyFailed, ok ? "ok" : "err");
           if (ok) emit();
         }, !has)}
-        {btnRow(t.shareLink, "ext_share", BTN_SECONDARY, async (emit) => {
+        {btnRow(t.shareLink, "ext_share_copy", BTN_SECONDARY, async (emit) => {
           const ok = await copyToClipboard(normalized!);
           flash(ok ? t.linkCopied : t.copyFailed, ok ? "ok" : "err");
           if (ok) emit();
+        }, !has)}
+        {btnRow(t.openLink, "ext_open", BTN_SECONDARY, (emit) => {
+          emit();
+          openExternalUrl(normalized!);
         }, !has)}
       </div>
     );
   } else if (intent.kind === "directions") {
     const raw = trim(intent.addressOrUrl);
     const has = Boolean(raw);
+    const isUrl = /^https?:\/\//i.test(raw);
     heading = lang === "en" ? "Directions" : "Direcciones";
     body = (
       <div className="mt-3 flex flex-col gap-2">
         {!has ? <p className="text-sm text-red-900">{t.noAddress}</p> : <p className={MONO}>{raw}</p>}
-        {btnRow(t.mapsOpen, "maps_open", BTN_PRIMARY, (emit) => {
-          emit();
-          openMaps(raw);
-        }, !has)}
+        <p className="text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.sectionNative}</p>
+        <p className="text-xs leading-snug text-[#7A7268]">{t.shareWithAppsHint}</p>
+        {btnRow(
+          t.shareWithApps,
+          "maps_native_share",
+          BTN_PRIMARY,
+          async (emit) => {
+            if (!has) return;
+            const title = heading;
+            const outcome = await tryWebShare(isUrl ? { title, text: raw, url: raw } : { title, text: raw });
+            if (outcome === "shared") {
+              emit();
+              return;
+            }
+            if (outcome === "aborted") return;
+            const ok = await copyToClipboard(raw);
+            flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed, ok ? "ok" : "err");
+            if (ok) emit({ outcome: "fallback_copy" });
+          },
+          !has,
+        )}
         {btnRow(t.copyAddress, "maps_copy", BTN_SECONDARY, async (emit) => {
           const ok = await copyToClipboard(raw);
           flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed, ok ? "ok" : "err");
           if (ok) emit();
         }, !has)}
-        {btnRow(t.shareAddress, "maps_share", BTN_SECONDARY, async (emit) => {
+        {btnRow(t.shareAddress, "maps_share_copy", BTN_SECONDARY, async (emit) => {
           const ok = await copyToClipboard(raw);
           flash(ok ? (lang === "en" ? "Copied." : "Copiado.") : t.copyFailed, ok ? "ok" : "err");
           if (ok) emit();
+        }, !has)}
+        {btnRow(t.mapsOpen, "maps_open", BTN_SECONDARY, (emit) => {
+          emit();
+          openMaps(raw);
         }, !has)}
       </div>
     );
