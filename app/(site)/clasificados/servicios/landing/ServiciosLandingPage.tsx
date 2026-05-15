@@ -31,6 +31,7 @@ export function ServiciosLandingPage({
   liveRows: ServiciosPublicListingRow[];
 }) {
   const { destacadosRows, recientesRows } = selectLandingDestacadosRecientes(liveRows, lang);
+  const hasDestacados = destacadosRows.length > 0;
 
   return (
     <div className="relative min-h-screen overflow-x-hidden text-[#142a42]">
@@ -57,7 +58,7 @@ export function ServiciosLandingPage({
         />
       </div>
 
-      <main className="relative mx-auto w-full max-w-[min(100%,1440px)] px-4 pb-20 pt-8 sm:px-6 sm:pb-24 sm:pt-10 lg:px-10 lg:pb-28 xl:px-12 2xl:px-14">
+      <main className="relative mx-auto w-full max-w-[min(100%,1440px)] px-3 pb-16 pt-5 sm:px-6 sm:pb-24 sm:pt-10 lg:px-10 lg:pb-28 xl:px-12 2xl:px-14">
         {/* Hero + chips: one composed entry block */}
         <section
           id="servicios-hero"
@@ -65,43 +66,53 @@ export function ServiciosLandingPage({
           aria-label={lang === "en" ? "Search services" : "Buscar servicios"}
         >
           <ServiciosHeroSearch lang={lang} />
-          <div className="relative border-t border-[#e8e0d4]/70 bg-gradient-to-b from-[#faf6f0]/96 to-[#f4ebe3]/97 px-3 py-5 sm:px-8 sm:py-7 md:px-10 md:py-8">
+          <div className="relative border-t border-[#e8e0d4]/70 bg-gradient-to-b from-[#faf6f0]/96 to-[#f4ebe3]/97 px-3 py-4 sm:px-8 sm:py-7 md:px-10 md:py-8">
             <div
               className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/90 to-transparent"
               aria-hidden
             />
             <ServiciosQuickChips lang={lang} chips={SERVICIOS_LANDING_QUICK_CHIPS} />
-            <div className="mt-6 border-t border-[#e8e0d4]/80 pt-6">
+            <div className="mt-4 border-t border-[#e8e0d4]/80 pt-4 sm:mt-6 sm:pt-6">
               <ServiciosLandingQuickFilterLinks lang={lang} />
             </div>
           </div>
         </section>
 
-        <div className="mt-7 sm:mt-9 md:mt-11">
+        <div className="mt-5 sm:mt-9 md:mt-11">
           <ServiciosLandingBrowseRow lang={lang} />
         </div>
 
-        <div className="mt-16 space-y-16 sm:mt-20 sm:space-y-20 md:mt-24 md:space-y-[5.5rem]">
-          <div className={`${sectionShell} p-7 sm:p-9 md:p-11 lg:p-12`}>
-            <FeaturedBusinessSection lang={lang} rows={destacadosRows} />
-          </div>
+        <div className="mt-10 space-y-10 sm:mt-16 sm:space-y-16 md:mt-20 md:space-y-[5.5rem] lg:mt-24">
+          <div className="flex flex-col gap-10 sm:gap-16 md:gap-[5.5rem]">
+            <div
+              className={`${sectionShell} p-5 sm:p-9 md:p-11 lg:p-12 ${
+                hasDestacados ? "order-1" : "order-3 lg:order-1"
+              }`}
+            >
+              <FeaturedBusinessSection lang={lang} rows={destacadosRows} />
+            </div>
 
-          <div
-            id="categorias"
-            className={`scroll-mt-24 ${sectionShell} p-7 sm:p-9 md:p-11 lg:p-12`}
-          >
-            <ServiceCategoriesGrid lang={lang} categories={SERVICIOS_LANDING_EXPLORE_CATEGORIES} />
-          </div>
+            <div
+              id="categorias"
+              className={`scroll-mt-24 ${sectionShell} p-5 sm:p-9 md:p-11 lg:p-12 order-2`}
+            >
+              <ServiceCategoriesGrid lang={lang} categories={SERVICIOS_LANDING_EXPLORE_CATEGORIES} />
+            </div>
 
-          <div className={`${sectionShell} p-7 sm:p-9 md:p-11 lg:p-12`}>
-            <RecentServicesSection lang={lang} rows={recientesRows} />
+            <div
+              className={`${sectionShell} p-5 sm:p-9 md:p-11 lg:p-12 ${
+                hasDestacados ? "order-3" : "order-1 lg:order-3"
+              }`}
+            >
+              <RecentServicesSection lang={lang} rows={recientesRows} />
+            </div>
           </div>
 
           <TrustValueStrip lang={lang} />
           <PublishServiceCTA lang={lang} />
 
           <nav
-            className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 border-t border-[#dcd3c7]/90 pt-12 text-[13px] text-[#64748b]"
+            className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 border-t border-[#dcd3c7]/90 pt-8 text-[13px] text-[#64748b] sm:pt-12"
             aria-label={lang === "en" ? "Legal and help" : "Legal y ayuda"}
           >
             <Link href={`/about?lang=${lang}`} className="transition hover:text-[#142a42]">

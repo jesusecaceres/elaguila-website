@@ -22,8 +22,8 @@ export function ServiciosLandingQuickFilterLinks({ lang }: { lang: Lang }) {
   const base = "/clasificados/servicios/resultados";
 
   return (
-    <div className="mx-auto w-full max-w-[min(100%,920px)] px-1 sm:px-0">
-      <p className="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#3d5a73]/80">
+    <div className="mx-auto w-full max-w-[min(100%,920px)] px-0 sm:px-0">
+      <p className="mb-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-[#3d5a73]/80 sm:mb-3 sm:text-[11px]">
         {lang === "en" ? "Quick filters" : "Filtros rápidos"}
       </p>
       <CategoryLandingChipsRail
@@ -36,7 +36,7 @@ export function ServiciosLandingQuickFilterLinks({ lang }: { lang: Lang }) {
             <Link
               key={f.suffix}
               href={href}
-              className="inline-flex min-h-[40px] shrink-0 snap-start items-center rounded-full border border-[#c9b8a4]/90 bg-[#FFFCF7] px-3.5 py-2 text-[12px] font-semibold text-[#2a241c] shadow-sm transition hover:border-[#C9A84A]/70 hover:bg-[#FFF9EE] active:scale-[0.99] sm:min-h-[42px] sm:text-[13px]"
+              className="inline-flex min-h-[44px] shrink-0 snap-start items-center rounded-full border border-[#c9b8a4]/90 bg-[#FFFCF7] px-3 py-2 text-[12px] font-semibold text-[#2a241c] shadow-sm transition hover:border-[#C9A84A]/70 hover:bg-[#FFF9EE] active:scale-[0.99] sm:px-3.5 sm:text-[13px]"
             >
               {label}
             </Link>

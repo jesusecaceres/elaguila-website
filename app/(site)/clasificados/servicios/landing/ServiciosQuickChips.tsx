@@ -12,8 +12,8 @@ export function ServiciosQuickChips({
   const base = "/clasificados/servicios/resultados";
 
   return (
-    <div className="mx-auto w-full max-w-[min(100%,920px)] px-1 sm:px-0">
-      <p className="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#3d5a73]/80">
+    <div className="mx-auto w-full max-w-[min(100%,920px)] px-0 sm:px-0">
+      <p className="mb-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-[#3d5a73]/80 sm:mb-3 sm:text-[11px]">
         {lang === "en" ? "Popular services" : "Servicios populares"}
       </p>
       <CategoryLandingChipsRail
@@ -37,8 +37,8 @@ export function ServiciosQuickChips({
               href={href}
               className={
                 isMore
-                  ? "inline-flex min-h-[42px] shrink-0 snap-start items-center gap-2 rounded-full border border-[#1e3a5f]/22 bg-white px-4 py-2 text-[13px] font-semibold text-[#1e3a5f] shadow-[0_4px_14px_-6px_rgba(30,58,95,0.35)] transition hover:border-[#1e3a5f]/35 hover:bg-[#fafcff] active:scale-[0.99]"
-                  : "inline-flex min-h-[42px] shrink-0 snap-start items-center rounded-full bg-[#1a3352] px-4 py-2 text-[13px] font-semibold text-[#F8FAFC] shadow-[0_8px_22px_-12px_rgba(26,51,82,0.55)] transition hover:bg-[#152a45] hover:brightness-[1.02] active:scale-[0.99]"
+                  ? "inline-flex min-h-[44px] shrink-0 snap-start items-center gap-2 rounded-full border border-[#1e3a5f]/22 bg-white px-3.5 py-2 text-[12px] font-semibold text-[#1e3a5f] shadow-[0_4px_14px_-6px_rgba(30,58,95,0.35)] transition hover:border-[#1e3a5f]/35 hover:bg-[#fafcff] active:scale-[0.99] sm:px-4 sm:text-[13px]"
+                  : "inline-flex min-h-[44px] shrink-0 snap-start items-center rounded-full bg-[#1a3352] px-3.5 py-2 text-[12px] font-semibold text-[#F8FAFC] shadow-[0_8px_22px_-12px_rgba(26,51,82,0.55)] transition hover:bg-[#152a45] hover:brightness-[1.02] active:scale-[0.99] sm:px-4 sm:text-[13px]"
               }
             >
               {isMore ? (

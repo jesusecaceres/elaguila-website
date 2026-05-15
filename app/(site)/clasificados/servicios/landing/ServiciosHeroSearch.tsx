@@ -21,6 +21,8 @@ const copy: Record<
     phLocation: string;
     search: string;
     continuity: string;
+    continuityShort: string;
+    browseAllResults: string;
   }
 > = {
   es: {
@@ -30,6 +32,8 @@ const copy: Record<
     search: "Buscar servicios",
     continuity:
       "Puedes buscar por tipo de servicio, nombre del negocio o ciudad. Lo que escribas se abre en Resultados con los mismos campos.",
+    continuityShort: "Lo que escribas se abre en Resultados con los mismos campos.",
+    browseAllResults: "Ver todos los resultados de Servicios",
   },
   en: {
     sub: "Search plumbing, web design, cleaning, mechanics, and more.",
@@ -38,6 +42,8 @@ const copy: Record<
     search: "Search services",
     continuity:
       "Search by service type, business name, or city. What you enter opens in Results with the same fields.",
+    continuityShort: "What you enter opens in Results with the same fields.",
+    browseAllResults: "Browse all Servicios results",
   },
 };
 
@@ -46,6 +52,7 @@ const FORM_ID = "servicios-hero-search-form";
 export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
   const t = copy[lang];
   const resultsAction = "/clasificados/servicios/resultados";
+  const resultsBrowseHref = `/clasificados/servicios/resultados?lang=${lang}`;
   const qRef = useRef<HTMLInputElement>(null);
   const cityRef = useRef<HTMLInputElement>(null);
 
@@ -56,7 +63,7 @@ export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
   }, []);
 
   return (
-    <div className="relative min-h-[min(42vh,480px)] overflow-hidden sm:min-h-[min(48vh,560px)] md:min-h-[min(52vh,620px)] lg:min-h-[min(54vh,680px)]">
+    <div className="relative min-h-[min(30vh,320px)] overflow-hidden sm:min-h-[min(42vh,480px)] md:min-h-[min(52vh,620px)] lg:min-h-[min(54vh,680px)]">
       <div className="absolute inset-0">
         <Image
           src={HERO_BACKDROP}
@@ -84,12 +91,12 @@ export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
         />
       </div>
 
-      <div className="relative z-10 flex min-h-[inherit] flex-col justify-center px-4 py-10 sm:px-8 sm:py-12 md:px-10 md:py-14 lg:px-14 lg:py-16">
+      <div className="relative z-10 flex min-h-[inherit] flex-col justify-center px-3 py-7 sm:px-8 sm:py-12 md:px-10 md:py-14 lg:px-14 lg:py-16">
         <div className="mx-auto w-full max-w-[min(100%,880px)] text-center">
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3d5a73]/75 sm:text-[11px] sm:tracking-[0.22em]">
             {lang === "en" ? "Services · Leonix" : "Servicios · Leonix"}
           </p>
-          <h1 className="mt-2 text-balance font-serif text-[clamp(1.7rem,3.8vw+0.85rem,3.75rem)] font-bold leading-[1.08] tracking-tight text-[#142a42] sm:mt-2.5">
+          <h1 className="mt-1.5 text-balance font-serif text-[clamp(1.45rem,3.2vw+0.75rem,3.75rem)] font-bold leading-[1.08] tracking-tight text-[#142a42] sm:mt-2.5 sm:text-[clamp(1.7rem,3.8vw+0.85rem,3.75rem)]">
             {lang === "en" ? (
               <>
                 Find trusted services <span className="text-[#C2410C]">near you</span>
@@ -100,7 +107,7 @@ export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
               </>
             )}
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-pretty text-[15px] leading-relaxed text-[#3d4f62] sm:mt-4 sm:text-lg md:mt-5 md:text-xl">
+          <p className="mx-auto mt-2 max-w-2xl text-pretty text-[14px] leading-snug text-[#3d4f62] sm:mt-4 sm:text-lg sm:leading-relaxed md:mt-5 md:text-xl">
             {t.sub}
           </p>
         </div>
@@ -111,7 +118,7 @@ export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
           method="get"
           role="search"
           aria-describedby="servicios-search-hint"
-          className="mx-auto mt-8 w-full max-w-[min(100%,920px)] sm:mt-10 md:mt-12"
+          className="mx-auto mt-5 w-full max-w-[min(100%,920px)] sm:mt-10 md:mt-12"
           onSubmit={() => {
             const q = qRef.current?.value?.trim() ?? "";
             const cityRaw = cityRef.current?.value?.trim() ?? "";
@@ -175,12 +182,23 @@ export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
               </button>
             </div>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-3 px-1 sm:px-0">
+          <div className="mt-2 flex flex-wrap items-center gap-2 px-0.5 sm:mt-3 sm:gap-3 sm:px-0">
             <ServiciosUseMyLocationButton lang={lang} formId={FORM_ID} />
           </div>
         </form>
-        <p className="mx-auto mt-5 max-w-[min(100%,640px)] px-1 text-center text-[12px] leading-relaxed text-[#5a6b7c] sm:mt-6 sm:text-[13px]">
+        <p className="mx-auto mt-3 max-w-[min(100%,640px)] px-1 text-center text-[12px] leading-relaxed text-[#5a6b7c] sm:hidden">
+          {t.continuityShort}
+        </p>
+        <p className="mx-auto mt-5 hidden max-w-[min(100%,640px)] px-1 text-center text-[12px] leading-relaxed text-[#5a6b7c] sm:mt-6 sm:block sm:text-[13px]">
           {t.continuity}
+        </p>
+        <p className="mx-auto mt-2.5 max-w-[min(100%,640px)] px-1 text-center sm:mt-2 lg:hidden">
+          <Link
+            href={resultsBrowseHref}
+            className="text-[13px] font-bold text-[#3B66AD] underline-offset-4 transition hover:underline sm:text-[13px]"
+          >
+            {t.browseAllResults}
+          </Link>
         </p>
         <p className="mx-auto mt-2 max-w-[min(100%,640px)] px-1 text-center text-[11px] leading-relaxed text-[#64748b]">
           {lang === "en" ? (
