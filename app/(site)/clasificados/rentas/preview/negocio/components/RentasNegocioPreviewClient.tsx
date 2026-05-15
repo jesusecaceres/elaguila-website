@@ -24,10 +24,10 @@ import { resolveRentasNegocioDraftMediaToRemoteUrls } from "@/app/clasificados/r
 import { hydrateRentasNegocioDraftVideoFromIdb } from "@/app/clasificados/rentas/shared/rentasDraftVideoHydrate";
 import { rentasDraftVideoFileForMuxUpload, rentasMediaHasLocalMuxableVideo } from "@/app/clasificados/rentas/shared/rentasDraftVideoMuxSource";
 import {
-  RENTAS_MUX_UPLOAD_FAIL_EN,
-  RENTAS_MUX_UPLOAD_FAIL_ES,
-  uploadRentasDraftVideoFileToMux,
-} from "@/app/clasificados/rentas/shared/rentasMuxVideoClient";
+  rentasPublishStepTracePatch,
+  rentasPublishStepTraceReset,
+} from "@/app/clasificados/rentas/lib/rentasPublishStepTrace";
+import { uploadRentasDraftVideoFileToMux } from "@/app/clasificados/rentas/shared/rentasMuxVideoClient";
 import {
   createEmptyRentasNegocioFormState,
   mergePartialRentasNegocioState,
@@ -61,17 +61,34 @@ export default function RentasNegocioPreviewClient() {
   const lang = searchParams?.get("lang") === "en" ? "en" : "es";
 
   const onPublishLive = useCallback(async () => {
-    const d = loadRentasNegocioDraft();
-    if (!d) return;
-    setPublishBusy(true);
+    rentasPublishStepTraceReset();
+    rentasPublishStepTracePatch({
+      publishClicked: true,
+      existingErrorBeforePublish: publishErr != null && publishErr !== "",
+    });
     setPublishErr(null);
+    rentasPublishStepTracePatch({ errorClearedAtStart: true });
+    setPublishBusy(true);
+
+    const d = loadRentasNegocioDraft();
+    if (!d) {
+      setPublishBusy(false);
+      return;
+    }
+
     let toPublish = d;
+    const draftSessionId =
+      typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `rentas-${Date.now()}`;
+    rentasPublishStepTracePatch({ draftId: draftSessionId, draftSource: "localStorage" });
+
+    const imagesCountBeforeUpload = d.media.photoDataUrls.filter((u) => typeof u === "string" && u.trim()).length;
+    rentasPublishStepTracePatch({ imagesCountBeforeUpload, imagesUploadStarted: true });
+
     try {
-      const draftSessionId =
-        typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `rentas-${Date.now()}`;
       toPublish = await resolveRentasNegocioDraftMediaToRemoteUrls(d, draftSessionId);
     } catch (e) {
       setPublishBusy(false);
+      rentasPublishStepTracePatch({ imagesUploadFinished: false, finalErrorSet: true });
       setPublishErr(
         e instanceof Error
           ? e.message
@@ -82,28 +99,52 @@ export default function RentasNegocioPreviewClient() {
       return;
     }
 
+    const imagesDurableCount = toPublish.media.photoDataUrls.filter(
+      (u) => typeof u === "string" && /^https:\/\//i.test(u.trim()),
+    ).length;
+    rentasPublishStepTracePatch({ imagesUploadFinished: true, imagesDurableCount });
+
     let muxFields: RentasListingPublishMuxFields | undefined;
     if (rentasMediaHasLocalMuxableVideo(toPublish.media)) {
+      rentasPublishStepTracePatch({ videoSelected: true });
       const file = await rentasDraftVideoFileForMuxUpload(toPublish.media);
       if (!file) {
-        setPublishBusy(false);
-        setPublishErr(lang === "es" ? RENTAS_MUX_UPLOAD_FAIL_ES : RENTAS_MUX_UPLOAD_FAIL_EN);
-        return;
+        rentasPublishStepTracePatch({
+          muxDirectUploadStarted: false,
+          muxDirectUploadSucceeded: false,
+          muxUploadStatusSucceeded: false,
+        });
+      } else {
+        rentasPublishStepTracePatch({ muxDirectUploadStarted: true });
+        const muxRes = await uploadRentasDraftVideoFileToMux(file, lang);
+        if (!muxRes.ok) {
+          rentasPublishStepTracePatch({
+            muxDirectUploadSucceeded: false,
+            muxUploadStatusSucceeded: false,
+          });
+        } else {
+          rentasPublishStepTracePatch({
+            muxDirectUploadSucceeded: true,
+            muxUploadStatusSucceeded: true,
+            muxAssetId: muxRes.assetId,
+            muxPlaybackId: muxRes.playbackId,
+          });
+          muxFields = {
+            muxAssetId: muxRes.assetId,
+            muxPlaybackId: muxRes.playbackId,
+            muxThumbnailUrl: muxRes.thumbnailUrl,
+          };
+        }
       }
-      const muxRes = await uploadRentasDraftVideoFileToMux(file, lang);
-      if (!muxRes.ok) {
-        setPublishBusy(false);
-        setPublishErr(muxRes.error);
-        return;
-      }
-      muxFields = {
-        muxAssetId: muxRes.assetId,
-        muxPlaybackId: muxRes.playbackId,
-        muxThumbnailUrl: muxRes.thumbnailUrl,
-      };
     }
 
+    rentasPublishStepTracePatch({ finalPayloadBuildStarted: true });
     const r = await publishLeonixListingFromRentasNegocioDraft(toPublish, lang, muxFields);
+    rentasPublishStepTracePatch({
+      finalPayloadBuildFinished: true,
+      redirectStarted: r.ok,
+      finalErrorSet: !r.ok,
+    });
     setPublishBusy(false);
     if (r.ok) {
       clearRentasNegocioDraft();
@@ -111,7 +152,7 @@ export default function RentasNegocioPreviewClient() {
     } else {
       setPublishErr(r.error);
     }
-  }, [lang, router]);
+  }, [lang, router, publishErr]);
 
   useEffect(() => {
     let cancelled = false;

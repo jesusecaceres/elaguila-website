@@ -11,6 +11,7 @@ import {
   mapLeonixListingsDescriptionConstraintToUserMessage,
   prepareLeonixListingDescriptionForPublish,
   prepareLeonixListingTitleForPublish,
+  sanitizeLeonixListingPublishDescriptionBody,
   toLeonixListingsDescriptionForDb,
   toLeonixListingsTitleForDb,
 } from "@/app/(site)/clasificados/lib/leonixPublishPublicDescription";
@@ -20,6 +21,7 @@ import {
   rentasPublishFinalBoundaryPreflight,
   rentasPublishGalleryUrlsPreflight,
 } from "@/app/(site)/clasificados/rentas/lib/rentasPublishFinalPayloadDebug";
+import { rentasPublishStepTracePatch } from "@/app/(site)/clasificados/rentas/lib/rentasPublishStepTrace";
 
 const DEV = process.env.NODE_ENV === "development";
 
@@ -218,7 +220,14 @@ export async function publishLeonixRealEstateListingCore(
     return { ok: false, error: lang === "es" ? "Falta la ciudad." : "City is required." };
   }
 
-  const descriptionPrep = prepareLeonixListingDescriptionForPublish(description, lang);
+  /**
+   * Rentas: do not hard-block on sanitized length >3900 here — `toLeonixListingsDescriptionForDb`
+   * Unicode-clips to the SQL-safe cap. Bienes Raíces keeps the stricter prepare step.
+   */
+  const descriptionPrep =
+    category === "rentas"
+      ? { ok: true as const, sanitized: sanitizeLeonixListingPublishDescriptionBody(description) }
+      : prepareLeonixListingDescriptionForPublish(description, lang);
   if (!descriptionPrep.ok) {
     return { ok: false, error: descriptionPrep.error };
   }
@@ -282,6 +291,12 @@ export async function publishLeonixRealEstateListingCore(
     if (rentasBlock) {
       return { ok: false, error: rentasBlock };
     }
+    rentasPublishStepTracePatch({
+      finalPayloadBuildStarted: true,
+      descriptionIsNull: descriptionForDb == null,
+      descriptionLength: descriptionForDb == null ? null : descriptionForDb.length,
+      titleLength: titlePrep.titleForDb.length,
+    });
   }
 
   if (PUBLISH_DIAG) {
@@ -305,6 +320,10 @@ export async function publishLeonixRealEstateListingCore(
   }
 
   devLog("insert listings row", { category, sellerType, titleLen: titlePrep.titleForDb.length });
+
+  if (category === "rentas") {
+    rentasPublishStepTracePatch({ publicListingInsertStarted: true });
+  }
 
   const { data: inserted, error: insErr } = await insertListingsRowResilient(supabase, insertPayload);
   if (insErr || !inserted?.id) {
@@ -345,6 +364,20 @@ export async function publishLeonixRealEstateListingCore(
   }
 
   const listingId = inserted.id;
+
+  if (category === "rentas") {
+    rentasPublishStepTracePatch({
+      publicListingInsertSucceeded: true,
+      publicListingReturnedId: listingId,
+    });
+    if (PUBLISH_DIAG) {
+      const { data: adPeek } = await supabase.from("listings").select("leonix_ad_id").eq("id", listingId).maybeSingle();
+      const lid = (adPeek as { leonix_ad_id?: string | null } | null)?.leonix_ad_id;
+      rentasPublishStepTracePatch({
+        publicListingReturnedLeonixAdId: typeof lid === "string" && lid.trim() ? lid.trim() : null,
+      });
+    }
+  }
 
   const warnings: string[] = [];
   const ordered = imageSources.filter((u) => typeof u === "string" && u.trim());
