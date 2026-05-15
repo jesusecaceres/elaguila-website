@@ -32,7 +32,16 @@ export type CommunityDiscoveryCardModel = {
   detailHref: string;
 };
 
-/** Prefer main image, then first usable URL (string or { url }). */
+/** Public discovery cards must not use session/blob URLs (they break after refresh / in prod). */
+export function isPublicPersistedListingImageUrl(url: string): boolean {
+  const u = String(url ?? "").trim();
+  if (!u) return false;
+  const low = u.toLowerCase();
+  if (low.startsWith("blob:") || low.startsWith("javascript:")) return false;
+  return true;
+}
+
+/** Prefer main image, then first usable URL (string or { url }). Skips blob/session URLs. */
 export function pickListingCardImageUrl(images: unknown): string | null {
   if (images == null) return null;
   if (!Array.isArray(images) || images.length === 0) return null;
@@ -41,13 +50,15 @@ export function pickListingCardImageUrl(images: unknown): string | null {
   let mainUrl: string | null = null;
   for (const x of items) {
     if (typeof x === "string" && x.trim()) {
-      urls.push(x.trim());
+      const u = x.trim();
+      if (!isPublicPersistedListingImageUrl(u)) continue;
+      urls.push(u);
       continue;
     }
     if (x && typeof x === "object") {
       const o = x as { url?: unknown; isMain?: unknown };
       const u = typeof o.url === "string" ? o.url.trim() : "";
-      if (!u) continue;
+      if (!u || !isPublicPersistedListingImageUrl(u)) continue;
       if (o.isMain === true) mainUrl = u;
       urls.push(u);
     }

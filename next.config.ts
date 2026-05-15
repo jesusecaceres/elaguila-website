@@ -24,6 +24,12 @@ const nextConfig: NextConfig = {
         hostname: "*.public.blob.vercel-storage.com",
         pathname: "/**",
       },
+      /** Supabase Storage public URLs (listing flyers, etc.) — required if any route still uses `next/image` for these hosts. */
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
     ],
   },
 

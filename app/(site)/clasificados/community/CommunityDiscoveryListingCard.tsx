@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 
@@ -27,6 +27,11 @@ const CTA = {
 export function CommunityDiscoveryListingCard({ model, lang, variant }: Props) {
   const L = lang === "es";
   const cta = CTA[variant][lang];
+  const [listingPhotoFailed, setListingPhotoFailed] = useState(false);
+
+  useEffect(() => {
+    setListingPhotoFailed(false);
+  }, [model.id, model.imageUrl]);
 
   const chips = [
     model.typeChip,
@@ -44,29 +49,43 @@ export function CommunityDiscoveryListingCard({ model, lang, variant }: Props) {
           className="relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-[#EDE8DF] sm:aspect-auto sm:h-auto sm:w-[min(44%,220px)] sm:min-h-[200px]"
           aria-label={`${cta}: ${model.title}`}
         >
-          {model.imageUrl ? (
-            <Image
+          {/*
+           Native <img> so Supabase Storage and other persisted URLs work in production without
+           next/image remotePatterns. next/image optimizer rejects unknown hosts → blank panel.
+          */}
+          {model.imageUrl && !listingPhotoFailed ? (
+            <img
               src={model.imageUrl}
               alt=""
-              fill
-              className="object-cover transition duration-300 group-hover:scale-[1.02]"
-              sizes="(max-width:640px) 100vw, 220px"
-              unoptimized={model.imageUrl.startsWith("data:") || model.imageUrl.startsWith("blob:")}
+              loading="lazy"
+              decoding="async"
+              data-testid="community-discovery-card-photo"
+              className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+              onError={() => setListingPhotoFailed(true)}
             />
           ) : (
             <>
-              <Image
+              <img
                 src={LISTING_IMAGE_FALLBACK}
                 alt=""
-                fill
-                className="object-contain object-center p-6 opacity-[0.92] transition duration-300 group-hover:scale-[1.02]"
-                sizes="(max-width:640px) 100vw, 220px"
+                loading="lazy"
+                decoding="async"
+                data-testid="community-discovery-card-photo"
+                className="absolute inset-0 h-full w-full object-contain object-center p-6 opacity-[0.92] transition duration-300 group-hover:scale-[1.02]"
               />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#EDE8DF]/95 to-transparent px-3 pb-2 pt-8 text-center">
-                <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#5C564E]/90">
-                  {L ? "Sin foto del anuncio" : "No listing photo"}
-                </span>
-              </div>
+              {model.imageUrl && listingPhotoFailed ? (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#EDE8DF]/95 to-transparent px-3 pb-2 pt-8 text-center">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#5C564E]/90">
+                    {L ? "Vista previa no disponible" : "Preview unavailable"}
+                  </span>
+                </div>
+              ) : !model.imageUrl ? (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#EDE8DF]/95 to-transparent px-3 pb-2 pt-8 text-center">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#5C564E]/90">
+                    {L ? "Sin foto del anuncio" : "No listing photo"}
+                  </span>
+                </div>
+              ) : null}
             </>
           )}
         </Link>

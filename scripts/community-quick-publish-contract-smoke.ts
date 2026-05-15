@@ -172,12 +172,15 @@ function main() {
 
   const discoveryCard = readSourceRel("app/(site)/clasificados/community/CommunityDiscoveryListingCard.tsx");
   assert.ok(discoveryCard.includes('data-testid="community-discovery-listing-card"'));
+  assert.ok(discoveryCard.includes('data-testid="community-discovery-card-photo"'));
+  assert.ok(discoveryCard.includes("<img"), "discovery card must use native img for production-safe Supabase URLs");
   assert.ok(discoveryCard.includes("Ver clase") && discoveryCard.includes("Ver evento"));
 
   const discoveryModel = readSourceRel(
     "app/(site)/clasificados/community/shared/communityDiscoveryListingCardModel.ts",
   );
   assert.ok(discoveryModel.includes("pickListingCardImageUrl"));
+  assert.ok(discoveryModel.includes("isPublicPersistedListingImageUrl"));
   assert.ok(discoveryModel.includes("buildCommunityDiscoverySearchBlob"));
 
   const recentListings = readSourceRel("app/(site)/clasificados/components/categoryLanding/CategoryRecentListings.tsx");

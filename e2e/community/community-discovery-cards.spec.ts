@@ -1,11 +1,33 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 
 const NORCAL_RE = /NorCal/i;
 const RAW_SOCIAL_RE = /https?:\/\/(www\.)?(facebook|instagram|tiktok|youtube|linkedin|twitter|x)\.com/i;
 
-async function assertNoNorCalOrRawSocial(page: import("@playwright/test").Page) {
+/** Known-broken Unsplash handshake used elsewhere in parity tests — must not appear on discovery cards. */
+const UNSPLASH_BROKEN_HANDSHAKE = "images.unsplash.com/photo-1521791136064-7986c2920216";
+
+async function assertNoNorCalOrRawSocial(page: Page) {
   await expect(page.locator("body")).not.toContainText(NORCAL_RE);
   await expect(page.locator("body")).not.toContainText(RAW_SOCIAL_RE);
+}
+
+/** Production-safe thumbnails: native img with real src, not blob:, and actually paints pixels. */
+async function assertDiscoveryCardPhotoLoads(card: Locator) {
+  const photo = card.getByTestId("community-discovery-card-photo");
+  await expect(photo).toBeVisible({ timeout: 30_000 });
+  const src = await photo.getAttribute("src");
+  expect(src, "discovery card photo must have src").toBeTruthy();
+  expect(src!.trim().length, "discovery card photo src must be non-empty").toBeGreaterThan(3);
+  expect(src!.startsWith("blob:"), "public discovery cards must not use blob: URLs").toBe(false);
+  expect(src, "avoid known-broken Unsplash placeholder on discovery cards").not.toContain(UNSPLASH_BROKEN_HANDSHAKE);
+  await expect
+    .poll(
+      async () => {
+        return photo.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0 && el.naturalHeight > 0);
+      },
+      { timeout: 20_000 },
+    )
+    .toBe(true);
 }
 
 test.describe("Clases y Comunidad discovery cards", () => {
@@ -17,7 +39,7 @@ test.describe("Clases y Comunidad discovery cards", () => {
     const n = await cards.count();
     if (n > 0) {
       await expect(cards.first().locator(`a[href*="/clasificados/anuncio/"]`).first()).toBeVisible();
-      await expect(cards.first().locator("img").first()).toBeVisible();
+      await assertDiscoveryCardPhotoLoads(cards.first());
       await expect(cards.first().getByRole("link", { name: /Ver clase|View class/i })).toBeVisible();
     }
   });
@@ -30,9 +52,10 @@ test.describe("Clases y Comunidad discovery cards", () => {
     await expect(grid.or(empty)).toBeVisible({ timeout: 30_000 });
     if (await grid.isVisible()) {
       const cards = page.getByTestId("community-discovery-listing-card");
+      await expect(cards.first()).toBeVisible({ timeout: 30_000 });
       if ((await cards.count()) > 0) {
         await expect(cards.first().locator(`a[href*="/clasificados/anuncio/"]`).first()).toBeVisible();
-        await expect(cards.first().locator("img").first()).toBeVisible();
+        await assertDiscoveryCardPhotoLoads(cards.first());
       }
     }
   });
@@ -44,7 +67,7 @@ test.describe("Clases y Comunidad discovery cards", () => {
     const cards = page.getByTestId("community-discovery-listing-card");
     if ((await cards.count()) > 0) {
       await expect(cards.first().locator(`a[href*="/clasificados/anuncio/"]`).first()).toBeVisible();
-      await expect(cards.first().locator("img").first()).toBeVisible();
+      await assertDiscoveryCardPhotoLoads(cards.first());
       await expect(cards.first().getByRole("link", { name: /Ver evento|View event/i })).toBeVisible();
     }
   });
@@ -59,6 +82,7 @@ test.describe("Clases y Comunidad discovery cards", () => {
       const cards = page.getByTestId("community-discovery-listing-card");
       if ((await cards.count()) > 0) {
         await expect(cards.first().locator(`a[href*="/clasificados/anuncio/"]`).first()).toBeVisible();
+        await assertDiscoveryCardPhotoLoads(cards.first());
       }
     }
   });
