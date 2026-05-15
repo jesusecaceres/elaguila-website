@@ -22,7 +22,11 @@ const COPY = {
     successDetail: "Ver mi anuncio publicado",
     successDashboard: "Ir a Mis anuncios",
     errPrefix: "No se pudo publicar:",
-    blocked: "Marca las confirmaciones y completa categoría, tipo de artículo y condición para publicar.",
+    blockedIntro: "Para habilitar Publicar, completa lo siguiente:",
+    blockerTitle: "Agrega un título para tu artículo.",
+    blockerTaxonomy: "Completa categoría, tipo de artículo y condición.",
+    blockerPrice: "Agrega un precio o marca Gratis.",
+    blockerRules: "Confirma las reglas antes de publicar.",
   },
   en: {
     publishFree: "Publish listing",
@@ -34,16 +38,36 @@ const COPY = {
     successDetail: "View my published listing",
     successDashboard: "Go to My listings",
     errPrefix: "Could not publish:",
-    blocked: "Confirm the checkboxes and complete category, item type, and condition to publish.",
+    blockedIntro: "To enable Publish, complete the following:",
+    blockerTitle: "Add a title for your item.",
+    blockerTaxonomy: "Complete department, item type, and condition.",
+    blockerPrice: "Add a price or mark it as Free.",
+    blockerRules: "Confirm the rules before publishing.",
   },
 } as const;
 
-function canAttemptPublish(state: EnVentaFreeApplicationState): boolean {
-  if (!state.confirmListingAccurate || !state.confirmPhotosRepresentItem || !state.confirmCommunityRules) return false;
+/** Mirrors `publishEnVentaFromDraft` gates (title, taxonomy, price/gratis, location, confirmations). */
+function collectPublishBlockers(lang: "es" | "en", state: EnVentaFreeApplicationState): string[] {
+  const t = COPY[lang];
+  const reasons: string[] = [];
+
+  if (!state.title.trim()) reasons.push(t.blockerTitle);
+
   const rama = state.rama.trim();
   const itemType = state.itemType.trim();
   const condition = state.condition.trim();
-  return Boolean(rama && itemType && condition);
+  if (!rama || !itemType || !condition) reasons.push(t.blockerTaxonomy);
+
+  if (!state.priceIsFree && !String(state.price).trim()) reasons.push(t.blockerPrice);
+
+  const loc = validateEnVentaLocation(state.city, state.zip);
+  if (!loc.ok) reasons.push(lang === "es" ? loc.messageEs : loc.messageEn);
+
+  if (!state.confirmListingAccurate || !state.confirmPhotosRepresentItem || !state.confirmCommunityRules) {
+    reasons.push(t.blockerRules);
+  }
+
+  return reasons;
 }
 
 type Props = {
@@ -61,7 +85,8 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
     gallery: EnVentaGalleryUploadOutcome;
   } | null>(null);
 
-  const ready = canAttemptPublish(state);
+  const blockers = collectPublishBlockers(lang, state);
+  const ready = blockers.length === 0;
   const { generalUrl, scopedUrl } = buildEnVentaPublishSuccessUrls(lang, state);
 
   const onPublish = async () => {
@@ -150,7 +175,16 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
 
   return (
     <div className="rounded-2xl border border-[#D8C79A]/70 bg-[#FFF7E7] p-5 shadow-sm">
-      <p className="text-sm text-[#5D4A25]/90">{!ready ? t.blocked : null}</p>
+      {!ready ? (
+        <div className="text-sm text-[#5D4A25]/95">
+          <p className="font-semibold text-[#3D2C12]/95">{t.blockedIntro}</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 leading-snug">
+            {blockers.map((line, i) => (
+              <li key={`${i}-${line}`}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       {err ? (
         <p className="mt-2 text-sm font-medium text-red-800" role="alert" data-testid="ev-publish-error">
           {t.errPrefix} {err}

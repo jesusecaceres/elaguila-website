@@ -25,6 +25,8 @@ const COPY = {
     model: "Modelo (opcional)",
     descL: "Descripción",
     descH: "Qué es el artículo, por qué comprarlo y qué incluye la venta en general (no repitas solo condición física; eso va en la sección siguiente).",
+    titlePublishHint: "Agrega un título para tu artículo.",
+    pricePublishHint: "Agrega un precio o marca Gratis.",
   },
   en: {
     title: "Basic item info",
@@ -43,6 +45,8 @@ const COPY = {
     model: "Model (optional)",
     descL: "Description",
     descH: "What it is, why buy it, and what’s included overall (save wear/defects for the next section).",
+    titlePublishHint: "Add a title for your item.",
+    pricePublishHint: "Add a price or mark it as Free.",
   },
 } as const;
 
@@ -72,6 +76,7 @@ export function BasicInfoSection<S extends EnVentaFreeApplicationState>({
           value={state.title}
           onChange={(e) => setState((s) => ({ ...s, title: e.target.value }))}
         />
+        <p className="mt-2 text-xs font-medium text-[#111111]/55">{t.titlePublishHint}</p>
       </div>
 
       <div>
@@ -131,6 +136,9 @@ export function BasicInfoSection<S extends EnVentaFreeApplicationState>({
                   aria-label={t.amountLabel}
                 />
               </div>
+              {!String(state.price).trim() ? (
+                <p className="mt-2 text-xs font-medium text-[#111111]/55">{t.pricePublishHint}</p>
+              ) : null}
             </div>
             <div>
               <label className={labelClass}>{ovNeg?.label ?? t.neg}</label>

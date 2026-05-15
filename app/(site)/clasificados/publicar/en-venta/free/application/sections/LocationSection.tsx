@@ -18,6 +18,7 @@ const COPY = {
     city: "Ciudad",
     zip: "ZIP (opcional)",
     zipHint: "5 dígitos",
+    publishLocHint: "Agrega la ciudad o ubicación donde está el artículo.",
   },
   en: {
     title: "Location",
@@ -25,6 +26,7 @@ const COPY = {
     city: "City",
     zip: "ZIP (optional)",
     zipHint: "5 digits",
+    publishLocHint: "Add the city or location where the item is available.",
   },
 } as const;
 
@@ -63,7 +65,8 @@ export function LocationSection<S extends EnVentaFreeApplicationState>({
 
   return (
     <SectionShell lang={lang} title={t.title} description={t.desc}>
-      <div>
+      <p className="text-xs font-medium text-[#111111]/55">{t.publishLocHint}</p>
+      <div className="mt-4">
         <CityAutocomplete
           lang={lang}
           variant="light"
@@ -79,7 +82,7 @@ export function LocationSection<S extends EnVentaFreeApplicationState>({
           invalid={cityInvalid}
         />
       </div>
-      <div>
+      <div className="mt-4">
         <label className={labelClass}>{ovZip?.label ?? t.zip}</label>
         <p className="mt-1 text-xs text-[#111111]/60">{ovZip?.help ?? t.zipHint}</p>
         <input
