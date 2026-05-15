@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getAdminLang, adminMessages } from "@/app/admin/_lib/adminI18n";
+import { ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF } from "@/app/admin/_lib/adminGlobalNav";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import {
   fetchListingsForAdminWorkspaceFiltered,
@@ -208,9 +209,9 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
           {m("clasificados.serviciosCta")}
         </Link>
         <Link
-          href="/admin/categories"
+          href={ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF}
           className={`${adminCtaChipSecondary} justify-center text-sm`}
-          title={m("clasificados.categoriesTitle")}
+          title={m("clasificados.categoriesAdvancedTitle")}
         >
           {m("clasificados.categoriesCta")}
         </Link>

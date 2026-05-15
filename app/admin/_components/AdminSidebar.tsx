@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import newLogo from "../../../public/logo.png";
-import { ADMIN_GLOBAL_NAV } from "../_lib/adminGlobalNav";
+import { ADMIN_GLOBAL_NAV, isAdminGlobalNavItemActive } from "../_lib/adminGlobalNav";
 import { useAdminT } from "./AdminI18nProvider";
 
 function cx(...p: Array<string | false | undefined>) {
@@ -28,7 +28,7 @@ export function AdminSidebar({ tiendaInboxUnread = 0 }: { tiendaInboxUnread?: nu
       </div>
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-4">
         {ADMIN_GLOBAL_NAV.map((item) => {
-          const active = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href));
+          const active = isAdminGlobalNavItemActive(pathname, item);
           return (
             <Link
               key={item.href}

@@ -1,3 +1,7 @@
+/** Deep link to the dense registry table + Supabase save forms (secondary to the card hub). */
+export const ADMIN_CATEGORIES_ADVANCED_REGISTRY_FRAGMENT = "advanced-category-registry";
+export const ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF = `/admin/categories#${ADMIN_CATEGORIES_ADVANCED_REGISTRY_FRAGMENT}`;
+
 /** Shared global admin links (desktop sidebar + mobile drawer). */
 export type AdminGlobalNavItem = {
   href: string;
@@ -5,12 +9,27 @@ export type AdminGlobalNavItem = {
   labelKey: string;
   icon: string;
   badgeFrom?: "tienda";
+  /** Treat these path prefixes as active for this item (e.g. legacy routes that stay linked). */
+  activePathPrefixes?: string[];
 };
+
+/** `true` when `pathname` should highlight this nav entry. */
+export function isAdminGlobalNavItemActive(pathname: string, item: AdminGlobalNavItem): boolean {
+  if (pathname === item.href) return true;
+  if (item.href === "/admin") return false;
+  if (pathname.startsWith(item.href)) return true;
+  return item.activePathPrefixes?.some((p) => pathname.startsWith(p)) ?? false;
+}
 
 /** Tienda sidebar entry opens the command hub at `/admin/tienda`. */
 export const ADMIN_GLOBAL_NAV: AdminGlobalNavItem[] = [
   { href: "/admin", labelKey: "nav.dashboard", icon: "◆", badgeFrom: "tienda" },
-  { href: "/admin/categories", labelKey: "nav.categories", icon: "▤" },
+  {
+    href: "/admin/workspace/clasificados",
+    labelKey: "nav.categories",
+    icon: "▤",
+    activePathPrefixes: ["/admin/categories"],
+  },
   { href: "/admin/tienda", labelKey: "nav.tienda", icon: "🛒" },
   { href: "/admin/workspace", labelKey: "nav.siteSections", icon: "🧩" },
   { href: "/admin/clasificados/viajes", labelKey: "nav.viajes", icon: "✈" },

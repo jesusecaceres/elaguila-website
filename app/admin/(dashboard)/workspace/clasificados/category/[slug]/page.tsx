@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF } from "@/app/admin/_lib/adminGlobalNav";
 import { getCategorySchema } from "@/app/clasificados/config/categorySchema";
 import { getClasificadosCategoryRegistryMerged } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
 import { AdminSectionCard } from "@/app/admin/_components/AdminSectionCard";
@@ -52,7 +53,7 @@ export default async function ClasificadosCategoryWorkspacePage(props: PageProps
           <Link href="/admin/reportes" className={`${adminCtaChipSecondary} justify-center`}>
             Reportes →
           </Link>
-          <Link href="/admin/categories" className={`${adminCtaChipSecondary} justify-center`}>
+          <Link href={ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF} className={`${adminCtaChipSecondary} justify-center`}>
             Registro de categorías →
           </Link>
           {slug === "servicios" ? (

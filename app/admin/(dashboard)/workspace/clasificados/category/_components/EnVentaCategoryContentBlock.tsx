@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF } from "@/app/admin/_lib/adminGlobalNav";
 import { adminBtnPrimary, adminBtnSecondary, adminCardBase, adminCtaChipSecondary, adminInputClass } from "@/app/admin/_components/adminTheme";
 import { saveEnVentaCategoryContentAction } from "@/app/admin/clasificadosCategoryContentActions";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
@@ -55,7 +56,7 @@ export async function EnVentaCategoryContentBlock(props: { searchParams?: Promis
         <Link href="/admin/reportes" className={`${adminCtaChipSecondary} justify-center`}>
           Reportes →
         </Link>
-        <Link href="/admin/categories" className={`${adminCtaChipSecondary} justify-center`}>
+        <Link href={ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF} className={`${adminCtaChipSecondary} justify-center`}>
           Registro de categorías →
         </Link>
       </div>

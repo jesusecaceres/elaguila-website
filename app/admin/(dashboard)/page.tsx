@@ -429,7 +429,7 @@ export default async function AdminHomePage() {
                 );
               })}
             </div>
-            <Link href="/admin/categories" className={`${adminCtaChipSecondary} mt-4 inline-flex`}>
+            <Link href="/admin/workspace/clasificados" className={`${adminCtaChipSecondary} mt-4 inline-flex`}>
               {m("dashboard.manageCategories")}
             </Link>
           </AdminSectionCard>

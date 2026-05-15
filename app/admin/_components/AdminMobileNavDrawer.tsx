@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import newLogo from "../../../public/logo.png";
-import { ADMIN_GLOBAL_NAV } from "../_lib/adminGlobalNav";
+import { ADMIN_GLOBAL_NAV, isAdminGlobalNavItemActive } from "../_lib/adminGlobalNav";
 import { AdminLangToggle } from "./AdminLangToggle";
 import { useAdminT } from "./AdminI18nProvider";
 
@@ -85,7 +85,7 @@ export function AdminMobileNavDrawer({
 
             <nav className="flex-1 space-y-0.5 overflow-y-auto overscroll-contain px-2 py-3" aria-label={t("mobile.globalNav")}>
               {ADMIN_GLOBAL_NAV.map((item) => {
-                const active = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href));
+                const active = isAdminGlobalNavItemActive(pathname, item);
                 return (
                   <Link
                     key={item.href}

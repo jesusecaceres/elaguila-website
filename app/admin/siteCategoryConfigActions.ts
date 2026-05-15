@@ -54,6 +54,7 @@ export async function saveSiteCategoryConfigRowAction(formData: FormData) {
     visibility,
   });
   revalidatePath("/admin/categories");
+  revalidatePath("/admin/workspace/clasificados");
   revalidatePath("/admin");
   revalidatePath("/clasificados/publicar");
   redirect("/admin/categories?cat_saved=1");

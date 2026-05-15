@@ -436,7 +436,7 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
               <Link href="/admin/support" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
                 {m("opsPage.shortcutSupport")}
               </Link>
-              <Link href="/admin/categories" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
+              <Link href="/admin/workspace/clasificados" className={`${adminCtaChipCompact} w-full justify-center sm:w-auto`}>
                 {m("opsPage.shortcutCategories")}
               </Link>
             </div>

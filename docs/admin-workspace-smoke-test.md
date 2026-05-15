@@ -13,7 +13,14 @@ This document provides a route-by-route analysis of website editing capabilities
 
 - The **ad queue** (default; no `scope` query) lists the full operational surface for a category — moderation, drafts, suspended rows, and published rows when applicable.
 - **Live / public listings** use the same admin routes with **`?scope=live`**, filtering to rows that are **publicly visible on the marketplace right now** (per-category rules in `classifiedsRepublishCapability` helpers — e.g. `listings`: `is_published` + `active`).
-- `/admin/categories`, the Clasificados hub (`/admin/workspace/clasificados`), and the dashboard category cards expose **both** “View queue” and “Live listings” so staff never confuse the public marketplace URL with the **admin operational** list.
+- `/admin/workspace/clasificados` (sidebar **Categories**), `/admin/categories` (**advanced registry** — dense table + `site_category_config` saves), and the dashboard category cards expose **both** “View queue” and “Live listings” so staff never confuse the public marketplace URL with the **admin operational** list.
+
+### Gate B — Admin Categories UX (sidebar → clean hub)
+
+- **Sidebar “Categories”** opens **`/admin/workspace/clasificados`** (same card grid as the Clasificados control center). The nav item stays highlighted on `/admin/categories` (advanced registry) via `activePathPrefixes`.
+- **`/admin/categories`** remains for **Supabase-backed** posture: live/staged counts, pending/flagged, per-slug **save** (operational status, visibility, order, highlight, notes). The page now leads with **`ClasificadosCategoryHub`** (cards + CTAs); the former primary table is under **`#advanced-category-registry`** with a clear section title.
+- **Deep link:** `ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF` in `app/admin/_lib/adminGlobalNav.ts` (`/admin/categories#advanced-category-registry`) from the hub chip, workspace footer chip, and category workspace pages when staff need the dense registry.
+- **Queue and Live listings** unchanged on cards and advanced table.
 - **Queue pages and live pages** both render **staff row actions** (`ClassifiedAdminRowActions` / vertical equivalents) where supported. **Restore** (unsuspend) is *not* **Republish** / Move to top; **Promote** and **Verify Leonix** are separate. Hard delete is not offered as a standard row action.
 
 ### Gate A2 — Visible row actions on `public.listings` queues (Rentas proof case)

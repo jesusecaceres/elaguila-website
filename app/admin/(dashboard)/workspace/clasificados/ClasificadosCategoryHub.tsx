@@ -1,3 +1,4 @@
+import { ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF } from "@/app/admin/_lib/adminGlobalNav";
 import Link from "next/link";
 import type { ClasificadosCategoryRegistryEntry } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
 import { getCategorySchema } from "@/app/clasificados/config/categorySchema";
@@ -19,9 +20,12 @@ function planSummary(plans: string[]): string {
 export function ClasificadosCategoryHub({
   registry,
   lang,
+  showRegistryLink = true,
 }: {
   registry: ClasificadosCategoryRegistryEntry[];
   lang: AdminLang;
+  /** When false, hide the link to the advanced registry (e.g. on `/admin/categories` itself). */
+  showRegistryLink?: boolean;
 }) {
   const m = adminMessages(lang);
 
@@ -48,12 +52,14 @@ export function ClasificadosCategoryHub({
             })()}
           </p>
         </div>
-        <Link
-          href="/admin/categories"
-          className="inline-flex shrink-0 items-center justify-center rounded-2xl border border-[#C9B46A]/45 bg-[#FFFCF7] px-4 py-2 text-xs font-bold text-[#5C4E2E] underline-offset-2 hover:underline"
-        >
-          {m("hub.categoriesRegistry")}
-        </Link>
+        {showRegistryLink ? (
+          <Link
+            href={ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF}
+            className="inline-flex shrink-0 items-center justify-center rounded-2xl border border-[#C9B46A]/45 bg-[#FFFCF7] px-4 py-2 text-xs font-bold text-[#5C4E2E] underline-offset-2 hover:underline"
+          >
+            {m("hub.categoriesRegistry")}
+          </Link>
+        ) : null}
       </div>
 
       <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

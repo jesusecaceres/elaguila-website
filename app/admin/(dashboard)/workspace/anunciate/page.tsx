@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF } from "@/app/admin/_lib/adminGlobalNav";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { AdminSectionOwnershipCallout } from "../../../_components/AdminSectionOwnershipCallout";
 import { adminBtnSecondary, adminCardBase, adminReadOnlyBadgeClass, adminStubBadgeClass } from "../../../_components/adminTheme";
@@ -25,9 +26,9 @@ export default function AdminWorkspaceAnunciatePage() {
         sourceOfTruth="Auth + tablas `listings` (Clasificados) y flujos específicos por vertical — no hay entidad “anunciate_page” en BD."
         siteSectionKey={null}
         adminEditors={[
-          { label: "Clasificados workspace (cola y moderación)", href: "/admin/workspace/clasificados" },
+          { label: "Clasificados hub (cola, listados, tarjetas)", href: "/admin/workspace/clasificados" },
           { label: "Customer ops (dueño, email, listing id)", href: "/admin/ops" },
-          { label: "Categorías — conteos y enlaces a cola", href: "/admin/categories" },
+          { label: "Registro avanzado (conteos + Supabase)", href: ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF },
           { label: "Reportes", href: "/admin/reportes" },
         ]}
         notYet={[
@@ -80,8 +81,12 @@ export default function AdminWorkspaceAnunciatePage() {
           >
             Workspace Clasificados
           </Link>
-          <Link href="/admin/categories" className="rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]">
-            Categorías
+          <Link
+            href={ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF}
+            className="rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
+            title="Tabla densa: site_category_config y conteos"
+          >
+            Registro avanzado
           </Link>
           <Link href="/admin/reportes" className="rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]">
             Reportes

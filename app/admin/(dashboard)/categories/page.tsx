@@ -20,6 +20,8 @@ import {
 } from "../../_lib/adminCategoryWorkspaceQueueHref";
 import { getClassifiedsOpsContract } from "../../_lib/classifiedsOpsContract";
 import { adminMessages, getAdminLang } from "../../_lib/adminI18n";
+import { ADMIN_CATEGORIES_ADVANCED_REGISTRY_FRAGMENT } from "../../_lib/adminGlobalNav";
+import { ClasificadosCategoryHub } from "../workspace/clasificados/ClasificadosCategoryHub";
 
 export const dynamic = "force-dynamic";
 
@@ -61,9 +63,16 @@ function sourceBadge(layer: "code" | "database" | undefined, codeLabel: string) 
 
 const COL_COUNT = 14;
 
-export default async function AdminCategoriesPage() {
+type CategoriesPageProps = {
+  searchParams?: Promise<{ cat_saved?: string; cat_error?: string }>;
+};
+
+export default async function AdminCategoriesPage(props: CategoriesPageProps) {
   const lang = await getAdminLang();
   const m = adminMessages(lang);
+  const sp = (props.searchParams ? await props.searchParams : {}) ?? {};
+  const catSaved = sp.cat_saved === "1";
+  const catError = sp.cat_error === "1";
   const registry = await getClasificadosCategoryRegistryMerged();
   const sum = summarizeRegistryForDashboard(registry);
   const statsRows = await fetchListingStatsForCategorySlugs(registry.map((c) => c.slug));
@@ -83,6 +92,22 @@ export default async function AdminCategoriesPage() {
         subtitle={m("categoriesPage.subtitle")}
         helperText={m("categoriesPage.helperText")}
       />
+
+      {catSaved ? (
+        <div
+          className={`${adminCardBase} mb-4 border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}
+          role="status"
+        >
+          {m("categoriesPage.savedBanner")}
+        </div>
+      ) : null}
+      {catError ? (
+        <div className={`${adminCardBase} mb-4 border-red-200 bg-red-50/90 p-4 text-sm text-red-900`} role="alert">
+          {m("categoriesPage.errorBanner")}
+        </div>
+      ) : null}
+
+      <ClasificadosCategoryHub registry={registry} lang={lang} showRegistryLink={false} />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <div className={`${adminCardBase} p-4`}>
@@ -133,9 +158,16 @@ export default async function AdminCategoriesPage() {
         </div>
       </div>
 
-      <div className={`${adminCardBase} overflow-hidden`}>
-        <div className="border-b border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-4 py-3 text-xs text-[#5C5346]">
-          {m("categoriesPage.tableHintTop")}
+      <div
+        id={ADMIN_CATEGORIES_ADVANCED_REGISTRY_FRAGMENT}
+        className={`${adminCardBase} overflow-hidden scroll-mt-6`}
+      >
+        <div className="border-b border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-4 py-4 text-sm text-[#5C5346]">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C4E2E]">
+            {m("categoriesPage.advancedSectionTitle")}
+          </h2>
+          <p className="mt-1 text-xs leading-relaxed text-[#7A7164]">{m("categoriesPage.advancedSectionIntro")}</p>
+          <p className="mt-2 text-xs leading-relaxed text-[#7A7164]">{m("categoriesPage.tableHintTop")}</p>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-[1100px] w-full border-collapse text-sm">
