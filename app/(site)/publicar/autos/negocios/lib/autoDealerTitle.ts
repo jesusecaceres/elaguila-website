@@ -1,5 +1,5 @@
 /** Normalize a title segment: trim, collapse spaces, light title-case for words (keeps ALLCAPS acronyms short). */
-function normalizeSegment(raw: string | undefined): string | undefined {
+export function normalizeVehicleSegment(raw: string | undefined): string | undefined {
   const t = raw?.trim().replace(/\s+/g, " ");
   if (!t) return undefined;
   return t
@@ -24,7 +24,7 @@ export function buildVehicleTitle(
   const parts: string[] = [];
   if (year !== undefined && Number.isFinite(year)) parts.push(String(year));
   [make, model, trim].forEach((x) => {
-    const t = normalizeSegment(x);
+    const t = normalizeVehicleSegment(x);
     if (t) parts.push(t);
   });
   const deduped: string[] = [];

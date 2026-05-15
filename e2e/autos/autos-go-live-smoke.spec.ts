@@ -184,12 +184,20 @@ test.describe("Autos go-live runtime (production server + Autos test publish byp
 
     const pub = await request.get("/api/clasificados/autos/public/listings");
     expect(pub.ok()).toBeTruthy();
-    const pubJ = (await pub.json()) as { ok?: boolean; listings?: { id: string }[] };
+    const pubJ = (await pub.json()) as {
+      ok?: boolean;
+      listings?: { id: string; vehicleTitle: string }[];
+    };
     expect(pubJ.ok).toBe(true);
     const pubIds = (pubJ.listings ?? []).map((l) => l.id);
     expect(pubIds).toContain(privId);
     expect(pubIds).toContain(negId);
     expect(pubIds).not.toContain(draftId);
+
+    const privCardTitle = pubJ.listings?.find((x) => x.id === privId)?.vehicleTitle;
+    const negCardTitle = pubJ.listings?.find((x) => x.id === negId)?.vehicleTitle;
+    expect(privCardTitle).toBeTruthy();
+    expect(negCardTitle).toBeTruthy();
 
     const detNeg = await request.get(`/api/clasificados/autos/public/listings/${encodeURIComponent(negId)}?lang=es`);
     expect(detNeg.ok()).toBeTruthy();
@@ -202,25 +210,25 @@ test.describe("Autos go-live runtime (production server + Autos test publish byp
     );
     await page.goto("/clasificados/autos?lang=es");
     await landingListings;
-    await expect(page.getByText(privTitle, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByText(negTitle, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText(privCardTitle!, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText(negCardTitle!, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText(/\bBoost\b/i)).toHaveCount(0);
 
     await page.goto(
       `/clasificados/autos/resultados?lang=es&make=Honda&model=Accord&city=San+Jose&zip=95112&bodyStyle=Sedan&seller=private`,
     );
-    await expect(page.getByText(privTitle, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByText(negTitle, { exact: true })).toHaveCount(0);
+    await expect(page.getByText(privCardTitle!, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText(negCardTitle!, { exact: true })).toHaveCount(0);
 
     await page.goto(`/clasificados/autos/resultados?lang=es&make=Toyota&seller=dealer&bodyStyle=SUV`);
-    await expect(page.getByText(negTitle, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText(negCardTitle!, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
 
-    await page.goto(`/clasificados/autos/resultados?lang=es&q=${encodeURIComponent("E2E-AUTOS-GO-LIVE")}`);
-    await expect(page.getByText(negTitle, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByText(privTitle, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
+    await page.goto(`/clasificados/autos/resultados?lang=es&q=${encodeURIComponent(suffix)}`);
+    await expect(page.getByText(negCardTitle!, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText(privCardTitle!, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
 
     await page.goto(`/clasificados/autos/vehiculo/${encodeURIComponent(negId)}?lang=es`);
-    await expect(page.getByRole("heading", { name: new RegExp(`${negTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}|2022\\s+Toyota\\s+RAV4`, "i") })).toBeVisible({
+    await expect(page.getByRole("heading", { name: negTitle, exact: true })).toBeVisible({
       timeout: 60_000,
     });
     await expect(page.locator('a[href^="tel:"]').first()).toBeVisible();

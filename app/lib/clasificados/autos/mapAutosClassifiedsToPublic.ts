@@ -2,6 +2,8 @@ import type { AutosPublicListing } from "@/app/clasificados/autos/data/autosPubl
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { deriveHeroImageUrls } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
 import { normalizeLoadedListing } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
+import { buildVehicleTitle } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
+import { withNormalizedVehicleIdentityForDisplay } from "@/app/lib/clasificados/autos/autosListingDisplayIdentity";
 import {
   resolveBodyStyle,
   resolveDrivetrain,
@@ -20,7 +22,11 @@ function parseDbTimeMs(value: string | null | undefined): number {
 
 function buildSearchableBlurb(L: AutoDealerListing): string {
   const parts: string[] = [];
+  if (L.make?.trim()) parts.push(L.make.trim());
+  if (L.model?.trim()) parts.push(L.model.trim());
+  if (L.trim?.trim()) parts.push(L.trim.trim());
   if (L.description?.trim()) parts.push(L.description.trim().slice(0, 2000));
+  if (L.otherEquipmentDetails?.trim()) parts.push(L.otherEquipmentDetails.trim().slice(0, 2000));
   if (L.vin?.trim()) parts.push(L.vin.trim());
   if (L.stockNumber?.trim()) parts.push(L.stockNumber.trim());
   if (Array.isArray(L.features) && L.features.length) parts.push(L.features.join(" "));
@@ -41,7 +47,7 @@ function firstImageUrl(listing: AutoDealerListing): string {
  * Map persisted row → browse card shape (filters, landing, related pool).
  */
 export function autosClassifiedsRowToPublicListing(row: AutosClassifiedsListingRow): AutosPublicListing {
-  const L = normalizeLoadedListing(row.listing_payload);
+  const L = withNormalizedVehicleIdentityForDisplay(normalizeLoadedListing(row.listing_payload));
   const sellerType = autosPublicSellerTypeFromLane(row.lane);
   const primaryImageUrl = firstImageUrl(L);
   const bodyStyle = resolveBodyStyle(L) ?? "";
@@ -68,7 +74,10 @@ export function autosClassifiedsRowToPublicListing(row: AutosClassifiedsListingR
     make: (L.make ?? "").trim(),
     model: (L.model ?? "").trim(),
     trim: L.trim,
-    vehicleTitle: L.vehicleTitle?.trim() || `${L.year ?? ""} ${L.make ?? ""} ${L.model ?? ""}`.trim(),
+    vehicleTitle:
+      buildVehicleTitle(L.year, L.make, L.model, L.trim).trim() ||
+      (L.vehicleTitle?.trim() ?? "") ||
+      `${L.year ?? ""} ${L.make ?? ""} ${L.model ?? ""}`.trim(),
     price: L.price ?? 0,
     monthlyEstimate: L.monthlyEstimate ?? undefined,
     mileage: L.mileage ?? 0,

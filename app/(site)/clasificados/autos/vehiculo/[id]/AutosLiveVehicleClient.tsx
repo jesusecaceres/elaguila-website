@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { AutoDealerListing } from "../../negocios/types/autoDealerListing";
 import { normalizeLoadedListing } from "../../negocios/lib/autoDealerDraftDefaults";
+import { withNormalizedVehicleIdentityForDisplay } from "@/app/lib/clasificados/autos/autosListingDisplayIdentity";
 import { AutoDealerPreviewPage } from "../../negocios/components/AutoDealerPreviewPage";
 import { AutoPrivadoPreviewPage } from "../../privado/components/AutoPrivadoPreviewPage";
 import { AutosNegociosPreviewLocaleProvider } from "../../negocios/lib/AutosNegociosPreviewLocaleContext";
@@ -46,7 +47,7 @@ export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
         if (cancelled) return;
         if (r.ok && j && "ok" in j && j.ok === true && "listing" in j) {
           const payload = j as PublicListingApiOk;
-          setData(normalizeLoadedListing({ ...payload.listing, autosLane: payload.lane }));
+          setData(withNormalizedVehicleIdentityForDisplay(normalizeLoadedListing({ ...payload.listing, autosLane: payload.lane })));
           setLane(payload.lane);
           setLeonixAdId(payload.leonix_ad_id?.trim() || null);
         } else {

@@ -19,10 +19,11 @@ import { VehicleDescription } from "@/app/clasificados/autos/negocios/components
 import { VehicleHighlights } from "@/app/clasificados/autos/negocios/components/VehicleHighlights";
 import { VehicleSpecsGrid } from "@/app/clasificados/autos/negocios/components/VehicleSpecsGrid";
 import { AutosListingAnalyticsRow } from "@/app/clasificados/autos/shared/components/AutosListingAnalyticsRow";
-import { AUTOS_LISTING_ANALYTICS_DRAFT_DEMO } from "@/app/clasificados/autos/shared/types/autosListingAnalytics";
 import { PrivadoContactStrip } from "./PrivadoContactStrip";
 import { PrivadoPreviewChrome } from "./PrivadoPreviewChrome";
 import { useAutosPrivadoPreviewCopy } from "../lib/AutosPrivadoPreviewLocaleContext";
+import { buildVehicleTitle, normalizeVehicleSegment } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
+import { withNormalizedVehicleIdentityForDisplay } from "@/app/lib/clasificados/autos/autosListingDisplayIdentity";
 
 const MAIN_CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-6";
@@ -45,23 +46,36 @@ export function AutoPrivadoPreviewPage({
   const sb = t.preview.sidebar;
   const pa = t.preview.analytics;
 
-  const loc = formatCityStateZipLine(data.city, data.state, data.zip);
-  const priceOk = data.price !== undefined && Number.isFinite(data.price);
-  const showTitle = hasTitleBand(data) || nonEmpty(data.zip);
-  const showGallery = hasHeroMedia(data);
-  const showSpecs = hasSpecsSection(data);
-  const showHighlights = hasHighlightsSection(data);
-  const showDesc = hasDescriptionSection(data);
+  const display = withNormalizedVehicleIdentityForDisplay(data);
+  const canonicalTitle = buildVehicleTitle(display.year, display.make, display.model, display.trim).trim();
+  const ymmtParts: string[] = [];
+  if (display.year != null && Number.isFinite(display.year)) ymmtParts.push(String(Math.round(display.year)));
+  const mk = normalizeVehicleSegment(display.make);
+  const md = normalizeVehicleSegment(display.model);
+  const tr = normalizeVehicleSegment(display.trim);
+  if (mk) ymmtParts.push(mk);
+  if (md) ymmtParts.push(md);
+  if (tr) ymmtParts.push(tr);
+  const ymmtLine = ymmtParts.join(" · ");
 
-  const showAnalyticsStrip = showTitle || showGallery;
-  const analyticsMetrics = data.listingAnalytics ?? AUTOS_LISTING_ANALYTICS_DRAFT_DEMO;
+  const loc = formatCityStateZipLine(display.city, display.state, display.zip);
+  const priceOk = display.price !== undefined && Number.isFinite(display.price);
+  const showTitle = hasTitleBand(display) || nonEmpty(display.zip) || Boolean(canonicalTitle);
+  const showGallery = hasHeroMedia(display);
+  const showSpecs = hasSpecsSection(display);
+  const showHighlights = hasHighlightsSection(display);
+  const showDesc = hasDescriptionSection(display);
 
-  const h1 = data.vehicleTitle?.trim();
-  const showMileage = data.mileage !== undefined && Number.isFinite(data.mileage);
+  const liveMetrics = display.listingAnalytics;
+  const showAnalyticsStrip = Boolean(liveMetrics) && (showTitle || showGallery);
+
+  const h1 = canonicalTitle || display.vehicleTitle?.trim();
+  const showYmmtSubline = Boolean(ymmtLine) && !canonicalTitle;
+  const showMileage = display.mileage !== undefined && Number.isFinite(display.mileage);
   const showLoc = nonEmpty(loc);
-  const showVin = nonEmpty(data.vin);
+  const showVin = nonEmpty(display.vin);
   const showMeta = showMileage || showLoc || showVin;
-  const showLeft = Boolean(h1) || showMeta;
+  const showLeft = Boolean(h1) || showYmmtSubline || showMeta;
   const showPriceCol = priceOk;
 
   return (
@@ -70,35 +84,47 @@ export function AutoPrivadoPreviewPage({
         <div className="grid min-w-0 grid-cols-1 gap-6 sm:gap-7 lg:grid-cols-12 lg:gap-6">
           {showTitle ? (
             <section className={`${MAIN_CARD} max-lg:order-1 lg:order-none lg:col-span-12`}>
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
                 {showLeft ? (
                   <div className="min-w-0 max-w-full flex-1">
-                    <div className="mb-3 inline-flex rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
-                      {lang === "es" ? "Privado" : "Private"}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
+                        {lang === "es" ? "Privado" : "Private"}
+                      </span>
+                      {priceOk ? (
+                        <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[color:var(--lx-gold)] lg:hidden">
+                          {formatUsd(display.price)}
+                        </span>
+                      ) : null}
                     </div>
                     {h1 ? (
-                      <h1 className="text-pretty text-2xl font-bold leading-[1.15] tracking-tight text-[color:var(--lx-text)] sm:text-3xl md:text-[1.85rem]">
+                      <h1 className="mt-3 text-pretty text-3xl font-extrabold leading-[1.12] tracking-tight text-[color:var(--lx-text)] sm:text-4xl md:text-[2.35rem]">
                         {h1}
                       </h1>
                     ) : null}
+                    {showYmmtSubline ? (
+                      <p className="mt-2 text-base font-bold leading-snug text-[color:var(--lx-text-2)] sm:text-lg">{ymmtLine}</p>
+                    ) : null}
                     {showMeta ? (
-                      <dl className="mt-4 grid grid-cols-1 gap-3 text-sm text-[color:var(--lx-text-2)] sm:grid-cols-2 sm:gap-2">
+                      <dl className="mt-5 grid grid-cols-1 gap-3 text-sm text-[color:var(--lx-text-2)] sm:grid-cols-2 sm:gap-2">
                         {showMileage ? (
                           <div className="flex gap-2">
                             <dt className="text-[color:var(--lx-muted)]">{pt.mileage}</dt>
-                            <dd className="font-semibold">{formatMiles(data.mileage)}</dd>
+                            <dd className="font-semibold text-[color:var(--lx-text)]">{formatMiles(display.mileage)}</dd>
                           </div>
                         ) : null}
                         {showLoc ? (
                           <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-0.5">
                             <dt className="shrink-0 text-[color:var(--lx-muted)]">{pt.location}</dt>
-                            <dd className="min-w-0 max-w-full break-words font-semibold">{loc}</dd>
+                            <dd className="min-w-0 max-w-full break-words font-semibold text-[color:var(--lx-text)]">{loc}</dd>
                           </div>
                         ) : null}
                         {showVin ? (
                           <div className="flex min-w-0 flex-wrap gap-2 sm:col-span-2">
                             <dt className="shrink-0 text-[color:var(--lx-muted)]">{pt.vin}</dt>
-                            <dd className="min-w-0 break-all font-mono text-[13px] font-semibold tracking-wide">{formatVinDisplay(data.vin)}</dd>
+                            <dd className="min-w-0 break-all font-mono text-[13px] font-semibold tracking-wide text-[color:var(--lx-text)]">
+                              {formatVinDisplay(display.vin)}
+                            </dd>
                           </div>
                         ) : null}
                       </dl>
@@ -107,13 +133,13 @@ export function AutoPrivadoPreviewPage({
                 ) : null}
                 {showPriceCol ? (
                   <div
-                    className={`min-w-0 shrink-0 text-left lg:text-right ${showLeft ? "border-t border-[color:var(--lx-nav-border)] pt-4 lg:border-t-0 lg:pt-0" : ""}`}
+                    className={`min-w-0 shrink-0 text-left lg:max-w-[min(100%,280px)] lg:text-right ${showLeft ? "border-t border-[color:var(--lx-nav-border)] pt-5 lg:border-t-0 lg:pt-0" : ""}`}
                   >
                     {priceOk ? (
                       <>
                         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{pt.priceLabel}</p>
-                        <p className="mt-1 text-pretty text-3xl font-bold leading-none tracking-tight text-[color:var(--lx-text)] sm:text-4xl">
-                          {formatUsd(data.price)}
+                        <p className="mt-1 text-pretty text-4xl font-extrabold leading-none tracking-tight text-[color:var(--lx-text)] sm:text-5xl">
+                          {formatUsd(display.price)}
                         </p>
                       </>
                     ) : null}
@@ -125,15 +151,15 @@ export function AutoPrivadoPreviewPage({
 
           {showGallery ? (
             <div className="max-lg:order-2 lg:order-none lg:col-span-12">
-              <AutoGallery data={data} publicPlaybackOnly={publicPlaybackOnly} />
+              <AutoGallery data={display} publicPlaybackOnly={publicPlaybackOnly} />
             </div>
           ) : null}
 
-          {showAnalyticsStrip ? (
+          {showAnalyticsStrip && liveMetrics ? (
             <div className="max-lg:order-3 lg:order-none lg:col-span-12">
               <AutosListingAnalyticsRow
                 variant="compact"
-                metrics={analyticsMetrics}
+                metrics={liveMetrics}
                 labels={{
                   kicker: pa.kicker,
                   views: pa.views,
@@ -147,29 +173,35 @@ export function AutoPrivadoPreviewPage({
           ) : null}
 
           <div className="min-w-0 max-lg:order-5 lg:order-none lg:col-span-7 lg:col-start-1">
-            {showSpecs ? <VehicleSpecsGrid data={data} hiddenRowKeys={["stock"]} /> : null}
+            {showSpecs ? <VehicleSpecsGrid data={display} hiddenRowKeys={["stock"]} /> : null}
             {showHighlights ? (
               <div className={showSpecs ? "mt-6" : ""}>
-                <VehicleHighlights data={data} />
+                <VehicleHighlights data={display} />
               </div>
             ) : null}
             {showDesc ? (
               <div className={showSpecs || showHighlights ? "mt-6" : ""}>
-                <VehicleDescription data={data} />
+                <VehicleDescription data={display} />
               </div>
             ) : null}
           </div>
 
           <aside className="flex min-w-0 flex-col gap-4 sm:gap-6 max-lg:order-4 lg:order-none lg:sticky lg:top-24 lg:col-span-5 lg:col-start-8 lg:self-start">
             <PrivadoContactStrip
-              data={data}
+              data={display}
               lang={lang}
               labels={{
                 call: sb.call,
                 whatsapp: sb.whatsappCta,
                 messageSite: sb.messageSite,
                 emailSeller: sb.emailSeller,
+                sms: lang === "es" ? "Enviar SMS" : "Text seller",
+                sellerHeading: lang === "es" ? "Habla con el vendedor" : "Talk to the seller",
                 seller: lang === "es" ? "Vendedor" : "Seller",
+                socialDisclaimer:
+                  lang === "es"
+                    ? "Enlaces proporcionados por el vendedor (sin verificación de Leonix)."
+                    : "Seller-provided links (not verified by Leonix).",
               }}
             />
           </aside>

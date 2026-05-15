@@ -1,4 +1,5 @@
 import type { AutoDealerListing } from "../types/autoDealerListing";
+import { buildVehicleTitle } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import { resolveDealerBookingHref, resolveDealerOfficePhone } from "./dealerContactResolve";
 import { safeExternalHref } from "./dealerDraftSanitize";
 import { deriveHeroImageUrls } from "./autoDealerHeroImages";
@@ -23,9 +24,11 @@ export function hasHeroMedia(data: AutoDealerListing): boolean {
 }
 
 export function hasTitleBand(data: AutoDealerListing): boolean {
+  const structuredTitle = buildVehicleTitle(data.year, data.make, data.model, data.trim);
   const badges = data.badges ?? [];
   return (
     nonEmpty(data.vehicleTitle) ||
+    nonEmpty(structuredTitle) ||
     badges.length > 0 ||
     (data.price !== undefined && Number.isFinite(data.price)) ||
     nonEmpty(data.monthlyEstimate ?? undefined) ||
@@ -90,7 +93,7 @@ export function hasDealerCard(data: AutoDealerListing): boolean {
 }
 
 export function hasDescriptionSection(data: AutoDealerListing): boolean {
-  return nonEmpty(data.description);
+  return nonEmpty(data.description) || nonEmpty(data.otherEquipmentDetails);
 }
 
 export function hasHighlightsSection(data: AutoDealerListing): boolean {

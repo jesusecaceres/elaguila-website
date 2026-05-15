@@ -110,6 +110,8 @@ export type AutoDealerListing = {
   badges?: VehicleBadge[];
   features?: string[];
   description?: string;
+  /** Free-text upgrades / unlisted equipment / maintenance notes (Privado + shared payload). */
+  otherEquipmentDetails?: string | null;
   /** Rich media rows (preferred). `heroImages` is derived for preview compatibility. */
   mediaImages?: MediaImageEntry[];
   /** Derived from `mediaImages` in normalize; legacy drafts may only have this. */

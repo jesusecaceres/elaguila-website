@@ -67,8 +67,6 @@ export function AutosPrivadoApplication() {
   const { lang, t } = useAutosPrivadoLang();
   const {
     hydrated,
-    vehicleTitleOverride,
-    setVehicleTitleOverrideState,
     listing,
     setListingPatch,
     resetDraft,
@@ -179,25 +177,20 @@ export function AutosPrivadoApplication() {
             </div>
 
             <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <label className="text-sm font-semibold text-[color:var(--lx-text)]">{t.app.titleBlock.title}</label>
-                <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-[color:var(--lx-text-2)]">
-                  <input
-                    type="checkbox"
-                    checked={vehicleTitleOverride}
-                    onChange={(e) => setVehicleTitleOverrideState(e.target.checked)}
-                    className="rounded border-[color:var(--lx-nav-border)]"
-                  />
-                  {t.app.titleBlock.customize}
-                </label>
-              </div>
-              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{t.app.titleBlock.hint}</p>
-              <input
-                className={`${INPUT} mt-2`}
-                value={(vehicleTitleOverride ? listing.vehicleTitle : autoTitlePreview) ?? ""}
-                readOnly={!vehicleTitleOverride}
-                onChange={(e) => setListingPatch({ vehicleTitle: e.target.value || undefined })}
-              />
+              <p className="text-sm font-semibold text-[color:var(--lx-text)]">
+                {lang === "es" ? "Título del anuncio" : "Listing headline"}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">
+                {lang === "es"
+                  ? "Se arma automáticamente con año, marca, modelo y versión para mantener filtros y búsqueda consistentes."
+                  : "Built automatically from year, make, model, and trim so search and filters stay consistent."}
+              </p>
+              <p
+                className="mt-3 text-lg font-bold leading-snug tracking-tight text-[color:var(--lx-text)]"
+                aria-live="polite"
+              >
+                {autoTitlePreview || (lang === "es" ? "Completa año, marca y modelo" : "Add year, make, and model")}
+              </p>
             </div>
 
             <div className={`${GRID2} mt-4`}>
@@ -415,6 +408,21 @@ export function AutosPrivadoApplication() {
                 </label>
               ))}
             </div>
+            <div className="mt-8">
+              <label className={LABEL}>
+                {lang === "es" ? "Otros equipos, mejoras o detalles" : "Other equipment, upgrades, or details"}
+              </label>
+              <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">
+                {lang === "es"
+                  ? "Agrega mejoras, equipo no listado, mantenimiento reciente o detalles importantes."
+                  : "Add upgrades, unlisted equipment, recent maintenance, or important details."}
+              </p>
+              <textarea
+                className={`${INPUT} mt-2 min-h-[100px]`}
+                value={listing.otherEquipmentDetails ?? ""}
+                onChange={(e) => setListingPatch({ otherEquipmentDetails: e.target.value || undefined })}
+              />
+            </div>
           </section>
 
           {/* D — Multimedia */}
@@ -433,8 +441,8 @@ export function AutosPrivadoApplication() {
             <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{t.app.sections.dealer}</h2>
             <p className="mt-1 text-sm text-[color:var(--lx-muted)]">
               {lang === "es"
-                ? "Nombre y canales de contacto. Sin sitio web, citas ni redes en este paquete."
-                : "Name and contact channels. No website, booking, or social profiles in this package."}
+                ? "Nombre y canales de contacto. Puedes añadir enlaces sociales opcionales (proporcionados por ti; Leonix no los verifica)."
+                : "Name and contact channels. Optional social links are seller-provided; Leonix does not verify them."}
             </p>
             <p className="mt-2 text-xs font-semibold text-[color:var(--lx-text-2)]">
               <span className="text-red-800" aria-hidden>
@@ -489,6 +497,43 @@ export function AutosPrivadoApplication() {
                   value={listing.dealerEmail ?? ""}
                   onChange={(e) => setListingPatch({ dealerEmail: e.target.value.trim() ? e.target.value : undefined })}
                 />
+              </div>
+              <div className="sm:col-span-2 border-t border-[color:var(--lx-nav-border)]/80 pt-5">
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">
+                  {t.app.dealer.socialHeading}
+                </p>
+                <p className="mt-1 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">
+                  {lang === "es"
+                    ? "Solo se muestran enlaces https válidos. Opcional."
+                    : "Only valid https links are shown. Optional."}
+                </p>
+                <div className={`${GRID2} mt-3`}>
+                  {(
+                    [
+                      ["facebook", t.app.dealer.socialLabels.facebook] as const,
+                      ["instagram", t.app.dealer.socialLabels.instagram] as const,
+                      ["tiktok", t.app.dealer.socialLabels.tiktok] as const,
+                      ["youtube", t.app.dealer.socialLabels.youtube] as const,
+                    ] as const
+                  ).map(([key, label]) => (
+                    <div key={key} className="sm:col-span-2">
+                      <label className={LABEL}>{label}</label>
+                      <input
+                        className={INPUT}
+                        type="url"
+                        inputMode="url"
+                        placeholder={t.app.placeholders.https}
+                        value={listing.dealerSocials?.[key] ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value.trim();
+                          setListingPatch({
+                            dealerSocials: { ...listing.dealerSocials, [key]: v || undefined },
+                          });
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </section>

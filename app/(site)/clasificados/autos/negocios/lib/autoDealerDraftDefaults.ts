@@ -74,6 +74,7 @@ export function createEmptyListing(): AutoDealerListing {
     badges: [],
     features: [],
     description: undefined,
+    otherEquipmentDetails: undefined,
     mediaImages: [],
     heroImages: [],
     videoSourceType: null,

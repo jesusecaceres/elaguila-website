@@ -19,8 +19,8 @@ import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/
 import { AUTOS_PRIVADO_EDITOR_SESSION_KEY } from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
 import { clearAutosDraftNamespaceHint, rememberAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
 
-function applyAutoTitle(listing: AutoDealerListing, override: boolean): AutoDealerListing {
-  if (override) return listing;
+/** Privado: canonical public title always follows structured year / make / model / trim. */
+function applyPrivadoCanonicalTitle(listing: AutoDealerListing): AutoDealerListing {
   const t = buildVehicleTitle(listing.year, listing.make, listing.model, listing.trim);
   return { ...listing, vehicleTitle: t || undefined };
 }
@@ -37,13 +37,10 @@ function resumeQueryFlag(): boolean {
 export function useAutoPrivadoDraft() {
   const pathname = usePathname();
   const [hydrated, setHydrated] = useState(false);
-  const [vehicleTitleOverride, setVehicleTitleOverride] = useState(false);
   const [listing, setListing] = useState<AutoDealerListing>(() => ({
     ...createEmptyListing(),
     autosLane: "privado",
   }));
-  const overrideRef = useRef(vehicleTitleOverride);
-  overrideRef.current = vehicleTitleOverride;
 
   const namespaceRef = useRef<string | null>(null);
   const listingRef = useRef(listing);
@@ -54,16 +51,13 @@ export function useAutoPrivadoDraft() {
   const hydrateFromNamespace = useCallback(async (namespace: string) => {
     const d = await loadAutosPrivadoDraftResolved(namespace);
     if (d) {
-      setVehicleTitleOverride(d.vehicleTitleOverride);
       setListing(safeNormalizeAutosDraftListing({ ...d.listing, autosLane: "privado" }, "privado"));
     } else {
-      setVehicleTitleOverride(false);
       setListing({ ...createEmptyListing(), autosLane: "privado" });
     }
   }, []);
 
   const emptyPrivado = useCallback(() => {
-    setVehicleTitleOverride(false);
     setListing({ ...createEmptyListing(), autosLane: "privado" });
   }, []);
 
@@ -119,15 +113,9 @@ export function useAutoPrivadoDraft() {
       if (patch.dealerSocials !== undefined) {
         merged.dealerSocials = { ...prev.dealerSocials, ...patch.dealerSocials };
       }
-      const withTitle = applyAutoTitle(merged, overrideRef.current);
+      const withTitle = applyPrivadoCanonicalTitle(merged);
       return normalizeLoadedListing(withTitle);
     });
-  }, []);
-
-  const setVehicleTitleOverrideState = useCallback((v: boolean) => {
-    overrideRef.current = v;
-    setVehicleTitleOverride(v);
-    setListing((prev) => normalizeLoadedListing(applyAutoTitle({ ...prev, autosLane: "privado" }, v)));
   }, []);
 
   const resetDraft = useCallback(async () => {
@@ -139,8 +127,6 @@ export function useAutoPrivadoDraft() {
       /* ignore */
     }
     if (ns) await clearAutosPrivadoDraft(ns);
-    setVehicleTitleOverride(false);
-    overrideRef.current = false;
     const empty = { ...createEmptyListing(), autosLane: "privado" as const };
     listingRef.current = empty;
     setListing(empty);
@@ -151,19 +137,17 @@ export function useAutoPrivadoDraft() {
     if (!ns) return;
     rememberAutosDraftNamespaceHint("privado", ns);
     const merged = normalizeLoadedListing({ ...listingRef.current, autosLane: "privado" });
-    const withTitle = applyAutoTitle(merged, overrideRef.current);
+    const withTitle = applyPrivadoCanonicalTitle(merged);
     const normalized = normalizeLoadedListing(withTitle);
     await saveAutosPrivadoDraftResolved(ns, {
       v: 1,
-      vehicleTitleOverride: overrideRef.current,
+      vehicleTitleOverride: false,
       listing: normalized,
     });
   }, []);
 
   return {
     hydrated,
-    vehicleTitleOverride,
-    setVehicleTitleOverrideState,
     listing,
     setListingPatch,
     resetDraft,

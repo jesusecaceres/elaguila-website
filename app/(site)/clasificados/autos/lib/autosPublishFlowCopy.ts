@@ -3,7 +3,13 @@ import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosCla
 
 export type AutosPublishFlowLang = AutosClassifiedsLang;
 
-export function getAutosPublishFlowCopy(lang: AutosPublishFlowLang, lane: AutosClassifiedsLane) {
+export type AutosPublishConfirmMode = "stripe" | "test_bypass" | "internal_bypass";
+
+export function getAutosPublishFlowCopy(
+  lang: AutosPublishFlowLang,
+  lane: AutosClassifiedsLane,
+  confirmMode: AutosPublishConfirmMode = "stripe",
+) {
   const isEs = lang === "es";
   const laneLabel =
     lane === "negocios"
@@ -11,9 +17,9 @@ export function getAutosPublishFlowCopy(lang: AutosPublishFlowLang, lane: AutosC
         ? "Concesionario (Negocios)"
         : "Dealership (Business)"
       : isEs
-        ? "Particular (Private)"
+        ? "Particular (Privado)"
         : "Private seller";
-  return {
+  const base = {
     metaTitle: isEs ? "Confirmar publicación — Autos" : "Confirm listing — Autos",
     loginRequiredTitle: isEs ? "Inicia sesión para publicar" : "Sign in to publish",
     loginRequiredBody: isEs
@@ -21,6 +27,12 @@ export function getAutosPublishFlowCopy(lang: AutosPublishFlowLang, lane: AutosC
       : "You need a Leonix account to save your listing and complete payment.",
     loginCta: isEs ? "Iniciar sesión" : "Sign in",
     preparing: isEs ? "Preparando tu anuncio…" : "Preparing your listing…",
+    preparingDetailStripe: isEs
+      ? "Estamos guardando tu borrador en Leonix y sincronizando fotos o video opcional."
+      : "Saving your draft on Leonix and syncing optional photos or video.",
+    preparingDetailBypass: isEs
+      ? "Sin pago en este entorno: al confirmar se activará el anuncio de inmediato."
+      : "No payment in this environment: confirming will activate the listing immediately.",
     title: isEs ? "Confirmar antes de pagar" : "Confirm before payment",
     subtitle: isEs
       ? "Revisa el resumen. Debes marcar las tres casillas para continuar al pago con Stripe."
@@ -79,4 +91,44 @@ export function getAutosPublishFlowCopy(lang: AutosPublishFlowLang, lane: AutosC
       ? "Modo de prueba Autos: publicación sin Stripe. El anuncio quedó activo como cualquier listado en vivo para revisar vitrina y detalle."
       : "Autos test mode: published without Stripe. The listing is active like any live row so you can verify browse surfaces.",
   };
+
+  if (confirmMode === "test_bypass") {
+    return {
+      ...base,
+      preparing: isEs ? "Guardando tu anuncio (modo prueba)…" : "Saving your listing (test mode)…",
+      title: isEs ? "Confirmar publicación de prueba" : "Confirm test publish",
+      subtitle: isEs
+        ? "Revisa el resumen. Marca las tres casillas para publicar sin Stripe; el anuncio quedará activo de inmediato."
+        : "Review the summary. Check all three boxes to publish without Stripe; your listing activates immediately.",
+      checks: {
+        ...base.checks,
+        paid: isEs
+          ? "Entiendo que en modo de prueba no se cobrará con Stripe y el anuncio se activará de inmediato."
+          : "I understand test mode skips Stripe charges and activates the listing immediately.",
+      },
+      payCta: isEs ? "Publicar anuncio de prueba" : "Publish test listing",
+      payBusy: isEs ? "Publicando anuncio de prueba…" : "Publishing test listing…",
+    };
+  }
+
+  if (confirmMode === "internal_bypass") {
+    return {
+      ...base,
+      preparing: isEs ? "Guardando tu anuncio (bypass interno)…" : "Saving your listing (internal bypass)…",
+      title: isEs ? "Confirmar publicación (bypass interno)" : "Confirm publish (internal bypass)",
+      subtitle: isEs
+        ? "Revisa el resumen. Marca las tres casillas para activar sin pasar por Stripe en este entorno."
+        : "Review the summary. Check all three boxes to activate without Stripe in this environment.",
+      checks: {
+        ...base.checks,
+        paid: isEs
+          ? "Entiendo que el bypass interno omite el cobro con Stripe y el anuncio se activará de inmediato."
+          : "I understand the internal bypass skips Stripe and activates the listing immediately.",
+      },
+      payCta: isEs ? "Activar anuncio (interno)" : "Activate listing (internal)",
+      payBusy: isEs ? "Activando anuncio…" : "Activating listing…",
+    };
+  }
+
+  return base;
 }

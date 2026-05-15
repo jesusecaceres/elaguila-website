@@ -1,7 +1,7 @@
 "use client";
 
-import { FiPlay } from "react-icons/fi";
-import { useEffect, useRef } from "react";
+import { FiPlay, FiX } from "react-icons/fi";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { getAutosNegociosCopy, type AutosNegociosCopy } from "../lib/autosNegociosCopy";
@@ -34,6 +34,23 @@ export function AutoGallery({
   const g = t.preview.gallery;
 
   const images = deriveHeroImageUrls(data);
+  const [lightbox, setLightbox] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (lightbox == null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightbox(null);
+      if (e.key === "ArrowRight") setLightbox((i) => (i == null ? i : Math.min(images.length - 1, i + 1)));
+      if (e.key === "ArrowLeft") setLightbox((i) => (i == null ? i : Math.max(0, i - 1)));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightbox, images.length]);
+
+  const openAt = useCallback((idx: number) => {
+    if (!images[idx]) return;
+    setLightbox(idx);
+  }, [images]);
   const publishedPb = resolvePublishedAutosVideoPlayback(data);
   const hasVideo = publicPlaybackOnly ? hasPublishedAutosListingVideo(data) : hasListingVideo(data);
   const videoSrc = publicPlaybackOnly ? undefined : getListingVideoSrcForElement(data);
@@ -45,9 +62,10 @@ export function AutoGallery({
 
   if (!main && !hasVideo) return null;
 
-  const bottomCells: Array<{ kind: "img"; src: string } | { kind: "video" }> = [];
+  const bottomCells: Array<{ kind: "img"; src: string; galleryIndex: number } | { kind: "video" }> = [];
+  let galleryIdx = 1;
   for (const src of subImages) {
-    bottomCells.push({ kind: "img", src });
+    bottomCells.push({ kind: "img", src, galleryIndex: galleryIdx++ });
   }
   if (hasVideo) bottomCells.push({ kind: "video" });
 
@@ -61,21 +79,30 @@ export function AutoGallery({
       <div className="flex flex-col gap-3">
         {main ? (
           <div className="relative aspect-[16/10] overflow-hidden rounded-[14px]">
-            <MediaImage
-              src={main}
-              alt={altBase}
-              fill
-              className="object-cover"
-              sizes="(min-width: 1280px) 1200px, 100vw"
-              priority
-            />
+            <button
+              type="button"
+              className="relative block h-full w-full cursor-zoom-in text-left"
+              onClick={() => openAt(0)}
+              aria-label={lang === "es" ? "Abrir galería de fotos" : "Open photo gallery"}
+            >
+              <MediaImage
+                src={main}
+                alt={altBase}
+                fill
+                className="object-cover"
+                sizes="(min-width: 1280px) 1200px, 100vw"
+                priority
+              />
+            </button>
             {extra > 0 ? (
-              <div
-                className="pointer-events-none absolute right-3 top-3 rounded-full border border-white/30 bg-[color:var(--lx-text)]/85 px-3 py-1 text-xs font-bold tracking-tight text-[#FFFCF7] shadow-md backdrop-blur-sm"
+              <button
+                type="button"
+                className="absolute right-3 top-3 rounded-full border border-white/30 bg-[color:var(--lx-text)]/85 px-3 py-1 text-xs font-bold tracking-tight text-[#FFFCF7] shadow-md backdrop-blur-sm pointer-events-auto cursor-pointer"
                 aria-label={moreLabel}
+                onClick={() => openAt(1)}
               >
                 +{moreLabel}
-              </div>
+              </button>
             ) : null}
           </div>
         ) : null}
@@ -84,7 +111,12 @@ export function AutoGallery({
           <div className={`grid grid-cols-2 gap-3 ${gridCols}`}>
             {bottomCells.map((cell, i) =>
               cell.kind === "img" ? (
-                <Thumb key={`${cell.src}-${i}`} src={cell.src} alt={`${altBase}${g.viewAlt(i)}`} />
+                <Thumb
+                  key={`${cell.src}-${i}`}
+                  src={cell.src}
+                  alt={`${altBase}${g.viewAlt(i)}`}
+                  onOpen={() => openAt(cell.galleryIndex)}
+                />
               ) : publicPlaybackOnly ? (
                 <PublishedVideoTile
                   key="video-pub"
@@ -102,6 +134,65 @@ export function AutoGallery({
           </div>
         ) : null}
       </div>
+      {lightbox != null && images[lightbox] ? (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={lang === "es" ? "Galería de fotos" : "Photo gallery"}
+        >
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default"
+            aria-label={lang === "es" ? "Cerrar galería" : "Close gallery"}
+            onClick={() => setLightbox(null)}
+          />
+          <div className="relative z-10 flex w-full max-w-5xl flex-col items-stretch gap-3">
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#FFFCF7]/95 text-[color:var(--lx-text)] shadow-lg"
+                onClick={() => setLightbox(null)}
+                aria-label={lang === "es" ? "Cerrar" : "Close"}
+              >
+                <FiX className="h-6 w-6" aria-hidden />
+              </button>
+            </div>
+            <div className="relative h-[min(70vh,640px)] w-full overflow-hidden rounded-2xl bg-black/40">
+              <MediaImage
+                src={images[lightbox]!}
+                alt={`${altBase} — ${lightbox + 1}`}
+                fill
+                className="object-contain"
+                sizes="100vw"
+              />
+            </div>
+            {images.length > 1 ? (
+              <p className="text-center text-xs font-semibold text-[#FFFCF7]/90">
+                {lightbox + 1} / {images.length}
+              </p>
+            ) : null}
+            {images.length > 1 ? (
+              <div className="flex justify-center gap-3">
+                <button
+                  type="button"
+                  className="rounded-full border border-white/30 bg-[#FFFCF7]/15 px-4 py-2 text-sm font-bold text-[#FFFCF7]"
+                  onClick={() => setLightbox((i) => (i == null ? i : Math.max(0, i - 1)))}
+                >
+                  {lang === "es" ? "Anterior" : "Previous"}
+                </button>
+                <button
+                  type="button"
+                  className="rounded-full border border-white/30 bg-[#FFFCF7]/15 px-4 py-2 text-sm font-bold text-[#FFFCF7]"
+                  onClick={() => setLightbox((i) => (i == null ? i : Math.min(images.length - 1, i + 1)))}
+                >
+                  {lang === "es" ? "Siguiente" : "Next"}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -284,10 +375,15 @@ function VideoTile({
   );
 }
 
-function Thumb({ src, alt }: { src: string; alt: string }) {
+function Thumb({ src, alt, onOpen }: { src: string; alt: string; onOpen: () => void }) {
   return (
-    <div className="relative aspect-[4/3] overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] md:aspect-auto md:min-h-[140px]">
+    <button
+      type="button"
+      className="relative aspect-[4/3] w-full cursor-zoom-in overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] text-left md:aspect-auto md:min-h-[140px]"
+      onClick={onOpen}
+      aria-label={alt}
+    >
       <MediaImage src={src} alt={alt} fill className="object-cover" sizes="(min-width: 768px) 25vw, 50vw" />
-    </div>
+    </button>
   );
 }

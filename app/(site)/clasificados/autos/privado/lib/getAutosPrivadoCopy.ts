@@ -49,7 +49,7 @@ export function getAutosPrivadoCopy(lang: AutosNegociosLang): AutosNegociosCopy 
       noteBody: "",
       hints: {
         ...base.app.hints,
-        previewNeed_price: isEs ? "precio en USD" : "USD price",
+        previewNeed_title: isEs ? "año / marca / modelo (y versión si aplica)" : "year / make / model (and trim if applicable)",
       },
       sections: {
         ...base.app.sections,

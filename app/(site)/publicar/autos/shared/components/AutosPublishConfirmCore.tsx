@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { AUTOS_CLASSIFIEDS_EVENT } from "@/app/lib/clasificados/autos/autosClassifiedsEventTypes";
-import { buildVehicleTitle } from "@/app/publicar/autos/negocios/lib/autoDealerTitle";
+import { buildVehicleTitle, normalizeVehicleSegment } from "@/app/publicar/autos/negocios/lib/autoDealerTitle";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
-import type { AutosPublishFlowLang } from "@/app/clasificados/autos/lib/autosPublishFlowCopy";
+import type { AutosPublishConfirmMode, AutosPublishFlowLang } from "@/app/clasificados/autos/lib/autosPublishFlowCopy";
 import { getAutosPublishFlowCopy } from "@/app/clasificados/autos/lib/autosPublishFlowCopy";
 import {
   omitAutosInlineVideoForApiPayload,
@@ -42,7 +42,8 @@ export function AutosPublishConfirmCore({
   flushDraft: () => Promise<void>;
   editHref: string;
 }) {
-  const c = getAutosPublishFlowCopy(lang, lane);
+  const [publishConfirmMode, setPublishConfirmMode] = useState<AutosPublishConfirmMode>("stripe");
+  const c = getAutosPublishFlowCopy(lang, lane, publishConfirmMode);
   const [listingId, setListingId] = useState<string | null>(null);
   const [phase, setPhase] = useState<"idle" | "preparing" | "ready" | "error">("idle");
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
@@ -59,6 +60,19 @@ export function AutosPublishConfirmCore({
     setPhase("preparing");
     void (async () => {
       setErrorDetail(null);
+      let confirmMode: AutosPublishConfirmMode = "stripe";
+      try {
+        const optRes = await fetch("/api/clasificados/autos/publish-options", { cache: "no-store" });
+        if (optRes.ok) {
+          const opts = (await optRes.json()) as { internalBypass?: boolean; testPublishBypass?: boolean };
+          if (opts.internalBypass) confirmMode = "internal_bypass";
+          else if (opts.testPublishBypass) confirmMode = "test_bypass";
+        }
+      } catch {
+        /* keep stripe copy */
+      }
+      if (!cancelled) setPublishConfirmMode(confirmMode);
+
       const supabase = createSupabaseBrowserClient();
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
@@ -146,9 +160,14 @@ export function AutosPublishConfirmCore({
       : `/clasificados/login?lang=${lang}`;
 
   if (!hydrated || phase === "preparing" || phase === "idle") {
+    const detail =
+      publishConfirmMode === "stripe"
+        ? c.preparingDetailStripe
+        : `${c.preparingDetailStripe} ${c.preparingDetailBypass}`.trim();
     return (
       <div className="mx-auto max-w-lg px-4 py-20 text-center text-[color:var(--lx-text)]">
         <p className="text-sm font-semibold">{c.preparing}</p>
+        {detail ? <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-muted)]">{detail}</p> : null}
       </div>
     );
   }
@@ -242,8 +261,8 @@ export function AutosPublishConfirmCore({
   }
 
   const vehicleLine =
-    listing.vehicleTitle?.trim() ||
     buildVehicleTitle(listing.year, listing.make, listing.model, listing.trim) ||
+    normalizeVehicleSegment(listing.vehicleTitle?.trim()) ||
     "—";
   const locLine = [listing.city, listing.state, listing.zip].filter((x) => (x ?? "").trim()).join(", ") || "—";
 
