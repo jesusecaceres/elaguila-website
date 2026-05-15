@@ -33,6 +33,8 @@ import { addListingView } from "@/app/lib/recentlyViewed";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { submitListingReportAction } from "@/app/admin/actions";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
+import { copyToClipboard } from "@/app/components/cta";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { useRentasAnuncioDerived } from "../../rentas/listing/hooks/useRentasAnuncioDerived";
 import { RentasAnuncioHeroMonthlyRent } from "../../rentas/listing/components/RentasAnuncioHeroMonthlyRent";
 import { RentasAnuncioMetaFactChips } from "../../rentas/listing/components/RentasAnuncioMetaFactChips";
@@ -595,6 +597,25 @@ export default function AnuncioDetallePage() {
     lang,
   });
 
+  const anuncioDetailHref = useMemo(() => {
+    if (!listing?.id) return "";
+    return `/clasificados/anuncio/${listing.id}?lang=${encodeURIComponent(lang)}`;
+  }, [listing?.id, lang]);
+
+  const shareListingAbsUrl = useMemo(() => {
+    if (!anuncioDetailHref) return "";
+    return typeof window !== "undefined" ? `${window.location.origin}${anuncioDetailHref}` : anuncioDetailHref;
+  }, [anuncioDetailHref]);
+
+  const anuncioShareBody = useMemo(() => {
+    if (!listing) return "";
+    const title = listing.title[lang];
+    const price = listing.priceLabel[lang];
+    const city = listing.city;
+    const url = shareListingAbsUrl || (typeof window !== "undefined" ? window.location.href : anuncioDetailHref);
+    return `${title} — ${price} (${city})\n${url}`;
+  }, [listing, lang, shareListingAbsUrl, anuncioDetailHref]);
+
   const idParam = params?.id;
   const showLoading = Boolean(
     idParam && !sampleListing && (remoteState === "uninitialized" || remoteState === "loading")
@@ -673,6 +694,12 @@ export default function AnuncioDetallePage() {
   const [chatDraft, setChatDraft] = useState("");
   const [chatSending, setChatSending] = useState(false);
   const [chatCurrentUserId, setChatCurrentUserId] = useState<string | null>(null);
+  const [anuncioRailCopyHint, setAnuncioRailCopyHint] = useState<string | null>(null);
+
+  const flashAnuncioRailCopy = useCallback((msg: string) => {
+    setAnuncioRailCopyHint(msg);
+    window.setTimeout(() => setAnuncioRailCopyHint(null), 2200);
+  }, []);
 
   useEffect(() => {
     if (!listing) return;
@@ -746,50 +773,20 @@ export default function AnuncioDetallePage() {
       .catch(() => setSellerStats(null));
   }, [(listing as any)?.owner_id]);
 
-  const copyText = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      alert(lang === "es" ? "Copiado." : "Copied.");
-    } catch {
-      // Fallback: prompt
-      window.prompt(lang === "es" ? "Copia este enlace:" : "Copy this link:", text);
-    }
-  };
+  const handleAnuncioCopyLink = useCallback(async () => {
+    const url = shareListingAbsUrl || (typeof window !== "undefined" ? window.location.href : "");
+    if (!url) return;
+    const ok = await copyToClipboard(url);
+    if (ok) flashAnuncioRailCopy(lang === "es" ? "Enlace copiado." : "Link copied.");
+    else window.prompt(lang === "es" ? "Copia este enlace:" : "Copy this link:", url);
+  }, [shareListingAbsUrl, lang, flashAnuncioRailCopy]);
 
-  const buildShareMessage = () => {
-    if (!listing) return "";
-    const title = listing.title[lang];
-    const price = listing.priceLabel[lang];
-    const city = listing.city;
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    return `${title} — ${price} (${city})\n${url}`;
-  };
-
-  const handleShare = async () => {
-    const supabase = createSupabaseBrowserClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    const uid = user?.id ?? null;
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    const title = listing ? listing.title[lang] : (lang === "es" ? "Anuncio" : "Listing");
-    const text = listing ? listing.blurb[lang] : "";
-    const nav: unknown = typeof navigator !== "undefined" ? navigator : null;
-    const shareFn = nav && typeof (nav as { share?: unknown }).share === "function" ? (nav as { share: (opts: unknown) => Promise<void> }).share : null;
-
-    try {
-      if (shareFn) {
-        await shareFn({ title, text, url });
-        if (listing) void trackEvent(listing.id, "listing_share", uid);
-        return;
-      }
-    } catch {
-      // ignore and fall back
-    }
-
-    await copyText(url || buildShareMessage());
-    if (listing) void trackEvent(listing.id, "listing_share", uid);
-  };
+  const handleAnuncioCopyInfo = useCallback(async () => {
+    if (!anuncioShareBody) return;
+    const ok = await copyToClipboard(anuncioShareBody);
+    if (ok) flashAnuncioRailCopy(lang === "es" ? "Información copiada." : "Info copied.");
+    else window.prompt(lang === "es" ? "Copia este texto:" : "Copy this text:", anuncioShareBody);
+  }, [anuncioShareBody, lang, flashAnuncioRailCopy]);
 
   const handleGuardarAnuncio = async () => {
     if (!listing) return;
@@ -810,8 +807,6 @@ export default function AnuncioDetallePage() {
       void trackListingSave(listing.id, true, { ownerUserId: (listing as { owner_id?: string | null }).owner_id ?? undefined });
     }
   };
-
-  const handleCompartirAnuncio = handleShare;
 
   const handleContactarVendedor = () => {
     const el = document.getElementById("contact-actions");
@@ -1841,17 +1836,21 @@ export default function AnuncioDetallePage() {
                   {saved ? (lang === "es" ? "★ Guardado" : "★ Saved") : (lang === "es" ? "☆ Guardar" : "☆ Save")}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={handleCompartirAnuncio}
-                  className="w-full px-5 py-3 rounded-full font-semibold transition border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]/40 text-[#111111] hover:bg-[#D9D9D9]/55"
-                >
-                  {lang === "es" ? "Compartir" : "Share"}
-                </button>
+                <LeonixShareButton
+                  listingId={listing.id}
+                  listingUrl={shareListingAbsUrl || anuncioDetailHref}
+                  listingTitle={listing.title[lang]}
+                  shareText={anuncioShareBody}
+                  category={listing.category}
+                  ownerUserId={(listing as { owner_id?: string | null }).owner_id ?? null}
+                  lang={lang}
+                  variant="large"
+                  className="w-full [&>button]:w-full [&>button]:justify-center [&>button]:border-[#C9B46A]/55 [&>button]:bg-[#F5F5F5] [&>button]:text-[#111111] [&>button]:shadow-[0_16px_40px_-28px_rgba(0,0,0,0.25)] [&>button]:hover:bg-[#D9D9D9]/55 [&>button]:backdrop-blur [&>button]:ring-1 [&>button]:ring-[#C9B46A]/25"
+                />
 
                 <button
                   type="button"
-                  onClick={() => copyText(typeof window !== "undefined" ? window.location.href : "")}
+                  onClick={() => void handleAnuncioCopyLink()}
                   className="w-full px-5 py-3 rounded-full font-semibold transition border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]/40 text-[#111111] hover:bg-[#D9D9D9]/55"
                 >
                   {lang === "es" ? "Copiar enlace" : "Copy link"}
@@ -1859,11 +1858,17 @@ export default function AnuncioDetallePage() {
 
                 <button
                   type="button"
-                  onClick={() => copyText(buildShareMessage())}
+                  onClick={() => void handleAnuncioCopyInfo()}
                   className="w-full px-5 py-3 rounded-full font-semibold transition border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]/40 text-[#111111] hover:bg-[#D9D9D9]/55"
                 >
                   {lang === "es" ? "Copiar info" : "Copy info"}
                 </button>
+
+                {anuncioRailCopyHint ? (
+                  <p className="text-center text-sm font-semibold text-emerald-900" role="status">
+                    {anuncioRailCopyHint}
+                  </p>
+                ) : null}
 
                 {!isCommunityCategory ? (
                   <>

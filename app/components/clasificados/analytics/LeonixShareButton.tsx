@@ -11,6 +11,8 @@ type Props = {
   listingId: string | null | undefined;
   listingUrl?: string;
   listingTitle?: string;
+  /** Optional full share body (title + details + URL). When set, hub copy/native share use this. */
+  shareText?: string | null;
   variant?: "default" | "small" | "large";
   className?: string;
   lang?: "es" | "en";
@@ -37,6 +39,7 @@ export function LeonixShareButton({
   listingId,
   listingUrl,
   listingTitle,
+  shareText,
   variant = "default",
   className = "",
   lang = "es",
@@ -154,11 +157,12 @@ export function LeonixShareButton({
 
   const openShareHub = () => {
     const safeTitle = (listingTitle ?? "").trim();
+    const body = (shareText ?? "").trim();
     setSheetIntent({
       kind: "share_ad",
       publicUrl: resolvedListingUrl,
       shareTitle: safeTitle || (lang === "en" ? "Leonix listing" : "Anuncio Leonix"),
-      shareText: null,
+      shareText: body || null,
     });
     void trackShare("share_sheet_open", { publicUrl: publicUrl || undefined });
   };
