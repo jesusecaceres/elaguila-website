@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { FiChevronLeft } from "react-icons/fi";
+import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
+import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { EnVentaCorreoModal } from "@/app/clasificados/en-venta/preview/EnVentaCorreoModal";
 import { BienesRaicesNegocioPreviewView } from "@/app/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView";
 import { BienesRaicesPrivadoPreviewView } from "@/app/clasificados/bienes-raices/preview/privado/BienesRaicesPrivadoPreviewView";
@@ -21,8 +24,19 @@ import {
   rentasSectionHeaderActionClass,
 } from "@/app/clasificados/rentas/rentasLandingTheme";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
-import { RENTAS_RESULTS } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
+import { RENTAS_RESULTS, rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
+
+const ENGAGEMENT_LABELS = {
+  es: {
+    title: "Interacción",
+    metricsNote: "Las métricas de engagement se mostrarán cuando estén disponibles",
+  },
+  en: {
+    title: "Engagement",
+    metricsNote: "Engagement metrics will appear when available.",
+  },
+} as const;
 
 type Props = {
   listing: RentasPublicListing;
@@ -41,6 +55,13 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
 
   const resultsHref = useMemo(() => withRentasLandingLang(RENTAS_RESULTS, lang), [lang]);
   const dashboardHref = useMemo(() => withRentasLandingLang("/dashboard/mis-anuncios", lang), [lang]);
+  const listingDetailHref = useMemo(
+    () => withRentasLandingLang(rentasListingPublicPath(listing.id), lang),
+    [listing.id, lang],
+  );
+  const shareListingUrl =
+    typeof window !== "undefined" ? `${window.location.origin}${listingDetailHref}` : listingDetailHref;
+  const eg = ENGAGEMENT_LABELS[lang];
 
   const sellerLine = lang === "en" ? extra.sellerDisplayEn : extra.sellerDisplayEs;
   const listingUuid = isUuid(listing.id);
@@ -105,12 +126,28 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
 
         {listingUuid ? (
           <div className="mx-auto mt-8 max-w-[1240px] px-4 sm:px-6 lg:px-8">
+            <div className="border-t border-[#C9D4E0]/55 pt-6">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-[#1E1810]">{eg.title}</h2>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <LeonixLikeButton listingId={listing.id} category="rentas" variant="small" lang={lang} />
+                <LeonixSaveButton listingId={listing.id} category="rentas" variant="small" lang={lang} />
+                <LeonixShareButton
+                  listingId={listing.id}
+                  category="rentas"
+                  listingTitle={listing.title}
+                  listingUrl={shareListingUrl}
+                  variant="small"
+                  lang={lang}
+                />
+              </div>
+              <p className="mt-3 text-xs italic text-[#5C5346]/88">{eg.metricsNote}</p>
+            </div>
             <button
               type="button"
               onClick={() => setCorreoOpen(true)}
               className={
                 rentasCtaSecondaryClass +
-                " inline-flex min-h-[48px] w-full max-w-md items-center justify-center px-5 py-3 text-sm font-bold sm:w-auto"
+                " mt-6 inline-flex min-h-[48px] w-full max-w-md items-center justify-center px-5 py-3 text-sm font-bold sm:w-auto"
               }
             >
               {copy.detail.ctaLeonixInquiry}
