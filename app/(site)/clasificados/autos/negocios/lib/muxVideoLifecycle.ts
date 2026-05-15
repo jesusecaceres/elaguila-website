@@ -1,19 +1,12 @@
 /**
- * Future Mux integration (publish pipeline — not used in draft/preview).
+ * Mux integration notes (Autos Phase 4).
  *
- * Draft/preview: never uploads to Mux; local video uses `videoFileDataUrl` for in-browser preview only.
+ * Draft/preview: local video uses `videoFileDataUrl` / blob only on the device — never persisted as inline bytes.
  *
- * On publish (future):
- * 1. If `videoSourceType === "file"`, upload the file to Mux, then set `muxAssetId` + `muxPlaybackId`.
- * 2. If `videoSourceType === "url"` and the URL is already a Mux asset, map IDs accordingly.
- * 3. Persist playback ID for the live listing page.
+ * Publish: browser upload via `/api/mux/direct-upload` + status poll — see `uploadAutosDraftVideoFileToMux`,
+ * `prepareAutosListingOptionalMuxUpload`, and `AutosPublishConfirmCore`.
  *
- * On listing delete / unpublish (future):
- * - Call Mux API to delete `muxAssetId` when the listing is removed.
- *
- * This module is intentionally empty of runtime code until the publish service exists.
+ * Unpublish / asset delete: not wired here yet (same gap as some other categories unless admin/service deletes assets).
  */
 
-export type MuxPublishPlaceholder = {
-  readonly phase: "not_implemented";
-};
+export {};

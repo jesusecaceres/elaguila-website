@@ -119,7 +119,7 @@ export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
   if (lane === "privado") {
     return (
       <AutosPrivadoPreviewLocaleProvider>
-        <AutoPrivadoPreviewPage data={data} editBackHref={undefined} />
+        <AutoPrivadoPreviewPage data={data} editBackHref={undefined} publicPlaybackOnly />
         {leonixAdId ? (
           <p className="bg-[color:var(--lx-page)] px-4 py-2 text-center text-xs text-[color:var(--lx-muted)]">
             {lang === "es" ? "Leonix Ad ID" : "Leonix Ad ID"} # {leonixAdId}
@@ -139,7 +139,7 @@ export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
 
   return (
     <AutosNegociosPreviewLocaleProvider>
-      <AutoDealerPreviewPage data={data} editBackHref={undefined} />
+      <AutoDealerPreviewPage data={data} editBackHref={undefined} publicPlaybackOnly />
       {leonixAdId ? (
         <p className="bg-[color:var(--lx-page)] px-4 py-2 text-center text-xs text-[color:var(--lx-muted)]">
           {lang === "es" ? "Leonix Ad ID" : "Leonix Ad ID"} # {leonixAdId}

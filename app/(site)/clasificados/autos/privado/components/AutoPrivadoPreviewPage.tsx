@@ -31,7 +31,15 @@ function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
 }
 
-export function AutoPrivadoPreviewPage({ data, editBackHref }: { data: AutoDealerListing; editBackHref?: string }) {
+export function AutoPrivadoPreviewPage({
+  data,
+  editBackHref,
+  publicPlaybackOnly = false,
+}: {
+  data: AutoDealerListing;
+  editBackHref?: string;
+  publicPlaybackOnly?: boolean;
+}) {
   const { lang, t } = useAutosPrivadoPreviewCopy();
   const pt = t.preview.title;
   const sb = t.preview.sidebar;
@@ -117,7 +125,7 @@ export function AutoPrivadoPreviewPage({ data, editBackHref }: { data: AutoDeale
 
           {showGallery ? (
             <div className="max-lg:order-2 lg:order-none lg:col-span-12">
-              <AutoGallery data={data} />
+              <AutoGallery data={data} publicPlaybackOnly={publicPlaybackOnly} />
             </div>
           ) : null}
 

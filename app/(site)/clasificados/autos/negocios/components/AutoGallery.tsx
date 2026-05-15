@@ -1,27 +1,43 @@
 "use client";
 
 import { FiPlay } from "react-icons/fi";
+import { useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { getAutosNegociosCopy, type AutosNegociosCopy } from "../lib/autosNegociosCopy";
 import { deriveHeroImageUrls } from "../lib/autoDealerHeroImages";
-import { getListingVideoExternalHref, getListingVideoSrcForElement, hasListingVideo } from "../lib/autoDealerVideo";
+import {
+  getListingVideoExternalHref,
+  getListingVideoSrcForElement,
+  hasListingVideo,
+  hasPublishedAutosListingVideo,
+  resolvePublishedAutosVideoPlayback,
+  type PublishedAutosVideoMode,
+} from "../lib/autoDealerVideo";
 import { MediaImage } from "./MediaImage";
 import { normalizeAutosNegociosLang } from "../lib/autosNegociosLang";
 
 const CARD =
   "min-w-0 overflow-x-hidden rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)]";
 
-export function AutoGallery({ data }: { data: AutoDealerListing }) {
+export function AutoGallery({
+  data,
+  publicPlaybackOnly = false,
+}: {
+  data: AutoDealerListing;
+  /** Live/public detail: only durable URLs — no blob, data:, or videoFileDataUrl. */
+  publicPlaybackOnly?: boolean;
+}) {
   const sp = useSearchParams();
   const lang = normalizeAutosNegociosLang(sp?.get("lang"));
   const t = getAutosNegociosCopy(lang);
   const g = t.preview.gallery;
 
   const images = deriveHeroImageUrls(data);
-  const hasVideo = hasListingVideo(data);
-  const videoSrc = getListingVideoSrcForElement(data);
-  const videoHref = getListingVideoExternalHref(data);
+  const publishedPb = resolvePublishedAutosVideoPlayback(data);
+  const hasVideo = publicPlaybackOnly ? hasPublishedAutosListingVideo(data) : hasListingVideo(data);
+  const videoSrc = publicPlaybackOnly ? undefined : getListingVideoSrcForElement(data);
+  const videoHref = publicPlaybackOnly ? undefined : getListingVideoExternalHref(data);
   const main = images[0];
   const extra = Math.max(0, images.length - 1);
   const subImages = images.slice(1, 4);
@@ -69,6 +85,16 @@ export function AutoGallery({ data }: { data: AutoDealerListing }) {
             {bottomCells.map((cell, i) =>
               cell.kind === "img" ? (
                 <Thumb key={`${cell.src}-${i}`} src={cell.src} alt={`${altBase}${g.viewAlt(i)}`} />
+              ) : publicPlaybackOnly ? (
+                <PublishedVideoTile
+                  key="video-pub"
+                  mode={publishedPb.mode}
+                  streamUrl={publishedPb.streamUrl}
+                  externalHref={publishedPb.externalHref}
+                  posterSrc={publishedPb.posterUrl ?? main}
+                  g={g}
+                  lang={lang}
+                />
               ) : (
                 <VideoTile key="video" videoSrc={videoSrc} videoHref={videoHref} posterSrc={main} g={g} />
               ),
@@ -77,6 +103,132 @@ export function AutoGallery({ data }: { data: AutoDealerListing }) {
         ) : null}
       </div>
     </div>
+  );
+}
+
+/** Safari plays HLS natively; Chrome/Firefox use hls.js (same pattern as En Venta preview). */
+function StreamableAutosVideo({ url, posterUrl, lang, g }: { url: string; posterUrl?: string; lang: "es" | "en"; g: AutosNegociosCopy["preview"]["gallery"] }) {
+  const ref = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const isHls = /\.m3u8(\?|$)/i.test(url);
+
+    if (!isHls) {
+      el.src = url;
+      if (posterUrl) el.poster = posterUrl;
+      return () => {
+        el.pause();
+        el.removeAttribute("src");
+        el.removeAttribute("poster");
+      };
+    }
+
+    let cancelled = false;
+    let hls: { destroy: () => void } | null = null;
+
+    if (el.canPlayType("application/vnd.apple.mpegurl")) {
+      el.src = url;
+      if (posterUrl) el.poster = posterUrl;
+      return () => {
+        el.pause();
+        el.removeAttribute("src");
+        el.removeAttribute("poster");
+      };
+    }
+
+    void import("hls.js").then(({ default: HlsCtor }) => {
+      if (cancelled || !ref.current) return;
+      if (HlsCtor.isSupported()) {
+        const instance = new HlsCtor({ enableWorker: true });
+        hls = instance;
+        instance.loadSource(url);
+        instance.attachMedia(ref.current!);
+      } else {
+        ref.current!.src = url;
+      }
+      if (posterUrl && ref.current) ref.current.poster = posterUrl;
+    });
+
+    return () => {
+      cancelled = true;
+      hls?.destroy();
+      const v = ref.current;
+      if (v) {
+        v.pause();
+        v.removeAttribute("src");
+        v.removeAttribute("poster");
+      }
+    };
+  }, [url, posterUrl]);
+
+  return (
+    <div className="relative aspect-[4/3] overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] md:aspect-auto md:min-h-[140px]">
+      <video
+        ref={ref}
+        controls
+        playsInline
+        className="h-full w-full object-cover"
+        aria-label={lang === "es" ? "Video del vehículo" : "Vehicle video"}
+      />
+      <span className="absolute bottom-2 left-2 rounded-md bg-[#FFFCF7]/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text)]">
+        {g.videoBadge}
+      </span>
+    </div>
+  );
+}
+
+function PublishedVideoTile({
+  mode,
+  streamUrl,
+  externalHref,
+  posterSrc,
+  g,
+  lang,
+}: {
+  mode: PublishedAutosVideoMode;
+  streamUrl?: string;
+  externalHref?: string;
+  posterSrc?: string;
+  g: AutosNegociosCopy["preview"]["gallery"];
+  lang: "es" | "en";
+}) {
+  if (mode === "none") return null;
+
+  if ((mode === "mux-hls" || mode === "progressive") && streamUrl) {
+    return <StreamableAutosVideo url={streamUrl} posterUrl={posterSrc} lang={lang} g={g} />;
+  }
+
+  const href = externalHref || "#";
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-left md:aspect-auto md:min-h-[140px]"
+      aria-label={g.videoAria}
+    >
+      {posterSrc ? (
+        <MediaImage
+          src={posterSrc}
+          alt=""
+          fill
+          className="object-cover opacity-90 transition group-hover:opacity-100"
+          sizes="(min-width: 768px) 25vw, 50vw"
+        />
+      ) : (
+        <span className="absolute inset-0 bg-gradient-to-br from-[color:var(--lx-section)] to-[color:var(--lx-nav-hover)]" />
+      )}
+      <span className="absolute inset-0 bg-gradient-to-t from-[color:var(--lx-text)]/55 to-transparent" />
+      <span className="relative z-10 flex h-14 w-14 items-center justify-center rounded-full border border-white/40 bg-[#FFFCF7]/95 text-[color:var(--lx-text)] shadow-lg backdrop-blur-sm transition group-hover:scale-[1.03]">
+        <FiPlay className="ml-0.5 h-7 w-7" aria-hidden />
+      </span>
+      <span className="absolute bottom-2 left-2 z-10 rounded-md bg-[#FFFCF7]/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text)]">
+        {g.videoBadge}
+      </span>
+    </a>
   );
 }
 

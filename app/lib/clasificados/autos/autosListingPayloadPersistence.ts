@@ -25,6 +25,11 @@ function pruneMediaImages(images: MediaImageEntry[] | undefined, warnings: strin
  * Shapes listing JSON for DB persistence: drops draft-only giant blobs and oversized data URLs.
  * Required fields (price, text, etc.) are untouched; optional heavy media is removed instead of failing the write.
  */
+function isNonDurableVideoUrl(value: string | null | undefined): boolean {
+  const v = value?.trim() ?? "";
+  return v.startsWith("blob:") || v.startsWith("data:");
+}
+
 export function sanitizeAutosListingPayloadForPersistence(listing: AutoDealerListing): {
   listing: AutoDealerListing;
   persistWarnings: string[];
@@ -39,6 +44,12 @@ export function sanitizeAutosListingPayloadForPersistence(listing: AutoDealerLis
       videoFileDataUrl: undefined,
       videoUploadStatus: L.videoSourceType === "file" ? "local_preview" : L.videoUploadStatus,
     };
+  }
+
+  const vu = L.videoUrl?.trim() ?? "";
+  if (vu && isNonDurableVideoUrl(vu)) {
+    persistWarnings.push("video_url_non_durable_stripped");
+    L = { ...L, videoUrl: undefined, videoSourceType: null };
   }
 
   if (isOversizedDataUrl(L.dealerLogo ?? undefined)) {

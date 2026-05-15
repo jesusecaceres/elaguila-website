@@ -42,10 +42,13 @@ function badgeLabelFor(t: AutosNegociosCopy, key: VehicleBadge): string {
 export function AutoDealerPreviewPage({
   data,
   editBackHref,
+  publicPlaybackOnly = false,
 }: {
   data: AutoDealerListing;
   /** Subtle return link to the listing editor (e.g. Publicar flow). */
   editBackHref?: string;
+  /** Live published detail: gallery video uses durable URLs only. */
+  publicPlaybackOnly?: boolean;
 }) {
   const { t } = useAutosNegociosPreviewCopy();
   const pt = t.preview.title;
@@ -174,7 +177,7 @@ export function AutoDealerPreviewPage({
 
           {showGallery ? (
             <div className="lg:col-span-7 lg:col-start-1" style={{ gridRowStart: galleryRow, order: orderGallery }}>
-              <AutoGallery data={data} />
+              <AutoGallery data={data} publicPlaybackOnly={publicPlaybackOnly} />
             </div>
           ) : null}
 

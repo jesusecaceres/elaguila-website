@@ -55,7 +55,7 @@ export type MediaImageEntry = {
  *
  * Publish flow (future): if videoSourceType === "file", upload file → Mux → set muxAssetId + muxPlaybackId.
  * Takedown (future): delete muxAssetId from Mux when listing is removed.
- * Draft/preview: never calls Mux; local preview uses videoFileDataUrl (data: or blob) or videoUrl (https).
+ * Draft/preview: local preview uses videoFileDataUrl (data: or blob) or videoUrl (https). After publish, durable Mux IDs + thumbnail are stored; inline file bytes are never persisted.
  */
 export type VideoSourceType = "url" | "file" | null;
 
@@ -123,6 +123,16 @@ export type AutoDealerListing = {
   videoUploadStatus?: VideoDraftUploadStatus;
   muxAssetId?: string | null;
   muxPlaybackId?: string | null;
+  /** Mux-generated poster image (https), when available. */
+  muxThumbnailUrl?: string | null;
+  /** Cached manifest or progressive URL returned by Mux status (optional). */
+  muxPlaybackUrl?: string | null;
+  /** Last optional-video publish attempt diagnostics (Mux). Not user-facing playback. */
+  autosVideoPublishDiagnostics?: {
+    muxUploadAttempted?: boolean;
+    muxUploadError?: string | null;
+    muxUploadAt?: string | null;
+  } | null;
   dealerName?: string;
   dealerLogo?: string | null;
   /** Primary public office phone for display + “Llamar” / `tel:`. */

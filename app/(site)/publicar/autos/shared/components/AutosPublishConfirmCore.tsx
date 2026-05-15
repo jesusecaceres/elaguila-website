@@ -9,6 +9,10 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import type { AutosPublishFlowLang } from "@/app/clasificados/autos/lib/autosPublishFlowCopy";
 import { getAutosPublishFlowCopy } from "@/app/clasificados/autos/lib/autosPublishFlowCopy";
+import {
+  omitAutosInlineVideoForApiPayload,
+  prepareAutosListingOptionalMuxUpload,
+} from "@/app/(site)/publicar/autos/shared/lib/autosMuxPublishPrepare";
 
 function sessionKey(lane: AutosClassifiedsLane) {
   return `lx-autos-publish-listing-${lane}`;
@@ -45,6 +49,7 @@ export function AutosPublishConfirmCore({
   const [checks, setChecks] = useState([false, false, false]);
   const [payBusy, setPayBusy] = useState(false);
   const [sessionMissing, setSessionMissing] = useState(false);
+  const [muxPublishWarnings, setMuxPublishWarnings] = useState<string[]>([]);
   const listingRef = useRef(listing);
   listingRef.current = listing;
 
@@ -77,7 +82,7 @@ export function AutosPublishConfirmCore({
             const sync = await fetch(`/api/clasificados/autos/listings/${cached}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-              body: JSON.stringify({ listing: listingRef.current, lang }),
+              body: JSON.stringify({ listing: omitAutosInlineVideoForApiPayload(listingRef.current), lang }),
             });
             if (cancelled) return;
             if (!sync.ok) {
@@ -96,7 +101,7 @@ export function AutosPublishConfirmCore({
       const res = await fetch("/api/clasificados/autos/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ listing: listingRef.current, lane, lang }),
+        body: JSON.stringify({ listing: omitAutosInlineVideoForApiPayload(listingRef.current), lane, lang }),
       });
       const j = (await res.json()) as { ok?: boolean; id?: string };
       if (cancelled) return;
@@ -186,10 +191,16 @@ export function AutosPublishConfirmCore({
     const token = sessionData.session?.access_token;
     if (!token) return;
     setPayBusy(true);
+    setMuxPublishWarnings([]);
+    const muxLang = lang === "en" ? "en" : "es";
+    const prepared = await prepareAutosListingOptionalMuxUpload(listingRef.current, muxLang);
+    listingRef.current = prepared.listing;
+    if (prepared.publishWarnings.length) setMuxPublishWarnings(prepared.publishWarnings);
+
     const sync = await fetch(`/api/clasificados/autos/listings/${listingId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ listing: listingRef.current, lang }),
+      body: JSON.stringify({ listing: omitAutosInlineVideoForApiPayload(listingRef.current), lang }),
     });
     if (!sync.ok) {
       setPayBusy(false);
@@ -256,6 +267,19 @@ export function AutosPublishConfirmCore({
           : null}
         {summaryRow(c.summaryLocation, locLine, "font-medium text-[color:var(--lx-text-2)]")}
       </dl>
+      {muxPublishWarnings.length > 0 ? (
+        <div
+          className="mt-6 rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+          role="status"
+        >
+          <p className="font-semibold">{lang === "es" ? "Aviso de video (opcional)" : "Optional video notice"}</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {muxPublishWarnings.map((w, i) => (
+              <li key={`${i}-${w.slice(0, 48)}`}>{w}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <ul className="mt-8 space-y-4">
         {[0, 1, 2].map((i) => (
           <li key={i}>

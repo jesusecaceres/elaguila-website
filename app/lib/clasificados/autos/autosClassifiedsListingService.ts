@@ -2,7 +2,6 @@ import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { deriveHeroImageUrls } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
 import { normalizeLoadedListing } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
-import { stripDraftMuxFields } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftGuards";
 import { buildVehicleTitle } from "@/app/publicar/autos/negocios/lib/autoDealerTitle";
 import { buildRelatedPublicListings } from "@/app/clasificados/autos/lib/mapAutosPublicListingToAutoDealer";
 import type { AutosPublicListing } from "@/app/clasificados/autos/data/autosPublicSampleTypes";
@@ -55,8 +54,7 @@ export async function createAutosClassifiedsListing(input: {
     ...input.listing,
     autosLane: input.lane,
   });
-  const stripped = stripDraftMuxFields(normalized);
-  const { listing: payload, persistWarnings } = sanitizeAutosListingPayloadForPersistence(stripped);
+  const { listing: payload, persistWarnings } = sanitizeAutosListingPayloadForPersistence(normalized);
   const { data, error } = await supabase
     .from("autos_classifieds_listings")
     .insert({
@@ -112,8 +110,7 @@ export async function updateAutosClassifiedsListingDraft(
     ...input.listing,
     autosLane: row.lane,
   });
-  const stripped = stripDraftMuxFields(normalized);
-  const { listing: payload, persistWarnings } = sanitizeAutosListingPayloadForPersistence(stripped);
+  const { listing: payload, persistWarnings } = sanitizeAutosListingPayloadForPersistence(normalized);
   const lang: AutosClassifiedsLang = input.lang === "en" || input.lang === "es" ? input.lang : row.lang;
   const { data, error } = await supabase
     .from("autos_classifieds_listings")
@@ -324,7 +321,7 @@ export async function getActiveLiveAutosBundle(
   const publicPool: AutosPublicListing[] = poolRows.map(autosClassifiedsRowToPublicListing);
   const currentPublic = autosClassifiedsRowToPublicListing(row);
   const normalized = normalizeLoadedListing({
-    ...stripDraftMuxFields(row.listing_payload),
+    ...row.listing_payload,
     autosLane: row.lane,
   });
   if (row.lane === "negocios" && publicPool.length > 0) {
