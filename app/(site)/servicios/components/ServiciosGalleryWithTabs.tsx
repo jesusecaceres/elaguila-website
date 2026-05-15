@@ -163,10 +163,19 @@ export function ServiciosGalleryWithTabs({
   const videos = profile.galleryVideos;
   const allPhotos = [...mains, ...more];
 
-  const [activeTab, setActiveTab] = useState<"photos" | "videos">("photos");
+  const hasPhotos = allPhotos.length > 0;
+  const hasVideos = videos.length > 0;
+
+  const [activeTab, setActiveTab] = useState<"photos" | "videos">(() =>
+    !hasPhotos && hasVideos ? "videos" : "photos",
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentModalIndex, setCurrentModalIndex] = useState(0);
   const [narrowViewport, setNarrowViewport] = useState(false);
+
+  useEffect(() => {
+    if (!hasPhotos && hasVideos && activeTab === "photos") setActiveTab("videos");
+  }, [hasPhotos, hasVideos, activeTab]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -219,43 +228,45 @@ export function ServiciosGalleryWithTabs({
   return (
     <>
       <section
-        className="rounded-2xl border p-4 shadow-sm sm:p-6 md:p-8"
+        className="rounded-2xl border p-3 shadow-sm sm:p-6 md:p-8"
         style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
       >
         <h2 className="text-lg font-bold tracking-tight text-[#2F2A23] md:text-xl">
           {L.gallery}
         </h2>
 
-        <div className="mt-4">
-          <nav className="inline-flex rounded-xl border border-[#E8D7B8] bg-[#FCF9F2] p-1 shadow-sm" aria-label={L.gallery}>
-            <button
-              onClick={() => setActiveTab('photos')}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                activeTab === 'photos'
-                  ? 'bg-white text-[#6F7A3A] shadow-sm ring-1 ring-[#E8D7B8]'
-                  : 'text-[#6F6254] hover:text-[#2F2A23]'
-              }`}
-            >
-              {lang === "en" ? "Photos" : "Fotos"}
-            </button>
-            {videos.length > 0 && (
+        <div className="mt-3 md:mt-4">
+          {hasPhotos && hasVideos ? (
+            <nav className="inline-flex rounded-xl border border-[#E8D7B8] bg-[#FCF9F2] p-1 shadow-sm" aria-label={L.gallery}>
               <button
-                onClick={() => setActiveTab('videos')}
+                type="button"
+                onClick={() => setActiveTab("photos")}
                 className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                  activeTab === 'videos'
-                    ? 'bg-white text-[#6F7A3A] shadow-sm ring-1 ring-[#E8D7B8]'
-                    : 'text-[#6F6254] hover:text-[#2F2A23]'
+                  activeTab === "photos"
+                    ? "bg-white text-[#6F7A3A] shadow-sm ring-1 ring-[#E8D7B8]"
+                    : "text-[#6F6254] hover:text-[#2F2A23]"
+                }`}
+              >
+                {lang === "en" ? "Photos" : "Fotos"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("videos")}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === "videos"
+                    ? "bg-white text-[#6F7A3A] shadow-sm ring-1 ring-[#E8D7B8]"
+                    : "text-[#6F6254] hover:text-[#2F2A23]"
                 }`}
               >
                 {lang === "en" ? "Videos" : "Videos"}
               </button>
-            )}
-          </nav>
+            </nav>
+          ) : null}
         </div>
 
         {/* Tab content */}
-        <div className="mt-6">
-          {activeTab === 'photos' && (
+        <div className="mt-4 md:mt-6">
+          {activeTab === "photos" && hasPhotos ? (
             <div>
               {visibleImages.length > 0 ? (
                 <>
@@ -298,7 +309,7 @@ export function ServiciosGalleryWithTabs({
                 </p>
               )}
             </div>
-          )}
+          ) : null}
 
           {activeTab === "videos" && videos.length > 0 && (
             <div

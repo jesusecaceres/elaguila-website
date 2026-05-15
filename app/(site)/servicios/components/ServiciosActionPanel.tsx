@@ -101,6 +101,8 @@ export function ServiciosActionPanel({
   listingSlug,
   listingShareUrl,
   directContactFasterResponseHint = false,
+  /** When false, omit `ServiciosOfferCard` (avoid duplicating promos already shown in `ServiciosPromocionesCard`). */
+  showOfferSidebarTeaser = true,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
@@ -110,6 +112,7 @@ export function ServiciosActionPanel({
   listingShareUrl?: string;
   /** Public listing: quote form hidden — suggest direct contact for faster response. */
   directContactFasterResponseHint?: boolean;
+  showOfferSidebarTeaser?: boolean;
 }) {
   const L = getServiciosProfileLabels(lang);
   const [ctaOpen, setCtaOpen] = useState(false);
@@ -524,7 +527,7 @@ export function ServiciosActionPanel({
         }}
       />
 
-      <ServiciosOfferCard profile={profile} lang={lang} />
+      {showOfferSidebarTeaser ? <ServiciosOfferCard profile={profile} lang={lang} /> : null}
 
       <CtaActionSheet open={ctaOpen} onClose={closeCtaSheet} intent={ctaIntent} lang={lang} />
     </div>

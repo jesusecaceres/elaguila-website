@@ -35,18 +35,18 @@ export function ServiciosTrustSection({ profile, lang }: { profile: ServiciosPro
 
   return (
     <section
-      className="rounded-2xl border px-4 py-5 shadow-sm sm:px-6 sm:py-7 md:px-8"
+      className="rounded-2xl border px-3 py-4 shadow-sm sm:px-6 sm:py-7 md:px-8"
       style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
     >
       <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#2F2A23]">
         {lang === "en" ? "Why work with us" : "Por qué con nosotros"}
       </p>
       <h2 className="mt-1 text-lg font-bold tracking-tight text-[#2F2A23] md:text-xl">{L.trust}</h2>
-      <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
+      <div className="mt-4 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 md:mt-5 md:grid md:grid-cols-2 md:gap-3 md:overflow-visible md:pb-0 md:snap-none lg:grid-cols-3">
         {items.map((t) => (
           <div
             key={t.id}
-            className="flex min-w-0 items-center gap-3 rounded-xl border border-[#E8D7B8] bg-white/95 px-3 py-3 shadow-sm sm:gap-3.5 sm:px-3.5 sm:py-3.5"
+            className="flex min-w-[min(16rem,82vw)] max-w-[min(22rem,92vw)] shrink-0 snap-start items-center gap-2.5 rounded-xl border border-[#E8D7B8] bg-white/95 px-3 py-2.5 shadow-sm sm:min-w-0 sm:max-w-none sm:gap-3.5 sm:px-3.5 sm:py-3.5 md:min-w-0"
           >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#FCF9F2] shadow-inner">
               <TrustIcon icon={t.icon} />

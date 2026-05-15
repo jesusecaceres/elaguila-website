@@ -11,14 +11,14 @@ export function ServiciosPagosCard({ profile, lang }: { profile: ServiciosProfil
 
   return (
     <section
-      className="rounded-2xl border p-4 shadow-sm sm:p-6 md:p-8"
+      className="rounded-2xl border p-3 shadow-sm sm:p-6 md:p-8"
       style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
     >
       <div className="flex items-center gap-2">
         <FaMoneyBillWave className="h-5 w-5 shrink-0 text-[#3B66AD]" aria-hidden />
         <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">{L.paymentsTitle}</h2>
       </div>
-      <div className="mt-5 flex flex-nowrap gap-2 overflow-x-auto pb-1 [scrollbar-width:thin] md:flex-wrap md:overflow-visible">
+      <div className="mt-4 flex flex-nowrap gap-2 overflow-x-auto pb-1 md:mt-5 md:flex-wrap md:overflow-visible">
         {profile.paymentMethodIds.map((id) =>
           isServiciosPaymentMethodId(id) ? (
             <div

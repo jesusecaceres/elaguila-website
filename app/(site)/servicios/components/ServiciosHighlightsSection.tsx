@@ -42,7 +42,7 @@ export function ServiciosHighlightsSection({ highlights, lang }: ServiciosHighli
 
   return (
     <section
-      className="rounded-2xl border p-4 shadow-sm sm:p-6 md:p-8"
+      className="rounded-2xl border p-3 shadow-sm sm:p-6 md:p-8"
       style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
       aria-labelledby={headingId}
     >
