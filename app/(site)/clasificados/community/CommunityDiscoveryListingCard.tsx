@@ -10,6 +10,9 @@ import type { CommunityDiscoveryCardModel } from "./shared/communityDiscoveryLis
 const CHIP =
   "inline-flex max-w-full items-center truncate rounded-full border border-[#C9B46A]/45 bg-[#FFF9ED] px-2.5 py-0.5 text-[11px] font-semibold text-[#3d2e12]";
 
+/** Shown only when the listing has no gallery image (matches landings’ reliable local asset). */
+const LISTING_IMAGE_FALLBACK = "/logo.png";
+
 type Props = {
   model: CommunityDiscoveryCardModel;
   lang: Lang;
@@ -51,12 +54,20 @@ export function CommunityDiscoveryListingCard({ model, lang, variant }: Props) {
               unoptimized={model.imageUrl.startsWith("data:") || model.imageUrl.startsWith("blob:")}
             />
           ) : (
-            <div className="flex h-full min-h-[140px] flex-col items-center justify-center gap-1 bg-gradient-to-br from-[#F5E6C8]/90 to-[#E8DCC4]/80 px-4 text-center">
-              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7a6a4a]">
-                {L ? "Sin imagen" : "No image"}
-              </span>
-              <span className="line-clamp-2 text-xs font-semibold text-[#4a4030]">{model.title}</span>
-            </div>
+            <>
+              <Image
+                src={LISTING_IMAGE_FALLBACK}
+                alt=""
+                fill
+                className="object-contain object-center p-6 opacity-[0.92] transition duration-300 group-hover:scale-[1.02]"
+                sizes="(max-width:640px) 100vw, 220px"
+              />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#EDE8DF]/95 to-transparent px-3 pb-2 pt-8 text-center">
+                <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#5C564E]/90">
+                  {L ? "Sin foto del anuncio" : "No listing photo"}
+                </span>
+              </div>
+            </>
           )}
         </Link>
 

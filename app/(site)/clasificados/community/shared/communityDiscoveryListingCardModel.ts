@@ -127,7 +127,9 @@ export function buildCommunityDiscoverySearchBlob(
   const addr = pairs["Leonix:addressLine1"] ?? "";
   const zip = pairs["Leonix:zip"] ?? "";
   const state = pairs["Leonix:state"] ?? "";
-  const mode = category === "clases" ? clasesModeLabel(pairs["Leonix:mode"] ?? "", lang) : "";
+  const modeRaw = (pairs["Leonix:mode"] ?? "").trim();
+  const mode =
+    category === "clases" && modeRaw ? clasesModeLabel(modeRaw, lang) : category === "comunidad" && modeRaw ? clasesModeLabel(modeRaw, lang) : "";
   const aud = pairs["Leonix:audience"] ? labelCommunityAudience(pairs["Leonix:audience"], lang) : "";
   const lvl =
     category === "clases" && pairs["Leonix:skillLevel"] ? labelClasesSkillLevel(pairs["Leonix:skillLevel"], lang) : "";
@@ -174,7 +176,8 @@ export function buildCommunityDiscoveryCardModel(
     } else if (ct) {
       costBadge = clasesCostTypeLabel(ct, lang);
     }
-    const modeL = quick ? clasesModeLabel(pairs["Leonix:mode"] ?? "", lang) : "";
+    const modeRaw = (pairs["Leonix:mode"] ?? "").trim();
+    const modeL = quick && modeRaw ? clasesModeLabel(modeRaw, lang) : "";
     const aud = pairs["Leonix:audience"] ? labelCommunityAudience(pairs["Leonix:audience"], lang) : "";
     const lvl = pairs["Leonix:skillLevel"] ? labelClasesSkillLevel(pairs["Leonix:skillLevel"], lang) : "";
     const secondary = [modeL, aud, lvl].filter(Boolean).join(" · ") || null;
@@ -206,7 +209,9 @@ export function buildCommunityDiscoveryCardModel(
       : null;
   const dr = [pairs["Leonix:eventDate"], pairs["Leonix:eventEndDate"]].filter(Boolean).join(" → ");
   const aud = pairs["Leonix:audience"] ? labelCommunityAudience(pairs["Leonix:audience"], lang) : "";
-  const secondaryParts = [dr, aud].filter(Boolean);
+  const modeRaw = (pairs["Leonix:mode"] ?? "").trim();
+  const modeL = quick && modeRaw ? clasesModeLabel(modeRaw, lang) : "";
+  const secondaryParts = [modeL, dr, aud].filter(Boolean);
   const secondary = secondaryParts.length ? secondaryParts.join(" · ") : null;
 
   return {
