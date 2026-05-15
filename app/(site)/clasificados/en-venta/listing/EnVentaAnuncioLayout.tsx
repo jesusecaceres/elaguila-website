@@ -29,10 +29,11 @@ import { BrLiveFactsStrip } from "@/app/clasificados/bienes-raices/listing/BrLiv
 import { LeonixInlineListingReport } from "@/app/clasificados/components/LeonixInlineListingReport";
 import { buildLeonixBusinessLiveDisplay, parseLeonixBusinessMetaForLive } from "@/app/clasificados/lib/leonixBusinessLiveDisplay";
 import { resolveLeonixLiveListingContact } from "@/app/clasificados/lib/leonixListingContactResolve";
-import { parseLeonixMachineFacetRead, readLeonixDetailPairValue, brShowExactAddressFromDetailPairs } from "@/app/clasificados/lib/leonixRealEstateListingContract";
-import { RENTAS_DP_MAP_URL } from "@/app/clasificados/rentas/lib/rentasMachineDetailPairs";
-import { googleMapsSearchUrl } from "@/app/(site)/publicar/community/shared/lib/communityContactCtas";
-import { privacySafeLocation } from "@/app/clasificados/rentas/preview/shared/rentasPreviewResultCardListing";
+import {
+  buildBrLiveGate12dHoaCard,
+  buildBrLiveGate12dOpenHouseCard,
+  buildBrPublicLocationForLiveDetail,
+} from "@/app/clasificados/lib/leonixBrGate12d";
 import { trackEnVentaListingOpen, trackEnVentaListingView } from "../analytics/enVentaAnalytics";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { trackListingSave, trackListingShare } from "@/app/lib/clasificadosAnalytics";
@@ -134,47 +135,22 @@ export function EnVentaAnuncioLayout({
 
   const brLocationBlock = useMemo(() => {
     if (!premiumBr) return null;
-    const dps = listing.detailPairs;
-    const mapPair = (readLeonixDetailPairValue(dps, RENTAS_DP_MAP_URL) ?? "").trim();
-    const findRow = (re: RegExp) => {
-      for (const r of rows) {
-        if (re.test(r.label.trim())) return r.value.trim();
-      }
-      return "";
-    };
-    const ubicacion = findRow(/^Ubicación$/i) || findRow(/^Ubicacion$/i);
-    const direccion = findRow(/^Dirección$/i) || findRow(/^Direccion$/i);
-    const zona =
-      findRow(/zona\s+o\s+vecindario/i) ||
-      findRow(/^Colonia$/i) ||
-      findRow(/^Zona$/i);
-    const city = String(listing.city ?? "").trim();
-    const showExact = brShowExactAddressFromDetailPairs(dps);
-    const mf = parseLeonixMachineFacetRead(dps);
-    const postal = String(mf.postalCode ?? "")
-      .replace(/\D/g, "")
-      .slice(0, 10);
-    const cityStateZip = [city, postal].filter(Boolean).join(postal && city ? " · " : "");
-    const approxFallback = city;
-    const fullFallback = ubicacion || direccion || city;
-    const display = privacySafeLocation({
-      cityStateZip: cityStateZip || city,
-      colonia: zona,
-      fallback: showExact ? fullFallback : approxFallback,
+    return buildBrPublicLocationForLiveDetail({
+      detailPairs: listing.detailPairs,
+      humanRows: rows,
+      listingCity: String(listing.city ?? ""),
     });
-    const safeHttp = (u: string) => /^https:\/\//i.test(u) && !/blob:|data:/i.test(u);
-    let mapsHref: string | null = null;
-    if (mapPair && safeHttp(mapPair)) mapsHref = mapPair;
-    else {
-      const q = (
-        showExact
-          ? ubicacion || direccion || [zona, city].filter(Boolean).join(" · ") || city
-          : [zona, city].filter(Boolean).join(" · ") || city
-      ).trim();
-      if (q && !/^blob:|^data:/i.test(q)) mapsHref = googleMapsSearchUrl(q);
-    }
-    return { display, mapsHref };
   }, [premiumBr, listing.detailPairs, listing.city, rows]);
+
+  const brGate12dHoaCard = useMemo(
+    () => (premiumBr ? buildBrLiveGate12dHoaCard(listing.detailPairs, lang) : null),
+    [premiumBr, listing.detailPairs, lang],
+  );
+
+  const brGate12dOpenHouseCard = useMemo(
+    () => (premiumBr ? buildBrLiveGate12dOpenHouseCard(listing.detailPairs, lang) : null),
+    [premiumBr, listing.detailPairs, lang],
+  );
 
   const contactChannel = useMemo(() => contactChannelFromPairs(rows), [rows]);
   const condition = conditionFromPairs(rows, lang);
@@ -755,8 +731,53 @@ export function EnVentaAnuncioLayout({
                 ) : null}
               </section>
             ) : null}
+            {surface === "bienes-raices" && brGate12dHoaCard && brGate12dHoaCard.rows.length > 0 ? (
+              <section
+                className={`${brLuxuryCardClass} p-6 sm:p-7`}
+                aria-label={brGate12dHoaCard.title}
+              >
+                <h2 className={brLuxuryOverlineClass}>{brGate12dHoaCard.title}</h2>
+                <ul className={`mt-4 space-y-3 ${brLuxuryBodyMutedClass} sm:text-[15px]`}>
+                  {brGate12dHoaCard.rows.map((r) => (
+                    <li key={`${r.label}-${r.value}`} className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+                      <span className="font-semibold text-[#2A2620]">{r.label}:</span>
+                      <span className="min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]">{r.value}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+            {surface === "bienes-raices" &&
+            brGate12dOpenHouseCard &&
+            (brGate12dOpenHouseCard.rows.length > 0 || brGate12dOpenHouseCard.virtualTourUrl) ? (
+              <section
+                className={`${brLuxuryCardClass} p-6 sm:p-7`}
+                aria-label={brGate12dOpenHouseCard.title}
+              >
+                <h2 className={brLuxuryOverlineClass}>{brGate12dOpenHouseCard.title}</h2>
+                {brGate12dOpenHouseCard.rows.length > 0 ? (
+                  <ul className={`mt-4 space-y-3 ${brLuxuryBodyMutedClass} sm:text-[15px]`}>
+                    {brGate12dOpenHouseCard.rows.map((r) => (
+                      <li key={`${r.label}-${r.value}`} className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+                        <span className="font-semibold text-[#2A2620]">{r.label}:</span>
+                        <span className="min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]">{r.value}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {brGate12dOpenHouseCard.virtualTourUrl ? (
+                  <a
+                    href={brGate12dOpenHouseCard.virtualTourUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl ${brLuxuryBtnSecondaryClass} px-4 text-sm font-semibold`}
+                  >
+                    {lang === "es" ? "Abrir tour virtual" : "Open virtual tour"}
+                  </a>
+                ) : null}
+              </section>
+            ) : null}
             <section
-              id={premiumBr ? "leonix-listing-description" : undefined}
               className={
                 premiumBr
                   ? `${brLuxuryCardClass} p-6 sm:p-7`

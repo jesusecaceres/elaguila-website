@@ -75,4 +75,8 @@ export type BienesRaicesPrivadoPreviewVm = {
   /** When true, full `ubicacionLinea` may appear in public `detail_pairs` / browse. */
   mostrarDireccionExacta: boolean;
   footerNote: string;
+  /** Gate 12D — optional HOA/community card (preview). */
+  hoaCommunityCard?: { title: string; rows: BienesRaicesPreviewFact[] } | null;
+  /** Gate 12D — optional open house / showings card (preview). */
+  openHouseCard?: { title: string; rows: BienesRaicesPreviewFact[] } | null;
 };

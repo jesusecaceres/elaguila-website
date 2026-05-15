@@ -123,7 +123,7 @@ export default function BienesRaicesPrivadoPreviewClient() {
     );
   }
 
-  const vm = mapBienesRaicesPrivadoStateToPreviewVm(draft);
+  const vm = mapBienesRaicesPrivadoStateToPreviewVm(draft, lang);
   const editHref = `${BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}`;
 
   return (

@@ -6,8 +6,7 @@ import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { normalizeZipInput } from "@/app/data/locations/californiaLocationHelpers";
 import type { BrNegocioListing } from "../cards/listingTypes";
 import { extractBrFacetsFromDetailPairs } from "./brFacetFromDetailPairs";
-import { privacySafeLocation } from "@/app/clasificados/rentas/preview/shared/rentasPreviewResultCardListing";
-import { brShowExactAddressFromDetailPairs } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { buildBrPublicLocationForLiveDetail } from "@/app/clasificados/lib/leonixBrGate12d";
 
 function imageUrlsFromJsonb(images: unknown): string[] {
   if (images == null) return [];
@@ -40,36 +39,17 @@ function pairRows(detailPairs: unknown): Array<{ label: string; value: string }>
   return out;
 }
 
-function firstRowValue(rows: Array<{ label: string; value: string }>, labelRes: RegExp): string {
-  for (const r of rows) {
-    if (labelRes.test(r.label.trim())) return r.value.trim();
-  }
-  return "";
-}
-
-/** Result card line: city + optional zone/CP; reuse Rentas-style privacy helper (no `Estado` alone — conflicts with BR negocio listing status). */
+/** Result card line: reuse Gate 12D composed privacy helper when possible. */
 function brBrowseAddressLineFromRow(row: BrListingDbRow, facets: ReturnType<typeof extractBrFacetsFromDetailPairs>): string {
   const city = String(row.city ?? "").trim();
   const rows = pairRows(row.detail_pairs);
-  const showExact = brShowExactAddressFromDetailPairs(row.detail_pairs);
-  const ubicacion = firstRowValue(rows, /^ubicaci[oó]n$/i);
-  const direccion = firstRowValue(rows, /^direcci[oó]n$/i);
-  const zona =
-    firstRowValue(rows, /zona\s+o\s+vecindario/i) ||
-    firstRowValue(rows, /^colonia$/i) ||
-    firstRowValue(rows, /^zona$/i) ||
-    firstRowValue(rows, /vecindario/i);
-  const postal = facets.machine?.postalCode?.replace(/\D/g, "").slice(0, 10) ?? "";
-  const cityStateZip = [city, postal].filter(Boolean).join(postal && city ? " · " : "");
-
-  const fallbackApprox = city || "—";
-  const fallbackFull = ubicacion || direccion || fallbackApprox;
-
-  return privacySafeLocation({
-    cityStateZip: cityStateZip || city,
-    colonia: zona,
-    fallback: showExact ? fallbackFull : fallbackApprox,
+  const loc = buildBrPublicLocationForLiveDetail({
+    detailPairs: row.detail_pairs,
+    humanRows: rows,
+    listingCity: city,
   });
+  if (loc.display.trim()) return loc.display;
+  return city || "—";
 }
 
 function extractLeonixImageUrlsFromDescription(description: string | null | undefined): string[] {

@@ -9,6 +9,7 @@ import {
   parseLeonixMachineFacetRead,
   type LeonixClasificadosBranch,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { isBrBienesRaicesSaleListing } from "@/app/clasificados/lib/leonixBrGate12d";
 
 export type BrFacetSlice = {
   branch: LeonixClasificadosBranch | null;
@@ -80,12 +81,13 @@ export function extractBrFacetsFromDetailPairs(detailPairs: unknown): BrFacetSli
   }
 
   const metaHints: string[] = [];
-  if (machine.petsAllowed === true) metaHints.push("Mascotas");
+  const hideSalePets = isBrBienesRaicesSaleListing(detailPairs);
+  if (!hideSalePets && machine.petsAllowed === true) metaHints.push("Mascotas");
   if (machine.pool === true) metaHints.push("Alberca / piscina");
   if (machine.furnished === true) metaHints.push("Amueblado");
   for (const r of rows) {
     const blob = `${r.label} ${r.value}`.toLowerCase();
-    if (/mascota|pet|acepta\s+mascota/i.test(blob)) metaHints.push(r.value);
+    if (!hideSalePets && /mascota|pet|acepta\s+mascota/i.test(blob)) metaHints.push(r.value);
     if (/piscina|alberca|pool/i.test(blob)) metaHints.push(r.value);
     if (/amuebl|furnish/i.test(blob)) metaHints.push(r.value);
   }

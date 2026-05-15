@@ -375,9 +375,66 @@ export function BienesRaicesPrivadoForm() {
                 onChange={(v) => setState((s) => ({ ...s, ciudad: v }))}
               />
             </AiField>
+            <details className="sm:col-span-2 min-w-0 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7]/60 px-3 py-2">
+              <summary className="cursor-pointer select-none text-sm font-semibold text-[#1E1810]">
+                Dirección estructurada (opcional)
+              </summary>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <AiField label="Número y calle" hint="Ej.: 123 Oak Street">
+                  <input
+                    className={fieldClass}
+                    value={state.gate12d.calleNumero}
+                    onChange={(e) =>
+                      setState((s) => ({ ...s, gate12d: { ...s.gate12d, calleNumero: e.target.value } }))
+                    }
+                    autoComplete="street-address"
+                  />
+                </AiField>
+                <AiField label="Unidad / apt / suite (opcional)">
+                  <input
+                    className={fieldClass}
+                    value={state.gate12d.unidad}
+                    onChange={(e) => setState((s) => ({ ...s, gate12d: { ...s.gate12d, unidad: e.target.value } }))}
+                    autoComplete="off"
+                  />
+                </AiField>
+                <AiField label="Estado / provincia">
+                  <input
+                    className={fieldClass}
+                    value={state.gate12d.estado}
+                    onChange={(e) => setState((s) => ({ ...s, gate12d: { ...s.gate12d, estado: e.target.value } }))}
+                    autoComplete="address-level1"
+                  />
+                </AiField>
+                <AiField label="Código postal">
+                  <input
+                    className={fieldClass}
+                    inputMode="numeric"
+                    value={state.gate12d.codigoPostal}
+                    onChange={(e) =>
+                      setState((s) => ({
+                        ...s,
+                        gate12d: { ...s.gate12d, codigoPostal: e.target.value.replace(/[^\d-]/g, "").slice(0, 12) },
+                      }))
+                    }
+                    autoComplete="postal-code"
+                  />
+                </AiField>
+                <div className="sm:col-span-2">
+                  <AiField label="Colonia / vecindario (opcional)">
+                    <input
+                      className={fieldClass}
+                      value={state.gate12d.colonia}
+                      onChange={(e) => setState((s) => ({ ...s, gate12d: { ...s.gate12d, colonia: e.target.value } }))}
+                      autoComplete="off"
+                    />
+                  </AiField>
+                </div>
+              </div>
+            </details>
             <AiField
-              label="Dirección o referencia"
-              hint="Ubicación aproximada o segura para publicar: no hace falta la dirección completa. Ejemplos ficticios: “Cerca de la esquina de Oak y 12 · barrio tranquilo”, “Zona residencial al norte del centro”, “Frente al parque de la colonia (referencia).”"
+              label="Referencia adicional (opcional)"
+              hint="Texto libre si quieres añadir contexto (cruces, puntos de referencia). No sustituye a la dirección estructurada arriba."
             >
               <input
                 className={fieldClass}
@@ -395,11 +452,14 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, mostrarDireccionExacta: e.target.checked }))}
                 />
                 <span className="min-w-0">
-                  Permitir mostrar la línea de ubicación completa en vista previa, resultados y mapa (si no, solo ciudad o
-                  zona aproximada).
+                  Mostrar calle y unidad en vista previa, resultados y mapa cuando la información estructurada esté
+                  completa.
                 </span>
               </label>
             </AiField>
+            <p className="sm:col-span-2 text-xs leading-relaxed text-[#5C5346]">
+              Si no activas esta opción, mostraremos una ubicación aproximada.
+            </p>
             <p className="sm:col-span-2 text-xs text-[#5C5346]">
               Para vista previa: ciudad o línea de ubicación (al menos uno)
               <span className="text-[#B8954A]" aria-hidden>
@@ -435,7 +495,7 @@ export function BienesRaicesPrivadoForm() {
             <div className="sm:col-span-2">
               <AiField
                 label="¿Se permiten mascotas?"
-                hint="Requerido para publicar: se guarda como dato estructurado y alimenta el filtro “Mascotas” en resultados."
+                hint="Requerido para publicar: se guarda como dato estructurado y alimenta el filtro “Mascotas” en resultados. En el anuncio publicado, el detalle de mascotas va en la sección HOA y comunidad (no como chip genérico)."
               >
                 <select
                   className={fieldClass}
@@ -453,6 +513,234 @@ export function BienesRaicesPrivadoForm() {
                 </select>
               </AiField>
             </div>
+            <details className="sm:col-span-2 min-w-0 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7]/60 px-3 py-2">
+              <summary className="cursor-pointer select-none text-sm font-semibold text-[#1E1810]">
+                HOA y comunidad (opcional)
+              </summary>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <AiField label="¿Hay HOA?">
+                  <select
+                    className={fieldClass}
+                    value={state.gate12d.hasHoa}
+                    onChange={(e) =>
+                      setState((s) => ({
+                        ...s,
+                        gate12d: { ...s.gate12d, hasHoa: e.target.value as BienesRaicesPrivadoFormState["gate12d"]["hasHoa"] },
+                      }))
+                    }
+                  >
+                    <option value="">—</option>
+                    <option value="yes">Sí</option>
+                    <option value="no">No</option>
+                    <option value="unknown">No sé / no aplica</option>
+                  </select>
+                </AiField>
+                <AiField label="Cuota HOA (opcional)">
+                  <input
+                    className={fieldClass}
+                    value={state.gate12d.hoaFee}
+                    onChange={(e) => setState((s) => ({ ...s, gate12d: { ...s.gate12d, hoaFee: e.target.value } }))}
+                  />
+                </AiField>
+                <AiField label="Frecuencia">
+                  <select
+                    className={fieldClass}
+                    value={state.gate12d.hoaFrequency}
+                    onChange={(e) =>
+                      setState((s) => ({
+                        ...s,
+                        gate12d: {
+                          ...s.gate12d,
+                          hoaFrequency: e.target.value as BienesRaicesPrivadoFormState["gate12d"]["hoaFrequency"],
+                        },
+                      }))
+                    }
+                  >
+                    <option value="">—</option>
+                    <option value="monthly">Mensual</option>
+                    <option value="quarterly">Trimestral</option>
+                    <option value="yearly">Anual</option>
+                    <option value="unknown">No indicada</option>
+                  </select>
+                </AiField>
+                <div className="sm:col-span-2">
+                  <AiField label="Qué incluye la cuota (opcional)">
+                    <textarea
+                      className={textareaFieldClass}
+                      rows={2}
+                      value={state.gate12d.hoaIncludes}
+                      onChange={(e) =>
+                        setState((s) => ({ ...s, gate12d: { ...s.gate12d, hoaIncludes: e.target.value } }))
+                      }
+                    />
+                  </AiField>
+                </div>
+                <div className="sm:col-span-2">
+                  <AiField label="Reglas de la comunidad (opcional)">
+                    <textarea
+                      className={textareaFieldClass}
+                      rows={2}
+                      value={state.gate12d.communityRules}
+                      onChange={(e) =>
+                        setState((s) => ({ ...s, gate12d: { ...s.gate12d, communityRules: e.target.value } }))
+                      }
+                    />
+                  </AiField>
+                </div>
+                <div className="sm:col-span-2">
+                  <AiField
+                    label="Reglas sobre mascotas (opcional)"
+                    hint="Aparecerán en la sección HOA del anuncio publicado."
+                  >
+                    <textarea
+                      className={textareaFieldClass}
+                      rows={2}
+                      value={state.gate12d.petRules}
+                      onChange={(e) => setState((s) => ({ ...s, gate12d: { ...s.gate12d, petRules: e.target.value } }))}
+                    />
+                  </AiField>
+                </div>
+                <div className="sm:col-span-2">
+                  <AiField label="Restricciones de renta (opcional)">
+                    <textarea
+                      className={textareaFieldClass}
+                      rows={2}
+                      value={state.gate12d.rentalRestrictions}
+                      onChange={(e) =>
+                        setState((s) => ({ ...s, gate12d: { ...s.gate12d, rentalRestrictions: e.target.value } }))
+                      }
+                    />
+                  </AiField>
+                </div>
+                <AiField label="¿Rentas de corto plazo permitidas?">
+                  <select
+                    className={fieldClass}
+                    value={state.gate12d.shortTermRentalAllowed}
+                    onChange={(e) =>
+                      setState((s) => ({
+                        ...s,
+                        gate12d: {
+                          ...s.gate12d,
+                          shortTermRentalAllowed: e.target
+                            .value as BienesRaicesPrivadoFormState["gate12d"]["shortTermRentalAllowed"],
+                        },
+                      }))
+                    }
+                  >
+                    <option value="">—</option>
+                    <option value="yes">Sí</option>
+                    <option value="no">No</option>
+                    <option value="unknown">No sé</option>
+                  </select>
+                </AiField>
+                <div className="sm:col-span-2">
+                  <AiField label="Reglas de estacionamiento (opcional)">
+                    <textarea
+                      className={textareaFieldClass}
+                      rows={2}
+                      value={state.gate12d.parkingRules}
+                      onChange={(e) =>
+                        setState((s) => ({ ...s, gate12d: { ...s.gate12d, parkingRules: e.target.value } }))
+                      }
+                    />
+                  </AiField>
+                </div>
+              </div>
+            </details>
+            <details className="sm:col-span-2 min-w-0 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7]/60 px-3 py-2">
+              <summary className="cursor-pointer select-none text-sm font-semibold text-[#1E1810]">
+                Open house y visitas (opcional)
+              </summary>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <AiField label="Open house activo">
+                  <label className="flex min-h-[44px] items-center gap-2 text-sm text-[#2C2416]">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={state.gate12d.openHouseEnabled}
+                      onChange={(e) =>
+                        setState((s) => ({ ...s, gate12d: { ...s.gate12d, openHouseEnabled: e.target.checked } }))
+                      }
+                    />
+                    Sí, planeo un open house
+                  </label>
+                </AiField>
+                <AiField label="Fecha (AAAA-MM-DD)">
+                  <input
+                    className={fieldClass}
+                    type="date"
+                    value={state.gate12d.openHouseDate}
+                    onChange={(e) =>
+                      setState((s) => ({ ...s, gate12d: { ...s.gate12d, openHouseDate: e.target.value } }))
+                    }
+                  />
+                </AiField>
+                <AiField label="Hora inicio">
+                  <input
+                    className={fieldClass}
+                    type="time"
+                    value={state.gate12d.openHouseStartTime}
+                    onChange={(e) =>
+                      setState((s) => ({ ...s, gate12d: { ...s.gate12d, openHouseStartTime: e.target.value } }))
+                    }
+                  />
+                </AiField>
+                <AiField label="Hora fin">
+                  <input
+                    className={fieldClass}
+                    type="time"
+                    value={state.gate12d.openHouseEndTime}
+                    onChange={(e) =>
+                      setState((s) => ({ ...s, gate12d: { ...s.gate12d, openHouseEndTime: e.target.value } }))
+                    }
+                  />
+                </AiField>
+                <AiField label="Visitas solo con cita">
+                  <label className="flex min-h-[44px] items-center gap-2 text-sm text-[#2C2416]">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={state.gate12d.showingByAppointment}
+                      onChange={(e) =>
+                        setState((s) => ({
+                          ...s,
+                          gate12d: { ...s.gate12d, showingByAppointment: e.target.checked },
+                        }))
+                      }
+                    />
+                    Sí
+                  </label>
+                </AiField>
+                <div className="sm:col-span-2">
+                  <AiField label="Instrucciones para visitas">
+                    <textarea
+                      className={textareaFieldClass}
+                      rows={3}
+                      value={state.gate12d.showingInstructions}
+                      onChange={(e) =>
+                        setState((s) => ({
+                          ...s,
+                          gate12d: { ...s.gate12d, showingInstructions: e.target.value },
+                        }))
+                      }
+                    />
+                  </AiField>
+                </div>
+                <div className="sm:col-span-2">
+                  <AiField label="Tour virtual (URL https, opcional)" hint="Matterport, YouTube 360, etc.">
+                    <input
+                      className={fieldClass}
+                      type="url"
+                      placeholder="https://"
+                      value={state.gate12d.virtualTourUrl}
+                      onChange={(e) =>
+                        setState((s) => ({ ...s, gate12d: { ...s.gate12d, virtualTourUrl: e.target.value } }))
+                      }
+                    />
+                  </AiField>
+                </div>
+              </div>
+            </details>
           </div>
         </section>
 

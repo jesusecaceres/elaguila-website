@@ -21,7 +21,101 @@ import {
   mergePartialLeonixContactChannelsFormSlice,
 } from "@/app/clasificados/lib/leonixContactChannelsV1";
 
-export const BR_PRIVADO_FORM_VERSION = 2 as const;
+export const BR_PRIVADO_FORM_VERSION = 3 as const;
+
+/** Gate 12D — HOA fee cadence (persisted inside `Leonix:br_gate12d_v1`). */
+export type BrPrivadoHoaFrequency = "" | "monthly" | "quarterly" | "yearly" | "unknown";
+export type BrPrivadoTriBool = "" | "yes" | "no" | "unknown";
+
+export type BrPrivadoGate12dSlice = {
+  calleNumero: string;
+  unidad: string;
+  estado: string;
+  codigoPostal: string;
+  colonia: string;
+  hasHoa: BrPrivadoTriBool;
+  hoaFee: string;
+  hoaFrequency: BrPrivadoHoaFrequency;
+  hoaIncludes: string;
+  communityRules: string;
+  petRules: string;
+  rentalRestrictions: string;
+  shortTermRentalAllowed: BrPrivadoTriBool;
+  parkingRules: string;
+  openHouseEnabled: boolean;
+  openHouseDate: string;
+  openHouseStartTime: string;
+  openHouseEndTime: string;
+  showingByAppointment: boolean;
+  showingInstructions: string;
+  virtualTourUrl: string;
+};
+
+function createEmptyBrPrivadoGate12dSlice(): BrPrivadoGate12dSlice {
+  return {
+    calleNumero: "",
+    unidad: "",
+    estado: "",
+    codigoPostal: "",
+    colonia: "",
+    hasHoa: "",
+    hoaFee: "",
+    hoaFrequency: "",
+    hoaIncludes: "",
+    communityRules: "",
+    petRules: "",
+    rentalRestrictions: "",
+    shortTermRentalAllowed: "",
+    parkingRules: "",
+    openHouseEnabled: false,
+    openHouseDate: "",
+    openHouseStartTime: "",
+    openHouseEndTime: "",
+    showingByAppointment: false,
+    showingInstructions: "",
+    virtualTourUrl: "",
+  };
+}
+
+function coerceBrPrivadoTriBool(raw: unknown): BrPrivadoTriBool {
+  if (raw === "yes" || raw === "no" || raw === "unknown") return raw;
+  return "";
+}
+
+function coerceBrPrivadoHoaFrequency(raw: unknown): BrPrivadoHoaFrequency {
+  if (raw === "monthly" || raw === "quarterly" || raw === "yearly" || raw === "unknown") return raw;
+  return "";
+}
+
+function mergeBrPrivadoGate12dSlice(partial: unknown): BrPrivadoGate12dSlice {
+  const base = createEmptyBrPrivadoGate12dSlice();
+  if (!partial || typeof partial !== "object") return base;
+  const g = partial as Record<string, unknown>;
+  return {
+    ...base,
+    calleNumero: typeof g.calleNumero === "string" ? g.calleNumero : base.calleNumero,
+    unidad: typeof g.unidad === "string" ? g.unidad : base.unidad,
+    estado: typeof g.estado === "string" ? g.estado : base.estado,
+    codigoPostal: typeof g.codigoPostal === "string" ? g.codigoPostal : base.codigoPostal,
+    colonia: typeof g.colonia === "string" ? g.colonia : base.colonia,
+    hasHoa: coerceBrPrivadoTriBool(g.hasHoa),
+    hoaFee: typeof g.hoaFee === "string" ? g.hoaFee : base.hoaFee,
+    hoaFrequency: coerceBrPrivadoHoaFrequency(g.hoaFrequency),
+    hoaIncludes: typeof g.hoaIncludes === "string" ? g.hoaIncludes : base.hoaIncludes,
+    communityRules: typeof g.communityRules === "string" ? g.communityRules : base.communityRules,
+    petRules: typeof g.petRules === "string" ? g.petRules : base.petRules,
+    rentalRestrictions: typeof g.rentalRestrictions === "string" ? g.rentalRestrictions : base.rentalRestrictions,
+    shortTermRentalAllowed: coerceBrPrivadoTriBool(g.shortTermRentalAllowed),
+    parkingRules: typeof g.parkingRules === "string" ? g.parkingRules : base.parkingRules,
+    openHouseEnabled: typeof g.openHouseEnabled === "boolean" ? g.openHouseEnabled : base.openHouseEnabled,
+    openHouseDate: typeof g.openHouseDate === "string" ? g.openHouseDate : base.openHouseDate,
+    openHouseStartTime: typeof g.openHouseStartTime === "string" ? g.openHouseStartTime : base.openHouseStartTime,
+    openHouseEndTime: typeof g.openHouseEndTime === "string" ? g.openHouseEndTime : base.openHouseEndTime,
+    showingByAppointment: typeof g.showingByAppointment === "boolean" ? g.showingByAppointment : base.showingByAppointment,
+    showingInstructions: typeof g.showingInstructions === "string" ? g.showingInstructions : base.showingInstructions,
+    virtualTourUrl: typeof g.virtualTourUrl === "string" ? g.virtualTourUrl : base.virtualTourUrl,
+  };
+}
 
 /** Structured for `Leonix:pets_allowed` + resultados filter (required before publish). */
 export type BrPetsAllowedChoice = "" | "yes" | "no";
@@ -160,6 +254,8 @@ export type BienesRaicesPrivadoFormState = {
   confirmPhotosRepresentItem: boolean;
   confirmCommunityRules: boolean;
   contactChannels: LeonixContactChannelsFormSlice;
+  /** Gate 12D — structured address + HOA + open house (serialized to `Leonix:br_gate12d_v1`). */
+  gate12d: BrPrivadoGate12dSlice;
 };
 
 const MAX_PHOTOS = 8;
@@ -236,6 +332,7 @@ export function createEmptyBienesRaicesPrivadoFormState(): BienesRaicesPrivadoFo
     confirmPhotosRepresentItem: false,
     confirmCommunityRules: false,
     contactChannels: createEmptyLeonixContactChannelsFormSlice(),
+    gate12d: createEmptyBrPrivadoGate12dSlice(),
   };
 }
 
@@ -250,6 +347,7 @@ export function mergePartialBienesRaicesPrivadoState(
   const resIn = partial.residencial;
   const comIn = partial.comercial;
   const terIn = partial.terreno;
+  const gateIn = partial.gate12d;
 
   const photoDataUrls = coerceStringArray(mediaIn?.photoDataUrls, MAX_PHOTOS);
   let primaryImageIndex = typeof mediaIn?.primaryImageIndex === "number" ? mediaIn!.primaryImageIndex! : 0;
@@ -328,5 +426,6 @@ export function mergePartialBienesRaicesPrivadoState(
       base.contactChannels,
       partial.contactChannels as Partial<LeonixContactChannelsFormSlice> | undefined,
     ),
+    gate12d: mergeBrPrivadoGate12dSlice(gateIn),
   };
 }

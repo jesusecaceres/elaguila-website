@@ -96,6 +96,8 @@ export function buildBienesRaicesPrivadoTemplateVm(categoria: BrNegocioCategoria
     },
     mostrarDireccionExacta: true,
     footerNote: `Plantilla de salida BR Privado · categoría: ${categoria}. Misma estructura que el listado publicado; sin persistencia ni datos reales en esta fase.`,
+    hoaCommunityCard: null,
+    openHouseCard: null,
   };
 
   if (categoria === "residencial") {

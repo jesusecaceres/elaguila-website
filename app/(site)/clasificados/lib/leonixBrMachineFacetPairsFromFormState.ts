@@ -20,6 +20,12 @@ import {
   serializeLeonixContactChannelsV1Payload,
 } from "@/app/clasificados/lib/leonixContactChannelsV1";
 import {
+  LEONIX_DP_BR_GATE12D_V1,
+  buildBrGate12dV1FromNegocioState,
+  buildBrGate12dV1FromPrivadoState,
+  serializeBrGate12dV1Payload,
+} from "@/app/clasificados/lib/leonixBrGate12d";
+import {
   LEONIX_DP_BATHROOMS_COUNT,
   LEONIX_DP_BEDROOMS_COUNT,
   LEONIX_DP_FURNISHED,
@@ -174,7 +180,11 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(
   if (state.petsAllowed === "yes") push(out, LEONIX_DP_PETS_ALLOWED, true);
   else if (state.petsAllowed === "no") push(out, LEONIX_DP_PETS_ALLOWED, false);
 
-  const zipGuess = normalizeZipForBrowse(`${state.ubicacionLinea} ${state.ciudad}`.trim());
+  const zipFromStructured = normalizeZipForBrowse(String(state.gate12d?.codigoPostal ?? "").trim());
+  const zipGuess =
+    zipFromStructured.length >= 5
+      ? zipFromStructured
+      : normalizeZipForBrowse(`${state.ubicacionLinea} ${state.ciudad}`.trim());
   if (zipGuess.length >= 5) push(out, LEONIX_DP_POSTAL_CODE, zipGuess);
 
   pushHighlightSlugsForPrivado(state, out);
@@ -183,6 +193,8 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(
     instructionsNote: state.seller.notaContacto,
   });
   if (chPr) push(out, LEONIX_DP_CONTACT_CHANNELS_V1, serializeLeonixContactChannelsV1Payload(chPr));
+  const g12 = serializeBrGate12dV1Payload(buildBrGate12dV1FromPrivadoState(state));
+  if (g12) push(out, LEONIX_DP_BR_GATE12D_V1, g12);
   return out;
 }
 
@@ -251,5 +263,7 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesNegocioState(
     instructionsNote: fbNote || String(state.cta.instruccionesContacto ?? "").trim(),
   });
   if (chN) push(out, LEONIX_DP_CONTACT_CHANNELS_V1, serializeLeonixContactChannelsV1Payload(chN));
+  const g12n = serializeBrGate12dV1Payload(buildBrGate12dV1FromNegocioState(state));
+  if (g12n) push(out, LEONIX_DP_BR_GATE12D_V1, g12n);
   return out;
 }

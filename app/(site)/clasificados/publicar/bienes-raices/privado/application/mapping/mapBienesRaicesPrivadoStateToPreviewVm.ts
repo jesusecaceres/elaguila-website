@@ -18,6 +18,14 @@ import type { BienesRaicesPrivadoFormState } from "../../schema/bienesRaicesPriv
 import type { BienesRaicesPreviewFact, BienesRaicesPreviewMediaVm, BienesRaicesPreviewQuickFactVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { sanitizeLeonixListingPublishDescriptionBody } from "@/app/clasificados/lib/leonixPublishPublicDescription";
 import {
+  composeBrApproximateMapQuery,
+  composeBrExactMapQuery,
+  sanitizeBrUserMapUrl,
+} from "@/app/clasificados/lib/leonixBrGate12d";
+import { normalizeLeonixHttpsUrl } from "@/app/clasificados/lib/leonixContactSocialNormalize";
+import { googleMapsSearchUrl } from "@/app/(site)/publicar/community/shared/lib/communityContactCtas";
+import { normalizeZipForBrowse } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
+import {
   buildLeonixContactChannelsV1PayloadFromFormSlice,
   formatLeonixPreferredContactLine,
   socialLinksFromChannelsPayload,
@@ -100,20 +108,6 @@ function buildSmsHref(phoneDigits: string): string | null {
   return `sms:${d}`;
 }
 
-function hrefFromUserInput(raw: string): string | null {
-  const s = trim(raw);
-  if (!s) return null;
-  if (/^https?:\/\//i.test(s)) return s;
-  if (s.startsWith("blob:") || s.startsWith("data:")) return s;
-  const guess = `https://${s}`;
-  try {
-    new URL(guess);
-    return guess;
-  } catch {
-    return null;
-  }
-}
-
 function row(label: string, value: string): BienesRaicesPreviewFact | null {
   const v = trim(value);
   if (!v) return null;
@@ -147,7 +141,9 @@ function buildMediaVm(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewMedia
   const thumb0 = yt ? `https://img.youtube.com/vi/${yt}/hqdefault.jpg` : null;
   const playback0 = hasVid ? (localV || urlV) : null;
 
-  const metaLine = n > 0 ? `${n} foto${n === 1 ? "" : "s"} en la galería` : hasVid ? "Video en el anuncio" : "";
+  const vt = normalizeLeonixHttpsUrl(trim(s.gate12d?.virtualTourUrl ?? ""));
+  const metaLine =
+    n > 0 ? `${n} foto${n === 1 ? "" : "s"} en la galería` : hasVid ? "Video en el anuncio" : vt ? "Tour virtual" : "";
 
   return {
     heroUrl,
@@ -155,14 +151,14 @@ function buildMediaVm(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewMedia
     videoThumbUrls: [thumb0, null],
     videoPlaybackUrls: [playback0, null],
     youtubeIds: [yt, null],
-    virtualTourUrl: null,
+    virtualTourUrl: vt,
     floorPlanUrls: [],
     sitePlanUrl: null,
     metaLine,
     hasPhotos: n > 0,
     hasVideo1: hasVid,
     hasVideo2: false,
-    hasVirtualTour: false,
+    hasVirtualTour: Boolean(vt),
     hasFloorPlans: false,
     hasSitePlan: false,
     photoCount: n,
@@ -192,12 +188,6 @@ function buildResidencialDetails(s: BienesRaicesPrivadoFormState): BienesRaicesP
   return rows.filter((x): x is BienesRaicesPreviewFact => x != null);
 }
 
-function privadoPetsQuickFact(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewQuickFactVm | null {
-  if (s.petsAllowed === "yes") return { label: "Mascotas", value: "Permitidas", icon: "sparkle" };
-  if (s.petsAllowed === "no") return { label: "Mascotas", value: "No permitidas", icon: "sparkle" };
-  return null;
-}
-
 function buildResidencialQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewQuickFactVm[] {
   const r = s.residencial;
   const out: BienesRaicesPreviewQuickFactVm[] = [];
@@ -213,8 +203,6 @@ function buildResidencialQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaic
   push("Lote", r.loteSqft ? prettifySqft(r.loteSqft) : "", "pin");
   push("Estacionamiento", r.estacionamiento, "car");
   push("Año", prettifyPlainNumber(r.ano), "calendar");
-  const pet = privadoPetsQuickFact(s);
-  if (pet) out.push(pet);
   return out;
 }
 
@@ -264,8 +252,6 @@ function buildComercialQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaices
   push("Baños", prettifyPlainNumber(c.banos), "bath");
   push("Niveles", prettifyPlainNumber(c.niveles), "calendar");
   push("Estacionamiento", c.estacionamiento, "car");
-  const pet = privadoPetsQuickFact(s);
-  if (pet) out.push(pet);
   return out;
 }
 
@@ -317,8 +303,6 @@ function buildTerrenoQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaicesPr
   push("Uso / zona", t.usoZonificacion, "pin");
   push("Acceso", t.acceso, "car");
   push("Servicios", t.servicios, "sparkle");
-  const pet = privadoPetsQuickFact(s);
-  if (pet) out.push(pet);
   return out;
 }
 
@@ -334,9 +318,86 @@ function buildTerrenoHighlights(s: BienesRaicesPrivadoFormState): BienesRaicesPr
     .filter((x): x is BienesRaicesPreviewFact => x != null);
 }
 
-export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFormState): BienesRaicesPrivadoPreviewVm {
+type BrPreviewLang = "es" | "en";
+
+function triBoolLabel(lang: BrPreviewLang, v: string): string | null {
+  if (v === "yes") return lang === "es" ? "Sí" : "Yes";
+  if (v === "no") return lang === "es" ? "No" : "No";
+  if (v === "unknown") return lang === "es" ? "No indicado" : "Unknown";
+  return null;
+}
+
+function hoaFreqLabel(lang: BrPreviewLang, f: string): string | null {
+  if (f === "monthly") return lang === "es" ? "Mensual" : "Monthly";
+  if (f === "quarterly") return lang === "es" ? "Trimestral" : "Quarterly";
+  if (f === "yearly") return lang === "es" ? "Anual" : "Yearly";
+  if (f === "unknown") return lang === "es" ? "No indicada" : "Unknown";
+  return null;
+}
+
+function buildGate12dHoaCard(
+  s: BienesRaicesPrivadoFormState,
+  lang: BrPreviewLang,
+): { title: string; rows: BienesRaicesPreviewFact[] } | null {
+  const g = s.gate12d;
+  const rows: BienesRaicesPreviewFact[] = [];
+  const L = (es: string, en: string) => (lang === "es" ? es : en);
+  const pushRow = (label: string, value: string) => {
+    const r = row(label, value);
+    if (r) rows.push(r);
+  };
+  const hb = triBoolLabel(lang, g.hasHoa);
+  if (hb) pushRow(L("¿Hay HOA?", "HOA?"), hb);
+  if (trim(g.hoaFee)) pushRow(L("Cuota HOA", "HOA fee"), trim(g.hoaFee));
+  const fq = hoaFreqLabel(lang, g.hoaFrequency);
+  if (fq) pushRow(L("Frecuencia", "Frequency"), fq);
+  if (trim(g.hoaIncludes)) pushRow(L("La cuota incluye", "HOA includes"), trim(g.hoaIncludes));
+  if (trim(g.communityRules)) pushRow(L("Reglas de la comunidad", "Community rules"), trim(g.communityRules));
+  const petText =
+    trim(g.petRules) ||
+    (s.petsAllowed === "yes"
+      ? L("Se permiten mascotas (política publicada).", "Pets allowed (published policy).")
+      : s.petsAllowed === "no"
+        ? L("No se permiten mascotas (política publicada).", "Pets not allowed (published policy).")
+        : "");
+  if (petText) pushRow(L("Reglas sobre mascotas", "Pet rules"), petText);
+  if (trim(g.rentalRestrictions)) pushRow(L("Restricciones de renta", "Rental restrictions"), trim(g.rentalRestrictions));
+  const st = triBoolLabel(lang, g.shortTermRentalAllowed);
+  if (st) pushRow(L("Rentas vacacionales / corto plazo", "Short-term rentals"), st);
+  if (trim(g.parkingRules)) pushRow(L("Reglas de estacionamiento", "Parking rules"), trim(g.parkingRules));
+  if (!rows.length) return null;
+  return { title: L("HOA y comunidad", "HOA and community"), rows };
+}
+
+function buildGate12dOpenHouseCard(
+  s: BienesRaicesPrivadoFormState,
+  lang: BrPreviewLang,
+): { title: string; rows: BienesRaicesPreviewFact[] } | null {
+  const g = s.gate12d;
+  const rows: BienesRaicesPreviewFact[] = [];
+  const L = (es: string, en: string) => (lang === "es" ? es : en);
+  const pushRow = (label: string, value: string) => {
+    const r = row(label, value);
+    if (r) rows.push(r);
+  };
+  if (g.openHouseEnabled) {
+    pushRow(L("Open house", "Open house"), L("Sí", "Yes"));
+    if (trim(g.openHouseDate)) pushRow(L("Fecha", "Date"), trim(g.openHouseDate));
+    const tw = [trim(g.openHouseStartTime), trim(g.openHouseEndTime)].filter(Boolean).join(" – ");
+    if (tw) pushRow(L("Horario", "Hours"), tw);
+  }
+  if (g.showingByAppointment) pushRow(L("Visitas con cita", "Showings by appointment"), L("Sí", "Yes"));
+  if (trim(g.showingInstructions)) pushRow(L("Instrucciones para visitas", "Showing instructions"), trim(g.showingInstructions));
+  if (!rows.length) return null;
+  return { title: L("Open house y visitas", "Open house and showings"), rows };
+}
+
+export function mapBienesRaicesPrivadoStateToPreviewVm(
+  s: BienesRaicesPrivadoFormState,
+  lang: BrPreviewLang = "es",
+): BienesRaicesPrivadoPreviewVm {
   const cat = s.categoriaPropiedad;
-  const mapsUrl = hrefFromUserInput(s.enlaceMapa);
+  const g = s.gate12d;
 
   let propertyDetailsRows: BienesRaicesPreviewFact[] = [];
   let quickFacts: BienesRaicesPreviewQuickFactVm[] = [];
@@ -369,9 +430,35 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
   const city = trim(s.ciudad);
   const line = trim(s.ubicacionLinea);
   const showExact = s.mostrarDireccionExacta;
+  const streetLine = [trim(g.calleNumero), trim(g.unidad)].filter(Boolean).join(" ");
+  const linePublic = streetLine || line;
   const addressLine = showExact
-    ? [line, city].filter(Boolean).join(line && city ? " · " : "") || ""
+    ? [linePublic, city].filter(Boolean).join(linePublic && city ? " · " : "") || city
     : city || "";
+
+  const zipPretty = normalizeZipForBrowse(trim(g.codigoPostal));
+  const cityStateZip = [city, trim(g.estado), zipPretty].filter(Boolean).join(" · ");
+
+  const zipForCompose = zipPretty.length >= 5 ? zipPretty.replace(/\D/g, "").slice(0, 10) : "";
+  const composedQ = showExact
+    ? composeBrExactMapQuery({
+        streetAddress: trim(g.calleNumero),
+        unit: trim(g.unidad),
+        neighborhood: trim(g.colonia),
+        city,
+        state: trim(g.estado),
+        zip: zipForCompose,
+      })
+    : composeBrApproximateMapQuery({
+        neighborhood: trim(g.colonia),
+        city,
+        state: trim(g.estado),
+        zip: zipForCompose,
+      });
+  const q = (composedQ || (showExact ? line : "") || city).trim();
+  const googleHref = q ? googleMapsSearchUrl(q) : null;
+  const userMap = sanitizeBrUserMapUrl(s.enlaceMapa);
+  const mapsUrl = userMap ?? googleHref;
 
   const desc = sanitizeLeonixListingPublishDescriptionBody(trim(s.descripcion));
   const phoneDisp = trim(s.seller.telefono) ? formatUsPhoneDisplay(digitsOnly(s.seller.telefono)) : "";
@@ -383,7 +470,10 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
     instructionsNote: s.seller.notaContacto,
   });
   const socialLinks = socialLinksFromChannelsPayload(ch);
-  const preferredContactLine = formatLeonixPreferredContactLine(ch, "es");
+  const preferredContactLine = formatLeonixPreferredContactLine(ch, lang);
+
+  const hoaCommunityCard = buildGate12dHoaCard(s, lang);
+  const openHouseCard = buildGate12dOpenHouseCard(s, lang);
 
   return {
     categoria: cat,
@@ -429,10 +519,12 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
     },
     location: {
       mapsUrl,
-      line1: showExact ? line : "",
-      cityStateZip: city,
-      hasMeaningfulAddress: Boolean((showExact && line) || city || mapsUrl),
+      line1: showExact ? linePublic : "",
+      cityStateZip,
+      hasMeaningfulAddress: Boolean((showExact && linePublic) || city || mapsUrl),
     },
+    hoaCommunityCard,
+    openHouseCard,
     footerNote: "",
   };
 }

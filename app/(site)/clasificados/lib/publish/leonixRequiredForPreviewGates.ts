@@ -20,8 +20,8 @@ function trim(s: string): string {
 export function gateBienesRaicesPrivadoPreview(state: BienesRaicesPrivadoFormState): LeonixPreviewGateResult {
   if (!trim(state.titulo)) return { ok: false, message: "Agrega un título del anuncio." };
   if (!trim(state.precio)) return { ok: false, message: "Indica el precio (USD)." };
-  if (!trim(state.ciudad) && !trim(state.ubicacionLinea)) {
-    return { ok: false, message: "Indica ciudad o una línea de ubicación." };
+  if (!trim(state.ciudad) && !trim(state.ubicacionLinea) && !trim(state.gate12d.calleNumero) && !trim(state.gate12d.colonia)) {
+    return { ok: false, message: "Indica ciudad, colonia, calle o una línea de ubicación." };
   }
   if (!state.media.photoDataUrls.length) return { ok: false, message: "Sube al menos una foto (portada)." };
   if (!trim(state.seller.nombre)) return { ok: false, message: "Indica tu nombre o cómo aparecerás como particular." };

@@ -6,6 +6,7 @@ import {
   type BrResultsPropertyKind,
   type LeonixClasificadosBranch,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { isBrBienesRaicesSaleListing } from "@/app/clasificados/lib/leonixBrGate12d";
 import { brLuxuryCardClass } from "@/app/clasificados/bienes-raices/shared/brResultsTheme";
 
 function branchLaneLabel(branch: LeonixClasificadosBranch, lang: "es" | "en"): string {
@@ -51,12 +52,13 @@ function opLabel(op: "sale" | "rent" | null, lang: "es" | "en"): string {
 export function BrLiveFactsStrip({ detailPairs, lang }: { detailPairs: unknown; lang: "es" | "en" }) {
   const lx = parseLeonixListingContract(detailPairs);
   const m = parseLeonixMachineFacetRead(detailPairs);
+  const hideGenericPets = isBrBienesRaicesSaleListing(detailPairs);
   const hasMachine =
     m.bedroomsCount != null ||
     m.bathroomsCount != null ||
     m.postalCode ||
     m.pool != null ||
-    m.petsAllowed != null ||
+    (!hideGenericPets && m.petsAllowed != null) ||
     m.furnished != null ||
     m.resultsPropertyKind;
 
@@ -79,8 +81,8 @@ export function BrLiveFactsStrip({ detailPairs, lang }: { detailPairs: unknown; 
   if (m.postalCode) chips.push(`ZIP ${m.postalCode}`);
   if (m.pool === true) chips.push(lang === "es" ? "Alberca" : "Pool");
   if (m.pool === false) chips.push(lang === "es" ? "Sin alberca" : "No pool");
-  if (m.petsAllowed === true) chips.push(lang === "es" ? "Mascotas permitidas" : "Pets allowed");
-  if (m.petsAllowed === false) chips.push(lang === "es" ? "Sin mascotas" : "No pets");
+  if (!hideGenericPets && m.petsAllowed === true) chips.push(lang === "es" ? "Mascotas permitidas" : "Pets allowed");
+  if (!hideGenericPets && m.petsAllowed === false) chips.push(lang === "es" ? "Sin mascotas" : "No pets");
   if (m.furnished === true) chips.push(lang === "es" ? "Amueblado" : "Furnished");
   if (m.furnished === false) chips.push(lang === "es" ? "Sin amueblar" : "Unfurnished");
 

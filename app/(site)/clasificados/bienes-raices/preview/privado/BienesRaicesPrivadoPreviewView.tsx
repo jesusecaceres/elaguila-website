@@ -549,10 +549,71 @@ export function BienesRaicesPrivadoPreviewView({
           </section>
         ) : null}
 
+        {vm.hoaCommunityCard && vm.hoaCommunityCard.rows.length > 0 ? (
+          <section className="mt-3 min-w-0 sm:mt-4">
+            <div
+              className="min-w-0 rounded-xl border p-4 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)] sm:p-5 md:p-5"
+              style={{ borderColor: BORDER, background: CREAM_CARD }}
+            >
+              <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+                {vm.hoaCommunityCard.title}
+              </h2>
+              <ul className="mt-3 space-y-2 text-sm" style={{ color: CHARCOAL }}>
+                {vm.hoaCommunityCard.rows.map((r) => (
+                  <li key={`${r.label}-${r.value}`} className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+                    <span className="font-semibold">{r.label}:</span>
+                    <span className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{r.value}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        ) : null}
+
+        {vm.openHouseCard && vm.openHouseCard.rows.length > 0 ? (
+          <section className="mt-3 min-w-0 sm:mt-4">
+            <div
+              className="min-w-0 rounded-xl border p-4 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)] sm:p-5 md:p-5"
+              style={{ borderColor: BORDER, background: CREAM_CARD }}
+            >
+              <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+                {vm.openHouseCard.title}
+              </h2>
+              <ul className="mt-3 space-y-2 text-sm" style={{ color: CHARCOAL }}>
+                {vm.openHouseCard.rows.map((r) => (
+                  <li key={`${r.label}-${r.value}`} className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+                    <span className="font-semibold">{r.label}:</span>
+                    <span className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{r.value}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        ) : null}
+
+        {vm.media?.virtualTourUrl ? (
+          <section className="mt-3 min-w-0 sm:mt-4">
+            <div
+              className="min-w-0 rounded-xl border p-4 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)] sm:p-5 md:p-5"
+              style={{ borderColor: BORDER, background: CREAM_CARD }}
+            >
+              <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+                {locale === "es" ? "Tour virtual" : "Virtual tour"}
+              </h2>
+              <a
+                href={vm.media.virtualTourUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold transition hover:bg-[#F9F6F1]/80"
+                style={{ borderColor: `${BRONZE}55`, color: CHARCOAL_DEEP }}
+              >
+                {locale === "es" ? "Abrir tour virtual" : "Open virtual tour"}
+              </a>
+            </div>
+          </section>
+        ) : null}
+
         <section
-          className={`grid min-w-0 grid-cols-1 gap-3 lg:items-start lg:gap-5 ${showGallerySection ? "mt-2 border-t pt-3" : "mt-0 border-0 pt-1"} ${
-            false && showMainSellerAside ? "lg:grid-cols-[1fr_minmax(260px,320px)]" : ""
-          }`}
           style={{ borderColor: BORDER }}
         >
           <div className="min-w-0 lg:min-h-0">
