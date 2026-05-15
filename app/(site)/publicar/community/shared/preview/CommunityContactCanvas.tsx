@@ -174,6 +174,7 @@ export function CommunityContactCanvas({
   return (
     <section
       id={sectionHtmlId}
+      data-testid="community-contact-location"
       className="mt-4 min-w-0 overflow-hidden rounded-2xl border border-black/10 shadow-sm"
       style={{ backgroundColor: GH.cream, color: GH.charcoal }}
     >

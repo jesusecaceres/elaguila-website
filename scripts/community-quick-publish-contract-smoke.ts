@@ -98,8 +98,8 @@ function main() {
     "app/(site)/publicar/community/shared/preview/CommunityQuickPreviewClient.tsx",
   );
   assert.ok(previewClient.includes("CommunityQuickPreviewPublishBar"));
-  assert.ok(previewClient.includes("publishSlot={publishSlot}"));
-  assert.ok(previewClient.includes("LeonixPreviewPageShell"));
+  assert.ok(previewClient.includes("CommunityQuickPublicDetailShell"));
+  assert.ok(previewClient.includes("CommunityQuickPreviewPublishBar"));
   assert.ok(previewClient.includes('kind === "clases" && clasesDraft'));
   assert.ok(previewClient.includes('kind === "comunidad" && comunidadDraft'));
 

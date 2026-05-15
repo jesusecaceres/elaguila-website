@@ -2,7 +2,7 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 /**
  * WYSIWYG trace — Clases quick published detail:
  * - Public page: `clasificados/anuncio/[id]/page.tsx` → `ClasesPublishedQuickAd` → `ClasesQuickAdCanvas` (embedded).
- * - Preview: `publicar/clases/quick/preview` → `CommunityQuickPreviewCard` → same `ClasesQuickAdCanvas` (standalone).
+ * - Preview: `publicar/clases/quick/preview` → `CommunityQuickPublicDetailShell` → same `ClasesQuickAdCanvas` (embedded).
  * - Source fields: Supabase `detail_pairs` (Leonix:*) + listing row (title, blurb, city, images, contact_*).
  */
 import {
