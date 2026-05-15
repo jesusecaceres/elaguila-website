@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { FormEventHandler, ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import { ServiciosUseMyLocationButton } from "./ServiciosUseMyLocationButton";
@@ -9,13 +10,11 @@ import {
   serviciosResultsHasActiveFilters,
   type ServiciosResultsFilterQuery,
 } from "./lib/serviciosResultsFilter";
-import {
-  formatServiciosInternalGroupForDiscovery,
-  SERVICIOS_INTERNAL_GROUP_IDS,
-} from "./lib/serviciosInternalGroupDisplay";
 import { normalizeServiciosDiscoveryLocationInput } from "./lib/serviciosLocationNormalize";
+import { ServiciosResultsAdvancedFilterFields } from "./resultados/ServiciosResultsAdvancedFilterFields";
 
-const RESULTS_FORM_ID = "servicios-results-filter-form";
+const RESULTS_FORM_ID_DESKTOP = "servicios-results-filter-form-desktop";
+const RESULTS_FORM_ID_MOBILE = "servicios-results-filter-form-mobile";
 
 function GroupShell({
   titleEs,
@@ -38,15 +37,281 @@ function GroupShell({
   );
 }
 
-export function ServiciosResultsFilters({
+const sortSelectDefault = (current: ServiciosResultsFilterQuery) =>
+  current.sort === "name"
+    ? "name"
+    : current.sort === "rating"
+      ? "rating"
+      : current.sort === "most_liked"
+        ? "most_liked"
+        : current.sort === "most_saved"
+          ? "most_saved"
+          : current.sort === "open_now"
+            ? "open_now"
+            : "newest";
+
+function createServiciosResultsFormSubmitCapture(): FormEventHandler<HTMLFormElement> {
+  return (e) => {
+    const form = e.currentTarget;
+    const cityInput = form.querySelector<HTMLInputElement>('input[name="city"]');
+    if (cityInput) {
+      const raw = cityInput.value.trim();
+      const norm = normalizeServiciosDiscoveryLocationInput(raw);
+      if (norm !== raw) cityInput.value = norm;
+    }
+    const fd = new FormData(form);
+    writeServiciosDiscoveryPrefs({
+      lastQ: String(fd.get("q") ?? "").trim() || undefined,
+      lastCity: String(fd.get("city") ?? "").trim() || undefined,
+      lastGroup: String(fd.get("group") ?? "").trim() || undefined,
+    });
+    const snap: Record<string, string> = {};
+    for (const [k, v] of fd.entries()) {
+      if (typeof v === "string" && v.trim()) snap[String(k)] = v.trim().slice(0, 240);
+    }
+    void fetch("/api/clasificados/servicios/analytics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        listingSlug: null,
+        eventType: "filter_change",
+        meta: { path: "/clasificados/servicios/resultados", form: snap },
+      }),
+    }).catch(() => {});
+  };
+}
+
+function ServiciosResultsFiltersMobile({
   lang,
   current,
 }: {
   lang: ServiciosLang;
   current: ServiciosResultsFilterQuery;
 }) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
   const resetHref = `/clasificados/servicios/resultados?lang=${lang}`;
   const hasFilters = serviciosResultsHasActiveFilters(current);
+  const onSubmitCapture = createServiciosResultsFormSubmitCapture();
+
+  useEffect(() => {
+    const el = sheetRef.current;
+    if (!el) return;
+    if (drawerOpen) el.removeAttribute("inert");
+    else el.setAttribute("inert", "");
+  }, [drawerOpen]);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawerOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [drawerOpen]);
+
+  return (
+    <div className="rounded-[22px] border border-[#e5ddd2]/90 bg-[#FFFCF7] p-4 shadow-[0_26px_64px_-40px_rgba(20,38,58,0.42)] ring-1 ring-[#1e3a5f]/[0.06] sm:rounded-[24px] sm:p-5">
+      <form
+        id={RESULTS_FORM_ID_MOBILE}
+        method="get"
+        action="/clasificados/servicios/resultados"
+        aria-label={lang === "en" ? "Search and filter Servicios results" : "Buscar y filtrar resultados de Servicios"}
+        className="space-y-4"
+        onSubmitCapture={onSubmitCapture}
+      >
+        <input type="hidden" name="lang" value={lang} />
+
+        <div className="sticky top-0 z-20 space-y-4 rounded-2xl border border-[#e5ddd2]/80 bg-[#FFFCF7]/96 p-3 shadow-sm backdrop-blur-md sm:p-4">
+          <GroupShell titleEs="Buscar" titleEn="Search" lang={lang}>
+            <label className="block min-w-0">
+              <span className="text-xs font-semibold text-[#3d4f62]">
+                {lang === "en" ? "Keywords" : "Palabras clave"}
+              </span>
+              <input
+                name="q"
+                type="search"
+                defaultValue={current.q ?? ""}
+                autoComplete="off"
+                placeholder={lang === "en" ? "Service, trade, business name…" : "Servicio, giro, nombre del negocio…"}
+                className="mt-1 min-h-[48px] w-full rounded-xl border border-[#e5ddd2] bg-white px-3 py-2 text-sm text-[#142a42] outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              />
+            </label>
+          </GroupShell>
+
+          <GroupShell titleEs="Ubicación" titleEn="Location" lang={lang}>
+            <label className="block min-w-0">
+              <span className="text-xs font-semibold text-[#3d4f62]">
+                {lang === "en" ? "City, ZIP, or service area" : "Ciudad, código postal o zona"}
+              </span>
+              <input
+                name="city"
+                type="text"
+                defaultValue={current.city ?? ""}
+                placeholder={lang === "en" ? "e.g. San José, 95112" : "ej. San José, 95112"}
+                aria-describedby="servicios-city-filter-hint-mobile"
+                className="mt-1 min-h-[48px] w-full rounded-xl border border-[#e5ddd2] bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+              />
+            </label>
+            <span id="servicios-city-filter-hint-mobile" className="mt-2 block text-[11px] leading-snug text-[#64748b]">
+              {lang === "en"
+                ? "Matches listing city and, when published, postal code, service-area lines, and location summary on the profile."
+                : "Coincide con la ciudad del anuncio y, si está en la vitrina, CP, zonas de servicio y resumen de ubicación."}
+            </span>
+            <div className="mt-3">
+              <ServiciosUseMyLocationButton lang={lang} formId={RESULTS_FORM_ID_MOBILE} />
+            </div>
+            <button
+              type="submit"
+              className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-gradient-to-br from-[#EA580C] to-[#C2410C] px-6 text-sm font-bold text-white shadow-md transition hover:brightness-[1.03]"
+            >
+              {lang === "en" ? "Search with these terms" : "Buscar con estos términos"}
+            </button>
+          </GroupShell>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1">
+              <GroupShell titleEs="Ordenar" titleEn="Sort" lang={lang}>
+                <label className="flex min-w-0 flex-col gap-1">
+                  <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Order" : "Orden"}</span>
+                  <select
+                    name="sort"
+                    defaultValue={sortSelectDefault(current)}
+                    className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
+                  >
+                    <option value="newest">{lang === "en" ? "Newest" : "Más recientes"}</option>
+                    <option value="most_liked">{lang === "en" ? "Most liked" : "Más gustados"}</option>
+                    <option value="most_saved">{lang === "en" ? "Most saved" : "Más guardados"}</option>
+                    <option value="open_now">{lang === "en" ? "Open now" : "Abiertos ahora"}</option>
+                    <option value="name">{lang === "en" ? "Name (A–Z)" : "Nombre (A–Z)"}</option>
+                    <option value="rating">{lang === "en" ? "Highest rated" : "Mejor calificados"}</option>
+                  </select>
+                </label>
+              </GroupShell>
+            </div>
+            <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:min-w-[200px]">
+              <button
+                type="submit"
+                className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-bold text-white shadow-[0_12px_32px_-14px_rgba(30,58,95,0.45)] transition hover:bg-[#2f5699]"
+              >
+                {lang === "en" ? "Apply & view results" : "Aplicar y ver resultados"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#1a3352]/20 bg-white px-4 text-sm font-bold text-[#142a42] shadow-sm transition hover:bg-[#fafcff]"
+              >
+                {lang === "en" ? "Filters" : "Filtros"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className={`fixed inset-0 z-[60] flex flex-col justify-end lg:hidden ${drawerOpen ? "pointer-events-auto" : "pointer-events-none"}`}
+          aria-hidden={!drawerOpen}
+        >
+          <button
+            type="button"
+            className={`absolute inset-0 bg-[#142a42]/45 transition-opacity ${drawerOpen ? "opacity-100" : "opacity-0"}`}
+            onClick={() => setDrawerOpen(false)}
+            aria-label={lang === "en" ? "Close filters" : "Cerrar filtros"}
+          />
+          <div
+            ref={sheetRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={lang === "en" ? "Filters" : "Filtros"}
+            className={`relative z-[61] flex max-h-[min(92vh,760px)] w-full flex-col rounded-t-[22px] border border-[#e5ddd2] bg-[#FFFCF7] shadow-[0_-12px_40px_-8px_rgba(20,38,58,0.35)] transition-transform duration-300 ease-out ${drawerOpen ? "translate-y-0" : "translate-y-[calc(100%+12px)]"}`}
+          >
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#ebe4d9] px-4 py-3">
+              <p className="text-base font-bold text-[#142a42]">{lang === "en" ? "Filters" : "Filtros"}</p>
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(false)}
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[#1a3352]/15 bg-white px-4 text-sm font-bold text-[#142a42] shadow-sm transition hover:bg-[#fafcff]"
+              >
+                {lang === "en" ? "Close" : "Cerrar"}
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#ebe4d9]/90 pb-3">
+                <h2 className="text-xs font-bold uppercase tracking-wide text-[#64748b]">
+                  {lang === "en" ? "Refine" : "Afinar"}
+                </h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  {hasFilters ? (
+                    <Link
+                      href={resetHref}
+                      onClick={() => setDrawerOpen(false)}
+                      className="min-h-[44px] touch-manipulation text-xs font-semibold text-[#3B66AD] underline underline-offset-2"
+                    >
+                      {lang === "en" ? "Clear all filters" : "Quitar todos los filtros"}
+                    </Link>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearServiciosDiscoveryPrefs();
+                    }}
+                    className="min-h-[44px] text-xs font-semibold text-[#64748b] underline underline-offset-2 hover:text-[#142a42]"
+                  >
+                    {lang === "en" ? "Clear saved device hints" : "Borrar sugerencias guardadas en el dispositivo"}
+                  </button>
+                </div>
+              </div>
+
+              <ServiciosResultsAdvancedFilterFields lang={lang} current={current} />
+            </div>
+
+            <div className="shrink-0 space-y-3 border-t border-[#ebe4d9] bg-[#FFFCF7]/98 px-4 py-3 backdrop-blur-md">
+              <button
+                type="submit"
+                onClick={() => setDrawerOpen(false)}
+                className="inline-flex min-h-[50px] w-full items-center justify-center rounded-xl bg-[#3B66AD] px-6 text-sm font-bold text-white shadow-[0_12px_32px_-14px_rgba(30,58,95,0.45)] transition hover:bg-[#2f5699]"
+              >
+                {lang === "en" ? "View results" : "Ver resultados"}
+              </button>
+              <p className="text-[11px] leading-relaxed text-neutral-500">
+                {lang === "en"
+                  ? "Provider type is inferred from published address/website fields. Keyword search includes services, trust lines, reviews, quick facts, and about. Submitting can save optional hints on this device — see Legal."
+                  : "El tipo de proveedor se infiere de dirección o web publicadas. La búsqueda incluye servicios, confianza, reseñas, datos rápidos y «Acerca». Al enviar se pueden guardar sugerencias opcionales en este dispositivo — ver Legal."}
+              </p>
+              <p className="text-[11px] leading-relaxed text-neutral-500">
+                <Link href={`/legal?lang=${lang}`} className="font-semibold text-[#3B66AD] underline-offset-2 hover:underline">
+                  {lang === "en" ? "Privacy & optional local preferences" : "Privacidad y preferencias locales opcionales"}
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+export function ServiciosResultsFilters({
+  lang,
+  current,
+  variant = "desktop",
+}: {
+  lang: ServiciosLang;
+  current: ServiciosResultsFilterQuery;
+  variant?: "desktop" | "mobile";
+}) {
+  if (variant === "mobile") {
+    return <ServiciosResultsFiltersMobile lang={lang} current={current} />;
+  }
+
+  const resetHref = `/clasificados/servicios/resultados?lang=${lang}`;
+  const hasFilters = serviciosResultsHasActiveFilters(current);
+  const onSubmitCapture = createServiciosResultsFormSubmitCapture();
 
   return (
     <div
@@ -54,39 +319,12 @@ export function ServiciosResultsFilters({
       className="rounded-[22px] border border-[#e5ddd2]/90 bg-[#FFFCF7] p-5 shadow-[0_26px_64px_-40px_rgba(20,38,58,0.42)] ring-1 ring-[#1e3a5f]/[0.06] sm:rounded-[24px] sm:p-7"
     >
       <form
-        id={RESULTS_FORM_ID}
+        id={RESULTS_FORM_ID_DESKTOP}
         method="get"
         action="/clasificados/servicios/resultados"
         aria-label={lang === "en" ? "Search and filter Servicios results" : "Buscar y filtrar resultados de Servicios"}
         className="space-y-6"
-        onSubmitCapture={(e) => {
-          const form = e.currentTarget;
-          const cityInput = form.querySelector<HTMLInputElement>('input[name="city"]');
-          if (cityInput) {
-            const raw = cityInput.value.trim();
-            const norm = normalizeServiciosDiscoveryLocationInput(raw);
-            if (norm !== raw) cityInput.value = norm;
-          }
-          const fd = new FormData(form);
-          writeServiciosDiscoveryPrefs({
-            lastQ: String(fd.get("q") ?? "").trim() || undefined,
-            lastCity: String(fd.get("city") ?? "").trim() || undefined,
-            lastGroup: String(fd.get("group") ?? "").trim() || undefined,
-          });
-          const snap: Record<string, string> = {};
-          for (const [k, v] of fd.entries()) {
-            if (typeof v === "string" && v.trim()) snap[String(k)] = v.trim().slice(0, 240);
-          }
-          void fetch("/api/clasificados/servicios/analytics", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              listingSlug: null,
-              eventType: "filter_change",
-              meta: { path: "/clasificados/servicios/resultados", form: snap },
-            }),
-          }).catch(() => {});
-        }}
+        onSubmitCapture={onSubmitCapture}
       >
         <input type="hidden" name="lang" value={lang} />
 
@@ -126,7 +364,7 @@ export function ServiciosResultsFilters({
               : "Coincide con la ciudad del anuncio y, si está en la vitrina, CP, zonas de servicio y resumen de ubicación."}
           </span>
           <div className="mt-3">
-            <ServiciosUseMyLocationButton lang={lang} formId={RESULTS_FORM_ID} />
+            <ServiciosUseMyLocationButton lang={lang} formId={RESULTS_FORM_ID_DESKTOP} />
           </div>
           <button
             type="submit"
@@ -166,19 +404,7 @@ export function ServiciosResultsFilters({
             <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Order" : "Orden"}</span>
             <select
               name="sort"
-              defaultValue={
-                current.sort === "name"
-                  ? "name"
-                  : current.sort === "rating"
-                    ? "rating"
-                    : current.sort === "most_liked"
-                      ? "most_liked"
-                      : current.sort === "most_saved"
-                        ? "most_saved"
-                        : current.sort === "open_now"
-                          ? "open_now"
-                          : "newest"
-              }
+              defaultValue={sortSelectDefault(current)}
               className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
             >
               <option value="newest">{lang === "en" ? "Newest" : "Más recientes"}</option>
@@ -191,387 +417,7 @@ export function ServiciosResultsFilters({
           </label>
         </GroupShell>
 
-        <GroupShell titleEs="Tipo de anunciante" titleEn="Provider type" lang={lang}>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">
-              {lang === "en" ? "Seller presentation" : "Tipo de proveedor"}
-            </span>
-            <select
-              name="seller"
-              defaultValue={current.seller ?? "all"}
-              className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-            >
-              <option value="all">{lang === "en" ? "All" : "Todos"}</option>
-              <option value="business">{lang === "en" ? "Business (web or address)" : "Negocio (web o dirección)"}</option>
-              <option value="independent">{lang === "en" ? "Independent professional" : "Profesional independiente"}</option>
-            </select>
-          </label>
-        </GroupShell>
-
-        <GroupShell titleEs="Categoría / giro" titleEn="Category / trade" lang={lang}>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Trade family" : "Familia de giro"}</span>
-            <select
-              name="group"
-              defaultValue={current.group ?? ""}
-              className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-            >
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              {SERVICIOS_INTERNAL_GROUP_IDS.map((id) => (
-                <option key={id} value={id}>
-                  {formatServiciosInternalGroupForDiscovery(id, lang) ?? id}
-                </option>
-              ))}
-            </select>
-          </label>
-        </GroupShell>
-
-        <GroupShell titleEs="Confianza y alcance" titleEn="Trust & reach" lang={lang}>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">
-                {lang === "en" ? "Open now" : "Abierto ahora"}
-              </span>
-              <select
-                name="open_now"
-                defaultValue={current.openNow === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Open now (by hours)" : "Abierto ahora (por horario)"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">
-                {lang === "en" ? "Leonix verified" : "Verificado Leonix"}
-              </span>
-              <select
-                name="verified"
-                defaultValue={current.verified === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Verified listings only" : "Solo anuncios verificados"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">
-                {lang === "en" ? "Licensed" : "Licenciado"}
-              </span>
-              <select
-                name="licensed"
-                defaultValue={current.licensed === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Licensed only" : "Solo licenciados"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">
-                {lang === "en" ? "Insured" : "Asegurado"}
-              </span>
-              <select
-                name="insured"
-                defaultValue={current.insured === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Insured only" : "Solo asegurados"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">
-                {lang === "en" ? "Free estimate" : "Cotización gratis"}
-              </span>
-              <select
-                name="free_estimate"
-                defaultValue={current.freeEstimate === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Free estimate offered" : "Con cotización gratis"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">
-                {lang === "en" ? "Free consultation" : "Consulta gratis"}
-              </span>
-              <select
-                name="free_consultation"
-                defaultValue={current.freeConsultation === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Free consultation offered" : "Con consulta gratis"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">
-                {lang === "en" ? "Has photos" : "Tiene fotos"}
-              </span>
-              <select
-                name="has_photos"
-                defaultValue={current.hasPhotos === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Public photos on profile" : "Con fotos en vitrina"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">
-                {lang === "en" ? "Has videos" : "Tiene videos"}
-              </span>
-              <select
-                name="has_videos"
-                defaultValue={current.hasVideos === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Playable gallery video" : "Con video reproducible"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">
-                {lang === "en" ? "Has offers" : "Tiene ofertas"}
-              </span>
-              <select
-                name="has_offers"
-                defaultValue={current.hasOffers === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Offers / promotions" : "Con ofertas o promociones"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">
-                {lang === "en" ? "Website on profile" : "Sitio web en vitrina"}
-              </span>
-              <select
-                name="web"
-                defaultValue={current.web === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Has website link" : "Con enlace a web"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">
-                {lang === "en" ? "Bilingual signal" : "Señal bilingüe"}
-              </span>
-              <select
-                name="bilingual"
-                defaultValue={current.bilingual === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Bilingual quick-fact" : "Dato rápido bilingüe"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">
-                {lang === "en" ? "Email on profile" : "Correo en vitrina"}
-              </span>
-              <select
-                name="email"
-                defaultValue={current.email === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Shows email" : "Muestra correo"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">
-                {lang === "en" ? "Emergency / urgent" : "Emergencia / urgente"}
-              </span>
-              <select
-                name="emergency"
-                defaultValue={current.emergency === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Emergency quick-fact" : "Dato rápido emergencia"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">
-                {lang === "en" ? "Mobile / on-site" : "Móvil / a domicilio"}
-              </span>
-              <select
-                name="mobileSvc"
-                defaultValue={current.mobileSvc === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Mobile-service quick-fact" : "Dato rápido servicio móvil"}</option>
-              </select>
-            </label>
-          </div>
-        </GroupShell>
-
-        <GroupShell titleEs="Formas de contacto" titleEn="Contact options" lang={lang}>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">WhatsApp</span>
-              <select
-                name="whatsapp"
-                defaultValue={current.whatsapp === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "WhatsApp shown" : "Con WhatsApp visible"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Offer / promo" : "Oferta"}</span>
-              <select
-                name="promo"
-                defaultValue={current.promo === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Has offer line" : "Con línea de oferta"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Phone" : "Teléfono"}</span>
-              <select
-                name="call"
-                defaultValue={current.call === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Phone shown" : "Con teléfono visible"}</option>
-              </select>
-            </label>
-          </div>
-        </GroupShell>
-
-        <GroupShell titleEs="Datos del formulario de publicación" titleEn="Publish-application signals" lang={lang}>
-          <p className="mb-3 text-[11px] leading-relaxed text-neutral-600">
-            {lang === "en"
-              ? "These align with fields captured in Clasificados Servicios — stored on each listing profile for discovery."
-              : "Coinciden con campos del formulario Servicios en Clasificados, guardados en el perfil de cada anuncio."}
-          </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "In-app messages" : "Mensajes en app"}</span>
-              <select
-                name="msg"
-                defaultValue={current.msg === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Messaging enabled" : "Mensajes activados"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Physical address" : "Dirección física"}</span>
-              <select
-                name="phys"
-                defaultValue={current.phys === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Has storefront / mailing address" : "Con dirección publicada"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">
-                {lang === "en" ? "Multi-area coverage" : "Cobertura multi-zona"}
-              </span>
-              <select
-                name="svcMulti"
-                defaultValue={current.svcMulti === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Multiple service areas" : "Varias zonas de servicio"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Offer headline" : "Titular de oferta"}</span>
-              <select
-                name="offer"
-                defaultValue={current.offer === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Has offer / promo line" : "Con oferta / promoción"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Legal attestations" : "Confirmaciones legales"}</span>
-              <select
-                name="legal"
-                defaultValue={current.legal === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "All publish confirmations on file" : "Todas las confirmaciones al publicar"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">Español</span>
-              <select
-                name="langEs"
-                defaultValue={current.langEs === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Spanish offered" : "Ofrece español"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">English</span>
-              <select
-                name="langEn"
-                defaultValue={current.langEn === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "English offered" : "Ofrece inglés"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Other language" : "Otro idioma"}</span>
-              <select
-                name="langOt"
-                defaultValue={current.langOt === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Other language flagged" : "Otro idioma marcado"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Verification interest" : "Interés verificación"}</span>
-              <select
-                name="vint"
-                defaultValue={current.vint === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Requested Leonix review" : "Solicitó revisión Leonix"}</option>
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Weekend hours" : "Fin de semana"}</span>
-              <select
-                name="wknd"
-                defaultValue={current.wknd === "1" ? "1" : ""}
-                className="min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]"
-              >
-                <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-                <option value="1">{lang === "en" ? "Sat/Sun not all closed" : "Sáb/Dom con horario"}</option>
-              </select>
-            </label>
-          </div>
-        </GroupShell>
+        <ServiciosResultsAdvancedFilterFields lang={lang} current={current} />
 
         <div className="flex flex-wrap gap-3">
           <button

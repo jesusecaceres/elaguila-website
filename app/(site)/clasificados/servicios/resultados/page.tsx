@@ -156,7 +156,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_70%_at_50%_-10%,rgba(255,255,255,0.55),transparent_55%)]" />
       </div>
 
-      <div className="relative mx-auto w-full max-w-7xl px-4 py-6 pb-24 sm:px-6 sm:py-10 sm:pb-10 lg:px-10 xl:px-12 2xl:max-w-[1440px]">
+      <div className="relative mx-auto w-full max-w-7xl px-4 py-6 pb-10 sm:px-6 sm:py-10 lg:px-10 xl:px-12 2xl:max-w-[1440px]">
         <ServiciosResultsViewAnalytics resultCount={displayRows.length} />
         <header
           className={`mb-6 flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:p-7 ${contentShell}`}
@@ -198,11 +198,16 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
         </header>
 
         <div className="min-w-0 lg:grid lg:grid-cols-[minmax(300px,420px)_minmax(0,1fr)] lg:items-start lg:gap-9 xl:gap-11">
-          <aside className="lg:sticky lg:top-4">
-            <ServiciosResultsFilters lang={lang} current={filterQuery} />
+          <aside className="hidden lg:sticky lg:top-4 lg:block">
+            <ServiciosResultsFilters lang={lang} current={filterQuery} variant="desktop" />
           </aside>
 
-          <div className={`mt-6 min-w-0 p-4 sm:p-6 lg:mt-0 ${contentShell}`}>
+          <div className="min-w-0">
+            <div className="mb-4 lg:hidden">
+              <ServiciosResultsFilters lang={lang} current={filterQuery} variant="mobile" />
+            </div>
+
+            <div className={`mt-0 min-w-0 p-4 sm:p-6 lg:mt-0 ${contentShell}`}>
             <ServiciosResultsActiveSummary lang={lang} query={filterQuery} />
 
             <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2 border-b border-[#dcd3c7]/80 pb-3">
@@ -315,18 +320,9 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                 </ul>
               </section>
             ) : null}
+            </div>
           </div>
         </div>
-
-        <a
-          href="#servicios-resultados-filtros"
-          className="fixed bottom-5 left-1/2 z-40 flex min-h-[48px] -translate-x-1/2 items-center gap-2 rounded-full border border-[#1a3352]/12 bg-[#FFFCF7]/95 px-6 text-sm font-bold text-[#142a42] shadow-[0_14px_44px_-12px_rgba(20,38,58,0.45)] backdrop-blur-md transition hover:bg-white lg:hidden"
-        >
-          {lang === "en" ? "Filters" : "Filtros"}
-          <span className="ml-2" aria-hidden>
-            ↓
-          </span>
-        </a>
       </div>
     </div>
   );
