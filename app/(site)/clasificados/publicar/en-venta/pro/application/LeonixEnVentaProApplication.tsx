@@ -13,10 +13,10 @@ import {
 } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
 import {
   abandonLeonixPublishFlowClient,
+  clearLeonixReturningToEditSessionFlag,
   collectMuxAssetIdsFromEnVentaState,
   confirmLeavePublishFlow,
   enVentaFormHasProgress,
-  markPublishFlowOpeningPreview,
   useLeonixPublishLeaveGuard,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import EnVentaPlanIntakeCallout from "@/app/clasificados/en-venta/shared/components/EnVentaPlanIntakeCallout";
@@ -46,6 +46,7 @@ export default function LeonixEnVentaProApplication() {
 
   useLayoutEffect(() => {
     setState(takeEnVentaPreviewReturnInitialState("pro"));
+    clearLeonixReturningToEditSessionFlag();
   }, []);
 
   const copy = useMemo(
@@ -88,15 +89,10 @@ export default function LeonixEnVentaProApplication() {
     [isDirty, lang, muxIds, router]
   );
 
-  const onBeforePreview = useCallback(
-    (plan: "free" | "pro") => {
-      if (plan !== "pro") return;
-      markPublishFlowOpeningPreview();
-      saveEnVentaPreviewDraft("pro", state);
-      saveEnVentaPreviewReturnDraft("pro", state);
-    },
-    [state]
-  );
+  const onBeforePreview = useCallback((clickedPlan: "free" | "pro") => {
+    saveEnVentaPreviewDraft(clickedPlan, state);
+    saveEnVentaPreviewReturnDraft(clickedPlan, state);
+  }, [state]);
 
   return (
     <main className="min-h-screen bg-[#F6F0E2] text-[#3D2C12] pt-28 pb-16">

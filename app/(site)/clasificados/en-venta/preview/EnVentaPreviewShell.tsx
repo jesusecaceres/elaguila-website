@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { markPublishFlowReturningToEdit } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 
 const COPY = {
   es: {
@@ -78,13 +79,25 @@ export function EnVentaPreviewShell({
               className="relative z-10 flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-1 sm:gap-1.5"
               aria-label={lang === "es" ? "Acciones de vista previa" : "Preview actions"}
             >
-              <a href={editBackHref} className={pillOutline}>
+              <a
+                href={editBackHref}
+                className={pillOutline}
+                onClick={() => {
+                  markPublishFlowReturningToEdit();
+                }}
+              >
                 {t.back}
               </a>
               <Link href={switchHref} className={pillOutline}>
                 {switchLabel}
               </Link>
-              <a href={editPublishFocusHref} className={pillPublishNav}>
+              <a
+                href={editPublishFocusHref}
+                className={pillPublishNav}
+                onClick={() => {
+                  markPublishFlowReturningToEdit();
+                }}
+              >
                 {publishLabel}
               </a>
             </nav>
@@ -100,6 +113,9 @@ export function EnVentaPreviewShell({
           <a
             href={editPublishFocusHref}
             className="rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-4 py-2 text-xs font-bold text-[#1E1810] shadow-md"
+            onClick={() => {
+              markPublishFlowReturningToEdit();
+            }}
           >
             {publishLabel}
           </a>

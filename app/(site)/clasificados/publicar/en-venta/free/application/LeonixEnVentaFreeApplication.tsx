@@ -13,10 +13,10 @@ import {
 } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
 import {
   abandonLeonixPublishFlowClient,
+  clearLeonixReturningToEditSessionFlag,
   collectMuxAssetIdsFromEnVentaState,
   confirmLeavePublishFlow,
   enVentaFormHasProgress,
-  markPublishFlowOpeningPreview,
   useLeonixPublishLeaveGuard,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import EnVentaPlanIntakeCallout from "@/app/clasificados/en-venta/shared/components/EnVentaPlanIntakeCallout";
@@ -46,6 +46,7 @@ export default function LeonixEnVentaFreeApplication() {
 
   useLayoutEffect(() => {
     setState(takeEnVentaPreviewReturnInitialState("free"));
+    clearLeonixReturningToEditSessionFlag();
   }, []);
 
   const copy = useMemo(
@@ -88,15 +89,11 @@ export default function LeonixEnVentaFreeApplication() {
     [isDirty, lang, muxIds, router]
   );
 
-  const onBeforePreview = useCallback(
-    (plan: "free" | "pro") => {
-      if (plan !== "free") return;
-      markPublishFlowOpeningPreview();
-      saveEnVentaPreviewDraft("free", state);
-      saveEnVentaPreviewReturnDraft("free", state);
-    },
-    [state]
-  );
+  /** Persist handoff for whichever preview button the seller chose (Free vs Pro preview). */
+  const onBeforePreview = useCallback((clickedPlan: "free" | "pro") => {
+    saveEnVentaPreviewDraft(clickedPlan, state);
+    saveEnVentaPreviewReturnDraft(clickedPlan, state);
+  }, [state]);
 
   return (
     <main

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { clearLeonixPreviewNavSessionFlag } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
@@ -210,8 +210,16 @@ export function EnVentaPreviewPage() {
   const [distanceMiles, setDistanceMiles] = useState<number | null>(null);
   const [distanceStatus, setDistanceStatus] = useState<"idle" | "computing" | "ready" | "unavailable">("idle");
 
-  useLayoutEffect(() => {
-    clearLeonixPreviewNavSessionFlag();
+  /**
+   * Defer clearing the "opening preview" session flag until after the previous document's
+   * `pagehide` has run. If we clear synchronously on mount, the publish form's leave guard can
+   * still see the flag as missing and call `abandonLeonixPublishFlowClient`, wiping preview drafts.
+   */
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      clearLeonixPreviewNavSessionFlag();
+    }, 0);
+    return () => window.clearTimeout(id);
   }, []);
 
   useEffect(() => {
