@@ -262,6 +262,16 @@ export default function AdminListingsTable({
                   <th className="p-3 font-semibold text-[#5C4E2E]">Verif.</th>
                 </>
               ) : null}
+              <th
+                className={
+                  staffQueueMode
+                    ? "min-w-[12rem] border-l-2 border-[#C9B46A]/40 bg-[#FFFCF7]/95 p-3 font-semibold text-[#5C4E2E]"
+                    : "p-3 font-semibold text-[#5C4E2E]"
+                }
+                title={staffQueueMode ? t("listings.actionsColumnEarlyHint") : undefined}
+              >
+                {t("listings.col.actions")}
+              </th>
               <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.owner")}</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.date")}</th>
               <th
@@ -284,7 +294,6 @@ export default function AdminListingsTable({
               >
                 {t("listings.col.envVis")}
               </th>
-              <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -323,41 +332,13 @@ export default function AdminListingsTable({
                     <td className="p-3">{row.leonix_verified ? t("autosQueue.yes") : t("autosQueue.no")}</td>
                   </>
                 ) : null}
-                <td className="p-3">
-                  {row.owner_id ? (
-                    <Link
-                      href={`/admin/usuarios/${row.owner_id}`}
-                      className="inline-flex min-h-[44px] min-w-[44px] items-center text-xs font-semibold text-[#6B5B2E] underline sm:min-h-0 sm:min-w-0"
-                      title={t("listings.ownerCard")}
-                    >
-                      {t("listings.ownerCard")}
-                    </Link>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td className="p-3 text-[#7A7164]">{formatDate(row.created_at)}</td>
                 <td
                   className={
-                    detailPairsAvailable
-                      ? "max-w-[240px] p-3 align-top text-[11px] leading-snug text-[#5C5346]"
-                      : "max-w-[240px] bg-amber-50/40 p-3 align-top text-[11px] leading-snug text-amber-950"
+                    staffQueueMode
+                      ? "min-w-[12rem] border-l-2 border-[#C9B46A]/40 bg-[#FFFCF7]/95 p-3 align-top"
+                      : "p-3 align-top"
                   }
-                  title={clasificadosLeonixAdminLine(row, detailPairsAvailable)}
                 >
-                  {clasificadosLeonixAdminLine(row, detailPairsAvailable)}
-                </td>
-                <td
-                  className={
-                    enVentaColumnDegraded
-                      ? "max-w-[280px] bg-amber-50/40 p-3 align-top text-[11px] leading-snug text-amber-950"
-                      : "max-w-[280px] p-3 align-top text-[11px] leading-snug text-[#5C5346]"
-                  }
-                  title={enVentaVisibilityAdminLine(row, detailPairsAvailable, republishColsAvailable, t, locale)}
-                >
-                  {enVentaVisibilityAdminLine(row, detailPairsAvailable, republishColsAvailable, t, locale)}
-                </td>
-                <td className="p-3">
                   <div
                     className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1"
                     title={t("listings.rowActionsTitle")}
@@ -461,6 +442,40 @@ export default function AdminListingsTable({
                       </>
                     )}
                   </div>
+                </td>
+                <td className="p-3">
+                  {row.owner_id ? (
+                    <Link
+                      href={`/admin/usuarios/${row.owner_id}`}
+                      className="inline-flex min-h-[44px] min-w-[44px] items-center text-xs font-semibold text-[#6B5B2E] underline sm:min-h-0 sm:min-w-0"
+                      title={t("listings.ownerCard")}
+                    >
+                      {t("listings.ownerCard")}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="p-3 text-[#7A7164]">{formatDate(row.created_at)}</td>
+                <td
+                  className={
+                    detailPairsAvailable
+                      ? "max-w-[240px] p-3 align-top text-[11px] leading-snug text-[#5C5346]"
+                      : "max-w-[240px] bg-amber-50/40 p-3 align-top text-[11px] leading-snug text-amber-950"
+                  }
+                  title={clasificadosLeonixAdminLine(row, detailPairsAvailable)}
+                >
+                  {clasificadosLeonixAdminLine(row, detailPairsAvailable)}
+                </td>
+                <td
+                  className={
+                    enVentaColumnDegraded
+                      ? "max-w-[280px] bg-amber-50/40 p-3 align-top text-[11px] leading-snug text-amber-950"
+                      : "max-w-[280px] p-3 align-top text-[11px] leading-snug text-[#5C5346]"
+                  }
+                  title={enVentaVisibilityAdminLine(row, detailPairsAvailable, republishColsAvailable, t, locale)}
+                >
+                  {enVentaVisibilityAdminLine(row, detailPairsAvailable, republishColsAvailable, t, locale)}
                 </td>
               </tr>
             ))}

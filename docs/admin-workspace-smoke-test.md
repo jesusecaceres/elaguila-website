@@ -16,6 +16,24 @@ This document provides a route-by-route analysis of website editing capabilities
 - `/admin/categories`, the Clasificados hub (`/admin/workspace/clasificados`), and the dashboard category cards expose **both** “View queue” and “Live listings” so staff never confuse the public marketplace URL with the **admin operational** list.
 - **Queue pages and live pages** both render **staff row actions** (`ClassifiedAdminRowActions` / vertical equivalents) where supported. **Restore** (unsuspend) is *not* **Republish** / Move to top; **Promote** and **Verify Leonix** are separate. Hard delete is not offered as a standard row action.
 
+### Gate A2 — Visible row actions on `public.listings` queues (Rentas proof case)
+
+- **Requirement:** Rows in **Rentas**, **Bienes Raíces**, **En Venta**, **Clases**, **Comunidad**, and shared **clasificados** listings tables (`AdminListingsTable`) must expose an **Actions** column that staff can **see without hunting horizontal scroll**. Do not assume actions exist only because `ClassifiedAdminRowActions` is mounted off-screen at the end of a wide table.
+- **Implementation:** In `AdminListingsTable`, the **Actions** header and cells are placed **before** the wide **Leonix** and **En venta · vis.** columns; optional column header tooltip: `listings.actionsColumnEarlyHint`.
+- **Standard:** **Autos**-style discoverability (visible operations on the row) is the bar for staff UX; vertical-specific tables should keep their existing actions column placement unless a similar overflow issue appears.
+- **Automated guard:** `node scripts/verify-admin-listings-actions-column.mjs` (also `npm run verify:admin:listings-actions-column`) asserts thead order in source.
+- **Manual browser smoke:** With staff session, open each route with rows present; confirm **Actions** header and controls like **Ver público / View public**, **Editar**, **Suspender**, **Archivar**, **Subir al inicio / Move to top**, **Republicar**, **Destacar**, **Verificar Leonix** appear **without** scrolling past the Leonix detail block:
+  - `/admin/workspace/clasificados/rentas?scope=live`
+  - `/admin/workspace/clasificados/rentas` (queue)
+  - `/admin/workspace/clasificados/bienes-raices?scope=live`
+  - `/admin/workspace/clasificados/en-venta?scope=live`
+  - `/admin/workspace/clasificados/autos?scope=live`
+  - `/admin/workspace/clasificados/servicios?scope=live`
+  - `/admin/workspace/clasificados/restaurantes?scope=live`
+  - `/admin/workspace/clasificados/empleos?scope=live`
+  - `/admin/workspace/clasificados/travel?scope=live`
+- **Clases / Comunidad:** Do not treat as client-ready; still verify staff actions are visible if pages are enabled for internal QA.
+
 ## Route-by-Route Analysis
 
 ### ✅ TRUE - Fully Editable Areas

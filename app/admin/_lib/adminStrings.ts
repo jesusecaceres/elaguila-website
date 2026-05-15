@@ -185,6 +185,8 @@ const EN: Record<string, string> = {
   "listings.col.leonix": "Leonix",
   "listings.col.envVis": "En venta · vis.",
   "listings.col.actions": "Actions",
+  "listings.actionsColumnEarlyHint":
+    "Staff actions are placed before wide Leonix columns so controls stay visible without hunting horizontal scroll.",
   "listings.free": "Free",
   "listings.ownerCard": "Seller profile",
   "listings.viewPublic": "View public",
@@ -784,6 +786,8 @@ const ES: Record<string, string> = {
   "listings.col.leonix": "Leonix",
   "listings.col.envVis": "En venta · vis.",
   "listings.col.actions": "Acciones",
+  "listings.actionsColumnEarlyHint":
+    "Las acciones de staff están antes de las columnas anchas Leonix para que los controles se vean sin depender del scroll horizontal.",
   "listings.free": "Gratis",
   "listings.ownerCard": "Ficha vendedor",
   "listings.viewPublic": "Ver público",
