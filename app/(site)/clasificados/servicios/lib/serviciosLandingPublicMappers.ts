@@ -58,7 +58,7 @@ export function mapServiciosRowToLandingFeatured(
       ? { kind: "call" as const, label: L.call, telHref: tel }
       : {
           kind: "detail" as const,
-          label: lang === "en" ? "View profile" : "Ver vitrina",
+          label: lang === "en" ? "View showcase" : "Ver vitrina",
           detailHref,
         };
 
@@ -105,7 +105,7 @@ export function mapServiciosRowToLandingRecent(
       ? { kind: "call" as const, label: L.call, telHref: profile.contact.phoneTelHref }
       : {
           kind: "detail" as const,
-          label: lang === "en" ? "View profile" : "Ver vitrina",
+          label: lang === "en" ? "View showcase" : "Ver vitrina",
           detailHref: `/clasificados/servicios/${encodeURIComponent(row.slug)}`,
         };
 

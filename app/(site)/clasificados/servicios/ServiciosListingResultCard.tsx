@@ -215,7 +215,7 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
                 href={href}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border bg-[#D4A574] text-white border-[#D4A574] hover:bg-[#C19A6B]"
               >
-                {lang === "en" ? "View profile" : "Ver vitrina"}
+                {lang === "en" ? "View showcase" : "Ver vitrina"}
               </Link>
               {phone && tel ? (
                 <button
@@ -242,7 +242,9 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
             {/* Engagement Section */}
             <div className="mt-6 pt-6 border-t border-[#E5E5E5]/50">
               <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-semibold text-[#1A1A1A] uppercase tracking-wide">Interacción</h4>
+                <h4 className="text-sm font-semibold text-[#1A1A1A] uppercase tracking-wide">
+                  {lang === "en" ? "Engagement" : "Interacción"}
+                </h4>
               </div>
 
               <div className="flex items-center gap-3 mb-4">
@@ -275,7 +277,9 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
               </div>
 
               <div className="text-xs text-[#7A7A7A] italic">
-                Las métricas de engagement se mostrarán cuando estén disponibles
+                {lang === "en"
+                  ? "Engagement metrics will appear when available."
+                  : "Las métricas de engagement se mostrarán cuando estén disponibles."}
               </div>
             </div>
           </div>
