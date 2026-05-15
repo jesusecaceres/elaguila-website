@@ -42,12 +42,12 @@ function mapImagesForPublish(
 
 function snapshotSocialLinks(sl: CommunitySocialLinks): CommunitySocialLinks {
   return {
-    facebook: normalizeSocialUrlForOpen(sl.facebook) ?? "",
-    instagram: normalizeSocialUrlForOpen(sl.instagram) ?? "",
-    tiktok: normalizeSocialUrlForOpen(sl.tiktok) ?? "",
-    youtube: normalizeSocialUrlForOpen(sl.youtube) ?? "",
-    xTwitter: normalizeSocialUrlForOpen(sl.xTwitter) ?? "",
-    linkedin: normalizeSocialUrlForOpen(sl.linkedin) ?? "",
+    facebook: normalizeSocialUrlForOpen(sl.facebook, "facebook") ?? "",
+    instagram: normalizeSocialUrlForOpen(sl.instagram, "instagram") ?? "",
+    tiktok: normalizeSocialUrlForOpen(sl.tiktok, "tiktok") ?? "",
+    youtube: normalizeSocialUrlForOpen(sl.youtube, "youtube") ?? "",
+    xTwitter: normalizeSocialUrlForOpen(sl.xTwitter, "xTwitter") ?? "",
+    linkedin: normalizeSocialUrlForOpen(sl.linkedin, "linkedin") ?? "",
   };
 }
 

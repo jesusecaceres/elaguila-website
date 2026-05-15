@@ -29,10 +29,20 @@ async function assertSidebarNoDeadContactOrDistance(page: import("@playwright/te
   await expect(page.getByTestId("community-quick-sidebar-actions")).toBeVisible();
 }
 
+/** Social icon CTAs live in contact canvas only, not Acciones sidebar. */
+async function assertOrganizerSocialsInContactOnly(page: import("@playwright/test").Page) {
+  await expect(page.getByTestId("community-contact-social-icons")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Abrir Facebook" })).toBeVisible();
+  const actions = page.getByTestId("community-quick-sidebar-actions");
+  await expect(actions.getByRole("link", { name: /Abrir Facebook|Open Facebook/i })).toHaveCount(0);
+}
+
 test.describe("Community quick preview ↔ published shell parity", () => {
   test("clases preview uses public detail shell markers", async ({ page }) => {
     const draft = buildMinimalClasesQuickDraftForPreviewContract();
     draft.images = [{ id: "parity-flyer", url: "/logo.png", alt: "flyer", isMain: true }];
+    draft.socialLinks.facebook = "facebook.com/parity-clases";
+    draft.socialLinks.instagram = "instagram.com/parity-clases";
     await page.addInitScript(
       ([key, json]: [string, string]) => {
         sessionStorage.setItem(key, json);
@@ -42,6 +52,8 @@ test.describe("Community quick preview ↔ published shell parity", () => {
     await page.goto("/publicar/clases/quick/preview?from=publicar&lang=es");
     await assertPublicDetailShell(page);
     await assertSidebarNoDeadContactOrDistance(page);
+    await assertOrganizerSocialsInContactOnly(page);
+    await expect(page.getByRole("link", { name: "Abrir Instagram" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Publicar anuncio" })).toBeVisible();
     const hero = page.getByTestId("community-anuncio-hero");
     await expect(hero).toHaveAttribute("data-community-flyer-kind", "image");
@@ -57,6 +69,8 @@ test.describe("Community quick preview ↔ published shell parity", () => {
     await page.goto("/clasificados/anuncio/clases-personal-1?lang=es");
     await assertPublicDetailShell(page);
     await assertSidebarNoDeadContactOrDistance(page);
+    await assertOrganizerSocialsInContactOnly(page);
+    await expect(page.getByRole("link", { name: "Abrir Instagram" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Publicar anuncio" })).toHaveCount(0);
     await expect(page.getByTestId("leonix-public-detail-shell")).toHaveAttribute("data-shell-mode", "published");
     const hero = page.getByTestId("community-anuncio-hero");
@@ -72,6 +86,7 @@ test.describe("Community quick preview ↔ published shell parity", () => {
   test("comunidad preview uses public detail shell markers", async ({ page }) => {
     const draft = buildMinimalComunidadQuickDraftForPreviewContract();
     draft.images = [{ id: "parity-flyer", url: "/logo.png", alt: "flyer", isMain: true }];
+    draft.socialLinks.facebook = "facebook.com/parity-comunidad";
     await page.addInitScript(
       ([key, json]: [string, string]) => {
         sessionStorage.setItem(key, json);
@@ -81,6 +96,7 @@ test.describe("Community quick preview ↔ published shell parity", () => {
     await page.goto("/publicar/comunidad/quick/preview?from=publicar&lang=es");
     await assertPublicDetailShell(page);
     await assertSidebarNoDeadContactOrDistance(page);
+    await assertOrganizerSocialsInContactOnly(page);
     await expect(page.getByRole("button", { name: "Publicar anuncio" })).toBeVisible();
     await expect(page.getByTestId("leonix-public-detail-shell")).toHaveAttribute("data-shell-mode", "preview");
     const hero = page.getByTestId("community-anuncio-hero");
@@ -94,6 +110,7 @@ test.describe("Community quick preview ↔ published shell parity", () => {
     await page.goto("/clasificados/anuncio/comunidad-personal-1?lang=es");
     await assertPublicDetailShell(page);
     await assertSidebarNoDeadContactOrDistance(page);
+    await assertOrganizerSocialsInContactOnly(page);
     await expect(page.getByRole("button", { name: "Publicar anuncio" })).toHaveCount(0);
     await expect(page.getByTestId("leonix-public-detail-shell")).toHaveAttribute("data-shell-mode", "published");
     const hero = page.getByTestId("community-anuncio-hero");
@@ -101,5 +118,20 @@ test.describe("Community quick preview ↔ published shell parity", () => {
     const src = await hero.getAttribute("data-community-flyer-src");
     expect(src).toContain("logo.png");
     expect(src).not.toContain(UNSPLASH_HANDSHAKE);
+  });
+
+  test("wrong host for a social field does not render a social CTA", async ({ page }) => {
+    const draft = buildMinimalClasesQuickDraftForPreviewContract();
+    draft.images = [{ id: "parity-flyer", url: "/logo.png", alt: "flyer", isMain: true }];
+    draft.socialLinks.facebook = "https://google.com/not-facebook";
+    await page.addInitScript(
+      ([key, json]: [string, string]) => {
+        sessionStorage.setItem(key, json);
+      },
+      [COMMUNITY_SESSION_KEYS.clases, JSON.stringify(draft)],
+    );
+    await page.goto("/publicar/clases/quick/preview?from=publicar&lang=es");
+    await expect(page.getByTestId("community-contact-social-icons")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Abrir Facebook" })).toHaveCount(0);
   });
 });

@@ -151,15 +151,7 @@ function buildDescriptionClases(d: ClasesQuickDraft, lang: Lang): string {
   if (d.addressLine1.trim()) parts.push(`${lang === "es" ? "Dirección" : "Address"}: ${d.addressLine1.trim()}`);
   const site = normalizeWebsiteForOpen(d.website);
   if (site) parts.push(`${lang === "es" ? "Web" : "Web"}: ${site}`);
-  const sl = d.socialLinks;
-  const socialBits: string[] = [];
-  if (normalizeSocialUrlForOpen(sl.facebook)) socialBits.push(`Facebook: ${normalizeSocialUrlForOpen(sl.facebook)}`);
-  if (normalizeSocialUrlForOpen(sl.instagram)) socialBits.push(`Instagram: ${normalizeSocialUrlForOpen(sl.instagram)}`);
-  if (normalizeSocialUrlForOpen(sl.tiktok)) socialBits.push(`TikTok: ${normalizeSocialUrlForOpen(sl.tiktok)}`);
-  if (normalizeSocialUrlForOpen(sl.youtube)) socialBits.push(`YouTube: ${normalizeSocialUrlForOpen(sl.youtube)}`);
-  if (normalizeSocialUrlForOpen(sl.xTwitter)) socialBits.push(`X: ${normalizeSocialUrlForOpen(sl.xTwitter)}`);
-  if (normalizeSocialUrlForOpen(sl.linkedin)) socialBits.push(`LinkedIn: ${normalizeSocialUrlForOpen(sl.linkedin)}`);
-  if (socialBits.length) parts.push((lang === "es" ? "Redes" : "Social") + ":\n" + socialBits.join("\n"));
+  /** Social links: detail_pairs + contact canvas only (no raw social URLs in description body). */
   return parts.join("\n\n").trim();
 }
 
@@ -213,15 +205,7 @@ function buildDescriptionComunidad(d: ComunidadQuickDraft, lang: Lang): string {
   if (d.addressLine1.trim()) parts.push(`${lang === "es" ? "Dirección" : "Address"}: ${d.addressLine1.trim()}`);
   const site = normalizeWebsiteForOpen(d.website);
   if (site) parts.push(`${lang === "es" ? "Web" : "Web"}: ${site}`);
-  const sl = d.socialLinks;
-  const socialBits: string[] = [];
-  if (normalizeSocialUrlForOpen(sl.facebook)) socialBits.push(`Facebook: ${normalizeSocialUrlForOpen(sl.facebook)}`);
-  if (normalizeSocialUrlForOpen(sl.instagram)) socialBits.push(`Instagram: ${normalizeSocialUrlForOpen(sl.instagram)}`);
-  if (normalizeSocialUrlForOpen(sl.tiktok)) socialBits.push(`TikTok: ${normalizeSocialUrlForOpen(sl.tiktok)}`);
-  if (normalizeSocialUrlForOpen(sl.youtube)) socialBits.push(`YouTube: ${normalizeSocialUrlForOpen(sl.youtube)}`);
-  if (normalizeSocialUrlForOpen(sl.xTwitter)) socialBits.push(`X: ${normalizeSocialUrlForOpen(sl.xTwitter)}`);
-  if (normalizeSocialUrlForOpen(sl.linkedin)) socialBits.push(`LinkedIn: ${normalizeSocialUrlForOpen(sl.linkedin)}`);
-  if (socialBits.length) parts.push((lang === "es" ? "Redes" : "Social") + ":\n" + socialBits.join("\n"));
+  /** Social links: detail_pairs + contact canvas only (no raw social URLs in description body). */
   return parts.join("\n\n").trim();
 }
 
@@ -242,17 +226,17 @@ function buildDetailPairs(
   const web = normalizeWebsiteForOpen(d.website);
   if (web) pairs.push({ label: "Leonix:website", value: web });
   const sl = d.socialLinks;
-  const sf = normalizeSocialUrlForOpen(sl.facebook);
+  const sf = normalizeSocialUrlForOpen(sl.facebook, "facebook");
   if (sf) pairs.push({ label: "Leonix:socialFacebook", value: sf });
-  const si = normalizeSocialUrlForOpen(sl.instagram);
+  const si = normalizeSocialUrlForOpen(sl.instagram, "instagram");
   if (si) pairs.push({ label: "Leonix:socialInstagram", value: si });
-  const st = normalizeSocialUrlForOpen(sl.tiktok);
+  const st = normalizeSocialUrlForOpen(sl.tiktok, "tiktok");
   if (st) pairs.push({ label: "Leonix:socialTiktok", value: st });
-  const sy = normalizeSocialUrlForOpen(sl.youtube);
+  const sy = normalizeSocialUrlForOpen(sl.youtube, "youtube");
   if (sy) pairs.push({ label: "Leonix:socialYoutube", value: sy });
-  const sx = normalizeSocialUrlForOpen(sl.xTwitter);
+  const sx = normalizeSocialUrlForOpen(sl.xTwitter, "xTwitter");
   if (sx) pairs.push({ label: "Leonix:socialXTwitter", value: sx });
-  const sln = normalizeSocialUrlForOpen(sl.linkedin);
+  const sln = normalizeSocialUrlForOpen(sl.linkedin, "linkedin");
   if (sln) pairs.push({ label: "Leonix:socialLinkedin", value: sln });
   const pDig = digitsOnly(d.phone);
   if (pDig.length >= 10) pairs.push({ label: "Leonix:phoneDigits", value: pDig.slice(0, 10) });

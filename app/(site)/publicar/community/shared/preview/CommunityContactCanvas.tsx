@@ -77,6 +77,25 @@ const UI = {
   },
 } as const;
 
+const SOCIAL_ARIA = {
+  es: {
+    facebook: "Abrir Facebook",
+    instagram: "Abrir Instagram",
+    tiktok: "Abrir TikTok",
+    youtube: "Abrir YouTube",
+    x: "Abrir X / Twitter",
+    linkedin: "Abrir LinkedIn",
+  },
+  en: {
+    facebook: "Open Facebook",
+    instagram: "Open Instagram",
+    tiktok: "Open TikTok",
+    youtube: "Open YouTube",
+    x: "Open X / Twitter",
+    linkedin: "Open LinkedIn",
+  },
+} as const;
+
 type Draft = ClasesQuickDraft | ComunidadQuickDraft;
 
 function kindOf(d: Draft): "clases" | "comunidad" {
@@ -127,47 +146,48 @@ export function CommunityContactCanvas({
   const mailSub = MAIL_SUBJECT[k][lang];
   const mailHref = email ? mailtoCommunity({ to: email, subject: mailSub }) : "";
 
+  const sAria = SOCIAL_ARIA[lang];
   const socialItems: {
     key: string;
     href: string | null;
     Icon: ComponentType<{ className?: string }>;
-    label: string;
+    ariaLabel: string;
   }[] = [
     {
       key: "fb",
-      href: normalizeSocialUrlForOpen(draft.socialLinks.facebook),
+      href: normalizeSocialUrlForOpen(draft.socialLinks.facebook, "facebook"),
       Icon: FaFacebook,
-      label: "Facebook",
+      ariaLabel: sAria.facebook,
     },
     {
       key: "ig",
-      href: normalizeSocialUrlForOpen(draft.socialLinks.instagram),
+      href: normalizeSocialUrlForOpen(draft.socialLinks.instagram, "instagram"),
       Icon: FaInstagram,
-      label: "Instagram",
+      ariaLabel: sAria.instagram,
     },
     {
       key: "tt",
-      href: normalizeSocialUrlForOpen(draft.socialLinks.tiktok),
+      href: normalizeSocialUrlForOpen(draft.socialLinks.tiktok, "tiktok"),
       Icon: FaTiktok,
-      label: "TikTok",
+      ariaLabel: sAria.tiktok,
     },
     {
       key: "yt",
-      href: normalizeSocialUrlForOpen(draft.socialLinks.youtube),
+      href: normalizeSocialUrlForOpen(draft.socialLinks.youtube, "youtube"),
       Icon: FaYoutube,
-      label: "YouTube",
+      ariaLabel: sAria.youtube,
     },
     {
       key: "x",
-      href: normalizeSocialUrlForOpen(draft.socialLinks.xTwitter),
+      href: normalizeSocialUrlForOpen(draft.socialLinks.xTwitter, "xTwitter"),
       Icon: FaXTwitter,
-      label: "X",
+      ariaLabel: sAria.x,
     },
     {
       key: "li",
-      href: normalizeSocialUrlForOpen(draft.socialLinks.linkedin),
+      href: normalizeSocialUrlForOpen(draft.socialLinks.linkedin, "linkedin"),
       Icon: FaLinkedin,
-      label: "LinkedIn",
+      ariaLabel: sAria.linkedin,
     },
   ].filter((x) => x.href);
 
@@ -251,6 +271,32 @@ export function CommunityContactCanvas({
               </a>
             ) : null}
           </div>
+
+          {socialItems.length ? (
+            <div
+              className="space-y-2 rounded-xl border border-[#C9B46A]/35 bg-white/60 p-3 ring-1 ring-[#C9B46A]/15"
+              data-testid="community-contact-social-icons"
+            >
+              <div className="text-[11px] font-bold uppercase tracking-wide text-[#9a7b2c]">
+                {lang === "es" ? "Redes sociales" : "Social media"}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {socialItems.map(({ key, href, Icon, ariaLabel }) => (
+                  <a
+                    key={key}
+                    href={href!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={ariaLabel}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#C9B46A]/50 bg-[#FFFDF8] text-lg transition hover:border-[#C9B46A] hover:bg-[#FCF9F2]"
+                    style={{ color: GH.orange }}
+                  >
+                    <Icon className="h-5 w-5" aria-hidden />
+                  </a>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="min-w-0 space-y-2 rounded-xl border border-black/10 bg-white/70 p-3 sm:p-4">
@@ -275,28 +321,6 @@ export function CommunityContactCanvas({
         </div>
       </div>
 
-      {socialItems.length ? (
-        <div className="flex flex-wrap items-center gap-3 border-t border-black/10 px-4 py-3 sm:px-5">
-          <span className="text-xs font-bold uppercase tracking-wide opacity-70">
-            {lang === "es" ? "Redes" : "Social"}
-          </span>
-          <div className="flex flex-wrap gap-2">
-            {socialItems.map(({ key, href, Icon, label }) => (
-              <a
-                key={key}
-                href={href!}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={label}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-white text-lg transition hover:border-black/25"
-                style={{ color: GH.orange }}
-              >
-                <Icon className="h-5 w-5" aria-hidden />
-              </a>
-            ))}
-          </div>
-        </div>
-      ) : null}
       {email ? (
         <EmailContactOptionsSheet
           open={emailOpen}

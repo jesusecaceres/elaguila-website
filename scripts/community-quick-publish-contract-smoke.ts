@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { detailPairsToMap, isCommunityQuickListing } from "../app/(site)/clasificados/community/shared/communityListingDetailPairs";
+import { normalizeSocialUrlForOpen } from "../app/(site)/publicar/community/shared/lib/communityWebsiteAndSocial";
 import { communityGalleryContainsPdf } from "../app/(site)/publicar/community/shared/publish/publishCommunityQuickToListings";
 import {
   gateClasesQuickPreview,
@@ -29,6 +30,11 @@ function readSourceRel(...segments: string[]) {
 }
 
 function main() {
+  assert.equal(normalizeSocialUrlForOpen("facebook.com/tuorganizacion", "facebook"), "https://facebook.com/tuorganizacion");
+  assert.equal(normalizeSocialUrlForOpen("https://www.facebook.com/x", "facebook"), "https://www.facebook.com/x");
+  assert.equal(normalizeSocialUrlForOpen("https://evil.com/facebook", "facebook"), null);
+  assert.equal(normalizeSocialUrlForOpen("youtu.be/abc", "youtube"), "https://youtu.be/abc");
+
   const pdf: EmpleosImageItem = {
     id: "1",
     url: "data:application/pdf;base64,JVBERi0=",
@@ -119,6 +125,19 @@ function main() {
   const sidebar = readSourceRel("app/(site)/clasificados/community/CommunityQuickPublicDetailSidebar.tsx");
   assert.ok(!sidebar.includes("Ver contacto"), "sidebar must not expose dead Ver contacto CTA");
   assert.ok(!sidebar.includes("CityAutocomplete"), "sidebar must not duplicate city/distance (contact canvas has map)");
+
+  const extSocial = readSourceRel(
+    "app/(site)/publicar/community/shared/components/CommunityExtendedContactFields.tsx",
+  );
+  assert.ok(extSocial.includes('data-testid="community-organizer-social-fields"'));
+  assert.ok(extSocial.includes("Redes sociales del organizador"));
+
+  const contactCanvasSrc = readSourceRel(
+    "app/(site)/publicar/community/shared/preview/CommunityContactCanvas.tsx",
+  );
+  assert.ok(contactCanvasSrc.includes('data-testid="community-contact-social-icons"'));
+  assert.ok(contactCanvasSrc.includes("Abrir Facebook"));
+  assert.ok(contactCanvasSrc.includes("normalizeSocialUrlForOpen"));
 
   const previewBar = readSourceRel(
     "app/(site)/publicar/community/shared/preview/CommunityQuickPreviewPublishBar.tsx",
