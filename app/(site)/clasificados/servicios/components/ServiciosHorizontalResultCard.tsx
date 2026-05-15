@@ -30,19 +30,18 @@ const GRID =
   "grid min-w-0 grid-cols-1 md:grid-cols-[minmax(0,42%)_minmax(0,58%)] md:items-start md:gap-0";
 
 /** Match Restaurants horizontal card media padding (RestaurantePreviewCard MEDIA). */
-const MEDIA_CELL = "min-w-0 bg-[#F6F0E8] p-2.5 md:p-4 md:pr-3";
+const MEDIA_CELL = "min-w-0 bg-[#F6F0E8] p-2 md:p-4 md:pr-3";
 /**
- * Landscape stage sized like Restaurants preview (16:9 mobile, 16:10 desktop) — width drives height.
- * Full-bleed image with object-cover like Restaurants.
+ * Slightly shorter ratio on mobile so the card does not dominate the viewport; desktop stays roomy.
  */
 const MEDIA_FRAME =
-  "relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-[#E4D4BC]/80 bg-[#EFE7DA] md:aspect-[16/10] md:rounded-l-xl md:rounded-r-none";
-
+  "relative aspect-[20/9] w-full max-h-[200px] overflow-hidden rounded-xl border border-[#E4D4BC]/80 bg-[#EFE7DA] sm:aspect-[16/9] sm:max-h-none md:aspect-[16/10] md:min-h-[200px] md:rounded-l-xl md:rounded-r-none";
 
 const CONTENT =
-  "flex min-w-0 flex-col gap-2.5 px-3 pb-3 pt-2.5 md:gap-3 md:px-5 md:pb-4 md:pt-4 md:pr-4";
+  "flex min-w-0 flex-col gap-2 px-3 pb-3 pt-2 md:gap-3 md:px-5 md:pb-4 md:pt-4 md:pr-4";
 
-const TITLE = "text-lg font-bold leading-snug tracking-tight text-[#2A2620] md:text-xl";
+const TITLE =
+  "text-base font-bold leading-snug tracking-tight text-[#2A2620] sm:text-lg md:text-xl";
 /** Business type / category — scan-friendly, slightly bolder than body. */
 const CATEGORY =
   "text-[13px] font-extrabold uppercase leading-snug tracking-[0.06em] text-[#3d352c] md:text-[14px]";
@@ -50,26 +49,26 @@ const BODY = "text-[13px] leading-relaxed text-[#6F6254]";
 
 /** Service chips — warm sand surface, espresso text (premium, readable). */
 const CHIP =
-  "inline-flex h-8 max-w-full shrink-0 items-center rounded-full border border-[#D4C4A8]/90 bg-[#EBDCC4] px-3 text-[13px] font-semibold leading-none text-[#1E1814]";
+  "inline-flex h-7 max-w-full shrink-0 items-center rounded-full border border-[#D4C4A8]/90 bg-[#EBDCC4] px-2.5 text-[12px] font-semibold leading-none text-[#1E1814] md:h-8 md:px-3 md:text-[13px]";
 
 const META_PILL =
-  "inline-flex h-9 max-w-full items-center gap-1.5 rounded-full border border-[#E0D0B8] bg-[#F9F4EC] px-3 text-[14px] font-bold leading-none text-[#4a4036]";
+  "inline-flex min-h-[32px] max-w-full items-center gap-1.5 rounded-full border border-[#E0D0B8] bg-[#F9F4EC] px-2.5 text-[12px] font-bold leading-none text-[#4a4036] md:h-9 md:px-3 md:text-[14px]";
 
 const STATUS_OPEN = "border-[#6F7A3A]/50 bg-[#6F7A3A]/12 text-[#4d5630]";
 const STATUS_CLOSED = "border-[#B86A32]/45 bg-[#B86A32]/12 text-[#6b3f18]";
 
 const ADDRESS_LINK =
-  "group inline-flex min-h-[44px] w-full items-center gap-2 rounded-xl border border-[#E0D0B8] bg-[#F9F4EC] px-3 py-2.5 text-[14px] font-semibold text-[#2A2620] transition hover:border-[#C9A84A] hover:bg-[#FFF9EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/40";
+  "group inline-flex min-h-[40px] w-full items-center gap-2 rounded-lg border border-[#E0D0B8] bg-[#F9F4EC] px-2.5 py-2 text-[13px] font-semibold text-[#2A2620] transition hover:border-[#C9A84A] hover:bg-[#FFF9EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/40 md:min-h-[44px] md:rounded-xl md:px-3 md:py-2.5 md:text-[14px]";
 
 const LOCATION_LINE =
-  "flex min-h-[40px] items-start gap-2 rounded-xl border border-[#E8D9C4] bg-[#FFFCF7] px-3 py-2 text-[14px] font-semibold leading-snug text-[#2A2620]";
+  "flex min-h-[36px] items-start gap-2 rounded-lg border border-[#E8D9C4] bg-[#FFFCF7] px-2.5 py-1.5 text-[13px] font-semibold leading-snug text-[#2A2620] md:min-h-[40px] md:rounded-xl md:px-3 md:py-2 md:text-[14px]";
 
 
-const CTA_ROW = "mt-auto flex flex-wrap gap-2 pt-0.5";
+const CTA_ROW = "mt-auto flex flex-wrap gap-1.5 pt-0.5 md:gap-2";
 const CTA_PRIMARY =
-  "inline-flex min-h-[40px] w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#6F7A3A] to-[#5a6a2f] px-4 text-[13px] font-bold text-[#FFFCF7] shadow-sm transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/50";
+  "inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#6F7A3A] to-[#5a6a2f] px-4 text-[14px] font-bold text-[#FFFCF7] shadow-sm transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/50 md:text-[13px]";
 const CTA_SECONDARY =
-  "inline-flex min-h-[40px] flex-1 min-w-[9rem] items-center justify-center gap-2 rounded-xl border border-[#E0D0B8] bg-white px-3 text-[13px] font-bold text-[#2A2620] shadow-sm transition hover:border-[#C9A84A] hover:bg-[#FFFCF7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/40 sm:flex-none";
+  "inline-flex min-h-[40px] flex-1 min-w-[7.5rem] items-center justify-center gap-1.5 rounded-lg border border-[#E0D0B8] bg-white px-2.5 text-[12px] font-bold text-[#2A2620] shadow-sm transition hover:border-[#C9A84A] hover:bg-[#FFFCF7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/40 sm:flex-none md:min-h-[40px] md:gap-2 md:rounded-xl md:px-3 md:text-[13px]";
 
 function cleanOtherLabel(raw: string): string {
   const t = String(raw ?? "").trim();
@@ -278,7 +277,6 @@ export function ServiciosHorizontalResultCard({
     profile.identity.businessName;
 
   const hasBackdrop = Boolean(backdropUrl);
-  const mediaIsLogoOnly = Boolean(logoUrl && !hasBackdrop);
 
   const categoryChip = useMemo(() => {
     const raw = (profile.hero.categoryLine || "").trim();
@@ -309,6 +307,7 @@ export function ServiciosHorizontalResultCard({
 
   const serviceChipsVisible = serviceChipList.slice(0, 5);
   const serviceChipsMore = serviceChipList.length > 5 ? serviceChipList.length - 5 : 0;
+  const serviceChipsMobileHidden = serviceChipList.length > 3 ? serviceChipList.length - 3 : 0;
 
   const addressQuery = (profile.contact?.physicalAddressDisplay || "").trim();
   const mapsHref = ((profile.contact?.mapsSearchHref || "").trim() || (addressQuery ? mapsSearchHref(addressQuery) : "")).trim();
@@ -410,50 +409,66 @@ export function ServiciosHorizontalResultCard({
       <div className={GRID}>
         <div className={MEDIA_CELL}>
           <div className={MEDIA_FRAME}>
-            {/* Logo-led hero canvas - large dominant logo with premium neutral background */}
-            {logoUrl ? (
-              <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-[#FFFDF9] via-[#FFF9F0] to-[#FFFAF3]">
-                <div className="flex flex-col items-center gap-4 text-center px-6">
-                  {/* Large dominant logo as hero element */}
-                  <div className="relative h-48 w-48 md:h-60 md:w-60">
-                    <Image
-                      src={logoUrl}
-                      alt={logoAlt}
-                      fill
-                      className="object-contain"
-                      sizes="(max-width: 768px) 192px, 240px"
-                      unoptimized={serviciosImageUnoptimized(logoUrl)}
-                    />
+            {hasBackdrop ? (
+              <>
+                <Image
+                  src={backdropUrl}
+                  alt={backdropAlt}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 92vw, 42vw"
+                  unoptimized={serviciosImageUnoptimized(backdropUrl)}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-black/10" aria-hidden />
+                {logoUrl ? (
+                  <div className="absolute bottom-2 left-2 z-[3] rounded-lg border border-white/80 bg-white/95 p-1 shadow-md md:bottom-3 md:left-3 md:p-1.5">
+                    <div className="relative h-11 w-11 sm:h-14 sm:w-14 md:h-[4.5rem] md:w-[4.5rem]">
+                      <Image
+                        src={logoUrl}
+                        alt={logoAlt}
+                        fill
+                        className="object-contain"
+                        sizes="(max-width: 768px) 44px, 72px"
+                        unoptimized={serviciosImageUnoptimized(logoUrl)}
+                      />
+                    </div>
                   </div>
-                  {/* Slogan inside media canvas under logo */}
-                  {slogan ? (
-                    <p className="max-w-full text-center text-sm font-medium leading-snug text-[#6F6254] md:text-base">
-                      {slogan}
-                    </p>
-                  ) : null}
+                ) : null}
+              </>
+            ) : logoUrl ? (
+              <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-[#FFFDF9] via-[#FFF9F0] to-[#FFFAF3] py-3 md:py-8">
+                <div className="relative h-24 w-24 sm:h-32 sm:w-32 md:h-60 md:w-60">
+                  <Image
+                    src={logoUrl}
+                    alt={logoAlt}
+                    fill
+                    className="object-contain"
+                    sizes="(max-width: 768px) 96px, 240px"
+                    unoptimized={serviciosImageUnoptimized(logoUrl)}
+                  />
                 </div>
               </div>
             ) : (
-              /* No logo fallback with premium background */
               <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#FFFDF9] via-[#FFF9F0] to-[#FFFAF3]">
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/5">
-                    <FiMapPin className="h-8 w-8 text-[#8B7E70]" aria-hidden />
+                <div className="flex flex-col items-center gap-2 text-center md:gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/5 md:h-16 md:w-16">
+                    <FiMapPin className="h-6 w-6 text-[#8B7E70] md:h-8 md:w-8" aria-hidden />
                   </div>
-                  <p className="text-sm font-semibold text-[#8B7E70]">{lang === "en" ? "No logo yet" : "Sin logo"}</p>
+                  <p className="text-xs font-semibold text-[#8B7E70] md:text-sm">
+                    {lang === "en" ? "No logo yet" : "Sin logo"}
+                  </p>
                 </div>
               </div>
             )}
-            
-            {/* Status badges */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-[4] flex flex-wrap gap-1 p-2">
+
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-[4] flex flex-wrap gap-1 p-1.5 md:p-2">
               {promoted ? (
-                <span className="rounded-full border border-white/70 bg-gradient-to-r from-[#D4AF37] to-[#9A7329] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                <span className="rounded-full border border-white/70 bg-gradient-to-r from-[#D4AF37] to-[#9A7329] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow-sm md:px-2 md:text-[10px]">
                   {L.featured}
                 </span>
               ) : null}
               {verifiedListing ? (
-                <span className="rounded-full border border-white/80 bg-white/95 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#2A7F3E] shadow-sm">
+                <span className="rounded-full border border-white/80 bg-white/95 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#2A7F3E] shadow-sm md:px-2 md:text-[10px]">
                   {lang === "en" ? "Verified" : "Verificado"}
                 </span>
               ) : null}
@@ -462,43 +477,57 @@ export function ServiciosHorizontalResultCard({
         </div>
 
         <div className={CONTENT}>
-          <div className="min-w-0 space-y-1">
-            {ratingValue != null && ratingValue > 0 ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <StarRow rating={ratingValue} lang={lang} />
-                {reviewCount != null ? <span className={`${BODY} font-semibold`}>{L.reviewsSuffix(reviewCount)}</span> : null}
-              </div>
-            ) : null}
-            <h2 className={TITLE}>{profile.identity.businessName}</h2>
-            <div
-              className="inline-flex w-fit max-w-full items-center gap-1.5 rounded-full border border-rose-200/90 bg-rose-50 px-2.5 py-1 text-[13px] font-bold leading-none text-rose-900 shadow-sm"
-              data-servicios-like-badge="1"
-            >
-              {likeCueHasCount ? (
-                <>
-                  <span aria-hidden>❤️</span>
-                  <span className="tabular-nums">
-                    {lang === "en"
-                      ? `${likeBadgeCount} ${likeBadgeCount === 1 ? "like" : "likes"}`
-                      : `${likeBadgeCount} me gusta`}
-                  </span>
-                </>
-              ) : (
-                <span>{lang === "en" ? "♡ Like" : "♡ Me gusta"}</span>
-              )}
+          <div className="min-w-0 space-y-1 md:space-y-1.5">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              {ratingValue != null && ratingValue > 0 ? (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <StarRow rating={ratingValue} lang={lang} />
+                  {reviewCount != null ? (
+                    <span className={`${BODY} text-[12px] font-semibold md:text-[13px]`}>
+                      {L.reviewsSuffix(reviewCount)}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+              {row ? (
+                <span
+                  className="inline-flex items-center gap-0.5 rounded-full border border-rose-200/80 bg-rose-50/90 px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-rose-900 md:text-[12px]"
+                  data-servicios-like-badge="1"
+                >
+                  {likeCueHasCount ? (
+                    <>
+                      <span aria-hidden>❤️</span>
+                      <span>
+                        {lang === "en"
+                          ? `${likeBadgeCount} ${likeBadgeCount === 1 ? "like" : "likes"}`
+                          : `${likeBadgeCount} me gusta`}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="font-semibold text-rose-800/90">{lang === "en" ? "♡ Like" : "♡ Me gusta"}</span>
+                  )}
+                </span>
+              ) : null}
             </div>
+            <h2 className={TITLE}>{profile.identity.businessName}</h2>
             {categoryChip ? <p className={`${CATEGORY} line-clamp-2`}>{categoryChip}</p> : null}
-            {slogan ? <p className={`${BODY} line-clamp-2 text-[14px] font-semibold text-[#4a4036]`}>{slogan}</p> : null}
+            {slogan ? <p className={`${BODY} line-clamp-2 text-[13px] font-semibold text-[#4a4036] md:text-[14px]`}>{slogan}</p> : null}
           </div>
 
-          {serviceChipsVisible.length > 0 || serviceChipsMore > 0 ? (
-            <div className="flex min-w-0 flex-wrap gap-1.5">
-              {serviceChipsVisible.map((f) => (
-                <span key={f} className={CHIP}>
+          {serviceChipsVisible.length > 0 || serviceChipsMore > 0 || serviceChipsMobileHidden > 0 ? (
+            <div className="flex min-w-0 flex-wrap gap-1 md:gap-1.5">
+              {serviceChipsVisible.map((f, idx) => (
+                <span
+                  key={f}
+                  className={`${CHIP} ${idx >= 3 && serviceChipList.length > 3 ? "hidden md:inline-flex" : ""}`.trim()}
+                >
                   {f}
                 </span>
               ))}
-              {serviceChipsMore > 0 ? <span className={CHIP}>+{serviceChipsMore}</span> : null}
+              {serviceChipsMobileHidden > 0 ? (
+                <span className={`${CHIP} md:hidden`}>+{serviceChipsMobileHidden}</span>
+              ) : null}
+              {serviceChipsMore > 0 ? <span className={`${CHIP} hidden md:inline-flex`}>+{serviceChipsMore}</span> : null}
             </div>
           ) : null}
 
@@ -531,9 +560,9 @@ export function ServiciosHorizontalResultCard({
             </button>
           ) : null}
 
-          {summary ? <p className={`${BODY} line-clamp-2`}>{summary}</p> : null}
+          {summary ? <p className={`${BODY} line-clamp-2 md:line-clamp-3`}>{summary}</p> : null}
 
-          <div className="flex min-w-0 flex-col gap-2">
+          <div className="flex min-w-0 flex-col gap-1.5 md:gap-2">
             <Link href={vitrinaHref} className={CTA_PRIMARY}>
               {vitrinaLabel}
             </Link>
@@ -567,7 +596,7 @@ export function ServiciosHorizontalResultCard({
                   <button
                     key={key}
                     type="button"
-                    className={`${CTA_SECONDARY} !max-w-[min(42vw,11rem)] shrink-0 snap-start !flex-none`}
+                    className={`${CTA_SECONDARY} !max-w-[min(34vw,9.5rem)] shrink-0 snap-start !flex-none md:!max-w-none`}
                     onClick={() => openContactKey(key, href)}
                   >
                     <Icon className="h-4 w-4 shrink-0" aria-hidden />
