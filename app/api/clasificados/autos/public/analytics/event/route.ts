@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 
 type Body = {
   listingId?: string;
+  leonixAdId?: string | null;
   eventType?: string;
   lane?: AutosClassifiedsLane;
   metadata?: Record<string, unknown>;
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
   }
   const listingId = body.listingId?.trim();
   const eventType = body.eventType?.trim();
+  const leonixAdId = typeof body.leonixAdId === "string" && body.leonixAdId.trim() ? body.leonixAdId.trim() : null;
   if (!listingId || !eventType) {
     return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });
   }
@@ -31,7 +33,10 @@ export async function POST(request: Request) {
     listingId,
     eventType,
     lane,
-    metadata: body.metadata,
+    metadata: {
+      ...(body.metadata ?? {}),
+      ...(leonixAdId ? { clientLeonixAdId: leonixAdId } : {}),
+    },
   });
   if (!ok) {
     return NextResponse.json({ ok: false, error: "not_recorded" }, { status: 404 });

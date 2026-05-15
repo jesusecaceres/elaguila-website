@@ -71,8 +71,8 @@ export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
 
   useEffect(() => {
     if (!data || !lane) return;
-    trackAutosListingEvent(listingId, AUTOS_CLASSIFIEDS_EVENT.listingOpen, { lane });
-  }, [listingId, data, lane]);
+    trackAutosListingEvent(listingId, AUTOS_CLASSIFIEDS_EVENT.listingOpen, { lane, leonixAdId });
+  }, [listingId, data, lane, leonixAdId]);
 
   useEffect(() => {
     if (!data) return;

@@ -7,12 +7,13 @@ import { leonixAnalyticsAllowed } from "@/app/lib/leonixPublicConsent";
 export function trackAutosListingEvent(
   listingId: string,
   eventType: string,
-  opts?: { lane?: AutosClassifiedsLane; metadata?: Record<string, unknown> },
+  opts?: { lane?: AutosClassifiedsLane; leonixAdId?: string | null; metadata?: Record<string, unknown> },
 ): void {
   if (typeof window === "undefined" || !listingId || !leonixAnalyticsAllowed()) return;
   try {
     const body = JSON.stringify({
       listingId,
+      leonixAdId: opts?.leonixAdId?.trim() ? opts.leonixAdId.trim() : undefined,
       eventType,
       lane: opts?.lane,
       metadata: opts?.metadata,

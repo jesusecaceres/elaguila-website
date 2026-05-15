@@ -17,7 +17,10 @@ export async function recordAutosClassifiedsListingEvent(input: {
     listing_id: input.listingId,
     event_type: input.eventType,
     lane: input.lane ?? row.lane,
-    metadata: input.metadata ?? {},
+    metadata: {
+      leonix_ad_id: row.leonix_ad_id ?? null,
+      ...(input.metadata ?? {}),
+    },
   });
   if (error) {
     console.error("recordAutosClassifiedsListingEvent", error);

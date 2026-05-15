@@ -33,11 +33,17 @@ export async function PATCH(request: Request, { params }: Props) {
     return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });
   }
   const lang: AutosClassifiedsLang | undefined = body.lang === "en" || body.lang === "es" ? body.lang : undefined;
-  const row = await updateAutosClassifiedsListingDraft(id, userId, { listing: body.listing, lang });
+  const { row, persistWarnings } = await updateAutosClassifiedsListingDraft(id, userId, { listing: body.listing, lang });
   if (!row) {
     return NextResponse.json({ ok: false, error: "update_failed" }, { status: 400 });
   }
-  return NextResponse.json({ ok: true, id: row.id, status: row.status, lang: row.lang });
+  return NextResponse.json({
+    ok: true,
+    id: row.id,
+    status: row.status,
+    lang: row.lang,
+    ...(persistWarnings.length ? { persistWarnings } : {}),
+  });
 }
 
 export async function GET(request: Request, { params }: Props) {

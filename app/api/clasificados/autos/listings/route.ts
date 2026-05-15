@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });
   }
   const lang: AutosClassifiedsLang = body.lang === "en" ? "en" : "es";
-  const row = await createAutosClassifiedsListing({
+  const { row, persistWarnings } = await createAutosClassifiedsListing({
     ownerUserId: userId,
     lane: body.lane,
     lang,
@@ -60,5 +60,10 @@ export async function POST(request: Request) {
   if (!row) {
     return NextResponse.json({ ok: false, error: "create_failed" }, { status: 500 });
   }
-  return NextResponse.json({ ok: true, id: row.id, status: row.status });
+  return NextResponse.json({
+    ok: true,
+    id: row.id,
+    status: row.status,
+    ...(persistWarnings.length ? { persistWarnings } : {}),
+  });
 }

@@ -5,6 +5,7 @@ import { getAutosPublishUserIdFromRequest } from "@/app/lib/clasificados/autos/a
 import {
   activateAutosClassifiedsListing,
   assertAutosListingOwner,
+  getAutosClassifiedsListingById,
   isAutosClassifiedsDbConfigured,
   setAutosListingPendingPayment,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
@@ -59,6 +60,10 @@ export async function POST(request: Request) {
     if (!okAct) {
       return NextResponse.json({ ok: false, error: "activate_failed" }, { status: 500 });
     }
+    const live = await getAutosClassifiedsListingById(listingId);
+    if (!live || live.status !== "active" || !live.published_at?.trim()) {
+      return NextResponse.json({ ok: false, error: "activate_verify_failed" }, { status: 500 });
+    }
     const origin = getAutosSiteOrigin();
     const qLang = lang === "en" ? "lang=en" : "lang=es";
     const laneQ = `lane=${encodeURIComponent(row.lane)}`;
@@ -77,6 +82,10 @@ export async function POST(request: Request) {
     const okAct = await activateAutosClassifiedsListing(listingId);
     if (!okAct) {
       return NextResponse.json({ ok: false, error: "activate_failed" }, { status: 500 });
+    }
+    const live = await getAutosClassifiedsListingById(listingId);
+    if (!live || live.status !== "active" || !live.published_at?.trim()) {
+      return NextResponse.json({ ok: false, error: "activate_verify_failed" }, { status: 500 });
     }
     const origin = getAutosSiteOrigin();
     const qLang = lang === "en" ? "lang=en" : "lang=es";

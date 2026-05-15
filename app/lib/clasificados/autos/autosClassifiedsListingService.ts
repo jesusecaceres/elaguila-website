@@ -13,6 +13,7 @@ import type {
   AutosClassifiedsListingStatus,
 } from "./autosClassifiedsTypes";
 import { autosClassifiedsRowToPublicListing } from "./mapAutosClassifiedsToPublic";
+import { sanitizeAutosListingPayloadForPersistence } from "./autosListingPayloadPersistence";
 
 function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
   return {
@@ -37,20 +38,25 @@ export function isAutosClassifiedsDbConfigured(): boolean {
   return isSupabaseAdminConfigured();
 }
 
+export type AutosListingPersistResult = {
+  row: AutosClassifiedsListingRow | null;
+  persistWarnings: string[];
+};
+
 export async function createAutosClassifiedsListing(input: {
   ownerUserId: string;
   lane: AutosClassifiedsLane;
   lang: AutosClassifiedsLang;
   listing: AutoDealerListing;
-}): Promise<AutosClassifiedsListingRow | null> {
-  if (!isSupabaseAdminConfigured()) return null;
+}): Promise<AutosListingPersistResult> {
+  if (!isSupabaseAdminConfigured()) return { row: null, persistWarnings: [] };
   const supabase = getAdminSupabase();
-  const payload = stripDraftMuxFields(
-    normalizeLoadedListing({
-      ...input.listing,
-      autosLane: input.lane,
-    }),
-  );
+  const normalized = normalizeLoadedListing({
+    ...input.listing,
+    autosLane: input.lane,
+  });
+  const stripped = stripDraftMuxFields(normalized);
+  const { listing: payload, persistWarnings } = sanitizeAutosListingPayloadForPersistence(stripped);
   const { data, error } = await supabase
     .from("autos_classifieds_listings")
     .insert({
@@ -65,9 +71,15 @@ export async function createAutosClassifiedsListing(input: {
     .single();
   if (error || !data) {
     console.error("createAutosClassifiedsListing", error);
-    return null;
+    return { row: null, persistWarnings };
   }
-  return rowFromDb(data as Record<string, unknown>);
+  const row = rowFromDb(data as Record<string, unknown>);
+  const verify = await getAutosClassifiedsListingById(row.id);
+  if (!verify || verify.status !== "draft" || verify.owner_user_id !== input.ownerUserId) {
+    console.error("createAutosClassifiedsListing verify_failed", row.id);
+    return { row: null, persistWarnings };
+  }
+  return { row, persistWarnings };
 }
 
 export async function getAutosClassifiedsListingById(id: string): Promise<AutosClassifiedsListingRow | null> {
@@ -89,18 +101,19 @@ export async function updateAutosClassifiedsListingDraft(
   listingId: string,
   ownerUserId: string,
   input: { listing: AutoDealerListing; lang?: AutosClassifiedsLang },
-): Promise<AutosClassifiedsListingRow | null> {
+): Promise<AutosListingPersistResult> {
   const row = await assertAutosListingOwner(listingId, ownerUserId);
-  if (!row) return null;
-  if (row.status !== "draft" && row.status !== "payment_failed" && row.status !== "pending_payment") return null;
-  if (!isSupabaseAdminConfigured()) return null;
+  if (!row) return { row: null, persistWarnings: [] };
+  if (row.status !== "draft" && row.status !== "payment_failed" && row.status !== "pending_payment")
+    return { row: null, persistWarnings: [] };
+  if (!isSupabaseAdminConfigured()) return { row: null, persistWarnings: [] };
   const supabase = getAdminSupabase();
-  const payload = stripDraftMuxFields(
-    normalizeLoadedListing({
-      ...input.listing,
-      autosLane: row.lane,
-    }),
-  );
+  const normalized = normalizeLoadedListing({
+    ...input.listing,
+    autosLane: row.lane,
+  });
+  const stripped = stripDraftMuxFields(normalized);
+  const { listing: payload, persistWarnings } = sanitizeAutosListingPayloadForPersistence(stripped);
   const lang: AutosClassifiedsLang = input.lang === "en" || input.lang === "es" ? input.lang : row.lang;
   const { data, error } = await supabase
     .from("autos_classifieds_listings")
@@ -114,9 +127,15 @@ export async function updateAutosClassifiedsListingDraft(
     .single();
   if (error || !data) {
     console.error("updateAutosClassifiedsListingDraft", error);
-    return null;
+    return { row: null, persistWarnings };
   }
-  return rowFromDb(data as Record<string, unknown>);
+  const updated = rowFromDb(data as Record<string, unknown>);
+  const verify = await getAutosClassifiedsListingById(listingId);
+  if (!verify) {
+    console.error("updateAutosClassifiedsListingDraft verify_failed", listingId);
+    return { row: null, persistWarnings };
+  }
+  return { row: updated, persistWarnings };
 }
 
 export async function listAutosClassifiedsListingsForOwner(ownerUserId: string): Promise<AutosClassifiedsListingRow[]> {
@@ -216,7 +235,14 @@ export async function updateAutosListingStatus(
   const supabase = getAdminSupabase();
   const patch: Record<string, unknown> = { status, updated_at: new Date().toISOString(), ...extra };
   const { error } = await supabase.from("autos_classifieds_listings").update(patch).eq("id", id);
-  return !error;
+  if (error) return false;
+  const verify = await getAutosClassifiedsListingById(id);
+  if (!verify || verify.status !== status) return false;
+  if (status === "active") {
+    const pubAt = extra?.published_at ?? verify.published_at;
+    if (!pubAt || !String(pubAt).trim()) return false;
+  }
+  return true;
 }
 
 export async function setAutosListingPendingPayment(listingId: string, stripeCheckoutSessionId: string): Promise<boolean> {
