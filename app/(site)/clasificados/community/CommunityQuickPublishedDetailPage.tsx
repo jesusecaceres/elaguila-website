@@ -25,6 +25,9 @@ type Listing = {
   priceLabel: { es: string; en: string };
   city: string;
   blurb: { es: string; en: string };
+  images?: string[] | null;
+  contact_phone?: string | null;
+  contact_email?: string | null;
   detailPairs?: unknown;
   owner_id?: string | null;
 };
@@ -287,7 +290,6 @@ export function CommunityQuickPublishedDetailPage({
             lang={lang}
             mode="published"
             organizerName={organizerName}
-            city={listing.city}
             listingId={listing.id}
             isOwner={isOwner}
             saved={saved}

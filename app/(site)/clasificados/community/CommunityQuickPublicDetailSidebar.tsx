@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -20,12 +19,6 @@ const COPY = {
     copyLink: "Copiar enlace",
     copyInfo: "Copiar info",
     organizedBy: "Organizado por",
-    location: "Ubicación",
-    listingCity: "Ciudad del anuncio:",
-    distanceLabel: "Calcula la distancia desde tu ciudad",
-    distancePlaceholder: "Ingresa tu ciudad",
-    viewContact: "Ver contacto",
-    manageListing: "Gestionar anuncio",
     previewNote:
       "Vista previa: las acciones de guardar y reportar estarán disponibles cuando publiques el anuncio.",
     views: "personas vieron este anuncio",
@@ -37,12 +30,6 @@ const COPY = {
     copyLink: "Copy link",
     copyInfo: "Copy info",
     organizedBy: "Organized by",
-    location: "Location",
-    listingCity: "Listing city:",
-    distanceLabel: "Calculate distance from your city",
-    distancePlaceholder: "Enter your city",
-    viewContact: "View contact",
-    manageListing: "Manage listing",
     previewNote: "Preview: save and report actions will be available after you publish.",
     views: "people viewed this listing",
     viewsToday: "views today",
@@ -53,7 +40,6 @@ type Props = {
   lang: Lang;
   mode: "preview" | "published";
   organizerName: string;
-  city: string;
   listingId?: string;
   isOwner?: boolean;
   saved?: boolean;
@@ -67,7 +53,6 @@ export function CommunityQuickPublicDetailSidebar({
   lang,
   mode,
   organizerName,
-  city,
   listingId,
   isOwner = false,
   saved = false,
@@ -81,8 +66,6 @@ export function CommunityQuickPublicDetailSidebar({
 
   const [viewCount, setViewCount] = useState<number | null>(null);
   const [viewsToday, setViewsToday] = useState<number | null>(null);
-  const [viewerCityInput, setViewerCityInput] = useState("");
-  const [distanceMiles, setDistanceMiles] = useState<number | null>(null);
 
   useEffect(() => {
     if (isPreview || !listingId) return;
@@ -97,23 +80,6 @@ export function CommunityQuickPublicDetailSidebar({
         setViewsToday(0);
       });
   }, [isPreview, listingId]);
-
-  useEffect(() => {
-    if (!viewerCityInput.trim() || !city) {
-      setDistanceMiles(null);
-      return;
-    }
-    fetch(
-      `/api/clasificados/distance?viewer=${encodeURIComponent(viewerCityInput.trim())}&listing=${encodeURIComponent(city)}`,
-    )
-      .then((r) => r.json())
-      .then((data: { miles?: number | null }) => setDistanceMiles(data.miles ?? null))
-      .catch(() => setDistanceMiles(null));
-  }, [viewerCityInput, city]);
-
-  const scrollToContact = () => {
-    document.getElementById("contact-actions")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
 
   return (
     <>
@@ -130,7 +96,7 @@ export function CommunityQuickPublicDetailSidebar({
         </div>
       ) : null}
 
-      <div className={cx(RAIL_CARD, "p-6")}>
+      <div className={cx(RAIL_CARD, "p-6")} data-testid="community-quick-sidebar-actions">
         <div className="text-xl font-bold text-[#111111]">{t.actionsTitle}</div>
 
         <div className="mt-4 space-y-3">
@@ -173,7 +139,7 @@ export function CommunityQuickPublicDetailSidebar({
               href={`/dashboard/mis-anuncios?lang=${lang}`}
               className="flex w-full items-center justify-center rounded-full border border-[#A98C2A]/55 bg-[#FFFCF7] px-5 py-3 text-center text-sm font-semibold text-[#2A2626] transition hover:bg-[#F4EBD8]"
             >
-              {t.manageListing}
+              {lang === "es" ? "Gestionar anuncio" : "Manage listing"}
             </Link>
           ) : null}
 
@@ -181,42 +147,17 @@ export function CommunityQuickPublicDetailSidebar({
         </div>
       </div>
 
-      <div className={cx("seller-card", RAIL_CARD, "p-6")}>
-        <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">{t.organizedBy}</h4>
-        <p className="text-base font-bold text-[#111111]">{organizerName.trim() || "—"}</p>
-        <div className="mt-3">
-          <button
-            type="button"
-            className="px-4 py-2 rounded-xl font-semibold bg-[#C9B46A] text-[#111111] hover:opacity-90 transition"
-            onClick={scrollToContact}
-          >
-            {t.viewContact}
-          </button>
-        </div>
-      </div>
-
-      <div className={cx(RAIL_CARD, "p-6")}>
-        <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">{t.location}</h3>
-        <p className="text-sm text-[#111111] mb-2">
-          {t.listingCity} {city || "—"}
-        </p>
-        <label className="block text-sm text-[#111111]/80 mb-1">{t.distanceLabel}</label>
-        <CityAutocomplete
-          value={viewerCityInput}
-          onChange={setViewerCityInput}
-          placeholder={t.distancePlaceholder}
-          lang={lang}
-          variant="light"
-          className="mt-1"
-        />
-        {distanceMiles !== null ? (
-          <p className="mt-2 text-sm text-[#111111]/80">
+      {organizerName.trim() ? (
+        <div className={cx("seller-card", RAIL_CARD, "p-6")} data-testid="community-quick-sidebar-organizer">
+          <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">{t.organizedBy}</h4>
+          <p className="text-base font-bold text-[#111111]">{organizerName.trim()}</p>
+          <p className="mt-3 text-xs leading-relaxed text-[#111111]/70">
             {lang === "es"
-              ? `Aproximadamente ${Math.round(distanceMiles)} millas de distancia`
-              : `Approximately ${Math.round(distanceMiles)} miles away`}
+              ? "Teléfono, mensajes, correo y mapa están en la sección de contacto debajo del volante."
+              : "Phone, messages, email, and map are in the contact section below the flyer."}
           </p>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </>
   );
 }

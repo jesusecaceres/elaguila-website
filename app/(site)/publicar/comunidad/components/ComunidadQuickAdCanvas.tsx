@@ -20,6 +20,8 @@ import {
   pickMainHeroImage,
   COMMUNITY_QUICK_WARM_CHIP,
   formatDateIso,
+  COMMUNITY_QUICK_HERO_OUTER,
+  COMMUNITY_QUICK_HERO_INNER,
 } from "@/app/(site)/publicar/community/shared/preview/communityQuickAdPrimitives";
 
 const COPY = {
@@ -74,7 +76,7 @@ export function ComunidadQuickAdCanvas({
 }) {
   const t = COPY[lang];
   const main = pickMainHeroImage(draft.images);
-  const flyerDoc = main.heroIsFlyerDoc;
+  const isPdf = main.kind === "pdf";
   const cityZipLine = cityStateZipLine(draft);
   const sessStart = draft.eventSessionStart.trim();
   const sessEnd = draft.eventSessionEnd.trim();
@@ -92,17 +94,32 @@ export function ComunidadQuickAdCanvas({
     <article className={articleClass}>
       <div
         data-testid={heroTestId}
-        className="relative w-full overflow-hidden rounded-t-2xl border-b border-[#C9B46A]/25 bg-[#F4F0E6] px-2 py-4 sm:px-4 min-h-[min(52vh,480px)] max-h-[min(88vh,900px)]"
+        data-community-flyer-kind={main.kind}
+        data-community-flyer-src={main.kind === "image" || main.kind === "fallback" ? main.url : ""}
+        className={COMMUNITY_QUICK_HERO_OUTER}
       >
-        <div className="relative mx-auto h-[min(52vh,480px)] w-full max-w-[920px]">
-          <Image
-            src={main.url}
-            alt={main.alt}
-            fill
-            className="object-contain object-top"
-            sizes="(max-width: 768px) 100vw, 900px"
-            unoptimized
-          />
+        <div className={COMMUNITY_QUICK_HERO_INNER}>
+          {isPdf ? (
+            <div className="flex h-full min-h-[min(50vh,520px)] flex-col items-center justify-center gap-3 bg-[#E8E4DC] px-6 text-center">
+              <p className="text-base font-bold text-[#2A2826]">
+                {lang === "es" ? "Volante en PDF" : "PDF flyer"}
+              </p>
+              <p className="max-w-md text-sm text-[#5C564E]">
+                {lang === "es"
+                  ? "Sube también una imagen JPG, PNG o WebP del volante para mostrarla aquí con la misma vista que en publicación."
+                  : "Upload a JPG, PNG, or WebP image of your flyer to show it here (same as on the live listing)."}
+              </p>
+            </div>
+          ) : (
+            <Image
+              src={main.url}
+              alt={main.alt}
+              fill
+              className="object-contain object-top"
+              sizes="(max-width: 768px) 100vw, 960px"
+              unoptimized
+            />
+          )}
         </div>
         <div className="pointer-events-none absolute left-3 top-3 flex flex-wrap gap-2">
           <span
@@ -115,9 +132,9 @@ export function ComunidadQuickAdCanvas({
             {comunidadCostLabel(draft.eventCost, lang)}
           </span>
         </div>
-        {flyerDoc ? (
+        {isPdf ? (
           <div className="pointer-events-none absolute bottom-3 left-3 rounded-lg bg-black/75 px-2.5 py-1 text-[10px] font-bold text-white">
-            {lang === "es" ? "Volante PDF (sin vista previa de imagen)" : "PDF flyer (no image preview)"}
+            {lang === "es" ? "Solo PDF en este campo — añade imagen para el volante" : "PDF only here — add an image for the flyer"}
           </div>
         ) : null}
       </div>

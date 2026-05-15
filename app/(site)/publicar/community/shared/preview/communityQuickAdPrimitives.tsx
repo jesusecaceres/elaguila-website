@@ -32,6 +32,12 @@ export function cityStateZipLine(d: { publicCity: string; state: string; zip: st
 export const COMMUNITY_QUICK_FALLBACK_IMG =
   "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1200&q=70";
 
+/** Dominant flyer hero: tall readable area, object-contain inside canvas (preview + published). */
+export const COMMUNITY_QUICK_HERO_OUTER =
+  "relative w-full overflow-hidden rounded-t-2xl border-b border-[#C9B46A]/25 bg-[#F4F0E6] px-1 py-3 sm:px-3 sm:py-6";
+export const COMMUNITY_QUICK_HERO_INNER =
+  "relative mx-auto w-full max-w-[min(100%,960px)] min-h-[min(70vh,720px)] h-[min(70vh,720px)] max-h-[min(92vh,1200px)]";
+
 function isNonImageAttachment(url: string, mime?: string): boolean {
   if (mime === "application/pdf") return true;
   if (url.startsWith("data:application/pdf")) return true;
@@ -39,17 +45,20 @@ function isNonImageAttachment(url: string, mime?: string): boolean {
   return base.endsWith(".pdf");
 }
 
-export function pickMainHeroImage(
-  images: { url: string; alt: string; isMain?: boolean; attachmentMime?: string }[],
-): { url: string; alt: string; heroIsFlyerDoc?: boolean } {
+export type CommunityMainHeroPick =
+  | { kind: "image"; url: string; alt: string }
+  | { kind: "pdf"; url: ""; alt: string }
+  | { kind: "fallback"; url: string; alt: string };
+
+export function pickMainHeroImage(images: { url: string; alt: string; isMain?: boolean; attachmentMime?: string }[]): CommunityMainHeroPick {
   const withUrl = images.filter((x) => String(x.url ?? "").trim());
-  if (!withUrl.length) return { url: COMMUNITY_QUICK_FALLBACK_IMG, alt: "preview" };
+  if (!withUrl.length) return { kind: "fallback", url: COMMUNITY_QUICK_FALLBACK_IMG, alt: "preview" };
   const main = withUrl.find((x) => x.isMain) ?? withUrl[0];
   const url = main.url;
   if (isNonImageAttachment(url, main.attachmentMime)) {
-    return { url: COMMUNITY_QUICK_FALLBACK_IMG, alt: main.alt || "preview", heroIsFlyerDoc: true };
+    return { kind: "pdf", url: "", alt: main.alt || "preview" };
   }
-  return { url, alt: main.alt || "preview" };
+  return { kind: "image", url, alt: main.alt || "preview" };
 }
 
 export function formatDateIso(iso: string, lang: Lang): string {

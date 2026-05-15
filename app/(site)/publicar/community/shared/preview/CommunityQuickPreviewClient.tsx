@@ -112,7 +112,6 @@ export function CommunityQuickPreviewClient({ kind }: { kind: CommunityKind }) {
 
   void fromPublicar;
 
-  const cityDisplay = [draft.publicCity, draft.state, draft.zip].filter(Boolean).join(", ") || draft.publicCity;
   const organizerName = draft.organizer.trim() || "—";
 
   const adBody =
@@ -162,7 +161,6 @@ export function CommunityQuickPreviewClient({ kind }: { kind: CommunityKind }) {
           lang={lang}
           mode="preview"
           organizerName={organizerName}
-          city={cityDisplay}
           onShare={() => void copyText(buildShareMessage())}
           onCopyLink={() => void copyText(typeof window !== "undefined" ? window.location.href : "")}
           onCopyInfo={() => void copyText(buildShareMessage())}

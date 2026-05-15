@@ -107,6 +107,19 @@ function main() {
   );
   assert.ok(publicDetailShell.includes('data-testid="leonix-public-detail-shell"'));
 
+  const anuncioDetail = readSourceRel("app/(site)/clasificados/anuncio/[id]/page.tsx");
+  assert.ok(anuncioDetail.includes("images: listing.images"), "published quick detail must pass DB listing images into quick shell");
+
+  const quickPublished = readSourceRel("app/(site)/clasificados/community/CommunityQuickPublishedDetailPage.tsx");
+  assert.ok(quickPublished.includes("images?:"), "CommunityQuickPublishedDetailPage must include images on listing contract");
+
+  const primitives = readSourceRel("app/(site)/publicar/community/shared/preview/communityQuickAdPrimitives.tsx");
+  assert.ok(primitives.includes('kind: "pdf"'), "pickMainHeroImage must not swap user PDF for stock Unsplash handshake");
+
+  const sidebar = readSourceRel("app/(site)/clasificados/community/CommunityQuickPublicDetailSidebar.tsx");
+  assert.ok(!sidebar.includes("Ver contacto"), "sidebar must not expose dead Ver contacto CTA");
+  assert.ok(!sidebar.includes("CityAutocomplete"), "sidebar must not duplicate city/distance (contact canvas has map)");
+
   const previewBar = readSourceRel(
     "app/(site)/publicar/community/shared/preview/CommunityQuickPreviewPublishBar.tsx",
   );

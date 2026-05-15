@@ -2,7 +2,7 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 /**
  * WYSIWYG trace — Comunidad quick published detail:
  * - Public: `clasificados/anuncio/[id]/page.tsx` → `ComunidadPublishedQuickAd` → `ComunidadQuickAdCanvas` (embedded).
- * - Preview: `publicar/comunidad/quick/preview` → `CommunityQuickPreviewCard` → same canvas (standalone).
+ * - Preview: `publicar/comunidad/quick/preview` → `CommunityQuickPreviewCard` → same shell + canvas as published.
  * - Source: `detail_pairs` + listing row as in Clases mapper.
  */
 import {
