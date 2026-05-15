@@ -25,6 +25,10 @@ import {
 import { rentasLeadSmsBody } from "@/app/clasificados/rentas/shared/rentasLeadContactCopy";
 import { filterRentasLivePropertyRowsForFlow } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
 import { formatRentasTipoDeRentaDisplay, rentasRentalFlowGroupForTipo } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
+import {
+  formatLeonixPreferredContactLine,
+  socialLinksFromChannelsPayload,
+} from "@/app/clasificados/lib/leonixContactChannelsV1";
 
 function trim(s: unknown): string {
   if (s == null) return "";
@@ -364,6 +368,23 @@ function hrefFromUserInput(t: string): string | null {
   return null;
 }
 
+function mergeRentasLiveSocialIdentityLinks(
+  channelRows: Array<{ label: string; href: string }>,
+  legacy: Array<{ label: string; href: string }>,
+): Array<{ label: string; href: string }> {
+  const seen = new Set<string>();
+  const out: Array<{ label: string; href: string }> = [];
+  for (const row of [...channelRows, ...legacy]) {
+    const h = String(row.href ?? "")
+      .trim()
+      .toLowerCase();
+    if (!h || seen.has(h)) continue;
+    seen.add(h);
+    out.push({ label: row.label, href: String(row.href).trim() });
+  }
+  return out;
+}
+
 export function mapRentasListingToPrivadoPreviewVm(
   listing: RentasPublicListing,
   extra: RentasListingDetailExtra,
@@ -388,6 +409,12 @@ export function mapRentasListingToPrivadoPreviewVm(
     lang === "es" ? "Pregunta sobre tu renta (Leonix)" : "Question about your rental (Leonix)",
     rentasLeadSmsBody(lang),
   );
+
+  const ch = listing.contactChannels ?? null;
+  const gateSocial = socialLinksFromChannelsPayload(ch);
+  const websiteHref = ch?.website?.trim() ? ch.website : null;
+  const instructionsLine = [trim(listing.contactNote ?? ""), ch?.instructions?.trim()].filter(Boolean).join("\n\n");
+  const preferredContactLine = formatLeonixPreferredContactLine(ch, lang);
 
   const sellerName = lang === "en" ? extra.sellerDisplayEn : extra.sellerDisplayEs;
   const desc = lang === "en" ? extra.descriptionEn : extra.descriptionEs;
@@ -425,14 +452,17 @@ export function mapRentasListingToPrivadoPreviewVm(
     contactRailTitle: lang === "es" ? "Contacto" : "Contact",
     contact: {
       showSolicitarInfo: Boolean(mailto),
-      showLlamar: Boolean(telHref),
-      showWhatsapp: Boolean(waHref),
-      showSms: Boolean(smsHref),
+      showLlamar: Boolean(telHref && ch?.allowCall !== false),
+      showWhatsapp: Boolean(waHref && ch?.whatsappEnabled !== false),
+      showSms: Boolean(smsHref && ch?.allowSms !== false),
       solicitarInfoHref: mailto,
       llamarHref: telHref,
       whatsappHref: waHref,
       smsHref,
-      instructionsLine: "",
+      instructionsLine,
+      websiteHref,
+      socialLinks: gateSocial.length ? gateSocial : undefined,
+      preferredContactLine: preferredContactLine || undefined,
     },
     location: {
       mapsUrl: mapsUrl || null,
@@ -499,9 +529,24 @@ export function mapRentasListingToNegocioPreviewVm(
   const cityZip = cityStateZipLine(listing);
   const colonia = zonaFromListing(listing);
   const mapsUrl = trim(listing.mapUrl ?? "");
-  const socialLinks =
+  const ch = listing.contactChannels ?? null;
+  const gateSocialIcons = socialLinksFromChannelsPayload(ch);
+  const channelRowsForIdentity = gateSocialIcons.map((sl) => ({
+    label:
+      sl.kind === "instagram"
+        ? "Instagram"
+        : sl.kind === "facebook"
+          ? "Facebook"
+          : sl.kind === "youtube"
+            ? "YouTube"
+            : "TikTok",
+    href: sl.href,
+  }));
+  const redesParsed =
     parseNegocioRedesSocialLinks(listing.businessSocial)?.map((l) => ({ label: l.label, href: l.url })) ?? [];
-  const web = hrefFromUserInput(trim(listing.businessWebsite ?? ""));
+  const socialLinks = mergeRentasLiveSocialIdentityLinks(channelRowsForIdentity, redesParsed);
+  const webFromLegacy = hrefFromUserInput(trim(listing.businessWebsite ?? ""));
+  const web = (ch?.website ?? "").trim() || webFromLegacy;
 
   return {
     publicationType: "",
@@ -542,19 +587,22 @@ export function mapRentasListingToNegocioPreviewVm(
     contact: {
       showSolicitarInfo: Boolean(mailto),
       showProgramarVisita: false,
-      showLlamar: Boolean(telHref),
-      showWhatsapp: Boolean(waHref),
-      showSms: Boolean(smsHref),
+      showLlamar: Boolean(telHref && ch?.allowCall !== false),
+      showWhatsapp: Boolean(waHref && ch?.whatsappEnabled !== false),
+      showSms: Boolean(smsHref && ch?.allowSms !== false),
       solicitarInfoHref: mailto,
       programarVisitaHref: null,
       llamarHref: telHref,
       whatsappHref: waHref,
       smsHref,
-      instructionsLine: trim(listing.contactNote ?? ""),
+      instructionsLine: [trim(listing.contactNote ?? ""), ch?.instructions?.trim()].filter(Boolean).join("\n\n"),
       horarioPreferidoLine: "",
       openHouseSummary: null,
       secondAgent: null,
       lender: null,
+      websiteHref: ch?.website?.trim() ? ch.website : null,
+      socialIconLinks: gateSocialIcons.length ? gateSocialIcons : undefined,
+      preferredContactLine: formatLeonixPreferredContactLine(ch, lang) || undefined,
     },
     deepBlocks: [],
     detailClusters: [],

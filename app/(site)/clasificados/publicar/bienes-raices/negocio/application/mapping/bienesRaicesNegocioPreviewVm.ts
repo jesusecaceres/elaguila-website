@@ -88,6 +88,11 @@ export type BienesRaicesPreviewContactVm = {
   horarioPreferidoLine: string;
   /** Resumen cuando open house está activo y hay datos. */
   openHouseSummary: string | null;
+  /** Gate 12C — optional website (may duplicate identity profile CTA when same URL). */
+  websiteHref?: string | null;
+  /** Gate 12C — structured social icons (Instagram, etc.). */
+  socialIconLinks?: Array<{ kind: "instagram" | "facebook" | "youtube" | "tiktok"; href: string }>;
+  preferredContactLine?: string;
   secondAgent: null | {
     name: string;
     role: string;

@@ -12,6 +12,11 @@ import {
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
+import { parseBusinessMeta } from "@/app/clasificados/config/businessListingContract";
+import {
+  enrichContactChannelsFromBusinessMeta,
+  parseLeonixContactChannelsV1FromDetailPairs,
+} from "@/app/clasificados/lib/leonixContactChannelsV1";
 import {
   filterRentasPhotoUrlList,
   isRentasPlaceholderImageUrl,
@@ -410,6 +415,10 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const sharedSpacePreferences =
     (pairValue(row.detail_pairs, "Preferencias del espacio compartido") ?? "").trim() || undefined;
 
+  const ch0 = parseLeonixContactChannelsV1FromDetailPairs(row.detail_pairs);
+  const bmParsed = parseBusinessMeta(row.business_meta);
+  const contactChannels = enrichContactChannelsFromBusinessMeta(ch0, bmParsed);
+
   return {
     id,
     slug: id,
@@ -425,6 +434,7 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     contactSmsDigits,
     contactWhatsappDigits,
     contactNote,
+    contactChannels,
     addressLine,
     resultBrowseLocation: resultBrowseLocation || undefined,
     city,

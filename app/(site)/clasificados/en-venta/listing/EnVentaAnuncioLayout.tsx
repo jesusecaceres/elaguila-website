@@ -196,8 +196,9 @@ export function EnVentaAnuncioLayout({
         contact_phone: listing.contact_phone,
         contact_email: listing.contact_email,
         business_meta: listing.business_meta ?? null,
+        detail_pairs: listing.detailPairs ?? null,
       }),
-    [listing.sellerType, listing.contact_phone, listing.contact_email, listing.business_meta]
+    [listing.sellerType, listing.contact_phone, listing.contact_email, listing.business_meta, listing.detailPairs],
   );
   const [correoOpen, setCorreoOpen] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -331,8 +332,12 @@ export function EnVentaAnuncioLayout({
   const posted = formatPostedAgo(listing.created_at ?? null, lang);
   const phoneTel = resolvedContact.phoneForTel ? normalizePhoneForTel(String(resolvedContact.phoneForTel)) : "";
   const waDigits = phoneTel ? digitsForWhatsAppLink(phoneTel) : null;
+  const ch12 = resolvedContact.contactChannels;
+  const gateAllowCall = ch12?.allowCall !== false;
+  const gateAllowSms = ch12?.allowSms !== false;
+  const legacyWa = contactChannel === "whatsapp" || contactChannel === "both";
   const showWhatsAppCta =
-    Boolean(waDigits) && (contactChannel === "whatsapp" || contactChannel === "both");
+    Boolean(waDigits) && (ch12?.whatsappEnabled !== false) && (ch12 ? true : legacyWa);
   const email = String(resolvedContact.emailForMailto || "").trim();
 
   /** En Venta detail: one clear primary CTA (WhatsApp when offered, else message, else call). */
@@ -341,7 +346,7 @@ export function EnVentaAnuncioLayout({
       ? "wa"
       : !premiumBr && email
         ? "email"
-        : !premiumBr && phoneTel
+        : !premiumBr && phoneTel && gateAllowCall
           ? "tel"
           : null;
 
@@ -608,12 +613,12 @@ export function EnVentaAnuncioLayout({
                 {listing.contact_phone || listing.contact_email ? (
                   premiumBr ? (
                     <div className="flex flex-wrap gap-2">
-                      {phoneTel ? (
+                      {phoneTel && gateAllowCall ? (
                         <a href={`tel:${phoneTel}`} className={`${BtnBase} ${primary}`}>
                           {lang === "es" ? "Llamar" : "Call"}
                         </a>
                       ) : null}
-                      {phoneTel ? (
+                      {phoneTel && gateAllowSms ? (
                         <a href={`sms:${phoneTel}`} className={`${BtnBase} ${secondary}`}>
                           {lang === "es" ? "Texto" : "Text"}
                         </a>
@@ -659,7 +664,7 @@ export function EnVentaAnuncioLayout({
                           {lang === "es" ? "Enviar mensaje" : "Send message"}
                         </button>
                       ) : null}
-                      {evPrimaryContactKind === "tel" && phoneTel ? (
+                      {evPrimaryContactKind === "tel" && phoneTel && gateAllowCall ? (
                         <a
                           href={`tel:${phoneTel}`}
                           className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-yellow-500 px-4 py-3 text-[15px] font-bold text-black shadow-sm transition hover:bg-yellow-400"
@@ -668,7 +673,7 @@ export function EnVentaAnuncioLayout({
                         </a>
                       ) : null}
                       <div className="flex flex-wrap gap-2">
-                        {phoneTel && evPrimaryContactKind !== "tel" ? (
+                        {phoneTel && evPrimaryContactKind !== "tel" && gateAllowCall ? (
                           <a
                             href={`tel:${phoneTel}`}
                             className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF]"
@@ -676,7 +681,7 @@ export function EnVentaAnuncioLayout({
                             {lang === "es" ? "Llamar" : "Call"}
                           </a>
                         ) : null}
-                        {phoneTel ? (
+                        {phoneTel && gateAllowSms ? (
                           <a
                             href={`sms:${phoneTel}`}
                             className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF]"
@@ -779,7 +784,7 @@ export function EnVentaAnuncioLayout({
         </div>
       </section>
 
-      {premiumBr && phoneTel ? (
+      {premiumBr && phoneTel && gateAllowCall ? (
         <div className="fixed inset-x-0 bottom-0 z-40 flex gap-2 border-t border-[#E8DFD0]/90 bg-[#FFFCF7]/95 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-18px_52px_-20px_rgba(42,36,22,0.22)] backdrop-blur-md lg:hidden">
           <a href={`tel:${phoneTel}`} className={`${brLuxuryBtnPrimaryClass} flex-1 text-center text-[13px]`}>
             {lang === "es" ? "Llamar" : "Call"}

@@ -15,10 +15,15 @@ import type { RentasServicioIncluidoId } from "@/app/clasificados/rentas/shared/
 import { coerceRentasPostalDigits5 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import type { RentasTipoDeRentaId } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 import { coerceRentasTipoDeRentaId } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
+import type { LeonixContactChannelsFormSlice } from "@/app/clasificados/lib/leonixContactChannelsV1";
+import {
+  createEmptyLeonixContactChannelsFormSlice,
+  mergePartialLeonixContactChannelsFormSlice,
+} from "@/app/clasificados/lib/leonixContactChannelsV1";
 
 export type { RentasServicioIncluidoId } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 
-export const RENTAS_PRIVADO_FORM_VERSION = 3 as const;
+export const RENTAS_PRIVADO_FORM_VERSION = 4 as const;
 
 export type RentasPlazoContratoCodigo =
   | ""
@@ -136,6 +141,8 @@ export type RentasPrivadoFormState = {
   confirmListingAccurate: boolean;
   confirmPhotosRepresentItem: boolean;
   confirmCommunityRules: boolean;
+  /** Gate 12C — optional website, socials, channel toggles, preferred contact (not persisted separately from publish payload). */
+  contactChannels: LeonixContactChannelsFormSlice;
 };
 
 const MAX_PHOTOS = 8;
@@ -293,6 +300,7 @@ export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
     confirmListingAccurate: br.confirmListingAccurate,
     confirmPhotosRepresentItem: br.confirmPhotosRepresentItem,
     confirmCommunityRules: br.confirmCommunityRules,
+    contactChannels: createEmptyLeonixContactChannelsFormSlice(),
   };
 }
 
@@ -492,6 +500,10 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
         : br.confirmPhotosRepresentItem,
     confirmCommunityRules:
       typeof partial.confirmCommunityRules === "boolean" ? partial.confirmCommunityRules : br.confirmCommunityRules,
+    contactChannels: mergePartialLeonixContactChannelsFormSlice(
+      createEmptyRentasPrivadoFormState().contactChannels,
+      partial.contactChannels as Partial<LeonixContactChannelsFormSlice> | undefined,
+    ),
   };
 }
 

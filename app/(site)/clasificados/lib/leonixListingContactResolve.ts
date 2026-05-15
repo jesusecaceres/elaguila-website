@@ -1,11 +1,18 @@
 import { parseBusinessMeta } from "@/app/clasificados/config/businessListingContract";
-
+import {
+  enrichContactChannelsFromBusinessMeta,
+  parseLeonixContactChannelsV1FromDetailPairs,
+  socialLinksFromChannelsPayload,
+  type LeonixContactChannelsV1Payload,
+  type LeonixPublicSocialLink,
+} from "@/app/clasificados/lib/leonixContactChannelsV1";
 type Args = {
   sellerType?: string;
   seller_type?: string;
   contact_phone?: string | null;
   contact_email?: string | null;
   business_meta?: string | null;
+  detail_pairs?: unknown;
 };
 
 /**
@@ -16,6 +23,8 @@ export function resolveLeonixLiveListingContact(listing: Args): {
   phoneForTel: string | null;
   emailForMailto: string | null;
   website: string | null;
+  contactChannels: LeonixContactChannelsV1Payload | null;
+  socialLinks: LeonixPublicSocialLink[];
 } {
   const meta = parseBusinessMeta(listing.business_meta);
   const isBiz = listing.sellerType === "business" || listing.seller_type === "business";
@@ -27,7 +36,10 @@ export function resolveLeonixLiveListingContact(listing: Args): {
   const phoneForTel = (isBiz ? office || rowPhone : rowPhone) || null;
   const emailForMailto = (isBiz ? agentEmail || rowEmail : rowEmail) || null;
   const site = meta?.negocioSitioWeb?.trim() ?? "";
-  const website = site || null;
+  const ch = enrichContactChannelsFromBusinessMeta(parseLeonixContactChannelsV1FromDetailPairs(listing.detail_pairs), meta);
+  const siteFromChannels = ch?.website?.trim() ?? "";
+  const website = (siteFromChannels || site || null) as string | null;
+  const socialLinks = socialLinksFromChannelsPayload(ch);
 
-  return { phoneForTel, emailForMailto, website };
+  return { phoneForTel, emailForMailto, website, contactChannels: ch, socialLinks };
 }

@@ -25,6 +25,11 @@ import {
 } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
 import type { RentasPrivadoFormState } from "../../schema/rentasPrivadoFormState";
 import { rentasLeadSmsBody, RENTAS_LEAD_MESSAGE_ES } from "@/app/clasificados/rentas/shared/rentasLeadContactCopy";
+import {
+  buildLeonixContactChannelsV1PayloadFromFormSlice,
+  formatLeonixPreferredContactLine,
+  socialLinksFromChannelsPayload,
+} from "@/app/clasificados/lib/leonixContactChannelsV1";
 import type { BienesRaicesPreviewFact, BienesRaicesPreviewQuickFactVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 
 function trim(s: string): string {
@@ -190,6 +195,12 @@ export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): Bie
       ? `mailto:${trim(s.seller.correo)}?subject=${encodeURIComponent("Pregunta sobre tu renta (Leonix)")}&body=${encodeURIComponent(RENTAS_LEAD_MESSAGE_ES)}`
       : null;
 
+  const ch = buildLeonixContactChannelsV1PayloadFromFormSlice(s.contactChannels, {
+    instructionsNote: s.seller.notaContacto,
+  });
+  const socialLinks = socialLinksFromChannelsPayload(ch);
+  const preferredContactLine = formatLeonixPreferredContactLine(ch, "es");
+
   const highlightsRows = base.highlightsRows.map((r) => ({
     ...r,
     value: trim(r.value) === "✓" ? "Sí" : r.value,
@@ -218,12 +229,15 @@ export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): Bie
       solicitarInfoHref: mailto,
       showSolicitarInfo: Boolean(mailto),
       llamarHref: telHref,
-      showLlamar: Boolean(telHref),
+      showLlamar: Boolean(telHref) && ch?.allowCall !== false,
       whatsappHref: waHref,
-      showWhatsapp: Boolean(waHref),
+      showWhatsapp: Boolean(waHref) && ch?.whatsappEnabled !== false,
       smsHref,
-      showSms: Boolean(smsHref),
-      instructionsLine: "",
+      showSms: Boolean(smsHref) && ch?.allowSms !== false,
+      instructionsLine: ch?.instructions?.trim() ?? "",
+      websiteHref: ch?.website ?? null,
+      socialLinks: socialLinks.length ? socialLinks : undefined,
+      preferredContactLine: preferredContactLine || undefined,
     },
     location: {
       ...base.location,

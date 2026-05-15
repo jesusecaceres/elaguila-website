@@ -23,6 +23,7 @@ import {
   resolveBrPreviewLang,
 } from "@/app/clasificados/bienes-raices/preview/bienesRaicesPreviewViewI18n";
 import type { BienesRaicesPrivadoPreviewVm } from "./model/bienesRaicesPrivadoPreviewVm";
+import { FaFacebook, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa";
 
 const IVORY = "#F9F6F1";
 const CREAM_CARD = "#FDFBF7";
@@ -785,6 +786,63 @@ export function BienesRaicesPrivadoPreviewView({
                   >
                     {ui.enviarTexto}
                   </a>
+                ) : null}
+                {vm.contact.preferredContactLine ? (
+                  <p className="text-center text-[11px] leading-relaxed text-[#d8cfc3]">{vm.contact.preferredContactLine}</p>
+                ) : null}
+                {vm.contact.websiteHref ? (
+                  <a
+                    href={vm.contact.websiteHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={trackContact}
+                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
+                    style={{ borderColor: "rgba(197,160,89,0.45)" }}
+                  >
+                    {ui.masInformacion}
+                  </a>
+                ) : null}
+                {(vm.contact.socialLinks?.length ?? 0) > 0 ? (
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {(vm.contact.socialLinks ?? []).map((sl) => {
+                      const href = sl.href.trim();
+                      const ring =
+                        "inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border text-[#F5F0E8] transition hover:bg-white/10";
+                      const b = "rgba(245,240,232,0.2)";
+                      const icon =
+                        sl.kind === "instagram" ? (
+                          <FaInstagram className="h-4 w-4" aria-hidden />
+                        ) : sl.kind === "facebook" ? (
+                          <FaFacebook className="h-4 w-4" aria-hidden />
+                        ) : sl.kind === "youtube" ? (
+                          <FaYoutube className="h-4 w-4" aria-hidden />
+                        ) : (
+                          <FaTiktok className="h-4 w-4" aria-hidden />
+                        );
+                      const label =
+                        sl.kind === "instagram"
+                          ? "Instagram"
+                          : sl.kind === "facebook"
+                            ? "Facebook"
+                            : sl.kind === "youtube"
+                              ? "YouTube"
+                              : "TikTok";
+                      return (
+                        <a
+                          key={`${sl.kind}-${href}`}
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={trackContact}
+                          className={ring}
+                          style={{ borderColor: b }}
+                          aria-label={label}
+                        >
+                          {icon}
+                        </a>
+                      );
+                    })}
+                  </div>
                 ) : null}
                 {(vm.location.line1 || vm.location.cityStateZip || vm.location.mapsUrl) ? (
                   <div className="mt-1 rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.15)" }}>

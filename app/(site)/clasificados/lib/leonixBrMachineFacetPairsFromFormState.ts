@@ -15,6 +15,11 @@ import { normalizeZipForBrowse } from "@/app/clasificados/rentas/shared/rentasLo
 import { mergePartialBienesRaicesPrivadoState } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import type { BrResultsPropertyKind } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import {
+  buildLeonixContactChannelsV1PayloadFromFormSlice,
+  LEONIX_DP_CONTACT_CHANNELS_V1,
+  serializeLeonixContactChannelsV1Payload,
+} from "@/app/clasificados/lib/leonixContactChannelsV1";
+import {
   LEONIX_DP_BATHROOMS_COUNT,
   LEONIX_DP_BEDROOMS_COUNT,
   LEONIX_DP_FURNISHED,
@@ -174,6 +179,10 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(
 
   pushHighlightSlugsForPrivado(state, out);
   if (state.mostrarDireccionExacta) push(out, LEONIX_DP_BR_SHOW_EXACT_ADDRESS, true);
+  const chPr = buildLeonixContactChannelsV1PayloadFromFormSlice(state.contactChannels, {
+    instructionsNote: state.seller.notaContacto,
+  });
+  if (chPr) push(out, LEONIX_DP_CONTACT_CHANNELS_V1, serializeLeonixContactChannelsV1Payload(chPr));
   return out;
 }
 
@@ -216,5 +225,31 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesNegocioState(
   if (uniqHp.length) push(out, LEONIX_DP_HIGHLIGHT_SLUGS, uniqHp.join(","));
 
   if (state.mostrarDireccionExacta) push(out, LEONIX_DP_BR_SHOW_EXACT_ADDRESS, true);
+  const adv = state.advertiserType;
+  const fbWeb =
+    adv === "agente_individual"
+      ? String(state.identityAgente.sitioWeb ?? "").trim()
+      : adv === "equipo_agentes"
+        ? String(state.identityEquipo.sitioWeb ?? "").trim()
+        : adv === "oficina_brokerage"
+          ? String(state.identityOficina.sitioWeb ?? "").trim()
+          : adv === "constructor_desarrollador"
+            ? String(state.identityConstructor.sitioWeb ?? "").trim()
+            : "";
+  const fbNote =
+    adv === "agente_individual"
+      ? String(state.identityAgente.bio ?? "").trim()
+      : adv === "equipo_agentes"
+        ? String(state.identityEquipo.bio ?? "").trim()
+        : adv === "oficina_brokerage"
+          ? String(state.identityOficina.bio ?? "").trim()
+          : adv === "constructor_desarrollador"
+            ? String(state.identityConstructor.descripcionProyecto ?? "").trim()
+            : "";
+  const chN = buildLeonixContactChannelsV1PayloadFromFormSlice(state.contactChannels, {
+    fallbackWebsite: fbWeb,
+    instructionsNote: fbNote || String(state.cta.instruccionesContacto ?? "").trim(),
+  });
+  if (chN) push(out, LEONIX_DP_CONTACT_CHANNELS_V1, serializeLeonixContactChannelsV1Payload(chN));
   return out;
 }

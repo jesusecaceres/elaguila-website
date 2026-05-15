@@ -3,6 +3,11 @@
  * Human-readable rows still come from preview VM builders; these pairs are stable for parsers/filters.
  */
 
+import {
+  LEONIX_DP_CONTACT_CHANNELS_V1,
+  buildLeonixContactChannelsV1PayloadFromFormSlice,
+  serializeLeonixContactChannelsV1Payload,
+} from "@/app/clasificados/lib/leonixContactChannelsV1";
 import type { RentasNegocioFormState } from "@/app/clasificados/publicar/rentas/negocio/schema/rentasNegocioFormState";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
 import {
@@ -138,6 +143,10 @@ export function mergeRentasPrivadoMachinePairs(
   if (Number.isFinite(half) && half > 0) push(out, RENTAS_DP_HALF_BATHS_COUNT, String(half));
   const sms = digitsOnly15(state.seller.mensajesTexto ?? "");
   if (sms.length >= 10) push(out, RENTAS_DP_CONTACT_SMS_DIGITS, sms);
+  const ch = buildLeonixContactChannelsV1PayloadFromFormSlice(state.contactChannels, {
+    instructionsNote: state.seller.notaContacto,
+  });
+  if (ch) push(out, LEONIX_DP_CONTACT_CHANNELS_V1, serializeLeonixContactChannelsV1Payload(ch));
   return out;
 }
 
@@ -160,5 +169,10 @@ export function mergeRentasNegocioMachinePairs(
   if (smsN.length >= 10) push(out, RENTAS_DP_CONTACT_SMS_DIGITS, smsN);
   const waN = digitsOnly15(state.negocioWhatsapp ?? "");
   if (waN.length >= 10) push(out, RENTAS_DP_CONTACT_WHATSAPP_DIGITS, waN);
+  const chN = buildLeonixContactChannelsV1PayloadFromFormSlice(state.contactChannels, {
+    fallbackWebsite: state.negocioSitioWeb,
+    instructionsNote: state.negocioBio,
+  });
+  if (chN) push(out, LEONIX_DP_CONTACT_CHANNELS_V1, serializeLeonixContactChannelsV1Payload(chN));
   return out;
 }

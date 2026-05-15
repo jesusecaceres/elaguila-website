@@ -17,6 +17,7 @@ import {
   RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
+import { Gate12cContactChannelsFields } from "@/app/clasificados/publicar/shared/Gate12cContactChannelsFields";
 import { RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL } from "@/app/clasificados/rentas/shared/rentasResidencialHighlightFormVisuals";
 import {
   AiField,
@@ -765,6 +766,15 @@ export function RentasPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, seller: { ...s.seller, notaContacto: e.target.value } }))}
                 />
               </AiField>
+            </div>
+            <div className="sm:col-span-2 mt-2 border-t border-black/10 pt-5">
+              <Gate12cContactChannelsFields
+                lang="es"
+                value={state.contactChannels}
+                onChange={(next) => setState((s) => ({ ...s, contactChannels: next }))}
+                fieldClass={fieldClass}
+                titleClass={aiTitleClass}
+              />
             </div>
           </div>
         </section>

@@ -22,6 +22,11 @@ import type {
   BienesRaicesListingStatus,
   DeepDetailGroupKey,
 } from "../schema/bienesRaicesNegocioFormState";
+import {
+  buildLeonixContactChannelsV1PayloadFromFormSlice,
+  formatLeonixPreferredContactLine,
+  socialLinksFromChannelsPayload,
+} from "@/app/clasificados/lib/leonixContactChannelsV1";
 import { syncNegocioListingFieldsFromPublication } from "../schema/bienesRaicesNegocioFormState";
 import { deepDetailGroupsForPublication } from "../schema/brNegocioBranching";
 import { BR_DEEP_FIELD_LABELS, BR_DEEP_HEADINGS } from "../schema/brDeepDetailMeta";
@@ -601,6 +606,13 @@ function buildWhatsappHref(phone: string, message: string): string | null {
   return `https://wa.me/${d}?text=${encodeURIComponent(text)}`;
 }
 
+function buildSmsHref(phone: string): string | null {
+  const d = digitsForDial(phone);
+  if (d.length < 10) return null;
+  const body = "Hola, vi su anuncio en Leonix Clasificados y me gustaría más información.";
+  return `sms:${d}?body=${encodeURIComponent(body)}`;
+}
+
 function buildContactVm(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPreviewVm["contact"] {
   const adv = s.advertiserType;
   const email = primaryEmail(s, adv);
@@ -615,23 +627,54 @@ function buildContactVm(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPre
   );
   const llamarHref = buildTelHref(phone);
   const whatsappHref = buildWhatsappHref(phone, trim(s.cta.mensajePrellenado));
+  const smsHref = buildSmsHref(phone);
+
+  const fbWeb =
+    adv === "agente_individual"
+      ? trim(s.identityAgente.sitioWeb)
+      : adv === "equipo_agentes"
+        ? trim(s.identityEquipo.sitioWeb)
+        : adv === "oficina_brokerage"
+          ? trim(s.identityOficina.sitioWeb)
+          : adv === "constructor_desarrollador"
+            ? trim(s.identityConstructor.sitioWeb)
+            : "";
+  const fbNote =
+    adv === "agente_individual"
+      ? trim(s.identityAgente.bio)
+      : adv === "equipo_agentes"
+        ? trim(s.identityEquipo.bio)
+        : adv === "oficina_brokerage"
+          ? trim(s.identityOficina.bio)
+          : adv === "constructor_desarrollador"
+            ? trim(s.identityConstructor.descripcionProyecto)
+            : "";
+  const ch = buildLeonixContactChannelsV1PayloadFromFormSlice(s.contactChannels, {
+    fallbackWebsite: fbWeb,
+    instructionsNote: fbNote || trim(s.cta.instruccionesContacto),
+  });
+  const socialIconLinks = socialLinksFromChannelsPayload(ch);
+  const preferredContactLine = formatLeonixPreferredContactLine(ch, "es");
 
   return {
     showSolicitarInfo: Boolean(s.cta.permitirSolicitarInfo && solicitarInfoHref),
     showProgramarVisita: Boolean(s.cta.permitirProgramarVisita && programarVisitaHref),
-    showLlamar: Boolean(s.cta.permitirLlamar && llamarHref),
-    showWhatsapp: Boolean(s.cta.permitirWhatsapp && whatsappHref),
-    showSms: false,
+    showLlamar: Boolean(s.cta.permitirLlamar && llamarHref && ch?.allowCall !== false),
+    showWhatsapp: Boolean(s.cta.permitirWhatsapp && whatsappHref && ch?.whatsappEnabled !== false),
+    showSms: Boolean(smsHref && ch?.allowSms !== false),
     solicitarInfoHref,
     programarVisitaHref,
     llamarHref,
     whatsappHref,
-    smsHref: null,
-    instructionsLine: trim(s.cta.instruccionesContacto),
+    smsHref,
+    instructionsLine: [trim(s.cta.instruccionesContacto), ch?.instructions?.trim()].filter(Boolean).join("\n\n"),
     horarioPreferidoLine: trim(s.cta.horarioPreferido),
     openHouseSummary: buildOpenHouseSummary(s),
     secondAgent: buildSecondAgentVm(s),
     lender: buildLenderVm(s),
+    websiteHref: ch?.website ?? null,
+    socialIconLinks: socialIconLinks.length ? socialIconLinks : undefined,
+    preferredContactLine: preferredContactLine || undefined,
   };
 }
 

@@ -10,6 +10,7 @@ import {
   brSubTitleClass,
   brTextareaClass,
 } from "./brFormPrimitives";
+import { Gate12cContactChannelsFields } from "@/app/clasificados/publicar/shared/Gate12cContactChannelsFields";
 
 export function ContactoCtasNegocioSection({
   state,
@@ -142,6 +143,15 @@ export function ContactoCtasNegocioSection({
             </div>
           </div>
         ) : null}
+      </div>
+      <div className="mt-8 border-t border-[#E8DFD0] pt-6">
+        <Gate12cContactChannelsFields
+          lang="es"
+          value={state.contactChannels}
+          onChange={(next) => setState((s) => ({ ...s, contactChannels: next }))}
+          fieldClass={brInputClass}
+          titleClass={brSectionTitleClass}
+        />
       </div>
     </section>
   );

@@ -129,6 +129,7 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
       bio: s.negocioBio,
       segundoAgenteActivo: false,
     },
+    contactChannels: s.contactChannels,
     cta: {
       permitirSolicitarInfo: true,
       permitirProgramarVisita: false,

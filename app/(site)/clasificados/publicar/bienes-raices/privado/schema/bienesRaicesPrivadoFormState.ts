@@ -15,8 +15,13 @@ import {
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 import type { TipoPropiedadCodigo } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteResidencialTipoMeta";
 import { normalizeResidencialTipoPropiedadCodigo } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteResidencialTipoMeta";
+import type { LeonixContactChannelsFormSlice } from "@/app/clasificados/lib/leonixContactChannelsV1";
+import {
+  createEmptyLeonixContactChannelsFormSlice,
+  mergePartialLeonixContactChannelsFormSlice,
+} from "@/app/clasificados/lib/leonixContactChannelsV1";
 
-export const BR_PRIVADO_FORM_VERSION = 1 as const;
+export const BR_PRIVADO_FORM_VERSION = 2 as const;
 
 /** Structured for `Leonix:pets_allowed` + resultados filter (required before publish). */
 export type BrPetsAllowedChoice = "" | "yes" | "no";
@@ -154,6 +159,7 @@ export type BienesRaicesPrivadoFormState = {
   confirmListingAccurate: boolean;
   confirmPhotosRepresentItem: boolean;
   confirmCommunityRules: boolean;
+  contactChannels: LeonixContactChannelsFormSlice;
 };
 
 const MAX_PHOTOS = 8;
@@ -229,6 +235,7 @@ export function createEmptyBienesRaicesPrivadoFormState(): BienesRaicesPrivadoFo
     confirmListingAccurate: false,
     confirmPhotosRepresentItem: false,
     confirmCommunityRules: false,
+    contactChannels: createEmptyLeonixContactChannelsFormSlice(),
   };
 }
 
@@ -317,5 +324,9 @@ export function mergePartialBienesRaicesPrivadoState(
         : base.confirmPhotosRepresentItem,
     confirmCommunityRules:
       typeof partial.confirmCommunityRules === "boolean" ? partial.confirmCommunityRules : base.confirmCommunityRules,
+    contactChannels: mergePartialLeonixContactChannelsFormSlice(
+      base.contactChannels,
+      partial.contactChannels as Partial<LeonixContactChannelsFormSlice> | undefined,
+    ),
   };
 }

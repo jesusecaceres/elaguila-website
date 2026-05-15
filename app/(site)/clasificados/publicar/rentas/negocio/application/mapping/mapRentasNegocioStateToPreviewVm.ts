@@ -28,6 +28,7 @@ import {
 import type { RentasNegocioFormState } from "../../schema/rentasNegocioFormState";
 import { rentasLeadSmsBody, RENTAS_LEAD_MESSAGE_ES } from "@/app/clasificados/rentas/shared/rentasLeadContactCopy";
 import { rentasNegocioToBienesRaicesNegocioState } from "./rentasNegocioToBienesRaicesNegocioState";
+import { buildLeonixContactChannelsV1PayloadFromFormSlice } from "@/app/clasificados/lib/leonixContactChannelsV1";
 
 function trim(s: string): string {
   return String(s ?? "").trim();
@@ -145,6 +146,11 @@ export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): Bie
   const waRaw = trim(s.negocioWhatsapp) || primaryPhoneRaw;
   const waHref = waHrefFromPhoneDisplay(waRaw);
 
+  const ch = buildLeonixContactChannelsV1PayloadFromFormSlice(s.contactChannels, {
+    fallbackWebsite: trim(s.negocioSitioWeb),
+    instructionsNote: trim(s.negocioBio),
+  });
+
   const exact = s.mostrarDireccionExacta !== false;
   const cross = trim(s.direccionCruceCercano);
   const line1 = exact ? buildRentasStreetLine(s) : cross;
@@ -180,11 +186,11 @@ export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): Bie
     contact: {
       ...vm.contact,
       llamarHref: telHref ?? vm.contact.llamarHref,
-      showLlamar: Boolean(telHref ?? vm.contact.llamarHref),
       whatsappHref: waHref ?? vm.contact.whatsappHref,
-      showWhatsapp: Boolean(waHref ?? vm.contact.whatsappHref),
-      showSms: Boolean(smsHref),
       smsHref: smsHref ?? vm.contact.smsHref,
+      showLlamar: Boolean((telHref ?? vm.contact.llamarHref) && (ch?.allowCall ?? true)),
+      showWhatsapp: Boolean((waHref ?? vm.contact.whatsappHref) && (ch?.whatsappEnabled ?? true)),
+      showSms: Boolean((smsHref ?? vm.contact.smsHref) && (ch?.allowSms ?? true)),
     },
     location: {
       ...vm.location,

@@ -3,6 +3,7 @@
  */
 
 import type { BienesRaicesNegocioFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState";
+import { buildGate12cNegocioMetaOverlayFromRentasNegocio } from "@/app/clasificados/lib/leonixContactChannelsV1";
 
 function trim(s: unknown): string {
   if (s == null) return "";
@@ -86,6 +87,35 @@ export function buildBusinessMetaJsonFromBienesRaicesNegocioState(s: BienesRaice
   const fin = s.asesorFinanciero;
   if (trim(fin.nombre)) {
     meta.negocioSocioFinanciero = [trim(fin.nombre), trim(fin.compania), trim(fin.telefono), trim(fin.email)].filter(Boolean).join(" · ");
+  }
+
+  const fbWeb =
+    adv === "agente_individual"
+      ? trim(s.identityAgente.sitioWeb)
+      : adv === "equipo_agentes"
+        ? trim(s.identityEquipo.sitioWeb)
+        : adv === "oficina_brokerage"
+          ? trim(s.identityOficina.sitioWeb)
+          : adv === "constructor_desarrollador"
+            ? trim(s.identityConstructor.sitioWeb)
+            : "";
+  const fbBio =
+    adv === "agente_individual"
+      ? trim(s.identityAgente.bio)
+      : adv === "equipo_agentes"
+        ? trim(s.identityEquipo.bio)
+        : adv === "oficina_brokerage"
+          ? trim(s.identityOficina.bio)
+          : adv === "constructor_desarrollador"
+            ? trim(s.identityConstructor.descripcionProyecto)
+            : "";
+  const gate = buildGate12cNegocioMetaOverlayFromRentasNegocio({
+    contactChannels: s.contactChannels,
+    negocioSitioWeb: fbWeb,
+    negocioBio: fbBio || trim(s.cta.instruccionesContacto),
+  });
+  for (const [k, v] of Object.entries(gate)) {
+    if (v) meta[k] = v;
   }
 
   return Object.keys(meta).length ? JSON.stringify(meta) : null;

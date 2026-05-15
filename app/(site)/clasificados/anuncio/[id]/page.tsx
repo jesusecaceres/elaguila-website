@@ -494,8 +494,18 @@ export default function AnuncioDetallePage() {
   }, [listing?.id, sampleListing]);
 
   const leonixLiveContact = useMemo(
-    () => (listing ? resolveLeonixLiveListingContact(listing as Listing & { business_meta?: string | null }) : null),
-    [listing]
+    () =>
+      listing
+        ? resolveLeonixLiveListingContact({
+            sellerType: listing.sellerType,
+            seller_type: listing.sellerType,
+            contact_phone: listing.contact_phone,
+            contact_email: listing.contact_email,
+            business_meta: listing.business_meta ?? null,
+            detail_pairs: listing.detailPairs,
+          })
+        : null,
+    [listing],
   );
 
   const rentasLiveContactExtras = useMemo(() => {
@@ -2153,6 +2163,12 @@ export default function AnuncioDetallePage() {
                       ? rentasLiveContactExtras?.mapsUrl || (listing as any)?.mapsUrl
                       : communityQuickContactExtras?.mapsUrl || (listing as any)?.mapsUrl
                   }
+                  allowCall={listing?.category === "rentas" ? leonixLiveContact?.contactChannels?.allowCall !== false : undefined}
+                  allowSms={listing?.category === "rentas" ? leonixLiveContact?.contactChannels?.allowSms !== false : undefined}
+                  whatsappEnabled={
+                    listing?.category === "rentas" ? leonixLiveContact?.contactChannels?.whatsappEnabled !== false : undefined
+                  }
+                  socialLinks={listing?.category === "rentas" ? leonixLiveContact?.socialLinks : undefined}
                   listingId={listing?.id}
                   listingCategory={listing?.category}
                   ownerUserId={(listing as any)?.owner_id ?? null}

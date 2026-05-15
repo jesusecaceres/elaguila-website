@@ -36,6 +36,11 @@ export type BienesRaicesPrivadoContactRailVm = {
   whatsappHref: string | null;
   smsHref: string | null;
   instructionsLine: string;
+  /** Gate 12C — optional website CTA */
+  websiteHref?: string | null;
+  /** Gate 12C — normalized social profile links */
+  socialLinks?: Array<{ kind: "instagram" | "facebook" | "youtube" | "tiktok"; href: string }>;
+  preferredContactLine?: string;
 };
 
 export type BienesRaicesPrivadoLocationVm = {

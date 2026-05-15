@@ -4,6 +4,11 @@
  */
 
 import type { BrPetsAllowedChoice } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
+import type { LeonixContactChannelsFormSlice } from "@/app/clasificados/lib/leonixContactChannelsV1";
+import {
+  createEmptyLeonixContactChannelsFormSlice,
+  mergePartialLeonixContactChannelsFormSlice,
+} from "@/app/clasificados/lib/leonixContactChannelsV1";
 
 export type BienesRaicesAdvertiserType =
   | ""
@@ -273,6 +278,9 @@ export type BienesRaicesNegocioFormState = {
     confirmarReglas: boolean;
     confirmarAutorizacion: boolean;
   };
+
+  /** Gate 12C — optional website/social URLs + channel toggles (shared with Rentas negocio contract). */
+  contactChannels: LeonixContactChannelsFormSlice;
 };
 
 const REDES_SLOTS = 5;
@@ -591,6 +599,7 @@ export function createEmptyBienesRaicesNegocioFormState(): BienesRaicesNegocioFo
       openHouseFin: "",
       openHouseNotas: "",
     },
+    contactChannels: createEmptyLeonixContactChannelsFormSlice(),
     trust: {
       mostrarLicencia: true,
       mostrarBrokerage: true,
@@ -762,6 +771,10 @@ export function mergePartialBienesRaicesNegocioState(partial: LegacyPartial): Bi
     segundoAgente: { ...base.segundoAgente, ...partial.segundoAgente },
     asesorFinanciero: { ...base.asesorFinanciero, ...partial.asesorFinanciero },
     cta: { ...base.cta, ...partial.cta },
+    contactChannels: mergePartialLeonixContactChannelsFormSlice(
+      base.contactChannels,
+      partial.contactChannels as Partial<LeonixContactChannelsFormSlice> | undefined,
+    ),
     trust: { ...base.trust, ...partial.trust },
     petsAllowed: coerceNegocioPetsAllowed(
       (partial as Partial<BienesRaicesNegocioFormState>).petsAllowed,

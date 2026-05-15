@@ -17,6 +17,11 @@ import { previewWhatsappClickHref } from "@/app/clasificados/publicar/bienes-rai
 import type { BienesRaicesPrivadoFormState } from "../../schema/bienesRaicesPrivadoFormState";
 import type { BienesRaicesPreviewFact, BienesRaicesPreviewMediaVm, BienesRaicesPreviewQuickFactVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { sanitizeLeonixListingPublishDescriptionBody } from "@/app/clasificados/lib/leonixPublishPublicDescription";
+import {
+  buildLeonixContactChannelsV1PayloadFromFormSlice,
+  formatLeonixPreferredContactLine,
+  socialLinksFromChannelsPayload,
+} from "@/app/clasificados/lib/leonixContactChannelsV1";
 
 function trim(s: string): string {
   return String(s ?? "").trim();
@@ -374,6 +379,12 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
   const waDisp = trim(s.seller.whatsapp) ? formatUsPhoneDisplay(digitsOnly(s.seller.whatsapp)) : "";
   const smsDisp = trim(s.seller.mensajesTexto) ? formatUsPhoneDisplay(digitsOnly(s.seller.mensajesTexto)) : "";
 
+  const ch = buildLeonixContactChannelsV1PayloadFromFormSlice(s.contactChannels, {
+    instructionsNote: s.seller.notaContacto,
+  });
+  const socialLinks = socialLinksFromChannelsPayload(ch);
+  const preferredContactLine = formatLeonixPreferredContactLine(ch, "es");
+
   return {
     categoria: cat,
     platformLogoUrl: resolvePlatformLogoUrl(),
@@ -404,14 +415,17 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(s: BienesRaicesPrivadoFor
     contactRailTitle: "Contacto",
     contact: {
       showSolicitarInfo: Boolean(mailto),
-      showLlamar: Boolean(telHref),
-      showWhatsapp: Boolean(waHref),
-      showSms: Boolean(smsHref),
+      showLlamar: Boolean(telHref) && ch?.allowCall !== false,
+      showWhatsapp: Boolean(waHref) && ch?.whatsappEnabled !== false,
+      showSms: Boolean(smsHref) && ch?.allowSms !== false,
       solicitarInfoHref: mailto,
       llamarHref: telHref,
       whatsappHref: waHref,
       smsHref,
-      instructionsLine: "",
+      instructionsLine: ch?.instructions?.trim() ?? "",
+      websiteHref: ch?.website ?? null,
+      socialLinks: socialLinks.length ? socialLinks : undefined,
+      preferredContactLine: preferredContactLine || undefined,
     },
     location: {
       mapsUrl,

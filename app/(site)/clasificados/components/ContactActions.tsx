@@ -5,6 +5,8 @@ import { useCallback, useState } from "react";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
 import type { CtaActionCallback, CtaSheetIntent } from "@/app/components/cta/types";
 import { trackClasificadosEvent } from "@/app/lib/clasificadosAnalytics";
+import type { LeonixPublicSocialLink } from "@/app/clasificados/lib/leonixContactChannelsV1";
+import { FaFacebook, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa";
 
 type Lang = "es" | "en";
 
@@ -38,6 +40,18 @@ type Props = {
 
   /** Absolute http(s) maps/directions URL */
   mapsUrl?: string | null;
+
+  /** Gate 12C — normalized social profile URLs (Rentas / Bienes Raíces). */
+  socialLinks?: LeonixPublicSocialLink[] | null;
+
+  /** When false, hides call CTA even if phone is present. Default true. */
+  allowCall?: boolean;
+
+  /** When false, hides SMS CTA. Default true. */
+  allowSms?: boolean;
+
+  /** When false, hides WhatsApp CTA. Default true. */
+  whatsappEnabled?: boolean;
 
   /**
    * Deprecated: we no longer render disabled CTAs. Buttons only appear when actionable.
@@ -120,6 +134,10 @@ export default function ContactActions(props: Props) {
 
   const mailSub = String(props.mailtoSubject ?? "").trim();
   const mailBody = String(props.mailtoBody ?? "").trim();
+  const allowCall = props.allowCall !== false;
+  const allowSms = props.allowSms !== false;
+  const whatsappEnabled = props.whatsappEnabled !== false;
+  const socialLinks = (props.socialLinks ?? []).filter((s) => typeof s.href === "string" && /^https:\/\//i.test(s.href.trim()));
   let mailtoHref = "";
   if (email) {
     if (mailSub && mailBody) {
@@ -176,6 +194,10 @@ export default function ContactActions(props: Props) {
           email: "Escribir correo",
           directions: "Ver mapa",
           website: "Sitio web",
+          openInstagram: "Abrir Instagram",
+          openFacebook: "Abrir Facebook",
+          openYoutube: "Abrir YouTube",
+          openTiktok: "Abrir TikTok",
         }
       : {
           call: "Call",
@@ -184,22 +206,66 @@ export default function ContactActions(props: Props) {
           email: "Email",
           directions: "View map",
           website: "Website",
+          openInstagram: "Open Instagram",
+          openFacebook: "Open Facebook",
+          openYoutube: "Open YouTube",
+          openTiktok: "Open TikTok",
         };
 
   const BtnBase = "px-4 py-2 rounded-xl font-semibold transition";
   const secondary = "bg-white/5 border border-white/10 hover:bg-white/10 text-white";
   const primary = "bg-yellow-500 text-black hover:bg-yellow-400";
 
-  const hasAny = Boolean(phoneTel || smsHref || whatsappHref || mailtoHref || mapsUrl || website);
+  const hasAny = Boolean(
+    (phoneTel && allowCall) ||
+      (smsHref && allowSms) ||
+      (whatsappHref && whatsappEnabled) ||
+      mailtoHref ||
+      mapsUrl ||
+      website ||
+      socialLinks.length,
+  );
 
   if (!hasAny) return null;
 
   const phoneForCall = (props.phone ?? phoneTel).trim() || phoneTel;
   const gmailHref = email && isProbablySafeEmail(email) ? gmailComposeUrl(email, mailSub) : null;
 
+  const socialIcon = (sl: LeonixPublicSocialLink) => {
+    const href = sl.href.trim();
+    const base =
+      "inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/15 bg-white/5 text-white shadow-sm transition hover:bg-white/10 sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0";
+    if (sl.kind === "instagram") {
+      return (
+        <a key={href} href={href} target="_blank" rel="noopener noreferrer" className={base} aria-label={labels.openInstagram}>
+          <FaInstagram className="h-4 w-4" aria-hidden />
+        </a>
+      );
+    }
+    if (sl.kind === "facebook") {
+      return (
+        <a key={href} href={href} target="_blank" rel="noopener noreferrer" className={base} aria-label={labels.openFacebook}>
+          <FaFacebook className="h-4 w-4" aria-hidden />
+        </a>
+      );
+    }
+    if (sl.kind === "youtube") {
+      return (
+        <a key={href} href={href} target="_blank" rel="noopener noreferrer" className={base} aria-label={labels.openYoutube}>
+          <FaYoutube className="h-4 w-4" aria-hidden />
+        </a>
+      );
+    }
+    return (
+      <a key={href} href={href} target="_blank" rel="noopener noreferrer" className={base} aria-label={labels.openTiktok}>
+        <FaTiktok className="h-4 w-4" aria-hidden />
+      </a>
+    );
+  };
+
   return (
     <div className={cx("flex flex-wrap gap-2", props.className)}>
-      {phoneTel ? (
+      {phoneTel && allowCall ? (
         <button
           type="button"
           className={cx(BtnBase, primary)}
@@ -215,7 +281,7 @@ export default function ContactActions(props: Props) {
         </button>
       ) : null}
 
-      {smsHref ? (
+      {smsHref && allowSms ? (
         <button
           type="button"
           className={cx(BtnBase, secondary)}
@@ -233,7 +299,7 @@ export default function ContactActions(props: Props) {
         </button>
       ) : null}
 
-      {whatsappHref ? (
+      {whatsappHref && whatsappEnabled ? (
         <button
           type="button"
           className={cx(BtnBase, secondary)}
@@ -301,6 +367,8 @@ export default function ContactActions(props: Props) {
           {labels.website}
         </button>
       ) : null}
+
+      {socialLinks.map((sl) => socialIcon(sl))}
 
       <CtaActionSheet
         open={ctaOpen}

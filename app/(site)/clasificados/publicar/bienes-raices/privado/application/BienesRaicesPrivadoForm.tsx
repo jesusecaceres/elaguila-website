@@ -14,6 +14,7 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { BR_PREVIEW_PRIVADO } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
+import { Gate12cContactChannelsFields } from "@/app/clasificados/publicar/shared/Gate12cContactChannelsFields";
 import {
   AiField,
   aiCardClass,
@@ -732,6 +733,15 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, seller: { ...s.seller, notaContacto: e.target.value } }))}
                 />
               </AiField>
+            </div>
+            <div className="sm:col-span-2 mt-2 border-t border-black/10 pt-5">
+              <Gate12cContactChannelsFields
+                lang="es"
+                value={state.contactChannels}
+                onChange={(next) => setState((s) => ({ ...s, contactChannels: next }))}
+                fieldClass={fieldClass}
+                titleClass={aiTitleClass}
+              />
             </div>
           </div>
         </section>

@@ -26,6 +26,10 @@ import {
 import { inferCategoriaPropiedadFromBienesNegocioState } from "@/app/clasificados/lib/leonixInferCategoriaPropiedad";
 import { buildBusinessMetaJsonFromBienesRaicesNegocioState } from "@/app/clasificados/lib/leonixNegocioBusinessMetaFromFormState";
 import {
+  buildGate12cNegocioMetaOverlayFromRentasNegocio,
+  mergeBusinessMetaJsonWithGate12cOverlay,
+} from "@/app/clasificados/lib/leonixContactChannelsV1";
+import {
   publishLeonixRealEstateListingCore,
   type PublishLeonixRealEstateListingCoreParams,
   type PublishLeonixRealEstateListingCoreResult,
@@ -355,7 +359,10 @@ export async function publishLeonixListingFromRentasNegocioDraft(
       ...buildLeonixHighlightSlugPairsFromRentasNegocioNonResidencial(state),
     ],
   });
-  const meta = buildBusinessMetaJsonFromBienesRaicesNegocioState(br);
+  const meta = mergeBusinessMetaJsonWithGate12cOverlay(
+    buildBusinessMetaJsonFromBienesRaicesNegocioState(br),
+    buildGate12cNegocioMetaOverlayFromRentasNegocio(state),
+  );
   const phone = digitsOnly(state.negocioTelDirecto) || digitsOnly(state.negocioTelOficina) || digitsOnly(state.negocioWhatsapp);
   const biz = trim(state.negocioNombre) || trim(state.negocioMarca);
   const muxPid = mux?.muxPlaybackId?.trim() ?? "";

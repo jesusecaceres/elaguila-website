@@ -1,5 +1,6 @@
 import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import type { BrResultsPropertyKind } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import type { LeonixContactChannelsV1Payload } from "@/app/clasificados/lib/leonixContactChannelsV1";
 
 /** How the listing is offered in Leonix Rentas (public surface). */
 export type RentasSellerType = "privado" | "negocio";
@@ -32,6 +33,8 @@ export type RentasPublicListing = {
   contactWhatsappDigits?: string;
   /** Nota breve del contacto para interesados (cuando fue publicada en el formulario). */
   contactNote?: string;
+  /** Gate 12C — parsed `Leonix:contact_channels_v1` + optional `business_meta` enrichment. */
+  contactChannels?: LeonixContactChannelsV1Payload | null;
   addressLine: string;
   /**
    * Privacy-safe location for browse/result cards (city/state · zona). Does not include calle/número.

@@ -28,6 +28,14 @@ export const BUSINESS_META_KEYS = [
   /** Office phone extension (digits or short label), optional. */
   "negocioTelExtension",
   "negocioSitioWeb",
+  "negocioInstagram",
+  "negocioFacebook",
+  "negocioYoutube",
+  "negocioTiktok",
+  "negocioPermiteLlamadas",
+  "negocioPermiteSms",
+  "negocioWhatsappActivo",
+  "negocioContactoPreferido",
   /** Business / agent contact email for listings and public agent profile. */
   "negocioEmail",
   "negocioRedes",

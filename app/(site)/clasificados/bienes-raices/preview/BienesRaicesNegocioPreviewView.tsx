@@ -26,6 +26,7 @@ import {
   resolveBrPreviewLang,
   type NegocioPreviewUi,
 } from "@/app/clasificados/bienes-raices/preview/bienesRaicesPreviewViewI18n";
+import { FaFacebook, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa";
 
 const IVORY = "#F9F6F1";
 const CREAM_CARD = "#FDFBF7";
@@ -390,6 +391,36 @@ function highlightChipText(label: string): string {
   return e ? `${e} ${t}` : t;
 }
 
+function NegocioGate12cSocialIcon({
+  kind,
+  href,
+  onClick,
+}: {
+  kind: "instagram" | "facebook" | "youtube" | "tiktok";
+  href: string;
+  onClick?: () => void;
+}) {
+  const base =
+    "inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border text-[#F5F0E8] shadow-sm transition hover:bg-white/10 sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0";
+  const border = "rgba(245,240,232,0.2)";
+  const icon =
+    kind === "instagram" ? (
+      <FaInstagram className="h-4 w-4" aria-hidden />
+    ) : kind === "facebook" ? (
+      <FaFacebook className="h-4 w-4" aria-hidden />
+    ) : kind === "youtube" ? (
+      <FaYoutube className="h-4 w-4" aria-hidden />
+    ) : (
+      <FaTiktok className="h-4 w-4" aria-hidden />
+    );
+  const label = kind === "instagram" ? "Instagram" : kind === "facebook" ? "Facebook" : kind === "youtube" ? "YouTube" : "TikTok";
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" onClick={onClick} className={base} style={{ borderColor: border }} aria-label={label}>
+      {icon}
+    </a>
+  );
+}
+
 /** Dark contact + ubicación card (Rentas-style) — reused beside hero on duplex layout. */
 function BienesRaicesNegocioDarkContactAside({
   vm,
@@ -491,6 +522,28 @@ function BienesRaicesNegocioDarkContactAside({
             >
               {ui.enviarTexto}
             </a>
+          ) : null}
+          {vm.contact.preferredContactLine ? (
+            <p className="text-center text-[11px] leading-relaxed text-[#d8cfc3]">{vm.contact.preferredContactLine}</p>
+          ) : null}
+          {vm.contact.websiteHref ? (
+            <a
+              href={vm.contact.websiteHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={track}
+              className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
+              style={{ borderColor: "rgba(197,160,89,0.45)" }}
+            >
+              {ui.masInformacion}
+            </a>
+          ) : null}
+          {(vm.contact.socialIconLinks?.length ?? 0) > 0 ? (
+            <div className="flex flex-wrap justify-center gap-2">
+              {(vm.contact.socialIconLinks ?? []).map((sl) => (
+                <NegocioGate12cSocialIcon key={`${sl.kind}-${sl.href}`} kind={sl.kind} href={sl.href} onClick={track} />
+              ))}
+            </div>
           ) : null}
           {(vm.location.line1 || vm.location.colonia || vm.location.cityStateZip || vm.location.mapsUrl) ? (
             <div className="rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.15)" }}>

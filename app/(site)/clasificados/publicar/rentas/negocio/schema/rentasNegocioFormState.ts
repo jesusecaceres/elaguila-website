@@ -20,7 +20,13 @@ import {
   RENTAS_PRIVADO_FORM_VERSION,
 } from "../../privado/schema/rentasPrivadoFormState";
 
-export const RENTAS_NEGOCIO_FORM_VERSION = 4 as const;
+import type { LeonixContactChannelsFormSlice } from "@/app/clasificados/lib/leonixContactChannelsV1";
+import {
+  createEmptyLeonixContactChannelsFormSlice,
+  mergePartialLeonixContactChannelsFormSlice,
+} from "@/app/clasificados/lib/leonixContactChannelsV1";
+
+export const RENTAS_NEGOCIO_FORM_VERSION = 5 as const;
 
 function coerceRentasListingStatus(raw: unknown): RentasPrivadoListingStatus {
   const v = typeof raw === "string" ? raw : "";
@@ -114,6 +120,7 @@ export type RentasNegocioFormState = {
   confirmListingAccurate: boolean;
   confirmPhotosRepresentItem: boolean;
   confirmCommunityRules: boolean;
+  contactChannels: LeonixContactChannelsFormSlice;
 };
 
 export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
@@ -190,6 +197,7 @@ export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
     confirmListingAccurate: p.confirmListingAccurate,
     confirmPhotosRepresentItem: p.confirmPhotosRepresentItem,
     confirmCommunityRules: p.confirmCommunityRules,
+    contactChannels: createEmptyLeonixContactChannelsFormSlice(),
   };
 }
 
@@ -311,5 +319,9 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
         : asPrivado.confirmPhotosRepresentItem,
     confirmCommunityRules:
       typeof partial.confirmCommunityRules === "boolean" ? partial.confirmCommunityRules : asPrivado.confirmCommunityRules,
+    contactChannels: mergePartialLeonixContactChannelsFormSlice(
+      asPrivado.contactChannels,
+      partial.contactChannels as Partial<LeonixContactChannelsFormSlice> | undefined,
+    ),
   };
 }

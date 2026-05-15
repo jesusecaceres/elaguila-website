@@ -63,6 +63,7 @@ export type PrivadoPreviewUi = {
   enviarTexto: string;
   ubicacion: string;
   verEnMapa: string;
+  masInformacion: string;
 };
 
 const PRIVADO_UI: Record<RentasLandingLang, PrivadoPreviewUi> = {
@@ -89,6 +90,7 @@ const PRIVADO_UI: Record<RentasLandingLang, PrivadoPreviewUi> = {
     enviarTexto: "Enviar texto",
     ubicacion: "Ubicación",
     verEnMapa: "Ver en mapa",
+    masInformacion: "Sitio web / Más información",
   },
   en: {
     verMasFotos: "View more photos",
@@ -113,6 +115,7 @@ const PRIVADO_UI: Record<RentasLandingLang, PrivadoPreviewUi> = {
     enviarTexto: "Send text",
     ubicacion: "Location",
     verEnMapa: "View on map",
+    masInformacion: "Website / more information",
   },
 };
 
@@ -156,6 +159,7 @@ export type NegocioPreviewUi = {
   enviarTexto: string;
   ubicacion: string;
   verEnMapa: string;
+  masInformacion: string;
 };
 
 const NEGOCIO_UI: Record<RentasLandingLang, NegocioPreviewUi> = {
@@ -195,6 +199,7 @@ const NEGOCIO_UI: Record<RentasLandingLang, NegocioPreviewUi> = {
     enviarTexto: "Enviar texto",
     ubicacion: "Ubicación",
     verEnMapa: "Ver en mapa",
+    masInformacion: "Sitio web / Más información",
   },
   en: {
     galeriaMultimedia: "Media gallery",
@@ -232,6 +237,7 @@ const NEGOCIO_UI: Record<RentasLandingLang, NegocioPreviewUi> = {
     enviarTexto: "Send text",
     ubicacion: "Location",
     verEnMapa: "View on map",
+    masInformacion: "Website / more information",
   },
 };
 
