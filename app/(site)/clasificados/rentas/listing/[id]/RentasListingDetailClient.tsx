@@ -75,6 +75,8 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
     [listing, extra, lang],
   );
 
+  const leonixAdIdLine = listing.leonixAdId?.trim();
+
   const onContactLinkClick = () => void trackRentasContactClick(listing.id, null);
 
   useEffect(() => {
@@ -153,6 +155,15 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
               {copy.detail.ctaLeonixInquiry}
             </button>
             <p className="mt-2 max-w-xl text-xs leading-relaxed text-[#5C5346]/88">{copy.detail.trustNote}</p>
+          </div>
+        ) : null}
+
+        {leonixAdIdLine ? (
+          <div className="mx-auto mt-6 max-w-[1240px] px-4 sm:px-6 lg:px-8">
+            <p className="break-words text-[11px] leading-relaxed text-[#5C5346]/65">
+              {lang === "es" ? "ID del anuncio: " : "Ad ID: "}
+              <span className="font-mono tracking-tight text-[#5C5346]/80">{leonixAdIdLine}</span>
+            </p>
           </div>
         ) : null}
 

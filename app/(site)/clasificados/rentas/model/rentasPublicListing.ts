@@ -12,6 +12,8 @@ export type RentasPublicListing = {
   id: string;
   /** Future-friendly slug for pretty URLs / SEO. */
   slug?: string;
+  /** Human-readable Leonix reference (`public.listings.leonix_ad_id`), e.g. RENT-2026-000163. */
+  leonixAdId?: string;
   title: string;
   imageUrl: string;
   /** Optional gallery; when absent, UI uses `imageUrl` only. */

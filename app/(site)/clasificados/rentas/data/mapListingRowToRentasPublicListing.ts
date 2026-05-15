@@ -413,6 +413,7 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   return {
     id,
     slug: id,
+    leonixAdId: trim(row.leonix_ad_id as string | undefined) || undefined,
     title,
     imageUrl,
     galleryUrls: gal,
