@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function PublicarClasesQuickPreviewPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#ECEAE7]" aria-busy="true" />}>
+    <Suspense fallback={<div className="min-h-screen bg-[#D9D9D9]" aria-busy="true" />}>
       <ClasesQuickPreviewPageClient />
     </Suspense>
   );

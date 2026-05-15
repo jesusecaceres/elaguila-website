@@ -14,6 +14,7 @@ import { isProListing } from "../../components/planHelpers";
 import { isVerifiedSeller } from "../../components/verifiedSeller";
 import ContactActions from "../../components/ContactActions";
 import { CommunityQuickAnuncioDetail } from "../../community/CommunityQuickAnuncioDetail";
+import { CommunityQuickPublishedDetailPage } from "../../community/CommunityQuickPublishedDetailPage";
 import { ClasesPublishedQuickAd } from "@/app/(site)/publicar/clases/components/ClasesPublishedQuickAd";
 import { ComunidadPublishedQuickAd } from "@/app/(site)/publicar/comunidad/components/ComunidadPublishedQuickAd";
 import { COMMUNITY_ANUNCIO_HERO_FRAME } from "@/app/(site)/clasificados/community/shared/communityAnuncioHeroClasses";
@@ -1060,6 +1061,25 @@ export default function AnuncioDetallePage() {
           </div>
         </section>
       </div>
+    );
+  }
+
+  if (useCommunityQuickWysiwyg && (listing.category === "clases" || listing.category === "comunidad")) {
+    return (
+      <CommunityQuickPublishedDetailPage
+        listing={{
+          id: listing.id,
+          category: listing.category,
+          title: listing.title,
+          priceLabel: listing.priceLabel,
+          city: listing.city,
+          blurb: listing.blurb,
+          detailPairs: listing.detailPairs,
+          owner_id: listing.owner_id ?? null,
+        }}
+        lang={lang}
+        skipAnalytics={Boolean(sampleListing)}
+      />
     );
   }
 

@@ -7,9 +7,25 @@ import { ClasesQuickAdCanvas } from "@/app/(site)/publicar/clases/components/Cla
 import { ComunidadQuickAdCanvas } from "@/app/(site)/publicar/comunidad/components/ComunidadQuickAdCanvas";
 
 export function ClasesQuickPreviewCard({ draft, lang }: { draft: ClasesQuickDraft; lang: Lang }) {
-  return <ClasesQuickAdCanvas draft={draft} lang={lang} shell="standalone" />;
+  return (
+    <ClasesQuickAdCanvas
+      draft={draft}
+      lang={lang}
+      shell="embedded"
+      contactSectionId="contact-actions"
+      heroTestId="community-anuncio-hero"
+    />
+  );
 }
 
 export function ComunidadQuickPreviewCard({ draft, lang }: { draft: ComunidadQuickDraft; lang: Lang }) {
-  return <ComunidadQuickAdCanvas draft={draft} lang={lang} shell="standalone" />;
+  return (
+    <ComunidadQuickAdCanvas
+      draft={draft}
+      lang={lang}
+      shell="embedded"
+      contactSectionId="contact-actions"
+      heroTestId="community-anuncio-hero"
+    />
+  );
 }

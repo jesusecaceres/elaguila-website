@@ -98,13 +98,14 @@ function main() {
     "app/(site)/publicar/community/shared/preview/CommunityQuickPreviewClient.tsx",
   );
   assert.ok(previewClient.includes("CommunityQuickPreviewPublishBar"));
-  assert.ok(previewClient.includes("publishSlot={publishSlot}"));
-  assert.ok(previewClient.includes("LeonixPreviewPageShell"));
+  assert.ok(previewClient.includes("CommunityQuickPublicDetailShell"));
   assert.ok(previewClient.includes('kind === "clases" && clasesDraft'));
   assert.ok(previewClient.includes('kind === "comunidad" && comunidadDraft'));
 
-  const previewShell = readSourceRel("app/(site)/clasificados/lib/preview/LeonixPreviewPageShell.tsx");
-  assert.ok(previewShell.includes("publishSlot"));
+  const publicDetailShell = readSourceRel(
+    "app/(site)/clasificados/community/CommunityQuickPublicDetailShell.tsx",
+  );
+  assert.ok(publicDetailShell.includes('data-testid="leonix-public-detail-shell"'));
 
   const previewBar = readSourceRel(
     "app/(site)/publicar/community/shared/preview/CommunityQuickPreviewPublishBar.tsx",
