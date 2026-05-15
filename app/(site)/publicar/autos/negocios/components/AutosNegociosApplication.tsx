@@ -27,6 +27,7 @@ import { AutosNegociosMediaManager } from "./AutosNegociosMediaManager";
 import { AutosApplicationSteppedShell } from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
 import { AutosApplicationReviewStep } from "@/app/publicar/autos/shared/components/AutosApplicationReviewStep";
 import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
+import { AutosVehicleIdentityFields } from "@/app/publicar/autos/shared/components/AutosVehicleIdentityFields";
 import {
   formatMileageInputDisplay,
   formatUsdIntegerInputDisplay,
@@ -159,39 +160,23 @@ export function AutosNegociosApplication() {
             <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{t.app.sections.main}</h2>
             <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{t.app.sections.mainSub}</p>
             <div className={`${GRID2} mt-5`}>
-              <div>
-                <label className={LABEL}>{t.app.labels.year}</label>
-                <input
-                  className={INPUT}
-                  inputMode="numeric"
-                  value={listing.year ?? ""}
-                  onChange={(e) => setListingPatch({ year: parseOptInt(e.target.value) })}
-                />
-              </div>
-              <div>
-                <label className={LABEL}>{reqLabel(t.app.labels.make)}</label>
-                <input
-                  className={INPUT}
-                  value={listing.make ?? ""}
-                  onChange={(e) => setListingPatch({ make: e.target.value || undefined })}
-                />
-              </div>
-              <div>
-                <label className={LABEL}>{reqLabel(t.app.labels.model)}</label>
-                <input
-                  className={INPUT}
-                  value={listing.model ?? ""}
-                  onChange={(e) => setListingPatch({ model: e.target.value || undefined })}
-                />
-              </div>
-              <div>
-                <label className={LABEL}>{t.app.labels.trim}</label>
-                <input
-                  className={INPUT}
-                  value={listing.trim ?? ""}
-                  onChange={(e) => setListingPatch({ trim: e.target.value || undefined })}
-                />
-              </div>
+              <AutosVehicleIdentityFields
+                lang={lang}
+                labels={{
+                  year: t.app.labels.year,
+                  make: t.app.labels.make,
+                  model: t.app.labels.model,
+                  trim: t.app.labels.trim,
+                }}
+                year={listing.year}
+                make={listing.make}
+                model={listing.model}
+                trim={listing.trim}
+                onPatch={(p) => setListingPatch(p)}
+                requiredYear={false}
+                requiredMake
+                requiredModel
+              />
             </div>
 
             <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-4">

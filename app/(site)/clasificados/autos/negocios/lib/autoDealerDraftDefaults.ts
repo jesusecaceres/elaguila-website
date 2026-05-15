@@ -1,6 +1,7 @@
 import type { AutoDealerListing, DealerHoursEntry } from "../types/autoDealerListing";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { deriveHeroImageUrls, migrateHeroImagesToMediaImages } from "./autoDealerHeroImages";
+import { coerceVehicleIdentityFromTaxonomy } from "@/app/lib/clasificados/autos/autosVehicleTaxonomy";
 
 /**
  * NorCal canonical city when possible; preserves in-progress typing.
@@ -169,6 +170,11 @@ export function normalizeLoadedListing(raw: Partial<AutoDealerListing> | undefin
     merged.dealerPhoneOffice = legacyPhoneTrim;
     merged.dealerPhone = undefined;
   }
+
+  const coerced = coerceVehicleIdentityFromTaxonomy(merged);
+  merged.make = coerced.make;
+  merged.model = coerced.model;
+  merged.trim = coerced.trim;
 
   merged.heroImages = deriveHeroImageUrls(merged);
   return merged;

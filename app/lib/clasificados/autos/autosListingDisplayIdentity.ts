@@ -1,16 +1,15 @@
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { normalizeVehicleSegment } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
+import { coerceVehicleIdentityFromTaxonomy } from "@/app/lib/clasificados/autos/autosVehicleTaxonomy";
 
 /**
- * Shallow copy with display-normalized make/model/trim/engine (title-case words).
- * Does not mutate persisted draft JSON on its own — use at render / map-to-public boundaries.
+ * Shallow copy with taxonomy-aware identity (catalog spelling when matchable) plus
+ * title-case fallback for unknown segments. Does not mutate persisted draft JSON on its own.
  */
 export function withNormalizedVehicleIdentityForDisplay(listing: AutoDealerListing): AutoDealerListing {
+  const coerced = coerceVehicleIdentityFromTaxonomy(listing);
   return {
-    ...listing,
-    make: normalizeVehicleSegment(listing.make) ?? listing.make,
-    model: normalizeVehicleSegment(listing.model) ?? listing.model,
-    trim: normalizeVehicleSegment(listing.trim) ?? listing.trim,
-    engine: normalizeVehicleSegment(listing.engine) ?? listing.engine,
+    ...coerced,
+    engine: normalizeVehicleSegment(coerced.engine) ?? coerced.engine,
   };
 }

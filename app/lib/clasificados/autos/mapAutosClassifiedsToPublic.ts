@@ -22,6 +22,7 @@ function parseDbTimeMs(value: string | null | undefined): number {
 
 function buildSearchableBlurb(L: AutoDealerListing): string {
   const parts: string[] = [];
+  if (L.year != null && Number.isFinite(L.year)) parts.push(String(Math.round(L.year)));
   if (L.make?.trim()) parts.push(L.make.trim());
   if (L.model?.trim()) parts.push(L.model.trim());
   if (L.trim?.trim()) parts.push(L.trim.trim());

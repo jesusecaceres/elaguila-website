@@ -34,6 +34,7 @@ import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/sha
 import { AutosApplicationSteppedShell } from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
 import { AutosApplicationReviewStep } from "@/app/publicar/autos/shared/components/AutosApplicationReviewStep";
 import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
+import { AutosVehicleIdentityFields } from "@/app/publicar/autos/shared/components/AutosVehicleIdentityFields";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6";
@@ -51,13 +52,6 @@ function reqLabel(label: string) {
       </span>
     </>
   );
-}
-
-function parseOptInt(raw: string): number | undefined {
-  const t = raw.trim();
-  if (!t) return undefined;
-  const n = parseInt(t, 10);
-  return Number.isFinite(n) ? n : undefined;
 }
 
 export function AutosPrivadoApplication() {
@@ -141,39 +135,23 @@ export function AutosPrivadoApplication() {
             <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{t.app.sections.main}</h2>
             <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{t.app.sections.mainSub}</p>
             <div className={`${GRID2} mt-5`}>
-              <div>
-                <label className={LABEL}>{reqLabel(t.app.labels.year)}</label>
-                <input
-                  className={INPUT}
-                  inputMode="numeric"
-                  value={listing.year ?? ""}
-                  onChange={(e) => setListingPatch({ year: parseOptInt(e.target.value) })}
-                />
-              </div>
-              <div>
-                <label className={LABEL}>{reqLabel(t.app.labels.make)}</label>
-                <input
-                  className={INPUT}
-                  value={listing.make ?? ""}
-                  onChange={(e) => setListingPatch({ make: e.target.value || undefined })}
-                />
-              </div>
-              <div>
-                <label className={LABEL}>{reqLabel(t.app.labels.model)}</label>
-                <input
-                  className={INPUT}
-                  value={listing.model ?? ""}
-                  onChange={(e) => setListingPatch({ model: e.target.value || undefined })}
-                />
-              </div>
-              <div>
-                <label className={LABEL}>{t.app.labels.trim}</label>
-                <input
-                  className={INPUT}
-                  value={listing.trim ?? ""}
-                  onChange={(e) => setListingPatch({ trim: e.target.value || undefined })}
-                />
-              </div>
+              <AutosVehicleIdentityFields
+                lang={lang}
+                labels={{
+                  year: t.app.labels.year,
+                  make: t.app.labels.make,
+                  model: t.app.labels.model,
+                  trim: t.app.labels.trim,
+                }}
+                year={listing.year}
+                make={listing.make}
+                model={listing.model}
+                trim={listing.trim}
+                onPatch={(p) => setListingPatch(p)}
+                requiredYear
+                requiredMake
+                requiredModel
+              />
             </div>
 
             <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-4">

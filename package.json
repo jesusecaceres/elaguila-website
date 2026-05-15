@@ -31,6 +31,7 @@
     "autos:phase3-audit": "npx tsx scripts/autos-phase-3-publish-recovery-audit.ts",
     "autos:phase3-runtime-audit": "npx tsx scripts/autos-phase-3-runtime-visibility-audit.ts",
     "autos:privado-qa-audit": "npx tsx scripts/autos-privado-qa-polish-audit.ts",
+    "autos:a2-taxonomy-audit": "npx tsx scripts/autos-a2-structured-vehicle-taxonomy-audit.ts",
     "verify:autos:e2e": "npx playwright test -c playwright.autos-runtime.config.mjs e2e/autos/autos-go-live-smoke.spec.ts",
     "seed:autos:manual-qa": "npx playwright test -c playwright.autos-runtime.config.mjs e2e/autos/autos-manual-qa-seed.spec.ts",
     "verify:viajes": "node scripts/verify-viajes-pipeline.mjs",
