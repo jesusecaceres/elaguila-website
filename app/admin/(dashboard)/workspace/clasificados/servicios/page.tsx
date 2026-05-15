@@ -16,9 +16,17 @@ import {
   setServiciosReviewModerationStatusAction,
   updateServiciosPublicListingStatusAction,
 } from "./actions";
+import { serviciosRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
+import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
+import {
+  appendPreservedSearchParams,
+  parseAdminScope,
+} from "../_lib/clasificadosAdminScopeUrls";
+import { getAdminLang } from "@/app/admin/_lib/adminI18n";
+import { adminMessages } from "@/app/admin/_lib/adminStrings";
 import {
   serviciosLikeCountAliasKeys,
   serviciosNetLikeCountForPublicRow,
@@ -104,7 +112,13 @@ function filterDevServiciosRows(rows: ServiciosPublicAdminRow[], q: string | und
 export default async function AdminServiciosWorkspacePage(props: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const lang = await getAdminLang();
+  const msg = adminMessages(lang);
   const sp = props.searchParams ? await props.searchParams : {};
+  const scope = parseAdminScope(sp);
+  const serviciosBase = "/admin/workspace/clasificados/servicios";
+  const queueHref = appendPreservedSearchParams(serviciosBase, sp, null);
+  const liveHref = appendPreservedSearchParams(serviciosBase, sp, "live");
   const queueFilters = {
     limit: 500,
     q: firstParam(sp.q),
@@ -114,6 +128,7 @@ export default async function AdminServiciosWorkspacePage(props: {
     owner_user_id: firstParam(sp.owner_user_id),
   };
   const queueRes = await listServiciosPublicListingsAdminQueueFromDb(queueFilters);
+  const { unavailable, fullSchema } = queueRes;
   const rows: ServiciosPublicAdminRow[] = queueRes.rows.map((r) => ({
     id: r.id,
     slug: r.slug,
@@ -130,7 +145,10 @@ export default async function AdminServiciosWorkspacePage(props: {
     profile_json: r.profile_json as ServiciosPublicAdminRow["profile_json"],
     promoted: Boolean((r as { promoted?: boolean }).promoted),
   }));
-  const { unavailable, fullSchema } = queueRes;
+  const rowsFiltered =
+    scope === "live"
+      ? rows.filter((r) => serviciosRowIsPublicLive(r as unknown as Record<string, unknown>))
+      : rows;
   const allEngagementKeys = new Set<string>();
   for (const r of rows) {
     for (const k of serviciosLikeCountAliasKeys({ slug: r.slug, leonix_ad_id: r.leonix_ad_id ?? null, id: r.id })) {
@@ -159,11 +177,14 @@ export default async function AdminServiciosWorkspacePage(props: {
   return (
     <div className="space-y-8">
       <ClasificadosQueueHeader
-        title="Servicios — cola pública (operación)"
+        title={scope === "live" ? msg("listingsCategoryOps.titleLive", { slug: "servicios" }) : msg("listingsCategoryOps.titleQueue", { slug: "servicios" })}
         sourceTable={surface.sourceTable}
-        subtitle="Directorio publicado vía Supabase; moderación y leads en tablas relacionadas."
+        subtitle={scope === "live" ? msg("listingsCategoryOps.subLive") : msg("listingsCategoryOps.subQueue")}
         publicHref={surface.publicHref}
         publishHref={surface.publishHref}
+        rightSlot={
+          <ClasificadosScopeNav lang={lang} queueHref={queueHref} liveHref={liveHref} active={scope === "live" ? "live" : "queue"} />
+        }
       />
 
       <div className={`${adminCardBase} border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>
@@ -185,12 +206,13 @@ export default async function AdminServiciosWorkspacePage(props: {
 
       {!unavailable ? (
         <div className={`${adminCardBase} mb-4 space-y-3 p-4 text-sm text-[#5C5346]`}>
-          <p className="font-bold text-[#1E1810]">Buscar cola</p>
+          <p className="font-bold text-[#1E1810]">{msg("listingsCategoryOps.searchTitle")}</p>
           <p className="text-[10px] text-[#7A7164]">
             Leonix Ad ID (si existe columna), UUID interno o de usuario, slug, URL pública /clasificados/servicios/…, nombre del
             negocio, y coincidencia por nombre / correo / teléfono del perfil propietario.
           </p>
-          <form className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end" method="get" action="/admin/workspace/clasificados/servicios">
+          <form className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end" method="get" action={serviciosBase}>
+            {scope === "live" ? <input type="hidden" name="scope" value="live" /> : null}
             <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs">
               <span className="font-semibold text-[#5C5346]">q</span>
               <input
@@ -240,7 +262,7 @@ export default async function AdminServiciosWorkspacePage(props: {
             <button type="submit" className="rounded-xl bg-[#2A2620] px-4 py-2 text-xs font-bold text-[#FAF7F2]">
               Aplicar
             </button>
-            <Link href="/admin/workspace/clasificados/servicios" className={`${adminBtnSecondary} inline-flex items-center text-xs`}>
+            <Link href={queueHref} className={`${adminBtnSecondary} inline-flex items-center text-xs`}>
               Limpiar
             </Link>
           </form>
@@ -257,7 +279,7 @@ export default async function AdminServiciosWorkspacePage(props: {
               </span>
             ) : null}
           </div>
-          {rows.length === 0 ? (
+          {rowsFiltered.length === 0 ? (
             <p className="p-4 text-sm text-[#5C5346]">
               No published listings found for this category. Query: <span className="font-mono">servicios_public_listings</span> returned
               zero rows with current filters (or the table is empty).
@@ -289,7 +311,7 @@ export default async function AdminServiciosWorkspacePage(props: {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r) => (
+                  {rowsFiltered.map((r) => (
                     <tr key={r.id} className="border-t border-[#E8DFD0]/80">
                       <td className="p-3 font-semibold text-[#1E1810]">{r.business_name}</td>
                       <td className="p-3 text-xs text-[#5C5346]">{r.city}</td>
@@ -370,7 +392,7 @@ export default async function AdminServiciosWorkspacePage(props: {
                           promoted={Boolean(r.promoted)}
                           verified={r.leonix_verified}
                           canArchive={(r.listing_status ?? "") !== "rejected"}
-                          staffEditBoardHref={`/servicios/perfil/${encodeURIComponent(r.slug)}`}
+                          staffEditBoardHref={`/admin/workspace/clasificados/servicios?slug=${encodeURIComponent(r.slug)}`}
                           republishCategory="servicios"
                           republishRow={{
                             listing_status: r.listing_status,

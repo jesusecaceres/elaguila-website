@@ -8,6 +8,7 @@ import { getAdminDashboardSnapshot } from "../_lib/adminDashboardData";
 import {
   adminCategoryOpenQueueCtaCopy,
   adminCategoryOperationalStatusLabel,
+  adminCategoryWorkspaceLiveListingsHref,
   adminCategoryWorkspaceQueueHref,
 } from "../_lib/adminCategoryWorkspaceQueueHref";
 import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
@@ -382,14 +383,12 @@ export default async function AdminHomePage() {
             <div className="grid gap-3 sm:grid-cols-2">
               {registry.map((c) => {
                 const queueHref = adminCategoryWorkspaceQueueHref(c.slug);
+                const liveHref = adminCategoryWorkspaceLiveListingsHref(c.slug);
                 const cta = adminCategoryOpenQueueCtaCopy(lang);
                 return (
-                  <Link
+                  <div
                     key={c.slug}
-                    href={queueHref}
-                    className={`${adminCardBase} block p-4 transition hover:ring-1 hover:ring-[#C9B46A]/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6B5B2E]`}
-                    aria-label={`${c.displayNameEs}: ${cta.label}`}
-                    title={cta.title}
+                    className={`${adminCardBase} flex flex-col p-4`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <span className="text-xl" aria-hidden>
@@ -408,10 +407,25 @@ export default async function AdminHomePage() {
                     </div>
                     <p className="mt-2 font-bold text-[#1E1810]">{c.displayNameEs}</p>
                     <p className="text-xs text-[#7A7164]">{c.slug}</p>
-                    <p className="mt-3 text-xs font-bold text-[#6B5B2E] underline underline-offset-2">
-                      {cta.label} →
-                    </p>
-                  </Link>
+                    <div className="mt-3 flex flex-col gap-2">
+                      <Link
+                        href={queueHref}
+                        className="text-xs font-bold text-[#6B5B2E] underline underline-offset-2"
+                        aria-label={`${c.displayNameEs}: ${cta.label}`}
+                        title={cta.title}
+                      >
+                        {cta.label} →
+                      </Link>
+                      <Link
+                        href={liveHref}
+                        className="text-xs font-bold text-emerald-900 underline underline-offset-2"
+                        aria-label={`${c.displayNameEs}: ${m("cta.liveListingsPrimary")}`}
+                        title={m("cta.liveListingsPrimaryTitle")}
+                      >
+                        {m("cta.liveListingsPrimary")} →
+                      </Link>
+                    </div>
+                  </div>
                 );
               })}
             </div>

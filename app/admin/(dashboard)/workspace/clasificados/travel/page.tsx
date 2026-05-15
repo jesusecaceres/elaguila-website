@@ -1,12 +1,17 @@
 import Link from "next/link";
 
+import { viajesRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
+import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
+import { appendPreservedSearchParams, parseAdminScope } from "../_lib/clasificadosAdminScopeUrls";
 import { adminCardBase } from "@/app/admin/_components/adminTheme";
 import { fetchAllViajesStagedForAdmin } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingsDbServer";
 import type { ViajesStagedListingRow } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { getAdminLang } from "@/app/admin/_lib/adminI18n";
+import { adminMessages } from "@/app/admin/_lib/adminStrings";
 
 export const dynamic = "force-dynamic";
 
@@ -19,19 +24,41 @@ function fmt(ts: string | null | undefined) {
   }
 }
 
-export default async function AdminTravelViajesQueuePage() {
+export default async function AdminTravelViajesQueuePage(props: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const lang = await getAdminLang();
+  const m = adminMessages(lang);
+  const sp = props.searchParams ? await props.searchParams : {};
+  const scope = parseAdminScope(sp);
+  const basePath = "/admin/workspace/clasificados/travel";
+  const queueHref = appendPreservedSearchParams(basePath, sp, null);
+  const liveHref = appendPreservedSearchParams(basePath, sp, "live");
+
   const configured = isSupabaseAdminConfigured();
-  const rows: ViajesStagedListingRow[] = configured ? await fetchAllViajesStagedForAdmin() : [];
+  const allRows: ViajesStagedListingRow[] = configured ? await fetchAllViajesStagedForAdmin() : [];
+  const rows =
+    scope === "live"
+      ? allRows.filter((r) => viajesRowIsPublicLive(r as unknown as Record<string, unknown>))
+      : allRows;
+
   const surface = clasificadosQueueSurfaceForSlug("travel");
+
+  const headerTitle =
+    scope === "live" ? m("listingsCategoryOps.titleLive", { slug: "travel" }) : m("listingsCategoryOps.titleQueue", { slug: "travel" });
+  const headerSub = scope === "live" ? m("listingsCategoryOps.subLive") : m("listingsCategoryOps.subQueue");
 
   return (
     <div className="max-w-[1200px] space-y-6">
       <ClasificadosQueueHeader
-        title="Viajes / Travel — ofertas (operación)"
+        title={headerTitle}
         sourceTable={surface.sourceTable}
-        subtitle="Todas las filas del pipeline Viajes. Las acciones staff aplican a la tabla public.viajes_staged_listings."
+        subtitle={headerSub}
         publicHref={surface.publicHref}
         publishHref={surface.publishHref}
+        rightSlot={
+          <ClasificadosScopeNav lang={lang} queueHref={queueHref} liveHref={liveHref} active={scope === "live" ? "live" : "queue"} />
+        }
       />
 
       {!configured ? (

@@ -6,12 +6,17 @@ import {
   fetchListingCategoriesDistinct,
   isUuidString,
 } from "@/app/admin/_lib/listingsAdminSelect";
+import {
+  appendPreservedSearchParams,
+  parseAdminScope,
+} from "@/app/admin/(dashboard)/workspace/clasificados/_lib/clasificadosAdminScopeUrls";
 import { getClasificadosCategoryRegistryMerged } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import AdminListingsTable from "./AdminListingsTable";
 import { ClasificadosCategoryHub } from "./ClasificadosCategoryHub";
 import { ClasificadosCategoryOpsAudit } from "./ClasificadosCategoryOpsAudit";
 import { EnVentaModerationFields } from "@/app/clasificados/en-venta/admin/EnVentaModerationFields";
+import { ClasificadosScopeNav } from "./_components/ClasificadosScopeNav";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { AdminSectionCard } from "../../../_components/AdminSectionCard";
 import { adminCardBase, adminCtaChipCompact, adminCtaChipSecondary } from "../../../_components/adminTheme";
@@ -66,23 +71,33 @@ type PageProps = {
     leonix_propiedad?: string;
     /** Max rows from Supabase for this view (50–500). */
     limit?: string;
+    /** `live` — only publicly live rows (published + active). */
+    scope?: string;
   }>;
 };
+
+/** Normalize `searchParams` values that may be `string | string[]`. */
+function spStr(v: string | string[] | undefined): string {
+  if (typeof v === "string") return v;
+  if (Array.isArray(v) && v.length > 0) return v[0];
+  return "";
+}
 
 export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   const lang = await getAdminLang();
   const m = adminMessages(lang);
   const supabase = getAdminSupabase();
-  const sp = props.searchParams ? await props.searchParams : {};
-  const qInput = (sp.q ?? "").trim();
+  const sp = (props.searchParams ? await props.searchParams : {}) as Record<string, string | string[] | undefined>;
+  const scopeParam = parseAdminScope(sp);
+  const qInput = spStr(sp.q).trim();
   const qRaw = qInput.toLowerCase();
-  const catFilter = normalizeWorkspaceListingsCategoryParam(typeof sp.category === "string" ? sp.category : "");
-  const statusFilter = (sp.status ?? "").trim().toLowerCase();
-  const ownerFrag = (sp.owner ?? "").trim().toLowerCase();
-  const lxBranch = (sp.leonix_branch ?? "").trim();
-  const lxOp = (sp.leonix_operation ?? "").trim().toLowerCase();
-  const lxProp = (sp.leonix_propiedad ?? "").trim().toLowerCase();
-  const limitRaw = Number(sp.limit ?? "300");
+  const catFilter = normalizeWorkspaceListingsCategoryParam(spStr(sp.category));
+  const statusFilter = spStr(sp.status).trim().toLowerCase();
+  const ownerFrag = spStr(sp.owner).trim().toLowerCase();
+  const lxBranch = spStr(sp.leonix_branch).trim();
+  const lxOp = spStr(sp.leonix_operation).trim().toLowerCase();
+  const lxProp = spStr(sp.leonix_propiedad).trim().toLowerCase();
+  const limitRaw = Number(spStr(sp.limit) || "300");
   const queueLimit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 50), 500) : 300;
 
   const [{ data: listings, error, detailPairsAvailable, republishColsAvailable }, cats, registry] = await Promise.all([
@@ -92,6 +107,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
       status: statusFilter || undefined,
       ownerFrag: ownerFrag && isUuidString(ownerFrag) ? ownerFrag : undefined,
       limit: queueLimit,
+      ...(scopeParam === "live" ? { scope: "live" as const } : {}),
     }),
     fetchListingCategoriesDistinct(supabase),
     getClasificadosCategoryRegistryMerged(),
@@ -111,6 +127,10 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
     });
   }
 
+  const workspaceBase = "/admin/workspace/clasificados";
+  const queueNavHref = appendPreservedSearchParams(workspaceBase, sp, null);
+  const liveNavHref = appendPreservedSearchParams(workspaceBase, sp, "live");
+
   return (
     <>
       <AdminPageHeader
@@ -119,6 +139,16 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         eyebrow={m("clasificados.eyebrow")}
         helperText={m("clasificados.helper", { limit: queueLimit })}
       />
+
+      <div className={`${adminCardBase} mb-4 max-w-3xl space-y-2 p-4 text-sm text-[#5C5346]`}>
+        <p className="text-xs font-bold uppercase text-[#7A7164]">{m("scopeNav.aria")}</p>
+        <ClasificadosScopeNav
+          lang={lang}
+          queueHref={queueNavHref}
+          liveHref={liveNavHref}
+          active={scopeParam === "live" ? "live" : "queue"}
+        />
+      </div>
 
       <ClasificadosCategoryHub registry={registry} lang={lang} />
 
@@ -195,6 +225,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
 
       <div className={`${adminCardBase} mb-6 p-4`}>
         <form className="flex flex-col gap-3" method="get" aria-describedby="clasificados-filter-hint">
+          {scopeParam === "live" ? <input type="hidden" name="scope" value="live" /> : null}
           <p id="clasificados-filter-hint" className="text-[10px] leading-snug text-[#7A7164]">
             {m("clasificados.filterHint")}
           </p>
@@ -305,6 +336,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
           detailPairsAvailable={detailPairsAvailable}
           republishColsAvailable={republishColsAvailable}
           listingsCategorySlug={catFilter}
+          staffQueueMode
         />
       )}
 

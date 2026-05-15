@@ -392,12 +392,14 @@ export default function AdminListingsTable({
                         {t("listings.inspectorRentas")}
                       </Link>
                     ) : null}
-                    <Link
-                      href={`/admin/workspace/clasificados/listings/${encodeURIComponent(row.id)}/edit`}
-                      className="inline-flex min-h-[44px] items-center font-semibold text-[#1E1810] underline sm:min-h-0"
-                    >
-                      Editar
-                    </Link>
+                    {!staffQueueMode ? (
+                      <Link
+                        href={`/admin/workspace/clasificados/listings/${encodeURIComponent(row.id)}/edit`}
+                        className="inline-flex min-h-[44px] items-center font-semibold text-[#1E1810] underline sm:min-h-0"
+                      >
+                        {t("audit.th.editAd")}
+                      </Link>
+                    ) : null}
                     {staffQueueMode ? (
                       <ClassifiedAdminRowActions
                         variant="listings"
@@ -408,6 +410,7 @@ export default function AdminListingsTable({
                         promoted={Boolean(row.admin_promoted)}
                         verified={Boolean(row.leonix_verified)}
                         canArchive={(row.status ?? "").toLowerCase() !== "removed"}
+                        staffEditBoardHref={`/admin/workspace/clasificados/listings/${encodeURIComponent(row.id)}/edit`}
                         republishCategory={String(row.category ?? "").trim() || "listings"}
                         republishRow={{
                           category: row.category,

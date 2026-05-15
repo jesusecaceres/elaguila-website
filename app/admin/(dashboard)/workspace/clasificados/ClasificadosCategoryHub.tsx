@@ -3,6 +3,7 @@ import type { ClasificadosCategoryRegistryEntry } from "@/app/lib/clasificados/c
 import { getCategorySchema } from "@/app/clasificados/config/categorySchema";
 import {
   adminCategoryOperationalStatusLabel,
+  adminCategoryWorkspaceLiveListingsHref,
   adminCategoryWorkspaceQueueHref,
 } from "@/app/admin/_lib/adminCategoryWorkspaceQueueHref";
 import { getClassifiedsOpsContract } from "@/app/admin/_lib/classifiedsOpsContract";
@@ -114,11 +115,11 @@ export function ClasificadosCategoryHub({
                   {ops ? (
                     <>
                       <Link
-                        href={ops.publicListingsAdminPath}
-                        className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-[#C9B46A]/55 bg-[#FFF7ED] px-4 py-2.5 text-center text-sm font-bold text-[#92400E] hover:bg-[#FFEDD5] sm:min-h-0"
-                        title={m("hub.restDbLink")}
+                        href={adminCategoryWorkspaceLiveListingsHref(entry.slug)}
+                        className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-emerald-600/35 bg-emerald-50/90 px-4 py-2.5 text-center text-sm font-bold text-emerald-950 hover:bg-emerald-100/90 sm:min-h-0"
+                        title={m("hub.liveListingsCtaTitle")}
                       >
-                        {m("hub.restDbLink")}
+                        {m("hub.liveListingsCta")} →
                       </Link>
                       <Link
                         href={ops.fieldsNotesAdminPath}
@@ -145,11 +146,11 @@ export function ClasificadosCategoryHub({
                   ) : (
                     <>
                       <Link
-                        href={`/admin/workspace/clasificados?category=${encodeURIComponent(entry.slug)}`}
-                        className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-[#C9B46A]/55 bg-[#FFF7ED] px-4 py-2.5 text-center text-sm font-bold text-[#92400E] hover:bg-[#FFEDD5] sm:min-h-0"
-                        title={m("hub.restDbLink")}
+                        href={adminCategoryWorkspaceLiveListingsHref(entry.slug)}
+                        className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-emerald-600/35 bg-emerald-50/90 px-4 py-2.5 text-center text-sm font-bold text-emerald-950 hover:bg-emerald-100/90 sm:min-h-0"
+                        title={m("hub.liveListingsCtaTitle")}
                       >
-                        {m("hub.restDbLink")}
+                        {m("hub.liveListingsCta")} →
                       </Link>
                       <Link
                         href={`/admin/workspace/clasificados/category/${encodeURIComponent(entry.slug)}#contenido`}

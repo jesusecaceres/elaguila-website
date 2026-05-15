@@ -5,11 +5,5 @@ export const dynamic = "force-dynamic";
 type P = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
 
 export default function AdminComunidadListingsQueuePage(props: P) {
-  return (
-    <ListingsCategoryOpsQueuePage
-      categorySlug="comunidad"
-      title="Comunidad — listados públicos (operación)"
-      searchParams={props.searchParams}
-    />
-  );
+  return <ListingsCategoryOpsQueuePage categorySlug="comunidad" searchParams={props.searchParams} />;
 }

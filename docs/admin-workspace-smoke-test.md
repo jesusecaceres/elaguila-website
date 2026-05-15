@@ -9,6 +9,13 @@ This document provides a route-by-route analysis of website editing capabilities
 - **MISSING**: No admin route exists yet. Requires development work to become editable
 - **HONESTLY_DISABLED**: Intentionally disabled, requires code changes. Not editable from admin by design
 
+## Gate A — Category operational queues vs live listings
+
+- The **ad queue** (default; no `scope` query) lists the full operational surface for a category — moderation, drafts, suspended rows, and published rows when applicable.
+- **Live / public listings** use the same admin routes with **`?scope=live`**, filtering to rows that are **publicly visible on the marketplace right now** (per-category rules in `classifiedsRepublishCapability` helpers — e.g. `listings`: `is_published` + `active`).
+- `/admin/categories`, the Clasificados hub (`/admin/workspace/clasificados`), and the dashboard category cards expose **both** “View queue” and “Live listings” so staff never confuse the public marketplace URL with the **admin operational** list.
+- **Queue pages and live pages** both render **staff row actions** (`ClassifiedAdminRowActions` / vertical equivalents) where supported. **Restore** (unsuspend) is *not* **Republish** / Move to top; **Promote** and **Verify Leonix** are separate. Hard delete is not offered as a standard row action.
+
 ## Route-by-Route Analysis
 
 ### ✅ TRUE - Fully Editable Areas

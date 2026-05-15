@@ -1,10 +1,18 @@
 import Link from "next/link";
 import { listRestaurantesPublicListingsAdminFromDb } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
+import { restauranteRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { adminBtnSecondary, adminCardBase } from "@/app/admin/_components/adminTheme";
+import { getAdminLang } from "@/app/admin/_lib/adminI18n";
+import { adminMessages } from "@/app/admin/_lib/adminStrings";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
+import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
+import {
+  appendPreservedSearchParams,
+  parseAdminScope,
+} from "../_lib/clasificadosAdminScopeUrls";
 
 export const dynamic = "force-dynamic";
 
@@ -28,8 +36,14 @@ type PageProps = {
 };
 
 export default async function AdminRestaurantesPublicListingsPage(props: PageProps) {
+  const lang = await getAdminLang();
+  const m = adminMessages(lang);
   const configured = isSupabaseAdminConfigured();
   const sp = props.searchParams ? await props.searchParams : {};
+  const scope = parseAdminScope(sp);
+  const basePath = "/admin/workspace/clasificados/restaurantes";
+  const queueHref = appendPreservedSearchParams(basePath, sp, null);
+  const liveHref = appendPreservedSearchParams(basePath, sp, "live");
   const hasFilters = !!(
     firstParam(sp.q) ||
     firstParam(sp.slug) ||
@@ -37,7 +51,7 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
     firstParam(sp.leonix_ad_id) ||
     firstParam(sp.owner_user_id)
   );
-  const rows = configured
+  const rowsRaw = configured
     ? await listRestaurantesPublicListingsAdminFromDb({
         limit: 500,
         q: firstParam(sp.q),
@@ -47,23 +61,34 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
         owner_user_id: firstParam(sp.owner_user_id),
       })
     : [];
+  const rows =
+    scope === "live"
+      ? rowsRaw.filter((r) => restauranteRowIsPublicLive(r as unknown as Record<string, unknown>))
+      : rowsRaw;
 
   const surface = clasificadosQueueSurfaceForSlug("restaurantes");
+  const pageTitle =
+    scope === "live" ? m("listingsCategoryOps.titleLive", { slug: "restaurantes" }) : m("listingsCategoryOps.titleQueue", { slug: "restaurantes" });
+  const pageSubtitle = scope === "live" ? m("listingsCategoryOps.subLive") : m("listingsCategoryOps.subQueue");
 
   return (
     <div className="max-w-[1200px] space-y-6">
       <ClasificadosQueueHeader
-        title="Restaurantes — listados públicos (operación)"
+        title={pageTitle}
         sourceTable={surface.sourceTable}
-        subtitle="Tabla viva con acciones reales (suspender, destacar, verificar). Requiere cookie de admin y Supabase con rol de servicio."
+        subtitle={pageSubtitle}
         publicHref={surface.publicHref}
         publishHref={surface.publishHref}
+        rightSlot={
+          <ClasificadosScopeNav lang={lang} queueHref={queueHref} liveHref={liveHref} active={scope === "live" ? "live" : "queue"} />
+        }
       />
 
       {configured ? (
         <div className={`${adminCardBase} mb-4 space-y-3 p-4 text-sm text-[#5C5346]`}>
-          <p className="font-bold text-[#1E1810]">Buscar cola</p>
-          <form className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end" method="get" action="/admin/workspace/clasificados/restaurantes">
+          <p className="font-bold text-[#1E1810]">{m("listingsCategoryOps.searchTitle")}</p>
+          <form className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end" method="get" action={basePath}>
+            {scope === "live" ? <input type="hidden" name="scope" value="live" /> : null}
             <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs">
               <span className="font-semibold text-[#5C5346]">
                 q (Leonix ID, UUID, user ID, slug, URL, negocio, nombre/email/teléfono del perfil)
@@ -118,7 +143,7 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
             >
               Aplicar
             </button>
-            <Link href="/admin/workspace/clasificados/restaurantes" className={`${adminBtnSecondary} inline-flex items-center text-xs`}>
+            <Link href={queueHref} className={`${adminBtnSecondary} inline-flex items-center text-xs`}>
               Limpiar filtros
             </Link>
           </form>
@@ -205,7 +230,7 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
                         promoted={r.promoted}
                         verified={r.leonix_verified}
                         canArchive={r.status !== "archived"}
-                        staffEditBoardHref="/dashboard/restaurantes"
+                        staffEditBoardHref={`/admin/workspace/clasificados/restaurantes?slug=${encodeURIComponent(r.slug)}`}
                         republishCategory="restaurantes"
                         republishRow={{
                           status: r.status,

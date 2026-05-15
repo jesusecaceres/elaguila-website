@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { autosRowMatchesAdminQueueSearch } from "@/app/admin/_lib/adminAdSearch";
 import { getAdminLang, adminMessages } from "@/app/admin/_lib/adminI18n";
+import { autosRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import {
   autosClassifiedsRowToDashboardRow,
   listAllAutosClassifiedsRowsForAdmin,
@@ -15,7 +16,9 @@ import {
 } from "@/app/lib/clasificados/autos/autosClassifiedsVisibility";
 import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
+import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
+import { appendPreservedSearchParams, parseAdminScope } from "../_lib/clasificadosAdminScopeUrls";
 import { adminCardBase, adminBtnSecondary, adminCtaChipSecondary } from "../../../../_components/adminTheme";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
@@ -23,7 +26,7 @@ import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
 export const dynamic = "force-dynamic";
 
 type AutosAdminPageProps = {
-  searchParams?: Promise<{ q?: string }>;
+  searchParams?: Promise<{ q?: string; scope?: string }>;
 };
 
 function autosStripeAdminHint(row: AutosClassifiedsListingRow): string {
@@ -63,8 +66,12 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
   const m = adminMessages(lang);
   const locale = lang === "es" ? "es-MX" : "en-US";
 
-  const sp = props.searchParams ? await props.searchParams : {};
+  const sp = (props.searchParams ? await props.searchParams : {}) as Record<string, string | string[] | undefined>;
+  const scope = parseAdminScope(sp);
   const qRaw = typeof sp.q === "string" ? sp.q.trim() : "";
+  const autosBase = "/admin/workspace/clasificados/autos";
+  const queueNavHref = appendPreservedSearchParams(autosBase, sp, null);
+  const liveNavHref = appendPreservedSearchParams(autosBase, sp, "live");
   let rows = await listAllAutosClassifiedsRowsForAdmin(400);
   if (qRaw) {
     const profileSet = new Set<string>();
@@ -107,6 +114,10 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
     });
   }
 
+  if (scope === "live") {
+    rows = rows.filter((r) => autosRowIsPublicLive(r as unknown as Record<string, unknown>));
+  }
+
   const surface = clasificadosQueueSurfaceForSlug("autos");
 
   return (
@@ -117,6 +128,9 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
         subtitle={m("autosQueue.pageSubtitle")}
         publicHref={surface.publicHref}
         publishHref={surface.publishHref}
+        rightSlot={
+          <ClasificadosScopeNav lang={lang} queueHref={queueNavHref} liveHref={liveNavHref} active={scope === "live" ? "live" : "queue"} />
+        }
       />
 
       <div className="mb-6 flex flex-wrap gap-2">
@@ -131,7 +145,8 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
       <div className={`${adminCardBase} mb-6 space-y-3 p-4 text-sm text-[#5C5346]`}>
         <p className="font-bold text-[#1E1810]">{m("autosQueue.searchTitle")}</p>
         <p className="text-[10px] leading-snug text-[#7A7164]">{m("autosQueue.searchHint")}</p>
-        <form className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end" method="get" action="/admin/workspace/clasificados/autos">
+        <form className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end" method="get" action={autosBase}>
+          {scope === "live" ? <input type="hidden" name="scope" value="live" /> : null}
           <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs">
             <span className="font-semibold text-[#5C5346]">{m("autosQueue.labelQ")}</span>
             <input
@@ -145,7 +160,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
           <button type="submit" className="rounded-xl bg-[#2A2620] px-4 py-2 text-xs font-bold text-[#FAF7F2]">
             {m("common.apply")}
           </button>
-          <Link href="/admin/workspace/clasificados/autos" className={`${adminBtnSecondary} inline-flex items-center text-xs`}>
+          <Link href={queueNavHref} className={`${adminBtnSecondary} inline-flex items-center text-xs`}>
             {m("common.clear")}
           </Link>
         </form>

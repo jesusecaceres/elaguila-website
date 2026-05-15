@@ -15,6 +15,7 @@ import { saveSiteCategoryConfigRowAction } from "../../siteCategoryConfigActions
 import {
   adminCategoryOpenQueueCtaCopy,
   adminCategoryOperationalStatusLabel,
+  adminCategoryWorkspaceLiveListingsHref,
   adminCategoryWorkspaceQueueHref,
 } from "../../_lib/adminCategoryWorkspaceQueueHref";
 import { getClassifiedsOpsContract } from "../../_lib/classifiedsOpsContract";
@@ -58,7 +59,7 @@ function sourceBadge(layer: "code" | "database" | undefined, codeLabel: string) 
   );
 }
 
-const COL_COUNT = 13;
+const COL_COUNT = 14;
 
 export default async function AdminCategoriesPage() {
   const lang = await getAdminLang();
@@ -149,6 +150,7 @@ export default async function AdminCategoriesPage() {
                 <th className="p-3 whitespace-nowrap">Listings (DB)</th>
                 <th className="p-3 whitespace-nowrap">Pending / flagged</th>
                 <th className="p-3">{m("categoriesPage.thViewQueue")}</th>
+                <th className="p-3">{m("categoriesPage.thLiveListings")}</th>
                 <th className="p-3">{m("categoriesPage.thFieldsNotes")}</th>
                 <th className="p-3">{m("categoriesPage.thOperationalSpace")}</th>
                 <th className="p-3">{m("categoriesPage.thPublicLanding")}</th>
@@ -160,6 +162,10 @@ export default async function AdminCategoriesPage() {
                 const st = statsBySlug[c.slug];
                 const openCta = adminCategoryOpenQueueCtaCopy(lang);
                 const ops = getClassifiedsOpsContract(c.slug);
+                const liveCta = {
+                  label: m("cta.liveListingsPrimary"),
+                  title: m("cta.liveListingsPrimaryTitle"),
+                };
                 return (
                   <Fragment key={c.slug}>
                     <tr className="border-t border-[#E8DFD0]/80 align-top">
@@ -222,6 +228,19 @@ export default async function AdminCategoriesPage() {
                             Flagged →
                           </Link>
                         </div>
+                      </td>
+                      <td className="p-3 text-xs font-bold">
+                        <Link
+                          href={adminCategoryWorkspaceLiveListingsHref(c.slug)}
+                          className={`${adminCtaChipCompact} inline-flex w-full justify-center text-center`}
+                          aria-label={`${c.displayNameEs}: ${liveCta.label}`}
+                          title={liveCta.title}
+                        >
+                          {liveCta.label} →
+                        </Link>
+                        <p className="mt-1 text-[10px] font-normal leading-snug text-[#7A7164]">
+                          {m("cta.liveListingsAltLabel")}
+                        </p>
                       </td>
                       <td className="p-3 text-xs font-bold">
                         {ops ? (

@@ -2,13 +2,17 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { useAdminLang } from "@/app/admin/_components/AdminI18nProvider";
 import { adminCardBase, adminInputClass } from "@/app/admin/_components/adminTheme";
+import { adminMessages } from "@/app/admin/_lib/adminStrings";
 import { appendLangToPath, type Lang } from "@/app/clasificados/lib/hubUrl";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
+import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
+import { appendPreservedSearchParams, parseAdminScope } from "../_lib/clasificadosAdminScopeUrls";
 
 type ApplicationHealth = {
   total: number;
@@ -38,7 +42,27 @@ type Row = {
 
 export default function AdminEmpleosListingsPage() {
   const sp = useSearchParams();
+  const adminLang = useAdminLang();
+  const m = adminMessages(adminLang);
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+
+  const spRecord = useMemo(() => {
+    const o: Record<string, string | string[] | undefined> = {};
+    sp?.forEach((v, k) => {
+      o[k] = v;
+    });
+    return o;
+  }, [sp]);
+
+  const scope = useMemo(() => parseAdminScope(spRecord), [spRecord]);
+  const queueHref = useMemo(
+    () => appendPreservedSearchParams("/admin/workspace/clasificados/empleos", spRecord, null),
+    [spRecord],
+  );
+  const liveHref = useMemo(
+    () => appendPreservedSearchParams("/admin/workspace/clasificados/empleos", spRecord, "live"),
+    [spRecord],
+  );
 
   const [needle, setNeedle] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
@@ -75,6 +99,11 @@ export default function AdminEmpleosListingsPage() {
     };
   }, [needle, load]);
 
+  const displayRows = useMemo(() => {
+    if (scope === "live") return rows.filter((r) => r.lifecycle_status === "published");
+    return rows;
+  }, [rows, scope]);
+
   async function moderate(id: string, lifecycle_status: string) {
     const res = await fetch("/api/admin/empleos/listings/moderate", {
       method: "POST",
@@ -91,11 +120,16 @@ export default function AdminEmpleosListingsPage() {
   return (
     <div className="max-w-6xl space-y-6 pb-12">
       <ClasificadosQueueHeader
-        title="Empleos — listados (Supabase)"
+        title={
+          scope === "live" ? m("listingsCategoryOps.titleLive", { slug: "empleos" }) : m("listingsCategoryOps.titleQueue", { slug: "empleos" })
+        }
         sourceTable={empleosSurface.sourceTable}
-        subtitle="Acciones usan rol de servicio en API; requiere cookie admin."
+        subtitle={scope === "live" ? m("listingsCategoryOps.subLive") : m("listingsCategoryOps.subQueue")}
         publicHref={empleosSurface.publicHref}
         publishHref={empleosSurface.publishHref}
+        rightSlot={
+          <ClasificadosScopeNav lang={adminLang} queueHref={queueHref} liveHref={liveHref} active={scope === "live" ? "live" : "queue"} />
+        }
       />
 
       {err ? (
@@ -104,14 +138,25 @@ export default function AdminEmpleosListingsPage() {
         </div>
       ) : null}
 
-      {!err && rows.length === 0 ? (
+      {!err && displayRows.length === 0 ? (
         <div className={`${adminCardBase} border-amber-200/80 bg-amber-50/90 p-4 text-sm text-amber-950`} role="status">
-          <p className="font-semibold text-[#1E1810]">No published listings found for this category.</p>
+          <p className="font-semibold text-[#1E1810]">
+            {scope === "live" ? "No hay listados en vivo (publicados) con los filtros actuales." : "No published listings found for this category."}
+          </p>
           <p className="mt-2 text-xs leading-relaxed text-[#5C5346]">
-            La API <span className="font-mono">/api/admin/empleos/listings</span> respondió sin filas desde{" "}
-            <span className="font-mono">empleos_public_listings</span>
-            {needle.trim() ? " para el término de búsqueda actual." : " (sin término de búsqueda)."}{" "}
-            Si esperabas anuncios, confirma migraciones y datos en Supabase.
+            {scope === "live" && rows.length > 0 ? (
+              <>
+                Hay {rows.length} fila(s) cargadas; ninguna está en estado <code className="rounded bg-white/80 px-1">published</code>. Cambia a
+                la cola completa o revisa el estado en Staff.
+              </>
+            ) : (
+              <>
+                La API <span className="font-mono">/api/admin/empleos/listings</span> respondió sin filas desde{" "}
+                <span className="font-mono">empleos_public_listings</span>
+                {needle.trim() ? " para el término de búsqueda actual." : " (sin término de búsqueda)."}{" "}
+                Si esperabas anuncios, confirma migraciones y datos en Supabase.
+              </>
+            )}
           </p>
         </div>
       ) : null}
@@ -125,6 +170,7 @@ export default function AdminEmpleosListingsPage() {
         <input className={`${adminInputClass} mt-1 max-w-md`} value={needle} onChange={(e) => setNeedle(e.target.value)} />
       </div>
 
+      {!err && displayRows.length > 0 ? (
       <div className={`${adminCardBase} overflow-x-auto p-0`}>
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2] text-xs font-bold uppercase text-[#7A7164]">
@@ -142,7 +188,7 @@ export default function AdminEmpleosListingsPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {displayRows.map((r) => (
               <tr key={r.id} className="border-b border-[#E8DFD0]/70 last:border-0">
                 <td className="px-4 py-3">
                   <div className="max-w-[200px] truncate font-semibold">{r.title}</div>
@@ -157,6 +203,14 @@ export default function AdminEmpleosListingsPage() {
                 <td className="px-4 py-3 capitalize">{r.lane}</td>
                 <td className="px-4 py-3">
                   <code className="break-all text-[10px] text-[#6B645C]">{r.owner_user_id ?? "—"}</code>
+                  {r.owner_user_id ? (
+                    <>
+                      <br />
+                      <Link href={`/admin/usuarios/${encodeURIComponent(r.owner_user_id)}`} className="text-[10px] font-semibold text-[#6B5B2E] underline">
+                        Admin perfil
+                      </Link>
+                    </>
+                  ) : null}
                 </td>
                 <td className="px-4 py-3 text-[11px] leading-snug text-[#4A4744]">
                   <div>Total: {r.application_health?.total ?? 0}</div>
@@ -199,7 +253,7 @@ export default function AdminEmpleosListingsPage() {
                     promoted={Boolean(r.admin_promoted)}
                     verified={Boolean(r.leonix_verified)}
                     canArchive={r.lifecycle_status !== "archived"}
-                    staffEditBoardHref={appendLangToPath(`/dashboard/empleos/${encodeURIComponent(r.id)}`, lang)}
+                    staffEditBoardHref={`/admin/workspace/clasificados/empleos?q=${encodeURIComponent(r.leonix_ad_id ?? r.id)}`}
                     republishCategory="empleos"
                     republishRow={{
                       lifecycle_status: r.lifecycle_status,
@@ -229,6 +283,7 @@ export default function AdminEmpleosListingsPage() {
           </tbody>
         </table>
       </div>
+      ) : null}
     </div>
   );
 }

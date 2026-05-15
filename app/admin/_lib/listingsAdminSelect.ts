@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { adminQueueNormalizeLeonixAdId } from "@/app/admin/_lib/adminAdSearch";
+import { listingsRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { fetchProfileIdsMatchingAdminQueueSearch } from "@/app/lib/supabase/adminQueueProfileSearch";
 
@@ -120,6 +121,11 @@ export type ListingsAdminWorkspaceFilters = {
   /** Owner id fragment — full UUID uses SQL eq; partial matched in memory after fetch. */
   ownerFrag?: string;
   limit?: number;
+  /**
+   * `live` — only rows that are publicly live (published + active, not removed).
+   * Omit — full category operational queue (default).
+   */
+  scope?: "live";
 };
 
 function mergeById(rows: Record<string, unknown>[], cap: number): Record<string, unknown>[] {
@@ -282,6 +288,11 @@ export async function fetchListingsForAdminWorkspaceFiltered(
       const ty = new Date(String((y as { created_at?: string }).created_at ?? 0)).getTime();
       return ty - tx;
     });
+
+    if (filters.scope === "live") {
+      merged = merged.filter((r) => listingsRowIsPublicLive(r as Record<string, unknown>));
+    }
+
     return { data: mergeById(merged, limit), error: null };
   };
 

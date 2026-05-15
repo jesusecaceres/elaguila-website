@@ -37,6 +37,13 @@ export function adminCategoryWorkspaceQueueHref(slug: string): string {
   }
 }
 
+/** Admin operational list of currently public/live rows for the category (`scope=live`). */
+export function adminCategoryWorkspaceLiveListingsHref(slug: string): string {
+  const base = adminCategoryWorkspaceQueueHref(slug);
+  const sep = base.includes("?") ? "&" : "?";
+  return `${base}${sep}scope=live`;
+}
+
 /** Human-readable operational status (admin categories / hub badges). */
 export function adminCategoryOperationalStatusLabel(status: AdminCategoryOperationalStatus): string {
   switch (status) {

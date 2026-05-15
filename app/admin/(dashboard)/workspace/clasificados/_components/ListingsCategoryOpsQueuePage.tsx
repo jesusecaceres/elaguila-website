@@ -5,11 +5,18 @@ import {
   fetchListingsForAdminWorkspaceFiltered,
   isUuidString,
 } from "@/app/admin/_lib/listingsAdminSelect";
+import { getAdminLang } from "@/app/admin/_lib/adminI18n";
+import { adminMessages } from "@/app/admin/_lib/adminStrings";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { clasificadosQueueSurfaceForSlug } from "@/app/admin/(dashboard)/workspace/clasificados/_lib/clasificadosQueueSurfaceMeta";
+import {
+  appendPreservedSearchParams,
+  parseAdminScope,
+} from "@/app/admin/(dashboard)/workspace/clasificados/_lib/clasificadosAdminScopeUrls";
 
 import AdminListingsTable, { type AdminListingsTableRow } from "../AdminListingsTable";
 import { ClasificadosQueueHeader } from "./ClasificadosQueueHeader";
+import { ClasificadosScopeNav } from "./ClasificadosScopeNav";
 
 export const dynamic = "force-dynamic";
 
@@ -21,12 +28,12 @@ function firstParam(v: string | string[] | undefined): string | undefined {
 
 type PageProps = {
   categorySlug: string;
-  title: string;
-  subtitle?: string;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export async function ListingsCategoryOpsQueuePage({ categorySlug, title, subtitle, searchParams }: PageProps) {
+export async function ListingsCategoryOpsQueuePage({ categorySlug, searchParams }: PageProps) {
+  const lang = await getAdminLang();
+  const m = adminMessages(lang);
   const configured = isSupabaseAdminConfigured();
   const sp = searchParams ? await searchParams : {};
   const qInput = firstParam(sp.q) ?? "";
@@ -34,8 +41,12 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, title, subtit
   const ownerFrag = (firstParam(sp.owner) ?? "").trim().toLowerCase();
   const limitRaw = Number(firstParam(sp.limit) ?? "400");
   const queueLimit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 50), 500) : 400;
+  const scope = parseAdminScope(sp);
 
   const surface = clasificadosQueueSurfaceForSlug(categorySlug);
+  const basePath = `/admin/workspace/clasificados/${encodeURIComponent(categorySlug)}`;
+  const queueHref = appendPreservedSearchParams(basePath, sp, null);
+  const liveHref = appendPreservedSearchParams(basePath, sp, "live");
 
   const supabase = getAdminSupabase();
   const fetchRes = configured
@@ -45,6 +56,7 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, title, subtit
         status: statusFilter || undefined,
         ownerFrag: ownerFrag && isUuidString(ownerFrag) ? ownerFrag : undefined,
         limit: queueLimit,
+        ...(scope === "live" ? { scope: "live" as const } : {}),
       })
     : { data: [], error: null, detailPairsAvailable: true, republishColsAvailable: true };
 
@@ -53,28 +65,34 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, title, subtit
     rows = rows.filter((r) => (r.owner_id ?? "").toLowerCase().includes(ownerFrag));
   }
 
+  const pageTitle =
+    scope === "live"
+      ? m("listingsCategoryOps.titleLive", { slug: categorySlug })
+      : m("listingsCategoryOps.titleQueue", { slug: categorySlug });
+  const pageSubtitle =
+    scope === "live" ? m("listingsCategoryOps.subLive") : m("listingsCategoryOps.subQueue");
+
   return (
     <div className="max-w-[1200px] space-y-6">
       <ClasificadosQueueHeader
-        title={title}
+        title={pageTitle}
         sourceTable={surface.sourceTable}
-        subtitle={
-          subtitle ??
-          `Cola filtrada por categoría “${categorySlug}”. Acciones staff y enlace Editar por fila.`
-        }
+        subtitle={pageSubtitle}
         publicHref={surface.publicHref}
         publishHref={surface.publishHref}
+        rightSlot={<ClasificadosScopeNav lang={lang} queueHref={queueHref} liveHref={liveHref} active={scope === "live" ? "live" : "queue"} />}
       />
 
       {configured ? (
         <div className={`${adminCardBase} mb-4 space-y-3 p-4 text-sm text-[#5C5346]`}>
-          <p className="font-bold text-[#1E1810]">Buscar cola</p>
-            <form
-              className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end"
-              method="get"
-              action={`/admin/workspace/clasificados/${encodeURIComponent(categorySlug)}`}
-            >
-              <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs">
+          <p className="font-bold text-[#1E1810]">{m("listingsCategoryOps.searchTitle")}</p>
+          <form
+            className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end"
+            method="get"
+            action={basePath}
+          >
+            {scope === "live" ? <input type="hidden" name="scope" value="live" /> : null}
+            <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs">
               <span className="font-semibold text-[#5C5346]">q</span>
               <input
                 name="q"
@@ -103,13 +121,10 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, title, subtit
               />
             </label>
             <button type="submit" className="rounded-xl bg-[#2A2620] px-4 py-2 text-xs font-bold text-[#FAF7F2]">
-              Aplicar
+              {m("common.apply")}
             </button>
-            <Link
-              href={`/admin/workspace/clasificados/${encodeURIComponent(categorySlug)}`}
-              className={`${adminBtnSecondary} inline-flex items-center text-xs`}
-            >
-              Limpiar
+            <Link href={queueHref} className={`${adminBtnSecondary} inline-flex items-center text-xs`}>
+              {m("common.clear")}
             </Link>
           </form>
         </div>
