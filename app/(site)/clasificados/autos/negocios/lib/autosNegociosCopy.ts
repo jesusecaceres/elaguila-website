@@ -427,9 +427,9 @@ const ES: AutosNegociosCopy = {
       byline: (dealer) => `Resumen proporcionado por ${dealer}`,
     },
     related: {
-      title: "Más autos de este negocio",
+      title: "Más vehículos de este dealer",
       subtitle: "Solo inventario del mismo concesionario",
-      details: "Ver detalles",
+      details: "Ver vehículo",
     },
     gallery: {
       vehicleFallback: "Vehículo",
@@ -745,7 +745,7 @@ const EN: AutosNegociosCopy = {
     related: {
       title: "More vehicles from this dealer",
       subtitle: "Same dealership inventory only",
-      details: "View details",
+      details: "View vehicle",
     },
     gallery: {
       vehicleFallback: "Vehicle",

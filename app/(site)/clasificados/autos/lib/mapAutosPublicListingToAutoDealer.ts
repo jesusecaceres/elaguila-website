@@ -22,19 +22,24 @@ export function buildRelatedPublicListings(
   current: AutosPublicListing,
   pool: AutosPublicListing[],
   lang: "es" | "en",
+  opts?: { limit?: number },
 ): RelatedDealerListing[] {
   const q = lang === "en" ? "lang=en" : "lang=es";
+  const limit = opts?.limit ?? 4;
   return pool
     .filter((row) => row.id !== current.id && row.sellerType === "dealer")
-    .slice(0, 3)
+    .slice(0, limit)
     .map((row) => ({
       id: row.id,
       imageUrl: row.primaryImageUrl,
       year: row.year,
       make: row.make,
       model: row.model,
+      trim: row.trim,
       price: row.price,
       mileage: row.mileage,
+      city: row.city,
+      state: row.state,
       href: `${autosLiveVehiclePath(row.id)}?${q}`,
     }));
 }

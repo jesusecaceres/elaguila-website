@@ -231,7 +231,11 @@ export function AutoDealerPreviewPage({
 
         {(data.relatedDealerListings ?? []).length > 0 ? (
           <div className="mt-6">
-            <RelatedDealerCars listings={data.relatedDealerListings ?? []} />
+            <RelatedDealerCars
+              listings={data.relatedDealerListings ?? []}
+              fullInventoryHref={data.relatedDealerInventoryHref}
+              hasMore={data.relatedDealerInventoryHasMore}
+            />
           </div>
         ) : null}
       </main>

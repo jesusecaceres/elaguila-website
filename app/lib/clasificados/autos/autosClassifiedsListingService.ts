@@ -5,6 +5,8 @@ import { normalizeLoadedListing } from "@/app/clasificados/autos/negocios/lib/au
 import { buildVehicleTitle } from "@/app/publicar/autos/negocios/lib/autoDealerTitle";
 import { buildRelatedPublicListings } from "@/app/clasificados/autos/lib/mapAutosPublicListingToAutoDealer";
 import type { AutosPublicListing } from "@/app/clasificados/autos/data/autosPublicSampleTypes";
+import { serializeAutosBrowseUrl } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
+import { emptyAutosPublicFilters } from "@/app/clasificados/autos/filters/autosPublicFilterTypes";
 import type {
   AutosClassifiedsLane,
   AutosClassifiedsLang,
@@ -13,6 +15,12 @@ import type {
 } from "./autosClassifiedsTypes";
 import { autosClassifiedsRowToPublicListing } from "./mapAutosClassifiedsToPublic";
 import { sanitizeAutosListingPayloadForPersistence } from "./autosListingPayloadPersistence";
+import {
+  STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
+  countActiveDealerVehicles,
+  summarizeDealerInventory,
+  type AutosDealerInventoryCount,
+} from "./autosDealerInventoryPolicy";
 
 function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
   return {
@@ -41,6 +49,8 @@ export type AutosListingPersistResult = {
   row: AutosClassifiedsListingRow | null;
   persistWarnings: string[];
 };
+
+export const AUTOS_DEALER_ACTIVE_LIMIT_ERROR = "dealer_active_limit_reached" as const;
 
 export async function createAutosClassifiedsListing(input: {
   ownerUserId: string;
@@ -145,6 +155,22 @@ export async function listAutosClassifiedsListingsForOwner(ownerUserId: string):
     .order("updated_at", { ascending: false });
   if (error || !data?.length) return [];
   return data.map((r) => rowFromDb(r as Record<string, unknown>));
+}
+
+export async function getAutosDealerInventorySummaryForOwner(
+  ownerUserId: string,
+  opts?: { excludeListingId?: string },
+): Promise<AutosDealerInventoryCount> {
+  const rows = await listAutosClassifiedsListingsForOwner(ownerUserId);
+  const activeCount = countActiveDealerVehicles(rows, opts?.excludeListingId);
+  return summarizeDealerInventory(activeCount, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT);
+}
+
+async function canActivateDealerListing(row: AutosClassifiedsListingRow): Promise<AutosDealerInventoryCount> {
+  if (row.lane !== "negocios" || row.status === "active") {
+    return summarizeDealerInventory(0, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT);
+  }
+  return getAutosDealerInventorySummaryForOwner(row.owner_user_id, { excludeListingId: row.id });
 }
 
 export type AutosClassifiedsDashboardRow = {
@@ -254,13 +280,22 @@ export async function setAutosListingPendingPayment(listingId: string, stripeChe
 }
 
 export async function activateAutosClassifiedsListing(listingId: string): Promise<boolean> {
+  const row = await getAutosClassifiedsListingById(listingId);
+  if (!row) return false;
+  const dealerSummary = await canActivateDealerListing(row);
+  if (row.lane === "negocios" && !dealerSummary.canAddActiveVehicle) return false;
   const now = new Date().toISOString();
   return updateAutosListingStatus(listingId, "active", { published_at: now });
 }
 
 export type ActivateAutosAfterPaymentOpts = { stripePaymentIntentId?: string | null };
 
-export type TryActivateAutosResult = { ok: boolean; transitioned: boolean };
+export type TryActivateAutosResult = {
+  ok: boolean;
+  transitioned: boolean;
+  error?: typeof AUTOS_DEALER_ACTIVE_LIMIT_ERROR;
+  dealerInventory?: AutosDealerInventoryCount;
+};
 
 /**
  * Idempotent activation after Stripe paid. Uses `status = pending_payment` in the WHERE clause
@@ -275,6 +310,15 @@ export async function tryActivateAutosListingAfterPayment(
   if (!existing) return { ok: false, transitioned: false };
   if (existing.status === "active") return { ok: true, transitioned: false };
   if (existing.status !== "pending_payment") return { ok: false, transitioned: false };
+  const dealerSummary = await canActivateDealerListing(existing);
+  if (existing.lane === "negocios" && !dealerSummary.canAddActiveVehicle) {
+    return {
+      ok: false,
+      transitioned: false,
+      error: AUTOS_DEALER_ACTIVE_LIMIT_ERROR,
+      dealerInventory: dealerSummary,
+    };
+  }
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
   const patch: Record<string, unknown> = {
@@ -323,14 +367,30 @@ export async function getActiveLiveAutosBundle(
   const row = await getAutosClassifiedsListingById(id);
   if (!row || row.status !== "active") return null;
   const poolRows = await listActiveAutosClassifiedsRows();
-  const publicPool: AutosPublicListing[] = poolRows.map(autosClassifiedsRowToPublicListing);
+  const dealerRows = poolRows.filter(
+    (candidate) =>
+      candidate.lane === "negocios" &&
+      candidate.status === "active" &&
+      candidate.owner_user_id === row.owner_user_id &&
+      candidate.id !== row.id,
+  );
+  const publicPool: AutosPublicListing[] = dealerRows.map(autosClassifiedsRowToPublicListing);
   const currentPublic = autosClassifiedsRowToPublicListing(row);
   const normalized = normalizeLoadedListing({
     ...row.listing_payload,
     autosLane: row.lane,
   });
   if (row.lane === "negocios" && publicPool.length > 0) {
-    normalized.relatedDealerListings = buildRelatedPublicListings(currentPublic, publicPool, lang);
+    normalized.relatedDealerListings = buildRelatedPublicListings(currentPublic, publicPool, lang, { limit: 4 });
+    normalized.relatedDealerInventoryHasMore = publicPool.length > 4;
+    const dealerName = normalized.dealerName?.trim();
+    normalized.relatedDealerInventoryHref = `/clasificados/autos/resultados?${serializeAutosBrowseUrl({
+      filters: { ...emptyAutosPublicFilters(), sellerType: "dealer" },
+      q: dealerName ?? "",
+      sort: "newest",
+      page: 1,
+      lang,
+    })}`;
   }
   const leonix_ad_id = row.leonix_ad_id?.trim() ? row.leonix_ad_id.trim() : null;
   return { listing: normalized, lane: row.lane, publicRow: currentPublic, leonix_ad_id };

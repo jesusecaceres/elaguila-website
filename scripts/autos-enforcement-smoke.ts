@@ -12,6 +12,13 @@ import { autosPublicSellerTypeFromLane } from "../app/lib/clasificados/autos/aut
 import { partitionAutosResultsVisibility } from "../app/(site)/clasificados/autos/lib/autosPublicResultsVisibility";
 import { autosClassifiedsRowToPublicListing } from "../app/lib/clasificados/autos/mapAutosClassifiedsToPublic";
 import type { AutosClassifiedsListingRow } from "../app/lib/clasificados/autos/autosClassifiedsTypes";
+import {
+  STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
+  countActiveDealerVehicles,
+  dealerCanAddActiveVehicle,
+  dealerInventoryRemainingSlots,
+} from "../app/lib/clasificados/autos/autosDealerInventoryPolicy";
+import { buildRelatedPublicListings } from "../app/(site)/clasificados/autos/lib/mapAutosPublicListingToAutoDealer";
 
 const base: AutosPublicListing = {
   id: "test-1",
@@ -40,6 +47,15 @@ const base: AutosPublicListing = {
 function run() {
   assert.equal(autosPublicSellerTypeFromLane("privado"), "private");
   assert.equal(autosPublicSellerTypeFromLane("negocios"), "dealer");
+  assert.equal(STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT, 10, "standard dealer active limit must be 10");
+  const dealerRows = Array.from({ length: 10 }, (_, i) => ({
+    id: `dealer-${i}`,
+    lane: "negocios" as const,
+    status: "active" as const,
+  }));
+  assert.equal(countActiveDealerVehicles(dealerRows), 10, "active dealer count must count active Negocios rows");
+  assert.equal(dealerInventoryRemainingSlots(4), 6, "remaining slots must be limit minus active count");
+  assert.equal(dealerCanAddActiveVehicle(10), false, "11th active Negocios vehicle must be blocked");
 
   const f0 = emptyAutosPublicFilters();
   const qHit = applyAutosPublicFilters([base], f0, "financing");
@@ -126,6 +142,19 @@ function run() {
   assert.ok(blurb.includes("skyactiv-g"), "searchableBlurb must include engine for q search");
   assert.ok(blurb.includes("4 doors"), "searchableBlurb must include doors for q search");
   assert.ok(blurb.includes("mpg city 28"), "searchableBlurb must include mpg city for q search");
+
+  const related = buildRelatedPublicListings(
+    { ...base, id: "current", sellerType: "dealer", dealerName: "Dealer A" },
+    [
+      { ...base, id: "current", sellerType: "dealer", dealerName: "Dealer A" },
+      { ...base, id: "other-1", sellerType: "dealer", dealerName: "Dealer A", trim: "EX", city: "Fremont" },
+      { ...base, id: "private-1", sellerType: "private", privateSellerLabel: "Private" },
+    ],
+    "en",
+    { limit: 4 },
+  );
+  assert.equal(related.length, 1, "related dealer gallery must exclude current and private listings");
+  assert.ok(related[0].href.includes("/clasificados/autos/vehiculo/other-1"), "related gallery must link to real Autos detail URLs");
 
   const prodDemoOff =
     process.env.NODE_ENV === "production" ? true : autosPublicDemoInventoryAllowed() === (process.env.NEXT_PUBLIC_LEONIX_AUTOS_PUBLIC_DEMO === "1");

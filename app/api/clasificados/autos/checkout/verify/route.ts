@@ -11,6 +11,12 @@ import type { AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosCla
 
 export const dynamic = "force-dynamic";
 
+function dealerLimitMessage(lang: AutosClassifiedsLang): string {
+  return lang === "en"
+    ? "You have reached the 10 active vehicle limit for your Negocio Autos package. Deactivate a current vehicle to publish another."
+    : "Has llegado al límite de 10 vehículos activos para tu paquete Negocio Autos. Desactiva un vehículo actual para publicar otro.";
+}
+
 export async function GET(request: Request) {
   if (!isStripeAutosConfigured()) {
     return NextResponse.json({ ok: false, error: "stripe_not_configured" }, { status: 503 });
@@ -34,6 +40,17 @@ export async function GET(request: Request) {
   const piId = typeof pi === "string" ? pi : pi?.id ?? null;
   const activation = await tryActivateAutosListingAfterPayment(listingId, { stripePaymentIntentId: piId });
   if (!activation.ok) {
+    if (activation.error === "dealer_active_limit_reached") {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: activation.error,
+          message: dealerLimitMessage(lang),
+          dealerInventory: activation.dealerInventory,
+        },
+        { status: 409 },
+      );
+    }
     return NextResponse.json({ ok: false, error: "activation_failed" }, { status: 409 });
   }
   const row = await getAutosClassifiedsListingById(listingId);

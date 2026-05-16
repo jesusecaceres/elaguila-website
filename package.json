@@ -34,6 +34,7 @@
     "autos:privado-qa-audit": "npx tsx scripts/autos-privado-qa-polish-audit.ts",
     "autos:a2-taxonomy-audit": "npx tsx scripts/autos-a2-structured-vehicle-taxonomy-audit.ts",
     "autos:a3-field-audit": "npx tsx scripts/autos-a3-field-search-filter-sort-audit.ts",
+    "autos:a4-dealer-inventory-audit": "npx tsx scripts/autos-a4-dealer-inventory-gallery-audit.ts",
     "verify:autos:e2e": "npx playwright test -c playwright.autos-runtime.config.mjs e2e/autos/autos-go-live-smoke.spec.ts",
     "seed:autos:manual-qa": "npx playwright test -c playwright.autos-runtime.config.mjs e2e/autos/autos-manual-qa-seed.spec.ts",
     "verify:viajes": "node scripts/verify-viajes-pipeline.mjs",

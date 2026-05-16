@@ -34,8 +34,11 @@ export type RelatedDealerListing = {
   year: number;
   make: string;
   model: string;
+  trim?: string;
   price: number;
   mileage: number;
+  city?: string;
+  state?: string;
   href: string;
 };
 
@@ -162,4 +165,6 @@ export type AutoDealerListing = {
   /** Engagement snapshot for preview / live analytics strip. */
   listingAnalytics?: AutosListingAnalyticsSnapshot;
   relatedDealerListings?: RelatedDealerListing[];
+  relatedDealerInventoryHref?: string | null;
+  relatedDealerInventoryHasMore?: boolean;
 };

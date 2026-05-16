@@ -7,6 +7,7 @@ import {
   isAutosClassifiedsDbConfigured,
   listAutosClassifiedsListingsForOwner,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
+import { countActiveDealerVehicles, summarizeDealerInventory } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import type { AutosClassifiedsLane, AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 
 export const dynamic = "force-dynamic";
@@ -27,9 +28,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
   const rows = await listAutosClassifiedsListingsForOwner(userId);
+  const dealerInventory = summarizeDealerInventory(countActiveDealerVehicles(rows));
   return NextResponse.json({
     ok: true,
     listings: rows.map(autosClassifiedsRowToDashboardRow),
+    dealerInventory,
   });
 }
 

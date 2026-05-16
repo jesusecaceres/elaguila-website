@@ -132,6 +132,12 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
     rows = rows.filter((r) => autosRowIsPublicLive(r as unknown as Record<string, unknown>));
   }
 
+  const dealerActiveCountByOwner = new Map<string, number>();
+  for (const r of rows) {
+    if (r.lane !== "negocios" || r.status !== "active") continue;
+    dealerActiveCountByOwner.set(r.owner_user_id, (dealerActiveCountByOwner.get(r.owner_user_id) ?? 0) + 1);
+  }
+
   const surface = clasificadosQueueSurfaceForSlug("autos");
 
   return (
@@ -227,6 +233,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                   dash.thumbUrl ? "photo" : "",
                   payload.muxPlaybackId?.trim() || payload.muxPlaybackUrl?.trim() ? "video" : "",
                 ].filter(Boolean).join(" + ");
+                const dealerActiveCount = r.lane === "negocios" ? dealerActiveCountByOwner.get(r.owner_user_id) ?? 0 : null;
                 const liveHref =
                   r.status === "active"
                     ? `${autosLiveVehiclePath(r.id)}?lang=${r.lang === "en" ? "en" : "es"}`
@@ -249,6 +256,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                       {(sellerName || contactSignal || mediaSignal) ? (
                         <p className="mt-0.5 text-[10px] font-normal text-[#7A7164]">
                           {sellerName ? sellerName : r.lane}
+                          {dealerActiveCount != null ? ` · active ${dealerActiveCount}/10` : ""}
                           {contactSignal ? " · contact" : ""}
                           {mediaSignal ? ` · ${mediaSignal}` : ""}
                         </p>

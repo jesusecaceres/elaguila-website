@@ -6,6 +6,7 @@ import {
   activateAutosClassifiedsListing,
   assertAutosListingOwner,
   getAutosClassifiedsListingById,
+  getAutosDealerInventorySummaryForOwner,
   isAutosClassifiedsDbConfigured,
   setAutosListingPendingPayment,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
@@ -22,6 +23,12 @@ import type { AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosCla
 export const dynamic = "force-dynamic";
 
 type Body = { listingId?: string; lang?: AutosClassifiedsLang };
+
+function dealerLimitMessage(lang: AutosClassifiedsLang): string {
+  return lang === "en"
+    ? "You have reached the 10 active vehicle limit for your Negocio Autos package. Deactivate a current vehicle to publish another."
+    : "Has llegado al límite de 10 vehículos activos para tu paquete Negocio Autos. Desactiva un vehículo actual para publicar otro.";
+}
 
 export async function POST(request: Request) {
   if (!isAutosClassifiedsDbConfigured()) {
@@ -54,10 +61,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "invalid_status" }, { status: 409 });
   }
   const lang: AutosClassifiedsLang = body.lang === "en" || row.lang === "en" ? "en" : "es";
+  if (row.lane === "negocios") {
+    const dealerInventory = await getAutosDealerInventorySummaryForOwner(row.owner_user_id, { excludeListingId: row.id });
+    if (!dealerInventory.canAddActiveVehicle) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "dealer_active_limit_reached",
+          message: dealerLimitMessage(lang),
+          dealerInventory,
+        },
+        { status: 409 },
+      );
+    }
+  }
 
   if (internalBypass) {
     const okAct = await activateAutosClassifiedsListing(listingId);
     if (!okAct) {
+      if (row.lane === "negocios") {
+        return NextResponse.json(
+          { ok: false, error: "dealer_active_limit_reached", message: dealerLimitMessage(lang) },
+          { status: 409 },
+        );
+      }
       return NextResponse.json({ ok: false, error: "activate_failed" }, { status: 500 });
     }
     const live = await getAutosClassifiedsListingById(listingId);
@@ -81,6 +108,12 @@ export async function POST(request: Request) {
   if (testPublishBypass) {
     const okAct = await activateAutosClassifiedsListing(listingId);
     if (!okAct) {
+      if (row.lane === "negocios") {
+        return NextResponse.json(
+          { ok: false, error: "dealer_active_limit_reached", message: dealerLimitMessage(lang) },
+          { status: 409 },
+        );
+      }
       return NextResponse.json({ ok: false, error: "activate_failed" }, { status: 500 });
     }
     const live = await getAutosClassifiedsListingById(listingId);
