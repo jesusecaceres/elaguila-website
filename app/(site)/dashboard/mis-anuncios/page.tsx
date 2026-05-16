@@ -176,8 +176,7 @@ function canEditListing(createdAtIso?: string | null) {
 }
 
 function normalizePlanFromMembershipTier(raw: unknown): Plan {
-  const v = (typeof raw === "string" ? raw : "").toLowerCase().trim();
-  if (v === "pro" || v === "business_lite" || v === "business_premium") return "pro";
+  void raw;
   return "free";
 }
 

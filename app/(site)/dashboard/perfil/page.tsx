@@ -39,8 +39,7 @@ function formatPhoneInput(raw: string): string {
 }
 
 function normalizePlanFromMembershipTier(raw: unknown): Plan {
-  const v = (typeof raw === "string" ? raw : "").toLowerCase().trim();
-  if (v === "pro" || v === "business_lite" || v === "business_premium") return "pro";
+  void raw;
   return "free";
 }
 
@@ -97,7 +96,7 @@ export default function ProfilePage() {
           "Portal de cliente (Stripe): configura `NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL_URL` o un endpoint interno que cree la sesión del portal.",
         billingCta: "Abrir portal de facturación",
         billingUnavailable: "Portal no configurado — revisa variables de entorno o despliega el endpoint de sesión.",
-        planTitle: "Plan y membresía",
+        planTitle: "Perfil de cuenta",
         savedBanner: "Cambios guardados correctamente.",
         notifShortcut: "Preferencias de notificación",
         bizTitle: "Perfil de negocio",
@@ -137,7 +136,7 @@ export default function ProfilePage() {
           "Stripe Customer Portal: set `NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL_URL` or add an API route that creates a portal session.",
         billingCta: "Open billing portal",
         billingUnavailable: "Portal not configured — add env var or deploy the billing session endpoint.",
-        planTitle: "Plan & membership",
+        planTitle: "Account profile",
         savedBanner: "Your changes were saved.",
         notifShortcut: "Notification preferences",
         bizTitle: "Business profile",
@@ -564,7 +563,7 @@ export default function ProfilePage() {
               <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.1)]">
                 <h2 className="text-sm font-bold text-[#1E1810]">{L.planTitle}</h2>
                 <p className="mt-2 text-sm font-semibold capitalize text-[#3D3428]">
-                  {accountPlan === "pro" ? "LEONIX Pro" : "Gratis / Free"}
+                  {lang === "es" ? "Metadatos de cuenta" : "Account metadata"}
                 </p>
                 {membershipTier ? (
                   <p className="mt-1 font-mono text-[11px] text-[#7A7164]">{membershipTier}</p>

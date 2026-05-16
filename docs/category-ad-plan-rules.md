@@ -8,6 +8,8 @@ This document describes **how we label a single listing’s plan** (paid/free/pr
 
 **Gate D boundary:** Dashboard shell / Navbar account badges must describe the user’s account or profile only. They must not display **Free**, **Gratis**, **Pro**, `business_lite`, or `business_premium` as global ad capability. Category/listing monetization belongs to listing rows and this resolver. En Venta **Free/Pro** is category-specific unless another category explicitly adds its own resolver rule.
 
+Dashboard pages and Admin user rollups may keep `profiles.membership_tier` / `profiles.account_type` as editable profile metadata, but they must not convert those fields into a global “paid”, “Pro”, or ad-capability badge. Republish/refrescado, featured/destacado, verification, Stripe, and future promo-code behavior must stay listing/category-scoped.
+
 ---
 
 ## Product rules (by category)

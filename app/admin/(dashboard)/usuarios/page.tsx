@@ -75,9 +75,8 @@ function matchesSearch(row: ProfileRow, q: string): boolean {
   );
 }
 
-function isPaidTier(tier: string | null): boolean {
-  const t = (tier ?? "").trim().toLowerCase();
-  return t === "pro" || t === "business_lite" || t === "business_premium";
+function hasProfileTier(tier: string | null): boolean {
+  return Boolean((tier ?? "").trim());
 }
 
 type PageProps = {
@@ -140,7 +139,7 @@ export default async function AdminUsuariosPage(props: PageProps) {
   const filteredRows = rows;
   const disabledCount = filteredRows.filter((r) => r.is_disabled === true).length;
   const newsletterCount = filteredRows.filter((r) => r.newsletter_opt_in === true).length;
-  const paidCount = filteredRows.filter((r) => isPaidTier(r.membership_tier)).length;
+  const profileTierCount = filteredRows.filter((r) => hasProfileTier(r.membership_tier)).length;
 
   return (
     <>
@@ -155,7 +154,7 @@ export default async function AdminUsuariosPage(props: PageProps) {
           { label: "Shown", value: filteredRows.length },
           { label: "Disabled", value: disabledCount },
           { label: "Newsletter opt-in", value: newsletterCount },
-          { label: "Pro / paid", value: paidCount },
+          { label: "Profile tier set", value: profileTierCount },
         ].map((x) => (
           <div key={x.label} className={`${adminCardBase} p-4`}>
             <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{x.label}</p>
