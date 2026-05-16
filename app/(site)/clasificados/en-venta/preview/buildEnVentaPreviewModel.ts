@@ -1,17 +1,11 @@
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { formatPriceInputDisplay } from "@/app/clasificados/publicar/en-venta/free/application/helpers/priceInput";
+import { getArticuloLabel } from "@/app/clasificados/en-venta/shared/fields/enVentaTaxonomy";
 import {
-  departmentLabel,
-  EN_VENTA_PUBLISH_CONDITION_OPTIONS,
-  findSubcategory,
-} from "@/app/clasificados/en-venta/shared/fields/enVentaTaxonomy";
-
-function resolveConditionLabel(value: string, lang: "es" | "en"): string {
-  if (!value.trim()) return "";
-  const opt = EN_VENTA_PUBLISH_CONDITION_OPTIONS.find((c) => c.value === value);
-  if (opt) return lang === "es" ? opt.labelEs : opt.labelEn;
-  return value;
-}
+  enVentaCategoryLine,
+  enVentaConditionDisplay,
+  enVentaFulfillmentLabels,
+} from "@/app/clasificados/en-venta/mapping/appendEnVentaDetailPairs";
 
 function initialsFromName(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -248,7 +242,7 @@ export function buildEnVentaPreviewModel(
   const negotiable = state.negotiable === "yes" && !priceIsFree;
 
   const chips: EnVentaPreviewChip[] = [];
-  const condLabel = resolveConditionLabel(state.condition, lang);
+  const condLabel = enVentaConditionDisplay(state.condition, lang) ?? "";
   if (condLabel) {
     chips.push({ key: "condition", text: condLabel, tone: "success" });
   }
@@ -258,16 +252,9 @@ export function buildEnVentaPreviewModel(
 
   const dept = state.rama.trim();
   const sub = state.evSub.trim();
-  let classificationLine = "";
-  if (dept) {
-    const deptLabel = departmentLabel(dept, lang);
-    if (sub) {
-      const row = findSubcategory(dept, sub);
-      classificationLine = row ? `${deptLabel} · ${row.label[lang]}` : deptLabel;
-    } else {
-      classificationLine = deptLabel;
-    }
-  }
+  const itemType = state.itemType.trim();
+  const classificationLine =
+    enVentaCategoryLine({ departmentKey: dept, subKey: sub, articleKey: itemType }, lang) ?? "";
 
   const loc = t.location(state.city.trim(), state.zip.trim());
   const locationLine = loc ? loc : "";
@@ -281,8 +268,8 @@ export function buildEnVentaPreviewModel(
   if (condLabel) {
     specRows.push({ label: t.condition, value: condLabel });
   }
-  if (state.itemType.trim()) {
-    specRows.push({ label: t.itemType, value: state.itemType.trim() });
+  if (itemType) {
+    specRows.push({ label: t.itemType, value: dept ? getArticuloLabel(dept, itemType, lang) : itemType });
   }
   if (state.brand.trim()) {
     specRows.push({ label: t.brand, value: state.brand.trim() });
@@ -305,25 +292,24 @@ export function buildEnVentaPreviewModel(
     extraParagraphs.push({ title: t.acc, body: state.accessoriesNotes.trim() });
   }
 
-  const deliveryLines: string[] = [];
-  if (state.shipping && state.shippingNotes.trim()) {
-    deliveryLines.push(`${t.ship} — ${state.shippingNotes.trim()}`);
-  }
-  if (state.pickup && state.pickupDetailNotes.trim()) {
-    deliveryLines.push(`${t.pickup} — ${state.pickupDetailNotes.trim()}`);
-  }
-  if (state.meetup && state.meetupDetailNotes.trim()) {
-    deliveryLines.push(`${t.meetup} — ${state.meetupDetailNotes.trim()}`);
-  }
-  if (state.localDelivery && state.localDeliveryDetailNotes.trim()) {
-    deliveryLines.push(`${t.localDel} — ${state.localDeliveryDetailNotes.trim()}`);
-  }
-  if (deliveryLines.length === 0 && (state.shipping || state.pickup || state.meetup || state.localDelivery)) {
-    if (state.shipping) deliveryLines.push(t.ship);
-    if (state.pickup) deliveryLines.push(t.pickup);
-    if (state.meetup) deliveryLines.push(t.meetup);
-    if (state.localDelivery) deliveryLines.push(t.localDel);
-  }
+  const deliveryLabels = enVentaFulfillmentLabels(
+    {
+      shipping: state.shipping,
+      pickup: state.pickup,
+      meetup: state.meetup,
+      delivery: state.localDelivery,
+    },
+    lang
+  );
+  const notesByLabel = new Map<string, string>();
+  if (state.shippingNotes.trim()) notesByLabel.set(lang === "es" ? "Envío disponible" : "Shipping available", state.shippingNotes.trim());
+  if (state.pickupDetailNotes.trim()) notesByLabel.set(lang === "es" ? "Recogida local" : "Local pickup", state.pickupDetailNotes.trim());
+  if (state.meetupDetailNotes.trim()) notesByLabel.set(lang === "es" ? "Punto de encuentro" : "Meetup", state.meetupDetailNotes.trim());
+  if (state.localDeliveryDetailNotes.trim()) notesByLabel.set(lang === "es" ? "Entrega local" : "Local delivery", state.localDeliveryDetailNotes.trim());
+  const deliveryLines = deliveryLabels.map((label) => {
+    const note = notesByLabel.get(label);
+    return note ? `${label} — ${note}` : label;
+  });
 
   const sellerName = state.displayName.trim() || t.sellerFallback;
 

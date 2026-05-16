@@ -1,60 +1,9 @@
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
-import { departmentLabel, findSubcategory, getArticuloLabel } from "../shared/fields/enVentaTaxonomy";
-
-const CONDITION_LABEL: Record<string, { es: string; en: string }> = {
-  new: { es: "Nuevo", en: "New" },
-  "like-new": { es: "Como nuevo", en: "Like new" },
-  like_new: { es: "Como nuevo", en: "Like new" },
-  excellent: { es: "Excelente estado", en: "Excellent" },
-  good: { es: "Bueno", en: "Good" },
-  fair: { es: "Regular", en: "Fair" },
-  poor: { es: "Para repuesto", en: "For parts" },
-  used: { es: "Usado", en: "Used" },
-};
-
-function conditionLabel(raw: string | null | undefined, lang: "es" | "en"): string | null {
-  const k = (raw ?? "").trim().toLowerCase();
-  if (!k) return null;
-  const hit = CONDITION_LABEL[k];
-  if (hit) return hit[lang];
-  const legacy = (raw ?? "").trim();
-  return legacy || null;
-}
-
-function buildCategoryLine(dto: EnVentaAnuncioDTO, effectiveDeptKey: string | null, lang: "es" | "en"): string | null {
-  const dept = (effectiveDeptKey ?? dto.departmentKey ?? "").trim();
-  const sub = (dto.subKey ?? "").trim();
-  const art = (dto.articleKey ?? "").trim();
-  if (dept && sub) {
-    const row = findSubcategory(dept, sub);
-    if (row) return `${departmentLabel(dept, lang)} · ${row.label[lang]}`;
-  }
-  if (dept && art) return `${departmentLabel(dept, lang)} · ${getArticuloLabel(dept, art, lang)}`;
-  if (dept) return departmentLabel(dept, lang);
-  return null;
-}
-
-function fulfillmentChip(dto: EnVentaAnuncioDTO, lang: "es" | "en"): string | null {
-  const { pickup, shipping, delivery } = dto.fulfillment;
-  const meetup = dto.meetupOffered;
-  if (!pickup && !shipping && !delivery && !meetup) return null;
-  if (lang === "es") {
-    const parts: string[] = [];
-    if (shipping) parts.push("Envío");
-    if (pickup) parts.push("recogida");
-    if (delivery) parts.push("entrega local");
-    if (meetup) parts.push("encuentro");
-    if (parts.length >= 2 && shipping && pickup) return "Entrega y local disponible";
-    return parts.join(" · ");
-  }
-  const en: string[] = [];
-  if (shipping) en.push("Shipping");
-  if (pickup) en.push("pickup");
-  if (delivery) en.push("local delivery");
-  if (meetup) en.push("meetup");
-  if (en.length >= 2 && shipping && pickup) return "Shipping & local pickup";
-  return en.join(" · ");
-}
+import {
+  enVentaCategoryLine,
+  enVentaConditionDisplay,
+  enVentaFulfillmentSummary,
+} from "../mapping/appendEnVentaDetailPairs";
 
 export type EnVentaResultsCardModel = {
   id: string;
@@ -116,9 +65,16 @@ export function buildEnVentaResultsCardModel(
     priceText: dto.priceLabel[lang],
     locationText,
     postedAgo: dto.postedAgo[lang],
-    conditionLabel: conditionLabel(dto.conditionKey, lang),
-    categoryLine: buildCategoryLine(dto, effectiveDeptKey, lang),
-    fulfillmentChip: fulfillmentChip(dto, lang),
+    conditionLabel: enVentaConditionDisplay(dto.conditionKey, lang),
+    categoryLine: enVentaCategoryLine(
+      {
+        departmentKey: effectiveDeptKey ?? dto.departmentKey,
+        subKey: dto.subKey,
+        articleKey: dto.articleKey,
+      },
+      lang
+    ),
+    fulfillmentChip: enVentaFulfillmentSummary({ ...dto.fulfillment, meetup: dto.meetupOffered }, lang),
     heroImage,
     extraImageUrls,
     extraThumbOverflow,

@@ -37,6 +37,13 @@ import {
 import { trackEnVentaListingOpen, trackEnVentaListingView } from "../analytics/enVentaAnalytics";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { trackListingSave, trackListingShare } from "@/app/lib/clasificadosAnalytics";
+import {
+  enVentaCategoryLine,
+  enVentaConditionDisplay,
+  enVentaFulfillmentSummary,
+} from "../mapping/appendEnVentaDetailPairs";
+import { parseEnVentaDetailPairSignals } from "../mapping/enVentaDetailPairSignals";
+import { getArticuloLabel } from "../shared/fields/enVentaTaxonomy";
 
 type Lang = "es" | "en";
 
@@ -76,18 +83,45 @@ function conditionFromPairs(rows: Array<{ label: string; value: string }>, lang:
   for (const r of rows) {
     const lb = r.label.toLowerCase();
     if (lb.includes("condición") || lb.includes("condicion") || (lb.includes("condition") && !lb.includes("air"))) {
-      const k = r.value.trim().toLowerCase();
-      const map: Record<string, { es: string; en: string }> = {
-        new: { es: "Nuevo", en: "New" },
-        "like-new": { es: "Como nuevo", en: "Like new" },
-        good: { es: "Bueno", en: "Good" },
-        fair: { es: "Regular", en: "Fair" },
-      };
-      const hit = map[k];
-      return hit ? hit[lang] : r.value;
+      return enVentaConditionDisplay(r.value, lang);
     }
   }
   return null;
+}
+
+function machinePairValue(rows: Array<{ label: string; value: string }>, key: string): string {
+  return rows.find((r) => r.label.trim() === key)?.value.trim() ?? "";
+}
+
+function buildEnVentaSpecsRows(rows: Array<{ label: string; value: string }>, lang: Lang): Array<{ label: string; value: string }> {
+  const dept = machinePairValue(rows, "Leonix:evDept");
+  const sub = machinePairValue(rows, "Leonix:evSub");
+  const article = machinePairValue(rows, "Leonix:itemType");
+  const categoryLine = enVentaCategoryLine({ departmentKey: dept, subKey: sub, articleKey: article }, lang);
+  const itemTypeLabel = lang === "es" ? "Tipo de artículo" : "Item type";
+
+  const mapped = rows.map((r) => {
+    const lb = r.label.toLowerCase();
+    if (lb.includes("condición") || lb.includes("condicion") || (lb.includes("condition") && !lb.includes("air"))) {
+      return { ...r, value: enVentaConditionDisplay(r.value, lang) ?? r.value };
+    }
+    if ((lb.includes("clasificación") || lb.includes("clasificacion") || lb.includes("shelf / type")) && categoryLine) {
+      return { ...r, value: categoryLine };
+    }
+    return r;
+  });
+
+  const hasCategoryRow = mapped.some((r) => /clasificación|clasificacion|shelf \/ type/i.test(r.label));
+  const hasItemTypeRow = mapped.some((r) => /tipo de artículo|tipo de articulo|item type/i.test(r.label));
+  const additions: Array<{ label: string; value: string }> = [];
+  if (categoryLine && !hasCategoryRow) {
+    additions.push({ label: lang === "es" ? "Clasificación" : "Shelf / type", value: categoryLine });
+  }
+  if (article && !hasItemTypeRow) {
+    additions.push({ label: itemTypeLabel, value: dept ? getArticuloLabel(dept, article, lang) : article });
+  }
+
+  return additions.length ? [...mapped, ...additions] : mapped;
 }
 
 function normalizePhoneForTel(raw: string) {
@@ -131,6 +165,10 @@ export function EnVentaAnuncioLayout({
 }) {
   const images = listing.images ?? [];
   const rows = useMemo(() => pairsFromListing(listing), [listing]);
+  const specRows = useMemo(
+    () => (surface === "en-venta" ? buildEnVentaSpecsRows(rows, lang) : rows),
+    [surface, rows, lang]
+  );
   const premiumBr = surface === "bienes-raices";
 
   const brLocationBlock = useMemo(() => {
@@ -203,11 +241,18 @@ export function EnVentaAnuncioLayout({
       : "Meet in a public place and verify the item before paying.";
 
   const fulfillmentLine = useMemo(() => {
+    if (surface === "en-venta") {
+      const signals = parseEnVentaDetailPairSignals(rows, {
+        title: listing.title[lang],
+        description: listing.blurb[lang],
+      });
+      return enVentaFulfillmentSummary(signals.fulfillment, lang) ?? "";
+    }
     for (const r of rows) {
       if (/entrega|fulfillment/i.test(r.label)) return r.value;
     }
     return "";
-  }, [rows]);
+  }, [surface, rows, listing.title, listing.blurb, lang]);
 
   useEffect(() => {
     let cancelled = false;
@@ -797,7 +842,7 @@ export function EnVentaAnuncioLayout({
                 {listing.blurb[lang]}
               </p>
             </section>
-            <EnVentaItemSpecs lang={lang} rows={rows} />
+            <EnVentaItemSpecs lang={lang} rows={specRows} />
           </div>
           <div className="lg:col-span-4">
             <EnVentaRelatedRail lang={lang} q={listing.title[lang].split(/\s+/).slice(0, 4).join(" ")} />
