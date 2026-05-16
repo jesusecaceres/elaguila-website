@@ -100,6 +100,20 @@ function buildActiveFilterChips(
       onRemove: () => next({ filters: { ...filters, fuelType: "" } }),
     });
   }
+  if (filters.exteriorColor) {
+    chips.push({
+      key: "exterior",
+      label: `${copy.filterExteriorColor}: ${filters.exteriorColor}`,
+      onRemove: () => next({ filters: { ...filters, exteriorColor: "" } }),
+    });
+  }
+  if (filters.interiorColor) {
+    chips.push({
+      key: "interior",
+      label: `${copy.filterInteriorColor}: ${filters.interiorColor}`,
+      onRemove: () => next({ filters: { ...filters, interiorColor: "" } }),
+    });
+  }
   if (filters.titleStatus) {
     chips.push({
       key: "title",
@@ -147,6 +161,20 @@ function buildActiveFilterChips(
       key: "mmax",
       label: `${copy.mileageMax} ${filters.mileageMax}`,
       onRemove: () => next({ filters: { ...filters, mileageMax: "" } }),
+    });
+  }
+  if (filters.hasPhotos === "yes") {
+    chips.push({
+      key: "photos",
+      label: copy.filterHasPhotos,
+      onRemove: () => next({ filters: { ...filters, hasPhotos: "" } }),
+    });
+  }
+  if (filters.hasVideo === "yes") {
+    chips.push({
+      key: "video",
+      label: copy.filterHasVideo,
+      onRemove: () => next({ filters: { ...filters, hasVideo: "" } }),
     });
   }
 

@@ -51,6 +51,20 @@ function formatTs(iso: string | null, locale: string): string {
   }
 }
 
+function formatUsd(n: number | undefined | null, locale: string): string {
+  if (n == null || !Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(n);
+}
+
+function formatMiles(n: number | undefined | null, locale: string): string {
+  if (n == null || !Number.isFinite(n)) return "—";
+  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(n)} mi`;
+}
+
 function visLabel(bucket: string, m: ReturnType<typeof adminMessages>): string {
   if (bucket === "public") return m("autosQueue.visibilityPublic");
   if (bucket === "pre_publish") return m("autosQueue.visibilityPre");
@@ -200,6 +214,19 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                 const pub = formatTs(r.published_at, locale);
                 const updated = formatTs(r.updated_at, locale);
                 const stripeHint = autosStripeAdminHint(r);
+                const payload = r.listing_payload;
+                const sellerName = (payload.dealerName ?? "").trim();
+                const location = [payload.city, payload.state].map((x) => x?.trim()).filter(Boolean).join(", ");
+                const contactSignal = [
+                  payload.dealerPhoneOffice || payload.dealerPhone,
+                  payload.dealerWhatsapp,
+                  payload.dealerEmail,
+                  payload.dealerWebsite,
+                ].some((x) => x?.trim());
+                const mediaSignal = [
+                  dash.thumbUrl ? "photo" : "",
+                  payload.muxPlaybackId?.trim() || payload.muxPlaybackUrl?.trim() ? "video" : "",
+                ].filter(Boolean).join(" + ");
                 const liveHref =
                   r.status === "active"
                     ? `${autosLiveVehiclePath(r.id)}?lang=${r.lang === "en" ? "en" : "es"}`
@@ -212,8 +239,20 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                     <td className="max-w-[9rem] truncate px-3 py-2 font-mono text-[10px]" title={r.leonix_ad_id ?? ""}>
                       {r.leonix_ad_id ?? "—"}
                     </td>
-                    <td className="max-w-[14rem] truncate px-3 py-2 font-semibold" title={dash.title}>
-                      {dash.title}
+                    <td className="max-w-[18rem] px-3 py-2" title={dash.title}>
+                      <p className="line-clamp-2 font-semibold">{dash.title}</p>
+                      <p className="mt-1 text-[10px] font-normal text-[#5C5346]">
+                        {formatUsd(payload.price, locale)}
+                        {payload.mileage != null ? ` · ${formatMiles(payload.mileage, locale)}` : ""}
+                        {location ? ` · ${location}` : ""}
+                      </p>
+                      {(sellerName || contactSignal || mediaSignal) ? (
+                        <p className="mt-0.5 text-[10px] font-normal text-[#7A7164]">
+                          {sellerName ? sellerName : r.lane}
+                          {contactSignal ? " · contact" : ""}
+                          {mediaSignal ? ` · ${mediaSignal}` : ""}
+                        </p>
+                      ) : null}
                     </td>
                     <td className="px-3 py-2">{r.lane}</td>
                     <td className="px-3 py-2">{r.featured ? m("autosQueue.yes") : m("autosQueue.no")}</td>

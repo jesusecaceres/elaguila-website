@@ -155,6 +155,8 @@ export type AutosClassifiedsDashboardRow = {
   updated_at: string;
   published_at: string | null;
   title: string;
+  sellerName: string;
+  mileage: number | null;
   priceUsd: number | null;
   city: string;
   thumbUrl: string | null;
@@ -166,6 +168,7 @@ export function autosClassifiedsRowToDashboardRow(row: AutosClassifiedsListingRo
   const title = (L.vehicleTitle?.trim() || autoTitle || "").trim() || "—";
   const thumbs = deriveHeroImageUrls(L);
   const priceUsd = typeof L.price === "number" && Number.isFinite(L.price) ? L.price : null;
+  const mileage = typeof L.mileage === "number" && Number.isFinite(L.mileage) ? L.mileage : null;
   return {
     id: row.id,
     status: row.status,
@@ -174,6 +177,8 @@ export function autosClassifiedsRowToDashboardRow(row: AutosClassifiedsListingRo
     updated_at: row.updated_at,
     published_at: row.published_at,
     title,
+    sellerName: (L.dealerName ?? "").trim(),
+    mileage,
     priceUsd,
     city: (L.city ?? "").trim(),
     thumbUrl: thumbs[0] ?? null,

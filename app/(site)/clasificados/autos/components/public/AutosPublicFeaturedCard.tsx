@@ -41,6 +41,11 @@ export function AutosPublicFeaturedCard({
         <span className="absolute left-3 top-3 rounded-full border border-[color:var(--lx-gold-border)] bg-[linear-gradient(135deg,rgba(201,168,74,0.95),rgba(184,149,74,0.92))] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#FFFCF7] shadow-sm">
           {copy.featuredBadge}
         </span>
+        {listing.hasVideo ? (
+          <span className="absolute right-3 top-3 rounded-full border border-[#1A1A1A]/20 bg-[#1A1A1A]/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+            {copy.filterVideo}
+          </span>
+        ) : null}
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-2.5 p-5 sm:p-6">
         <h3 className="font-serif text-lg font-semibold leading-snug tracking-tight text-[color:var(--lx-text)] sm:text-xl">{listing.vehicleTitle}</h3>

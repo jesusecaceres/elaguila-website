@@ -88,6 +88,11 @@ export function AutosPublicStandardCard({
             {copy.featuredBadge}
           </span>
         ) : null}
+        {listing.hasVideo ? (
+          <span className="absolute right-2.5 top-2.5 rounded-full border border-[#1A1A1A]/20 bg-[#1A1A1A]/80 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow-sm">
+            {copy.filterVideo}
+          </span>
+        ) : null}
       </div>
       <div className={INFO_SECTION}>
         <p className={VEHICLE_TITLE}>

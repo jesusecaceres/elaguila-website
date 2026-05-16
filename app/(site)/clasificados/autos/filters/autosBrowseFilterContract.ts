@@ -31,9 +31,13 @@ export const AUTOS_BROWSE_URL_KEYS = {
   transmission: "transmission",
   drivetrain: "drivetrain",
   fuelType: "fuelType",
+  exteriorColor: "exteriorColor",
+  interiorColor: "interiorColor",
   mileageMin: "mileageMin",
   mileageMax: "mileageMax",
   titleStatus: "titleStatus",
+  hasPhotos: "hasPhotos",
+  hasVideo: "hasVideo",
   sort: "sort",
   page: "page",
 } as const;
@@ -52,7 +56,7 @@ export function sellerQueryFromAutosLane(lane: AutosBrowseAutosLane): "dealer" |
   return lane === "negocios" ? "dealer" : "private";
 }
 
-const SORT_VALUES: AutosPublicSortKey[] = ["newest", "priceAsc", "priceDesc", "mileage"];
+const SORT_VALUES: AutosPublicSortKey[] = ["newest", "priceAsc", "priceDesc", "mileage", "yearDesc", "yearAsc"];
 
 function parseSort(raw: string | null): AutosPublicSortKey {
   return SORT_VALUES.includes(raw as AutosPublicSortKey) ? (raw as AutosPublicSortKey) : "newest";
@@ -93,9 +97,13 @@ export function parseAutosBrowseUrl(sp: URLSearchParams): AutosBrowseUrlBundle {
   filters.transmission = sp.get(K.transmission) ?? "";
   filters.drivetrain = sp.get(K.drivetrain) ?? "";
   filters.fuelType = sp.get(K.fuelType) ?? "";
+  filters.exteriorColor = sp.get(K.exteriorColor) ?? "";
+  filters.interiorColor = sp.get(K.interiorColor) ?? "";
   filters.mileageMin = sp.get(K.mileageMin) ?? "";
   filters.mileageMax = sp.get(K.mileageMax) ?? "";
   filters.titleStatus = sp.get(K.titleStatus) ?? "";
+  filters.hasPhotos = sp.get(K.hasPhotos) === "yes" ? "yes" : "";
+  filters.hasVideo = sp.get(K.hasVideo) === "yes" ? "yes" : "";
 
   const lang = sp.get(K.lang) === "en" ? "en" : "es";
   const q = sp.get(K.q) ?? "";
@@ -130,9 +138,13 @@ export function serializeAutosBrowseUrl(bundle: AutosBrowseUrlBundle): string {
   setIfNonEmpty(params, K.transmission, bundle.filters.transmission);
   setIfNonEmpty(params, K.drivetrain, bundle.filters.drivetrain);
   setIfNonEmpty(params, K.fuelType, bundle.filters.fuelType);
+  setIfNonEmpty(params, K.exteriorColor, bundle.filters.exteriorColor);
+  setIfNonEmpty(params, K.interiorColor, bundle.filters.interiorColor);
   setIfNonEmpty(params, K.mileageMin, bundle.filters.mileageMin);
   setIfNonEmpty(params, K.mileageMax, bundle.filters.mileageMax);
   setIfNonEmpty(params, K.titleStatus, bundle.filters.titleStatus);
+  if (bundle.filters.hasPhotos === "yes") params.set(K.hasPhotos, "yes");
+  if (bundle.filters.hasVideo === "yes") params.set(K.hasVideo, "yes");
   if (bundle.sort !== "newest") params.set(K.sort, bundle.sort);
   if (bundle.page > 1) params.set(K.page, String(bundle.page));
   return params.toString();

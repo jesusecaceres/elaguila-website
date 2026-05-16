@@ -31,16 +31,22 @@ export function applyAutosPublicFilters(
         String(row.year),
         row.trim ?? "",
         row.vehicleTitle,
+        String(row.price),
+        String(row.mileage),
         row.bodyStyle,
         row.transmission,
         row.drivetrain,
         row.fuelType,
+        row.exteriorColor ?? "",
+        row.interiorColor ?? "",
         row.titleStatus ?? "",
         row.city,
         row.state,
         row.zip ?? "",
         row.dealerName ?? "",
         row.privateSellerLabel ?? "",
+        row.sellerType,
+        row.sellerType === "dealer" ? "dealer negocio concesionario business" : "private privado particular",
         row.searchableBlurb ?? "",
       ]
         .filter(Boolean)
@@ -80,6 +86,8 @@ export function applyAutosPublicFilters(
     if (f.transmission && row.transmission !== f.transmission) return false;
     if (f.drivetrain && row.drivetrain !== f.drivetrain) return false;
     if (f.fuelType && row.fuelType !== f.fuelType) return false;
+    if (f.exteriorColor && row.exteriorColor !== f.exteriorColor) return false;
+    if (f.interiorColor && row.interiorColor !== f.interiorColor) return false;
     if (f.mileageMin.trim()) {
       const n = Number(f.mileageMin);
       if (Number.isFinite(n) && row.mileage < n) return false;
@@ -89,6 +97,8 @@ export function applyAutosPublicFilters(
       if (Number.isFinite(n) && row.mileage > n) return false;
     }
     if (f.titleStatus.trim() && row.titleStatus !== f.titleStatus) return false;
+    if (f.hasPhotos === "yes" && !(row.hasPhotos ?? row.primaryImageUrl)) return false;
+    if (f.hasVideo === "yes" && !row.hasVideo) return false;
     return true;
   });
 }
@@ -103,6 +113,10 @@ export function sortAutosPublicListings(listings: AutosPublicListing[], sort: Au
       return out.sort((a, b) => (a.price !== b.price ? b.price - a.price : tie(a, b)));
     case "mileage":
       return out.sort((a, b) => (a.mileage !== b.mileage ? a.mileage - b.mileage : tie(a, b)));
+    case "yearDesc":
+      return out.sort((a, b) => (a.year !== b.year ? b.year - a.year : tie(a, b)));
+    case "yearAsc":
+      return out.sort((a, b) => (a.year !== b.year ? a.year - b.year : tie(a, b)));
     case "newest":
     default:
       return out.sort(compareNewestAutosPublic);

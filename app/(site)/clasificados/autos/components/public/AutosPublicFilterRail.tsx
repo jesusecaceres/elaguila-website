@@ -6,10 +6,13 @@ import type { AutosPublicFilterState } from "../../filters/autosPublicFilterType
 
 export type AutosPublicFilterOptions = {
   makes: string[];
+  models: string[];
   bodyStyles: string[];
   transmissions: string[];
   drivetrains: string[];
   fuelTypes: string[];
+  exteriorColors: string[];
+  interiorColors: string[];
   titleStatuses: string[];
   conditions: { value: AutosPublicFilterState["condition"]; label: string }[];
 };
@@ -158,7 +161,7 @@ export function AutosPublicFilterRail({
             id={`${idPrefix}-make`}
             className={inp}
             value={value.make}
-            onChange={(e) => onChange({ make: e.target.value })}
+            onChange={(e) => onChange({ make: e.target.value, model: "" })}
           >
             <option value="">{copy.filterAny}</option>
             {options.makes.map((m) => (
@@ -172,12 +175,19 @@ export function AutosPublicFilterRail({
           <label className={lab} htmlFor={`${idPrefix}-model`}>
             {copy.filterModel}
           </label>
-          <input
+          <select
             id={`${idPrefix}-model`}
             className={inp}
             value={value.model}
             onChange={(e) => onChange({ model: e.target.value })}
-          />
+          >
+            <option value="">{copy.filterAny}</option>
+            {options.models.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className={lab} htmlFor={`${idPrefix}-body`}>
@@ -289,6 +299,42 @@ export function AutosPublicFilterRail({
             ))}
           </select>
         </div>
+        <div>
+          <label className={lab} htmlFor={`${idPrefix}-exterior`}>
+            {copy.filterExteriorColor}
+          </label>
+          <select
+            id={`${idPrefix}-exterior`}
+            className={inp}
+            value={value.exteriorColor}
+            onChange={(e) => onChange({ exteriorColor: e.target.value })}
+          >
+            <option value="">{copy.filterAny}</option>
+            {options.exteriorColors.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={lab} htmlFor={`${idPrefix}-interior`}>
+            {copy.filterInteriorColor}
+          </label>
+          <select
+            id={`${idPrefix}-interior`}
+            className={inp}
+            value={value.interiorColor}
+            onChange={(e) => onChange({ interiorColor: e.target.value })}
+          >
+            <option value="">{copy.filterAny}</option>
+            {options.interiorColors.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className={lab} htmlFor={`${idPrefix}-mile-min`}>
@@ -314,6 +360,37 @@ export function AutosPublicFilterRail({
               onChange={(e) => onChange({ mileageMax: e.target.value })}
             />
           </div>
+        </div>
+      </FilterGroup>
+
+      <FilterGroup title={copy.filterGroupMedia} defaultOpen={false}>
+        <div>
+          <label className={lab} htmlFor={`${idPrefix}-photos`}>
+            {copy.filterPhotos}
+          </label>
+          <select
+            id={`${idPrefix}-photos`}
+            className={inp}
+            value={value.hasPhotos}
+            onChange={(e) => onChange({ hasPhotos: e.target.value as AutosPublicFilterState["hasPhotos"] })}
+          >
+            <option value="">{copy.filterAny}</option>
+            <option value="yes">{copy.filterHasPhotos}</option>
+          </select>
+        </div>
+        <div>
+          <label className={lab} htmlFor={`${idPrefix}-video`}>
+            {copy.filterVideo}
+          </label>
+          <select
+            id={`${idPrefix}-video`}
+            className={inp}
+            value={value.hasVideo}
+            onChange={(e) => onChange({ hasVideo: e.target.value as AutosPublicFilterState["hasVideo"] })}
+          >
+            <option value="">{copy.filterAny}</option>
+            <option value="yes">{copy.filterHasVideo}</option>
+          </select>
         </div>
       </FilterGroup>
 

@@ -3,7 +3,7 @@
  * Field names align with Negocios/Privado listing payloads.
  */
 
-export type AutosPublicSortKey = "newest" | "priceAsc" | "priceDesc" | "mileage";
+export type AutosPublicSortKey = "newest" | "priceAsc" | "priceDesc" | "mileage" | "yearDesc" | "yearAsc";
 
 export type AutosPublicFilterState = {
   city: string;
@@ -20,9 +20,13 @@ export type AutosPublicFilterState = {
   transmission: string;
   drivetrain: string;
   fuelType: string;
+  exteriorColor: string;
+  interiorColor: string;
   mileageMin: string;
   mileageMax: string;
   titleStatus: string;
+  hasPhotos: "" | "yes";
+  hasVideo: "" | "yes";
   /**
    * URL contract only (parse/serialize). No UI control — radius search is not implemented;
    * values in URLs are ignored by `applyAutosPublicFilters` until geo is wired.
@@ -46,9 +50,13 @@ export function emptyAutosPublicFilters(): AutosPublicFilterState {
     transmission: "",
     drivetrain: "",
     fuelType: "",
+    exteriorColor: "",
+    interiorColor: "",
     mileageMin: "",
     mileageMax: "",
     titleStatus: "",
+    hasPhotos: "",
+    hasVideo: "",
     radiusMiles: "",
   };
 }

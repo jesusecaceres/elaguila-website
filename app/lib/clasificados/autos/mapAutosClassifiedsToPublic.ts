@@ -7,7 +7,9 @@ import { withNormalizedVehicleIdentityForDisplay } from "@/app/lib/clasificados/
 import {
   resolveBodyStyle,
   resolveDrivetrain,
+  resolveExteriorColor,
   resolveFuelType,
+  resolveInteriorColor,
   resolveTransmission,
   resolveTitleStatus,
 } from "@/app/clasificados/autos/negocios/lib/autoDealerSelectResolve";
@@ -22,10 +24,27 @@ function parseDbTimeMs(value: string | null | undefined): number {
 
 function buildSearchableBlurb(L: AutoDealerListing): string {
   const parts: string[] = [];
+  if (L.autosLane === "negocios") parts.push("dealer negocio concesionario business");
+  if (L.autosLane === "privado") parts.push("private privado particular");
   if (L.year != null && Number.isFinite(L.year)) parts.push(String(Math.round(L.year)));
   if (L.make?.trim()) parts.push(L.make.trim());
   if (L.model?.trim()) parts.push(L.model.trim());
   if (L.trim?.trim()) parts.push(L.trim.trim());
+  if (L.vehicleTitle?.trim()) parts.push(L.vehicleTitle.trim());
+  if (L.price != null && Number.isFinite(L.price)) parts.push(String(Math.round(L.price)));
+  if (L.mileage != null && Number.isFinite(L.mileage)) parts.push(String(Math.round(L.mileage)));
+  if (L.city?.trim()) parts.push(L.city.trim());
+  if (L.state?.trim()) parts.push(L.state.trim());
+  if (L.zip?.trim()) parts.push(L.zip.trim());
+  if (L.dealerName?.trim()) parts.push(L.dealerName.trim());
+  if (L.condition?.trim()) parts.push(L.condition.trim());
+  if (resolveTransmission(L)) parts.push(resolveTransmission(L) ?? "");
+  if (resolveFuelType(L)) parts.push(resolveFuelType(L) ?? "");
+  if (resolveBodyStyle(L)) parts.push(resolveBodyStyle(L) ?? "");
+  if (resolveDrivetrain(L)) parts.push(resolveDrivetrain(L) ?? "");
+  if (resolveExteriorColor(L)) parts.push(resolveExteriorColor(L) ?? "");
+  if (resolveInteriorColor(L)) parts.push(resolveInteriorColor(L) ?? "");
+  if (resolveTitleStatus(L)) parts.push(resolveTitleStatus(L) ?? "");
   if (L.description?.trim()) parts.push(L.description.trim().slice(0, 2000));
   if (L.otherEquipmentDetails?.trim()) parts.push(L.otherEquipmentDetails.trim().slice(0, 2000));
   if (L.vin?.trim()) parts.push(L.vin.trim());
@@ -55,7 +74,10 @@ export function autosClassifiedsRowToPublicListing(row: AutosClassifiedsListingR
   const transmission = resolveTransmission(L) ?? "";
   const drivetrain = resolveDrivetrain(L) ?? "";
   const fuelType = resolveFuelType(L) ?? "";
+  const exteriorColor = resolveExteriorColor(L) ?? undefined;
+  const interiorColor = resolveInteriorColor(L) ?? undefined;
   const titleStatus = resolveTitleStatus(L);
+  const durableVideo = Boolean(L.muxPlaybackId?.trim() || L.muxPlaybackUrl?.trim() || L.muxThumbnailUrl?.trim());
   const publishedMs = parseDbTimeMs(row.published_at);
   const updatedMs = parseDbTimeMs(row.updated_at);
   const createdMs = parseDbTimeMs(row.created_at);
@@ -89,6 +111,8 @@ export function autosClassifiedsRowToPublicListing(row: AutosClassifiedsListingR
     transmission,
     drivetrain,
     fuelType,
+    exteriorColor,
+    interiorColor,
     condition: L.condition ?? "used",
     titleStatus,
     badges: L.badges as string[] | undefined,
@@ -97,6 +121,8 @@ export function autosClassifiedsRowToPublicListing(row: AutosClassifiedsListingR
     dealerLogoUrl: sellerType === "dealer" && typeof L.dealerLogo === "string" ? L.dealerLogo : undefined,
     privateSellerLabel: sellerType === "private" ? L.dealerName : undefined,
     searchableBlurb: buildSearchableBlurb(L),
+    hasPhotos: Boolean(primaryImageUrl),
+    hasVideo: durableVideo,
     publicSortTimestamp,
   };
 }

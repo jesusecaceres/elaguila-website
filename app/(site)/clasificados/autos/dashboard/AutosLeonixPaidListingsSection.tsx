@@ -33,6 +33,12 @@ function formatUsd(n: number | null, lang: Lang) {
   }).format(n);
 }
 
+function formatMileage(n: number | null, lang: Lang) {
+  if (n == null || !Number.isFinite(n)) return "";
+  const value = new Intl.NumberFormat(lang === "es" ? "es-US" : "en-US", { maximumFractionDigits: 0 }).format(n);
+  return lang === "es" ? `${value} mi` : `${value} mi`;
+}
+
 export function AutosLeonixPaidListingsSection({ lang }: { lang: Lang }) {
   const [rows, setRows] = useState<AutosClassifiedsDashboardRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +77,7 @@ export function AutosLeonixPaidListingsSection({ lang }: { lang: Lang }) {
           confirm: "Confirmar / pagar",
           viewLive: "Ver público",
           unpublish: "Retirar",
+          published: "Publicado",
           updated: "Actualizado",
         }
       : {
@@ -82,6 +89,7 @@ export function AutosLeonixPaidListingsSection({ lang }: { lang: Lang }) {
           confirm: "Confirm / pay",
           viewLive: "View live",
           unpublish: "Unpublish",
+          published: "Published",
           updated: "Updated",
         };
 
@@ -164,9 +172,12 @@ export function AutosLeonixPaidListingsSection({ lang }: { lang: Lang }) {
                     <p className="mt-0.5 text-sm font-semibold text-[#1E1810]">{formatUsd(row.priceUsd, lang)}</p>
                     <p className="mt-0.5 text-xs text-[#5C5346]">
                       {laneLabel(row.lane, lang)} · {statusLabel(row.status, lang)}
+                      {row.sellerName ? ` · ${row.sellerName}` : ""}
                       {row.city ? ` · ${row.city}` : ""}
+                      {row.mileage != null ? ` · ${formatMileage(row.mileage, lang)}` : ""}
                     </p>
                     <p className="mt-1 text-[11px] text-[#7A7164]">
+                      {row.published_at ? `${t.published}: ${new Date(row.published_at).toLocaleString(lang === "es" ? "es-US" : "en-US")} · ` : ""}
                       {t.updated}: {new Date(row.updated_at).toLocaleString(lang === "es" ? "es-US" : "en-US")}
                     </p>
                   </div>

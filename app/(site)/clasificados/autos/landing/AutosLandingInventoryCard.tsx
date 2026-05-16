@@ -69,15 +69,22 @@ export function AutosLandingInventoryCard({
           ))}
         </div>
         <div className="absolute right-2 top-2 z-[1]">
-          <span
-            className={`inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] shadow-sm backdrop-blur-sm ${
-              isDealer
-                ? "border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] text-[color:var(--lx-text)]"
-                : "border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-bg)]/95 text-[color:var(--lx-text-2)]"
-            }`}
-          >
-            {laneLabel}
-          </span>
+          <div className="flex flex-col items-end gap-1">
+            <span
+              className={`inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] shadow-sm backdrop-blur-sm ${
+                isDealer
+                  ? "border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] text-[color:var(--lx-text)]"
+                  : "border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-bg)]/95 text-[color:var(--lx-text-2)]"
+              }`}
+            >
+              {laneLabel}
+            </span>
+            {listing.hasVideo ? (
+              <span className="inline-flex rounded-full border border-black/20 bg-black/75 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow-sm">
+                {copy.filterVideo}
+              </span>
+            ) : null}
+          </div>
         </div>
       </div>
       <div className={`flex min-w-0 flex-1 flex-col ${variant === "featured" ? "gap-2 p-4" : "gap-1.5 p-3 sm:p-4"}`}>

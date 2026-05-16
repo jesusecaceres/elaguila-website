@@ -67,12 +67,17 @@ export function AutosPublicResultsShell() {
 
   const filterOptions: AutosPublicFilterOptions = useMemo(() => {
     const rows = inventory;
+    const selectedMake = draftFilters.make.trim().toLowerCase();
+    const modelRows = selectedMake ? rows.filter((r) => r.make.trim().toLowerCase() === selectedMake) : rows;
     return {
       makes: uniqSort(rows.map((r) => r.make)),
+      models: uniqSort(modelRows.map((r) => r.model)),
       bodyStyles: uniqSort(rows.map((r) => r.bodyStyle)),
       transmissions: uniqSort(rows.map((r) => r.transmission)),
       drivetrains: uniqSort(rows.map((r) => r.drivetrain)),
       fuelTypes: uniqSort(rows.map((r) => r.fuelType)),
+      exteriorColors: uniqSort(rows.map((r) => r.exteriorColor ?? "")),
+      interiorColors: uniqSort(rows.map((r) => r.interiorColor ?? "")),
       titleStatuses: uniqSort(rows.map((r) => r.titleStatus).filter(Boolean) as string[]),
       conditions: [
         { value: "", label: copy.filterAny },
@@ -81,7 +86,7 @@ export function AutosPublicResultsShell() {
         { value: "certified", label: copy.conditionCertified },
       ],
     };
-  }, [copy, inventory]);
+  }, [copy, draftFilters.make, inventory]);
 
   const filtered = useMemo(
     () => applyAutosPublicFilters(inventory, applied.filters, applied.q),
@@ -339,6 +344,8 @@ export function AutosPublicResultsShell() {
                   <option value="priceAsc">{copy.sortPriceLow}</option>
                   <option value="priceDesc">{copy.sortPriceHigh}</option>
                   <option value="mileage">{copy.sortMileage}</option>
+                  <option value="yearDesc">{copy.sortYearNewest}</option>
+                  <option value="yearAsc">{copy.sortYearOldest}</option>
                 </select>
               </label>
               <button
@@ -421,9 +428,16 @@ export function AutosPublicResultsShell() {
                 ))}
               </div>
               {gridListings.length === 0 && !emptyCatalog ? (
-                <p className="mt-8 rounded-2xl border border-dashed border-[#E5E5E5] bg-[#FFFAF0] px-4 py-10 text-center text-sm text-[#7A7A7A]">
-                  {copy.resultsNoFilterMatches}
-                </p>
+                <div className="mt-8 rounded-2xl border border-dashed border-[#E5E5E5] bg-[#FFFAF0] px-4 py-10 text-center text-sm text-[#7A7A7A]">
+                  <p>{copy.resultsNoFilterMatches}</p>
+                  <button
+                    type="button"
+                    className="mt-4 rounded-xl border border-[#D4A574]/45 bg-[#FFFEF7] px-4 py-2 text-xs font-bold text-[#1A1A1A] transition hover:bg-[#F5F0E8]"
+                    onClick={resetFiltersUrl}
+                  >
+                    {copy.resultsResetShort}
+                  </button>
+                </div>
               ) : null}
             </section>
 
