@@ -33,8 +33,8 @@ Scope: dashboard clarity, navigation, mobile usability, and category pipeline re
 
 | Area | User expectation | Current TRUE/FALSE | Evidence | Fix needed |
 |---|---|---|---|---|
-| Account identity | User sees name/email/plan clearly | TRUE | `app/(site)/dashboard/components/LeonixDashboardShell.tsx` shows plan badge, name, email, account ref | None |
-| Account identity | User understands current plan | TRUE | Plan chip and `membership_tier` shown in sidebar/profile | None |
+| Account identity | User sees name/email/account status clearly | TRUE | `app/(site)/dashboard/components/LeonixDashboardShell.tsx` shows neutral account badge, name, email, account ref | None |
+| Account identity | User understands account metadata is not listing monetization | TRUE | Shell shows account/profile status; listing plan labels belong in listing cards via `categoryAdPlans` | None |
 | Account identity | User can reach profile/account settings | TRUE | Sidebar link to `/dashboard/perfil` | None |
 | Account identity | User can sign out | TRUE | Sidebar `Cerrar sesión` button calls `supabase.auth.signOut()` | None |
 | Account identity | Mobile identity/sidebar state usable | TRUE | Sidebar content is stacked and links remain tap targets | None |

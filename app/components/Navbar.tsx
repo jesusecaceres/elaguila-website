@@ -7,17 +7,7 @@ import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } f
 
 type Lang = "es" | "en";
 
-type MembershipBadge = "free" | "pro";
-
-function normalizeMembershipTier(raw: unknown): MembershipBadge {
-  const v = (typeof raw === "string" ? raw : "").toLowerCase().trim();
-  if (v === "pro") return "pro";
-  if (v === "business_lite" || v === "business_premium") return "pro";
-  return "free";
-}
-
-function planLabel(badge: MembershipBadge, lang: Lang) {
-  if (badge === "pro") return lang === "es" ? "Pro" : "Pro";
+function accountBadgeLabel(lang: Lang) {
   return lang === "es" ? "Cuenta" : "Account";
 }
 
@@ -50,7 +40,6 @@ function NavbarContent() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const [user, setUser] = useState<NavbarUser | null>(null);
-  const [membershipBadge, setMembershipBadge] = useState<MembershipBadge>("free");
   const [authLoading, setAuthLoading] = useState(true);
   const [accountOpen, setAccountOpen] = useState(false);
 
@@ -193,7 +182,6 @@ function NavbarContent() {
       supabase = createSupabaseBrowserClient();
     } catch {
       setUser(null);
-      setMembershipBadge("free");
       setAuthLoading(false);
       return;
     }
@@ -208,7 +196,6 @@ function NavbarContent() {
         const u = data.user;
         if (!u) {
           setUser(null);
-          setMembershipBadge("free");
           setAuthLoading(false);
           return;
         }
@@ -226,26 +213,10 @@ function NavbarContent() {
           fullName,
           avatarUrl,
         });
-        try {
-          const { data: pData, error: pErr } = await supabase!
-            .from("profiles")
-            .select("membership_tier, account_type")
-            .eq("id", u.id)
-            .maybeSingle();
-          if (!pErr && pData) {
-            const row = pData as { membership_tier?: string | null; account_type?: string | null };
-            setMembershipBadge(normalizeMembershipTier(row.membership_tier ?? row.account_type));
-          } else {
-            setMembershipBadge("free");
-          }
-        } catch {
-          setMembershipBadge("free");
-        }
         setAuthLoading(false);
       } catch {
         if (!mounted) return;
         setUser(null);
-        setMembershipBadge("free");
         setAuthLoading(false);
       }
     }
@@ -390,7 +361,7 @@ function NavbarContent() {
                     {accountLabel}
                   </span>
                   <span className="hidden sm:inline-flex items-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-hover)] px-2 py-0.5 text-[10px] text-[color:var(--lx-text)]">
-                    {planLabel(membershipBadge, lang)}
+                    {accountBadgeLabel(lang)}
                   </span>
                   <span className="text-[color:var(--lx-nav-fg-muted)] text-xs">{accountOpen ? "▲" : "▼"}</span>
                 </button>
@@ -410,7 +381,7 @@ function NavbarContent() {
                         </div>
                       )}
                       <div className="mt-1.5 inline-flex items-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-hover)] px-2 py-0.5 text-[10px] text-[color:var(--lx-text)]">
-                        {planLabel(membershipBadge, lang)}
+                        {accountBadgeLabel(lang)}
                       </div>
                     </div>
                     <Link
@@ -542,7 +513,7 @@ function NavbarContent() {
                           </div>
                         )}
                         <div className="mt-1 inline-flex items-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-hover)] px-2 py-0.5 text-[10px] text-[color:var(--lx-text)] w-fit">
-                          {planLabel(membershipBadge, lang)}
+                          {accountBadgeLabel(lang)}
                         </div>
                       </div>
                     </div>

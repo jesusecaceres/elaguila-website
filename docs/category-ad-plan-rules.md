@@ -6,6 +6,8 @@ This document describes **how we label a single listing’s plan** (paid/free/pr
 
 **UI labels:** `listingPlanFieldLabel(lang)` → English **Listing plan**, Spanish **Plan del anuncio**. Footnote: `listingPlanFootnote(lang)`.
 
+**Gate D boundary:** Dashboard shell / Navbar account badges must describe the user’s account or profile only. They must not display **Free**, **Gratis**, **Pro**, `business_lite`, or `business_premium` as global ad capability. Category/listing monetization belongs to listing rows and this resolver. En Venta **Free/Pro** is category-specific unless another category explicitly adds its own resolver rule.
+
 ---
 
 ## Product rules (by category)
@@ -53,6 +55,8 @@ This document describes **how we label a single listing’s plan** (paid/free/pr
 ## Warning: account plan ≠ listing plan
 
 **Never** use `profiles.membership_tier` (or dashboard shell “account plan”) as the label for a specific listing. Always run category context + row fields through `resolveCategoryAdPlan` (or the dashboard/admin helpers above).
+
+`profiles.account_type` and `profiles.membership_tier` may remain editable account/profile metadata for Admin and profile-completeness flows. They are not the source of truth for category tools, republish eligibility, featured placement, verification, payment state, or future promo-code/Stripe activation.
 
 ---
 

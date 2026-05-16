@@ -351,9 +351,6 @@ export default function DashboardPage() {
   const fmtExpiringSoon = (n: number | null) =>
     n == null ? (lang === "es" ? "Aún no registrado" : "Not tracked yet") : fmtNum(n);
 
-  const showBizTeaser =
-    plan === "pro" || (membershipTier ?? "").toLowerCase().includes("business");
-
   const summaryCardClass =
     "block rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF7F2] p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)] transition hover:border-[#C9B46A]/45 hover:shadow-[0_14px_40px_-12px_rgba(201,164,74,0.18)]";
 

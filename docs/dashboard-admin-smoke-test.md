@@ -115,8 +115,8 @@ Legend: **TRUE** = implemented end-to-end in app routes; **PARTIAL** = scaffold,
 
 | Item | Status |
 |------|--------|
-| `/dashboard/business-tools` | TRUE (page exists; tier from `profiles.membership_tier`) |
-| `profiles.account_type` / `membership_tier` | TRUE (selected in `dashboardProfile`) |
+| `/dashboard/business-tools` | TRUE (page exists; profile completeness may read `profiles.membership_tier`, but the shell must show neutral account/profile metadata only) |
+| `profiles.account_type` / `membership_tier` | TRUE (selected in `dashboardProfile` as account metadata, not listing monetization truth) |
 | Listing plan / republish / promote fields | TRUE for `listings` + vertical tables (see migrations) |
 | Dedicated Concierge capture | FALSE (no product implementation pass) |
 | Support ticket system | PARTIAL (contact/support surfaces vary by category) |
@@ -138,7 +138,7 @@ Run from repo root if `rg` is installed; otherwise use IDE search.
 
 5. **Promote / verify / coupons:** Admin `promote_on`, `leonix_verified`, `admin_promoted` on verticals; coupon/promo tables exist in some migrations — not a full promo product pass.
 
-6. **Account / tier / plan:** `membership_tier`, `account_type`, `listing_plan` helpers, En Venta Pro/republish window — used for gating and UI.
+6. **Account / tier / plan:** `membership_tier` and `account_type` remain account metadata. Listing/category plan display must come from `categoryAdPlans` / row fields. En Venta Pro/republish window is category-specific, not account-wide.
 
 7. **Analytics:** `listing_analytics` + category event tables (`servicios_analytics_events`, `autos_classifieds_analytics_events`, empleos counts) — dashboard stays **honest** when table missing.
 

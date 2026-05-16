@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import ProBadge from "@/app/clasificados/components/ProBadge";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import newLogo from "../../../../public/logo.png";
 import { fetchDashboardNavCounts } from "../lib/dashboardNavCounts";
@@ -105,9 +104,8 @@ export function LeonixDashboardShell({
   const L =
     lang === "es"
       ? {
-          plan: "Plan",
-          free: "Gratis",
-          pro: "LEONIX Pro",
+          accountStatus: "Estado de cuenta",
+          accountMetadata: "Cuenta",
           home: "Resumen",
           profile: "Perfil y cuenta",
           listings: "Mis anuncios",
@@ -129,9 +127,8 @@ export function LeonixDashboardShell({
           badgeExpiring: "Visibilidad por expirar",
         }
       : {
-          plan: "Plan",
-          free: "Free",
-          pro: "LEONIX Pro",
+          accountStatus: "Account status",
+          accountMetadata: "Account",
           home: "Overview",
           profile: "Profile & account",
           listings: "My listings",
@@ -153,7 +150,9 @@ export function LeonixDashboardShell({
           badgeExpiring: "Visibility expiring soon",
         };
 
-  const planLabel = plan === "pro" ? L.pro : L.free;
+  // `plan` is kept for backwards compatibility with existing dashboard pages, but the shell must not
+  // present profile membership as an account-wide ad/listing capability. Listing plans live on rows.
+  void plan;
   const q = `lang=${lang}`;
 
   const signOut = useCallback(async () => {
@@ -227,14 +226,10 @@ export function LeonixDashboardShell({
         >
           <aside className="h-fit rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/90 p-4 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.14)] sm:p-5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{L.plan}</span>
-              {plan === "pro" ? (
-                <ProBadge />
-              ) : (
-                <span className="rounded-full border border-[#E8DFD0] bg-[#FAF7F2] px-2.5 py-1 text-[11px] font-bold text-[#5C5346]">
-                  {planLabel}
-                </span>
-              )}
+              <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{L.accountStatus}</span>
+              <span className="rounded-full border border-[#E8DFD0] bg-[#FAF7F2] px-2.5 py-1 text-[11px] font-bold text-[#5C5346]">
+                {L.accountMetadata}
+              </span>
             </div>
 
             <div className="mt-4 rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4">
