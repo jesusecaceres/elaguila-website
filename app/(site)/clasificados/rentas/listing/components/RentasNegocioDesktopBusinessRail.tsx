@@ -1,5 +1,14 @@
 "use client";
 
+import { useState } from "react";
+import {
+  buildCallIntent,
+  buildSendEmailIntent,
+  buildSocialLinkIntent,
+  buildWebsiteIntent,
+  CtaActionSheet,
+  type CtaSheetIntent,
+} from "@/app/components/cta";
 import type { RentasPlanTier } from "../../shared/utils/rentasPlanTier";
 import type { RentasAnuncioLang, RentasNegocioLiveDisplay } from "../types/rentasAnuncioLiveTypes";
 
@@ -21,9 +30,44 @@ export function RentasNegocioDesktopBusinessRail(props: {
   onScheduleVisit: () => void;
 }) {
   const { lang, display: railDisplay, railTier, listing, onRequestInfo, onScheduleVisit } = props;
+  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
   const ext = railDisplay as RentasNegocioLiveDisplay & {
     businessDescription?: string;
     availabilityRows?: Array<{ title: string; price: string; size: string; ctaText?: string; ctaLink?: string }>;
+  };
+  const businessName = railDisplay.name || (lang === "es" ? "Negocio" : "Business");
+  const websiteUrl = railDisplay.website?.trim() || "";
+  const contactShareExtras = {
+    email: listing.contact_email?.trim() || undefined,
+    websiteUrl: websiteUrl || undefined,
+  };
+
+  const openSheet = (intent: CtaSheetIntent | null) => {
+    if (intent) setCtaIntent(intent);
+  };
+
+  const openPhoneSheet = (phone: string | null | undefined) => {
+    openSheet(buildCallIntent({ phone: phone ?? "", contactShareExtras }));
+  };
+
+  const openEmailSheet = (email: string | null | undefined) => {
+    const subject =
+      lang === "es"
+        ? `Mensaje para ${businessName} (Leonix)`
+        : `Message for ${businessName} (Leonix)`;
+    openSheet(buildSendEmailIntent({ email, subject, body: "", contactShareExtras }));
+  };
+
+  const openWebsiteSheet = (
+    url: string | null | undefined,
+    headline: string,
+    kind: "website" | "booking" | "menu" | "order" | "social_link" | "other" = "website",
+  ) => {
+    openSheet(buildWebsiteIntent({ url: url ?? "", headline, kind }));
+  };
+
+  const openSocialSheet = (url: string | null | undefined, headline: string) => {
+    openSheet(buildSocialLinkIntent({ url: url ?? "", headline }));
   };
 
   return (
@@ -53,67 +97,61 @@ export function RentasNegocioDesktopBusinessRail(props: {
           </div>
         )}
         <div>
-          <p className="text-base font-semibold text-[#111111]">{railDisplay.name || (lang === "es" ? "Negocio" : "Business")}</p>
+          <p className="text-base font-semibold text-[#111111]">{businessName}</p>
           {railDisplay.agent && <p className="mt-0.5 text-sm text-[#111111]/90">{railDisplay.agent}</p>}
           {railDisplay.role && <p className="text-xs text-[#111111]/70">{railDisplay.role}</p>}
         </div>
         {railDisplay.officePhone && (
           <p className="text-sm text-[#111111]">
             <span className="text-[#111111]/70">{lang === "es" ? "Oficina:" : "Office:"} </span>
-            <a href={`tel:${railDisplay.officePhone.replace(/\D/g, "")}`} className="font-medium hover:underline">
+            <button type="button" onClick={() => openPhoneSheet(railDisplay.officePhone)} className="font-medium hover:underline">
               {railDisplay.officePhone}
-            </a>
+            </button>
           </p>
         )}
         {railDisplay.website && (
-          <a
-            href={railDisplay.website.startsWith("http") ? railDisplay.website : `https://${railDisplay.website}`}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
+            onClick={() => openWebsiteSheet(railDisplay.website, lang === "es" ? "Sitio web" : "Website")}
             className="text-sm font-medium text-[#111111] hover:underline break-all"
           >
             {lang === "es" ? "Sitio web" : "Website"} →
-          </a>
+          </button>
         )}
         {railDisplay.virtualTourUrl &&
           (railTier == null || railTier === "business_plus" || railTier === "business_standard") && (
-          <a
-            href={
-              railDisplay.virtualTourUrl.startsWith("http") ? railDisplay.virtualTourUrl : `https://${railDisplay.virtualTourUrl}`
-            }
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
+            onClick={() => openWebsiteSheet(railDisplay.virtualTourUrl, lang === "es" ? "Recorrido virtual" : "Virtual tour", "other")}
             className="text-sm font-medium text-[#111111] hover:underline break-all"
           >
             {lang === "es" ? "Recorrido virtual" : "Virtual tour"} →
-          </a>
+          </button>
         )}
         {railTier === "business_plus" && railDisplay.socialLinks && railDisplay.socialLinks.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {railDisplay.socialLinks.map((s, i) => (
-              <a
+              <button
                 key={i}
-                href={s.url}
-                target="_blank"
-                rel="noreferrer"
+                type="button"
+                onClick={() => openSocialSheet(s.url, s.label)}
                 className="inline-flex items-center rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#F5F5F5]"
               >
                 {s.label} →
-              </a>
+              </button>
             ))}
           </div>
         ) : (railTier === "business_standard" || railTier == null) && railDisplay.socialLinks && railDisplay.socialLinks.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {railDisplay.socialLinks.slice(0, 2).map((s, i) => (
-              <a
+              <button
                 key={i}
-                href={s.url}
-                target="_blank"
-                rel="noreferrer"
+                type="button"
+                onClick={() => openSocialSheet(s.url, s.label)}
                 className="inline-flex items-center rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#F5F5F5]"
               >
                 {s.label} →
-              </a>
+              </button>
             ))}
           </div>
         ) : railDisplay.rawSocials ? (
@@ -146,23 +184,21 @@ export function RentasNegocioDesktopBusinessRail(props: {
                   {row.price && <span className="text-[#111111]/90">{row.price}</span>}
                   {row.size && <span className="text-[#111111]/70">{row.size}</span>}
                   {row.ctaLink && row.ctaText ? (
-                    <a
-                      href={row.ctaLink.startsWith("http") ? row.ctaLink : `https://${row.ctaLink}`}
-                      target="_blank"
-                      rel="noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => openWebsiteSheet(row.ctaLink, row.ctaText ?? (lang === "es" ? "Ver" : "View"), "other")}
                       className="font-medium text-[#111111] hover:underline"
                     >
                       {row.ctaText} →
-                    </a>
+                    </button>
                   ) : row.ctaLink ? (
-                    <a
-                      href={row.ctaLink.startsWith("http") ? row.ctaLink : `https://${row.ctaLink}`}
-                      target="_blank"
-                      rel="noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => openWebsiteSheet(row.ctaLink, lang === "es" ? "Ver" : "View", "other")}
                       className="font-medium text-[#111111] hover:underline"
                     >
                       {lang === "es" ? "Ver" : "View"} →
-                    </a>
+                    </button>
                   ) : null}
                 </div>
               ))}
@@ -185,23 +221,26 @@ export function RentasNegocioDesktopBusinessRail(props: {
             {lang === "es" ? "Programar visita" : "Schedule visit"}
           </button>
           {(railDisplay.officePhone || listing.contact_phone) && (
-            <a
-              href={`tel:${(railDisplay.officePhone || listing.contact_phone || "").replace(/\D/g, "")}`}
+            <button
+              type="button"
+              onClick={() => openPhoneSheet(railDisplay.officePhone || listing.contact_phone)}
               className="w-full px-4 py-3 rounded-xl font-semibold border border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] transition text-sm text-center inline-block"
             >
               {lang === "es" ? "Llamar" : "Call"}
-            </a>
+            </button>
           )}
           {listing.contact_email && (
-            <a
-              href={`mailto:${listing.contact_email}`}
+            <button
+              type="button"
+              onClick={() => openEmailSheet(listing.contact_email)}
               className="w-full px-4 py-3 rounded-xl font-semibold border border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] transition text-sm text-center inline-block"
             >
               {lang === "es" ? "Enviar mensaje" : "Send message"}
-            </a>
+            </button>
           )}
         </div>
       </div>
+      <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang={lang} />
     </div>
   );
 }
