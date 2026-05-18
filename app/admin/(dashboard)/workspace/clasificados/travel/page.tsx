@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { viajesRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
+import { AdminListingMonetizationSummary } from "../_components/AdminListingMonetizationSummary";
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
 import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
@@ -81,6 +82,7 @@ export default async function AdminTravelViajesQueuePage(props: {
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Publicado</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Enlaces</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Acciones</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Monetization</th>
               </tr>
             </thead>
             <tbody>
@@ -133,6 +135,14 @@ export default async function AdminTravelViajesQueuePage(props: {
                           is_public: r.is_public,
                           republish_override: (r as { republish_override?: boolean | null }).republish_override,
                         }}
+                      />
+                    </td>
+                    <td className="px-3 py-2 align-top">
+                      <AdminListingMonetizationSummary
+                        category="viajes"
+                        source="viajes_staged_listings"
+                        listing={r as unknown as Record<string, unknown>}
+                        lang={lang}
                       />
                     </td>
                   </tr>

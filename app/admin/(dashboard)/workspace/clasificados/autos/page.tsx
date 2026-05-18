@@ -21,6 +21,7 @@ import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfac
 import { appendPreservedSearchParams, parseAdminScope } from "../_lib/clasificadosAdminScopeUrls";
 import { adminCardBase, adminBtnSecondary, adminCtaChipSecondary } from "../../../../_components/adminTheme";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
+import { AdminListingMonetizationSummary } from "../_components/AdminListingMonetizationSummary";
 import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
 
 export const dynamic = "force-dynamic";
@@ -210,6 +211,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                 <th className="px-3 py-2" title={m("autosQueue.actionsColTitle")}>
                   {m("autosQueue.colActions")}
                 </th>
+                <th className="px-3 py-2">Monetization</th>
               </tr>
             </thead>
             <tbody>
@@ -309,6 +311,14 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                           }}
                         />
                       </div>
+                    </td>
+                    <td className="px-3 py-2 align-top">
+                      <AdminListingMonetizationSummary
+                        category="autos"
+                        source="autos_classifieds_listings"
+                        listing={r as unknown as Record<string, unknown>}
+                        lang={lang}
+                      />
                     </td>
                   </tr>
                 );

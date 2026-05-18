@@ -64,6 +64,16 @@ Empleos and Viajes use separate models and are not V1 monetization. The resolver
 
 Clases and Comunidad are later/not client-ready for paid listing tools. The resolver returns defensive unsupported/future states and does not enable them as monetized client-ready categories.
 
+## Admin Visibility
+
+Gate F wires this model into Admin as read-only visibility. Admin rows can now display the listing/category plan label, plan source, account-tier-ignored copy, safe metadata, tool states, and warnings/gaps.
+
+This visibility is not pricing, Stripe, promo codes, checkout, public paid placement, notification delivery, or monetization activation. The Admin display does not create actions and does not change publish flows.
+
+Missing metadata remains a gap. If `expires_at`, republish fields, promoted flags, verification fields, or category plan fields are absent from a row/table, Admin should show the warning from the read model rather than assuming a Supabase column exists.
+
+Gate F browser QA must confirm visibility in Admin on the Clasificados workspace and priority category queues. Dashboard client display remains a later gate.
+
 ## Admin Consumption Later
 
 Admin can use the summary to display listing tier, available tools, locked tools, trust verification, spotlight/featured state, republish state, and metadata gaps in row inspectors or command centers.

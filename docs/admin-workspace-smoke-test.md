@@ -41,6 +41,25 @@ This document provides a route-by-route analysis of website editing capabilities
   - `/admin/workspace/clasificados/travel?scope=live`
 - **Clases / Comunidad:** Do not treat as client-ready; still verify staff actions are visible if pages are enabled for internal QA.
 
+### Gate F — Admin read-only monetization metadata visibility
+
+- Admin now shows compact read-only listing/category monetization metadata via `AdminListingMonetizationSummary`.
+- The summary uses `resolveCategoryListingMonetization` and is visible on the shared `public.listings` Admin table plus safe dedicated vertical tables for Servicios, Restaurantes, Autos, Empleos, and Viajes.
+- This is **not** pricing, Stripe, promo codes, checkout, public paid placement, or notification implementation. It does not add actions and does not activate monetization.
+- Missing metadata is a gap, not an assumed Supabase table/column. If a row lacks fields such as `expires_at`, republish timestamps, promoted flags, or an explicit category plan, the Admin surface should show read-model warnings instead of crashing.
+- Dashboard client display is a later gate.
+- Manual Gate F browser smoke:
+  - `/admin/workspace/clasificados`
+  - `/admin/workspace/clasificados/rentas?scope=live`
+  - `/admin/workspace/clasificados/bienes-raices?scope=live`
+  - `/admin/workspace/clasificados/en-venta?scope=live`
+  - `/admin/workspace/clasificados/servicios?scope=live`
+  - `/admin/workspace/clasificados/restaurantes?scope=live`
+  - `/admin/workspace/clasificados/autos?scope=live`
+  - `/admin/workspace/clasificados/empleos?scope=live`
+  - `/admin/workspace/clasificados/travel?scope=live`
+  - Clases / Comunidad remain not client-ready; the summary should show unsupported/future states where rows exist.
+
 ## Route-by-Route Analysis
 
 ### ✅ TRUE - Fully Editable Areas

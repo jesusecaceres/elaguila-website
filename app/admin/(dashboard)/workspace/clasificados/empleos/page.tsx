@@ -9,6 +9,7 @@ import { adminCardBase, adminInputClass } from "@/app/admin/_components/adminThe
 import { adminMessages } from "@/app/admin/_lib/adminStrings";
 import { appendLangToPath, type Lang } from "@/app/clasificados/lib/hubUrl";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
+import { AdminListingMonetizationSummary } from "../_components/AdminListingMonetizationSummary";
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
 import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
@@ -184,6 +185,7 @@ export default function AdminEmpleosListingsPage() {
               <th className="px-4 py-3">Métricas</th>
               <th className="px-4 py-3">Acciones</th>
               <th className="px-4 py-3">Staff (Leonix)</th>
+              <th className="px-4 py-3">Monetization</th>
               <th className="px-4 py-3">Enlaces</th>
             </tr>
           </thead>
@@ -259,6 +261,14 @@ export default function AdminEmpleosListingsPage() {
                       lifecycle_status: r.lifecycle_status,
                       republish_override: (r as { republish_override?: boolean | null }).republish_override,
                     }}
+                  />
+                </td>
+                <td className="px-4 py-3 align-top">
+                  <AdminListingMonetizationSummary
+                    category="empleos"
+                    source="empleos_public_listings"
+                    listing={r as unknown as Record<string, unknown>}
+                    lang={adminLang}
                   />
                 </td>
                 <td className="px-4 py-3 text-xs font-semibold">

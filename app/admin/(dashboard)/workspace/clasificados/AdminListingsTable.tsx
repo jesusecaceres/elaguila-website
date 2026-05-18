@@ -17,6 +17,7 @@ import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rent
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { useAdminLang, useAdminT } from "@/app/admin/_components/AdminI18nProvider";
 import { ClassifiedAdminRowActions } from "./_components/ClassifiedAdminRowActions";
+import { AdminListingMonetizationSummary } from "./_components/AdminListingMonetizationSummary";
 
 type Row = {
   id: string;
@@ -293,6 +294,9 @@ export default function AdminListingsTable({
               >
                 {t("listings.col.leonix")}
               </th>
+              <th className="min-w-[280px] p-3 font-semibold text-[#5C4E2E]">
+                Monetization
+              </th>
               <th
                 className={
                   enVentaColumnDegraded
@@ -477,6 +481,15 @@ export default function AdminListingsTable({
                   title={clasificadosLeonixAdminLine(row, detailPairsAvailable)}
                 >
                   {clasificadosLeonixAdminLine(row, detailPairsAvailable)}
+                </td>
+                <td className="max-w-[320px] p-3 align-top">
+                  <AdminListingMonetizationSummary
+                    category={row.category}
+                    source="listings"
+                    listing={row as Record<string, unknown>}
+                    detailPairs={row.detail_pairs}
+                    lang={lang}
+                  />
                 </td>
                 <td
                   className={

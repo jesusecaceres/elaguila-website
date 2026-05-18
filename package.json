@@ -24,6 +24,7 @@
     "verify:admin:listings-actions-column": "node scripts/verify-admin-listings-actions-column.mjs",
     "verify:category-plan-boundaries": "node scripts/verify-category-plan-boundaries.mjs",
     "verify:category-listing-monetization": "node scripts/verify-category-listing-monetization-read-model.mjs",
+    "verify:admin-monetization-readonly": "node scripts/verify-admin-monetization-readonly-visibility.mjs",
     "build:admin-gate": "npm run build && npm run audit:admin-language",
     "dup:guard": "node scripts/dup-guard.js",
     "autos:phase4-audit": "npx tsx scripts/autos-phase-4-durable-video-audit.ts",

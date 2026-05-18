@@ -18,6 +18,7 @@ import {
 } from "./actions";
 import { serviciosRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
+import { AdminListingMonetizationSummary } from "../_components/AdminListingMonetizationSummary";
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
 import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
@@ -305,6 +306,7 @@ export default async function AdminServiciosWorkspacePage(props: {
                     <th className="p-3">Interés verif.</th>
                     <th className="p-3">Actualizado</th>
                     <th className="p-3">Staff (Leonix)</th>
+                    <th className="p-3">Monetization</th>
                     <th className="p-3" title="Vista pública. Estado y notas: moderación staff en esta fila (sin editor de perfil completo).">
                       &nbsp;
                     </th>
@@ -398,6 +400,18 @@ export default async function AdminServiciosWorkspacePage(props: {
                             listing_status: r.listing_status,
                             republish_override: r.republish_override,
                           }}
+                        />
+                      </td>
+                      <td className="p-3 align-top">
+                        <AdminListingMonetizationSummary
+                          category="servicios"
+                          source="servicios_public_listings"
+                          listing={{
+                            ...r,
+                            views: serviciosAdminEngagementByRowId.get(r.id)?.likes ?? 0,
+                            saves: serviciosAdminEngagementByRowId.get(r.id)?.saves ?? 0,
+                          }}
+                          lang={lang}
                         />
                       </td>
                       <td className="p-3">

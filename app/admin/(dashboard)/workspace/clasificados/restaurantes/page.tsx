@@ -6,6 +6,7 @@ import { getAdminLang } from "@/app/admin/_lib/adminI18n";
 import { adminMessages } from "@/app/admin/_lib/adminStrings";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
+import { AdminListingMonetizationSummary } from "../_components/AdminListingMonetizationSummary";
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
 import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
@@ -183,6 +184,7 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
                   Enlaces
                 </th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Acciones</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Monetization</th>
               </tr>
             </thead>
             <tbody>
@@ -236,6 +238,14 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
                           status: r.status,
                           republish_override: r.republish_override,
                         }}
+                      />
+                    </td>
+                    <td className="px-3 py-2 align-top">
+                      <AdminListingMonetizationSummary
+                        category="restaurantes"
+                        source="restaurantes_public_listings"
+                        listing={r as unknown as Record<string, unknown>}
+                        lang={lang}
                       />
                     </td>
                   </tr>
