@@ -78,6 +78,10 @@ export type BrListingDbRow = {
   detail_pairs?: unknown;
   listing_json?: unknown;
   contact_json?: unknown;
+  owner_id?: string | null;
+  br_inventory_group_id?: string | null;
+  br_inventory_parent_listing_id?: string | null;
+  inventory_role?: string | null;
   seller_type?: string | null;
   business_name?: string | null;
   created_at?: string | null;

@@ -69,7 +69,7 @@ import type { AutosAnuncioListingLike } from "../../autos/listing/types/autosAnu
 type Lang = "es" | "en";
 
 const ANUNCIO_LISTING_SELECT_BASE =
-  "id, leonix_ad_id, owner_id, title, description, city, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, original_price, current_price, price_last_updated, images, republished_at";
+  "id, leonix_ad_id, owner_id, title, description, city, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, original_price, current_price, price_last_updated, images, republished_at";
 
 type CategoryKey =
   | "en-venta"
@@ -108,6 +108,9 @@ type Listing = {
   images?: string[] | null;
   republishedAt?: string | null;
   owner_id?: string | null;
+  br_inventory_group_id?: string | null;
+  br_inventory_parent_listing_id?: string | null;
+  inventory_role?: string | null;
   businessName?: string | null;
   business_name?: string | null;
   rentasTier?: string | null;
@@ -254,6 +257,10 @@ function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
     images,
     republishedAt,
     owner_id: row.owner_id != null ? String(row.owner_id) : null,
+    br_inventory_group_id: row.br_inventory_group_id != null ? String(row.br_inventory_group_id) : null,
+    br_inventory_parent_listing_id:
+      row.br_inventory_parent_listing_id != null ? String(row.br_inventory_parent_listing_id) : null,
+    inventory_role: row.inventory_role != null ? String(row.inventory_role) : null,
     businessName: row.business_name != null ? String(row.business_name) : null,
     business_name: row.business_name != null ? String(row.business_name) : null,
     rentasTier: row.rentas_tier != null ? String(row.rentas_tier) : null,

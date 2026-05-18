@@ -23,6 +23,7 @@ import {
   compactLeonixJsonRecord,
   type LeonixJsonRecord,
 } from "@/app/clasificados/lib/leonixListingStructuredPayload";
+import type { BrPropertyInventoryRole } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import {
   buildRentasPublishFinalPayloadDebug,
   rentasPublishFinalBoundaryPreflight,
@@ -120,6 +121,15 @@ export function buildListingsInsertRowForLeonixPublish(
     seller_type: sellerType,
     detail_pairs: detailPairs.length ? detailPairs : null,
   };
+
+  if (category === "bienes-raices" && sellerType === "business") {
+    const groupId = params.brInventoryGroupId?.trim();
+    const parentId = params.brInventoryParentListingId?.trim();
+    const role = params.brInventoryRole;
+    if (groupId) insertPayload.br_inventory_group_id = groupId;
+    if (parentId) insertPayload.br_inventory_parent_listing_id = parentId;
+    if (role === "main" || role === "inventory_property") insertPayload.inventory_role = role;
+  }
 
   const stateTrim = (state ?? "").trim();
   if (stateTrim) insertPayload.state = stateTrim;
@@ -245,6 +255,10 @@ export type PublishLeonixRealEstateListingCoreParams = {
   listingJson?: LeonixJsonRecord | null;
   profileJson?: LeonixJsonRecord | null;
   contactJson?: LeonixJsonRecord | null;
+  /** BR13A inventory metadata; optional until BR13B add-flow sets it. */
+  brInventoryGroupId?: string | null;
+  brInventoryParentListingId?: string | null;
+  brInventoryRole?: BrPropertyInventoryRole | null;
 };
 
 export type PublishLeonixRealEstateListingCoreResult =
