@@ -17,6 +17,7 @@ import {
   enrichContactChannelsFromBusinessMeta,
   parseLeonixContactChannelsV1FromDetailPairs,
 } from "@/app/clasificados/lib/leonixContactChannelsV1";
+import { augmentLeonixDetailPairsFromStructuredColumns } from "@/app/clasificados/lib/leonixListingStructuredPayload";
 import {
   filterRentasPhotoUrlList,
   isRentasPlaceholderImageUrl,
@@ -250,9 +251,10 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const statusRaw = String(row.status ?? "").trim().toLowerCase();
   const status = statusRaw === "" ? "active" : statusRaw;
   const published = row.is_published !== false;
-  const lx = parseLeonixListingContract(row.detail_pairs);
-  const mf = parseLeonixMachineFacetRead(row.detail_pairs);
-  const rx = parseRentasDetailMachineRead(row.detail_pairs);
+  const detailPairs = augmentLeonixDetailPairsFromStructuredColumns(row.detail_pairs, row.listing_json, row.contact_json);
+  const lx = parseLeonixListingContract(detailPairs);
+  const mf = parseLeonixMachineFacetRead(detailPairs);
+  const rx = parseRentasDetailMachineRead(detailPairs);
   const availabilityRaw = (rx.listingStatus ?? "").trim().toLowerCase();
   const rentasListingAvailability: RentasPublicListing["rentasListingAvailability"] =
     availabilityRaw === "disponible" ||
@@ -277,8 +279,8 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const zipRaw = trim(row.zip);
   const postalCode = zipRaw.replace(/\D/g, "").slice(0, 10) || mf.postalCode?.replace(/\D/g, "").slice(0, 10) || undefined;
   const publicLocationLine =
-    pairValue(row.detail_pairs, "Ubicación") ??
-    pairValue(row.detail_pairs, "Dirección") ??
+    pairValue(detailPairs, "Ubicación") ??
+    pairValue(detailPairs, "Dirección") ??
     null;
   const addressLine =
     trim(publicLocationLine) ||
@@ -287,11 +289,11 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     postalCode ||
     "—";
 
-  const estadoPair = trim(pairValue(row.detail_pairs, "Estado") ?? "");
+  const estadoPair = trim(pairValue(detailPairs, "Estado") ?? trim(row.state));
   const zonaVecindario = trim(
-    pairValue(row.detail_pairs, "Zona o vecindario") ??
-      pairValue(row.detail_pairs, "zona o vecindario") ??
-      pairValue(row.detail_pairs, "Colonia") ??
+    pairValue(detailPairs, "Zona o vecindario") ??
+      pairValue(detailPairs, "zona o vecindario") ??
+      pairValue(detailPairs, "Colonia") ??
       "",
   );
   const cityStateZip = [city, estadoPair].filter(Boolean).join(", ");
@@ -324,8 +326,8 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const waRaw = (rx.contactWhatsappDigits ?? "").replace(/\D/g, "");
   const contactWhatsappDigits = waRaw.length >= 10 ? waRaw.slice(0, 15) : undefined;
   const contactNote =
-    pairValue(row.detail_pairs, "Mensaje del contacto") ??
-    pairValue(row.detail_pairs, "Nota para interesados") ??
+    pairValue(detailPairs, "Mensaje del contacto") ??
+    pairValue(detailPairs, "Nota para interesados") ??
     undefined;
 
   const galRaw = galleryUrls(row.images);
@@ -379,24 +381,24 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const badges: string[] = branchSeller === "negocio" ? ["negocio"] : ["privado"];
   if (promoted) badges.push("destacada");
 
-  const bedsHuman = bedsFromPairs(row.detail_pairs);
-  const bathsHuman = bathsFromPairs(row.detail_pairs);
-  const sqftStr = sqftFromPairs(row.detail_pairs);
-  const fullBaths = pairValue(row.detail_pairs, "Baños completos") ?? undefined;
-  const halfBaths = pairValue(row.detail_pairs, "Medios baños") ?? undefined;
+  const bedsHuman = bedsFromPairs(detailPairs);
+  const bathsHuman = bathsFromPairs(detailPairs);
+  const sqftStr = sqftFromPairs(detailPairs);
+  const fullBaths = pairValue(detailPairs, "Baños completos") ?? undefined;
+  const halfBaths = pairValue(detailPairs, "Medios baños") ?? undefined;
   const lotSqft =
-    pairValue(row.detail_pairs, "Lote (ft²)") ??
-    pairValue(row.detail_pairs, "Lote (ft2)") ??
-    pairValue(row.detail_pairs, "Tamaño del lote") ??
+    pairValue(detailPairs, "Lote (ft²)") ??
+    pairValue(detailPairs, "Lote (ft2)") ??
+    pairValue(detailPairs, "Tamaño del lote") ??
     undefined;
-  const yearBuilt = pairValue(row.detail_pairs, "Año de construcción") ?? undefined;
-  const condition = pairValue(row.detail_pairs, "Condición") ?? undefined;
-  const parking = pairValue(row.detail_pairs, "Estacionamiento") ?? undefined;
+  const yearBuilt = pairValue(detailPairs, "Año de construcción") ?? undefined;
+  const condition = pairValue(detailPairs, "Condición") ?? undefined;
+  const parking = pairValue(detailPairs, "Estacionamiento") ?? undefined;
   const beds = mf.bedroomsCount != null ? String(mf.bedroomsCount) : bedsHuman;
   const baths = mf.bathroomsCount != null ? String(mf.bathroomsCount) : bathsHuman;
 
-  const amuebladoHuman = amuebladoFromPairs(row.detail_pairs);
-  const mascotasHuman = mascotasFromPairs(row.detail_pairs);
+  const amuebladoHuman = amuebladoFromPairs(detailPairs);
+  const mascotasHuman = mascotasFromPairs(detailPairs);
   const amueblado = furnishedFromRentasCodes(rx.furnishedCode, amuebladoHuman, mf.furnished);
   const mascotasPermitidas = petsFromRentasCodes(rx.petsCode, mascotasHuman, mf.petsAllowed);
 
@@ -404,7 +406,7 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const rentalTypeCustom = (rx.rentalTypeCustom ?? "").trim() || undefined;
   const leaseConditionsRaw =
     (rx.leaseConditions ?? "").trim() ||
-    (pairValue(row.detail_pairs, "Condiciones importantes") ?? "").trim() ||
+    (pairValue(detailPairs, "Condiciones importantes") ?? "").trim() ||
     "";
   const leaseConditions = leaseConditionsRaw || undefined;
   const rentasRoomBathLabel = roomBathPublicLabel(rx.roomBathKind) ?? undefined;
@@ -413,9 +415,9 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const rentasStorageAccess24h = triStateSiNo(rx.storageAccess24h);
   const rentasStorageSecurity = triStateSiNo(rx.storageSecurity);
   const sharedSpacePreferences =
-    (pairValue(row.detail_pairs, "Preferencias del espacio compartido") ?? "").trim() || undefined;
+    (pairValue(detailPairs, "Preferencias del espacio compartido") ?? "").trim() || undefined;
 
-  const ch0 = parseLeonixContactChannelsV1FromDetailPairs(row.detail_pairs);
+  const ch0 = parseLeonixContactChannelsV1FromDetailPairs(detailPairs);
   const bmParsed = parseBusinessMeta(row.business_meta);
   const contactChannels = enrichContactChannelsFromBusinessMeta(ch0, bmParsed);
 

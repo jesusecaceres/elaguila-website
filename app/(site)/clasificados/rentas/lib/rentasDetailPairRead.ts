@@ -14,6 +14,7 @@ import {
   RENTAS_DP_CONTACT_SMS_DIGITS,
   RENTAS_DP_CONTACT_WHATSAPP_DIGITS,
   RENTAS_DP_LEASE_TERM,
+  RENTAS_DP_LEASE_TERM_CUSTOM,
   RENTAS_DP_LISTING_STATUS,
   RENTAS_DP_MAP_URL,
   RENTAS_DP_PETS_CODE,
@@ -33,6 +34,7 @@ import {
 export type RentasDetailMachineRead = {
   depositUsdDigits: string | null;
   leaseTermCode: string | null;
+  leaseTermCustom: string | null;
   availabilityNote: string | null;
   servicesIncluded: string | null;
   requirements: string | null;
@@ -62,6 +64,7 @@ export function parseRentasDetailMachineRead(detailPairs: unknown): RentasDetail
   return {
     depositUsdDigits: readLeonixDetailPairValue(detailPairs, RENTAS_DP_DEPOSIT_USD),
     leaseTermCode: readLeonixDetailPairValue(detailPairs, RENTAS_DP_LEASE_TERM),
+    leaseTermCustom: readLeonixDetailPairValue(detailPairs, RENTAS_DP_LEASE_TERM_CUSTOM),
     availabilityNote: readLeonixDetailPairValue(detailPairs, RENTAS_DP_AVAILABILITY),
     servicesIncluded: readLeonixDetailPairValue(detailPairs, RENTAS_DP_SERVICES_INCLUDED),
     requirements: readLeonixDetailPairValue(detailPairs, RENTAS_DP_REQUIREMENTS),

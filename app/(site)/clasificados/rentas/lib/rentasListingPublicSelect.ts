@@ -7,7 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { listingsQueryWithSelectShrink } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
 
 export const RENTAS_LISTING_PUBLIC_ROW_BASE =
-  "id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, business_meta, status, is_published, created_at, images, contact_phone, contact_email, leonix_ad_id";
+  "id, title, description, city, state, zip, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, seller_type, business_name, business_meta, status, is_published, created_at, images, contact_phone, contact_email, leonix_ad_id";
 
 /** Rich row for browse + detail (republish ordering + timestamps). */
 export const RENTAS_LISTING_PUBLIC_ROW_RICH = `${RENTAS_LISTING_PUBLIC_ROW_BASE}, published_at, republished_at, republish_sort_at, updated_at, mux_asset_id, mux_playback_id, mux_thumbnail_url, mux_status`;

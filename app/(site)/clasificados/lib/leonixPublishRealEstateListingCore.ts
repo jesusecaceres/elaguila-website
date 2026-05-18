@@ -17,6 +17,13 @@ import {
 } from "@/app/(site)/clasificados/lib/leonixPublishPublicDescription";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import {
+  buildLeonixContactJsonPayload,
+  buildLeonixListingJsonPayload,
+  buildLeonixProfileJsonPayload,
+  compactLeonixJsonRecord,
+  type LeonixJsonRecord,
+} from "@/app/clasificados/lib/leonixListingStructuredPayload";
+import {
   buildRentasPublishFinalPayloadDebug,
   rentasPublishFinalBoundaryPreflight,
   rentasPublishGalleryUrlsPreflight,
@@ -74,6 +81,7 @@ export function buildListingsInsertRowForLeonixPublish(
     title,
     description,
     city,
+    state,
     zip: zipRaw,
     price,
     isFree,
@@ -113,9 +121,42 @@ export function buildListingsInsertRowForLeonixPublish(
     detail_pairs: detailPairs.length ? detailPairs : null,
   };
 
+  const stateTrim = (state ?? "").trim();
+  if (stateTrim) insertPayload.state = stateTrim;
+
   if (zipTrim) {
     insertPayload.zip = zipTrim.replace(/\D/g, "").slice(0, 12);
   }
+
+  const listingJson =
+    compactLeonixJsonRecord(params.listingJson ?? {}) ??
+    buildLeonixListingJsonPayload({
+      category,
+      detailPairs,
+      city: city.trim(),
+      state: stateTrim || null,
+      zip: zipTrim || null,
+    });
+  if (listingJson) insertPayload.listing_json = listingJson;
+
+  const profileJson =
+    compactLeonixJsonRecord(params.profileJson ?? {}) ??
+    buildLeonixProfileJsonPayload({
+      sellerType,
+      businessName,
+      businessMetaJson,
+    });
+  if (profileJson) insertPayload.profile_json = profileJson;
+
+  const contactJson =
+    compactLeonixJsonRecord(params.contactJson ?? {}) ??
+    buildLeonixContactJsonPayload({
+      detailPairs,
+      businessMetaJson,
+      contactPhoneDigits,
+      contactEmail,
+    });
+  if (contactJson) insertPayload.contact_json = contactJson;
 
   if (sellerType === "business" && businessName?.trim()) {
     insertPayload.business_name = businessName.trim();
@@ -179,6 +220,8 @@ export type PublishLeonixRealEstateListingCoreParams = {
   title: string;
   description: string;
   city: string;
+  /** Optional state/region when `listings.state` exists. */
+  state?: string | null;
   /** Optional postal/ZIP when `listings.zip` exists (see migration `20260421120000_rentas_listings_zip_and_public_read.sql`). */
   zip?: string | null;
   price: number;
@@ -198,6 +241,10 @@ export type PublishLeonixRealEstateListingCoreParams = {
   muxPlaybackId?: string | null;
   muxThumbnailUrl?: string | null;
   muxStatus?: string | null;
+  /** Gate 12D-2 stable JSONB payloads; derived from `detailPairs` when omitted. */
+  listingJson?: LeonixJsonRecord | null;
+  profileJson?: LeonixJsonRecord | null;
+  contactJson?: LeonixJsonRecord | null;
 };
 
 export type PublishLeonixRealEstateListingCoreResult =

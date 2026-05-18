@@ -51,6 +51,7 @@ import { EV_LISTING_PARAM } from "../../en-venta/results/contracts/enVentaResult
 import { parseEnVentaResultsReturnUrl } from "../../en-venta/results/utils/enVentaListingLinks";
 import { EN_VENTA_VISIBILITY_WINDOW_MS } from "../../en-venta/boosts/enVentaVisibilityRenewal";
 import { missingListingsColumnName, stripSelectColumn } from "../../lib/listingsSelectShrink";
+import { augmentLeonixDetailPairsFromStructuredColumns } from "../../lib/leonixListingStructuredPayload";
 import { resolveLeonixLiveListingContact } from "../../lib/leonixListingContactResolve";
 import { readLeonixDetailPairValue } from "../../lib/leonixRealEstateListingContract";
 import { stripLeonixPublishedDescriptionBody } from "../../lib/leonixListingGalleryMarker";
@@ -68,7 +69,7 @@ import type { AutosAnuncioListingLike } from "../../autos/listing/types/autosAnu
 type Lang = "es" | "en";
 
 const ANUNCIO_LISTING_SELECT_BASE =
-  "id, leonix_ad_id, owner_id, title, description, city, category, price, is_free, detail_pairs, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, original_price, current_price, price_last_updated, images, republished_at";
+  "id, leonix_ad_id, owner_id, title, description, city, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, original_price, current_price, price_last_updated, images, republished_at";
 
 type CategoryKey =
   | "en-venta"
@@ -224,7 +225,7 @@ function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
   const republishedAt =
     typeof repRaw === "string" && repRaw.trim() ? repRaw : typeof repRaw === "number" ? String(repRaw) : null;
 
-  const detailPairs = row.detail_pairs;
+  const detailPairs = augmentLeonixDetailPairsFromStructuredColumns(row.detail_pairs, row.listing_json, row.contact_json);
 
   const rawPhone = row.contact_phone;
   const normalizedContactPhone =
@@ -263,9 +264,7 @@ function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
 
   const out = base as Listing & { detailPairs?: unknown; seller_type?: string };
   out.isFree = isFree;
-  if (Array.isArray(detailPairs)) {
-    out.detailPairs = detailPairs;
-  }
+  out.detailPairs = detailPairs;
   out.contact_phone = normalizedContactPhone;
   out.contact_email = normalizedContactEmail;
   out.seller_type = sellerType;

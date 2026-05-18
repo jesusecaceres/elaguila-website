@@ -5,7 +5,7 @@ import { mapBrListingRowToNegocioCard, type BrListingDbRow } from "../resultados
 
 /** Baseline columns — safe if optional timestamp columns are missing in an older DB. */
 const BR_LISTINGS_SELECT_BASE =
-  "id, title, description, city, price, is_free, images, detail_pairs, seller_type, business_name, created_at, status, is_published";
+  "id, title, description, city, price, is_free, images, detail_pairs, listing_json, profile_json, contact_json, seller_type, business_name, created_at, status, is_published";
 
 /** Rich timestamps for `reciente` / republish fairness (`mapBrListingRowToNegocioCard`). */
 const BR_LISTINGS_SELECT_RICH = `${BR_LISTINGS_SELECT_BASE}, updated_at, published_at, republish_sort_at, republished_at`;

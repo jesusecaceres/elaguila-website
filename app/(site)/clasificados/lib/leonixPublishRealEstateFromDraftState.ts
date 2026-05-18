@@ -72,6 +72,13 @@ function zipFromRentasDraft(state: { direccionCodigoPostal: string; ubicacionLin
   return zipFromRentasLocation(state.ubicacionLinea, state.ciudad);
 }
 
+function zipFromBrPrivadoDraft(state: BienesRaicesPrivadoFormState): string | null {
+  const structured = normalizeZipForBrowse(state.gate12d.codigoPostal);
+  if (structured.length >= 5) return structured;
+  const legacy = normalizeZipForBrowse(`${state.ubicacionLinea} ${state.ciudad}`.trim());
+  return legacy.length >= 5 ? legacy : null;
+}
+
 function rentasPublishCity(state: {
   ciudad: string;
   direccionLinea1?: string;
@@ -183,7 +190,7 @@ export function buildPublishParamsFromBienesRaicesPrivadoDraft(
     machineFacetPairs: buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(state),
   });
   const contact = privadoSellerContact(state.seller);
-  const zipPriv = normalizeZipForBrowse(`${state.ubicacionLinea} ${state.ciudad}`.trim());
+  const zipPriv = zipFromBrPrivadoDraft(state);
 
   return {
     ok: true,
@@ -191,7 +198,8 @@ export function buildPublishParamsFromBienesRaicesPrivadoDraft(
       title: state.titulo,
       description: state.descripcion,
       city: trim(state.ciudad) || trim(state.ubicacionLinea),
-      zip: zipPriv.length >= 5 ? zipPriv : undefined,
+      state: trim(state.gate12d.estado) || null,
+      zip: zipPriv ?? undefined,
       price: priceNumberFromDigitsString(state.precio),
       isFree: false,
       category: "bienes-raices",
@@ -256,6 +264,7 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
     title: state.titulo,
     description: state.descripcion,
     city: rentasPublishCity(state),
+      state: trim(state.direccionEstado) || null,
     zip: zipFromRentasDraft(state),
     price: priceNumberFromDigitsString(state.rentaMensual),
     isFree: false,
@@ -301,6 +310,7 @@ export function buildPublishParamsFromBienesRaicesNegocioDraft(
       title: state.titulo,
       description: state.descripcionLarga || state.descripcionCorta,
       city: trim(state.ciudad) || trim(state.direccion),
+      state: trim(state.estado) || null,
       zip: zipNeg.length >= 5 ? zipNeg : undefined,
       price: priceNumberFromDigitsString(state.precio),
       isFree: false,
@@ -370,6 +380,7 @@ export async function publishLeonixListingFromRentasNegocioDraft(
     title: state.titulo,
     description: state.descripcion,
     city: rentasPublishCity(state),
+    state: trim(state.direccionEstado) || null,
     zip: zipFromRentasDraft(state),
     price: priceNumberFromDigitsString(state.rentaMensual),
     isFree: false,

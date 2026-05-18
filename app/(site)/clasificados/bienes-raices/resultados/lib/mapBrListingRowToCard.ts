@@ -7,6 +7,7 @@ import { normalizeZipInput } from "@/app/data/locations/californiaLocationHelper
 import type { BrNegocioListing } from "../cards/listingTypes";
 import { extractBrFacetsFromDetailPairs } from "./brFacetFromDetailPairs";
 import { buildBrPublicLocationForLiveDetail } from "@/app/clasificados/lib/leonixBrGate12d";
+import { augmentLeonixDetailPairsFromStructuredColumns } from "@/app/clasificados/lib/leonixListingStructuredPayload";
 
 function imageUrlsFromJsonb(images: unknown): string[] {
   if (images == null) return [];
@@ -42,9 +43,10 @@ function pairRows(detailPairs: unknown): Array<{ label: string; value: string }>
 /** Result card line: reuse Gate 12D composed privacy helper when possible. */
 function brBrowseAddressLineFromRow(row: BrListingDbRow, facets: ReturnType<typeof extractBrFacetsFromDetailPairs>): string {
   const city = String(row.city ?? "").trim();
-  const rows = pairRows(row.detail_pairs);
+  const detailPairs = augmentLeonixDetailPairsFromStructuredColumns(row.detail_pairs, row.listing_json, row.contact_json);
+  const rows = pairRows(detailPairs);
   const loc = buildBrPublicLocationForLiveDetail({
-    detailPairs: row.detail_pairs,
+    detailPairs,
     humanRows: rows,
     listingCity: city,
   });
@@ -74,6 +76,8 @@ export type BrListingDbRow = {
   is_free?: boolean | null;
   images?: unknown;
   detail_pairs?: unknown;
+  listing_json?: unknown;
+  contact_json?: unknown;
   seller_type?: string | null;
   business_name?: string | null;
   created_at?: string | null;
@@ -99,7 +103,8 @@ export function brListingRecencySortMs(row: BrListingDbRow): number {
 }
 
 export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "en"): BrNegocioListing {
-  const facets = extractBrFacetsFromDetailPairs(row.detail_pairs);
+  const detailPairs = augmentLeonixDetailPairsFromStructuredColumns(row.detail_pairs, row.listing_json, row.contact_json);
+  const facets = extractBrFacetsFromDetailPairs(detailPairs);
   const fromJson = imageUrlsFromJsonb(row.images);
   const fromDesc = extractLeonixImageUrlsFromDescription(row.description ?? "");
   const merged = [...new Set([...fromJson, ...fromDesc])];
@@ -119,7 +124,7 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
 
   const cat = facets.categoriaPropiedad ?? "residencial";
   const title = String(row.title ?? "").trim() || (lang === "es" ? "Anuncio" : "Listing");
-  const addressLine = brBrowseAddressLineFromRow(row, facets);
+  const addressLine = brBrowseAddressLineFromRow({ ...row, detail_pairs: detailPairs }, facets);
 
   const recencyMs = brListingRecencySortMs(row);
 
