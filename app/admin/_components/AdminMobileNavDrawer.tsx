@@ -44,7 +44,7 @@ export function AdminMobileNavDrawer({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex h-11 min-w-[44px] items-center justify-center rounded-2xl border border-[#E8DFD0] bg-white px-3 text-sm font-bold text-[#2C2416] shadow-sm"
+        className="flex h-11 min-w-[44px] items-center justify-center rounded-2xl border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] px-3 text-sm font-bold text-[color:var(--lx-text)] shadow-sm"
         aria-expanded={open}
         aria-controls="admin-mobile-nav-panel"
         aria-label={t("mobile.openMenu")}
@@ -58,16 +58,16 @@ export function AdminMobileNavDrawer({
           <button type="button" className="absolute inset-0 bg-black/40" aria-label={t("mobile.closeOverlay")} onClick={close} />
           <div
             id="admin-mobile-nav-panel"
-            className="absolute left-0 top-0 flex h-full w-[min(20rem,92vw)] flex-col border-r border-[#E8DFD0]/90 bg-gradient-to-b from-[#FFF5ED] via-[#FFFCF7] to-[#FAF0E6] shadow-xl"
+            className="absolute left-0 top-0 flex h-full w-[min(20rem,92vw)] flex-col border-r border-[color:var(--lx-border)]/70 bg-[color:var(--lx-section)] shadow-xl"
           >
-            <div className="flex items-center justify-between gap-2 border-b border-[#E8DFD0]/80 px-4 py-4">
+            <div className="flex items-center justify-between gap-2 border-b border-[color:var(--lx-border)]/70 px-4 py-4">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-2 ring-[#D4BC6A]/50">
+                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-2 ring-[color:var(--lx-border)]">
                   <Image src={newLogo} alt="" className="object-cover" fill sizes="40px" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t("shell.leonixBrand")}</p>
-                  <p className="truncate text-sm font-bold text-[#1E1810]">{t("shell.globalAdmin")}</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{t("shell.leonixBrand")}</p>
+                  <p className="truncate text-sm font-bold text-[color:var(--lx-text)]">{t("shell.globalAdmin")}</p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -75,7 +75,7 @@ export function AdminMobileNavDrawer({
                 <button
                   type="button"
                   onClick={close}
-                  className="flex h-11 min-w-[44px] shrink-0 items-center justify-center rounded-xl border border-[#E8DFD0] bg-white text-sm font-bold text-[#5C5346]"
+                  className="flex h-11 min-w-[44px] shrink-0 items-center justify-center rounded-xl border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] text-sm font-bold text-[color:var(--lx-muted)]"
                   aria-label={t("mobile.close")}
                 >
                   ✕
@@ -94,8 +94,8 @@ export function AdminMobileNavDrawer({
                     className={cx(
                       "flex min-h-[44px] items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
                       active
-                        ? "bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] text-[#1E1810] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9B46A]/35"
-                        : "text-[#3D3428]/90 active:bg-[#FFFCF7]/90",
+                        ? "bg-[color:var(--lx-canvas)] text-[color:var(--lx-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.80)] ring-1 ring-[color:var(--lx-border)]/40"
+                        : "text-[color:var(--lx-text-2)]/90 active:bg-[color:var(--lx-card)]",
                     )}
                   >
                     <span className="w-6 text-center text-base opacity-80" aria-hidden>
@@ -112,18 +112,18 @@ export function AdminMobileNavDrawer({
               })}
             </nav>
 
-            <div className="border-t border-[#E8DFD0]/80 p-3">
-              <div className="rounded-2xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 p-3 text-[11px] font-semibold text-[#5C5346]">
-                <Link href="/admin/workspace" onClick={close} className="block min-h-[44px] py-2 text-[#6B5B2E] underline">
+            <div className="border-t border-[color:var(--lx-border)]/70 p-3">
+              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-3 text-[11px] font-semibold text-[color:var(--lx-muted)]">
+                <Link href="/admin/workspace" onClick={close} className="block min-h-[44px] py-2 text-[color:var(--lx-lion)] underline">
                   {t("shell.websiteSectionsLink")}
                 </Link>
-                <Link href="/admin/site-settings" onClick={close} className="block min-h-[44px] py-2 text-[#6B5B2E] underline">
+                <Link href="/admin/site-settings" onClick={close} className="block min-h-[44px] py-2 text-[color:var(--lx-lion)] underline">
                   {t("shell.globalSiteSettingsLink")}
                 </Link>
                 <Link
                   href="/"
                   onClick={close}
-                  className="mt-1 block min-h-[44px] py-2 text-center text-xs font-bold text-[#6B5B2E] underline"
+                  className="mt-1 block min-h-[44px] py-2 text-center text-xs font-bold text-[color:var(--lx-lion)] underline"
                 >
                   {t("shell.viewSite")}
                 </Link>

@@ -351,7 +351,7 @@ export default function DashboardPage() {
     n == null ? (lang === "es" ? "Aún no registrado" : "Not tracked yet") : fmtNum(n);
 
   const summaryCardClass =
-    "block rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF7F2] p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)] transition hover:border-[#C9B46A]/45 hover:shadow-[0_14px_40px_-12px_rgba(201,164,74,0.18)]";
+    "block rounded-3xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)] p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.08)] transition hover:border-[color:var(--lx-border)] hover:shadow-[0_14px_40px_-12px_rgba(42,36,22,0.12)]";
 
   return (
     <LeonixDashboardShell
@@ -365,27 +365,27 @@ export default function DashboardPage() {
       accountType={accountType}
     >
       {loading ? (
-        <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">
+        <div className="rounded-3xl border border-[color:var(--lx-border)] bg-[color:var(--lx-card)]/90 p-10 text-center text-sm text-[color:var(--lx-muted)]">
           {t.loading}
         </div>
       ) : !hasSession ? (
-        <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center">
-          <p className="text-[#3D3428]">{t.signIn}</p>
+        <div className="rounded-3xl border border-[color:var(--lx-border)] bg-[color:var(--lx-card)]/90 p-10 text-center">
+          <p className="text-[color:var(--lx-text-2)]">{t.signIn}</p>
           <Link
             href={`/login?redirect=${encodeURIComponent(`${pathname}${searchParams?.toString() ? `?${searchParams.toString()}` : ""}`)}`}
-            className="mt-5 inline-flex rounded-2xl bg-[#2A2620] px-6 py-2.5 text-sm font-semibold text-[#FAF7F2] shadow-md hover:bg-[#1a1814]"
+            className="mt-5 inline-flex rounded-2xl bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-90"
           >
             {t.login}
           </Link>
         </div>
       ) : (
         <>
-          <header className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.12)] sm:p-8">
-            <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{t.title}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5C5346]/95">{t.subtitle}</p>
-            <p className="mt-3 max-w-2xl text-sm font-medium leading-relaxed text-[#3D3428]/90">{t.cmdSubtitle}</p>
+          <header className="rounded-3xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.10)] sm:p-8">
+            <h1 className="text-2xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-3xl">{t.title}</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-muted)]/95">{t.subtitle}</p>
+            <p className="mt-3 max-w-2xl text-sm font-medium leading-relaxed text-[color:var(--lx-text-2)]/90">{t.cmdSubtitle}</p>
             {homeCity ? (
-              <p className="mt-3 text-sm font-medium text-[#3D3428]/90">
+              <p className="mt-3 text-sm font-medium text-[color:var(--lx-text-2)]/90">
                 {lang === "es" ? "Ciudad" : "City"}: {homeCity}
               </p>
             ) : null}
@@ -395,44 +395,44 @@ export default function DashboardPage() {
           <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
             <Link href={`/dashboard/mis-anuncios?${q}`} className={summaryCardClass}>
               <div className="flex items-start justify-between gap-2">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.activeAds}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{t.activeAds}</p>
                 <span className="text-lg opacity-80" aria-hidden>
                   📣
                 </span>
               </div>
-              <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{fmtNum(activeListings)}</p>
-              <p className="mt-2 text-[11px] leading-snug text-[#7A7164]/95">{t.activeListingsFootnote}</p>
+              <p className="mt-3 text-2xl font-bold tabular-nums text-[color:var(--lx-text)]">{fmtNum(activeListings)}</p>
+              <p className="mt-2 text-[11px] leading-snug text-[color:var(--lx-muted)]/95">{t.activeListingsFootnote}</p>
             </Link>
             <Link href={`/dashboard/analytics?${q}`} className={summaryCardClass}>
               <div className="flex items-start justify-between gap-2">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.totalViews}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{t.totalViews}</p>
                 <span className="text-lg opacity-80" aria-hidden>
                   👁
                 </span>
               </div>
-              <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{fmtNum(totalViews)}</p>
+              <p className="mt-3 text-2xl font-bold tabular-nums text-[color:var(--lx-text)]">{fmtNum(totalViews)}</p>
             </Link>
             <Link href={`/dashboard/analytics?${q}`} className={summaryCardClass}>
               <div className="flex items-start justify-between gap-2">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.totalMsg}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{t.totalMsg}</p>
                 <span className="text-lg opacity-80" aria-hidden>
                   💬
                 </span>
               </div>
-              <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{fmtNum(totalMessages)}</p>
+              <p className="mt-3 text-2xl font-bold tabular-nums text-[color:var(--lx-text)]">{fmtNum(totalMessages)}</p>
             </Link>
             <Link href={`/dashboard/mis-anuncios?${q}`} className={summaryCardClass}>
               <div className="flex items-start justify-between gap-2">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.totalSaves}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{t.totalSaves}</p>
                 <span className="text-lg opacity-80" aria-hidden>
                   ★
                 </span>
               </div>
-              <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{fmtNum(totalSaves)}</p>
+              <p className="mt-3 text-2xl font-bold tabular-nums text-[color:var(--lx-text)]">{fmtNum(totalSaves)}</p>
             </Link>
             <Link href={`/dashboard/mis-anuncios?${q}`} className={summaryCardClass}>
               <div className="flex items-start justify-between gap-2">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{t.expSoon}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{t.expSoon}</p>
                 <span className="text-lg opacity-80" aria-hidden>
                   ⏱
                 </span>
@@ -440,8 +440,8 @@ export default function DashboardPage() {
               <p
                 className={
                   expiringSoon === null
-                    ? "mt-3 text-sm font-semibold leading-snug text-[#5C5346]"
-                    : "mt-3 text-2xl font-bold tabular-nums text-[#1E1810]"
+                    ? "mt-3 text-sm font-semibold leading-snug text-[color:var(--lx-muted)]"
+                    : "mt-3 text-2xl font-bold tabular-nums text-[color:var(--lx-text)]"
                 }
               >
                 {fmtExpiringSoon(expiringSoon)}
@@ -453,13 +453,13 @@ export default function DashboardPage() {
               {t.analyticsDegraded}
             </p>
           ) : null}
-          <p className="mt-4 max-w-4xl text-xs leading-relaxed text-[#5C5346]/95">{t.metricsFootnote}</p>
-          <p className="mt-2 max-w-4xl text-xs leading-relaxed text-[#7A7164]/95">{t.expiringFootnote}</p>
+          <p className="mt-4 max-w-4xl text-xs leading-relaxed text-[color:var(--lx-muted)]/95">{t.metricsFootnote}</p>
+          <p className="mt-2 max-w-4xl text-xs leading-relaxed text-[color:var(--lx-muted)]/95">{t.expiringFootnote}</p>
 
           {/* Category management overview */}
-          <div className="mt-8 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.08)]">
-            <h2 className="text-lg font-bold text-[#1E1810]">{lang === "es" ? "Gestión de Categorías" : "Category Management"}</h2>
-            <p className="mt-2 text-sm text-[#5C5346]/95">
+          <div className="mt-8 rounded-3xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.08)]">
+            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{lang === "es" ? "Gestión de Categorías" : "Category Management"}</h2>
+            <p className="mt-2 text-sm text-[color:var(--lx-muted)]/95">
               {lang === "es" 
                 ? "Administra tus anuncios por categoría. El estado muestra lo que está disponible ahora."
                 : "Manage your listings by category. Status shows what's available now."
@@ -467,26 +467,26 @@ export default function DashboardPage() {
             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {/* Restaurantes - READY */}
-              <div className="rounded-2xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-4">
+              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[#1E1810]">Restaurantes</h3>
+                  <h3 className="font-semibold text-[color:var(--lx-text)]">Restaurantes</h3>
                   <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
                     Listo
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-[#5C5346]/90">
+                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
                   {lang === "es" ? "Gestiona restaurantes publicados" : "Manage published restaurants"}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
                     href={`/dashboard/restaurantes?${q}`}
-                    className="inline-flex rounded-lg bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                    className="inline-flex rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]"
                   >
                     {lang === "es" ? "Gestionar" : "Manage"}
                   </Link>
                   <Link
                     href={`/publicar/restaurantes?${q}`}
-                    className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+                    className="inline-flex rounded-lg bg-[color:var(--lx-cta-primary-bg)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90"
                   >
                     {lang === "es" ? "Publicar" : "Publish"}
                   </Link>
@@ -494,26 +494,26 @@ export default function DashboardPage() {
               </div>
 
               {/* Servicios */}
-              <div className="rounded-2xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-4">
+              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[#1E1810]">Servicios</h3>
+                  <h3 className="font-semibold text-[color:var(--lx-text)]">Servicios</h3>
                   <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
                     {lang === "es" ? "Listo" : "Ready"}
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-[#5C5346]/90">
+                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
                   {lang === "es" ? "Gestiona en Mis anuncios o en el hub dedicado." : "Manage from My listings or the dedicated hub."}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
                     href={`/dashboard/servicios?${q}`}
-                    className="inline-flex rounded-lg bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                    className="inline-flex rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]"
                   >
                     {lang === "es" ? "Gestionar" : "Manage"}
                   </Link>
                   <Link
                     href={`/clasificados/publicar/servicios?${q}`}
-                    className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+                    className="inline-flex rounded-lg bg-[color:var(--lx-cta-primary-bg)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90"
                   >
                     {lang === "es" ? "Publicar" : "Publish"}
                   </Link>
@@ -521,26 +521,26 @@ export default function DashboardPage() {
               </div>
 
               {/* En venta - READY */}
-              <div className="rounded-2xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-4">
+              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[#1E1810]">{t.enVentaTitle}</h3>
+                  <h3 className="font-semibold text-[color:var(--lx-text)]">{t.enVentaTitle}</h3>
                   <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
                     Listo
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-[#5C5346]/90">
+                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
                   {lang === "es" ? "Gestionado en Mis anuncios" : "Managed in My listings"}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
                     href={`/dashboard/mis-anuncios?${q}`}
-                    className="inline-flex rounded-lg bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                    className="inline-flex rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]"
                   >
                     {t.enVentaCta}
                   </Link>
                   <Link
                     href={`/clasificados/publicar/en-venta?${q}`}
-                    className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+                    className="inline-flex rounded-lg bg-[color:var(--lx-cta-primary-bg)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90"
                   >
                     {t.enVentaPost}
                   </Link>
@@ -548,26 +548,26 @@ export default function DashboardPage() {
               </div>
 
               {/* Autos */}
-              <div className="rounded-2xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-4">
+              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[#1E1810]">Autos</h3>
+                  <h3 className="font-semibold text-[color:var(--lx-text)]">Autos</h3>
                   <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
                     {lang === "es" ? "Listo" : "Ready"}
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-[#5C5346]/90">
+                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
                   {lang === "es" ? "Incluye anuncios en tabla y autos de pago Leonix." : "Includes table listings and Leonix paid Autos."}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
                     href={`/dashboard/mis-anuncios?${q}`}
-                    className="inline-flex rounded-lg bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                    className="inline-flex rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]"
                   >
                     {lang === "es" ? "Gestionar" : "Manage"}
                   </Link>
                   <Link
                     href={`/publicar/autos?${q}`}
-                    className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+                    className="inline-flex rounded-lg bg-[color:var(--lx-cta-primary-bg)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90"
                   >
                     {lang === "es" ? "Publicar" : "Publish"}
                   </Link>
@@ -575,26 +575,26 @@ export default function DashboardPage() {
               </div>
 
               {/* Empleos - READY */}
-              <div className="rounded-2xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-4">
+              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[#1E1810]">Empleos</h3>
+                  <h3 className="font-semibold text-[color:var(--lx-text)]">Empleos</h3>
                   <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
                     Listo
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-[#5C5346]/90">
+                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
                   {lang === "es" ? "Gestión dedicada disponible" : "Dedicated management available"}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
                     href={`/dashboard/empleos?${q}`}
-                    className="inline-flex rounded-lg bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                    className="inline-flex rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]"
                   >
                     {lang === "es" ? "Gestionar" : "Manage"}
                   </Link>
                   <Link
                     href={`/clasificados/publicar/empleos?${q}`}
-                    className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+                    className="inline-flex rounded-lg bg-[color:var(--lx-cta-primary-bg)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90"
                   >
                     {lang === "es" ? "Publicar" : "Publish"}
                   </Link>
@@ -602,26 +602,26 @@ export default function DashboardPage() {
               </div>
 
               {/* Rentas - READY */}
-              <div className="rounded-2xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-4">
+              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[#1E1810]">Rentas</h3>
+                  <h3 className="font-semibold text-[color:var(--lx-text)]">Rentas</h3>
                   <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
                     Listo
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-[#5C5346]/90">
+                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
                   {lang === "es" ? "Gestionado en Mis anuncios" : "Managed in My listings"}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
                     href={`/dashboard/mis-anuncios?${q}`}
-                    className="inline-flex rounded-lg bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                    className="inline-flex rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]"
                   >
                     {lang === "es" ? "Gestionar" : "Manage"}
                   </Link>
                   <Link
                     href={`/publicar/rentas/privado?${q}`}
-                    className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+                    className="inline-flex rounded-lg bg-[color:var(--lx-cta-primary-bg)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90"
                   >
                     {lang === "es" ? "Publicar privado" : "Publish private"}
                   </Link>
@@ -629,26 +629,26 @@ export default function DashboardPage() {
               </div>
 
               {/* Bienes Raíces - READY */}
-              <div className="rounded-2xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-4">
+              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[#1E1810]">Bienes Raíces</h3>
+                  <h3 className="font-semibold text-[color:var(--lx-text)]">Bienes Raíces</h3>
                   <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
                     Listo
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-[#5C5346]/90">
+                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
                   {lang === "es" ? "Gestión completa disponible" : "Full management available"}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
                     href={`${BR_PUBLICAR_HUB}?${q}`}
-                    className="inline-flex rounded-lg bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                    className="inline-flex rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]"
                   >
                     {lang === "es" ? "Publicar" : "Publish"}
                   </Link>
                   <Link
                     href={`${BR_RESULTS}?${q}`}
-                    className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+                    className="inline-flex rounded-lg bg-[color:var(--lx-cta-primary-bg)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90"
                   >
                     {lang === "es" ? "Ver resultados" : "View results"}
                   </Link>
@@ -656,26 +656,26 @@ export default function DashboardPage() {
               </div>
 
               {/* Viajes - READY */}
-              <div className="rounded-2xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-4">
+              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[#1E1810]">Viajes</h3>
+                  <h3 className="font-semibold text-[color:var(--lx-text)]">Viajes</h3>
                   <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
                     Listo
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-[#5C5346]/90">
+                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
                   {lang === "es" ? "Gestión dedicada disponible" : "Dedicated management available"}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
                     href={`/dashboard/viajes?${q}`}
-                    className="inline-flex rounded-lg bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                    className="inline-flex rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]"
                   >
                     {lang === "es" ? "Gestionar" : "Manage"}
                   </Link>
                   <Link
                     href={`/publicar/viajes?${q}`}
-                    className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+                    className="inline-flex rounded-lg bg-[color:var(--lx-cta-primary-bg)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90"
                   >
                     {lang === "es" ? "Publicar" : "Publish"}
                   </Link>
@@ -685,12 +685,12 @@ export default function DashboardPage() {
               {/* Clases — not client-ready (no owner dashboard inventory). */}
               <div className="rounded-2xl border border-gray-200/60 bg-gray-50/80 p-4 opacity-75">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[#5C5346]">Clases</h3>
+                  <h3 className="font-semibold text-[color:var(--lx-muted)]">Clases</h3>
                   <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
                     {lang === "es" ? "Próximamente" : "Coming soon"}
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-[#7A7164]/90">
+                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
                   {lang === "es" ? "Sin inventario gestionable en el panel aún." : "No manageable inventory in the dashboard yet."}
                 </p>
               </div>
@@ -698,12 +698,12 @@ export default function DashboardPage() {
               {/* Comunidad — not client-ready (no owner dashboard inventory). */}
               <div className="rounded-2xl border border-gray-200/60 bg-gray-50/80 p-4 opacity-75">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[#5C5346]">Comunidad</h3>
+                  <h3 className="font-semibold text-[color:var(--lx-muted)]">Comunidad</h3>
                   <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
                     {lang === "es" ? "Próximamente" : "Coming soon"}
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-[#7A7164]/90">
+                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
                   {lang === "es" ? "Sin inventario gestionable en el panel aún." : "No manageable inventory in the dashboard yet."}
                 </p>
               </div>
@@ -711,55 +711,55 @@ export default function DashboardPage() {
           </div>
 
           {/* Next actions */}
-          <div className="mt-8 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-inner">
-            <h2 className="text-lg font-bold text-[#1E1810]">{lang === "es" ? "Qué puedes hacer ahora" : "What you can do now"}</h2>
+          <div className="mt-8 rounded-3xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)]/95 p-6 shadow-inner">
+            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{lang === "es" ? "Qué puedes hacer ahora" : "What you can do now"}</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <Link
                 href={`/dashboard/mis-anuncios?${q}`}
-                className="flex items-center gap-3 rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4 text-left text-sm text-[#2C2416] transition hover:border-[#C9B46A]/45 hover:bg-[#FFFCF7]"
+                className="flex items-center gap-3 rounded-2xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-section)]/80 p-4 text-left text-sm text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-border)] hover:bg-[color:var(--lx-card)]"
               >
                 <span className="text-[#C9A84A]" aria-hidden>
                   📋
                 </span>
                 <div>
-                  <p className="font-semibold text-[#1E1810]">{lang === "es" ? "Gestionar anuncios publicados" : "Manage published listings"}</p>
-                  <p className="mt-1 text-xs text-[#5C5346]/95">{lang === "es" ? "Revisa estado, analíticas y promociona" : "Review status, analytics, and promote"}</p>
+                  <p className="font-semibold text-[color:var(--lx-text)]">{lang === "es" ? "Gestionar anuncios publicados" : "Manage published listings"}</p>
+                  <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{lang === "es" ? "Revisa estado, analíticas y promociona" : "Review status, analytics, and promote"}</p>
                 </div>
               </Link>
               <Link
                 href={`/dashboard/drafts?${q}`}
-                className="flex items-center gap-3 rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4 text-left text-sm text-[#2C2416] transition hover:border-[#C9B46A]/45 hover:bg-[#FFFCF7]"
+                className="flex items-center gap-3 rounded-2xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-section)]/80 p-4 text-left text-sm text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-border)] hover:bg-[color:var(--lx-card)]"
               >
                 <span className="text-[#C9A84A]" aria-hidden>
                   📝
                 </span>
                 <div>
-                  <p className="font-semibold text-[#1E1810]">{lang === "es" ? "Continuar borradores" : "Continue drafts"}</p>
-                  <p className="mt-1 text-xs text-[#5C5346]/95">{lang === "es" ? "Completa y publica anuncios incompletos" : "Complete and publish incomplete listings"}</p>
+                  <p className="font-semibold text-[color:var(--lx-text)]">{lang === "es" ? "Continuar borradores" : "Continue drafts"}</p>
+                  <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{lang === "es" ? "Completa y publica anuncios incompletos" : "Complete and publish incomplete listings"}</p>
                 </div>
               </Link>
               <Link
                 href={`/dashboard/mensajes?${q}`}
-                className="flex items-center gap-3 rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4 text-left text-sm text-[#2C2416] transition hover:border-[#C9B46A]/45 hover:bg-[#FFFCF7]"
+                className="flex items-center gap-3 rounded-2xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-section)]/80 p-4 text-left text-sm text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-border)] hover:bg-[color:var(--lx-card)]"
               >
                 <span className="text-[#C9A84A]" aria-hidden>
                   💬
                 </span>
                 <div>
-                  <p className="font-semibold text-[#1E1810]">{lang === "es" ? "Ver mensajes" : "View messages"}</p>
-                  <p className="mt-1 text-xs text-[#5C5346]/95">{lang === "es" ? "Responde a consultas de interesados" : "Respond to interested buyers"}</p>
+                  <p className="font-semibold text-[color:var(--lx-text)]">{lang === "es" ? "Ver mensajes" : "View messages"}</p>
+                  <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{lang === "es" ? "Responde a consultas de interesados" : "Respond to interested buyers"}</p>
                 </div>
               </Link>
               <Link
                 href={`/clasificados/publicar?${q}`}
-                className="flex items-center gap-3 rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4 text-left text-sm text-[#2C2416] transition hover:border-[#C9B46A]/45 hover:bg-[#FFFCF7]"
+                className="flex items-center gap-3 rounded-2xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-section)]/80 p-4 text-left text-sm text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-border)] hover:bg-[color:var(--lx-card)]"
               >
                 <span className="text-[#C9A84A]" aria-hidden>
                   ➕
                 </span>
                 <div>
-                  <p className="font-semibold text-[#1E1810]">{lang === "es" ? "Publicar nuevo anuncio" : "Publish new listing"}</p>
-                  <p className="mt-1 text-xs text-[#5C5346]/95">{lang === "es" ? "Crea un nuevo anuncio en cualquier categoría lista" : "Create a new listing in any ready category"}</p>
+                  <p className="font-semibold text-[color:var(--lx-text)]">{lang === "es" ? "Publicar nuevo anuncio" : "Publish new listing"}</p>
+                  <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{lang === "es" ? "Crea un nuevo anuncio en cualquier categoría lista" : "Create a new listing in any ready category"}</p>
                 </div>
               </Link>
             </div>

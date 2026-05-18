@@ -12,12 +12,12 @@ type ActionItem = {
 
 function actionClass(tone: ActionItem["tone"]): string {
   if (tone === "primary") {
-    return "border-[#C9B46A]/40 bg-[#FBF7EF] text-[#5C4E2E]";
+    return "border-transparent bg-[color:var(--lx-cta-primary-bg)] text-[color:var(--lx-cta-primary-fg)] hover:opacity-90";
   }
   if (tone === "subtle") {
-    return "border-[#E8DFD0] bg-[#FAF7F2] text-[#2C2416]";
+    return "border-[color:var(--lx-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)]";
   }
-  return "border-[#E8DFD0] bg-white text-[#2C2416]";
+  return "border-[color:var(--lx-border)] bg-[color:var(--lx-card)] text-[color:var(--lx-text)]";
 }
 
 export function DashboardListingActionBar({ actions }: { actions: ActionItem[] }) {

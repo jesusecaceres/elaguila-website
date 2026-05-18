@@ -30,21 +30,21 @@ export function AdminTopbar({
     alertCount > 0 ? adminTr(adminLang, "shell.tiendaAriaUnread", { n: alertCount }) : t("shell.tiendaTitle");
 
   return (
-    <header className="sticky top-0 z-30 border-b border-[#E8DFD0]/90 bg-[#FFFCF7]/95 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)]/95 backdrop-blur-md">
       <div className="flex flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:flex-wrap lg:items-center lg:gap-3">
         <div className="flex w-full min-w-0 items-center gap-2 lg:hidden">
           <AdminMobileNavDrawer tiendaInboxUnread={alertCount} adminLang={adminLang} />
-          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full ring-2 ring-[#D4BC6A]/45">
+          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full ring-2 ring-[color:var(--lx-border)]">
             <Image src={newLogo} alt="" className="object-cover" fill sizes="36px" />
           </div>
-          <span className="min-w-0 truncate text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
+          <span className="min-w-0 truncate text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
             {t("shell.leonixAdmin")}
           </span>
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <AdminLangToggle active={adminLang} />
             <Link
               href="/admin/tienda"
-              className="relative flex h-11 min-w-[44px] items-center justify-center rounded-full border border-[#E8DFD0] bg-white p-2 text-[#5C5346] shadow-sm"
+              className="relative flex h-11 min-w-[44px] items-center justify-center rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-2 text-[color:var(--lx-muted)] shadow-sm"
               title={tiendaTitle}
               aria-label={tiendaAria}
             >
@@ -79,7 +79,7 @@ export function AdminTopbar({
             {t("shell.searchLabel")}
           </label>
           <div className="relative">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#9A9084]">⌕</span>
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--lx-muted)]">⌕</span>
             <input
               id="admin-global-search"
               value={q}
@@ -93,12 +93,12 @@ export function AdminTopbar({
 
         <div className="order-3 hidden items-center gap-2 lg:ml-auto lg:flex lg:flex-nowrap">
           <AdminLangToggle active={adminLang} />
-          <span className="inline-flex max-w-[10rem] items-center gap-1 truncate rounded-full border border-[#C9B46A]/40 bg-[#FBF7EF] px-3 py-1.5 text-xs font-bold text-[#5C4E2E] xl:max-w-none">
+          <span className="inline-flex max-w-[10rem] items-center gap-1 truncate rounded-full border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-section)] px-3 py-1.5 text-xs font-bold text-[color:var(--lx-text-2)] xl:max-w-none">
             {t("shell.plusBadge")}
           </span>
           <Link
             href="/admin/tienda"
-            className="relative rounded-full border border-[#E8DFD0] bg-white p-2 text-[#5C5346] shadow-sm"
+            className="relative rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-2 text-[color:var(--lx-muted)] shadow-sm"
             title={tiendaTitle}
             aria-label={tiendaAria}
           >
@@ -109,7 +109,7 @@ export function AdminTopbar({
               </span>
             ) : null}
           </Link>
-          <div className="hidden h-9 w-9 items-center justify-center rounded-full border border-[#E8DFD0] bg-gradient-to-br from-[#E8D48A] to-[#C9A84A] text-xs font-bold text-[#1E1810] sm:flex">
+          <div className="hidden h-9 w-9 items-center justify-center rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-lion)] text-xs font-bold text-white sm:flex">
             LX
           </div>
           {showCreate ? (

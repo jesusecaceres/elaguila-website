@@ -31,11 +31,11 @@ export type LeonixDashboardActiveNav =
 type ActiveNav = LeonixDashboardActiveNav;
 
 const PAGE_BG: CSSProperties = {
-  backgroundColor: "#F3EBDD",
+  backgroundColor: "var(--lx-page)",
   backgroundImage: `
-    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 180, 106, 0.2), transparent 55%),
-    radial-gradient(ellipse 55% 40% at 100% 30%, rgba(255, 255, 255, 0.45), transparent 52%),
-    radial-gradient(ellipse 45% 35% at 0% 75%, rgba(201, 164, 74, 0.1), transparent 50%)
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 120, 47, 0.07), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 100% 30%, rgba(255, 255, 255, 0.40), transparent 52%),
+    radial-gradient(ellipse 45% 35% at 0% 75%, rgba(201, 120, 47, 0.04), transparent 50%)
   `,
 };
 
@@ -172,7 +172,7 @@ export function LeonixDashboardShell({
     return (
       <span
         title={title}
-        className="ml-auto inline-flex min-w-[1.25rem] justify-center rounded-full bg-[#C9A84A]/25 px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums text-[#4A3F26]"
+        className="ml-auto inline-flex min-w-[1.25rem] justify-center rounded-full bg-[color:var(--lx-lion)]/20 px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums text-[color:var(--lx-text-2)]"
       >
         {text}
       </span>
@@ -185,8 +185,8 @@ export function LeonixDashboardShell({
       className={cx(
         "flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
         activeNav === key
-          ? "bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] text-[#1E1810] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9B46A]/35"
-          : "text-[#3D3428]/90 hover:bg-[#FFFCF7]/80"
+          ? "bg-[color:var(--lx-canvas)] text-[color:var(--lx-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.80)] ring-1 ring-[color:var(--lx-border)]/40"
+          : "text-[color:var(--lx-text-2)]/90 hover:bg-[color:var(--lx-card)]"
       )}
     >
       <span className="min-w-0 flex-1 leading-snug">{label}</span>
@@ -195,7 +195,7 @@ export function LeonixDashboardShell({
   );
 
   return (
-    <div className="relative min-h-screen text-[#2C2416]" style={PAGE_BG}>
+    <div className="relative min-h-screen text-[color:var(--lx-text)]" style={PAGE_BG}>
       <div
         className="pointer-events-none fixed inset-0 opacity-[0.035]"
         style={{
@@ -213,7 +213,7 @@ export function LeonixDashboardShell({
             className="h-auto w-[min(88px,22vw)] drop-shadow-[0_6px_24px_rgba(42,36,22,0.12)]"
             priority
           />
-          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#7A7164]">Dashboard</p>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--lx-muted)]">Dashboard</p>
         </div>
 
         <div
@@ -224,29 +224,29 @@ export function LeonixDashboardShell({
               : "lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)]"
           )}
         >
-          <aside className="h-fit rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/90 p-4 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.14)] sm:p-5">
+          <aside className="h-fit rounded-3xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)]/90 p-4 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.12)] sm:p-5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{L.accountStatus}</span>
-              <span className="rounded-full border border-[#E8DFD0] bg-[#FAF7F2] px-2.5 py-1 text-[11px] font-bold text-[#5C5346]">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{L.accountStatus}</span>
+              <span className="rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] px-2.5 py-1 text-[11px] font-bold text-[color:var(--lx-muted)]">
                 {L.accountMetadata}
               </span>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4">
-              <p className="text-[15px] font-bold text-[#1E1810]">{userName?.trim() || "—"}</p>
-              <p className="mt-1 text-xs text-[#5C5346]/95">{email || "—"}</p>
+            <div className="mt-4 rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-section)]/80 p-4">
+              <p className="text-[15px] font-bold text-[color:var(--lx-text)]">{userName?.trim() || "—"}</p>
+              <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{email || "—"}</p>
               {accountRef ? (
-                <p className="mt-2 font-mono text-[10px] text-[#7A7164]/90">
+                <p className="mt-2 font-mono text-[10px] text-[color:var(--lx-muted)]/90">
                   #{accountRef}
                 </p>
               ) : null}
               {membershipTier?.trim() ? (
-                <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-[#7A7164]/90">
+                <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-[color:var(--lx-muted)]/90">
                   {membershipTier.trim()}
                 </p>
               ) : null}
               {accountType?.trim() ? (
-                <p className="mt-0.5 text-[10px] text-[#5C5346]/90">
+                <p className="mt-0.5 text-[10px] text-[color:var(--lx-muted)]/90">
                   {lang === "es" ? "Tipo" : "Type"}: {accountType.trim()}
                 </p>
               ) : null}
@@ -263,7 +263,7 @@ export function LeonixDashboardShell({
               {navItem("notifications", `/dashboard/notificaciones?${q}`, L.notifications)}
               {navItem("business", `/dashboard/business-tools?${q}`, L.businessTools)}
               <div className="pt-3">
-                <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]/90">{L.activity}</p>
+                <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]/90">{L.activity}</p>
                 {navItem("recent", `/dashboard/vistos-recientes?${q}`, L.recent)}
               </div>
             </nav>
@@ -271,10 +271,10 @@ export function LeonixDashboardShell({
             <Link
               href={`/clasificados/publicar?${q}`}
               className={cx(
-                "mt-6 flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold text-[#1E1810]",
-                "bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A]",
-                "shadow-[0_8px_28px_-4px_rgba(201,164,74,0.45),inset_0_1px_0_rgba(255,255,255,0.35)]",
-                "transition hover:brightness-[1.03] active:scale-[0.99]"
+                "mt-6 flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold text-[color:var(--lx-cta-primary-fg)]",
+                "bg-[color:var(--lx-cta-primary-bg)]",
+                "shadow-[0_8px_28px_-4px_rgba(201,120,47,0.30)]",
+                "transition hover:opacity-90 active:scale-[0.99]"
               )}
             >
               {L.publish}
@@ -283,7 +283,7 @@ export function LeonixDashboardShell({
             <button
               type="button"
               onClick={() => void signOut()}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[#E8DFD0] bg-transparent py-2.5 text-sm font-semibold text-[#5C5346] transition hover:bg-[#FFFCF7]"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[color:var(--lx-border)] bg-transparent py-2.5 text-sm font-semibold text-[color:var(--lx-muted)] transition hover:bg-[color:var(--lx-section)]"
             >
               <span aria-hidden className="text-lg leading-none">
                 ⊖
