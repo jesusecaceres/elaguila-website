@@ -60,6 +60,7 @@ import {
 } from "@/app/clasificados/en-venta/republish/enVentaRepublishVisibility";
 import { listingAnalyticsReadIsDegraded } from "../lib/listingAnalyticsReadErrors";
 import { listingsRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
+import { formatLeonixAdId } from "@/app/(site)/clasificados/community/shared/communityLeonixAdId";
 import {
   dashboardCanRepublishListingsRow,
   dashboardRepublishPrimaryKind,
@@ -1618,6 +1619,8 @@ export default function MyListingsPage() {
                 );
 
                 const catLower = (x.category ?? "").toLowerCase();
+                const isCommunityQuickCategory = catLower === "clases" || catLower === "comunidad";
+                const leonixQuickAdId = isCommunityQuickCategory ? formatLeonixAdId(x.id) : null;
                 const categoryChip =
                   catLower === "clases"
                     ? lang === "es"
@@ -1657,6 +1660,14 @@ export default function MyListingsPage() {
                         <p className="mt-2 text-[11px] leading-snug text-[#7A7164]">
                           <span className="font-semibold text-[#5C5346]">{listingPlanFieldLabel(lang)}:</span> {genericAdPlan}
                         </p>
+                        {leonixQuickAdId ? (
+                          <p className="mt-1 text-[11px] leading-snug text-[#7A7164]" data-testid="dashboard-listing-leonix-ad-id">
+                            <span className="font-semibold text-[#5C5346]">
+                              {lang === "es" ? "ID de anuncio" : "Ad ID"}:
+                            </span>{" "}
+                            <span className="font-mono font-semibold text-[#1E1810]">{leonixQuickAdId}</span>
+                          </p>
+                        ) : null}
                         {stats ? (
                           <p className="mt-2 text-sm text-[#7A7164]">
                             {lang === "es" ? "Vistas" : "Views"}: {viewsTotal} · {lang === "es" ? "Mensajes" : "Messages"}:{" "}

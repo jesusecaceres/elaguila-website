@@ -14,6 +14,7 @@ import {
   detailPairsToMap,
   isCommunityQuickListing,
 } from "@/app/(site)/clasificados/community/shared/communityListingDetailPairs";
+import { formatLeonixAdId } from "@/app/(site)/clasificados/community/shared/communityLeonixAdId";
 
 import { CommunityQuickPublicDetailShell } from "./CommunityQuickPublicDetailShell";
 import { CommunityQuickPublicDetailSidebar } from "./CommunityQuickPublicDetailSidebar";
@@ -33,8 +34,20 @@ type Listing = {
 };
 
 const TOP_COPY = {
-  es: { back: "Volver a Clasificados", post: "Publicar anuncio", signIn: "Iniciar sesión" },
-  en: { back: "Back to Classifieds", post: "Post listing", signIn: "Sign in" },
+  es: {
+    back: "Volver a Clasificados",
+    post: "Publicar anuncio",
+    signIn: "Iniciar sesión",
+    published: "Tu anuncio fue publicado correctamente.",
+    adId: "ID de anuncio",
+  },
+  en: {
+    back: "Back to Classifieds",
+    post: "Post listing",
+    signIn: "Sign in",
+    published: "Your listing was published successfully.",
+    adId: "Ad ID",
+  },
 } as const;
 
 const REPORT_COPY = {
@@ -86,6 +99,8 @@ export function CommunityQuickPublishedDetailPage({
   const [reportReason, setReportReason] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportDone, setReportDone] = useState(false);
+  const [publishSuccessVisible, setPublishSuccessVisible] = useState(false);
+  const leonixAdId = formatLeonixAdId(listing.id);
 
   const isOwner = Boolean(
     viewerUserId && listing.owner_id && String(listing.owner_id) === String(viewerUserId),
@@ -148,6 +163,15 @@ export function CommunityQuickPublishedDetailPage({
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const key = `leonix-community-publish-success:${listing.id}`;
+    if (window.sessionStorage.getItem(key) === "1") {
+      window.sessionStorage.removeItem(key);
+      setPublishSuccessVisible(true);
+    }
+  }, [listing.id]);
 
   const copyText = async (text: string) => {
     try {
@@ -261,26 +285,37 @@ export function CommunityQuickPublishedDetailPage({
           setShowReportModal(true);
         }}
         topBar={
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <a
-              href={`/clasificados?lang=${lang}`}
-              className="px-5 py-2.5 rounded-full border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-[#111111] font-semibold hover:bg-[#D9D9D9]/45 transition"
-            >
-              ← {t.back}
-            </a>
-            <div className="flex flex-wrap gap-3">
-              <a
-                href={`/clasificados/publicar?lang=${lang}`}
-                className="px-6 py-2.5 rounded-full bg-[#111111] text-[#F5F5F5] font-semibold hover:opacity-95 transition"
+          <div className="space-y-3">
+            {publishSuccessVisible ? (
+              <div
+                className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-950 shadow-sm"
+                data-testid="community-publish-success-banner"
+                role="status"
               >
-                {t.post}
-              </a>
+                {t.published} {leonixAdId ? `${t.adId}: ${leonixAdId}` : null}
+              </div>
+            ) : null}
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <a
-                href={`/clasificados/login?lang=${lang}`}
-                className="px-6 py-2.5 rounded-full border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-[#111111] font-semibold hover:bg-[#D9D9D9]/45 transition"
+                href={`/clasificados?lang=${lang}`}
+                className="px-5 py-2.5 rounded-full border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-[#111111] font-semibold hover:bg-[#D9D9D9]/45 transition"
               >
-                {t.signIn}
+                ← {t.back}
               </a>
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href={`/clasificados/publicar?lang=${lang}`}
+                  className="px-6 py-2.5 rounded-full bg-[#111111] text-[#F5F5F5] font-semibold hover:opacity-95 transition"
+                >
+                  {t.post}
+                </a>
+                <a
+                  href={`/clasificados/login?lang=${lang}`}
+                  className="px-6 py-2.5 rounded-full border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-[#111111] font-semibold hover:bg-[#D9D9D9]/45 transition"
+                >
+                  {t.signIn}
+                </a>
+              </div>
             </div>
           </div>
         }

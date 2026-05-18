@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { formatLeonixAdId } from "@/app/(site)/clasificados/community/shared/communityLeonixAdId";
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -19,6 +20,7 @@ const COPY = {
     copyLink: "Copiar enlace",
     copyInfo: "Copiar info",
     organizedBy: "Organizado por",
+    adId: "ID de anuncio",
     previewNote:
       "Vista previa: las acciones de guardar y reportar estarán disponibles cuando publiques el anuncio.",
     views: "personas vieron este anuncio",
@@ -30,6 +32,7 @@ const COPY = {
     copyLink: "Copy link",
     copyInfo: "Copy info",
     organizedBy: "Organized by",
+    adId: "Ad ID",
     previewNote: "Preview: save and report actions will be available after you publish.",
     views: "people viewed this listing",
     viewsToday: "views today",
@@ -63,6 +66,7 @@ export function CommunityQuickPublicDetailSidebar({
 }: Props) {
   const t = COPY[lang];
   const isPreview = mode === "preview";
+  const leonixAdId = !isPreview ? formatLeonixAdId(listingId) : null;
 
   const [viewCount, setViewCount] = useState<number | null>(null);
   const [viewsToday, setViewsToday] = useState<number | null>(null);
@@ -93,6 +97,13 @@ export function CommunityQuickPublicDetailSidebar({
               🔥 {viewsToday} {t.viewsToday}
             </p>
           ) : null}
+        </div>
+      ) : null}
+
+      {leonixAdId ? (
+        <div className={cx(RAIL_CARD, "p-4")} data-testid="community-public-ad-id">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#111111]/65">{t.adId}</p>
+          <p className="mt-1 select-all font-mono text-sm font-bold text-[#111111]">{leonixAdId}</p>
         </div>
       ) : null}
 

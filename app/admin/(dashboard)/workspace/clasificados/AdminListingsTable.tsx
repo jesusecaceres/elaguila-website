@@ -12,6 +12,7 @@ import {
   parseDetailPairValue,
 } from "@/app/clasificados/en-venta/boosts/enVentaVisibilityRenewal";
 import { parseLeonixListingContract, parseLeonixMachineFacetRead } from "@/app/(site)/clasificados/lib/leonixRealEstateListingContract";
+import { formatLeonixAdId } from "@/app/(site)/clasificados/community/shared/communityLeonixAdId";
 import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { useAdminLang, useAdminT } from "@/app/admin/_components/AdminI18nProvider";
@@ -103,6 +104,14 @@ function clasificadosLeonixAdminLine(row: Row, detailPairsAvailable: boolean): s
     return bits.length ? `${base} · ${bits.join(" · ")}` : base;
   }
   return base;
+}
+
+function adminDisplayLeonixAdId(row: Row): string {
+  const cat = (row.category ?? "").toLowerCase();
+  if (cat === "clases" || cat === "comunidad") return formatLeonixAdId(row.id) ?? "—";
+  const stored = row.leonix_ad_id?.trim();
+  if (stored) return stored;
+  return "—";
 }
 
 function enVentaVisibilityAdminLine(
@@ -297,11 +306,13 @@ export default function AdminListingsTable({
             </tr>
           </thead>
           <tbody>
-            {listings.map((row) => (
+            {listings.map((row) => {
+              const displayLeonixAdId = adminDisplayLeonixAdId(row);
+              return (
               <tr key={row.id} className="border-b border-[#E8DFD0]/60">
                 <td className="p-3 font-mono text-xs text-[#3D3428]">{row.id.slice(0, 8)}…</td>
-                <td className="max-w-[10rem] truncate p-3 font-mono text-[10px] text-[#3D3428]" title={row.leonix_ad_id ?? ""}>
-                  {row.leonix_ad_id ?? "—"}
+                <td className="max-w-[10rem] truncate p-3 font-mono text-[10px] text-[#3D3428]" title={displayLeonixAdId}>
+                  {displayLeonixAdId}
                 </td>
                 <td className="max-w-[200px] truncate p-3 text-[#1E1810]" title={row.title ?? ""}>
                   {row.title ?? "—"}
@@ -478,7 +489,8 @@ export default function AdminListingsTable({
                   {enVentaVisibilityAdminLine(row, detailPairsAvailable, republishColsAvailable, t, locale)}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

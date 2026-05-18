@@ -30,6 +30,7 @@ export function CommunityQuickPreviewPublishBar({ kind, draft, lang }: Props) {
   const shared = COMMUNITY_PUBLISH_COPY[lang];
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishSuccess, setPublishSuccess] = useState<string | null>(null);
 
   const gate = useMemo(
     () =>
@@ -49,6 +50,7 @@ export function CommunityQuickPreviewPublishBar({ kind, draft, lang }: Props) {
 
   const publishLabel = lang === "es" ? "Publicar anuncio" : "Publish listing";
   const busyLabel = lang === "es" ? "Publicando…" : "Publishing…";
+  const successLabel = lang === "es" ? "Publicado. Abriendo anuncio…" : "Published. Opening listing…";
 
   const publishTitleHint = paidBlocked
     ? shared.paidClassPublishBlocked
@@ -61,6 +63,7 @@ export function CommunityQuickPreviewPublishBar({ kind, draft, lang }: Props) {
   const handlePublish = async () => {
     if (publishDisabled) return;
     setPublishError(null);
+    setPublishSuccess(null);
     setPublishing(true);
     try {
       if (kind === "clases" && shouldBlockClasesPaidPublish(draft as ClasesQuickDraft)) {
@@ -75,6 +78,12 @@ export function CommunityQuickPreviewPublishBar({ kind, draft, lang }: Props) {
       if (!r.ok) {
         setPublishError(r.error);
         return;
+      }
+      setPublishSuccess(successLabel);
+      try {
+        window.sessionStorage.setItem(`leonix-community-publish-success:${r.listingId}`, "1");
+      } catch {
+        /* sessionStorage can be unavailable; redirect still provides completion feedback by URL. */
       }
       clearCommunityStagedPublish(kind);
       router.push(`/clasificados/anuncio/${r.listingId}?lang=${lang}`);
@@ -100,6 +109,15 @@ export function CommunityQuickPreviewPublishBar({ kind, draft, lang }: Props) {
           role="alert"
         >
           {publishError}
+        </p>
+      ) : null}
+      {publishSuccess ? (
+        <p
+          className="w-full rounded-xl border border-emerald-200/90 bg-emerald-50/95 px-3 py-2 text-xs font-medium text-emerald-950 sm:order-last sm:max-w-md"
+          role="status"
+          data-testid="community-publish-success-inline"
+        >
+          {publishSuccess}
         </p>
       ) : null}
       {paidBlocked ? (
