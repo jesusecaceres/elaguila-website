@@ -213,8 +213,8 @@ export default function ContactActions(props: Props) {
         };
 
   const BtnBase = "px-4 py-2 rounded-xl font-semibold transition";
-  const secondary = "bg-white/5 border border-white/10 hover:bg-white/10 text-white";
-  const primary = "bg-yellow-500 text-black hover:bg-yellow-400";
+  const secondary = "bg-[#3B66AD]/[0.07] border border-[#3B66AD]/30 hover:bg-[#3B66AD]/[0.12] text-[#3B66AD]";
+  const primary = "bg-[color:var(--lx-blue,#3B66AD)] text-white hover:opacity-90";
 
   const hasAny = Boolean(
     (phoneTel && allowCall) ||
@@ -234,7 +234,7 @@ export default function ContactActions(props: Props) {
   const socialIcon = (sl: LeonixPublicSocialLink) => {
     const href = sl.href.trim();
     const base =
-      "inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/15 bg-white/5 text-white shadow-sm transition hover:bg-white/10 sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0";
+      "inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] text-[color:var(--lx-text)] shadow-sm transition hover:bg-[color:var(--lx-section)] sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0";
     if (sl.kind === "instagram") {
       return (
         <a key={href} href={href} target="_blank" rel="noopener noreferrer" className={base} aria-label={labels.openInstagram}>

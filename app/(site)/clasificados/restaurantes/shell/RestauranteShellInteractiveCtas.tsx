@@ -148,7 +148,7 @@ export function RestauranteShellInteractiveCtas({
               onClick={() => persistSaved(!saved)}
               className={pillClass}
             >
-              <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+              <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-olive)]" aria-hidden />
               {saved ? "Guardado" : cta.label}
             </button>
           );
@@ -162,7 +162,7 @@ export function RestauranteShellInteractiveCtas({
               onClick={onShare}
               className={pillClass}
             >
-              <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+              <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-olive)]" aria-hidden />
               {cta.label}
             </button>
           );
@@ -189,7 +189,7 @@ export function RestauranteShellInteractiveCtas({
               onClick={() => setDataModal({ href: cta.href, title: cta.label })}
               className={pillClass}
             >
-              <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+              <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-blue)]" aria-hidden />
               {cta.label}
             </button>
           );
@@ -203,7 +203,7 @@ export function RestauranteShellInteractiveCtas({
               onClick={() => setExtModal({ href: cta.href, title: cta.label })}
               className={pillClass}
             >
-              <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+              <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-blue)]" aria-hidden />
               {cta.label}
             </button>
           );
@@ -216,7 +216,7 @@ export function RestauranteShellInteractiveCtas({
             className={pillClass}
             {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
           >
-            <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+            <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-blue)]" aria-hidden />
             {cta.label}
           </a>
         );

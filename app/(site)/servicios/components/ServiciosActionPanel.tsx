@@ -35,7 +35,7 @@ const LEONIX_PRIMARY_TEXT = "#1F1A17";
 const LEONIX_SECONDARY_TEXT = "#5A5148";
 const LEONIX_MUTED_TEXT = "#8B7E70";
 const LEONIX_GOLD_ACCENT = "#BEA98E";
-const LEONIX_DARK_CTA = "#2C1810";
+const LEONIX_DARK_CTA = "var(--lx-blue, #3B66AD)";
 const LEONIX_SUCCESS_GREEN = "#1A4D2E";
 const LEONIX_INFO_BLUE = "#355C7D";
 const LEONIX_ELEVATED_CHIP = "#F6EBDD";
@@ -202,7 +202,7 @@ export function ServiciosActionPanel({
   };
 
   const linkBase =
-    "flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full border border-[#E8D7B8] bg-[#FCF9F2] px-3 py-3 text-sm font-semibold text-[#2F2A23] shadow-sm transition hover:shadow-md";
+    "flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full border border-[#3B66AD]/25 bg-[#3B66AD]/[0.06] px-3 py-3 text-sm font-semibold text-[#3B66AD] shadow-sm transition hover:shadow-md";
   const primaryClass =
     "flex min-h-[50px] w-full items-center justify-center gap-2 rounded-full px-4 py-3.5 text-sm font-bold text-white shadow-lg transition hover:opacity-[0.97] active:scale-[0.99]";
 
@@ -265,7 +265,7 @@ export function ServiciosActionPanel({
               listingSlug={listingSlug}
               analyticsEventType={analyticsForQuoteKind("mailto")}
               triggerClassName={`${primaryClass} mt-3 justify-between`}
-              triggerStyle={{ backgroundColor: LEONIX_DARK_CTA, boxShadow: "0 12px 32px rgba(44,24,16,0.28)" }}
+              triggerStyle={{ backgroundColor: LEONIX_DARK_CTA, boxShadow: "0 12px 32px rgba(59,102,173,0.22)" }}
             >
               <FiZap className="h-5 w-5 shrink-0" aria-hidden />
               {primaryCtaLabel}
@@ -274,7 +274,7 @@ export function ServiciosActionPanel({
             <button
               type="button"
               className={`${primaryClass} mt-3 w-full border-0`}
-              style={{ backgroundColor: LEONIX_DARK_CTA, boxShadow: "0 12px 32px rgba(44,24,16,0.28)" }}
+              style={{ backgroundColor: LEONIX_DARK_CTA, boxShadow: "0 12px 32px rgba(59,102,173,0.22)" }}
               onClick={openPrimaryMailtoSheet}
             >
               <FiZap className="h-5 w-5 shrink-0" aria-hidden />
@@ -284,7 +284,7 @@ export function ServiciosActionPanel({
             <button
               type="button"
               className={`${primaryClass} mt-3 w-full border-0`}
-              style={{ backgroundColor: LEONIX_DARK_CTA, boxShadow: "0 12px 32px rgba(44,24,16,0.28)" }}
+              style={{ backgroundColor: LEONIX_DARK_CTA, boxShadow: "0 12px 32px rgba(59,102,173,0.22)" }}
               onClick={openPrimaryQuoteSheet}
             >
               <FiZap className="h-5 w-5 shrink-0" aria-hidden />
@@ -314,9 +314,9 @@ export function ServiciosActionPanel({
                         analyticsEventType={analyticsForSecondaryId("email")}
                         triggerClassName={`${linkBase} justify-between`}
                         triggerStyle={{
-                          backgroundColor: "white",
-                          borderColor: LEONIX_BORDER,
-                          color: LEONIX_PRIMARY_TEXT,
+                          backgroundColor: "rgba(59,102,173,0.06)",
+                          borderColor: "rgba(59,102,173,0.25)",
+                          color: "var(--lx-blue, #3B66AD)",
                         }}
                       >
                         <SecondaryIcon id={a.id} />
@@ -331,9 +331,9 @@ export function ServiciosActionPanel({
                     type="button"
                     className={`${linkBase} w-full border-0 text-center`}
                     style={{
-                      backgroundColor: "white",
-                      borderColor: LEONIX_BORDER,
-                      color: LEONIX_PRIMARY_TEXT,
+                      backgroundColor: "rgba(59,102,173,0.06)",
+                      borderColor: "rgba(59,102,173,0.25)",
+                      color: "var(--lx-blue, #3B66AD)",
                     }}
                     onClick={() => openSecondarySheet(a)}
                   >

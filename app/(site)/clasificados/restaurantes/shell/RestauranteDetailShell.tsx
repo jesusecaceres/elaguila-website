@@ -86,9 +86,9 @@ function RestauranteContactEmailRow({ email, lang }: { email: string; lang: "es"
       messagePlain={messagePlain}
       lang={lang}
       showChevron={false}
-      triggerClassName="flex w-full min-w-0 items-center gap-2 text-left font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-gold)]"
+      triggerClassName="flex w-full min-w-0 items-center gap-2 text-left font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-blue)]"
     >
-      <FiMail className="h-4 w-4 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+      <FiMail className="h-4 w-4 shrink-0 text-[color:var(--lx-blue)]" aria-hidden />
       <span className="min-w-0 break-all">{email}</span>
     </ContactEmailMenu>
   );
@@ -129,7 +129,7 @@ function ContactSection({ data }: { data: RestaurantDetailShellData }) {
         <div className="space-y-3 text-sm">
           {c.addressLine1 || c.mapsSearchQuery ? (
             <div className="flex gap-3 text-[color:var(--lx-text-2)]">
-              <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+              <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--lx-blue)]" aria-hidden />
               <div>
                 {c.addressLine1 ? <p className="text-[color:var(--lx-text)]">{c.addressLine1}</p> : null}
                 {c.addressLine2 ? <p>{c.addressLine2}</p> : null}
@@ -138,7 +138,7 @@ function ContactSection({ data }: { data: RestaurantDetailShellData }) {
                     href={mapsHref(c.mapsSearchQuery)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center gap-1.5 font-semibold text-[color:var(--lx-text)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 hover:text-[color:var(--lx-gold)]"
+                    className="mt-2 inline-flex items-center gap-1.5 font-semibold text-[color:var(--lx-text)] underline decoration-[color:var(--lx-blue)]/40 underline-offset-4 hover:text-[color:var(--lx-blue)]"
                   >
                     Cómo llegar
                     <FiExternalLink className="h-3.5 w-3.5 opacity-70" aria-hidden />
@@ -150,9 +150,9 @@ function ContactSection({ data }: { data: RestaurantDetailShellData }) {
           {c.phoneDisplay && c.phoneTelHref ? (
             <a
               href={c.phoneTelHref}
-              className="flex items-center gap-2 font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-gold)]"
+              className="flex items-center gap-2 font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-blue)]"
             >
-              <FiPhone className="h-4 w-4 text-[color:var(--lx-gold)]" aria-hidden />
+              <FiPhone className="h-4 w-4 text-[color:var(--lx-blue)]" aria-hidden />
               {c.phoneDisplay}
             </a>
           ) : null}
@@ -164,9 +164,9 @@ function ContactSection({ data }: { data: RestaurantDetailShellData }) {
               href={c.websiteHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 break-all font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-gold)]"
+              className="flex items-center gap-2 break-all font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-blue)]"
             >
-              <span className="text-[color:var(--lx-gold)]" aria-hidden>
+              <span className="text-[color:var(--lx-blue)]" aria-hidden>
                 ◆
               </span>
               {c.websiteDisplay}

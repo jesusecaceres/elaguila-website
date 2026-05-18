@@ -1215,7 +1215,7 @@ export default function AnuncioDetallePage() {
           <div className="flex flex-wrap gap-3">
             <a
               href={`/clasificados/publicar?lang=${lang}`}
-              className="px-6 py-2.5 rounded-full bg-[#111111] text-[#F5F5F5] font-semibold hover:opacity-95 transition"
+              className="px-6 py-2.5 rounded-full bg-[color:var(--lx-cta-primary-bg)] text-[color:var(--lx-cta-primary-fg)] font-semibold hover:opacity-90 transition"
             >
               {t.post}
             </a>
@@ -2094,7 +2094,7 @@ export default function AnuncioDetallePage() {
 
                   <button
                     type="button"
-                    className="mt-4 inline-flex items-center justify-center rounded-xl border border-[#C9B46A]/55 bg-[#111111]/15 px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#111111]/20 disabled:opacity-50"
+                    className="mt-4 inline-flex items-center justify-center rounded-xl bg-[color:var(--lx-blue,#3B66AD)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
                     onClick={() => {
                       const el = document.getElementById("contact-actions");
                       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
