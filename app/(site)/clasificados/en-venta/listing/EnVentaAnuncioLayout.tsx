@@ -17,6 +17,15 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/brResultsTheme";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { EnVentaCorreoModal } from "@/app/clasificados/en-venta/preview/EnVentaCorreoModal";
+import {
+  buildCallIntent,
+  buildSendEmailIntent,
+  buildSendMessageIntent,
+  buildWhatsAppMessageIntent,
+  CtaActionSheet,
+  type CtaSheetIntent,
+} from "@/app/components/cta";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { formatPostedAgo } from "./enVentaAnuncioFormatters";
 import { EnVentaMediaGallery } from "./EnVentaMediaGallery";
 import { EnVentaSellerCard } from "./EnVentaSellerCard";
@@ -215,6 +224,7 @@ export function EnVentaAnuncioLayout({
     [listing.sellerType, listing.contact_phone, listing.contact_email, listing.business_meta, listing.detailPairs],
   );
   const [correoOpen, setCorreoOpen] = useState(false);
+  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
   const [saved, setSaved] = useState(false);
   const [saveReady, setSaveReady] = useState(false);
 
@@ -342,6 +352,13 @@ export function EnVentaAnuncioLayout({
     });
   }, [lang, listing.id, listing.title, ownerId, surface]);
 
+  const publicListingPath = useMemo(
+    () => `/clasificados/anuncio/${encodeURIComponent(listing.id)}?lang=${encodeURIComponent(lang)}`,
+    [listing.id, lang],
+  );
+  const publicListingUrl =
+    typeof window !== "undefined" ? `${window.location.origin}${publicListingPath}` : publicListingPath;
+
   const jsonLd = enVentaClassifiedAdJsonLd({
     title: listing.title[lang],
     description: listing.blurb[lang],
@@ -360,6 +377,24 @@ export function EnVentaAnuncioLayout({
   const showWhatsAppCta =
     Boolean(waDigits) && (ch12?.whatsappEnabled !== false) && (ch12 ? true : legacyWa);
   const email = String(resolvedContact.emailForMailto || "").trim();
+  const contactShareExtras = useMemo(
+    () => ({
+      email: email || undefined,
+      publicUrl: publicListingUrl || undefined,
+    }),
+    [email, publicListingUrl],
+  );
+  const contactMessage = lang === "es" ? "Hola, ¿sigue disponible este artículo?" : "Hi — is this item still available?";
+  const emailSubject = lang === "es" ? "Interés en tu anuncio Leonix" : "Question about your Leonix listing";
+
+  const openSheet = (intent: CtaSheetIntent | null) => {
+    if (intent) setCtaIntent(intent);
+  };
+  const openCallSheet = () => openSheet(buildCallIntent({ phone: phoneTel, contactShareExtras }));
+  const openSmsSheet = () => openSheet(buildSendMessageIntent({ message: contactMessage, phone: phoneTel, contactShareExtras }));
+  const openWhatsAppSheet = () =>
+    openSheet(buildWhatsAppMessageIntent({ message: contactMessage, phone: phoneTel, whatsappDigits: waDigits, contactShareExtras }));
+  const openEmailSheet = () => openSheet(buildSendEmailIntent({ email, subject: emailSubject, body: contactMessage, contactShareExtras }));
 
   /** En Venta detail: one clear primary CTA (WhatsApp when offered, else message, else call). */
   const evPrimaryContactKind: "wa" | "email" | "tel" | null =
@@ -531,17 +566,26 @@ export function EnVentaAnuncioLayout({
                 >
                   {saveLabel}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => void onShareListing()}
-                  className={
-                    premiumBr
-                      ? "inline-flex min-h-[40px] items-center rounded-xl border border-[#E8DFD0] bg-[#FFFCF7]/90 px-3 py-2 text-xs font-bold text-[#2A2620] transition hover:bg-white"
-                      : "inline-flex min-h-[40px] items-center rounded-xl border border-black/10 bg-white px-3 py-2 text-xs font-bold text-[#1E1810] transition hover:bg-[#F5F5F5]"
-                  }
-                >
-                  ↗️ {shareLabel}
-                </button>
+                {premiumBr ? (
+                  <button
+                    type="button"
+                    onClick={() => void onShareListing()}
+                    className="inline-flex min-h-[40px] items-center rounded-xl border border-[#E8DFD0] bg-[#FFFCF7]/90 px-3 py-2 text-xs font-bold text-[#2A2620] transition hover:bg-white"
+                  >
+                    ↗️ {shareLabel}
+                  </button>
+                ) : (
+                  <LeonixShareButton
+                    listingId={listing.id}
+                    listingUrl={publicListingUrl}
+                    listingTitle={listing.title[lang]}
+                    category="en-venta"
+                    ownerUserId={ownerId}
+                    lang={lang}
+                    variant="small"
+                    className="[&>button]:min-h-[40px] [&>button]:rounded-xl [&>button]:border-black/10 [&>button]:bg-white [&>button]:px-3 [&>button]:py-2 [&>button]:text-xs [&>button]:font-bold [&>button]:text-[#1E1810] [&>button]:hover:bg-[#F5F5F5]"
+                  />
+                )}
               </div>
               {fulfillmentLine ? (
                 <p className="mt-3 text-sm font-medium text-[#111111]/85">
@@ -667,63 +711,64 @@ export function EnVentaAnuncioLayout({
                   ) : (
                     <div className="space-y-3">
                       {evPrimaryContactKind === "wa" && waDigits ? (
-                        <a
-                          href={`https://wa.me/${waDigits}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          type="button"
+                          onClick={openWhatsAppSheet}
                           className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[#25D366] px-4 py-3 text-[15px] font-bold text-white shadow-sm transition hover:bg-[#20bd5a]"
                         >
                           WhatsApp
-                        </a>
+                        </button>
                       ) : null}
                       {evPrimaryContactKind === "email" && email ? (
                         <button
                           type="button"
-                          onClick={() => setCorreoOpen(true)}
+                          onClick={openEmailSheet}
                           className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-yellow-500 px-4 py-3 text-[15px] font-bold text-black shadow-sm transition hover:bg-yellow-400"
                         >
                           {lang === "es" ? "Enviar mensaje" : "Send message"}
                         </button>
                       ) : null}
                       {evPrimaryContactKind === "tel" && phoneTel && gateAllowCall ? (
-                        <a
-                          href={`tel:${phoneTel}`}
+                        <button
+                          type="button"
+                          onClick={openCallSheet}
                           className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-yellow-500 px-4 py-3 text-[15px] font-bold text-black shadow-sm transition hover:bg-yellow-400"
                         >
                           {lang === "es" ? "Llamar" : "Call"}
-                        </a>
+                        </button>
                       ) : null}
                       <div className="flex flex-wrap gap-2">
                         {phoneTel && evPrimaryContactKind !== "tel" && gateAllowCall ? (
-                          <a
-                            href={`tel:${phoneTel}`}
+                          <button
+                            type="button"
+                            onClick={openCallSheet}
                             className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF]"
                           >
                             {lang === "es" ? "Llamar" : "Call"}
-                          </a>
+                          </button>
                         ) : null}
                         {phoneTel && gateAllowSms ? (
-                          <a
-                            href={`sms:${phoneTel}`}
+                          <button
+                            type="button"
+                            onClick={openSmsSheet}
                             className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF]"
                           >
                             {lang === "es" ? "Texto" : "Text"}
-                          </a>
+                          </button>
                         ) : null}
                         {showWhatsAppCta && waDigits && evPrimaryContactKind !== "wa" ? (
-                          <a
-                            href={`https://wa.me/${waDigits}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            type="button"
+                            onClick={openWhatsAppSheet}
                             className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF]"
                           >
                             WhatsApp
-                          </a>
+                          </button>
                         ) : null}
                         {email && evPrimaryContactKind !== "email" ? (
                           <button
                             type="button"
-                            onClick={() => setCorreoOpen(true)}
+                            onClick={openEmailSheet}
                             className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF]"
                           >
                             {lang === "es" ? "Enviar mensaje" : "Send message"}
@@ -744,8 +789,8 @@ export function EnVentaAnuncioLayout({
                         ? "«Enviar mensaje» guarda la consulta en tu cuenta. Desde el mismo modal puedes abrir Gmail, Yahoo o tu correo."
                         : "“Send message” saves the inquiry to your account. From the same modal you can open Gmail, Yahoo, or your default mail app."
                       : lang === "es"
-                        ? "«Enviar mensaje» guarda la consulta en tu cuenta Leonix. Desde el mismo modal puedes abrir Gmail, Yahoo o tu correo."
-                        : "“Send message” saves the inquiry to your Leonix account. From the same modal you can open Gmail, Yahoo, or your default mail app."}
+                        ? "«Enviar mensaje» abre opciones para compartir, copiar o abrir tu correo sin forzar una app de inmediato."
+                        : "“Send message” opens share, copy, and email options without forcing an app immediately."}
                   </p>
                 ) : null}
                 {showListingReport ? <LeonixInlineListingReport listingId={listing.id} lang={lang} /> : null}
@@ -874,6 +919,7 @@ export function EnVentaAnuncioLayout({
           listingIdDisplay={listing.id}
         />
       ) : null}
+      <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang={lang} />
     </div>
   );
 }

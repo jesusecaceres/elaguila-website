@@ -2,16 +2,24 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { clearLeonixPreviewNavSessionFlag } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { createEmptyEnVentaFreeState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { loadLatestEnVentaPreviewDraft, loadEnVentaPreviewDraftMeta } from "./enVentaPreviewDraft";
-import { buildEnVentaPreviewModel } from "./buildEnVentaPreviewModel";
+import { buildEnVentaPreviewModel, type EnVentaPreviewContactAction } from "./buildEnVentaPreviewModel";
 import { EnVentaPreviewGallery } from "./EnVentaPreviewGallery";
 import { EnVentaPreviewSellerCard } from "./EnVentaPreviewSellerCard";
 import { EnVentaPreviewShell } from "./EnVentaPreviewShell";
-import { EnVentaCorreoModal } from "./EnVentaCorreoModal";
+import {
+  buildCallIntent,
+  buildDirectionsIntent,
+  buildSendEmailIntent,
+  buildSendMessageIntent,
+  buildWhatsAppMessageIntent,
+  CtaActionSheet,
+  type CtaSheetIntent,
+} from "@/app/components/cta";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 
 const PAGE_BG_STYLE: CSSProperties = {
   backgroundColor: "#F3EBDD",
@@ -200,8 +208,7 @@ export function EnVentaPreviewPage() {
   const [hydrated, setHydrated] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
-  const [correoOpen, setCorreoOpen] = useState(false);
-  const [inquirySellerOwnerId, setInquirySellerOwnerId] = useState<string | null>(null);
+  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
   const [buyerStart, setBuyerStart] = useState("");
   const [buyerGeoStatus, setBuyerGeoStatus] = useState<"idle" | "requesting" | "granted" | "denied" | "unavailable">(
     "idle"
@@ -237,29 +244,6 @@ export function EnVentaPreviewPage() {
   const state = draft ?? createEmptyEnVentaFreeState();
   const hasDraft = draft !== null;
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const supabase = createSupabaseBrowserClient();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (cancelled) return;
-        const se = state.email.trim().toLowerCase();
-        const ue = user?.email?.trim().toLowerCase() ?? "";
-        if (user?.id && se && ue === se) setInquirySellerOwnerId(user.id);
-        else setInquirySellerOwnerId(null);
-      } catch {
-        if (!cancelled) setInquirySellerOwnerId(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [state.email]);
-
   const vm = useMemo(() => buildEnVentaPreviewModel(state, lang, plan), [state, lang, plan]);
   const draftMeta = useMemo(() => loadEnVentaPreviewDraftMeta(), [plan]);
   const shellStatusLine = useMemo(() => {
@@ -267,23 +251,48 @@ export function EnVentaPreviewPage() {
     return vm.shellStatusLine;
   }, [draftMeta?.updatedAt, lang, vm.shellStatusLine]);
 
-  const onShare = useCallback(async () => {
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: vm.title, url });
-        return;
-      }
-    } catch {
-      /* fall through */
+  const previewPublicUrl = typeof window !== "undefined" ? window.location.href : `/clasificados/en-venta/preview?lang=${lang}&plan=${plan}`;
+  const previewContactMessage = lang === "es" ? "Hola, ¿sigue disponible este artículo?" : "Hi — is this item still available?";
+  const previewEmailSubject = lang === "es" ? "Interés en tu anuncio Leonix" : "Question about your Leonix listing";
+  const previewContactShareExtras = useMemo(
+    () => ({
+      email: state.email.trim() || undefined,
+      publicUrl: previewPublicUrl || undefined,
+    }),
+    [state.email, previewPublicUrl],
+  );
+
+  const openSheet = (intent: CtaSheetIntent | null) => {
+    if (intent) setCtaIntent(intent);
+  };
+
+  const openPreviewEmailSheet = (subject = previewEmailSubject, body = previewContactMessage) => {
+    openSheet(buildSendEmailIntent({ email: state.email.trim(), subject, body, contactShareExtras: previewContactShareExtras }));
+  };
+
+  const openPreviewContactAction = (action: EnVentaPreviewContactAction) => {
+    if (action.id === "call") {
+      openSheet(buildCallIntent({ phone: state.phone.trim(), contactShareExtras: previewContactShareExtras }));
+      return;
     }
-    try {
-      await navigator.clipboard.writeText(url);
-      setToast(tBuyer.toastShare);
-    } catch {
-      setToast(lang === "es" ? "No se pudo copiar" : "Could not copy");
+    if (action.id === "sms") {
+      openSheet(buildSendMessageIntent({ message: previewContactMessage, phone: state.phone.trim(), contactShareExtras: previewContactShareExtras }));
+      return;
     }
-  }, [lang, tBuyer.toastShare, vm.title]);
+    if (action.id === "whatsapp") {
+      const waDigits = state.whatsapp.replace(/\D/g, "") || state.phone.replace(/\D/g, "");
+      openSheet(
+        buildWhatsAppMessageIntent({
+          message: previewContactMessage,
+          phone: state.phone.trim(),
+          whatsappDigits: waDigits,
+          contactShareExtras: previewContactShareExtras,
+        }),
+      );
+      return;
+    }
+    openPreviewEmailSheet();
+  };
 
   const listingDistanceKey = useMemo(() => {
     const city = state.city.trim();
@@ -442,13 +451,15 @@ export function EnVentaPreviewPage() {
                 {tBuyer.save}
                 <span className="sr-only"> — {tBuyer.saveDraftHint}</span>
               </button>
-              <button
-                type="button"
-                onClick={() => void onShare()}
-                className="inline-flex min-h-[40px] items-center rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2 text-xs font-bold text-[#3D3428] transition hover:border-[#D4C4A8]"
-              >
-                ↗️ {tBuyer.share}
-              </button>
+              <LeonixShareButton
+                listingId={null}
+                listingUrl={previewPublicUrl}
+                listingTitle={vm.title}
+                lang={lang}
+                variant="small"
+                persistEngagement={false}
+                className="[&>button]:min-h-[40px] [&>button]:rounded-2xl [&>button]:border-[#E8DFD0] [&>button]:bg-white/90 [&>button]:px-3 [&>button]:py-2 [&>button]:text-xs [&>button]:font-bold [&>button]:text-[#3D3428] [&>button]:hover:border-[#D4C4A8]"
+              />
             </>
           ) : null}
           <button
@@ -475,12 +486,20 @@ export function EnVentaPreviewPage() {
 
       {vm.negotiable && vm.offerMailtoHref ? (
         <p className="text-sm text-[#3D3428]/90">
-          <a
-            href={vm.offerMailtoHref}
+          <button
+            type="button"
+            onClick={() =>
+              openPreviewEmailSheet(
+                lang === "es" ? "Oferta por tu artículo Leonix" : "Offer on your Leonix listing",
+                lang === "es"
+                  ? "Hola, me gustaría hacer una oferta por tu artículo."
+                  : "Hi — I'd like to make an offer on your item.",
+              )
+            }
             className="font-semibold text-[#6B5B2E] underline decoration-[#C9B46A]/60 underline-offset-2 hover:text-[#1E1810]"
           >
             {tBuyer.makeOffer}
-          </a>
+          </button>
           <span className="text-[#5C5346]/85"> — {tBuyer.makeOfferHint}</span>
         </p>
       ) : null}
@@ -585,40 +604,23 @@ export function EnVentaPreviewPage() {
         <h2 className="text-sm font-bold text-[#1E1810]">{tBuyer.contactH}</h2>
         {vm.contactActions.length > 0 ? (
           <div className="mt-3 flex flex-wrap gap-2">
-            {vm.contactActions.map((a) =>
-              a.id === "email" ? (
-                <button
-                  key={a.id}
-                  type="button"
-                  onClick={() => setCorreoOpen(true)}
-                  className={cx(
-                    "inline-flex min-h-[44px] items-center justify-center rounded-2xl border px-3 py-2 text-xs font-bold transition",
-                    plan === "pro"
+            {vm.contactActions.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => openPreviewContactAction(a)}
+                className={cx(
+                  "inline-flex min-h-[44px] items-center justify-center rounded-2xl border px-3 py-2 text-xs font-bold transition",
+                  a.id === "whatsapp"
+                    ? "border-[#128C7E]/45 bg-[#25D366]/15 text-[#0b3d32] shadow-sm hover:bg-[#25D366]/26"
+                    : plan === "pro"
                       ? "border-[#C9B46A]/55 bg-white text-[#1E1810] shadow-sm hover:bg-[#FFFCF7]"
                       : "border-[#E8DFD0] bg-white/90 text-[#1E1810] hover:border-[#D4C4A8]"
-                  )}
-                >
-                  {a.label}
-                </button>
-              ) : (
-                <a
-                  key={a.id}
-                  href={a.href}
-                  target={a.id === "whatsapp" ? "_blank" : undefined}
-                  rel={a.id === "whatsapp" ? "noopener noreferrer" : undefined}
-                  className={cx(
-                    "inline-flex min-h-[44px] items-center justify-center rounded-2xl border px-3 py-2 text-xs font-bold transition",
-                    a.id === "whatsapp"
-                      ? "border-[#128C7E]/45 bg-[#25D366]/15 text-[#0b3d32] shadow-sm hover:bg-[#25D366]/26"
-                      : plan === "pro"
-                        ? "border-[#C9B46A]/55 bg-white text-[#1E1810] shadow-sm hover:bg-[#FFFCF7]"
-                        : "border-[#E8DFD0] bg-white/90 text-[#1E1810] hover:border-[#D4C4A8]"
-                  )}
-                >
-                  {a.id === "whatsapp" ? <span className="inline-flex items-center gap-1"><span aria-hidden>💬</span>{a.label}</span> : a.label}
-                </a>
-              )
-            )}
+                )}
+              >
+                {a.id === "whatsapp" ? <span className="inline-flex items-center gap-1"><span aria-hidden>💬</span>{a.label}</span> : a.label}
+              </button>
+            ))}
           </div>
         ) : (
           <p className="mt-2 text-sm text-[#7A7164]/90">
@@ -626,8 +628,9 @@ export function EnVentaPreviewPage() {
           </p>
         )}
         {vm.contactActions.length === 0 && vm.primaryCtaHref !== "#" ? (
-          <a
-            href={vm.primaryCtaHref}
+          <button
+            type="button"
+            onClick={() => openPreviewEmailSheet()}
             className={cx(
               "mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-bold text-[#FAF7F2] shadow-md transition",
               "bg-[#2A2620] hover:bg-[#1a1814] active:scale-[0.99]"
@@ -635,7 +638,7 @@ export function EnVentaPreviewPage() {
           >
             <ContactIcon className="h-5 w-5 shrink-0 text-[#FAF7F2]" />
             {vm.primaryCtaLabel}
-          </a>
+          </button>
         ) : null}
         <p className="mt-3 text-center text-[11px] leading-relaxed text-[#7A7164]/95">{vm.trustNote}</p>
       </div>
@@ -719,10 +722,9 @@ export function EnVentaPreviewPage() {
         waAction || state.email.trim() ? (
           <div className="flex flex-col gap-2">
             {waAction ? (
-              <a
-                href={waAction.href}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={() => openPreviewContactAction(waAction)}
                 className={cx(
                   "inline-flex w-full min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-2xl border px-3 py-2.5 text-center text-xs font-bold transition",
                   "border-[#128C7E]/45 bg-[#25D366]/15 text-[#0b3d32] shadow-sm hover:bg-[#25D366]/26"
@@ -735,12 +737,12 @@ export function EnVentaPreviewPage() {
                 <span className="text-[10px] font-semibold leading-tight text-[#0b3d32]/85">
                   {lang === "es" ? "Contacto rápido — recomendado" : "Fast contact — recommended"}
                 </span>
-              </a>
+              </button>
             ) : null}
             {state.email.trim() ? (
               <button
                 type="button"
-                onClick={() => setCorreoOpen(true)}
+                onClick={() => openPreviewEmailSheet()}
                 className={cx(
                   "inline-flex w-full min-h-[44px] items-center justify-center gap-2 rounded-2xl border px-3 py-2 text-xs font-bold transition",
                   plan === "pro"
@@ -885,30 +887,27 @@ export function EnVentaPreviewPage() {
             </div>
 
             {mapsHref ? (
-              <a
-                href={mapsHref}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={() =>
+                  openSheet(
+                    buildDirectionsIntent({
+                      addressOrUrl: mapsHref,
+                      isMapsUrl: true,
+                      contactShareExtras: previewContactShareExtras,
+                    }),
+                  )
+                }
                 className="mt-4 inline-flex w-full min-h-[44px] items-center justify-center rounded-2xl bg-[#2A2620] px-4 py-3 text-sm font-bold text-[#FAF7F2] shadow-md transition hover:bg-[#1a1814]"
               >
                 ↗️ {tBuyer.openMaps}
-              </a>
+              </button>
             ) : null}
           </div>
         </div>
       ) : null}
 
-      {state.email.trim() ? (
-        <EnVentaCorreoModal
-          open={correoOpen}
-          onClose={() => setCorreoOpen(false)}
-          lang={lang}
-          sellerName={vm.sellerName}
-          sellerEmail={state.email.trim()}
-          listingTitle={vm.title}
-          sellerOwnerId={inquirySellerOwnerId}
-        />
-      ) : null}
+      <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang={lang} />
     </>
   );
 }
