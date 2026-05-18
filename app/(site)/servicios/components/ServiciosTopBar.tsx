@@ -144,33 +144,39 @@ function ServiciosTopBarInner({
       className="sticky top-0 z-50 border-b border-black/[0.06] backdrop-blur-md"
       style={{ backgroundColor: "rgba(249, 248, 246, 0.92)" }}
     >
-      <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 md:px-6">
-        {editBackHref ? (
-          <Link
-            href={editBackHref}
-            onClick={() => beforeEditBackNavigate?.()}
-            className="shrink-0 py-2 text-[11px] font-semibold leading-snug text-[color:var(--lx-muted)] underline-offset-4 hover:text-[#3B66AD] hover:underline sm:py-0"
-          >
-            {t.editBack}
-          </Link>
-        ) : null}
-        <Link href={withLang("/home")} className="flex min-w-0 shrink-0 items-center gap-3 no-underline">
-          <span className="relative block h-9 w-[120px] shrink-0 md:h-10 md:w-[140px]">
-            <Image src={newLogo} alt="Leonix" className="object-contain object-left" fill sizes="140px" priority />
-          </span>
-          <span
-            className="hidden h-8 w-px shrink-0 bg-black/10 sm:block"
-            aria-hidden
+      <div className="mx-auto grid max-w-[1280px] grid-cols-[1fr_auto_1fr] items-center px-4 py-3 md:px-6">
+        {/* LEFT SLOT */}
+        <div className="flex items-center">
+          {editBackHref ? (
+            <Link
+              href={editBackHref}
+              onClick={() => beforeEditBackNavigate?.()}
+              className="py-2 text-[11px] font-semibold leading-snug text-[color:var(--lx-muted)] underline-offset-4 hover:text-[#3B66AD] hover:underline sm:py-0"
+            >
+              {t.editBack}
+            </Link>
+          ) : null}
+        </div>
+
+        {/* CENTER LOGO */}
+        <Link
+          href={withLang("/home")}
+          className="flex items-center justify-center no-underline"
+          aria-label="Leonix — Ir al inicio"
+        >
+          <Image
+            src={newLogo}
+            alt="Leonix"
+            className="object-contain"
+            style={{ width: "clamp(160px, 18vw, 260px)", height: "auto" }}
+            width={260}
+            height={80}
+            priority
           />
-          <span className="hidden min-w-0 flex-col leading-none sm:flex">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3B66AD]">Leonix</span>
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--lx-text-2)]">
-              {t.servicios}
-            </span>
-          </span>
         </Link>
 
-        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        {/* RIGHT UTILITIES */}
+        <div className="flex items-center justify-end gap-1 sm:gap-2">
           <button
             type="button"
             className="flex h-10 w-10 items-center justify-center rounded-full text-[color:var(--lx-text-2)] transition hover:bg-black/[0.04]"
