@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import { FiExternalLink, FiMail, FiMapPin, FiPhone, FiInstagram, FiFacebook, FiYoutube } from "react-icons/fi";
 import { FaTiktok, FaWhatsapp } from "react-icons/fa";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
@@ -12,7 +13,16 @@ import { RestauranteShellVenueGalleryBlock } from "./RestauranteShellVenueGaller
 import { RestauranteShellDestacadosSection } from "./RestauranteShellDestacadosSection";
 import { RestauranteGroupedFeaturesSection } from "./RestauranteGroupedFeaturesSection";
 import { normalizeActionableUrl } from "../lib/urlNormalization";
-import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
+import {
+  buildCallIntent,
+  buildDirectionsIntent,
+  buildSendEmailIntent,
+  buildSocialLinkIntent,
+  buildWebsiteIntent,
+  buildWhatsAppMessageIntent,
+  CtaActionSheet,
+  type CtaSheetIntent,
+} from "@/app/components/cta";
 import { buildRestauranteInquiryMailto } from "@/app/lib/contactEmailMailto";
 
 const CARD =
@@ -77,23 +87,6 @@ function mapsHref(query: string) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
-function RestauranteContactEmailRow({ email, lang }: { email: string; lang: "es" | "en" }) {
-  const { mailtoHref, messagePlain } = buildRestauranteInquiryMailto(email, lang);
-  return (
-    <ContactEmailMenu
-      email={email}
-      mailtoHref={mailtoHref}
-      messagePlain={messagePlain}
-      lang={lang}
-      showChevron={false}
-      triggerClassName="flex w-full min-w-0 items-center gap-2 text-left font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-blue)]"
-    >
-      <FiMail className="h-4 w-4 shrink-0 text-[color:var(--lx-blue)]" aria-hidden />
-      <span className="min-w-0 break-all">{email}</span>
-    </ContactEmailMenu>
-  );
-}
-
 function hasContactContent(c: RestaurantDetailShellData["contact"]): boolean {
   if (!c) return false;
   return Boolean(
@@ -114,6 +107,28 @@ function hasContactContent(c: RestaurantDetailShellData["contact"]): boolean {
 
 function ContactSection({ data }: { data: RestaurantDetailShellData }) {
   const c = data.contact!;
+  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
+  const contactShareExtras = {
+    email: c.email,
+    websiteUrl: c.websiteHref,
+  };
+  const openSheet = (intent: CtaSheetIntent | null) => {
+    if (intent) setCtaIntent(intent);
+  };
+  const openEmailSheet = () => {
+    if (!c.email) return;
+    const parsed = buildRestauranteInquiryMailto(c.email, "es");
+    openSheet(buildSendEmailIntent({ email: c.email, subject: "Consulta para restaurante Leonix", body: parsed.messagePlain, contactShareExtras }));
+  };
+  const openWhatsAppSheet = () => {
+    if (!c.whatsappHref) return;
+    const { digits, message } = parseWhatsAppHref(c.whatsappHref);
+    openSheet(buildWhatsAppMessageIntent({ whatsappDigits: digits, message, contactShareExtras }));
+  };
+  const openSocialSheet = (url: string | undefined, label: string) => {
+    if (!url) return;
+    openSheet(buildSocialLinkIntent({ url, headline: label }));
+  };
   return (
     <section aria-labelledby="contact-access-heading" className="scroll-mt-24">
       <div className="mb-4 max-w-2xl">
@@ -134,43 +149,49 @@ function ContactSection({ data }: { data: RestaurantDetailShellData }) {
                 {c.addressLine1 ? <p className="text-[color:var(--lx-text)]">{c.addressLine1}</p> : null}
                 {c.addressLine2 ? <p>{c.addressLine2}</p> : null}
                 {c.mapsSearchQuery ? (
-                  <a
-                    href={mapsHref(c.mapsSearchQuery)}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => openSheet(buildDirectionsIntent({ addressOrUrl: mapsHref(c.mapsSearchQuery ?? ""), isMapsUrl: true, contactShareExtras }))}
                     className="mt-2 inline-flex items-center gap-1.5 font-semibold text-[color:var(--lx-text)] underline decoration-[color:var(--lx-blue)]/40 underline-offset-4 hover:text-[color:var(--lx-blue)]"
                   >
                     Cómo llegar
                     <FiExternalLink className="h-3.5 w-3.5 opacity-70" aria-hidden />
-                  </a>
+                  </button>
                 ) : null}
               </div>
             </div>
           ) : null}
           {c.phoneDisplay && c.phoneTelHref ? (
-            <a
-              href={c.phoneTelHref}
+            <button
+              type="button"
+              onClick={() => openSheet(buildCallIntent({ phone: c.phoneTelHref?.replace(/^tel:/i, "") ?? "", contactShareExtras }))}
               className="flex items-center gap-2 font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-blue)]"
             >
               <FiPhone className="h-4 w-4 text-[color:var(--lx-blue)]" aria-hidden />
               {c.phoneDisplay}
-            </a>
+            </button>
           ) : null}
           {c.email ? (
-            <RestauranteContactEmailRow email={c.email} lang="es" />
+            <button
+              type="button"
+              onClick={openEmailSheet}
+              className="flex w-full min-w-0 items-center gap-2 text-left font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-blue)]"
+            >
+              <FiMail className="h-4 w-4 shrink-0 text-[color:var(--lx-blue)]" aria-hidden />
+              <span className="min-w-0 break-all">{c.email}</span>
+            </button>
           ) : null}
           {c.websiteHref && c.websiteDisplay ? (
-            <a
-              href={c.websiteHref}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => openSheet(buildWebsiteIntent({ url: c.websiteHref ?? "", headline: c.websiteDisplay ?? "Sitio web", kind: "website" }))}
               className="flex items-center gap-2 break-all font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-blue)]"
             >
               <span className="text-[color:var(--lx-blue)]" aria-hidden>
                 ◆
               </span>
               {c.websiteDisplay}
-            </a>
+            </button>
           ) : null}
         </div>
 
@@ -179,59 +200,54 @@ function ContactSection({ data }: { data: RestaurantDetailShellData }) {
             <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">Redes</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {c.instagramHref ? (
-                <a
-                  href={c.instagramHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => openSocialSheet(c.instagramHref, "Instagram")}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
                   aria-label="Instagram"
                 >
                   <FiInstagram className="h-[1.15rem] w-[1.15rem]" />
-                </a>
+                </button>
               ) : null}
               {c.facebookHref ? (
-                <a
-                  href={c.facebookHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => openSocialSheet(c.facebookHref, "Facebook")}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
                   aria-label="Facebook"
                 >
                   <FiFacebook className="h-[1.15rem] w-[1.15rem]" />
-                </a>
+                </button>
               ) : null}
               {c.tiktokHref ? (
-                <a
-                  href={c.tiktokHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => openSocialSheet(c.tiktokHref, "TikTok")}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
                   aria-label="TikTok"
                 >
                   <FaTiktok className="h-[1.05rem] w-[1.05rem]" />
-                </a>
+                </button>
               ) : null}
               {c.youtubeHref ? (
-                <a
-                  href={c.youtubeHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => openSocialSheet(c.youtubeHref, "YouTube")}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
                   aria-label="YouTube"
                 >
                   <FiYoutube className="h-[1.15rem] w-[1.15rem]" />
-                </a>
+                </button>
               ) : null}
               {c.whatsappHref ? (
-                <a
-                  href={c.whatsappHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={openWhatsAppSheet}
                   className="inline-flex h-10 min-w-[2.5rem] items-center justify-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
                 >
                   <FaWhatsapp className="h-[1.15rem] w-[1.15rem] text-emerald-700" aria-hidden />
                   WA
-                </a>
+                </button>
               ) : null}
             </div>
           </div>
@@ -254,8 +270,21 @@ function ContactSection({ data }: { data: RestaurantDetailShellData }) {
           ) : null}
         </div>
       </div>
+      <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang="es" />
     </section>
   );
+}
+
+function parseWhatsAppHref(href: string): { digits: string; message: string } {
+  try {
+    const url = new URL(href);
+    return {
+      digits: url.pathname.replace(/\D/g, ""),
+      message: url.searchParams.get("text") ?? "",
+    };
+  } catch {
+    return { digits: href.replace(/\D/g, ""), message: "" };
+  }
 }
 
 export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellData }) {

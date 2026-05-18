@@ -3,6 +3,17 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ShellPrimaryCta } from "./restaurantDetailShellTypes";
 import {
+  buildCallIntent,
+  buildDirectionsIntent,
+  buildSendEmailIntent,
+  buildSendMessageIntent,
+  buildWebsiteIntent,
+  buildWhatsAppMessageIntent,
+  CtaActionSheet,
+  type CtaSheetIntent,
+} from "@/app/components/cta";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import {
   FiBookmark,
   FiCalendar,
   FiFileText,
@@ -18,18 +29,6 @@ import type { IconType } from "react-icons";
 import { RestauranteShellDataUrlModal } from "./RestauranteShellDataUrlModal";
 
 const STORAGE_KEY = "leonix.clasificados.restaurantes.shell.demo.saved";
-
-function shouldGateExternalHttps(href: string, key: ShellPrimaryCta["key"]): boolean {
-  if (!/^https?:\/\//i.test(href)) return false;
-  if (key === "whatsapp") return false;
-  try {
-    const host = new URL(href).hostname.replace(/^www\./i, "").toLowerCase();
-    if (host === "wa.me" || host === "api.whatsapp.com") return false;
-  } catch {
-    return false;
-  }
-  return true;
-}
 
 function iconFor(key: ShellPrimaryCta["key"]): IconType {
   switch (key) {
@@ -71,8 +70,9 @@ export function RestauranteShellInteractiveCtas({
   layout?: CtaLayout;
 }) {
   const [saved, setSaved] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
+  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
   const [dataModal, setDataModal] = useState<{ href: string; title: string } | null>(null);
-  const [extModal, setExtModal] = useState<{ href: string; title: string } | null>(null);
 
   useEffect(() => {
     try {
@@ -86,13 +86,8 @@ export function RestauranteShellInteractiveCtas({
   }, [listingId]);
 
   useEffect(() => {
-    if (!extModal) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setExtModal(null);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [extModal]);
+    setShareUrl(window.location.href);
+  }, []);
 
   const persistSaved = useCallback(
     (next: boolean) => {
@@ -109,16 +104,54 @@ export function RestauranteShellInteractiveCtas({
     [listingId]
   );
 
-  const onShare = useCallback(() => {
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    if (navigator.share) {
-      void navigator.share({ title: document.title, url }).catch(() => {
-        void navigator.clipboard.writeText(url);
-      });
-    } else {
-      void navigator.clipboard.writeText(url);
+  const openSheetForCta = (cta: ShellPrimaryCta) => {
+    const href = cta.href.trim();
+    if (!href) return;
+    if (cta.key === "call") {
+      setCtaIntent(buildCallIntent({ phone: href.replace(/^tel:/i, "") }));
+      return;
     }
-  }, []);
+    if (cta.key === "whatsapp") {
+      let digits = "";
+      let message = "";
+      try {
+        const url = new URL(href);
+        digits = url.pathname.replace(/\D/g, "");
+        message = url.searchParams.get("text") ?? "";
+      } catch {
+        digits = href.replace(/\D/g, "");
+      }
+      setCtaIntent(buildWhatsAppMessageIntent({ message, whatsappDigits: digits }));
+      return;
+    }
+    if (cta.key === "message") {
+      if (/^mailto:/i.test(href)) {
+        const parsed = parseMailto(href);
+        setCtaIntent(buildSendEmailIntent(parsed));
+        return;
+      }
+      if (/^sms:/i.test(href)) {
+        const parsed = parseSms(href);
+        setCtaIntent(buildSendMessageIntent(parsed));
+        return;
+      }
+    }
+    if (cta.key === "directions") {
+      setCtaIntent(buildDirectionsIntent({ addressOrUrl: href, isMapsUrl: /^https?:\/\//i.test(href) }));
+      return;
+    }
+    const kind =
+      cta.key === "order"
+        ? "order"
+        : cta.key === "reserve"
+          ? "booking"
+          : cta.key === "menu"
+            ? "menu"
+            : cta.key === "website"
+              ? "website"
+              : "other";
+    setCtaIntent(buildWebsiteIntent({ url: href, headline: cta.label, kind }));
+  };
 
   const rail = layout === "scrollRail";
 
@@ -156,15 +189,16 @@ export function RestauranteShellInteractiveCtas({
 
         if (cta.key === "share") {
           return (
-            <button
+            <LeonixShareButton
               key={rowKey}
-              type="button"
-              onClick={onShare}
-              className={pillClass}
-            >
-              <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-olive)]" aria-hidden />
-              {cta.label}
-            </button>
+              listingId={listingId}
+              listingUrl={shareUrl}
+              listingTitle={typeof document !== "undefined" ? document.title : cta.label}
+              category="restaurantes"
+              lang="es"
+              variant="default"
+              className="[&>button]:min-h-[44px] [&>button]:shrink-0 [&>button]:snap-start [&>button]:rounded-full [&>button]:border-white/25 [&>button]:bg-white/95 [&>button]:px-4 [&>button]:py-2.5 [&>button]:text-sm [&>button]:font-semibold [&>button]:text-[color:var(--lx-text)] [&>button]:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)] [&>button]:backdrop-blur [&>button]:hover:bg-white"
+            />
           );
         }
 
@@ -195,30 +229,16 @@ export function RestauranteShellInteractiveCtas({
           );
         }
 
-        if (shouldGateExternalHttps(cta.href, cta.key)) {
-          return (
-            <button
-              key={rowKey}
-              type="button"
-              onClick={() => setExtModal({ href: cta.href, title: cta.label })}
-              className={pillClass}
-            >
-              <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-blue)]" aria-hidden />
-              {cta.label}
-            </button>
-          );
-        }
-
         return (
-          <a
+          <button
             key={rowKey}
-            href={cta.href}
+            type="button"
+            onClick={() => openSheetForCta(cta)}
             className={pillClass}
-            {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
           >
             <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-blue)]" aria-hidden />
             {cta.label}
-          </a>
+          </button>
         );
       })}
       <RestauranteShellDataUrlModal
@@ -227,44 +247,36 @@ export function RestauranteShellInteractiveCtas({
         href={dataModal?.href ?? ""}
         title={dataModal?.title ?? ""}
       />
-      {extModal ? (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="rest-shell-ext-link-title"
-        >
-          <div className="w-full max-w-md rounded-2xl border border-white/15 bg-[#1a1814] p-5 text-white shadow-2xl">
-            <p id="rest-shell-ext-link-title" className="text-base font-semibold">
-              Sitio externo
-            </p>
-            <p className="mt-2 text-sm text-white/85">
-              Los menús y páginas web no se pueden mostrar dentro de la vista previa. Puedes abrir el enlace en una pestaña
-              nueva cuando quieras revisarlo.
-            </p>
-            <p className="mt-3 break-all text-xs text-white/60">{extModal.href}</p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="min-h-[44px] rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)]"
-                onClick={() => {
-                  window.open(extModal.href, "_blank", "noopener,noreferrer");
-                  setExtModal(null);
-                }}
-              >
-                Abrir en nueva pestaña
-              </button>
-              <button
-                type="button"
-                className="min-h-[44px] rounded-full border border-white/25 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
-                onClick={() => setExtModal(null)}
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang="es" />
     </div>
   );
+}
+
+function parseMailto(href: string): { email?: string | null; subject: string; body: string } {
+  const raw = href.replace(/^mailto:/i, "");
+  const [emailPart, query = ""] = raw.split("?");
+  const params = new URLSearchParams(query);
+  return {
+    email: safeDecode(emailPart),
+    subject: safeDecode(params.get("subject") ?? ""),
+    body: safeDecode(params.get("body") ?? ""),
+  };
+}
+
+function parseSms(href: string): { message: string; phone?: string | null } {
+  const raw = href.replace(/^sms:/i, "");
+  const [phonePart, query = ""] = raw.split("?");
+  const params = new URLSearchParams(query);
+  return {
+    phone: phonePart,
+    message: safeDecode(params.get("body") ?? ""),
+  };
+}
+
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value.replace(/\+/g, " "));
+  } catch {
+    return value;
+  }
 }
