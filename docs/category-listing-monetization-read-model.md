@@ -1,0 +1,87 @@
+# Category Listing Monetization Read Model
+
+Gate E adds a read-only category/listing monetization model for Leonix / El Águila. It is a foundation for later Admin and Dashboard displays; it is not a checkout, pricing, promo, notification, or schema gate.
+
+## Account Metadata Is Not Listing Monetization
+
+User account fields such as `profiles.membership_tier` and `profiles.account_type` describe who the person is. They must not decide what a specific listing can do.
+
+The category listing tier is the listing-level read model: what that ad/category can show, what tools are readable, what is locked or unsupported, and what metadata is missing. `business_lite` and `business_premium` remain account/profile vocabulary only; they are not category monetization truth.
+
+En Venta `gratis` / `pro` stays En Venta-specific unless another category explicitly adds its own resolver rule. Other categories must use category/listing fields and the shared resolver rather than inheriting global account status.
+
+## Source Of Truth
+
+Code source: `app/lib/listingPlans/categoryListingMonetization.ts`
+
+The resolver returns a `CategoryListingMonetizationSummary` with:
+
+- `category`, `source`, `planKind`, `planLabel`, and `planSource`
+- `accountTierIgnored: true`
+- read-only `tools`
+- safe metadata such as `leonixAdId`, `republishedAt`, `republishCount`, `expiresAt`, `promoted`, `featured`, `verified`, `sourceId`, and `slug`
+- `warnings` for missing fields, unsupported categories, or legacy data that should not be treated as monetization
+
+The helper accepts a loose listing row and optional detail pairs or an existing category plan result. It reads optional fields defensively and does not mutate rows.
+
+## Tool States
+
+Each tool has a read-only state:
+
+- `available`: a safe listing-level field exists and is readable.
+- `locked`: a safe field exists and indicates the tool is off.
+- `unsupported`: the category is not ready for that tool or uses a separate model.
+- `unknown`: the model cannot safely determine state from the row.
+- `future`: the tool is planned or conceptual but has no safe listing-level field yet.
+
+The tool keys are `republish`, `moveToTop`, `featured`, `verified`, `boost`, `autoRefresh`, `analytics`, `leads`, `concierge`, and `expirationRenewal`.
+
+## Product Boundaries
+
+Republish / Refrescado is separate from Featured / Destacado. Refrescado and Move to top read republish fields such as `republished_at`, `republish_count`, or `republish_sort_at` when present.
+
+Featured / Destacado is separate from Verify Leonix. Featured reads listing-level staff spotlight fields such as `promoted`, `admin_promoted`, `featured`, or `destacado` when present. Verify Leonix reads trust/admin verification fields such as `leonix_verified` or `verified`; it is not paid visibility.
+
+Boost / Impulsado and Auto Refresh are future/unsupported unless explicit safe listing-level fields exist. Legacy `boost_expires` is treated as a warning only and must not activate new monetization.
+
+Expiration / renewal is available only when a safe `expires_at` field exists on the row. Otherwise consumers should display future/unknown and the warning instead of assuming renewal eligibility.
+
+Concierge is separate from paid placement. It may become an upsell/help service later, especially for Servicios, but this gate does not implement pricing or checkout.
+
+## Category Behavior
+
+En Venta keeps Free / Pro semantics from explicit En Venta listing/category fields and detail pairs. It must not infer Pro from account metadata.
+
+Autos preserves the current privado/negocio/dealer lane language. Existing payment foundation can remain in Autos code, but this read model does not create Stripe checkout or pricing.
+
+Rentas and Bienes Raíces use seller type, detail pairs, or existing category plan resolution when available. They must not show account-wide Pro from profile membership.
+
+Servicios reads safe fields such as `promoted`, `republished_at`, and `leonix_verified` when present. If no explicit listing-level plan exists, the model returns an unspecified plan and a warning instead of inventing a paid plan.
+
+Restaurantes may use `package_tier` when present and can read promoted, verified, and republish metadata when selected. Coupons/cupones remain marketing CMS content, not a checkout promo-code engine.
+
+Empleos and Viajes use separate models and are not V1 monetization. The resolver still returns safe summaries so Admin/Dashboard can show unsupported/future states without breaking.
+
+Clases and Comunidad are later/not client-ready for paid listing tools. The resolver returns defensive unsupported/future states and does not enable them as monetized client-ready categories.
+
+## Admin Consumption Later
+
+Admin can use the summary to display listing tier, available tools, locked tools, trust verification, spotlight/featured state, republish state, and metadata gaps in row inspectors or command centers.
+
+Admin should treat warnings as operational gaps. A missing Supabase column/table must be reported first and not silently assumed. This gate does not add or alter Supabase schema.
+
+## Dashboard Consumption Later
+
+Dashboard category cards can use the same summary to show the listing/category tier and read-only tool state near each listing. Dashboard home should stay a summary and not become the monetization source of truth.
+
+Dashboard should not show account-wide Pro as listing capability. Category dashboards and listing cards should use the category/listing read model once UI wiring is intentionally added in a later gate.
+
+## Out Of Scope
+
+Stripe, public pricing, promo codes, paid placement checkout, and notifications are intentionally out of scope. Notifications are future because this gate only prepares read-only state for later surfaces.
+
+This model prepares future Refrescado, Destacado, Impulsado, Auto Refresh, expiration/renewal, analytics, leads, and concierge displays by establishing a defensive read contract before any write pipeline or payment flow is added.
+
+## Supabase Guardrail
+
+Do not assume missing Supabase fields or tables exist. Optional/null-safe reads are required. If a category needs a missing column/table, report it as a read-model warning or implementation gap first; do not create migrations in this gate.
