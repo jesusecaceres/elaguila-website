@@ -12,12 +12,14 @@ import type {
   AutosClassifiedsLang,
   AutosClassifiedsListingRow,
   AutosClassifiedsListingStatus,
+  AutosDealerInventoryRole,
 } from "./autosClassifiedsTypes";
 import { autosClassifiedsRowToPublicListing } from "./mapAutosClassifiedsToPublic";
 import { sanitizeAutosListingPayloadForPersistence } from "./autosListingPayloadPersistence";
 import {
   STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
   countActiveDealerVehicles,
+  resolveDealerInventoryGroupingKey,
   summarizeDealerInventory,
   type AutosDealerInventoryCount,
 } from "./autosDealerInventoryPolicy";
@@ -27,6 +29,18 @@ function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
     id: String(r.id),
     leonix_ad_id: r.leonix_ad_id != null && String(r.leonix_ad_id).trim() ? String(r.leonix_ad_id).trim() : null,
     owner_user_id: String(r.owner_user_id),
+    dealer_inventory_group_id:
+      r.dealer_inventory_group_id != null && String(r.dealer_inventory_group_id).trim()
+        ? String(r.dealer_inventory_group_id).trim()
+        : null,
+    dealer_inventory_parent_listing_id:
+      r.dealer_inventory_parent_listing_id != null && String(r.dealer_inventory_parent_listing_id).trim()
+        ? String(r.dealer_inventory_parent_listing_id).trim()
+        : null,
+    inventory_role:
+      r.inventory_role === "main" || r.inventory_role === "inventory_vehicle"
+        ? (r.inventory_role as AutosDealerInventoryRole)
+        : null,
     lane: r.lane as AutosClassifiedsLane,
     status: r.status as AutosClassifiedsListingStatus,
     lang: (r.lang === "en" ? "en" : "es") as AutosClassifiedsLang,
@@ -57,6 +71,9 @@ export async function createAutosClassifiedsListing(input: {
   lane: AutosClassifiedsLane;
   lang: AutosClassifiedsLang;
   listing: AutoDealerListing;
+  dealerInventoryGroupId?: string | null;
+  dealerInventoryParentListingId?: string | null;
+  inventoryRole?: AutosDealerInventoryRole | null;
 }): Promise<AutosListingPersistResult> {
   if (!isSupabaseAdminConfigured()) return { row: null, persistWarnings: [] };
   const supabase = getAdminSupabase();
@@ -65,16 +82,24 @@ export async function createAutosClassifiedsListing(input: {
     autosLane: input.lane,
   });
   const { listing: payload, persistWarnings } = sanitizeAutosListingPayloadForPersistence(normalized);
+  const insertPayload: Record<string, unknown> = {
+    owner_user_id: input.ownerUserId,
+    lane: input.lane,
+    status: "draft",
+    lang: input.lang,
+    featured: false,
+    listing_payload: payload,
+  };
+  if (input.lane === "negocios") {
+    if (input.dealerInventoryGroupId?.trim()) insertPayload.dealer_inventory_group_id = input.dealerInventoryGroupId.trim();
+    if (input.dealerInventoryParentListingId?.trim()) {
+      insertPayload.dealer_inventory_parent_listing_id = input.dealerInventoryParentListingId.trim();
+    }
+    if (input.inventoryRole === "main" || input.inventoryRole === "inventory_vehicle") insertPayload.inventory_role = input.inventoryRole;
+  }
   const { data, error } = await supabase
     .from("autos_classifieds_listings")
-    .insert({
-      owner_user_id: input.ownerUserId,
-      lane: input.lane,
-      status: "draft",
-      lang: input.lang,
-      featured: false,
-      listing_payload: payload,
-    })
+    .insert(insertPayload)
     .select()
     .single();
   if (error || !data) {
@@ -367,11 +392,12 @@ export async function getActiveLiveAutosBundle(
   const row = await getAutosClassifiedsListingById(id);
   if (!row || row.status !== "active") return null;
   const poolRows = await listActiveAutosClassifiedsRows();
+  const groupingKey = resolveDealerInventoryGroupingKey(row);
   const dealerRows = poolRows.filter(
     (candidate) =>
       candidate.lane === "negocios" &&
       candidate.status === "active" &&
-      candidate.owner_user_id === row.owner_user_id &&
+      resolveDealerInventoryGroupingKey(candidate) === groupingKey &&
       candidate.id !== row.id,
   );
   const publicPool: AutosPublicListing[] = dealerRows.map(autosClassifiedsRowToPublicListing);

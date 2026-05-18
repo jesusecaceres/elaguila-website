@@ -27,7 +27,7 @@ export const EN_VENTA_DEPARTMENTS: Array<{
   { key: "ropa-accesorios", label: { es: "Ropa y accesorios", en: "Clothing & accessories" }, browseHint: { es: "Calzado, bolsas, relojes", en: "Shoes, bags, watches" } },
   { key: "bebes-ninos", label: { es: "Bebés y niños", en: "Baby & kids" }, browseHint: { es: "Coche, ropa, juguetes", en: "Strollers, clothes, toys" } },
   { key: "herramientas", label: { es: "Herramientas", en: "Tools" }, browseHint: { es: "Taladro, sierra, taller", en: "Drills, saws, shop" } },
-  { key: "vehiculos-partes", label: { es: "Vehículos y partes", en: "Vehicles & parts" }, browseHint: { es: "Llantas, audio, accesorios", en: "Tires, audio, accessories" } },
+  { key: "vehiculos-partes", label: { es: "Partes y accesorios de auto", en: "Auto parts & accessories" }, browseHint: { es: "Llantas, audio, accesorios", en: "Tires, audio, accessories" } },
   { key: "deportes", label: { es: "Deportes", en: "Sports" }, browseHint: { es: "Bicis, pesas, outdoor", en: "Bikes, weights, outdoor" } },
   { key: "juguetes-juegos", label: { es: "Juguetes y juegos", en: "Toys & games" }, browseHint: { es: "Consolas, mesa, coleccionables", en: "Consoles, board games" } },
   { key: "coleccionables", label: { es: "Coleccionables", en: "Collectibles" }, browseHint: { es: "Arte, monedas, memorabilia", en: "Art, coins, memorabilia" } },

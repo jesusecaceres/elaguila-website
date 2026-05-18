@@ -60,6 +60,19 @@ export const EN_VENTA_SUBCATEGORY_ROWS: EnVentaSubcategoryDef[] = [
     itemTypeValues: ["garden", "other-hogar"],
   },
   {
+    dept: "hogar",
+    key: "electrodomesticos",
+    label: { es: "Electrodomésticos", en: "Appliances" },
+    itemTypeValues: [
+      "refrigerator",
+      "washer-dryer",
+      "stove-oven",
+      "microwave",
+      "small-appliance",
+      "appliance-other",
+    ],
+  },
+  {
     dept: "muebles",
     key: "sala",
     label: { es: "Sala", en: "Living room" },
@@ -96,6 +109,12 @@ export const EN_VENTA_SUBCATEGORY_ROWS: EnVentaSubcategoryDef[] = [
     itemTypeValues: ["bags", "other-ropa"],
   },
   {
+    dept: "ropa-accesorios",
+    key: "joyeria-relojes",
+    label: { es: "Joyería y relojes", en: "Jewelry & watches" },
+    itemTypeValues: ["jewelry", "watches", "sunglasses", "accessory-other"],
+  },
+  {
     dept: "bebes-ninos",
     key: "equipo",
     label: { es: "Equipo (coches, sillas)", en: "Gear (strollers, seats)" },
@@ -118,6 +137,12 @@ export const EN_VENTA_SUBCATEGORY_ROWS: EnVentaSubcategoryDef[] = [
     key: "electricas",
     label: { es: "Eléctricas", en: "Power tools" },
     itemTypeValues: ["power", "other-tools"],
+  },
+  {
+    dept: "herramientas",
+    key: "materiales-construccion",
+    label: { es: "Materiales de construcción", en: "Building materials" },
+    itemTypeValues: ["lumber", "tile-flooring", "fixtures", "hardware", "material-other"],
   },
   {
     dept: "vehiculos-partes",
@@ -190,6 +215,30 @@ export const EN_VENTA_SUBCATEGORY_ROWS: EnVentaSubcategoryDef[] = [
     key: "foto",
     label: { es: "Fotografía", en: "Photography" },
     itemTypeValues: ["camera", "other-media"],
+  },
+  {
+    dept: "musica-foto-video",
+    key: "libros-medios",
+    label: { es: "Libros y medios", en: "Books & media" },
+    itemTypeValues: ["books", "movies", "music-media", "vinyl", "magazines", "media-other"],
+  },
+  {
+    dept: "otros",
+    key: "mascotas-accesorios",
+    label: { es: "Accesorios para mascotas", en: "Pet supplies" },
+    itemTypeValues: ["pet-crate", "pet-bed", "aquarium", "pet-accessory", "pet-toy", "pet-other"],
+  },
+  {
+    dept: "otros",
+    key: "venta-garage-mudanza",
+    label: { es: "Venta de garage / mudanza", en: "Garage / moving sale" },
+    itemTypeValues: ["garage-sale", "moving-sale", "estate-sale", "bundle-lot", "misc"],
+  },
+  {
+    dept: "otros",
+    key: "oficina-escuela",
+    label: { es: "Oficina y escuela", en: "Office & school" },
+    itemTypeValues: ["office-equipment", "school-supplies", "printer", "office-other"],
   },
   { dept: "otros", key: "general", label: { es: "General", en: "General" } },
 ];

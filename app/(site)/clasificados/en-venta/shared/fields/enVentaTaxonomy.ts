@@ -41,6 +41,12 @@ const ARTICLES: Record<EnVentaDepartmentKey, Array<{ value: string; label: { es:
     { value: "decor", label: { es: "Decoración", en: "Decor" } },
     { value: "bath", label: { es: "Baño", en: "Bath" } },
     { value: "garden", label: { es: "Jardín", en: "Garden" } },
+    { value: "refrigerator", label: { es: "Refrigerador", en: "Refrigerator" } },
+    { value: "washer-dryer", label: { es: "Lavadora / secadora", en: "Washer / dryer" } },
+    { value: "stove-oven", label: { es: "Estufa / horno", en: "Stove / oven" } },
+    { value: "microwave", label: { es: "Microondas", en: "Microwave" } },
+    { value: "small-appliance", label: { es: "Electrodoméstico pequeño", en: "Small appliance" } },
+    { value: "appliance-other", label: { es: "Otro electrodoméstico", en: "Other appliance" } },
     { value: "other-hogar", label: { es: "Otro hogar", en: "Other home" } },
   ],
   muebles: [
@@ -55,6 +61,10 @@ const ARTICLES: Record<EnVentaDepartmentKey, Array<{ value: string; label: { es:
     { value: "bottoms", label: { es: "Ropa inferior", en: "Bottoms" } },
     { value: "shoes", label: { es: "Calzado", en: "Footwear" } },
     { value: "bags", label: { es: "Bolsas / mochilas", en: "Bags" } },
+    { value: "jewelry", label: { es: "Joyería", en: "Jewelry" } },
+    { value: "watches", label: { es: "Relojes", en: "Watches" } },
+    { value: "sunglasses", label: { es: "Lentes de sol", en: "Sunglasses" } },
+    { value: "accessory-other", label: { es: "Otro accesorio", en: "Other accessory" } },
     { value: "other-ropa", label: { es: "Otro", en: "Other" } },
   ],
   "bebes-ninos": [
@@ -66,6 +76,11 @@ const ARTICLES: Record<EnVentaDepartmentKey, Array<{ value: string; label: { es:
   herramientas: [
     { value: "hand", label: { es: "Manuales", en: "Hand tools" } },
     { value: "power", label: { es: "Eléctricas", en: "Power tools" } },
+    { value: "lumber", label: { es: "Madera", en: "Lumber" } },
+    { value: "tile-flooring", label: { es: "Piso / azulejo", en: "Tile / flooring" } },
+    { value: "fixtures", label: { es: "Accesorios de instalación", en: "Fixtures" } },
+    { value: "hardware", label: { es: "Ferretería", en: "Hardware" } },
+    { value: "material-other", label: { es: "Otro material", en: "Other material" } },
     { value: "other-tools", label: { es: "Otro", en: "Other" } },
   ],
   "vehiculos-partes": [
@@ -95,9 +110,31 @@ const ARTICLES: Record<EnVentaDepartmentKey, Array<{ value: string; label: { es:
   "musica-foto-video": [
     { value: "instrument", label: { es: "Instrumento", en: "Instrument" } },
     { value: "camera", label: { es: "Cámara / lentes", en: "Camera / lenses" } },
+    { value: "books", label: { es: "Libros", en: "Books" } },
+    { value: "movies", label: { es: "Películas", en: "Movies" } },
+    { value: "music-media", label: { es: "Música física", en: "Physical music" } },
+    { value: "vinyl", label: { es: "Vinilos", en: "Vinyl" } },
+    { value: "magazines", label: { es: "Revistas", en: "Magazines" } },
+    { value: "media-other", label: { es: "Otro medio", en: "Other media" } },
     { value: "other-media", label: { es: "Otro", en: "Other" } },
   ],
-  otros: [{ value: "misc", label: { es: "Artículo general", en: "General item" } }],
+  otros: [
+    { value: "pet-crate", label: { es: "Jaula / transportadora", en: "Crate / carrier" } },
+    { value: "pet-bed", label: { es: "Cama para mascota", en: "Pet bed" } },
+    { value: "aquarium", label: { es: "Acuario", en: "Aquarium" } },
+    { value: "pet-accessory", label: { es: "Accesorio para mascota", en: "Pet accessory" } },
+    { value: "pet-toy", label: { es: "Juguete para mascota", en: "Pet toy" } },
+    { value: "pet-other", label: { es: "Otro accesorio de mascota", en: "Other pet supply" } },
+    { value: "garage-sale", label: { es: "Venta de garage", en: "Garage sale" } },
+    { value: "moving-sale", label: { es: "Venta de mudanza", en: "Moving sale" } },
+    { value: "estate-sale", label: { es: "Venta de herencia", en: "Estate sale" } },
+    { value: "bundle-lot", label: { es: "Lote", en: "Bundle / lot" } },
+    { value: "office-equipment", label: { es: "Equipo de oficina", en: "Office equipment" } },
+    { value: "school-supplies", label: { es: "Útiles escolares", en: "School supplies" } },
+    { value: "printer", label: { es: "Impresora", en: "Printer" } },
+    { value: "office-other", label: { es: "Otro de oficina", en: "Other office / school" } },
+    { value: "misc", label: { es: "Varios", en: "Miscellaneous" } },
+  ],
 };
 
 export function getArticulosForDepartment(deptKey: string) {

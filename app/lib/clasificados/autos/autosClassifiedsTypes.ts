@@ -13,10 +13,15 @@ export type AutosClassifiedsLane = "negocios" | "privado";
 
 export type AutosClassifiedsLang = "es" | "en";
 
+export type AutosDealerInventoryRole = "main" | "inventory_vehicle";
+
 export type AutosClassifiedsListingRow = {
   id: string;
   leonix_ad_id?: string | null;
   owner_user_id: string;
+  dealer_inventory_group_id?: string | null;
+  dealer_inventory_parent_listing_id?: string | null;
+  inventory_role?: AutosDealerInventoryRole | null;
   lane: AutosClassifiedsLane;
   status: AutosClassifiedsListingStatus;
   lang: AutosClassifiedsLang;
