@@ -380,7 +380,7 @@ export function RestaurantesResultsShell({
   const filterPanel = (
     <div className="space-y-6">
       <section aria-labelledby="rx-f-cuisine">
-        <h3 id="rx-f-cuisine" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+        <h3 id="rx-f-cuisine" className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
           {t.sectionCuisine}
         </h3>
         <div className="mt-2">
@@ -389,7 +389,7 @@ export function RestaurantesResultsShell({
           </label>
           <select
             id="rx-filter-cuisine"
-            className="min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+            className="min-h-[44px] w-full rounded-[12px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
             value={parsed.cuisine}
             onChange={(e) => pushState(mergeDiscovery(parsed, { cuisine: e.target.value, page: 1 }))}
           >
@@ -404,29 +404,29 @@ export function RestaurantesResultsShell({
       </section>
 
       <section aria-labelledby="rx-f-loc">
-        <h3 id="rx-f-loc" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+        <h3 id="rx-f-loc" className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
           {t.sectionLocation}
         </h3>
         <div className="mt-2 space-y-3">
           <div>
-            <label className="text-xs font-semibold text-[#2D241E]/60" htmlFor="rx-filter-city">
+            <label className="text-xs font-semibold text-[color:var(--lx-muted)]" htmlFor="rx-filter-city">
               {t.city}
             </label>
             <input
               id="rx-filter-city"
-              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
               defaultValue={parsed.city}
               key={`city-${parsed.city}`}
               onBlur={(e) => pushState(mergeDiscovery(parsed, { city: e.target.value.trim(), page: 1 }))}
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-[#2D241E]/60" htmlFor="rx-filter-zip">
+            <label className="text-xs font-semibold text-[color:var(--lx-muted)]" htmlFor="rx-filter-zip">
               {t.zip}
             </label>
             <input
               id="rx-filter-zip"
-              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
               defaultValue={parsed.zip}
               key={`zip-${parsed.zip}`}
               inputMode="numeric"
@@ -437,12 +437,12 @@ export function RestaurantesResultsShell({
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-[#2D241E]/60" htmlFor="rx-filter-nbh">
+            <label className="text-xs font-semibold text-[color:var(--lx-muted)]" htmlFor="rx-filter-nbh">
               {t.neighborhood}
             </label>
             <input
               id="rx-filter-nbh"
-              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
               defaultValue={parsed.neighborhoodQuery}
               key={`nbh-${parsed.neighborhoodQuery}`}
               onBlur={(e) =>
@@ -454,7 +454,7 @@ export function RestaurantesResultsShell({
       </section>
 
       <section aria-labelledby="rx-f-svc">
-        <h3 id="rx-f-svc" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+        <h3 id="rx-f-svc" className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
           {t.sectionService}
         </h3>
         <div className="mt-2 space-y-3">
@@ -464,7 +464,7 @@ export function RestaurantesResultsShell({
             </label>
             <select
               id="rx-filter-svc"
-              className="min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+              className="min-h-[44px] w-full rounded-[12px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
               value={parsed.svc}
               onChange={(e) => pushState(mergeDiscovery(parsed, { svc: e.target.value, page: 1 }))}
             >
@@ -478,19 +478,19 @@ export function RestaurantesResultsShell({
               <option value="personal_chef">{lang === "es" ? "Chef privado" : "Personal chef"}</option>
             </select>
           </div>
-          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[color:var(--lx-text)]">
             <input
               type="checkbox"
-              className="h-5 w-5 rounded border-[#2D241E]/20"
+              className="h-5 w-5 rounded border-[color:var(--lx-border)]/60"
               checked={parsed.open}
               onChange={(e) => pushState(mergeDiscovery(parsed, { open: e.target.checked, page: 1 }))}
             />
             {t.openNow}
           </label>
-          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[color:var(--lx-text)]">
             <input
               type="checkbox"
-              className="h-5 w-5 rounded border-[#2D241E]/20"
+              className="h-5 w-5 rounded border-[color:var(--lx-border)]/60"
               checked={parsed.reservationsOnly}
               onChange={(e) =>
                 pushState(mergeDiscovery(parsed, { reservationsOnly: e.target.checked, page: 1 }))
@@ -498,19 +498,19 @@ export function RestaurantesResultsShell({
             />
             {t.reservationsOnly}
           </label>
-          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[color:var(--lx-text)]">
             <input
               type="checkbox"
-              className="h-5 w-5 rounded border-[#2D241E]/20"
+              className="h-5 w-5 rounded border-[color:var(--lx-border)]/60"
               checked={parsed.preorderOnly}
               onChange={(e) => pushState(mergeDiscovery(parsed, { preorderOnly: e.target.checked, page: 1 }))}
             />
             {t.preorderOnly}
           </label>
-          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[color:var(--lx-text)]">
             <input
               type="checkbox"
-              className="h-5 w-5 rounded border-[#2D241E]/20"
+              className="h-5 w-5 rounded border-[color:var(--lx-border)]/60"
               checked={parsed.pickupOnly}
               onChange={(e) => pushState(mergeDiscovery(parsed, { pickupOnly: e.target.checked, page: 1 }))}
             />
@@ -520,7 +520,7 @@ export function RestaurantesResultsShell({
       </section>
 
       <section aria-labelledby="rx-f-price">
-        <h3 id="rx-f-price" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+        <h3 id="rx-f-price" className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
           {t.sectionPrice}
         </h3>
         <div className="mt-2">
@@ -529,7 +529,7 @@ export function RestaurantesResultsShell({
           </label>
           <select
             id="rx-filter-price"
-            className="min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+            className="min-h-[44px] w-full rounded-[12px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
             value={parsed.price}
             onChange={(e) => pushState(mergeDiscovery(parsed, { price: e.target.value, page: 1 }))}
           >
@@ -544,7 +544,7 @@ export function RestaurantesResultsShell({
       </section>
 
       <section aria-labelledby="rx-f-style">
-        <h3 id="rx-f-style" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+        <h3 id="rx-f-style" className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
           {t.sectionStyle}
         </h3>
         <div className="mt-2">
@@ -553,7 +553,7 @@ export function RestaurantesResultsShell({
           </label>
           <select
             id="rx-filter-biz"
-            className="min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+            className="min-h-[44px] w-full rounded-[12px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
             value={parsed.biz}
             onChange={(e) =>
               pushState(mergeDiscovery(parsed, { biz: e.target.value as RestaurantesDiscoveryState["biz"], page: 1 }))
@@ -570,26 +570,26 @@ export function RestaurantesResultsShell({
       </section>
 
       <section aria-labelledby="rx-f-diet">
-        <h3 id="rx-f-diet" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+        <h3 id="rx-f-diet" className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
           {t.sectionDiet}
         </h3>
         <div className="mt-2 space-y-3">
-          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[color:var(--lx-text)]">
             <input
               type="checkbox"
-              className="h-5 w-5 rounded border-[#2D241E]/20"
+              className="h-5 w-5 rounded border-[color:var(--lx-border)]/60"
               checked={parsed.family}
               onChange={(e) => pushState(mergeDiscovery(parsed, { family: e.target.checked, page: 1 }))}
             />
             {t.family}
           </label>
           <div>
-            <label className="text-xs font-semibold text-[#2D241E]/60" htmlFor="rx-filter-diet">
+            <label className="text-xs font-semibold text-[color:var(--lx-muted)]" htmlFor="rx-filter-diet">
               {t.dietFull}
             </label>
             <select
               id="rx-filter-diet"
-              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
               value={parsed.diet}
               onChange={(e) =>
                 pushState(
@@ -608,10 +608,10 @@ export function RestaurantesResultsShell({
           </div>
           <div className="grid grid-cols-2 gap-2">
             {getRestauranteAmenityGroupMeta("foodOptions").items.map((it) => (
-              <label key={it.id} className="flex cursor-pointer items-start gap-2 rounded-[12px] border border-[#2D241E]/10 bg-[#FFFCF7] p-2 text-xs font-semibold text-[#2D241E]">
+              <label key={it.id} className="flex cursor-pointer items-start gap-2 rounded-[12px] border border-[color:var(--lx-border)]/35 bg-[color:var(--lx-card)] p-2 text-xs font-semibold text-[color:var(--lx-text)]">
                 <input
                   type="checkbox"
-                  className="mt-0.5 h-4 w-4 rounded border-[#2D241E]/20"
+                  className="mt-0.5 h-4 w-4 rounded border-[color:var(--lx-border)]/60"
                   checked={parsed.food.includes(it.id)}
                   onChange={() => pushState(mergeDiscovery(parsed, { food: toggleKey(parsed.food, it.id), page: 1 }))}
                 />
@@ -623,15 +623,15 @@ export function RestaurantesResultsShell({
       </section>
 
       <section aria-labelledby="rx-f-payments">
-        <h3 id="rx-f-payments" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+        <h3 id="rx-f-payments" className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
           {t.sectionPayments}
         </h3>
         <div className="mt-2 grid grid-cols-2 gap-2">
           {getRestauranteAmenityGroupMeta("payments").items.map((it) => (
-            <label key={it.id} className="flex cursor-pointer items-start gap-2 rounded-[12px] border border-[#2D241E]/10 bg-[#FFFCF7] p-2 text-xs font-semibold text-[#2D241E]">
+            <label key={it.id} className="flex cursor-pointer items-start gap-2 rounded-[12px] border border-[color:var(--lx-border)]/35 bg-[color:var(--lx-card)] p-2 text-xs font-semibold text-[color:var(--lx-text)]">
               <input
                 type="checkbox"
-                className="mt-0.5 h-4 w-4 rounded border-[#2D241E]/20"
+                className="mt-0.5 h-4 w-4 rounded border-[color:var(--lx-border)]/60"
                 checked={parsed.pay.includes(it.id)}
                 onChange={() => pushState(mergeDiscovery(parsed, { pay: toggleKey(parsed.pay, it.id), page: 1 }))}
               />
@@ -642,15 +642,15 @@ export function RestaurantesResultsShell({
       </section>
 
       <section aria-labelledby="rx-f-ambience">
-        <h3 id="rx-f-ambience" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+        <h3 id="rx-f-ambience" className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
           {t.sectionAmbience}
         </h3>
         <div className="mt-2 grid grid-cols-2 gap-2">
           {getRestauranteAmenityGroupMeta("atmosphere").items.map((it) => (
-            <label key={it.id} className="flex cursor-pointer items-start gap-2 rounded-[12px] border border-[#2D241E]/10 bg-[#FFFCF7] p-2 text-xs font-semibold text-[#2D241E]">
+            <label key={it.id} className="flex cursor-pointer items-start gap-2 rounded-[12px] border border-[color:var(--lx-border)]/35 bg-[color:var(--lx-card)] p-2 text-xs font-semibold text-[color:var(--lx-text)]">
               <input
                 type="checkbox"
-                className="mt-0.5 h-4 w-4 rounded border-[#2D241E]/20"
+                className="mt-0.5 h-4 w-4 rounded border-[color:var(--lx-border)]/60"
                 checked={parsed.amb.includes(it.id)}
                 onChange={() => pushState(mergeDiscovery(parsed, { amb: toggleKey(parsed.amb, it.id), page: 1 }))}
               />
@@ -661,15 +661,15 @@ export function RestaurantesResultsShell({
       </section>
 
       <section aria-labelledby="rx-f-amen">
-        <h3 id="rx-f-amen" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+        <h3 id="rx-f-amen" className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
           {t.sectionAmenities}
         </h3>
         <div className="mt-2 grid grid-cols-2 gap-2">
           {getRestauranteAmenityGroupMeta("amenities").items.map((it) => (
-            <label key={it.id} className="flex cursor-pointer items-start gap-2 rounded-[12px] border border-[#2D241E]/10 bg-[#FFFCF7] p-2 text-xs font-semibold text-[#2D241E]">
+            <label key={it.id} className="flex cursor-pointer items-start gap-2 rounded-[12px] border border-[color:var(--lx-border)]/35 bg-[color:var(--lx-card)] p-2 text-xs font-semibold text-[color:var(--lx-text)]">
               <input
                 type="checkbox"
-                className="mt-0.5 h-4 w-4 rounded border-[#2D241E]/20"
+                className="mt-0.5 h-4 w-4 rounded border-[color:var(--lx-border)]/60"
                 checked={parsed.amen.includes(it.id)}
                 onChange={() => pushState(mergeDiscovery(parsed, { amen: toggleKey(parsed.amen, it.id), page: 1 }))}
               />
@@ -680,15 +680,15 @@ export function RestaurantesResultsShell({
       </section>
 
       <section aria-labelledby="rx-f-acc">
-        <h3 id="rx-f-acc" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+        <h3 id="rx-f-acc" className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
           {t.sectionAccessibility}
         </h3>
         <div className="mt-2 grid grid-cols-2 gap-2">
           {getRestauranteAmenityGroupMeta("accessibility").items.map((it) => (
-            <label key={it.id} className="flex cursor-pointer items-start gap-2 rounded-[12px] border border-[#2D241E]/10 bg-[#FFFCF7] p-2 text-xs font-semibold text-[#2D241E]">
+            <label key={it.id} className="flex cursor-pointer items-start gap-2 rounded-[12px] border border-[color:var(--lx-border)]/35 bg-[color:var(--lx-card)] p-2 text-xs font-semibold text-[color:var(--lx-text)]">
               <input
                 type="checkbox"
-                className="mt-0.5 h-4 w-4 rounded border-[#2D241E]/20"
+                className="mt-0.5 h-4 w-4 rounded border-[color:var(--lx-border)]/60"
                 checked={parsed.acc.includes(it.id)}
                 onChange={() => pushState(mergeDiscovery(parsed, { acc: toggleKey(parsed.acc, it.id), page: 1 }))}
               />
@@ -699,15 +699,15 @@ export function RestaurantesResultsShell({
       </section>
 
       <section aria-labelledby="rx-f-langs">
-        <h3 id="rx-f-langs" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+        <h3 id="rx-f-langs" className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
           {t.sectionLanguages}
         </h3>
         <div className="mt-2 grid grid-cols-2 gap-2">
           {RESTAURANTE_LANGUAGES.filter((l) => l.key !== "other_lang").map((it) => (
-            <label key={it.key} className="flex cursor-pointer items-center gap-2 rounded-[12px] border border-[#2D241E]/10 bg-[#FFFCF7] p-2 text-xs font-semibold text-[#2D241E]">
+            <label key={it.key} className="flex cursor-pointer items-center gap-2 rounded-[12px] border border-[color:var(--lx-border)]/35 bg-[color:var(--lx-card)] p-2 text-xs font-semibold text-[color:var(--lx-text)]">
               <input
                 type="checkbox"
-                className="h-4 w-4 rounded border-[#2D241E]/20"
+                className="h-4 w-4 rounded border-[color:var(--lx-border)]/60"
                 checked={parsed.spoken.includes(it.key)}
                 onChange={() => pushState(mergeDiscovery(parsed, { spoken: toggleKey(parsed.spoken, it.key), page: 1 }))}
               />
@@ -718,41 +718,41 @@ export function RestaurantesResultsShell({
       </section>
 
       <section aria-labelledby="rx-f-extras">
-        <h3 id="rx-f-extras" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+        <h3 id="rx-f-extras" className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
           {t.sectionExtras}
         </h3>
         <div className="mt-2 space-y-3">
-          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[color:var(--lx-text)]">
             <input
               type="checkbox"
-              className="h-5 w-5 rounded border-[#2D241E]/20"
+              className="h-5 w-5 rounded border-[color:var(--lx-border)]/60"
               checked={parsed.menuOnly}
               onChange={(e) => pushState(mergeDiscovery(parsed, { menuOnly: e.target.checked, page: 1 }))}
             />
             {t.menuOnly}
           </label>
-          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[color:var(--lx-text)]">
             <input
               type="checkbox"
-              className="h-5 w-5 rounded border-[#2D241E]/20"
+              className="h-5 w-5 rounded border-[color:var(--lx-border)]/60"
               checked={parsed.socialOnly}
               onChange={(e) => pushState(mergeDiscovery(parsed, { socialOnly: e.target.checked, page: 1 }))}
             />
             {t.socialOnly}
           </label>
-          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[color:var(--lx-text)]">
             <input
               type="checkbox"
-              className="h-5 w-5 rounded border-[#2D241E]/20"
+              className="h-5 w-5 rounded border-[color:var(--lx-border)]/60"
               checked={parsed.websiteOnly}
               onChange={(e) => pushState(mergeDiscovery(parsed, { websiteOnly: e.target.checked, page: 1 }))}
             />
             {t.websiteOnly}
           </label>
-          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[color:var(--lx-text)]">
             <input
               type="checkbox"
-              className="h-5 w-5 rounded border-[#2D241E]/20"
+              className="h-5 w-5 rounded border-[color:var(--lx-border)]/60"
               checked={parsed.whatsappOnly}
               onChange={(e) => pushState(mergeDiscovery(parsed, { whatsappOnly: e.target.checked, page: 1 }))}
             />
@@ -762,30 +762,30 @@ export function RestaurantesResultsShell({
       </section>
 
       <section aria-labelledby="rx-f-more">
-        <h3 id="rx-f-more" className="text-[11px] font-bold uppercase tracking-wide text-[#2D241E]/45">
+        <h3 id="rx-f-more" className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
           {t.sectionMore}
         </h3>
         <div className="mt-2 space-y-3">
-          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[color:var(--lx-text)]">
             <input
               type="checkbox"
-              className="h-5 w-5 rounded border-[#2D241E]/20"
+              className="h-5 w-5 rounded border-[color:var(--lx-border)]/60"
               checked={parsed.promotedOnly}
               onChange={(e) => pushState(mergeDiscovery(parsed, { promotedOnly: e.target.checked, page: 1 }))}
             />
             {t.promotedOnly}
           </label>
-          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[color:var(--lx-text)]">
             <input
               type="checkbox"
-              className="h-5 w-5 rounded border-[#2D241E]/20"
+              className="h-5 w-5 rounded border-[color:var(--lx-border)]/60"
               checked={parsed.verifiedOnly}
               onChange={(e) => pushState(mergeDiscovery(parsed, { verifiedOnly: e.target.checked, page: 1 }))}
             />
             {t.verifiedOnly}
           </label>
           <div>
-            <label className="text-xs font-semibold text-[#2D241E]/60" htmlFor="rx-filter-drm">
+            <label className="text-xs font-semibold text-[color:var(--lx-muted)]" htmlFor="rx-filter-drm">
               {t.deliveryRadiusMin}
             </label>
             <input
@@ -795,7 +795,7 @@ export function RestaurantesResultsShell({
               min={1}
               max={99}
               placeholder="—"
-              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
               defaultValue={parsed.deliveryRadiusMin ?? ""}
               key={`drm-${parsed.deliveryRadiusMin ?? ""}`}
               onBlur={(e) => {
@@ -811,12 +811,12 @@ export function RestaurantesResultsShell({
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-[#2D241E]/60" htmlFor="rx-filter-hl">
+            <label className="text-xs font-semibold text-[color:var(--lx-muted)]" htmlFor="rx-filter-hl">
               {t.hl}
             </label>
             <select
               id="rx-filter-hl"
-              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
+              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:border-[#D97706]/40 focus:ring-2 focus:ring-[#D97706]/20"
               value={parsed.hl}
               onChange={(e) => pushState(mergeDiscovery(parsed, { hl: e.target.value, page: 1 }))}
             >
@@ -828,47 +828,47 @@ export function RestaurantesResultsShell({
               ))}
             </select>
           </div>
-          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[color:var(--lx-text)]">
             <input
               type="checkbox"
-              className="h-5 w-5 rounded border-[#2D241E]/20"
+              className="h-5 w-5 rounded border-[color:var(--lx-border)]/60"
               checked={parsed.movingVendor}
               onChange={(e) => pushState(mergeDiscovery(parsed, { movingVendor: e.target.checked, page: 1 }))}
             />
             {t.flagMoving}
           </label>
-          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[color:var(--lx-text)]">
             <input
               type="checkbox"
-              className="h-5 w-5 rounded border-[#2D241E]/20"
+              className="h-5 w-5 rounded border-[color:var(--lx-border)]/60"
               checked={parsed.homeBasedBusiness}
               onChange={(e) => pushState(mergeDiscovery(parsed, { homeBasedBusiness: e.target.checked, page: 1 }))}
             />
             {t.flagHome}
           </label>
-          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[color:var(--lx-text)]">
             <input
               type="checkbox"
-              className="h-5 w-5 rounded border-[#2D241E]/20"
+              className="h-5 w-5 rounded border-[color:var(--lx-border)]/60"
               checked={parsed.foodTruck}
               onChange={(e) => pushState(mergeDiscovery(parsed, { foodTruck: e.target.checked, page: 1 }))}
             />
             {t.flagTruck}
           </label>
-          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[#2D241E]">
+          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-[color:var(--lx-text)]">
             <input
               type="checkbox"
-              className="h-5 w-5 rounded border-[#2D241E]/20"
+              className="h-5 w-5 rounded border-[color:var(--lx-border)]/60"
               checked={parsed.popUp}
               onChange={(e) => pushState(mergeDiscovery(parsed, { popUp: e.target.checked, page: 1 }))}
             />
             {t.flagPopUp}
           </label>
           <div>
-            <label className="flex cursor-pointer items-start gap-3 text-sm font-medium text-[#2D241E]">
+            <label className="flex cursor-pointer items-start gap-3 text-sm font-medium text-[color:var(--lx-text)]">
               <input
                 type="checkbox"
-                className="mt-0.5 h-5 w-5 rounded border-[#2D241E]/20"
+                className="mt-0.5 h-5 w-5 rounded border-[color:var(--lx-border)]/60"
                 disabled={!leonixPersonalizationAllowed()}
                 checked={parsed.saved}
                 onChange={(e) => pushState(mergeDiscovery(parsed, { saved: e.target.checked, page: 1 }))}
@@ -876,7 +876,7 @@ export function RestaurantesResultsShell({
               <span>
                 {t.savedOnly}
                 {!leonixPersonalizationAllowed() ? (
-                  <span className="mt-1 block text-xs font-normal text-[#2D241E]/55">
+                  <span className="mt-1 block text-xs font-normal text-[color:var(--lx-muted)]">
                     {t.savedPrivacy}{" "}
                     <button
                       type="button"
@@ -895,7 +895,7 @@ export function RestaurantesResultsShell({
 
       <button
         type="button"
-        className="w-full min-h-[48px] rounded-[12px] border border-[#2D241E]/12 text-sm font-semibold text-[#2D241E]/80 hover:bg-[#FFFCF7]"
+        className="w-full min-h-[48px] rounded-[12px] border border-[color:var(--lx-border)]/40 text-sm font-semibold text-[color:var(--lx-text)]/80 hover:bg-[color:var(--lx-card)]"
         onClick={() =>
           router.push(buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang))))
         }
@@ -1075,7 +1075,7 @@ export function RestaurantesResultsShell({
           type="button"
           disabled={geoLoading}
           aria-describedby="rx-geo-help"
-          className="inline-flex min-h-[44px] items-center justify-center rounded-[12px] border border-[#D97706]/35 bg-[#FFFCF7] px-4 text-sm font-semibold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/55 disabled:opacity-60"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-[12px] border border-[#D97706]/35 bg-[color:var(--lx-card)] px-4 text-sm font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:border-[#D97706]/55 disabled:opacity-60"
           onClick={async () => {
             setGeoNote(null);
             setGeoLoading(true);
@@ -1106,7 +1106,7 @@ export function RestaurantesResultsShell({
         {activeChips.length > 0 ? (
           <button
             type="button"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-[12px] border border-[#2D241E]/15 px-4 text-sm font-semibold text-[#2D241E]/85 hover:bg-[#FFFCF7]"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-[12px] border border-[color:var(--lx-border)]/50 px-4 text-sm font-semibold text-[color:var(--lx-text)]/80 hover:bg-[color:var(--lx-section)]"
             onClick={() =>
               router.push(buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang))))
             }
@@ -1115,18 +1115,18 @@ export function RestaurantesResultsShell({
           </button>
         ) : null}
       </div>
-      <p id="rx-geo-help" className="mt-2 text-xs leading-relaxed text-[#2D241E]/58">
+      <p id="rx-geo-help" className="mt-2 text-xs leading-relaxed text-[color:var(--lx-muted)]">
         {t.useLocationHelp}
       </p>
-      {geoNote ? <p className="mt-2 text-xs leading-relaxed text-[#2D241E]/65">{geoNote}</p> : null}
+      {geoNote ? <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-muted)]">{geoNote}</p> : null}
       {parsed.near && !parsed.city?.trim() && !parsed.zip?.trim() ? (
-        <p className="mt-2 text-xs leading-relaxed text-[#2D241E]/65">{t.nearHonest}</p>
+        <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-muted)]">{t.nearHonest}</p>
       ) : null}
     </>
   );
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#FDFBF7] text-[#2D241E]">
+    <div className="min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
       <Navbar />
       {inventoryBannerNote ? (
         <div className="mx-auto max-w-[1280px] min-w-0 px-4 pt-4 sm:px-5 md:px-5 lg:px-6">
@@ -1162,13 +1162,13 @@ export function RestaurantesResultsShell({
         </div>
       ) : null}
       <div className="mx-auto max-w-[1280px] min-w-0 px-4 pb-16 pt-5 sm:px-5 sm:pb-20 sm:pt-6 md:px-5 lg:px-6">
-        <div className="rounded-[18px] border border-[#2D241E]/[0.07] bg-[#FFFCF7]/75 p-4 shadow-sm sm:p-5 md:p-6">
-          <div className="flex flex-col gap-3 border-b border-[#2D241E]/10 pb-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4 sm:pb-5">
+        <div className="rounded-[18px] border border-[color:var(--lx-border)]/30 bg-[color:var(--lx-card)]/75 p-4 shadow-sm sm:p-5 md:p-6">
+          <div className="flex flex-col gap-3 border-b border-[color:var(--lx-border)]/35 pb-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4 sm:pb-5">
             <div className="min-w-0 max-w-full">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#2D241E]/50">{t.eyebrow}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">{t.eyebrow}</p>
               <h1 className="mt-2 font-serif text-2xl font-semibold tracking-tight sm:text-3xl">{t.title}</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#2D241E]/72">{t.subtitle}</p>
-              <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#2D241E]/58 sm:text-sm">{t.journeyLine}</p>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-muted)]">{t.subtitle}</p>
+              <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[color:var(--lx-muted)] sm:text-sm">{t.journeyLine}</p>
               <Link href={landingHref} className="mt-3 inline-flex text-sm font-semibold text-[#D97706] underline-offset-4 hover:underline">
                 ← {t.backLanding}
               </Link>
@@ -1177,33 +1177,33 @@ export function RestaurantesResultsShell({
 
           <form
             onSubmit={onSearchSubmit}
-            className="mt-5 rounded-[18px] border border-[#2D241E]/10 bg-[#FFFCF7] p-4 ring-1 ring-[#D97706]/12 shadow-[0_16px_48px_-28px_rgba(45,36,30,0.35)] sm:mt-6 sm:rounded-[20px] sm:p-5"
+            className="mt-5 rounded-[18px] border border-[color:var(--lx-border)]/35 bg-[color:var(--lx-card)] p-4 ring-1 ring-[#D97706]/12 shadow-[0_16px_48px_-28px_rgba(45,36,30,0.35)] sm:mt-6 sm:rounded-[20px] sm:p-5"
           >
           <div className="flex flex-col gap-3 sm:gap-4 xl:flex-row xl:items-stretch">
             <div className="grid min-w-0 w-full flex-1 grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:contents">
               <div className="relative min-w-0 md:min-w-0 xl:flex-1">
-                <FaSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2D241E]/40" aria-hidden />
+                <FaSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--lx-muted)]" aria-hidden />
                 <input
                   value={qInput}
                   onChange={(e) => setQInput(e.target.value)}
                   placeholder={t.searchPh}
-                  className="min-h-[52px] w-full min-w-0 rounded-[16px] border border-[#2D241E]/12 bg-[#FFFCF7] py-3 pl-10 pr-3 text-sm outline-none transition-shadow ring-[#D97706]/30 focus:ring-2"
+                  className="min-h-[52px] w-full min-w-0 rounded-[16px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] py-3 pl-10 pr-3 text-sm outline-none transition-shadow ring-[#D97706]/30 focus:ring-2"
                   autoComplete="off"
                 />
               </div>
               <div className="relative min-w-0 md:min-w-0 xl:flex-1">
-                <FaMapMarkerAlt className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2D241E]/40" aria-hidden />
+                <FaMapMarkerAlt className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--lx-muted)]" aria-hidden />
                 <input
                   value={locInput}
                   onChange={(e) => setLocInput(e.target.value)}
                   placeholder={t.locationPh}
-                  className="min-h-[52px] w-full min-w-0 rounded-[16px] border border-[#2D241E]/12 bg-[#FFFCF7] py-3 pl-10 pr-3 text-sm outline-none transition-shadow ring-[#D97706]/30 focus:ring-2"
+                  className="min-h-[52px] w-full min-w-0 rounded-[16px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] py-3 pl-10 pr-3 text-sm outline-none transition-shadow ring-[#D97706]/30 focus:ring-2"
                 />
               </div>
             </div>
             <button
               type="submit"
-              className="min-h-[52px] w-full shrink-0 rounded-[16px] px-8 text-sm font-bold text-[#FFFCF7] shadow-[0_10px_32px_-12px_rgba(180,83,9,0.55)] touch-manipulation xl:w-[min(100%,200px)] xl:self-center"
+              className="min-h-[52px] w-full shrink-0 rounded-[16px] px-8 text-sm font-bold text-white shadow-[0_10px_32px_-12px_rgba(180,83,9,0.55)] touch-manipulation xl:w-[min(100%,200px)] xl:self-center"
               style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
             >
               {t.search}
@@ -1214,16 +1214,16 @@ export function RestaurantesResultsShell({
         </div>
 
         <div className="mt-5 flex min-w-0 flex-col gap-4 sm:mt-6 md:flex-row md:items-start md:justify-between lg:items-center">
-          <p className="min-w-0 shrink text-sm leading-snug text-[#2D241E]/80">
-            <span className="font-semibold text-[#2D241E]">{sorted.length}</span>{" "}
-            <span className="text-[#2D241E]/72">{t.resultsMatching}</span>
+          <p className="min-w-0 shrink text-sm leading-snug text-[color:var(--lx-text)]/80">
+            <span className="font-semibold text-[color:var(--lx-text)]">{sorted.length}</span>{" "}
+            <span className="text-[color:var(--lx-muted)]">{t.resultsMatching}</span>
           </p>
           <div className="flex min-w-0 w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
             <label className="flex min-w-0 w-full flex-col gap-1.5 text-sm sm:w-auto sm:flex-row sm:items-center sm:gap-2">
-              <span className="shrink-0 text-[#2D241E]/55">{t.sort}</span>
+              <span className="shrink-0 text-[color:var(--lx-muted)]">{t.sort}</span>
               <select
                 aria-label={t.sort}
-                className="min-h-[48px] w-full min-w-0 max-w-full rounded-[12px] border border-[#2D241E]/12 bg-[#FFFCF7] px-3 py-2 text-sm outline-none transition focus:border-[#D97706]/45 focus:ring-2 focus:ring-[#D97706]/25 sm:w-auto sm:min-w-[min(100%,200px)] md:min-w-[200px]"
+                className="min-h-[48px] w-full min-w-0 max-w-full rounded-[12px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none transition focus:border-[#D97706]/45 focus:ring-2 focus:ring-[#D97706]/25 sm:w-auto sm:min-w-[min(100%,200px)] md:min-w-[200px]"
                 value={parsed.top ? "rating-desc" : parsed.sort}
                 onChange={(e) => {
                   const v = e.target.value as RestaurantesDiscoveryState["sort"];
@@ -1237,7 +1237,7 @@ export function RestaurantesResultsShell({
             </label>
             <button
               type="button"
-              className="inline-flex min-h-[48px] w-full shrink-0 items-center justify-center rounded-[12px] border border-[#2D241E]/15 bg-[#FFFCF7] px-4 text-sm font-semibold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/35 sm:w-auto lg:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/45 touch-manipulation"
+              className="inline-flex min-h-[48px] w-full shrink-0 items-center justify-center rounded-[12px] border border-[color:var(--lx-border)]/50 bg-[color:var(--lx-card)] px-4 text-sm font-semibold text-[color:var(--lx-text)]/80 hover:bg-[color:var(--lx-section)] sm:w-auto lg:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/45 touch-manipulation"
               onClick={() => setMobileFiltersOpen(true)}
             >
               {t.filters}
@@ -1247,14 +1247,14 @@ export function RestaurantesResultsShell({
 
         {activeChips.length ? (
           <div className="mt-4 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-            <span className="shrink-0 text-xs font-semibold text-[#2D241E]/50">{t.active}:</span>
+            <span className="shrink-0 text-xs font-semibold text-[color:var(--lx-muted)]">{t.active}:</span>
             <div className="-mx-1 flex min-w-0 flex-1 flex-wrap items-center gap-2 overflow-x-auto px-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:overflow-visible [&::-webkit-scrollbar]:hidden">
               {activeChips.map((c) => (
                 <button
                   key={c.id}
                   type="button"
                   onClick={c.clear}
-                  className="inline-flex min-h-[40px] max-w-[min(100%,280px)] shrink-0 items-center gap-1 overflow-hidden text-ellipsis rounded-full border border-[#D97706]/35 bg-[#FFF7ED] px-3 text-left text-xs font-semibold text-[#2D241E] transition hover:bg-[#FFEDD5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/50 sm:max-w-none"
+                  className="inline-flex min-h-[40px] max-w-[min(100%,280px)] shrink-0 items-center gap-1 overflow-hidden text-ellipsis rounded-full border border-[#D97706]/35 bg-[color:var(--lx-section)] px-3 text-left text-xs font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-canvas)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/50 sm:max-w-none"
                 >
                   <span className="truncate">{c.label}</span> <span aria-hidden>×</span>
                 </button>
@@ -1265,7 +1265,7 @@ export function RestaurantesResultsShell({
 
         <div className="mt-6 min-w-0 lg:mt-8 lg:grid lg:grid-cols-[minmax(0,280px)_1fr] lg:gap-6 xl:gap-8">
           <aside className="mb-6 hidden lg:block">
-            <div className="sticky top-24 rounded-[20px] border border-[#2D241E]/10 bg-[#FFFCF7] p-4 shadow-sm xl:p-5">{filterPanel}</div>
+            <div className="sticky top-24 rounded-[20px] border border-[color:var(--lx-border)]/35 bg-[color:var(--lx-card)] p-4 shadow-sm xl:p-5">{filterPanel}</div>
           </aside>
 
           <div className="min-w-0">
@@ -1275,7 +1275,7 @@ export function RestaurantesResultsShell({
                   <FaStar className="h-4 w-4 shrink-0" style={{ color: ACCENT }} aria-hidden />
                   <h2 className="font-serif text-lg font-semibold">{t.featured}</h2>
                 </div>
-                <p className="mb-3 max-w-2xl text-xs leading-relaxed text-[#2D241E]/60 sm:mb-4">{t.promotedCaption}</p>
+                <p className="mb-3 max-w-2xl text-xs leading-relaxed text-[color:var(--lx-muted)] sm:mb-4">{t.promotedCaption}</p>
                 <div className="flex w-full min-w-0 flex-col gap-5 sm:gap-6">
                   {promotedBand.map((row) => (
                     <div key={row.id} className="min-w-0 w-full">
@@ -1293,12 +1293,12 @@ export function RestaurantesResultsShell({
             ) : null}
 
             {shown.length === 0 ? (
-              <div className="rounded-[20px] border border-dashed border-[#2D241E]/25 bg-gradient-to-b from-[#FFFCF7] to-[#FDFBF7] px-5 py-10 text-center sm:px-8 sm:py-14 md:px-10">
-                <p className="font-serif text-lg font-semibold text-[#2D241E]">{t.emptyTitle}</p>
-                <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#2D241E]/72">{t.emptyBody}</p>
+              <div className="rounded-[20px] border border-dashed border-[color:var(--lx-border)]/50 bg-[color:var(--lx-section)] px-5 py-10 text-center sm:px-8 sm:py-14 md:px-10">
+                <p className="font-serif text-lg font-semibold text-[color:var(--lx-text)]">{t.emptyTitle}</p>
+                <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[color:var(--lx-muted)]">{t.emptyBody}</p>
                 <Link
                   href={landingHref}
-                  className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-[14px] border border-[#D97706]/45 bg-[#FFFCF7] px-6 text-sm font-semibold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/65 hover:bg-[#FFF7ED] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/50"
+                  className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-[14px] border border-[#D97706]/45 bg-[color:var(--lx-card)] px-6 text-sm font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:border-[#D97706]/65 hover:bg-[color:var(--lx-section)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/50"
                 >
                   {t.emptyCta}
                 </Link>
@@ -1322,7 +1322,7 @@ export function RestaurantesResultsShell({
               <div className="mt-8 flex justify-center">
                 <button
                   type="button"
-                  className="min-h-[48px] rounded-[14px] border border-[#2D241E]/15 px-8 text-sm font-semibold text-[#2D241E] hover:bg-[#FFFCF7]"
+                  className="min-h-[48px] rounded-[14px] border border-[color:var(--lx-border)]/50 px-8 text-sm font-semibold text-[color:var(--lx-text)]/80 hover:bg-[color:var(--lx-section)]"
                   onClick={() => setVisible((v) => v + PAGE_SIZE)}
                 >
                   {t.loadMore}
@@ -1341,7 +1341,7 @@ export function RestaurantesResultsShell({
             aria-label={t.close}
             onClick={() => setMobileFiltersOpen(false)}
           />
-          <div className="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto rounded-t-[20px] bg-[#FDFBF7] p-5 pb-8 shadow-2xl sm:pb-5">
+          <div className="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto rounded-t-[20px] bg-[color:var(--lx-page)] p-5 pb-8 shadow-2xl sm:pb-5">
             <div className="mb-4 flex items-center justify-between">
               <p className="font-serif text-lg font-semibold">{t.filters}</p>
               <button type="button" className="min-h-[44px] px-3 text-sm font-semibold text-[#D97706]" onClick={() => setMobileFiltersOpen(false)}>

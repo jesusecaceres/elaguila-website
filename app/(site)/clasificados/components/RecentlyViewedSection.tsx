@@ -185,24 +185,24 @@ export default function RecentlyViewedSection({ lang }: { lang: Lang }) {
 
   return (
     <section className="mt-12">
-      <h2 className="text-2xl font-bold text-[#111111] mb-4">{title}</h2>
+      <h2 className="text-2xl font-bold text-[color:var(--lx-text)] mb-4">{title}</h2>
       <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth">
         {listings.map((item) => (
           <Link
             key={item.id}
             href={`/clasificados/anuncio/${item.id}?lang=${lang}`}
-            className="flex-shrink-0 w-72 snap-start rounded-2xl border border-[#C9B46A]/70 bg-[#F5F5F5] p-4 hover:bg-[#EFEFEF] transition block"
+            className="flex-shrink-0 w-72 snap-start rounded-2xl border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-4 hover:bg-[color:var(--lx-section)] transition block"
           >
-            <div className="text-base font-bold text-[#111111] leading-snug line-clamp-2">
+            <div className="text-base font-bold text-[color:var(--lx-text)] leading-snug line-clamp-2">
               {item.title[lang]}
             </div>
-            <div className="mt-1 text-sm font-semibold text-[#111111]">
+            <div className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">
               {item.priceLabel[lang]}
             </div>
-            <div className="mt-1 text-xs text-[#111111]">
+            <div className="mt-1 text-xs text-[color:var(--lx-muted)]">
               {item.city} · {item.postedAgo[lang]}
             </div>
-            <div className="mt-2 text-sm text-[#111111] line-clamp-2">
+            <div className="mt-2 text-sm text-[color:var(--lx-text)] line-clamp-2">
               {item.blurb[lang]}
             </div>
           </Link>

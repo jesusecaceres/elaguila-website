@@ -42,8 +42,8 @@ function RestaurantesLandingPageFallback() {
     <RestaurantesLandingShell>
       <Navbar />
       <main className="mx-auto max-w-[1280px] px-4 py-10">
-        <h1 className="font-serif text-2xl font-semibold text-[#2D241E]">Restaurantes</h1>
-        <p className="mt-2 text-sm text-[#2D241E]/60">Cargando…</p>
+        <h1 className="font-serif text-2xl font-semibold text-[color:var(--lx-text)]">Restaurantes</h1>
+        <p className="mt-2 text-sm text-[color:var(--lx-muted)]">Cargando…</p>
       </main>
     </RestaurantesLandingShell>
   );
@@ -150,20 +150,20 @@ function RestaurantesLandingPageInner({
     <RestaurantesLandingShell>
       <Navbar />
 
-      <div className="sticky top-0 z-30 border-b border-[#2D241E]/[0.08] bg-[#FFFCF7]/90 backdrop-blur-md">
+      <div className="sticky top-0 z-30 border-b border-[color:var(--lx-border)]/25 bg-[color:var(--lx-card)]/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-[1280px] min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-5 lg:px-6">
-          <nav className="text-[11px] font-medium text-[#2D241E]/55" aria-label="Breadcrumb">
-            <Link href={clasificadosHref} className="transition hover:text-[#2D241E] hover:underline">
+          <nav className="text-[11px] font-medium text-[color:var(--lx-muted)]" aria-label="Breadcrumb">
+            <Link href={clasificadosHref} className="transition hover:text-[color:var(--lx-text)] hover:underline">
               {copy.breadcrumbParent}
             </Link>
             <span className="mx-1.5 opacity-45">/</span>
-            <span className="font-semibold text-[#2D241E]">{copy.breadcrumbCurrent}</span>
+            <span className="font-semibold text-[color:var(--lx-text)]">{copy.breadcrumbCurrent}</span>
           </nav>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <ViajesLangSwitch compact />
             <Link
               href={publishHref}
-              className="inline-flex min-h-[40px] items-center rounded-full border border-[#2D241E]/12 bg-[#FFFCF7] px-4 text-[11px] font-bold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/60 focus-visible:ring-offset-2"
+              className="inline-flex min-h-[40px] items-center rounded-full border border-[color:var(--lx-border)]/50 bg-[color:var(--lx-card)] px-4 text-[11px] font-bold text-[color:var(--lx-text)] shadow-sm transition hover:border-[#D97706]/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/60 focus-visible:ring-offset-2"
             >
               {lang === "es" ? "Anunciar" : "Advertise"}
             </Link>
@@ -184,19 +184,19 @@ function RestaurantesLandingPageInner({
             <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#5c4a3d]/80 sm:text-[11px]">
               {lang === "en" ? "Dining · Leonix" : "Restaurantes · Leonix"}
             </p>
-            <h1 className="mt-2 text-balance font-serif text-[clamp(1.55rem,3.5vw+0.5rem,2.55rem)] font-semibold leading-[1.12] tracking-tight text-[#2D241E] drop-shadow-[0_1px_0_rgba(255,252,247,0.88)] sm:mt-2.5">
+            <h1 className="mt-2 text-balance font-serif text-[clamp(1.55rem,3.5vw+0.5rem,2.55rem)] font-semibold leading-[1.12] tracking-tight text-[color:var(--lx-text)] drop-shadow-[0_1px_0_rgba(255,252,247,0.88)] sm:mt-2.5">
               {copy.heroLead}
               <span className="font-serif font-semibold" style={{ color: ACCENT }}>
                 {copy.heroAccent}
               </span>
             </h1>
-            <p className="mx-auto mt-3 max-w-2xl text-[0.9375rem] leading-relaxed text-[#2D241E]/86 sm:mt-3.5 sm:text-base">
+            <p className="mx-auto mt-3 max-w-2xl text-[0.9375rem] leading-relaxed text-[color:var(--lx-text)]/80 sm:mt-3.5 sm:text-base">
               {copy.heroSub}
             </p>
           </div>
         </CategoryHeroFrame>
 
-        <div className="mx-auto max-w-[960px] rounded-[20px] border border-[#2D241E]/[0.08] bg-[#FFFCF7]/97 p-4 shadow-[0_14px_44px_-26px_rgba(45,36,30,0.28)] ring-1 ring-[#D97706]/18 backdrop-blur-sm sm:rounded-[22px] sm:p-5 md:p-6 lg:rounded-[24px]">
+        <div className="mx-auto max-w-[960px] rounded-[20px] border border-[color:var(--lx-border)]/25 bg-[color:var(--lx-card)]/97 p-4 shadow-[0_14px_44px_-26px_rgba(45,36,30,0.28)] ring-1 ring-[#D97706]/18 backdrop-blur-sm sm:rounded-[22px] sm:p-5 md:p-6 lg:rounded-[24px]">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -219,7 +219,7 @@ function RestaurantesLandingPageInner({
                   {copy.searchPh}
                 </label>
                 <div className="relative">
-                  <FaSearch className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2D241E]/38" aria-hidden />
+                  <FaSearch className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--lx-muted)]" aria-hidden />
                   <input
                     id="rx-landing-q"
                     value={searchQ}
@@ -227,11 +227,11 @@ function RestaurantesLandingPageInner({
                     placeholder={copy.searchPh}
                     autoComplete="off"
                     aria-describedby="rx-landing-q-hint"
-                    className="min-h-[50px] w-full min-w-0 rounded-[14px] border border-[#2D241E]/[0.1] bg-[#FFFCF7] py-3 pl-11 pr-3 text-sm text-[#2D241E] outline-none ring-[#D97706]/25 transition-shadow focus:ring-2"
+                    className="min-h-[50px] w-full min-w-0 rounded-[14px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] py-3 pl-11 pr-3 text-sm text-[color:var(--lx-text)] outline-none ring-[var(--brand-color-1)]/25 transition-shadow focus:ring-2"
                   />
                 </div>
-                <p id="rx-landing-q-hint" className="mt-1.5 text-left text-[11px] leading-snug text-[#2D241E]/52 sm:text-xs">
-                  {copy.searchHelper}
+                <p id="rx-landing-q-hint" className="mt-1.5 text-left text-[11px] leading-snug text-[color:var(--lx-muted)] sm:text-xs">
+                {copy.searchHelper}
                 </p>
               </div>
               <div className="min-w-0 md:min-w-0 xl:flex-1">
@@ -239,10 +239,7 @@ function RestaurantesLandingPageInner({
                   {copy.locationPh}
                 </label>
                 <div className="relative">
-                  <FaMapMarkerAlt
-                    className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2D241E]/40"
-                    aria-hidden
-                  />
+                  <FaMapMarkerAlt className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--lx-muted)]" aria-hidden />
                   <input
                     id="rx-landing-loc"
                     value={location}
@@ -250,25 +247,25 @@ function RestaurantesLandingPageInner({
                     placeholder={copy.locationPh}
                     autoComplete="address-level2"
                     aria-describedby="rx-landing-loc-hint"
-                    className="min-h-[50px] w-full min-w-0 rounded-[14px] border border-[#2D241E]/[0.1] bg-[#FFFCF7] py-3 pl-11 pr-3 text-sm text-[#2D241E] outline-none ring-[#D97706]/25 transition-shadow focus:ring-2"
+                    className="min-h-[50px] w-full min-w-0 rounded-[14px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] py-3 pl-11 pr-3 text-sm text-[color:var(--lx-text)] outline-none ring-[#D97706]/25 transition-shadow focus:ring-2"
                   />
                 </div>
-                <p id="rx-landing-loc-hint" className="mt-1.5 text-left text-[11px] leading-snug text-[#2D241E]/52 sm:text-xs">
-                  {copy.locationHelper}
+                <p id="rx-landing-loc-hint" className="mt-1.5 text-left text-[11px] leading-snug text-[color:var(--lx-muted)] sm:text-xs">
+                {copy.locationHelper}
                 </p>
               </div>
             </div>
             <div className="w-full shrink-0 xl:w-[min(100%,188px)] xl:self-center">
               <button
                 type="submit"
-                className="inline-flex min-h-[50px] w-full items-center justify-center rounded-[14px] px-6 text-sm font-bold text-[#FFFCF7] shadow-[0_10px_32px_-12px_rgba(180,83,9,0.5)] transition hover:brightness-[1.04] hover:shadow-[0_12px_36px_-12px_rgba(180,83,9,0.52)] active:scale-[0.99] active:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 touch-manipulation"
+                className="inline-flex min-h-[50px] w-full items-center justify-center rounded-[14px] px-6 text-sm font-bold text-white shadow-[0_10px_32px_-12px_rgba(180,83,9,0.5)] transition hover:brightness-[1.04] hover:shadow-[0_12px_36px_-12px_rgba(180,83,9,0.52)] active:scale-[0.99] active:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 touch-manipulation"
                 style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
               >
                 {copy.searchCta}
               </button>
             </div>
           </form>
-          <p className="mt-3 border-t border-[#2D241E]/[0.06] pt-3 text-center text-[11px] leading-relaxed text-[#2D241E]/55 sm:text-xs">
+          <p className="mt-3 border-t border-[color:var(--lx-border)]/20 pt-3 text-center text-[11px] leading-relaxed text-[color:var(--lx-muted)] sm:text-xs">
             {copy.continuityHint}
           </p>
           {landingNote ? (
@@ -288,7 +285,7 @@ function RestaurantesLandingPageInner({
               <Link
                 key={f.id}
                 href={buildRestaurantesResultsHref(lang, f.resultParams)}
-                className="inline-flex min-h-[40px] shrink-0 snap-start items-center whitespace-nowrap rounded-full border border-[#D97706]/35 bg-[#FFFCF7] px-4 py-2 text-xs font-semibold text-[#2D241E] shadow-sm transition-all duration-200 hover:-translate-y-px hover:border-[#D97706]/60 hover:bg-[#FFF7ED] hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFFCF7] touch-manipulation sm:shrink"
+                className="inline-flex min-h-[40px] shrink-0 snap-start items-center whitespace-nowrap rounded-full border border-[#D97706]/35 bg-[color:var(--lx-card)] px-4 py-2 text-xs font-semibold text-[color:var(--lx-text)] shadow-sm transition-all duration-200 hover:-translate-y-px hover:border-[#D97706]/60 hover:bg-[color:var(--lx-section)] hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--lx-card)] touch-manipulation sm:shrink"
               >
                 {lang === "es" ? f.labelEs : f.labelEn}
               </Link>
@@ -314,13 +311,13 @@ function RestaurantesLandingPageInner({
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1280px] space-y-10 overflow-x-hidden bg-[#FDFBF7] px-4 pb-14 text-[#2D241E] sm:space-y-12 sm:px-5 sm:pb-20 md:space-y-14 lg:space-y-16 lg:px-6">
+      <main className="mx-auto max-w-[1280px] space-y-10 overflow-x-hidden bg-[color:var(--lx-page)] px-4 pb-14 text-[color:var(--lx-text)] sm:space-y-12 sm:px-5 sm:pb-20 md:space-y-14 lg:space-y-16 lg:px-6">
         <section
-          className="grid grid-cols-1 gap-5 rounded-[20px] border border-[#2D241E]/[0.06] bg-[#FFFCF7]/90 p-5 shadow-sm sm:gap-6 sm:p-6 md:grid-cols-2 md:gap-6 md:p-7 lg:grid-cols-3 lg:gap-8 lg:p-8"
+          className="grid grid-cols-1 gap-5 rounded-[20px] border border-[color:var(--lx-border)]/20 bg-[color:var(--lx-card)]/90 p-5 shadow-sm sm:gap-6 sm:p-6 md:grid-cols-2 md:gap-6 md:p-7 lg:grid-cols-3 lg:gap-8 lg:p-8"
           aria-label={lang === "es" ? "Por qué Leonix Restaurantes" : "Why search Leonix Restaurants"}
         >
           {copy.trust.map((line) => (
-            <p key={line} className="text-center text-sm font-medium leading-relaxed text-[#2D241E]/80">
+            <p key={line} className="text-center text-sm font-medium leading-relaxed text-[color:var(--lx-text)]/80">
               {line}
             </p>
           ))}
@@ -335,7 +332,7 @@ function RestaurantesLandingPageInner({
                   {copy.featuredTitle}
                 </h2>
               </div>
-              <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#2D241E]/60 sm:text-sm">{copy.featuredIntro}</p>
+              <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[color:var(--lx-muted)] sm:text-sm">{copy.featuredIntro}</p>
             </div>
           </div>
           {featuredCards.length ? (
@@ -357,7 +354,7 @@ function RestaurantesLandingPageInner({
               })}
             </div>
           ) : (
-            <p className="mt-6 rounded-[14px] border border-[#2D241E]/10 bg-[#FFFCF7] px-4 py-4 text-sm leading-relaxed text-[#2D241E]/70">
+            <p className="mt-6 rounded-[14px] border border-[color:var(--lx-border)]/35 bg-[color:var(--lx-card)] px-4 py-4 text-sm leading-relaxed text-[color:var(--lx-muted)]">
               {lang === "es"
                 ? "Cuando haya listados publicados, aparecerán aquí los destacados según la política de exposición de Leonix."
                 : "When published listings exist, featured picks will appear here using Leonix exposure rules."}
@@ -373,14 +370,14 @@ function RestaurantesLandingPageInner({
                 {copy.browseTitle}
               </h2>
             </div>
-            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#2D241E]/60 sm:text-sm">{copy.browseIntro}</p>
+            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[color:var(--lx-muted)] sm:text-sm">{copy.browseIntro}</p>
           </div>
           <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:gap-4 lg:grid-cols-6">
             {RESTAURANTES_BLUEPRINT_CATEGORY_TILES.map((tile) => (
               <Link
                 key={tile.id}
                 href={buildRestaurantesResultsHref(lang, { cuisine: tile.cuisineKey })}
-                className="group flex flex-col overflow-hidden rounded-[16px] border border-[#2D241E]/[0.08] bg-[#FFFCF7] shadow-[0_10px_32px_-22px_rgba(45,36,30,0.4)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_36px_-20px_rgba(45,36,30,0.45)] touch-manipulation"
+                className="group flex flex-col overflow-hidden rounded-[16px] border border-[color:var(--lx-border)]/30 bg-[color:var(--lx-card)] shadow-[0_10px_32px_-22px_rgba(45,36,30,0.4)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_36px_-20px_rgba(45,36,30,0.45)] touch-manipulation"
               >
                 <div className="relative aspect-square w-full overflow-hidden rounded-t-[16px]">
                   <Image
@@ -392,7 +389,7 @@ function RestaurantesLandingPageInner({
                   />
                 </div>
                 <div className="p-3 text-center">
-                  <span className="text-xs font-semibold text-[#2D241E] sm:text-sm">
+                  <span className="text-xs font-semibold text-[color:var(--lx-text)] sm:text-sm">
                     {lang === "es" ? tile.labelEs : tile.labelEn}
                   </span>
                 </div>
@@ -409,7 +406,7 @@ function RestaurantesLandingPageInner({
                 {copy.recentTitle}
               </h2>
             </div>
-            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#2D241E]/60 sm:text-sm">{copy.recentIntro}</p>
+            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[color:var(--lx-muted)] sm:text-sm">{copy.recentIntro}</p>
           </div>
           {recentCards.length ? (
             <div className="mt-6 flex w-full min-w-0 flex-col gap-5 sm:gap-6">
@@ -430,7 +427,7 @@ function RestaurantesLandingPageInner({
               })}
             </div>
           ) : (
-            <p className="mt-6 rounded-[14px] border border-dashed border-[#D97706]/35 bg-[#FFF7ED]/60 px-4 py-4 text-sm leading-relaxed text-[#2D241E]/72">
+            <p className="mt-6 rounded-[14px] border border-dashed border-[#D97706]/35 bg-[color:var(--lx-section)] px-4 py-4 text-sm leading-relaxed text-[color:var(--lx-muted)]">
               {lang === "es"
                 ? "Los recientes se rellenan con publicaciones vivas ordenadas por fecha."
                 : "Recent listings fill in from live posts ordered by publish date."}
@@ -441,14 +438,14 @@ function RestaurantesLandingPageInner({
         <div className="mt-8 flex justify-center sm:mt-10 md:mt-12">
           <Link
             href={allResultsHref}
-            className="inline-flex min-h-[44px] w-full max-w-md items-center justify-center rounded-full border border-[#D97706]/40 bg-[#FFFCF7] px-6 text-sm font-semibold text-[#2D241E] shadow-sm transition hover:border-[#D97706]/65 hover:bg-[#FFF7ED] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/70 focus-visible:ring-offset-2 sm:w-auto sm:max-w-none"
+            className="inline-flex min-h-[44px] w-full max-w-md items-center justify-center rounded-full border border-[#D97706]/40 bg-[color:var(--lx-card)] px-6 text-sm font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:border-[#D97706]/65 hover:bg-[color:var(--lx-section)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/70 focus-visible:ring-offset-2 sm:w-auto sm:max-w-none"
           >
             {copy.exploreAll}
           </Link>
         </div>
 
         <section
-          className="relative overflow-hidden rounded-[20px] border border-[#2D241E]/[0.08] shadow-[0_20px_50px_-28px_rgba(45,36,30,0.35)] sm:rounded-[24px]"
+          className="relative overflow-hidden rounded-[20px] border border-[color:var(--lx-border)]/25 shadow-[0_20px_50px_-28px_rgba(45,36,30,0.35)] sm:rounded-[24px]"
           aria-labelledby="rx-owner-cta"
         >
           <div className="absolute inset-0" aria-hidden>
@@ -474,15 +471,15 @@ function RestaurantesLandingPageInner({
             <div className="min-w-0 text-center md:text-left">
               <h2
                 id="rx-owner-cta"
-                className="font-serif text-[clamp(1.375rem,2.5vw+0.75rem,1.875rem)] font-semibold leading-tight text-[#2D241E] sm:text-2xl lg:text-3xl"
+                className="font-serif text-[clamp(1.375rem,2.5vw+0.75rem,1.875rem)] font-semibold leading-tight text-[color:var(--lx-text)] sm:text-2xl lg:text-3xl"
               >
                 {copy.ctaHeadline}
               </h2>
-              <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-[#2D241E]/78 md:mx-0 md:text-base">{copy.ctaSub}</p>
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-[color:var(--lx-muted)] md:mx-0 md:text-base">{copy.ctaSub}</p>
               <div className="mt-5 flex justify-center md:mt-6 md:justify-start">
                 <Link
                   href={publishHref}
-                  className="inline-flex min-h-[52px] w-full max-w-sm items-center justify-center rounded-[16px] px-8 text-sm font-bold text-[#FFFCF7] shadow-[0_14px_40px_-12px_rgba(180,83,9,0.58)] transition hover:brightness-[1.04] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 sm:min-w-[220px] sm:w-auto sm:max-w-none touch-manipulation"
+                  className="inline-flex min-h-[52px] w-full max-w-sm items-center justify-center rounded-[16px] px-8 text-sm font-bold text-white shadow-[0_14px_40px_-12px_rgba(180,83,9,0.58)] transition hover:brightness-[1.04] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 sm:min-w-[220px] sm:w-auto sm:max-w-none touch-manipulation"
                   style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
                 >
                   {copy.ctaBtn}

@@ -157,13 +157,13 @@ export function RestauranteAdStoryPreview({
           href={actionableUrl}
           target={row.value.startsWith("http") ? "_blank" : undefined}
           rel={row.value.startsWith("http") ? "noopener noreferrer" : undefined}
-          className="break-words text-[#6B5B2E] underline decoration-[#BEA98E] underline-offset-2 transition-colors hover:text-[#1F1A17] hover:decoration-[#D8C2A0]"
+          className="break-words text-[color:var(--lx-olive)] underline decoration-[color:var(--lx-border)] underline-offset-2 transition-colors hover:text-[color:var(--lx-text)] hover:decoration-[color:var(--lx-border)]"
         >
           {row.value}
         </a>
       );
     }
-    return <span className="break-words text-[#1F1A17]">{row.value}</span>;
+    return <span className="break-words text-[color:var(--lx-text)]">{row.value}</span>;
   };
 
   return (
@@ -625,7 +625,7 @@ export function RestauranteAdStoryPreview({
               {data.aboutBody ? (
                 <>
                   <div
-                    className={`text-sm leading-relaxed text-[#1F1A17] whitespace-pre-wrap md:text-base ${
+                    className={`text-sm leading-relaxed text-[color:var(--lx-text)] whitespace-pre-wrap md:text-base ${
                       aboutExpanded ? "" : "line-clamp-5 md:line-clamp-none"
                     }`}
                   >
@@ -635,14 +635,14 @@ export function RestauranteAdStoryPreview({
                     <button
                       type="button"
                       onClick={() => setAboutExpanded((e) => !e)}
-                      className="mt-2 text-sm font-semibold text-[#6B5B2E] underline underline-offset-2 md:hidden"
+                      className="mt-2 text-sm font-semibold text-[color:var(--lx-olive)] underline underline-offset-2 md:hidden"
                     >
                       {aboutExpanded ? "Leer menos" : "Leer más"}
                     </button>
                   ) : null}
                 </>
               ) : (
-                <p className="text-base text-[#1F1A17] leading-relaxed">{data.summaryShort}</p>
+                <p className="text-base text-[color:var(--lx-text)] leading-relaxed">{data.summaryShort}</p>
               )}
             </div>
           </div>

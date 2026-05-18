@@ -8,43 +8,43 @@ import { FaWhatsapp } from "react-icons/fa";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
 
 const PREVIEW_CARD =
-  "overflow-hidden rounded-[28px] border border-[#D8C2A0]/70 bg-[#FFFAF3] shadow-[0_18px_70px_-30px_rgba(42,36,22,0.25)] transition-shadow duration-300 hover:shadow-[0_22px_90px_-36px_rgba(42,36,22,0.32)]";
+  "overflow-hidden rounded-[28px] border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] shadow-[0_18px_70px_-30px_rgba(42,36,22,0.18)] transition-shadow duration-300 hover:shadow-[0_22px_90px_-36px_rgba(42,36,22,0.24)]";
 
 /** Landscape results card: wide overall, left media ~40%, right content ~60%, media height capped by aspect (not stretched to content). */
 const GRID =
   "grid min-w-0 grid-cols-1 gap-0 md:grid-cols-[minmax(0,42%)_minmax(0,58%)] md:items-start";
-const MEDIA = "min-w-0 bg-[#F5F0E8] p-2.5 md:p-4 md:pr-3";
+const MEDIA = "min-w-0 bg-[color:var(--lx-section)] p-2.5 md:p-4 md:pr-3";
 const MEDIA_FRAME =
-  "relative aspect-[16/9] w-full overflow-hidden rounded-[22px] bg-[#EFE7DA] md:aspect-[16/10]";
+  "relative aspect-[16/9] w-full overflow-hidden rounded-[22px] bg-[color:var(--lx-canvas)] md:aspect-[16/10]";
 
 const CONTENT = "flex min-w-0 flex-col gap-2 px-4 pb-3 pt-3 md:gap-3 md:px-7 md:pb-6 md:pt-5";
 
 const TITLE =
-  "text-[22px] font-bold leading-[1.12] tracking-tight text-[#1F1A17] sm:text-[24px] md:text-[32px] lg:text-[34px]";
+  "text-[22px] font-bold leading-[1.12] tracking-tight text-[color:var(--lx-text)] sm:text-[24px] md:text-[32px] lg:text-[34px]";
 const CHIP_ROW = "flex flex-wrap gap-2";
 const CHIP =
-  "inline-flex items-center rounded-full border border-[#E1CFB3] bg-white/70 px-3 py-1.5 text-[12px] font-semibold text-[#2B241F] shadow-sm";
+  "inline-flex items-center rounded-full border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)]/70 px-3 py-1.5 text-[12px] font-semibold text-[color:var(--lx-text)] shadow-sm";
 
-const META_ROW = "flex flex-wrap items-center gap-2.5 text-[13px] font-semibold text-[#5A5148]";
+const META_ROW = "flex flex-wrap items-center gap-2.5 text-[13px] font-semibold text-[color:var(--lx-muted)]";
 const META_PILL =
-  "inline-flex items-center gap-2 rounded-full border border-[#E1CFB3] bg-[#FFFDF7] px-3 py-1.5 shadow-sm";
+  "inline-flex items-center gap-2 rounded-full border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] px-3 py-1.5 shadow-sm";
 const STATUS_OPEN = "bg-emerald-50 text-emerald-900 border-emerald-200/80";
 const STATUS_CLOSED = "bg-rose-50 text-rose-900 border-rose-200/80";
 
 const ADDRESS_LINK =
-  "group inline-flex min-h-[44px] w-full items-center gap-2 rounded-2xl border border-[#E1CFB3] bg-white/80 px-4 py-3 text-sm font-semibold text-[#2B241F] shadow-sm transition hover:bg-white hover:border-[#BEA98E] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3B66AD]/40";
+  "group inline-flex min-h-[44px] w-full items-center gap-2 rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)]/80 px-4 py-3 text-sm font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:bg-[color:var(--lx-card)] hover:border-[color:var(--lx-border)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--lx-blue)]/40";
 
-const SUMMARY = "text-xs leading-snug text-[#5A5148] md:text-sm md:leading-relaxed";
+const SUMMARY = "text-xs leading-snug text-[color:var(--lx-muted)] md:text-sm md:leading-relaxed";
 
 const FEATURE_ROW = "flex flex-wrap gap-2";
 const FEATURE_CHIP =
-  "inline-flex items-center rounded-full border border-[#E1CFB3] bg-[#F6EBDD] px-3 py-1.5 text-[12px] font-semibold text-[#2B241F]";
+  "inline-flex items-center rounded-full border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-section)] px-3 py-1.5 text-[12px] font-semibold text-[color:var(--lx-text)]";
 
 const CTA_ROW = "flex flex-wrap items-stretch gap-2.5 pt-1 md:items-center";
 const CTA_BTN_BASE =
-  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-bold shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3B66AD]/40";
-const CTA_PRIMARY = "border-[#B98D4C]/60 bg-[#B98D4C] text-white hover:bg-[#a77f46]";
-const CTA_SECONDARY = "border-[#E1CFB3] bg-white text-[#2B241F] hover:bg-[#FFFCF7] hover:border-[#BEA98E]";
+  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-bold shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--lx-blue)]/40";
+const CTA_PRIMARY = "border-[color:var(--lx-lion)]/60 bg-[color:var(--lx-lion)] text-white hover:opacity-90";
+const CTA_SECONDARY = "border-[color:var(--lx-border)] bg-[color:var(--lx-card)] text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)] hover:border-[color:var(--lx-border)]";
 
 function cleanOtherLabel(raw: string): string {
   const t = String(raw ?? "").trim();
@@ -109,7 +109,7 @@ interface RestaurantePreviewCardProps {
  * Restaurantes preview / results card (compact). Social actions live on the full detail shell only.
  */
 const RESULT_PRIMARY_CTA =
-  "flex min-h-[44px] w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#D4A574] to-[#b45309] text-xs font-bold text-[#FFFCF7] shadow-[0_8px_22px_-10px_rgba(180,83,9,0.45)] transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 md:min-h-[48px] md:text-sm";
+  "flex min-h-[44px] w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#D4A574] to-[#b45309] text-xs font-bold text-white shadow-[0_8px_22px_-10px_rgba(180,83,9,0.45)] transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--lx-lion)] focus-visible:ring-offset-2 md:min-h-[48px] md:text-sm";
 
 export function RestaurantePreviewCard({
   data,
@@ -298,7 +298,7 @@ export function RestaurantePreviewCard({
                   {identityChips.slice(0, 3).map((chip) => (
                     <span
                       key={chip}
-                      className="inline-flex items-center rounded-full border border-[#E1CFB3] bg-white/70 px-2 py-0.5 text-[10px] font-semibold text-[#2B241F] shadow-sm"
+                      className="inline-flex items-center rounded-full border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)]/70 px-2 py-0.5 text-[10px] font-semibold text-[color:var(--lx-text)] shadow-sm"
                     >
                       {chip}
                     </span>
@@ -376,14 +376,14 @@ export function RestaurantePreviewCard({
                     {features.map((f) => (
                       <span
                         key={f}
-                        className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-[#E1CFB3] bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-semibold text-[#2B241F]"
+                        className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-section)] px-2 py-0.5 text-[10px] font-semibold text-[color:var(--lx-text)]"
                       >
                         {f}
                       </span>
                     ))}
                   </div>
                   <div
-                    className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-9 bg-gradient-to-l from-[#FFFAF3] to-transparent"
+                    className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-9 bg-gradient-to-l from-[color:var(--lx-card)] to-transparent"
                     aria-hidden
                   />
                 </div>
