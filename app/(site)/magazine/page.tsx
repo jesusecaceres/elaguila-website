@@ -267,7 +267,7 @@ export default function MagazineHubPage() {
                     <button
                       type="button"
                       onClick={() => openFlipbook(featured.flipbookUrl)}
-                      className="px-6 py-3 rounded-full bg-[color:var(--lx-cta-dark)] text-[color:var(--lx-cta-light)] font-semibold hover:bg-[color:var(--lx-cta-dark-hover)] transition"
+                      className="px-6 py-3 rounded-full bg-[color:var(--lx-cta-primary-bg)] text-[color:var(--lx-cta-primary-fg)] font-semibold hover:opacity-90 transition"
                     >
                       {t.openMagazine}
                     </button>
@@ -333,7 +333,7 @@ export default function MagazineHubPage() {
                                     <button
                                       type="button"
                                       onClick={() => openFlipbook(issueFlip)}
-                                      className="px-6 py-3 rounded-full bg-[color:var(--lx-cta-dark)] text-[color:var(--lx-cta-light)] font-semibold hover:bg-[color:var(--lx-cta-dark-hover)] transition"
+                                      className="px-6 py-3 rounded-full bg-[color:var(--lx-cta-primary-bg)] text-[color:var(--lx-cta-primary-fg)] font-semibold hover:opacity-90 transition"
                                     >
                                       {t.openMagazine}
                                     </button>

@@ -26,11 +26,11 @@ export function TiendaCatalogItemCard(props: {
       href={href}
       className={[
         "group flex flex-col overflow-hidden rounded-3xl",
-        "border border-[rgba(255,255,255,0.10)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(0,0,0,0.2))]",
-        "shadow-[0_18px_60px_rgba(0,0,0,0.35)] transition duration-300 hover:-translate-y-0.5 hover:border-[rgba(201,168,74,0.42)] hover:shadow-[0_22px_70px_rgba(201,168,74,0.12)]",
+        "border border-[color:var(--lx-border)] bg-[color:var(--lx-card)]",
+        "shadow-[0_18px_48px_rgba(42,36,22,0.10)] transition duration-300 hover:-translate-y-0.5 hover:border-[color:var(--lx-lion)] hover:shadow-[0_22px_60px_rgba(201,120,47,0.12)]",
       ].join(" ")}
     >
-      <div className="aspect-[16/10] bg-[rgba(0,0,0,0.35)] relative overflow-hidden">
+      <div className="aspect-[16/10] bg-[color:var(--lx-canvas)] relative overflow-hidden">
         <TiendaRemoteFillImage
           primarySrc={displaySrc}
           fallbackSrc={fallbackSrc}
@@ -52,11 +52,11 @@ export function TiendaCatalogItemCard(props: {
         ) : null}
       </div>
       <div className="flex flex-1 flex-col p-5 sm:p-6">
-        <h3 className="text-lg font-semibold text-white">{title}</h3>
-        <p className="mt-2 flex-1 text-sm leading-relaxed text-[rgba(255,255,255,0.68)] line-clamp-3">{desc}</p>
+        <h3 className="text-lg font-semibold text-[color:var(--lx-text)]">{title}</h3>
+        <p className="mt-2 flex-1 text-sm leading-relaxed text-[color:var(--lx-text-2)]/85 line-clamp-3">{desc}</p>
         <div className="mt-4 flex items-end justify-between gap-3 text-sm">
-          <span className="text-[rgba(201,168,74,0.9)] font-medium">{priceLine}</span>
-          <span className="text-[rgba(255,247,226,0.88)]">{lang === "en" ? "Details →" : "Detalles →"}</span>
+          <span className="text-[color:var(--lx-lion)] font-medium">{priceLine}</span>
+          <span className="text-[color:var(--lx-text-2)]">{lang === "en" ? "Details →" : "Detalles →"}</span>
         </div>
       </div>
     </Link>

@@ -5,15 +5,15 @@ import { LEONIX_GLOBAL_LLC, LEONIX_MEDIA_SLOGAN, LEONIX_SITE_ORIGIN } from "@/ap
 
 export default function Footer() {
   return (
-    <footer className="w-full bg-[color:var(--lx-section)] text-[color:var(--lx-text)] py-12 mt-20 border-t border-[color:var(--lx-nav-border)]">
+    <footer className="w-full bg-[color:var(--lx-section)] text-[color:var(--lx-text)] py-12 mt-20 border-t border-[color:var(--lx-border)]">
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10">
         <div>
-          <h3 className="text-xl font-bold text-[color:var(--lx-gold)] mb-3">Síguenos</h3>
+          <h3 className="text-xl font-bold text-[color:var(--lx-lion)] mb-3">Síguenos</h3>
           <ul className="space-y-2 text-[color:var(--lx-text-2)]/90">
             <li>
               <a
                 href={LEONIX_SITE_ORIGIN}
-                className="hover:text-[color:var(--lx-gold)] transition font-medium"
+                className="hover:text-[color:var(--lx-lion)] transition font-medium"
                 rel="noopener noreferrer"
               >
                 {LEONIX_SITE_ORIGIN.replace(/^https:\/\//, "")}
@@ -26,10 +26,10 @@ export default function Footer() {
         </div>
 
         <div>
-          <h3 className="text-xl font-bold text-[color:var(--lx-gold)] mb-3">Contacto</h3>
+          <h3 className="text-xl font-bold text-[color:var(--lx-lion)] mb-3">Contacto</h3>
           <p>
             <span className="text-[color:var(--lx-text-2)]/90">Email: </span>
-            <a className="underline decoration-[color:var(--lx-gold)]" href={`mailto:${LEONIX_GLOBAL_EMAIL}`}>
+            <a className="underline decoration-[color:var(--lx-lion)]" href={`mailto:${LEONIX_GLOBAL_EMAIL}`}>
               {LEONIX_GLOBAL_EMAIL}
             </a>
           </p>
@@ -38,14 +38,14 @@ export default function Footer() {
         </div>
 
         <div>
-          <h3 className="text-xl font-bold text-[color:var(--lx-gold)] mb-3">Anuncia con nosotros</h3>
+          <h3 className="text-xl font-bold text-[color:var(--lx-lion)] mb-3">Anuncia con nosotros</h3>
           <p className="text-[color:var(--lx-text-2)]/85">
             {LEONIX_MEDIA_BRAND} conecta negocios, clasificados y comunidad en un solo ecosistema bilingüe para el Área
             de la Bahía y el norte de California.
           </p>
           <a
             href="/contacto?lang=es"
-            className="text-[color:var(--lx-text)] underline decoration-[color:var(--lx-gold)] underline-offset-4 mt-2 inline-block hover:text-[color:var(--lx-gold)] transition"
+            className="text-[color:var(--lx-text)] underline decoration-[color:var(--lx-lion)] underline-offset-4 mt-2 inline-block hover:text-[color:var(--lx-lion)] transition"
           >
             Más información →
           </a>

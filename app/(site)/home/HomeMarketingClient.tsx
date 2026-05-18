@@ -128,7 +128,7 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
           <div className="mt-4 flex flex-col items-center gap-2">
             <a
               href={primaryHref}
-              className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-cta-dark)] px-7 py-3 text-sm md:text-base font-semibold text-[color:var(--lx-cta-light)] shadow-[0_10px_28px_rgba(42,36,22,0.18)] hover:bg-[color:var(--lx-cta-dark-hover)] transition-all duration-300"
+              className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-cta-primary-bg)] px-7 py-3 text-sm md:text-base font-semibold text-[color:var(--lx-cta-primary-fg)] shadow-[0_10px_28px_rgba(201,120,47,0.22)] hover:opacity-90 transition-all duration-300"
             >
               {L.ctaPrimary}
             </a>

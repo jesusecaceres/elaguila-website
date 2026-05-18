@@ -111,7 +111,7 @@ export default function ClasificadosPage() {
                 <div className="border-t border-[#3D2C12]/10 px-4 pb-4 pt-3">
                   <Link
                     href={withLang(BR_PUBLICAR_HUB)}
-                    className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-[#C9B46A]/50 bg-[#2A2620] px-3 py-3 text-center text-sm font-bold text-[#FAF7F2] shadow-sm transition hover:bg-[#1E1810] active:scale-[0.99]"
+                    className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-[color:var(--lx-border)] bg-[color:var(--lx-cta-primary-bg)] px-3 py-3 text-center text-sm font-bold text-[color:var(--lx-cta-primary-fg)] shadow-sm transition hover:opacity-90 active:scale-[0.99]"
                   >
                     <span aria-hidden>{visual.emoji}</span>
                     {lang === "es" ? "Publicar en Bienes Raíces" : "Post in Real estate"}
@@ -152,7 +152,7 @@ export default function ClasificadosPage() {
                   <div className="border-t border-[#3D2C12]/10 px-4 pb-4 pt-3">
                     <Link
                       href={withLang(BR_PUBLICAR_HUB)}
-                      className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[#C9B46A]/50 bg-[#2A2620] px-3 py-2.5 text-center text-sm font-bold text-[#FAF7F2] shadow-sm transition hover:bg-[#1E1810] sm:w-auto sm:justify-start"
+                      className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[color:var(--lx-border)] bg-[color:var(--lx-cta-primary-bg)] px-3 py-2.5 text-center text-sm font-bold text-[color:var(--lx-cta-primary-fg)] shadow-sm transition hover:opacity-90 sm:w-auto sm:justify-start"
                     >
                       <span aria-hidden>{visual.emoji}</span>
                       {lang === "es" ? "Publicar en Bienes Raíces" : "Post in Real estate"}

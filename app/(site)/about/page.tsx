@@ -87,7 +87,7 @@ export default async function AboutPage(props: { searchParams?: Promise<{ lang?:
           {c.ctaPrimaryHref ? (
             <Link
               href={withLangParam(c.ctaPrimaryHref, lang)}
-              className="inline-flex rounded-full bg-[color:var(--lx-cta-dark)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-light)]"
+              className="inline-flex rounded-full bg-[color:var(--lx-cta-primary-bg)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-primary-fg)]"
             >
               {L.ctaPrimary}
             </Link>

@@ -88,7 +88,7 @@ function ContactContent() {
 
             <button
               type="submit"
-              className="w-full py-3 rounded-xl text-lg font-semibold bg-[color:var(--lx-cta-dark)] text-[color:var(--lx-cta-light)] shadow-[0_10px_28px_rgba(42,36,22,0.18)] hover:bg-[color:var(--lx-cta-dark-hover)] transition"
+              className="w-full py-3 rounded-xl text-lg font-semibold bg-[color:var(--lx-cta-primary-bg)] text-[color:var(--lx-cta-primary-fg)] shadow-[0_10px_28px_rgba(201,120,47,0.20)] hover:opacity-90 transition"
             >
               {lang === "es" ? "Enviar mensaje" : "Send message"}
             </button>

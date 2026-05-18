@@ -17,17 +17,17 @@ function CheckIcon() {
 export function TiendaTrustStrip(props: { lang: Lang; items: string[] }) {
   const { items } = props;
   return (
-    <section className="rounded-3xl border border-[rgba(201,168,74,0.22)] bg-[linear-gradient(180deg,rgba(201,168,74,0.10),rgba(255,255,255,0.02))] p-6 sm:p-10 shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
+    <section className="rounded-3xl border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] p-6 sm:p-10 shadow-[0_24px_60px_rgba(42,36,22,0.08)]">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {items.map((item, idx) => (
           <div
             key={idx}
-            className="flex items-start gap-3 rounded-2xl border border-[rgba(255,255,255,0.10)] bg-[rgba(0,0,0,0.20)] p-5"
+            className="flex items-start gap-3 rounded-2xl border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-5"
           >
-            <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[rgba(201,168,74,0.30)] bg-[rgba(201,168,74,0.12)] text-[rgba(255,247,226,0.88)]">
+            <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[rgba(85,107,62,0.30)] bg-[rgba(85,107,62,0.10)] text-[color:var(--lx-olive)]">
               <CheckIcon />
             </span>
-            <div className="text-sm leading-relaxed text-[rgba(255,255,255,0.76)]">
+            <div className="text-sm leading-relaxed text-[color:var(--lx-text-2)]/90">
               {item}
             </div>
           </div>

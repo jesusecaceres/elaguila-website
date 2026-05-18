@@ -57,7 +57,7 @@ export default async function TiendaPage(props: {
   const featuredThumbs = await fetchPrimaryImageUrlForItems(featuredCatalog.map((i) => i.id));
 
   return (
-    <main className="min-h-screen bg-[#070708] text-white [background-image:radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(201,168,74,0.12),transparent_50%),radial-gradient(ellipse_70%_50%_at_100%_50%,rgba(124,171,199,0.06),transparent_45%)]">
+    <main className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
       <div className="mx-auto max-w-6xl px-6 pt-28 pb-20">
         {/* 1) HERO */}
         <TiendaHero
@@ -76,7 +76,7 @@ export default async function TiendaPage(props: {
           const pen = storefrontPatch?.storefrontPromoStrip?.en?.trim();
           const line = lang === "en" ? (pen || pe) : (pe || pen);
           return line ? (
-            <div className="mt-8 rounded-2xl border border-[rgba(201,168,74,0.35)] bg-[rgba(201,168,74,0.08)] px-4 py-3 text-center text-sm text-[rgba(255,247,226,0.92)]">
+            <div className="mt-8 rounded-2xl border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-4 py-3 text-center text-sm text-[color:var(--lx-text)]">
               {line}
             </div>
           ) : null;
@@ -98,9 +98,9 @@ export default async function TiendaPage(props: {
 
               return (
                 <div key={group.id}>
-                  <div className="border-b border-[rgba(255,255,255,0.08)] pb-4">
-                    <h3 className="text-sm font-semibold tracking-tight text-[rgba(255,247,226,0.95)]">{title}</h3>
-                    {desc ? <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[rgba(255,255,255,0.58)]">{desc}</p> : null}
+                  <div className="border-b border-[color:var(--lx-border)] pb-4">
+                    <h3 className="text-sm font-semibold tracking-tight text-[color:var(--lx-text)]">{title}</h3>
+                    {desc ? <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[color:var(--lx-muted)]">{desc}</p> : null}
                   </div>
                   <div className={`mt-6 ${gridClass}`}>
                     {applyCategorySlugOrder(group.slugs, storefrontPatch?.homepageCategorySlugs).map((slug) => {

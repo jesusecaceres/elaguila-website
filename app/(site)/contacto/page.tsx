@@ -81,7 +81,7 @@ export default async function ContactoPage(props: {
           <p className="mb-4 text-sm leading-relaxed text-[color:var(--lx-text-2)]/90">{copy.tiendaBody}</p>
           <Link
             href={withLang(LEONIX_TIENDA_CONTACT_PATH, lang)}
-            className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-cta-dark)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-light)] transition hover:opacity-95"
+            className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-cta-primary-bg)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-primary-fg)] transition hover:opacity-90"
           >
             {copy.tiendaCta}
           </Link>

@@ -1,7 +1,7 @@
 import type { Lang } from "../types/tienda";
 
 function StepIcon(props: { kind: "choose" | "upload" | "deliver" }) {
-  const common = "h-5 w-5 text-[rgba(255,247,226,0.86)]";
+  const common = "h-5 w-5 text-[color:var(--lx-lion)]";
   if (props.kind === "choose") {
     return (
       <svg aria-hidden="true" viewBox="0 0 24 24" className={common} fill="none">
@@ -37,25 +37,25 @@ export function TiendaHowItWorks(props: {
   const kinds: Array<"choose" | "upload" | "deliver"> = ["choose", "upload", "deliver"];
 
   return (
-    <section className="rounded-3xl border border-[rgba(255,255,255,0.10)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-6 sm:p-10 shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
+    <section className="rounded-3xl border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] p-6 sm:p-10 shadow-[0_24px_60px_rgba(42,36,22,0.08)]">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {steps.map((s, idx) => (
-          <div key={idx} className="rounded-2xl border border-[rgba(255,255,255,0.10)] bg-[rgba(0,0,0,0.18)] p-6">
+          <div key={idx} className="rounded-2xl border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-6">
             <div className="flex items-center gap-3">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[rgba(201,168,74,0.28)] bg-[rgba(201,168,74,0.12)]">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[rgba(201,120,47,0.30)] bg-[rgba(201,120,47,0.10)]">
                 <StepIcon kind={kinds[idx] ?? "choose"} />
               </span>
-              <div className="text-[11px] tracking-[0.16em] uppercase text-[rgba(255,247,226,0.72)]">
+              <div className="text-[11px] tracking-[0.16em] uppercase text-[color:var(--lx-muted)]">
                 {props.lang === "en" ? `Step ${idx + 1}` : `Paso ${idx + 1}`}
               </div>
             </div>
-            <h3 className="mt-4 text-lg font-semibold tracking-tight text-white">{s.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-[rgba(255,255,255,0.70)]">{s.body}</p>
+            <h3 className="mt-4 text-lg font-semibold tracking-tight text-[color:var(--lx-text)]">{s.title}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]/85">{s.body}</p>
           </div>
         ))}
       </div>
 
-      <div className="mt-6 rounded-2xl border border-[rgba(201,168,74,0.20)] bg-[rgba(201,168,74,0.08)] px-5 py-4 text-sm leading-relaxed text-[rgba(255,247,226,0.82)]">
+      <div className="mt-6 rounded-2xl border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-5 py-4 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
         {note}
       </div>
     </section>

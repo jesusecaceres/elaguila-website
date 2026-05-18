@@ -11,7 +11,7 @@ export function TiendaCTA(props: {
 }) {
   const { lang, title, body, primary, secondary } = props;
   return (
-    <section className="rounded-[2rem] border border-[rgba(201,168,74,0.32)] bg-[linear-gradient(165deg,rgba(30,24,16,0.55),rgba(201,168,74,0.12),rgba(0,0,0,0.2))] p-6 sm:p-10 shadow-[0_28px_100px_rgba(201,168,74,0.14)] overflow-hidden relative">
+    <section className="rounded-[2rem] border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] p-6 sm:p-10 shadow-[0_28px_60px_rgba(42,36,22,0.10)] overflow-hidden relative">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-28 right-[-20%] h-72 w-72 rounded-full bg-[radial-gradient(circle_at_center,rgba(201,168,74,0.32),rgba(0,0,0,0))]" />
         <div className="absolute -bottom-32 left-[-18%] h-80 w-80 rounded-full bg-[radial-gradient(circle_at_center,rgba(255,200,140,0.14),rgba(201,168,74,0.08),rgba(0,0,0,0))]" />
@@ -21,15 +21,15 @@ export function TiendaCTA(props: {
       <div className="relative grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 items-center">
         <div>
           <div className="inline-flex items-center gap-2">
-            <span className="h-[1px] w-10 bg-[rgba(201,168,74,0.55)]" />
-            <span className="text-[11px] tracking-[0.18em] uppercase text-[rgba(255,247,226,0.76)]">
+            <span className="h-[1px] w-10 bg-[color:var(--lx-lion)]" />
+            <span className="text-[11px] tracking-[0.18em] uppercase text-[color:var(--lx-muted)]">
               {lang === "en" ? "Next steps" : "Siguiente paso"}
             </span>
           </div>
-          <h2 className="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight text-white">
+          <h2 className="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight text-[color:var(--lx-text)]">
             {title}
           </h2>
-          <p className="mt-2 text-sm sm:text-base leading-relaxed text-[rgba(255,255,255,0.72)] max-w-2xl">
+          <p className="mt-2 text-sm sm:text-base leading-relaxed text-[color:var(--lx-text-2)]/85 max-w-2xl">
             {body}
           </p>
         </div>
@@ -37,13 +37,13 @@ export function TiendaCTA(props: {
         <div className="flex flex-col sm:flex-row gap-3">
           <Link
             href={withLang(primary.href, lang)}
-            className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-gold)] px-6 py-3 text-sm font-semibold text-[color:var(--lx-text)] hover:brightness-95 transition shadow-[0_14px_40px_rgba(201,168,74,0.22)]"
+            className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-cta-primary-bg)] px-6 py-3 text-sm font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90 transition shadow-[0_14px_40px_rgba(201,120,47,0.22)]"
           >
             {primary.label}
           </Link>
           <Link
             href={withLang(secondary.href, lang)}
-            className="inline-flex items-center justify-center rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.06)] px-6 py-3 text-sm font-semibold text-[rgba(255,255,255,0.86)] hover:bg-[rgba(255,255,255,0.10)] transition"
+            className="inline-flex items-center justify-center rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] px-6 py-3 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-canvas)] transition"
           >
             {secondary.label}
           </Link>

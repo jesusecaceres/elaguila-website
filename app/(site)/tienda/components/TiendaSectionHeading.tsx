@@ -12,17 +12,17 @@ export function TiendaSectionHeading(props: {
       <div className="max-w-2xl">
         {eyebrow ? (
           <div className="inline-flex items-center gap-2">
-            <span className="h-[1px] w-10 bg-[rgba(201,168,74,0.55)]" />
-            <span className="text-[11px] tracking-[0.18em] uppercase text-[rgba(255,247,226,0.78)]">
+            <span className="h-[1px] w-10 bg-[color:var(--lx-lion)]" />
+            <span className="text-[11px] tracking-[0.18em] uppercase text-[color:var(--lx-muted)]">
               {eyebrow}
             </span>
           </div>
         ) : null}
-        <h2 className="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight text-white">
+        <h2 className="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight text-[color:var(--lx-text)]">
           {title}
         </h2>
         {description ? (
-          <p className="mt-2 text-sm sm:text-base leading-relaxed text-[rgba(255,255,255,0.72)]">
+          <p className="mt-2 text-sm sm:text-base leading-relaxed text-[color:var(--lx-text-2)]/85">
             {description}
           </p>
         ) : null}

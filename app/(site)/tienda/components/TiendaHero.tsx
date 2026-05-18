@@ -27,7 +27,7 @@ export function TiendaHero(props: {
       : "Tres pasos — elige producto, sube archivos listos o diseña tarjetas en línea, y Leonix confirma antes de producir.";
 
   return (
-    <section className="relative overflow-hidden rounded-[2.2rem] border border-[rgba(255,255,255,0.10)] bg-[linear-gradient(165deg,rgba(201,168,74,0.07),rgba(255,255,255,0.04),rgba(255,255,255,0.02))] shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
+    <section className="relative overflow-hidden rounded-[2.2rem] border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] shadow-[0_30px_80px_rgba(42,36,22,0.12)]">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-40 -right-28 h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle_at_center,rgba(201,168,74,0.28),rgba(0,0,0,0))]" />
         <div className="absolute -bottom-44 -left-28 h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle_at_center,rgba(255,180,120,0.12),rgba(201,168,74,0.08),rgba(0,0,0,0))]" />
@@ -38,36 +38,36 @@ export function TiendaHero(props: {
       <div className="relative grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-10 p-7 sm:p-10 lg:p-12">
         <div>
           <div className="inline-flex items-center gap-2">
-            <span className="h-[1px] w-10 bg-[rgba(201,168,74,0.55)]" />
-            <span className="text-[11px] tracking-[0.18em] uppercase text-[rgba(255,247,226,0.78)]">
+            <span className="h-[1px] w-10 bg-[color:var(--lx-lion)]" />
+            <span className="text-[11px] tracking-[0.18em] uppercase text-[color:var(--lx-muted)]">
               {eyebrow}
             </span>
           </div>
 
-          <h1 className="mt-4 text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-white">
+          <h1 className="mt-4 text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-[color:var(--lx-text)]">
             {headline}
           </h1>
 
-          <p className="mt-4 text-base sm:text-lg leading-relaxed text-[rgba(255,255,255,0.72)] max-w-2xl">
+          <p className="mt-4 text-base sm:text-lg leading-relaxed text-[color:var(--lx-text-2)]/85 max-w-2xl">
             {subhead}
           </p>
 
           <div className="mt-7 flex flex-col sm:flex-row gap-3">
             <Link
               href={withLang(ctaPrimary.href, lang)}
-              className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-gold)] px-6 py-3 text-sm font-semibold text-[color:var(--lx-text)] hover:brightness-95 transition shadow-[0_14px_40px_rgba(201,168,74,0.22)]"
+              className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-cta-primary-bg)] px-6 py-3 text-sm font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90 transition shadow-[0_14px_40px_rgba(201,120,47,0.22)]"
             >
               {ctaPrimary.label}
             </Link>
             <Link
               href={withLang(ctaSecondary.href, lang)}
-              className="inline-flex items-center justify-center rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.06)] px-6 py-3 text-sm font-semibold text-[rgba(255,255,255,0.86)] hover:bg-[rgba(255,255,255,0.10)] transition"
+              className="inline-flex items-center justify-center rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] px-6 py-3 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-canvas)] transition"
             >
               {ctaSecondary.label}
             </Link>
           </div>
 
-          <div className="mt-6 text-xs sm:text-sm text-[rgba(255,255,255,0.64)]">{supportingLine}</div>
+          <div className="mt-6 text-xs sm:text-sm text-[color:var(--lx-muted)]">{supportingLine}</div>
         </div>
 
         <div className="relative min-h-[340px] lg:min-h-[420px]">

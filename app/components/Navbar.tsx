@@ -314,7 +314,7 @@ function NavbarContent() {
               onClick={() => switchLang("es")}
               className={
                 lang === "es"
-                  ? "text-[color:var(--lx-gold)] font-semibold"
+                  ? "text-[color:var(--lx-lion)] font-semibold"
                   : "text-[color:var(--lx-nav-fg-muted)] hover:text-[color:var(--lx-nav-fg)] transition"
               }
               aria-label="Cambiar idioma a Español"
@@ -326,7 +326,7 @@ function NavbarContent() {
               onClick={() => switchLang("en")}
               className={
                 lang === "en"
-                  ? "text-[color:var(--lx-gold)] font-semibold"
+                  ? "text-[color:var(--lx-lion)] font-semibold"
                   : "text-[color:var(--lx-nav-fg-muted)] hover:text-[color:var(--lx-nav-fg)] transition"
               }
               aria-label="Switch language to English"
@@ -574,7 +574,7 @@ function NavbarContent() {
                     switchLang("es");
                     setMobileOpen(false);
                   }}
-                  className={lang === "es" ? "text-[color:var(--lx-gold)]" : "text-[color:var(--lx-nav-fg-muted)]"}
+                  className={lang === "es" ? "text-[color:var(--lx-lion)]" : "text-[color:var(--lx-nav-fg-muted)]"}
                   aria-label="Cambiar idioma a Español"
                 >
                   ES
@@ -584,7 +584,7 @@ function NavbarContent() {
                     switchLang("en");
                     setMobileOpen(false);
                   }}
-                  className={lang === "en" ? "text-[color:var(--lx-gold)]" : "text-[color:var(--lx-nav-fg-muted)]"}
+                  className={lang === "en" ? "text-[color:var(--lx-lion)]" : "text-[color:var(--lx-nav-fg-muted)]"}
                   aria-label="Switch language to English"
                 >
                   EN
