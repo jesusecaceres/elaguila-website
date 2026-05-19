@@ -6,7 +6,7 @@ import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEst
 import { fetchProfileIdsMatchingAdminQueueSearch } from "@/app/lib/supabase/adminQueueProfileSearch";
 
 const LISTINGS_ADMIN_CORE =
-  "id, leonix_ad_id, title, description, city, category, price, is_free, status, owner_id, created_at, images";
+  "id, leonix_ad_id, title, description, city, category, price, is_free, status, owner_id, created_at, images, seller_type, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role";
 
 const LISTINGS_REPUBLISH = ", republished_at, republish_count, republish_override";
 

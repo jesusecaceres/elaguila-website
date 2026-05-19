@@ -117,6 +117,24 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
               ) : null}
             </p>
 
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              {addCtx ? (
+                <Link
+                  href={buildBrInventoryAddPublishHref(addCtx, lang)}
+                  className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-[#2A2620] px-4 text-sm font-bold text-[#FAF7F2] sm:flex-none"
+                >
+                  {brPropertyInventoryAddPropertyCtaLabel(lang)}
+                </Link>
+              ) : null}
+              {mainId ? (
+                <Link
+                  href={`${leonixLiveAnuncioPath(mainId)}?lang=${lang}`}
+                  className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-[#E8DFD0] bg-white px-4 text-sm font-semibold text-[#1E1810] sm:flex-none"
+                >
+                  {t.manage}
+                </Link>
+              ) : null}
+            </div>
             {!upgradeActive ? (
               <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-white p-4">
                 <p className="text-sm text-[#2C2416]">{brPropertyInventoryUpgradePitch(lang)}</p>
@@ -125,31 +143,12 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
                 <p className="mt-1 text-xs text-[#7A7164]">{brPropertyInventoryContactLeonixLine(lang)}</p>
                 <a
                   href={brPropertyInventoryUpgradeContactHref(lang)}
-                  className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#2A2620] px-4 text-sm font-bold text-[#FAF7F2] sm:w-auto"
+                  className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#FFF6E7] px-4 text-sm font-bold text-[#6E5418] sm:w-auto"
                 >
                   {brPropertyInventoryUpgradeCtaLabel(lang)}
                 </a>
               </div>
-            ) : (
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                {addCtx && counts.canAddProperty ? (
-                  <Link
-                    href={buildBrInventoryAddPublishHref(addCtx, lang)}
-                    className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-[#2A2620] px-4 text-sm font-bold text-[#FAF7F2] sm:flex-none"
-                  >
-                    {brPropertyInventoryAddPropertyCtaLabel(lang)}
-                  </Link>
-                ) : null}
-                {mainId ? (
-                  <Link
-                    href={`${leonixLiveAnuncioPath(mainId)}?lang=${lang}`}
-                    className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-[#E8DFD0] bg-white px-4 text-sm font-semibold text-[#1E1810] sm:flex-none"
-                  >
-                    {t.manage}
-                  </Link>
-                ) : null}
-              </div>
-            )}
+            ) : null}
 
             {counts.atBaseLimit && !upgradeActive ? (
               <p className="mt-3 text-sm text-amber-950">{brPropertyInventoryBaseLimitMessage(lang)}</p>

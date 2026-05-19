@@ -384,7 +384,7 @@ export function GaleriaMultimediaNegocioSection({
       case "error":
         return sl.errorMessage || "Error";
       default:
-        if (sl.fallbackUrl.trim().startsWith("data:video")) return "Video en borrador (solo esta sesión)";
+        if (sl.fallbackUrl.trim().startsWith("data:video")) return "Video listo para publicar";
         return sl.fallbackUrl.trim() ? "Enlace / video en borrador" : "Sin video";
     }
   }

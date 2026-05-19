@@ -2,6 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
+import { BR_PREVIEW_NEGOCIO } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import type { BienesRaicesNegocioFormState, BienesRaicesAdvertiserType } from "../../schema/bienesRaicesNegocioFormState";
 import { BrPreviewHint, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
 
@@ -38,11 +39,12 @@ export function ResumenPublicarNegocioSection({
     <section className={brCardClass}>
       <h2 className={brSectionTitleClass}>Publicar</h2>
       <p className={brSubTitleClass}>
-        Negocio es pago por publicación (sin membresías en este lanzamiento). Revisa el resumen y confirma cuando el backend de
-        cobro esté conectado.
+        Revisa el resumen y confirma las casillas. La publicación final se hace desde la vista previa con el botón{" "}
+        <strong className="text-[#1E1810]">Publicar anuncio</strong> o <strong className="text-[#1E1810]">Agregar al inventario</strong>.
       </p>
       <BrPreviewHint>
-        Si algo no cuadra, regresa al paso de vista previa: lo que ves ahí es exactamente el mapeo del formulario al output.
+        Abre <span className="font-mono text-[#6E5418]">{BR_PREVIEW_NEGOCIO}</span> desde la barra superior (“Vista previa”).
+        Ahí verás el diseño final y el único botón de publicación.
       </BrPreviewHint>
       <ul className="mt-5 space-y-3 text-sm text-[#2C2416]">
         <li className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5">
@@ -54,8 +56,8 @@ export function ResumenPublicarNegocioSection({
           {nPhotos} fotos · {Math.min(nVid, 2)} videos (máx. 2 en vista previa)
         </li>
         <li className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5">
-          <span className="font-bold text-[#5C5346]">Contacto habilitado: </span>
-          {ctasOn.length ? ctasOn.join(", ") : "Ninguno (revisa paso de contacto)"}
+          <span className="font-bold text-[#5C5346]">Botones habilitados: </span>
+          {ctasOn.length ? ctasOn.join(", ") : "Ninguno (revisa paso de botones y enlaces)"}
         </li>
       </ul>
       <div className="mt-6">
@@ -74,22 +76,9 @@ export function ResumenPublicarNegocioSection({
       </div>
       {!confirmAll ? (
         <p className="mt-3 text-sm text-amber-950/90">
-          Marca las tres confirmaciones para habilitar publicar cuando el cobro esté conectado.
+          Marca las tres confirmaciones antes de publicar desde la vista previa.
         </p>
       ) : null}
-      <button
-        type="button"
-        disabled={!confirmAll}
-        className="mt-6 w-full rounded-xl border-2 border-[#B8954A] bg-[#FFFCF7] px-4 py-3.5 text-sm font-bold text-[#6E5418] hover:bg-[#FFF6E7] disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
-        onClick={() => {
-          /* integración de cobro / API pendiente */
-        }}
-      >
-        Publicar anuncio (Negocio)
-      </button>
-      <p className="mt-3 text-xs text-[#5C5346]/75">
-        Tip: usa “Vista previa” en el paso anterior para validar hero, galería y detalles antes de pagar.
-      </p>
     </section>
   );
 }

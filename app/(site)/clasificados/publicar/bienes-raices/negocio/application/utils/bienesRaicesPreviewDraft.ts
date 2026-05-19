@@ -13,6 +13,7 @@ export type BienesRaicesPreviewReturnPayload = {
 };
 
 let previewReturnMemory: BienesRaicesNegocioFormState | null = null;
+let previewDraftMemory: BienesRaicesNegocioFormState | null = null;
 let previewReturnTimer: ReturnType<typeof setTimeout> | null = null;
 
 function scheduleClearReturnMemory() {
@@ -28,6 +29,7 @@ export function clearBienesRaicesNegocioPublishTempState(): void {
   if (previewReturnTimer) clearTimeout(previewReturnTimer);
   previewReturnTimer = null;
   previewReturnMemory = null;
+  previewDraftMemory = null;
   if (typeof window === "undefined") return;
   try {
     sessionStorage.removeItem(BR_NEGOCIO_PREVIEW_DRAFT_KEY);
@@ -39,10 +41,11 @@ export function clearBienesRaicesNegocioPublishTempState(): void {
 
 export function saveBienesRaicesNegocioPreviewDraft(state: BienesRaicesNegocioFormState): void {
   if (typeof window === "undefined") return;
+  previewDraftMemory = state;
   try {
     sessionStorage.setItem(BR_NEGOCIO_PREVIEW_DRAFT_KEY, JSON.stringify(state));
   } catch {
-    /* ignore */
+    /* sessionStorage quota — in-memory draft still available for preview in this tab */
   }
 }
 
@@ -59,13 +62,16 @@ export function saveBienesRaicesNegocioPreviewReturnDraft(state: BienesRaicesNeg
 
 export function loadBienesRaicesNegocioPreviewDraft(): BienesRaicesNegocioFormState | null {
   if (typeof window === "undefined") return null;
+  if (previewDraftMemory) return previewDraftMemory;
   try {
     const raw = sessionStorage.getItem(BR_NEGOCIO_PREVIEW_DRAFT_KEY);
-    if (!raw) return null;
+    if (!raw) return previewDraftMemory;
     const parsed = JSON.parse(raw) as Partial<BienesRaicesNegocioFormState>;
-    return mergePartialBienesRaicesNegocioState(parsed);
+    const merged = mergePartialBienesRaicesNegocioState(parsed);
+    previewDraftMemory = merged;
+    return merged;
   } catch {
-    return null;
+    return previewDraftMemory;
   }
 }
 

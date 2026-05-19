@@ -44,6 +44,7 @@
     "autos:a4-0-inventory-sql-audit": "tsx scripts/autos-a4-0-dealer-inventory-sql-contract-audit.ts",
     "br:13a-property-inventory-sql-audit": "tsx scripts/br13a-property-inventory-sql-contract-audit.ts",
     "br:13b-property-inventory-add-flow-audit": "tsx scripts/br13b-property-inventory-add-flow-audit.ts",
+    "br:13c-inventory-qa-polish-audit": "tsx scripts/br13c-inventory-qa-polish-audit.ts",
     "verify:autos:e2e": "npx playwright test -c playwright.autos-runtime.config.mjs e2e/autos/autos-go-live-smoke.spec.ts",
     "seed:autos:manual-qa": "npx playwright test -c playwright.autos-runtime.config.mjs e2e/autos/autos-manual-qa-seed.spec.ts",
     "verify:viajes": "node scripts/verify-viajes-pipeline.mjs",

@@ -61,6 +61,39 @@ export function brPropertyInventoryUpgradeContactHref(lang: BrPropertyInventoryL
   return `mailto:soporte@elaguila.com?subject=${subject}&body=${body}`;
 }
 
+export function brInventoryAddModeTitle(lang: BrPropertyInventoryLang): string {
+  return lang === "es" ? "Agregar propiedad al inventario" : "Add property to inventory";
+}
+
+export function brInventoryAddModeSubcopy(lang: BrPropertyInventoryLang): string {
+  return lang === "es"
+    ? "Esta propiedad se conectará a tu perfil principal de Bienes Raíces. Tendrá su propia página pública, fotos, detalles e ID Leonix."
+    : "This property will be connected to your main Real Estate profile. It will have its own public page, photos, details, and Leonix Ad ID.";
+}
+
+export function brInventoryConnectedToParentLine(lang: BrPropertyInventoryLang, parentLeonixAdId: string): string {
+  return lang === "es" ? `Conectada a: ${parentLeonixAdId}` : `Connected to: ${parentLeonixAdId}`;
+}
+
+export function brInventoryPreviewOwnerBanner(
+  lang: BrPropertyInventoryLang,
+  parentLeonixAdId: string | null,
+): { title: string; connected: string | null } {
+  return lang === "es"
+    ? {
+        title: "Vista previa — propiedad de inventario",
+        connected: parentLeonixAdId ? `Conectada a ${parentLeonixAdId}` : null,
+      }
+    : {
+        title: "Preview — inventory property",
+        connected: parentLeonixAdId ? `Connected to ${parentLeonixAdId}` : null,
+      };
+}
+
+export function brLeonixAdIdPlaceholderLine(lang: BrPropertyInventoryLang): string {
+  return lang === "es" ? "ID Leonix se asignará al publicar" : "Leonix Ad ID will be assigned at publish";
+}
+
 export function brRelatedAgentPropertiesCopy(lang: BrPropertyInventoryLang) {
   return lang === "es"
     ? {

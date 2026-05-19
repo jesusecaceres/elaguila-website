@@ -89,8 +89,8 @@ const PRIVADO_UI: Record<RentasLandingLang, PrivadoPreviewUi> = {
     mensajesTexto: "Mensajes de texto",
     enviarTexto: "Enviar texto",
     ubicacion: "Ubicación",
-    verEnMapa: "Ver en mapa",
-    masInformacion: "Sitio web / Más información",
+    verEnMapa: "Ver ubicación",
+    masInformacion: "Más información",
   },
   en: {
     verMasFotos: "View more photos",
@@ -198,8 +198,8 @@ const NEGOCIO_UI: Record<RentasLandingLang, NegocioPreviewUi> = {
     enviarWhatsapp: "Enviar por WhatsApp",
     enviarTexto: "Enviar texto",
     ubicacion: "Ubicación",
-    verEnMapa: "Ver en mapa",
-    masInformacion: "Sitio web / Más información",
+    verEnMapa: "Ver ubicación",
+    masInformacion: "Más información",
   },
   en: {
     galeriaMultimedia: "Media gallery",

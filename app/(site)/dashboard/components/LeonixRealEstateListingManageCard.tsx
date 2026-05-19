@@ -20,6 +20,12 @@ import {
   isListingRepublishWindowActive,
   leonixPromotedFromDetailPairs,
 } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
+import { BrNegocioListingInventoryActions } from "@/app/clasificados/bienes-raices/dashboard/BrNegocioListingInventoryActions";
+import {
+  isBrInventoryProperty,
+  isBrNegocioListing,
+  type BrPropertyInventoryRowLike,
+} from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 
 type Lang = "es" | "en";
 
@@ -85,6 +91,7 @@ export function LeonixRealEstateListingManageCard({
   republishPrimaryLabel = null,
   onRepublish,
   republishBusy = false,
+  parentLeonixAdIdByListingId = new Map<string, string>(),
 }: {
   row: Row;
   lang: Lang;
@@ -100,6 +107,7 @@ export function LeonixRealEstateListingManageCard({
   republishPrimaryLabel?: string | null;
   onRepublish?: () => void;
   republishBusy?: boolean;
+  parentLeonixAdIdByListingId?: ReadonlyMap<string, string>;
 }) {
   const lx = parseLeonixListingContract(row.detail_pairs);
   const inferredRentasBranch: LeonixClasificadosBranch | null =
@@ -179,13 +187,17 @@ export function LeonixRealEstateListingManageCard({
               {lang === "es" ? "ID Leonix" : "Leonix Ad ID"}: {(row.leonix_ad_id ?? "").trim()}
             </p>
           ) : null}
-          {effectiveBranch === "bienes_raices_negocio" && (row.inventory_role || row.br_inventory_group_id) ? (
-            <p className="mt-1 font-mono text-[11px] text-[#7A7164]">
-              {lang === "es" ? "Inventario" : "Inventory"}: {row.inventory_role ?? "—"}
-              {row.br_inventory_group_id ? ` · grupo ${row.br_inventory_group_id.slice(0, 8)}…` : ""}
+          {effectiveBranch === "bienes_raices_negocio" && isBrInventoryProperty(row as BrPropertyInventoryRowLike) ? (
+            <p className="mt-1 text-xs font-semibold text-[#6E5418]">
+              {lang === "es" ? "Propiedad de inventario" : "Inventory property"}
               {row.br_inventory_parent_listing_id
-                ? ` · ${lang === "es" ? "principal" : "parent"} ${row.br_inventory_parent_listing_id.slice(0, 8)}…`
-                : ""}
+                ? (() => {
+                    const pLeonix = parentLeonixAdIdByListingId.get(row.br_inventory_parent_listing_id!);
+                    return pLeonix
+                      ? ` · ${lang === "es" ? "Conectada a" : "Connected to"} ${pLeonix}`
+                      : "";
+                  })()
+                : null}
             </p>
           ) : null}
           {isBr ? (
@@ -298,6 +310,13 @@ export function LeonixRealEstateListingManageCard({
           </button>
         </div>
       </div>
+      {effectiveBranch === "bienes_raices_negocio" && isBrNegocioListing(row as BrPropertyInventoryRowLike) ? (
+        <BrNegocioListingInventoryActions
+          lang={lang}
+          row={row as BrPropertyInventoryRowLike}
+          parentLeonixAdIdByListingId={parentLeonixAdIdByListingId}
+        />
+      ) : null}
     </div>
   );
 }

@@ -14,6 +14,7 @@ export type BrPropertyInventoryRole = "main" | "inventory_property";
 
 export type BrPropertyInventoryRowLike = {
   id: string;
+  leonix_ad_id?: string | null;
   owner_id?: string | null;
   category?: string | null;
   seller_type?: string | null;

@@ -164,4 +164,10 @@ export type BienesRaicesNegocioPreviewVm = {
   /** When true, street `direccion` is persisted in public `Dirección` / map query. */
   mostrarDireccionExacta: boolean;
   footerNote: string;
+  /** Owner/admin preview chrome (not shown on public live pages). */
+  ownerPreviewShell?: {
+    inventoryMode: boolean;
+    parentLeonixAdId: string | null;
+    leonixAdIdLine: string | null;
+  };
 };

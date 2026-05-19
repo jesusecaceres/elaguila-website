@@ -1,7 +1,13 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { fetchBrParentListingMetaBrowser } from "@/app/clasificados/bienes-raices/lib/fetchBrParentListingMetaBrowser";
+import {
+  brInventoryAddModeSubcopy,
+  brInventoryAddModeTitle,
+  brInventoryConnectedToParentLine,
+} from "@/app/clasificados/lib/leonixBrPropertyInventoryCopy";
 import {
   BASE_BR_NEGOCIO_MONTHLY_PRICE,
   BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES,
@@ -60,7 +66,7 @@ const STEP_LABELS = [
   "Identidad del negocio",
   "Segundo agente",
   "Asesor de préstamos",
-  "Contacto y CTAs",
+  "Botones y enlaces del anuncio",
   "Confianza y cumplimiento",
   "Vista previa",
   "Publicar",
@@ -78,10 +84,12 @@ function stepLabelsForAdvertiser(adv: string): string[] {
 export default function BienesRaicesNegocioApplication() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const lang = searchParams?.get("lang") === "en" ? "en" : "es";
   const inventoryAdd = useMemo(
     () => parseBrInventoryAddSearchParams(searchParams ?? new URLSearchParams()),
     [searchParams],
   );
+  const [parentMeta, setParentMeta] = useState<{ leonix_ad_id: string | null; title: string | null } | null>(null);
   const [step, setStep] = useState(0);
   const [state, setState] = useState(() => createEmptyBienesRaicesNegocioFormState());
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
@@ -94,6 +102,22 @@ export default function BienesRaicesNegocioApplication() {
   useLayoutEffect(() => {
     if (inventoryAdd.context) writeBrInventoryAddContextToSession(inventoryAdd.context);
   }, [inventoryAdd.context]);
+
+  useEffect(() => {
+    const parentId = inventoryAdd.context?.parentListingId;
+    if (!parentId) {
+      setParentMeta(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchBrParentListingMetaBrowser(parentId).then((meta) => {
+      if (cancelled) return;
+      setParentMeta(meta ? { leonix_ad_id: meta.leonix_ad_id, title: meta.title } : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [inventoryAdd.context?.parentListingId]);
 
   const navStepLabels = useMemo(() => stepLabelsForAdvertiser(state.advertiserType), [state.advertiserType]);
   const stepLabel = navStepLabels[step] ?? "";
@@ -149,14 +173,27 @@ export default function BienesRaicesNegocioApplication() {
               <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">Leonix Clasificados · Negocio</p>
               <h1 className="mt-1 text-2xl font-extrabold text-[#1E1810] sm:text-3xl">
                 {inventoryAdd.inventoryModeAdd
-                  ? "Agregar propiedad al inventario"
-                  : "Publicar Bienes Raíces — Negocio"}
+                  ? brInventoryAddModeTitle(lang)
+                  : lang === "es"
+                    ? "Publicar Bienes Raíces — Negocio"
+                    : "Publish Real Estate — Business"}
               </h1>
               <p className="mt-2 max-w-xl text-sm text-[#5C5346]/88">
                 {inventoryAdd.inventoryModeAdd
-                  ? "Cada propiedad sigue siendo su propio anuncio con ID Leonix y página pública. Completa el formulario y usa la vista previa para agregar al inventario."
-                  : "Cada paso está enlazado al preview aprobado: hero, galería, identidad, destacados, detalles profundos y carril de contacto. Usa “Vista previa” para comprobarlo en vivo."}
+                  ? brInventoryAddModeSubcopy(lang)
+                  : lang === "es"
+                    ? "Cada paso está enlazado al preview aprobado: hero, galería, identidad, destacados, detalles profundos y carril de contacto. Usa “Vista previa” para comprobarlo en vivo."
+                    : "Each step maps to the approved preview layout. Use “Preview” to verify hero, gallery, identity, highlights, and contact rail before publishing."}
               </p>
+              {inventoryAdd.inventoryModeAdd && inventoryAdd.context ? (
+                <p className="mt-2 text-sm font-semibold text-[#6E5418]">
+                  {parentMeta?.leonix_ad_id
+                    ? brInventoryConnectedToParentLine(lang, parentMeta.leonix_ad_id)
+                    : lang === "es"
+                      ? `Conectada al anuncio principal · ${inventoryAdd.context.parentListingId.slice(0, 8)}…`
+                      : `Connected to main listing · ${inventoryAdd.context.parentListingId.slice(0, 8)}…`}
+                </p>
+              ) : null}
               <p className="mt-2 text-xs font-semibold text-[#6E5418]">
                 Plan Negocio · ${BASE_BR_NEGOCIO_MONTHLY_PRICE}/mes · hasta {BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES}{" "}
                 propiedades activas incluidas

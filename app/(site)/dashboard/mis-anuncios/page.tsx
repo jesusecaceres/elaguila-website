@@ -855,6 +855,7 @@ export default function MyListingsPage() {
         .map(
           (row): BrPropertyInventoryRowLike => ({
             id: row.id,
+            leonix_ad_id: row.leonix_ad_id,
             owner_id: userId,
             category: row.category,
             seller_type: row.seller_type,
@@ -875,6 +876,15 @@ export default function MyListingsPage() {
   const showBrInventorySection =
     brNegocioInventoryRows.length > 0 &&
     (categoryFilter === "all" || categoryFilter === "bienes-raices");
+
+  const parentLeonixAdIdByListingId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const row of listings) {
+      const ad = (row.leonix_ad_id ?? "").trim();
+      if (ad) m.set(row.id, ad);
+    }
+    return m;
+  }, [listings]);
 
   const showListingsTableSection =
     listings.length > 0 &&
@@ -1526,6 +1536,7 @@ export default function MyListingsPage() {
                       republishPrimaryLabel={repLabel}
                       onRepublish={repLabel ? () => void renewListingsTableRepublish(x) : undefined}
                       republishBusy={busy}
+                      parentLeonixAdIdByListingId={parentLeonixAdIdByListingId}
                     />
                   );
                 }

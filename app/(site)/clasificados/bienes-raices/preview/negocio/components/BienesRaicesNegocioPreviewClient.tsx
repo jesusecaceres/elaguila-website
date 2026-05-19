@@ -38,6 +38,11 @@ import {
   writeBrInventoryAddContextToSession,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryAddFlow";
 import { fetchBrOwnerInventoryListingRows } from "@/app/clasificados/bienes-raices/lib/fetchBrOwnerInventoryListingsBrowser";
+import { fetchBrParentListingMetaBrowser } from "@/app/clasificados/bienes-raices/lib/fetchBrParentListingMetaBrowser";
+import {
+  brInventoryPreviewOwnerBanner,
+  brLeonixAdIdPlaceholderLine,
+} from "@/app/clasificados/lib/leonixBrPropertyInventoryCopy";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 const GRACE_STEP_MS = 200;
@@ -87,10 +92,26 @@ export default function BienesRaicesNegocioPreviewClient() {
   const [retryKey, setRetryKey] = useState(0);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
+  const [parentLeonixAdId, setParentLeonixAdId] = useState<string | null>(null);
 
   useEffect(() => {
     if (inventoryAdd.context) writeBrInventoryAddContextToSession(inventoryAdd.context);
   }, [inventoryAdd.context]);
+
+  useEffect(() => {
+    const parentId = inventoryCtx?.parentListingId;
+    if (!parentId) {
+      setParentLeonixAdId(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchBrParentListingMetaBrowser(parentId).then((meta) => {
+      if (!cancelled) setParentLeonixAdId(meta?.leonix_ad_id ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [inventoryCtx?.parentListingId]);
 
   const onPublishLive = useCallback(async () => {
     const st = loadBienesRaicesNegocioPreviewDraft();
@@ -161,7 +182,18 @@ export default function BienesRaicesNegocioPreviewClient() {
       if (cancelled) return;
       const next = tryReadPreviewDraftForMap();
       if (next) {
-        setVm(next);
+        const shell = inventoryCtx
+          ? {
+              inventoryMode: true,
+              parentLeonixAdId,
+              leonixAdIdLine: brLeonixAdIdPlaceholderLine(lang),
+            }
+          : {
+              inventoryMode: false,
+              parentLeonixAdId: null,
+              leonixAdIdLine: brLeonixAdIdPlaceholderLine(lang),
+            };
+        setVm({ ...next, ownerPreviewShell: shell });
         setPhase("ready");
         clearLeonixPreviewNavSessionFlag();
         return;
@@ -178,7 +210,7 @@ export default function BienesRaicesNegocioPreviewClient() {
       cancelled = true;
       if (timeoutId) window.clearTimeout(timeoutId);
     };
-  }, [retryKey]);
+  }, [retryKey, inventoryCtx, parentLeonixAdId, lang]);
 
   const publishLabel = inventoryCtx
     ? brPropertyInventoryAddToInventoryCtaLabel(lang)
@@ -209,6 +241,19 @@ export default function BienesRaicesNegocioPreviewClient() {
             </div>
           }
         >
+          {inventoryCtx ? (
+            <div className="mx-auto mb-4 max-w-[1240px] rounded-xl border border-[#C9B46A]/40 bg-[#FFF6E7] px-4 py-3 text-sm text-[#2C2416]">
+              <p className="font-bold text-[#6E5418]">{brInventoryPreviewOwnerBanner(lang, parentLeonixAdId).title}</p>
+              {brInventoryPreviewOwnerBanner(lang, parentLeonixAdId).connected ? (
+                <p className="mt-1 text-[#5C5346]">{brInventoryPreviewOwnerBanner(lang, parentLeonixAdId).connected}</p>
+              ) : null}
+              {vm.ownerPreviewShell?.leonixAdIdLine ? (
+                <p className="mt-1 font-mono text-xs text-[#7A7164]">{vm.ownerPreviewShell.leonixAdIdLine}</p>
+              ) : null}
+            </div>
+          ) : vm.ownerPreviewShell?.leonixAdIdLine ? (
+            <p className="mx-auto mb-3 max-w-[1240px] font-mono text-xs text-[#7A7164]">{vm.ownerPreviewShell.leonixAdIdLine}</p>
+          ) : null}
           <BienesRaicesNegocioPreviewView vm={vm} lang={lang} />
         </LeonixPreviewPageShell>
       ) : (

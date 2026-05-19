@@ -40,6 +40,7 @@ import type {
   BienesRaicesPreviewQuickFactVm,
 } from "./bienesRaicesNegocioPreviewVm";
 import { sanitizeLeonixListingPublishDescriptionBody } from "@/app/clasificados/lib/leonixPublishPublicDescription";
+import { hydrateBrNegocioContactChannelsFromIdentity } from "@/app/clasificados/lib/brNegocioContactChannelsHydrate";
 
 const LISTING_STATUS_LABEL: Record<BienesRaicesListingStatus, string> = {
   en_venta: "En venta",
@@ -649,7 +650,7 @@ function buildContactVm(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPre
           : adv === "constructor_desarrollador"
             ? trim(s.identityConstructor.descripcionProyecto)
             : "";
-  const ch = buildLeonixContactChannelsV1PayloadFromFormSlice(s.contactChannels, {
+  const ch = buildLeonixContactChannelsV1PayloadFromFormSlice(hydrateBrNegocioContactChannelsFromIdentity(s), {
     fallbackWebsite: fbWeb,
     instructionsNote: fbNote || trim(s.cta.instruccionesContacto),
   });
@@ -916,6 +917,9 @@ function resolveNegocioVideoSlot(slot: BienesRaicesNegocioFormState["media"]["li
   }
   const fb = trim(slot.fallbackUrl);
   if (!fb) return { thumb: null, playback: null, youtubeId: null };
+  if (fb.startsWith("data:video") || fb.startsWith("blob:")) {
+    return { thumb: null, playback: fb, youtubeId: null };
+  }
   const yt = extractYoutubeId(fb);
   if (yt) return { thumb: `https://img.youtube.com/vi/${yt}/hqdefault.jpg`, playback: fb, youtubeId: yt };
   if (/\.(png|jpe?g|webp|gif)(\?|$)/i.test(fb)) return { thumb: fb, playback: null, youtubeId: null };

@@ -121,11 +121,15 @@ export function IdentidadAgenteIndividualSection({
             onChange={(e) => setState((s) => ({ ...s, identityAgente: { ...s.identityAgente, email: e.target.value } }))}
           />
         </BrField>
-        <BrField label="Sitio web">
+        <BrField
+          label="Sitio web o enlace principal"
+          hint="Si tienes una página con más detalles, tour, MLS, formulario de contacto o información adicional, agrégala aquí."
+        >
           <input
             className={brInputClass}
             value={ia.sitioWeb}
             onChange={(e) => setState((s) => ({ ...s, identityAgente: { ...s.identityAgente, sitioWeb: e.target.value } }))}
+            placeholder="https://…"
           />
         </BrField>
         <BrField label="Idiomas" hint="Ej. Inglés, español.">
