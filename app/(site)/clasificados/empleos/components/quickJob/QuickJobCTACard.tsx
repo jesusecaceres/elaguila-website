@@ -1,5 +1,16 @@
+"use client";
+
+import { useState } from "react";
 import { FaCalendarAlt, FaClock, FaEnvelope, FaGlobe, FaPhone } from "react-icons/fa";
 import { SiWhatsapp } from "react-icons/si";
+import {
+  buildCallIntent,
+  buildSendEmailIntent,
+  buildWebsiteIntent,
+  buildWhatsAppMessageIntent,
+  CtaActionSheet,
+  type CtaSheetIntent,
+} from "@/app/components/cta";
 
 type Primary = "phone" | "whatsapp" | "email";
 
@@ -28,6 +39,10 @@ type Props = {
 const GOLD_BTN = "bg-[#B8943F] hover:bg-[#9A7A32]";
 const SOFT_BTN = "border border-[#C9A85A] bg-[#FFFBF7] text-[#6B5320] hover:bg-[#FFF5E6]";
 
+function digits(raw: string): string {
+  return raw.replace(/\D/g, "");
+}
+
 export function QuickJobCTACard({
   pay,
   jobType,
@@ -44,7 +59,41 @@ export function QuickJobCTACard({
   labels,
   showContactRow,
 }: Props) {
+  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
   const primary = primaryCta ?? "phone";
+  const site = websiteUrl?.trim() ?? "";
+  const contactShareExtras = { email: email ?? undefined, websiteUrl: site || undefined };
+
+  const openSheet = (intent: CtaSheetIntent | null) => {
+    if (intent) setCtaIntent(intent);
+  };
+
+  const openCallSheet = () => {
+    if (!phone) return;
+    openSheet(buildCallIntent({ phone: digits(phone), contactShareExtras }));
+  };
+
+  const openWhatsAppSheet = () => {
+    if (!whatsapp) return;
+    openSheet(buildWhatsAppMessageIntent({ whatsappDigits: digits(whatsapp), message: "", contactShareExtras }));
+  };
+
+  const openEmailSheet = () => {
+    if (!email) return;
+    openSheet(
+      buildSendEmailIntent({
+        email,
+        subject: "Consulta sobre vacante — Leonix Empleos",
+        body: "",
+        contactShareExtras,
+      }),
+    );
+  };
+
+  const openWebsiteSheet = () => {
+    if (!site.startsWith("http")) return;
+    openSheet(buildWebsiteIntent({ url: site, headline: websiteLabel, kind: "website" }));
+  };
 
   const ctaClass = (role: "phone" | "whatsapp" | "email") =>
     primary === role
@@ -88,45 +137,41 @@ export function QuickJobCTACard({
       {showContactRow ? (
         <div className="mt-6 flex flex-col gap-3">
           {phone ? (
-            <a href={`tel:${phone.replace(/\D/g, "")}`} className={ctaClass("phone")}>
+            <button type="button" onClick={openCallSheet} className={ctaClass("phone")}>
               <FaPhone className="h-4 w-4 shrink-0" aria-hidden />
               <span className="truncate">{phone}</span>
-            </a>
+            </button>
           ) : null}
 
           <div className={`grid gap-3 ${whatsapp && email ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
             {whatsapp ? (
-              <a
-                href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={ctaClass("whatsapp")}
-              >
+              <button type="button" onClick={openWhatsAppSheet} className={ctaClass("whatsapp")}>
                 <SiWhatsapp className="h-4 w-4 shrink-0" aria-hidden />
                 WhatsApp
-              </a>
+              </button>
             ) : null}
             {email ? (
-              <a href={`mailto:${email}`} className={ctaClass("email")}>
+              <button type="button" onClick={openEmailSheet} className={ctaClass("email")}>
                 <FaEnvelope className="h-4 w-4 shrink-0" aria-hidden />
                 {emailLabel}
-              </a>
+              </button>
             ) : null}
           </div>
 
-          {websiteUrl ? (
-            <a
-              href={websiteUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-[14px] px-3 text-sm font-semibold text-[#4F6B82] underline-offset-2 transition hover:underline`}
+          {websiteUrl?.trim().startsWith("http") ? (
+            <button
+              type="button"
+              onClick={openWebsiteSheet}
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[14px] px-3 text-sm font-semibold text-[#4F6B82] underline-offset-2 transition hover:underline"
             >
               <FaGlobe className="h-4 w-4 shrink-0" aria-hidden />
               {websiteLabel}
-            </a>
+            </button>
           ) : null}
         </div>
       ) : null}
+
+      <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang="es" />
     </div>
   );
 }

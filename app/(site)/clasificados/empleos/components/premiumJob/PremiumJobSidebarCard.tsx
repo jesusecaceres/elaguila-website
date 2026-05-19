@@ -1,5 +1,16 @@
+"use client";
+
+import { useState } from "react";
 import { FaClock, FaEnvelope, FaGlobe, FaMapMarkerAlt, FaPhone } from "react-icons/fa";
 import { SiWhatsapp } from "react-icons/si";
+import {
+  buildCallIntent,
+  buildSendEmailIntent,
+  buildWebsiteIntent,
+  buildWhatsAppMessageIntent,
+  CtaActionSheet,
+  type CtaSheetIntent,
+} from "@/app/components/cta";
 
 type Primary = "apply" | "phone" | "whatsapp" | "email" | "website";
 
@@ -32,6 +43,10 @@ function digits(raw: string): string {
   return raw.replace(/\D/g, "");
 }
 
+type PrimaryAction =
+  | { type: "apply"; url: string; label: string }
+  | { type: "sheet"; label: string; onClick: () => void };
+
 export function PremiumJobSidebarCard({
   salaryPrimary,
   salarySecondary,
@@ -52,40 +67,55 @@ export function PremiumJobSidebarCard({
   badgeFeatured,
   badgePremium,
 }: Props) {
+  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
   const site = websiteUrl?.trim() ?? "";
+  const contactShareExtras = { email: email ?? undefined, websiteUrl: site || undefined };
 
-  let primaryHref: string | undefined;
-  let primaryLabel = applyLabel;
-  let external = false;
+  const openSheet = (intent: CtaSheetIntent | null) => {
+    if (intent) setCtaIntent(intent);
+  };
+
+  const openCallSheet = (rawPhone: string) => {
+    openSheet(buildCallIntent({ phone: digits(rawPhone), contactShareExtras }));
+  };
+
+  const openWhatsAppSheet = (rawWa: string) => {
+    openSheet(buildWhatsAppMessageIntent({ whatsappDigits: digits(rawWa), message: "", contactShareExtras }));
+  };
+
+  const openEmailSheet = (rawEmail: string) => {
+    openSheet(
+      buildSendEmailIntent({
+        email: rawEmail,
+        subject: "Consulta sobre vacante — Leonix Empleos",
+        body: "",
+        contactShareExtras,
+      }),
+    );
+  };
+
+  const openWebsiteSheet = (url: string, headline: string) => {
+    openSheet(buildWebsiteIntent({ url, headline, kind: "website" }));
+  };
+
+  let primaryAction: PrimaryAction | null = null;
 
   if (primaryCta === "phone" && phone) {
-    primaryHref = `tel:${digits(phone)}`;
-    primaryLabel = phoneLabel;
+    primaryAction = { type: "sheet", label: phoneLabel, onClick: () => openCallSheet(phone) };
   } else if (primaryCta === "whatsapp" && whatsapp) {
-    primaryHref = `https://wa.me/${digits(whatsapp)}`;
-    primaryLabel = "WhatsApp";
-    external = true;
+    primaryAction = { type: "sheet", label: "WhatsApp", onClick: () => openWhatsAppSheet(whatsapp) };
   } else if (primaryCta === "email" && email) {
-    primaryHref = `mailto:${email}`;
-    primaryLabel = emailLabel;
+    primaryAction = { type: "sheet", label: emailLabel, onClick: () => openEmailSheet(email) };
   } else if ((primaryCta === "website" || primaryCta === "apply") && site.startsWith("http")) {
-    primaryHref = site;
-    primaryLabel = applyLabel.trim() || websiteCtaLabel;
-    external = true;
+    primaryAction = { type: "apply", url: site, label: applyLabel.trim() || websiteCtaLabel };
   } else if (site.startsWith("http")) {
-    primaryHref = site;
-    primaryLabel = applyLabel.trim() || websiteCtaLabel;
-    external = true;
+    primaryAction = { type: "apply", url: site, label: applyLabel.trim() || websiteCtaLabel };
   } else if (phone) {
-    primaryHref = `tel:${digits(phone)}`;
-    primaryLabel = phoneLabel;
+    primaryAction = { type: "sheet", label: phoneLabel, onClick: () => openCallSheet(phone) };
   } else if (whatsapp) {
-    primaryHref = `https://wa.me/${digits(whatsapp)}`;
-    primaryLabel = "WhatsApp";
-    external = true;
+    primaryAction = { type: "sheet", label: "WhatsApp", onClick: () => openWhatsAppSheet(whatsapp) };
   } else if (email) {
-    primaryHref = `mailto:${email}`;
-    primaryLabel = emailLabel;
+    primaryAction = { type: "sheet", label: emailLabel, onClick: () => openEmailSheet(email) };
   }
 
   const primaryClass = `flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] px-4 text-sm font-bold shadow-sm transition ${GOLD}`;
@@ -129,48 +159,56 @@ export function PremiumJobSidebarCard({
       </div>
 
       <div className="mt-6 flex flex-col gap-3">
-        {primaryHref ? (
-          <a
-            href={primaryHref}
-            target={external ? "_blank" : undefined}
-            rel={external ? "noopener noreferrer" : undefined}
-            className={primaryClass}
-          >
-            {primaryLabel}
-          </a>
+        {primaryAction ? (
+          primaryAction.type === "apply" ? (
+            <a
+              href={primaryAction.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={primaryClass}
+            >
+              {primaryAction.label}
+            </a>
+          ) : (
+            <button type="button" onClick={primaryAction.onClick} className={primaryClass}>
+              {primaryAction.label}
+            </button>
+          )
         ) : (
           <span className={`${primaryClass} cursor-not-allowed opacity-60`} aria-disabled>
-            {primaryLabel}
+            {applyLabel}
           </span>
         )}
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {showPhone ? (
-            <a href={`tel:${digits(phone!)}`} className={secClass}>
+            <button type="button" onClick={() => openCallSheet(phone!)} className={secClass}>
               <FaPhone className="h-4 w-4 shrink-0" aria-hidden />
               {phoneLabel}
-            </a>
+            </button>
           ) : null}
           {showWa ? (
-            <a href={`https://wa.me/${digits(whatsapp!)}`} target="_blank" rel="noopener noreferrer" className={secClass}>
+            <button type="button" onClick={() => openWhatsAppSheet(whatsapp!)} className={secClass}>
               <SiWhatsapp className="h-4 w-4 shrink-0" aria-hidden />
               WhatsApp
-            </a>
+            </button>
           ) : null}
           {showMail ? (
-            <a href={`mailto:${email}`} className={secClass}>
+            <button type="button" onClick={() => openEmailSheet(email!)} className={secClass}>
               <FaEnvelope className="h-4 w-4 shrink-0" aria-hidden />
               {emailLabel}
-            </a>
+            </button>
           ) : null}
           {showSite ? (
-            <a href={site} target="_blank" rel="noopener noreferrer" className={terClass}>
+            <button type="button" onClick={() => openWebsiteSheet(site, websiteCtaLabel)} className={terClass}>
               <FaGlobe className="h-4 w-4 shrink-0" aria-hidden />
               {websiteCtaLabel}
-            </a>
+            </button>
           ) : null}
         </div>
       </div>
+
+      <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang="es" />
     </div>
   );
 }

@@ -1,3 +1,5 @@
+"use client";
+
 type Props = {
   intro: string;
   verFlyerLabel: string;
@@ -7,7 +9,8 @@ type Props = {
   showContact: boolean;
   flyerAnchorId?: string;
   registerHref?: string;
-  contactHref?: string;
+  /** When set, contact button opens shared sheet instead of direct mailto/tel/http. */
+  onContactClick?: () => void;
 };
 
 export function JobFairCTASection({
@@ -19,7 +22,7 @@ export function JobFairCTASection({
   showContact,
   flyerAnchorId = "feria-flyer",
   registerHref,
-  contactHref,
+  onContactClick,
 }: Props) {
   const hasButtons = showVerFlyer || showContact || Boolean(registerHref);
   if (!intro.trim() && !hasButtons) return null;
@@ -48,15 +51,14 @@ export function JobFairCTASection({
               {verFlyerLabel}
             </a>
           ) : null}
-          {showContact && contactHref && (contactHref.startsWith("http") || contactHref.startsWith("mailto:") || contactHref.startsWith("tel:")) ? (
-            <a
-              href={contactHref}
-              target={contactHref.startsWith("http") ? "_blank" : undefined}
-              rel={contactHref.startsWith("http") ? "noopener noreferrer" : undefined}
+          {showContact && onContactClick ? (
+            <button
+              type="button"
+              onClick={onContactClick}
               className="flex min-h-12 w-full items-center justify-center rounded-[14px] border border-[#E8DFD0] bg-white px-6 text-sm font-bold text-[#2A2826] shadow-sm transition hover:bg-[#FAF7F2] sm:w-auto sm:min-w-[11rem]"
             >
               {contactOrganizerLabel}
-            </a>
+            </button>
           ) : null}
         </div>
       ) : null}

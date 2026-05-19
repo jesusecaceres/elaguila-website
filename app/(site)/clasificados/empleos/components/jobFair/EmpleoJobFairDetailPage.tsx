@@ -2,8 +2,15 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import {
+  buildCallIntent,
+  buildSendEmailIntent,
+  buildWebsiteIntent,
+  CtaActionSheet,
+  type CtaSheetIntent,
+} from "@/app/components/cta";
 
 import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
@@ -71,16 +78,33 @@ export function EmpleoJobFairDetailPage({
   const cityStateLine = data.displayCityState?.trim() || `${data.city}, ${data.state}`;
   const showDetailsCard = hasJobFairDetails(data.detailsBullets);
   const showSecondary = hasJobFairDetails(data.secondaryDetails);
+  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
   const registerHref = data.contactLink?.trim().startsWith("http") ? data.contactLink.trim() : undefined;
-  const contactHref =
-    data.organizerUrl?.trim().startsWith("http")
-      ? data.organizerUrl.trim()
-      : data.contactEmail?.trim()
-        ? `mailto:${data.contactEmail.trim()}`
-        : data.contactPhone?.trim()
-          ? `tel:${digits(data.contactPhone)}`
-          : undefined;
-  const hasContact = Boolean(registerHref || contactHref || data.contactPhone?.trim() || data.contactEmail?.trim());
+  const organizerUrl = data.organizerUrl?.trim().startsWith("http") ? data.organizerUrl.trim() : undefined;
+  const contactEmail = data.contactEmail?.trim() || undefined;
+  const contactPhone = data.contactPhone?.trim() || undefined;
+  const hasContact = Boolean(registerHref || organizerUrl || contactPhone || contactEmail);
+
+  const openContactSheet = useCallback(() => {
+    if (organizerUrl) {
+      setCtaIntent(buildWebsiteIntent({ url: organizerUrl, headline: t.contactOrganizer, kind: "website" }));
+      return;
+    }
+    if (contactEmail) {
+      setCtaIntent(
+        buildSendEmailIntent({
+          email: contactEmail,
+          subject: "Consulta sobre feria de empleo — Leonix",
+          body: "",
+          contactShareExtras: { email: contactEmail },
+        }),
+      );
+      return;
+    }
+    if (contactPhone) {
+      setCtaIntent(buildCallIntent({ phone: digits(contactPhone) }));
+    }
+  }, [contactEmail, contactPhone, organizerUrl, t.contactOrganizer]);
   const showVerFlyer = Boolean(data.flyerImageSrc?.trim());
 
   return (
@@ -146,29 +170,44 @@ export function EmpleoJobFairDetailPage({
           showVerFlyer={showVerFlyer}
           showContact={hasContact}
           registerHref={registerHref}
-          contactHref={contactHref}
+          onContactClick={hasContact && (organizerUrl || contactEmail || contactPhone) ? openContactSheet : undefined}
         />
 
-        {data.contactPhone?.trim() || data.contactEmail?.trim() ? (
+        {contactPhone || contactEmail ? (
           <div className="mt-6 flex flex-wrap gap-3">
-            {data.contactPhone?.trim() ? (
-              <a
-                href={`tel:${digits(data.contactPhone)}`}
+            {contactPhone ? (
+              <button
+                type="button"
+                onClick={() =>
+                  setCtaIntent(buildCallIntent({ phone: digits(contactPhone) }))
+                }
                 className="inline-flex min-h-10 items-center rounded-full border border-[#E8DFD0] bg-white px-4 text-sm font-semibold text-[#2A2826] hover:bg-[#FAF7F2]"
               >
-                {data.contactPhone.trim()}
-              </a>
+                {contactPhone}
+              </button>
             ) : null}
-            {data.contactEmail?.trim() ? (
-              <a
-                href={`mailto:${data.contactEmail.trim()}`}
+            {contactEmail ? (
+              <button
+                type="button"
+                onClick={() =>
+                  setCtaIntent(
+                    buildSendEmailIntent({
+                      email: contactEmail,
+                      subject: "Consulta sobre feria de empleo — Leonix",
+                      body: "",
+                      contactShareExtras: { email: contactEmail },
+                    }),
+                  )
+                }
                 className="inline-flex min-h-10 items-center rounded-full border border-[#E8DFD0] bg-white px-4 text-sm font-semibold text-[#6B5320] hover:bg-[#FAF7F2]"
               >
-                {data.contactEmail.trim()}
-              </a>
+                {contactEmail}
+              </button>
             ) : null}
           </div>
         ) : null}
+
+        <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang={lang} />
 
         {publicFooterSlot ? <div className="mt-10">{publicFooterSlot}</div> : null}
       </main>
