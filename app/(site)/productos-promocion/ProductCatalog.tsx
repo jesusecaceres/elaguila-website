@@ -9,9 +9,14 @@ type Lang = "es" | "en";
 const CATEGORY_ICONS: Record<CategoryId, string> = {
   "business-cards": "🪪",
   marketing: "📄",
-  promo: "🎁",
   signs: "📋",
+  promo: "🎁",
+  essentials: "�",
 };
+
+const OLIVE_BG = "var(--lx-cta-secondary-bg)";
+const OLIVE_FG = "var(--lx-cta-secondary-fg)";
+const OLIVE_HOVER = "#4d5e30";
 
 function ProductImagePlaceholder({ product, lang }: { product: Product; lang: Lang }) {
   const title = product[lang].title;
@@ -28,7 +33,6 @@ function ProductImagePlaceholder({ product, lang }: { product: Product; lang: La
       style={{ background: "var(--lx-canvas)" }}
       aria-label={title}
     >
-      {/* decorative grid pattern */}
       <svg
         className="absolute inset-0 h-full w-full opacity-[0.06]"
         xmlns="http://www.w3.org/2000/svg"
@@ -41,15 +45,10 @@ function ProductImagePlaceholder({ product, lang }: { product: Product; lang: La
         </defs>
         <rect width="100%" height="100%" fill={`url(#grid-${product.slug})`} />
       </svg>
-      {/* center content */}
       <div className="relative flex flex-col items-center gap-1.5 px-4">
         <div
           className="flex h-12 w-12 items-center justify-center rounded-xl text-xl font-bold shadow-sm"
-          style={{
-            background: "var(--lx-section)",
-            color: "var(--lx-text-2)",
-            border: "1.5px solid var(--lx-border)",
-          }}
+          style={{ background: "var(--lx-section)", color: "var(--lx-text-2)", border: "1.5px solid var(--lx-border)" }}
         >
           {initials}
         </div>
@@ -60,7 +59,6 @@ function ProductImagePlaceholder({ product, lang }: { product: Product; lang: La
           {title}
         </span>
       </div>
-      {/* TODO Gate 2: Replace placeholder with final Leonix-branded product image */}
     </div>
   );
 }
@@ -69,47 +67,34 @@ function ProductCard({ product, lang }: { product: Product; lang: Lang }) {
   const title = product[lang].title;
   const subtitle = product[lang].subtitle;
   const ctaLabel = lang === "es" ? "Solicitar cotización" : "Request Quote";
-  const href = `/contacto?service=${encodeURIComponent(product.slug)}&lang=${lang}`;
+  const href = `/tienda/contacto?lang=${lang}&service=${encodeURIComponent(product.slug)}`;
 
   return (
     <article
       className="flex flex-col overflow-hidden rounded-2xl border"
-      style={{
-        background: "var(--lx-card)",
-        borderColor: "var(--lx-border)",
-        boxShadow: "0 2px 8px rgba(42,36,22,0.07)",
-      }}
+      style={{ background: "var(--lx-card)", borderColor: "var(--lx-border)", boxShadow: "0 2px 8px rgba(42,36,22,0.07)" }}
     >
       <ProductImagePlaceholder product={product} lang={lang} />
       <div className="flex flex-1 flex-col gap-3 p-4">
+        {product.subcategory ? (
+          <span
+            className="self-start rounded-full px-2 py-0.5 text-[10px] font-semibold"
+            style={{ background: "var(--lx-canvas)", color: "var(--lx-muted)" }}
+          >
+            {product.subcategory}
+          </span>
+        ) : null}
         <div className="flex flex-col gap-1">
-          <h3
-            className="text-sm font-bold leading-snug"
-            style={{ color: "var(--lx-text)" }}
-          >
-            {title}
-          </h3>
-          <p
-            className="text-xs leading-relaxed"
-            style={{ color: "var(--lx-text-2)", opacity: 0.85 }}
-          >
-            {subtitle}
-          </p>
+          <h3 className="text-sm font-bold leading-snug" style={{ color: "var(--lx-text)" }}>{title}</h3>
+          <p className="text-xs leading-relaxed" style={{ color: "var(--lx-text-2)", opacity: 0.85 }}>{subtitle}</p>
         </div>
         <div className="mt-auto">
           <Link
             href={href}
             className="block w-full rounded-xl px-3 py-2.5 text-center text-xs font-semibold transition"
-            style={{
-              background: "var(--lx-cta-dark)",
-              color: "var(--lx-cta-light)",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.background = "var(--lx-cta-dark-hover)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.background = "var(--lx-cta-dark)";
-            }}
+            style={{ background: OLIVE_BG, color: OLIVE_FG }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_HOVER; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_BG; }}
           >
             {ctaLabel}
           </Link>
@@ -120,10 +105,7 @@ function ProductCard({ product, lang }: { product: Product; lang: Lang }) {
 }
 
 function CategoryTabs({
-  categories,
-  active,
-  lang,
-  onSelect,
+  categories, active, lang, onSelect,
 }: {
   categories: CatalogCategory[];
   active: CategoryId;
@@ -148,16 +130,8 @@ function CategoryTabs({
             className="flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition"
             style={
               isActive
-                ? {
-                    background: "var(--lx-cta-dark)",
-                    color: "var(--lx-cta-light)",
-                    boxShadow: "0 2px 8px rgba(42,36,22,0.18)",
-                  }
-                : {
-                    background: "var(--lx-section)",
-                    color: "var(--lx-text-2)",
-                    border: "1px solid var(--lx-border)",
-                  }
+                ? { background: OLIVE_BG, color: OLIVE_FG, boxShadow: "0 2px 8px rgba(85,107,62,0.28)" }
+                : { background: "var(--lx-section)", color: "var(--lx-text-2)", border: "1px solid var(--lx-border)" }
             }
           >
             <span aria-hidden="true">{CATEGORY_ICONS[cat.id]}</span>
@@ -179,72 +153,51 @@ export function ProductCatalog({ lang }: { lang: Lang }) {
   const heroTitle = lang === "es" ? "Productos para Promoción" : "Promotional Products";
   const heroSubtitle =
     lang === "es"
-      ? "Impresión profesional, productos de marca y letreros para hacer crecer tu negocio. Fácil de cotizar, rápido de recibir."
-      : "Professional printing, branded products, and signs to grow your business. Easy to quote, fast to receive.";
-
+      ? "Todo lo que necesitas para presentar, promocionar y hacer crecer tu negocio: tarjetas, volantes, letreros, banners, artículos promocionales y más."
+      : "Everything you need to present, promote, and grow your business: cards, flyers, signs, banners, promotional items, and more.";
+  const helperCopy =
+    lang === "es"
+      ? "Explora algunos de los productos que podemos ayudarte a conseguir. Si no lo ves aquí, también podemos cotizarlo."
+      : "Explore some of the products we can help you source. If you do not see it here, we can still quote it.";
   const bottomCallout =
     lang === "es"
       ? "¿No ves lo que necesitas? Te ayudamos a cotizarlo."
-      : "Don't see what you need? We can help quote it.";
-  const bottomCTA = lang === "es" ? "Contáctanos" : "Contact Us";
+      : "Don't see what you need? We can still quote it.";
+  const bottomCTA = lang === "es" ? "Contactar a Leonix" : "Contact Leonix";
 
   return (
     <div style={{ background: "var(--lx-page)" }}>
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section
         className="px-4 py-10 sm:px-8 sm:py-14"
-        style={{
-          background: "linear-gradient(160deg, var(--lx-section) 0%, var(--lx-page) 100%)",
-          borderBottom: "1px solid var(--lx-border)",
-        }}
+        style={{ background: "linear-gradient(160deg, var(--lx-section) 0%, var(--lx-page) 100%)", borderBottom: "1px solid var(--lx-border)" }}
       >
         <div className="mx-auto max-w-3xl text-center">
-          <p
-            className="mb-2 text-xs font-semibold uppercase tracking-widest"
-            style={{ color: "var(--lx-lion)" }}
-          >
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--lx-lion)" }}>
             Leonix Media
           </p>
-          <h1
-            className="mb-4 text-3xl font-bold leading-tight sm:text-4xl"
-            style={{ color: "var(--lx-text)" }}
-          >
+          <h1 className="mb-4 text-3xl font-bold leading-tight sm:text-4xl" style={{ color: "var(--lx-text)" }}>
             {heroTitle}
           </h1>
-          <p
-            className="mx-auto mb-8 max-w-xl text-sm leading-relaxed sm:text-base"
-            style={{ color: "var(--lx-text-2)", opacity: 0.9 }}
-          >
+          <p className="mx-auto mb-8 max-w-xl text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-text-2)", opacity: 0.9 }}>
             {heroSubtitle}
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link
-              href={`/contacto?service=cotizacion&lang=${lang}`}
+              href={`/tienda/contacto?service=cotizacion-general&lang=${lang}`}
               className="rounded-xl px-6 py-3 text-sm font-semibold transition"
-              style={{ background: "var(--lx-cta-dark)", color: "var(--lx-cta-light)" }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = "var(--lx-cta-dark-hover)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = "var(--lx-cta-dark)";
-              }}
+              style={{ background: OLIVE_BG, color: OLIVE_FG }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_HOVER; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_BG; }}
             >
               {heroPrimary}
             </Link>
             <Link
-              href={`/contacto?lang=${lang}`}
+              href={`/tienda/contacto?lang=${lang}`}
               className="rounded-xl border px-6 py-3 text-sm font-semibold transition"
-              style={{
-                background: "var(--lx-card)",
-                color: "var(--lx-text)",
-                borderColor: "var(--lx-border)",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = "var(--lx-section)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = "var(--lx-card)";
-              }}
+              style={{ background: "var(--lx-card)", color: "var(--lx-text)", borderColor: "var(--lx-border)" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--lx-section)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--lx-card)"; }}
             >
               {heroSecondary}
             </Link>
@@ -254,24 +207,16 @@ export function ProductCatalog({ lang }: { lang: Lang }) {
 
       {/* ── CATALOG BODY ─────────────────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-        {/* Category tabs */}
         <div className="mb-8">
-          <CategoryTabs
-            categories={CATALOG_CATEGORIES}
-            active={activeId}
-            lang={lang}
-            onSelect={setActiveId}
-          />
-          {/* Active category description */}
-          <p
-            className="mt-3 text-xs"
-            style={{ color: "var(--lx-muted)" }}
-          >
+          <CategoryTabs categories={CATALOG_CATEGORIES} active={activeId} lang={lang} onSelect={setActiveId} />
+          <p className="mt-3 text-xs" style={{ color: "var(--lx-muted)" }}>
             {activeCategory[lang].description}
+          </p>
+          <p className="mt-1 text-xs italic" style={{ color: "var(--lx-muted)", opacity: 0.8 }}>
+            {helperCopy}
           </p>
         </div>
 
-        {/* Product grid */}
         <div
           className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
           role="tabpanel"
@@ -286,33 +231,18 @@ export function ProductCatalog({ lang }: { lang: Lang }) {
       {/* ── BOTTOM CTA ───────────────────────────────────────────────── */}
       <section
         className="px-4 py-10 sm:px-8 sm:py-14"
-        style={{
-          background: "var(--lx-section)",
-          borderTop: "1px solid var(--lx-border)",
-        }}
+        style={{ background: "var(--lx-section)", borderTop: "1px solid var(--lx-border)" }}
       >
         <div className="mx-auto max-w-2xl text-center">
-          <p
-            className="mb-5 text-base font-semibold leading-relaxed sm:text-lg"
-            style={{ color: "var(--lx-text)" }}
-          >
+          <p className="mb-5 text-base font-semibold leading-relaxed sm:text-lg" style={{ color: "var(--lx-text)" }}>
             {bottomCallout}
           </p>
           <Link
-            href={`/contacto?lang=${lang}`}
-            className="inline-block rounded-xl border px-8 py-3 text-sm font-semibold transition"
-            style={{
-              background: "var(--lx-card)",
-              color: "var(--lx-text)",
-              borderColor: "var(--lx-border)",
-              boxShadow: "0 2px 8px rgba(42,36,22,0.08)",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.background = "var(--lx-canvas)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.background = "var(--lx-card)";
-            }}
+            href={`/tienda/contacto?lang=${lang}`}
+            className="inline-block rounded-xl px-8 py-3.5 text-sm font-semibold transition"
+            style={{ background: OLIVE_BG, color: OLIVE_FG, boxShadow: "0 2px 12px rgba(85,107,62,0.22)" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_HOVER; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_BG; }}
           >
             {bottomCTA}
           </Link>

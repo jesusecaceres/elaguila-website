@@ -16,7 +16,10 @@ import {
   useCommunityDraftSession,
 } from "@/app/publicar/community/shared/hooks/useCommunityDraftSession";
 
+import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+
 import { mascotasPerdidosFormCopy } from "../shared/mascotasPerdidosFormCopy";
+import { mascotasPerdidosHandoffPreviewUrl } from "../shared/mascotasPerdidosPublishRoutes";
 import {
   emptyMascotasPerdidosQuickDraft,
   normalizeMascotasPerdidosQuickDraft,
@@ -39,8 +42,6 @@ export default function MascotasPerdidosQuickFormClient() {
   const copy = mascotasPerdidosFormCopy(lang);
   const fileRef = useRef<HTMLInputElement>(null);
   const [imageError, setImageError] = useState<string | null>(null);
-  const [handoffVisible, setHandoffVisible] = useState(() => sp?.get("handoff") === "preview-pending");
-
   const { state, patch, hydrated } = useCommunityDraftSession(
     MASCOTAS_PERDIDOS_QUICK_DRAFT_KEY,
     emptyMascotasPerdidosQuickDraft(),
@@ -56,15 +57,9 @@ export default function MascotasPerdidosQuickFormClient() {
     flushCommunityDraftToSession(MASCOTAS_PERDIDOS_QUICK_DRAFT_KEY, state, (raw) =>
       normalizeMascotasPerdidosQuickDraft(raw),
     );
-    const qs = new URLSearchParams(sp?.toString() ?? "");
-    qs.set("lang", lang);
-    qs.set("handoff", "preview-pending");
-    router.replace(`/publicar/mascotas-y-perdidos/quick?${qs.toString()}`);
-    setHandoffVisible(true);
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  }, [previewDisabled, state, router, lang, sp]);
+    markPublishFlowOpeningPreview();
+    router.push(mascotasPerdidosHandoffPreviewUrl(lang));
+  }, [previewDisabled, state, router, lang]);
 
   const onImagePick = useCallback(
     (file: File | null) => {
@@ -96,15 +91,6 @@ export default function MascotasPerdidosQuickFormClient() {
     [patch, lang],
   );
 
-  const dismissHandoff = useCallback(() => {
-    setHandoffVisible(false);
-    const qs = new URLSearchParams(sp?.toString() ?? "");
-    qs.delete("handoff");
-    if (!qs.get("lang")) qs.set("lang", lang);
-    const next = qs.toString();
-    router.replace(next ? `/publicar/mascotas-y-perdidos/quick?${next}` : `/publicar/mascotas-y-perdidos/quick?lang=${lang}`);
-  }, [router, lang, sp]);
-
   if (!hydrated) {
     return (
       <MascotasPerdidosShellLayout lang={lang}>
@@ -117,20 +103,6 @@ export default function MascotasPerdidosQuickFormClient() {
     <MascotasPerdidosShellLayout lang={lang}>
       <p className="text-sm text-[#5C5346]/90">{copy.pageSubtitle}</p>
       <p className="mt-2 text-xs text-[#6B5A32]/90">{copy.leonixNote}</p>
-
-      {handoffVisible ? (
-        <div className="mt-4 rounded-xl border border-[#C9B46A]/50 bg-[#FFF9ED] p-4 text-sm text-[#3D3428]">
-          <p className="font-bold">{copy.handoffTitle}</p>
-          <p className="mt-1 leading-relaxed">{copy.handoffBody}</p>
-          <button
-            type="button"
-            onClick={dismissHandoff}
-            className="mt-3 min-h-[44px] rounded-lg border border-[#C9B46A]/60 bg-white px-4 py-2 text-sm font-semibold text-[#3D3428]"
-          >
-            {copy.handoffDismiss}
-          </button>
-        </div>
-      ) : null}
 
       <EmpleosReadinessBanner visible={!gate.ok} intro={copy.gateFail} issues={previewIssues} />
 

@@ -37,9 +37,10 @@ export async function generateMetadata(props: {
   return { title, description, openGraph: { title, description } };
 }
 
-export default async function TiendaContactoPage(props: { searchParams?: Promise<{ lang?: string }> }) {
+export default async function TiendaContactoPage(props: { searchParams?: Promise<{ lang?: string; service?: string }> }) {
   const sp = (await props.searchParams) ?? {};
   const lang: Lang = normalizeLang(sp.lang);
+  const service = typeof sp.service === "string" && sp.service.trim() ? sp.service.trim().slice(0, 120) : undefined;
 
   const mailSubject =
     lang === "en" ? "Tienda — question / quote" : "Tienda — pregunta / cotización";
@@ -98,7 +99,7 @@ export default async function TiendaContactoPage(props: { searchParams?: Promise
           </ul>
         </section>
 
-        <TiendaContactForm lang={lang} />
+        <TiendaContactForm lang={lang} service={service} />
 
         <section className="mt-10 rounded-2xl border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] p-6">
           <p className="text-sm text-[color:var(--lx-muted)]">{tiendaContactGeneralSiteNote(lang)}</p>

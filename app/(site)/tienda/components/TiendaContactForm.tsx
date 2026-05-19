@@ -12,13 +12,13 @@ const INQUIRY_OPTIONS: { value: string; es: string; en: string }[] = [
   { value: "general_tienda", es: "Pregunta general sobre Tienda", en: "General Tienda question" },
 ];
 
-export function TiendaContactForm(props: { lang: Lang }) {
-  const { lang } = props;
+export function TiendaContactForm(props: { lang: Lang; service?: string }) {
+  const { lang, service } = props;
   const en = lang === "en";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [inquiryType, setInquiryType] = useState("general_tienda");
+  const [inquiryType, setInquiryType] = useState(service ? "rep_catalog" : "general_tienda");
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -60,6 +60,14 @@ export function TiendaContactForm(props: { lang: Lang }) {
 
   return (
     <section className="mt-10 rounded-2xl border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] p-6 sm:p-8">
+      {service ? (
+        <div className="mb-5 rounded-xl border border-[color:var(--lx-olive)]/30 bg-[color:var(--lx-olive)]/8 px-4 py-3 text-sm">
+          <span className="font-semibold text-[color:var(--lx-text)]">
+            {en ? "Product / service of interest: " : "Producto / servicio de interés: "}
+          </span>
+          <span className="text-[color:var(--lx-text-2)]">{service.replace(/-/g, " ")}</span>
+        </div>
+      ) : null}
       <h2 className="text-lg font-semibold text-[color:var(--lx-text)]">
         {en ? "Send us a note" : "Escríbenos"}
       </h2>

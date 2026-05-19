@@ -18,8 +18,8 @@ export function tiendaContactPageSubtitle(lang: Lang): string {
 
 export function tiendaContactPreferenceIntro(lang: Lang): string {
   return t(
-    "Te atendemos mejor en persona o por teléfono. El correo es útil para enviar archivos o dejar constancia, pero puede tardar más.",
-    "We serve you best in person or on the phone. Email is fine for files and paper trails, but replies may take longer.",
+    "Preferimos atenderte en oficina o por teléfono para entender exactamente lo que necesitas. También puedes enviar archivos o detalles por correo.",
+    "We prefer office visits or phone calls so we can understand exactly what you need. You can also send files or details by email.",
     lang
   );
 }

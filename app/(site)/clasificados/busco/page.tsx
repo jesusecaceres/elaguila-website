@@ -8,6 +8,7 @@ import Navbar from "@/app/components/Navbar";
 import { CategoryHeroFrame } from "@/app/(site)/clasificados/components/categoryLanding/CategoryHeroFrame";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
+import { BuscoLandingRecentListings } from "./BuscoLandingRecentListings";
 import { BUSCO_PRODUCT, buscoLangFromSearchParams, buscoPathWithLang } from "./shared/buscoShellCopy";
 
 const HERO_IMAGE = "/logo.png";
@@ -18,9 +19,10 @@ const COPY = {
     ctaPost: "Publicar solicitud",
     ctaView: "Ver solicitudes",
     heroImageAlt: "Personas conectando en la comunidad local",
-    emptyTitle: "Próximamente: solicitudes publicadas",
-    emptyBody:
-      "Aún no hay solicitudes publicadas en esta categoría. Cuando el flujo de publicación esté activo, verás anuncios recientes aquí.",
+    recentTitle: "Solicitudes recientes",
+    recentEmpty:
+      "Aún no hay solicitudes publicadas. Sé el primero en publicar lo que buscas en tu comunidad.",
+    recentError: "No se pudieron cargar las solicitudes recientes.",
     backHub: "Volver a Clasificados",
   },
   en: {
@@ -28,9 +30,10 @@ const COPY = {
     ctaPost: "Post request",
     ctaView: "View requests",
     heroImageAlt: "People connecting in the local community",
-    emptyTitle: "Coming soon: published requests",
-    emptyBody:
-      "There are no published requests in this category yet. Once publishing is live, recent requests will appear here.",
+    recentTitle: "Recent requests",
+    recentEmpty:
+      "No published requests yet. Be the first to post what you are looking for in your community.",
+    recentError: "Could not load recent requests.",
     backHub: "Back to Classifieds",
   },
 } as const;
@@ -96,13 +99,12 @@ export default function BuscoLandingPage() {
           </p>
         </section>
 
-        <section
-          className="rounded-2xl border border-dashed border-[#B8C8EA]/45 bg-[#F8FAFF]/90 px-4 py-8 text-center sm:px-6"
-          aria-live="polite"
-        >
-          <p className="text-sm font-semibold text-[#1E1810]">{t.emptyTitle}</p>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#5C5346]/90">{t.emptyBody}</p>
-        </section>
+        <BuscoLandingRecentListings
+          lang={lang}
+          title={t.recentTitle}
+          emptyNote={t.recentEmpty}
+          errorPrefix={t.recentError}
+        />
 
         <div className="flex min-w-0 flex-col gap-3 pt-1 sm:flex-row sm:flex-wrap sm:gap-3">
           <Link
