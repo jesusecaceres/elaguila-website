@@ -26,6 +26,41 @@ type NewsArticle = {
   link?: string;
 };
 
+const SUBCATEGORIES: Record<CategoryKey, Record<Lang, readonly string[]>> = {
+  ultimas: {
+    es: ["Última hora", "Estados Unidos", "Mundo", "Comunidad", "Lo más visto"],
+    en: ["Breaking", "U.S.", "World", "Community", "Most read"],
+  },
+  tendencias: {
+    es: ["Viral", "Redes sociales", "Celebridades", "Comunidad", "Opinión"],
+    en: ["Viral", "Social media", "Celebrities", "Community", "Opinion"],
+  },
+  deportes: {
+    es: ["NFL", "NBA", "MLB", "NHL", "Fútbol", "Boxeo", "NCAA"],
+    en: ["NFL", "NBA", "MLB", "NHL", "Soccer", "Boxing", "NCAA"],
+  },
+  tecnologia: {
+    es: ["IA", "Móviles", "Apps", "Internet", "Negocios tech", "Seguridad"],
+    en: ["AI", "Mobile", "Apps", "Internet", "Tech business", "Security"],
+  },
+  negocios: {
+    es: ["Emprendedores", "Economía", "Mercado", "Pequeños negocios", "Finanzas"],
+    en: ["Entrepreneurs", "Economy", "Markets", "Small business", "Finance"],
+  },
+  internacional: {
+    es: ["México", "Latinoamérica", "Europa", "Asia", "Migración", "Mundo"],
+    en: ["Mexico", "Latin America", "Europe", "Asia", "Migration", "World"],
+  },
+  cultura: {
+    es: ["Música", "Comida", "Tradiciones", "Arte", "Eventos", "Familia"],
+    en: ["Music", "Food", "Traditions", "Art", "Events", "Family"],
+  },
+  local: {
+    es: ["Pensilvania", "Filadelfia", "Negocios locales", "Eventos", "Comunidad"],
+    en: ["Pennsylvania", "Philadelphia", "Local business", "Events", "Community"],
+  },
+};
+
 export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
@@ -95,9 +130,24 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
   );
 
   const [activeCategory, setActiveCategory] = useState<CategoryKey>("ultimas");
+  const [activeSubcategory, setActiveSubcategory] = useState<string>(
+    SUBCATEGORIES.ultimas[lang][0]
+  );
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<NewsArticle | null>(null);
+
+  const subcategories = useMemo(
+    () => SUBCATEGORIES[activeCategory][lang],
+    [activeCategory, lang]
+  );
+
+  const subcategoryNavLabel =
+    lang === "es" ? "Subcategorías de noticias" : "News subcategories";
+
+  useEffect(() => {
+    setActiveSubcategory(SUBCATEGORIES[activeCategory][lang][0]);
+  }, [activeCategory, lang]);
 
   const THUMBS: Record<CategoryKey, string> = {
     ultimas: "/thumbs/thumb_ultimas.png",
@@ -209,14 +259,19 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45 }}
-          className="w-full mb-10 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)]/70 backdrop-blur px-5 py-4 shadow-[0_14px_34px_rgba(42,36,22,0.08)]"
+          className="w-full max-w-full mb-10 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)]/70 backdrop-blur px-5 py-4 shadow-[0_14px_34px_rgba(42,36,22,0.08)]"
         >
           <p className="text-center font-semibold tracking-wide text-[color:var(--lx-text-2)]">
             🔥 {L.breaking}: <span className="text-[color:var(--lx-text)]">{featured.title}</span>
           </p>
         </motion.div>
 
-        <div className="flex flex-wrap justify-center gap-3 md:gap-4 mb-10">
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+          className="flex flex-wrap justify-center gap-3 md:gap-4 mb-4"
+        >
           {categories.map((cat) => {
             const active = activeCategory === cat.key;
             return (
@@ -234,6 +289,39 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
               </button>
             );
           })}
+        </motion.div>
+
+        <div className="w-full max-w-full overflow-hidden mb-10">
+          <nav
+            aria-label={subcategoryNavLabel}
+            className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.05 }}
+              className="flex flex-nowrap gap-2 pb-1 w-max max-w-none md:w-full md:max-w-full md:flex-wrap md:justify-center"
+            >
+              {subcategories.map((sub) => {
+                const active = activeSubcategory === sub;
+                return (
+                  <button
+                    key={sub}
+                    type="button"
+                    onClick={() => setActiveSubcategory(sub)}
+                    aria-current={active ? "true" : undefined}
+                    className={
+                      active
+                        ? "shrink-0 px-3 py-1.5 text-xs md:text-sm rounded-full bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)] font-semibold border border-[color:var(--lx-gold)] shadow-[0_2px_10px_rgba(201,164,74,0.18)]"
+                        : "shrink-0 px-3 py-1.5 text-xs md:text-sm rounded-full border border-[color:var(--lx-nav-border)] bg-white/55 text-[color:var(--lx-text-2)] font-medium hover:bg-white/80 hover:text-[color:var(--lx-text)] transition"
+                    }
+                  >
+                    {sub}
+                  </button>
+                );
+              })}
+            </motion.div>
+          </nav>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
