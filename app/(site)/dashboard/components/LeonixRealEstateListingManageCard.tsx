@@ -39,6 +39,9 @@ type Row = {
   detail_pairs?: unknown;
   republished_at?: unknown;
   is_published?: boolean | null;
+  br_inventory_group_id?: string | null;
+  br_inventory_parent_listing_id?: string | null;
+  inventory_role?: string | null;
 };
 
 function scaffoldEditHref(branch: LeonixClasificadosBranch, categoria: string | null): string {
@@ -174,6 +177,15 @@ export function LeonixRealEstateListingManageCard({
           {(row.leonix_ad_id ?? "").trim() ? (
             <p className="mt-1 font-mono text-[11px] text-[#7A7164]">
               {lang === "es" ? "ID Leonix" : "Leonix Ad ID"}: {(row.leonix_ad_id ?? "").trim()}
+            </p>
+          ) : null}
+          {effectiveBranch === "bienes_raices_negocio" && (row.inventory_role || row.br_inventory_group_id) ? (
+            <p className="mt-1 font-mono text-[11px] text-[#7A7164]">
+              {lang === "es" ? "Inventario" : "Inventory"}: {row.inventory_role ?? "—"}
+              {row.br_inventory_group_id ? ` · grupo ${row.br_inventory_group_id.slice(0, 8)}…` : ""}
+              {row.br_inventory_parent_listing_id
+                ? ` · ${lang === "es" ? "principal" : "parent"} ${row.br_inventory_parent_listing_id.slice(0, 8)}…`
+                : ""}
             </p>
           ) : null}
           {isBr ? (

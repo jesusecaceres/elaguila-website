@@ -19,15 +19,14 @@ import { isAutosInternalPublishPaymentBypassEnabled } from "@/app/lib/clasificad
 import { isAutosAllowTestPublishBypassEnabled } from "@/app/lib/clasificados/autos/autosTestPublishBypass";
 import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import type { AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
+import { autosDealerInventoryLimitMessage } from "@/app/lib/clasificados/autos/autosDealerInventoryCopy";
 
 export const dynamic = "force-dynamic";
 
-type Body = { listingId?: string; lang?: AutosClassifiedsLang };
+type Body = { listingId?: string; lang?: AutosClassifiedsLang; returnToListingId?: string };
 
 function dealerLimitMessage(lang: AutosClassifiedsLang): string {
-  return lang === "en"
-    ? "You have reached the 10 active vehicle limit for your Negocio Autos package. Deactivate a current vehicle to publish another."
-    : "Has llegado al límite de 10 vehículos activos para tu paquete Negocio Autos. Desactiva un vehículo actual para publicar otro.";
+  return autosDealerInventoryLimitMessage(lang);
 }
 
 export async function POST(request: Request) {
@@ -61,6 +60,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "invalid_status" }, { status: 409 });
   }
   const lang: AutosClassifiedsLang = body.lang === "en" || row.lang === "en" ? "en" : "es";
+  const returnTo = body.returnToListingId?.trim();
+  const returnQ = returnTo ? `&return_to=${encodeURIComponent(returnTo)}` : "";
   if (row.lane === "negocios") {
     const dealerInventory = await getAutosDealerInventorySummaryForOwner(row.owner_user_id, { excludeListingId: row.id });
     if (!dealerInventory.canAddActiveVehicle) {
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
     const qLang = lang === "en" ? "lang=en" : "lang=es";
     const laneQ = `lane=${encodeURIComponent(row.lane)}`;
     const livePath = `${autosLiveVehiclePath(listingId)}?${qLang}`;
-    const successUrl = `${origin}/clasificados/autos/pago/exito?internal=1&listing_id=${encodeURIComponent(listingId)}&${qLang}&${laneQ}`;
+    const successUrl = `${origin}/clasificados/autos/pago/exito?internal=1&listing_id=${encodeURIComponent(listingId)}&${qLang}&${laneQ}${returnQ}`;
     return NextResponse.json({
       ok: true,
       internalBypass: true as const,
@@ -124,7 +125,7 @@ export async function POST(request: Request) {
     const qLang = lang === "en" ? "lang=en" : "lang=es";
     const laneQ = `lane=${encodeURIComponent(row.lane)}`;
     const livePath = `${autosLiveVehiclePath(listingId)}?${qLang}`;
-    const successUrl = `${origin}/clasificados/autos/pago/exito?internal=1&test_publish=1&listing_id=${encodeURIComponent(listingId)}&${qLang}&${laneQ}`;
+    const successUrl = `${origin}/clasificados/autos/pago/exito?internal=1&test_publish=1&listing_id=${encodeURIComponent(listingId)}&${qLang}&${laneQ}${returnQ}`;
     return NextResponse.json({
       ok: true,
       testPublishBypass: true as const,
@@ -157,7 +158,7 @@ export async function POST(request: Request) {
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${origin}/clasificados/autos/pago/exito?session_id={CHECKOUT_SESSION_ID}&${qLang}&${laneQ}`,
+    success_url: `${origin}/clasificados/autos/pago/exito?session_id={CHECKOUT_SESSION_ID}&${qLang}&${laneQ}${returnQ}`,
     cancel_url: `${origin}/clasificados/autos/pago/cancelado?listing_id=${encodeURIComponent(listingId)}&${qLang}&${laneQ}`,
     metadata: {
       listing_id: listingId,

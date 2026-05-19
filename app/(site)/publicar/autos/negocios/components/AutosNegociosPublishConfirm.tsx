@@ -2,14 +2,20 @@
 
 import { useSearchParams } from "next/navigation";
 import { withAutosEditorResumeFromPreview } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import { parseAutosInventoryAddSearchParams } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 import { useAutoDealerDraft } from "../hooks/useAutoDealerDraft";
 import { AutosPublishConfirmCore } from "../../shared/components/AutosPublishConfirmCore";
 
 export function AutosNegociosPublishConfirm() {
   const sp = useSearchParams();
-  const lang = (sp ?? new URLSearchParams()).get("lang") === "en" ? "en" : "es";
-  const { hydrated, listing, flushDraft } = useAutoDealerDraft();
-  const editHref = withAutosEditorResumeFromPreview("/publicar/autos/negocios", lang);
+  const params = sp ?? new URLSearchParams();
+  const lang = params.get("lang") === "en" ? "en" : "es";
+  const inventory = parseAutosInventoryAddSearchParams(params);
+  const { hydrated, listing, flushDraft, inventoryAddMode, inventoryAddContext } = useAutoDealerDraft();
+  const editBase = inventory.inventoryModeAdd
+    ? `/publicar/autos/negocios?inventoryMode=add&parentListingId=${encodeURIComponent(inventory.context?.parentListingId ?? "")}`
+    : "/publicar/autos/negocios";
+  const editHref = withAutosEditorResumeFromPreview(editBase, lang);
 
   return (
     <div
@@ -28,6 +34,8 @@ export function AutosNegociosPublishConfirm() {
           hydrated={hydrated}
           flushDraft={flushDraft}
           editHref={editHref}
+          inventoryAddMode={inventoryAddMode || inventory.inventoryModeAdd}
+          inventoryAddContext={inventoryAddContext ?? inventory.context}
         />
       </div>
     </div>

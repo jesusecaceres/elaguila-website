@@ -4,6 +4,7 @@ import { getAutosPublishUserIdFromRequest } from "@/app/lib/clasificados/autos/a
 import {
   autosClassifiedsRowToDashboardRow,
   createAutosClassifiedsListing,
+  createAutosClassifiedsListingWithInventoryParent,
   isAutosClassifiedsDbConfigured,
   listAutosClassifiedsListingsForOwner,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
@@ -16,6 +17,8 @@ type Body = {
   listing?: AutoDealerListing;
   lane?: AutosClassifiedsLane;
   lang?: AutosClassifiedsLang;
+  parentListingId?: string;
+  dealerInventoryGroupId?: string;
 };
 
 /** Owner's Autos classifieds rows (all statuses) for dashboard / publish flow. */
@@ -54,12 +57,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });
   }
   const lang: AutosClassifiedsLang = body.lang === "en" ? "en" : "es";
-  const { row, persistWarnings } = await createAutosClassifiedsListing({
+  const parentListingId = body.parentListingId?.trim();
+  const createInput = {
     ownerUserId: userId,
     lane: body.lane,
     lang,
     listing: body.listing,
-  });
+    dealerInventoryGroupId: body.dealerInventoryGroupId?.trim() || null,
+  };
+  const { row, persistWarnings } =
+    body.lane === "negocios" && parentListingId
+      ? await createAutosClassifiedsListingWithInventoryParent({ ...createInput, parentListingId })
+      : await createAutosClassifiedsListing(createInput);
   if (!row) {
     return NextResponse.json({ ok: false, error: "create_failed" }, { status: 500 });
   }

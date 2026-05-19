@@ -210,6 +210,16 @@ export function AutoDealerPreviewPage({
             </div>
           </aside>
 
+          {(data.relatedDealerListings ?? []).length > 0 ? (
+            <div className="lg:col-span-7 lg:col-start-1" style={{ order: orderAside + 1 }}>
+              <RelatedDealerCars
+                listings={data.relatedDealerListings ?? []}
+                fullInventoryHref={data.relatedDealerInventoryHref}
+                hasMore={data.relatedDealerInventoryHasMore}
+              />
+            </div>
+          ) : null}
+
           {showSpecs ? (
             <div className="lg:col-span-7 lg:col-start-1" style={{ gridRowStart: specsRow, order: orderSpecs }}>
               <VehicleSpecsGrid data={data} />
@@ -228,16 +238,6 @@ export function AutoDealerPreviewPage({
             </div>
           ) : null}
         </div>
-
-        {(data.relatedDealerListings ?? []).length > 0 ? (
-          <div className="mt-6">
-            <RelatedDealerCars
-              listings={data.relatedDealerListings ?? []}
-              fullInventoryHref={data.relatedDealerInventoryHref}
-              hasMore={data.relatedDealerInventoryHasMore}
-            />
-          </div>
-        ) : null}
       </main>
     </AutoDealerPreviewChrome>
   );

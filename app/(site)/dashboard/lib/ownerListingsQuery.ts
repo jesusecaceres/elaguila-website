@@ -8,8 +8,9 @@ const CORE =
   "id,leonix_ad_id,title,price,city,zip,status,created_at,category,seller_type,images,detail_pairs,republished_at,republish_count,views,original_price,current_price,price_last_updated,is_published";
 
 /** Extra columns when present (tiered fallback on unknown columns). */
-const WITH_OPTIONAL_META = `${CORE}, updated_at, published_at, business_name, expires_at`;
-const WITH_TIMESTAMPS = `${CORE}, updated_at, published_at`;
+const WITH_BR_INVENTORY = `${CORE}, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role`;
+const WITH_OPTIONAL_META = `${WITH_BR_INVENTORY}, updated_at, published_at, business_name, expires_at`;
+const WITH_TIMESTAMPS = `${WITH_BR_INVENTORY}, updated_at, published_at`;
 
 export type OwnerListingFetchMeta = {
   optionalMetaAvailable: boolean;
@@ -86,5 +87,8 @@ export function mapOwnerListingRow(r: Record<string, unknown>) {
     current_price: r.current_price ?? null,
     price_last_updated: (r.price_last_updated as string | null | undefined) ?? null,
     is_published: typeof r.is_published === "boolean" ? r.is_published : (r.is_published as boolean | null) ?? null,
+    br_inventory_group_id: (r.br_inventory_group_id as string | null | undefined) ?? null,
+    br_inventory_parent_listing_id: (r.br_inventory_parent_listing_id as string | null | undefined) ?? null,
+    inventory_role: (r.inventory_role as string | null | undefined) ?? null,
   };
 }

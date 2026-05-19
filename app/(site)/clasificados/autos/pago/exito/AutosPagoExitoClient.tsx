@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { emptyAutosPublicFilters } from "@/app/clasificados/autos/filters/autosPublicFilterTypes";
-import { serializeAutosBrowseUrl } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
+import { serializeAutosBrowseUrl, autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import { getAutosPublishFlowCopy } from "@/app/clasificados/autos/lib/autosPublishFlowCopy";
 import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { clearInventoryAddContextFromSession } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 
 function laneFromParam(raw: string | null): AutosClassifiedsLane {
   return raw === "negocios" ? "negocios" : "privado";
@@ -96,7 +97,15 @@ export function AutosPagoExitoClient() {
     lang,
   });
   const resultsHref = `/clasificados/autos/resultados?${resultsQs}`;
-  const dashboardHref = `/dashboard/mis-anuncios?lang=${lang}`;
+  const dashboardHref = `/dashboard/mis-anuncios?lang=${lang}&cat=autos`;
+  const returnToListingId = qs.get("return_to")?.trim() ?? "";
+  const returnToHref = returnToListingId
+    ? `${autosLiveVehiclePath(returnToListingId)}?lang=${lang}`
+    : null;
+
+  useEffect(() => {
+    if (returnToListingId) clearInventoryAddContextFromSession();
+  }, [returnToListingId]);
 
   if ((!sessionId && !(internal && internalListingId)) || err) {
     return (
@@ -149,10 +158,14 @@ export function AutosPagoExitoClient() {
         {internal && testPublish ? c.successBodyTest : internal ? c.successBodyInternal : c.successBody}
       </p>
       <Link
-        href={livePath}
+        href={returnToHref ?? livePath}
         className="mt-8 inline-flex min-h-[48px] w-full max-w-sm items-center justify-center rounded-2xl bg-[color:var(--lx-cta-dark)] px-6 text-sm font-bold text-[#FFFCF7] transition active:opacity-90"
       >
-        {c.viewLive}
+        {returnToHref
+          ? lang === "es"
+            ? "Volver al inventario del dealer"
+            : "Back to dealer inventory"
+          : c.viewLive}
       </Link>
       <div className="mt-5 flex flex-col gap-3 sm:items-center">
         <Link href={resultsHref} className="text-sm font-semibold text-[color:var(--lx-gold)]">

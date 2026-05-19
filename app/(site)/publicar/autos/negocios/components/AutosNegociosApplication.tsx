@@ -84,6 +84,8 @@ export function AutosNegociosApplication() {
     flushDraft,
     updateDealerHourRow,
     removeDealerHourRow,
+    inventoryAddMode,
+    inventoryAddContext,
   } = useAutoDealerDraft();
 
   const autoTitlePreview = useMemo(
@@ -113,6 +115,13 @@ export function AutosNegociosApplication() {
     return <div className="min-h-[40vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
   }
 
+  const inventoryBanner =
+    inventoryAddMode && inventoryAddContext
+      ? lang === "es"
+        ? "Estás agregando un vehículo al inventario del dealer. Los datos del negocio se precargaron; completa la información del vehículo."
+        : "You are adding a vehicle to the dealer inventory. Business details were prefilled; complete the vehicle information."
+      : null;
+
   function toggleBadge(key: VehicleBadge) {
     const cur = new Set(listing.badges ?? []);
     if (cur.has(key)) cur.delete(key);
@@ -138,6 +147,11 @@ export function AutosNegociosApplication() {
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">{t.app.kicker}</p>
           <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-3xl md:text-4xl">{t.app.pageTitle}</h1>
           <p className="mt-2 max-w-xl text-sm leading-snug text-[color:var(--lx-text-2)]">{t.app.intro}</p>
+          {inventoryBanner ? (
+            <p className="mt-3 rounded-xl border border-[color:var(--lx-gold-border)] bg-[#FFFCF7] px-4 py-3 text-sm font-medium text-[color:var(--lx-text)]">
+              {inventoryBanner}
+            </p>
+          ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-[color:var(--lx-muted)]">
             <span className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1">
               {t.app.badgeLocal}
@@ -732,6 +746,8 @@ export function AutosNegociosApplication() {
               listing={listing}
               stepCtx={ctx}
               flushDraft={flushDraft}
+              inventoryAddMode={inventoryAddMode}
+              inventoryAddContext={inventoryAddContext}
               onPreview={async () => {
                 await flushDraft();
                 router.push(previewHref);

@@ -20,6 +20,11 @@ import { createEmptyListing, normalizeLoadedListing } from "@/app/clasificados/a
 import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
 import { clearAutosDraftNamespaceHint, rememberAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
 import { AUTOS_NEGOCIOS_EDITOR_SESSION_KEY } from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
+import {
+  parseAutosInventoryAddSearchParams,
+  prefillDealerListingForInventoryAdd,
+  writeInventoryAddContextToSession,
+} from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 
 function applyAutoTitle(listing: AutoDealerListing, override: boolean): AutoDealerListing {
   if (override) return listing;
@@ -34,6 +39,11 @@ function isAutosConfirmRoute(pathname: string | null): boolean {
 function resumeQueryFlag(): boolean {
   if (typeof window === "undefined") return false;
   return new URLSearchParams(window.location.search).get("resume") === "1";
+}
+
+function inventoryAddFromLocation(): ReturnType<typeof parseAutosInventoryAddSearchParams> {
+  if (typeof window === "undefined") return { inventoryModeAdd: false, context: null };
+  return parseAutosInventoryAddSearchParams(new URLSearchParams(window.location.search));
 }
 
 export function useAutoDealerDraft() {
@@ -78,6 +88,38 @@ export function useAutoDealerDraft() {
 
       const confirmRoute = isAutosConfirmRoute(pathname);
       const resume = resumeQueryFlag();
+      const inventoryAdd = inventoryAddFromLocation();
+
+      if (inventoryAdd.inventoryModeAdd && inventoryAdd.context && !confirmRoute) {
+        writeInventoryAddContextToSession(inventoryAdd.context);
+        try {
+          window.localStorage.removeItem(LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY);
+        } catch {
+          /* ignore */
+        }
+        clearAutosDraftNamespaceHint("negocios");
+        await clearAutosNegociosDraft(ns);
+        const supabase = createSupabaseBrowserClient();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (token) {
+          const r = await fetch(`/api/clasificados/autos/listings/${encodeURIComponent(inventoryAdd.context.parentListingId)}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (r.ok) {
+            const j = (await r.json()) as { listing?: AutoDealerListing };
+            if (j.listing) {
+              setVehicleTitleOverride(false);
+              setListing(safeNormalizeAutosDraftListing(prefillDealerListingForInventoryAdd(j.listing), "negocios"));
+              if (!cancelled) setHydrated(true);
+              return;
+            }
+          }
+        }
+        emptyListing();
+        if (!cancelled) setHydrated(true);
+        return;
+      }
 
       if (confirmRoute || resume) {
         await hydrateFromNamespace(ns);
@@ -204,6 +246,8 @@ export function useAutoDealerDraft() {
     });
   }, []);
 
+  const inventoryAdd = inventoryAddFromLocation();
+
   return {
     hydrated,
     vehicleTitleOverride,
@@ -215,5 +259,7 @@ export function useAutoDealerDraft() {
     flushDraft,
     updateDealerHourRow,
     removeDealerHourRow,
+    inventoryAddMode: inventoryAdd.inventoryModeAdd,
+    inventoryAddContext: inventoryAdd.context,
   };
 }

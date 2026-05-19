@@ -19,10 +19,12 @@ import { sanitizeAutosListingPayloadForPersistence } from "./autosListingPayload
 import {
   STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
   countActiveDealerVehicles,
+  getDealerInventoryGroupId,
   resolveDealerInventoryGroupingKey,
   summarizeDealerInventory,
   type AutosDealerInventoryCount,
 } from "./autosDealerInventoryPolicy";
+import { resolveDealerInventoryGroupIdForParent } from "./autosDealerInventoryAddFlow";
 
 function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
   return {
@@ -66,7 +68,7 @@ export type AutosListingPersistResult = {
 
 export const AUTOS_DEALER_ACTIVE_LIMIT_ERROR = "dealer_active_limit_reached" as const;
 
-export async function createAutosClassifiedsListing(input: {
+export type CreateAutosListingInput = {
   ownerUserId: string;
   lane: AutosClassifiedsLane;
   lang: AutosClassifiedsLang;
@@ -74,7 +76,26 @@ export async function createAutosClassifiedsListing(input: {
   dealerInventoryGroupId?: string | null;
   dealerInventoryParentListingId?: string | null;
   inventoryRole?: AutosDealerInventoryRole | null;
-}): Promise<AutosListingPersistResult> {
+  /** When set with lane negocios, links child to parent inventory group (A4.1). */
+  parentListingId?: string | null;
+};
+
+async function ensureDealerInventoryParentMain(
+  parent: AutosClassifiedsListingRow,
+  groupId: string,
+): Promise<void> {
+  if (!isSupabaseAdminConfigured() || parent.lane !== "negocios") return;
+  const supabase = getAdminSupabase();
+  const needsGroup = !getDealerInventoryGroupId(parent);
+  const needsMain = parent.inventory_role !== "main";
+  if (!needsGroup && !needsMain) return;
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (needsGroup) patch.dealer_inventory_group_id = groupId;
+  if (needsMain) patch.inventory_role = "main";
+  await supabase.from("autos_classifieds_listings").update(patch).eq("id", parent.id).eq("owner_user_id", parent.owner_user_id);
+}
+
+export async function createAutosClassifiedsListing(input: CreateAutosListingInput): Promise<AutosListingPersistResult> {
   if (!isSupabaseAdminConfigured()) return { row: null, persistWarnings: [] };
   const supabase = getAdminSupabase();
   const normalized = normalizeLoadedListing({
@@ -113,6 +134,50 @@ export async function createAutosClassifiedsListing(input: {
     return { row: null, persistWarnings };
   }
   return { row, persistWarnings };
+}
+
+/** Negocio inventory add: child row + parent promoted to main with shared group id. */
+export async function createAutosClassifiedsListingWithInventoryParent(
+  input: CreateAutosListingInput & { parentListingId: string },
+): Promise<AutosListingPersistResult> {
+  const parentId = input.parentListingId.trim();
+  const parent = await getAutosClassifiedsListingById(parentId);
+  if (!parent || parent.owner_user_id !== input.ownerUserId || parent.lane !== "negocios") {
+    return { row: null, persistWarnings: [] };
+  }
+  const groupId = resolveDealerInventoryGroupIdForParent(parent, input.dealerInventoryGroupId);
+  const childResult = await createAutosClassifiedsListing({
+    ...input,
+    dealerInventoryGroupId: groupId,
+    dealerInventoryParentListingId: parent.id,
+    inventoryRole: "inventory_vehicle",
+    parentListingId: undefined,
+  });
+  if (!childResult.row) return childResult;
+  await ensureDealerInventoryParentMain(parent, groupId);
+  return childResult;
+}
+
+export async function listActiveDealerInventoryByGroupId(
+  dealerInventoryGroupId: string,
+  opts?: { excludeListingId?: string; limit?: number },
+): Promise<AutosClassifiedsListingRow[]> {
+  if (!isSupabaseAdminConfigured() || !dealerInventoryGroupId.trim()) return [];
+  const supabase = getAdminSupabase();
+  const cap = Math.min(Math.max(Math.floor(opts?.limit ?? 200), 1), 500);
+  const { data, error } = await supabase
+    .from("autos_classifieds_listings")
+    .select("*")
+    .eq("status", "active")
+    .eq("lane", "negocios")
+    .eq("dealer_inventory_group_id", dealerInventoryGroupId.trim())
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .limit(cap);
+  if (error || !data?.length) return [];
+  const exclude = opts?.excludeListingId?.trim();
+  return data
+    .map((r) => rowFromDb(r as Record<string, unknown>))
+    .filter((row) => !exclude || row.id !== exclude);
 }
 
 export async function getAutosClassifiedsListingById(id: string): Promise<AutosClassifiedsListingRow | null> {
@@ -211,6 +276,10 @@ export type AutosClassifiedsDashboardRow = {
   priceUsd: number | null;
   city: string;
   thumbUrl: string | null;
+  leonix_ad_id: string | null;
+  dealer_inventory_group_id: string | null;
+  dealer_inventory_parent_listing_id: string | null;
+  inventory_role: AutosDealerInventoryRole | null;
 };
 
 export function autosClassifiedsRowToDashboardRow(row: AutosClassifiedsListingRow): AutosClassifiedsDashboardRow {
@@ -233,6 +302,10 @@ export function autosClassifiedsRowToDashboardRow(row: AutosClassifiedsListingRo
     priceUsd,
     city: (L.city ?? "").trim(),
     thumbUrl: thumbs[0] ?? null,
+    leonix_ad_id: row.leonix_ad_id?.trim() ? row.leonix_ad_id.trim() : null,
+    dealer_inventory_group_id: row.dealer_inventory_group_id ?? null,
+    dealer_inventory_parent_listing_id: row.dealer_inventory_parent_listing_id ?? null,
+    inventory_role: row.inventory_role ?? null,
   };
 }
 
@@ -409,14 +482,19 @@ export async function getActiveLiveAutosBundle(
   if (row.lane === "negocios" && publicPool.length > 0) {
     normalized.relatedDealerListings = buildRelatedPublicListings(currentPublic, publicPool, lang, { limit: 4 });
     normalized.relatedDealerInventoryHasMore = publicPool.length > 4;
-    const dealerName = normalized.dealerName?.trim();
-    normalized.relatedDealerInventoryHref = `/clasificados/autos/resultados?${serializeAutosBrowseUrl({
-      filters: { ...emptyAutosPublicFilters(), sellerType: "dealer" },
-      q: dealerName ?? "",
-      sort: "newest",
-      page: 1,
-      lang,
-    })}`;
+    const groupId = getDealerInventoryGroupId(row);
+    if (groupId) {
+      normalized.relatedDealerInventoryHref = `/clasificados/autos/dealer/${encodeURIComponent(groupId)}?lang=${lang}`;
+    } else {
+      const dealerName = normalized.dealerName?.trim();
+      normalized.relatedDealerInventoryHref = `/clasificados/autos/resultados?${serializeAutosBrowseUrl({
+        filters: { ...emptyAutosPublicFilters(), sellerType: "dealer" },
+        q: dealerName ?? "",
+        sort: "newest",
+        page: 1,
+        lang,
+      })}`;
+    }
   }
   const leonix_ad_id = row.leonix_ad_id?.trim() ? row.leonix_ad_id.trim() : null;
   return { listing: normalized, lane: row.lane, publicRow: currentPublic, leonix_ad_id };

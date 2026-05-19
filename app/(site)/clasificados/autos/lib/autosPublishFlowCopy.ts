@@ -9,6 +9,7 @@ export function getAutosPublishFlowCopy(
   lang: AutosPublishFlowLang,
   lane: AutosClassifiedsLane,
   confirmMode: AutosPublishConfirmMode = "stripe",
+  inventoryAdd = false,
 ) {
   const isEs = lang === "es";
   const laneLabel =
@@ -91,6 +92,21 @@ export function getAutosPublishFlowCopy(
       ? "Modo de prueba Autos: publicación sin Stripe. El anuncio quedó activo como cualquier listado en vivo para revisar vitrina y detalle."
       : "Autos test mode: published without Stripe. The listing is active like any live row so you can verify browse surfaces.",
   };
+
+  if (inventoryAdd && lane === "negocios") {
+    return {
+      ...base,
+      metaTitle: isEs ? "Confirmar vehículo del inventario" : "Confirm inventory vehicle",
+      preparing: isEs ? "Agregando al inventario…" : "Adding to inventory…",
+      title: isEs ? "Confirmar vehículo del inventario" : "Confirm inventory vehicle",
+      subtitle: isEs
+        ? "Revisa el resumen del vehículo. Marca las tres casillas para continuar al pago o activación."
+        : "Review the vehicle summary. Check all three boxes to continue to payment or activation.",
+      payCta: isEs ? "Agregar al inventario" : "Add to inventory",
+      payBusy: isEs ? "Agregando al inventario…" : "Adding to inventory…",
+      continueToPublish: isEs ? "Agregar al inventario" : "Add to inventory",
+    };
+  }
 
   if (confirmMode === "test_bypass") {
     return {

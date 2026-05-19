@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
@@ -19,6 +19,26 @@ import {
   clearLeonixPreviewNavSessionFlag,
   markPublishFlowReturningToEdit,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import {
+  computeBrPropertyInventoryCounts,
+  isBrInventoryUpgradeActive,
+  type BrNegocioPublishInventoryContext,
+} from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
+import {
+  brPropertyInventoryAddToInventoryCtaLabel,
+  brPropertyInventoryBaseLimitMessage,
+  brPropertyInventoryMaxTotalLimitMessage,
+} from "@/app/clasificados/lib/leonixBrPropertyInventoryCopy";
+import {
+  clearBrInventoryAddContextFromSession,
+  parseBrInventoryAddSearchParams,
+  readBrInventoryAddContextFromSession,
+  resolveBrInventoryAddReturnHref,
+  resolveBrInventoryGroupIdForParent,
+  writeBrInventoryAddContextToSession,
+} from "@/app/clasificados/lib/leonixBrPropertyInventoryAddFlow";
+import { fetchBrOwnerInventoryListingRows } from "@/app/clasificados/bienes-raices/lib/fetchBrOwnerInventoryListingsBrowser";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 const GRACE_STEP_MS = 200;
 const GRACE_TOTAL_MS = 1000;
@@ -40,39 +60,97 @@ function tryReadPreviewDraftForMap(): BienesRaicesNegocioPreviewVm | null {
   }
 }
 
-/**
- * Hooks: fixed order every render — three useState, one useEffect only.
- * UI branches use a single return (no early return after hooks).
- */
 export default function BienesRaicesNegocioPreviewClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const inventoryAdd = useMemo(
+    () => parseBrInventoryAddSearchParams(searchParams ?? new URLSearchParams()),
+    [searchParams],
+  );
+  const inventoryCtx = useMemo(() => {
+    const ctx = inventoryAdd.context ?? readBrInventoryAddContextFromSession();
+    if (!ctx) return null;
+    const groupId = resolveBrInventoryGroupIdForParent(
+      { id: ctx.parentListingId, br_inventory_group_id: ctx.brInventoryGroupId },
+      ctx.brInventoryGroupId,
+    );
+    return {
+      mode: "add" as const,
+      parentListingId: ctx.parentListingId,
+      brInventoryGroupId: groupId,
+    } satisfies BrNegocioPublishInventoryContext;
+  }, [inventoryAdd.context]);
+
   const [phase, setPhase] = useState<Phase>("loading");
   const [vm, setVm] = useState<BienesRaicesNegocioPreviewVm | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (inventoryAdd.context) writeBrInventoryAddContextToSession(inventoryAdd.context);
+  }, [inventoryAdd.context]);
+
   const onPublishLive = useCallback(async () => {
     const st = loadBienesRaicesNegocioPreviewDraft();
     if (!st) return;
     setPublishBusy(true);
     setPublishErr(null);
-    const r = await publishLeonixListingFromBienesRaicesNegocioDraft(st, lang);
-    setPublishBusy(false);
-    if (r.ok) {
-      if (r.warnings.length) {
-        try {
-          sessionStorage.setItem("lx_br_publish_warnings", JSON.stringify(r.warnings));
-        } catch {
-          /* ignore */
+
+    try {
+      const sb = createSupabaseBrowserClient();
+      const { data: auth } = await sb.auth.getUser();
+      const ownerId = auth.user?.id;
+      const publishInventory: BrNegocioPublishInventoryContext | null = inventoryCtx
+        ? inventoryCtx
+        : { mode: "main" };
+
+      if (ownerId && publishInventory.mode === "add") {
+        const rows = await fetchBrOwnerInventoryListingRows(ownerId);
+        const upgradeActive = isBrInventoryUpgradeActive();
+        const counts = computeBrPropertyInventoryCounts(rows, {
+          groupingKey: publishInventory.brInventoryGroupId,
+          upgradeActive,
+        });
+        if (!counts.canAddProperty) {
+          setPublishErr(
+            counts.atTotalLimit ? brPropertyInventoryMaxTotalLimitMessage(lang) : brPropertyInventoryBaseLimitMessage(lang),
+          );
+          setPublishBusy(false);
+          return;
         }
       }
-      router.push(appendLangToPath(leonixLiveAnuncioPath(r.listingId), lang));
-    } else {
-      setPublishErr(r.error);
+
+      const r = await publishLeonixListingFromBienesRaicesNegocioDraft(st, lang, publishInventory);
+      setPublishBusy(false);
+      if (r.ok) {
+        if (r.warnings.length) {
+          try {
+            sessionStorage.setItem("lx_br_publish_warnings", JSON.stringify(r.warnings));
+          } catch {
+            /* ignore */
+          }
+        }
+        if (inventoryCtx) {
+          clearBrInventoryAddContextFromSession();
+          router.push(
+            appendLangToPath(
+              resolveBrInventoryAddReturnHref({ returnToListingId: inventoryCtx.parentListingId, lang }),
+              lang,
+            ),
+          );
+        } else {
+          router.push(appendLangToPath(leonixLiveAnuncioPath(r.listingId), lang));
+        }
+      } else {
+        setPublishErr(r.error);
+      }
+    } catch (e) {
+      setPublishBusy(false);
+      setPublishErr(e instanceof Error ? e.message : String(e));
     }
-  }, [lang, router]);
+  }, [inventoryCtx, lang, router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -102,6 +180,12 @@ export default function BienesRaicesNegocioPreviewClient() {
     };
   }, [retryKey]);
 
+  const publishLabel = inventoryCtx
+    ? brPropertyInventoryAddToInventoryCtaLabel(lang)
+    : lang === "es"
+      ? "Publicar anuncio"
+      : "Publish listing";
+
   return (
     <>
       {phase === "loading" ? (
@@ -115,13 +199,7 @@ export default function BienesRaicesNegocioPreviewClient() {
           publishSlot={
             <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
               <button type="button" className={PUBLISH_BTN} disabled={publishBusy} onClick={() => void onPublishLive()}>
-                {publishBusy
-                  ? lang === "es"
-                    ? "Publicando…"
-                    : "Publishing…"
-                  : lang === "es"
-                    ? "Publicar anuncio"
-                    : "Publish listing"}
+                {publishBusy ? (lang === "es" ? "Publicando…" : "Publishing…") : publishLabel}
               </button>
               {publishErr ? (
                 <p className="max-w-[280px] text-right text-[11px] text-red-700" role="alert">

@@ -1,7 +1,15 @@
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 
+/** @deprecated BR13B uses locked product limits below — kept for BR13A audit compatibility. */
 export const BR_NEGOCIO_RECOMMENDED_ACTIVE_PROPERTY_LIMIT = 5;
 
+export const BASE_BR_NEGOCIO_MONTHLY_PRICE = 399;
+export const BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES = 3;
+export const BR_PROPERTY_INVENTORY_UPGRADE_MONTHLY_PRICE = 89.99;
+export const BR_PROPERTY_INVENTORY_UPGRADE_EXTRA_ACTIVE_LIMIT = 5;
+export const BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT = 8;
+
+export type BrPropertyInventoryLang = "es" | "en";
 export type BrPropertyInventoryRole = "main" | "inventory_property";
 
 export type BrPropertyInventoryRowLike = {
@@ -17,8 +25,37 @@ export type BrPropertyInventoryRowLike = {
   inventory_role?: string | null;
 };
 
+export type BrPropertyInventoryCountSnapshot = {
+  groupingKey: string | null;
+  activeCount: number;
+  baseUsed: number;
+  baseLimit: number;
+  additionalUsed: number;
+  additionalLimit: number;
+  totalLimit: number;
+  upgradeActive: boolean;
+  canAddProperty: boolean;
+  atBaseLimit: boolean;
+  atTotalLimit: boolean;
+};
+
 function trim(v: unknown): string {
   return typeof v === "string" ? v.trim() : v == null ? "" : String(v).trim();
+}
+
+/**
+ * Entitlement placeholder — no Stripe wiring in BR13B.
+ * Dev/QA: `NEXT_PUBLIC_LEONIX_BR_INVENTORY_UPGRADE=1` or `localStorage.LEONIX_BR_INVENTORY_UPGRADE=1`.
+ */
+export function isBrInventoryUpgradeActive(): boolean {
+  if (typeof window !== "undefined") {
+    try {
+      if (localStorage.getItem("LEONIX_BR_INVENTORY_UPGRADE") === "1") return true;
+    } catch {
+      /* ignore */
+    }
+  }
+  return process.env.NEXT_PUBLIC_LEONIX_BR_INVENTORY_UPGRADE === "1";
 }
 
 export function getBrInventoryGroupId(row: Pick<BrPropertyInventoryRowLike, "br_inventory_group_id">): string | null {
@@ -59,6 +96,13 @@ export function resolveBrInventoryGroupingKey(row: BrPropertyInventoryRowLike): 
   return ownerId ? `owner:${ownerId}` : null;
 }
 
+export function isActiveBrNegocioInventoryRow(row: BrPropertyInventoryRowLike): boolean {
+  if (!isBrNegocioListing(row)) return false;
+  if (row.status !== "active") return false;
+  if (row.is_published === false) return false;
+  return true;
+}
+
 export function countActiveBrInventoryListings(
   rows: readonly BrPropertyInventoryRowLike[],
   opts?: { groupingKey?: string | null; excludeListingId?: string | null },
@@ -66,10 +110,81 @@ export function countActiveBrInventoryListings(
   const groupingKey = trim(opts?.groupingKey) || null;
   const exclude = trim(opts?.excludeListingId);
   return rows.filter((row) => {
-    if (!isBrNegocioListing(row)) return false;
-    if (row.status !== "active" || row.is_published === false) return false;
+    if (!isActiveBrNegocioInventoryRow(row)) return false;
     if (exclude && row.id === exclude) return false;
     if (!groupingKey) return true;
     return resolveBrInventoryGroupingKey(row) === groupingKey;
   }).length;
+}
+
+export function brNegocioActivePropertyLimit(upgradeActive: boolean): number {
+  return upgradeActive
+    ? BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT
+    : BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES;
+}
+
+export function computeBrPropertyInventoryCounts(
+  rows: readonly BrPropertyInventoryRowLike[],
+  opts: { groupingKey: string | null; upgradeActive?: boolean; excludeListingId?: string | null },
+): BrPropertyInventoryCountSnapshot {
+  const upgradeActive = opts.upgradeActive ?? isBrInventoryUpgradeActive();
+  const activeCount = countActiveBrInventoryListings(rows, {
+    groupingKey: opts.groupingKey,
+    excludeListingId: opts.excludeListingId,
+  });
+  const baseUsed = Math.min(activeCount, BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES);
+  const additionalUsed = upgradeActive
+    ? Math.min(
+        Math.max(0, activeCount - BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES),
+        BR_PROPERTY_INVENTORY_UPGRADE_EXTRA_ACTIVE_LIMIT,
+      )
+    : 0;
+  const totalLimit = brNegocioActivePropertyLimit(upgradeActive);
+  return {
+    groupingKey: opts.groupingKey,
+    activeCount,
+    baseUsed,
+    baseLimit: BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES,
+    additionalUsed,
+    additionalLimit: BR_PROPERTY_INVENTORY_UPGRADE_EXTRA_ACTIVE_LIMIT,
+    totalLimit,
+    upgradeActive,
+    canAddProperty: activeCount < totalLimit,
+    atBaseLimit: !upgradeActive && activeCount >= BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES,
+    atTotalLimit: upgradeActive && activeCount >= BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT,
+  };
+}
+
+export type BrNegocioPublishInventoryContext =
+  | { mode: "main" }
+  | {
+      mode: "add";
+      parentListingId: string;
+      brInventoryGroupId: string;
+    };
+
+export function inventoryMetadataForBrNegocioPublish(
+  ctx: BrNegocioPublishInventoryContext | null | undefined,
+): {
+  brInventoryGroupId?: string;
+  brInventoryParentListingId?: string;
+  brInventoryRole?: BrPropertyInventoryRole;
+} {
+  if (!ctx) return {};
+  if (ctx.mode === "add") {
+    return {
+      brInventoryGroupId: ctx.brInventoryGroupId,
+      brInventoryParentListingId: ctx.parentListingId,
+      brInventoryRole: "inventory_property",
+    };
+  }
+  return { brInventoryRole: "main" };
+}
+
+/** After main listing insert, group id defaults to listing id when column exists. */
+export function mainListingInventoryPatchAfterInsert(listingId: string): Record<string, unknown> {
+  return {
+    br_inventory_group_id: listingId,
+    inventory_role: "main",
+  };
 }

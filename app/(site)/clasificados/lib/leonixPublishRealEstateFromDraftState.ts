@@ -30,6 +30,10 @@ import {
   mergeBusinessMetaJsonWithGate12cOverlay,
 } from "@/app/clasificados/lib/leonixContactChannelsV1";
 import {
+  inventoryMetadataForBrNegocioPublish,
+  type BrNegocioPublishInventoryContext,
+} from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
+import {
   publishLeonixRealEstateListingCore,
   type PublishLeonixRealEstateListingCoreParams,
   type PublishLeonixRealEstateListingCoreResult,
@@ -289,6 +293,7 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
 export function buildPublishParamsFromBienesRaicesNegocioDraft(
   state: BienesRaicesNegocioFormState,
   lang: "es" | "en",
+  inventory?: BrNegocioPublishInventoryContext | null,
 ): LeonixBrDraftPublishBuildResult {
   const petsErr = petsRequiredForBrPublish(state.petsAllowed, lang);
   if (petsErr) return petsErr;
@@ -323,15 +328,17 @@ export function buildPublishParamsFromBienesRaicesNegocioDraft(
       contactEmail: c.email,
       imageSources: [...state.media.photoUrls],
       lang,
+      ...inventoryMetadataForBrNegocioPublish(inventory),
     },
   };
 }
 
 export async function publishLeonixListingFromBienesRaicesNegocioDraft(
   state: BienesRaicesNegocioFormState,
-  lang: "es" | "en"
+  lang: "es" | "en",
+  inventory?: BrNegocioPublishInventoryContext | null,
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
-  const built = buildPublishParamsFromBienesRaicesNegocioDraft(state, lang);
+  const built = buildPublishParamsFromBienesRaicesNegocioDraft(state, lang, inventory);
   if (!built.ok) return built;
   if ("params" in built) return publishLeonixRealEstateListingCore(built.params);
   return built;

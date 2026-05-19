@@ -259,6 +259,11 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                         <p className="mt-0.5 text-[10px] font-normal text-[#7A7164]">
                           {sellerName ? sellerName : r.lane}
                           {dealerActiveCount != null ? ` · active ${dealerActiveCount}/10` : ""}
+                          {r.lane === "negocios" && r.inventory_role ? ` · role ${r.inventory_role}` : ""}
+                          {r.dealer_inventory_parent_listing_id
+                            ? ` · parent ${r.dealer_inventory_parent_listing_id.slice(0, 8)}…`
+                            : ""}
+                          {r.dealer_inventory_group_id ? ` · group ${r.dealer_inventory_group_id.slice(0, 8)}…` : ""}
                           {contactSignal ? " · contact" : ""}
                           {mediaSignal ? ` · ${mediaSignal}` : ""}
                         </p>

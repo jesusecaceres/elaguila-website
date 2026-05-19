@@ -1,7 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
+import {
+  BASE_BR_NEGOCIO_MONTHLY_PRICE,
+  BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES,
+} from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
+import {
+  parseBrInventoryAddSearchParams,
+  writeBrInventoryAddContextToSession,
+  resolveBrInventoryAddReturnHref,
+} from "@/app/clasificados/lib/leonixBrPropertyInventoryAddFlow";
 import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
 import { gateBienesRaicesNegocioPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import {
@@ -68,6 +77,11 @@ function stepLabelsForAdvertiser(adv: string): string[] {
 
 export default function BienesRaicesNegocioApplication() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const inventoryAdd = useMemo(
+    () => parseBrInventoryAddSearchParams(searchParams ?? new URLSearchParams()),
+    [searchParams],
+  );
   const [step, setStep] = useState(0);
   const [state, setState] = useState(() => createEmptyBienesRaicesNegocioFormState());
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
@@ -76,6 +90,10 @@ export default function BienesRaicesNegocioApplication() {
   useLayoutEffect(() => {
     setState(bootstrapBienesRaicesNegocioApplicationState());
   }, []);
+
+  useLayoutEffect(() => {
+    if (inventoryAdd.context) writeBrInventoryAddContextToSession(inventoryAdd.context);
+  }, [inventoryAdd.context]);
 
   const navStepLabels = useMemo(() => stepLabelsForAdvertiser(state.advertiserType), [state.advertiserType]);
   const stepLabel = navStepLabels[step] ?? "";
@@ -129,13 +147,33 @@ export default function BienesRaicesNegocioApplication() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">Leonix Clasificados · Negocio</p>
-              <h1 className="mt-1 text-2xl font-extrabold text-[#1E1810] sm:text-3xl">Publicar Bienes Raíces — Negocio</h1>
+              <h1 className="mt-1 text-2xl font-extrabold text-[#1E1810] sm:text-3xl">
+                {inventoryAdd.inventoryModeAdd
+                  ? "Agregar propiedad al inventario"
+                  : "Publicar Bienes Raíces — Negocio"}
+              </h1>
               <p className="mt-2 max-w-xl text-sm text-[#5C5346]/88">
-                Cada paso está enlazado al preview aprobado: hero, galería, identidad, destacados, detalles profundos y carril de
-                contacto. Usa “Vista previa” para comprobarlo en vivo.
+                {inventoryAdd.inventoryModeAdd
+                  ? "Cada propiedad sigue siendo su propio anuncio con ID Leonix y página pública. Completa el formulario y usa la vista previa para agregar al inventario."
+                  : "Cada paso está enlazado al preview aprobado: hero, galería, identidad, destacados, detalles profundos y carril de contacto. Usa “Vista previa” para comprobarlo en vivo."}
+              </p>
+              <p className="mt-2 text-xs font-semibold text-[#6E5418]">
+                Plan Negocio · ${BASE_BR_NEGOCIO_MONTHLY_PRICE}/mes · hasta {BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES}{" "}
+                propiedades activas incluidas
               </p>
             </div>
             <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
+              {inventoryAdd.context ? (
+                <button
+                  type="button"
+                  className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#E8DFD0] bg-white px-4 py-2.5 text-sm font-semibold text-[#2C2416] hover:bg-[#FFFCF7] sm:min-h-0 sm:w-auto"
+                  onClick={() =>
+                    leaveAndGo(resolveBrInventoryAddReturnHref({ returnToListingId: inventoryAdd.context!.returnToListingId, lang: "es" }))
+                  }
+                >
+                  Volver al anuncio principal
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#E8DFD0] bg-white px-4 py-2.5 text-sm font-semibold text-[#2C2416] hover:bg-[#FFFCF7] sm:min-h-0 sm:w-auto"

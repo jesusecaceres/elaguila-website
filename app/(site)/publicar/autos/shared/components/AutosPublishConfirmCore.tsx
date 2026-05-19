@@ -13,6 +13,13 @@ import {
   omitAutosInlineVideoForApiPayload,
   prepareAutosListingOptionalMuxUpload,
 } from "@/app/(site)/publicar/autos/shared/lib/autosMuxPublishPrepare";
+import type { AutosInventoryAddContext } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
+import {
+  clearInventoryAddContextFromSession,
+  readInventoryAddContextFromSession,
+  resolveInventoryAddReturnHref,
+} from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
+import { autosDealerInventoryLimitMessage } from "@/app/lib/clasificados/autos/autosDealerInventoryCopy";
 
 function sessionKey(lane: AutosClassifiedsLane) {
   return `lx-autos-publish-listing-${lane}`;
@@ -34,6 +41,8 @@ export function AutosPublishConfirmCore({
   hydrated,
   flushDraft,
   editHref,
+  inventoryAddMode = false,
+  inventoryAddContext = null,
 }: {
   lane: AutosClassifiedsLane;
   lang: AutosPublishFlowLang;
@@ -41,9 +50,12 @@ export function AutosPublishConfirmCore({
   hydrated: boolean;
   flushDraft: () => Promise<void>;
   editHref: string;
+  inventoryAddMode?: boolean;
+  inventoryAddContext?: AutosInventoryAddContext | null;
 }) {
   const [publishConfirmMode, setPublishConfirmMode] = useState<AutosPublishConfirmMode>("stripe");
-  const c = getAutosPublishFlowCopy(lang, lane, publishConfirmMode);
+  const inventoryCtx = inventoryAddContext ?? (inventoryAddMode ? readInventoryAddContextFromSession() : null);
+  const c = getAutosPublishFlowCopy(lang, lane, publishConfirmMode, Boolean(inventoryCtx));
   const [listingId, setListingId] = useState<string | null>(null);
   const [phase, setPhase] = useState<"idle" | "preparing" | "ready" | "error">("idle");
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
@@ -112,10 +124,19 @@ export function AutosPublishConfirmCore({
       }
       await flushDraft();
       if (cancelled) return;
+      const createBody: Record<string, unknown> = {
+        listing: omitAutosInlineVideoForApiPayload(listingRef.current),
+        lane,
+        lang,
+      };
+      if (inventoryCtx?.parentListingId) {
+        createBody.parentListingId = inventoryCtx.parentListingId;
+        if (inventoryCtx.dealerInventoryGroupId) createBody.dealerInventoryGroupId = inventoryCtx.dealerInventoryGroupId;
+      }
       const res = await fetch("/api/clasificados/autos/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ listing: omitAutosInlineVideoForApiPayload(listingRef.current), lane, lang }),
+        body: JSON.stringify(createBody),
       });
       const j = (await res.json()) as { ok?: boolean; id?: string };
       if (cancelled) return;
@@ -230,7 +251,11 @@ export function AutosPublishConfirmCore({
     const res = await fetch("/api/clasificados/autos/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ listingId, lang }),
+      body: JSON.stringify({
+        listingId,
+        lang,
+        ...(inventoryCtx?.returnToListingId ? { returnToListingId: inventoryCtx.returnToListingId } : {}),
+      }),
     });
     const j = (await res.json()) as {
       ok?: boolean;
@@ -239,9 +264,25 @@ export function AutosPublishConfirmCore({
       testPublishBypass?: boolean;
       successUrl?: string;
       error?: string;
+      message?: string;
     };
     setPayBusy(false);
+    if (!res.ok && j.error === "dealer_active_limit_reached") {
+      setErrorDetail(j.message ?? autosDealerInventoryLimitMessage(lang));
+      setPhase("error");
+      return;
+    }
     if (res.ok && (j.internalBypass || j.testPublishBypass) && typeof j.successUrl === "string" && j.successUrl) {
+      if (inventoryCtx) {
+        clearInventoryAddContextFromSession();
+        const returnHref = resolveInventoryAddReturnHref({
+          returnToListingId: inventoryCtx.returnToListingId,
+          newListingId: listingId,
+          lang,
+        });
+        window.location.href = returnHref;
+        return;
+      }
       window.location.href = j.successUrl;
       return;
     }

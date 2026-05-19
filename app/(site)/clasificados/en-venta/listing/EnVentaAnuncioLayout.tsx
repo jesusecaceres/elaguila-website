@@ -35,6 +35,7 @@ import { EnVentaRelatedRail } from "./EnVentaRelatedRail";
 import { enVentaClassifiedAdJsonLd } from "../seo/enVentaJsonLd";
 import { RentasNegocioDesktopBusinessRail } from "@/app/clasificados/rentas/listing/components/RentasNegocioDesktopBusinessRail";
 import { BrLiveFactsStrip } from "@/app/clasificados/bienes-raices/listing/BrLiveFactsStrip";
+import { BrRelatedAgentPropertiesSection } from "@/app/clasificados/bienes-raices/components/BrRelatedAgentPropertiesSection";
 import { LeonixInlineListingReport } from "@/app/clasificados/components/LeonixInlineListingReport";
 import { buildLeonixBusinessLiveDisplay, parseLeonixBusinessMetaForLive } from "@/app/clasificados/lib/leonixBusinessLiveDisplay";
 import { resolveLeonixLiveListingContact } from "@/app/clasificados/lib/leonixListingContactResolve";
@@ -73,6 +74,9 @@ type AnuncioListingLike = {
   contact_email?: string | null;
   owner_id?: string | null;
   business_meta?: string | null;
+  br_inventory_group_id?: string | null;
+  br_inventory_parent_listing_id?: string | null;
+  inventory_role?: string | null;
 };
 
 function pairsFromListing(l: AnuncioListingLike): Array<{ label: string; value: string }> {
@@ -888,6 +892,15 @@ export function EnVentaAnuncioLayout({
               </p>
             </section>
             <EnVentaItemSpecs lang={lang} rows={specRows} />
+            {premiumBr && listing.sellerType === "business" ? (
+              <BrRelatedAgentPropertiesSection
+                listingId={listing.id}
+                ownerId={listing.owner_id}
+                brInventoryGroupId={listing.br_inventory_group_id}
+                brInventoryParentListingId={listing.br_inventory_parent_listing_id}
+                lang={lang}
+              />
+            ) : null}
           </div>
           <div className="lg:col-span-4">
             <EnVentaRelatedRail lang={lang} q={listing.title[lang].split(/\s+/).slice(0, 4).join(" ")} />

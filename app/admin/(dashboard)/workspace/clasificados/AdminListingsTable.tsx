@@ -39,6 +39,9 @@ type Row = {
   is_published?: boolean | null;
   leonix_verified?: boolean | null;
   admin_promoted?: boolean | null;
+  br_inventory_group_id?: string | null;
+  br_inventory_parent_listing_id?: string | null;
+  inventory_role?: string | null;
 };
 
 export type AdminListingsTableRow = Row;
@@ -102,6 +105,10 @@ function clasificadosLeonixAdminLine(row: Row, detailPairsAvailable: boolean): s
     if (br.petsAllowed === true) bits.push("pets");
     else if (br.petsAllowed === false) bits.push("pets:no");
     if (br.furnished === true) bits.push("furn");
+    const invRole = row.inventory_role?.trim();
+    if (invRole) bits.push(`inv:${invRole}`);
+    if (row.br_inventory_group_id) bits.push("inv-group");
+    if (row.br_inventory_parent_listing_id) bits.push("inv-parent");
     return bits.length ? `${base} · ${bits.join(" · ")}` : base;
   }
   return base;

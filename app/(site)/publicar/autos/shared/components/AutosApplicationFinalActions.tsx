@@ -15,6 +15,10 @@ import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosCla
 import type { AutosApplicationStepContext } from "./AutosApplicationSteppedShell";
 import { getAutosApplicationStepShellCopy } from "../lib/autosApplicationStepShellCopy";
 import { getAutosPublishPlaceholderCopy } from "../lib/autosPublishPlaceholderCopy";
+import {
+  buildAutosInventoryAddConfirmHref,
+  type AutosInventoryAddContext,
+} from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 
 const BTN_SECONDARY =
   "inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 text-sm font-bold text-[color:var(--lx-text)] shadow-sm transition hover:bg-[color:var(--lx-nav-hover)] active:opacity-90 sm:w-auto sm:min-w-[160px]";
@@ -37,6 +41,8 @@ export function AutosApplicationFinalActions({
   onPreview,
   onDeleteApplication,
   flushDraft,
+  inventoryAddMode = false,
+  inventoryAddContext = null,
 }: {
   lane: AutosPreviewLane;
   lang: AutosNegociosLang;
@@ -46,6 +52,8 @@ export function AutosApplicationFinalActions({
   onPreview: () => void | Promise<void>;
   onDeleteApplication: () => void | Promise<void>;
   flushDraft: () => Promise<void>;
+  inventoryAddMode?: boolean;
+  inventoryAddContext?: AutosInventoryAddContext | null;
 }) {
   const router = useRouter();
   const baseId = useId();
@@ -58,11 +66,13 @@ export function AutosApplicationFinalActions({
   const [continueBusy, setContinueBusy] = useState(false);
 
   const allChecks = checks.every(Boolean);
-  const publishConfirmHref = withLangParam(
-    publishLane === "negocios" ? "/publicar/autos/negocios/confirm" : "/publicar/autos/privado/confirm",
-    lang,
-  );
-
+  const publishConfirmHref =
+    inventoryAddMode && inventoryAddContext
+      ? buildAutosInventoryAddConfirmHref(inventoryAddContext, lang)
+      : withLangParam(
+          publishLane === "negocios" ? "/publicar/autos/negocios/confirm" : "/publicar/autos/privado/confirm",
+          lang,
+        );
   useEffect(() => {
     if (!blockedTap) return;
     const t = window.setTimeout(() => setBlockedTap(null), 8000);
@@ -84,6 +94,12 @@ export function AutosApplicationFinalActions({
   }
 
   const h = copy.app.actions;
+  const continueLabel =
+    inventoryAddMode && publishLane === "negocios"
+      ? lang === "es"
+        ? "Agregar al inventario"
+        : "Add to inventory"
+      : h.continueToPublish;
   const del = copy.app.hints.deleteApplicationConfirm;
 
   return (
@@ -178,7 +194,7 @@ export function AutosApplicationFinalActions({
             })();
           }}
         >
-          {h.continueToPublish}
+          {continueLabel}
         </button>
       </div>
       {blockedMessage ? (

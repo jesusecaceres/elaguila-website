@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -12,6 +12,12 @@ import {
 } from "../lib/ownerListingsLifecycleClient";
 import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
 import { AutosClassifiedListingManageCard } from "@/app/clasificados/autos/dashboard/AutosClassifiedListingManageCard";
+import { AutosDealerInventoryDashboardSection } from "@/app/clasificados/autos/dashboard/AutosDealerInventoryDashboardSection";
+import { BrPropertyInventoryDashboardSection } from "@/app/clasificados/bienes-raices/dashboard/BrPropertyInventoryDashboardSection";
+import {
+  isBrNegocioListing,
+  type BrPropertyInventoryRowLike,
+} from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
@@ -90,13 +96,16 @@ type ListingRow = {
   republished_at?: string | null;
   republish_count?: number | null;
   views?: number | null;
-  /** When set and lower than original, UI may show “price reduced” (contract-ready). */
+  /** When set and lower than original, UI may show â€œprice reducedâ€ (contract-ready). */
   original_price?: number | string | null;
   current_price?: number | string | null;
   price_last_updated?: string | null;
   is_published?: boolean | null;
-  /** Permanent directory id when column exists — display only. */
+  /** Permanent directory id when column exists â€” display only. */
   leonix_ad_id?: string | null;
+  br_inventory_group_id?: string | null;
+  br_inventory_parent_listing_id?: string | null;
+  inventory_role?: string | null;
 };
 
 const EDIT_WINDOW_MINUTES = 30;
@@ -139,7 +148,7 @@ function formatDateIso(iso?: string | null) {
 
 function formatDateTimeMs(ms: number, lang: Lang) {
   const d = new Date(ms);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "â€”";
   return d.toLocaleString(lang === "es" ? "es-US" : "en-US", {
     year: "numeric",
     month: "short",
@@ -183,7 +192,7 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
 
 function accountRefFromId(id: string): string {
   const s = (id ?? "").replace(/-/g, "").trim();
-  if (s.length < 8) return "—";
+  if (s.length < 8) return "â€”";
   return `${s.slice(0, 4).toUpperCase()}-${s.slice(-4).toUpperCase()}`;
 }
 
@@ -193,7 +202,7 @@ function normalizeStatus(s: string | null | undefined): string {
 
 function passesTab(row: ListingRow, tab: Tab): boolean {
   const st = normalizeStatus(row.status);
-  /** Keep removed rows in “All” so sellers see failed publish / admin removals; other tabs stay discovery-focused. */
+  /** Keep removed rows in â€œAllâ€ so sellers see failed publish / admin removals; other tabs stay discovery-focused. */
   if (st === "removed") return tab === "all";
   const isDraft = row.is_published === false || st === "draft";
   if (tab === "all") return true;
@@ -203,7 +212,7 @@ function passesTab(row: ListingRow, tab: Tab): boolean {
   return true;
 }
 
-/** Category chips / filters — aligns inventory sections with one key per lane. */
+/** Category chips / filters â€” aligns inventory sections with one key per lane. */
 type MisAnunciosCategoryFilter =
   | "all"
   | "en-venta"
@@ -278,27 +287,27 @@ export default function MyListingsPage() {
       lang === "es"
         ? {
             title: "Mis anuncios",
-            subtitle: "Gestiona tus anuncios por categoría y revisa solo lo que te pertenece.",
-            searchPh: "Buscar por título…",
+            subtitle: "Gestiona tus anuncios por categorÃ­a y revisa solo lo que te pertenece.",
+            searchPh: "Buscar por tÃ­tuloâ€¦",
             tabAll: "Todos",
             tabActive: "Activos",
             tabExpired: "Expirados",
-            tabMod: "Moderación",
+            tabMod: "ModeraciÃ³n",
             statActive: "Activos",
             statViews: "Vistas",
             statMsg: "Mensajes",
             statSaves: "Guardados",
             statShares: "Compartidos",
-            loading: "Cargando…",
+            loading: "Cargandoâ€¦",
             empty: "No hay anuncios en esta vista.",
-            emptyAll: "Aún no tienes anuncios.",
+            emptyAll: "AÃºn no tienes anuncios.",
             restaurantSectionTitle: "Restaurantes",
             restaurantSectionHint: "Gestiona tus restaurantes publicados sin salir del dashboard.",
             cta: "Publicar anuncio",
             yourListings: "Tus anuncios",
-            categoryMgmt: "Gestión de categorías",
+            categoryMgmt: "GestiÃ³n de categorÃ­as",
             categoryMgmtHint:
-              "Publica en categorías nuevas o abre la gestión cuando ya tengas anuncios.",
+              "Publica en categorÃ­as nuevas o abre la gestiÃ³n cuando ya tengas anuncios.",
             activeCountNote:
               "Los activos usan el mismo conteo que el resumen (todas las fuentes Leonix conectadas a tu cuenta).",
             chipAll: "Todos",
@@ -307,12 +316,12 @@ export default function MyListingsPage() {
             errorTitle: "No pudimos cargar tus anuncios",
             back: "Volver al resumen",
             analyticsDegraded:
-              "Las analíticas por anuncio no están disponibles en la base aún (tabla de eventos). Los conteos aquí aparecen en cero; no indica un problema con tu cuenta.",
+              "Las analÃ­ticas por anuncio no estÃ¡n disponibles en la base aÃºn (tabla de eventos). Los conteos aquÃ­ aparecen en cero; no indica un problema con tu cuenta.",
           }
         : {
             title: "My listings",
             subtitle: "Manage your listings by category and review only what you own.",
-            searchPh: "Search by title…",
+            searchPh: "Search by titleâ€¦",
             tabAll: "All",
             tabActive: "Active",
             tabExpired: "Ended",
@@ -322,7 +331,7 @@ export default function MyListingsPage() {
             statMsg: "Messages",
             statSaves: "Saves",
             statShares: "Shares",
-            loading: "Loading…",
+            loading: "Loadingâ€¦",
             empty: "No listings in this view.",
             emptyAll: "You don't have any listings yet.",
             restaurantSectionTitle: "Restaurants",
@@ -674,7 +683,7 @@ export default function MyListingsPage() {
 
   /** Soft archive (Admin-aligned): row stays in DB; Leonix Ad ID and history preserved. */
   async function softArchiveListing(id: string) {
-    if (!confirm(lang === "es" ? "¿Archivar este anuncio? Dejará de mostrarse al público." : "Archive this listing? It will stop showing publicly.")) return;
+    if (!confirm(lang === "es" ? "Â¿Archivar este anuncio? DejarÃ¡ de mostrarse al pÃºblico." : "Archive this listing? It will stop showing publicly.")) return;
 
     const supabase = createSupabaseBrowserClient();
     setBusyId(id);
@@ -777,8 +786,8 @@ export default function MyListingsPage() {
 
   const previewStats = previewRow ? analyticsByListing[previewRow.id] : undefined;
   const previewTitle = previewRow?.title?.trim() || (lang === "es" ? "Tu anuncio" : "Your listing");
-  const previewPrice = previewRow ? formatPrice(previewRow.price, lang) : "—";
-  const previewCity = (previewRow?.city ?? "").trim() || "—";
+  const previewPrice = previewRow ? formatPrice(previewRow.price, lang) : "â€”";
+  const previewCity = (previewRow?.city ?? "").trim() || "â€”";
   const pv = previewRow ? resolveViews(previewRow, previewStats) : 0;
   const ps = previewStats?.saves ?? 0;
   const pm = previewStats?.messages ?? 0;
@@ -838,6 +847,34 @@ export default function MyListingsPage() {
     serviciosInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "servicios");
   const showAutosPaidSection =
     autosPaidInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "autos");
+
+  const brNegocioInventoryRows = useMemo(
+    () =>
+      listings
+        .filter((row) => isBrNegocioListing(row))
+        .map(
+          (row): BrPropertyInventoryRowLike => ({
+            id: row.id,
+            owner_id: userId,
+            category: row.category,
+            seller_type: row.seller_type,
+            status: row.status,
+            is_published: row.is_published,
+            br_inventory_group_id: row.br_inventory_group_id,
+            br_inventory_parent_listing_id: row.br_inventory_parent_listing_id,
+            inventory_role:
+              row.inventory_role === "main" || row.inventory_role === "inventory_property"
+                ? row.inventory_role
+                : null,
+            detail_pairs: row.detail_pairs,
+          }),
+        ),
+    [listings, userId],
+  );
+
+  const showBrInventorySection =
+    brNegocioInventoryRows.length > 0 &&
+    (categoryFilter === "all" || categoryFilter === "bienes-raices");
 
   const showListingsTableSection =
     listings.length > 0 &&
@@ -963,7 +1000,7 @@ export default function MyListingsPage() {
                 },
                 {
                   key: "bienes-raices" as const,
-                  title: lang === "es" ? "Bienes raíces" : "Real estate",
+                  title: lang === "es" ? "Bienes raÃ­ces" : "Real estate",
                   owned: categoryCounts["bienes-raices"],
                   manage: `/dashboard/mis-anuncios?${q}&cat=bienes-raices`,
                   publish: `/publicar/bienes-raices?${q}`,
@@ -1019,11 +1056,11 @@ export default function MyListingsPage() {
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
             {[
-              { label: t.statActive, value: totalActive, icon: "📣" },
-              { label: t.statViews, value: totalViewsSum, icon: "👁" },
-              { label: t.statMsg, value: totalMessages, icon: "💬" },
-              { label: t.statSaves, value: totalSavesSum, icon: "🔖" },
-              { label: t.statShares, value: totalSharesSum, icon: "↗" },
+              { label: t.statActive, value: totalActive, icon: "ðŸ“£" },
+              { label: t.statViews, value: totalViewsSum, icon: "ðŸ‘" },
+              { label: t.statMsg, value: totalMessages, icon: "ðŸ’¬" },
+              { label: t.statSaves, value: totalSavesSum, icon: "ðŸ”–" },
+              { label: t.statShares, value: totalSharesSum, icon: "â†—" },
             ].map((c) => (
               <DashboardStatsCard key={c.label} label={c.label} value={c.value} icon={c.icon} />
             ))}
@@ -1033,7 +1070,7 @@ export default function MyListingsPage() {
           {filterChips.length > 0 ? (
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                {lang === "es" ? "Categoría" : "Category"}
+                {lang === "es" ? "CategorÃ­a" : "Category"}
               </span>
               <button
                 type="button"
@@ -1121,19 +1158,19 @@ export default function MyListingsPage() {
                   placeholder={t.searchPh}
                   className="w-full rounded-full border border-[#E8DFD0] bg-white py-2 pl-4 pr-10 text-sm text-[#1E1810] outline-none"
                 />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#7A7164]">⌕</span>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#7A7164]">âŒ•</span>
               </div>
               {visible.length > 1 ? (
                 <div className="min-w-[220px] w-full sm:w-auto">
                   <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                    {lang === "es" ? "Vista previa móvil" : "Mobile preview"}
+                    {lang === "es" ? "Vista previa mÃ³vil" : "Mobile preview"}
                   </label>
                   <select
                     value={previewListingId ?? ""}
                     onChange={(e) => setPreviewListingId(e.target.value ? e.target.value : null)}
                     className="mt-1 w-full rounded-2xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/60"
                   >
-                    <option value="">{lang === "es" ? "— Elegir anuncio —" : "— Choose listing —"}</option>
+                    <option value="">{lang === "es" ? "â€” Elegir anuncio â€”" : "â€” Choose listing â€”"}</option>
                     {visible.map((x) => (
                       <option key={x.id} value={x.id}>
                         {(x.title ?? "").trim() || shortListingRef(x.id)}
@@ -1182,9 +1219,9 @@ export default function MyListingsPage() {
                     ].filter(Boolean)}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
-                      { label: "Slug", value: item.slug ?? "—" },
-                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
-                      { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
+                      { label: "Slug", value: item.slug ?? "â€”" },
+                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "â€”" },
+                      { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "â€”" },
                       ...(item.leonixAdId?.trim()
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
@@ -1224,15 +1261,15 @@ export default function MyListingsPage() {
                     subtitle={item.slug}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
-                      { label: "Slug", value: item.slug ?? "—" },
-                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
-                      { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
+                      { label: "Slug", value: item.slug ?? "â€”" },
+                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "â€”" },
+                      { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "â€”" },
                       ...(item.leonixAdId?.trim()
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
                     actions={[
-                      { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
+                      { href: item.publicHref, label: lang === "es" ? "Ver pÃºblico" : "View public", tone: "primary" as const },
                       {
                         href: item.editHref,
                         label: lang === "es" ? "Gestionar vacante" : "Manage listing",
@@ -1266,7 +1303,7 @@ export default function MyListingsPage() {
                 </h2>
                 <p className="mt-1 text-sm text-[#5C5346]/90">
                   {lang === "es"
-                    ? "Tus ofertas de viaje publicadas. Gestiona estado y moderación."
+                    ? "Tus ofertas de viaje publicadas. Gestiona estado y moderaciÃ³n."
                     : "Your published travel offers. Manage status and moderation."}
                 </p>
               </div>
@@ -1281,18 +1318,18 @@ export default function MyListingsPage() {
                     subtitle={item.slug}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
-                      { label: "Slug", value: item.slug ?? "—" },
-                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
-                      { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
+                      { label: "Slug", value: item.slug ?? "â€”" },
+                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "â€”" },
+                      { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "â€”" },
                       ...(item.leonixAdId?.trim()
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
                     actions={[
-                      { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
+                      { href: item.publicHref, label: lang === "es" ? "Ver pÃºblico" : "View public", tone: "primary" as const },
                       {
                         href: item.editHref,
-                        label: lang === "es" ? "Gestionar envío" : "Manage submission",
+                        label: lang === "es" ? "Gestionar envÃ­o" : "Manage submission",
                       },
                       ...(item.previewHref
                         ? [
@@ -1315,44 +1352,9 @@ export default function MyListingsPage() {
             </section>
           ) : null}
 
-          {showAutosPaidSection ? (
-            <section className="mt-8">
-              <div className="mb-4">
-                <h2 className="text-xl font-bold text-[#1E1810]">
-                  {lang === "es" ? "Autos (Leonix pago)" : "Autos (Leonix paid)"} ({autosPaidInventory.length})
-                </h2>
-                <p className="mt-1 text-sm text-[#5C5346]/90">
-                  {lang === "es"
-                    ? "Anuncios activos en la tabla de autos de pago."
-                    : "Active rows in the paid Autos inventory."}
-                </p>
-              </div>
-              <div className="grid gap-4">
-                {autosPaidInventory.map((item) => (
-                  <DashboardCategoryListingCard
-                    key={item.id}
-                    lang={lang}
-                    categoryLabel={lang === "es" ? "Auto" : "Vehicle"}
-                    title={item.title}
-                    status={item.status}
-                    subtitle={item.publicHref}
-                    metaItems={[
-                      { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
-                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
-                      { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
-                      ...(item.leonixAdId?.trim()
-                        ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
-                        : []),
-                    ]}
-                    actions={[
-                      { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
-                      { href: item.editHref, label: lang === "es" ? "Gestionar" : "Manage" },
-                      { href: item.resultsHref ?? undefined, label: lang === "es" ? "Ver resultados" : "View results", tone: "subtle" as const },
-                    ].filter((action) => Boolean(action.href))}
-                  />
-                ))}
-              </div>
-            </section>
+          {showAutosPaidSection ? <AutosDealerInventoryDashboardSection lang={lang} /> : null}
+          {showBrInventorySection ? (
+            <BrPropertyInventoryDashboardSection lang={lang} rows={brNegocioInventoryRows as BrPropertyInventoryRowLike[]} />
           ) : null}
 
           {showServiciosSection ? (
@@ -1379,14 +1381,14 @@ export default function MyListingsPage() {
                     badges={item.verified ? [lang === "es" ? "Verificado" : "Verified"] : []}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
-                      { label: lang === "es" ? "Slug" : "Slug", value: item.slug ?? "—" },
-                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
+                      { label: lang === "es" ? "Slug" : "Slug", value: item.slug ?? "â€”" },
+                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "â€”" },
                       ...(item.leonixAdId?.trim()
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
                     actions={[
-                      { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
+                      { href: item.publicHref, label: lang === "es" ? "Ver pÃºblico" : "View public", tone: "primary" as const },
                       { href: item.editHref, label: lang === "es" ? "Gestionar" : "Manage" },
                       ...(item.previewHref
                         ? [{ href: item.previewHref, label: lang === "es" ? "Vista previa" : "Preview", tone: "subtle" as const }]
@@ -1640,7 +1642,7 @@ export default function MyListingsPage() {
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-lg font-bold text-[#1E1810]">{x.title || "—"}</span>
+                          <span className="text-lg font-bold text-[#1E1810]">{x.title || "â€”"}</span>
                           {categoryChip ? (
                             <span className="rounded-full bg-[#E8F0FA] px-2.5 py-0.5 text-[11px] font-bold text-[#1E3A5F]">
                               {categoryChip}
@@ -1655,7 +1657,7 @@ export default function MyListingsPage() {
                         </div>
                         <p className="mt-1 text-sm text-[#5C5346]/90">
                           {(x.city || "").trim()}
-                          {dateText ? ` · ${dateText}` : ""}
+                          {dateText ? ` Â· ${dateText}` : ""}
                         </p>
                         <p className="mt-2 text-[11px] leading-snug text-[#7A7164]">
                           <span className="font-semibold text-[#5C5346]">{listingPlanFieldLabel(lang)}:</span> {genericAdPlan}
@@ -1670,7 +1672,7 @@ export default function MyListingsPage() {
                         ) : null}
                         {stats ? (
                           <p className="mt-2 text-sm text-[#7A7164]">
-                            {lang === "es" ? "Vistas" : "Views"}: {viewsTotal} · {lang === "es" ? "Mensajes" : "Messages"}:{" "}
+                            {lang === "es" ? "Vistas" : "Views"}: {viewsTotal} Â· {lang === "es" ? "Mensajes" : "Messages"}:{" "}
                             {stats.messages}
                           </p>
                         ) : null}
@@ -1691,7 +1693,7 @@ export default function MyListingsPage() {
                             href={appendLangToPath("/clasificados/clases/resultados", lang)}
                             className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                           >
-                            {lang === "es" ? "Lista pública" : "Public list"}
+                            {lang === "es" ? "Lista pÃºblica" : "Public list"}
                           </Link>
                         ) : null}
                         {catLower === "comunidad" ? (
@@ -1699,7 +1701,7 @@ export default function MyListingsPage() {
                             href={appendLangToPath("/clasificados/comunidad/resultados", lang)}
                             className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                           >
-                            {lang === "es" ? "Lista pública" : "Public list"}
+                            {lang === "es" ? "Lista pÃºblica" : "Public list"}
                           </Link>
                         ) : null}
                         <button
@@ -1719,7 +1721,7 @@ export default function MyListingsPage() {
           ) : null}
 
           <Link href={`/dashboard?${q}`} className="mt-10 inline-flex text-sm font-semibold text-[#2A2620] underline">
-            ← {t.back}
+            â† {t.back}
           </Link>
         </>
       )}

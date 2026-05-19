@@ -1144,6 +1144,12 @@ export default function AnuncioDetallePage() {
             contact_email: ev.contact_email ?? null,
             owner_id: listing.owner_id ?? null,
             business_meta: listing.business_meta ?? ev.business_meta ?? null,
+            br_inventory_group_id:
+              (listing as Listing & { br_inventory_group_id?: string | null }).br_inventory_group_id ?? null,
+            br_inventory_parent_listing_id:
+              (listing as Listing & { br_inventory_parent_listing_id?: string | null }).br_inventory_parent_listing_id ??
+              null,
+            inventory_role: (listing as Listing & { inventory_role?: string | null }).inventory_role ?? null,
           }}
           lang={lang}
           backHref={backHref}

@@ -23,7 +23,10 @@ import {
   compactLeonixJsonRecord,
   type LeonixJsonRecord,
 } from "@/app/clasificados/lib/leonixListingStructuredPayload";
-import type { BrPropertyInventoryRole } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
+import {
+  mainListingInventoryPatchAfterInsert,
+  type BrPropertyInventoryRole,
+} from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import {
   buildRentasPublishFinalPayloadDebug,
   rentasPublishFinalBoundaryPreflight,
@@ -425,6 +428,21 @@ export async function publishLeonixRealEstateListingCore(
   }
 
   const listingId = inserted.id;
+
+  if (category === "bienes-raices" && sellerType === "business") {
+    const role = params.brInventoryRole;
+    const needsMainGroupPatch = role === "main" && !params.brInventoryGroupId?.trim();
+    if (needsMainGroupPatch) {
+      const patchRes = await updateListingsRowResilient(
+        supabase,
+        listingId,
+        mainListingInventoryPatchAfterInsert(listingId),
+      );
+      if (patchRes.error && DEV) {
+        devLog("BR main inventory metadata patch failed", patchRes.error.message);
+      }
+    }
+  }
 
   if (category === "rentas") {
     rentasPublishStepTracePatch({
