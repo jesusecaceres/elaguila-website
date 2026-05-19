@@ -99,7 +99,9 @@ export function AutosVehicleIdentityFields({
   const unlistedMakeLabel = lang === "es" ? "Mi marca no está en la lista" : "My make is not listed";
   const backToList = lang === "es" ? "Volver a la lista de marcas" : "Back to make list";
   const trimHint =
-    lang === "es" ? "Si no ves tu versión, escríbela manualmente." : "If you do not see your trim, enter it manually.";
+    lang === "es"
+      ? "Selecciona una versión si aparece en la lista. Si no ves tu versión, escríbela manualmente."
+      : "Select a trim if it appears in the list. If you do not see your trim, enter it manually.";
   const trimPlaceholder = lang === "es" ? "Versión / trim" : "Trim / version";
 
   const yearInList = year !== undefined && years.includes(year);

@@ -82,6 +82,7 @@ export type AutosNegociosCopy = {
     emptyPhotosHint: string;
     reorderHeading: string;
     reorderHint: string;
+    dragHandle: string;
     useAsCover: string;
     activeCover: string;
     principal: string;
@@ -156,6 +157,9 @@ export type AutosNegociosCopy = {
       scheduleAppointment: string;
       viewWebsite: string;
       openInMaps: string;
+      contactHeading: string;
+      followHeading: string;
+      viewDealerInventory: string;
     };
     specs: { title: string; subtitle: string; rows: Record<string, string> };
     highlights: { title: string; subtitle: string };
@@ -351,7 +355,8 @@ const ES: AutosNegociosCopy = {
     photosHeading: "Fotos del vehículo",
     reorderHeading: "Ordenar fotos",
     reorderHint:
-      "Arrastra las fotos para cambiar el orden. La primera foto o la portada seleccionada aparecerá primero en el anuncio. Usa las flechas en móvil.",
+      "Arrastra las fotos para cambiar el orden. En móvil, usa los controles para moverlas.",
+    dragHandle: "Arrastrar para reordenar",
     useAsCover: "Usar como portada",
     activeCover: "Portada activa",
     dropzone: "Arrastra imágenes aquí o usa el botón",
@@ -434,9 +439,12 @@ const ES: AutosNegociosCopy = {
       call: "Llamar",
       messageSite: "Mensaje",
       emailSeller: "Correo",
-      scheduleAppointment: "Agendar cita",
-      viewWebsite: "Ver sitio web",
-      openInMaps: "Abrir en mapas",
+      scheduleAppointment: "Agendar cita / prueba de manejo",
+      viewWebsite: "Visitar sitio web",
+      openInMaps: "Abrir en mapa",
+      contactHeading: "Contáctanos",
+      followHeading: "Síguenos",
+      viewDealerInventory: "Ver inventario del dealer",
     },
     specs: {
       title: "Especificaciones",
@@ -464,8 +472,8 @@ const ES: AutosNegociosCopy = {
       },
     },
     highlights: {
-      title: "Destacados",
-      subtitle: "Equipamiento seleccionado por el vendedor",
+      title: "Equipo y mejoras",
+      subtitle: "Equipamiento seleccionado por el concesionario",
     },
     description: {
       title: "Descripción del concesionario",
@@ -698,7 +706,8 @@ const EN: AutosNegociosCopy = {
     photosHeading: "Vehicle photos",
     reorderHeading: "Reorder photos",
     reorderHint:
-      "Drag photos to change the order. The first photo or selected cover will appear first on the listing. Use arrows on mobile.",
+      "Drag photos to change the order. On mobile, use the controls to move them.",
+    dragHandle: "Drag to reorder",
     useAsCover: "Use as cover",
     activeCover: "Active cover",
     dropzone: "Drag images here or use the button",
@@ -780,9 +789,12 @@ const EN: AutosNegociosCopy = {
       call: "Call",
       messageSite: "Message",
       emailSeller: "Email",
-      scheduleAppointment: "Schedule appointment",
-      viewWebsite: "View website",
-      openInMaps: "Open in maps",
+      scheduleAppointment: "Schedule test drive",
+      viewWebsite: "Visit website",
+      openInMaps: "Open in map",
+      contactHeading: "Contact us",
+      followHeading: "Follow us",
+      viewDealerInventory: "View dealer inventory",
     },
     specs: {
       title: "Specifications",
@@ -810,8 +822,8 @@ const EN: AutosNegociosCopy = {
       },
     },
     highlights: {
-      title: "Highlights",
-      subtitle: "Equipment selected by the seller",
+      title: "Equipment & upgrades",
+      subtitle: "Equipment selected by the dealership",
     },
     description: {
       title: "Dealership description",

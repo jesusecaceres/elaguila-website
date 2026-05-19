@@ -26,6 +26,7 @@ import { SelectWithOtherField } from "./SelectWithOtherField";
 import { AutosNegociosMediaManager } from "./AutosNegociosMediaManager";
 import { AutosApplicationSteppedShell } from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
 import { AutosApplicationReviewStep } from "@/app/publicar/autos/shared/components/AutosApplicationReviewStep";
+import { AutosNegociosInventoryValueModule } from "./AutosNegociosInventoryValueModule";
 import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
 import { AutosVehicleIdentityFields } from "@/app/publicar/autos/shared/components/AutosVehicleIdentityFields";
 import { AutosVehicleEngineField } from "@/app/publicar/autos/shared/components/AutosVehicleEngineField";
@@ -778,6 +779,13 @@ export function AutosNegociosApplication() {
           </section>
 
           <div className={activeStep === 6 ? "" : "hidden"} aria-hidden={activeStep !== 6}>
+            {!inventoryAddMode ? (
+              <AutosNegociosInventoryValueModule
+                lang={lang}
+                parentListingId={inventoryAddContext?.parentListingId ?? null}
+                dealerInventoryGroupId={null}
+              />
+            ) : null}
             <AutosApplicationReviewStep lane="negocios" listing={listing} copy={t} lang={lang} />
             <AutosApplicationFinalActions
               lane="negocios"

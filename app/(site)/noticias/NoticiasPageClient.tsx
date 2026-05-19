@@ -61,6 +61,203 @@ const SUBCATEGORIES: Record<CategoryKey, Record<Lang, readonly string[]>> = {
   },
 };
 
+const SIDEBAR_LIMIT = 6;
+
+const SPORTS_KEYWORDS = [
+  "nba",
+  "nfl",
+  "mlb",
+  "nhl",
+  "ncaa",
+  "soccer",
+  "futbol",
+  "fútbol",
+  "boxeo",
+  "boxing",
+  "playoffs",
+  "playoff",
+  "league",
+  "liga",
+  "team",
+  "equipo",
+  "partido",
+  "match",
+  "deportes",
+  "sports",
+  "basketball",
+  "baloncesto",
+  "baseball",
+  "beisbol",
+  "béisbol",
+  "hockey",
+  "futbol americano",
+  "football",
+] as const;
+
+const TECH_KEYWORDS = [
+  "ai",
+  "ia",
+  "inteligencia artificial",
+  "artificial intelligence",
+  "tecnologia",
+  "tecnología",
+  "technology",
+  "tech",
+  "app",
+  "apps",
+  "aplicacion",
+  "aplicación",
+  "mobile",
+  "movil",
+  "móvil",
+  "smartphone",
+  "internet",
+  "security",
+  "seguridad",
+  "ciberseguridad",
+  "cybersecurity",
+  "software",
+  "hardware",
+  "google",
+  "apple",
+  "microsoft",
+  "startup",
+] as const;
+
+const LOCAL_KEYWORDS = [
+  "pennsylvania",
+  "pensilvania",
+  "philadelphia",
+  "filadelfia",
+  "lancaster",
+  "reading",
+  "allentown",
+  "comunidad",
+  "community",
+  "local",
+  "locales",
+  "inmigracion",
+  "inmigración",
+  "immigration",
+  "migration",
+  "migracion",
+  "migración",
+  "negocio local",
+  "local business",
+  "small business",
+  "pequeños negocios",
+  "hispanic",
+  "latino",
+  "latina",
+  "hispana",
+] as const;
+
+const TRENDING_KEYWORDS = [
+  "viral",
+  "trending",
+  "tendencia",
+  "tendencias",
+  "breaking",
+  "ultima hora",
+  "última hora",
+  "most read",
+  "lo mas visto",
+  "lo más visto",
+  "redes sociales",
+  "social media",
+  "celebridad",
+  "celebrity",
+] as const;
+
+type SidebarArticleGroups = {
+  trendingArticles: NewsArticle[];
+  localArticles: NewsArticle[];
+  sportsArticles: NewsArticle[];
+  techArticles: NewsArticle[];
+};
+
+function normalizeMatchText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function articleText(article: NewsArticle): string {
+  return normalizeMatchText(`${article.title || ""} ${article.desc || ""}`);
+}
+
+function matchesKeywords(text: string, keywords: readonly string[]): boolean {
+  if (keywords.length === 0) return false;
+  return keywords.some((keyword) => text.includes(normalizeMatchText(keyword)));
+}
+
+function articleDedupeKey(article: NewsArticle): string {
+  const link = (article.link || "").trim();
+  if (link) return `link:${link}`;
+  return `title:${(article.title || "").trim().toLowerCase()}`;
+}
+
+function isSameArticle(a: NewsArticle, b: NewsArticle): boolean {
+  return articleDedupeKey(a) === articleDedupeKey(b);
+}
+
+function buildSidebarGroups(
+  feed: NewsArticle[],
+  featured?: NewsArticle,
+  limit = SIDEBAR_LIMIT
+): SidebarArticleGroups {
+  const pool = featured
+    ? feed.filter((article) => !isSameArticle(article, featured))
+    : [...feed];
+
+  const usedKeys = new Set<string>();
+
+  const takeMatched = (keywords: readonly string[]): NewsArticle[] => {
+    const matched: NewsArticle[] = [];
+    for (const article of pool) {
+      if (matched.length >= limit) break;
+      const key = articleDedupeKey(article);
+      if (usedKeys.has(key)) continue;
+      if (!matchesKeywords(articleText(article), keywords)) continue;
+      matched.push(article);
+      usedKeys.add(key);
+    }
+    return matched;
+  };
+
+  const takeFallback = (count: number): NewsArticle[] => {
+    const fallback: NewsArticle[] = [];
+    for (const article of pool) {
+      if (fallback.length >= count) break;
+      const key = articleDedupeKey(article);
+      if (usedKeys.has(key)) continue;
+      fallback.push(article);
+      usedKeys.add(key);
+    }
+    return fallback;
+  };
+
+  const fillSection = (keywords: readonly string[]): NewsArticle[] => {
+    const matched = takeMatched(keywords);
+    if (matched.length >= limit) return matched;
+    return [...matched, ...takeFallback(limit - matched.length)];
+  };
+
+  const trendingMatched = takeMatched(TRENDING_KEYWORDS);
+  const trendingArticles =
+    trendingMatched.length > 0
+      ? [...trendingMatched, ...takeFallback(Math.max(0, limit - trendingMatched.length))]
+      : takeFallback(limit);
+
+  return {
+    trendingArticles,
+    localArticles: fillSection(LOCAL_KEYWORDS),
+    sportsArticles: fillSection(SPORTS_KEYWORDS),
+    techArticles: fillSection(TECH_KEYWORDS),
+  };
+}
+
 export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
@@ -245,6 +442,11 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
 
   const feed = articles.slice(1);
 
+  const sidebarGroups = useMemo(
+    () => buildSidebarGroups(feed, articles.length > 0 ? articles[0] : undefined),
+    [feed, articles]
+  );
+
   return (
     <main
       className="min-h-screen w-full text-[color:var(--lx-text)]"
@@ -293,7 +495,7 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45 }}
-          className="flex flex-wrap justify-center gap-3 md:gap-4 mb-4"
+          className="flex flex-wrap justify-center gap-3 md:gap-4 mb-4 max-w-full"
         >
           {categories.map((cat) => {
             const active = activeCategory === cat.key;
@@ -326,7 +528,7 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.05 }}
-              className="flex flex-nowrap gap-2 pb-1 w-max max-w-none md:w-full md:max-w-full md:flex-wrap md:justify-center"
+              className="flex flex-nowrap gap-2 pb-1 w-max max-w-none md:w-full md:max-w-full md:flex-wrap md:justify-center min-w-0"
             >
               {subcategories.map((sub) => {
                 const active = activeSubcategory === sub;
@@ -405,10 +607,11 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
               ))}
           </div>
 
-          <div className="space-y-8">
-            <Sidebar title={L.tendencias} items={feed.slice(0, 6)} setModal={setModal} />
-            <Sidebar title={L.deportes} items={feed.slice(0, 6)} setModal={setModal} />
-            <Sidebar title={L.tecnologia} items={feed.slice(0, 6)} setModal={setModal} />
+          <div className="min-w-0 max-w-full space-y-8">
+            <Sidebar title={L.tendencias} items={sidebarGroups.trendingArticles} setModal={setModal} />
+            <Sidebar title={L.local} items={sidebarGroups.localArticles} setModal={setModal} />
+            <Sidebar title={L.deportes} items={sidebarGroups.sportsArticles} setModal={setModal} />
+            <Sidebar title={L.tecnologia} items={sidebarGroups.techArticles} setModal={setModal} />
           </div>
         </div>
       </section>
@@ -476,7 +679,7 @@ function Sidebar({
         {items.map((a, i) => (
           <button
             type="button"
-            key={`${a?.title ?? "item"}-${i}`}
+            key={`${articleDedupeKey(a)}-${i}`}
             className="w-full text-left p-3 rounded-2xl border border-black/10 bg-white/60 hover:bg-white/80 transition"
             onClick={() => setModal(a)}
           >

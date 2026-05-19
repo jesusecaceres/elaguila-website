@@ -21,6 +21,7 @@ import {
   autosDealerInventoryUpgradeCtaLabel,
   autosDealerInventoryUpgradePitch,
 } from "@/app/lib/clasificados/autos/autosDealerInventoryCopy";
+import { autosDealerInventoryValueBullets } from "@/app/lib/clasificados/autos/autosDealerInventoryValueCopy";
 import type { AutosClassifiedsListingStatus } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 
 type Lang = "es" | "en";
@@ -188,6 +189,16 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
     <div className="mt-6 rounded-2xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#FAF7F2] p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
       <h2 className="text-lg font-bold text-[#1E1810]">{t.title}</h2>
       <p className="mt-1 text-sm text-[#5C5346]/95">{t.subtitle}</p>
+      <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+        {autosDealerInventoryValueBullets(lang).map((line) => (
+          <li key={line} className="flex gap-2 text-xs font-medium text-[#5C5346]">
+            <span className="text-[#C9B46A]" aria-hidden>
+              ✓
+            </span>
+            <span>{line}</span>
+          </li>
+        ))}
+      </ul>
       <p className="mt-3 text-sm font-semibold text-[#1E1810]">
         {activeCount} / {limit} {t.activeCount}
         <span className="mx-2 text-[#7A7164]">·</span>

@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FiChevronLeft, FiChevronRight, FiImage, FiPlus, FiStar, FiTrash2, FiUpload, FiVideo } from "react-icons/fi";
+import { FiImage, FiPlus, FiUpload, FiVideo } from "react-icons/fi";
 import type { AutoDealerListing, MediaImageEntry } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import { newMediaImageId } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
 import { readFileAsDataUrl } from "../lib/readFileAsDataUrl";
+import { AutosSortablePhotoGrid } from "@/app/publicar/autos/shared/components/AutosSortablePhotoGrid";
 
 const LABEL = "block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]";
 const INPUT =
@@ -361,68 +362,26 @@ export function AutosNegociosMediaManager({
           <p className="text-xs text-[color:var(--lx-muted)]">{m.emptyPhotosHint}</p>
         </div>
       ) : (
-        <ul className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {images.map((img) => (
-            <li
-              key={img.id}
-              className="flex flex-col gap-3 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] p-2 shadow-sm sm:flex-row sm:items-stretch"
-            >
-              { }
-              <img
-                src={img.url}
-                alt=""
-                loading="lazy"
-                className="aspect-[4/3] w-full shrink-0 rounded-lg object-cover sm:h-20 sm:w-28 sm:aspect-auto"
-              />
-              <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className={`inline-flex min-h-[44px] items-center gap-0.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${
-                      img.isPrimary
-                        ? "border-[color:var(--lx-gold)] bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)]"
-                        : "border-[color:var(--lx-nav-border)] text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
-                    }`}
-                    onClick={() => setPrimary(img.id)}
-                    title={img.isPrimary ? m.activeCover : m.useAsCover}
-                  >
-                    <FiStar className="h-3 w-3" aria-hidden />
-                    {img.isPrimary ? m.activeCover : m.useAsCover}
-                  </button>
-                  <button
-                    type="button"
-                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] px-2 text-[10px] font-bold text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
-                    onClick={() => move(img.id, -1)}
-                    aria-label={m.before}
-                  >
-                    <FiChevronLeft className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] px-2 text-[10px] font-bold text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
-                    onClick={() => move(img.id, 1)}
-                    aria-label={m.after}
-                  >
-                    <FiChevronRight className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    className="ml-auto inline-flex min-h-[44px] items-center gap-0.5 rounded-full border border-red-200 px-3 py-1.5 text-[10px] font-bold text-red-800 hover:bg-red-50"
-                    onClick={() => remove(img.id)}
-                  >
-                    <FiTrash2 className="h-3 w-3" aria-hidden />
-                    {m.remove}
-                  </button>
-                </div>
-                <p className="truncate text-[10px] text-[color:var(--lx-muted)]">
-                  {img.sourceType === "file" ? m.sourceFile : m.sourceUrl} · {img.isPrimary ? m.principal : m.secondary}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <AutosSortablePhotoGrid
+          images={images}
+          onReorder={(next) => commitImages(next)}
+          onSetPrimary={setPrimary}
+          onRemove={remove}
+          onMove={move}
+          copy={{
+            useAsCover: m.useAsCover,
+            activeCover: m.activeCover,
+            before: m.before,
+            after: m.after,
+            remove: m.remove,
+            sourceFile: m.sourceFile,
+            sourceUrl: m.sourceUrl,
+            secondary: m.secondary,
+            principal: m.principal,
+            dragHandle: m.dragHandle,
+          }}
+        />
       )}
-
       <input
         ref={videoInputRef}
         type="file"

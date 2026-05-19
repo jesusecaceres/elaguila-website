@@ -26,7 +26,6 @@ import { VehicleSpecsGrid } from "./VehicleSpecsGrid";
 import { AutoDealerPreviewChrome } from "./AutoDealerPreviewChrome";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { AutosListingAnalyticsRow } from "@/app/clasificados/autos/shared/components/AutosListingAnalyticsRow";
-import { AUTOS_LISTING_ANALYTICS_DRAFT_DEMO } from "@/app/clasificados/autos/shared/types/autosListingAnalytics";
 
 const MAIN_CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-6";
@@ -61,8 +60,14 @@ export function AutoDealerPreviewPage({
   const showHighlights = hasHighlightsSection(data);
   const showDesc = hasDescriptionSection(data);
 
-  const showAnalyticsStrip = showTitle || showGallery;
-  const analyticsMetrics = data.listingAnalytics ?? AUTOS_LISTING_ANALYTICS_DRAFT_DEMO;
+  const analyticsMetrics = data.listingAnalytics;
+  const showAnalyticsStrip =
+    publicPlaybackOnly &&
+    analyticsMetrics != null &&
+    (analyticsMetrics.views > 0 ||
+      analyticsMetrics.saves > 0 ||
+      analyticsMetrics.shares > 0 ||
+      analyticsMetrics.contacts > 0);
   const pa = t.preview.analytics;
 
   let r = 1;
@@ -181,7 +186,7 @@ export function AutoDealerPreviewPage({
             </div>
           ) : null}
 
-          {showAnalyticsStrip ? (
+          {showAnalyticsStrip && analyticsMetrics ? (
             <div className="lg:col-span-7 lg:col-start-1" style={{ gridRowStart: analyticsRow, order: orderAnalytics }}>
               <AutosListingAnalyticsRow
                 metrics={analyticsMetrics}
@@ -206,7 +211,11 @@ export function AutoDealerPreviewPage({
             }}
           >
             <div className="overflow-hidden rounded-[22px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_14px_48px_-18px_rgba(42,36,22,0.16)] max-lg:shadow-[0_14px_48px_-18px_rgba(42,36,22,0.16)] lg:rounded-[20px] lg:shadow-[0_8px_32px_-8px_rgba(42,36,22,0.12)]">
-              <DealerBusinessStack data={data} className="!rounded-none !border-0 !shadow-none bg-transparent p-5 sm:p-6 max-lg:!bg-transparent" />
+              <DealerBusinessStack
+                data={data}
+                buyerInventoryHref={publicPlaybackOnly ? data.relatedDealerInventoryHref : undefined}
+                className="!rounded-none !border-0 !shadow-none bg-transparent p-5 sm:p-6 max-lg:!bg-transparent"
+              />
             </div>
           </aside>
 
