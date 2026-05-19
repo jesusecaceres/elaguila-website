@@ -9,6 +9,7 @@ import { formatUsPhoneDisplay, phoneDigitsForTel } from "@/app/clasificados/auto
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import { buildPrivadoSellerMailtoHref, buildPrivadoWhatsappInterestHref } from "../lib/privadoContactIntent";
 import { safeExternalHref } from "@/app/clasificados/autos/negocios/lib/dealerDraftSanitize";
+import { AutosSheetCtaLink } from "@/app/clasificados/autos/shared/components/AutosSheetCtaLink";
 
 const BTN_PRIMARY =
   "touch-manipulation inline-flex min-h-[48px] w-full items-center justify-center rounded-[14px] bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold tracking-tight text-[#FFFCF7] shadow-[0_8px_24px_-6px_rgba(26,22,18,0.45)] transition hover:bg-[color:var(--lx-cta-dark-hover)] active:scale-[0.99]";
@@ -75,7 +76,7 @@ export function PrivadoContactStrip({
       {seller ? <p className="mt-2 break-words text-base font-semibold text-[color:var(--lx-text-2)]">{seller}</p> : null}
       <div className={`flex flex-col gap-2.5 sm:gap-3 ${seller ? "mt-5" : "mt-4"}`}>
         {showCall && phoneForTel ? (
-          <a href={`tel:${phoneForTel}`} className={`${BTN_PRIMARY} flex-col gap-0.5 py-3`}>
+          <AutosSheetCtaLink href={`tel:${phoneForTel}`} lang={lang} className={`${BTN_PRIMARY} flex-col gap-0.5 py-3`}>
             <span className="inline-flex items-center gap-2">
               <FiPhone className="h-5 w-5 shrink-0" aria-hidden />
               {labels.call}
@@ -85,25 +86,25 @@ export function PrivadoContactStrip({
                 {phoneDisplay || office}
               </span>
             ) : null}
-          </a>
+          </AutosSheetCtaLink>
         ) : null}
         {showWa && waHref ? (
-          <a href={waHref} target="_blank" rel="noopener noreferrer" className={`${BTN_SECONDARY} gap-2`}>
+          <AutosSheetCtaLink href={waHref} lang={lang} className={`${BTN_SECONDARY} gap-2`}>
             <SiWhatsapp className="h-5 w-5 shrink-0 text-[#25D366]" aria-hidden />
             {labels.whatsapp}
-          </a>
+          </AutosSheetCtaLink>
         ) : null}
         {showEmail && mailtoHref ? (
-          <a href={mailtoHref} className={`${BTN_SECONDARY} gap-2`}>
+          <AutosSheetCtaLink href={mailtoHref} lang={lang} className={`${BTN_SECONDARY} gap-2`}>
             <FiMail className="h-5 w-5 shrink-0" aria-hidden />
             {labels.emailSeller}
-          </a>
+          </AutosSheetCtaLink>
         ) : null}
         {showSms && smsHref ? (
-          <a href={smsHref} className={`${BTN_SECONDARY} gap-2`}>
+          <AutosSheetCtaLink href={smsHref} lang={lang} className={`${BTN_SECONDARY} gap-2`}>
             <FiMessageCircle className="h-5 w-5 shrink-0 text-[color:var(--lx-text)]" aria-hidden />
             {labels.sms}
-          </a>
+          </AutosSheetCtaLink>
         ) : null}
       </div>
       {socialRows.length > 0 ? (

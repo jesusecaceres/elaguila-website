@@ -9,6 +9,7 @@ import { LeonixLikeButton } from "@/app/components/clasificados/analytics/Leonix
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { trackClasificadosEvent } from "@/app/lib/clasificadosAnalytics";
 import type { AutoDealerListing } from "../negocios/types/autoDealerListing";
+import { AutosSheetCtaLink } from "../shared/components/AutosSheetCtaLink";
 
 const PREVIEW_CARD =
   "rounded-3xl border border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] overflow-hidden";
@@ -223,10 +224,11 @@ export function AutosPreviewCard({
         {hasCtas && (
           <div className={CTA_SECTION}>
             {data.dealerPhoneOffice && (
-              <a
-                href={`tel:${data.dealerPhoneOffice}`}
+              <AutosSheetCtaLink
+                href={`tel:${data.dealerPhoneOffice.replace(/\D/g, "")}`}
+                lang={lang}
                 className={`${CTA_BUTTON} ${CTA_PRIMARY}`}
-                onClick={() => {
+                onOpen={() => {
                   if (listingId && persistEngagement) {
                     void trackClasificadosEvent({
                       listing_id: listingId,
@@ -241,15 +243,14 @@ export function AutosPreviewCard({
               >
                 <FiPhone className="w-4 h-4" />
                 Llamar
-              </a>
+              </AutosSheetCtaLink>
             )}
             {data.dealerWhatsapp && (
-              <a
-                href={`https://wa.me/${data.dealerWhatsapp.replace(/\D/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <AutosSheetCtaLink
+                href={`https://wa.me/${data.dealerWhatsapp.replace(/\D/g, "")}`}
+                lang={lang}
                 className={`${CTA_BUTTON} ${CTA_SECONDARY}`}
-                onClick={() => {
+                onOpen={() => {
                   if (listingId && persistEngagement) {
                     void trackClasificadosEvent({
                       listing_id: listingId,
@@ -264,7 +265,7 @@ export function AutosPreviewCard({
               >
                 <FaWhatsapp className="w-4 h-4" />
                 WhatsApp
-              </a>
+              </AutosSheetCtaLink>
             )}
             {data.dealerWebsite && (
               <a

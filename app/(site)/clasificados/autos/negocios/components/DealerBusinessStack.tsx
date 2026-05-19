@@ -13,6 +13,7 @@ import { formatUsPhoneDisplay, hrefForUserWebsiteUrl, phoneDigitsForTel } from "
 import { buildDealerDisplayAddress, buildDealerMapsHref } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
 import { MediaImage } from "./MediaImage";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
+import { AutosSheetCtaLink } from "@/app/clasificados/autos/shared/components/AutosSheetCtaLink";
 
 const BTN_PRIMARY =
   "inline-flex min-h-[48px] w-full items-center justify-center rounded-[14px] bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold tracking-tight text-[#FFFCF7] shadow-[0_8px_24px_-6px_rgba(26,22,18,0.45)] transition hover:bg-[color:var(--lx-cta-dark-hover)] active:scale-[0.99] max-lg:min-h-[52px] max-lg:text-[15px] max-lg:shadow-[0_10px_28px_-8px_rgba(26,22,18,0.5)] max-lg:ring-1 max-lg:ring-[color:var(--lx-gold-border)]/25";
@@ -138,12 +139,12 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
                 <li className={`${ICON_ROW} lg:justify-start`}>
                   <FiPhone className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)] max-lg:h-5 max-lg:w-5" aria-hidden />
                   {phoneForTel && validTelForCta ? (
-                    <a
+                    <AutosSheetCtaLink
                       href={`tel:${phoneForTel}`}
                       className="font-semibold text-[color:var(--lx-text)] underline-offset-2 hover:underline max-lg:text-[16px]"
                     >
                       {phoneDisplay || officePhoneRaw?.trim()}
-                    </a>
+                    </AutosSheetCtaLink>
                   ) : (
                     <span className="font-semibold text-[color:var(--lx-text)] max-lg:text-[16px]">
                       {phoneDisplay || officePhoneRaw?.trim()}
@@ -218,15 +219,10 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
           }`}
         >
           {showWhatsapp && waHref ? (
-            <a
-              href={waHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${BTN_PRIMARY} gap-2`}
-            >
+            <AutosSheetCtaLink href={waHref} className={`${BTN_PRIMARY} gap-2`}>
               <SiWhatsapp className="h-5 w-5 shrink-0" aria-hidden />
               {sb.whatsappCta}
-            </a>
+            </AutosSheetCtaLink>
           ) : null}
           {showCallCta || showSchedule ? (
             <div
@@ -235,10 +231,10 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
               }`}
             >
               {showCallCta ? (
-                <a href={`tel:${phoneForTel}`} className={BTN_SECONDARY}>
+                <AutosSheetCtaLink href={`tel:${phoneForTel}`} className={BTN_SECONDARY}>
                   <FiPhone className="h-[18px] w-[18px] shrink-0" aria-hidden />
                   {sb.call}
-                </a>
+                </AutosSheetCtaLink>
               ) : null}
               {showSchedule && bookingHref ? (
                 <a

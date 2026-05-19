@@ -174,6 +174,28 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
     return THUMBS[category] || THUMBS.ultimas;
   };
 
+  const isUsableImageSrc = (src: unknown): src is string => {
+    if (typeof src !== "string") return false;
+    const trimmed = src.trim();
+    if (!trimmed) return false;
+    return trimmed.startsWith("/") || /^https?:\/\//i.test(trimmed);
+  };
+
+  const resolveArticleImage = (apiImg: unknown, title: string, category: CategoryKey) =>
+    isUsableImageSrc(apiImg) ? apiImg.trim() : getThumbForArticle(title, category);
+
+  const onArticleImageError = (
+    event: React.SyntheticEvent<HTMLImageElement>,
+    title: string,
+    category: CategoryKey
+  ) => {
+    const el = event.currentTarget;
+    const fallback = getThumbForArticle(title, category);
+    if (!el.src.endsWith(fallback)) {
+      el.src = fallback;
+    }
+  };
+
   async function loadNews() {
     try {
       setLoading(true);
@@ -189,7 +211,7 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
         return {
           title,
           desc: typeof a.desc === "string" ? a.desc : undefined,
-          img: typeof a.img === "string" ? a.img : getThumbForArticle(title, activeCategory),
+          img: resolveArticleImage(a.img, title, activeCategory),
           link: typeof a.link === "string" ? a.link : undefined,
         };
       });
@@ -343,6 +365,7 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
                 className="w-full h-72 md:h-80 object-cover"
                 alt={featured.title}
                 loading="lazy"
+                onError={(e) => onArticleImageError(e, featured.title || "", activeCategory)}
               />
               <div className="p-6">
                 <h2 className="text-2xl md:text-3xl font-bold text-[color:var(--lx-text)]">{featured.title}</h2>
@@ -372,6 +395,7 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
                     className="w-full md:w-44 h-44 md:h-28 object-cover rounded-2xl border border-black/10"
                     alt={a.title}
                     loading="lazy"
+                    onError={(e) => onArticleImageError(e, a.title || "", activeCategory)}
                   />
                   <div className="min-w-0">
                     <h3 className="text-lg md:text-xl font-bold text-[color:var(--lx-text)] leading-snug">{a.title}</h3>
@@ -414,6 +438,7 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
               className="mt-5 w-full h-56 md:h-64 object-cover rounded-2xl border border-black/10"
               alt={modal.title}
               loading="lazy"
+              onError={(e) => onArticleImageError(e, modal.title || "", activeCategory)}
             />
             <p className="mt-4 text-[color:var(--lx-text-2)]/90">{modal.desc}</p>
 

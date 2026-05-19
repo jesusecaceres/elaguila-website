@@ -4,6 +4,12 @@ import Parser from "rss-parser";
 const parser = new Parser({
   timeout: 8000,
   headers: { "User-Agent": "LeonixMediaRSSBot/1.0" },
+  customFields: {
+    item: [
+      ["media:content", "mediaContent"],
+      ["media:thumbnail", "mediaThumbnail"],
+    ],
+  },
 });
 
 type Lang = "es" | "en";
@@ -488,7 +494,8 @@ function getFeedUrls(category: string, subcategory: string | null, lang: Lang): 
   return [
     googleNewsRssUrl(primaryQuery, lang),
     googleNewsRssUrl(secondaryQuery, lang),
-    ...baseFeeds.slice(0, 1),
+    // Include two publisher feeds so image-bearing sources (e.g. Engadget enclosures) surface alongside Google News.
+    ...baseFeeds.slice(0, 2),
   ];
 }
 
@@ -529,7 +536,7 @@ export async function GET(req: Request) {
       try {
         const feed = await parser.parseURL(url);
         return feed.items.map((item) => {
-          const record = item as Record<string, unknown>;
+          const record = item as unknown as Record<string, unknown>;
           const content =
             typeof record.content === "string"
               ? record.content
@@ -540,7 +547,7 @@ export async function GET(req: Request) {
           return {
             title: typeof item.title === "string" ? item.title : "",
             link: typeof item.link === "string" ? item.link : "",
-            img: extractImage(content),
+            img: extractArticleImage(item, content),
             date: item.isoDate || item.pubDate || new Date().toISOString(),
             desc: item.contentSnippet || "",
           } satisfies RssArticle;
@@ -565,8 +572,165 @@ export async function GET(req: Request) {
   }
 }
 
-function extractImage(html?: string) {
-  if (!html) return null;
-  const match = html.match(/<img[^>]+src="([^">]+)"/i);
-  return match ? match[1] : null;
+/** Accept only absolute http(s) image URLs; never throw on malformed input. */
+function normalizeImageUrl(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  let url = trimmed;
+  if (url.startsWith("//")) url = `https:${url}`;
+  if (!/^https?:\/\//i.test(url)) return null;
+
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return parsed.href;
+  } catch {
+    return null;
+  }
+}
+
+function isHardRejectedImageUrl(url: string): boolean {
+  const lower = url.toLowerCase();
+  if (lower.includes("pixel")) return true;
+  if (lower.includes("tracking")) return true;
+  if (lower.includes("spacer")) return true;
+  if (lower.includes("blank")) return true;
+  if (lower.includes("favicon")) return true;
+  if (lower.endsWith(".gif")) return true;
+  return false;
+}
+
+function isLogoImageUrl(url: string): boolean {
+  return url.toLowerCase().includes("logo");
+}
+
+/** Pick the first usable candidate; defer logo URLs unless nothing else is available. */
+function selectBestImageUrl(candidates: string[]): string | null {
+  let logoFallback: string | null = null;
+
+  for (const raw of candidates) {
+    const url = normalizeImageUrl(raw);
+    if (!url) continue;
+    if (isHardRejectedImageUrl(url)) continue;
+    if (isLogoImageUrl(url)) {
+      if (!logoFallback) logoFallback = url;
+      continue;
+    }
+    return url;
+  }
+
+  return logoFallback;
+}
+
+function extractMediaUrl(value: unknown): string | null {
+  if (value == null) return null;
+
+  if (typeof value === "string") {
+    return normalizeImageUrl(value);
+  }
+
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const url = extractMediaUrl(entry);
+      if (url) return url;
+    }
+    return null;
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const medium = String(
+      (record.medium as string | undefined) ??
+        ((record.$ as Record<string, unknown> | undefined)?.medium as string | undefined) ??
+        ""
+    ).toLowerCase();
+    if (medium && medium !== "image") return null;
+
+    const direct =
+      normalizeImageUrl(record.url) ??
+      normalizeImageUrl(record.href) ??
+      normalizeImageUrl((record.$ as Record<string, unknown> | undefined)?.url) ??
+      normalizeImageUrl((record.$ as Record<string, unknown> | undefined)?.href);
+    if (direct) return direct;
+  }
+
+  return null;
+}
+
+function extractImagesFromHtml(html?: string): string[] {
+  if (!html || typeof html !== "string") return [];
+
+  const urls: string[] = [];
+  const imgTagRe = /<img\b[^>]*>/gi;
+  let tagMatch: RegExpExecArray | null;
+
+  while ((tagMatch = imgTagRe.exec(html)) !== null) {
+    const tag = tagMatch[0];
+    const srcMatch =
+      tag.match(/\bsrc=["']([^"']+)["']/i) ?? tag.match(/\bsrc=([^\s>]+)/i);
+    if (srcMatch?.[1]) urls.push(srcMatch[1]);
+
+    const srcsetMatch = tag.match(/\bsrcset=["']([^"']+)["']/i);
+    if (srcsetMatch?.[1]) {
+      const first = srcsetMatch[1].split(",")[0]?.trim().split(/\s+/)[0];
+      if (first) urls.push(first);
+    }
+  }
+
+  return urls;
+}
+
+function itemHtmlContent(item: Record<string, unknown>, encoded?: string): string[] {
+  const blocks: string[] = [];
+  if (encoded) blocks.push(encoded);
+  if (typeof item.description === "string") blocks.push(item.description);
+  if (typeof item.summary === "string") blocks.push(item.summary);
+  if (typeof item.contentSnippet === "string") blocks.push(item.contentSnippet);
+  return blocks;
+}
+
+/** Best-effort image URL from RSS item fields (priority order per Gate 3). */
+function extractArticleImage(
+  item: { enclosure?: { url?: string; type?: string }; contentSnippet?: string },
+  encodedContent?: string
+): string | null {
+  const record = item as unknown as Record<string, unknown>;
+  const candidates: string[] = [];
+
+  const push = (url: string | null | undefined) => {
+    if (url) candidates.push(url);
+  };
+
+  // 1. media:content
+  push(extractMediaUrl(record["media:content"]));
+  push(extractMediaUrl(record.mediaContent));
+
+  // 2. media:thumbnail
+  push(extractMediaUrl(record["media:thumbnail"]));
+  push(extractMediaUrl(record.mediaThumbnail));
+
+  // 3. enclosure (image/*)
+  if (item.enclosure?.url) {
+    const type = (item.enclosure.type || "").toLowerCase();
+    if (!type || type.startsWith("image/")) {
+      push(item.enclosure.url);
+    }
+  }
+
+  // 4. image / itunes:image
+  push(extractMediaUrl(record.image));
+  if (record.image && typeof record.image === "object") {
+    const imageObj = record.image as Record<string, unknown>;
+    push(normalizeImageUrl(imageObj.url));
+  }
+  push(extractMediaUrl(record["itunes:image"]));
+
+  // 5. <img> inside content / description HTML
+  for (const html of itemHtmlContent(record, encodedContent)) {
+    candidates.push(...extractImagesFromHtml(html));
+  }
+
+  return selectBestImageUrl(candidates);
 }
