@@ -7,7 +7,12 @@ import { EN_VENTA_DEPARTMENTS, type EnVentaDepartmentKey } from "../../taxonomy/
 import { findSubcategory } from "../../taxonomy/subcategories";
 export { EN_VENTA_DEPARTMENTS, type EnVentaDepartmentKey } from "../../taxonomy/categories";
 export { EN_VENTA_SUBCATEGORY_ROWS, getSubcategoriesForDept, findSubcategory } from "../../taxonomy/subcategories";
-export { expandEnVentaSearchTerms, inferDeptFromQuery, KEYWORD_TO_DEPT_HINT } from "../../taxonomy/synonyms";
+export {
+  expandEnVentaSearchTerms,
+  inferDeptFromQuery,
+  KEYWORD_TO_DEPT_HINT,
+  normalizeEnVentaSearchText,
+} from "../../taxonomy/synonyms";
 export { getEnVentaAttributeFields, type EnVentaAttributeField } from "../../taxonomy/attributeMatrix";
 
 /** Back-compat: category schema + publish “rama” = department. */

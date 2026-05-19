@@ -41,6 +41,7 @@ import {
   featuredOnlyBanner,
 } from "./utils/enVentaResultsSummary";
 import { buildEnVentaListingDetailHrefFromResults } from "./utils/enVentaListingLinks";
+import { enVentaQueryMatchesListing } from "./utils/buildEnVentaSearchText";
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
 import { isEnVentaListingPubliclyVisible } from "../lib/enVentaListingVisibility";
 import { missingListingsColumnName, stripSelectColumn } from "@/app/clasificados/lib/listingsSelectShrink";
@@ -88,14 +89,6 @@ function resolveEffectiveDept(dto: EnVentaAnuncioDTO): string | null {
     if (byLabel) return byLabel.key;
   }
   return inferEnVentaDeptFromSubKey(dto.subKey);
-}
-
-function textMatch(q: string, dto: EnVentaAnuncioDTO): boolean {
-  const needle = q.trim().toLowerCase();
-  if (!needle) return true;
-  const blob =
-    `${dto.title.es} ${dto.description} ${dto.city} ${dto.brand ?? ""} ${dto.model ?? ""} ${dto.quantity ?? ""}`.toLowerCase();
-  return blob.includes(needle);
 }
 
 export function EnVentaResultsClient() {
@@ -231,7 +224,7 @@ export function EnVentaResultsClient() {
   const filtered = useMemo(() => {
     const cityFilterOn = Boolean(city.trim());
     let list = rows.filter(({ dto, effectiveDept, priceNum, row }) => {
-      if (!textMatch(q, dto)) return false;
+      if (!enVentaQueryMatchesListing(q, dto, effectiveDept)) return false;
       if (freeOnly && !row.is_free) return false;
       if (negotiableOnly && !dto.negotiable) return false;
       if (meetupOnly && !dto.meetupOffered) return false;

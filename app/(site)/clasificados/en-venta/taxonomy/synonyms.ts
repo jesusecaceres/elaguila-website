@@ -1,29 +1,108 @@
 /**
- * En Venta — lightweight query expansion for lista search (Spanish + English cues).
+ * En Venta — item-level query expansion for results `q` search (Spanish + English).
+ * Not used for global hub category routing (Autos, Empleos, Rentas, etc.).
  */
 
 import type { EnVentaDepartmentKey } from "./categories";
 
+/** Lowercase, accent-stripped, collapsed whitespace — shared by expansion + results matching. */
+export function normalizeEnVentaSearchText(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/\s+/g, " ");
+}
+
 const SYNONYM_GROUPS: string[][] = [
   ["iphone", "celular", "teléfono", "telefono", "android", "smartphone", "phone"],
   ["laptop", "macbook", "computadora", "pc", "notebook"],
-  ["electrodomesticos", "refrigerador", "nevera", "fridge", "refrigerator", "washer", "dryer", "lavadora", "secadora", "estufa", "horno", "microwave", "microondas"],
-  ["accesorios mascotas", "pet supplies", "dog crate", "jaula", "transportadora", "cama perro", "pet bed", "acuario", "aquarium", "correa", "leash", "pet toy", "juguete mascota"],
-  ["libros", "books", "peliculas", "movies", "dvds", "cds", "vinilos", "vinyl", "revistas", "magazines"],
-  ["materiales", "construction materials", "madera", "lumber", "tile", "azulejo", "piso", "flooring", "fixtures", "hardware", "ferreteria"],
-  ["garage sale", "yard sale", "venta de garage", "venta de garaje", "moving sale", "mudanza", "estate sale", "lote", "bundle", "varios"],
-  ["joyeria", "jewelry", "relojes", "watches", "lentes de sol", "sunglasses"],
-  ["oficina", "office", "utiles escolares", "school supplies", "printer", "impresora", "desk accessories"],
+  [
+    "electrodomesticos",
+    "electrodomésticos",
+    "refrigerador",
+    "nevera",
+    "fridge",
+    "refrigerator",
+    "washer",
+    "dryer",
+    "lavadora",
+    "secadora",
+    "estufa",
+    "horno",
+    "microwave",
+    "microondas",
+  ],
+  [
+    "accesorios mascotas",
+    "pet supplies",
+    "dog crate",
+    "jaula",
+    "transportadora",
+    "cama perro",
+    "pet bed",
+    "acuario",
+    "aquarium",
+    "correa",
+    "leash",
+    "pet toy",
+    "juguete mascota",
+  ],
+  ["libros", "books", "peliculas", "películas", "movies", "dvds", "cds", "vinilos", "vinyl", "revistas", "magazines"],
+  [
+    "materiales",
+    "construction materials",
+    "madera",
+    "lumber",
+    "tile",
+    "azulejo",
+    "piso",
+    "flooring",
+    "fixtures",
+    "hardware",
+    "ferreteria",
+    "ferretería",
+  ],
+  [
+    "garage sale",
+    "yard sale",
+    "venta de garage",
+    "venta de garaje",
+    "moving sale",
+    "estate sale",
+    "lote",
+    "bundle",
+    "varios",
+  ],
+  ["joyeria", "joyería", "jewelry", "relojes", "watches", "lentes de sol", "sunglasses"],
+  ["oficina", "office", "utiles escolares", "útiles escolares", "school supplies", "printer", "impresora", "desk accessories"],
   ["autopartes", "partes de auto", "car parts", "tires", "llantas", "rims", "rines", "car audio", "accesorios de auto"],
   ["sofa", "sillón", "sillon", "couch"],
+  ["mesa cocina", "mesa de cocina", "kitchen table", "dining table", "dining chair", "silla comedor", "mesa comedor"],
+  ["cama", "mattress", "colchon", "colchón", "bed"],
   ["bicicleta", "bike", "bici", "ciclismo"],
-  ["herramienta", "taladro", "sierra", "tool", "drill"],
-  ["mueble", "furniture", "mesa", "silla"],
+  ["herramienta", "herramientas", "taladro", "sierra", "tool", "tools", "drill"],
+  ["mueble", "muebles", "furniture", "mesa", "silla", "hogar"],
   ["ropa", "clothes", "zapatos", "shoes", "tenis"],
   ["juguetes", "toys", "lego", "muñeca", "muneca"],
   ["consola", "playstation", "xbox", "nintendo", "videojuego"],
   ["cámara", "camara", "camera", "lente", "lens"],
+  ["tv", "television", "televisión", "televisor"],
 ];
+
+function queryTouchesSynonymGroup(q: string, group: string[]): boolean {
+  const tokens = q.split(" ").filter((t) => t.length >= 2);
+  for (const raw of group) {
+    const g = normalizeEnVentaSearchText(raw);
+    if (!g) continue;
+    if (q === g || q.includes(g) || g.includes(q)) return true;
+    for (const tok of tokens) {
+      if (tok.length >= 3 && (g.includes(tok) || tok.includes(g))) return true;
+    }
+  }
+  return false;
+}
 
 /** Map loose tokens to canonical department hints for browse rail (optional). */
 export const KEYWORD_TO_DEPT_HINT: Array<{ re: RegExp; dept: EnVentaDepartmentKey }> = [
@@ -42,12 +121,15 @@ export const KEYWORD_TO_DEPT_HINT: Array<{ re: RegExp; dept: EnVentaDepartmentKe
 ];
 
 export function expandEnVentaSearchTerms(raw: string): string[] {
-  const q = raw.trim().toLowerCase();
+  const q = normalizeEnVentaSearchText(raw);
   if (!q) return [];
   const parts = new Set<string>([q]);
   for (const group of SYNONYM_GROUPS) {
-    if (group.some((g) => q.includes(g))) {
-      for (const g of group) parts.add(g);
+    if (queryTouchesSynonymGroup(q, group)) {
+      for (const g of group) {
+        const n = normalizeEnVentaSearchText(g);
+        if (n) parts.add(n);
+      }
     }
   }
   return [...parts];
