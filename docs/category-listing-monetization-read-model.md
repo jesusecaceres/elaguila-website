@@ -2,6 +2,8 @@
 
 Gate E adds a read-only category/listing monetization model for Leonix / El Águila. It is a foundation for later Admin and Dashboard displays; it is not a checkout, pricing, promo, notification, or schema gate.
 
+**Gate G0:** Official Print-to-Digital visibility policy lives in [`docs/print-to-digital-visibility-policy.md`](./print-to-digital-visibility-policy.md). That policy defines package tiers, digital benefit ladders, V1 category scope, public labels, and future `visibility_rank_bucket` concepts. Gate E/F describe **what tools and metadata are readable today**; Gate G0 describes **how print and digital visibility should rank later** without implementing sort yet.
+
 ## Account Metadata Is Not Listing Monetization
 
 User account fields such as `profiles.membership_tier` and `profiles.account_type` describe who the person is. They must not decide what a specific listing can do.
@@ -43,6 +45,18 @@ Republish / Refrescado is separate from Featured / Destacado. Refrescado and Mov
 Featured / Destacado is separate from Verify Leonix. Featured reads listing-level staff spotlight fields such as `promoted`, `admin_promoted`, `featured`, or `destacado` when present. Verify Leonix reads trust/admin verification fields such as `leonix_verified` or `verified`; it is not paid visibility.
 
 Boost / Impulsado and Auto Refresh are future/unsupported unless explicit safe listing-level fields exist. Legacy `boost_expires` is treated as a warning only and must not activate new monetization.
+
+### Print-to-Digital visibility (Gate G0 policy)
+
+When sorting is implemented, visibility must follow [`docs/print-to-digital-visibility-policy.md`](./print-to-digital-visibility-policy.md):
+
+- **Premium print** → Destacados / Patrocinado **modules**, not fighting normal organic results.
+- **Full-page print** → priority inside **matching** category results after search/filters.
+- **Half/quarter/classified print** → print advertiser pool below full-page.
+- **Digital-only Republish/Boost** → below print priority; must not outrank full-page unless policy is revised.
+- **Organic** → fallback pool.
+
+Search/filter runs before visibility ranking; ranking applies only to matching results. En Venta, Clases, Comunidad, Empleos, and Viajes remain outside or deferred per that policy.
 
 Expiration / renewal is available only when a safe `expires_at` field exists on the row. Otherwise consumers should display future/unknown and the warning instead of assuming renewal eligibility.
 
