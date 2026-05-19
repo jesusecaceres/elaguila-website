@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import type { ViajesUi } from "../data/viajesUiCopy";
 import type { ViajesBusinessResult } from "../data/viajesResultsSampleData";
 import { withViajesOfferBackParam } from "../lib/viajesOfferLink";
+import { ViajesSheetCtaLink } from "./ViajesSheetCtaLink";
 
 export function ViajesResultsBusinessCard({ row, ui }: { row: ViajesBusinessResult; ui: ViajesUi }) {
   const sp = useSearchParams();
@@ -46,14 +47,13 @@ export function ViajesResultsBusinessCard({ row, ui }: { row: ViajesBusinessResu
             {ui.cards.businessViewListing}
           </Link>
           {row.whatsapp ? (
-            <a
+            <ViajesSheetCtaLink
               href={`https://wa.me/${row.whatsapp.replace(/\D/g, "")}`}
-              target="_blank"
-              rel="noopener noreferrer"
+              lang={ui.lang}
               className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-sm font-bold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
             >
               WhatsApp
-            </a>
+            </ViajesSheetCtaLink>
           ) : null}
           <Link
             href={offerHref}

@@ -7,6 +7,7 @@ import type { ViajesNegocioProfileModel } from "../data/viajesNegocioProfileSamp
 import type { ViajesUi } from "../data/viajesUiCopy";
 import { setLangOnHref } from "../lib/viajesLangHref";
 import { withViajesOfferBackParam } from "../lib/viajesOfferLink";
+import { ViajesNegocioContactBlock } from "./ViajesNegocioContactBlock";
 
 const ACCENT = "#D97706";
 
@@ -80,24 +81,14 @@ export function ViajesNegocioProfileLayout({
 
         <section className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]/90 p-6 sm:p-8">
           <h2 className="text-lg font-bold">{n.contact}</h2>
-          <div className="mt-4 flex flex-col gap-2 text-sm">
-            {profile.phone ? <p>📞 {profile.phone}</p> : null}
-            {profile.whatsapp ? (
-              <a href={`https://wa.me/${profile.whatsapp.replace(/\D/g, "")}`} className="font-semibold text-[color:var(--lx-text)] underline-offset-2 hover:underline" style={{ color: ACCENT }}>
-                WhatsApp {profile.whatsapp}
-              </a>
-            ) : null}
-            {profile.email ? (
-              <a href={`mailto:${profile.email}`} className="hover:underline">
-                ✉️ {profile.email}
-              </a>
-            ) : null}
-            {profile.website ? (
-              <a href={profile.website} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                🌐 {n.website}
-              </a>
-            ) : null}
-          </div>
+          <ViajesNegocioContactBlock
+            phone={profile.phone}
+            whatsapp={profile.whatsapp}
+            email={profile.email}
+            website={profile.website}
+            websiteLabel={n.website}
+            lang={ui.lang}
+          />
         </section>
 
         <section>

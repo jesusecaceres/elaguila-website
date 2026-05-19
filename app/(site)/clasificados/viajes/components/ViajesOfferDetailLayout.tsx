@@ -11,6 +11,8 @@ import { ViajesContactChannelsRow } from "./ViajesContactChannelsRow";
 import { ViajesOfferHeroBackdrop } from "./ViajesOfferHeroBackdrop";
 import { ViajesPartnerLogo } from "./ViajesPartnerLogo";
 import { ViajesPublicInquiryForm } from "./ViajesPublicInquiryForm";
+import { ViajesSheetCtaLink } from "./ViajesSheetCtaLink";
+import { isViajesContactHref } from "../lib/viajesCtaSheet";
 
 const ACCENT = "#D97706";
 
@@ -126,13 +128,14 @@ export function ViajesOfferDetailLayout({
   const mainCtaActionable = offer.mainCtaHref.trim().length > 0 && !isPlaceholderViajesCtaHref(offer.mainCtaHref);
 
   const mainCtaBlock = mainCtaActionable ? (
-    <a
+    <ViajesSheetCtaLink
       href={offer.mainCtaHref}
+      lang={ui.lang}
       className="inline-flex min-h-[52px] w-full flex-1 touch-manipulation items-center justify-center rounded-2xl px-6 py-3.5 text-center text-sm font-bold text-white shadow-[0_10px_32px_rgba(217,119,6,0.5)] ring-2 ring-white/25 ring-offset-2 ring-offset-black/30 transition hover:brightness-110 active:scale-[0.99] sm:min-h-[48px] sm:max-w-md sm:flex-none"
       style={{ backgroundColor: ACCENT }}
     >
       {offer.mainCtaLabel}
-    </a>
+    </ViajesSheetCtaLink>
   ) : (
     <div
       className="inline-flex min-h-[52px] w-full flex-1 flex-col justify-center rounded-2xl border border-dashed border-white/50 bg-black/35 px-5 py-3.5 text-center sm:min-h-[48px] sm:max-w-md sm:flex-none"
@@ -144,13 +147,14 @@ export function ViajesOfferDetailLayout({
   );
 
   const mainCtaBlockSparse = mainCtaActionable ? (
-    <a
+    <ViajesSheetCtaLink
       href={offer.mainCtaHref}
+      lang={ui.lang}
       className="inline-flex min-h-[52px] w-full flex-1 touch-manipulation items-center justify-center rounded-2xl px-6 py-3.5 text-sm font-bold text-white shadow-lg ring-2 ring-white/20 ring-offset-2 ring-offset-black/25 transition hover:brightness-110 sm:max-w-md"
       style={{ backgroundColor: ACCENT }}
     >
       {offer.mainCtaLabel}
-    </a>
+    </ViajesSheetCtaLink>
   ) : (
     <div
       className="inline-flex min-h-[52px] w-full flex-1 flex-col justify-center rounded-2xl border border-dashed border-white/50 bg-black/35 px-5 py-3.5 text-center sm:max-w-md"
@@ -357,19 +361,28 @@ export function ViajesOfferDetailLayout({
                 )}
               </div>
               {partner.contactChannels && partner.contactChannels.length > 0 ? (
-                <ViajesContactChannelsRow channels={partner.contactChannels} ariaLabel={od.contactChannelsHeading} />
+                <ViajesContactChannelsRow channels={partner.contactChannels} ariaLabel={od.contactChannelsHeading} lang={ui.lang} />
               ) : null}
             </div>
             <div className="flex w-full flex-col gap-2.5 sm:max-w-sm sm:items-stretch lg:min-w-[240px] lg:items-end">
-              <a
+              <ViajesSheetCtaLink
                 href={partner.ctaHref}
+                lang={ui.lang}
                 className="inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-md transition hover:brightness-105 lg:min-w-[220px]"
                 style={{ backgroundColor: ACCENT }}
               >
                 {partner.ctaLabel}
-              </a>
+              </ViajesSheetCtaLink>
               {partner.secondaryCtaLabel && partner.secondaryCtaHref ? (
-                isExternalHref(partner.secondaryCtaHref) ? (
+                isExternalHref(partner.secondaryCtaHref) && isViajesContactHref(partner.secondaryCtaHref) ? (
+                  <ViajesSheetCtaLink
+                    href={partner.secondaryCtaHref}
+                    lang={ui.lang}
+                    className="inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-3 text-sm font-bold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                  >
+                    {partner.secondaryCtaLabel}
+                  </ViajesSheetCtaLink>
+                ) : isExternalHref(partner.secondaryCtaHref) ? (
                   <a
                     href={partner.secondaryCtaHref}
                     target="_blank"
