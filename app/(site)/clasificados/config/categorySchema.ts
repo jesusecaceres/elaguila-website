@@ -184,6 +184,14 @@ const CATEGORY_SCHEMAS: Record<Exclude<CategoryKey, "all">, CategorySchema> = {
     proPreviewEligible: false,
     stepOrder: PUBLISH_STEPS_FULL,
   }),
+  busco: schema("busco", {
+    plans: ["free"],
+    businessBranchEligible: false,
+    formFieldGroupKey: "busco",
+    previewEligible: true,
+    proPreviewEligible: false,
+    stepOrder: PUBLISH_STEPS_FULL,
+  }),
   travel: schema("travel", {
     plans: ["business_standard", "business_plus"],
     businessBranchEligible: true,

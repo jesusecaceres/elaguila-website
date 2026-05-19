@@ -34,6 +34,10 @@ const CLASIFICADOS_HUB_UI = {
         label: "Comunidad",
         hint: "Actividades y anuncios comunitarios.",
       },
+      busco: {
+        label: "Busco / Se busca",
+        hint: "Publica solicitudes para encontrar artículos, ayuda, personas para actividades, grupos, transporte, recursos o algo específico que necesitas.",
+      },
       restaurantes: {
         label: "Restaurantes",
         hint: "Opciones locales, menús y reseñas.",
@@ -73,6 +77,10 @@ const CLASIFICADOS_HUB_UI = {
       autos: { label: "Autos", hint: "Cars and dealer inventory." },
       clases: { label: "Classes", hint: "Learn and share with community." },
       comunidad: { label: "Community", hint: "Activities and community posts." },
+      busco: {
+        label: "Looking for / Wanted",
+        hint: "Post requests to find items, help, people for activities, groups, rides, resources, or something specific you need.",
+      },
       restaurantes: {
         label: "Restaurants",
         hint: "Local spots, menus, and reviews.",

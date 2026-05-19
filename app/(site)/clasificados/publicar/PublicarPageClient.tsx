@@ -12,6 +12,7 @@ import {
   FiHome,
   FiLayers,
   FiMapPin,
+  FiSearch,
   FiShoppingCart,
   FiTool,
   FiTruck,
@@ -40,6 +41,7 @@ const CHOOSER_CATEGORIES: Array<{
   { key: "empleos", Icon: FiBriefcase },
   { key: "clases", Icon: FiBook },
   { key: "comunidad", Icon: FiUsers },
+  { key: "busco", Icon: FiSearch },
   { key: "travel", Icon: FiMapPin },
 ];
 
@@ -104,7 +106,9 @@ export default function PublicarPageClient({
                     ? `/publicar/clases/quick?${p.toString()}`
                     : deepLinkCat === "comunidad"
                       ? `/publicar/comunidad/quick?${p.toString()}`
-                      : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
+                      : deepLinkCat === "busco"
+                        ? `/publicar/busco/quick?${p.toString()}`
+                        : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
     router.replace(dest);
   }, [deepLinkCat, lang, router, searchParams]);
 
@@ -218,7 +222,9 @@ export default function PublicarPageClient({
                               ? `/publicar/clases/quick?lang=${lang}`
                               : key === "comunidad"
                                 ? `/publicar/comunidad/quick?lang=${lang}`
-                                : `/clasificados/publicar/${key}?lang=${lang}`;
+                                : key === "busco"
+                                  ? `/publicar/busco/quick?lang=${lang}`
+                                  : `/clasificados/publicar/${key}?lang=${lang}`;
               return (
                 <Link
                   key={key}

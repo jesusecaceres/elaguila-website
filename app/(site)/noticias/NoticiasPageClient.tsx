@@ -178,7 +178,9 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
     try {
       setLoading(true);
 
-      const res = await fetch(`/api/rss?category=${activeCategory}&lang=${lang}`);
+      const res = await fetch(
+        `/api/rss?category=${activeCategory}&subcategory=${encodeURIComponent(activeSubcategory)}&lang=${lang}`
+      );
       const data = await res.json();
 
       const fixed: NewsArticle[] = (Array.isArray(data) ? data : []).map((raw: unknown) => {
@@ -203,8 +205,7 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
 
   useEffect(() => {
     loadNews();
-     
-  }, [activeCategory, lang]);
+  }, [activeCategory, activeSubcategory, lang]);
 
   const featured: NewsArticle =
     articles[0] ||
@@ -278,7 +279,10 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
               <button
                 key={cat.key}
                 type="button"
-                onClick={() => setActiveCategory(cat.key)}
+                onClick={() => {
+                  setActiveCategory(cat.key);
+                  setActiveSubcategory(SUBCATEGORIES[cat.key][lang][0]);
+                }}
                 className={
                   active
                     ? "px-4 py-2 text-sm md:text-base rounded-full bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)] font-semibold border border-[color:var(--lx-nav-border)]"

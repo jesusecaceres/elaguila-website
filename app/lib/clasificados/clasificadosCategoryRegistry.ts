@@ -43,7 +43,7 @@ function defaultOperationalStatus(slug: string): ClasificadosCategoryOperational
     return "live";
   }
   if (slug === "servicios" || slug === "autos" || slug === "travel") return "staged";
-  if (slug === "comunidad" || slug === "clases") return "coming_soon";
+  if (slug === "comunidad" || slug === "clases" || slug === "busco") return "coming_soon";
   return "coming_soon";
 }
 
@@ -88,13 +88,20 @@ export function getClasificadosCategoryRegistry(): ClasificadosCategoryRegistryE
                         ? "📚"
                         : slug === "comunidad"
                           ? "🤝"
-                          : slug === "travel"
+                          : slug === "busco"
+                            ? "🔍"
+                            : slug === "travel"
                             ? "✈️"
                             : "📁",
         sortOrder: i,
         visibility,
         operationalStatus: op,
-        landingTarget: slug === "restaurantes" ? `/clasificados/restaurantes` : `/clasificados/publicar/${slug}`,
+        landingTarget:
+          slug === "restaurantes"
+            ? `/clasificados/restaurantes`
+            : slug === "busco"
+              ? `/clasificados/busco`
+              : `/clasificados/publicar/${slug}`,
         notes:
           slug === "restaurantes"
             ? "Vertical operativa: publicación→Supabase, descubrimiento (resultados/filtros desde DB+listing_json), ficha pública, admin con acciones reales, panel propietario con hidratar borrador."

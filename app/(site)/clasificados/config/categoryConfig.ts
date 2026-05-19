@@ -9,6 +9,7 @@ export type CategoryKey =
   | "restaurantes"
   | "clases"
   | "comunidad"
+  | "busco"
   | "travel";
 
 type CategoryConfig = {
@@ -61,6 +62,10 @@ export const categoryConfig: Record<CategoryKey, CategoryConfig> = {
   comunidad: {
     label: { es: "Comunidad", en: "Community" },
     futureFilters: ["location"],
+  },
+  busco: {
+    label: { es: "Busco / Se busca", en: "Looking for / Wanted" },
+    futureFilters: ["type", "location", "budget"],
   },
   travel: {
     label: { es: "Viajes", en: "Travel" },

@@ -12,6 +12,7 @@ export const HUB_CATEGORY_PATH: Record<HubCategoryKey, string> = {
   empleos: "/clasificados/empleos",
   clases: "/clasificados/clases",
   comunidad: "/clasificados/comunidad",
+  busco: "/clasificados/busco",
   restaurantes: "/clasificados/restaurantes",
   travel: "/clasificados/viajes",
 };
