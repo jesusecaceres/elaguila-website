@@ -1669,6 +1669,13 @@ export default function MyListingsPage() {
                             </span>{" "}
                             <span className="font-mono font-semibold text-[#1E1810]">{leonixQuickAdId}</span>
                           </p>
+                        ) : !isCommunityQuickCategory && x.leonix_ad_id?.trim() ? (
+                          <p className="mt-1 text-[11px] leading-snug text-[#7A7164]" data-testid="dashboard-listing-leonix-ad-id">
+                            <span className="font-semibold text-[#5C5346]">
+                              {lang === "es" ? "ID Leonix" : "Leonix ID"}:
+                            </span>{" "}
+                            <span className="font-mono font-semibold text-[#1E1810]">{x.leonix_ad_id.trim()}</span>
+                          </p>
                         ) : null}
                         {stats ? (
                           <p className="mt-2 text-sm text-[#7A7164]">
