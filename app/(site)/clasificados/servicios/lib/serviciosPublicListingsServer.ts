@@ -3,6 +3,7 @@ import "server-only";
 import {
   adminQueueExtractServiciosSlugFromUrl,
   adminQueueIsUuid,
+  adminQueueNormalizeLeonixAdId,
 } from "@/app/admin/_lib/adminAdSearch";
 import { fetchProfileIdsMatchingAdminQueueSearch } from "@/app/lib/supabase/adminQueueProfileSearch";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
@@ -345,6 +346,12 @@ export async function listServiciosPublicListingsAdminQueueFromDb(
         if (!error && data?.length) return { rows: data as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
       }
 
+      const normLeonixQ = adminQueueNormalizeLeonixAdId(q);
+      if (normLeonixQ) {
+        const { data, error } = await qb().eq("leonix_ad_id", normLeonixQ).limit(20);
+        if (!error && data?.length) return { rows: data as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
+      }
+
       const fromUrl = adminQueueExtractServiciosSlugFromUrl(q);
       if (fromUrl) {
         const { data, error } = await qb().eq("slug", fromUrl).limit(20);
@@ -355,12 +362,17 @@ export async function listServiciosPublicListingsAdminQueueFromDb(
       if (!slugErr && bySlug?.length) return { rows: bySlug as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
 
       const term = `%${escapeIlikeServicios(qLower)}%`;
-      const [nameRes, slugRes] = await Promise.all([
+      const [nameRes, slugRes, leonixRes] = await Promise.all([
         qb().ilike("business_name", term).order("updated_at", { ascending: false }).limit(80),
         qb().ilike("slug", term).order("updated_at", { ascending: false }).limit(80),
+        qb().ilike("leonix_ad_id", term).order("updated_at", { ascending: false }).limit(80),
       ]);
       let merged = mergeServiciosAdminRows(
-        [...((nameRes.data ?? []) as ServiciosPublicListingAdminDbRow[]), ...((slugRes.data ?? []) as ServiciosPublicListingAdminDbRow[])],
+        [
+          ...((nameRes.data ?? []) as ServiciosPublicListingAdminDbRow[]),
+          ...((slugRes.data ?? []) as ServiciosPublicListingAdminDbRow[]),
+          ...((leonixRes.data ?? []) as ServiciosPublicListingAdminDbRow[]),
+        ],
         limit,
       );
       const profileIds = await fetchProfileIdsMatchingAdminQueueSearch(supabase, qRaw);

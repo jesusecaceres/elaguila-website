@@ -43,6 +43,18 @@ export default async function AdminTravelViajesQueuePage(props: {
       ? allRows.filter((r) => viajesRowIsPublicLive(r as unknown as Record<string, unknown>))
       : allRows;
 
+  const qRaw = typeof sp.q === "string" ? sp.q.trim() : "";
+  const displayRows = qRaw
+    ? rows.filter((r) => {
+        const n = qRaw.toLowerCase();
+        if ((r.leonix_ad_id ?? "").toLowerCase().includes(n)) return true;
+        if (r.title.toLowerCase().includes(n)) return true;
+        if (r.slug.toLowerCase().includes(n)) return true;
+        if (r.id.toLowerCase().includes(n)) return true;
+        return false;
+      })
+    : rows;
+
   const surface = clasificadosQueueSurfaceForSlug("travel");
 
   const headerTitle =
@@ -62,10 +74,40 @@ export default async function AdminTravelViajesQueuePage(props: {
         }
       />
 
+      {configured && (
+        <form method="get" action={basePath} className={`${adminCardBase} flex flex-wrap items-center gap-2 p-3`}>
+          {scope === "live" && <input type="hidden" name="scope" value="live" />}
+          <label className="flex items-center gap-2 text-xs text-[#5C5346]">
+            <span className="font-semibold">Buscar</span>
+            <input
+              type="search"
+              name="q"
+              defaultValue={qRaw}
+              placeholder="Título, Leonix ID o slug…"
+              className="min-w-[18rem] rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs text-[#1E1810]"
+              autoComplete="off"
+            />
+          </label>
+          <button type="submit" className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs text-[#5C5346] hover:bg-[#F3EBDD]">
+            Buscar
+          </button>
+          {qRaw && (
+            <a
+              href={scope === "live" ? `${basePath}?scope=live` : basePath}
+              className="text-xs text-[#7A7164] underline"
+            >
+              Limpiar
+            </a>
+          )}
+        </form>
+      )}
+
       {!configured ? (
         <p className={`${adminCardBase} p-4 text-sm text-[#5C5346]`}>Supabase admin no configurado.</p>
-      ) : rows.length === 0 ? (
-        <p className={`${adminCardBase} p-4 text-sm text-[#5C5346]`}>Sin filas en viajes_staged_listings.</p>
+      ) : displayRows.length === 0 ? (
+        <p className={`${adminCardBase} p-4 text-sm text-[#5C5346]`}>
+          {qRaw ? `Sin resultados para "${qRaw}".` : "Sin filas en viajes_staged_listings."}
+        </p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] shadow-sm">
           <table className="min-w-full border-collapse text-left text-xs text-[#2C2416]">
@@ -86,7 +128,7 @@ export default async function AdminTravelViajesQueuePage(props: {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => {
+              {displayRows.map((r) => {
                 const lx = r.leonix_ad_id ?? null;
                 const promoted = Boolean(r.admin_promoted);
                 const verified = Boolean(r.leonix_verified);
