@@ -31,6 +31,7 @@ import { LocationSection } from "./sections/LocationSection";
 import { FulfillmentSection } from "./sections/FulfillmentSection";
 import { SellerContactSection } from "./sections/SellerContactSection";
 import { ItemDetailsSection } from "./sections/ItemDetailsSection";
+import { evaluateEnVentaFamilySafetyFromState } from "@/app/clasificados/en-venta/moderation/enVentaFamilySafety";
 import { createEmptyEnVentaFreeState } from "./schema/enVentaFreeFormState";
 
 type Lang = "es" | "en";
@@ -43,6 +44,7 @@ export default function LeonixEnVentaFreeApplication() {
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
   const [state, setState] = useState(createEmptyEnVentaFreeState);
+  const [familySafetyMsg, setFamilySafetyMsg] = useState<string | null>(null);
 
   useLayoutEffect(() => {
     setState(takeEnVentaPreviewReturnInitialState("free"));
@@ -90,10 +92,19 @@ export default function LeonixEnVentaFreeApplication() {
   );
 
   /** Persist handoff for whichever preview button the seller chose (Free vs Pro preview). */
-  const onBeforePreview = useCallback((clickedPlan: "free" | "pro") => {
-    saveEnVentaPreviewDraft(clickedPlan, state);
-    saveEnVentaPreviewReturnDraft(clickedPlan, state);
-  }, [state]);
+  const onBeforePreview = useCallback(
+    (clickedPlan: "free" | "pro") => {
+      const safety = evaluateEnVentaFamilySafetyFromState(state, lang);
+      if (safety.status !== "safe") {
+        setFamilySafetyMsg(safety.userMessage);
+        throw new Error("en-venta-family-safety-block");
+      }
+      setFamilySafetyMsg(null);
+      saveEnVentaPreviewDraft(clickedPlan, state);
+      saveEnVentaPreviewReturnDraft(clickedPlan, state);
+    },
+    [state, lang]
+  );
 
   return (
     <main
@@ -145,6 +156,11 @@ export default function LeonixEnVentaFreeApplication() {
           <FulfillmentSection lang={lang} state={state} setState={setState} />
           <SellerContactSection lang={lang} state={state} setState={setState} showSellerKind />
           <ItemDetailsSection lang={lang} state={state} setState={setState} />
+          {familySafetyMsg ? (
+            <p className="text-sm font-medium text-red-800" role="alert" data-testid="ev-family-safety-preview">
+              {familySafetyMsg}
+            </p>
+          ) : null}
           <EnVentaPreviewBeforePublishCta lang={lang} variant="light" onBeforePreview={onBeforePreview} />
           <ListingRulesConfirmationSection
             lang={lang}

@@ -7,6 +7,10 @@ import { mapEnVentaSellerKindToDb } from "@/app/clasificados/en-venta/mapping/ma
 import { getOrderedEnVentaImageUrls } from "@/app/clasificados/en-venta/preview/buildEnVentaPreviewModel";
 import type { PublishLang } from "@/app/clasificados/lib/buildDetailsAppendix";
 import { validateEnVentaLocation } from "@/app/clasificados/en-venta/shared/utils/validateEnVentaLocation";
+import {
+  evaluateEnVentaFamilySafetyFromState,
+  formatEnVentaFamilySafetyPublishError,
+} from "@/app/clasificados/en-venta/moderation/enVentaFamilySafety";
 
 function resolveContactForInsert(state: EnVentaFreeApplicationState): {
   contact_phone: string | null;
@@ -159,6 +163,14 @@ export async function publishEnVentaFromDraft(
   lang: PublishLang,
   plan: "free" | "pro"
 ): Promise<EnVentaPublishFromDraftResult> {
+  const familySafety = evaluateEnVentaFamilySafetyFromState(state, lang);
+  if (familySafety.status !== "safe") {
+    return {
+      ok: false,
+      error: formatEnVentaFamilySafetyPublishError(familySafety, lang),
+    };
+  }
+
   if (!state.title.trim()) {
     return { ok: false, error: lang === "es" ? "Añade un título." : "Add a title." };
   }

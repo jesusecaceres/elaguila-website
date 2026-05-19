@@ -2,6 +2,7 @@ import {
   createEmptyEnVentaFreeState,
   type EnVentaFreeApplicationState,
 } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
+import { evaluateEnVentaFamilySafetyFromState } from "@/app/clasificados/en-venta/moderation/enVentaFamilySafety";
 
 export const EN_VENTA_PREVIEW_DRAFT_KEY_FREE = "en-venta-preview-draft-free";
 export const EN_VENTA_PREVIEW_DRAFT_KEY_PRO = "en-venta-preview-draft-pro";
@@ -75,16 +76,25 @@ export function clearEnVentaPublishTempState(): void {
   }
 }
 
-export function saveEnVentaPreviewDraft(plan: "free" | "pro", state: EnVentaFreeApplicationState): void {
-  if (typeof window === "undefined") return;
+export function saveEnVentaPreviewDraft(
+  plan: "free" | "pro",
+  state: EnVentaFreeApplicationState,
+  lang: "es" | "en" = "es"
+): boolean {
+  if (evaluateEnVentaFamilySafetyFromState(state, lang).status !== "safe") {
+    return false;
+  }
+  if (typeof window === "undefined") return false;
   try {
     sessionStorage.setItem(keyForPlan(plan), JSON.stringify(state));
     sessionStorage.setItem(
       EN_VENTA_PREVIEW_DRAFT_META_KEY,
       JSON.stringify({ plan, updatedAt: Date.now() })
     );
+    return true;
   } catch {
     /* ignore quota / private mode */
+    return false;
   }
 }
 

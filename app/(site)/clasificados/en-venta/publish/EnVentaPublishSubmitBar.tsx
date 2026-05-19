@@ -9,6 +9,7 @@ import { buildEnVentaPublishSuccessUrls } from "@/app/clasificados/en-venta/shar
 import { buildEnVentaListingDetailHrefFromResults } from "@/app/clasificados/en-venta/results/utils/enVentaListingLinks";
 import { validateEnVentaLocation } from "@/app/clasificados/en-venta/shared/utils/validateEnVentaLocation";
 import { getEnVentaSupabaseBrowserEnvIssues } from "@/app/lib/supabase/enVentaClientEnvCheck";
+import { evaluateEnVentaFamilySafetyFromState } from "@/app/clasificados/en-venta/moderation/enVentaFamilySafety";
 import { publishEnVentaFromDraft, type EnVentaGalleryUploadOutcome } from "./enVentaPublishFromDraft";
 
 const COPY = {
@@ -65,6 +66,11 @@ function collectPublishBlockers(lang: "es" | "en", state: EnVentaFreeApplication
 
   if (!state.confirmListingAccurate || !state.confirmPhotosRepresentItem || !state.confirmCommunityRules) {
     reasons.push(t.blockerRules);
+  }
+
+  const safety = evaluateEnVentaFamilySafetyFromState(state, lang);
+  if (safety.status !== "safe") {
+    reasons.push(safety.userMessage);
   }
 
   return reasons;
