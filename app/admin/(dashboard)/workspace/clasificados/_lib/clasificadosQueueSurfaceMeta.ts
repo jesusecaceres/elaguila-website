@@ -46,6 +46,7 @@ export function clasificadosQueueSurfaceForSlug(slug: string): ClasificadosQueue
     case "en-venta":
     case "comunidad":
     case "clases":
+    case "mascotas-y-perdidos":
     case "bienes-raices":
       return {
         sourceTable: "public.listings",

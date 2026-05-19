@@ -27,6 +27,7 @@ const EDITOR_SLUGS = new Set([
   "restaurantes",
   "clases",
   "comunidad",
+  "mascotas-y-perdidos",
   "travel",
   "bienes-raices",
 ]);
@@ -79,7 +80,7 @@ export async function CategoryDetailFieldsEditorBlock(props: {
         </div>
       ) : null}
 
-      {slug === "clases" || slug === "comunidad" ? (
+      {slug === "clases" || slug === "comunidad" || slug === "mascotas-y-perdidos" ? (
         <div className={`${adminCardBase} border-sky-200 bg-sky-50/90 p-4 text-sm text-sky-950`}>
           Esta categoría aún no tiene filas en <code className="rounded bg-white/80 px-1">DETAIL_FIELDS</code>. Puedes dejar notas de staff;
           cuando existan campos en código, aparecerán aquí automáticamente.

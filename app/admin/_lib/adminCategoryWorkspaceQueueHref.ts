@@ -32,6 +32,8 @@ export function adminCategoryWorkspaceQueueHref(slug: string): string {
       return "/admin/workspace/clasificados/clases";
     case "busco":
       return "/admin/workspace/clasificados/busco";
+    case "mascotas-y-perdidos":
+      return "/admin/workspace/clasificados/mascotas-y-perdidos";
     case "travel":
       return "/admin/workspace/clasificados/travel";
     default:

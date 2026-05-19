@@ -62,6 +62,8 @@ export function listingsLeonixPrefixForCategory(categorySlug: string): string {
       return "CLASS";
     case "comunidad":
       return "COM";
+    case "mascotas-y-perdidos":
+      return "PET";
     case "travel":
     case "viajes":
       return "TRAV";

@@ -10,6 +10,7 @@ export type CategoryKey =
   | "clases"
   | "comunidad"
   | "busco"
+  | "mascotas-y-perdidos"
   | "travel";
 
 type CategoryConfig = {
@@ -66,6 +67,10 @@ export const categoryConfig: Record<CategoryKey, CategoryConfig> = {
   busco: {
     label: { es: "Busco / Se busca", en: "Looking for / Wanted" },
     futureFilters: ["type", "location", "budget"],
+  },
+  "mascotas-y-perdidos": {
+    label: { es: "Mascotas y Perdidos", en: "Pets & Lost & Found" },
+    futureFilters: ["type", "location"],
   },
   travel: {
     label: { es: "Viajes", en: "Travel" },

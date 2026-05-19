@@ -43,7 +43,9 @@ function defaultOperationalStatus(slug: string): ClasificadosCategoryOperational
     return "live";
   }
   if (slug === "servicios" || slug === "autos" || slug === "travel") return "staged";
-  if (slug === "comunidad" || slug === "clases" || slug === "busco") return "coming_soon";
+  if (slug === "comunidad" || slug === "clases" || slug === "busco" || slug === "mascotas-y-perdidos") {
+    return "coming_soon";
+  }
   return "coming_soon";
 }
 
@@ -90,9 +92,11 @@ export function getClasificadosCategoryRegistry(): ClasificadosCategoryRegistryE
                           ? "🤝"
                           : slug === "busco"
                             ? "🔍"
-                            : slug === "travel"
-                            ? "✈️"
-                            : "📁",
+                            : slug === "mascotas-y-perdidos"
+                              ? "🐾"
+                              : slug === "travel"
+                                ? "✈️"
+                                : "📁",
         sortOrder: i,
         visibility,
         operationalStatus: op,
@@ -101,9 +105,13 @@ export function getClasificadosCategoryRegistry(): ClasificadosCategoryRegistryE
             ? `/clasificados/restaurantes`
             : slug === "busco"
               ? `/clasificados/busco`
-              : `/clasificados/publicar/${slug}`,
+              : slug === "mascotas-y-perdidos"
+                ? `/clasificados/mascotas-y-perdidos`
+                : `/clasificados/publicar/${slug}`,
         notes:
-          slug === "restaurantes"
+          slug === "mascotas-y-perdidos"
+            ? "Avisos gratuitos y sencillos para mascotas perdidas o encontradas, adopciones y objetos perdidos o encontrados en tu comunidad."
+            : slug === "restaurantes"
             ? "Vertical operativa: publicación→Supabase, descubrimiento (resultados/filtros desde DB+listing_json), ficha pública, admin con acciones reales, panel propietario con hidratar borrador."
             : op === "live"
               ? "Primary live Clasificados vertical — taxonomy, publish, preview, dashboard contract."

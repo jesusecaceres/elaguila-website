@@ -9,6 +9,7 @@ export type LeonixCategoryVisualKey =
   | "clases"
   | "comunidad"
   | "busco"
+  | "mascotas-y-perdidos"
   | "travel";
 
 export const LEONIX_CATEGORY_VISUALS: Record<
@@ -90,6 +91,13 @@ export const LEONIX_CATEGORY_VISUALS: Record<
     border: "border-[#B8C8EA]/60",
     chipBg: "bg-[#D7E3F7]",
     glow: "shadow-[0_12px_26px_rgba(86,120,170,0.12)]",
+  },
+  "mascotas-y-perdidos": {
+    emoji: "🐾",
+    tint: "from-[#FFF6ED] to-[#FFFBF7]",
+    border: "border-[#E6C9A8]/60",
+    chipBg: "bg-[#F2DFC8]",
+    glow: "shadow-[0_12px_26px_rgba(176,130,75,0.12)]",
   },
   travel: {
     emoji: "✈️",

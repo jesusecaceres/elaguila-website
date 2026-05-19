@@ -27,6 +27,7 @@ const DETAIL_EDITOR_SLUGS = new Set([
   "restaurantes",
   "clases",
   "comunidad",
+  "mascotas-y-perdidos",
   "travel",
   "bienes-raices",
 ]);

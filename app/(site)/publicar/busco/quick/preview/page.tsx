@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import BuscoQuickShellClient from "../BuscoQuickShellClient";
+import BuscoQuickPreviewClient from "../BuscoQuickPreviewClient";
 
 export const metadata: Metadata = {
   title: "Vista previa — Busco / Se busca — LEONIX",
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function PublicarBuscoQuickPreviewPage() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#D9D9D9]" aria-busy="true" />}>
-      <BuscoQuickShellClient mode="preview" />
+      <BuscoQuickPreviewClient />
     </Suspense>
   );
 }

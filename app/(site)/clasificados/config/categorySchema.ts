@@ -192,6 +192,14 @@ const CATEGORY_SCHEMAS: Record<Exclude<CategoryKey, "all">, CategorySchema> = {
     proPreviewEligible: false,
     stepOrder: PUBLISH_STEPS_FULL,
   }),
+  "mascotas-y-perdidos": schema("mascotas-y-perdidos", {
+    plans: ["free"],
+    businessBranchEligible: false,
+    formFieldGroupKey: "mascotas-y-perdidos",
+    previewEligible: true,
+    proPreviewEligible: false,
+    stepOrder: PUBLISH_STEPS_FULL,
+  }),
   travel: schema("travel", {
     plans: ["business_standard", "business_plus"],
     businessBranchEligible: true,

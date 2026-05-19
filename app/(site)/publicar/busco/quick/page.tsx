@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import BuscoQuickShellClient from "./BuscoQuickShellClient";
+import BuscoQuickFormClient from "./BuscoQuickFormClient";
 
 export const metadata: Metadata = {
   title: "Busco / Se busca — Publicar solicitud — LEONIX",
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function PublicarBuscoQuickPage() {
   return (
     <Suspense fallback={<div className="min-h-[50vh] bg-[color:var(--lx-page)]" aria-busy="true" />}>
-      <BuscoQuickShellClient mode="quick" />
+      <BuscoQuickFormClient />
     </Suspense>
   );
 }

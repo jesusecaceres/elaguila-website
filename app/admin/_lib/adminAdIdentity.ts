@@ -76,6 +76,7 @@ export function adminCategoryPrefixForSlug(categorySlug: string): string {
   if (s === "travel" || s === "viajes") return "TRAV";
   if (s === "comunidad") return "COM";
   if (s === "clases") return "CLASS";
+  if (s === "mascotas-y-perdidos") return "PET";
   return "LIST";
 }
 
