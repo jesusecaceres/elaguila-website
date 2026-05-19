@@ -49,11 +49,13 @@ Ordered from strongest to weakest digital benefit (conceptual; implementation is
 5. **republished** — Refrescado / Republish timestamp or count bumps within digital-only band; **never** outranks full-page print priority unless policy is explicitly revised.
 6. **organic** — Normal marketplace listings; fallback sort.
 
-Future helper (not built in Gate G0):
+**Gate G1** implements the shared read-only helper (no live sorting yet):
 
-```ts
-resolveListingVisibilityRank(category, listing) → { bucket, reason, ... }
-```
+- Code: `app/lib/listingPlans/printDigitalVisibilityRank.ts`
+- `resolveListingVisibilityRank(input)` → `VisibilityRankSummary`
+- `compareVisibilityRank(a, b)` → higher `rankWeight` first; ties return `0`
+
+The helper **does not apply sorting** to public pages, Destacados modules, or Admin tables. Categories opt in one-by-one in later gates. **Search/filter must run first** on the caller; the helper only ranks rows already in the matching result set. Existing category fallback sorting (date, distance, etc.) remains after bucket compare when weights tie.
 
 ---
 
@@ -208,16 +210,17 @@ Before merging sorting, public Destacados, or payment flows:
 
 ---
 
-## 15. Gate G0 scope warning
+## 15. Gate G0 / Gate G1 scope warnings
 
-**This gate does not include:**
+**Gate G0 does not include:** policy-only; no code.
 
-- Sorting or `resolveListingVisibilityRank` implementation
-- Public page or Destacados module redesign
-- Stripe, promo codes, pricing tables, or checkout
-- Paid placement activation
-- Supabase schema migrations
-- Dashboard client UI
-- Admin write actions or publish pipeline changes
+**Gate G1 adds** the shared `resolveListingVisibilityRank` helper and `compareVisibilityRank` only. It **does not**:
 
-Gate G0 **locks policy only**. Gate G1 may add the shared ranking helper on top of this document.
+- Apply sorting on public result pages, homepage Destacados, category landing Destacados, or results-page Destacados modules
+- Change Dashboard or Admin UI
+- Add Stripe, promo codes, pricing, checkout, or paid placement activation
+- Add Supabase migrations or publish pipeline changes
+
+**Gate G1 encodes:** Premium → Destacados modules (`eligibleForDestacadosModule`, not default results priority); full-page → results priority (`eligibleForResultsPriority`); half/quarter/classified → `print_advertiser_pool`; digital featured below print; Republish/Boost below full-page print; organic fallback. **Full-page priority outranks Republish/Boost** unless a future policy revision says otherwise.
+
+Later gates (e.g. **Gate G2-SERVICIOS**) may call the helper behind existing filters; until then, public sort behavior is unchanged.

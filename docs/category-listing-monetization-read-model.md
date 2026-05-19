@@ -4,6 +4,8 @@ Gate E adds a read-only category/listing monetization model for Leonix / El Águ
 
 **Gate G0:** Official Print-to-Digital visibility policy lives in [`docs/print-to-digital-visibility-policy.md`](./print-to-digital-visibility-policy.md). That policy defines package tiers, digital benefit ladders, V1 category scope, public labels, and future `visibility_rank_bucket` concepts. Gate E/F describe **what tools and metadata are readable today**; Gate G0 describes **how print and digital visibility should rank later** without implementing sort yet.
 
+**Gate G1:** Shared read-only ranking helper at `app/lib/listingPlans/printDigitalVisibilityRank.ts` exports `resolveListingVisibilityRank` and `compareVisibilityRank`. It encodes Gate G0 buckets and weights but **does not apply sorting** on public pages yet. Callers must run search/filter first, then compare rank weights; ties preserve existing order. Optional `monetization` input may pass a Gate E `CategoryListingMonetizationSummary` for republish metadata. Categories opt in per vertical in later gates (e.g. G2-SERVICIOS).
+
 ## Account Metadata Is Not Listing Monetization
 
 User account fields such as `profiles.membership_tier` and `profiles.account_type` describe who the person is. They must not decide what a specific listing can do.
