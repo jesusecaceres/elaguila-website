@@ -186,6 +186,7 @@ export async function fetchListingsForAdminWorkspaceFiltered(
         const parts = [`title.ilike.%${safeQ}%`, `city.ilike.%${safeQ}%`];
         if (!isUuid(qInput)) {
           parts.push(`description.ilike.%${safeQ}%`);
+          parts.push(`leonix_ad_id.ilike.%${safeQ}%`);
         }
         if (isUuid(qInput)) {
           parts.push(`id.eq.${qInput}`);

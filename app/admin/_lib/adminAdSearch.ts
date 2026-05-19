@@ -92,6 +92,7 @@ export function empleosRowMatchesAdminQueueSearch(
   if (adminQueueIsUuid(q) && row.id === q) return true;
   const nlx = adminQueueNormalizeLeonixAdId(q);
   if (nlx && row.leonix_ad_id && String(row.leonix_ad_id).toUpperCase() === nlx) return true;
+  if (row.leonix_ad_id && String(row.leonix_ad_id).toLowerCase().includes(n)) return true;
   return false;
 }
 
@@ -124,6 +125,7 @@ export function autosRowMatchesAdminQueueSearch(
   if (row.vehicleTextBlob && row.vehicleTextBlob.includes(n)) return true;
   const nlx = adminQueueNormalizeLeonixAdId(q);
   if (nlx && row.leonix_ad_id && String(row.leonix_ad_id).toUpperCase() === nlx) return true;
+  if (row.leonix_ad_id && String(row.leonix_ad_id).toLowerCase().includes(n)) return true;
   if (adminQueueIsUuid(q) && row.id === q) return true;
   return false;
 }
