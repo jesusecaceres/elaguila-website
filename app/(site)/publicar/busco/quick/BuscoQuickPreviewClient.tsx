@@ -19,6 +19,7 @@ import { buscoQuickEditUrl } from "../shared/buscoPublishRoutes";
 import type { BuscoQuickDraft } from "../shared/buscoQuickTypes";
 import { BUSCO_QUICK_DRAFT_KEY } from "../shared/buscoSessionKeys";
 import { resolveBuscoTypePublicLabel } from "../shared/buscoTaxonomy";
+import { BuscoQuickPreviewPublishBar } from "./BuscoQuickPreviewPublishBar";
 
 const LISTING_IMAGE_FALLBACK = "/logo.png";
 
@@ -27,8 +28,6 @@ const COPY = {
     noDraft: "No hay borrador para previsualizar.",
     backToForm: "Volver al formulario",
     edit: "Editar solicitud",
-    publishSoon: "La publicación estará disponible en la siguiente fase (C4).",
-    publishDisabled: "Publicar (próximamente)",
     leonixAdId: "Leonix Ad ID",
     budget: "Presupuesto",
     contact: "Contacto",
@@ -38,8 +37,6 @@ const COPY = {
     noDraft: "No draft to preview.",
     backToForm: "Back to form",
     edit: "Edit request",
-    publishSoon: "Publishing will be available in the next phase (C4).",
-    publishDisabled: "Publish (coming soon)",
     leonixAdId: "Leonix Ad ID",
     budget: "Budget",
     contact: "Contact",
@@ -187,16 +184,8 @@ export default function BuscoQuickPreviewClient() {
         >
           {t.edit}
         </Link>
-        <button
-          type="button"
-          disabled
-          title={t.publishSoon}
-          className="inline-flex min-h-[48px] flex-1 cursor-not-allowed items-center justify-center rounded-xl bg-[#111111]/40 px-5 py-3 text-sm font-bold text-[#F5F5F5]/90 sm:min-w-[11rem] sm:flex-none"
-        >
-          {t.publishDisabled}
-        </button>
+        <BuscoQuickPreviewPublishBar draft={draft} lang={lang} />
       </div>
-      <p className="text-center text-[11px] text-[#5C5346]/80">{t.publishSoon}</p>
     </BuscoShellLayout>
   );
 }

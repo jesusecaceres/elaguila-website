@@ -15,6 +15,8 @@ import { isVerifiedSeller } from "../../components/verifiedSeller";
 import ContactActions from "../../components/ContactActions";
 import { CommunityQuickAnuncioDetail } from "../../community/CommunityQuickAnuncioDetail";
 import { CommunityQuickPublishedDetailPage } from "../../community/CommunityQuickPublishedDetailPage";
+import { BuscoPublishedDetailPage } from "../../busco/BuscoPublishedDetailPage";
+import { detailPairsToMap as buscoDetailPairsToMap, isBuscoQuickListing } from "../../busco/shared/buscoListingDetailPairs";
 import { ClasesPublishedQuickAd } from "@/app/(site)/publicar/clases/components/ClasesPublishedQuickAd";
 import { ComunidadPublishedQuickAd } from "@/app/(site)/publicar/comunidad/components/ComunidadPublishedQuickAd";
 import { COMMUNITY_ANUNCIO_HERO_FRAME } from "@/app/(site)/clasificados/community/shared/communityAnuncioHeroClasses";
@@ -80,6 +82,7 @@ type CategoryKey =
   | "empleos"
   | "clases"
   | "comunidad"
+  | "busco"
   | "travel";
 
 type SellerType = "personal" | "business";
@@ -162,6 +165,7 @@ const CATEGORY_KEYS: readonly CategoryKey[] = [
   "empleos",
   "clases",
   "comunidad",
+  "busco",
   "travel",
 ];
 
@@ -386,6 +390,7 @@ export default function AnuncioDetallePage() {
       empleos: { es: "Empleos", en: "Jobs" },
       clases: { es: "Clases", en: "Classes" },
       comunidad: { es: "Comunidad", en: "Community" },
+      busco: { es: "Busco / Se busca", en: "Wanted / Looking for" },
       travel: { es: "Viajes", en: "Travel" },
     };
     return map;
@@ -546,6 +551,14 @@ export default function AnuncioDetallePage() {
       ((listing.category === "clases" && communityQuickPairMap["Leonix:communityKind"] === "clases") ||
         (listing.category === "comunidad" && communityQuickPairMap["Leonix:communityKind"] === "comunidad")),
   );
+
+  const buscoQuickPairMap = useMemo(() => {
+    if (!listing || listing.category !== "busco") return null;
+    const m = buscoDetailPairsToMap(listing.detailPairs);
+    return isBuscoQuickListing(m) ? m : null;
+  }, [listing]);
+
+  const useBuscoQuickDetail = Boolean(listing && listing.category === "busco" && buscoQuickPairMap);
 
   const communityQuickContactExtras = useMemo(() => {
     if (!listing || !communityQuickPairMap) return null;
@@ -1083,6 +1096,28 @@ export default function AnuncioDetallePage() {
           </div>
         </section>
       </div>
+    );
+  }
+
+  if (useBuscoQuickDetail && listing.category === "busco") {
+    return (
+      <BuscoPublishedDetailPage
+        listing={{
+          id: listing.id,
+          category: "busco",
+          title: listing.title,
+          priceLabel: listing.priceLabel,
+          city: listing.city,
+          blurb: listing.blurb,
+          images: listing.images ?? null,
+          contact_phone: listing.contact_phone ?? null,
+          contact_email: listing.contact_email ?? null,
+          detailPairs: listing.detailPairs,
+          owner_id: listing.owner_id ?? null,
+        }}
+        lang={lang}
+        skipAnalytics={Boolean(sampleListing)}
+      />
     );
   }
 
