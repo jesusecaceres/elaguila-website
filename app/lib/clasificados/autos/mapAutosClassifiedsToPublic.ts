@@ -15,6 +15,8 @@ import {
 } from "@/app/clasificados/autos/negocios/lib/autoDealerSelectResolve";
 import type { AutosClassifiedsListingRow } from "./autosClassifiedsTypes";
 import { autosPublicSellerTypeFromLane } from "./autosPublicSellerFromLane";
+import { dealerAddressHaystackParts } from "./autosDealerStructuredAddress";
+import { resolveEngineForDisplay } from "./autosVehicleEngineOptions";
 
 function parseDbTimeMs(value: string | null | undefined): number {
   if (value == null || value === "") return NaN;
@@ -50,7 +52,10 @@ function buildSearchableBlurb(L: AutoDealerListing): string {
   if (L.vin?.trim()) parts.push(L.vin.trim());
   if (L.stockNumber?.trim()) parts.push(L.stockNumber.trim());
   if (Array.isArray(L.features) && L.features.length) parts.push(L.features.join(" "));
-  if (L.engine?.trim()) parts.push(L.engine.trim());
+  const engineDisplay = resolveEngineForDisplay(L);
+  if (engineDisplay) parts.push(engineDisplay);
+  if (L.engine?.trim() && L.engine.trim() !== engineDisplay) parts.push(L.engine.trim());
+  for (const addr of dealerAddressHaystackParts(L)) parts.push(addr);
   if (L.doors != null && Number.isFinite(L.doors)) parts.push(`${L.doors} doors`);
   if (L.seats != null && Number.isFinite(L.seats)) parts.push(`${L.seats} seats`);
   if (L.mpgCity != null && Number.isFinite(L.mpgCity)) parts.push(`mpg city ${L.mpgCity}`);

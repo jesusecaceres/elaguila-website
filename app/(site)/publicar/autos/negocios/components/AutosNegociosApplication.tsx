@@ -28,6 +28,10 @@ import { AutosApplicationSteppedShell } from "@/app/publicar/autos/shared/compon
 import { AutosApplicationReviewStep } from "@/app/publicar/autos/shared/components/AutosApplicationReviewStep";
 import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
 import { AutosVehicleIdentityFields } from "@/app/publicar/autos/shared/components/AutosVehicleIdentityFields";
+import { AutosVehicleEngineField } from "@/app/publicar/autos/shared/components/AutosVehicleEngineField";
+import { AutosDealerStructuredAddressFields } from "@/app/publicar/autos/shared/components/AutosDealerStructuredAddressFields";
+import { AutosDealerLogoUpload } from "@/app/publicar/autos/shared/components/AutosDealerLogoUpload";
+import { syncDealerAddressFromStructured } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
 import {
   formatMileageInputDisplay,
   formatUsdIntegerInputDisplay,
@@ -207,6 +211,9 @@ export function AutosNegociosApplication() {
                 </label>
               </div>
               <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{t.app.titleBlock.hint}</p>
+              {!vehicleTitleOverride ? (
+                <p className="mt-1 text-[11px] text-[color:var(--lx-muted)]">{t.app.titleBlock.generatedNote}</p>
+              ) : null}
               <input
                 className={`${INPUT} mt-2`}
                 value={(vehicleTitleOverride ? listing.vehicleTitle : autoTitlePreview) ?? ""}
@@ -364,14 +371,21 @@ export function AutosNegociosApplication() {
                 customPlaceholder={t.app.hints.drivePh}
                 incompleteHint={t.app.hints.drivetrain}
               />
-              <div className="sm:col-span-2">
-                <label className={LABEL}>{t.app.labels.engine}</label>
-                <input
-                  className={INPUT}
-                  value={listing.engine ?? ""}
-                  onChange={(e) => setListingPatch({ engine: e.target.value || undefined })}
-                />
-              </div>
+              <AutosVehicleEngineField
+                lang={lang}
+                labels={{
+                  engine: t.app.labels.engine,
+                  selectEngine: lang === "es" ? "Selecciona motor" : "Select engine",
+                  customHint: t.app.engine.customHint,
+                  customPlaceholder: t.app.engine.customPlaceholder,
+                  filterNote: t.app.engine.filterNote,
+                }}
+                make={listing.make}
+                model={listing.model}
+                trim={listing.trim}
+                engine={listing.engine}
+                onPatch={(p) => setListingPatch(p)}
+              />
               <SelectWithOtherField
                 label={t.app.labels.fuel}
                 options={FUEL_OPTIONS}
@@ -520,7 +534,7 @@ export function AutosNegociosApplication() {
 
           {/* D — Multimedia */}
           <div className={activeStep === 3 ? "" : "hidden"} aria-hidden={activeStep !== 3}>
-            <AutosNegociosMediaManager listing={listing} setListingPatch={setListingPatch} copy={t} />
+            <AutosNegociosMediaManager listing={listing} setListingPatch={setListingPatch} copy={t} hideDealerLogo />
           </div>
 
           {/* E — Negocio */}
@@ -535,6 +549,25 @@ export function AutosNegociosApplication() {
                   onChange={(e) => setListingPatch({ dealerName: e.target.value || undefined })}
                 />
               </div>
+              <AutosDealerLogoUpload
+                listing={listing}
+                setListingPatch={setListingPatch}
+                copy={{
+                  heading: t.app.dealer.logoHeading,
+                  intro: t.app.dealer.logoIntro,
+                  urlLabel: t.media.logoUrlLabel,
+                  urlHint: t.media.logoUrlHint,
+                  useLogoUrl: t.media.useLogoUrl,
+                  logoUrlSaved: t.media.logoUrlSaved,
+                  uploadLogo: t.media.uploadLogo,
+                  uploadLogoHint: t.media.uploadLogoHint,
+                  logoPreviewTitle: t.media.logoPreviewTitle,
+                  logoPreviewFile: t.media.logoPreviewFile,
+                  logoPreviewUrl: t.media.logoPreviewUrl,
+                  removeLogo: t.media.removeLogo,
+                  httpsPlaceholder: t.app.placeholders.https,
+                }}
+              />
               <div>
                 <label className={LABEL}>{t.app.labels.phoneOffice}</label>
                 <input
@@ -598,14 +631,20 @@ export function AutosNegociosApplication() {
                 />
                 <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.bookingUrl}</p>
               </div>
-              <div className="sm:col-span-2">
-                <label className={LABEL}>{t.app.labels.address}</label>
-                <input
-                  className={INPUT}
-                  value={listing.dealerAddress ?? ""}
-                  onChange={(e) => setListingPatch({ dealerAddress: e.target.value || undefined })}
-                />
-              </div>
+              <AutosDealerStructuredAddressFields
+                labels={{
+                  streetNumber: t.app.labels.dealerStreetNumber,
+                  streetName: t.app.labels.dealerStreetName,
+                  unitOrSuite: t.app.labels.dealerUnitOrSuite,
+                  city: t.app.labels.dealerAddressCity,
+                  state: t.app.labels.dealerAddressState,
+                  zipCode: t.app.labels.dealerAddressZip,
+                  helperMaps: t.app.hints.dealerAddressMaps,
+                  helperSearch: t.app.hints.dealerAddressSearch,
+                }}
+                values={listing}
+                onPatch={(p) => setListingPatch(syncDealerAddressFromStructured({ ...listing, ...p }))}
+              />
             </div>
 
             <p className="mt-6 text-xs font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">{t.app.dealer.socialHeading}</p>
@@ -668,6 +707,7 @@ export function AutosNegociosApplication() {
                 {t.app.dealer.addHoursRow}
               </button>
             </div>
+            <p className="mt-3 text-xs leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.scheduleHelper}</p>
 
             <div className="mt-4 space-y-3">
               {(listing.dealerHours ?? []).map((row) => (

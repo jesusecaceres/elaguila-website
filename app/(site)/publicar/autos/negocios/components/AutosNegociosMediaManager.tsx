@@ -345,6 +345,13 @@ export function AutosNegociosMediaManager({
         </button>
       </div>
 
+      {images.length > 0 ? (
+        <div className="mt-5 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3">
+          <p className="text-sm font-bold text-[color:var(--lx-text)]">{m.reorderHeading}</p>
+          <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">{m.reorderHint}</p>
+        </div>
+      ) : null}
+
       {images.length === 0 ? (
         <div
           className="mt-4 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-6 text-center"
@@ -377,10 +384,10 @@ export function AutosNegociosMediaManager({
                         : "border-[color:var(--lx-nav-border)] text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
                     }`}
                     onClick={() => setPrimary(img.id)}
-                    title={m.principal}
+                    title={img.isPrimary ? m.activeCover : m.useAsCover}
                   >
                     <FiStar className="h-3 w-3" aria-hidden />
-                    {m.principal}
+                    {img.isPrimary ? m.activeCover : m.useAsCover}
                   </button>
                   <button
                     type="button"

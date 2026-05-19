@@ -4,6 +4,7 @@ import { resolveDealerBookingHref, resolveDealerOfficePhone } from "./dealerCont
 import { safeExternalHref } from "./dealerDraftSanitize";
 import { deriveHeroImageUrls } from "./autoDealerHeroImages";
 import { filterDealerHoursForDisplay } from "./dealerHoursDisplay";
+import { buildDealerDisplayAddress } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
 import { hasListingVideo } from "./autoDealerVideo";
 import {
   resolveBodyStyle,
@@ -85,7 +86,7 @@ export function hasDealerCard(data: AutoDealerListing): boolean {
     nonEmpty(resolveDealerOfficePhone(data)) ||
     nonEmpty(data.dealerWhatsapp ?? undefined) ||
     Boolean(resolveDealerBookingHref(data)) ||
-    nonEmpty(data.dealerAddress) ||
+    nonEmpty(buildDealerDisplayAddress(data)) ||
     hasHours ||
     nonEmpty(data.dealerWebsite ?? undefined) ||
     Object.values(soc).some((u) => nonEmpty(u) && Boolean(safeExternalHref(u)))

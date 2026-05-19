@@ -1,6 +1,7 @@
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { normalizeVehicleSegment } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import { coerceVehicleIdentityFromTaxonomy } from "@/app/lib/clasificados/autos/autosVehicleTaxonomy";
+import { coerceEngineFromCatalog, resolveEngineForDisplay } from "@/app/lib/clasificados/autos/autosVehicleEngineOptions";
 
 /**
  * Shallow copy with taxonomy-aware identity (catalog spelling when matchable) plus
@@ -8,8 +9,11 @@ import { coerceVehicleIdentityFromTaxonomy } from "@/app/lib/clasificados/autos/
  */
 export function withNormalizedVehicleIdentityForDisplay(listing: AutoDealerListing): AutoDealerListing {
   const coerced = coerceVehicleIdentityFromTaxonomy(listing);
+  const engineCoerced = coerceEngineFromCatalog(coerced);
+  const engineDisplay = resolveEngineForDisplay(engineCoerced);
   return {
     ...coerced,
-    engine: normalizeVehicleSegment(coerced.engine) ?? coerced.engine,
+    ...engineCoerced,
+    engine: engineDisplay ?? normalizeVehicleSegment(coerced.engine) ?? coerced.engine,
   };
 }

@@ -46,6 +46,9 @@ export type AutosNegociosCopy = {
       socialHeading: string;
       applyHoursTemplate: string;
       addHoursRow: string;
+      scheduleHelper: string;
+      logoHeading: string;
+      logoIntro: string;
       day: string;
       open: string;
       close: string;
@@ -54,7 +57,12 @@ export type AutosNegociosCopy = {
       newDayPlaceholder: string;
       socialLabels: { instagram: string; facebook: string; youtube: string; tiktok: string; website: string };
     };
-    titleBlock: { title: string; customize: string; hint: string };
+    engine: {
+      customHint: string;
+      customPlaceholder: string;
+      filterNote: string;
+    };
+    titleBlock: { title: string; customize: string; hint: string; generatedNote: string };
     equipmentHeading: string;
   };
   media: {
@@ -72,6 +80,10 @@ export type AutosNegociosCopy = {
     useLink: string;
     emptyPhotos: string;
     emptyPhotosHint: string;
+    reorderHeading: string;
+    reorderHint: string;
+    useAsCover: string;
+    activeCover: string;
     principal: string;
     before: string;
     after: string;
@@ -143,6 +155,7 @@ export type AutosNegociosCopy = {
       emailSeller: string;
       scheduleAppointment: string;
       viewWebsite: string;
+      openInMaps: string;
     };
     specs: { title: string; subtitle: string; rows: Record<string, string> };
     highlights: { title: string; subtitle: string };
@@ -229,6 +242,12 @@ const ES: AutosNegociosCopy = {
       website: "Sitio web",
       bookingUrl: "URL para agendar cita",
       address: "Dirección",
+      dealerStreetNumber: "Número",
+      dealerStreetName: "Calle",
+      dealerUnitOrSuite: "Unidad / suite opcional",
+      dealerAddressCity: "Ciudad",
+      dealerAddressState: "Estado",
+      dealerAddressZip: "Código postal",
     },
     placeholders: {
       monthly: "Ej. Desde $450/mes",
@@ -260,6 +279,15 @@ const ES: AutosNegociosCopy = {
         "Enlace a tu herramienta de citas, Calendly o página para agendar prueba de manejo. Si está vacío, no se muestra el botón de cita en la vista previa.",
       phoneMobile: "Opcional. No aparece como segundo botón de llamada en la vista previa; queda guardado para uso interno o futuro.",
       zip: "5 dígitos (EE. UU.). Opcional; mejora búsqueda y geofencing.",
+      dealerAddressMaps:
+        "Agrega la dirección del negocio para que los compradores puedan abrirla en mapas.",
+      dealerAddressSearch: "Ciudad, estado y código postal ayudan a mejorar búsqueda y filtros.",
+      scheduleHoursHelper:
+        "Añade horarios especiales, días festivos o notas como “solo con cita”. Puedes agregar una fila personalizada si el horario cambia por temporada o día especial.",
+      engineCustomHint: "Si no ves el motor, escríbelo manualmente.",
+      engineCustomPlaceholder: "Describe el motor",
+      engineFilterNote:
+        "El motor personalizado se mostrará en el anuncio y se incluirá en búsqueda; los filtros usan valores normalizados.",
       deleteApplicationConfirm:
         "¿Eliminar toda la solicitud? Se borrará el borrador y los archivos guardados en este dispositivo para esta sesión.",
       previewCompletenessIntro: "Para una vista previa sólida aún falta completar:",
@@ -285,6 +313,10 @@ const ES: AutosNegociosCopy = {
       socialHeading: "Redes sociales",
       applyHoursTemplate: "Aplicar plantilla de horario (Lun–Dom)",
       addHoursRow: "Añadir fila de horario",
+      scheduleHelper:
+        "Añade horarios especiales, días festivos o notas como “solo con cita”. Puedes agregar una fila personalizada si el horario cambia por temporada o día especial.",
+      logoHeading: "Logo del concesionario",
+      logoIntro: "Sube el logo del negocio para mostrarlo en la tarjeta del dealer.",
       day: "Día",
       open: "Apertura",
       close: "Cierre",
@@ -299,17 +331,29 @@ const ES: AutosNegociosCopy = {
         website: "Sitio / globo",
       },
     },
+    engine: {
+      customHint: "Si no ves el motor, escríbelo manualmente.",
+      customPlaceholder: "Describe el motor",
+      filterNote:
+        "El motor personalizado se mostrará en el anuncio y se incluirá en búsqueda; los filtros usan valores normalizados.",
+    },
     titleBlock: {
       title: "Título del anuncio",
-      customize: "Personalizar título",
-      hint: "Por defecto: año, marca, modelo y trim. Activa la casilla para editar a mano.",
+      customize: "Personalizar título visible",
+      hint: "Por defecto se genera con año, marca, modelo y versión. La identidad estructurada siempre se guarda para búsqueda y filtros.",
+      generatedNote: "Título generado a partir de la identidad del vehículo.",
     },
     equipmentHeading: "Equipamiento",
   },
   media: {
     sectionTitle: "Fotos y medios",
-    sectionIntro: "Puedes pegar URLs o subir archivos. Selecciona la imagen principal para el anuncio.",
+    sectionIntro: "Puedes pegar URLs o subir archivos. Ordena las fotos y elige la portada.",
     photosHeading: "Fotos del vehículo",
+    reorderHeading: "Ordenar fotos",
+    reorderHint:
+      "Arrastra las fotos para cambiar el orden. La primera foto o la portada seleccionada aparecerá primero en el anuncio. Usa las flechas en móvil.",
+    useAsCover: "Usar como portada",
+    activeCover: "Portada activa",
     dropzone: "Arrastra imágenes aquí o usa el botón",
     addPhotos: "Añadir fotos",
     pickerHint: "Se abrirá el selector de archivos del sistema.",
@@ -392,6 +436,7 @@ const ES: AutosNegociosCopy = {
       emailSeller: "Correo",
       scheduleAppointment: "Agendar cita",
       viewWebsite: "Ver sitio web",
+      openInMaps: "Abrir en mapas",
     },
     specs: {
       title: "Especificaciones",
@@ -546,6 +591,12 @@ const EN: AutosNegociosCopy = {
       website: "Website",
       bookingUrl: "Booking appointment URL",
       address: "Address",
+      dealerStreetNumber: "Street number",
+      dealerStreetName: "Street name",
+      dealerUnitOrSuite: "Unit / suite optional",
+      dealerAddressCity: "City",
+      dealerAddressState: "State",
+      dealerAddressZip: "ZIP code",
     },
     placeholders: {
       monthly: "e.g. From $450/mo",
@@ -577,6 +628,14 @@ const EN: AutosNegociosCopy = {
         "Link to your scheduling tool, Calendly, or test-drive booking page. If empty, the appointment button is hidden in preview.",
       phoneMobile: "Optional. Not shown as a second call button on preview; stored for internal or future use.",
       zip: "5-digit US ZIP. Optional; improves search and future geofencing.",
+      dealerAddressMaps: "Add the business address so buyers can open it in maps.",
+      dealerAddressSearch: "City, state, and ZIP help improve search and filters.",
+      scheduleHoursHelper:
+        "Add special hours, holidays, or notes like “appointment only”. You can add a custom row if hours change by season or special day.",
+      engineCustomHint: "If you do not see the engine, enter it manually.",
+      engineCustomPlaceholder: "Describe the engine",
+      engineFilterNote:
+        "Custom engine text appears on the listing and search; filters use normalized values.",
       deleteApplicationConfirm:
         "Delete this entire application? Draft and on-device files for this session will be cleared.",
       previewCompletenessIntro: "For a strong preview, still complete:",
@@ -602,6 +661,10 @@ const EN: AutosNegociosCopy = {
       socialHeading: "Social links",
       applyHoursTemplate: "Apply Mon–Sun schedule template",
       addHoursRow: "Add hours row",
+      scheduleHelper:
+        "Add special hours, holidays, or notes like “appointment only”. You can add a custom row if hours change by season or special day.",
+      logoHeading: "Dealer logo",
+      logoIntro: "Upload the business logo to show it on the dealer card.",
       day: "Day",
       open: "Opens",
       close: "Closes",
@@ -616,17 +679,28 @@ const EN: AutosNegociosCopy = {
         website: "Website / link",
       },
     },
+    engine: {
+      customHint: "If you do not see the engine, enter it manually.",
+      customPlaceholder: "Describe the engine",
+      filterNote: "Custom engine text appears on the listing and search; filters use normalized values.",
+    },
     titleBlock: {
       title: "Listing title",
-      customize: "Customize title",
-      hint: "Default: year, make, model, and trim. Check the box to edit manually.",
+      customize: "Customize visible title",
+      hint: "Generated from year, make, model, and trim by default. Structured identity is always stored for search and filters.",
+      generatedNote: "Title generated from vehicle identity.",
     },
     equipmentHeading: "Equipment",
   },
   media: {
     sectionTitle: "Photos & media",
-    sectionIntro: "Paste URLs or upload files. Choose the primary image for the listing.",
+    sectionIntro: "Paste URLs or upload files. Reorder photos and choose the cover image.",
     photosHeading: "Vehicle photos",
+    reorderHeading: "Reorder photos",
+    reorderHint:
+      "Drag photos to change the order. The first photo or selected cover will appear first on the listing. Use arrows on mobile.",
+    useAsCover: "Use as cover",
+    activeCover: "Active cover",
     dropzone: "Drag images here or use the button",
     addPhotos: "Add photos",
     pickerHint: "Your system file picker will open.",
@@ -708,6 +782,7 @@ const EN: AutosNegociosCopy = {
       emailSeller: "Email",
       scheduleAppointment: "Schedule appointment",
       viewWebsite: "View website",
+      openInMaps: "Open in maps",
     },
     specs: {
       title: "Specifications",

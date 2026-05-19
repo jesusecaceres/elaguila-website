@@ -38,6 +38,7 @@
     "autos:a3-field-audit": "npx tsx scripts/autos-a3-field-search-filter-sort-audit.ts",
     "autos:a4-dealer-inventory-audit": "npx tsx scripts/autos-a4-dealer-inventory-gallery-audit.ts",
     "autos:a4-1-inventory-add-audit": "tsx scripts/autos-a4-1-dealer-inventory-add-flow-audit.ts",
+    "autos:a5-0-negocios-blockers-audit": "tsx scripts/autos-a5-0-negocios-missing-publish-blockers-audit.ts",
     "autos:a4-0-inventory-sql-audit": "tsx scripts/autos-a4-0-dealer-inventory-sql-contract-audit.ts",
     "br:13a-property-inventory-sql-audit": "tsx scripts/br13a-property-inventory-sql-contract-audit.ts",
     "br:13b-property-inventory-add-flow-audit": "tsx scripts/br13b-property-inventory-add-flow-audit.ts",

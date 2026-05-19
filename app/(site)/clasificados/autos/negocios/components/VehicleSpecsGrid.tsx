@@ -28,6 +28,7 @@ import { formatMiles, formatMpgPair, formatStockDisplay, formatVinDisplay } from
 import { SpecIconRow } from "./SpecIconRow";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { normalizeVehicleSegment } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
+import { resolveEngineForDisplay } from "@/app/lib/clasificados/autos/autosVehicleEngineOptions";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.08)]";
@@ -67,8 +68,7 @@ export function VehicleSpecsGrid({
   const makeStr = normalizeVehicleSegment(makeRaw) ?? (makeRaw || undefined);
   const modelStr = normalizeVehicleSegment(modelRaw) ?? (modelRaw || undefined);
   const trimStr = normalizeVehicleSegment(trimRaw) ?? (trimRaw || undefined);
-  const engRaw = data.engine?.trim();
-  const engineStr = normalizeVehicleSegment(engRaw) ?? (engRaw || undefined);
+  const engineStr = resolveEngineForDisplay(data);
 
   const rows: Array<{ key: string; label: string; value: string | undefined; icon: ReactNode }> = [
     { key: "year", label: rowsL.year, value: yearStr, icon: <BiCalendar className="h-5 w-5" /> },

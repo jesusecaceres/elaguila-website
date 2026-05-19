@@ -9,7 +9,8 @@ import { filterDealerHoursForDisplay, formatDealerHoursTimeRange } from "../lib/
 import { safeExternalHref } from "../lib/dealerDraftSanitize";
 import { resolveDealerBookingHref, resolveDealerOfficePhone } from "../lib/dealerContactResolve";
 import { whatsAppHrefFromDisplay } from "../lib/dealerWhatsappHref";
-import { formatAddressLine, formatUsPhoneDisplay, hrefForUserWebsiteUrl, phoneDigitsForTel } from "./autoDealerFormatters";
+import { formatUsPhoneDisplay, hrefForUserWebsiteUrl, phoneDigitsForTel } from "./autoDealerFormatters";
+import { buildDealerDisplayAddress, buildDealerMapsHref } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
 import { MediaImage } from "./MediaImage";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 
@@ -76,7 +77,8 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
   const waHref = whatsAppHrefFromDisplay(data.dealerWhatsapp ?? undefined);
   const showWhatsapp = Boolean(waHref);
 
-  const addressLine = formatAddressLine(data.dealerAddress);
+  const addressLine = buildDealerDisplayAddress(data);
+  const mapsHref = buildDealerMapsHref(data);
 
   const initials = (data.dealerName ?? "NA").slice(0, 2).toUpperCase();
 
@@ -152,9 +154,20 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
               {nonEmpty(addressLine) ? (
                 <li className={`${ICON_ROW} lg:justify-start lg:text-left`}>
                   <FiMapPin className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)] max-lg:mt-0.5 max-lg:h-5 max-lg:w-5" aria-hidden />
-                  <span className="text-left leading-snug text-[color:var(--lx-text-2)] max-lg:text-[15px] max-lg:font-medium max-lg:text-[color:var(--lx-text)]">
-                    {addressLine}
-                  </span>
+                  {mapsHref ? (
+                    <a
+                      href={mapsHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-left leading-snug text-[color:var(--lx-text-2)] underline-offset-2 hover:underline max-lg:text-[15px] max-lg:font-medium max-lg:text-[color:var(--lx-text)]"
+                    >
+                      {addressLine}
+                    </a>
+                  ) : (
+                    <span className="text-left leading-snug text-[color:var(--lx-text-2)] max-lg:text-[15px] max-lg:font-medium max-lg:text-[color:var(--lx-text)]">
+                      {addressLine}
+                    </span>
+                  )}
                 </li>
               ) : null}
             </ul>

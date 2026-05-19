@@ -2,6 +2,8 @@ import type { AutoDealerListing, DealerHoursEntry } from "../types/autoDealerLis
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { deriveHeroImageUrls, migrateHeroImagesToMediaImages } from "./autoDealerHeroImages";
 import { coerceVehicleIdentityFromTaxonomy } from "@/app/lib/clasificados/autos/autosVehicleTaxonomy";
+import { syncDealerAddressFromStructured } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
+import { coerceEngineFromCatalog } from "@/app/lib/clasificados/autos/autosVehicleEngineOptions";
 
 /**
  * NorCal canonical city when possible; preserves in-progress typing.
@@ -97,6 +99,13 @@ export function createEmptyListing(): AutoDealerListing {
     dealerEmail: undefined,
     privadoSiteMessageEnabled: undefined,
     dealerAddress: undefined,
+    dealerStreetNumber: undefined,
+    dealerStreetName: undefined,
+    dealerUnitOrSuite: undefined,
+    dealerAddressCity: undefined,
+    dealerAddressState: undefined,
+    dealerAddressZip: undefined,
+    engineNormalized: undefined,
     dealerHours: [],
     dealerWebsite: undefined,
     dealerBookingUrl: undefined,
@@ -176,6 +185,11 @@ export function normalizeLoadedListing(raw: Partial<AutoDealerListing> | undefin
   merged.model = coerced.model;
   merged.trim = coerced.trim;
 
-  merged.heroImages = deriveHeroImageUrls(merged);
-  return merged;
+  const engineCoerced = coerceEngineFromCatalog(merged);
+  merged.engine = engineCoerced.engine;
+  merged.engineNormalized = engineCoerced.engineNormalized;
+
+  const withAddress = syncDealerAddressFromStructured(merged);
+  withAddress.heroImages = deriveHeroImageUrls(withAddress);
+  return withAddress;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { normalizeVehicleSegment } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import {
   AUTOS_VEHICLE_MAKES,
@@ -15,6 +15,7 @@ const INPUT =
   "mt-1.5 min-h-[46px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3.5 py-2.5 text-[15px] leading-snug text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
 
 const UNLISTED_MAKE = "__unlisted_make__";
+const TRIM_CUSTOM = "__trim_custom__";
 
 export type AutosVehicleIdentityLang = "es" | "en";
 
@@ -71,17 +72,26 @@ export function AutosVehicleIdentityFields({
   requiredModel?: boolean;
 }) {
   const years = useMemo(() => getAutosVehicleYearOptions(), []);
-  const trimListId = useId();
-
   const catalogMake = resolveMakeToCanonical(make);
   const models = useMemo(() => getModelsForMake(make), [make]);
   const catalogModel = resolveModelToCanonical(make, model);
   const trimSuggestions = useMemo(() => getTrimOptionsForMakeModel(make, model), [make, model]);
 
   const [makeUnlisted, setMakeUnlisted] = useState(false);
+  const trimInCatalog = trim?.trim() && trimSuggestions.some((t) => t.toLowerCase() === trim.trim().toLowerCase());
+  const [trimCustomMode, setTrimCustomMode] = useState(
+    () => Boolean(trim?.trim()) && trimSuggestions.length > 0 && !trimInCatalog,
+  );
+
   useEffect(() => {
     if (catalogMake) setMakeUnlisted(false);
   }, [catalogMake]);
+
+  useEffect(() => {
+    if (!trim?.trim()) setTrimCustomMode(false);
+    else if (trimSuggestions.length === 0) setTrimCustomMode(true);
+    else if (trimInCatalog) setTrimCustomMode(false);
+  }, [trim, trimSuggestions.length, trimInCatalog]);
 
   const emptyYear = lang === "es" ? "Año" : "Year";
   const emptyMake = lang === "es" ? "Selecciona marca" : "Select make";
@@ -209,21 +219,56 @@ export function AutosVehicleIdentityFields({
       </div>
       <div className="sm:col-span-2">
         <label className="block">{labelEl(labels.trim, false)}</label>
-        <input
-          className={INPUT}
-          list={trimSuggestions.length > 0 ? trimListId : undefined}
-          value={trim ?? ""}
-          onChange={(e) => onPatch({ trim: e.target.value.trim() ? e.target.value : undefined })}
-          placeholder={trimPlaceholder}
-          autoComplete="off"
-        />
-        {trimSuggestions.length > 0 ? (
-          <datalist id={trimListId}>
+        {trimSuggestions.length > 0 && !trimCustomMode ? (
+          <select
+            className={INPUT}
+            value={trimInCatalog ? (trim ?? "") : ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === TRIM_CUSTOM) {
+                setTrimCustomMode(true);
+                return;
+              }
+              setTrimCustomMode(false);
+              onPatch({ trim: v.trim() ? v : undefined });
+            }}
+          >
+            <option value="">{trimPlaceholder}</option>
             {trimSuggestions.map((t) => (
-              <option key={t} value={t} />
+              <option key={t} value={t}>
+                {t}
+              </option>
             ))}
-          </datalist>
-        ) : null}
+            <option value={TRIM_CUSTOM}>
+              {lang === "es" ? "Escribir versión manualmente" : "Enter trim manually"}
+            </option>
+            {trim && !trimInCatalog ? (
+              <option value={trim}>{normalizeVehicleSegment(trim) ?? trim}</option>
+            ) : null}
+          </select>
+        ) : (
+          <>
+            <input
+              className={INPUT}
+              value={trim ?? ""}
+              onChange={(e) => onPatch({ trim: e.target.value.trim() ? e.target.value : undefined })}
+              placeholder={trimPlaceholder}
+              autoComplete="off"
+            />
+            {trimSuggestions.length > 0 ? (
+              <button
+                type="button"
+                className="mt-2 text-xs font-semibold text-[color:var(--lx-gold)] underline"
+                onClick={() => {
+                  setTrimCustomMode(false);
+                  onPatch({ trim: undefined });
+                }}
+              >
+                {lang === "es" ? "Volver a la lista de versiones" : "Back to trim list"}
+              </button>
+            ) : null}
+          </>
+        )}
         <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{trimHint}</p>
       </div>
     </div>

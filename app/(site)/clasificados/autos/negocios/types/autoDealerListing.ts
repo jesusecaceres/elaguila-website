@@ -156,7 +156,16 @@ export type AutoDealerListing = {
    * Privado: when false, hide the site “Message” CTA on preview. Default is treated as enabled when unset.
    */
   privadoSiteMessageEnabled?: boolean;
+  /** @deprecated Synced from structured fields on save when present; legacy rows may only have this string. */
   dealerAddress?: string;
+  dealerStreetNumber?: string;
+  dealerStreetName?: string;
+  dealerUnitOrSuite?: string;
+  dealerAddressCity?: string;
+  dealerAddressState?: string;
+  dealerAddressZip?: string;
+  /** Catalog engine value for filter facets; omit when seller enters custom motor text. */
+  engineNormalized?: string;
   dealerHours?: DealerHoursEntry[];
   dealerWebsite?: string | null;
   /** Dedicated booking / test-drive / appointment URL — “Agendar cita” when valid https. */
