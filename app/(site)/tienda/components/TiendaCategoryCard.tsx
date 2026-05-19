@@ -56,18 +56,20 @@ export function TiendaCategoryCard(props: {
     <Link
       href={withLang(category.href, lang)}
       className={[
-        "group relative flex flex-col justify-end overflow-hidden rounded-3xl",
-        tierMinHeight(tier),
-        "ring-1",
-        a.ring,
-        "transition duration-500 ease-out",
-        "hover:-translate-y-1 hover:ring-[color:rgba(201,168,74,0.45)] hover:shadow-[0_28px_90px_rgba(0,0,0,0.5)]",
+        "group flex flex-col overflow-hidden rounded-3xl",
+        "bg-[color:var(--lx-card)] border border-[color:var(--lx-border)]",
         a.glow,
+        "transition duration-300 ease-out",
+        "hover:-translate-y-1 hover:border-[color:var(--lx-lion)]/40 hover:shadow-[0_18px_48px_rgba(201,120,47,0.14)]",
         tier === "flagship" ? "lg:min-h-[400px]" : "",
       ].join(" ")}
       aria-label={title}
     >
-      <div className="absolute inset-0">
+      {/* Image region */}
+      <div className={[
+        "relative overflow-hidden shrink-0",
+        tier === "flagship" ? "aspect-[3/2]" : tier === "support" ? "aspect-[16/9]" : "aspect-[4/3]",
+      ].join(" ")}>
         <TiendaRemoteFillImage
           primarySrc={coverPrimary}
           fallbackSrc={coverLiteral}
@@ -75,34 +77,23 @@ export function TiendaCategoryCard(props: {
           className="object-cover object-center transition duration-700 ease-out group-hover:scale-[1.03]"
           sizes="(max-width: 768px) 100vw, 50vw"
         />
-        <div
-          className={
-            isBusinessCards
-              ? "absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/62 to-[#070708]/12"
-              : tier === "support"
-                ? "absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/72 to-[#070708]/18"
-                : "absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/75 to-[#070708]/20"
-          }
-        />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_20%,rgba(201,168,74,0.14),transparent_55%)]" />
-        <div className="pointer-events-none absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100">
-          <div className="absolute -top-24 -right-24 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,rgba(201,168,74,0.35),rgba(0,0,0,0))]" />
-        </div>
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
       </div>
 
-      <div className="relative z-10 p-6 sm:p-7">
-        <div className={["inline-flex rounded-full border px-3 py-1 text-[11px] tracking-wide uppercase backdrop-blur-sm", a.chip].join(" ")}>
+      {/* Content region */}
+      <div className="flex flex-1 flex-col p-6 sm:p-7">
+        <div className={["inline-flex self-start rounded-full border px-3 py-1 text-[11px] tracking-wide uppercase", a.chip].join(" ")}>
           {eyebrow ?? (lang === "en" ? "Category" : "Categoría")}
         </div>
 
         <div className="mt-4 flex items-start justify-between gap-6">
           <div className="min-w-0">
-            <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-[rgba(255,247,226,0.98)] drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
+            <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-[color:var(--lx-text)]">
               {title}
             </h3>
             <p
               className={[
-                "mt-2 leading-relaxed text-[rgba(255,247,226,0.88)] drop-shadow-[0_1px_8px_rgba(0,0,0,0.55)] max-w-prose",
+                "mt-2 leading-relaxed text-[color:var(--lx-muted)] max-w-prose",
                 tier === "support" ? "text-xs sm:text-sm line-clamp-3" : "text-sm",
               ].join(" ")}
             >
@@ -110,11 +101,11 @@ export function TiendaCategoryCard(props: {
             </p>
           </div>
 
-          <div className="mt-1 flex shrink-0 items-center gap-2 text-sm font-medium text-[rgba(255,247,226,0.92)]">
-            <span className="hidden sm:inline drop-shadow-[0_1px_6px_rgba(0,0,0,0.65)]">
+          <div className="mt-1 flex shrink-0 items-center gap-2 text-sm font-medium text-[color:var(--lx-muted)]">
+            <span className="hidden sm:inline">
               {lang === "en" ? "Explore" : "Explorar"}
             </span>
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(255,247,226,0.35)] bg-[rgba(0,0,0,0.35)] backdrop-blur-sm text-[rgba(255,247,226,0.95)] transition group-hover:border-[rgba(201,168,74,0.55)] group-hover:bg-[rgba(201,168,74,0.2)]">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition group-hover:border-[color:var(--lx-lion)]/40 group-hover:bg-[color:var(--lx-lion)]/10">
               <ArrowIcon />
             </span>
           </div>
@@ -124,7 +115,7 @@ export function TiendaCategoryCard(props: {
           {chips.map((c) => (
             <span
               key={c}
-              className="inline-flex max-w-full rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(0,0,0,0.35)] px-2.5 py-1 text-[10px] sm:text-[11px] font-medium tracking-wide text-[rgba(255,247,226,0.88)] backdrop-blur-sm"
+              className="inline-flex max-w-full rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] px-2.5 py-1 text-[10px] sm:text-[11px] font-medium tracking-wide text-[color:var(--lx-muted)]"
             >
               {c}
             </span>

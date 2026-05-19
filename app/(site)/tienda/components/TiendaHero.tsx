@@ -72,8 +72,9 @@ export function TiendaHero(props: {
 
         <div className="relative min-h-[340px] lg:min-h-[420px]">
           <div className="grid h-full grid-cols-2 gap-4">
-            <div className="relative overflow-hidden rounded-3xl border border-[rgba(201,168,74,0.35)] bg-[rgba(0,0,0,0.35)] shadow-[0_18px_60px_rgba(201,168,74,0.15)]">
-              <div className="relative h-[140px] w-full sm:h-[160px]">
+            {/* Business Cards tile */}
+            <div className="flex flex-col overflow-hidden rounded-3xl border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] shadow-[0_8px_28px_rgba(42,36,22,0.10)]">
+              <div className="relative h-[140px] w-full shrink-0 sm:h-[160px]">
                 <TiendaRemoteFillImage
                   primarySrc={assets.businessCards}
                   fallbackSrc={tiendaHeroLiterals.businessCards}
@@ -82,23 +83,24 @@ export function TiendaHero(props: {
                   sizes="(max-width: 1024px) 45vw, 380px"
                   priority
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[rgba(30,24,16,0.88)] via-[rgba(40,32,20,0.25)] to-[rgba(201,168,74,0.12)]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
               </div>
-              <div className="relative px-4 pb-4 pt-1">
-                <div className="text-[10px] tracking-[0.16em] uppercase text-[rgba(255,247,226,0.78)]">
+              <div className="px-4 pb-4 pt-2">
+                <div className="text-[10px] tracking-[0.16em] uppercase text-[color:var(--lx-muted)]">
                   {lang === "en" ? "Business cards" : "Tarjetas"}
                 </div>
-                <div className="mt-1 text-sm font-semibold text-[rgba(255,247,226,0.96)]">
+                <div className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">
                   {lang === "en" ? "Premium cards & finishes" : "Tarjetas premium y acabados"}
                 </div>
-                <div className="mt-0.5 text-xs text-[rgba(255,247,226,0.72)]">
+                <div className="mt-0.5 text-xs text-[color:var(--lx-muted)]">
                   {lang === "en" ? "Online builder + upload paths" : "Constructor en línea + subida"}
                 </div>
               </div>
             </div>
 
-            <div className="relative overflow-hidden rounded-3xl border border-[rgba(201,168,74,0.22)] bg-[rgba(0,0,0,0.35)] shadow-[0_18px_60px_rgba(0,0,0,0.4)]">
-              <div className="relative h-[140px] w-full sm:h-[160px]">
+            {/* Banners tile */}
+            <div className="flex flex-col overflow-hidden rounded-3xl border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] shadow-[0_8px_28px_rgba(42,36,22,0.10)]">
+              <div className="relative h-[140px] w-full shrink-0 sm:h-[160px]">
                 <TiendaRemoteFillImage
                   primarySrc={assets.bannersSigns}
                   fallbackSrc={tiendaHeroLiterals.bannersSigns}
@@ -106,24 +108,25 @@ export function TiendaHero(props: {
                   className="object-cover object-center"
                   sizes="(max-width: 1024px) 45vw, 380px"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/15 to-[rgba(201,168,74,0.08)]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
               </div>
-              <div className="relative px-4 pb-4 pt-1">
-                <div className="text-[10px] tracking-[0.16em] uppercase text-[rgba(255,247,226,0.72)]">
+              <div className="px-4 pb-4 pt-2">
+                <div className="text-[10px] tracking-[0.16em] uppercase text-[color:var(--lx-muted)]">
                   {lang === "en" ? "Banners & large format" : "Banners y gran formato"}
                 </div>
-                <div className="mt-1 text-sm font-semibold text-white">
+                <div className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">
                   {lang === "en" ? "Event & retail presence" : "Presencia en evento y punto de venta"}
                 </div>
-                <div className="mt-0.5 text-xs text-[rgba(255,255,255,0.65)]">
+                <div className="mt-0.5 text-xs text-[color:var(--lx-muted)]">
                   {lang === "en" ? "Print-ready uploads" : "Archivos listos para imprenta"}
                 </div>
               </div>
             </div>
 
-            <div className="relative col-span-2 overflow-hidden rounded-3xl border border-[rgba(255,255,255,0.10)] bg-[rgba(0,0,0,0.45)] shadow-[0_18px_60px_rgba(0,0,0,0.4)]">
+            {/* Process tile */}
+            <div className="col-span-2 overflow-hidden rounded-3xl border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] shadow-[0_8px_28px_rgba(42,36,22,0.10)]">
               <div className="relative flex min-h-[168px] flex-col sm:flex-row">
-                <div className="relative h-[120px] w-full sm:h-auto sm:w-[44%] shrink-0">
+                <div className="relative h-[120px] w-full shrink-0 sm:h-auto sm:w-[44%]">
                   <TiendaRemoteFillImage
                     primarySrc={assets.printWorkflow}
                     fallbackSrc={tiendaHeroLiterals.printWorkflow}
@@ -131,28 +134,28 @@ export function TiendaHero(props: {
                     className="object-cover object-center sm:object-cover"
                     sizes="(max-width: 640px) 100vw, 300px"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/55 sm:bg-gradient-to-l sm:from-black/20 sm:to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[rgba(255,252,247,0.55)] sm:bg-gradient-to-l sm:from-[rgba(255,252,247,0.20)] sm:to-transparent" />
                 </div>
-                <div className="relative flex flex-1 flex-col justify-center px-5 py-4 sm:py-5">
-                  <div className="text-[10px] tracking-[0.16em] uppercase text-[rgba(255,247,226,0.72)]">
+                <div className="flex flex-1 flex-col justify-center px-5 py-4 sm:py-5">
+                  <div className="text-[10px] tracking-[0.16em] uppercase text-[color:var(--lx-muted)]">
                     {lang === "en" ? "Easy process" : "Proceso sencillo"}
                   </div>
-                  <p className="mt-1.5 text-sm text-[rgba(255,247,226,0.88)] leading-snug">{processLead}</p>
-                  <ol className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-[rgba(255,255,255,0.78)]">
+                  <p className="mt-1.5 text-sm text-[color:var(--lx-text)]/85 leading-snug">{processLead}</p>
+                  <ol className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-[color:var(--lx-muted)]">
                     <li className="flex items-center gap-1.5">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[rgba(201,168,74,0.25)] text-[10px] font-bold text-[rgba(201,168,74,0.95)]">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[color:var(--lx-lion)]/20 text-[10px] font-bold text-[color:var(--lx-lion)]">
                         1
                       </span>
                       {step1}
                     </li>
                     <li className="flex items-center gap-1.5">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[rgba(201,168,74,0.25)] text-[10px] font-bold text-[rgba(201,168,74,0.95)]">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[color:var(--lx-lion)]/20 text-[10px] font-bold text-[color:var(--lx-lion)]">
                         2
                       </span>
                       {step2}
                     </li>
                     <li className="flex items-center gap-1.5">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[rgba(201,168,74,0.25)] text-[10px] font-bold text-[rgba(201,168,74,0.95)]">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[color:var(--lx-lion)]/20 text-[10px] font-bold text-[color:var(--lx-lion)]">
                         3
                       </span>
                       {step3}
@@ -160,7 +163,8 @@ export function TiendaHero(props: {
                   </ol>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 border-t border-[rgba(255,255,255,0.08)] bg-black/25 px-3 py-3 sm:grid-cols-4">
+              {/* Thumbnail strip */}
+              <div className="grid grid-cols-2 gap-2 border-t border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-3 py-3 sm:grid-cols-4">
                 {[
                   {
                     src: assets.thumbFlyers,
@@ -195,7 +199,7 @@ export function TiendaHero(props: {
                     altEs: "Mesa de productos promocionales de marca",
                   },
                 ].map((t) => (
-                  <div key={t.labelEn} className="relative overflow-hidden rounded-2xl border border-[rgba(201,168,74,0.2)]">
+                  <div key={t.labelEn} className="relative overflow-hidden rounded-2xl border border-[color:var(--lx-border)]">
                     <div className="relative aspect-[4/3] w-full">
                       <TiendaRemoteFillImage
                         primarySrc={t.src}
@@ -204,7 +208,7 @@ export function TiendaHero(props: {
                         className="object-cover object-center"
                         sizes="120px"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-[rgba(201,168,74,0.06)]" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
                       <span className="absolute bottom-1.5 left-2 right-2 text-[10px] font-semibold text-white/95">
                         {lang === "en" ? t.labelEn : t.labelEs}
                       </span>

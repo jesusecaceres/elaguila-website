@@ -10,7 +10,7 @@ export function TiendaModeBadge(props: { mode: TiendaProductMode; lang: Lang }) 
         : pick(tiendaCopy.sections.modeLabels.mixed, props.lang);
 
   return (
-    <span className="inline-flex rounded-full border border-[rgba(201,168,74,0.35)] bg-[rgba(201,168,74,0.14)] px-3 py-1 text-[11px] font-semibold tracking-wide uppercase text-[rgba(255,247,226,0.88)]">
+    <span className="inline-flex rounded-full border border-[color:var(--lx-lion)]/35 bg-[color:var(--lx-lion)]/15 px-3 py-1 text-[11px] font-semibold tracking-wide uppercase text-[color:var(--lx-text)]">
       {label}
     </span>
   );

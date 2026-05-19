@@ -39,10 +39,10 @@ export default async function TiendaCatalogProductPage(props: {
   if (error || !item) {
     if (error && !item) {
       return (
-        <main className="min-h-screen bg-[#070708] text-white">
-          <div className="mx-auto max-w-3xl px-6 pt-28 pb-20 text-sm text-rose-200/90">
+        <main className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
+          <div className="mx-auto max-w-3xl px-6 pt-28 pb-20 text-sm text-rose-700/90">
             Catalog unavailable ({error}). If migrations are not applied, run Supabase migration for{" "}
-            <code className="text-white/80">tienda_catalog_items</code>.
+            <code className="text-[color:var(--lx-text)]/80">tienda_catalog_items</code>.
           </div>
         </main>
       );
@@ -63,34 +63,34 @@ export default async function TiendaCatalogProductPage(props: {
   const heroImage = gallery[0];
 
   return (
-    <main className="min-h-screen bg-[#070708] text-white">
+    <main className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
       <div className="mx-auto max-w-6xl px-6 pt-28 pb-20">
         <TiendaBackNav lang={lang} href={withLang(categoryHref, lang)} label={pick(tiendaCopy.sections.productPage.backToCategory, lang)} />
 
         <header className="mt-6 space-y-3">
           <div className="flex flex-wrap gap-2">
             {item.badge_label ? (
-              <span className="rounded-full border border-[rgba(201,168,74,0.45)] bg-[rgba(201,168,74,0.12)] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[rgba(201,168,74,0.95)]">
+              <span className="rounded-full border border-[color:var(--lx-lion)]/45 bg-[color:var(--lx-lion)]/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[color:var(--lx-text)]">
                 {item.badge_label}
               </span>
             ) : null}
             {item.specialty_flag ? (
-              <span className="rounded-full border border-[rgba(255,255,255,0.14)] px-3 py-1 text-[11px] text-[rgba(255,247,226,0.75)]">
+              <span className="rounded-full border border-[color:var(--lx-border)] px-3 py-1 text-[11px] text-[color:var(--lx-muted)]">
                 {lang === "en" ? "Specialty / sourced" : "Especial / surtido"}
               </span>
             ) : null}
           </div>
-          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[rgba(255,247,226,0.96)]">{title}</h1>
-          <p className="text-lg text-[rgba(201,168,74,0.88)]">{priceLine}</p>
+          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[color:var(--lx-text)]">{title}</h1>
+          <p className="text-lg text-[color:var(--lx-lion)]">{priceLine}</p>
           {item.price_note ? (
-            <p className="text-sm text-[rgba(255,255,255,0.55)] max-w-prose">{item.price_note}</p>
+            <p className="text-sm text-[color:var(--lx-muted)] max-w-prose">{item.price_note}</p>
           ) : null}
         </header>
 
         <section className="mt-10 space-y-4">
           {heroImage ? (
             <>
-              <figure className="relative overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.10)] bg-black/35 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+              <figure className="relative overflow-hidden rounded-2xl border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] shadow-[0_24px_80px_rgba(42,36,22,0.10)]">
                 <div className="relative aspect-[16/10] w-full max-h-[min(560px,78vh)]">
                   <Image
                     src={heroImage.image_url}
@@ -103,7 +103,7 @@ export default async function TiendaCatalogProductPage(props: {
                   />
                 </div>
                 {gallery.length > 1 ? (
-                  <figcaption className="border-t border-[rgba(255,255,255,0.08)] px-4 py-2 text-[11px] text-[rgba(255,255,255,0.5)]">
+                  <figcaption className="border-t border-[color:var(--lx-border)] px-4 py-2 text-[11px] text-[color:var(--lx-muted)]">
                     {lang === "en"
                       ? `${gallery.length} photos — swipe thumbnails below on mobile.`
                       : `${gallery.length} fotos — desliza miniaturas abajo en móvil.`}
@@ -118,10 +118,10 @@ export default async function TiendaCatalogProductPage(props: {
                       <div
                         key={im.id}
                         className={[
-                          "relative h-[72px] w-[104px] shrink-0 overflow-hidden rounded-xl border bg-black/30 transition",
+                          "relative h-[72px] w-[104px] shrink-0 overflow-hidden rounded-xl border bg-[color:var(--lx-canvas)] transition",
                           active
-                            ? "border-[rgba(201,168,74,0.65)] ring-2 ring-[rgba(201,168,74,0.35)]"
-                            : "border-[rgba(255,255,255,0.12)] opacity-[0.82]",
+                            ? "border-[color:var(--lx-lion)]/65 ring-2 ring-[color:var(--lx-lion)]/35"
+                            : "border-[color:var(--lx-border)] opacity-[0.82]",
                         ].join(" ")}
                       >
                         <Image
@@ -139,7 +139,7 @@ export default async function TiendaCatalogProductPage(props: {
               ) : null}
             </>
           ) : (
-            <figure className="overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.10)] bg-black/30">
+            <figure className="overflow-hidden rounded-2xl border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)]">
               <div className="relative aspect-[16/10] w-full max-h-[480px]">
                 <TiendaRemoteFillImage
                   primarySrc={fallbackHeroPrimary}
@@ -150,7 +150,7 @@ export default async function TiendaCatalogProductPage(props: {
                   priority
                 />
               </div>
-              <figcaption className="border-t border-[rgba(255,255,255,0.08)] px-4 py-3 text-xs leading-relaxed text-[rgba(255,255,255,0.55)]">
+              <figcaption className="border-t border-[color:var(--lx-border)] px-4 py-3 text-xs leading-relaxed text-[color:var(--lx-muted)]">
                 {lang === "en"
                   ? "Representative scene for this category — add product photography anytime in the admin catalog."
                   : "Escena representativa para esta categoría — puedes añadir fotografía del producto en el catálogo admin."}
@@ -159,7 +159,7 @@ export default async function TiendaCatalogProductPage(props: {
           )}
         </section>
 
-        <section className="mt-10 max-w-3xl space-y-4 text-sm leading-relaxed text-[rgba(255,255,255,0.75)]">
+        <section className="mt-10 max-w-3xl space-y-4 text-sm leading-relaxed text-[color:var(--lx-text)]/80">
           {longDesc.split("\n").map((p, i) => (
             <p key={i}>{p}</p>
           ))}
@@ -175,18 +175,18 @@ export default async function TiendaCatalogProductPage(props: {
         </section>
 
         {item.pricing_mode === "calculated_ready" && item.pricing_rules.length > 0 ? (
-          <section className="mt-10 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] p-5">
-            <h2 className="text-sm font-semibold text-[rgba(201,168,74,0.9)]">
+          <section className="mt-10 rounded-2xl border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] p-5">
+            <h2 className="text-sm font-semibold text-[color:var(--lx-lion)]">
               {lang === "en" ? "Reference pricing (admin-managed)" : "Precios de referencia (admin)"}
             </h2>
-            <p className="mt-1 text-xs text-[rgba(255,255,255,0.5)]">
+            <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
               {lang === "en"
                 ? "Final totals will match the live configurator at checkout when applicable."
                 : "Los totales finales siguen el configurador activo al pagar cuando aplique."}
             </p>
-            <ul className="mt-3 space-y-2 text-sm text-[rgba(255,247,226,0.85)]">
+            <ul className="mt-3 space-y-2 text-sm text-[color:var(--lx-text)]/80">
               {item.pricing_rules.map((r) => (
-                <li key={r.id} className="flex flex-wrap justify-between gap-2 border-b border-white/5 py-1">
+                <li key={r.id} className="flex flex-wrap justify-between gap-2 border-b border-[color:var(--lx-border)]/30 py-1">
                   <span>
                     {r.rule_type}
                     {r.quantity_min != null ? ` · qty ${r.quantity_min}` : ""}

@@ -63,7 +63,7 @@ export default async function TiendaProductPage(props: {
   const showcaseCoverFallback = tiendaProductFamilyCoverLiteral(product.slug, product.categorySlug);
 
   return (
-    <main className="min-h-screen bg-[#070708] text-white">
+    <main className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
       <div className="mx-auto max-w-6xl px-6 pt-28 pb-20">
         <TiendaBackNav
           lang={lang}
@@ -168,19 +168,19 @@ export default async function TiendaProductPage(props: {
               {product.futureConfiguratorType === "print-upload" && isPrintUploadProductSlug(product.slug) ? (
                 <Link
                   href={withLang(printUploadConfigurePath(product.slug), lang)}
-                  className="inline-flex items-center justify-center rounded-full border border-[rgba(255,252,247,0.35)] bg-[rgba(255,252,247,0.94)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:brightness-95 transition shadow-[0_12px_34px_rgba(201,168,74,0.15)]"
+                  className="inline-flex items-center justify-center rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:border-[color:var(--lx-lion)]/35 transition"
                 >
                   {pick(tiendaCopy.sections.productPage.futureCtaButtonUpload, lang)}
                 </Link>
               ) : product.futureConfiguratorType === "print-upload" ? (
-                <span className="text-sm text-[rgba(255,255,255,0.65)]">
+                <span className="text-sm text-[color:var(--lx-muted)]">
                   {lang === "en"
                     ? "Upload configurator for this product is coming next."
                     : "El configurador de subida para este producto llegará pronto."}
                 </span>
               ) : null}
               {product.futureConfiguratorType === "none" ? (
-                <span className="text-sm text-[rgba(255,255,255,0.70)]">
+                <span className="text-sm text-[color:var(--lx-muted)]">
                   {lang === "en"
                     ? "This product starts with a Leonix quote and coordination."
                     : "Este producto inicia con cotización y coordinación con Leonix."}
@@ -188,7 +188,7 @@ export default async function TiendaProductPage(props: {
               ) : null}
               <Link
                 href={withLang(tiendaPublicContactPath(), lang)}
-                className="inline-flex items-center justify-center rounded-full border border-[rgba(255,255,255,0.18)] px-5 py-2.5 text-sm font-semibold text-[rgba(255,247,226,0.92)] hover:bg-[rgba(255,255,255,0.08)] transition"
+                className="inline-flex items-center justify-center rounded-full border border-[color:var(--lx-border)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:border-[color:var(--lx-lion)]/35 transition"
               >
                 {pick(tiendaCopy.sections.productPage.futureCtaButtonContact, lang)}
               </Link>

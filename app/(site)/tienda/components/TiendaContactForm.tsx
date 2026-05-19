@@ -59,11 +59,11 @@ export function TiendaContactForm(props: { lang: Lang }) {
   };
 
   return (
-    <section className="mt-10 rounded-2xl border border-[rgba(255,255,255,0.12)] bg-[rgba(0,0,0,0.35)] p-6 sm:p-8">
-      <h2 className="text-lg font-semibold text-[rgba(255,247,226,0.96)]">
+    <section className="mt-10 rounded-2xl border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] p-6 sm:p-8">
+      <h2 className="text-lg font-semibold text-[color:var(--lx-text)]">
         {en ? "Send us a note" : "Escríbenos"}
       </h2>
-      <p className="mt-2 text-sm text-[rgba(255,255,255,0.62)] leading-relaxed">
+      <p className="mt-2 text-sm text-[color:var(--lx-muted)] leading-relaxed">
         {en
           ? `This form delivers to ${LEONIX_TIENDA_EMAIL}. For fastest help, visit or call us — email may take longer.`
           : `Este formulario llega a ${LEONIX_TIENDA_EMAIL}. Para ayuda más rápida, visita o llámanos — el correo puede tardar más.`}
@@ -72,7 +72,7 @@ export function TiendaContactForm(props: { lang: Lang }) {
       {status === "success" ? (
         <div
           role="status"
-          className="mt-6 rounded-xl border border-[rgba(201,168,74,0.45)] bg-[rgba(201,168,74,0.12)] px-4 py-4 text-sm text-[rgba(255,247,226,0.95)]"
+          className="mt-6 rounded-xl border border-[color:var(--lx-lion)]/40 bg-[color:var(--lx-lion)]/12 px-4 py-4 text-sm text-[color:var(--lx-text)]"
         >
           <p>
             {en
@@ -82,7 +82,7 @@ export function TiendaContactForm(props: { lang: Lang }) {
           <button
             type="button"
             onClick={() => setStatus("idle")}
-            className="mt-3 text-sm font-medium text-[rgba(201,168,74,0.95)] underline"
+            className="mt-3 text-sm font-medium text-[color:var(--lx-lion)] underline"
           >
             {en ? "Send another message" : "Enviar otro mensaje"}
           </button>
@@ -90,13 +90,13 @@ export function TiendaContactForm(props: { lang: Lang }) {
       ) : (
         <form className="mt-6 space-y-5" onSubmit={(ev) => void onSubmit(ev)}>
           <div>
-            <label className="block text-xs font-medium uppercase tracking-wide text-[rgba(201,168,74,0.85)]">
+            <label className="block text-xs font-medium uppercase tracking-wide text-[color:var(--lx-lion)]">
               {en ? "Topic" : "Tema"}
             </label>
             <select
               value={inquiryType}
               onChange={(e) => setInquiryType(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-[rgba(255,255,255,0.14)] bg-[rgba(0,0,0,0.45)] px-4 py-3 text-sm text-white"
+              className="mt-1.5 w-full rounded-xl border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-4 py-3 text-sm text-[color:var(--lx-text)]"
             >
               {INQUIRY_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -107,53 +107,53 @@ export function TiendaContactForm(props: { lang: Lang }) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[rgba(255,255,255,0.75)]">{en ? "Full name" : "Nombre completo"}</label>
+            <label className="block text-xs font-medium text-[color:var(--lx-muted)]">{en ? "Full name" : "Nombre completo"}</label>
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={200}
-              className="mt-1.5 w-full rounded-xl border border-[rgba(255,255,255,0.14)] bg-[rgba(0,0,0,0.45)] px-4 py-3 text-sm text-white placeholder:text-white/40"
+              className="mt-1.5 w-full rounded-xl border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-4 py-3 text-sm text-[color:var(--lx-text)] placeholder:text-[color:var(--lx-muted)]/60"
               autoComplete="name"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[rgba(255,255,255,0.75)]">{en ? "Email" : "Correo"}</label>
+            <label className="block text-xs font-medium text-[color:var(--lx-muted)]">{en ? "Email" : "Correo"}</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-[rgba(255,255,255,0.14)] bg-[rgba(0,0,0,0.45)] px-4 py-3 text-sm text-white placeholder:text-white/40"
+              className="mt-1.5 w-full rounded-xl border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-4 py-3 text-sm text-[color:var(--lx-text)] placeholder:text-[color:var(--lx-muted)]/60"
               autoComplete="email"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[rgba(255,255,255,0.75)]">
+            <label className="block text-xs font-medium text-[color:var(--lx-muted)]">
               {en ? "Phone (recommended)" : "Teléfono (recomendado)"}
             </label>
             <input
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-[rgba(255,255,255,0.14)] bg-[rgba(0,0,0,0.45)] px-4 py-3 text-sm text-white placeholder:text-white/40"
+              className="mt-1.5 w-full rounded-xl border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-4 py-3 text-sm text-[color:var(--lx-text)] placeholder:text-[color:var(--lx-muted)]/60"
               placeholder={en ? "Best number to reach you" : "Mejor número para localizarte"}
               autoComplete="tel"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[rgba(255,255,255,0.75)]">{en ? "Message" : "Mensaje"}</label>
+            <label className="block text-xs font-medium text-[color:var(--lx-muted)]">{en ? "Message" : "Mensaje"}</label>
             <textarea
               required
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={5}
               maxLength={12000}
-              className="mt-1.5 w-full rounded-xl border border-[rgba(255,255,255,0.14)] bg-[rgba(0,0,0,0.45)] px-4 py-3 text-sm text-white placeholder:text-white/40"
+              className="mt-1.5 w-full rounded-xl border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-4 py-3 text-sm text-[color:var(--lx-text)] placeholder:text-[color:var(--lx-muted)]/60"
             />
           </div>
 

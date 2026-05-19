@@ -72,9 +72,9 @@ export function TiendaPromoCatalogPanel(props: {
         : "Para merch y regalos de marca — Leonix lo surte, lo cotiza y lo produce con calidad respaldada por proveedor.";
 
   return (
-    <section className="mt-10 overflow-hidden rounded-2xl border border-[rgba(201,168,74,0.4)] bg-[linear-gradient(145deg,rgba(201,168,74,0.14),rgba(40,32,24,0.55),rgba(0,0,0,0.55))] shadow-[0_24px_80px_rgba(201,168,74,0.12)]">
+    <section className="mt-10 overflow-hidden rounded-2xl border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] shadow-[0_12px_40px_rgba(42,36,22,0.08)]">
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_minmax(260px,400px)]">
-        <div className="relative min-h-[220px] border-b border-[rgba(255,255,255,0.08)] lg:min-h-[300px] lg:border-b-0 lg:border-r">
+        <div className="relative min-h-[220px] border-b border-[color:var(--lx-border)] lg:min-h-[300px] lg:border-b-0 lg:border-r">
           <TiendaRemoteFillImage
             primarySrc={coverImageUrl}
             fallbackSrc={coverFallbackUrl ?? TIENDA_GLOBAL_FALLBACK_IMAGE}
@@ -83,29 +83,29 @@ export function TiendaPromoCatalogPanel(props: {
             sizes="(max-width: 1024px) 100vw, 400px"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/78 via-black/18 to-[rgba(201,168,74,0.08)] lg:bg-gradient-to-r" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent lg:bg-gradient-to-l lg:from-transparent lg:via-[rgba(255,252,247,0.10)] lg:to-[rgba(255,252,247,0.90)]" />
           <div className="absolute bottom-4 left-4 right-4 lg:hidden">
             <p className="text-sm font-medium text-white/95 drop-shadow-md">{lead}</p>
           </div>
         </div>
         <div className="space-y-5 p-6 sm:p-8">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-[rgba(201,168,74,0.2)] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[rgba(201,168,74,0.95)]">
+            <span className="rounded-full border border-[color:var(--lx-lion)]/40 bg-[color:var(--lx-lion)]/15 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[color:var(--lx-text)]">
               {badgePrimary}
             </span>
-            <span className="rounded-full border border-[rgba(255,255,255,0.12)] px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[rgba(255,247,226,0.75)]">
+            <span className="rounded-full border border-[color:var(--lx-border)] px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">
               {badgeSecondary}
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-semibold text-[rgba(255,247,226,0.96)]">
+          <h2 className="text-xl sm:text-2xl font-semibold text-[color:var(--lx-text)]">
             {lang === "en" ? `${title} — Leonix can deliver this` : `${title} — Leonix puede surtirlo`}
           </h2>
-          <p className="hidden text-sm text-[rgba(255,247,226,0.78)] leading-relaxed lg:block">{lead}</p>
-          <p className="text-sm text-[rgba(255,255,255,0.72)] leading-relaxed max-w-prose">{longDesc}</p>
-          <ul className="space-y-2 text-sm text-[rgba(255,247,226,0.88)]">
+          <p className="hidden text-sm text-[color:var(--lx-muted)] leading-relaxed lg:block">{lead}</p>
+          <p className="text-sm text-[color:var(--lx-muted)] leading-relaxed max-w-prose">{longDesc}</p>
+          <ul className="space-y-2 text-sm text-[color:var(--lx-text)]/80">
             {bullets.map((line) => (
               <li key={line} className="flex gap-2">
-                <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[rgba(201,168,74,0.85)]" aria-hidden />
+                <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[color:var(--lx-lion)]" aria-hidden />
                 <span>{line}</span>
               </li>
             ))}
@@ -120,15 +120,15 @@ export function TiendaPromoCatalogPanel(props: {
             {secondaryCta ? (
               <Link
                 href={withLang(secondaryCta.href, lang)}
-                className="inline-flex items-center justify-center rounded-full border border-[rgba(255,255,255,0.22)] bg-[rgba(255,255,255,0.06)] px-6 py-3 text-sm font-semibold text-[rgba(255,247,226,0.92)] hover:bg-[rgba(255,255,255,0.10)] transition"
+                className="inline-flex items-center justify-center rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-6 py-3 text-sm font-semibold text-[color:var(--lx-text)] hover:border-[color:var(--lx-lion)]/35 transition"
               >
                 {lang === "en" ? secondaryCta.label.en : secondaryCta.label.es}
               </Link>
             ) : null}
-            <p className="text-xs text-[rgba(255,255,255,0.55)] sm:self-center max-w-md">
+            <p className="text-xs text-[color:var(--lx-muted)] sm:self-center max-w-md">
               {lang === "en"
-                ? `Mention “${title}” when you reach out so we route your request quickly.`
-                : `Menciona “${title}” al contactarnos para dirigir tu solicitud.`}
+                ? `Mention "${title}" when you reach out so we route your request quickly.`
+                : `Menciona "${title}" al contactarnos para dirigir tu solicitud.`}
             </p>
           </div>
         </div>

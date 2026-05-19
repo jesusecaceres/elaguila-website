@@ -7,7 +7,7 @@ export function TiendaBackNav(props: { lang: Lang; href: string; label: string }
     <nav className="mb-8" aria-label="Tienda navigation">
       <Link
         href={withLang(props.href, props.lang)}
-        className="text-sm font-medium text-[rgba(255,247,226,0.82)] hover:text-[rgba(201,168,74,0.95)] transition"
+        className="text-sm font-medium text-[color:var(--lx-muted)] hover:text-[color:var(--lx-lion)] transition"
       >
         {props.label}
       </Link>

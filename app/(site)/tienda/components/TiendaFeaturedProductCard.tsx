@@ -32,7 +32,7 @@ export function TiendaFeaturedProductCard(props: { product: TiendaFeaturedProduc
         "group relative flex flex-col overflow-hidden rounded-3xl",
         "border border-[rgba(201,180,106,0.32)]",
         "bg-[linear-gradient(180deg,rgba(255,252,247,0.97),rgba(255,250,240,0.93))]",
-        "shadow-[0_18px_60px_rgba(0,0,0,0.35)]",
+        "shadow-[0_8px_28px_rgba(42,36,22,0.10)]",
         "transition duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_26px_85px_rgba(201,168,74,0.18)] hover:border-[rgba(201,168,74,0.4)]",
       ].join(" ")}
       aria-label={title}
@@ -63,7 +63,7 @@ export function TiendaFeaturedProductCard(props: { product: TiendaFeaturedProduc
             {badge}
           </span>
           {product.uploadReady ? (
-            <span className="hidden sm:inline-flex rounded-full border border-black/10 bg-black/55 px-3 py-1 text-[11px] tracking-wide text-white backdrop-blur-sm">
+            <span className="hidden sm:inline-flex rounded-full border border-[color:var(--lx-border)] bg-white/90 px-3 py-1 text-[11px] tracking-wide text-[color:var(--lx-text)] shadow-sm">
               {lang === "en" ? "Upload-ready path" : "Ruta con subida"}
             </span>
           ) : null}

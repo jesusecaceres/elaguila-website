@@ -39,14 +39,14 @@ export function TiendaCatalogItemCard(props: {
           sizes="(max-width: 768px) 100vw, 50vw"
           unoptimized={imgUnoptimized}
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-[rgba(201,168,74,0.06)]" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
         {!imageUrl?.trim() ? (
-          <span className="absolute bottom-2 left-3 right-3 text-[10px] font-medium uppercase tracking-wide text-white/75">
+          <span className="absolute bottom-2 left-3 right-3 text-[10px] font-medium uppercase tracking-wide text-white/90">
             {lang === "en" ? "Representative preview" : "Vista representativa"}
           </span>
         ) : null}
         {item.badge_label ? (
-          <span className="absolute left-3 top-3 rounded-full border border-[rgba(201,168,74,0.5)] bg-[rgba(0,0,0,0.55)] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[rgba(201,168,74,0.95)]">
+          <span className="absolute left-3 top-3 rounded-full border border-[color:var(--lx-lion)]/50 bg-white/90 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text)]">
             {item.badge_label}
           </span>
         ) : null}

@@ -51,7 +51,7 @@ export default async function TiendaCategoryPage(props: {
   const catalogThumbs = await fetchPrimaryImageUrlForItems(catalogItems.map((i) => i.id));
 
   return (
-    <main className="min-h-screen bg-[#070708] text-white">
+    <main className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
       <div className="mx-auto max-w-6xl px-6 pt-28 pb-20">
         <TiendaBackNav
           lang={lang}
@@ -67,7 +67,7 @@ export default async function TiendaCategoryPage(props: {
 
         <section className="mt-8">
           <TiendaModeBadgeRow mode={category.productMode} lang={lang} />
-          <p className="mt-3 text-sm text-[rgba(255,255,255,0.62)]">
+          <p className="mt-3 text-sm text-[color:var(--lx-muted)]">
             {lang === "en"
               ? "This badge reflects how most products in this category are ordered."
               : "Esta etiqueta refleja cómo se ordenan la mayoría de productos en esta categoría."}
@@ -75,7 +75,7 @@ export default async function TiendaCategoryPage(props: {
         </section>
 
         <section id="families" className="mt-12 scroll-mt-28">
-          <h2 className="text-xl font-semibold tracking-tight text-white">
+          <h2 className="text-xl font-semibold tracking-tight text-[color:var(--lx-text)]">
             {pick(tiendaCopy.sections.categoryPage.productFamilies, lang)}
           </h2>
           <div
@@ -93,10 +93,10 @@ export default async function TiendaCategoryPage(props: {
 
         {catalogItems.length > 0 ? (
           <section id="catalog-cms" className="mt-12 scroll-mt-28">
-            <h2 className="text-xl font-semibold tracking-tight text-white">
+            <h2 className="text-xl font-semibold tracking-tight text-[color:var(--lx-text)]">
               {lang === "en" ? "Catalog highlights" : "Destacados del catálogo"}
             </h2>
-            <p className="mt-2 text-sm text-[rgba(255,255,255,0.66)] max-w-3xl leading-relaxed">
+            <p className="mt-2 text-sm text-[color:var(--lx-muted)] max-w-3xl leading-relaxed">
               {lang === "en"
                 ? "Each tile is meant to look like a real product entry: photo, summary, and the right next step (self‑serve or quote). Open any item for full detail."
                 : "Cada tarjeta debe sentirse como producto real: foto, resumen y el siguiente paso correcto (auto‑servicio o cotización). Abre cualquier artículo para el detalle."}

@@ -31,19 +31,16 @@ export function TiendaProductFamilyCard(props: { family: TiendaProductFamilySumm
     <Link
       href={withLang(family.href, lang)}
       className={[
-        "group relative flex flex-col overflow-hidden rounded-3xl",
-        isPromo
-          ? "bg-[linear-gradient(165deg,rgba(201,168,74,0.07),rgba(255,255,255,0.04),rgba(0,0,0,0.2))]"
-          : "bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))]",
-        "border border-[rgba(255,255,255,0.10)]",
+        "group flex flex-col overflow-hidden rounded-3xl",
+        "bg-[color:var(--lx-card)] border border-[color:var(--lx-border)]",
         lane?.leftBar ?? "",
-        "shadow-[0_18px_60px_rgba(0,0,0,0.35)]",
-        "transition duration-300 ease-out hover:-translate-y-1 hover:border-[rgba(201,168,74,0.4)] hover:shadow-[0_24px_70px_rgba(0,0,0,0.45)]",
+        "shadow-[0_8px_28px_rgba(42,36,22,0.10)]",
+        "transition duration-300 ease-out hover:-translate-y-1 hover:border-[color:var(--lx-lion)]/40 hover:shadow-[0_18px_48px_rgba(201,120,47,0.12)]",
       ].join(" ")}
     >
       <div
         className={[
-          "relative w-full overflow-hidden border-b border-[rgba(255,255,255,0.06)]",
+          "relative w-full overflow-hidden border-b border-[color:var(--lx-border)]/30",
           isPromo ? "aspect-[16/10]" : "aspect-[16/9]",
         ].join(" ")}
       >
@@ -54,15 +51,7 @@ export function TiendaProductFamilyCard(props: { family: TiendaProductFamilySumm
           className={[tiendaProductFamilyImageClass(family.slug), "transition duration-500 group-hover:scale-[1.04]"].join(" ")}
           sizes="(max-width: 768px) 100vw, 50vw"
         />
-        <div
-          className={
-            family.slug === "two-sided-business-cards"
-              ? "pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070708]/80 via-[#070708]/10 to-transparent"
-              : isPromo
-                ? "pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070708]/88 via-[#070708]/25 to-[rgba(201,168,74,0.08)]"
-                : "pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070708]/92 via-[#070708]/30 to-[rgba(201,168,74,0.06)]"
-          }
-        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
       </div>
 
       <div className="relative flex flex-1 flex-col p-6 sm:p-7">
@@ -79,19 +68,19 @@ export function TiendaProductFamilyCard(props: { family: TiendaProductFamilySumm
           ) : null}
           <TiendaModeBadge mode={family.productMode} lang={lang} />
           {family.comingSoon ? (
-            <span className="inline-flex rounded-full border border-[rgba(255,255,255,0.14)] px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.72)]">
+            <span className="inline-flex rounded-full border border-[color:var(--lx-border)] px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">
               {lang === "en" ? "Soon" : "Pronto"}
             </span>
           ) : null}
         </div>
-        <h3 className="mt-4 text-xl font-semibold tracking-tight text-white">{title}</h3>
-        <p className="mt-2 text-sm leading-relaxed text-[rgba(255,255,255,0.70)]">{desc}</p>
+        <h3 className="mt-4 text-xl font-semibold tracking-tight text-[color:var(--lx-text)]">{title}</h3>
+        <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-muted)]">{desc}</p>
         <div className="mt-5 flex items-end justify-between gap-4">
-          <div className="text-sm text-[rgba(255,247,226,0.80)] tabular-nums">
+          <div className="text-sm text-[color:var(--lx-lion)] tabular-nums">
             {lang === "en" ? "From " : "Desde "}
             {fmtPrice(family.startingPrice.amount, lang)}
           </div>
-          <span className="text-sm font-medium text-[rgba(255,247,226,0.88)]">
+          <span className="text-sm font-medium text-[color:var(--lx-text)]">
             {lang === "en" ? "View →" : "Ver →"}
           </span>
         </div>
