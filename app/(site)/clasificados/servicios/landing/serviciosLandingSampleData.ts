@@ -127,6 +127,14 @@ export const SERVICIOS_LANDING_QUICK_CHIPS: ServiciosQuickChip[] = [
     resultsQueryEn: "consulting",
   },
   {
+    id: "entretenimiento-musica",
+    labelEs: "Entretenimiento y música",
+    labelEn: "Entertainment & music",
+    resultsQueryEs: "",
+    resultsQueryEn: "",
+    resultsGroup: "events_entertainment",
+  },
+  {
     id: "more",
     labelEs: "Ver más",
     labelEn: "See more",

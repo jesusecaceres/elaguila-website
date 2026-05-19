@@ -12,7 +12,7 @@ import {
 import { mockAutoDealerListing } from "../mock/mockAutoDealerListing";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { AutosNegociosPreviewLocaleProvider, useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
-import { withAutosEditorResumeFromPreview } from "../lib/autosNegociosLang";
+import { buildAutosNegociosEditorResumeHref } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
 import { peekAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
 import { AutosDraftPreviewErrorBoundary } from "@/app/clasificados/autos/shared/components/AutosDraftPreviewErrorBoundary";
@@ -79,7 +79,7 @@ function AutosNegociosPreviewInner({
   listing: AutoDealerListing;
 }) {
   const { lang } = useAutosNegociosPreviewCopy();
-  const editBackHref = withAutosEditorResumeFromPreview(EDIT_BASE, lang);
+  const editBackHref = buildAutosNegociosEditorResumeHref(EDIT_BASE, lang);
 
   if (!ready) {
     return <div className="min-h-[50vh] bg-[color:var(--lx-page)]" aria-busy="true" />;

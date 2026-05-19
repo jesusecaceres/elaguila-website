@@ -140,3 +140,29 @@ export function clearInventoryAddContextFromSession(): void {
   if (typeof window === "undefined") return;
   window.sessionStorage.removeItem(AUTOS_INVENTORY_ADD_SESSION_KEY);
 }
+
+/** URL params first; fall back to session after preview roundtrip (`resume=1` without query). */
+export function resolveAutosInventoryAddContextForEditor(
+  params: URLSearchParams | { get: (key: string) => string | null },
+): { inventoryModeAdd: boolean; context: AutosInventoryAddContext | null } {
+  const fromUrl = parseAutosInventoryAddSearchParams(params);
+  if (fromUrl.inventoryModeAdd && fromUrl.context) return fromUrl;
+  const session = readInventoryAddContextFromSession();
+  if (session) return { inventoryModeAdd: true, context: session };
+  return { inventoryModeAdd: false, context: null };
+}
+
+/** Editor return from preview — preserves inventory add query when context lives in session. */
+export function buildAutosNegociosEditorResumeHref(basePath: string, lang: "es" | "en"): string {
+  const ctx = readInventoryAddContextFromSession();
+  const p = new URLSearchParams();
+  p.set("lang", lang);
+  p.set("resume", "1");
+  if (ctx) {
+    p.set("inventoryMode", "add");
+    p.set("parentListingId", ctx.parentListingId);
+    if (ctx.returnToListingId?.trim()) p.set("returnToListingId", ctx.returnToListingId.trim());
+    if (ctx.dealerInventoryGroupId?.trim()) p.set("dealerInventoryGroupId", ctx.dealerInventoryGroupId.trim());
+  }
+  return `${basePath}?${p.toString()}`;
+}

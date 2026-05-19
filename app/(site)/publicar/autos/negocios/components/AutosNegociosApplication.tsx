@@ -789,6 +789,7 @@ export function AutosNegociosApplication() {
               inventoryAddMode={inventoryAddMode}
               inventoryAddContext={inventoryAddContext}
               onPreview={async () => {
+                // A5.1: explicit save-before-preview — preview hydrates from localStorage/IDB, not React state.
                 await flushDraft();
                 router.push(previewHref);
               }}

@@ -19,10 +19,14 @@ import { buildVehicleTitle } from "../lib/autoDealerTitle";
 import { createEmptyListing, normalizeLoadedListing } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
 import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
 import { clearAutosDraftNamespaceHint, rememberAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
-import { AUTOS_NEGOCIOS_EDITOR_SESSION_KEY } from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
 import {
-  parseAutosInventoryAddSearchParams,
+  AUTOS_NEGOCIOS_EDITOR_SESSION_KEY,
+  shouldResetAutosDraftForFreshEditorTab,
+} from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
+import { isMeaningfulAutoDealerDraft } from "@/app/clasificados/autos/negocios/lib/isMeaningfulAutoDealerDraft";
+import {
   prefillDealerListingForInventoryAdd,
+  resolveAutosInventoryAddContextForEditor,
   writeInventoryAddContextToSession,
 } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 
@@ -41,9 +45,9 @@ function resumeQueryFlag(): boolean {
   return new URLSearchParams(window.location.search).get("resume") === "1";
 }
 
-function inventoryAddFromLocation(): ReturnType<typeof parseAutosInventoryAddSearchParams> {
+function inventoryAddFromLocation(): ReturnType<typeof resolveAutosInventoryAddContextForEditor> {
   if (typeof window === "undefined") return { inventoryModeAdd: false, context: null };
-  return parseAutosInventoryAddSearchParams(new URLSearchParams(window.location.search));
+  return resolveAutosInventoryAddContextForEditor(new URLSearchParams(window.location.search));
 }
 
 export function useAutoDealerDraft() {
@@ -86,26 +90,48 @@ export function useAutoDealerDraft() {
       if (cancelled) return;
       namespaceRef.current = ns;
 
+      migrateLegacyAutosNegociosDraftJsonToNamespace(ns);
+
       const confirmRoute = isAutosConfirmRoute(pathname);
       const resume = resumeQueryFlag();
+      const freshTab = shouldResetAutosDraftForFreshEditorTab(AUTOS_NEGOCIOS_EDITOR_SESSION_KEY);
       const inventoryAdd = inventoryAddFromLocation();
 
-      if (inventoryAdd.inventoryModeAdd && inventoryAdd.context && !confirmRoute) {
+      /** Preview return or publish confirm — always restore persisted draft. */
+      if (confirmRoute || resume) {
+        await hydrateFromNamespace(ns);
+        if (!cancelled) setHydrated(true);
+        return;
+      }
+
+      /** Inventory child vehicle: keep saved draft; prefill dealer from parent only when no draft yet. */
+      if (inventoryAdd.inventoryModeAdd && inventoryAdd.context) {
         writeInventoryAddContextToSession(inventoryAdd.context);
-        try {
-          window.localStorage.removeItem(LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY);
-        } catch {
-          /* ignore */
+        const existing = await loadAutosNegociosDraftResolved(ns);
+        if (existing) {
+          setVehicleTitleOverride(existing.vehicleTitleOverride);
+          setListing(safeNormalizeAutosDraftListing(existing.listing, "negocios"));
+          if (!cancelled) setHydrated(true);
+          return;
         }
-        clearAutosDraftNamespaceHint("negocios");
-        await clearAutosNegociosDraft(ns);
-        const supabase = createSupabaseBrowserClient();
+
+        if (freshTab) {
+          try {
+            window.localStorage.removeItem(LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY);
+          } catch {
+            /* ignore */
+          }
+          clearAutosDraftNamespaceHint("negocios");
+          await clearAutosNegociosDraft(ns);
+        }
+
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData.session?.access_token;
         if (token) {
-          const r = await fetch(`/api/clasificados/autos/listings/${encodeURIComponent(inventoryAdd.context.parentListingId)}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          const r = await fetch(
+            `/api/clasificados/autos/listings/${encodeURIComponent(inventoryAdd.context.parentListingId)}`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          );
           if (r.ok) {
             const j = (await r.json()) as { listing?: AutoDealerListing };
             if (j.listing) {
@@ -121,20 +147,22 @@ export function useAutoDealerDraft() {
         return;
       }
 
-      if (confirmRoute || resume) {
-        await hydrateFromNamespace(ns);
+      /** First editor mount in this browser tab — start a clean Negocios draft. */
+      if (freshTab) {
+        try {
+          window.localStorage.removeItem(LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY);
+        } catch {
+          /* ignore */
+        }
+        clearAutosDraftNamespaceHint("negocios");
+        await clearAutosNegociosDraft(ns);
+        emptyListing();
         if (!cancelled) setHydrated(true);
         return;
       }
 
-      try {
-        window.localStorage.removeItem(LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY);
-      } catch {
-        /* ignore */
-      }
-      clearAutosDraftNamespaceHint("negocios");
-      await clearAutosNegociosDraft(ns);
-      emptyListing();
+      /** Same-tab remount (e.g. back from preview) — restore without wiping. */
+      await hydrateFromNamespace(ns);
       if (!cancelled) setHydrated(true);
     };
 
@@ -245,6 +273,16 @@ export function useAutoDealerDraft() {
       listing: normalized,
     });
   }, []);
+
+  /** Debounced autosave so preview / same-tab navigation never relies on in-memory state alone. */
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!isMeaningfulAutoDealerDraft(listing)) return;
+    const timer = window.setTimeout(() => {
+      void flushDraft();
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [hydrated, listing, vehicleTitleOverride, flushDraft]);
 
   const inventoryAdd = inventoryAddFromLocation();
 

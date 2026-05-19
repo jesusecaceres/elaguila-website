@@ -89,6 +89,15 @@ const SYNONYM_GROUPS: string[][] = [
   ["consola", "playstation", "xbox", "nintendo", "videojuego"],
   ["cámara", "camara", "camera", "lente", "lens"],
   ["tv", "television", "televisión", "televisor"],
+  ["cafetera", "coffee maker", "coffee-maker", "licuadora", "blender", "batidora", "air fryer", "freidora"],
+  ["ollas", "sartenes", "pots", "pans", "cookware", "platos", "vasos", "dishes"],
+  ["colchon", "colchón", "mattress", "cómoda", "dresser", "buró", "nightstand"],
+  ["carriola", "stroller", "coche bebe", "car seat", "silla auto", "cuna", "crib"],
+  ["taladro", "drill", "lijadora", "sander", "sierra", "saw"],
+  ["bateria auto", "car battery", "frenos", "brakes", "estereo", "stereo", "head unit"],
+  ["caminadora", "treadmill", "mancuernas", "dumbbells", "pesas", "weights", "yoga mat"],
+  ["consola", "playstation", "xbox", "nintendo", "mando", "controller", "lego", "muñeca", "doll"],
+  ["guitarra", "guitar", "piano", "teclado", "keyboard", "vinilo", "vinyl", "acuario", "aquarium"],
 ];
 
 function queryTouchesSynonymGroup(q: string, group: string[]): boolean {
@@ -108,7 +117,9 @@ function queryTouchesSynonymGroup(q: string, group: string[]): boolean {
 export const KEYWORD_TO_DEPT_HINT: Array<{ re: RegExp; dept: EnVentaDepartmentKey }> = [
   { re: /iphone|android|pixel|galaxy|tablet|ipad|macbook|laptop|tv|televisi[oó]n|headphone|aud[ií]fono/i, dept: "electronicos" },
   { re: /electrodom[eé]sticos|refrigerador|nevera|fridge|refrigerator|washer|dryer|lavadora|secadora|estufa|horno|microwave|microondas/i, dept: "hogar" },
-  { re: /sofa|sill[oó]n|colch[oó]n|mesa|silla|escritorio|mueble/i, dept: "muebles" },
+  { re: /sofa|sill[oó]n|colch[oó]n|mesa de centro|mesa comedor|escritorio|mueble|librero|bookshelf/i, dept: "muebles" },
+  { re: /cafetera|licuadora|batidora|freidora|ollas|sartenes|utensilios|platos|vasos|tostadora/i, dept: "hogar" },
+  { re: /toallas|accesorios de baño|shower curtain/i, dept: "hogar" },
   { re: /ropa|zapatos|tenis|chamarra|vestido|bolsa|joyer[ií]a|jewelry|relojes|watches|lentes de sol|sunglasses/i, dept: "ropa-accesorios" },
   { re: /beb[eé]|ni[nñ]o|stroller|coche|car seat|cuna/i, dept: "bebes-ninos" },
   { re: /taladro|sierra|herramienta|dewalt|makita|materiales|construction materials|madera|lumber|tile|azulejo|piso|flooring|fixtures|hardware|ferreter[ií]a/i, dept: "herramientas" },
